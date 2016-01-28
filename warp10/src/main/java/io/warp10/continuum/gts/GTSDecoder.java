@@ -395,6 +395,8 @@ public class GTSDecoder {
             previousLastLongValue = lastLongValue;
             lastLongValue = encoded;
           }
+        } else {
+          previousLastLongValue = lastLongValue;
         }
         break;
         
@@ -415,6 +417,9 @@ public class GTSDecoder {
             previousLastBDValue = lastBDValue;
             lastBDValue = new BigDecimal(new BigInteger(Long.toString(unscaled)), scale);
           }
+        } else {
+          previousLastDoubleValue = lastDoubleValue;
+          previousLastBDValue = lastBDValue;
         }
         break;
         
@@ -434,6 +439,8 @@ public class GTSDecoder {
           buffer.get(utf8);
           previousLastStringValue = lastStringValue;
           lastStringValue = new String(utf8, Charsets.UTF_8);
+        } else {
+          previousLastStringValue = lastStringValue;          
         }
         break;
         
