@@ -1,0 +1,179 @@
+//
+//   Copyright 2016  Cityzen Data
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
+package io.warp10.continuum.egress;
+
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.JettyUtil;
+import io.warp10.continuum.geo.GeoDirectoryClient;
+import io.warp10.continuum.geo.GeoDirectoryThriftClient;
+import io.warp10.continuum.store.DirectoryClient;
+import io.warp10.continuum.store.StoreClient;
+import io.warp10.crypto.KeyStore;
+import io.warp10.quasar.filter.QuasarTokenFilter;
+import io.warp10.script.WarpScriptStack;
+
+import java.util.Properties;
+
+import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.Handler;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.handler.HandlerList;
+import org.eclipse.jetty.servlets.gzip.GzipHandler;
+
+import com.google.common.base.Preconditions;
+
+/**
+ * This is the class which ingests metrics.
+ */
+public class Egress {
+
+  
+  /**
+   * Set of required parameters, those MUST be set
+   */
+  private static final String[] REQUIRED_PROPERTIES = new String[] {
+    Configuration.EGRESS_HOST,
+    Configuration.EGRESS_PORT,
+    Configuration.EGRESS_ACCEPTORS,
+    Configuration.EGRESS_SELECTORS,
+    Configuration.EGRESS_IDLE_TIMEOUT,
+    Configuration.EGRESS_HBASE_DATA_ZKCONNECT,
+    Configuration.EGRESS_HBASE_DATA_ZNODE,
+    Configuration.EGRESS_HBASE_DATA_TABLE,
+    Configuration.EGRESS_HBASE_DATA_COLFAM,
+    Configuration.EGRESS_FETCH_BATCHSIZE,
+    Configuration.DIRECTORY_ZK_QUORUM,
+    Configuration.DIRECTORY_ZK_ZNODE,
+    Configuration.DIRECTORY_PSK,
+    //EGRESS_HBASE_DATA_AES,
+  };
+
+  private final EgressExecHandler egressExecHandler;
+  
+  private final Server server;
+  
+  private final KeyStore keystore;
+  
+  private final Properties properties;
+  
+  public Egress(KeyStore keystore, Properties props) throws Exception {
+
+    this.properties = (Properties) props.clone();
+    this.keystore = keystore;
+    
+    //
+    // Make sure all required configuration is present
+    //
+    
+    for (String required: REQUIRED_PROPERTIES) {
+      Preconditions.checkNotNull(props.getProperty(required), "Missing configuration parameter '%s'.", required);          
+    }
+
+    //
+    // Extract parameters from 'props'
+    //
+    
+    int port = Integer.valueOf(props.getProperty(Configuration.EGRESS_PORT));
+    String host = props.getProperty(Configuration.EGRESS_HOST);
+    int acceptors = Integer.valueOf(props.getProperty(Configuration.EGRESS_ACCEPTORS));
+    int selectors = Integer.valueOf(props.getProperty(Configuration.EGRESS_SELECTORS));
+    long idleTimeout = Long.parseLong(props.getProperty(Configuration.EGRESS_IDLE_TIMEOUT));
+    
+    extractKeys(props);
+    
+    //
+    // Start Jetty server
+    //
+    
+    server = new Server();
+    ServerConnector connector = new ServerConnector(server, acceptors, selectors);
+    connector.setIdleTimeout(idleTimeout);
+    connector.setPort(port);
+    connector.setHost(host);
+    connector.setName("Continuum Egress");
+    
+    server.setConnectors(new Connector[] { connector });
+
+    HandlerList handlers = new HandlerList();
+    
+    DirectoryClient directoryClient = new ThriftDirectoryClient(this.keystore, this.properties);
+    GeoDirectoryClient geoDirectoryClient = new GeoDirectoryThriftClient(keystore, this.properties);
+    StoreClient storeClient = new HBaseStoreClient(this.keystore, this.properties);
+    QuasarTokenFilter tokenFilter = new QuasarTokenFilter(this.properties, this.keystore);
+    
+    Handler cors = new CORSHandler();
+    handlers.addHandler(cors);
+    
+    GzipHandler gzip = new GzipHandler();
+    this.egressExecHandler = new EgressExecHandler(this.keystore, this.properties, directoryClient, geoDirectoryClient, storeClient);
+    gzip.setHandler(this.egressExecHandler);
+    gzip.setBufferSize(65536);
+    gzip.setMinGzipSize(0);
+    handlers.addHandler(gzip);
+        
+    gzip = new GzipHandler();    
+    gzip.setHandler(new EgressFetchHandler(this.keystore, this.properties, directoryClient, storeClient));
+    gzip.setBufferSize(65536);
+    gzip.setMinGzipSize(0);
+    handlers.addHandler(gzip);
+    
+    gzip = new GzipHandler();
+    gzip.setHandler(new EgressFindHandler(this.keystore, directoryClient));
+    gzip.setBufferSize(65536);
+    gzip.setMinGzipSize(0);
+    handlers.addHandler(gzip);
+    
+    EgressMobiusHandler mobiusHandler = new EgressMobiusHandler(storeClient, directoryClient, this.properties);
+    handlers.addHandler(mobiusHandler);
+
+    server.setHandler(handlers);
+    
+    JettyUtil.setSendServerVersion(server, false);
+    
+    try {
+      server.start();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+  
+  /**
+   * Extract Ingress related keys and populate the KeyStore with them.
+   * 
+   * @param props Properties from which to extract the key specs
+   */
+  private void extractKeys(Properties props) {
+    String keyspec = props.getProperty(Configuration.EGRESS_HBASE_DATA_AES);
+    
+    if (null != keyspec) {
+      byte[] key = this.keystore.decodeKey(keyspec);
+      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.EGRESS_HBASE_DATA_AES + " MUST be 128, 192 or 256 bits long.");
+      this.keystore.setKey(KeyStore.AES_HBASE_DATA, key);
+    }
+    
+    keyspec = props.getProperty(Configuration.DIRECTORY_PSK);
+    
+    if (null != keyspec) {
+      byte[] key = this.keystore.decodeKey(keyspec);
+      Preconditions.checkArgument(16 == key.length, "Key " + Configuration.DIRECTORY_PSK + " MUST be 128 bits long.");
+      this.keystore.setKey(KeyStore.SIPHASH_DIRECTORY_PSK, key);
+    }
+    
+    this.keystore.forget();
+  }
+}

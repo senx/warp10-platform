@@ -1,0 +1,449 @@
+/////////////////////////////////////////////////////////////////////////////////////////
+//
+// S T A N D A L O N E
+//
+/////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// 128 bits key for verifying class names, format is hex:hhhhh...hhhh
+//
+warp.hash.class = @key:128:warp.hash.class@
+
+//
+// 128 bits key for verifying labels, format is hex:hhhhh...hhhh
+//
+warp.hash.labels = @key:128:warp.hash.labels@
+
+//
+// 128 bits key for verifying index names, format is hex:hhhhh...hhhh
+//
+warp.hash.index = @key:128:warp.hash.index@
+
+//
+// 128 bits key for verifying tokens, format is hex:hhhhh...hhhh
+//
+warp.hash.token = @key:128:warp.hash.token@
+
+//
+// 128 bits key for verifying app names, format is hex:hhhhh...hhhh
+//
+warp.hash.app = @key:128:warp.hash.app@
+
+//
+// 256 bits key for protecting tokens, format is hex:hhhh...hhhh
+//
+warp.aes.token = @key:256:warp.aes.token@
+
+//
+// 256 bits key to generate secure scripts
+//
+warp.aes.scripts = @key:256:warp.aes.scripts@
+
+//
+// 256 bits key for protecting log messages, format is hex:hhhhh...hhhh
+//
+#warp.aes.logging = @key:256:warp.aes.logging@
+
+//
+// OSS Master Key, used to decrypt any 'wrapped:base64' key
+//
+#oss.master.key = hex:hhhhhh...
+
+//
+// Default maximum number of operations a single WarpScript execution can do
+//
+warpscript.maxops = 1000
+warpscript.maxops.hard = 2000
+
+//
+// Maximum number of buckets which can result of a call to BUCKETIZE
+// Can be modified by MAXBUCKETS up to the hard limit below
+//
+warpscript.maxbuckets = 1000000
+warpscript.maxbuckets.hard = 100000
+
+//
+// Maximum depth of the stack
+// Can be modified by MAXDEPTH up to the hard limit below
+//
+warpscript.maxdepth = 1000
+warpscript.maxdepth.hard = 1000
+
+//
+// Maximum number of datapoint which can be fetched during a WarpScript execution
+// Can be modified by LIMIT up to the hard limit below
+//
+warpscript.maxfetch = 100000
+warpscript.maxfetch.hard = 1000000
+
+//
+// Maximum number of GTS which can be retrieved from Directory during a WarpScript execution
+// Can be modified by MAXGTS up to the hard limit below
+//
+warpscript.maxgts = 100000
+warpscript.maxgts.hard = 100000
+
+//
+// Maximum time (in ms) that can be spent in a loop
+// Can be modified by MAXLOOP up to the hard limit below
+//
+warpscript.maxloop = 5000
+warpscript.maxloop.hard = 10000
+
+//
+// Macro Repository
+//
+warpscript.repository.directory = /opt/warp10-@VERSION@/macros
+warpscript.repository.refresh = 60000
+
+//
+// Maximum levels of recursion in macro calls
+//
+warpscript.maxrecursion = 16
+warpscript.maxrecursion.hard = 32
+
+//
+// Maximum number of symbols which can be defined by a single WarpScript
+// Can be modified by MAXSYMBOLS up to the hard limit below
+warpscript.maxsymbols = 64
+warpscript.maxsymbols.hard = 256
+
+//
+// Maximum number of pixels per image
+//
+warpscript.maxpixels = 1000000
+warpscript.maxpixels.hard = 1000000
+
+warpscript.maxwebcalls = 4
+
+webcall.user.agent = Warp10-WebCall
+
+//
+// List of patterns to include/exclude for hosts in WebCall calls
+//
+// Typical value is .*,!^127.0.0.1$,!^localhost$,!^192.168.*,!^10.*,!^172.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|39|31)\..*
+// 
+//
+webcall.host.patterns = !.*
+
+//
+// Time units of the platform
+// ns means we store nanoseconds
+// us means we store microseconds
+// ms means we store milliseconds
+//
+warp.timeunits = us
+
+//
+// Path of the 'bootstrap' warpscript code for Egress
+//
+warpscript.bootstrap.path = /opt/warp10-@VERSION@/etc/bootstrap/egress.mc2
+
+//
+// How often to reload the bootstrap code (in ms) for Egress
+//
+warpscript.bootstrap.period = 120000
+
+//
+// Path of the 'bootstrap' warpscript code for Mobius
+//
+warpscript.mobius.bootstrap.path = /opt/warp10-@VERSION@/etc/bootstrap/mobius.mc2
+
+//
+// How often to reload the bootstrap code (in ms) for Mobius
+//
+warpscript.mobius.bootstrap.period = 120000
+
+//
+// Path of the 'bootstrap' warpscript code for Runner
+//
+warpscript.runner.bootstrap.path = /opt/warp10-@VERSION@/etc/bootstrap/runner.mc2
+
+//
+// How often to reload the bootstrap code (in ms) for Runner
+//
+warpscript.runner.bootstrap.period = 120000
+
+//
+// URL for the 'update' endpoint
+//
+warpscript.update.endpoint = http://127.0.0.1:8080/api/v0/update
+
+//
+// URL for the 'meta' endpoint
+//
+warpscript.meta.endpoint = http://127.0.0.1:8080/api/v0/meta
+
+//
+// Directory where the leveldb files should be created
+//
+leveldb.home = /opt/warp10-@VERSION@/data
+
+//
+// AES key to use for wrapping metadata prior to storage in leveldb
+//
+#leveldb.metadata.aes = 
+
+//
+// AES key to use for wrapping datapoints prior to storage in leveldb
+//
+#leveldb.data.aes = 
+
+//
+// @deprecated
+// AES key to use for storing index details in leveldb
+//
+#leveldb.index.aes = 
+
+//
+// Cache size for leveldb (in bytes)
+//
+leveldb.cache.size = 1000000000
+
+//
+// Compression type to use for leveldb (SNAPPY/NONE)
+//
+leveldb.compression.type = SNAPPY
+
+//
+// IP to bind to for listening to incoming connections. Use 0.0.0.0 to listen to all interfaces
+//
+standalone.host = 127.0.0.1
+
+//
+// Port to bind to for listening to incoming connections.
+//
+standalone.port = 8080
+
+//
+// Number of Jetty acceptors
+//
+standalone.acceptors = 1
+
+//
+// Idle timeout (in ms)
+//
+standalone.idle.timeout = 30000
+
+//
+// Number of Jetty selectors
+//
+standalone.selectors = 4
+
+//
+// Maximum encoder size (in bytes) for internal data transfers. Use values from 64k to 512k
+//
+standalone.max.encoder.size = 100000
+
+//
+// Path to a file to use for triggering compaction suspension to take snapshots
+//
+standalone.snapshot.trigger = /opt/warp10-@VERSION@/data/snapshot.trigger
+
+//
+// Path to a file to use for signaling that compactions are suspended
+//
+standalone.snapshot.signal = /opt/warp10-@VERSION@/data/snapshot.signal
+
+//
+// Max message size for the stream update websockets
+//
+ingress.websocket.maxmessagesize = 1048576
+
+//
+// Max message size for the Plasma Frontend Websocket
+//
+plasma.frontend.websocket.maxmessagesize = 1048576
+
+//
+// Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.
+//
+in.memory = false
+
+//
+// Depth of timestamps to retain (in ms)
+//
+//in.memory.depth = 
+
+//
+// High water mark in bytes. When memory goes above this threshold, attempts to remove expired datapoints will be
+// done until consumed memory goes below the low water mark (see below) or no more expired datapoints can be found.
+//
+//in.memory.highwatermark = 
+
+//
+// Low water mark in bytes for garbage collection (see above)
+//
+//in.memory.lowwatermark = 
+
+//
+// If set to true, then only the last recorded value of a GTS is kept
+//
+//in.memory.ephemeral = 
+
+//
+// Set to 'true' to only forward data to Plasma. Not data storage will take place.
+//
+//pureplasma = 
+
+//
+// TRL (TOKEN REVOCATION LIST)
+//
+/////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// root directory where trl files are stored.
+//
+# warp.trl.dir = /opt/warp10-@VERSION@/etc/trl
+
+//
+// Period (in ms) between two scans of the trl directory
+//
+# warp.trl.scan.period = 60000
+
+//
+// Delay (in ms) Startup delay authorized without a TRL present
+// during this time tokens are decoded, even if TRL is missing.
+// After this delay, if the TRL is still missing, token decoding is locked.
+//
+// 0 the TRL is mandatory for the token filter startup.
+//
+//
+# warp.trl.startup.delay = 60000
+
+//
+// T H R O T T L I N G    M A N A G E R
+//
+/////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// Name of system property (configuration property) which contains the
+// root directory where throttle files are stored.
+//  
+throttling.manager.dir = /opt/warp10-@VERSION@/etc/throttle
+
+//
+// Period (in ms) between two scans of the THROTTLING_MANAGER_DIR
+//
+throttling.manager.period = 1000
+
+//
+// Ramp up period (in ms) during which we do not push the estimators to Sensision.
+// This period (in ms) should be greater than the period at which the throttling files
+// are updated, so we get a chance to have a merged estimator pushed to us even when
+// we just restarted.
+//
+throttling.manager.rampup = 120000
+
+//
+// Default value for the rate when not configured through a file
+//
+throttling.manager.rate.default = 1000000.0
+
+//
+// Default value for the mads when not configured through a file
+//
+throttling.manager.mads.default = 100000
+
+//
+// G E O D I R
+//
+/////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// Comma separated list of GeoDirectory instances to maintain.
+// Each instance is defined by a string with the following format:
+// 
+// name/resolution/chunks/chunkdepth
+// 
+// name is the name of the GeoDirectory
+// resolution is a number between 1 and 15 defining the resolution of the geo index:
+// 
+// 1 = 10,000 km
+// 2 =  2,500 km
+// 3 =    625 km
+// 4 =    156 km
+// 5 =     39 km
+// 6 =     10 km
+// 7 =  2,441 m
+// 8 =    610 m
+// 9 =    153 m
+// 10=     38 m
+// 11=     10 m
+// 12=    238 cm 
+// 13=     60 cm
+// 14=     15 cm
+// 15=      4 cm
+// 
+// chunks is the number of time chunks to maintain
+// chunkdepth is the time span of each time chunk, in ms
+//
+#standalone.geodirs = 
+
+//
+// Delay in ms between two subscription updates
+//
+#standalone.geodir.delay = 5000
+
+//
+// Maximum number of 'cells' in the query area, system will attempt to reduce the number
+// of cells searched by replacing small cells with their enclosing parent until the number
+// of cells falls below this maximum or no more simplification can be done.
+// 
+// A good value for performance is around 256
+//
+#standalone.geodir.maxcells = 256
+
+//
+// AES encryption key for subscriptions
+//
+#standalone.geodir.aes = hex:hhhh...
+
+//
+// Directory where subscriptions should be stored
+//
+#standalone.geodir.subs.dir = /opt/warp10-@VERSION@/data
+
+//
+// Prefix for subscription files
+//
+#standalone.geodir.subs.prefix =
+
+//
+// R U N N E R
+//
+/////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// String uniquely identifying this instance of ScriptRunner
+//
+runner.id = runner-standalone-1
+
+//
+// Roles of the ScriptRunner instance. Can either be 'standalone' or any combination of 'scheduler' and 'worker'.
+//
+runner.roles = standalone
+
+//
+// Root directory under which scripts to run reside.
+// This directory contains subdirectories, each one of them contains other
+// subdirectories whose name is the periodicity (in ms) at which the scripts under it
+// should be run. The scripts MUST end with the '.mc2' extension.
+//
+runner.root = /opt/warp10-@VERSION@/warpscripts
+
+//
+// Number of threads to use for running scripts.
+//
+runner.nthreads = 1
+
+//
+// How often (in ms) to scan RUNNER_ROOT for new scripts
+//
+runner.scanperiod = 60000
+
+//
+// Minimum period at which a script can be scheduled. Any script scheduled
+// more often than that won't be run
+//
+runner.minperiod = 1000

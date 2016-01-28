@@ -1,0 +1,75 @@
+#!/bin/sh
+
+#
+# Warp 10 - Standalone
+#
+# chkconfig: 2345 90 30
+# description: Manage Standalone instance of Warp 10
+#
+
+#JAVA_HOME=/opt/jdk1.8.0_31
+WARP10_REVISION=@VERSION@
+
+WARP10_HOME=/opt/warp10-@VERSION@
+WARP10_USER=warp10
+WARP10_CONFIG=${WARP10_HOME}/etc/conf-standalone.conf
+WARP10_JAR=${WARP10_HOME}/bin/warp10-${WARP10_REVISION}.jar
+WARP10_CLASS=io.warp10.standalone.Warp
+WARP10_CP=etc:${WARP10_JAR}
+WARP10_HEAP=512m
+
+SENSISION_EVENTS_DIR=/var/run/sensision/metrics
+
+LOG4J_CONF=${WARP10_HOME}/etc/log4j.properties
+JAVA_HEAP_DUMP=${WARP10_HOME}/logs/java.heapdump
+JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP} -XX:+UseG1GC"
+export MALLOC_ARENA_MAX=1
+
+
+start() {
+  if [ -z "$JAVA_HOME" ]; then
+    echo "JAVA_HOME not set";
+    exit 1
+  fi
+  if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '"`" != "" ]
+  then
+    echo "Start failed ! - A Warp 10 instance is currently running"
+    exit 1
+  fi
+  su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${WARP10_CONFIG} >> ${WARP10_HOME}/logs/nohup.out 2>&1 &"
+}
+
+stop() {
+  kill `su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '"`
+}
+
+status() {
+  su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}"
+}
+
+snapshot() {
+  # Name of snapshot
+  SNAPSHOT=$1
+  su ${WARP10_USER} -c "${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT}"
+}
+
+# See how we were called.
+case "$1" in
+  start)
+  start
+  ;;
+  stop)
+  stop
+  ;;
+  status)
+  status
+  ;;
+  snapshot)
+  snapshot "$2"
+  ;;
+  *)
+  echo $"Usage: $0 {start|stop|status|snapshot 'snapshot_name'}"
+  exit 2
+esac
+
+exit $?

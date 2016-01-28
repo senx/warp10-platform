@@ -1,0 +1,235 @@
+//
+//   Copyright 2016  Cityzen Data
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
+package io.warp10.continuum.gts;
+
+import io.warp10.continuum.store.thrift.data.GTSWrapper;
+import io.warp10.continuum.store.thrift.data.Metadata;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
+
+public class GTSWrapperHelper {
+
+  /**
+   * convert a GTSWrapper into GeoTimeSerie
+   * @param wrapper
+   * @return GeoTimeSerie
+   */
+  public static GeoTimeSerie fromGTSWrapperToGTS(GTSWrapper wrapper) {
+
+    Metadata metadata = wrapper.getMetadata();
+    GeoTimeSerie gts = null;
+
+    if (null != wrapper.getEncoded()) {
+
+      byte[] bytes = null;
+      
+      if (wrapper.isCompressed()) {
+        bytes = unwrapEncoded(wrapper);
+      } else {
+        bytes = wrapper.getEncoded();
+      }
+      
+      ByteBuffer bb = ByteBuffer.wrap(bytes);
+      
+      GTSDecoder decoder = new GTSDecoder(wrapper.getBase(), bb);
+
+      decoder.setCount(0 != wrapper.getCount() ? wrapper.getCount() : bytes.length / 10);
+
+      gts = decoder.decode();
+
+    } else {
+      gts = new GeoTimeSerie();
+    }
+
+    if (null == metadata) {
+      metadata = new Metadata();
+    }
+    
+    gts.setMetadata(metadata);
+
+    return gts;
+  }
+
+  public static GTSWrapper fromGTSToGTSWrapper(GeoTimeSerie gts) {
+    return fromGTSToGTSWrapper(gts, false);
+  }
+  
+  /**
+   * convert a GeoTimeSerie into GTSWrapper
+   * @param gts
+   * @return GTSWrapper
+   */
+  public static GTSWrapper fromGTSToGTSWrapper(GeoTimeSerie gts, boolean compress) {
+
+    GTSEncoder encoded = new GTSEncoder(0L);
+
+    GTSWrapper wrapper = new GTSWrapper();
+
+    try {
+      encoded.encode(gts);
+      
+      if (!compress) {
+        wrapper.setEncoded(encoded.getBytes());
+      } else {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        byte[] bytes = encoded.getBytes();
+
+        double ratio = 0.0D;
+        
+        int pass = 0;
+
+        //
+        // We compress the data once, if the compression ratio is greater
+        // than 100, we consider that the resulting compressed data will
+        // probably still have lots of repetitions since we will have
+        // overflowed the gzip sliding window several times, we therefore
+        // enter a loop to compress the data until the compression ratio
+        // false below 1:100
+        // We then store the number of compression passes in the GTSWrapper
+        // so we can apply a matching number of decompression ops
+        //
+        
+        do {
+          ratio = bytes.length;
+          GZIPOutputStream gzos = new GZIPOutputStream(baos);
+          gzos.write(bytes);
+          gzos.close();
+          bytes = baos.toByteArray();
+          baos.reset();
+          ratio = ratio / bytes.length;
+          pass++;
+        } while (ratio >= 100.0D);
+        
+        wrapper.setEncoded(bytes);
+
+        wrapper.setCompressed(true);
+        
+        if (pass > 1) {
+          wrapper.setCompressionPasses(pass); 
+        }
+      }
+      
+      wrapper.setBase(encoded.getBaseTimestamp());
+      wrapper.setCount(encoded.size());
+      wrapper.setMetadata(gts.getMetadata());
+
+      if (GTSHelper.isBucketized(gts)) {
+        wrapper.setBucketcount(gts.bucketcount);
+        wrapper.setBucketspan(gts.bucketspan);
+        wrapper.setLastbucket(gts.lastbucket);
+      }
+
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    return wrapper;
+  }
+
+  /**
+   * Produces a GTSWrapper whose values are those at ticks from the argument only clipped to [from,to].
+   * The bucketization parameters are not modified
+   * 
+   * @param wrapper Source wrapper
+   * @return A new wrapper
+   */
+  public static GTSWrapper clip(GTSWrapper wrapper, long from, long to) {
+    GTSDecoder decoder = new GTSDecoder(wrapper.getBase(), ByteBuffer.wrap(unwrapEncoded(wrapper)));
+    GTSEncoder encoder = wrapper.isSetKey() ? new GTSEncoder(wrapper.getBase(), wrapper.getKey()) : new GTSEncoder(wrapper.getBase());
+    
+    while(decoder.next()) {
+      if (decoder.getTimestamp() >= from && decoder.getTimestamp() <= to) {
+        try {
+          encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+        } catch (IOException ioe) {
+          return null;
+        }
+      }
+    }
+    
+    GTSWrapper clipped = new GTSWrapper();
+    clipped.setBase(wrapper.getBase());
+    clipped.setBucketcount(wrapper.getBucketcount());
+    clipped.setBucketspan(wrapper.getBucketspan());
+    clipped.setCount(encoder.getCount());
+    clipped.setEncoded(encoder.getBytes());
+    clipped.setLastbucket(wrapper.getLastbucket());
+    clipped.setMetadata(new Metadata(wrapper.getMetadata()));
+    if (wrapper.isSetKey()) {
+      clipped.setKey(wrapper.getKey());
+    }
+    
+    return clipped;
+  }
+
+  /**
+   * Extract the encoded data, removing compression if needed
+   * 
+   * @param wrapper from which to extract the encoded data
+   * @return the raw encoded data
+   */
+  private static byte[] unwrapEncoded(GTSWrapper wrapper) {
+    
+    if (!wrapper.isCompressed()) {
+      return wrapper.getEncoded();
+    }
+    
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    
+    byte[] bytes = wrapper.getEncoded();
+   
+    int pass = wrapper.getCompressionPasses();
+    
+    while(pass > 0) {
+      ByteArrayInputStream in = new ByteArrayInputStream(bytes);
+      baos.reset();
+      
+      try {
+        GZIPInputStream gzis = new GZIPInputStream(in);
+        byte[] buf = new byte[1024];
+        
+        while(true) {
+          int len = gzis.read(buf);
+          
+          if (len < 0) {
+            break;
+          }
+          
+          baos.write(buf, 0, len);
+        }
+        
+        gzis.close();          
+      } catch (IOException ioe) {
+        throw new RuntimeException("Invalid compressed content.");
+      }
+      bytes = baos.toByteArray();
+      pass--;
+    }
+
+    return bytes;
+  }
+  
+  public static boolean isBucketized(GTSWrapper gtsWrapper) {
+    return 0 != gtsWrapper.getBucketcount() && 0L != gtsWrapper.getBucketspan() && 0L != gtsWrapper.getLastbucket();
+  }
+
+}

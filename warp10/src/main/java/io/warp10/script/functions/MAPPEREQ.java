@@ -1,0 +1,49 @@
+//
+//   Copyright 2016  Cityzen Data
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
+package io.warp10.script.functions;
+
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.aggregator.FirstEQ;
+
+public class MAPPEREQ extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+  
+  public MAPPEREQ(String name) {
+    super(name);
+  }
+  
+  @Override
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    Object o = stack.pop();
+    
+    if (o instanceof Long) {
+      stack.push(new FirstEQ(getName(), (long) o));
+    } else if (o instanceof Double) {
+      stack.push(new FirstEQ(getName(), (double) o));
+    } else if (o instanceof Boolean) {
+      stack.push(new FirstEQ(getName(), (boolean) o));
+    } else if (o instanceof String) {
+      stack.push(new FirstEQ(getName(), (String) o));
+    } else {
+      throw new WarpScriptException("Can only accept a valid GTS type.");
+    }
+    
+    return stack;
+  }
+}

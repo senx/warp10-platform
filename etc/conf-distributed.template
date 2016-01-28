@@ -1,0 +1,1349 @@
+/////////////////////////////////////////////////////////////////////////////////////////
+//
+// D I S T R I B U T E D
+//
+/////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// Comma separated list of components to run in distributed mode
+// Valid values are 'ingress', 'directory', 'store', 'egress', 'fetch', 'delete', 'plasmaFE', 'plasmaBE', 'runner', 'geodir'
+//
+continuum.components = 
+
+//
+// 128 bits key for verifying class names, format is hex:hhhhh...hhhh
+//
+warp.hash.class = hex:hhhhhh...
+
+//
+// 128 bits key for verifying labels, format is hex:hhhhh...hhhh
+//
+warp.hash.labels = hex:hhhhhh...
+
+//
+// 128 bits key for verifying index names, format is hex:hhhhh...hhhh
+//
+warp.hash.index = hex:hhhhhh...
+
+//
+// 128 bits key for verifying tokens, format is hex:hhhhh...hhhh
+//
+warp.hash.token = hex:hhhhhh...
+
+//
+// 128 bits key for verifying app names, format is hex:hhhhh...hhhh
+//
+warp.hash.app = hex:hhhhhh...
+
+//
+// 256 bits key for protecting tokens, format is hex:hhhh...hhhh
+//
+warp.aes.token = hex:hhhhhh...
+
+//
+// 256 bits key to generate secure scripts
+//
+warp.aes.scripts = hex:hhhhhh...
+
+//
+// 256 bits key for protecting log messages, format is hex:hhhhh...hhhh
+//
+#warp.aes.logging = hex:hhhhhh...
+
+//
+// OSS Master Key, used to decrypt any 'wrapped:base64' key
+//
+#oss.master.key = hex:hhhhhh...
+
+//continuum.token.file = 
+
+//
+// Default maximum number of operations a single WarpScript execution can do
+//
+warpscript.maxops = 1000
+warpscript.maxops.hard = 2000
+
+//
+// Maximum number of buckets which can result of a call to BUCKETIZE
+// Can be modified by MAXBUCKETS up to the hard limit below
+//
+warpscript.maxbuckets = 1000000
+warpscript.maxbuckets.hard = 100000
+
+//
+// Maximum depth of the stack
+// Can be modified by MAXDEPTH up to the hard limit below
+//
+warpscript.maxdepth = 1000
+warpscript.maxdepth.hard = 1000
+
+//
+// Maximum number of datapoint which can be fetched during a WarpScript execution
+// Can be modified by LIMIT up to the hard limit below
+//
+warpscript.maxfetch = 100000
+warpscript.maxfetch.hard = 1000000
+
+//
+// Maximum number of GTS which can be retrieved from Directory during a WarpScript execution
+// Can be modified by MAXGTS up to the hard limit below
+//
+warpscript.maxgts = 100000
+warpscript.maxgts.hard = 100000
+
+//
+// Maximum time (in ms) that can be spent in a loop
+// Can be modified by MAXLOOP up to the hard limit below
+//
+warpscript.maxloop = 5000
+warpscript.maxloop.hard = 10000
+
+//
+// Maximum levels of recursion in macro calls
+//
+warpscript.maxrecursion = 16
+warpscript.maxrecursion.hard = 32
+
+//
+// Maximum number of symbols which can be defined by a single WarpScript
+// Can be modified by MAXSYMBOLS up to the hard limit below
+warpscript.maxsymbols = 64
+warpscript.maxsymbols.hard = 256
+
+//
+// Maximum number of pixels per image
+//
+warpscript.maxpixels = 1000000
+warpscript.maxpixels.hard = 1000000
+
+warpscript.maxwebcalls = 4
+
+webcall.user.agent = Warp10-WebCall
+
+//
+// List of patterns to include/exclude for hosts in WebCall calls
+//
+// Typical value is .*,!^127.0.0.1$,!^localhost$,!^192.168.*,!^10.*,!^172.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|39|31)\..*
+// 
+//
+webcall.host.patterns = !.*
+
+//
+// Time units of the platform
+// ns means we store nanoseconds
+// us means we store microseconds
+// ms means we store milliseconds
+//
+warp.timeunits = 1000
+
+//
+// Path of the 'bootstrap' warpscript code
+//
+warpscript.bootstrap.path = /opt/warp10/etc/hello.mc2
+
+//
+// How often to reload the bootstrap code (in ms)
+//
+warpscript.bootstrap.period = 120000
+
+//
+// URL for the 'update' endpoint
+//
+warpscript.update.endpoint = http://127.0.0.1:8080/api/v0/update
+
+//
+// URL for the 'meta' endpoint
+//
+warpscript.meta.endpoint = http://127.0.0.1:8080/api/v0/meta
+
+//
+// Pre-Shared key for signing fetch requests. Signed fetch request expose owner/producer
+//
+//fetch.psk =
+
+//
+// Maximum number of classes for which to report detailed stats in 'stats'
+//
+directory.stats.class.maxcardinality = 100
+
+//
+// Maximum number of labels for which to report detailed stats in 'stats'
+//
+directory.stats.labels.maxcardinality = 100
+
+//
+// Maximum size of Thrift frame for directory service
+//
+directory.frame.maxlen = 0
+
+//
+// Maximum number of Metadata to return in find responses
+//
+directory.find.maxresults = 100000
+
+//
+// Hard limit on number of find results. After this limit, the find request will fail.
+//
+directory.find.maxresults.hard = 100000
+
+//
+// Zookeeper ZK connect string for Kafka ('metadata' topic)
+//  
+directory.kafka.metadata.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
+
+//
+// Actual 'metadata' topic
+//
+directory.kafka.metadata.topic = metadata
+
+//
+// Key to use for computing MACs (128 bits in hex or OSS reference)
+//
+directory.kafka.metadata.mac = hex:hhhhhh...
+
+//
+// Key to use for encrypting payloads (128/192/256 bits in hex or OSS reference) 
+//
+directory.kafka.metadata.aes = hex:hhhhhh...
+
+//
+// Key to use for encrypting metadata in HBase (128/192/256 bits in hex or OSS reference) 
+//
+directory.hbase.metadata.aes = hex:hhhhhh...
+
+//
+// Kafka group id with which to consume the metadata topic
+//
+directory.kafka.metadata.groupid = directory.metadata-localhost
+
+//
+// Delay between synchronization for offset commit
+//
+directory.kafka.metadata.commitperiod = 1000
+
+//
+// Maximum byte size we allow the pending Puts list to grow to
+//
+directory.hbase.metadata.pendingputs.size = 1000000
+
+//
+// ZooKeeper Quorum for locating HBase
+//
+directory.hbase.metadata.zkconnect = 127.0.0.1:2181
+
+//
+// HBase table where metadata should be stored
+//
+directory.hbase.metadata.table = continuum
+
+//
+// Columns family under which metadata should be stored
+//
+directory.hbase.metadata.colfam = m
+
+//
+// Parent znode under which HBase znodes will be created
+//
+directory.hbase.metadata.znode = /zk/hbase/localhost
+
+//
+// ZooKeeper server list for registering
+//
+directory.zk.quorum = 127.0.0.1:2181
+
+//
+// ZooKeeper znode under which to register
+//
+directory.zk.znode = /zk/warp/localhost/services
+
+//
+// Number of threads to run for ingesting metadata from Kafka
+//
+directory.kafka.nthreads = 1
+
+//
+// Number of threads to run for serving directory requests
+//
+directory.service.nthreads = 12
+
+//
+// Partition of metadatas we focus on, format is MODULUS:REMAINDER
+//
+directory.partition = 1:0
+
+//
+// Port on which the DirectoryService will listen
+//
+directory.port = 8883
+
+//
+// Port the streaming directory service listens to
+//
+directory.streaming.port = 8885
+
+//
+// Number of Jetty selectors for the streaming server
+//
+directory.streaming.selectors = 4
+
+//
+// Number of Jetty acceptors for the streaming server
+//
+directory.streaming.acceptors = 2
+
+//
+// Idle timeout for the streaming directory endpoint
+//
+directory.streaming.idle.timeout = 300000
+
+//
+// Number of threads in Jetty's Thread Pool
+//
+directory.streaming.threadpool = 200
+
+//
+// Maximum size of Jetty ThreadPool queue size (unbounded by default)
+//
+directory.streaming.maxqueuesize = 400
+
+//
+// Address on which the DirectoryService will listen
+//
+directory.host = 127.0.0.1
+
+//
+// Pre-Shared Key (128 bits) for request fingerprinting
+//
+directory.psk = hex:hhhhhh...
+
+//
+// Max age of Find requests
+//
+directory.maxage = 1800000
+
+//
+// Number of threads to use for the initial loading of Metadata
+//
+directory.init.nthreads = 1
+
+//
+// Boolean indicating whether or not we should initialized Directory by reading HBase
+//
+directory.init = true
+
+//
+// Boolean indicating whether or not we should store in HBase metadata we get from Kafka
+//
+directory.store = true
+
+//
+// Boolean indicating whether or not we should do deletions in HBase
+//
+directory.delete = true
+
+//
+// Boolean indicting whether or not we should register in ZK
+//
+directory.register = true
+
+//
+// Class name of directory plugin to use
+//
+#directory.plugin.class = 
+
+//
+// Boolean indicating whether or not we should use the HBase filter when initializing
+//
+directory.hbase.filter = false
+
+//
+// I N G R E S S
+//
+/////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// Path where the metadata cache should be dumped
+//
+ingress.cache.dump.path = /opt/warp10/data/cache.metadata
+
+//
+// Maximum value size of a measurement
+//
+ingress.value.maxsize = 65536
+
+//
+// Identification of Ingress Metadata Update endpoint source
+//
+ingress.metadata.update = http//127.0.0.1:8882/api/v0/update
+
+//
+// Host onto which the ingress server should listen
+//
+ingress.host = 127.0.0.1
+
+//
+// Port onto which the ingress server should listen
+//
+ingress.port = 8882
+
+//
+// Size of metadata cache in number of entries
+//
+ingress.metadata.cache.size = 10000000
+
+//
+// Number of acceptors
+//
+ingress.acceptors = 2
+
+//
+// Number of selectors
+//
+ingress.selectors = 8
+
+//
+// Idle timeout
+//
+ingress.idle.timeout = 300000
+
+//
+// Number of threads in Jetty's Thread Pool
+//
+ingress.jetty.threadpool = 200
+
+//
+// Maximum size of Jetty ThreadPool queue size (unbounded by default)
+//
+ingress.jetty.maxqueuesize = 400
+
+//
+// Max message size for the stream update websockets
+//
+ingress.websocket.maxmessagesize = 1048576
+
+//
+// ZooKeeper server list
+//
+ingress.zk.quorum = 127.0.0.1:2181
+
+//
+// ZooKeeper znode under which to register
+//
+ingress.zk.znode = /zk/hbase/localhost
+
+//
+// ZK Connect String for the metadata kafka cluster
+//
+ingress.kafka.metadata.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
+
+//
+// Kafka broker list for the 'meta' topic
+//
+ingress.kafka.metadata.brokerlist = 127.0.0.1:9092
+
+//
+// Actual 'meta' topic
+//
+ingress.kafka.metadata.topic =  metadata   
+
+//
+// Key to use for computing MACs (128 bits in hex or OSS reference)
+//
+ingress.kafka.metadata.mac = hex:hhhhhh...
+
+//
+// Key to use for encrypting payloads (128/192/256 bits in hex or OSS reference)
+//
+ingress.kafka.metadata.aes = hex:hhhhhh...
+
+//
+// Groupid to use for consuming the 'metadata' topic
+// MUST be unique to each ingress instance
+//
+ingress.kafka.metadata.groupid = ingress.metadata-localhost
+
+//
+// How often to commit the offsets for topic 'metadata' (in ms)
+//
+ingress.kafka.metadata.commitperiod = 1000
+
+//
+// Number of threads to use for consuming the 'metadata' topic
+//
+ingress.kafka.metadata.nthreads = 2
+
+//
+// ZK Connect String for the data kafka cluster
+//
+ingress.kafka.data.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
+
+//
+// Kafka broker list for the 'data' topic
+//
+ingress.kafka.data.brokerlist = 127.0.0.1:9092
+
+//
+// Actual 'data' topic
+//
+ingress.kafka.data.topic = data
+
+//
+// Size of Kafka Producer pool for the 'data' topic
+//
+ingress.kafka.data.poolsize = 2
+
+//
+// Size of Kafka Producer pool for the 'metadata' topic
+//
+ingress.kafka.metadata.poolsize = 2
+
+//
+// Key to use for computing MACs (128 bits in hex or OSS reference)
+//
+ingress.kafka.data.mac = hex:hhhhhh...
+
+//
+// Key to use for encrypting payloads (128/192/256 bits in hex or OSS reference) 
+//
+#ingress.kafka.data.aes = 
+
+//
+// Maximum message size for the 'data' topic
+//
+ingress.kafka.data.maxsize = 900000
+
+//
+// Maximum message size for the 'metadata' topic
+//
+ingress.kafka.metadata.maxsize = 900000
+
+//
+// ZK Connect String for the archive kafka cluster
+//
+ingress.kafka.archive.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
+
+//
+// Kafka broker list for the 'archive' topic
+//
+ingress.kafka.archive.brokerlist = 127.0.0.1:9092
+
+//
+// Actual 'archive' topic
+//
+ingress.kafka.archive.topic = archive
+
+//
+// Key to use for computing archive requests MACs (128 bits in hex or OSS reference)
+//
+ingress.kafka.archive.mac = hex:hhhhhh...
+
+//
+// Key to use for encrypting archive payloads (128/192/256 bits in hex or OSS reference) 
+//
+#ingress.kafka.archive.aes = 
+
+//
+// S T O R E
+//
+/////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// Key for encrypting data in HBase
+//
+#store.hbase.data.aes = 
+
+//
+// Zookeeper ZK connect string for Kafka ('data' topic)
+//  
+store.kafka.data.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
+
+//
+// Kafka broker list for the 'data' topic
+//
+store.kafka.data.brokerlist = 127.0.0.1:9092
+
+//
+// Actual 'data' topic
+//
+store.kafka.data.topic = data
+
+//
+// Key to use for computing MACs (128 bits in hex or OSS reference)
+//
+store.kafka.data.mac = hex:hhhhhh...
+
+//
+// Key to use for encrypting payloads (128/192/256 bits in hex or OSS reference) 
+//
+#store.kafka.data.aes =
+
+//
+// Kafka group id with which to consume the data topic
+//
+store.kafka.data.groupid = store.data
+
+//
+// Delay between synchronization for offset commit
+//
+store.kafka.data.commitperiod = 1000
+
+//
+// Maximum time (in ms) between offset synchronization - MUST be set to a value above that of store.kafka.data.commitperiod
+// This parameter is there to detect calls to HBase which hang, which can happen when a RegionServer dies during a call to 'batch'.
+// The value of this parameter must be set to a value longer than the longest running call to HBase's 'batch' or 'delete', otherwise
+// the valid operations might not finish.
+// Consider it as the time it takes to detect HBase failures. Values of 60000 to 120000 seem good starting points.
+//
+store.kafka.data.intercommits.maxtime = 120000
+
+//
+// Maximum size we allow the Puts list to grow to
+//
+store.hbase.data.maxpendingputssize = 1000000
+
+//
+// How many threads to spawn for consuming
+//
+store.nthreads = 2
+
+//
+// ZooKeeper server list
+//
+store.zk.quorum = 127.0.0.1:2181
+
+//
+// ZooKeeper znode under which to register
+//
+store.zk.znode = /zk/warp/localhost/services
+
+//
+// ZooKeeper connect string for HBase
+//
+store.hbase.data.zkconnect = 127.0.0.1:2181
+
+//
+// HBase table where data should be stored
+//
+store.hbase.data.table = continuum
+
+//
+// Columns family under which data should be stored
+//
+store.hbase.data.colfam = v
+
+//
+// Parent znode under which HBase znodes will be created
+//
+store.hbase.data.znode = /zk/hbase/localhost
+
+//
+// Custom value of 'hbase.hconnection.threads.max' for the Store HBase pool
+//
+store.hbase.hconnection.threads.max = 4
+
+//
+// Custom value of 'hbase.hconnection.threads.core' for the Store HBase pool (MUST be <= STORE_HBASE_HCONNECTION_THREADS_MAX)
+//
+store.hbase.hconnection.threads.core = 4
+
+//
+// P L A S M A
+//
+/////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// ZooKeeper connect string for Kafka consumer
+//
+plasma.frontend.kafka.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
+
+//
+// Kafka topic to consume. This topic is dedicated to this Plasma frontend.
+// One topic per instance of plasma frontend and 'plasma.frontend.kafka.topic' must be equals to 'plasma.backend.kafka.out.topic'
+//
+plasma.frontend.kafka.topic = plasmafe1
+
+//
+// Kafka groupid under which to consume above topic
+//
+plasma.frontend.kafka.groupid = plasmafe-1
+
+//
+// How often (in ms) to commit Kafka offsets
+//
+plasma.frontend.kafka.commitperiod = 1000
+
+//
+// Number of threads used for consuming Kafka topic
+//
+plasma.frontend.kafka.nthreads = 2
+
+//
+// Optional AES key for messages in Kafka
+//
+#plasma.frontend.kafka.aes = 
+
+//
+// ZooKeeper connect String for subscription
+//
+plasma.frontend.zkconnect = 127.0.0.1:2181
+
+//
+// ZooKeeper root znode for subscriptions
+//
+plasma.frontend.znode = /zk/warp/localhost/plasma
+
+//
+// Maximum size of each znode (in bytes)
+//
+plasma.frontend.maxznodesize = 100000
+
+//
+// Host/IP on which to bind
+//
+plasma.frontend.host = 127.0.0.1
+
+//
+// Port on which to listen
+//
+plasma.frontend.port = 8884
+
+//
+// Number of acceptors
+//
+plasma.frontend.acceptors = 2
+
+//
+// Number of selectors
+//
+plasma.frontend.selectors = 4
+
+//
+// Max message size for the Plasma Frontend Websocket
+//
+plasma.frontend.websocket.maxmessagesize = 1048576
+
+//
+// Idle timeout
+//
+plasma.frontend.idle.timout = 300000
+
+//
+// SipHash key for computing MACs of Kafka messages
+//
+plasma.frontend.kafka.mac = hex:hhhh...
+
+plasma.frontend.subscribe.delay = 5000
+
+//
+// Zookeeper ZK connect string for Kafka ('in' topic)
+//  
+plasma.backend.kafka.in.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
+
+//
+// Actual 'in' topic
+//
+plasma.backend.kafka.in.topic = data
+
+//
+// Key to use for computing MACs (128 bits in hex or OSS reference)
+//
+plasma.backend.kafka.in.mac = hex:hhhhhh...
+
+//
+// Key to use for encrypting payloads (128/192/256 bits in hex or OSS reference) 
+//
+#plasma.backend.kafka.in.aes = 
+
+//
+// Kafka group id with which to consume the in topic
+//
+plasma.backend.kafka.in.groupid = plasmabeIn-1
+
+//
+// Delay between synchronization for offset commit
+//
+plasma.backend.kafka.in.commitperiod = 1000
+
+//
+// Number of threads to run for reading off of Kafka
+//
+plasma.backend.kafka.in.nthreads = 2
+
+//
+// Zookeeper ZK connect string for Kafka ('out' topic)
+//  
+plasma.backend.kafka.out.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
+
+//
+// Kafka broker list for the 'out' topic
+//
+plasma.backend.kafka.out.brokerlist = 127.0.0.1:9092
+
+//
+// Maximum size of Kafka outward messages
+//
+plasma.backend.kafka.out.maxsize = 500000
+
+//
+// Actual 'out' topic
+// MUST be equals to 'plasma.frontend.kafka.topic'
+//
+plasma.backend.kafka.out.topic = plasmafe1
+
+//
+// Key to use for computing MACs (128 bits in hex or OSS reference)
+//
+plasma.backend.kafka.out.mac = hex:hhhhhh...
+
+//
+// Key to use for encrypting payloads (128/192/256 bits in hex or OSS reference) 
+//
+#plasma.backend.kafka.out.aes = 
+
+//
+// ZooKeeper Quorum for the ZK ensemble to use for retrieving subscriptions
+//
+plasma.backend.subscriptions.zkconnect = 127.0.0.1:2181
+
+//
+// Parent znode under which subscription znodes will be created
+//
+plasma.backend.subscriptions.znode = /zk/warp/localhost/plasma
+
+
+//
+// R U N N E R
+//
+/////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// ZooKeeper connect string for the leader election among schedulers
+//
+runner.zk.quorum = 127.0.0.1:2181
+
+//
+// Znode to use for the leader election among schedulers
+//
+runner.zk.znode = /zk/warp/localhost/runner
+
+//
+// String uniquely identifying this instance of ScriptRunner
+//
+runner.id = runner-localhost-1
+
+//
+// Roles of the ScriptRunner instance. Can either be 'standalone' or any combination of 'scheduler' and 'worker'.
+//
+runner.roles = standalone
+
+//
+// Root directory under which scripts to run reside. The scripts MUST have a '.mc2' extension
+// and reside in subdirectories of this root directory whose name is the periodicity (in ms) at
+// which to run them.
+//
+#runner.root = 
+
+//
+// Number of threads to use for running scripts.
+//
+runner.nthreads = 1
+
+//
+// How often (in ms) to scan RUNNER_ROOT for new scripts
+//
+runner.scanperiod = 60000
+
+//
+// warpscript endpoint to use for executing the scripts
+//
+runner.endpoint = http://127.0.0.1:8881/api/v0/exec/warpscript
+
+//
+// Minimum period at which a script can be scheduled. Any script scheduled
+// more often than that won't be run
+//
+runner.minperiod = 1000
+
+//
+// ZooKeeper connect string for the Kafka cluster
+//
+runner.kafka.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
+
+//
+// List of Kafka brokers
+//
+runner.kafka.brokerlist = 127.0.0.1:9092
+
+//
+// Size of Kafka producer pool
+//
+runner.kafka.poolsize = 2
+
+//
+// Topic to use to submit the scripts
+//
+runner.kafka.topic = runner
+
+//
+// Groupid to use when consuming scripts
+//
+runner.kafka.groupid = runner
+
+//
+// Number of threads to spawn to consume scripts
+//
+runner.kafka.nthreads = 1
+
+//
+// Commit period for the script topic
+//
+runner.kafka.commitperiod = 1000
+
+//
+// Key for integrity checks
+//
+runner.kafka.mac = hex:hhhhhh...
+
+//
+// Key for encryption of scripts on topic
+//
+#runner.kafka.aes = 
+
+//
+// E G R E S S
+//
+
+//
+// Port onto which the egress server should listen
+//
+egress.port = 8881
+
+//
+// Host onto which the egress server should listen
+//
+egress.host = 127.0.0.1
+
+//
+// Number of acceptors
+//
+egress.acceptors = 2
+
+//
+// Number of selectors
+//
+egress.selectors = 8
+
+//
+// Idle timeout
+//
+egress.idle.timeout = 300000
+
+//
+// ZooKeeper server list
+//
+egress.zk.quorum = 127.0.0.1:2181
+
+//
+// ZooKeeper znode under which to register
+//
+egress.zk.znode = /zk/warp/localhost/services
+
+//
+// Key to use for encrypting data in HBase (128/192/256 bits in hex or OSS reference) 
+//
+#egress.hbase.data.aes = 
+
+//
+// Columns family under which data should be stored
+//
+egress.hbase.data.colfam = v
+
+//
+// HBase table where data should be stored
+//
+egress.hbase.data.table = continuum
+
+//
+// ZooKeeper Quorum for locating HBase
+//
+egress.hbase.data.zkconnect = 127.0.0.1:2181
+
+//
+// Parent znode under which HBase znodes will be created
+//
+egress.hbase.data.znode = /zk/hbase/localhost
+
+//
+// Number of GTS to batch when retrieving datapoints (to mitigate responseTooSlow errors)
+//
+egress.fetch.batchsize = 10000
+
+//
+// Boolean indicating whether or not to use the HBase filter when retrieving rows.
+//
+egress.hbase.filter = true
+
+//
+// T H R O T T L I N G    M A N A G E R
+//
+/////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// Name of system property (configuration property) which contains the
+// root directory where throttle files are stored.
+//  
+throttling.manager.dir = /opt/warp10/etc/throttle
+
+//
+// Period (in ms) between two scans of the THROTTLING_MANAGER_DIR
+//
+throttling.manager.period = 1000
+
+//
+// Ramp up period (in ms) during which we do not push the estimators to Sensision.
+// This period (in ms) should be greater than the period at which the throttling files
+// are updated, so we get a chance to have a merged estimator pushed to us even when
+// we just restarted.
+//
+//throttling.manager.rampup = 120000
+
+//
+// Default value for the rate when not configured through a file
+//
+//throttling.manager.rate.default = 0.0
+
+//
+// Default value for the mads when not configured through a file
+//
+//throttling.manager.mads.default = 0
+
+
+//
+// G E O D I R
+//
+/////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// ZooKeeper connect string for the subscription topic
+//
+geodir.kafka.subs.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
+
+//
+// List of brokers for the subscription topic
+//
+geodir.kafka.subs.brokerlist = 127.0.0.1:9092
+
+//
+// Name of subscription topic
+//
+geodir.kafka.subs.topic = geodir-subscriptions
+
+//
+// Group ID for consuming the subscription topic.
+// MUST be unique per Geo Directory instance
+//
+geodir.kafka.subs.groupid = geodir.subscriptions
+
+//
+// Number of threads to spawn for consuming the subscription topic
+//
+geodir.kafka.subs.nthreads = 1
+
+//
+// How often to commit offsets for the subscription topic (in ms)
+//
+geodir.kafka.subs.commitperiod = 5000
+
+//
+// Key (128 bits) to use for computing MACs of Kafka messages for the subscription topic
+// 
+geodir.kafka.subs.mac = hex:hhhh...
+
+//
+// Key (128, 192 or 256 bits) to use for encryption of Kafka messages for the subscription topic
+//
+#geodir.kafka.subs.aes = hex:hhhh....
+
+//
+// ZooKeeper connect string for the data topic
+//
+geodir.kafka.data.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
+
+//
+// List of brokers for the data topic
+//
+geodir.kafka.data.brokerlist = 127.0.0.1:9092
+
+//
+// Name of the data topic
+//
+geodir.kafka.data.topic = data
+
+//
+// Group ID for consuming the data topic.
+// MUST be unique per Geo Directory instance
+//
+geodir.kafka.data.groupid = geodir.data
+
+//
+// Number of threads to use for consuming the data topic
+//
+geodir.kafka.data.nthreads = 1
+
+//
+// How ofter to commit the offsets for the data topic
+//
+geodir.kafka.data.commitperiod = 1000
+
+//
+// Key (128 bits) to use for computing MACs of Kafka messages for the data topic
+//
+geodir.kafka.data.mac = hex:hhhhhh...
+
+//
+// Key (128, 192 or 256 bits) to use for encryption of Kafka messages of the data topic
+//
+#geodir.kafka.data.aes = 
+
+//
+// Maximum size of a message in the data topic
+//
+geodir.kafka.data.maxsize = 900000
+
+//
+// Id of the Geo Directory instance. MUST be unique across all Geo Directories
+//
+geodir.id = geodir-1
+
+//
+// Name of directory
+//
+geodir.name = geodir
+
+//
+// Number of shards in this Geo Directory instance
+//
+geodir.modulus = 1
+
+//
+// Id of the current shard (in [0,modulus[)
+//
+geodir.remainder = 0 
+
+//
+// Port on which the Geo Directory HTTP endpoint should listen
+//
+geodir.http.port = 8886
+
+//
+// Host on which the Geo Directory HTTP endpoint should listen
+//
+geodir.http.host = 127.0.0.1
+
+//
+// Number of Jetty acceptors
+//
+geodir.acceptors = 2
+
+//
+// Number of Jetty selectors
+//
+geodir.selectors = 4
+
+//
+// Jetty idle timeout (in ms)
+//
+geodir.idle.timeout = 300000
+
+//
+// Port for the Thrift endpoint
+//
+geodir.thrift.port = 8887
+
+//
+// Host for the Thrift endpoint
+//
+geodir.thrift.host = 127.0.0.1
+
+//
+// Maximum number of threads for handling Thrifts requests
+//
+geodir.thrift.maxthreads = 16
+
+//
+// Maximum size of frame in Thrift communications
+//
+geodir.thrift.maxframelen = 8192000
+
+//
+// Maximum number of GeoXP cells a query can span. Areas containing more than
+// that many cells will be simplified prior to performing the search
+//
+geodir.maxcells = 256
+
+//
+// Resolution of the Geo Index (in HHCode levels, even from 2 to 30)
+//
+#geodir.resolution =
+
+//
+// Depth of each of the Geo Directory index chunks in milliseconds
+//
+#geodir.chunk.depth = 
+
+//
+// Number of chunks in the index
+//
+#geodir.chunk.count = 
+
+//
+// Delay between subscription updates
+//
+geodir.period = 5000
+
+//
+// Pre-Shared key for talking to directory
+//
+geodir.directory.psk = hex:hhhh....
+
+//
+// Pre-Shared key for fetching data
+//
+geodir.fetch.psk = hex:hhh.....
+
+//
+// Fetch endpoint to use to fetch data when re-indexing
+//
+geodir.fetch.endpoint = http://127.0.0.1:8080/api/v0/fetch
+
+//
+// ZooKeeper quorum (connect string) to use for the ZK ensemble used to store the subscriptions
+//
+geodir.zk.subs.quorum = 127.0.0.1:2181
+
+//
+// Root Znode to use for storing subscriptions
+//
+geodir.zk.subs.znode = /zk/warp/localhost/geodir
+
+//
+// Max size of the subscription znodes data
+//
+geodir.zk.subs.maxznodesize = 65536
+
+//
+// Key (128, 192 or 256 bits) to use for encrypting the Subscriptions
+//
+#geodir.zk.subs.aes = hex:hhhh...
+
+//
+// ZooKeeper quorum (connect string) to use for the ZK ensemble used to make ourselves known to PlasmaBE
+//
+geodir.zk.plasma.quorum = 127.0.0.1:2181
+
+//
+// ZNode where plasma subscriptions should be done
+//
+geodir.zk.plasma.znode = /zk/warp/localhost/plasma
+
+//
+// Max size of each plasma subscription znode
+//
+geodir.zk.plasma.maxznodesize = 65536
+
+//
+// ZooKeeper quorum to use for the ZK ensemble we will use for registration
+//
+geodir.zk.service.quorum = 127.0.0.1:2181
+
+//
+// Registration znode
+//
+geodir.zk.service.znode = /zk/warp/localhost/services
+
+//
+// ZooKeeper quorum to use for finding the directory to talk to (MUST be the same Directory used for registration)
+//
+geodir.zk.directory.quorum = 127.0.0.1:2181
+
+//
+// ZNode where Directory instances register
+//
+geodir.zk.directory.znode = /zk/warp/localhost/services
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// Jar Repository
+//
+
+#warpscript.jars.directory = 
+#warpscript.jars.refresh = 60000
+#warpscript.jars.fromclasspath = 
+
+//
+// Macro Repository
+//
+
+#warpscript.repository.directory = 
+#warpscript.repository.refresh = 60000
+
+//
+// Header containing the request UUID when calling the endpoint
+//
+#http.header.webcall.uuid = 
+
+//
+// HTTP Header for elapsed time of warpscript scripts
+//  
+#http.header.elapsed = 
+
+//
+// Script line where an error was encountered
+//
+#http.header.error.line = 
+
+//
+// Message for the error that was encountered
+//
+#http.header.error.message = 
+
+//
+// HTTP Header for access tokens
+//
+#http.header.token = 
+
+//
+// HTTP Header to provide the token for outgoing META requests
+//
+#http.header.token.META = 
+
+//
+// HTTP Header to provide the token for outgoing UPDATE requests
+//
+#http.header.token.UPDATE = 
+
+//
+// HTTP Header for access tokens used for archival
+//
+#http.header.token.archive = 
+
+//
+// HTTP Header for setting the base timestamp for relative timestamps
+//
+#http.header.now = 
+
+//
+// Name of header containing the signature of the token used for the fetch
+//
+#http.header.fetch.signature = 
+
+//
+// Name of header containing the signature of the token used for the update
+//
+#http.header.update.signature = 
+
+//
+// Name of header containing the signature of streaming directory requests
+//
+#http.header.directory.signature =   

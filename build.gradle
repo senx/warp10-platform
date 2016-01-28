@@ -1,0 +1,646 @@
+//
+//   Copyright 2016  Cityzen Data
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+}
+plugins {
+    id "com.jfrog.bintray" version "1.4"
+}
+
+subprojects {
+    apply plugin: 'java';
+    apply plugin: 'eclipse';
+    apply plugin: 'idea';
+    apply plugin: 'maven';
+    apply plugin: 'maven-publish';
+    apply plugin: 'com.jfrog.bintray'
+
+    group = 'io.warp10'
+
+    sourceCompatibility = 1.7
+    targetCompatibility = 1.7
+
+    //map key = archive base name : value a artifact version
+    ext {
+        warp10Version = [:]
+        commonVersion = getVersionName('')
+        warp10Version['warp10'] = commonVersion
+        warp10Version['warpscript'] = commonVersion
+        warp10Version['hbaseFilters'] = commonVersion
+        warp10Version['crypto'] = commonVersion
+        warp10Version['token'] = commonVersion
+
+        stagingUser = project.hasProperty('stagingUser') ? project.property('stagingUser') : System.getenv('STAGEING_USER')
+        stagingURL = project.hasProperty('stagingURL') ? project.property('stagingURL') : System.getenv('STAGEING_URL')
+
+        if (stagingUser == null || stagingURL == null) {
+            stagingUser = ''
+            stagingURL = ''
+        }
+
+        gradle.taskGraph.whenReady { graph ->
+            println "building warp10 version=$version"
+            if (graph.hasTask(uploadArchives) || graph.hasTask(bintrayUpload)) {
+                //if (!(version ==~ /\d+\.\d+\.\d+\-\d+\-\w+/)) {
+                //    throw new GradleException("Cannot upload archive: version ${version} is not correct (X.X.X-X-X)")
+                //}
+
+                if (!isGitRepoSynced()) {
+                    throw new GradleException("Cannot upload archive: local repo contains uncommited files (git status -u no --porcelain)")
+                }
+            }
+
+        }
+    }
+
+    //
+    // Configurations scp uploadArchives task
+    //
+    configurations {
+        deployerJars
+    }
+
+    //
+    // Repositories for dependency resolution For all subprojects
+    repositories {
+        jcenter()
+        maven {
+            url 'https://repository.apache.org/content/groups/public'
+        }
+        mavenCentral()
+        mavenLocal()
+        maven {
+            url "http://maven.twttr.com"
+        }
+        // bedatadriven - http://www.renjin.org/#downloads
+        maven {
+            url "http://nexus.bedatadriven.com/content/groups/public/"
+        }
+        maven {
+            url "http://repo.opengeo.org/"
+        }
+
+        maven {
+            url 'https://dl.bintray.com/hbs/maven'
+        }
+
+        maven {
+            url 'https://dl.bintray.com/cityzendata/maven'
+        }
+        //maven {
+        //  url "https://repository.apache.org/content/repositories/orgapachehbase-1065"
+        //}
+    }
+
+    //
+    // Force versions
+    //
+    configurations.all {
+        resolutionStrategy {
+            // fail eagerly on version conflict (includes transitive dependencies)
+            // e.g. multiple different versions of the same dependency (group and name are equal)
+            //failOnVersionConflict()
+
+            // force certain versions of dependencies (including transitive)
+            //  *append new forced modules:
+            // This is needed to force Guava to 15.0 and not 17.0 as Renjin pulls
+            // HBase does not work with > 15.0
+            force 'com.google.guava:guava:15.0'
+        }
+    }
+
+
+    // GLOBAL DEPENDENCIES
+    dependencies {
+        //UPLOAD ARTIFACTS THROUGH SSH
+        deployerJars 'org.apache.maven.wagon:wagon-ssh-external:2.8'
+    }
+   
+    // COMPILE OPTIONS
+    compileJava {
+      if (null != System.getProperty("nojvmDebug")) {
+        options.compilerArgs << '-g:none'
+      } else {
+        options.compilerArgs << '-g'
+      }
+
+      //options.debug = false;
+      //options.optimize = false;
+      //options.debugOptions.debugLevel = ''
+    }
+ 
+    //
+    // IDE CONFIGURATIONS 
+    //
+    // IDEA DEFAULT CONFIGURATION
+    idea {
+        module {
+            inheritOutputDirs = true
+        }
+    }
+    // ECLIPSE
+    eclipse {
+      classpath {
+        //customizing the classes output directory:
+        defaultOutputDir = file('build-eclipse')
+
+        //default settings for downloading sources and Javadoc:
+        downloadSources = true
+        downloadJavadoc = false
+      }
+    }
+    
+    // global tasks
+    //
+    // MUST appear before task dependencies can be defined
+    //
+    task generateThrift << {
+        // Delete the thrift dir if exists
+        if (thriftOutputDir.exists()) {
+            thriftOutputDir.deleteDir()
+        }
+        thriftOutputDir.mkdirs()
+
+        ext.thriftFiles = fileTree(dir: 'src/main/thrift').matching { include '**/*.thrift' }
+        thriftFiles.collect {
+            ext.file = relativePath(it)
+            exec {
+                executable = '/opt/thrift-0.9.1/bin/thrift'
+                args = ['--gen', 'java:hashcode,private-members', '-o', thriftOutputDir, ext.file]
+            }
+        }
+    }
+
+    // DEPLOY ON MAVEN REPO WITH SCP
+    uploadArchives {
+        repositories {
+            repositories.mavenDeployer {
+                configuration = configurations.deployerJars
+                uniqueVersion = false
+
+                repository(url: "scpexe://${stagingURL}") {
+                    authentication(userName: "${stagingUser}")
+                }
+            }
+        }
+    }
+
+    // DEPLOY ON BINTRAY
+    bintray {
+        user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+        key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+
+        dryRun = false
+
+        publications = ['crypto', 'token']
+
+        pkg {
+            repo = 'maven'
+            name = 'warp10'
+            licenses = ['Apache-2.0']
+            vcsUrl = 'https://github.com/cityzendata/warp10-platform.git'
+            version {
+                released  = new Date()
+            }
+        }
+    }
+}
+
+// ------------------------------------------------------------------
+//                    AUTO RELEASE MANAGEMENT
+// Gets the version name from the latest Git tag
+// if no commit occurs -> the name of the tag likes 0.0.1
+// if commit occurs -> 0.0.1-12-aabb1122 (number of commits + version number)
+// ------------------------------------------------------------------
+def getVersionName(String revision) {
+    String newRevision = revision
+
+    if (!revision.endsWith('SNAPSHOT')) {
+        def stdout = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'describe', '--tags', '--always'
+            standardOutput = stdout
+        }
+        newRevision = stdout.toString().trim()
+    }
+    return newRevision
+}
+
+def updateRevision(String revision) {
+    //
+    // update Revision File
+    //
+    File versionFile = new File(rootProject.projectDir, "warp10/src/main/java/io/warp10/Revision.java")
+    String fileContent = versionFile.text
+    String newContent = fileContent.replaceAll(/(REVISION = ")(.*)(";)/){
+        fullMatch, varName, oldVersion, endLine -> return "$varName$revision$endLine"
+    }
+    versionFile.write(newContent)
+
+    return revision
+}
+
+//
+// Check local git repo is synced with the remote
+//
+def isGitRepoSynced() {
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'status', '-u', 'no', '--porcelain'
+        standardOutput = stdout
+    }
+
+    //
+    // Exclude Revision.java & gradle.properties
+    //
+    String val = stdout.toString().replaceAll(/.*\/Revision.java\n/, '')
+    val = val.replaceAll(/.*\/gradle.properties\n/, '')
+
+    return (0 == val.trim().size())
+}
+
+
+// ------------------------------------------------------------------
+// ----------------------------- WARP 10 ----------------------------
+// ------------------------------------------------------------------
+project(':warp10') {
+    archivesBaseName = 'warp10'
+    version = updateRevision(getVersionName(warp10Version[archivesBaseName]))
+
+    //
+    // Configurations
+    //
+    configurations {
+        provided
+    }
+
+    // ---------------- Constants ----------------
+    ext.thriftOutputDir = new File('warp10/src/generated/thrift');
+
+    sourceSets {
+        main {
+            compileClasspath += configurations.provided
+            java {
+                srcDirs 'src/generated/thrift/gen-java'
+            }
+        }
+    }
+
+    dependencies {
+        provided group: 'javax.servlet', name: 'servlet-api', version: '2.5'
+
+        //
+        // io.warp10 dependencies
+        //
+        compile group: 'io.warp10', name: 'crypto', version: warp10Version['crypto']
+        compile group: 'io.warp10', name: 'token', version: warp10Version['token']
+        compile group: 'io.warp10', name: 'sensision', version: '1.0.0'
+
+        //compile group: 'org.xerial.snappy', name: 'snappy-java', version: '1.0.4.1'
+        compile group: 'joda-time', name: 'joda-time', version: '2.2'
+        compile group: 'junit', name: 'junit', version: '4.4'
+        compile group: 'com.google.inject', name: 'guice', version: '3.0'
+        compile group: 'com.google.inject.extensions', name: 'guice-servlet', version: '3.0'
+        compile group: 'org.apache.commons', name: 'commons-math3', version: '3.3'
+
+
+        compile group: 'org.bouncycastle', name: 'bcprov-jdk16', version: '1.46'
+
+        //
+        // Processing
+        //
+        compile group: 'org.processing', name: 'core', version: '3.0'
+
+        //
+        // Reinjin
+        //
+        compile group: 'org.renjin', name: 'renjin-script-engine', version: '0.7.1548'
+
+        //
+        // Lua
+        //
+        compile group: 'org.luaj', name: 'luaj-jse', version: '3.0.1'
+
+        //
+        // Ruby
+        //
+        compile group: 'org.jruby', name: 'jruby-complete', version: '9.0.0.0.rc2'
+
+        //
+        // Python
+        //
+        compile group: 'org.python', name: 'jython', version: '2.7.0'
+
+        //
+        // Lz4, pure Java implementation
+        //
+        //compile group: 'net.jpountz.lz4', name: 'lz4', version: '1.2.0'
+
+        //
+        // HBase 1.0.0
+        //
+        compile group: 'org.apache.hbase', name: 'hbase-client', version: '1.0.0'
+        compile group: 'org.apache.hbase', name: 'hbase-examples', version: '1.0.0'
+        compile group: 'org.apache.hbase', name: 'hbase-common', version: '1.0.0'
+        compile group: 'org.apache.hbase', name: 'hbase-protocol', version: '1.0.0'
+
+        // Consider using -indy version of groovy-all
+        compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.1.6'
+        compile group: 'org.fusesource.jansi', name: 'jansi', version: '1.6'
+        //compile group: 'org.mvel', name: 'mvel2', version: '2.1.5.Final'
+        compile group: 'com.esotericsoftware.kryo', name: 'kryo', version: '2.21'
+        compile group: 'org.eclipse.jetty', name: 'jetty-server', version: '9.0.5.v20130815'
+        compile group: 'org.eclipse.jetty', name: 'jetty-servlets', version: '9.0.5.v20130815'
+        compile group: 'org.eclipse.jetty.websocket', name: 'websocket-server', version: '9.0.5.v20130815'
+        compile group: 'org.eclipse.jetty.websocket', name: 'websocket-client', version: '9.0.5.v20130815'
+        compile group: 'com.netflix.curator', name: 'curator-x-discovery', version: '1.3.3'
+        //compile group: 'com.google.code.gson', name: 'gson', version: '2.2.4'
+        compile group: 'io.fastjson', name: 'boon', version: '0.14'
+        compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.5'
+
+        //
+        // FFT
+        //
+        compile group: 'com.github.rwl', name: 'jtransforms', version: '2.4.0'
+
+        //
+        // LevelDB
+        //
+        //compile group: 'leveldb', name: 'leveldb', version: '0.7-SNAPSHOT-uber'
+        compile group: 'org.fusesource.leveldbjni', name: 'leveldbjni-all', version: '1.7'
+        compile group: 'org.iq80.leveldb', name: 'leveldb', version: '0.6'
+        compile group: 'org.xerial.snappy', name: 'snappy-java', version: '1.0.5'
+        compile group: 'org.iq80.snappy', name: 'snappy', version: '0.3'
+
+        //
+        // Worf
+        //
+        compile group: 'jline', name: 'jline', version: '2.13'
+
+        //
+        // Mustache
+        //
+
+        compile group: 'com.github.spullara.mustache.java', name: 'compiler', version: '0.9.1'
+
+        //
+        // Twitter4J
+        //
+        compile group: 'org.twitter4j', name: 'twitter4j-core', version: '4.0.4'
+
+        //
+        // Geo
+        //
+        compile group: 'com.geoxp', name: 'geoxplib', version: '1.0.0-rc1'
+
+        // @see http://www.mail-archive.com/dev@kafka.apache.org/msg03829.html
+        compile("org.apache.kafka:kafka_2.9.2:0.8.1.1") {
+            exclude module: 'jms'
+            exclude module: 'jmxtools'
+            exclude module: 'jmxri'
+        }
+    }
+
+    jar {
+        zip64 = true
+
+        manifest {
+            attributes(
+                    "Implementation-Title": "Warp10",
+                    "Implementation-Vendor": "Warp 10",
+                    "Implementation-Version": version)
+        }
+    }
+
+    task pack(type: Jar) {
+        zip64 = true
+        ext.warpSuffixName = null != System.getProperty('warp') ? System.getProperty('warp') : ""
+        appendix = "${warpSuffixName}"
+
+        manifest {
+            attributes("Main-Class": "io.warp10.standalone.Warp")
+            attributes("Implementation-Title": "Warp 10")
+            attributes("Implementation-Version": version)
+        }
+
+        from files(sourceSets.main.output.classesDir)
+        from {
+            configurations.compile.collect {
+                it.isDirectory() ? it : zipTree(it).matching {
+                    exclude { it.toString().contains('servlet-api') }
+                    exclude { it.toString().contains('jmh') }
+                    exclude { it.toString().contains('junit') }
+                    exclude { it.toString().contains('parquet') }
+                }
+            }
+        } {
+            exclude 'META-INF/*.DSA'
+            exclude 'META-INF/*.RSA'
+            exclude 'about.html'
+            exclude 'about_files/**'
+            exclude 'plugin.properties'
+            exclude 'jetty-dir.css'
+        }
+        with jar
+    }
+
+    task createTarArchive(type: Exec, dependsOn: pack) {
+        workingDir = '.'
+        commandLine = [ "${workingDir}/src/main/sh/package.sh", getVersionName(warp10Version['warp10']), "${buildDir}/.."]
+    }
+
+    bintray {
+        dryRun = false
+
+        user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+        key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+
+        filesSpec {
+            from 'build/libs'
+            include 'warp10-' + getVersionName(warp10Version['warp10']) + '.tar.gz'
+            into '.'
+        }
+
+        pkg {
+            repo = 'generic'
+            name = 'warp10'
+            licenses = ['Apache-2.0']
+            vcsUrl = 'https://github.com/cityzendata/warp10-platform.git'
+            version {
+                name = getVersionName(warp10Version['warp10'])
+                released  = new Date()
+                vcsTag = getVersionName(warp10Version['warp10'])
+            }
+        }
+    }
+
+    //
+    // Tasks dependencies
+    //
+    compileJava.dependsOn generateThrift;
+    uploadArchives.dependsOn pack
+    bintrayUpload.dependsOn createTarArchive
+}
+
+// ------------------------------------------------------------------
+// ------------------------- WARPSCRIPT -----------------------------
+// ------------------------------------------------------------------
+project(':warpscript') {
+    archivesBaseName = 'warpscript'
+    group = 'io.warp'
+    version = getVersionName(warp10Version[archivesBaseName])
+
+    dependencies {
+        compile project(':warp10')
+    }
+
+    jar {
+        from project(":warp10").sourceSets.main.output
+        zip64 = true
+
+        manifest {
+            attributes(
+                    "Implementation-Title": "WarpScript",
+                    "Implementation-Vendor": "Warp 10",
+                    "Implementation-Version": version)
+        }
+
+
+        include 'io/warp10/script/**'
+        include 'io/warp10/gts/**'
+        include 'io/warp10/continuum/TimeSource.class'
+        include 'io/warp10/continuum/Launcher.class'
+        include 'io/warp10/continuum/Tokens.class'
+        include 'io/warp10/continuum/Tokens$*'
+        include 'io/warp10/script/**'
+        include 'io/warp10/continuum/gts/**'
+        include 'io/warp10/continuum/store/Constants.class'
+//        include 'io/warp10/crypto/**'
+        include 'io/warp10/continuum/store/DirectoryClient.class'
+        include 'io/warp10/continuum/store/GTSDecoderIterator.class'
+        include 'io/warp10/continuum/store/GTSDecoderIterator.class'
+        include 'io/warp10/continuum/store/thrift/data/**'
+        include 'io/warp10/warp/sdk/**'
+        include 'io/warp10/continuum/geo/GeoDirectoryClient.class'
+        include 'io/warp10/continuum/geo/GeoDirectoryThriftClient.class'
+        include 'io/warp10/continuum/store/StoreClient.class'
+    }
+
+}
+
+// ------------------------------------------------------------------
+// --------------------- CRYPTO UTILS OF WARP10 ---------------------
+// ------------------------------------------------------------------
+project(':crypto') {
+    archivesBaseName = 'crypto'
+    version = getVersionName(warp10Version[archivesBaseName])
+    //
+    // Project dependencies
+    //
+    dependencies {
+        testCompile group: 'junit', name: 'junit', version: '4.6'
+
+        // UTILS
+        compile group: 'com.google.guava', name: 'guava', version: '15.0'
+
+        // CRYPTO JAVA PROVIDER
+        compile group: 'org.bouncycastle', name: 'bcprov-jdk16', version: '1.46'
+
+        // OSS
+        compile group: 'com.geoxp.oss', name: 'oss-client', version: '1.0.0'
+    }
+
+    jar {
+        zip64 = true
+        manifest {
+            attributes(
+                    "Implementation-Title": "Warp10-crypto",
+                    "Implementation-Vendor": "Warp 10",
+                    "Implementation-Version": version)
+        }
+    }
+
+    publishing {
+        publications {
+            crypto(MavenPublication) {
+                from components.java
+                groupId 'io.warp10'
+                artifactId archivesBaseName
+                version version
+            }
+        }
+    }
+}
+
+// ------------------------------------------------------------------
+// --------------------- TOKEN UTILS OF WARP10 ---------------------
+// ------------------------------------------------------------------
+project(':token') {
+    archivesBaseName = 'token'
+    version = getVersionName(warp10Version[archivesBaseName])
+
+    // ---------------- Constants ----------------
+    ext.thriftOutputDir = new File('token/src/generated/thrift');
+
+    sourceSets {
+        main {
+            java {
+                srcDirs 'src/generated/thrift/gen-java'
+            }
+        }
+    }
+
+    dependencies {
+        // GROOVY DEPENDENCIES IN TEST ONLY
+        testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.1'
+        testCompile group: 'junit', name: 'junit', version: '4.6'
+
+        // WARP10 DEPENDENCIES
+        compile group: 'io.warp10', name: 'crypto', version: warp10Version['crypto']
+        compile group: 'io.warp10', name: 'sensision', version: '1.0.0'
+
+        compile group: 'org.apache.thrift', name: 'libthrift', version: '0.9.1'
+    }
+
+    jar {
+        zip64 = true
+        manifest {
+            attributes(
+                    "Implementation-Title": "Warp10-token",
+                    "Implementation-Vendor": "Warp 10",
+                    "Implementation-Version": version)
+        }
+    }
+
+    publishing {
+        publications {
+            token(MavenPublication) {
+                from components.java
+                groupId 'io.warp10'
+                artifactId archivesBaseName
+                version version
+            }
+        }
+    }
+
+    //
+    // Compile task dependency
+    //
+    compileJava.dependsOn generateThrift;
+}

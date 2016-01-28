@@ -1,0 +1,16 @@
+.gradle/
+build/
+bin/
+out/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+.project
+.classpath
+.metadata
+.settings/
+.idea/
+generated/
+warp10/src/main/java/io/warp10/Revision.java
+gradle.properties
