@@ -63,6 +63,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
@@ -1107,6 +1108,13 @@ public class Ingress extends AbstractHandler implements Runnable {
           }
           sb.setLength(0);
           GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
+          
+          if (metadata.getAttributesSize() > 0) {
+            GTSHelper.labelsToString(sb, metadata.getAttributes());
+          } else {
+            sb.append("{}");
+          }
+
           pw.write(sb.toString());
           pw.write("\r\n");
           gts++;

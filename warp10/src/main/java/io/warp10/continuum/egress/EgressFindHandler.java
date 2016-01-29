@@ -159,6 +159,8 @@ public class EgressFindHandler extends AbstractHandler {
           
           if (metadata.getAttributesSize() > 0) {
             GTSHelper.labelsToString(sb, metadata.getAttributes());
+          } else {
+            sb.append("{}");
           }
           
           pw.println(sb.toString());

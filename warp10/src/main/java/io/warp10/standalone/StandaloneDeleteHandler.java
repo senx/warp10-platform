@@ -276,6 +276,13 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         count += this.storeClient.delete(writeToken, metadata, start, end);
         sb.setLength(0);
         GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
+        
+        if (metadata.getAttributesSize() > 0) {
+          GTSHelper.labelsToString(sb, metadata.getAttributes());
+        } else {
+          sb.append("{}");
+        }
+        
         pw.write(sb.toString());
         pw.write("\r\n");
         metas.append(sb);
