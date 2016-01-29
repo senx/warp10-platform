@@ -23,6 +23,7 @@ import io.warp10.continuum.ThrottlingManager;
 import io.warp10.continuum.egress.CORSHandler;
 import io.warp10.continuum.egress.EgressExecHandler;
 import io.warp10.continuum.egress.EgressFetchHandler;
+import io.warp10.continuum.egress.EgressFindHandler;
 import io.warp10.continuum.egress.EgressMobiusHandler;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.StoreClient;
@@ -307,6 +308,12 @@ public class Warp extends WarpDist implements Runnable {
 
     gzip = new GzipHandler();
     gzip.setHandler(new EgressFetchHandler(keystore, properties, sdc, scc));
+    gzip.setBufferSize(65536);
+    gzip.setMinGzipSize(0);
+    handlers.addHandler(gzip);
+
+    gzip = new GzipHandler();
+    gzip.setHandler(new EgressFindHandler(keystore, sdc));
     gzip.setBufferSize(65536);
     gzip.setMinGzipSize(0);
     handlers.addHandler(gzip);
