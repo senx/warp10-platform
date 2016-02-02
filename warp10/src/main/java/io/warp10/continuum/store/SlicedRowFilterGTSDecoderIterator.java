@@ -108,6 +108,8 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
     // matching row has been reached
     //
     
+    // 128BITS
+    
     int[] bounds = { 0, 24 };
     
     //
@@ -122,6 +124,7 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
     byte[] prefix = Store.HBASE_RAW_DATA_KEY_PREFIX;
     
     for (Metadata metadata: metadatas) {
+      // 128BITS
       byte[] lower = new byte[24 + prefix.length];
       byte[] upper = new byte[lower.length];
       
@@ -262,6 +265,7 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
           long basets = Long.MAX_VALUE;
           
           if (1 == Constants.DEFAULT_MODULUS) {
+            // 128BITS
             byte[] data = cell.getRowArray();
             int offset = cell.getRowOffset();
             offset += Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8; // Add 'prefix' + 'classId' + 'labelsId' to row key offset
