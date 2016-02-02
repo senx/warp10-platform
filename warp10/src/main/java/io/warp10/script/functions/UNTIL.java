@@ -79,8 +79,8 @@ public class UNTIL extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     while (true) {
       
-      if (System.currentTimeMillis() - now > this.maxtime) {
-        throw new WarpScriptException(getName() + " executed for too long (> " + this.maxtime + " ms).");
+      if (System.currentTimeMillis() - now > maxtime) {
+        throw new WarpScriptException(getName() + " executed for too long (> " + maxtime + " ms).");
       }
       
       //
