@@ -81,6 +81,8 @@ public class BootstrapManager extends Thread {
         stack.exec(line);
       }
       
+      br.close();
+      
       //
       // Retrieve the stack context
       //
