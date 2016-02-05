@@ -90,7 +90,7 @@ public class EgressExecHandler extends AbstractHandler {
       
       final String path = properties.getProperty(Configuration.CONFIG_WARPSCRIPT_BOOTSTRAP_PATH);
       
-      long period = properties.containsKey(Configuration.CONFIG_WARPSCRIPT_BOOTSTRAP_PERIOD) ?  Long.parseLong(properties.getProperty(Configuration.CONFIG_WARPSCRIPT_BOOTSTRAP_PERIOD)) : Long.MAX_VALUE;
+      long period = properties.containsKey(Configuration.CONFIG_WARPSCRIPT_BOOTSTRAP_PERIOD) ?  Long.parseLong(properties.getProperty(Configuration.CONFIG_WARPSCRIPT_BOOTSTRAP_PERIOD)) : 0L;
       this.bootstrapManager = new BootstrapManager(path, period);      
     } else {
       this.bootstrapManager = new BootstrapManager();

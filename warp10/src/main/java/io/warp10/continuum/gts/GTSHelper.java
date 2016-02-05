@@ -5956,7 +5956,7 @@ public class GTSHelper {
       // Generate bSAX words
       //
       
-      String word = new String(OrderPreservingBase64.encode(SAXUtils.bSAX(levels, symbols)));
+      String word = new String(OrderPreservingBase64.encode(SAXUtils.bSAX(levels, symbols)), Charsets.US_ASCII);
       
       GTSHelper.setValue(saxGTS, gts.ticks[i], word);      
     }

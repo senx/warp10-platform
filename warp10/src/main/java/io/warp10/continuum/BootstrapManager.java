@@ -48,7 +48,7 @@ public class BootstrapManager extends Thread {
   @Override
   public void run() {
     while(true) {
-      long until = System.currentTimeMillis() + period;
+      long until = 0L == period ? Long.MAX_VALUE : (System.currentTimeMillis() + period);           
             
       while (System.currentTimeMillis() < until) {
         try { Thread.sleep(until - System.currentTimeMillis()); } catch (InterruptedException ie) {}                
@@ -80,6 +80,8 @@ public class BootstrapManager extends Thread {
         
         stack.exec(line);
       }
+      
+      br.close();
       
       //
       // Retrieve the stack context

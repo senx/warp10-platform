@@ -90,6 +90,14 @@ public class JavaLibrary {
     functions.put("bucketizer.join", new Join.Builder("bucketizer.join", true));            // doc/einstein/bucketizer_mean         Example done   Unit test
     functions.put("bucketizer.count", new Count("bucketizer.count", false));                // doc/einstein/bucketizer_count        Example done   Unit test
     functions.put("bucketizer.percentile", new Percentile.Builder("bucketizer.percentile"));
+    functions.put("bucketizer.min.forbid-nulls", new Min("bucketizer.min.forbid-nulls", false));
+    functions.put("bucketizer.max.forbid-nulls", new Max("bucketizer.max.forbid-nulls", false));
+    functions.put("bucketizer.mean.exclude-nulls", new Mean("bucketizer.mean.exclude-nulls", true));
+    functions.put("bucketizer.sum.forbid-nulls", new Sum("bucketizer.sum.forbid-nulls", false));
+    functions.put("bucketizer.join.forbid-nulls", new Join.Builder("bucketizer.join.forbid-nulls", false));
+    functions.put("bucketizer.count.exclude-nulls", new Count("bucketizer.count.exclude-nulls", true));
+    functions.put("bucketizer.count.include-nulls", new Count("bucketizer.count.include-nulls", false));
+    functions.put("bucketizer.count.nonnull", new Count("bucketizer.count.nonnull", true));
     
     //
     // Mappers
@@ -128,6 +136,16 @@ public class JavaLibrary {
     functions.put("mapper.sigmoid", new MapperSigmoid("mapper.sigmoid"));
     functions.put("mapper.product", new MapperProduct("mapper.product"));
     functions.put("mapper.geo.clear", new MapperGeoClearPosition("mapper.geo.clear"));
+    functions.put("mapper.count.exclude-nulls", new Count("mapper.count.exclude-nulls", true));
+    functions.put("mapper.count.include-nulls", new Count("mapper.count.include-nulls", false));
+    functions.put("mapper.count.nonnull", new Count("mapper.count.nonnull", true));
+    functions.put("mapper.min.forbid-nulls", new Min("mapper.min.forbid-nulls", false));
+    functions.put("mapper.max.forbid-nulls", new Max("mapper.max.forbid-nulls", false));
+    functions.put("mapper.mean.exclude-nulls", new Mean("mapper.mean.exclude-nulls", true));
+    functions.put("mapper.sum.forbid-nulls", new Sum("mapper.sum.forbid-nulls", false));
+    functions.put("mapper.join.forbid-nulls", new Join.Builder("mapper.join.forbid-nulls", false));
+    functions.put("mapper.var.forbid-nulls", new Variance.Builder("mapper.var.forbid-nulls", true));
+    functions.put("mapper.sd.forbid-nulls", new StandardDeviation.Builder("mapper.sd.forbid-nulls", true));
 
     //
     // Reducers
