@@ -365,6 +365,7 @@ public class Store extends Thread {
         }
       }
     });
+    
     t.setName("Continuum Store Spawner");
     t.setDaemon(true);
     t.start();
@@ -446,6 +447,7 @@ public class Store extends Thread {
         synchronizer = new Thread(new Runnable() {
           @Override
           public void run() {
+            try {
             long lastsync = System.currentTimeMillis();
             
             //
@@ -569,6 +571,17 @@ public class Store extends Thread {
               try {
                 Thread.sleep(1L);
               } catch (InterruptedException ie) {                
+              }
+            }
+            } finally {
+              //
+              // Attempt to close the Table instance
+              //
+              if (null != ht) {
+                try {
+                  ht.close();
+                } catch (Exception e) {                  
+                }
               }
             }
           }
