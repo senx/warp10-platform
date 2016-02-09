@@ -280,11 +280,11 @@ public class KafkaSynchronizedConsumerPool {
   
     this.counters = new KafkaOffsetCounters(topic, groupid, commitPeriod * 2);
     
-    synchronizer.setName("[Synchronizer]");
+    synchronizer.setName("[Synchronizer '" + topic + "' (" + groupid + ") nthr=" + nthreads + " every " + commitPeriod + " ms]");
     synchronizer.setDaemon(true);
     synchronizer.start();
     
-    spawner.setName("[Spawner]");
+    spawner.setName("[Spawner '\" + topic + \"' (\" + groupid + \") nthr=\" + nthreads + \" every \" + commitPeriod + \" ms]");
     spawner.setDaemon(true);
     spawner.start();    
   }
