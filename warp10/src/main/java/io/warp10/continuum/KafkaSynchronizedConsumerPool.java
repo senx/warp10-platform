@@ -173,7 +173,9 @@ public class KafkaSynchronizedConsumerPool {
           
           List<KafkaStream<byte[], byte[]>> streams = consumerMap.get(topic);
             
-          pool.setBarrier(new CyclicBarrier(streams.size() + 1));
+          // 1 for the Synchronizer, 1 for the Spawner
+          
+          pool.setBarrier(new CyclicBarrier(1 + 1));
             
           executor = Executors.newFixedThreadPool(nthreads);
             
@@ -188,7 +190,7 @@ public class KafkaSynchronizedConsumerPool {
           pool.getInitialized().set(true);
           
           while(!pool.getAbort().get()) {
-            if (streams.size() == pool.getBarrier().getNumberWaiting()) {
+            if (1 == pool.getBarrier().getNumberWaiting()) {
               //
               // Check if we should abort, which could happen when
               // an exception was thrown when flushing the commits just before
@@ -284,7 +286,7 @@ public class KafkaSynchronizedConsumerPool {
     synchronizer.setDaemon(true);
     synchronizer.start();
     
-    spawner.setName("[Spawner '\" + topic + \"' (\" + groupid + \") nthr=\" + nthreads + \" every \" + commitPeriod + \" ms]");
+    spawner.setName("[Spawner '" + topic + "' (" + groupid + ") nthr=" + nthreads + " every " + commitPeriod + " ms]");
     spawner.setDaemon(true);
     spawner.start();    
   }
