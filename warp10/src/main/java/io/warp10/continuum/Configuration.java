@@ -469,6 +469,11 @@ public class Configuration {
   public static final String INGRESS_KAFKA_DATA_POOLSIZE = "ingress.kafka.data.poolsize";
 
   /**
+   * Request timeout when talking to Kafka
+   */
+  public static final String INGRESS_KAFKA_DATA_REQUEST_TIMEOUT_MS = "ingress.kafka.data.request.timeout.ms";
+  
+  /**
    * Size of Kafka Producer pool for the 'metadata' topic
    */
   public static final String INGRESS_KAFKA_METADATA_POOLSIZE = "ingress.kafka.metadata.poolsize";

@@ -341,6 +341,11 @@ public class Ingress extends AbstractHandler implements Runnable {
     dataProps.setProperty("producer.type","sync");
     dataProps.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");
     dataProps.setProperty("partitioner.class", io.warp10.continuum.KafkaPartitioner.class.getName());
+    
+    if (null != props.getProperty(Configuration.INGRESS_KAFKA_DATA_REQUEST_TIMEOUT_MS)) {
+      dataProps.setProperty("request.timeout.ms", props.getProperty(Configuration.INGRESS_KAFKA_DATA_REQUEST_TIMEOUT_MS));
+    }
+    
     ///???? dataProps.setProperty("block.on.buffer.full", "true");
     
     // FIXME(hbs): compression does not work

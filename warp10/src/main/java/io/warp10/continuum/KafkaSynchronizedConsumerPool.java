@@ -46,6 +46,7 @@ public class KafkaSynchronizedConsumerPool {
 
   private CyclicBarrier barrier;
   private final AtomicBoolean abort;
+  private final AtomicBoolean initialized;
   
   private final Synchronizer synchronizer;
   private final Spawner spawner;
@@ -87,7 +88,11 @@ public class KafkaSynchronizedConsumerPool {
       while(true) { 
         long now = System.currentTimeMillis();
           
-        if (now - lastsync > commitPeriod) {
+        //
+        // Only do something is the pool has been initialized (or re-initialized)
+        //
+        
+        if (pool.getInitialized().get() && !pool.getAbort().get() && (now - lastsync > commitPeriod)) {
           //
           // Now join the cyclic barrier which will trigger the
           // commit of offsets
@@ -100,7 +105,6 @@ public class KafkaSynchronizedConsumerPool {
             // MOVE into sync hook - Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_BARRIER_SYNCS, Sensision.EMPTY_LABELS, 1);
           } catch (Exception e) {
             pool.getAbort().set(true);
-            return;
           } finally {
             lastsync = System.currentTimeMillis();
           }
@@ -181,6 +185,8 @@ public class KafkaSynchronizedConsumerPool {
             executor.submit(factory.getConsumer(pool,stream));
           }      
                 
+          pool.getInitialized().set(true);
+          
           while(!pool.getAbort().get()) {
             if (streams.size() == pool.getBarrier().getNumberWaiting()) {
               //
@@ -252,6 +258,8 @@ public class KafkaSynchronizedConsumerPool {
           }
           // MOVE in ABORT HOOK -           Sensision.update(SensisionConstants.SENSISION_CLASS_WEBCALL_IN_ABORTS, Sensision.EMPTY_LABELS, 1);
 
+          // Set initialized to false first as this is what is checked by the Synchronizer
+          pool.getInitialized().set(false);
           pool.getAbort().set(false);
 
           try { Thread.sleep(1000L); } catch (InterruptedException ie) {}
@@ -265,6 +273,7 @@ public class KafkaSynchronizedConsumerPool {
   public KafkaSynchronizedConsumerPool(String zkconnect, String topic, String groupid, int nthreads, long commitPeriod, ConsumerFactory factory) {
     
     this.abort = new AtomicBoolean(false);
+    this.initialized = new AtomicBoolean(false);
     
     this.synchronizer = new Synchronizer(this, commitPeriod);    
     this.spawner = new Spawner(this, zkconnect, topic, groupid, nthreads, factory);
@@ -290,6 +299,10 @@ public class KafkaSynchronizedConsumerPool {
   
   public AtomicBoolean getAbort() {
     return this.abort;
+  }
+  
+  public AtomicBoolean getInitialized() {
+    return this.initialized;
   }
   
   public void setAbortHook(Hook hook) {
