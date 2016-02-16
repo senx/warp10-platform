@@ -428,6 +428,7 @@ public class WarpScriptLib {
     functions.put("->HEX", new io.warp10.script.functions.TOHEX("->HEX"));
     functions.put("->B64", new TOB64("->B64"));
     functions.put("->B64URL", new TOB64URL("->B64URL"));
+    functions.put("OPB64TOHEX", new OPB64TOHEX("OPB64TOHEX"));
     
     //
     // Conditionals
@@ -545,6 +546,7 @@ public class WarpScriptLib {
     functions.put("UPDATE", new UPDATE("UPDATE"));
     functions.put("META", new META("META"));
     functions.put("WEBCALL", new WEBCALL("WEBCALL"));
+    functions.put("URLFETCH", new URLFETCH("URLFETCH"));
     functions.put("TWITTERDM", new TWITTERDM("TWITTERDM"));
     functions.put("MATCH", new MATCH("MATCH"));                         // doc/einstein/function_MATCH    Example done   Unit test
     functions.put("MATCHER", new MATCHER("MATCHER"));

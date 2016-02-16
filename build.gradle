@@ -310,7 +310,7 @@ project(':warp10') {
         //
         compile group: 'io.warp10', name: 'crypto', version: warp10Version['crypto']
         compile group: 'io.warp10', name: 'token', version: warp10Version['token']
-        compile group: 'io.warp10', name: 'sensision', version: '1.0.0'
+        compile group: 'io.warp10', name: 'sensision', version: '1.0.2'
 
         //compile group: 'org.xerial.snappy', name: 'snappy-java', version: '1.0.4.1'
         compile group: 'joda-time', name: 'joda-time', version: '2.2'
@@ -613,7 +613,7 @@ project(':token') {
 
         // WARP10 DEPENDENCIES
         compile group: 'io.warp10', name: 'crypto', version: warp10Version['crypto']
-        compile group: 'io.warp10', name: 'sensision', version: '1.0.0'
+        compile group: 'io.warp10', name: 'sensision', version: '1.0.2'
 
         compile group: 'org.apache.thrift', name: 'libthrift', version: '0.9.1'
     }
