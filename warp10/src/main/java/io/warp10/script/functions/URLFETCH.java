@@ -45,6 +45,11 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    
+    if (!stack.isAuthenticated()) {
+      throw new WarpScriptException(getName() + " requires the stack to be authenticated.");
+    }
+
     Object o = stack.pop();
     
     if (!(o instanceof String) && !(o instanceof List)) {
