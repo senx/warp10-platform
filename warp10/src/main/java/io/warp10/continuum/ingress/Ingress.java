@@ -59,10 +59,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -1475,7 +1477,11 @@ public class Ingress extends AbstractHandler implements Runnable {
     try {
       out = new GZIPOutputStream(new FileOutputStream(this.cacheDumpPath));
       
-      Iterator<BigInteger> iter = this.metadataCache.keySet().iterator();
+      Set<BigInteger> bis = new HashSet<BigInteger>();
+      
+      bis.addAll(this.metadataCache.keySet());
+      
+      Iterator<BigInteger> iter = bis.iterator();
       
       byte[] allzeroes = new byte[16];
       Arrays.fill(allzeroes, (byte) 0); 
