@@ -33,8 +33,9 @@ sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10-standalone.init >> ${WAR
 sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10-standalone.bootstrap >> ${WARP10_HOME}/bin/warp10-standalone.bootstrap
 chmod 755 ${WARP10_HOME}/bin/warp10-standalone.bootstrap
 
-# Copy log4j config, bootstrap...
+# Copy log4j README, config, bootstrap...
 cp ../../etc/bootstrap/*.mc2 ${WARP10_HOME}/etc/bootstrap
+cp ../../etc/install/README.md ${WARP10_HOME}
 
 sed -e "s/@VERSION@/${VERSION}/g" ../../etc/log4j.properties >> ${WARP10_HOME}/etc/log4j.properties
 
@@ -52,6 +53,7 @@ chmod 755 ${WARP10_HOME}/etc/throttle
 chmod 755 ${WARP10_HOME}/etc/trl
 chmod 755 ${WARP10_HOME}/etc/bootstrap
 chmod 644 ${WARP10_HOME}/etc/bootstrap/*.mc2
+chmod 644 ${WARP10_HOME}/README.*
 chmod -R 755 ${WARP10_HOME}/data
 chmod 755 ${WARP10_HOME}/bin/*.sh
 chmod 755 ${WARP10_HOME}/bin/*.init
