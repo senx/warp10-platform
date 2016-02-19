@@ -45,6 +45,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
 import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -108,8 +109,12 @@ public class WarpDist {
     if (null != properties) {
       throw new RuntimeException("Properties already set.");
     }
-    
-    properties = readConfig(new FileInputStream(file), null);
+        
+    if (null != file) {
+      properties = readConfig(new FileInputStream(file), null);
+    } else {
+      properties = readConfig(new StringReader(""), null);
+    }
 
     //
     // Force a call to Constants.TIME_UNITS_PER_MS to check timeunits value is correct
