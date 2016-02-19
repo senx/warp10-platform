@@ -27,6 +27,7 @@ import io.warp10.script.functions.SECURE;
 import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.WarpScriptJavaFunction;
 import io.warp10.warp.sdk.WarpScriptJavaFunctionException;
+import io.warp10.warp.sdk.WarpScriptRawJavaFunction;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -854,18 +855,24 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     
     // Build the list of objects, the top of the stack being the first
     List<Object> args = new ArrayList<Object>(levels);
-    
-    for (int i = 0; i < levels; i++) {
-      args.add(StackUtils.toSDKObject(this.pop()));
+
+    if (function instanceof WarpScriptRawJavaFunction) {
+      args.add(this);
+    } else {
+      for (int i = 0; i < levels; i++) {
+        args.add(StackUtils.toSDKObject(this.pop()));
+      }      
     }
     
     try {
       // Apply the function
       List<Object> results = function.apply(args);
       
-      // Push the results onto the stack
-      for (Object result: results) {
-        this.push(StackUtils.fromSDKObject(result));
+      if (!(function instanceof WarpScriptRawJavaFunction)) {
+        // Push the results onto the stack
+        for (Object result: results) {
+          this.push(StackUtils.fromSDKObject(result));
+        }        
       }
     } catch (WarpScriptJavaFunctionException ejfe) {
       throw new WarpScriptException(ejfe);
