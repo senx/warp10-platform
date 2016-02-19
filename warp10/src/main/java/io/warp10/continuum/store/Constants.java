@@ -16,7 +16,7 @@
 
 package io.warp10.continuum.store;
 
-import io.warp10.WarpDist;
+import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 
 import java.util.HashMap;
@@ -152,6 +152,11 @@ public class Constants {
   public static final byte[] EMPTY_COLQ = new byte[0];
   
   /**
+   * Endpoint for splits generation
+   */
+  public static final String API_ENDPOINT_SPLITS = "/api/v0/splits";
+  
+  /**
    * Endpoint for script submission
    */
   public static final String API_ENDPOINT_EXEC = "/api/v0/exec";
@@ -258,13 +263,15 @@ public class Constants {
   public static final String HTTP_PARAM_DELETEALL = "deleteall";
   public static final String HTTP_PARAM_MINAGE = "minage";
   public static final String HTTP_PARAM_SHOWUUID = "showuuid";
+  public static final String HTTP_PARAM_MINSPLITS = "minsplits";
+  public static final String HTTP_PARAM_MAXSPLITS = "maxsplits";
 
   static {
 
     Properties props = null;
 
     try {
-      props = WarpDist.getProperties();
+      props = WarpConfig.getProperties();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

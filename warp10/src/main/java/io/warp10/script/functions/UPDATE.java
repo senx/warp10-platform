@@ -16,16 +16,15 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.WarpDist;
+import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.standalone.Warp;
+import io.warp10.script.WarpScriptStackFunction;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -116,8 +115,8 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
     try {
 
       if (null == url) {
-        if (WarpDist.getProperties().containsKey(Configuration.CONFIG_WARPSCRIPT_UPDATE_ENDPOINT)) {
-          url = new URL(WarpDist.getProperties().getProperty(Configuration.CONFIG_WARPSCRIPT_UPDATE_ENDPOINT));
+        if (WarpConfig.getProperties().containsKey(Configuration.CONFIG_WARPSCRIPT_UPDATE_ENDPOINT)) {
+          url = new URL(WarpConfig.getProperties().getProperty(Configuration.CONFIG_WARPSCRIPT_UPDATE_ENDPOINT));
         } else {
           throw new WarpScriptException(getName() + " configuration parameter '" + Configuration.CONFIG_WARPSCRIPT_UPDATE_ENDPOINT + "' not set.");
         }

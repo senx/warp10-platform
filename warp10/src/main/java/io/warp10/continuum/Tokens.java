@@ -16,6 +16,7 @@
 
 package io.warp10.continuum;
 
+import io.warp10.WarpConfig;
 import io.warp10.WarpDist;
 import io.warp10.continuum.store.Constants;
 import io.warp10.crypto.KeyStore;
@@ -58,7 +59,7 @@ public class Tokens {
     keystore = WarpDist.getKeyStore();
     if (null != keystore) {
       try {
-        tokenFilter = new QuasarTokenFilter(WarpDist.getProperties(), keystore);
+        tokenFilter = new QuasarTokenFilter(WarpConfig.getProperties(), keystore);
       } catch (Exception e) {
         throw new RuntimeException(e);
       }

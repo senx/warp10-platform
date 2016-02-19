@@ -16,6 +16,7 @@
 
 package io.warp10.standalone;
 
+import io.warp10.WarpConfig;
 import io.warp10.WarpDist;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
@@ -38,7 +39,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
 
-import org.apache.hadoop.util.LightWeightGSet.SetIterator;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
@@ -94,11 +94,11 @@ public class Warp extends WarpDist implements Runnable {
     
     setProperties(args[0]);
     
-    boolean nullbackend = "true".equals(WarpDist.getProperties().getProperty(NULL));
+    boolean nullbackend = "true".equals(WarpConfig.getProperties().getProperty(NULL));
     
-    boolean plasmabackend = "true".equals(WarpDist.getProperties().getProperty(Configuration.PURE_PLASMA));
+    boolean plasmabackend = "true".equals(WarpConfig.getProperties().getProperty(Configuration.PURE_PLASMA));
     
-    boolean inmemory = "true".equals(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY));
+    boolean inmemory = "true".equals(WarpConfig.getProperties().getProperty(Configuration.IN_MEMORY));
 
     Properties properties = getProperties();
     

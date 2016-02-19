@@ -16,7 +16,7 @@
 
 package io.warp10.standalone;
 
-import io.warp10.WarpDist;
+import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.thrift.data.WebCallMethod;
@@ -55,7 +55,7 @@ public class StandaloneWebCallService extends Thread {
     // Read properties to set up proxy etc
     //
     
-    Properties props = WarpDist.getProperties();
+    Properties props = WarpConfig.getProperties();
     
     ua = props.getProperty(Configuration.WEBCALL_USER_AGENT);
     

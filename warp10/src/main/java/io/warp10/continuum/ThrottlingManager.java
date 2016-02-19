@@ -16,7 +16,7 @@
 
 package io.warp10.continuum;
 
-import io.warp10.WarpDist;
+import io.warp10.WarpConfig;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.Metadata;
@@ -37,7 +37,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
@@ -46,7 +45,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.bouncycastle.util.encoders.Base64;
 
 import com.google.common.base.Charsets;
 import com.google.common.util.concurrent.RateLimiter;
@@ -530,7 +528,7 @@ public class ThrottlingManager {
       return;
     }
     
-    final Properties properties = WarpDist.getProperties();
+    final Properties properties = WarpConfig.getProperties();
     
     String rate = properties.getProperty(Configuration.THROTTLING_MANAGER_RATE_DEFAULT);
     

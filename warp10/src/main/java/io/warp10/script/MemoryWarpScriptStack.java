@@ -16,7 +16,7 @@
 
 package io.warp10.script;
 
-import io.warp10.WarpDist;
+import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.geo.GeoDirectoryClient;
 import io.warp10.continuum.gts.UnsafeString;
@@ -124,9 +124,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
    */
   private Progressable progressable = null;
   
-  private static class StackContext extends WarpScriptStack.StackContext {
-    private Map<String, Object> symbolTable;
-    private Map<String, WarpScriptStackFunction> defined;
+  public static class StackContext extends WarpScriptStack.StackContext {
+    public Map<String, Object> symbolTable;
+    public Map<String, WarpScriptStackFunction> defined;
   }
   
   public StoreClient getStoreClient() {
@@ -142,11 +142,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
   
   public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient) {
-    this(storeClient, directoryClient, WarpDist.getProperties());
+    this(storeClient, directoryClient, WarpConfig.getProperties());
   }
 
   public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient, GeoDirectoryClient geoDirectoryClient) {
-    this(storeClient, directoryClient, geoDirectoryClient, WarpDist.getProperties());
+    this(storeClient, directoryClient, geoDirectoryClient, WarpConfig.getProperties());
   }
 
   public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient, Properties properties) {
@@ -1151,13 +1151,18 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     //
     
     this.symbolTable.clear();
-    this.symbolTable.putAll(context.symbolTable);
+    
+    if (null != context.symbolTable) {
+      this.symbolTable.putAll(context.symbolTable);
+    }
     
     //
     // Restore redefined functions
     //
     
     this.defined.clear();
-    this.defined.putAll(context.defined);
+    if (null != context.defined) {
+      this.defined.putAll(context.defined);
+    }
   }  
 }
