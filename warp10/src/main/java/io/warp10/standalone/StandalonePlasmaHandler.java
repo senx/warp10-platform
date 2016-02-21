@@ -313,7 +313,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
   
   @Override
   public void configure(final WebSocketServletFactory factory) {
-    
+        
     final StandalonePlasmaHandler self = this;
 
     final WebSocketCreator oldcreator = factory.getCreator();
@@ -421,17 +421,24 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
     // Decrease refcount for each gts subscribed
     //
 
+    boolean mustRepublish = false;
+    
     if (this.subscriptions.containsKey(session)) {
       for (BigInteger id: this.subscriptions.get(session)) {
         if (0 == this.refcounts.get(id).addAndGet(-1)) {
           this.metadatas.remove(id);
           this.refcounts.remove(id);
+          mustRepublish = true;
         }        
       }
     }    
     
     if (this.refcounts.isEmpty()) {
       hasclients = false;
+    }
+    
+    if (null != this.subscriptionListener && mustRepublish) {
+      this.subscriptionListener.onChange();
     }
   }
   
