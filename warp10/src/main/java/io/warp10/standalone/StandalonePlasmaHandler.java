@@ -529,6 +529,16 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
       
       for (Entry<Session, Set<BigInteger>> entry: subs) {
         
+        //
+        // We might have missed the close of a session, we get a chance to correct that here
+        // FIXME(hbs): if we missed a close it's probably a bug though!
+        //
+        
+        if (!entry.getKey().isOpen()) {
+          deregister(entry.getKey());
+          continue;
+        }
+        
         try {
           if (entry.getValue().contains(id)) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_FRONTEND_DISPATCH_SESSIONS, Sensision.EMPTY_LABELS, 1);
