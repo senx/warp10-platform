@@ -706,7 +706,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     }
   }
   
-  private void sendDataMessage(KeyedMessage<byte[], byte[]> msg) throws IOException {
+  private synchronized void sendDataMessage(KeyedMessage<byte[], byte[]> msg) throws IOException {
     
     long thismsg = 0L;
     if (null != msg) {
