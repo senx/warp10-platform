@@ -388,6 +388,8 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
       
       idx = 0;
       
+      UUID uuid = UUID.randomUUID();
+
       while(idx < bytes.length) {
         int chunksize = Math.min(this.maxZnodeSize, bytes.length - idx);
         
@@ -397,9 +399,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
         byte[] data = new byte[chunksize];
         
         System.arraycopy(bytes, idx, data, 0, data.length);
-        
-        UUID uuid = UUID.randomUUID();
-        
+                
         long sip = SipHashInline.hash24(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(), data, 0, data.length);
         
         String path = this.znoderoot + "/0." + uuid.toString() + "." + this.topic + "." + idx + "." + Long.toHexString(sip);
