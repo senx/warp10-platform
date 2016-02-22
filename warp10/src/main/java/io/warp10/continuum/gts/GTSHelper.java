@@ -567,10 +567,10 @@ public class GTSHelper {
     
     // Recursion
     if (low < j) {
-      quicksortByValue(gts, low, j, reversed);
+      quicksortByLocation(gts, low, j, reversed);
     }
     if (i < high) {   
-      quicksortByValue(gts, i, high, reversed);
+      quicksortByLocation(gts, i, high, reversed);
     }
   }
 
