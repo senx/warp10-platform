@@ -30,6 +30,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.codec.binary.Base64;
@@ -129,7 +130,20 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
         List<Object> res = new ArrayList<Object>();
         
         res.add(conn.getResponseCode());
-        res.add(conn.getHeaderFields());
+        Map<String,List<String>> hdrs = conn.getHeaderFields();
+        
+        if (hdrs.containsKey(null)) {
+          List<String> statusMsg = hdrs.get(null);
+          if (statusMsg.size() > 0) {
+            res.add(statusMsg.get(0));
+          } else {
+            res.add("");
+          }
+        } else {
+          res.add("");
+        }
+        hdrs.remove(null);
+        res.add(hdrs);
         res.add(Base64.encodeBase64String(baos.toByteArray()));
 
         results.add(res);
