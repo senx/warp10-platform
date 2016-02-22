@@ -411,7 +411,6 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
   
   private synchronized void deregister(Session session) {    
     clearSubscriptions(session);
-    this.subscriptions.remove(session);
     this.format.remove(session);
     this.sampleRate.remove(session);
   }
@@ -424,8 +423,12 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
     boolean mustRepublish = false;
     
     if (this.subscriptions.containsKey(session)) {
-      for (BigInteger id: this.subscriptions.get(session)) {
+      Set<BigInteger> ids = this.subscriptions.get(session);
+      this.subscriptions.remove(session);
+      for (BigInteger id: ids) {
         if (0 == this.refcounts.get(id).addAndGet(-1)) {
+          // FIXME(hbs): we need to ensure refcount is not incremented by another thread, otherwise
+          // we may remove some Metadata even though another client just subscribed to it
           this.metadatas.remove(id);
           this.refcounts.remove(id);
           mustRepublish = true;
@@ -516,7 +519,9 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
       //Gson gson = null;
       JsonSerializer serializer = new JsonSerializerFactory().create();
       
-      for (Entry<Session, Set<BigInteger>> entry: subscriptions.entrySet()) {
+      Set<Entry<Session, Set<BigInteger>>> subs = subscriptions.entrySet();
+      
+      for (Entry<Session, Set<BigInteger>> entry: subs) {
         
         try {
           if (entry.getValue().contains(id)) {
