@@ -106,7 +106,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
 
   public PlasmaFrontEnd(KeyStore keystore, final Properties properties) throws Exception {
     
-    super(keystore, properties, null);
+    super(keystore, properties, null, false);
   
     // Extract Directory PSK
     String keyspec = properties.getProperty(Configuration.DIRECTORY_PSK);
@@ -320,7 +320,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
     
     Thread t = new Thread(this);
     t.setDaemon(true);
-    t.setName("Continuum Plasma Front End");
+    t.setName("[Continuum Plasma Front End]");
     t.start();
   }
   

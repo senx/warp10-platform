@@ -279,6 +279,10 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
   }
   
   public StandalonePlasmaHandler(KeyStore keystore, Properties properties, DirectoryClient directoryClient) {
+    this(keystore, properties, directoryClient, true);
+  }
+  
+  public StandalonePlasmaHandler(KeyStore keystore, Properties properties, DirectoryClient directoryClient, boolean startThread) {
     super(StandalonePlasmaWebSocket.class);
     
     this.keystore = keystore;
@@ -289,10 +293,12 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
     
     configure(super.getWebSocketFactory());
     
-    Thread t = new Thread(this);
-    t.setDaemon(true);
-    t.setName("[StandalonePlasmaHandler]");
-    t.start();
+    if (startThread) {
+      Thread t = new Thread(this);
+      t.setDaemon(true);
+      t.setName("[StandalonePlasmaHandler]");
+      t.start();      
+    }
   }
 
   public void setDirectoryClient(DirectoryClient directoryClient) {
