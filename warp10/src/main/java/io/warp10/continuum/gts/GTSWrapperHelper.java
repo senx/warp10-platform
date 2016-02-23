@@ -73,25 +73,16 @@ public class GTSWrapperHelper {
     return fromGTSToGTSWrapper(gts, false);
   }
   
-  /**
-   * convert a GeoTimeSerie into GTSWrapper
-   * @param gts
-   * @return GTSWrapper
-   */
-  public static GTSWrapper fromGTSToGTSWrapper(GeoTimeSerie gts, boolean compress) {
-
-    GTSEncoder encoded = new GTSEncoder(0L);
+  public static GTSWrapper fromGTSEncoderToGTSWrapper(GTSEncoder encoder, boolean compress) {
 
     GTSWrapper wrapper = new GTSWrapper();
 
-    try {
-      encoded.encode(gts);
-      
+    try {      
       if (!compress) {
-        wrapper.setEncoded(encoded.getBytes());
+        wrapper.setEncoded(encoder.getBytes());
       } else {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        byte[] bytes = encoded.getBytes();
+        byte[] bytes = encoder.getBytes();
 
         double ratio = 0.0D;
         
@@ -128,18 +119,38 @@ public class GTSWrapperHelper {
         }
       }
       
-      wrapper.setBase(encoded.getBaseTimestamp());
-      wrapper.setCount(encoded.size());
-      wrapper.setMetadata(gts.getMetadata());
-
-      if (GTSHelper.isBucketized(gts)) {
-        wrapper.setBucketcount(gts.bucketcount);
-        wrapper.setBucketspan(gts.bucketspan);
-        wrapper.setLastbucket(gts.lastbucket);
-      }
+      wrapper.setBase(encoder.getBaseTimestamp());
+      wrapper.setCount(encoder.size());
+      wrapper.setMetadata(encoder.getMetadata());
 
     } catch (IOException e) {
       e.printStackTrace();
+    }
+
+    return wrapper;
+  }
+  
+  /**
+   * convert a GeoTimeSerie into GTSWrapper
+   * @param gts
+   * @return GTSWrapper
+   */
+  public static GTSWrapper fromGTSToGTSWrapper(GeoTimeSerie gts, boolean compress) {
+
+    GTSEncoder encoder = new GTSEncoder(0L);
+    encoder.setMetadata(gts.getMetadata());
+    
+    try {
+      encoder.encode(gts);
+    } catch (IOException ioe) {      
+    }
+
+    GTSWrapper wrapper = fromGTSEncoderToGTSWrapper(encoder, compress);
+    
+    if (GTSHelper.isBucketized(gts)) {
+      wrapper.setBucketcount(gts.bucketcount);
+      wrapper.setBucketspan(gts.bucketspan);
+      wrapper.setLastbucket(gts.lastbucket);
     }
 
     return wrapper;
