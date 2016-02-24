@@ -265,7 +265,7 @@ public class Store extends Thread {
             
             ConsumerConfig config = new ConsumerConfig(props);
             connector = Consumer.createJavaConsumerConnector(config);
-            
+
             Map<String,List<KafkaStream<byte[], byte[]>>> consumerMap = connector.createMessageStreams(topicCountMap);
             
             List<KafkaStream<byte[], byte[]>> streams = consumerMap.get(topic);
@@ -673,6 +673,8 @@ public class Store extends Thread {
         // FIXME(hbs): log something/update Sensision metrics
         t.printStackTrace(System.out);
       } finally {
+        // Interrupt the synchronizer thread
+        try { synchronizer.interrupt(); } catch (Exception e) {}
         // Set abort to true in case we exit the 'run' method
         store.abort.set(true);
         this.localabort.set(true);
