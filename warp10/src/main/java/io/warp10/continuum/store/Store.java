@@ -70,8 +70,6 @@ import org.apache.thrift.protocol.TCompactProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sun.util.locale.provider.LocaleServiceProviderPool.LocalizedObjectGetter;
-
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
