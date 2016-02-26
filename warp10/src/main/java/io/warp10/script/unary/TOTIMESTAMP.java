@@ -18,12 +18,13 @@ package io.warp10.script.unary;
 
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoField;
 
 /**
  * Convert Date in format ISO8601 into a Timestamp in µs
@@ -31,10 +32,6 @@ import org.joda.time.format.ISODateTimeFormat;
  * TOTIMESTAMP expects a date in ISO8601 on the top of the stack
  */
 public class TOTIMESTAMP extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
-
-  private static final String DATE = "date";
-
   public TOTIMESTAMP(String name) {
     super(name);
   }
@@ -46,10 +43,15 @@ public class TOTIMESTAMP extends NamedWarpScriptFunction implements WarpScriptSt
 
     if (!(top instanceof String)) {
       throw new WarpScriptException(getName() + " expects an ISO8601 timestamp on top of the stack.");
-    }
-    else {
-      long timestamp = fmt.parseDateTime((String) top).getMillis() * Constants.TIME_UNITS_PER_MS;
-      stack.push(timestamp);
+    } else {
+      try {
+        ZonedDateTime zdt = ZonedDateTime.parse(top.toString());
+                
+        long ts = zdt.getLong(ChronoField.INSTANT_SECONDS) * Constants.TIME_UNITS_PER_S + zdt.getLong(ChronoField.NANO_OF_SECOND) / (1000000L / Constants.TIME_UNITS_PER_MS);
+        stack.push(ts);
+      } catch (DateTimeParseException dtpe) {
+        throw new WarpScriptException(getName() + " expects an ISO8601 timestamp (YYYY-MM-DDThh:mm:ss.sssssssss) with a specified time zone.", dtpe);
+      }
     }
 
     return stack;
