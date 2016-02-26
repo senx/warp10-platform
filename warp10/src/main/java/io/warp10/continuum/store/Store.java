@@ -454,7 +454,7 @@ public class Store extends Thread {
             // flush any pending commits and synchronize with the other threads so offsets can be committed
             //
 
-            while(!localabort.get()) { 
+            while(!localabort.get() && !Thread.currentThread().isInterrupted()) { 
               long now = System.currentTimeMillis();
               
               if (now - lastsync > store.commitPeriod) {
@@ -591,7 +591,7 @@ public class Store extends Thread {
 
         // TODO(hbs): allow setting of writeBufferSize
 
-        while (iter.hasNext()) {
+        while (iter.hasNext() && !Thread.currentThread().isInterrupted()) {
           //
           // Since the cal to 'next' may block, we need to first
           // check that there is a message available, otherwise we
