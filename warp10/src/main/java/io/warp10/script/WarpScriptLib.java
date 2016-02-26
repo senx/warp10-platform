@@ -305,6 +305,9 @@ public class WarpScriptLib {
     functions.put("STU", new STU("STU"));
     functions.put("UNIXTIMEEND", new UNIXTIMEEND("UNIXTIMEEND"));
     functions.put("UNIXTIMEALIGN", new UNIXTIMEALIGN("UNIXTIMEALIGN"));
+    functions.put("CONCAT", new CONCAT("CONCAT"));
+    functions.put("->ITERABLE", new TOITERABLE("->ITERABLE"));
+    functions.put("ITERABLE->", new ITERABLETO("ITERABLE->"));
     functions.put("APPEND", new APPEND("APPEND"));                      // doc/einstein/function_APPEND        Example done    Refactored
     functions.put("STORE", new STORE("STORE"));                         // doc/einstein/function_STORE         Example done    Refactored
     functions.put("CSTORE", new CSTORE("CSTORE"));
