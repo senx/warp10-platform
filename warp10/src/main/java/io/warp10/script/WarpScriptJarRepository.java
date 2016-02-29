@@ -148,16 +148,17 @@ public class WarpScriptJarRepository extends Thread {
             }
           } else if (!newClassLoadersFingerprints.containsKey(hash)){
             // Create new classloader with filtering so caller cannot access the io.warp10 classes, except those needed
-            ClassLoader filteringCL = new ClassLoader(this.getClass().getClassLoader()) {
-              @Override
-              protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {                
-                if (name.startsWith("io.warp10") && !name.startsWith("io.warp10.warp.sdk.")) {
-                  throw new ClassNotFoundException();
-                } else {
-                  return this.getParent().loadClass(name);
-                }
-              }
-            };
+            ClassLoader filteringCL = this.getClass().getClassLoader();
+//            ClassLoader filteringCL = new ClassLoader(this.getClass().getClassLoader()) {
+//              @Override
+//              protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {                
+//                if (name.startsWith("io.warp10") && !name.startsWith("io.warp10.warp.sdk.")) {
+//                  throw new ClassNotFoundException();
+//                } else {
+//                  return this.getParent().loadClass(name);
+//                }
+//              }
+//            };
 
             URL[] urls = new URL[1];
             urls[0] = file.toURI().toURL();
@@ -254,6 +255,7 @@ public class WarpScriptJarRepository extends Thread {
               @Override
               public List<Object> apply(List<Object> args) throws WarpScriptJavaFunctionException { return innerUDF.apply(args); }
             };
+
           } else {
             udf = new WarpScriptJavaFunction() {            
               @Override
@@ -314,16 +316,17 @@ public class WarpScriptJarRepository extends Thread {
     //
     
     if (null == dir) {
-      classPathClassLoader = new ClassLoader(WarpScriptJarRepository.class.getClassLoader()) {
-        @Override
-        protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {                
-          if (name.startsWith("io.warp10") && !name.startsWith("io.warp10.warp.sdk.")) {
-            throw new ClassNotFoundException();
-          } else {
-            return this.getParent().loadClass(name);
-          }
-        }
-      };
+      classPathClassLoader = WarpScriptJarRepository.class.getClassLoader();
+//      classPathClassLoader = new ClassLoader(WarpScriptJarRepository.class.getClassLoader()) {
+//        @Override
+//        protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {                
+//          if (name.startsWith("io.warp10") && !name.startsWith("io.warp10.warp.sdk.")) {
+//            throw new ClassNotFoundException();
+//          } else {
+//            return this.getParent().loadClass(name);
+//          }
+//        }
+//      };
       
       classLoadersFingerprints.put(classPathClassLoader, "");
     }
