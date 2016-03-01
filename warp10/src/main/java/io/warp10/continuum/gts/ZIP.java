@@ -49,7 +49,7 @@ public class ZIP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     // Check the size of the various lists, they are either singletons or of the same size
     //
 
-    int len = -1;
+    int len = 1;
     
     for (Object o: metalist) {
       if (!(o instanceof List)) {
@@ -66,7 +66,7 @@ public class ZIP extends NamedWarpScriptFunction implements WarpScriptStackFunct
         continue;
       }
       
-      if (-1 == len) {
+      if (1 == len) {
         len = size;
       } else if (size != len) {
         throw new WarpScriptException(getName() + " operates on lists of lists. All lists which are not singletons must be of the same size.");
@@ -76,6 +76,21 @@ public class ZIP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     int i = 0;
     
     List<List<Object>> results = new ArrayList<List<Object>>();
+    
+    // in the case the list contains only singletons, we concatenate them together.
+    if (1 == len) {
+      List<Object> flat = new ArrayList<Object>();
+      
+      for (Object l : metalist) {
+        flat.add(((List) l).get(0));
+      }
+      
+      results.add(flat);
+      
+      stack.push(results);
+      
+      return stack;
+    }
     
     while (i < len) {
       List<Object> l = new ArrayList<Object>();
