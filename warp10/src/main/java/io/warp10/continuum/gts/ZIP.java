@@ -77,21 +77,6 @@ public class ZIP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     
     List<List<Object>> results = new ArrayList<List<Object>>();
     
-    // in the case the list contains only singletons, we concatenate them together.
-    if (1 == len) {
-      List<Object> flat = new ArrayList<Object>();
-      
-      for (Object l : metalist) {
-        flat.add(((List) l).get(0));
-      }
-      
-      results.add(flat);
-      
-      stack.push(results);
-      
-      return stack;
-    }
-    
     while (i < len) {
       List<Object> l = new ArrayList<Object>();
       
