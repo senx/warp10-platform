@@ -203,6 +203,7 @@ import io.warp10.script.unary.TOLONG;
 import io.warp10.script.unary.TOSTRING;
 import io.warp10.script.unary.TOTIMESTAMP;
 import io.warp10.script.unary.UNIT;
+import io.warp10.WarpConfig;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -940,8 +941,8 @@ public class WarpScriptLib {
     functions.put("TICKSHIFT", new FAIL("TICKSHIFT")); // Shifts the ticks of a GTS by this many positions
 
     
-    if (null != System.getProperty(Configuration.CONFIG_WARPSCRIPT_LANGUAGES)) {
-      String[] languages = System.getProperty(Configuration.CONFIG_WARPSCRIPT_LANGUAGES).split(",");
+    if (null != WarpConfig.getProperties().getProperty(Configuration.CONFIG_WARPSCRIPT_LANGUAGES)) {
+        String[] languages = WarpConfig.getProperties().getProperty(Configuration.CONFIG_WARPSCRIPT_LANGUAGES).split(",");
       
       Set<String> lang = new HashSet<String>();
       
