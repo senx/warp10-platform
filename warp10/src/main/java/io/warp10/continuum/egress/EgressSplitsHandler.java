@@ -235,6 +235,8 @@ public class EgressSplitsHandler extends AbstractHandler {
         
         pw.print(InetAddress.getByName(loc.getHostname()).getHostAddress());
         pw.print(" ");
+        pw.print(loc.getRegionInfo().getEncodedName());
+        pw.print(" ");
         pw.println(new String(OrderPreservingBase64.encode(data), Charsets.US_ASCII));
       }
     } catch (Exception e) {
