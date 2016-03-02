@@ -301,13 +301,13 @@ struct GTSWrapper {
  */
 struct GTSSplit {
   /**
-   * When was the split created. Used to expire old splits.
+   * When was the split created?
    */
   1: i64 timestamp,
   /**
-   * Token which was used for creating the split
+   * Until when is the split valid?
    */
-  2: string token,
+  2: i64 expiry,
   /**
    * List of metadatas associated with this split. The metadatas should contain the full set of labels so as
    * to be able to recompute class/labels Ids at the fetcher

@@ -213,9 +213,8 @@ public class EgressSplitsHandler extends AbstractHandler {
         GTSSplit split = new GTSSplit();
         
         split.setTimestamp(System.currentTimeMillis());
-        
+        split.setExpiry(rtoken.getExpiryTimestamp());
         split.addToMetadatas(metadata);
-        split.setToken(token);
         
         //
         // Serialize and encrypt Split

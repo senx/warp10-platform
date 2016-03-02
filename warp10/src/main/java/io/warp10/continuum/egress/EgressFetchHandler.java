@@ -427,31 +427,15 @@ public class EgressFetchHandler extends AbstractHandler {
           }
           
           //
-          // Check the timestamp of the split
+          // Check the expiry
           //
           
-          if (System.currentTimeMillis() - split.getTimestamp() > maxSplitAge) {
-            throw new RuntimeException("Expired split.");
+          long instant = System.currentTimeMillis();
+          
+          if (instant - split.getTimestamp() > maxSplitAge || instant > split.getExpiry()) {
+            throw new RuntimeException("Split has expired.");
           }
-          
-          //
-          // Check the token
-          //
-          
-          if (!lasttoken.equals(split.getToken())) {
-            try {
-              ReadToken rtoken = Tokens.extractReadToken(split.getToken());
-              
-              if (rtoken.getHooksSize() > 0) {
-                throw new RuntimeException("Tokens with hooks cannot be used for fetching data.");        
-              }
-              
-              lasttoken = split.getToken();
-            } catch (WarpScriptException ee) {
-              throw new RuntimeException(ee);
-            }            
-          }
-          
+                    
           this.metadatas.addAll(split.getMetadatas());
           
           // We assume there was at least one metadata instance in the split!!!
@@ -802,6 +786,7 @@ public class EgressFetchHandler extends AbstractHandler {
       }
       
       out.write(' ');
+      
       //
       // Base64 encode the wrapper
       //
