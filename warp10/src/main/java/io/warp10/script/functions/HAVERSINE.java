@@ -26,7 +26,7 @@ import io.warp10.script.WarpScriptStack;
  */
 public class HAVERSINE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  private static final double EARTH_RADIUS = 6371.0D;
+  private static final double EARTH_RADIUS = 6378137.0D;
   
   public HAVERSINE(String name) {
     super(name);
