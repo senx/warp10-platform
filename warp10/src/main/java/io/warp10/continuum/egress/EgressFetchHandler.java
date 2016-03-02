@@ -455,6 +455,8 @@ public class EgressFetchHandler extends AbstractHandler {
           return true;
         }
       };
+      
+      iterators.add(iterator);
     }
        
     List<Metadata> metas = new ArrayList<Metadata>();
