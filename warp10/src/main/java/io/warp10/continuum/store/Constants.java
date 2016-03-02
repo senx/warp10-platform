@@ -177,6 +177,11 @@ public class Constants {
   public static final String API_ENDPOINT_FETCH = "/api/v0/fetch";
 
   /**
+   * Split fetch endpoint
+   */
+  public static final String API_ENDPOINT_SFETCH = "/api/v0/sfetch";
+  
+  /**
    * Archive Fetch endpoint for the API
    */
   public static final String API_ENDPOINT_AFETCH = "/api/v0/afetch";

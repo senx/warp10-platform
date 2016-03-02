@@ -1035,6 +1035,16 @@ public class Configuration {
   public static final String EGRESS_ZK_ZNODE = "egress.zk.znode";
   
   /**
+   * Key to use for encrypting GTSSplit instances
+   */
+  public static final String EGRESS_FETCHER_AES = "egress.fetcher.aes";
+  
+  /**
+   * Maximum age of a valid GTSSplit (in ms)
+   */
+  public static final String EGRESS_FETCHER_MAXSPLITAGE = "egress.fetcher.maxsplitage";
+  
+  /**
    * Key to use for encrypting data in HBase (128/192/256 bits in hex or OSS reference) 
    */
   public static final String EGRESS_HBASE_DATA_AES = "egress.hbase.data.aes";

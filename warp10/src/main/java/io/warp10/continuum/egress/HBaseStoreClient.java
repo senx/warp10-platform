@@ -49,6 +49,7 @@ import org.apache.hadoop.hbase.CellScanner;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.RegionLocator;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
@@ -560,5 +561,16 @@ public class HBaseStoreClient implements StoreClient {
   @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {
     throw new RuntimeException("Not Implemented.");   
+  }
+  
+  /**
+   * Return a RegionLocator instance suitable for inspecting the underlying table regions.
+   * Be aware that the returned RegionLocator is not thread-safe and should be unmanaged using close().
+   * 
+   * @return
+   * @throws IOException
+   */
+  public RegionLocator getRegionLocator() throws IOException {
+    return this.conn.getRegionLocator(this.tableName);
   }
 }

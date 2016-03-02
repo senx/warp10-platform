@@ -193,6 +193,10 @@ public class WarpDist {
     
     ThrottlingManager.init();
     
+    if (subprocesses.contains("egress") && subprocesses.contains("fetcher")) {
+      throw new RuntimeException("'fetcher' and 'egress' cannot be specified together as components to run.");
+    }
+    
     for (String subprocess: subprocesses) {
       if ("ingress".equals(subprocess)) {
         Ingress ingress = new Ingress(getKeyStore(), getProperties());
@@ -200,11 +204,16 @@ public class WarpDist {
         labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "ingress");
         Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);
       } else if ("egress".equals(subprocess)) {
-        Egress egress = new Egress(getKeyStore(), getProperties());
+        Egress egress = new Egress(getKeyStore(), getProperties(), false);
         Map<String,String> labels = new HashMap<String, String>();
         labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "egress");
         Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);
         hasEgress = true;
+      } else if ("fetcher".equals(subprocess)) {
+        Egress egress = new Egress(getKeyStore(), getProperties(), true);
+        Map<String,String> labels = new HashMap<String, String>();
+        labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "fetcher");
+        Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);        
       } else if ("store".equals(subprocess)) {
         int nthreads = Integer.valueOf(properties.getProperty(Configuration.STORE_NTHREADS));
         for (int i = 0; i < nthreads; i++) {
