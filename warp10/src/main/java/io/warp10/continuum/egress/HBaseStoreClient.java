@@ -463,7 +463,7 @@ public class HBaseStoreClient implements StoreClient {
 
         Map<String,String> labels = new HashMap<String,String>();
         
-        Map<String,String> metadataLabels = metadatas.get(idx).getLabels();
+        Map<String,String> metadataLabels = metadatas.get(idx-1).getLabels();
         
         String billedCustomerId = Tokens.getUUID(token.getBilledId());
 
