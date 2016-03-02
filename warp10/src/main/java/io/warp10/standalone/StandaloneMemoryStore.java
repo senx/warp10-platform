@@ -16,7 +16,7 @@
 
 package io.warp10.standalone;
 
-import io.warp10.WarpDist;
+import io.warp10.WarpConfig;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -36,6 +36,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -51,8 +52,6 @@ import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-
-import java.util.Arrays;
 
 import com.google.common.collect.MapMaker;
 
@@ -105,10 +104,10 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
     // Add a shutdown hook to dump the memory store on exit
     //
     
-    if (null != WarpDist.getProperties().getProperty(STANDALONE_MEMORY_STORE_DUMP)) {
+    if (null != WarpConfig.getProperties().getProperty(STANDALONE_MEMORY_STORE_DUMP)) {
       
       final StandaloneMemoryStore self = this;
-      final String path = WarpDist.getProperties().getProperty(STANDALONE_MEMORY_STORE_DUMP); 
+      final String path = WarpConfig.getProperties().getProperty(STANDALONE_MEMORY_STORE_DUMP); 
       Thread dumphook = new Thread() {
         @Override
         public void run() {
@@ -407,8 +406,8 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
     
     long gcperiod = (long) (0.25 * (timespan / Constants.TIME_UNITS_PER_MS));
     
-    if (null != WarpDist.getProperties().getProperty(STANDALONE_MEMORY_GC_PERIOD)) {
-      gcperiod = Long.valueOf(WarpDist.getProperties().getProperty(STANDALONE_MEMORY_GC_PERIOD));
+    if (null != WarpConfig.getProperties().getProperty(STANDALONE_MEMORY_GC_PERIOD)) {
+      gcperiod = Long.valueOf(WarpConfig.getProperties().getProperty(STANDALONE_MEMORY_GC_PERIOD));
     }
     
     while(true) {
@@ -705,9 +704,9 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
     // Load data from the specified file
     //
     
-    if (null != WarpDist.getProperties().getProperty(STANDALONE_MEMORY_STORE_LOAD)) {
+    if (null != WarpConfig.getProperties().getProperty(STANDALONE_MEMORY_STORE_LOAD)) {
       try {
-        load(WarpDist.getProperties().getProperty(STANDALONE_MEMORY_STORE_LOAD));
+        load(WarpConfig.getProperties().getProperty(STANDALONE_MEMORY_STORE_LOAD));
       } catch (IOException ioe) {
         throw new RuntimeException(ioe);
       }

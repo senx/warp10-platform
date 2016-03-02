@@ -55,6 +55,7 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.python.bouncycastle.util.Arrays;
 
 import com.google.common.base.Preconditions;
 import com.netflix.curator.framework.CuratorFramework;
@@ -336,7 +337,8 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
 
     try {
       entries = this.curatorFramework.getChildren().forPath(properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZNODE));
-    } catch (Exception e) {  
+    } catch (Exception e) {
+      e.printStackTrace();
     }
     
     if (null == entries) {
@@ -432,9 +434,9 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     //
 
     byte[] data = this.cache.getCurrentData().getData();
-
-    if (null == lastKnownData || 0 != Bytes.compareTo(lastKnownData, data)) {
-      lastKnownData = data;
+          
+    if (null == lastKnownData || null == data || 0 != Bytes.compareTo(lastKnownData, data)) {
+      lastKnownData = null == data ? null : Arrays.copyOf(data, data.length);
       this.updateSubscriptions.set(true);
     }    
   }
@@ -706,7 +708,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     }
   }
   
-  private void sendDataMessage(KeyedMessage<byte[], byte[]> msg) throws IOException {
+  private synchronized void sendDataMessage(KeyedMessage<byte[], byte[]> msg) throws IOException {
     
     long thismsg = 0L;
     if (null != msg) {

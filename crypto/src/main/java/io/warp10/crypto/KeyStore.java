@@ -197,6 +197,11 @@ public interface KeyStore {
    */
   public static final String AES_SECURESCRIPTS = "warp.aes.securescripts";
   
+  /**
+   * Key for wrapping GTSSplit instances
+   */
+  public static final String AES_FETCHER = "warp.aes.fetcher";
+  
   public byte[] getKey(String name);
   public void setKey(String name, byte[] key);
   public byte[] decodeKey(String encoded);

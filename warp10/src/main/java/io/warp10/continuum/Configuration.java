@@ -1035,6 +1035,16 @@ public class Configuration {
   public static final String EGRESS_ZK_ZNODE = "egress.zk.znode";
   
   /**
+   * Key to use for encrypting GTSSplit instances
+   */
+  public static final String EGRESS_FETCHER_AES = "egress.fetcher.aes";
+  
+  /**
+   * Maximum age of a valid GTSSplit (in ms)
+   */
+  public static final String EGRESS_FETCHER_MAXSPLITAGE = "egress.fetcher.maxsplitage";
+  
+  /**
    * Key to use for encrypting data in HBase (128/192/256 bits in hex or OSS reference) 
    */
   public static final String EGRESS_HBASE_DATA_AES = "egress.hbase.data.aes";
@@ -1282,9 +1292,15 @@ public class Configuration {
   public static final String HTTP_HEADER_ARCHIVE_TOKENX = "http.header.token.archive";
 
   /**
-   * HTTP Header for setting the base timestamp for relative timestamps
+   * HTTP Header for setting the base timestamp for relative timestamps or for the 'now'
+   * parameter of /sfetch
    */
   public static final String HTTP_HEADER_NOW_HEADERX = "http.header.now";
+
+  /**
+   * HTTP Header for specifying the timespan in /sfetch requests
+   */
+  public static final String HTTP_HEADER_TIMESPAN_HEADERX = "http.header.timespan";
   
   /**
    * Name of header containing the signature of the token used for the fetch

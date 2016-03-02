@@ -24,7 +24,6 @@ import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.crypto.KeyStore;
 import io.warp10.quasar.filter.QuasarTokenFilter;
-import io.warp10.script.WarpScriptStack;
 
 import java.util.Properties;
 
@@ -63,15 +62,13 @@ public class Egress {
     //EGRESS_HBASE_DATA_AES,
   };
 
-  private final EgressExecHandler egressExecHandler;
-  
   private final Server server;
   
   private final KeyStore keystore;
   
   private final Properties properties;
   
-  public Egress(KeyStore keystore, Properties props) throws Exception {
+  public Egress(KeyStore keystore, Properties props, boolean fetcher) throws Exception {
 
     this.properties = (Properties) props.clone();
     this.keystore = keystore;
@@ -81,6 +78,18 @@ public class Egress {
     //
     
     for (String required: REQUIRED_PROPERTIES) {
+      if (fetcher) {
+        if (Configuration.DIRECTORY_ZK_QUORUM.equals(required)) {
+          continue;
+        }
+        if (Configuration.DIRECTORY_ZK_ZNODE.equals(required)) {
+          continue;
+        }
+        if (Configuration.DIRECTORY_PSK.equals(required)) {
+          continue;
+        }
+      }
+
       Preconditions.checkNotNull(props.getProperty(required), "Missing configuration parameter '%s'.", required);          
     }
 
@@ -111,35 +120,50 @@ public class Egress {
 
     HandlerList handlers = new HandlerList();
     
-    DirectoryClient directoryClient = new ThriftDirectoryClient(this.keystore, this.properties);
-    GeoDirectoryClient geoDirectoryClient = new GeoDirectoryThriftClient(keystore, this.properties);
     StoreClient storeClient = new HBaseStoreClient(this.keystore, this.properties);
     QuasarTokenFilter tokenFilter = new QuasarTokenFilter(this.properties, this.keystore);
     
     Handler cors = new CORSHandler();
     handlers.addHandler(cors);
     
-    GzipHandler gzip = new GzipHandler();
-    this.egressExecHandler = new EgressExecHandler(this.keystore, this.properties, directoryClient, geoDirectoryClient, storeClient);
-    gzip.setHandler(this.egressExecHandler);
-    gzip.setBufferSize(65536);
-    gzip.setMinGzipSize(0);
-    handlers.addHandler(gzip);
-        
-    gzip = new GzipHandler();    
-    gzip.setHandler(new EgressFetchHandler(this.keystore, this.properties, directoryClient, storeClient));
-    gzip.setBufferSize(65536);
-    gzip.setMinGzipSize(0);
-    handlers.addHandler(gzip);
-    
-    gzip = new GzipHandler();
-    gzip.setHandler(new EgressFindHandler(this.keystore, directoryClient));
-    gzip.setBufferSize(65536);
-    gzip.setMinGzipSize(0);
-    handlers.addHandler(gzip);
-    
-    EgressMobiusHandler mobiusHandler = new EgressMobiusHandler(storeClient, directoryClient, this.properties);
-    handlers.addHandler(mobiusHandler);
+    if (!fetcher) {
+      DirectoryClient directoryClient = new ThriftDirectoryClient(this.keystore, this.properties);
+      GeoDirectoryClient geoDirectoryClient = new GeoDirectoryThriftClient(keystore, this.properties);
+
+      GzipHandler gzip = new GzipHandler();
+      EgressExecHandler egressExecHandler = new EgressExecHandler(this.keystore, this.properties, directoryClient, geoDirectoryClient, storeClient);
+      gzip.setHandler(egressExecHandler);
+      gzip.setBufferSize(65536);
+      gzip.setMinGzipSize(0);
+      handlers.addHandler(gzip);
+          
+      gzip = new GzipHandler();    
+      gzip.setHandler(new EgressFetchHandler(this.keystore, this.properties, directoryClient, storeClient));
+      gzip.setBufferSize(65536);
+      gzip.setMinGzipSize(0);
+      handlers.addHandler(gzip);
+      
+      gzip = new GzipHandler();
+      gzip.setHandler(new EgressFindHandler(this.keystore, directoryClient));
+      gzip.setBufferSize(65536);
+      gzip.setMinGzipSize(0);
+      handlers.addHandler(gzip);
+      
+      gzip = new GzipHandler();
+      gzip.setHandler(new EgressSplitsHandler(this.keystore, directoryClient, (HBaseStoreClient) storeClient));
+      gzip.setBufferSize(65536);
+      gzip.setMinGzipSize(0);
+      handlers.addHandler(gzip);
+
+      EgressMobiusHandler mobiusHandler = new EgressMobiusHandler(storeClient, directoryClient, this.properties);
+      handlers.addHandler(mobiusHandler);      
+    } else {
+      GzipHandler gzip = new GzipHandler();
+      gzip.setHandler(new EgressFetchHandler(this.keystore, this.properties, null, storeClient));
+      gzip.setBufferSize(65536);
+      gzip.setMinGzipSize(0);
+      handlers.addHandler(gzip);      
+    }
 
     server.setHandler(handlers);
     
@@ -165,7 +189,15 @@ public class Egress {
       Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.EGRESS_HBASE_DATA_AES + " MUST be 128, 192 or 256 bits long.");
       this.keystore.setKey(KeyStore.AES_HBASE_DATA, key);
     }
+
+    keyspec = props.getProperty(Configuration.EGRESS_FETCHER_AES);
     
+    if (null != keyspec) {
+      byte[] key = this.keystore.decodeKey(keyspec);
+      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.EGRESS_FETCHER_AES + " MUST be 128, 192 or 256 bits long.");
+      this.keystore.setKey(KeyStore.AES_FETCHER, key);
+    }
+
     keyspec = props.getProperty(Configuration.DIRECTORY_PSK);
     
     if (null != keyspec) {

@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.egress;
 
+import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.MetadataIdComparator;
@@ -36,8 +37,10 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
@@ -46,6 +49,7 @@ import org.apache.hadoop.hbase.CellScanner;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.RegionLocator;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
@@ -90,7 +94,7 @@ public class HBaseStoreClient implements StoreClient {
   }
   
   @Override
-  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long timespan, boolean fromArchive, final boolean writeTimestamp) throws IOException {
+  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long timespan, final boolean fromArchive, final boolean writeTimestamp) throws IOException {
 
     if (fromArchive) {
       throw new RuntimeException("ARCHIVE MODE NOT IMPLEMENTED.");
@@ -318,6 +322,10 @@ public class HBaseStoreClient implements StoreClient {
           return null;
         }
 
+        long datapoints = 0L;
+        long keyBytes = 0L;
+        long valueBytes = 0L;
+        
         //
         // Create a new GTSEncoder for the results
         //
@@ -395,6 +403,15 @@ public class HBaseStoreClient implements StoreClient {
                     } else {
                       encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
                     }
+                    
+                    //
+                    // Update statistics
+                    //
+                    
+                    valueBytes += valueLength;
+                    keyBytes += cell.getRowLength() + cell.getFamilyLength() + cell.getQualifierLength();
+                    datapoints++;
+
                     nvalues--;
                   } catch (IOException ioe) {
                     // FIXME(hbs): LOG?
@@ -439,6 +456,63 @@ public class HBaseStoreClient implements StoreClient {
         }
         
         encoder.setMetadata(metadatas.get(idx-1));
+
+        //
+        // Update Sensision
+        //
+
+        Map<String,String> labels = new HashMap<String,String>();
+        
+        Map<String,String> metadataLabels = metadatas.get(idx-1).getLabels();
+        
+        String billedCustomerId = Tokens.getUUID(token.getBilledId());
+
+        if (null != billedCustomerId) {
+          labels.put(SensisionConstants.SENSISION_LABEL_CONSUMERID, billedCustomerId);
+        }
+        
+        if (metadataLabels.containsKey(Constants.APPLICATION_LABEL)) {
+          labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, metadataLabels.get(Constants.APPLICATION_LABEL));
+        }
+        
+        if (metadataLabels.containsKey(Constants.OWNER_LABEL)) {
+          labels.put(SensisionConstants.SENSISION_LABEL_OWNER, metadataLabels.get(Constants.OWNER_LABEL));
+        }
+        
+        if (null != token.getAppName()) {
+          labels.put(SensisionConstants.SENSISION_LABEL_CONSUMERAPP, token.getAppName());
+        }
+        
+        //
+        // Update per owner statistics, use a TTL for those
+        //
+        
+        if (fromArchive) {
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_VALUES_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, valueBytes);
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_KEYS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, keyBytes);
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_DATAPOINTS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, datapoints);                    
+        } else {
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_VALUES_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, valueBytes);
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_KEYS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, keyBytes);
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_DATAPOINTS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, datapoints);          
+        }
+               
+        //
+        // Update summary statistics
+        //
+
+        // Remove 'owner' label
+        labels.remove(SensisionConstants.SENSISION_LABEL_OWNER);
+
+        if (fromArchive) {
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_VALUES, labels, valueBytes);
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_KEYS, labels, keyBytes);
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_DATAPOINTS, labels, datapoints);          
+        } else {
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_VALUES, labels, valueBytes);
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_KEYS, labels, keyBytes);
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_DATAPOINTS, labels, datapoints);          
+        }
 
         return encoder.getDecoder();
       }
@@ -487,5 +561,16 @@ public class HBaseStoreClient implements StoreClient {
   @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {
     throw new RuntimeException("Not Implemented.");   
+  }
+  
+  /**
+   * Return a RegionLocator instance suitable for inspecting the underlying table regions.
+   * Be aware that the returned RegionLocator is not thread-safe and should be unmanaged using close().
+   * 
+   * @return
+   * @throws IOException
+   */
+  public RegionLocator getRegionLocator() throws IOException {
+    return this.conn.getRegionLocator(this.tableName);
   }
 }

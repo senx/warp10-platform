@@ -16,7 +16,7 @@
 
 package io.warp10.script;
 
-import io.warp10.WarpDist;
+import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.geo.GeoDirectoryClient;
 import io.warp10.continuum.gts.UnsafeString;
@@ -27,6 +27,7 @@ import io.warp10.script.functions.SECURE;
 import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.WarpScriptJavaFunction;
 import io.warp10.warp.sdk.WarpScriptJavaFunctionException;
+import io.warp10.warp.sdk.WarpScriptRawJavaFunction;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -124,9 +125,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
    */
   private Progressable progressable = null;
   
-  private static class StackContext extends WarpScriptStack.StackContext {
-    private Map<String, Object> symbolTable;
-    private Map<String, WarpScriptStackFunction> defined;
+  public static class StackContext extends WarpScriptStack.StackContext {
+    public Map<String, Object> symbolTable;
+    public Map<String, WarpScriptStackFunction> defined;
   }
   
   public StoreClient getStoreClient() {
@@ -142,11 +143,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
   
   public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient) {
-    this(storeClient, directoryClient, WarpDist.getProperties());
+    this(storeClient, directoryClient, WarpConfig.getProperties());
   }
 
   public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient, GeoDirectoryClient geoDirectoryClient) {
-    this(storeClient, directoryClient, geoDirectoryClient, WarpDist.getProperties());
+    this(storeClient, directoryClient, geoDirectoryClient, WarpConfig.getProperties());
   }
 
   public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient, Properties properties) {
@@ -854,18 +855,24 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     
     // Build the list of objects, the top of the stack being the first
     List<Object> args = new ArrayList<Object>(levels);
-    
-    for (int i = 0; i < levels; i++) {
-      args.add(StackUtils.toSDKObject(this.pop()));
+
+    if (function instanceof WarpScriptRawJavaFunction) {
+      args.add(this);
+    } else {
+      for (int i = 0; i < levels; i++) {
+        args.add(StackUtils.toSDKObject(this.pop()));
+      }      
     }
     
     try {
       // Apply the function
       List<Object> results = function.apply(args);
       
-      // Push the results onto the stack
-      for (Object result: results) {
-        this.push(StackUtils.fromSDKObject(result));
+      if (!(function instanceof WarpScriptRawJavaFunction)) {
+        // Push the results onto the stack
+        for (Object result: results) {
+          this.push(StackUtils.fromSDKObject(result));
+        }        
       }
     } catch (WarpScriptJavaFunctionException ejfe) {
       throw new WarpScriptException(ejfe);
@@ -1151,13 +1158,18 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     //
     
     this.symbolTable.clear();
-    this.symbolTable.putAll(context.symbolTable);
+    
+    if (null != context.symbolTable) {
+      this.symbolTable.putAll(context.symbolTable);
+    }
     
     //
     // Restore redefined functions
     //
     
     this.defined.clear();
-    this.defined.putAll(context.defined);
+    if (null != context.defined) {
+      this.defined.putAll(context.defined);
+    }
   }  
 }

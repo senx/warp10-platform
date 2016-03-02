@@ -279,6 +279,10 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
   }
   
   public StandalonePlasmaHandler(KeyStore keystore, Properties properties, DirectoryClient directoryClient) {
+    this(keystore, properties, directoryClient, true);
+  }
+  
+  public StandalonePlasmaHandler(KeyStore keystore, Properties properties, DirectoryClient directoryClient, boolean startThread) {
     super(StandalonePlasmaWebSocket.class);
     
     this.keystore = keystore;
@@ -289,10 +293,12 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
     
     configure(super.getWebSocketFactory());
     
-    Thread t = new Thread(this);
-    t.setDaemon(true);
-    t.setName("[StandalonePlasmaHandler]");
-    t.start();
+    if (startThread) {
+      Thread t = new Thread(this);
+      t.setDaemon(true);
+      t.setName("[StandalonePlasmaHandler]");
+      t.start();      
+    }
   }
 
   public void setDirectoryClient(DirectoryClient directoryClient) {
@@ -313,7 +319,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
   
   @Override
   public void configure(final WebSocketServletFactory factory) {
-    
+        
     final StandalonePlasmaHandler self = this;
 
     final WebSocketCreator oldcreator = factory.getCreator();
@@ -411,7 +417,6 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
   
   private synchronized void deregister(Session session) {    
     clearSubscriptions(session);
-    this.subscriptions.remove(session);
     this.format.remove(session);
     this.sampleRate.remove(session);
   }
@@ -421,17 +426,28 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
     // Decrease refcount for each gts subscribed
     //
 
+    boolean mustRepublish = false;
+    
     if (this.subscriptions.containsKey(session)) {
-      for (BigInteger id: this.subscriptions.get(session)) {
+      Set<BigInteger> ids = this.subscriptions.get(session);
+      this.subscriptions.remove(session);
+      for (BigInteger id: ids) {
         if (0 == this.refcounts.get(id).addAndGet(-1)) {
+          // FIXME(hbs): we need to ensure refcount is not incremented by another thread, otherwise
+          // we may remove some Metadata even though another client just subscribed to it
           this.metadatas.remove(id);
           this.refcounts.remove(id);
+          mustRepublish = true;
         }        
       }
     }    
     
     if (this.refcounts.isEmpty()) {
       hasclients = false;
+    }
+    
+    if (null != this.subscriptionListener && mustRepublish) {
+      this.subscriptionListener.onChange();
     }
   }
   
@@ -509,7 +525,19 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
       //Gson gson = null;
       JsonSerializer serializer = new JsonSerializerFactory().create();
       
-      for (Entry<Session, Set<BigInteger>> entry: subscriptions.entrySet()) {
+      Set<Entry<Session, Set<BigInteger>>> subs = subscriptions.entrySet();
+      
+      for (Entry<Session, Set<BigInteger>> entry: subs) {
+        
+        //
+        // We might have missed the close of a session, we get a chance to correct that here
+        // FIXME(hbs): if we missed a close it's probably a bug though!
+        //
+        
+        if (!entry.getKey().isOpen()) {
+          deregister(entry.getKey());
+          continue;
+        }
         
         try {
           if (entry.getValue().contains(id)) {

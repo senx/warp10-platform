@@ -16,10 +16,10 @@
 
 package io.warp10.standalone;
 
+import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.ingress.Ingress;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
 import io.warp10.continuum.store.thrift.data.KafkaDataMessageType;
@@ -480,7 +480,7 @@ public class StandaloneKafkaConsumer {
   }
   
   public StandaloneKafkaConsumer(final KeyStore keystore, final StandaloneMemoryStore storeClient, final StandaloneDirectoryClient directoryClient) {    
-    final Properties properties = Warp.getProperties();
+    final Properties properties = WarpConfig.getProperties();
     
     //
     // Create the metadata consuming Thread

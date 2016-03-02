@@ -29,6 +29,7 @@ import io.warp10.sensision.Sensision;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,8 +67,8 @@ import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-
-import scala.actors.threadpool.Arrays;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
@@ -78,6 +79,8 @@ import com.google.common.primitives.Longs;
  * HBase
  */
 public class Store extends Thread {
+  
+  private static final Logger LOG = LoggerFactory.getLogger(Store.class);
   
   /**
    * Prefix for 'raw' (individual datapoints) data
@@ -265,7 +268,7 @@ public class Store extends Thread {
             
             ConsumerConfig config = new ConsumerConfig(props);
             connector = Consumer.createJavaConsumerConnector(config);
-            
+
             Map<String,List<KafkaStream<byte[], byte[]>>> consumerMap = connector.createMessageStreams(topicCountMap);
             
             List<KafkaStream<byte[], byte[]>> streams = consumerMap.get(topic);
@@ -280,7 +283,7 @@ public class Store extends Thread {
             //
             
             counters.reset();
-            
+
             for (final KafkaStream<byte[],byte[]> stream : streams) {
               executor.submit(new StoreConsumer(self, stream, counters));
             }      
@@ -328,10 +331,7 @@ public class Store extends Thread {
                 abort.set(true);
               }
               
-              try {
-                Thread.sleep(1L);          
-              } catch (InterruptedException ie) {          
-              }
+              LockSupport.parkNanos(1000000L);
             }
 
           } catch (Throwable t) {
@@ -342,17 +342,19 @@ public class Store extends Thread {
             // we will shut down the executor and shut down the connector to start over.
             //
         
-            if (null != executor) {
-              try {
-                executor.shutdownNow();
-              } catch (Exception e) {                
-              }
-            }
             if (null != connector) {
               try {
                 connector.shutdown();
               } catch (Exception e) {
-                
+                LOG.error("Closing connector", e);
+              }
+            }
+
+            if (null != executor) {
+              try {
+                executor.shutdownNow();
+              } catch (Exception e) {
+                LOG.error("Closing executor", e);
               }
             }
             
@@ -360,7 +362,7 @@ public class Store extends Thread {
             
             abort.set(false);
 
-            try { Thread.sleep(100L); } catch (InterruptedException ie) {}
+            LockSupport.parkNanos(100000000L);
           }
         }
       }
@@ -383,10 +385,7 @@ public class Store extends Thread {
     //
     
     while (true){
-      try {
-        Thread.sleep(Long.MAX_VALUE);
-      } catch (InterruptedException ie) {        
-      }
+      LockSupport.parkNanos(Long.MAX_VALUE);
     }
   }
   
@@ -455,7 +454,7 @@ public class Store extends Thread {
             // flush any pending commits and synchronize with the other threads so offsets can be committed
             //
 
-            while(!localabort.get()) { 
+            while(!localabort.get() && !Thread.currentThread().isInterrupted()) { 
               long now = System.currentTimeMillis();
               
               if (now - lastsync > store.commitPeriod) {
@@ -568,10 +567,7 @@ public class Store extends Thread {
                 flushsem.release();
               }
 
-              try {
-                Thread.sleep(1L);
-              } catch (InterruptedException ie) {                
-              }
+              LockSupport.parkNanos(1000000L);
             }
             } finally {
               //
@@ -595,7 +591,7 @@ public class Store extends Thread {
 
         // TODO(hbs): allow setting of writeBufferSize
 
-        while (iter.hasNext()) {
+        while (iter.hasNext() && !Thread.currentThread().isInterrupted()) {
           //
           // Since the cal to 'next' may block, we need to first
           // check that there is a message available, otherwise we
@@ -663,16 +659,15 @@ public class Store extends Thread {
 
           } else {
             // Sleep a tiny while
-            try {
-              Thread.sleep(1L);
-            } catch (InterruptedException ie) {             
-            }
+            LockSupport.parkNanos(1000000L);
           }          
         }        
       } catch (Throwable t) {
         // FIXME(hbs): log something/update Sensision metrics
         t.printStackTrace(System.out);
       } finally {
+        // Interrupt the synchronizer thread
+        try { synchronizer.interrupt(); } catch (Exception e) {}
         // Set abort to true in case we exit the 'run' method
         store.abort.set(true);
         this.localabort.set(true);

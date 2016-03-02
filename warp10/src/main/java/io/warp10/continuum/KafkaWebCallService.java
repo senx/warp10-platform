@@ -16,7 +16,7 @@
 
 package io.warp10.continuum;
 
-import io.warp10.WarpDist;
+import io.warp10.WarpConfig;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.script.thrift.data.WebCallRequest;
@@ -111,7 +111,7 @@ public class KafkaWebCallService {
   }
   
   private static void initialize() {
-    Properties props = WarpDist.getProperties();
+    Properties props = WarpConfig.getProperties();
     
     if (null == props.getProperty(WEBCALL_KAFKA_ZKCONNECT)) {
       throw new RuntimeException(WEBCALL_KAFKA_ZKCONNECT + " was not specified in the configuration.");

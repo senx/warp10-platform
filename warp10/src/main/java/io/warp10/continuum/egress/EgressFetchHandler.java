@@ -16,20 +16,22 @@
 
 package io.warp10.continuum.egress;
 
-import io.warp10.WarpDist;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.GTSDecoderIterator;
 import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.StoreClient;
+import io.warp10.continuum.store.thrift.data.GTSSplit;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
@@ -41,6 +43,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.math.BigInteger;
@@ -58,6 +61,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.GZIPInputStream;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -93,6 +97,10 @@ public class EgressFetchHandler extends AbstractHandler {
   
   private final byte[] fetchPSK;
   
+  private final byte[] fetchAES;
+
+  private final long maxSplitAge;
+  
   public static final Pattern SELECTOR_RE = Pattern.compile("^([^{]+)\\{(.*)\\}$");
 
   /**
@@ -102,11 +110,18 @@ public class EgressFetchHandler extends AbstractHandler {
   
   public EgressFetchHandler(KeyStore keystore, Properties properties, DirectoryClient directoryClient, StoreClient storeClient) {
     this.fetchPSK = keystore.getKey(KeyStore.SIPHASH_FETCH_PSK);
+    this.fetchAES = keystore.getKey(KeyStore.AES_FETCHER);
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
     
     if (properties.containsKey(Configuration.EGRESS_FETCH_BATCHSIZE)) {
       FETCH_BATCHSIZE = Long.parseLong(properties.getProperty(Configuration.EGRESS_FETCH_BATCHSIZE));
+    }
+    
+    if (properties.containsKey(Configuration.EGRESS_FETCHER_MAXSPLITAGE)) {
+      this.maxSplitAge = Long.parseLong(properties.getProperty(Configuration.EGRESS_FETCHER_MAXSPLITAGE));
+    } else {
+      this.maxSplitAge = Long.MAX_VALUE;
     }
   }
   
@@ -114,6 +129,7 @@ public class EgressFetchHandler extends AbstractHandler {
   public void handle(String target, Request baseRequest, HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
 
     boolean fromArchive = false;
+    boolean splitFetch = false;
     boolean writeTimestamp = false;
     
     if (Constants.API_ENDPOINT_FETCH.equals(target)) {
@@ -121,7 +137,10 @@ public class EgressFetchHandler extends AbstractHandler {
       fromArchive = false;
     } else if (Constants.API_ENDPOINT_AFETCH.equals(target)) {
       baseRequest.setHandled(true);
-      fromArchive = true;      
+      fromArchive = true;
+    } else if (Constants.API_ENDPOINT_SFETCH.equals(target)) {
+      baseRequest.setHandled(true);
+      splitFetch = true;
     } else {
       return;
     }
@@ -132,15 +151,27 @@ public class EgressFetchHandler extends AbstractHandler {
     
     resp.setHeader("Access-Control-Allow-Origin", "*");
 
-    String start = req.getParameter(Constants.HTTP_PARAM_START);
-    String stop = req.getParameter(Constants.HTTP_PARAM_STOP);
+    String start = null;
+    String stop = null;
     
     long now = Long.MIN_VALUE;
     long timespan = 0L;
 
-    String nowParam = req.getParameter(Constants.HTTP_PARAM_NOW);
-    String timespanParam = req.getParameter(Constants.HTTP_PARAM_TIMESPAN);
-    String dedupParam = req.getParameter(Constants.HTTP_PARAM_DEDUP);
+    String nowParam = null;
+    String timespanParam = null;
+    String dedupParam = null;
+
+    if (splitFetch) {
+      nowParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_NOW_HEADERX));
+      timespanParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TIMESPAN_HEADERX));
+    } else {
+      start = req.getParameter(Constants.HTTP_PARAM_START);
+      stop = req.getParameter(Constants.HTTP_PARAM_STOP);
+      
+      nowParam = req.getParameter(Constants.HTTP_PARAM_NOW);
+      timespanParam = req.getParameter(Constants.HTTP_PARAM_TIMESPAN);
+      dedupParam = req.getParameter(Constants.HTTP_PARAM_DEDUP);      
+    }
         
     boolean dedup = null != dedupParam && "true".equals(dedupParam);
     
@@ -157,12 +188,12 @@ public class EgressFetchHandler extends AbstractHandler {
       }
     } else if (null != nowParam && null != timespanParam) {
       try {
-        now = Long.valueOf(nowParam);
+        now = Long.parseLong(nowParam);
       } catch (Exception e) {
         now = fmt.parseDateTime(nowParam).getMillis() * Constants.TIME_UNITS_PER_MS;
       }
       
-      timespan = Long.valueOf(timespanParam);
+      timespan = Long.parseLong(timespanParam);
     }
     
     if (Long.MIN_VALUE == now) {
@@ -170,7 +201,7 @@ public class EgressFetchHandler extends AbstractHandler {
       return;
     }
       
-    String selector = req.getParameter(Constants.HTTP_PARAM_SELECTOR);
+    String selector = splitFetch ? null : req.getParameter(Constants.HTTP_PARAM_SELECTOR);
  
     //
     // Extract token from header
@@ -179,7 +210,7 @@ public class EgressFetchHandler extends AbstractHandler {
     String token = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
     
     // If token was not found in header, extract it from the 'token' parameter
-    if (null == token) {
+    if (null == token && !splitFetch) {
       token = req.getParameter(Constants.HTTP_PARAM_TOKEN);
     }
     
@@ -190,6 +221,10 @@ public class EgressFetchHandler extends AbstractHandler {
     //
     
     boolean signed = false;
+    
+    if (splitFetch) {
+      signed = true;
+    }
     
     if (null != fetchSig) {
       if (null != fetchPSK) {
@@ -221,23 +256,25 @@ public class EgressFetchHandler extends AbstractHandler {
       }
     }
     
-    ReadToken rtoken;
+    ReadToken rtoken = null;
     
-    try {
-      rtoken = Tokens.extractReadToken(token);
-      
-      if (rtoken.getHooksSize() > 0) {
-        throw new IOException("Tokens with hooks cannot be used for fetching data.");        
+    String format = splitFetch ? "wrapper" : req.getParameter(Constants.HTTP_PARAM_FORMAT);
+
+    if (!splitFetch) {
+      try {
+        rtoken = Tokens.extractReadToken(token);
+        
+        if (rtoken.getHooksSize() > 0) {
+          throw new IOException("Tokens with hooks cannot be used for fetching data.");        
+        }
+      } catch (WarpScriptException ee) {
+        throw new IOException(ee);
       }
-    } catch (WarpScriptException ee) {
-      throw new IOException(ee);
-    }
-    
-    String format = req.getParameter(Constants.HTTP_PARAM_FORMAT);
-    
-    if (null == rtoken) {
-      resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Missing token.");
-      return;
+            
+      if (null == rtoken) {
+        resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Missing token.");
+        return;
+      }      
     }
     
     //
@@ -249,61 +286,177 @@ public class EgressFetchHandler extends AbstractHandler {
     //
     
     Set<Metadata> metadatas = new HashSet<Metadata>();
-    
-    String[] selectors = selector.split("\\s+");
-
     List<Iterator<Metadata>> iterators = new ArrayList<Iterator<Metadata>>();
     
-    for (String sel: selectors) {
-      Matcher m = SELECTOR_RE.matcher(sel);
+    if (!splitFetch) {
+      String[] selectors = selector.split("\\s+");
       
-      if (!m.matches()) {
-        resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
-        return;
-      }
-      
-      String classSelector = URLDecoder.decode(m.group(1), "UTF-8");
-      String labelsSelection = m.group(2);
-      
-      Map<String,String> labelsSelectors;
-
-      try {
-        labelsSelectors = GTSHelper.parseLabelsSelectors(labelsSelection);
-      } catch (ParseException pe) {
-        throw new IOException(pe);
-      }
-      
-      //
-      // Force 'producer'/'owner'/'app' from token
-      //
-      
-      labelsSelectors.remove(Constants.PRODUCER_LABEL);
-      labelsSelectors.remove(Constants.OWNER_LABEL);
-      labelsSelectors.remove(Constants.APPLICATION_LABEL);
-      
-      labelsSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
-
-      List<Metadata> metas = null;
-      
-      List<String> clsSels = new ArrayList<String>();
-      List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
-      
-      clsSels.add(classSelector);
-      lblsSels.add(labelsSelectors);
-      
-      try {
-        metas = directoryClient.find(clsSels, lblsSels);
-        metadatas.addAll(metas);
-      } catch (Exception e) {
-        //
-        // If metadatas is not empty, create an iterator for it, then clear it
-        //
-        if (!metadatas.isEmpty()) {
-          iterators.add(metadatas.iterator());
-          metadatas.clear();
+      for (String sel: selectors) {
+        Matcher m = SELECTOR_RE.matcher(sel);
+        
+        if (!m.matches()) {
+          resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
+          return;
         }
-        iterators.add(directoryClient.iterator(clsSels, lblsSels));
+        
+        String classSelector = URLDecoder.decode(m.group(1), "UTF-8");
+        String labelsSelection = m.group(2);
+        
+        Map<String,String> labelsSelectors;
+
+        try {
+          labelsSelectors = GTSHelper.parseLabelsSelectors(labelsSelection);
+        } catch (ParseException pe) {
+          throw new IOException(pe);
+        }
+        
+        //
+        // Force 'producer'/'owner'/'app' from token
+        //
+        
+        labelsSelectors.remove(Constants.PRODUCER_LABEL);
+        labelsSelectors.remove(Constants.OWNER_LABEL);
+        labelsSelectors.remove(Constants.APPLICATION_LABEL);
+        
+        labelsSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
+
+        List<Metadata> metas = null;
+        
+        List<String> clsSels = new ArrayList<String>();
+        List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
+        
+        clsSels.add(classSelector);
+        lblsSels.add(labelsSelectors);
+        
+        try {
+          metas = directoryClient.find(clsSels, lblsSels);
+          metadatas.addAll(metas);
+        } catch (Exception e) {
+          //
+          // If metadatas is not empty, create an iterator for it, then clear it
+          //
+          if (!metadatas.isEmpty()) {
+            iterators.add(metadatas.iterator());
+            metadatas.clear();
+          }
+          iterators.add(directoryClient.iterator(clsSels, lblsSels));
+        }
+      }      
+    } else {
+      //
+      // Add an iterator which reads splits from the request body
+      //
+      
+      boolean gzipped = false;
+      
+      if (null != req.getHeader("Content-Type") && "application/gzip".equals(req.getHeader("Content-Type"))) {
+        gzipped = true;
       }
+      
+      BufferedReader br = null;
+          
+      if (gzipped) {
+        GZIPInputStream is = new GZIPInputStream(req.getInputStream());
+        br = new BufferedReader(new InputStreamReader(is));
+      } else {    
+        br = req.getReader();
+      }
+
+      final BufferedReader fbr = br;
+      
+
+      MetadataIterator iterator = new MetadataIterator() {
+        
+        private List<Metadata> metadatas = new ArrayList<Metadata>();
+        
+        private boolean done = false;
+
+        private String lasttoken = "";
+        
+        @Override
+        public void close() throws Exception {
+          fbr.close();
+        }
+        
+        @Override
+        public Metadata next() {
+          if (!metadatas.isEmpty()) {
+            Metadata meta = metadatas.get(metadatas.size() - 1);
+            metadatas.remove(metadatas.size() - 1);
+            return meta;
+          } else {
+            if (hasNext()) {
+              return next();
+            } else {
+              throw new NoSuchElementException();
+            }
+          }
+        }
+        
+        @Override
+        public boolean hasNext() {
+          if (!metadatas.isEmpty()) {
+            return true;
+          }
+          
+          if (done) {
+            return false;            
+          }
+          
+          String line = null;
+          
+          try {
+            line = fbr.readLine();
+          } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+          }
+          
+          if (null == line) {
+            done = true;
+            return false;
+          }
+          
+          //
+          // Decode/Unwrap/Deserialize the split
+          //
+          
+          byte[] data = OrderPreservingBase64.decode(line.getBytes(Charsets.US_ASCII));
+          if (null != fetchAES) {
+            data = CryptoUtils.unwrap(fetchAES, data);
+          }
+          
+          if (null == data) {
+            throw new RuntimeException("Invalid wrapped content.");
+          }
+          
+          TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+          
+          GTSSplit split = new GTSSplit();
+          
+          try {
+            deserializer.deserialize(split, data);
+          } catch (TException te) {
+            throw new RuntimeException(te);
+          }
+          
+          //
+          // Check the expiry
+          //
+          
+          long instant = System.currentTimeMillis();
+          
+          if (instant - split.getTimestamp() > maxSplitAge || instant > split.getExpiry()) {
+            throw new RuntimeException("Split has expired.");
+          }
+                    
+          this.metadatas.addAll(split.getMetadatas());
+          
+          // We assume there was at least one metadata instance in the split!!!
+          return true;
+        }
+      };
+      
+      iterators.add(iterator);
     }
        
     List<Metadata> metas = new ArrayList<Metadata>();
@@ -610,11 +763,13 @@ public class EgressFetchHandler extends AbstractHandler {
       // Build a GTSWrapper
       //
       
-      GTSWrapper wrapper = new GTSWrapper();
-      wrapper.setBase(encoder.getBaseTimestamp());
-      wrapper.setMetadata(encoder.getMetadata());
-      wrapper.setCount(encoder.getCount());
-      wrapper.setEncoded(encoder.getBytes());
+      GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true);
+      
+//      GTSWrapper wrapper = new GTSWrapper();
+//      wrapper.setBase(encoder.getBaseTimestamp());
+//      wrapper.setMetadata(encoder.getMetadata());
+//      wrapper.setCount(encoder.getCount());
+//      wrapper.setEncoded(encoder.getBytes());
       
       //
       // Serialize the wrapper
@@ -629,17 +784,23 @@ public class EgressFetchHandler extends AbstractHandler {
         throw new IOException(te);
       }
       
-      //
-      // Compute HMac for the wrapper
-      //
-      
-      long hash = SipHashInline.hash24(fetchPSK, data);
-      
-      //
-      // Output the MAC before the data, as hex digits
-      //
+      if (null != fetchPSK) {
+        //
+        // Compute HMac for the wrapper
+        //
+        
+        long hash = SipHashInline.hash24(fetchPSK, data);
+        
+        //
+        // Output the MAC before the data, as hex digits
+        //
 
-      out.write(Hex.encode(Longs.toByteArray(hash)));
+        out.write(Hex.encode(Longs.toByteArray(hash)));               
+      } else {
+        out.write('-');
+      }
+      
+      out.write(' ');
       
       //
       // Base64 encode the wrapper

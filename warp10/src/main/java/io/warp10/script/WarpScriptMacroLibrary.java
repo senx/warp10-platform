@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.net.JarURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -35,10 +36,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import sun.net.www.protocol.file.FileURLConnection;
+
 import com.google.common.base.Charsets;
 
 /**
- * Macro library built by adding macros from various files
+ * Macro library built by adding macros from various files, loaded from a root directory
+ * or from the classpath
  * 
  * TODO(hbs): add support for secure script (the keystore is not initialized)
  */
@@ -69,10 +73,6 @@ public class WarpScriptMacroLibrary {
       
       Enumeration<JarEntry> entries = jar.entries();
       
-      byte[] buf = new byte[8192];
-      ByteArrayOutputStream out = new ByteArrayOutputStream();
-      StringBuilder sb = new StringBuilder();
-
       while(entries.hasMoreElements()) {
         JarEntry entry = entries.nextElement();
         
@@ -93,73 +93,12 @@ public class WarpScriptMacroLibrary {
         name = name.substring(0, name.length() - WarpScriptMacroRepository.WARPSCRIPT_FILE_EXTENSION.length());
         
         InputStream in = jar.getInputStream(entry);
-        out.reset();
-        
-        while(true) {
-          int len = in.read(buf);
-          
-          if (len < 0) {
-            break;
-          }
-          
-          out.write(buf, 0, len);
-        }
 
-        in.close();
-
-        byte[] data = out.toByteArray();
-
-        sb.setLength(0);
-        sb.append(" ");
-
-        sb.append(new String(data, Charsets.UTF_8));
-        
-        sb.append("\n");
-        
-        MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, new Properties());
-
-        //
-        // Add 'INCLUDE'
-        //
-        
-        AtomicBoolean enabled = new AtomicBoolean(true);
-        
-        final INCLUDE include = new INCLUDE("INCLUDE", jar, enabled);
-        stack.define("INCLUDE", new Macro() {
-          public boolean isSecure() { return true; }
-          public java.util.List<Object> statements() { return new ArrayList<Object>() {{ add(include); }}; }
-          }
-        );
-        
-        //
-        // Execute the code
-        //
-
-        stack.execMulti(sb.toString());
-
-        //
-        // Disable INCLUDE
-        //
-        
-        enabled.set(false);
-        
-        //
-        // Ensure the resulting stack is one level deep and has a macro on top
-        //
-
-        if (1 != stack.depth()) {
-          throw new WarpScriptException("Stack depth was not 1 after the code execution.");
-        }
-        
-        if (!(stack.peek() instanceof Macro)) {
-          throw new WarpScriptException("No macro was found on top of the stack.");
-        }
+        Macro macro = loadMacro(jar, in);
         
         //
         // Store resulting macro under 'name'
         //
-        
-        Macro macro = (Macro) stack.pop();
         
         // Make macro a secure one
         macro.setSecure(true);
@@ -172,6 +111,83 @@ public class WarpScriptMacroLibrary {
     } finally {
       if (null != jar) { try { jar.close(); } catch (IOException ioe) {} }
     }    
+  }
+  
+  public static Macro loadMacro(Object root, InputStream in) throws WarpScriptException {
+    try {
+      byte[] buf = new byte[8192];
+      StringBuilder sb = new StringBuilder();
+
+      ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+      while(true) {
+        int len = in.read(buf);
+        
+        if (len < 0) {
+          break;
+        }
+        
+        out.write(buf, 0, len);
+      }
+
+      in.close();
+
+      byte[] data = out.toByteArray();
+
+      sb.setLength(0);
+      sb.append(" ");
+
+      sb.append(new String(data, Charsets.UTF_8));
+      
+      sb.append("\n");
+      
+      MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, new Properties());
+
+      //
+      // Add 'INCLUDE'
+      //
+      
+      AtomicBoolean enabled = new AtomicBoolean(true);
+      
+      final INCLUDE include = root instanceof File ? new INCLUDE("INCLUDE", (File) root, enabled) : new INCLUDE("INCLUDE", (JarFile) root, enabled);
+      stack.define("INCLUDE", new Macro() {
+        public boolean isSecure() { return true; }
+        public java.util.List<Object> statements() { return new ArrayList<Object>() {{ add(include); }}; }
+        }
+      );
+      
+      //
+      // Execute the code
+      //
+
+      stack.execMulti(sb.toString());
+
+      //
+      // Disable INCLUDE
+      //
+      
+      enabled.set(false);
+      
+      //
+      // Ensure the resulting stack is one level deep and has a macro on top
+      //
+
+      if (1 != stack.depth()) {
+        throw new WarpScriptException("Stack depth was not 1 after the code execution.");
+      }
+      
+      if (!(stack.peek() instanceof Macro)) {
+        throw new WarpScriptException("No macro was found on top of the stack.");
+      }
+      
+      Macro macro = (Macro) stack.pop();
+      
+      return macro;
+    } catch (IOException ioe) {
+      throw new WarpScriptException(ioe);
+    } finally {
+      try { in.close(); } catch (IOException ioe) {}
+    }
   }
   
   public static Macro find(String name) throws WarpScriptException {    
@@ -188,11 +204,19 @@ public class WarpScriptMacroLibrary {
       
       if (null != url) {
         try {
-          final JarURLConnection connection = (JarURLConnection) url.openConnection();
-          final URL fileurl = connection.getJarFileURL();
-          File f = new File(fileurl.toURI());
-          addJar(f.getAbsolutePath(), rsc);
-          macro = (Macro) macros.get(name);
+          URLConnection conn = url.openConnection();
+          
+          if (conn instanceof JarURLConnection) {
+            final JarURLConnection connection = (JarURLConnection) url.openConnection();
+            final URL fileurl = connection.getJarFileURL();
+            File f = new File(fileurl.toURI());
+            addJar(f.getAbsolutePath(), rsc);
+            macro = (Macro) macros.get(name);
+          } else if (conn instanceof FileURLConnection) {
+            String urlstr = url.toString();
+            File root = new File(urlstr.substring(0, urlstr.length() - name.length()  - WarpScriptMacroRepository.WARPSCRIPT_FILE_EXTENSION.length()));
+            macro = loadMacro(root, conn.getInputStream());
+          }          
         } catch (URISyntaxException use) {
           throw new WarpScriptException("Error while loading '" + name + "'", use);
         } catch (IOException ioe) {

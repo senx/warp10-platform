@@ -284,6 +284,8 @@ public class ThrottlingConfigGenerator {
     
     br = new BufferedReader(new InputStreamReader(url.openStream()));
     
+    Set<String> expired = new HashSet<String>();
+    
     while (true) {
       String line = br.readLine();
       
@@ -307,6 +309,7 @@ public class ThrottlingConfigGenerator {
         HyperLogLogPlus estimator = HyperLogLogPlus.fromBytes(OrderPreservingBase64.decode(decoder.getValue().toString().getBytes(Charsets.US_ASCII)));
         
         if (estimator.hasExpired()) {
+          expired.add(producer);
           continue;
         }
 
@@ -379,7 +382,9 @@ public class ThrottlingConfigGenerator {
         // There is no estimator for the producer, this means they have all expired, so we issue '-' as the
         // estimator so they are reset at all ingress
         //
-        sb.append("-");
+        if (expired.contains(key)) {
+          sb.append("-");
+        }
       }
       
       sb.append(":#");
@@ -397,6 +402,8 @@ public class ThrottlingConfigGenerator {
     url = new URL(warpEndPoint + "/fetch?format=fulltext&token=" + URLEncoder.encode(token, "UTF-8") + "&selector=" + SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_ESTIMATOR_PER_APP + "{cell=" + URLEncoder.encode(cell, "UTF-8") + "}&now=0&timespan=-1");
     
     br = new BufferedReader(new InputStreamReader(url.openStream()));
+    
+    expired.clear();
     
     while (true) {
       String line = br.readLine();
@@ -420,6 +427,7 @@ public class ThrottlingConfigGenerator {
         HyperLogLogPlus estimator = HyperLogLogPlus.fromBytes(OrderPreservingBase64.decode(decoder.getValue().toString().getBytes(Charsets.US_ASCII)));
         
         if (estimator.hasExpired()) {
+          expired.add(app);
           continue;
         }
         
@@ -487,7 +495,9 @@ public class ThrottlingConfigGenerator {
         //
         // No estimator because they all have expired, remove them on 'ingress' side
         //
-        sb.append("-");
+        if (expired.contains(key)) {
+          sb.append("-");
+        }
       }
       sb.append(":#");
       System.out.println(sb.toString());

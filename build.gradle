@@ -181,7 +181,7 @@ subprojects {
         thriftFiles.collect {
             ext.file = relativePath(it)
             exec {
-                executable = '/opt/thrift-0.9.1/bin/thrift'
+                executable = 'thrift'
                 args = ['--gen', 'java:hashcode,private-members', '-o', thriftOutputDir, ext.file]
             }
         }

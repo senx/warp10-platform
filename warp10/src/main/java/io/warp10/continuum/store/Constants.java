@@ -16,7 +16,7 @@
 
 package io.warp10.continuum.store;
 
-import io.warp10.WarpDist;
+import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 
 import java.util.HashMap;
@@ -132,6 +132,11 @@ public class Constants {
   public static final String HTTP_HEADER_NOW_HEADER_DEFAULT = "X-Warp10-Now";
   
   /**
+   * HTTP Header for specifying the timespan for /sfetch requests
+   */
+  public static final String HTTP_HEADER_TIMESPAN_HEADER_DEFAULT = "X-Warp10-Timespan";
+  
+  /**
    * Name of header containing the signature of the token used for the fetch
    */
   public static String HTTP_HEADER_FETCH_SIGNATURE_DEFAULT = "X-Warp10-Fetch-Signature";
@@ -150,6 +155,11 @@ public class Constants {
    * Empty column qualifier for HBase writes
    */
   public static final byte[] EMPTY_COLQ = new byte[0];
+  
+  /**
+   * Endpoint for splits generation
+   */
+  public static final String API_ENDPOINT_SPLITS = "/api/v0/splits";
   
   /**
    * Endpoint for script submission
@@ -171,6 +181,11 @@ public class Constants {
    */
   public static final String API_ENDPOINT_FETCH = "/api/v0/fetch";
 
+  /**
+   * Split fetch endpoint
+   */
+  public static final String API_ENDPOINT_SFETCH = "/api/v0/sfetch";
+  
   /**
    * Archive Fetch endpoint for the API
    */
@@ -258,13 +273,15 @@ public class Constants {
   public static final String HTTP_PARAM_DELETEALL = "deleteall";
   public static final String HTTP_PARAM_MINAGE = "minage";
   public static final String HTTP_PARAM_SHOWUUID = "showuuid";
+  public static final String HTTP_PARAM_MINSPLITS = "minsplits";
+  public static final String HTTP_PARAM_MAXSPLITS = "maxsplits";
 
   static {
 
     Properties props = null;
 
     try {
-      props = WarpDist.getProperties();
+      props = WarpConfig.getProperties();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -302,6 +319,7 @@ public class Constants {
     HEADERS.put(Configuration.HTTP_HEADER_UPDATE_TOKENX, props.getProperty(Configuration.HTTP_HEADER_UPDATE_TOKENX, HTTP_HEADER_UPDATE_TOKEN_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_ARCHIVE_TOKENX, props.getProperty(Configuration.HTTP_HEADER_ARCHIVE_TOKENX, HTTP_HEADER_ARCHIVE_TOKEN_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_NOW_HEADERX, props.getProperty(Configuration.HTTP_HEADER_NOW_HEADERX, HTTP_HEADER_NOW_HEADER_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_TIMESPAN_HEADERX, props.getProperty(Configuration.HTTP_HEADER_TIMESPAN_HEADERX, HTTP_HEADER_TIMESPAN_HEADER_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_FETCH_SIGNATURE, props.getProperty(Configuration.HTTP_HEADER_FETCH_SIGNATURE, HTTP_HEADER_FETCH_SIGNATURE_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_UPDATE_SIGNATURE, props.getProperty(Configuration.HTTP_HEADER_UPDATE_SIGNATURE, HTTP_HEADER_UPDATE_SIGNATURE_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE, props.getProperty(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE, HTTP_HEADER_DIRECTORY_SIGNATURE_DEFAULT));

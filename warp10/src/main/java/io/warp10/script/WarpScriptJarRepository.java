@@ -21,6 +21,7 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.WarpScriptJavaFunction;
 import io.warp10.warp.sdk.WarpScriptJavaFunctionException;
+import io.warp10.warp.sdk.WarpScriptRawJavaFunction;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -72,13 +73,15 @@ public class WarpScriptJarRepository extends Thread {
   
   private final static Map<String,WarpScriptJavaFunction> cachedUDFs = new HashMap<String, WarpScriptJavaFunction>();
   
-  public WarpScriptJarRepository(String directory, long delay) {
+  public WarpScriptJarRepository(String directory, long delay) {        
     this.directory = directory;
     this.delay = delay;
     
-    this.setName("[Warp Jar Repository (" + directory + ")");
-    this.setDaemon(true);
-    this.start();
+    if (null != directory) {
+      this.setName("[Warp Jar Repository (" + directory + ")");
+      this.setDaemon(true);
+      this.start();
+    }
   }
     
   @Override
@@ -145,16 +148,17 @@ public class WarpScriptJarRepository extends Thread {
             }
           } else if (!newClassLoadersFingerprints.containsKey(hash)){
             // Create new classloader with filtering so caller cannot access the io.warp10 classes, except those needed
-            ClassLoader filteringCL = new ClassLoader(this.getClass().getClassLoader()) {
-              @Override
-              protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {                
-                if (name.startsWith("io.warp10") && !name.startsWith("io.warp10.warp.sdk.")) {
-                  throw new ClassNotFoundException();
-                } else {
-                  return this.getParent().loadClass(name);
-                }
-              }
-            };
+            ClassLoader filteringCL = this.getClass().getClassLoader();
+//            ClassLoader filteringCL = new ClassLoader(this.getClass().getClassLoader()) {
+//              @Override
+//              protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {                
+//                if (name.startsWith("io.warp10") && !name.startsWith("io.warp10.warp.sdk.")) {
+//                  throw new ClassNotFoundException();
+//                } else {
+//                  return this.getParent().loadClass(name);
+//                }
+//              }
+//            };
 
             URL[] urls = new URL[1];
             urls[0] = file.toURI().toURL();
@@ -239,16 +243,31 @@ public class WarpScriptJarRepository extends Thread {
         
         if (cl.equals(classPathClassLoader)) {
           final WarpScriptJavaFunction innerUDF = udf;
-          udf = new WarpScriptJavaFunction() {            
-            @Override
-            public boolean isProtected() { return false; }
-            
-            @Override
-            public int argDepth() { return innerUDF.argDepth(); }
-            
-            @Override
-            public List<Object> apply(List<Object> args) throws WarpScriptJavaFunctionException { return innerUDF.apply(args); }
-          };
+          
+          if (udf instanceof WarpScriptRawJavaFunction) {
+            udf = new WarpScriptRawJavaFunction() {            
+              @Override
+              public boolean isProtected() { return false; }
+              
+              @Override
+              public int argDepth() { return innerUDF.argDepth(); }
+              
+              @Override
+              public List<Object> apply(List<Object> args) throws WarpScriptJavaFunctionException { return innerUDF.apply(args); }
+            };
+
+          } else {
+            udf = new WarpScriptJavaFunction() {            
+              @Override
+              public boolean isProtected() { return false; }
+              
+              @Override
+              public int argDepth() { return innerUDF.argDepth(); }
+              
+              @Override
+              public List<Object> apply(List<Object> args) throws WarpScriptJavaFunctionException { return innerUDF.apply(args); }
+            };            
+          }
         }
         
         break;
@@ -297,16 +316,17 @@ public class WarpScriptJarRepository extends Thread {
     //
     
     if (null == dir) {
-      classPathClassLoader = new ClassLoader(WarpScriptJarRepository.class.getClassLoader()) {
-        @Override
-        protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {                
-          if (name.startsWith("io.warp10") && !name.startsWith("io.warp10.warp.sdk.")) {
-            throw new ClassNotFoundException();
-          } else {
-            return this.getParent().loadClass(name);
-          }
-        }
-      };
+      classPathClassLoader = WarpScriptJarRepository.class.getClassLoader();
+//      classPathClassLoader = new ClassLoader(WarpScriptJarRepository.class.getClassLoader()) {
+//        @Override
+//        protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {                
+//          if (name.startsWith("io.warp10") && !name.startsWith("io.warp10.warp.sdk.")) {
+//            throw new ClassNotFoundException();
+//          } else {
+//            return this.getParent().loadClass(name);
+//          }
+//        }
+//      };
       
       classLoadersFingerprints.put(classPathClassLoader, "");
     }
