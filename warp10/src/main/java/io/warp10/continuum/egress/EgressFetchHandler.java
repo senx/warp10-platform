@@ -139,6 +139,7 @@ public class EgressFetchHandler extends AbstractHandler {
       baseRequest.setHandled(true);
       fromArchive = true;
     } else if (Constants.API_ENDPOINT_SFETCH.equals(target)) {
+      baseRequest.setHandled(true);
       splitFetch = true;
     } else {
       return;
