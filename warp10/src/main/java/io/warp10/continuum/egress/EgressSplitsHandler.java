@@ -149,11 +149,12 @@ public class EgressSplitsHandler extends AbstractHandler {
     
     RegionLocator locator = this.storeClient.getRegionLocator();
     
-    try (MetadataIterator metadatas = directoryClient.iterator(null, null)) {
+    try (MetadataIterator metadatas = directoryClient.iterator(clsSels, lblsSels)) {
       
       //
       // We output a single split per Metadata, split combining is the
       // responsability of the InputFormat
+      // 128bits
       //
         
       byte[] row = new byte[Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
