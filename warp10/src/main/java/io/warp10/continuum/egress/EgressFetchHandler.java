@@ -209,6 +209,10 @@ public class EgressFetchHandler extends AbstractHandler {
     
     boolean signed = false;
     
+    if (splitFetch) {
+      signed = true;
+    }
+    
     if (null != fetchSig) {
       if (null != fetchPSK) {
         String[] subelts = fetchSig.split(":");
@@ -781,18 +785,23 @@ public class EgressFetchHandler extends AbstractHandler {
         throw new IOException(te);
       }
       
-      //
-      // Compute HMac for the wrapper
-      //
-      
-      long hash = SipHashInline.hash24(fetchPSK, data);
-      
-      //
-      // Output the MAC before the data, as hex digits
-      //
+      if (null != fetchPSK) {
+        //
+        // Compute HMac for the wrapper
+        //
+        
+        long hash = SipHashInline.hash24(fetchPSK, data);
+        
+        //
+        // Output the MAC before the data, as hex digits
+        //
 
-      out.write(Hex.encode(Longs.toByteArray(hash)));
+        out.write(Hex.encode(Longs.toByteArray(hash)));               
+      } else {
+        out.write('-');
+      }
       
+      out.write(' ');
       //
       // Base64 encode the wrapper
       //
