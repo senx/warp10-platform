@@ -132,6 +132,11 @@ public class Constants {
   public static final String HTTP_HEADER_NOW_HEADER_DEFAULT = "X-Warp10-Now";
   
   /**
+   * HTTP Header for specifying the timespan for /sfetch requests
+   */
+  public static final String HTTP_HEADER_TIMESPAN_HEADER_DEFAULT = "X-Warp10-Timespan";
+  
+  /**
    * Name of header containing the signature of the token used for the fetch
    */
   public static String HTTP_HEADER_FETCH_SIGNATURE_DEFAULT = "X-Warp10-Fetch-Signature";
@@ -314,6 +319,7 @@ public class Constants {
     HEADERS.put(Configuration.HTTP_HEADER_UPDATE_TOKENX, props.getProperty(Configuration.HTTP_HEADER_UPDATE_TOKENX, HTTP_HEADER_UPDATE_TOKEN_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_ARCHIVE_TOKENX, props.getProperty(Configuration.HTTP_HEADER_ARCHIVE_TOKENX, HTTP_HEADER_ARCHIVE_TOKEN_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_NOW_HEADERX, props.getProperty(Configuration.HTTP_HEADER_NOW_HEADERX, HTTP_HEADER_NOW_HEADER_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_TIMESPAN_HEADERX, props.getProperty(Configuration.HTTP_HEADER_NOW_HEADERX, HTTP_HEADER_TIMESPAN_HEADER_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_FETCH_SIGNATURE, props.getProperty(Configuration.HTTP_HEADER_FETCH_SIGNATURE, HTTP_HEADER_FETCH_SIGNATURE_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_UPDATE_SIGNATURE, props.getProperty(Configuration.HTTP_HEADER_UPDATE_SIGNATURE, HTTP_HEADER_UPDATE_SIGNATURE_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE, props.getProperty(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE, HTTP_HEADER_DIRECTORY_SIGNATURE_DEFAULT));

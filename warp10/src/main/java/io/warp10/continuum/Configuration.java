@@ -1292,9 +1292,15 @@ public class Configuration {
   public static final String HTTP_HEADER_ARCHIVE_TOKENX = "http.header.token.archive";
 
   /**
-   * HTTP Header for setting the base timestamp for relative timestamps
+   * HTTP Header for setting the base timestamp for relative timestamps or for the 'now'
+   * parameter of /sfetch
    */
   public static final String HTTP_HEADER_NOW_HEADERX = "http.header.now";
+
+  /**
+   * HTTP Header for specifying the timespan in /sfetch requests
+   */
+  public static final String HTTP_HEADER_TIMESPAN_HEADERX = "http.header.timespan";
   
   /**
    * Name of header containing the signature of the token used for the fetch

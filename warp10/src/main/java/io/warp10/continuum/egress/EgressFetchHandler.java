@@ -150,15 +150,27 @@ public class EgressFetchHandler extends AbstractHandler {
     
     resp.setHeader("Access-Control-Allow-Origin", "*");
 
-    String start = req.getParameter(Constants.HTTP_PARAM_START);
-    String stop = req.getParameter(Constants.HTTP_PARAM_STOP);
+    String start = null;
+    String stop = null;
     
     long now = Long.MIN_VALUE;
     long timespan = 0L;
 
-    String nowParam = req.getParameter(Constants.HTTP_PARAM_NOW);
-    String timespanParam = req.getParameter(Constants.HTTP_PARAM_TIMESPAN);
-    String dedupParam = req.getParameter(Constants.HTTP_PARAM_DEDUP);
+    String nowParam = null;
+    String timespanParam = null;
+    String dedupParam = null;
+
+    if (splitFetch) {
+      nowParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_NOW_HEADERX));
+      timespanParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TIMESPAN_HEADERX));
+    } else {
+      start = req.getParameter(Constants.HTTP_PARAM_START);
+      stop = req.getParameter(Constants.HTTP_PARAM_STOP);
+      
+      nowParam = req.getParameter(Constants.HTTP_PARAM_NOW);
+      timespanParam = req.getParameter(Constants.HTTP_PARAM_TIMESPAN);
+      dedupParam = req.getParameter(Constants.HTTP_PARAM_DEDUP);      
+    }
         
     boolean dedup = null != dedupParam && "true".equals(dedupParam);
     
@@ -175,12 +187,12 @@ public class EgressFetchHandler extends AbstractHandler {
       }
     } else if (null != nowParam && null != timespanParam) {
       try {
-        now = Long.valueOf(nowParam);
+        now = Long.parseLong(nowParam);
       } catch (Exception e) {
         now = fmt.parseDateTime(nowParam).getMillis() * Constants.TIME_UNITS_PER_MS;
       }
       
-      timespan = Long.valueOf(timespanParam);
+      timespan = Long.parseLong(timespanParam);
     }
     
     if (Long.MIN_VALUE == now) {
@@ -188,7 +200,7 @@ public class EgressFetchHandler extends AbstractHandler {
       return;
     }
       
-    String selector = req.getParameter(Constants.HTTP_PARAM_SELECTOR);
+    String selector = splitFetch ? null : req.getParameter(Constants.HTTP_PARAM_SELECTOR);
  
     //
     // Extract token from header
@@ -245,7 +257,7 @@ public class EgressFetchHandler extends AbstractHandler {
     
     ReadToken rtoken = null;
     
-    String format = req.getParameter(Constants.HTTP_PARAM_FORMAT);
+    String format = splitFetch ? "wrapper" : req.getParameter(Constants.HTTP_PARAM_FORMAT);
 
     if (!splitFetch) {
       try {
