@@ -784,6 +784,14 @@ public class EgressFetchHandler extends AbstractHandler {
         throw new IOException(te);
       }
       
+      //
+      // Output is GTSWrapperId <WSP> HASH <WSP> GTSWrapper
+      //
+      
+      out.write(Hex.encode(GTSWrapperHelper.getId(wrapper)));
+      
+      out.write(' ');
+      
       if (null != fetchPSK) {
         //
         // Compute HMac for the wrapper
