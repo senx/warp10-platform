@@ -461,59 +461,65 @@ public class HBaseStoreClient implements StoreClient {
         // Update Sensision
         //
 
-        Map<String,String> labels = new HashMap<String,String>();
-        
-        Map<String,String> metadataLabels = metadatas.get(idx-1).getLabels();
-        
-        String billedCustomerId = Tokens.getUUID(token.getBilledId());
-
-        if (null != billedCustomerId) {
-          labels.put(SensisionConstants.SENSISION_LABEL_CONSUMERID, billedCustomerId);
-        }
-        
-        if (metadataLabels.containsKey(Constants.APPLICATION_LABEL)) {
-          labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, metadataLabels.get(Constants.APPLICATION_LABEL));
-        }
-        
-        if (metadataLabels.containsKey(Constants.OWNER_LABEL)) {
-          labels.put(SensisionConstants.SENSISION_LABEL_OWNER, metadataLabels.get(Constants.OWNER_LABEL));
-        }
-        
-        if (null != token.getAppName()) {
-          labels.put(SensisionConstants.SENSISION_LABEL_CONSUMERAPP, token.getAppName());
-        }
-        
         //
-        // Update per owner statistics, use a TTL for those
+        // Null token can happen when retrieving data from GTSSplit instances
         //
         
-        if (fromArchive) {
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_VALUES_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, valueBytes);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_KEYS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, keyBytes);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_DATAPOINTS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, datapoints);                    
-        } else {
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_VALUES_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, valueBytes);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_KEYS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, keyBytes);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_DATAPOINTS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, datapoints);          
+        if (null != token) {
+          Map<String,String> labels = new HashMap<String,String>();
+          
+          Map<String,String> metadataLabels = metadatas.get(idx-1).getLabels();
+          
+          String billedCustomerId = Tokens.getUUID(token.getBilledId());
+
+          if (null != billedCustomerId) {
+            labels.put(SensisionConstants.SENSISION_LABEL_CONSUMERID, billedCustomerId);
+          }
+          
+          if (metadataLabels.containsKey(Constants.APPLICATION_LABEL)) {
+            labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, metadataLabels.get(Constants.APPLICATION_LABEL));
+          }
+          
+          if (metadataLabels.containsKey(Constants.OWNER_LABEL)) {
+            labels.put(SensisionConstants.SENSISION_LABEL_OWNER, metadataLabels.get(Constants.OWNER_LABEL));
+          }
+          
+          if (null != token.getAppName()) {
+            labels.put(SensisionConstants.SENSISION_LABEL_CONSUMERAPP, token.getAppName());
+          }
+          
+          //
+          // Update per owner statistics, use a TTL for those
+          //
+          
+          if (fromArchive) {
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_VALUES_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, valueBytes);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_KEYS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, keyBytes);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_DATAPOINTS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, datapoints);                    
+          } else {
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_VALUES_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, valueBytes);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_KEYS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, keyBytes);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_DATAPOINTS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, datapoints);          
+          }
+                 
+          //
+          // Update summary statistics
+          //
+
+          // Remove 'owner' label
+          labels.remove(SensisionConstants.SENSISION_LABEL_OWNER);
+
+          if (fromArchive) {
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_VALUES, labels, valueBytes);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_KEYS, labels, keyBytes);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_DATAPOINTS, labels, datapoints);          
+          } else {
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_VALUES, labels, valueBytes);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_KEYS, labels, keyBytes);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_DATAPOINTS, labels, datapoints);          
+          }
         }
-               
-        //
-        // Update summary statistics
-        //
-
-        // Remove 'owner' label
-        labels.remove(SensisionConstants.SENSISION_LABEL_OWNER);
-
-        if (fromArchive) {
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_VALUES, labels, valueBytes);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_KEYS, labels, keyBytes);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_DATAPOINTS, labels, datapoints);          
-        } else {
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_VALUES, labels, valueBytes);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_KEYS, labels, keyBytes);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_DATAPOINTS, labels, datapoints);          
-        }
-
+        
         return encoder.getDecoder();
       }
       

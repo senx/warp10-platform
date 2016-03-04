@@ -396,7 +396,6 @@ project(':warp10') {
         //
         // Mustache
         //
-
         compile group: 'com.github.spullara.mustache.java', name: 'compiler', version: '0.9.1'
 
         //
@@ -408,6 +407,11 @@ project(':warp10') {
         // Geo
         //
         compile group: 'com.geoxp', name: 'geoxplib', version: '1.0.0-rc1'
+
+        //
+        // Java Merge Sort
+        //
+        compile group: 'com.fasterxml', name: 'java-merge-sort', version: '0.5.3'
 
         // @see http://www.mail-archive.com/dev@kafka.apache.org/msg03829.html
         compile("org.apache.kafka:kafka_2.9.2:0.8.1.1") {
@@ -523,9 +527,9 @@ project(':warpscript') {
 
 
         include 'io/warp10/script/**'
+        include 'io/warp10/WarpConfig.class'
         include 'io/warp10/gts/**'
         include 'io/warp10/continuum/TimeSource.class'
-        include 'io/warp10/continuum/Launcher.class'
         include 'io/warp10/continuum/Tokens.class'
         include 'io/warp10/continuum/Tokens$*'
         include 'io/warp10/script/**'
@@ -541,6 +545,18 @@ project(':warpscript') {
         include 'io/warp10/continuum/geo/GeoDirectoryThriftClient.class'
         include 'io/warp10/continuum/store/StoreClient.class'
     }
+
+    publishing {
+        publications {
+            crypto(MavenPublication) {
+                from components.java
+                groupId 'io.warp10'
+                artifactId archivesBaseName
+                version version
+            }
+        }
+    }
+
 
 }
 

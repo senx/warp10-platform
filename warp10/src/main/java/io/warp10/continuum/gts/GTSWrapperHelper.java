@@ -243,4 +243,23 @@ public class GTSWrapperHelper {
     return 0 != gtsWrapper.getBucketcount() && 0L != gtsWrapper.getBucketspan() && 0L != gtsWrapper.getLastbucket();
   }
 
+  /**
+   * Return an ID for a wrapper
+   */
+  public static byte[] getId(GTSWrapper wrapper) {
+    byte[] id = new byte[16];
+    
+    long classId = wrapper.getMetadata().getClassId();
+    long labelsId = wrapper.getMetadata().getLabelsId();
+    
+    for (int i = 7; i >= 0; i--) {
+      id[i] = (byte) (classId & 0xFFL);
+      classId >>>= 8;
+      
+      id[8 + i] = (byte) (labelsId & 0xFFL);
+      labelsId >>>= 8;
+    }
+    
+    return id;
+  }
 }
