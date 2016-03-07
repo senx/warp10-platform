@@ -56,7 +56,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   /**
    * Default maximum depth of the stack
    */
-  private int maxdepth = 0;
+  private long maxdepth = 0L;
 
   /**
    * Maximum number of operations for this stack
@@ -66,7 +66,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   /**
    * Maximum number of entries in the symbol table
    */
-  private int maxsymbols = 0;
+  private long maxsymbols = 0L;
   
   /**
    * Maximum recursion level
@@ -169,8 +169,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     setAttribute(WarpScriptStack.ATTRIBUTE_LOOP_MAXDURATION, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_LOOP_DURATION, Long.toString(WarpScriptStack.DEFAULT_MAX_LOOP_DURATION))));
     setAttribute(WarpScriptStack.ATTRIBUTE_RECURSION_MAXDEPTH, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_RECURSION, Long.toString(WarpScriptStack.DEFAULT_MAX_RECURSION_LEVEL))));
     setAttribute(WarpScriptStack.ATTRIBUTE_MAX_OPS, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_OPS, Long.toString(WarpScriptStack.DEFAULT_MAX_OPS))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_SYMBOLS, Integer.parseInt(properties.getProperty(Configuration.WARPSCRIPT_MAX_SYMBOLS, Integer.toString(WarpScriptStack.DEFAULT_MAX_SYMBOLS))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH, Integer.parseInt(properties.getProperty(Configuration.WARPSCRIPT_MAX_DEPTH, Integer.toString(WarpScriptStack.DEFAULT_MAX_DEPTH))));
+    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_SYMBOLS, Integer.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_SYMBOLS, Integer.toString(WarpScriptStack.DEFAULT_MAX_SYMBOLS))));
+    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH, Integer.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_DEPTH, Integer.toString(WarpScriptStack.DEFAULT_MAX_DEPTH))));
     setAttribute(WarpScriptStack.ATTRIBUTE_MAX_WEBCALLS, new AtomicLong(Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_WEBCALLS, Integer.toString(WarpScriptStack.DEFAULT_MAX_WEBCALLS)))));
     setAttribute(WarpScriptStack.ATTRIBUTE_MAX_BUCKETS, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_BUCKETS, Integer.toString(WarpScriptStack.DEFAULT_MAX_BUCKETS))));
     setAttribute(WarpScriptStack.ATTRIBUTE_MAX_PIXELS, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_PIXELS, Long.toString(WarpScriptStack.DEFAULT_MAX_PIXELS))));
@@ -185,9 +185,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     
     setAttribute(WarpScriptStack.ATTRIBUTE_LOOP_MAXDURATION_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_LOOP_DURATION_HARD, Long.toString(WarpScriptStack.DEFAULT_MAX_LOOP_DURATION))));
     setAttribute(WarpScriptStack.ATTRIBUTE_RECURSION_MAXDEPTH_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_RECURSION_HARD, Long.toString(WarpScriptStack.DEFAULT_MAX_RECURSION_LEVEL))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH_HARD, Integer.parseInt(properties.getProperty(Configuration.WARPSCRIPT_MAX_DEPTH_HARD, Integer.toString(WarpScriptStack.DEFAULT_MAX_DEPTH))));
+    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH_HARD, Integer.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_DEPTH_HARD, Integer.toString(WarpScriptStack.DEFAULT_MAX_DEPTH))));
     setAttribute(WarpScriptStack.ATTRIBUTE_MAX_OPS_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_OPS_HARD, Long.toString(WarpScriptStack.DEFAULT_MAX_OPS))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_SYMBOLS_HARD, Integer.parseInt(properties.getProperty(Configuration.WARPSCRIPT_MAX_SYMBOLS_HARD, Integer.toString(WarpScriptStack.DEFAULT_MAX_SYMBOLS))));
+    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_SYMBOLS_HARD, Integer.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_SYMBOLS_HARD, Integer.toString(WarpScriptStack.DEFAULT_MAX_SYMBOLS))));
     setAttribute(WarpScriptStack.ATTRIBUTE_MAX_BUCKETS_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_BUCKETS_HARD, Integer.toString(WarpScriptStack.DEFAULT_MAX_BUCKETS))));
     setAttribute(WarpScriptStack.ATTRIBUTE_MAX_PIXELS_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_PIXELS_HARD, Long.toString(WarpScriptStack.DEFAULT_MAX_PIXELS))));
     setAttribute(WarpScriptStack.ATTRIBUTE_FETCH_LIMIT_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_FETCH_HARD, Long.toString(WarpScriptStack.DEFAULT_FETCH_LIMIT))));
@@ -1010,13 +1010,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     }
     
     if (WarpScriptStack.ATTRIBUTE_MAX_DEPTH.equals(key)) {
-      this.maxdepth = ((Number) value).intValue();
+      this.maxdepth = ((Number) value).longValue();
     } else if (WarpScriptStack.ATTRIBUTE_MAX_OPS.equals(key)) {
       this.maxops = ((Number) value).longValue();
     } else if (WarpScriptStack.ATTRIBUTE_RECURSION_MAXDEPTH.equals(key)) {
-      this.maxrecurse = ((Number) value).intValue();
+      this.maxrecurse = ((Number) value).longValue();
     } else if (WarpScriptStack.ATTRIBUTE_MAX_SYMBOLS.equals(key)) {
-      this.maxsymbols = ((Number) value).intValue();
+      this.maxsymbols = ((Number) value).longValue();
     } else if (WarpScriptStack.ATTRIBUTE_OPS.equals(key)) {
       this.currentops = ((Number) value).longValue();
     } else if (WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE.equals(key)) {
