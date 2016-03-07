@@ -1,5 +1,17 @@
 # WARP 10 IDE Setup & Build  
 
+## Install Thrift on MAC OS
+The current version of thrift used by Warp10 is thrift 0.9.1. Download the tar.gz on the official Apache Thrift page (http://archive.apache.org/dist/thrift/0.9.1/). Then execute the following commands: 
+
+	./configure --without-python --prefix=/opt/thrift CPPFLAGS='-I/usr/local/opt/openssl/include'
+	make
+
+Make may raise Errors and warning, do not care about it and exec: 
+
+	sudo make install
+	
+Then add "/opt/thrift/bin" to your path before follwing the next steps
+
 ## IDE Setup
 
 ### Eclipse Configuration
@@ -36,7 +48,7 @@ Activate MavenLocal() repository (uncomment it in the global repositories defini
     gradle token:install
     
 #### 3. updates Eclipse External Dependencies
-Warp10 Context Menu / Gradle / Refresh Gradle Project  
+Warp10 Context Menu / Gradle / Refresh Gradle Project
 
 ## RELEASE Procedure
 
@@ -59,3 +71,4 @@ Build Warp10 in the order bellow
     gradle crypto:clean crypto:bintrayUpload   (if updated)
     gradle token:clean  token:bintrayUpload    (if updated)
     gradle warp10:clean warp10:bintrayUpload
+    
