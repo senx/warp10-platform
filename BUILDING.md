@@ -10,7 +10,7 @@ Make may raise Errors and warning, do not care about it and exec:
 
 	sudo make install
   
-Then add "/opt/thrift-0.9.1/bin" to your path before follwing the next steps
+Then add "/opt/thrift-0.9.1/bin" to your path.
 
 ## IDE Setup
 
