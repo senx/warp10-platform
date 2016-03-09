@@ -1045,6 +1045,12 @@ public class Configuration {
   public static final String EGRESS_FETCHER_MAXSPLITAGE = "egress.fetcher.maxsplitage";
   
   /**
+   * Geo Time Series count threshold above which block caching will be disabled for HBase scanners.
+   * The goal is to limit the cache pollution when scanning large chunks of data.
+   */
+  public static final String EGRESS_HBASE_DATA_BLOCKCACHE_GTS_THRESHOLD = "egress.hbase.data.blockcache.gts.threshold";
+  
+  /**
    * Key to use for encrypting data in HBase (128/192/256 bits in hex or OSS reference) 
    */
   public static final String EGRESS_HBASE_DATA_AES = "egress.hbase.data.aes";
