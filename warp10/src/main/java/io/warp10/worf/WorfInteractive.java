@@ -47,7 +47,7 @@ public class WorfInteractive {
       reader = new ConsoleReader();
       out = new PrintWriter(reader.getOutput());
       out.println("Welcome to warp10 token command line");
-      out.println("I'am Worf, security chief of the USS Enterprise (NCC-1701-D)");
+      out.println("I am Worf, security chief of the USS Enterprise (NCC-1701-D)");
 
     } catch (IOException e) {
       throw new WorfException("Unexpected Worf error:" + e.getMessage());
