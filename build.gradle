@@ -507,7 +507,7 @@ project(':warp10') {
 // ------------------------------------------------------------------
 project(':warpscript') {
     archivesBaseName = 'warpscript'
-    group = 'io.warp'
+    group = 'io.warp10'
     version = getVersionName(warp10Version[archivesBaseName])
 
     dependencies {
