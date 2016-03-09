@@ -1,5 +1,17 @@
 # WARP 10 IDE Setup & Build  
 
+## Install Thrift on MAC OS
+The current version of thrift used by Warp10 is thrift 0.9.1. Download the tar.gz on the official Apache Thrift page (http://archive.apache.org/dist/thrift/0.9.1/). Then execute the following commands: 
+
+	./configure --without-python --prefix=/opt/thrift-0.9.1 CPPFLAGS='-I/usr/local/opt/openssl/include'
+	make
+
+Make may raise Errors and warning, do not care about it and exec: 
+
+	sudo make install
+  
+Then add "/opt/thrift-0.9.1/bin" to your path.
+
 ## IDE Setup
 
 ### Eclipse Configuration
