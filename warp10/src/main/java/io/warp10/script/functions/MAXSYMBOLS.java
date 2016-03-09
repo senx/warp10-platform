@@ -45,11 +45,11 @@ public class MAXSYMBOLS extends NamedWarpScriptFunction implements WarpScriptSta
     
     long limit = ((Number) top).longValue();
 
-    if (limit > (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MAX_SYMBOLS_HARD)) {
+    if (limit > (int) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MAX_SYMBOLS_HARD)) {
       throw new WarpScriptException(getName() + " cannot extend limit past " + stack.getAttribute(WarpScriptStack.ATTRIBUTE_MAX_SYMBOLS_HARD));
     }
 
-    stack.setAttribute(WarpScriptStack.ATTRIBUTE_MAX_SYMBOLS, limit);
+    stack.setAttribute(WarpScriptStack.ATTRIBUTE_MAX_SYMBOLS, (int) limit);
     
     return stack;
   }
