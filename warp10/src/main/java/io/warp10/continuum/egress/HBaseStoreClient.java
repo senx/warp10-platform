@@ -74,11 +74,19 @@ public class HBaseStoreClient implements StoreClient {
   
   private final boolean useHBaseFilter;
   
+  private final long blockcacheThreshold;
+  
   public HBaseStoreClient(KeyStore keystore, Properties properties) throws IOException {
     
     this.keystore = keystore;
     this.hbaseKey = keystore.getKey(KeyStore.AES_HBASE_DATA);
     this.properties = properties;
+    
+    if (properties.containsKey(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_BLOCKCACHE_GTS_THRESHOLD)) {
+      this.blockcacheThreshold = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_BLOCKCACHE_GTS_THRESHOLD));
+    } else {
+      this.blockcacheThreshold = 0L;
+    }
     
     this.useHBaseFilter = "true".equals(properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_FILTER));
     
@@ -137,7 +145,7 @@ public class HBaseStoreClient implements StoreClient {
                )
             )
         ) {
-      return new SlicedRowFilterGTSDecoderIterator(now, timespan, metadatas, this.conn, this.tableName, this.colfam, this.keystore);
+      return new SlicedRowFilterGTSDecoderIterator(now, timespan, metadatas, this.conn, this.tableName, this.colfam, this.keystore, metadatas.size() <= blockcacheThreshold);
     }
     
     //
@@ -287,7 +295,12 @@ public class HBaseStoreClient implements StoreClient {
         
         // Number of rows to cache can be set arbitrarly high as the end row will stop the scanner caching anyway
         scan.setCaching((int) (timespan < 0 ? Math.min(-timespan, 100000) : 100000));
-        scan.setCacheBlocks(false);
+        
+        if (metadatas.size() <= blockcacheThreshold) {
+          scan.setCacheBlocks(true);
+        } else {
+          scan.setCacheBlocks(false);
+        }
         
         try {
           this.scanner = htable.getScanner(scan);

@@ -84,7 +84,7 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
   
   private static final byte[] ZERO_BYTES = Longs.toByteArray(0L);
   private static final byte[] ONES_BYTES = Longs.toByteArray(0xffffffffffffffffL);
-  public SlicedRowFilterGTSDecoderIterator(long now, long timespan, List<Metadata> metadatas, Connection conn, TableName tableName, byte[] colfam, KeyStore keystore) {
+  public SlicedRowFilterGTSDecoderIterator(long now, long timespan, List<Metadata> metadatas, Connection conn, TableName tableName, byte[] colfam, KeyStore keystore, boolean useBlockCache) {
       
     this.keystore = keystore;
     this.now = now;
@@ -180,8 +180,8 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
     scan.setMaxResultSize(1000000L);
     scan.setBatch(50000);
     scan.setCaching(50000);
-    //scan.setCacheBlocks(true);
-    scan.setCacheBlocks(false);
+    
+    scan.setCacheBlocks(useBlockCache);
 
     try {
       this.htable = conn.getTable(tableName);
