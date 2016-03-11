@@ -299,6 +299,7 @@ public class Store extends Thread {
                 //
                   
                 if (abort.get()) {
+                  barrier.reset();
                   break;
                 }
                  
@@ -443,6 +444,8 @@ public class Store extends Thread {
         // Start the synchronization Thread
         //
         
+        final CyclicBarrier ourbarrier = store.barrier;
+        
         synchronizer = new Thread(new Runnable() {
           @Override
           public void run() {
@@ -504,7 +507,8 @@ public class Store extends Thread {
                   // commit of offsets
                   //
                   try {
-                    store.barrier.await();
+                    //store.barrier.await();
+                    ourbarrier.await();
                     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_BARRIER_SYNCS, Sensision.EMPTY_LABELS, 1);
                   } catch (Exception e) {
                     store.abort.set(true);
@@ -672,7 +676,7 @@ public class Store extends Thread {
         store.abort.set(true);
         this.localabort.set(true);
         if (null != table) {
-          try { table.close(); } catch (IOException ioe) {}
+          try { table.close(); } catch (IOException ioe) { LOG.error("Error closing table ", ioe); }
         }
       }
     }
@@ -766,7 +770,7 @@ public class Store extends Thread {
       if (1 != Constants.DEFAULT_MODULUS) {
         throw new IOException("Delete not implemented for modulus != 1");
       }
-      
+
       //
       // We need to wait for the current data to be flushed to HBase, otherwise we might have data to delete which
       // is not yet committed (depending on the commit period).
