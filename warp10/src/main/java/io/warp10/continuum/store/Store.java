@@ -299,7 +299,6 @@ public class Store extends Thread {
                 //
                   
                 if (abort.get()) {
-                  barrier.reset();
                   break;
                 }
                  
