@@ -492,6 +492,7 @@ public class Store extends Thread {
                     putsSize.set(0L);
                     // If an exception is thrown, abort
                     store.abort.set(true);
+                    LOG.info("Received InterruptedException", ie);
                     return;                    
                   } catch (IOException ioe) {
                     // Clear list of Puts
@@ -499,6 +500,7 @@ public class Store extends Thread {
                     putsSize.set(0L);
                     // If an exception is thrown, abort
                     store.abort.set(true);
+                    LOG.info("Received IOException", ioe);
                     return;
                   }                  
                   //
@@ -511,6 +513,7 @@ public class Store extends Thread {
                     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_BARRIER_SYNCS, Sensision.EMPTY_LABELS, 1);
                   } catch (Exception e) {
                     store.abort.set(true);
+                    LOG.info("Received Exception", e);
                     return;
                   } finally {
                     lastsync = System.currentTimeMillis();
@@ -553,6 +556,7 @@ public class Store extends Thread {
                       putsSize.set(0L);
                       // If an exception is thrown, abort
                       store.abort.set(true);
+                      LOG.info("Received InterrupedException", ie);
                       return;                    
                     } catch (IOException ioe) {
                       // Clear list of Puts
@@ -560,6 +564,7 @@ public class Store extends Thread {
                       putsSize.set(0L);
                       // If an exception is thrown, abort
                       store.abort.set(true);
+                      LOG.info("Received IOException", ioe);
                       return;
                     }                  
                   }                  
@@ -667,13 +672,13 @@ public class Store extends Thread {
         }        
       } catch (Throwable t) {
         // FIXME(hbs): log something/update Sensision metrics
-        t.printStackTrace(System.out);
+        LOG.info("Received exception", t);
       } finally {
         // Interrupt the synchronizer thread
+        this.localabort.set(true);
         try { synchronizer.interrupt(); } catch (Exception e) {}
         // Set abort to true in case we exit the 'run' method
         store.abort.set(true);
-        this.localabort.set(true);
         if (null != table) {
           try { table.close(); } catch (IOException ioe) { LOG.error("Error closing table ", ioe); }
         }
