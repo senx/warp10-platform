@@ -243,6 +243,8 @@ public class Store extends Thread {
         ExecutorService executor = null;
         ConsumerConnector connector = null;
         
+        StoreConsumer[] consumers = new StoreConsumer[nthreads];
+        
         while(true) {
           try {
             //
@@ -283,9 +285,13 @@ public class Store extends Thread {
             //
             
             counters.reset();
-
+                        
+            int idx = 0;
+            
             for (final KafkaStream<byte[],byte[]> stream : streams) {
-              executor.submit(new StoreConsumer(self, stream, counters));
+              consumers[idx] = new StoreConsumer(self, stream, counters); 
+              executor.submit(consumers[idx]);
+              idx++;
             }      
                 
             long lastBarrierSync = System.currentTimeMillis();
@@ -352,6 +358,9 @@ public class Store extends Thread {
 
             if (null != executor) {
               try {
+                for (StoreConsumer consumer: consumers) {
+                  consumer.localabort.set(true);
+                }
                 executor.shutdownNow();
               } catch (Exception e) {
                 LOG.error("Closing executor", e);
