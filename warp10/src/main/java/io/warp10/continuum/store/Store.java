@@ -367,6 +367,12 @@ public class Store extends Thread {
               }
             }
             
+            //
+            // Reset barrier
+            //
+            
+            barrier.reset();
+            
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_ABORTS, Sensision.EMPTY_LABELS, 1);
             
             abort.set(false);
