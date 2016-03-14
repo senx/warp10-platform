@@ -8206,6 +8206,14 @@ public class GTSHelper {
       result.add(series.get(i).cloneEmpty(series.get(i).values / 2));
     }
     
+    //
+    // Return immediately if minticks is 0, meaning that there is one empty GTS
+    //
+    
+    if (0 == minticks) {
+      return result;
+    }
+    
     while(true) {
       //
       // Advance all indices until the timestamp is >= that of the leader
