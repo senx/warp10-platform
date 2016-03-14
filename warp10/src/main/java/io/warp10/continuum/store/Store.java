@@ -38,6 +38,7 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
@@ -169,6 +170,8 @@ public class Store extends Thread {
   private final TableName hbaseTable;
   
   private final boolean SKIP_WRITE;
+  
+  private int generation = 0;
   
   public Store(KeyStore keystore, final Properties properties, Integer nthr) throws IOException {
     this.keystore = keystore;
@@ -373,6 +376,8 @@ public class Store extends Thread {
             
             barrier.reset();
             
+            generation++;
+            
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_ABORTS, Sensision.EMPTY_LABELS, 1);
             
             abort.set(false);
@@ -383,11 +388,11 @@ public class Store extends Thread {
       }
     });
     
-    t.setName("Continuum Store Spawner");
+    t.setName("[Continuum Store Spawner]");
     t.setDaemon(true);
     t.start();
     
-    this.setName("Continuum Store");
+    this.setName("[Continuum Store]");
     this.setDaemon(true);
     this.start();
   }
@@ -430,7 +435,7 @@ public class Store extends Thread {
     @Override
     public void run() {
       
-      Thread.currentThread().setName("[Store Consumer]");
+      Thread.currentThread().setName("[Store Consumer - gen " + store.generation + "]");
 
       long count = 0L;
       
@@ -522,9 +527,9 @@ public class Store extends Thread {
                   // Now join the cyclic barrier which will trigger the
                   // commit of offsets
                   //
-                  try {
-                    //store.barrier.await();
-                    ourbarrier.await();
+                  try {                    
+                    // We wait at most maxTimeBetweenCommits so we can abort in case the synchronization was too long ago
+                    ourbarrier.await(store.maxTimeBetweenCommits, TimeUnit.MILLISECONDS);
                     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_BARRIER_SYNCS, Sensision.EMPTY_LABELS, 1);
                   } catch (Exception e) {
                     store.abort.set(true);
@@ -606,7 +611,7 @@ public class Store extends Thread {
           }
         });
 
-        synchronizer.setName("Continuum Store Synchronizer");
+        synchronizer.setName("[Continuum Store Synchronizer - gen " + store.generation + "]");
         synchronizer.setDaemon(true);
         synchronizer.start();
 
