@@ -41,7 +41,9 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.ReentrantLock;
 
 import kafka.consumer.Consumer;
 import kafka.consumer.ConsumerConfig;
@@ -418,6 +420,7 @@ public class Store extends Thread {
     private Table table = null;
     private final AtomicLong lastPut = new AtomicLong(0L);
     private final List<Put> puts;
+    private final ReentrantLock putslock;
     private final AtomicLong putsSize = new AtomicLong(0L);
     private final AtomicBoolean localabort = new AtomicBoolean(false);
     private final AtomicBoolean forcecommit = new AtomicBoolean(false);
@@ -429,7 +432,8 @@ public class Store extends Thread {
     public StoreConsumer(Store store, KafkaStream<byte[], byte[]> stream, KafkaOffsetCounters counters) {
       this.store = store;
       this.stream = stream;
-      this.puts = new ArrayList<Put>();      
+      this.puts = new ArrayList<Put>();
+      this.putslock = new ReentrantLock();
       this.counters = counters;
       
       this.hbaseAESKey = store.keystore.getKey(KeyStore.AES_HBASE_DATA);
@@ -489,7 +493,8 @@ public class Store extends Thread {
                 // We synchronize on 'puts' so the main Thread does not add Puts to ht
                 //
                 
-                synchronized (puts) {
+                try {
+                  putslock.lockInterruptibly();
                   //
                   // Attempt to flush
                   //
@@ -547,14 +552,23 @@ public class Store extends Thread {
                   if (forcecommit.getAndSet(false)) {
                     flushsem.release();
                   }
+                } catch (InterruptedException ie) {
+                  store.abort.set(true);
+                  return;
+                } finally {
+                  if (putslock.isHeldByCurrentThread()) {
+                    putslock.unlock();
+                  }
                 }
+//                synchronized (puts) {
+//                }
               } else if (forcecommit.get() || (0 != lastPut.get() && (now - lastPut.get() > 500) || putsSize.get() > store.maxPendingPutsSize)) {
                 //
                 // If the last Put was added to 'puts' more than 500ms ago, force a flush
                 //
                 
-                  
-                synchronized(puts) {
+                try {
+                  putslock.lockInterruptibly();
                   if (!puts.isEmpty()) {
                     try {
                       Object[] results = new Object[puts.size()];
@@ -593,7 +607,17 @@ public class Store extends Thread {
                       return;
                     }                  
                   }                  
+                } catch (InterruptedException ie) {
+                  store.abort.set(true);
+                  return;
+                } finally {
+                  if (putslock.isHeldByCurrentThread()) {
+                    putslock.unlock();
+                  }
                 }
+
+//                synchronized(puts) {
+//                }
               }
  
               if (forcecommit.getAndSet(false)) {
@@ -778,12 +802,22 @@ public class Store extends Thread {
         }
         
         datapoints++;
-
-        synchronized (puts) {
+        
+        try {
+          putslock.lockInterruptibly();
           puts.add(put);
           putsSize.addAndGet(bytes.length);
           lastPut.set(System.currentTimeMillis());
-        }                
+        } catch (InterruptedException ie) {
+          localabort.set(true);
+          return;
+        } finally {
+          if (putslock.isHeldByCurrentThread()) {
+            putslock.unlock();
+          }
+        }
+//        synchronized (puts) {
+//        }                
       }
       
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_PUTS, Sensision.EMPTY_LABELS, datapoints);
