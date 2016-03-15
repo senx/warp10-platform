@@ -399,11 +399,6 @@ project(':warp10') {
         compile group: 'com.github.spullara.mustache.java', name: 'compiler', version: '0.9.1'
 
         //
-        // Twitter4J
-        //
-        compile group: 'org.twitter4j', name: 'twitter4j-core', version: '4.0.4'
-
-        //
         // Geo
         //
         compile group: 'com.geoxp', name: 'geoxplib', version: '1.0.0-rc1'
