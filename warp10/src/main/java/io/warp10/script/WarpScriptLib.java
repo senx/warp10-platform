@@ -547,7 +547,6 @@ public class WarpScriptLib {
     functions.put("META", new META("META"));
     functions.put("WEBCALL", new WEBCALL("WEBCALL"));
     functions.put("URLFETCH", new URLFETCH("URLFETCH"));
-    functions.put("TWITTERDM", new TWITTERDM("TWITTERDM"));
     functions.put("MATCH", new MATCH("MATCH"));                         // doc/einstein/function_MATCH    Example done   Unit test
     functions.put("MATCHER", new MATCHER("MATCHER"));
     functions.put("TEMPLATE", new TEMPLATE("TEMPLATE"));
