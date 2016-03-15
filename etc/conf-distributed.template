@@ -974,6 +974,11 @@ egress.hbase.data.zkconnect = 127.0.0.1:2181
 egress.hbase.data.znode = /zk/hbase/localhost
 
 //
+// Threshold in number of GTS above which block caching will be disabled
+//
+egress.hbase.data.blockcache.gts.threshold = 1024
+
+//
 // Number of GTS to batch when retrieving datapoints (to mitigate responseTooSlow errors)
 //
 egress.fetch.batchsize = 10000
