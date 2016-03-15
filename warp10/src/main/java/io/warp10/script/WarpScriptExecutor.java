@@ -1,16 +1,34 @@
+//
+//   Copyright 2016  Cityzen Data
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
 package io.warp10.script;
 
-import io.warp10.WarpDist;
+import io.warp10.WarpConfig;
 import io.warp10.script.WarpScriptStack.Macro;
 
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Semaphore;
 
 public class WarpScriptExecutor {
+
+  private static final String WARP10_CONFIG = "warp10.config";
   
   public static enum StackSemantics {
     // Single stack which will be shared among calling threads
@@ -38,10 +56,14 @@ public class WarpScriptExecutor {
 
   private final StackSemantics semantics;
   
+  private final Map<String,Object> symbolTable;  
+  
+  private static final Properties properties;
+  
   private ThreadLocal<WarpScriptStack> perThreadStack = new ThreadLocal<WarpScriptStack>() {
     @Override
     protected WarpScriptStack initialValue() {
-      MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, null, WarpDist.getProperties());
+      MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, null, properties);
       
       try {
         stack.exec(WarpScriptLib.BOOTSTRAP);
@@ -55,11 +77,12 @@ public class WarpScriptExecutor {
 
   static {
     //
-    // Initialize WarpDist
+    // Initialize WarpConfig
     //
   
     try {
-      WarpDist.setProperties((String) null);
+      WarpConfig.setProperties((String) System.getProperty(WARP10_CONFIG));
+      properties = WarpConfig.getProperties();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -86,9 +109,15 @@ public class WarpScriptExecutor {
     // to define a macro
     //
       
-    WarpScriptStack stack = new MemoryWarpScriptStack(null, null, null, new Properties());
+    WarpScriptStack stack = new MemoryWarpScriptStack(null, null, null, new Properties());    
     stack.exec(WarpScriptLib.BOOTSTRAP);
 
+    this.symbolTable = new HashMap<String,Object>();
+    
+    if (null != symbols) {
+      this.symbolTable.putAll(symbols);
+    }
+        
     StringBuilder sb = new StringBuilder();
     sb.append(WarpScriptStack.MACRO_START);
     sb.append("\n");
@@ -125,11 +154,22 @@ public class WarpScriptExecutor {
         if (StackSemantics.PERTHREAD.equals(this.semantics)) {
           stack = perThreadStack.get();
         } else if (StackSemantics.NEW.equals(this.semantics)) {
-          stack = new MemoryWarpScriptStack(null, null, null, WarpDist.getProperties());
+          stack = new MemoryWarpScriptStack(null, null, null, properties);
           stack.exec(WarpScriptLib.BOOTSTRAP);
         } else {
           throw new WarpScriptException("Invalid stack semantics.");
         }
+      }
+      
+      //
+      // Update the symbol table if 'symbolTable' is set
+      //
+      
+      if (null != this.symbolTable) {
+        stack.save();
+        MemoryWarpScriptStack.StackContext context = (MemoryWarpScriptStack.StackContext) stack.peek();
+        context.symbolTable.putAll(this.symbolTable);
+        stack.restore();
       }
       
       //
@@ -164,5 +204,13 @@ public class WarpScriptExecutor {
       stack.clear();
       this.sem.release();
     }
+  }
+  
+  /**
+   * Store a symbol in the symbol table.
+   */
+  public WarpScriptExecutor store(String key, Object value) {
+    this.symbolTable.put(key, value);
+    return this;
   }
 }
