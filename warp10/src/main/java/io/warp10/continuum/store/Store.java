@@ -292,7 +292,7 @@ public class Store extends Thread {
             int idx = 0;
             
             for (final KafkaStream<byte[],byte[]> stream : streams) {
-              consumers[idx] = new StoreConsumer(self, stream, counters); 
+              consumers[idx] = new StoreConsumer(self, stream, counters);
               executor.submit(consumers[idx]);
               idx++;
             }      
@@ -363,6 +363,7 @@ public class Store extends Thread {
               try {
                 for (StoreConsumer consumer: consumers) {
                   consumer.localabort.set(true);
+                  consumer.getSynchronizer().interrupt();
                 }
                 executor.shutdownNow();
               } catch (Exception e) {
@@ -423,6 +424,8 @@ public class Store extends Thread {
     private final Semaphore flushsem = new Semaphore(0);
     private final KafkaOffsetCounters counters;
     
+    private Thread synchronizer = null;
+
     public StoreConsumer(Store store, KafkaStream<byte[], byte[]> stream, KafkaOffsetCounters counters) {
       this.store = store;
       this.stream = stream;
@@ -432,15 +435,17 @@ public class Store extends Thread {
       this.hbaseAESKey = store.keystore.getKey(KeyStore.AES_HBASE_DATA);
     }
     
+    private Thread getSynchronizer() {
+      return this.synchronizer;
+    }
+    
     @Override
     public void run() {
       
       Thread.currentThread().setName("[Store Consumer - gen " + store.generation + "]");
 
       long count = 0L;
-      
-      Thread synchronizer = null;
-      
+            
       try {
         ConsumerIterator<byte[],byte[]> iter = this.stream.iterator();
 
@@ -773,7 +778,7 @@ public class Store extends Thread {
         }
         
         datapoints++;
-        
+
         synchronized (puts) {
           puts.add(put);
           putsSize.addAndGet(bytes.length);
