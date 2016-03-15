@@ -23,11 +23,23 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 public class GTSWrapperHelper {
 
+  public static GTSDecoder fromGTSWrapperToGTSDecoder(GTSWrapper wrapper) {
+    
+    byte[] unwrapped = unwrapEncoded(wrapper);
+    
+    GTSDecoder decoder = new GTSDecoder(wrapper.getBase(), ByteBuffer.wrap(unwrapped).order(ByteOrder.BIG_ENDIAN));
+    decoder.setMetadata(wrapper.getMetadata());
+    decoder.setCount(wrapper.getCount());
+    
+    return decoder;
+  }
+  
   /**
    * convert a GTSWrapper into GeoTimeSerie
    * @param wrapper
