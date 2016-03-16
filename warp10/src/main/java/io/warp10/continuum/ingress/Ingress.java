@@ -1478,10 +1478,14 @@ public class Ingress extends AbstractHandler implements Runnable {
       out = new GZIPOutputStream(new FileOutputStream(this.cacheDumpPath));
       
       Set<BigInteger> bis = new HashSet<BigInteger>();
-      
+
       bis.addAll(this.metadataCache.keySet());
       
       Iterator<BigInteger> iter = bis.iterator();
+      
+      //
+      // 128bits
+      //
       
       byte[] allzeroes = new byte[16];
       Arrays.fill(allzeroes, (byte) 0); 
@@ -1497,6 +1501,10 @@ public class Ingress extends AbstractHandler implements Runnable {
           
           byte[] raw = bi.toByteArray();
 
+          //
+          // 128bits
+          //
+          
           if (raw.length != 16) {
             if (bi.signum() < 0) {
               out.write(allones, 0, 16 - raw.length);
