@@ -24,6 +24,7 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.LockSupport;
 
 import kafka.consumer.Consumer;
 import kafka.consumer.ConsumerConfig;
@@ -264,7 +265,7 @@ public class KafkaSynchronizedConsumerPool {
           pool.getInitialized().set(false);
           pool.getAbort().set(false);
 
-          try { Thread.sleep(1000L); } catch (InterruptedException ie) {}
+          LockSupport.parkNanos(1000000000L);
         }
       }
       
