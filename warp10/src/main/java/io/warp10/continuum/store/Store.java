@@ -377,7 +377,9 @@ public class Store extends Thread {
             // Reset barrier
             //
             
-            barrier.reset();
+            if (null != barrier) {
+              barrier.reset();
+            }
             
             generation++;
             
