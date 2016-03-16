@@ -56,6 +56,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.ConnectionUtils;
+import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
@@ -165,6 +167,12 @@ public class Store extends Thread {
    * Connection to HBase
    */
   private Connection conn;
+  
+  /**
+   * Boolean indicating that we should recreate the connection to HBase
+   * due to IOErrors (such as regions which cannot be found due to region location cache not being updated)
+   */
+  private AtomicBoolean connReset = new AtomicBoolean(false);
   
   /**
    * HBase table where readings should be stored
@@ -404,13 +412,41 @@ public class Store extends Thread {
   
   @Override
   public void run() {
-    //
-    // Register under ZK and die if we exceed the licenced number of
-    // instances
-    //
-    
-    while (true){
-      LockSupport.parkNanos(Long.MAX_VALUE);
+    while (true){      
+      LockSupport.parkNanos(30000000000L);
+      
+      if (!this.connReset.getAndSet(false)) {
+        continue;
+      }
+      
+      //
+      // Regenerate the HBase connection
+      //
+      
+      Connection newconn = null;
+      Connection oldconn = this.conn;
+      
+      try {
+        newconn = ConnectionFactory.createConnection(this.config);
+      } catch (IOException ioe) {
+        continue;
+      }
+      
+      if (null != newconn) {
+        this.conn = newconn;
+      } else {
+        continue;
+      }
+      
+      try {
+        if (null != oldconn) {
+          oldconn.close();
+        }
+      } catch (IOException ioe) {
+        LOG.error("Error closing previous HBase connection.", ioe);
+      }
+      
+      Sensision.update(SensisionConstants.CLASS_WARP_STORE_HBASE_CONN_RESETS, Sensision.EMPTY_LABELS, 1);
     }
   }
   
@@ -462,7 +498,7 @@ public class Store extends Thread {
         table = store.conn.getTable(store.hbaseTable);
 
         final Table ht = table;
-
+        
         //
         // AtomicLong with the timestamp of the last Put or 0 if
         // none were added since the last flush
@@ -527,6 +563,7 @@ public class Store extends Thread {
                     LOG.info("Received InterruptedException", ie);
                     return;                    
                   } catch (IOException ioe) {
+                    store.connReset.set(true);
                     // Clear list of Puts
                     puts.clear();
                     putsSize.set(0L);
@@ -600,6 +637,8 @@ public class Store extends Thread {
                       LOG.info("Received InterrupedException", ie);
                       return;                    
                     } catch (IOException ioe) {
+                      // Mark the HBase connection as needing reset
+                      store.connReset.set(true);
                       // Clear list of Puts
                       puts.clear();
                       putsSize.set(0L);

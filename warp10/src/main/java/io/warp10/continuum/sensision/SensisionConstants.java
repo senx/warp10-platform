@@ -476,6 +476,11 @@ public class SensisionConstants {
   public static final String CLASS_WARP_STORE_KAFKA_COMMITS_OVERDUE = "warp.store.kafka.commits.overdue";
   
   /**
+   * Number of times the HBase connection was reset. This is a total number across all Store instances within a JVM.
+   */
+  public static final String CLASS_WARP_STORE_HBASE_CONN_RESETS = "warp.store.hbase.conn.resets";
+  
+  /**
    * Time spent in DELETE ops in 'Store'
    */
   public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_TIME_NANOS = "warp.store.hbase.delete.time.nanos";
