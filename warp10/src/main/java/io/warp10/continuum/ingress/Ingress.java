@@ -714,7 +714,9 @@ public class Ingress extends AbstractHandler implements Runnable {
           }
           
           // Update metadataCache with the current key
-          this.metadataCache.put(metadataCacheKey, null);
+          synchronized(this.metadataCache) {
+            this.metadataCache.put(metadataCacheKey, null);
+          }
 
           if (null != lastencoder) {
             Map<String,String> labels = new HashMap<String, String>();
@@ -1111,7 +1113,9 @@ public class Ingress extends AbstractHandler implements Runnable {
             // We know class/labels Id were computed in pushMetadataMessage
             GTSHelper.fillGTSIds(bytes, 0, meta.getClassId(), meta.getLabelsId());
             BigInteger key = new BigInteger(bytes);
-            this.metadataCache.remove(key);
+            synchronized(this.metadataCache) {
+              this.metadataCache.remove(key);
+            }
           }
           sb.setLength(0);
           GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
@@ -1269,7 +1273,9 @@ public class Ingress extends AbstractHandler implements Runnable {
         //
         
         for (KeyedMessage<byte[],byte[]> msg: msglist) {
-          this.metadataCache.remove(new BigInteger(msg.key()));
+          synchronized(this.metadataCache) {
+            this.metadataCache.remove(new BigInteger(msg.key()));
+          }
         }
 
         throw t;
@@ -1479,7 +1485,9 @@ public class Ingress extends AbstractHandler implements Runnable {
       
       Set<BigInteger> bis = new HashSet<BigInteger>();
 
-      bis.addAll(this.metadataCache.keySet());
+      synchronized(this.metadataCache) {
+        bis.addAll(this.metadataCache.keySet());
+      }
       
       Iterator<BigInteger> iter = bis.iterator();
       
@@ -1558,7 +1566,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         
         while(idx < offset && offset - idx >= 16) {
           System.arraycopy(buf, idx, raw, 0, 16);
-          BigInteger id = new BigInteger(raw);
+          BigInteger id = new BigInteger(raw);          
           this.metadataCache.put(id, null);
           count++;
           idx += 16;
