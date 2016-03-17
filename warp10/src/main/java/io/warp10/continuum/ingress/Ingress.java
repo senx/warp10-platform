@@ -238,6 +238,8 @@ public class Ingress extends AbstractHandler implements Runnable {
     }
   };
   
+  volatile boolean useMetadataCache = true;
+  
   final KeyStore keystore;
   final Properties properties;
   
@@ -714,7 +716,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           }
           
           // Update metadataCache with the current key
-          synchronized(this.metadataCache) {
+          if (this.useMetadataCache) {
             this.metadataCache.put(metadataCacheKey, null);
           }
 
@@ -1113,7 +1115,7 @@ public class Ingress extends AbstractHandler implements Runnable {
             // We know class/labels Id were computed in pushMetadataMessage
             GTSHelper.fillGTSIds(bytes, 0, meta.getClassId(), meta.getLabelsId());
             BigInteger key = new BigInteger(bytes);
-            synchronized(this.metadataCache) {
+            if (this.useMetadataCache) {
               this.metadataCache.remove(key);
             }
           }
@@ -1271,11 +1273,11 @@ public class Ingress extends AbstractHandler implements Runnable {
         // We need to remove the IDs of Metadata in 'msglist' from the cache so they get a chance to be
         // pushed later
         //
-        
-        for (KeyedMessage<byte[],byte[]> msg: msglist) {
-          synchronized(this.metadataCache) {
+
+        if (useMetadataCache) {
+          for (KeyedMessage<byte[],byte[]> msg: msglist) {
             this.metadataCache.remove(new BigInteger(msg.key()));
-          }
+          }          
         }
 
         throw t;
@@ -1474,6 +1476,8 @@ public class Ingress extends AbstractHandler implements Runnable {
     if (null == this.cacheDumpPath) {
       return;
     }
+
+    this.useMetadataCache = false;
     
     OutputStream out = null;
     
@@ -1485,9 +1489,7 @@ public class Ingress extends AbstractHandler implements Runnable {
       
       Set<BigInteger> bis = new HashSet<BigInteger>();
 
-      synchronized(this.metadataCache) {
-        bis.addAll(this.metadataCache.keySet());
-      }
+      bis.addAll(this.metadataCache.keySet());
       
       Iterator<BigInteger> iter = bis.iterator();
       

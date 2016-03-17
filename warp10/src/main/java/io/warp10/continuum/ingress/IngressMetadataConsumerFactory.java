@@ -134,7 +134,9 @@ public class IngressMetadataConsumerFactory implements ConsumerFactory {
                 // Remove entry from Metadata cache
                 //
                 
-                ingress.metadataCache.remove(clslblsId);
+                if (ingress.useMetadataCache) {
+                  ingress.metadataCache.remove(clslblsId);
+                }
                 continue;
               } else if (Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
                 //
@@ -143,7 +145,9 @@ public class IngressMetadataConsumerFactory implements ConsumerFactory {
                 //
                 
                 //ingress.metadataCache.put(clslblsId, metadata);
-                ingress.metadataCache.remove(clslblsId);
+                if (ingress.useMetadataCache) {
+                  ingress.metadataCache.remove(clslblsId);
+                }
                 continue;
               } else {
                 continue;
