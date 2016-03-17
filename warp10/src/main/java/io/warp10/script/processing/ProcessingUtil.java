@@ -20,11 +20,11 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 import processing.core.PGraphics;
-import scala.actors.threadpool.Arrays;
 
 public class ProcessingUtil {
   
