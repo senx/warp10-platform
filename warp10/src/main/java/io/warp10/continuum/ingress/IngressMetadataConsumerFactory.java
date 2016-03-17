@@ -134,7 +134,7 @@ public class IngressMetadataConsumerFactory implements ConsumerFactory {
                 // Remove entry from Metadata cache
                 //
                 
-                if (ingress.useMetadataCache) {
+                synchronized(ingress.metadataCache) {
                   ingress.metadataCache.remove(clslblsId);
                 }
                 continue;
@@ -145,7 +145,7 @@ public class IngressMetadataConsumerFactory implements ConsumerFactory {
                 //
                 
                 //ingress.metadataCache.put(clslblsId, metadata);
-                if (ingress.useMetadataCache) {
+                synchronized(ingress.metadataCache) {
                   ingress.metadataCache.remove(clslblsId);
                 }
                 continue;

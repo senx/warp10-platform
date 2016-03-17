@@ -204,7 +204,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
                     Metadata metadata = new Metadata(encoder.getMetadata());
                     metadata.setSource(Configuration.INGRESS_METADATA_SOURCE);
                     this.handler.ingress.pushMetadataMessage(metadata);
-                    if (this.handler.ingress.useMetadataCache) {
+                    synchronized(this.handler.ingress.metadataCache) {
                       this.handler.ingress.metadataCache.put(metadataCacheKey, null);
                     }
                   }

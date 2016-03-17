@@ -238,8 +238,6 @@ public class Ingress extends AbstractHandler implements Runnable {
     }
   };
   
-  volatile boolean useMetadataCache = true;
-  
   final KeyStore keystore;
   final Properties properties;
   
@@ -716,7 +714,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           }
           
           // Update metadataCache with the current key
-          if (this.useMetadataCache) {
+          synchronized(metadataCache) {
             this.metadataCache.put(metadataCacheKey, null);
           }
 
@@ -1115,7 +1113,7 @@ public class Ingress extends AbstractHandler implements Runnable {
             // We know class/labels Id were computed in pushMetadataMessage
             GTSHelper.fillGTSIds(bytes, 0, meta.getClassId(), meta.getLabelsId());
             BigInteger key = new BigInteger(bytes);
-            if (this.useMetadataCache) {
+            synchronized(this.metadataCache) {
               this.metadataCache.remove(key);
             }
           }
@@ -1274,8 +1272,8 @@ public class Ingress extends AbstractHandler implements Runnable {
         // pushed later
         //
 
-        if (useMetadataCache) {
-          for (KeyedMessage<byte[],byte[]> msg: msglist) {
+        for (KeyedMessage<byte[],byte[]> msg: msglist) {
+          synchronized(this.metadataCache) {
             this.metadataCache.remove(new BigInteger(msg.key()));
           }          
         }
@@ -1477,8 +1475,6 @@ public class Ingress extends AbstractHandler implements Runnable {
       return;
     }
 
-    this.useMetadataCache = false;
-    
     OutputStream out = null;
     
     long nano = System.nanoTime();
@@ -1489,7 +1485,9 @@ public class Ingress extends AbstractHandler implements Runnable {
       
       Set<BigInteger> bis = new HashSet<BigInteger>();
 
-      bis.addAll(this.metadataCache.keySet());
+      synchronized(this.metadataCache) {
+        bis.addAll(this.metadataCache.keySet());
+      }
       
       Iterator<BigInteger> iter = bis.iterator();
       
@@ -1568,8 +1566,10 @@ public class Ingress extends AbstractHandler implements Runnable {
         
         while(idx < offset && offset - idx >= 16) {
           System.arraycopy(buf, idx, raw, 0, 16);
-          BigInteger id = new BigInteger(raw);          
-          this.metadataCache.put(id, null);
+          BigInteger id = new BigInteger(raw);
+          synchronized(this.metadataCache) {
+            this.metadataCache.put(id, null);
+          }
           count++;
           idx += 16;
         }
