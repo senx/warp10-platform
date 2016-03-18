@@ -147,7 +147,9 @@ public class StandaloneGeoDirectory extends AbstractHandler implements Standalon
       GeoIndex index = new GeoIndex(resolution, chunks, depth);
       
       this.indices.put(name, index);
-      this.selectors.put(name, new HashMap<String, Set<String>>());
+      synchronized(this.selectors) {
+        this.selectors.put(name, new HashMap<String, Set<String>>());
+      }
       this.subscriptions.put(name, new HashMap<String, Set<String>>());
     }
     
@@ -250,13 +252,13 @@ public class StandaloneGeoDirectory extends AbstractHandler implements Standalon
     
     PrintWriter pw = response.getWriter();
     
-    Set<String> selectors = this.selectors.get(name).get(token);
+    Set<String> selectorsSet = this.selectors.get(name).get(token);
     
-    if (null == selectors) {
+    if (null == selectorsSet) {
       throw new IOException("Unknown token.");
     }
 
-    for (String selector: selectors) {
+    for (String selector: selectorsSet) {
       pw.print("SELECTOR ");
       pw.println(selector);
     }    
@@ -554,8 +556,10 @@ public class StandaloneGeoDirectory extends AbstractHandler implements Standalon
         String token = tokens[1];
         String selector = tokens[2];
         
-        if (!this.selectors.containsKey(name)) {
-          this.selectors.put(name, new HashMap<String, Set<String>>());
+        synchronized(this.selectors) {
+          if (!this.selectors.containsKey(name)) {          
+            this.selectors.put(name, new HashMap<String, Set<String>>());
+          }          
         }
         
         if (!this.selectors.get(name).containsKey(token)) {
@@ -714,7 +718,12 @@ public class StandaloneGeoDirectory extends AbstractHandler implements Standalon
     }
     
     while(true) {
-      for (String geodir: this.selectors.keySet()) {
+      Set<String> keys;
+      
+      synchronized(this.selectors) {
+        keys = this.selectors.keySet();
+      }
+      for (String geodir: keys) {
         updateSubscriptions(geodir, null);
       }
       try { Thread.sleep(this.delay); } catch (InterruptedException ie) {}
