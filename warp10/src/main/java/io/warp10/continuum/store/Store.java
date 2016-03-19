@@ -964,8 +964,13 @@ public class Store extends Thread {
 
         public BulkDeleteResponse call(BulkDeleteService service) throws IOException {
           Builder builder = BulkDeleteRequest.newBuilder();
-          builder.setScan(ProtobufUtil.toScan(scan));          
-          builder.setDeleteType(DeleteType.VERSION);
+          builder.setScan(ProtobufUtil.toScan(scan));
+          
+          //
+          // We can delete the whole row if modulus is 1 since we only store one cell per row
+          //
+          builder.setDeleteType(DeleteType.ROW);
+          
           // Arbitrary for now, maybe come up with a better heuristic
           builder.setRowBatchSize(1000);
           service.delete(controller, builder.build(), rpcCallback);
