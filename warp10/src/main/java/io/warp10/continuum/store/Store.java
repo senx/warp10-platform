@@ -942,7 +942,7 @@ public class Store extends Thread {
       scan.setMaxVersions();
       scan.setCacheBlocks(false);
       
-      long minage = msg.getDeletionMinAge();
+      final long minage = msg.getDeletionMinAge();
       
       //
       // Add a timestamp range if 'minage' is > 0
@@ -967,9 +967,13 @@ public class Store extends Thread {
           builder.setScan(ProtobufUtil.toScan(scan));
           
           //
-          // We can delete the whole row if modulus is 1 since we only store one cell per row
+          // We need to delete the version if 'minage' was specified, otherwise we can delete the whole column
           //
-          builder.setDeleteType(DeleteType.ROW);
+          if (minage > 0) {
+            builder.setDeleteType(DeleteType.VERSION);
+          } else {
+            builder.setDeleteType(DeleteType.COLUMN);
+          }
           
           // Arbitrary for now, maybe come up with a better heuristic
           builder.setRowBatchSize(1000);
