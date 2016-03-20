@@ -940,6 +940,14 @@ public class Store extends Thread {
       scan.setStartRow(startkey);
       scan.setStopRow(endkey);
       scan.setMaxVersions();
+      //
+      // Set 'raw' to true so we correctly delete the cells still in memstore.
+      //
+      scan.setRaw(true);
+      
+      //
+      // Do not pollute the block cache
+      //
       scan.setCacheBlocks(false);
       
       final long minage = msg.getDeletionMinAge();
@@ -966,14 +974,7 @@ public class Store extends Thread {
           Builder builder = BulkDeleteRequest.newBuilder();
           builder.setScan(ProtobufUtil.toScan(scan));
           
-          //
-          // We need to delete the version if 'minage' was specified, otherwise we can delete the whole column
-          //
-          if (minage > 0) {
-            builder.setDeleteType(DeleteType.VERSION);
-          } else {
-            builder.setDeleteType(DeleteType.COLUMN);
-          }
+          builder.setDeleteType(DeleteType.VERSION);
           
           // Arbitrary for now, maybe come up with a better heuristic
           builder.setRowBatchSize(1000);
