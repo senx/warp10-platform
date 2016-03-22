@@ -244,6 +244,7 @@ public class WarpScriptLib {
     functions.put("COUNTTOMARK", new COUNTTOMARK("COUNTTOMARK"));
     functions.put("AUTHENTICATE", new AUTHENTICATE("AUTHENTICATE"));
     functions.put("STACKATTRIBUTE", new STACKATTRIBUTE("STACKATTRIBUTE")); // NOT TO BE DOCUMENTED
+    functions.put("EXPORT", new EXPORT("EXPORT"));
     functions.put("TIMINGS", new TIMINGS("TIMINGS")); // NOT TO BE DOCUMENTED (YET)
     functions.put("NOTIMINGS", new NOTIMINGS("NOTIMINGS")); // NOT TO BE DOCUMENTED (YET)
     functions.put("ELAPSED", new ELAPSED("ELAPSED")); // NOT TO BE DOCUMENTED (YET)

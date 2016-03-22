@@ -50,6 +50,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.servlet.ServletException;
@@ -258,6 +259,25 @@ public class EgressExecHandler extends AbstractHandler {
       //resp.setContentType("application/json");
       //resp.setCharacterEncoding("UTF-8");
       
+      //
+      // Output the exported symbols in a map
+      //
+      
+      Object exported = stack.getAttribute(WarpScriptStack.ATTRIBUTE_EXPORTED_SYMBOLS);
+      
+      if (null != exported && exported instanceof Set && !((Set) exported).isEmpty()) {
+        Map<String,Object> exports = new HashMap<String,Object>();
+        Map<String,Object> symtable = stack.getSymbolTable();
+        for (Object symbol: (Set) exported) {
+          if (null == symbol) {
+            exports.putAll(symtable);
+            break;
+          }
+          exports.put(symbol.toString(), symtable.get(symbol.toString()));
+        }
+        stack.push(exports);
+      }
+      
       StackUtils.toJSON(resp.getWriter(), stack);
     } catch (Exception e) {
       t = e;      
@@ -272,11 +292,32 @@ public class EgressExecHandler extends AbstractHandler {
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX), Long.toString(lineno));
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX), t.getMessage());
       
+      //
+      // Output the exported symbols in a map
+      //
+      
+      Object exported = stack.getAttribute(WarpScriptStack.ATTRIBUTE_EXPORTED_SYMBOLS);
+      
+      if (null != exported && exported instanceof Set && !((Set) exported).isEmpty()) {
+        Map<String,Object> exports = new HashMap<String,Object>();
+        Map<String,Object> symtable = stack.getSymbolTable();
+        for (Object symbol: (Set) exported) {
+          if (null == symbol) {
+            exports.putAll(symtable);
+            break;
+          }
+          exports.put(symbol.toString(), symtable.get(symbol.toString()));
+        }
+        try { stack.push(exports); debugDepth++; } catch (WarpScriptException wse) {}
+      }
+
       if(debugDepth > 0) {        
         resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         PrintWriter pw = resp.getWriter();
-        try { stack.push("ERROR line #" + lineno + ": " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : "")); } catch (WarpScriptException ee) {}
-        try { StackUtils.toJSON(pw, stack, (int) stack.getAttribute(WarpScriptStack.ATTRIBUTE_DEBUG_DEPTH)); } catch (WarpScriptException ee) {}
+        
+        try { stack.push("ERROR line #" + lineno + ": " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : "")); debugDepth++; } catch (WarpScriptException ee) {}
+        
+        try { StackUtils.toJSON(pw, stack, debugDepth); } catch (WarpScriptException ee) {}
       } else {
         throw new IOException("ERROR line #" + lineno + ": " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : ""));
       }
