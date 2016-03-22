@@ -50,6 +50,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
@@ -79,6 +80,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
   private static final String PARAM_EXTRA = "extra";
   private static final String PARAM_LABELS = "labels";
   private static final String PARAM_SELECTOR = "selector";
+  private static final String PARAM_SELECTORS = "selectors";
+  private static final String PARAM_SELECTOR_PAIRS = "selpairs";
   private static final String PARAM_TOKEN = "token";
   private static final String PARAM_END = "end";
   private static final String PARAM_START = "start";
@@ -244,15 +247,23 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     
     ReadToken rtoken = Tokens.extractReadToken(params.get(PARAM_TOKEN).toString());
       
-    Map<String,String> labelSelectors = (Map<String,String>) params.get(PARAM_LABELS);
-    
-    labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
-    
+        
     List<String> clsSels = new ArrayList<String>();
     List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
     
-    clsSels.add(params.get(PARAM_CLASS).toString());
-    lblsSels.add(labelSelectors);
+    if (params.containsKey(PARAM_SELECTOR_PAIRS)) {
+      for (Pair<Object,Object> pair: (List<Pair<Object,Object>>) params.get(PARAM_SELECTOR_PAIRS)) {
+        clsSels.add(pair.getLeft().toString());
+        Map<String,String> labelSelectors = (Map<String,String>) pair.getRight();
+        labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
+        lblsSels.add((Map<String,String>) labelSelectors);
+      }
+    } else {
+      Map<String,String> labelSelectors = (Map<String,String>) params.get(PARAM_LABELS);
+      labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
+      clsSels.add(params.get(PARAM_CLASS).toString());
+      lblsSels.add(labelSelectors);
+    }
 
     List<Metadata> metadatas = null;
     
@@ -474,7 +485,19 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     
     params.put(PARAM_TOKEN, map.get(PARAM_TOKEN));
     
-    if (map.containsKey(PARAM_SELECTOR)) {
+    if (map.containsKey(PARAM_SELECTORS)) {
+      Object sels = map.get(PARAM_SELECTORS);
+      if (!(sels instanceof List)) {
+        throw new WarpScriptException(getName() + " Invalid parameter '" + PARAM_SELECTORS + "'");
+      }
+      List<Pair<Object, Object>> selectors = new ArrayList<Pair<Object,Object>>();
+      
+      for (Object sel: (List) sels) {
+        Object[] clslbls = PARSESELECTOR.parse(sel.toString());
+        selectors.add(Pair.of(clslbls[0], clslbls[1]));
+      }
+      params.put(PARAM_SELECTOR_PAIRS, selectors);
+    } else if (map.containsKey(PARAM_SELECTOR)) {
       Object[] clslbls = PARSESELECTOR.parse(map.get(PARAM_SELECTOR).toString());
       params.put(PARAM_CLASS, clslbls[0]);
       params.put(PARAM_LABELS, clslbls[1]);
@@ -482,7 +505,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       params.put(PARAM_CLASS, map.get(PARAM_CLASS));
       params.put(PARAM_LABELS, map.get(PARAM_LABELS));
     } else {
-      throw new WarpScriptException(getName() + " Missing '" + PARAM_SELECTOR + "' or '" + PARAM_CLASS + "' and '" + PARAM_LABELS + "' parameters.");
+      throw new WarpScriptException(getName() + " Missing '" + PARAM_SELECTOR + "', '" + PARAM_SELECTORS + "' or '" + PARAM_CLASS + "' and '" + PARAM_LABELS + "' parameters.");
     }
     
     if (!map.containsKey(PARAM_END)) {
