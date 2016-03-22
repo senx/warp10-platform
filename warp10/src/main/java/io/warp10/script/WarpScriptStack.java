@@ -210,6 +210,12 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_IN_SECURE_MACRO = "in.secure.macro";
   
   /**
+   * List of symbols to export upon script termination as a map of symbol name
+   * to symbol value pushed onto the stack.
+   */
+  public static final String ATTRIBUTE_EXPORTED_SYMBOLS = "exported.symbols";
+  
+  /**
    * Index of RETURN_DEPTH counter
    */
   public static final int COUNTER_RETURN_DEPTH = 0;
