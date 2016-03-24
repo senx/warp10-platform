@@ -552,6 +552,19 @@ project(':warpscript') {
         }
     }
 
+    // DEPLOY ON MAVEN REPO WITH SCP
+    uploadArchives {
+        repositories {
+          repositories.mavenDeployer {
+            configuration = configurations.deployerJars
+              uniqueVersion = false
+
+              repository(url: "scpexe://${warpScriptPublishURL}") {
+                authentication(userName: "${warpScriptPublishUser}")
+              }
+          }
+        }
+    }
 
 }
 
