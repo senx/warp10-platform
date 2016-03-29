@@ -306,7 +306,7 @@ def genPomForWarpscript(Object pom) {
         }
 
         //
-        // add specific dependencies
+        // add specific dependencies for Warpscript
         //
 
         def hadoopDep = dependenciesNode.appendNode('dependency')
