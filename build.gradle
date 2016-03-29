@@ -295,8 +295,7 @@ def genPomForWarpscript(Object pom) {
                 !it.name.contains('websocket') &&
                 !it.name.contains('leveldb') &&
                 !it.name.contains('snappy') &&
-                !it.name.contains('jline') &&
-                !it.name.contains('java-merge-sort')
+                !it.name.contains('jline')
         }.each {
             dep ->
                 def dependencyNode = dependenciesNode.appendNode('dependency')
@@ -309,10 +308,15 @@ def genPomForWarpscript(Object pom) {
         // add specific dependencies for Warpscript
         //
 
-        def hadoopDep = dependenciesNode.appendNode('dependency')
-        hadoopDep.appendNode('groupId', 'org.apache.hadoop')
-        hadoopDep.appendNode('artifactId', 'hadoop-common')
-        hadoopDep.appendNode('version', '2.5.1')
+        def hadoopCommonDep = dependenciesNode.appendNode('dependency')
+        hadoopCommonDep.appendNode('groupId', 'org.apache.hadoop')
+        hadoopCommonDep.appendNode('artifactId', 'hadoop-common')
+        hadoopCommonDep.appendNode('version', '2.5.1')
+
+        def hadoopMrCliDep = dependenciesNode.appendNode('dependency')
+        hadoopMrCliDep.appendNode('groupId', 'org.apache.hadoop')
+        hadoopMrCliDep.appendNode('artifactId', 'hadoop-mapreduce-client-core')
+        hadoopMrCliDep.appendNode('version', '2.5.1')
 
         def guavaDep = dependenciesNode.appendNode('dependency')
         guavaDep.appendNode('groupId', 'com.google.guava')
@@ -346,6 +350,7 @@ def genPomForWarpscript(Object pom) {
         ossDep.appendNode('groupId', 'com.geoxp.oss')
         ossDep.appendNode('artifactId', 'oss-client')
         ossDep.appendNode('version', '1.0.0')
+
 
     }
 }
@@ -604,6 +609,10 @@ project(':warpscript') {
             include 'io/warp10/continuum/geo/GeoDirectoryClient.class'
             include 'io/warp10/continuum/geo/GeoDirectoryThriftClient.class'
             include 'io/warp10/continuum/store/StoreClient.class'
+            //
+            // InputFormat
+            //
+            include 'io/warp10/hadoop/**'
 
         from project(":token").sourceSets.main.output
             include 'io/warp10/quasar/token/thrift/data/**'
