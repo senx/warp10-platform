@@ -275,6 +275,80 @@ def isGitRepoSynced() {
     return (0 == val.trim().size())
 }
 
+//
+// Generate custom pom for WarpScript with the minimal dependencies
+//
+def genPomForWarpscript(Object pom) {
+    //The publication doesn't know about our dependencies, so we have to manually add them to the pom
+    pom.withXml {
+        def dependenciesNode = asNode().appendNode('dependencies')
+        project(":warp10").configurations.compile.allDependencies.findAll {
+            it.name &&
+                !it.name.equals('crypto') &&
+                !it.name.equals('token') &&
+                !it.name.contains('guice') &&
+                !it.name.contains('hbase') &&
+                !it.name.contains('groovy') &&
+                !it.name.contains('jansi') &&
+                !it.name.contains('kryo') &&
+                !it.name.contains('jetty-server') &&
+                !it.name.contains('websocket') &&
+                !it.name.contains('leveldb') &&
+                !it.name.contains('snappy') &&
+                !it.name.contains('jline') &&
+                !it.name.contains('java-merge-sort')
+        }.each {
+            dep ->
+                def dependencyNode = dependenciesNode.appendNode('dependency')
+                dependencyNode.appendNode('groupId', dep.group)
+                dependencyNode.appendNode('artifactId', dep.name)
+                dependencyNode.appendNode('version', dep.version)
+        }
+
+        //
+        // add specific dependencies for Warpscript
+        //
+
+        def hadoopDep = dependenciesNode.appendNode('dependency')
+        hadoopDep.appendNode('groupId', 'org.apache.hadoop')
+        hadoopDep.appendNode('artifactId', 'hadoop-common')
+        hadoopDep.appendNode('version', '2.5.1')
+
+        def guavaDep = dependenciesNode.appendNode('dependency')
+        guavaDep.appendNode('groupId', 'com.google.guava')
+        guavaDep.appendNode('artifactId', 'guava')
+        guavaDep.appendNode('version', '15.0')
+
+        //
+        // Apache commons
+        //
+        def codecDep = dependenciesNode.appendNode('dependency')
+        codecDep.appendNode('groupId', 'commons-codec')
+        codecDep.appendNode('artifactId', 'commons-codec')
+        codecDep.appendNode('version', '1.6')
+
+        def ioDep = dependenciesNode.appendNode('dependency')
+        ioDep.appendNode('groupId', 'commons-io')
+        ioDep.appendNode('artifactId', 'commons-io')
+        ioDep.appendNode('version', '2.4')
+
+        def langDep = dependenciesNode.appendNode('dependency')
+        langDep.appendNode('groupId', 'commons-lang')
+        langDep.appendNode('artifactId', 'commons-lang')
+        langDep.appendNode('version', '2.6')
+
+        def jtsDep = dependenciesNode.appendNode('dependency')
+        jtsDep.appendNode('groupId', 'com.vividsolutions')
+        jtsDep.appendNode('artifactId', 'jts')
+        jtsDep.appendNode('version', '1.13')
+
+        def ossDep = dependenciesNode.appendNode('dependency')
+        ossDep.appendNode('groupId', 'com.geoxp.oss')
+        ossDep.appendNode('artifactId', 'oss-client')
+        ossDep.appendNode('version', '1.0.0')
+
+    }
+}
 
 // ------------------------------------------------------------------
 // ----------------------------- WARP 10 ----------------------------
@@ -505,53 +579,71 @@ project(':warpscript') {
     group = 'io.warp10'
     version = getVersionName(warp10Version[archivesBaseName])
 
-    dependencies {
-        compile project(':warp10')
-    }
-
     jar {
-        from project(":warp10").sourceSets.main.output
-        zip64 = true
+      zip64 = true
 
-        manifest {
-            attributes(
-                    "Implementation-Title": "WarpScript",
-                    "Implementation-Vendor": "Warp 10",
-                    "Implementation-Version": version)
-        }
+      manifest {
+        attributes(
+            "Implementation-Title": "WarpScript",
+            "Implementation-Vendor": "Warp 10",
+            "Implementation-Version": version)
+      }
 
-
+      from project(":warp10").sourceSets.main.output
         include 'io/warp10/script/**'
         include 'io/warp10/WarpConfig.class'
-        include 'io/warp10/gts/**'
         include 'io/warp10/continuum/TimeSource.class'
         include 'io/warp10/continuum/Tokens.class'
         include 'io/warp10/continuum/Tokens$*'
-        include 'io/warp10/script/**'
         include 'io/warp10/continuum/gts/**'
         include 'io/warp10/continuum/store/Constants.class'
-//        include 'io/warp10/crypto/**'
+        include 'io/warp10/crypto/**'
+        include 'io/warp10/quasar/token/thrift/data/**'
+        include 'io/warp10/quasar/filter/QuasarTokenFilter.class'
+        include 'io/warp10/quasar/filter/exception/QuasarTokenException.class'
         include 'io/warp10/continuum/store/DirectoryClient.class'
-        include 'io/warp10/continuum/store/GTSDecoderIterator.class'
         include 'io/warp10/continuum/store/GTSDecoderIterator.class'
         include 'io/warp10/continuum/store/thrift/data/**'
         include 'io/warp10/warp/sdk/**'
         include 'io/warp10/continuum/geo/GeoDirectoryClient.class'
         include 'io/warp10/continuum/geo/GeoDirectoryThriftClient.class'
         include 'io/warp10/continuum/store/StoreClient.class'
+
+
     }
+
+  model {
+    tasks.generatePomFileForWarpscriptPublication {
+      destination = file("$buildDir/generated-pom.xml")
+    }
+  }
 
     publishing {
-        publications {
-            crypto(MavenPublication) {
-                from components.java
-                groupId 'io.warp10'
-                artifactId archivesBaseName
-                version version
-            }
+      publications {
+        warpscript(MavenPublication) {
+          from components.java
+          groupId project.group
+          artifactId jar.baseName
+          version project.version
+          genPomForWarpscript(pom)
         }
+      }
     }
 
+    // DEPLOY ON MAVEN REPO WITH SCP
+    uploadArchives {
+        repositories {
+          repositories.mavenDeployer {
+            configuration = configurations.deployerJars
+              uniqueVersion = false
+
+              repository(url: "scpexe://${warpScriptPublishURL}") {
+                  authentication(userName: "${warpScriptPublishUser}")
+              }
+              genPomForWarpscript(pom)
+          }
+        }
+    }
 
 }
 
