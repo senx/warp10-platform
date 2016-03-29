@@ -579,10 +579,6 @@ project(':warpscript') {
     group = 'io.warp10'
     version = getVersionName(warp10Version[archivesBaseName])
 
-    dependencies {
-
-    }
-
     jar {
       zip64 = true
 
