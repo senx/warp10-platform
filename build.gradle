@@ -62,17 +62,9 @@ subprojects {
         stagingUser = project.hasProperty('stagingUser') ? project.property('stagingUser') : System.getenv('STAGEING_USER')
         stagingURL = project.hasProperty('stagingURL') ? project.property('stagingURL') : System.getenv('STAGEING_URL')
 
-        if (null == stagingUser || null == stagingURL) {
+        if (stagingUser == null || stagingURL == null) {
             stagingUser = ''
             stagingURL = ''
-        }
-
-        warpScriptPublishUser = project.hasProperty('warpScriptPublishUser') ? project.property('warpScriptPublishUser') : System.getenv('WARPSCRIPTPUBLISH_USER')
-        warpScriptPublishURL = project.hasProperty('warpScriptPublishURL') ? project.property('warpScriptPublishURL') : System.getenv('WARPSCRIPTPUBLISH_URL')
-
-        if (null == warpScriptPublishUser || null == warpScriptPublishURL) {
-            warpScriptPublishUser = ''
-            warpScriptPublishURL = ''
         }
 
         gradle.taskGraph.whenReady { graph ->
@@ -86,6 +78,7 @@ subprojects {
                     throw new GradleException("Cannot upload archive: local repo contains uncommited files (git status -u no --porcelain)")
                 }
             }
+
         }
     }
 
@@ -201,7 +194,7 @@ subprojects {
         thriftFiles.collect {
             ext.file = relativePath(it)
             exec {
-                executable = (null != System.getenv('THRIFT_HOME')) ? System.getenv('THRIFT_HOME') + '/bin/thrift' : 'thrift'
+                executable = 'thrift'
                 args = ['--gen', 'java:hashcode,private-members', '-o', thriftOutputDir, ext.file]
             }
         }
@@ -299,13 +292,13 @@ def isGitRepoSynced() {
 // Generate custom pom for WarpScript with the minimal dependencies
 //
 def genPomForWarpscript(Object pom) {
-
-    // compute the list of dependencies
-    project(":warp10").configurations.compile.resolvedConfiguration.firstLevelModuleDependencies.each {
-        directDep ->
-            addChildsToWarpscriptDeps(directDep)
-    }
     pom.withXml {
+        // compute the list of dependencies
+        project(":warp10").configurations.compile.resolvedConfiguration.firstLevelModuleDependencies.each {
+            directDep ->
+                addChildsToWarpscriptDeps(directDep)
+        }
+
         def dependenciesNode = asNode().appendNode('dependencies')
         mc2DepsList.each {
             def dependencyNode = dependenciesNode.appendNode('dependency')
@@ -567,74 +560,68 @@ project(':warpscript') {
     version = getVersionName(warp10Version[archivesBaseName])
 
     jar {
-        zip64 = true
+      zip64 = true
 
-        manifest {
-            attributes(
-                "Implementation-Title": "WarpScript",
-                "Implementation-Vendor": "Warp 10",
-                "Implementation-Version": version)
-        }
+      manifest {
+        attributes(
+            "Implementation-Title": "WarpScript",
+            "Implementation-Vendor": "Warp 10",
+            "Implementation-Version": version)
+      }
 
-        from project(":warp10").sourceSets.main.output
-            include 'io/warp10/script/**'
-            include 'io/warp10/WarpConfig.class'
-            include 'io/warp10/continuum/TimeSource.class'
-            include 'io/warp10/continuum/Tokens.class'
-            include 'io/warp10/continuum/Tokens$*'
-            include 'io/warp10/continuum/gts/**'
-            include 'io/warp10/continuum/store/Constants.class'
-            include 'io/warp10/continuum/store/DirectoryClient.class'
-            include 'io/warp10/continuum/store/GTSDecoderIterator.class'
-            include 'io/warp10/continuum/store/thrift/data/**'
-            include 'io/warp10/warp/sdk/**'
-            include 'io/warp10/continuum/geo/GeoDirectoryClient.class'
-            include 'io/warp10/continuum/geo/GeoDirectoryThriftClient.class'
-            include 'io/warp10/continuum/store/StoreClient.class'
-            //
-            // InputFormat
-            //
-            include 'io/warp10/hadoop/**'
+      from project(":warp10").sourceSets.main.output
+        include 'io/warp10/script/**'
+        include 'io/warp10/WarpConfig.class'
+        include 'io/warp10/continuum/TimeSource.class'
+        include 'io/warp10/continuum/Tokens.class'
+        include 'io/warp10/continuum/Tokens$*'
+        include 'io/warp10/continuum/gts/**'
+        include 'io/warp10/continuum/store/Constants.class'
+        include 'io/warp10/crypto/**'
+        include 'io/warp10/quasar/token/thrift/data/**'
+        include 'io/warp10/quasar/filter/QuasarTokenFilter.class'
+        include 'io/warp10/quasar/filter/exception/QuasarTokenException.class'
+        include 'io/warp10/continuum/store/DirectoryClient.class'
+        include 'io/warp10/continuum/store/GTSDecoderIterator.class'
+        include 'io/warp10/continuum/store/thrift/data/**'
+        include 'io/warp10/warp/sdk/**'
+        include 'io/warp10/continuum/geo/GeoDirectoryClient.class'
+        include 'io/warp10/continuum/geo/GeoDirectoryThriftClient.class'
+        include 'io/warp10/continuum/store/StoreClient.class'
 
-        from project(":token").sourceSets.main.output
-            include 'io/warp10/quasar/token/thrift/data/**'
-            include 'io/warp10/quasar/filter/QuasarTokenFilter.class'
-            include 'io/warp10/quasar/filter/exception/QuasarTokenException.class'
-
-        from project(":crypto").sourceSets.main.output
-            include 'io/warp10/crypto/**'
 
     }
 
-    model {
-        tasks.generatePomFileForWarpscriptPublication {
-            destination = file("$buildDir/generated-pom.xml")
-        }
+  model {
+    tasks.generatePomFileForWarpscriptPublication {
+      destination = file("$buildDir/generated-pom.xml")
     }
+  }
 
     publishing {
-        publications {
-            warpscript(MavenPublication) {
-                from components.java
-                groupId project.group
-                artifactId jar.baseName
-                version project.version
-                genPomForWarpscript(pom)
-            }
+      publications {
+        warpscript(MavenPublication) {
+          from components.java
+          groupId project.group
+          artifactId jar.baseName
+          version project.version
+          genPomForWarpscript(pom)
         }
+      }
     }
 
     // DEPLOY ON MAVEN REPO WITH SCP
     uploadArchives {
         repositories {
-            repositories.mavenDeployer {
-                configuration = configurations.deployerJars
-                uniqueVersion = false
-                repository(url: "scpexe://${warpScriptPublishURL}") {
-                    authentication(userName: "${warpScriptPublishUser}")
-                }
-                genPomForWarpscript(pom)
-            }
+          repositories.mavenDeployer {
+            configuration = configurations.deployerJars
+              uniqueVersion = false
+
+              repository(url: "scpexe://${warpScriptPublishURL}") {
+                  authentication(userName: "${warpScriptPublishUser}")
+              }
+              genPomForWarpscript(pom)
+          }
         }
     }
 
