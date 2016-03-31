@@ -49,9 +49,17 @@ subprojects {
         stagingUser = project.hasProperty('stagingUser') ? project.property('stagingUser') : System.getenv('STAGEING_USER')
         stagingURL = project.hasProperty('stagingURL') ? project.property('stagingURL') : System.getenv('STAGEING_URL')
 
-        if (stagingUser == null || stagingURL == null) {
+        if (null == stagingUser || null == stagingURL) {
             stagingUser = ''
             stagingURL = ''
+        }
+
+        warpScriptPublishUser = project.hasProperty('warpScriptPublishUser') ? project.property('warpScriptPublishUser') : System.getenv('WARPSCRIPTPUBLISH_USER')
+        warpScriptPublishURL = project.hasProperty('warpScriptPublishURL') ? project.property('warpScriptPublishURL') : System.getenv('WARPSCRIPTPUBLISH_URL')
+
+        if (null == warpScriptPublishUser || null == warpScriptPublishURL) {
+            warpScriptPublishUser = ''
+            warpScriptPublishURL = ''
         }
 
         gradle.taskGraph.whenReady { graph ->
