@@ -596,7 +596,7 @@ project(':warpscript') {
         include 'io/warp10/continuum/geo/GeoDirectoryClient.class'
         include 'io/warp10/continuum/geo/GeoDirectoryThriftClient.class'
         include 'io/warp10/continuum/store/StoreClient.class'
-
+        include 'io/warp10/hadoop/**'
 
     }
 
