@@ -16,6 +16,10 @@
 
 package io.warp10.script.unary;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
+import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -36,6 +40,15 @@ public class TOSTRING extends NamedWarpScriptFunction implements WarpScriptStack
     
     if (op instanceof Number || op instanceof Boolean || op instanceof String) {
       stack.push(op.toString());
+    } else if (op instanceof GeoTimeSerie) {
+      StringWriter sw = new StringWriter();
+      PrintWriter pw = new PrintWriter(sw);
+      
+      ((GeoTimeSerie) op).dump(pw);
+      
+      pw.close();
+      
+      stack.push(sw.toString());
     } else {
       throw new WarpScriptException(getName() + " can only operate on numeric, boolean or string values.");
     }
