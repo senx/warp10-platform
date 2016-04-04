@@ -585,10 +585,6 @@ project(':warpscript') {
         include 'io/warp10/continuum/Tokens$*'
         include 'io/warp10/continuum/gts/**'
         include 'io/warp10/continuum/store/Constants.class'
-        include 'io/warp10/crypto/**'
-        include 'io/warp10/quasar/token/thrift/data/**'
-        include 'io/warp10/quasar/filter/QuasarTokenFilter.class'
-        include 'io/warp10/quasar/filter/exception/QuasarTokenException.class'
         include 'io/warp10/continuum/store/DirectoryClient.class'
         include 'io/warp10/continuum/store/GTSDecoderIterator.class'
         include 'io/warp10/continuum/store/thrift/data/**'
@@ -597,6 +593,14 @@ project(':warpscript') {
         include 'io/warp10/continuum/geo/GeoDirectoryThriftClient.class'
         include 'io/warp10/continuum/store/StoreClient.class'
         include 'io/warp10/hadoop/**'
+
+        from project(":token").sourceSets.main.output
+        include 'io/warp10/quasar/token/thrift/data/**'
+        include 'io/warp10/quasar/filter/QuasarTokenFilter.class'
+        include 'io/warp10/quasar/filter/exception/QuasarTokenException.class'
+
+        from project(":crypto").sourceSets.main.output
+        include 'io/warp10/crypto/**'
 
     }
 
