@@ -20,21 +20,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.InputFormat;
-import org.apache.hadoop.mapred.InputSplit;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.RecordReader;
-import org.apache.hadoop.mapred.Reporter;
 
 import com.fasterxml.sort.SortConfig;
 import com.fasterxml.sort.std.TextFileSorter;
+import org.apache.hadoop.mapreduce.*;
 
-public class Warp10InputFormat implements InputFormat<Text, BytesWritable> {
+public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
   
   /**
    * URL of split endpoint
@@ -73,14 +68,24 @@ public class Warp10InputFormat implements InputFormat<Text, BytesWritable> {
    * Token to use for selecting GTS
    */
   public static final String PROPERTY_WARP10_SPLITS_TOKEN = "warp10.splits.token";
-  
+
+  /**
+   * Now parameter
+   */
+  public static final String PROPERTY_WARP10_FETCH_NOW = "warp10.fetch.now";
+
+  /**
+   * Timespan parameter
+   */
+  public static final String PROPERTY_WARP10_FETCH_TIMESPAN = "warp10.fetch.timespan";
+
   @Override
-  public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
+  public List<InputSplit> getSplits(JobContext context) throws IOException {
     
     List<String> fallbacks = new ArrayList<String>();
     
-    if (null != job.get(PROPERTY_WARP10_FETCHER_FALLBACKS)) {
-      String[] servers = job.get(PROPERTY_WARP10_FETCHER_FALLBACKS).split(",");
+    if (null != context.getConfiguration().get(PROPERTY_WARP10_FETCHER_FALLBACKS)) {
+      String[] servers = context.getConfiguration().get(PROPERTY_WARP10_FETCHER_FALLBACKS).split(",");
       for (String server: servers) {
         fallbacks.add(server);
       }
@@ -91,15 +96,15 @@ public class Warp10InputFormat implements InputFormat<Text, BytesWritable> {
     //
 
     StringBuilder sb = new StringBuilder();
-    sb.append(job.get(PROPERTY_WARP10_SPLITS_ENDPOINT));
+    sb.append(context.getConfiguration().get(PROPERTY_WARP10_SPLITS_ENDPOINT));
     sb.append("?");
     sb.append(Constants.HTTP_PARAM_SELECTOR);
     sb.append("=");
-    sb.append(URLEncoder.encode(job.get(PROPERTY_WARP10_SPLITS_SELECTOR), "UTF-8"));
+    sb.append(URLEncoder.encode(context.getConfiguration().get(PROPERTY_WARP10_SPLITS_SELECTOR), "UTF-8"));
     sb.append("&");
     sb.append(Constants.HTTP_PARAM_TOKEN);
     sb.append("=");
-    sb.append(job.get(PROPERTY_WARP10_SPLITS_TOKEN));
+    sb.append(context.getConfiguration().get(PROPERTY_WARP10_SPLITS_TOKEN));
     
     URL url = new URL(sb.toString());
     
@@ -167,9 +172,9 @@ public class Warp10InputFormat implements InputFormat<Text, BytesWritable> {
     //
     
     // Compute the average number of splits per combined split
-    int avgsplitcount = (int) Math.ceil((double) count / numSplits);
+    int avgsplitcount = (int) Math.ceil((double) count / fallbacks.size());
     
-    List<Warp10InputSplit> splits = new ArrayList<Warp10InputSplit>();
+    List<InputSplit> splits = new ArrayList<>();
     
     br = new BufferedReader(new FileReader(outfile));
     
@@ -210,11 +215,12 @@ public class Warp10InputFormat implements InputFormat<Text, BytesWritable> {
       Collections.shuffle(fallbacks);
       for (String fallback: fallbacks) {
         split.addFetcher(fallback);
-      }      
+      }
       splits.add(split.build());
     }
     
-    return splits.toArray(new Warp10InputSplit[0]);
+    return splits;
+
 //    //
 //    // We know we have 'count' splits to combine and we know how many splits are hosted on each
 //    // server
@@ -300,11 +306,10 @@ public class Warp10InputFormat implements InputFormat<Text, BytesWritable> {
   }
   
   @Override
-  public RecordReader<Text, BytesWritable> getRecordReader(InputSplit split, JobConf job, Reporter reporter) throws IOException {
+  public RecordReader<Text, BytesWritable> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException {
     if (!(split instanceof Warp10InputSplit)) {
       throw new IOException("Invalid split type.");
     }
-    
-    return new Warp10RecordReader((Warp10InputSplit) split, job, reporter);
+    return new Warp10RecordReader();
   }
 }

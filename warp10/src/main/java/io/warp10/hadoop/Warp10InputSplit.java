@@ -10,9 +10,10 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.zip.GZIPOutputStream;
 
-import org.apache.hadoop.mapred.InputSplit;
+import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.mapreduce.InputSplit;
 
-public class Warp10InputSplit implements InputSplit {
+public class Warp10InputSplit extends InputSplit implements Writable {
 
   /**
    * Address fetchers, ideal one first
@@ -83,7 +84,7 @@ public class Warp10InputSplit implements InputSplit {
   public String[] getLocations() throws IOException {
     return Arrays.copyOf(fetchers, fetchers.length);
   }
-  
+
   @Override
   public void readFields(DataInput in) throws IOException {
     //
@@ -113,7 +114,7 @@ public class Warp10InputSplit implements InputSplit {
     
     this.complete = true;
   }
-  
+
   @Override
   public void write(DataOutput out) throws IOException {
     
@@ -135,4 +136,5 @@ public class Warp10InputSplit implements InputSplit {
   public byte[] getBytes() {
     return this.splits;
   }
+
 }
