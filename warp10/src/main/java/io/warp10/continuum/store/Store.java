@@ -17,6 +17,7 @@
 package io.warp10.continuum.store;
 
 import io.warp10.continuum.KafkaOffsetCounters;
+import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.sensision.SensisionConstants;
@@ -24,6 +25,7 @@ import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
 import io.warp10.continuum.store.thrift.data.KafkaDataMessageType;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
+import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.sensision.Sensision;
 
 import java.io.IOException;
@@ -1007,6 +1009,21 @@ public class Store extends Thread {
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_OPS, Sensision.EMPTY_LABELS, 1);
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_REGIONS, Sensision.EMPTY_LABELS, noOfRegions);
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS, Sensision.EMPTY_LABELS, noOfDeletedVersions);
+
+      // If a write token was provided, update metrics for its owner and application
+      if (null != msg.getWriteToken()) {
+        WriteToken writeToken = msg.getWriteToken();
+
+        Map<String, String> labels = new HashMap<String, String>();
+
+        String owner = Tokens.getUUID(writeToken.getOwnerId());
+        labels.put(SensisionConstants.SENSISION_LABEL_OWNER, owner);
+        if (null != writeToken.getAppName()) {
+          labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, writeToken.getAppName());
+        }
+
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS_PEROWNER, labels, noOfDeletedVersions);
+      }
     }
     
     private void handleArchive(Table ht, KafkaDataMessage msg) {

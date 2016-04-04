@@ -1101,7 +1101,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         while(iterator.hasNext()) {
           Metadata metadata = iterator.next();
         
-          pushDeleteMessage(start, end, minage, metadata);
+          pushDeleteMessage(start, end, minage, metadata, writeToken);
           
           if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
             completeDeletion = true;
@@ -1134,7 +1134,7 @@ public class Ingress extends AbstractHandler implements Runnable {
       }
     } finally {
       // Flush delete messages
-      pushDeleteMessage(0L,0L,0L,null);
+      pushDeleteMessage(0L,0L,0L,null, writeToken);
       if (completeDeletion) {
         pushMetadataMessage(null, null);
       }
@@ -1453,8 +1453,9 @@ public class Ingress extends AbstractHandler implements Runnable {
    * @param start Start timestamp for deletion
    * @param end End timestamp for deletion
    * @param metadata Metadata of the GTS to delete
+   * @param writeToken Write token making deletion request
    */
-  private void pushDeleteMessage(long start, long end, long minage, Metadata metadata) throws IOException {    
+  private void pushDeleteMessage(long start, long end, long minage, Metadata metadata, WriteToken writeToken) throws IOException {
     if (null != metadata) {
       KafkaDataMessage msg = new KafkaDataMessage();
       msg.setType(KafkaDataMessageType.DELETE);
@@ -1463,6 +1464,7 @@ public class Ingress extends AbstractHandler implements Runnable {
       msg.setDeletionMinAge(minage);
       msg.setClassId(metadata.getClassId());
       msg.setLabelsId(metadata.getLabelsId());
+      msg.setWriteToken(writeToken);
 
       sendDataMessage(msg);
     } else {

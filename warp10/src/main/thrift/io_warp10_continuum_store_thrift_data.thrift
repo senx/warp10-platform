@@ -1,5 +1,6 @@
-namespace java io.warp10.continuum.store.thrift.data
+include "../../../../token/src/main/thrift/io_warp10_quasar_token_thrift_data.thrift"
 
+namespace java io.warp10.continuum.store.thrift.data
 /**
  * Metadata describing a Geo Time Serie
  */ 
@@ -95,6 +96,11 @@ struct KafkaDataMessage {
    * Minimum age of cells to delete (in ms)
    */
   8: optional i64 deletionMinAge,
+
+  /**
+   * Optional write token to log metrics in deletion requests
+   */
+  9: optional io_warp10_quasar_token_thrift_data.WriteToken writeToken,
 }
 
 /**

@@ -25,7 +25,7 @@ public class SensisionConstants {
       Sensision.setInstance("warp");
     }
   }
-  
+
   //
   // Classes
   //
@@ -499,6 +499,11 @@ public class SensisionConstants {
    * Number of datapoints deleted by 'Store'
    */
   public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS = "warp.store.hbase.delete.datapoints";
+
+  /**
+   * Number of datapoints deleted by 'Store' per owner and application
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS_PEROWNER = "warp.store.hbase.delete.datapoints.perowner";
 
   /**
    * Number of results retrieved from scanners by HBaseStoreClient
