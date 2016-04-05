@@ -67,6 +67,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
@@ -108,6 +109,8 @@ import org.bouncycastle.crypto.paddings.PKCS7Padding;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.util.encoders.Hex;
 import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.HttpConfiguration;
+import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
@@ -138,6 +141,11 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
   private static final Logger LOG = LoggerFactory.getLogger(Directory.class);
 
+  /**
+   * Maximum size of the input URI
+   */
+  public static final int DIRECTORY_REQUEST_HEADER_SIZE = 64 * 1024;
+  
   /**
    * Comparator which sorts the IDs in their lexicographical order suitable for scanning HBase keys
    */
@@ -922,7 +930,14 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     }
 
     Server server = new Server(new QueuedThreadPool(streamingMaxThreads,8, (int) idleTimeout, queue));
-    ServerConnector connector = new ServerConnector(server, this.streamingacceptors, this.streamingselectors);
+    
+    
+    //ServerConnector connector = new ServerConnector(server, this.streamingacceptors, this.streamingselectors);
+    HttpConfiguration config = new HttpConfiguration();
+    config.setRequestHeaderSize(DIRECTORY_REQUEST_HEADER_SIZE);
+    HttpConnectionFactory factory = new HttpConnectionFactory(config);
+    ServerConnector connector = new ServerConnector(server,null,null,null,this.streamingacceptors, this.streamingselectors,factory);
+    
     connector.setIdleTimeout(idleTimeout);
     connector.setPort(this.streamingport);
     connector.setHost(host);
@@ -1106,7 +1121,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         final AtomicLong lastPut = new AtomicLong(0L);
         
         final List<Put> puts = new ArrayList<Put>();
-
+        final ReentrantLock putsLock = new ReentrantLock();
+        
         final AtomicLong putSize = new AtomicLong(0L);
         
         //
@@ -1132,7 +1148,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 // We synchronize on 'puts' so the main Thread does not add Puts to it
                 //
                 
-                synchronized (puts) {
+                //synchronized (puts) {
+                try {
+                  putsLock.lockInterruptibly();
+                  
                   //
                   // Attempt to flush
                   //
@@ -1184,13 +1203,22 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   } finally {
                     lastsync = System.currentTimeMillis();
                   }
+                } catch (InterruptedException ie) {
+                  directory.abort.set(true);
+                  return;
+                } finally {
+                  if (putsLock.isHeldByCurrentThread()) {
+                    putsLock.unlock();
+                  }                  
                 }
               } else if (0 != lastPut.get() && (now - lastPut.get() > 500) || putSize.get() > directory.maxPendingPutsSize) {
                 //
                 // If the last Put was added to 'ht' more than 500ms ago, force a flush
                 //
                 
-                synchronized(puts) {
+                try {
+                  //synchronized(puts) {
+                  putsLock.lockInterruptibly();
                   try {
                     Object[] results = new Object[puts.size()];
                     
@@ -1222,6 +1250,13 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                     putSize.set(0L);
                     directory.abort.set(true);
                     return;
+                  }                  
+                } catch (InterruptedException ie) {
+                  directory.abort.set(true);
+                  return;
+                } finally {
+                  if (putsLock.isHeldByCurrentThread()) {
+                    putsLock.unlock();
                   }                  
                 }
               }
@@ -1489,7 +1524,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               put.addColumn(directory.colfam, new byte[0], encrypted);              
             }
               
-            synchronized (puts) {
+            try {
+              putsLock.lockInterruptibly();
+              //synchronized (puts) {
               if (directory.store) {
                 puts.add(put);
                 putSize.addAndGet(encrypted.length);
@@ -1549,7 +1586,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               
               directory.metadatas.get(metadata.getName()).put(labelsId, metadata);
               Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, 1);
-            }                                            
+           
+            } finally {
+              if (putsLock.isHeldByCurrentThread()) {
+                putsLock.unlock();
+              }
+            }
           } else {
             // Sleep a tiny while
             try {
@@ -2222,7 +2264,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     if (!Constants.API_ENDPOINT_DIRECTORY_STREAMING_INTERNAL.equals(target)) {
       return;
     }
-    
+
     long nano = System.nanoTime();
     
     baseRequest.setHandled(true);
