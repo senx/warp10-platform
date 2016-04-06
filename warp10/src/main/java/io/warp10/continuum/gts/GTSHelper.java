@@ -22,16 +22,18 @@ import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
+import io.warp10.script.JavaLibrary;
+import io.warp10.script.SAXUtils;
 import io.warp10.script.WarpScriptAggregatorFunction;
+import io.warp10.script.WarpScriptBinaryOp;
 import io.warp10.script.WarpScriptBucketizerFunction;
+import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptFilterFunction;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptNAryFunction;
 import io.warp10.script.WarpScriptReducerFunction;
-import io.warp10.script.WarpScriptBinaryOp;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.JavaLibrary;
-import io.warp10.script.SAXUtils;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Macro;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -52,13 +54,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -66,16 +66,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.math3.fitting.PolynomialCurveFitter;
+import org.apache.commons.math3.fitting.WeightedObservedPoint;
 import org.boon.json.JsonParser;
 import org.boon.json.JsonParserFactory;
-import org.junit.Assert;
 
-import sun.misc.Unsafe;
 import sun.nio.cs.ArrayEncoder;
 
-import org.apache.commons.math3.fitting.WeightedObservedPoint;
-import org.apache.commons.math3.fitting.PolynomialCurveFitter;
-
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
 import com.google.common.base.Charsets;
@@ -574,6 +572,11 @@ public class GTSHelper {
     }
   }
 
+  public static GeoTimeSerie locationSort(GeoTimeSerie gts) {
+    quicksortByLocation(gts,0,gts.values - 1,false);
+    return gts;
+  }
+    
   /**
    * Return the tick at a given index in a Geo Time Serie.
    * 
@@ -2087,7 +2090,7 @@ public class GTSHelper {
    * will occur on concatenations of hash and hash of reversed input.
    * 
    * We waste some CPU cycles compared to just computing a SipHash of the class name
-   * but this will ensure we do not risk collisions in classIds.
+   * but this will ensure we do not risk synthezied collisions in classIds.
    * 
    * In the highly unlikely event of a collision, we'll offer 12 months of free service to the
    * customer who finds it!.
@@ -2182,7 +2185,7 @@ public class GTSHelper {
    * to have meaning.
    * 
    * And if our hypothesis on randomness is not verified, we'll have the pleasure of showing the world a legible SipHash
-   * collision :-) And we'll offer 6 month of subscription to the customer who found it!
+   * collision :-) And we'll offer 6 month of subscription to the customer who finds it!
    * 
    * @param key 128 bit SipHash key to use
    * @param labels Map of label names to label values
@@ -4441,8 +4444,8 @@ public class GTSHelper {
    * @return
    * @throws WarpScriptException
    */
-  public static List<GeoTimeSerie> partitionAndApply(Object function, Collection<String> bylabels, List<GeoTimeSerie>... series) throws WarpScriptException {
-    Map<Map<String,String>,List<GeoTimeSerie>> unflattened = partitionAndApplyUnflattened(function, bylabels, series);
+  public static List<GeoTimeSerie> partitionAndApply(Object function, WarpScriptStack stack, Macro validator, Collection<String> bylabels, List<GeoTimeSerie>... series) throws WarpScriptException {
+    Map<Map<String,String>,List<GeoTimeSerie>> unflattened = partitionAndApplyUnflattened(function, stack, validator, bylabels, series);
     
     List<GeoTimeSerie> results = new ArrayList<GeoTimeSerie>();
     
@@ -4462,7 +4465,7 @@ public class GTSHelper {
    * @return
    * @throws WarpScriptException
    */
-  public static Map<Map<String,String>,List<GeoTimeSerie>> partitionAndApplyUnflattened(Object function, Collection<String> bylabels, List<GeoTimeSerie>... series) throws WarpScriptException {
+  public static Map<Map<String,String>,List<GeoTimeSerie>> partitionAndApplyUnflattened(Object function, WarpScriptStack stack, Macro validator, Collection<String> bylabels, List<GeoTimeSerie>... series) throws WarpScriptException {
 
     //
     // Gather all GTS instances together so we can partition them
@@ -4545,7 +4548,25 @@ public class GTSHelper {
           result.addAll(filtered);
         }
       } else if (function instanceof WarpScriptNAryFunction) {
-        result.add(GTSHelper.applyNAryFunction((WarpScriptNAryFunction) function, commonlabels, subseries));
+        //
+        // If we have a stack and a validator, push the commonlabels and the list of subseries onto the stack,
+        // call the validator and check if it left true or false onto the stack.
+        //
+        
+        boolean proceed = true;
+        
+        if (null != stack && null != validator) {
+          stack.push(Arrays.asList(subseries));
+          stack.push(commonlabels);
+          stack.exec(validator);
+          if (!Boolean.TRUE.equals(stack.pop())) {
+            proceed = false;
+          }
+        }
+        
+        if (proceed) {
+          result.add(GTSHelper.applyNAryFunction((WarpScriptNAryFunction) function, commonlabels, subseries));
+        }
       } else {
         throw new WarpScriptException("Invalid function to apply.");
       }
@@ -4803,6 +4824,7 @@ public class GTSHelper {
    * 
    * @throws WarpScriptException If partitioning could not be done
    */
+  @Deprecated
   public static List<GeoTimeSerie> apply(WarpScriptBinaryOp op, Collection<GeoTimeSerie> op1, Collection<GeoTimeSerie> op2, Collection<String> bylabels) throws WarpScriptException {
     Collection<GeoTimeSerie> allgts = new ArrayList<GeoTimeSerie>();
     allgts.addAll(op1);

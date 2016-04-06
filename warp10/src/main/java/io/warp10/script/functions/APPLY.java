@@ -20,6 +20,7 @@ import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptNAryFunction;
+import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -59,40 +60,64 @@ public class APPLY extends NamedWarpScriptFunction implements WarpScriptStackFun
       throw new WarpScriptException(getName() + " expects at least 3 parameters.");
     }
     
-    for (int i = 0; i < params.size() - 2; i++) {
-      if (!(params.get(i) instanceof List)) {
-        throw new WarpScriptException(getName() + " expects lists of geo time series as first parameters.");
-      }              
+    //
+    // Identify the operation
+    //
+    
+    int opidx = -1;
+    
+    for (int i = 0; i < params.size(); i++) {
+      if (params.get(i) instanceof WarpScriptNAryFunction) {
+        opidx = i;
+        break;
+      }
     }
-      
-    if (null != params.get(params.size() - 2) && !(params.get(params.size() - 2) instanceof Collection<?>)) {
-      throw new WarpScriptException(getName() + " expects a list of label names or null as penultimate parameter.");                
+    
+    if (-1 == opidx) {
+      throw new WarpScriptException(getName() + " expects an operation in the parameter list.");
+    }
+    
+    int labelsidx = opidx - 1;
+
+    if (labelsidx < 1 || (null != params.get(labelsidx) && !(params.get(labelsidx) instanceof Collection<?>))) {
+      throw new WarpScriptException(getName() + " expects a list of label names under the operation.");                
     } else {
-      if (null != params.get(params.size() - 2)) {
-        for (Object o: ((Collection<?>) params.get(params.size() - 2))) {
+      if (null != params.get(labelsidx)) {
+        for (Object o: ((Collection<?>) params.get(labelsidx))) {
           if (! (o instanceof String)) {
             throw new WarpScriptException(getName() + " expects a list of label names as penultimate parameter.");                            
           }
         }        
       }
     }
-      
-    if (!(params.get(params.size() - 1) instanceof WarpScriptNAryFunction)) {
-      throw new WarpScriptException(getName() + " expects a function as last parameter.");        
-    }
 
-    List<GeoTimeSerie>[] colls = new List[params.size() - 2];
-    Collection<String> bylabels = (Collection<String>) params.get(params.size() - 2);
+    for (int i = 0; i < labelsidx; i++) {
+      if (!(params.get(i) instanceof List)) {
+        throw new WarpScriptException(getName() + " expects lists of geo time series as first parameters.");
+      }              
+    }
+      
+      
+    List<GeoTimeSerie>[] colls = new List[labelsidx];
+    Collection<String> bylabels = (Collection<String>) params.get(labelsidx);
         
-    for (int i = 0; i < params.size() - 2; i++) {
+    for (int i = 0; i < labelsidx; i++) {
       colls[i] = new ArrayList<GeoTimeSerie>();
       colls[i].addAll((Collection<GeoTimeSerie>) params.get(i));
     }
 
+    Macro validator = null;
+        
+    if (opidx < params.size() - 1) {
+      if (params.get(opidx + 1) instanceof Macro) {
+        validator = (Macro) params.get(opidx + 1);
+      }
+    }
+    
     if (this.flatten) {
-      stack.push(GTSHelper.partitionAndApply(params.get(params.size() - 1), bylabels, colls));
+      stack.push(GTSHelper.partitionAndApply(params.get(opidx), stack, validator, bylabels, colls));
     } else {
-      stack.push(GTSHelper.partitionAndApplyUnflattened(params.get(params.size() - 1), bylabels, colls));
+      stack.push(GTSHelper.partitionAndApplyUnflattened(params.get(opidx), stack, validator, bylabels, colls));
     }
     return stack;
   }
