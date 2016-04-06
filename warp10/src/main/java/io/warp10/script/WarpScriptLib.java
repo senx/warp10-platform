@@ -16,6 +16,7 @@
 
 package io.warp10.script;
 
+import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.gts.CORRELATE;
 import io.warp10.continuum.gts.DISCORDS;
@@ -207,6 +208,7 @@ import io.warp10.script.unary.UNIT;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 /**
@@ -938,11 +940,11 @@ public class WarpScriptLib {
     
     functions.put("mapper.distinct", new FAIL("mapper.distinct")); // Counts the number of distinct values in a window, using HyperLogLog???
     functions.put("TICKSHIFT", new FAIL("TICKSHIFT")); // Shifts the ticks of a GTS by this many positions
-
     
-    if (null != System.getProperty(Configuration.CONFIG_WARPSCRIPT_LANGUAGES)) {
-      String[] languages = System.getProperty(Configuration.CONFIG_WARPSCRIPT_LANGUAGES).split(",");
+    Properties props = WarpConfig.getProperties();
       
+    if (null != props && props.containsKey(Configuration.CONFIG_WARPSCRIPT_LANGUAGES)) {
+      String[] languages = props.getProperty(Configuration.CONFIG_WARPSCRIPT_LANGUAGES).split(",");
       Set<String> lang = new HashSet<String>();
       
       for (String language: languages) {
