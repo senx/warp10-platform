@@ -56,6 +56,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.ConnectionHelper;
 import org.apache.hadoop.hbase.client.ConnectionUtils;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
@@ -413,38 +414,41 @@ public class Store extends Thread {
   @Override
   public void run() {
     while (true){      
-      LockSupport.parkNanos(30000000000L);
+      LockSupport.parkNanos(1000000000L);
       
       if (!this.connReset.getAndSet(false)) {
         continue;
       }
       
-      //
-      // Regenerate the HBase connection
-      //
+      ConnectionHelper.clearMetaCache(this.conn);
       
-      Connection newconn = null;
-      Connection oldconn = this.conn;
-      
-      try {
-        newconn = ConnectionFactory.createConnection(this.config);
-      } catch (IOException ioe) {
-        continue;
-      }
-      
-      if (null != newconn) {
-        this.conn = newconn;
-      } else {
-        continue;
-      }
-      
-      try {
-        if (null != oldconn) {
-          oldconn.close();
-        }
-      } catch (IOException ioe) {
-        LOG.error("Error closing previous HBase connection.", ioe);
-      }
+//      //
+//      // Regenerate the HBase connection
+//      //
+//      
+//      Connection newconn = null;
+//      Connection oldconn = this.conn;
+//      
+//      try {
+//        newconn = ConnectionFactory.createConnection(this.config);
+//      } catch (IOException ioe) {
+//        LOG.error("Error while creating HBase connection.", ioe);
+//        continue;
+//      }
+//      
+//      if (null != newconn) {
+//        this.conn = newconn;
+//      } else {
+//        continue;
+//      }
+//      
+//      try {
+//        if (null != oldconn) {
+//          oldconn.close();
+//        }
+//      } catch (IOException ioe) {
+//        LOG.error("Error closing previous HBase connection.", ioe);
+//      }
       
       Sensision.update(SensisionConstants.CLASS_WARP_STORE_HBASE_CONN_RESETS, Sensision.EMPTY_LABELS, 1);
     }
