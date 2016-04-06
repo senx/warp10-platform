@@ -73,7 +73,6 @@ import org.boon.json.JsonParserFactory;
 
 import sun.nio.cs.ArrayEncoder;
 
-import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
 import com.google.common.base.Charsets;
