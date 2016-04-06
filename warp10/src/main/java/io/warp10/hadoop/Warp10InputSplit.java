@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.mapreduce.InputSplit;
 
 public class Warp10InputSplit extends InputSplit implements Writable {
@@ -91,27 +92,23 @@ public class Warp10InputSplit extends InputSplit implements Writable {
     // Read fetchers
     //
     
-    int nfetchers = in.readInt();
-    
+    int nfetchers = WritableUtils.readVInt(in);
+
     this.fetchers = new String[nfetchers];
     
     for (int i = 0; i < nfetchers; i++) {
-      int len = in.readInt();
-      byte[] buf = new byte[len];
-      in.readFully(buf);
-      this.fetchers[i] = new String(buf, "US-ASCII");
+      int len = WritableUtils.readVInt(in);
+      String currentFetcher = WritableUtils.readString(in);
+      this.fetchers[i] = currentFetcher;
     }
     
     //
     // Read splits
     //
     
-    int splitsize = in.readInt();
-    
-    this.splits = new byte[splitsize];
-    
-    in.readFully(this.splits);
-    
+    int splitsize = WritableUtils.readVInt(in);
+
+    this.splits = WritableUtils.readCompressedByteArray(in);
     this.complete = true;
   }
 
@@ -121,16 +118,16 @@ public class Warp10InputSplit extends InputSplit implements Writable {
     if (!this.complete) {
       throw new IOException("InputSplit is not completed.");      
     }
-    
-    out.writeInt(this.fetchers.length);
+
+    WritableUtils.writeVInt(out,this.fetchers.length);
     
     for (int i = 0; i < this.fetchers.length; i++) {
-      out.writeInt(this.fetchers.length);
-      out.writeBytes(this.fetchers[i]);
+      WritableUtils.writeVInt(out, this.fetchers.length);
+      WritableUtils.writeString(out, this.fetchers[i]);
     }
-    
-    out.writeInt(this.splits.length);
-    out.write(this.splits);
+
+    WritableUtils.writeVInt(out, this.splits.length);
+    WritableUtils.writeCompressedByteArray(out, this.splits);
   }
   
   public byte[] getBytes() {
