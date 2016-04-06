@@ -308,16 +308,17 @@ public class EgressExecHandler extends AbstractHandler {
           }
           exports.put(symbol.toString(), symtable.get(symbol.toString()));
         }
-        try { stack.push(exports); debugDepth++; } catch (WarpScriptException wse) {}
+        try { stack.push(exports); if (debugDepth < Integer.MAX_VALUE) { debugDepth++; } } catch (WarpScriptException wse) {}
       }
 
       if(debugDepth > 0) {        
         resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         PrintWriter pw = resp.getWriter();
         
-        try { stack.push("ERROR line #" + lineno + ": " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : "")); debugDepth++; } catch (WarpScriptException ee) {}
-        
+        try { stack.push("ERROR line #" + lineno + ": " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : "")); if (debugDepth < Integer.MAX_VALUE) { debugDepth++; } } catch (WarpScriptException ee) {}
+
         try { StackUtils.toJSON(pw, stack, debugDepth); } catch (WarpScriptException ee) {}
+
       } else {
         throw new IOException("ERROR line #" + lineno + ": " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : ""));
       }

@@ -99,6 +99,8 @@ public class StreamingMetadataIterator extends MetadataIterator {
     // If we ran out of selectors, return false
     //
     
+    // TODO(hbs): swap idx and urlidx. Add support for multiple selectors in query string
+    
     if (idx >= classSelectors.size()) {
       return false;
     }
