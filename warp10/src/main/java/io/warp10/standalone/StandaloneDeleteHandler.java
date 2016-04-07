@@ -273,7 +273,9 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         // Remove data
         //
         
-        count += this.storeClient.delete(writeToken, metadata, start, end);
+        long localCount = this.storeClient.delete(writeToken, metadata, start, end);
+        count += localCount;
+
         sb.setLength(0);
         GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
         
@@ -288,6 +290,23 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         metas.append(sb);
         metas.append("\n");
         gts++;
+
+        // Log detailed metrics for this GTS owner and app
+        Map<String, String> labels = new HashMap<>();
+
+        String metaOwner = metadata.getLabels().get(Constants.OWNER_LABEL);
+        if (null != metaOwner) {
+          labels.put(Constants.OWNER_LABEL, metaOwner);
+        }
+
+        String metaAapp = metadata.getLabels().get(Constants.APPLICATION_LABEL);
+        if (null != metaAapp) {
+          labels.put(Constants.APPLICATION_LABEL, metaAapp);
+        }
+
+        if (!labels.isEmpty()) {
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS_PEROWNER, labels, localCount);
+        }
       }
     } catch (Exception e) {
       t = e;

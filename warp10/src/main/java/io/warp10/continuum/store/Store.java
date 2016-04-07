@@ -16,12 +16,14 @@
 
 package io.warp10.continuum.store;
 
+import com.sun.xml.bind.v2.runtime.reflect.opt.Const;
 import io.warp10.continuum.KafkaOffsetCounters;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
 import io.warp10.continuum.store.thrift.data.KafkaDataMessageType;
+import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.sensision.Sensision;
@@ -1011,6 +1013,25 @@ public class Store extends Thread {
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_OPS, Sensision.EMPTY_LABELS, 1);
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_REGIONS, Sensision.EMPTY_LABELS, noOfRegions);
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS, Sensision.EMPTY_LABELS, noOfDeletedVersions);
+
+      Metadata meta = msg.getMetadata();
+      if (null != meta) {
+        Map<String, String> labels = new HashMap<>();
+
+        String owner = meta.getLabels().get(Constants.OWNER_LABEL);
+        if (null != owner) {
+          labels.put(Constants.OWNER_LABEL, owner);
+        }
+
+        String app = meta.getLabels().get(Constants.APPLICATION_LABEL);
+        if (null != app) {
+          labels.put(Constants.APPLICATION_LABEL, app);
+        }
+
+        if (!labels.isEmpty()) {
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS_PEROWNER, labels, noOfDeletedVersions);
+        }
+      }
     }
     
     private void handleArchive(Table ht, KafkaDataMessage msg) {
