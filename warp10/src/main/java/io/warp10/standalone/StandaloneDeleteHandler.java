@@ -293,20 +293,9 @@ public class StandaloneDeleteHandler extends AbstractHandler {
 
         // Log detailed metrics for this GTS owner and app
         Map<String, String> labels = new HashMap<>();
-
-        String metaOwner = metadata.getLabels().get(Constants.OWNER_LABEL);
-        if (null != metaOwner) {
-          labels.put(Constants.OWNER_LABEL, metaOwner);
-        }
-
-        String metaAapp = metadata.getLabels().get(Constants.APPLICATION_LABEL);
-        if (null != metaAapp) {
-          labels.put(Constants.APPLICATION_LABEL, metaAapp);
-        }
-
-        if (!labels.isEmpty()) {
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS_PEROWNER, labels, localCount);
-        }
+        labels.put(Constants.OWNER_LABEL, metadata.getLabels().get(Constants.OWNER_LABEL));
+        labels.put(Constants.APPLICATION_LABEL, metadata.getLabels().get(Constants.APPLICATION_LABEL));
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_DATAPOINTS_PEROWNER, labels, localCount);
       }
     } catch (Exception e) {
       t = e;

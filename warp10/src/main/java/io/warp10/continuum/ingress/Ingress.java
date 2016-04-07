@@ -310,7 +310,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     this.aesDataKey = this.keystore.getKey(KeyStore.AES_KAFKA_DATA);
     this.siphashDataKey = SipHashInline.getKey(this.keystore.getKey(KeyStore.SIPHASH_KAFKA_DATA));    
 
-    this.sendMetadataOnDelete = Boolean.parseBoolean(props.getProperty(Configuration.INGRESS_DELETE_METADATA_INCLUDE, "true"));
+    this.sendMetadataOnDelete = Boolean.parseBoolean(props.getProperty(Configuration.INGRESS_DELETE_METADATA_INCLUDE, "false"));
 
     //
     // Prepare meta, data and delete producers

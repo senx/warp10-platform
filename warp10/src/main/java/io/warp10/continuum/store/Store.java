@@ -16,7 +16,6 @@
 
 package io.warp10.continuum.store;
 
-import com.sun.xml.bind.v2.runtime.reflect.opt.Const;
 import io.warp10.continuum.KafkaOffsetCounters;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -1017,20 +1016,9 @@ public class Store extends Thread {
       Metadata meta = msg.getMetadata();
       if (null != meta) {
         Map<String, String> labels = new HashMap<>();
-
-        String owner = meta.getLabels().get(Constants.OWNER_LABEL);
-        if (null != owner) {
-          labels.put(Constants.OWNER_LABEL, owner);
-        }
-
-        String app = meta.getLabels().get(Constants.APPLICATION_LABEL);
-        if (null != app) {
-          labels.put(Constants.APPLICATION_LABEL, app);
-        }
-
-        if (!labels.isEmpty()) {
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS_PEROWNER, labels, noOfDeletedVersions);
-        }
+        labels.put(Constants.OWNER_LABEL, meta.getLabels().get(Constants.OWNER_LABEL));
+        labels.put(Constants.APPLICATION_LABEL, meta.getLabels().get(Constants.APPLICATION_LABEL));
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS_PEROWNER, labels, noOfDeletedVersions);
       }
     }
     
