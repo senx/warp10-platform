@@ -19,6 +19,7 @@ package io.warp10.script;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.aggregator.Argmax;
 import io.warp10.script.aggregator.Argmin;
+import io.warp10.script.aggregator.CircularMean;
 import io.warp10.script.aggregator.Count;
 import io.warp10.script.aggregator.Delta;
 import io.warp10.script.aggregator.First;
@@ -98,7 +99,9 @@ public class JavaLibrary {
     functions.put("bucketizer.count.exclude-nulls", new Count("bucketizer.count.exclude-nulls", true));
     functions.put("bucketizer.count.include-nulls", new Count("bucketizer.count.include-nulls", false));
     functions.put("bucketizer.count.nonnull", new Count("bucketizer.count.nonnull", true));
-    
+    functions.put("bucketizer.mean.circular", new CircularMean.Builder("bucketizer.mean.circular", true));
+    functions.put("bucketizer.mean.circular.exclude-nulls", new CircularMean.Builder("bucketizer.mean.circular.exclude-nulls", false));
+
     //
     // Mappers
     //
@@ -146,7 +149,9 @@ public class JavaLibrary {
     functions.put("mapper.join.forbid-nulls", new Join.Builder("mapper.join.forbid-nulls", false));
     functions.put("mapper.var.forbid-nulls", new Variance.Builder("mapper.var.forbid-nulls", true));
     functions.put("mapper.sd.forbid-nulls", new StandardDeviation.Builder("mapper.sd.forbid-nulls", true));
-
+    functions.put("mapper.mean.circular", new CircularMean.Builder("mapper.mean.circular", true));
+    functions.put("mapper.mean.circular.exclude-nulls", new CircularMean.Builder("mapper.mean.circular.exclude-nulls", false));
+    
     //
     // Reducers
     //
@@ -180,6 +185,8 @@ public class JavaLibrary {
     functions.put("reducer.shannonentropy.0", new ShannonEntropy("reducer.shannonentropy.0", false));
     functions.put("reducer.shannonentropy.1", new ShannonEntropy("reducer.shannonentropy.1", true));
     functions.put("reducer.percentile", new Percentile.Builder("reducer.percentile"));
+    functions.put("reducer.mean.circular", new CircularMean.Builder("reducer.mean.circular", true));
+    functions.put("reducer.mean.circular.exclude-nulls", new CircularMean.Builder("reducer.mean.circular.exclude-nulls", false));
     
     //
     // Filters
