@@ -554,7 +554,7 @@ project(':warp10') {
     //
     // Tasks dependencies
     //
-    compileJava.dependsOn generateThrift;
+    compileJava.dependsOn generateThrift
     uploadArchives.dependsOn pack
     bintrayUpload.dependsOn createTarArchive
 }
@@ -614,9 +614,9 @@ project(':warpscript') {
       publications {
         warpscript(MavenPublication) {
           from components.java
-          groupId project.group
-          artifactId jar.baseName
-          version project.version
+          groupId 'io.warp10'
+          artifactId archivesBaseName
+          version version
           genPomForWarpscript(pom)
         }
       }
@@ -636,6 +636,33 @@ project(':warpscript') {
           }
         }
     }
+
+    bintray {
+        dryRun = false
+
+        user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+        key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+
+        publications = [ 'warpscript' ]
+
+        pkg {
+            repo = 'maven'
+            name = 'warpscript'
+            licenses = ['Apache-2.0']
+            vcsUrl = 'https://github.com/cityzendata/warp10-platform.git'
+            version {
+                name = getVersionName(warp10Version['warpscript'])
+                released  = new Date()
+                vcsTag = getVersionName(warp10Version['warpscript'])
+            }
+        }
+    }
+
+    //
+    // Tasks dependencies
+    //
+    uploadArchives.dependsOn jar
+    bintrayUpload.dependsOn jar
 
 }
 
