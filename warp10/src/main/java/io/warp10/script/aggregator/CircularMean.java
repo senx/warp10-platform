@@ -16,6 +16,8 @@
 
 package io.warp10.script.aggregator;
 
+import com.geoxp.GeoXPLib;
+
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -95,9 +97,14 @@ public class CircularMean extends NamedWarpScriptFunction implements WarpScriptA
 
     TYPE type = null;
     
+    long latitudes = 0L;
+    long longitudes = 0L;
+    int locationcount = 0;
+    long elev = 0L;
+    int elevationcount = 0;
+
     long location = GeoTimeSerie.NO_LOCATION;
     long elevation = GeoTimeSerie.NO_ELEVATION;
-    long timestamp = Long.MIN_VALUE;
     
     int nticks = 0;
     
@@ -112,10 +119,16 @@ public class CircularMean extends NamedWarpScriptFunction implements WarpScriptA
     
       nticks++;
       
-      if (ticks[i] > timestamp) {
-        location = locations[i];
-        elevation = elevations[i];
-        timestamp = ticks[i];
+      if (GeoTimeSerie.NO_LOCATION != locations[i]) {
+        long[] xy = GeoXPLib.xyFromGeoXPPoint(locations[i]);
+        latitudes += xy[0];
+        longitudes += xy[1];
+        locationcount++;
+      }
+
+      if (GeoTimeSerie.NO_ELEVATION != elevations[i]) {
+        elev += elevations[i];
+        elevationcount++;
       }
       
       if (null == type) {
@@ -146,6 +159,16 @@ public class CircularMean extends NamedWarpScriptFunction implements WarpScriptA
     
     if (!Double.isNaN(circularmean)) {
       circularmean = circularmean * this.period / (2.0D * Math.PI);
+    }
+
+    if (locationcount > 0) {
+      latitudes = latitudes / locationcount;
+      longitudes = longitudes / locationcount;
+      location = GeoXPLib.toGeoXPPoint(latitudes, longitudes);
+    }
+    
+    if (elevationcount > 0) {
+      elevation = elev / elevationcount;
     }
     
     return new Object[] { 0L, location, elevation, circularmean };
