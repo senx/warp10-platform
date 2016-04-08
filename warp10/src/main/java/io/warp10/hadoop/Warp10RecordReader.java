@@ -12,6 +12,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Warp10RecordReader extends RecordReader<Text, BytesWritable> {
 
@@ -22,6 +24,8 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> {
   private BytesWritable value;
 
   private long count = 0;
+
+  private static final Logger LOG = LoggerFactory.getLogger(Warp10RecordReader.class);
 
   @Override
   public void initialize(InputSplit split, TaskAttemptContext context)
@@ -56,7 +60,7 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> {
       try {
         URL url = new URL(protocol + "://" + fetcher + ":" + port + path);
 
-        System.out.println("Warp10RecordReader - Fetch: " + url);
+        LOG.info("Fetcher: " + url);
 
         conn = (HttpURLConnection) url.openConnection();
         conn.setConnectTimeout(connectTimeout);
