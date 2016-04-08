@@ -65,8 +65,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
-import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
@@ -250,6 +248,8 @@ public class Ingress extends AbstractHandler implements Runnable {
   private final byte[] aesDataKey;
   private final long[] siphashDataKey;
 
+  private final boolean sendMetadataOnDelete;
+
   private final KafkaSynchronizedConsumerPool  pool;
   
   public Ingress(KeyStore keystore, Properties props) {
@@ -309,7 +309,9 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     this.aesDataKey = this.keystore.getKey(KeyStore.AES_KAFKA_DATA);
     this.siphashDataKey = SipHashInline.getKey(this.keystore.getKey(KeyStore.SIPHASH_KAFKA_DATA));    
-    
+
+    this.sendMetadataOnDelete = Boolean.parseBoolean(props.getProperty(Configuration.INGRESS_DELETE_METADATA_INCLUDE, "false"));
+
     //
     // Prepare meta, data and delete producers
     //
@@ -1463,6 +1465,10 @@ public class Ingress extends AbstractHandler implements Runnable {
       msg.setDeletionMinAge(minage);
       msg.setClassId(metadata.getClassId());
       msg.setLabelsId(metadata.getLabelsId());
+
+      if (this.sendMetadataOnDelete) {
+        msg.setMetadata(metadata);
+      }
 
       sendDataMessage(msg);
     } else {

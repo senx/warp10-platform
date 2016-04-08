@@ -95,6 +95,11 @@ struct KafkaDataMessage {
    * Minimum age of cells to delete (in ms)
    */
   8: optional i64 deletionMinAge,
+
+  /**
+   * Optional metadata
+   */
+  9: optional Metadata metadata,
 }
 
 /**

@@ -356,7 +356,12 @@ public class Configuration {
    * Identification of Ingress Metadata Update endpoint source
    */
   public static final String INGRESS_METADATA_UPDATE_ENDPOINT = "ingress.metadata.update";
-  
+
+  /**
+   * Do we send Metadata in the Kafka message for delete operations?
+   */
+  public static final String INGRESS_DELETE_METADATA_INCLUDE = "ingress.delete.metadata.include";
+
   /**
    * Host onto which the ingress server should listen
    */
