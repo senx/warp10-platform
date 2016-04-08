@@ -22,6 +22,7 @@ import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
 import io.warp10.continuum.store.thrift.data.KafkaDataMessageType;
+import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.sensision.Sensision;
@@ -1011,6 +1012,14 @@ public class Store extends Thread {
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_OPS, Sensision.EMPTY_LABELS, 1);
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_REGIONS, Sensision.EMPTY_LABELS, noOfRegions);
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS, Sensision.EMPTY_LABELS, noOfDeletedVersions);
+
+      Metadata meta = msg.getMetadata();
+      if (null != meta) {
+        Map<String, String> labels = new HashMap<>();
+        labels.put(Constants.OWNER_LABEL, meta.getLabels().get(Constants.OWNER_LABEL));
+        labels.put(Constants.APPLICATION_LABEL, meta.getLabels().get(Constants.APPLICATION_LABEL));
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS_PEROWNERAPP, labels, noOfDeletedVersions);
+      }
     }
     
     private void handleArchive(Table ht, KafkaDataMessage msg) {

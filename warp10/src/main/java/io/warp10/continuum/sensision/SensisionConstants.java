@@ -316,6 +316,11 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_DATAPOINTS = "warp.standalone.delete.datapoints";
 
   /**
+   * Number of datapoints deleted by 'standalone' delete per owner and application
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_DATAPOINTS_PEROWNERAPP = "warp.standalone.delete.datapoints.perownerapp";
+
+  /**
    * Number of GTS deleted by 'standalone' delete
    */
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_GTS = "warp.standalone.delete.gts";
@@ -499,6 +504,11 @@ public class SensisionConstants {
    * Number of datapoints deleted by 'Store'
    */
   public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS = "warp.store.hbase.delete.datapoints";
+
+  /**
+   * Number of datapoints deleted by 'Store' per owner and application
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS_PEROWNERAPP = "warp.store.hbase.delete.datapoints.perownerapp";
 
   /**
    * Number of results retrieved from scanners by HBaseStoreClient
