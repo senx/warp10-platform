@@ -526,17 +526,24 @@ project(':warp10') {
         commandLine = [ "${workingDir}/src/main/sh/package.sh", getVersionName(warp10Version['warp10']), "${buildDir}/.."]
     }
 
+    publishing {
+        publications {
+            warp10(MavenPublication) {
+                artifact file("${buildDir}/libs/warp10-" + getVersionName(warp10Version['warp10']) + ".tar.gz")
+                groupId 'io.warp10'
+                artifactId archivesBaseName
+                version version
+            }
+        }
+    }
+
     bintray {
         dryRun = false
 
         user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
         key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
 
-        filesSpec {
-            from 'build/libs'
-            include 'warp10-' + getVersionName(warp10Version['warp10']) + '.tar.gz'
-            into '.'
-        }
+        publications = [ 'warp10' ]
 
         pkg {
             repo = 'generic'
