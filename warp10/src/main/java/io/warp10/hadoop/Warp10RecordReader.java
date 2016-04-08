@@ -56,6 +56,8 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> {
       try {
         URL url = new URL(protocol + "://" + fetcher + ":" + port + path);
 
+        System.out.println("Warp10RecordReader - Fetch: " + url);
+
         conn = (HttpURLConnection) url.openConnection();
         conn.setConnectTimeout(connectTimeout);
         conn.setChunkedStreamingMode(16384);

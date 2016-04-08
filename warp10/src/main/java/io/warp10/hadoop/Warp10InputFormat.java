@@ -130,7 +130,9 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     sb.append(context.getConfiguration().get(PROPERTY_WARP10_SPLITS_TOKEN));
     
     URL url = new URL(sb.toString());
-    
+
+    System.out.println("Warp10InputFormat - Get splits from: " + url);
+
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
     conn.setConnectTimeout(connectTimeout);
