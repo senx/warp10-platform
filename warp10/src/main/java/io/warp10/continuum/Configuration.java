@@ -1125,6 +1125,11 @@ public class Configuration {
   //
   /////////////////////////////////////////////////////////////////////////////////////////
   
+  /**
+   * Prefix to use if dumping/loading the LKP indices
+   */
+  public static final String GEODIR_DUMP_PREFIX = "geodir.dump.prefix";
+  
   public static final String GEODIR_KAFKA_SUBS_ZKCONNECT = "geodir.kafka.subs.zkconnect";
   public static final String GEODIR_KAFKA_SUBS_BROKERLIST = "geodir.kafka.subs.brokerlist";
   public static final String GEODIR_KAFKA_SUBS_TOPIC = "geodir.kafka.subs.topic";
