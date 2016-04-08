@@ -16,4 +16,16 @@
 
 package io.warp10.warp.sdk;
 
-public class WarpScriptJavaFunctionException extends Exception {}
+public class WarpScriptJavaFunctionException extends Exception {
+  public WarpScriptJavaFunctionException(String message) {
+    super(message);
+  }
+  
+  public WarpScriptJavaFunctionException(String message, Throwable cause) {
+    super(message, cause);
+  }
+  
+  public WarpScriptJavaFunctionException(Throwable cause) {
+    super(cause);
+  }
+}
