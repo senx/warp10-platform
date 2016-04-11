@@ -91,6 +91,16 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
   public static final String PROPERTY_WARP10_FETCH_TIMESPAN = "warp10.fetch.timespan";
 
   /**
+   * Maximum number of splits to combined into a single split
+   */
+  public static final String PROPERTY_WARP10_MAX_COMBINED_SPLITS = "warp10.max.combined.splits";
+  
+  /**
+   * Maximum number of splits we wish to produce
+   */
+  public static final String PROPERTY_WARP10_MAX_SPLITS = "warp10.max.splits";
+  
+  /**
    * Default Now HTTP Header
    */
   public static final String HTTP_HEADER_NOW_HEADER_DEFAULT = "X-Warp10-Now";
@@ -202,8 +212,22 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     // fetcher gets pounded too much
     //
     
-    // Compute the average number of splits per combined split
-    int avgsplitcount = (int) Math.ceil((double) count / fallbacks.size());
+    // Compute the maximum number of splits which can be combined given the number of servers (RS)
+    int avgsplitcount = (int) Math.ceil((double) count / perServer.size());
+    
+    if (null != context.getConfiguration().get(PROPERTY_WARP10_MAX_SPLITS)) {
+      int maxsplitavg = (int) Math.ceil((double) count / Integer.parseInt(context.getConfiguration().get(PROPERTY_WARP10_MAX_SPLITS)));
+      
+      avgsplitcount = maxsplitavg;
+    }
+    
+    if (null != context.getConfiguration().get(PROPERTY_WARP10_MAX_COMBINED_SPLITS)) {
+      int maxcombined = Integer.parseInt(context.getConfiguration().get(PROPERTY_WARP10_MAX_COMBINED_SPLITS));
+      
+      if (maxcombined < avgsplitcount) {
+        avgsplitcount = maxcombined;
+      }
+    }
     
     List<InputSplit> splits = new ArrayList<>();
     
