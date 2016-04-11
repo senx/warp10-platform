@@ -621,6 +621,10 @@ public class EgressFetchHandler extends AbstractHandler {
               wrapperDump(resp, iter, dedup, signed, fetchPSK);
             } else if ("json".equals(format)) {
               jsonDump(resp, iter, now, timespan, dedup, signed);
+            } else if ("tsv".equals(format)) {
+              tsvDump(resp, iter, now, timespan, false, dedup, signed);
+            } else if ("fulltsv".equals(format)) {
+              tsvDump(resp, iter, now, timespan, true, dedup, signed);
             } else {
               textDump(resp, iter, now, timespan, false, dedup, signed);
             }
@@ -1169,4 +1173,286 @@ public class EgressFetchHandler extends AbstractHandler {
     }
     pw.print("]");
   }
+  
+  /**
+   * Output a tab separated version of fetched data. Deduplication is done on the fly so we don't decode twice.
+   * 
+   */
+  private static void tsvDump(HttpServletResponse resp, GTSDecoderIterator iter, long now, long timespan, boolean raw, boolean dedup, boolean signed) throws IOException {
+    
+    String name = null;
+    Map<String,String> labels = null;
+    
+    StringBuilder classSB = new StringBuilder();
+    StringBuilder labelsSB = new StringBuilder();
+    StringBuilder attributesSB = new StringBuilder();
+    StringBuilder valueSB = new StringBuilder();
+    
+    PrintWriter pw = resp.getWriter();
+    
+    while(iter.hasNext()) {
+      GTSDecoder decoder = iter.next();
+      
+      if (!decoder.next()) {
+        continue;
+      }
+    
+      //
+      // Only display the class + labels if they have changed since the previous GTS
+      //
+      
+      Map<String,String> lbls = decoder.getLabels();
+      
+      //
+      // Compute the new name
+      //
+
+      boolean displayName = false;
+      
+      if (null == name || (!name.equals(decoder.getName()) || !labels.equals(lbls))) {
+        displayName = true;
+        name = decoder.getName();
+        labels = lbls;
+        classSB.setLength(0);
+        GTSHelper.encodeName(classSB, name);
+        labelsSB.setLength(0);
+        attributesSB.setLength(0);
+        boolean first = true;
+        
+        for (Entry<String, String> entry: lbls.entrySet()) {
+          //
+          // Skip owner/producer labels and any other 'private' labels
+          //
+          if (!signed) {
+            if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
+              continue;
+            }
+            if (Constants.OWNER_LABEL.equals(entry.getKey())) {
+              continue;
+            }            
+          }
+          
+          if (!first) {
+            labelsSB.append(",");
+          }
+          GTSHelper.encodeName(labelsSB, entry.getKey());
+          labelsSB.append("=");
+          GTSHelper.encodeName(labelsSB, entry.getValue());
+          first = false;
+        }
+
+        first = true;
+        if (decoder.getMetadata().getAttributesSize() > 0) {
+          for (Entry<String, String> entry: decoder.getMetadata().getAttributes().entrySet()) {
+            if (!first) {
+              attributesSB.append(",");
+            }
+            GTSHelper.encodeName(attributesSB, entry.getKey());
+            attributesSB.append("=");
+            GTSHelper.encodeName(attributesSB, entry.getValue());
+            first = false;
+          }          
+        }
+
+      }
+      
+      long timestamp = 0L;
+      long location = GeoTimeSerie.NO_LOCATION;
+      long elevation = GeoTimeSerie.NO_ELEVATION;
+      Object value = null;
+      
+      boolean dup = true;
+      
+      do {
+        //
+        // Filter out any value not in the time range
+        //
+        
+        long newTimestamp = decoder.getTimestamp();
+        
+        if (newTimestamp > now || (timespan >= 0 && newTimestamp <= (now -timespan))) {
+          continue;
+        }
+        
+        //
+        // TODO(hbs): filter out values with no location or outside the selected geozone when a geozone was set
+        //
+        
+        long newLocation = decoder.getLocation();
+        long newElevation = decoder.getElevation();
+        Object newValue = decoder.getValue();
+        
+        dup = true;
+        
+        if (dedup) {
+          if (location != newLocation || elevation != newElevation) {
+            dup = false;
+          } else {
+            if (null == newValue) {
+              // Consider nulls as duplicates (can't happen!)
+              dup = false;
+            } else if (newValue instanceof Number) {
+              if (!((Number) newValue).equals(value)) {
+                dup = false;
+              }
+            } else if (newValue instanceof String) {
+              if (!((String) newValue).equals(value)) {
+                dup = false;
+              }
+            } else if (newValue instanceof Boolean) {
+              if (!((Boolean) newValue).equals(value)) {
+                dup = false;
+              }
+            }
+          }          
+        }
+                
+        location = newLocation;
+        elevation = newElevation;
+        timestamp = newTimestamp;
+        value = newValue;
+            
+        if (raw) {
+          if (!dedup || !dup) {
+            pw.print(classSB);
+            pw.print('\t');
+            pw.print(labelsSB);
+            pw.print('\t');
+            pw.print(attributesSB);
+            pw.print('\t');
+            
+            pw.print(timestamp);
+            pw.print('\t');
+            
+            if (GeoTimeSerie.NO_LOCATION != location) {
+              double[] latlon = GeoXPLib.fromGeoXPPoint(location);
+              pw.print(latlon[0]);
+              pw.print('\t');
+              pw.print(latlon[1]);
+            } else {
+              pw.print('\t');
+            }
+
+            pw.print('\t');
+
+            if (GeoTimeSerie.NO_ELEVATION != elevation) {
+              pw.print(elevation);
+            }
+            pw.print('\t');
+            
+            valueSB.setLength(0);
+            GTSHelper.encodeValue(valueSB, value);
+            pw.println(valueSB);
+          }
+        } else {
+          // Display the name only if we have at least one value to display
+          // We force 'dup' to be false when we must show the name
+          if (displayName) {
+            pw.print("# ");
+            pw.print(classSB);
+            pw.print("{");
+            pw.print(labelsSB);
+            pw.print("}");
+            pw.print("{");
+            pw.print(attributesSB);
+            pw.println("}");
+            displayName = false;
+            dup = false;
+          }
+          
+          if (!dedup || !dup) {
+            pw.print(timestamp);
+            pw.print('\t');           
+            if (GeoTimeSerie.NO_LOCATION != location) {
+              double[] latlon = GeoXPLib.fromGeoXPPoint(location);
+              pw.print(latlon[0]);
+              pw.print('\t');
+              pw.print(latlon[1]);
+            } else {
+              pw.print('\t');
+            }
+            
+            pw.print('\t');
+
+            if (GeoTimeSerie.NO_ELEVATION != elevation) {
+              pw.print(elevation);
+            }
+            pw.print('\t');
+            
+            valueSB.setLength(0);
+            GTSHelper.encodeValue(valueSB, value);
+            pw.println(valueSB);
+          }
+        }
+      } while (decoder.next());        
+      
+      // Print any remaining value
+      if (dedup && dup) {
+        if (raw) {
+          pw.print(classSB);
+          pw.print('\t');
+          pw.print(labelsSB);
+          pw.print('\t');
+          pw.print(attributesSB);
+          pw.print('\t');
+            
+          pw.print(timestamp);
+          pw.print('\t');
+
+          if (GeoTimeSerie.NO_LOCATION != location) {
+            double[] latlon = GeoXPLib.fromGeoXPPoint(location);
+            pw.print(latlon[0]);
+            pw.print('\t');
+            pw.print(latlon[1]);
+          } else {
+            pw.print('\t');
+          }
+
+          pw.print('\t');
+
+          if (GeoTimeSerie.NO_ELEVATION != elevation) {
+            pw.print(elevation);
+          }
+          pw.print('\t');
+            
+          valueSB.setLength(0);
+          GTSHelper.encodeValue(valueSB, value);
+          pw.println(valueSB);
+        } else {
+          pw.print(timestamp);
+          pw.print('\t');
+          if (GeoTimeSerie.NO_LOCATION != location) {
+            double[] latlon = GeoXPLib.fromGeoXPPoint(location);
+            pw.print(latlon[0]);
+            pw.print('\t');
+            pw.print(latlon[1]);
+          } else {
+            pw.print('\t');
+          }
+
+          pw.print('\t');
+          
+          if (GeoTimeSerie.NO_ELEVATION != elevation) {
+            pw.print(elevation);
+          }
+          pw.print('\t');
+            
+          valueSB.setLength(0);
+          GTSHelper.encodeValue(valueSB, value);
+          pw.println(valueSB);
+        }
+        
+      }
+      
+      //
+      // If displayName is still true it means we should have displayed the name but no value matched,
+      // so set name to null so we correctly display the name for the next decoder if it has values
+      //
+      
+      if (displayName) {
+        name = null;
+      }
+    }    
+  }
+
 }
