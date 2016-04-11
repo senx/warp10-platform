@@ -32,7 +32,7 @@ public class Warp10InputSplit extends InputSplit implements Writable {
   private ByteArrayOutputStream baos = null;
   private OutputStream out = null;
   
-  public Warp10InputSplit() {}    
+  public Warp10InputSplit() {}
   
   public void addEntry(String fetcher, String entry) throws IOException {
     if (this.complete) {
@@ -129,7 +129,7 @@ public class Warp10InputSplit extends InputSplit implements Writable {
     WritableUtils.writeVInt(out, this.splits.length);
     WritableUtils.writeCompressedByteArray(out, this.splits);
   }
-  
+
   public byte[] getBytes() {
     return this.splits;
   }

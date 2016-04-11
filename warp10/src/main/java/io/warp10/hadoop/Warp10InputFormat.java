@@ -28,9 +28,13 @@ import org.apache.hadoop.io.Text;
 import com.fasterxml.sort.SortConfig;
 import com.fasterxml.sort.std.TextFileSorter;
 import org.apache.hadoop.mapreduce.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
-  
+
+  private static final Logger LOG = LoggerFactory.getLogger(Warp10InputFormat.class);
+
   /**
    * URL of split endpoint
    */
@@ -130,7 +134,9 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     sb.append(context.getConfiguration().get(PROPERTY_WARP10_SPLITS_TOKEN));
     
     URL url = new URL(sb.toString());
-    
+
+    LOG.info("Get splits from: " + url);
+
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
     conn.setConnectTimeout(connectTimeout);
