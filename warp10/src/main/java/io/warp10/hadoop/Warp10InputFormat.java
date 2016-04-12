@@ -46,6 +46,11 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
   public static final String PROPERTY_WARP10_FETCHER_FALLBACKS = "warp10.fetcher.fallbacks";
   
   /**
+   * Boolean indicating whether to use the fetchers or only the fallbacks
+   */
+  public static final String PROPERTY_WARP10_FETCHER_FALLBACKSONLY = "warp10.fetcher.fallbacksonly";
+
+  /**
    * Protocol to use when contacting the fetcher (http or https), defaults to http
    */
   public static final String PROPERTY_WARP10_FETCHER_PROTOCOL = "warp10.fetcher.protocol";
@@ -118,6 +123,8 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
   public List<InputSplit> getSplits(JobContext context) throws IOException {
     
     List<String> fallbacks = new ArrayList<>();
+    
+    boolean fallbacksonly = Boolean.TRUE.equals(context.getConfiguration().get(PROPERTY_WARP10_FETCHER_FALLBACKSONLY));
     
     if (null != context.getConfiguration().get(PROPERTY_WARP10_FETCHER_FALLBACKS)) {
       String[] servers = context.getConfiguration().get(PROPERTY_WARP10_FETCHER_FALLBACKS).split(",");
@@ -260,7 +267,7 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
       }
       
       subsplits++;
-      split.addEntry(tokens[0], tokens[2]);
+      split.addEntry(fallbacksonly ? null : tokens[0], tokens[2]);
     }
     
     br.close();

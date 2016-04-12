@@ -39,7 +39,9 @@ public class Warp10InputSplit extends InputSplit implements Writable {
       throw new RuntimeException("InputSplit already completed.");
     }
     
-    this.fetcherSet.add(fetcher);
+    if (null != fetcher) {
+      this.fetcherSet.add(fetcher);
+    }
   
     if (null == out) {
       baos = new ByteArrayOutputStream();
