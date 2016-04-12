@@ -91,6 +91,7 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> {
 
         this.br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
 
+        break;
       } catch (Exception e) {
         e.printStackTrace();
       } finally {
