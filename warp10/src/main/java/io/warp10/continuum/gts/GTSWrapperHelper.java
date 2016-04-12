@@ -132,7 +132,7 @@ public class GTSWrapperHelper {
       }
       
       wrapper.setBase(encoder.getBaseTimestamp());
-      wrapper.setCount(encoder.size());
+      wrapper.setCount(encoder.getCount());
       wrapper.setMetadata(encoder.getMetadata());
 
     } catch (IOException e) {
