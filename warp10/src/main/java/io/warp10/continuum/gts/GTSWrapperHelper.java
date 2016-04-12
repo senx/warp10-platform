@@ -125,12 +125,23 @@ public class GTSWrapperHelper {
           pass++;
         } while (ratio >= 100.0D);
         
-        wrapper.setEncoded(encoded);
+        if (ratio > 1.0D) {
+          // The last compression pass improved the footprint, so use the compressed data
+          wrapper.setEncoded(bytes);
+        } else {
+          // The last pass added some overhead, ignore it
+          pass = pass - 1;
+          wrapper.setEncoded(encoded);          
+        }
 
-        wrapper.setCompressed(true);
-        
-        if (pass > 1) {
-          wrapper.setCompressionPasses(pass - 1);
+        if (pass > 0) {
+          wrapper.setCompressed(true);
+          if (pass > 1) {
+            // Only store number of passes if it is > 1 as 1 is the default value
+            wrapper.setCompressionPasses(pass);
+          }
+        } else {
+          wrapper.setCompressed(false);
         }
       }
       
