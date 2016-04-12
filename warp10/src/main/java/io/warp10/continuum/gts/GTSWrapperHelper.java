@@ -111,7 +111,10 @@ public class GTSWrapperHelper {
         // so we can apply a matching number of decompression ops
         //
         
+        byte[] encoded = null;
+        
         do {
+          encoded = bytes;
           ratio = bytes.length;
           GZIPOutputStream gzos = new GZIPOutputStream(baos);
           gzos.write(bytes);
@@ -122,12 +125,12 @@ public class GTSWrapperHelper {
           pass++;
         } while (ratio >= 100.0D);
         
-        wrapper.setEncoded(bytes);
+        wrapper.setEncoded(encoded);
 
         wrapper.setCompressed(true);
         
         if (pass > 1) {
-          wrapper.setCompressionPasses(pass); 
+          wrapper.setCompressionPasses(pass - 1);
         }
       }
       
