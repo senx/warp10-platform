@@ -15,7 +15,11 @@ import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.io.BytesWritable;
@@ -24,7 +28,6 @@ import org.apache.hadoop.io.Text;
 import com.fasterxml.sort.SortConfig;
 import com.fasterxml.sort.std.TextFileSorter;
 import org.apache.hadoop.mapreduce.*;
-import org.apache.hadoop.util.Progressable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
