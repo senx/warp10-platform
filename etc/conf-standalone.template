@@ -167,12 +167,12 @@ warpscript.runner.bootstrap.period = 120000
 //
 // URL for the 'update' endpoint
 //
-warpscript.update.endpoint = http://127.0.0.1:8080/api/v0/update
+warpscript.update.endpoint = http://${standalone.host}:${standalone.port}/api/v0/update
 
 //
 // URL for the 'meta' endpoint
 //
-warpscript.meta.endpoint = http://127.0.0.1:8080/api/v0/meta
+warpscript.meta.endpoint = http://${standalone.host}:${standalone.port}/api/v0/meta
 
 //
 // Directory where the leveldb files should be created
