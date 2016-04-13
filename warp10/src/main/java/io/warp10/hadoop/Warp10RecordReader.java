@@ -65,11 +65,20 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
     for (String fetcher: split.getLocations()) {
       try {
 
-        String hostUrl = protocol + "://" + fetcher + ":" + port;
+        StringBuilder endpointSb = new StringBuilder();
+        endpointSb.append(protocol);
+        endpointSb.append("://");
+        endpointSb.append(fetcher);
+        endpointSb.append(":");
+        endpointSb.append(port);
 
-        URL url = new URL(hostUrl + path);
+        StringBuilder sb = new StringBuilder();
+        sb.append(endpointSb.toString());
+        sb.append(path);
 
-        LOG.info("Fetcher: " + hostUrl);
+        URL url = new URL(sb.toString());
+
+        LOG.info("Fetcher: " + endpointSb.toString());
 
         conn = (HttpURLConnection) url.openConnection();
         conn.setConnectTimeout(connectTimeout);
