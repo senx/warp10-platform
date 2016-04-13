@@ -15,11 +15,7 @@ import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Collections;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.io.BytesWritable;
@@ -28,6 +24,7 @@ import org.apache.hadoop.io.Text;
 import com.fasterxml.sort.SortConfig;
 import com.fasterxml.sort.std.TextFileSorter;
 import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.util.Progressable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,11 +76,16 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
   public static final String PROPERTY_WARP10_SPLITS_TOKEN = "warp10.splits.token";
 
   /**
-   * Connection timeout to the splits and sfetch endpoints, defaults to 2000 ms
+   * Connection timeout to the splits and sfetch endpoints, defaults to 10000 ms
    */
   public static final String PROPERTY_WARP10_HTTP_CONNECT_TIMEOUT = "warp10.http.connect.timeout";
-  public static final String DEFAULT_WARP10_HTTP_CONNECT_TIMEOUT = "2000";
+  public static final String DEFAULT_WARP10_HTTP_CONNECT_TIMEOUT = "10000";
 
+  /**
+   * Read timeout to the splits and sfetch endpoints, defaults to 10000 ms
+   */
+  public static final String PROPERTY_WARP10_HTTP_READ_TIMEOUT = "warp10.http.read.timeout";
+  public static final String DEFAULT_WARP10_HTTP_READ_TIMEOUT = "10000";
 
   /**
    * Now parameter
@@ -134,13 +136,16 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     }
 
     int connectTimeout = Integer.valueOf(context.getConfiguration().get(Warp10InputFormat.PROPERTY_WARP10_HTTP_CONNECT_TIMEOUT, Warp10InputFormat.DEFAULT_WARP10_HTTP_CONNECT_TIMEOUT));
+    int readTimeout = Integer.valueOf(context.getConfiguration().get(Warp10InputFormat.PROPERTY_WARP10_HTTP_READ_TIMEOUT, Warp10InputFormat.DEFAULT_WARP10_HTTP_READ_TIMEOUT));
 
     //
     // Issue a call to the /splits endpoint to retrieve the individual splits
     //
 
+    String splitEndpoint = context.getConfiguration().get(PROPERTY_WARP10_SPLITS_ENDPOINT);
+
     StringBuilder sb = new StringBuilder();
-    sb.append(context.getConfiguration().get(PROPERTY_WARP10_SPLITS_ENDPOINT));
+    sb.append(splitEndpoint);
     sb.append("?");
     sb.append(Constants.HTTP_PARAM_SELECTOR);
     sb.append("=");
@@ -152,11 +157,12 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     
     URL url = new URL(sb.toString());
 
-    LOG.info("Get splits from: " + url);
+    LOG.info("Get splits from: " + splitEndpoint);
 
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
     conn.setConnectTimeout(connectTimeout);
+    conn.setReadTimeout(readTimeout);
 
     conn.setDoInput(true);
     
@@ -235,7 +241,7 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
         avgsplitcount = maxcombined;
       }
     }
-    
+
     List<InputSplit> splits = new ArrayList<>();
     
     br = new BufferedReader(new FileReader(outfile));
@@ -262,16 +268,18 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
           split.addFetcher(fallback);
         }
         splits.add(split.build());
+
         split = new Warp10InputSplit();
         subsplits = 0;
       }
       
       subsplits++;
+
       split.addEntry(fallbacksonly ? null : tokens[0], tokens[2]);
     }
     
     br.close();
-    
+
     if (subsplits > 0) {
       // Add fallback fetchers, shuffle them first
       Collections.shuffle(fallbacks);
@@ -279,8 +287,11 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
         split.addFetcher(fallback);
       }
       splits.add(split.build());
+
     }
-    
+
+    LOG.info("Number of splits: " + splits.size());
+
     return splits;
 
 //    //
@@ -374,4 +385,5 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     }
     return new Warp10RecordReader();
   }
+
 }
