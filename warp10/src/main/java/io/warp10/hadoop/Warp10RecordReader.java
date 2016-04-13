@@ -12,10 +12,11 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.util.Progressable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Warp10RecordReader extends RecordReader<Text, BytesWritable> {
+public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implements Progressable {
 
   private BufferedReader br = null;
   private HttpURLConnection conn = null;
@@ -27,6 +28,8 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> {
 
   private static final Logger LOG = LoggerFactory.getLogger(Warp10RecordReader.class);
 
+  private Progressable progress = null;
+
   @Override
   public void initialize(InputSplit split, TaskAttemptContext context)
       throws IOException, InterruptedException {
@@ -34,6 +37,8 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> {
     if (!(split instanceof Warp10InputSplit)) {
       throw new IOException("Invalid split type.");
     }
+
+    this.progress = context;
 
     //
     // Retrieve now and timespan parameters
@@ -43,6 +48,7 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> {
     long timespan = Long.valueOf(context.getConfiguration().get(Warp10InputFormat.PROPERTY_WARP10_FETCH_TIMESPAN));
 
     int connectTimeout = Integer.valueOf(context.getConfiguration().get(Warp10InputFormat.PROPERTY_WARP10_HTTP_CONNECT_TIMEOUT, Warp10InputFormat.DEFAULT_WARP10_HTTP_CONNECT_TIMEOUT));
+    int readTimeout = Integer.valueOf(context.getConfiguration().get(Warp10InputFormat.PROPERTY_WARP10_HTTP_READ_TIMEOUT, Warp10InputFormat.DEFAULT_WARP10_HTTP_READ_TIMEOUT));
 
     //
     // Call each provided fetcher until one answers
@@ -58,12 +64,16 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> {
 
     for (String fetcher: split.getLocations()) {
       try {
-        URL url = new URL(protocol + "://" + fetcher + ":" + port + path);
 
-        LOG.info("Fetcher: " + url);
+        String hostUrl = protocol + "://" + fetcher + ":" + port;
+
+        URL url = new URL(hostUrl + path);
+
+        LOG.info("Fetcher: " + hostUrl);
 
         conn = (HttpURLConnection) url.openConnection();
         conn.setConnectTimeout(connectTimeout);
+        conn.setReadTimeout(readTimeout);
         conn.setChunkedStreamingMode(16384);
         conn.setDoInput(true);
         conn.setDoOutput(true);
@@ -94,6 +104,7 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> {
         break;
       } catch (Exception e) {
         e.printStackTrace();
+        LOG.error(e.getMessage(),e);
       } finally {
         if (null == this.br && null != conn) {
           try { conn.disconnect(); } catch (Exception e) {}
@@ -141,8 +152,12 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> {
   
   @Override
   public void close() throws IOException {
-    this.br.close();
-    this.conn.disconnect();
+    if (null != this.br) {
+      this.br.close();
+    }
+    if (null != this.conn) {
+      this.conn.disconnect();
+    }
   }
 
   @Override
@@ -157,6 +172,12 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> {
   
   @Override
   public float getProgress() throws IOException {
-    return 0;
+    return -1.0F;
+  }
+
+  @Override public void progress() {
+    if (null != this.progress) {
+      this.progress.progress();
+    }
   }
 }
