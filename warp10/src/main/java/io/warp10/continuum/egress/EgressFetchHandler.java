@@ -841,6 +841,7 @@ public class EgressFetchHandler extends AbstractHandler {
       // Sensision metrics
       //
 
+      labels.clear();
       labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, wrapper.getMetadata().getLabels().get(Constants.APPLICATION_LABEL));
 
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPERS, Sensision.EMPTY_LABELS, 1);
