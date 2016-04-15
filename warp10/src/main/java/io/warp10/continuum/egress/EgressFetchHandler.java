@@ -23,6 +23,7 @@ import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.GTSDecoderIterator;
@@ -54,6 +55,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Properties;
@@ -67,6 +69,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.warp10.sensision.Sensision;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -144,6 +147,11 @@ public class EgressFetchHandler extends AbstractHandler {
     } else {
       return;
     }
+
+    // Labels for Sensision
+    Map<String,String> labels = new HashMap<String,String>();
+
+    labels.put(SensisionConstants.SENSISION_LABEL_TYPE, target);
 
     //
     // Add CORS header
@@ -654,7 +662,10 @@ public class EgressFetchHandler extends AbstractHandler {
         } catch (Exception e) {          
         }
       }
-    }    
+    }
+
+    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_REQUESTS, labels, 1);
+
   }
   
   private static void rawDump(HttpServletResponse resp, GTSDecoderIterator iter, boolean dedup, boolean signed) throws IOException {
@@ -745,7 +756,10 @@ public class EgressFetchHandler extends AbstractHandler {
     if (!signed) {
       throw new IOException("Unsigned request.");
     }
-    
+
+    // Labels for Sensision
+    Map<String,String> labels = new HashMap<String,String>();
+
     StringBuilder sb = new StringBuilder();
     
     OutputStream out = resp.getOutputStream();
@@ -822,6 +836,22 @@ public class EgressFetchHandler extends AbstractHandler {
       out.write('\r');
       out.write('\n');
       out.flush();
+
+      //
+      // Sensision metrics
+      //
+
+      labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, wrapper.getMetadata().getLabels().get(Constants.APPLICATION_LABEL));
+
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPERS, Sensision.EMPTY_LABELS, 1);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPERS_PERAPP, labels, 1);
+
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPER_SIZE, Sensision.EMPTY_LABELS, data.length);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPER_SIZE_PERAPP, labels, data.length);
+
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPER_DATAPOINTS, Sensision.EMPTY_LABELS, wrapper.getCount());
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPER_DATAPOINTS_PERAPP, labels, wrapper.getCount());
+
     }        
   }
   
