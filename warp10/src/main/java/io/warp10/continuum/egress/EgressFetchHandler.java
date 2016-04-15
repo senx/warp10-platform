@@ -846,11 +846,11 @@ public class EgressFetchHandler extends AbstractHandler {
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPERS, Sensision.EMPTY_LABELS, 1);
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPERS_PERAPP, labels, 1);
 
-      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPER_SIZE, Sensision.EMPTY_LABELS, data.length);
-      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPER_SIZE_PERAPP, labels, data.length);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPERS_SIZE, Sensision.EMPTY_LABELS, data.length);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPERS_SIZE_PERAPP, labels, data.length);
 
-      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPER_DATAPOINTS, Sensision.EMPTY_LABELS, wrapper.getCount());
-      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPER_DATAPOINTS_PERAPP, labels, wrapper.getCount());
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPERS_DATAPOINTS, Sensision.EMPTY_LABELS, wrapper.getCount());
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPERS_DATAPOINTS_PERAPP, labels, wrapper.getCount());
 
     }        
   }

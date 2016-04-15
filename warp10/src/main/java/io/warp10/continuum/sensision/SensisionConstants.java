@@ -133,22 +133,22 @@ public class SensisionConstants {
   /**
    * Size of gtsWrapper produced by sfetch
    */
-  public static final String SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPER_SIZE = "warp.sfetch.wrapper.size";
+  public static final String SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPERS_SIZE = "warp.sfetch.wrappers.size";
 
   /**
    * Size of gtsWrapper produced by sfetch per application
    */
-  public static final String SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPER_SIZE_PERAPP = "warp.sfetch.wrapper.size.perapp";
+  public static final String SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPERS_SIZE_PERAPP = "warp.sfetch.wrappers.size.perapp";
 
   /**
    * Number of datapoints in gtsWrapper produced by sfetch
    */
-  public static final String SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPER_DATAPOINTS = "warp.sfetch.wrapper.datapoints";
+  public static final String SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPERS_DATAPOINTS = "warp.sfetch.wrappers.datapoints";
 
   /**
    * Number of datapoints in gtsWrapper produced by sfetch per application
    */
-  public static final String SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPER_DATAPOINTS_PERAPP = "warp.sfetch.wrapper.datapoints.perapp";
+  public static final String SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPERS_DATAPOINTS_PERAPP = "warp.sfetch.wrappers.datapoints.perapp";
 
   /**
    * Number of value bytes read by the calls to fetch from archive
