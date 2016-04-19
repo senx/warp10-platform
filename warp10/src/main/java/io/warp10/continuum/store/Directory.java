@@ -67,6 +67,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -755,7 +756,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           //
           
           while(!resultQ.isEmpty()) {
-            try { Thread.sleep(100L); } catch (InterruptedException ie) {}
+            LockSupport.parkNanos(100000000L);
           }
           
           //
@@ -807,7 +808,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         //
         
         while(!self.cachePopulated.get()) {
-          try { Thread.sleep(1000L); } catch (InterruptedException ie) {};
+          LockSupport.parkNanos(1000000000L);
         }
 
         Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_CLASSES, Sensision.EMPTY_LABELS, classNames.size());
@@ -852,7 +853,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               executor.submit(new DirectoryConsumer(self, stream, counters));
             }      
             
-            while(!abort.get()) {
+            while(!abort.get() && !Thread.currentThread().isInterrupted()) {
               if (streams.size() == barrier.getNumberWaiting()) {
                 //
                 // Check if we should abort, which could happen when
@@ -882,10 +883,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   break;
                 }
               }
-              try {
-                Thread.sleep(100L);          
-              } catch (InterruptedException ie) {          
-              }
+              
+              LockSupport.parkNanos(100000000L);
             }
 
             //
@@ -899,7 +898,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           } catch (Throwable t) {
             LOG.error("", t);
           } finally {
-            try { Thread.sleep(1000L); } catch (InterruptedException ie) {}
+            LockSupport.parkNanos(1000000000L);
           }
         }          
       }
@@ -965,7 +964,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     
     while(!this.cachePopulated.get()) {
       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
-      try { Thread.sleep(1000L); } catch (InterruptedException ie) {}
+      LockSupport.parkNanos(1000000000L);
     }
 
     Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
@@ -1140,7 +1139,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             // flush any pending commits and synchronize with the other threads so offsets can be committed
             //
 
-            while(!localabort.get()) { 
+            while(!localabort.get() && !Thread.currentThread().isInterrupted()) { 
               long now = System.currentTimeMillis();
               
               if (now - lastsync > directory.commitPeriod) {
@@ -1261,10 +1260,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 }
               }
  
-              try {
-                Thread.sleep(100L);
-              } catch (InterruptedException ie) {                
-              }
+              LockSupport.parkNanos(100000000L);
             }
           }
         });
@@ -1594,10 +1590,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             }
           } else {
             // Sleep a tiny while
-            try {
-              Thread.sleep(2L);
-            } catch (InterruptedException ie) {             
-            }
+            LockSupport.parkNanos(2000000L);
           }          
         }        
       } catch (Throwable t) {
