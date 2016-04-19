@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -184,6 +185,8 @@ public class Store extends Thread {
   private final boolean SKIP_WRITE;
   
   private int generation = 0;
+  
+  private UUID uuid = UUID.randomUUID();
   
   public Store(KeyStore keystore, final Properties properties, Integer nthr) throws IOException {
     this.keystore = keystore;
@@ -489,7 +492,7 @@ public class Store extends Thread {
     @Override
     public void run() {
       
-      Thread.currentThread().setName("[Store Consumer - gen " + store.generation + "]");
+      Thread.currentThread().setName("[Store Consumer - gen " + this.store.uuid + "/" + store.generation + "]");
 
       long count = 0L;
             
@@ -528,7 +531,7 @@ public class Store extends Thread {
             // flush any pending commits and synchronize with the other threads so offsets can be committed
             //
 
-            while(!localabort.get() && !Thread.currentThread().isInterrupted()) { 
+            while(!localabort.get() && !synchronizer.isInterrupted()) { 
               long now = System.currentTimeMillis();
               
               if (now - lastsync > store.commitPeriod) {
@@ -686,7 +689,7 @@ public class Store extends Thread {
           }
         });
 
-        synchronizer.setName("[Continuum Store Synchronizer - gen " + store.generation + "]");
+        synchronizer.setName("[Continuum Store Synchronizer - gen " + this.store.uuid + "/" + store.generation + "]");
         synchronizer.setDaemon(true);
         synchronizer.start();
 
