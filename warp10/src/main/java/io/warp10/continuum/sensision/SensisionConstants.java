@@ -456,9 +456,14 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_ARCHIVE_PARSEERRORS = "warp.standalone.archive.parseerrors";
   
   /**
-   * Number of HBase Puts done in 'Store'
+   * Number of HBase Puts created in 'Store'
    */
   public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_PUTS = "warp.store.hbase.puts";
+
+  /**
+   * Number of HBase Puts committed in 'Store'
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_PUTS_COMMITTED = "warp.store.hbase.puts.committed";
 
   /**
    * Number of GTSDecoders handled by 'Store'  
