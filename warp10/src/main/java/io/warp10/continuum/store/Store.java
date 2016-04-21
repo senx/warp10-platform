@@ -19,6 +19,7 @@ package io.warp10.continuum.store;
 import io.warp10.continuum.KafkaOffsetCounters;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
 import io.warp10.continuum.store.thrift.data.KafkaDataMessageType;
@@ -34,6 +35,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.CyclicBarrier;
@@ -43,7 +45,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -58,9 +59,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.hadoop.hbase.client.ConnectionHelper;
-import org.apache.hadoop.hbase.client.ConnectionUtils;
-import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
@@ -162,14 +160,9 @@ public class Store extends Thread {
   //private final HTablePool htpool;
   
   /**
-   * Configuration for HBase
-   */
-  private final Configuration config;
-  
-  /**
    * Connection to HBase
    */
-  private Connection conn;
+  private final Connection conn;
   
   /**
    * Boolean indicating that we should recreate the connection to HBase
@@ -187,6 +180,8 @@ public class Store extends Thread {
   private int generation = 0;
   
   private UUID uuid = UUID.randomUUID();
+  
+  private static Map<String,Connection> connections = new HashMap<String,Connection>();
   
   public Store(KeyStore keystore, final Properties properties, Integer nthr) throws IOException {
     this.keystore = keystore;
@@ -212,27 +207,15 @@ public class Store extends Thread {
     final String topic = properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_TOPIC);
     final int nthreads = null != nthr ? nthr.intValue() : Integer.valueOf(properties.getProperty(io.warp10.continuum.Configuration.STORE_NTHREADS));
     
-    this.config = new Configuration();
-    if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_HCONNECTION_THREADS_MAX)) {
-      config.set("hbase.hconnection.threads.max", properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_HCONNECTION_THREADS_MAX));
-    } else {
-      config.set("hbase.hconnection.threads.max", Integer.toString(nthreads * 2));
-    }
-    if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_HCONNECTION_THREADS_CORE)) {
-      config.set("hbase.hconnection.threads.core", properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_HCONNECTION_THREADS_MAX));
-    } else {
-      config.set("hbase.hconnection.threads.core", Integer.toString(nthreads * 2));
-    }
-    config.set("hbase.zookeeper.quorum", properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_ZKCONNECT));
-    if (!"".equals(properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_ZNODE))) {
-      config.set("zookeeper.znode.parent", properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_ZNODE));
-    }
+    //
+    // Retrieve the connection singleton for this set of properties
+    //
     
-    this.conn = ConnectionFactory.createConnection(this.config);
-
+    this.conn = Store.getHBaseConnection(properties);
+    
     this.hbaseTable = TableName.valueOf(properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_TABLE));
     this.colfam = properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_COLFAM).getBytes(Charsets.UTF_8);
-    
+
     //
     // Extract keys
     //
@@ -262,7 +245,16 @@ public class Store extends Thread {
         ConsumerConnector connector = null;
         
         StoreConsumer[] consumers = new StoreConsumer[nthreads];
+        Table[] tables = new Table[nthreads];
         
+        for (int i = 0; i < nthreads; i++) {
+          try {
+            tables[i] = conn.getTable(hbaseTable);
+          } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+          }
+        }
+
         while(true) {
           try {
             //
@@ -307,7 +299,18 @@ public class Store extends Thread {
             int idx = 0;
             
             for (final KafkaStream<byte[],byte[]> stream : streams) {
-              consumers[idx] = new StoreConsumer(self, stream, counters);
+              if (null != consumers[idx] && consumers[idx].getHBaseReset()) {
+                try {
+                  tables[idx].close();
+                } catch (IOException ioe) {                  
+                }
+                try {
+                  tables[idx] = conn.getTable(hbaseTable);
+                } catch (IOException ioe) {
+                  throw new RuntimeException(ioe);
+                }
+              }
+              consumers[idx] = new StoreConsumer(tables[idx], self, stream, counters);
               executor.submit(consumers[idx]);
               idx++;
             }      
@@ -352,6 +355,10 @@ public class Store extends Thread {
                 // FIXME(hbs): We might have to fix this to be able to tolerate long deletes.
                 //
                 Sensision.update(SensisionConstants.CLASS_WARP_STORE_KAFKA_COMMITS_OVERDUE, Sensision.EMPTY_LABELS, 1);
+                LOG.debug("Last Kafka commit was more than " + maxTimeBetweenCommits + " ms ago, aborting.");
+                for (int i = 0; i < consumers.length; i++) {
+                  consumers[i].setHBaseReset(true);
+                }
                 abort.set(true);
               }
               
@@ -359,30 +366,46 @@ public class Store extends Thread {
             }
 
           } catch (Throwable t) {
-            t.printStackTrace(System.out);
+            LOG.error("Caught exception", t);
           } finally {
+            
+            LOG.debug("Spawner reinitializing.");
+            
             //
             // We exited the loop, this means one of the threads triggered an abort,
             // we will shut down the executor and shut down the connector to start over.
             //
         
             if (null != connector) {
+              LOG.debug("Closing Kafka connector.");
               try {
                 connector.shutdown();
               } catch (Exception e) {
-                LOG.error("Closing connector", e);
+                LOG.error("Error while closing connector", e);
               }
             }
 
             if (null != executor) {
+              LOG.debug("Closing executor.");
               try {
                 for (StoreConsumer consumer: consumers) {
                   consumer.localabort.set(true);
-                  consumer.getSynchronizer().interrupt();
-                }
-                executor.shutdownNow();
+                  while(consumer.getSynchronizer().isAlive()) {
+                    consumer.getSynchronizer().interrupt();
+                    LockSupport.parkNanos(100000000L);
+                  }   
+                  //
+                  // We need to shut down the executor prior to waiting for the
+                  // consumer threads to die, otherwise they will never die!
+                  //
+                  executor.shutdownNow();
+                  while(!consumer.isDone()) {
+                    consumer.getConsumerThread().interrupt();
+                    LockSupport.parkNanos(100000000L);
+                  }
+                }                
               } catch (Exception e) {
-                LOG.error("Closing executor", e);
+                LOG.error("Error while closing executor", e);
               }
             }
             
@@ -391,9 +414,11 @@ public class Store extends Thread {
             //
             
             if (null != barrier) {
+              LOG.debug("Resetting barrier.");
               barrier.reset();
             }
             
+            LOG.debug("Increasing generation.");
             generation++;
             
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_ABORTS, Sensision.EMPTY_LABELS, 1);
@@ -424,8 +449,8 @@ public class Store extends Thread {
         continue;
       }
       
-      ConnectionHelper.clearMetaCache(this.conn);
-      
+      //ConnectionHelper.clearMetaCache(this.conn);
+
 //      //
 //      // Regenerate the HBase connection
 //      //
@@ -460,6 +485,8 @@ public class Store extends Thread {
   
   private static class StoreConsumer implements Runnable {
 
+    private boolean resetHBase = false;
+    private boolean done = false;
     private final Store store;
     private final KafkaStream<byte[],byte[]> stream;
     private final byte[] hbaseAESKey;
@@ -473,20 +500,36 @@ public class Store extends Thread {
     private final Semaphore flushsem = new Semaphore(0);
     private final KafkaOffsetCounters counters;
     
-    private Thread synchronizer = null;
+    private Thread synchronizer = null;    
 
-    public StoreConsumer(Store store, KafkaStream<byte[], byte[]> stream, KafkaOffsetCounters counters) {
+    public StoreConsumer(Table table, Store store, KafkaStream<byte[], byte[]> stream, KafkaOffsetCounters counters) {
       this.store = store;
       this.stream = stream;
       this.puts = new ArrayList<Put>();
       this.putslock = new ReentrantLock();
       this.counters = counters;
-      
+      this.table = table;
       this.hbaseAESKey = store.keystore.getKey(KeyStore.AES_HBASE_DATA);
     }
     
     private Thread getSynchronizer() {
       return this.synchronizer;
+    }
+    
+    private Thread getConsumerThread() {
+      return Thread.currentThread();
+    }
+    
+    private boolean isDone() {
+      return this.done;
+    }
+    
+    private boolean getHBaseReset() {
+      return this.resetHBase;
+    }
+    
+    private void setHBaseReset(boolean reset) {
+      this.resetHBase = reset;
     }
     
     @Override
@@ -502,9 +545,6 @@ public class Store extends Thread {
         byte[] siphashKey = store.keystore.getKey(KeyStore.SIPHASH_KAFKA_DATA);
         byte[] aesKey = store.keystore.getKey(KeyStore.AES_KAFKA_DATA);
         
-
-        table = store.conn.getTable(store.hbaseTable);
-
         final Table ht = table;
         
         //
@@ -541,6 +581,7 @@ public class Store extends Thread {
                 
                 try {
                   putslock.lockInterruptibly();
+                  
                   //
                   // Attempt to flush
                   //
@@ -549,17 +590,26 @@ public class Store extends Thread {
                     Object[] results = new Object[puts.size()];
                     long nanos = System.nanoTime();
                     if (!store.SKIP_WRITE) {
-                    ht.batch(puts, results);
-                    // Check results for nulls
-                    for (Object o: results) {
-                      if (null == o) {
-                        throw new IOException("At least one Put failed.");
-                      }
-                    }    
+                      LOG.debug("HBase batch of " + puts.size() + " Puts.");
+                      //
+                      // TODO(hbs): consider switching to streaming Puts???, i.e. setAutoFlush(false), then series of
+                      // calls to Table.put and finally a call to flushCommits to trigger the Kafka commit.
+                      //
+                      ht.batch(puts, results);
+                      // Check results for nulls
+                      for (Object o: results) {
+                        if (null == o) {
+                          throw new IOException("At least one Put failed.");
+                        }
+                      }    
                     }
+                    
+                    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_PUTS_COMMITTED, Sensision.EMPTY_LABELS, puts.size());
+
                     puts.clear();
                     putsSize.set(0L);
                     nanos = System.nanoTime() - nanos;
+                    LOG.debug("HBase batch took " + nanos + " ns.");
                     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
                     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_TIME_NANOS, Sensision.EMPTY_LABELS, nanos);
                   } catch (InterruptedException ie) {
@@ -568,7 +618,7 @@ public class Store extends Thread {
                     putsSize.set(0L);
                     // If an exception is thrown, abort
                     store.abort.set(true);
-                    LOG.info("Received InterruptedException", ie);
+                    LOG.debug("Received InterruptedException", ie);
                     return;                    
                   } catch (IOException ioe) {
                     store.connReset.set(true);
@@ -577,7 +627,8 @@ public class Store extends Thread {
                     putsSize.set(0L);
                     // If an exception is thrown, abort
                     store.abort.set(true);
-                    LOG.info("Received IOException", ioe);
+                    resetHBase = true;
+                    LOG.debug("Received IOException - forcing HBase reset", ioe);
                     return;
                   }                  
                   //
@@ -590,7 +641,7 @@ public class Store extends Thread {
                     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_BARRIER_SYNCS, Sensision.EMPTY_LABELS, 1);
                   } catch (Exception e) {
                     store.abort.set(true);
-                    LOG.info("Received Exception", e);
+                    LOG.debug("Received Exception", e);
                     return;
                   } finally {
                     lastsync = System.currentTimeMillis();
@@ -621,17 +672,22 @@ public class Store extends Thread {
                       Object[] results = new Object[puts.size()];
                       long nanos = System.nanoTime();
                       if (!store.SKIP_WRITE) {
-                      ht.batch(puts, results);
-                      // Check results for nulls
-                      for (Object o: results) {
-                        if (null == o) {
-                          throw new IOException("At least one Put failed.");
-                        }
-                      }         
+                        LOG.debug("Forcing HBase batch of " + puts.size() + " Puts.");
+                        ht.batch(puts, results);
+                        // Check results for nulls
+                        for (Object o: results) {
+                          if (null == o) {
+                            throw new IOException("At least one Put failed.");
+                          }
+                        }         
                       }
+                      
+                      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_PUTS_COMMITTED, Sensision.EMPTY_LABELS, puts.size());
+
                       puts.clear();
                       putsSize.set(0L);
                       nanos = System.nanoTime() - nanos;
+                      LOG.debug("Forced HBase batch took " + nanos + " ns");
                       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
                       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_TIME_NANOS, Sensision.EMPTY_LABELS, nanos);
                       // Reset lastPut to 0
@@ -642,7 +698,7 @@ public class Store extends Thread {
                       putsSize.set(0L);
                       // If an exception is thrown, abort
                       store.abort.set(true);
-                      LOG.info("Received InterrupedException", ie);
+                      LOG.debug("Received InterrupedException", ie);
                       return;                    
                     } catch (IOException ioe) {
                       // Mark the HBase connection as needing reset
@@ -651,8 +707,9 @@ public class Store extends Thread {
                       puts.clear();
                       putsSize.set(0L);
                       // If an exception is thrown, abort
-                      store.abort.set(true);
-                      LOG.info("Received IOException", ioe);
+                      store.abort.set(true);                      
+                      resetHBase = true;
+                      LOG.debug("Received IOException - forcing HBase reset", ioe);
                       return;
                     }                  
                   }                  
@@ -679,12 +736,14 @@ public class Store extends Thread {
               //
               // Attempt to close the Table instance
               //
-              if (null != ht) {
-                try {
-                  ht.close();
-                } catch (Exception e) {                  
-                }
-              }
+              //if (null != ht) {
+              //  try {
+              //    ht.close();
+              //  } catch (Exception e) {                  
+              // }
+              //} 
+              LOG.debug("Synchronizer done.");
+              done = true;
             }
           }
         });
@@ -770,16 +829,22 @@ public class Store extends Thread {
         }        
       } catch (Throwable t) {
         // FIXME(hbs): log something/update Sensision metrics
-        LOG.info("Received exception", t);
+        LOG.debug("Received exception", t);
       } finally {
         // Interrupt the synchronizer thread
         this.localabort.set(true);
-        try { synchronizer.interrupt(); } catch (Exception e) {}
+        try {
+          LOG.debug("Consumer exiting, killing synchronizer.");
+          while(synchronizer.isAlive()) {
+            synchronizer.interrupt();
+            LockSupport.parkNanos(100000000L);
+          }
+        } catch (Exception e) {}
         // Set abort to true in case we exit the 'run' method
         store.abort.set(true);
-        if (null != table) {
-          try { table.close(); } catch (IOException ioe) { LOG.error("Error closing table ", ioe); }
-        }
+        //if (null != table) {
+        //  try { table.close(); } catch (IOException ioe) { LOG.error("Error closing table ", ioe); }
+        //}
       }
     }
     
@@ -849,13 +914,12 @@ public class Store extends Thread {
           //
           put.addColumn(store.colfam, Longs.toByteArray(Long.MAX_VALUE - basets), bytes);
         }
-        
-        datapoints++;
-        
+                
         try {
           putslock.lockInterruptibly();
           puts.add(put);
-          putsSize.addAndGet(bytes.length);
+          datapoints++;
+          putsSize.addAndGet(bytes.length);          
           lastPut.set(System.currentTimeMillis());
         } catch (InterruptedException ie) {
           localabort.set(true);
@@ -1066,5 +1130,55 @@ public class Store extends Thread {
       Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + io.warp10.continuum.Configuration.STORE_HBASE_DATA_AES + " MUST be 128, 192 or 256 bits long.");
       this.keystore.setKey(KeyStore.AES_HBASE_DATA, key);
     }
+  }
+  
+  private static synchronized Connection getHBaseConnection(Properties properties) throws IOException {
+    
+    //
+    // Compute two SipHash of the properties which will be used as a key in the singleton map
+    //
+    
+    Map<String,String> props = new HashMap<String,String>();
+    
+    for (Entry<Object,Object> prop: properties.entrySet()) {
+      props.put(prop.getKey().toString(), prop.getValue().toString());
+    }
+    
+    long msb = GTSHelper.labelsId(0xAC1C573839114320L, 0x8638D30B3E5E3491L, props);
+    long lsb = GTSHelper.labelsId(0xC4DFC7F5A82D4626L, 0x9AB1748AF5EC0C16L, props);
+    
+    String uuid = new UUID(msb,lsb).toString();
+    
+    Connection conn = connections.get(uuid);
+    
+    if (null != conn) {
+      return conn;
+    }
+    
+    //
+    // We need to create a new connection
+    //
+    
+    Configuration config = new Configuration();
+    if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_HCONNECTION_THREADS_MAX)) {
+      config.set("hbase.hconnection.threads.max", properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_HCONNECTION_THREADS_MAX));
+    } else {
+      config.set("hbase.hconnection.threads.max", Integer.toString(Runtime.getRuntime().availableProcessors() * 8));
+    }
+    if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_HCONNECTION_THREADS_CORE)) {
+      config.set("hbase.hconnection.threads.core", properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_HCONNECTION_THREADS_MAX));
+    } else {
+      config.set("hbase.hconnection.threads.core", Integer.toString(Runtime.getRuntime().availableProcessors() * 8));
+    }
+    config.set("hbase.zookeeper.quorum", properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_ZKCONNECT));
+    if (!"".equals(properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_ZNODE))) {
+      config.set("zookeeper.znode.parent", properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_ZNODE));
+    }
+    
+    conn = ConnectionFactory.createConnection(config);
+
+    connections.put(uuid,conn);
+    
+    return conn;
   }
 }
