@@ -656,6 +656,7 @@ public class ThrottlingManager {
                 if ("-".equals(estimator)) {
                   //
                   // Clear estimator, we also push an event with a GTS_DISTINCT set to 0 for the producer/app
+                  // We also remove the metric
                   //
                   
                   if (isProducer) {
@@ -663,13 +664,15 @@ public class ThrottlingManager {
                       producerHLLPEstimators.remove(entity);
                       Map<String,String> labels = new HashMap<String, String>();
                       labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, entity);
-                      Sensision.event(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels, 0);              
+                      Sensision.clear(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels);
+                      Sensision.event(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels, 0);
                     }
                   } else {
                     synchronized(applicationHLLPEstimators) {
                       applicationHLLPEstimators.remove(entity);
                       Map<String,String> labels = new HashMap<String, String>();
                       labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, entity);
+                      Sensision.clear(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels);
                       Sensision.event(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels, 0);              
                     }
                   }
