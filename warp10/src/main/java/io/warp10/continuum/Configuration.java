@@ -633,6 +633,11 @@ public class Configuration {
   public static final String STORE_HBASE_HCONNECTION_THREADS_MAX = "store.hbase.hconnection.threads.max";
   
   /**
+   * Custom value of 'hbase.client.ipc.pool.size' for the Store HBase pool
+   */
+  public static final String STORE_HBASE_CLIENT_IPC_POOL_SIZE = "store.hbase.client.ipc.pool.size";
+  
+  /**
    * Custom value of 'hbase.hconnection.threads.core' for the Store HBase pool (MUST be <= STORE_HBASE_HCONNECTION_THREADS_MAX)
    */
   public static final String STORE_HBASE_HCONNECTION_THREADS_CORE = "store.hbase.hconnection.threads.core";
