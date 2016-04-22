@@ -117,6 +117,11 @@ public class Constants {
   public static final String HTTP_HEADER_META_TOKEN_DEFAULT = "X-Warp10-Token";
 
   /**
+   * HTTP Header to provide the token for outgoing DELETE requests
+   */
+  public static final String HTTP_HEADER_DELETE_TOKEN_DEFAULT = "X-Warp10-Token";
+
+  /**
    * HTTP Header to provide the token for outgoing UPDATE requests
    */
   public static final String HTTP_HEADER_UPDATE_TOKEN_DEFAULT = "X-Warp10-Token";
@@ -271,6 +276,7 @@ public class Constants {
   public static final String HTTP_PARAM_FORMAT = "format";
   public static final String HTTP_PARAM_END = "end";
   public static final String HTTP_PARAM_DELETEALL = "deleteall";
+  public static final String HTTP_PARAM_DRYRUN = "dryrun";
   public static final String HTTP_PARAM_MINAGE = "minage";
   public static final String HTTP_PARAM_SHOWUUID = "showuuid";
   public static final String HTTP_PARAM_MINSPLITS = "minsplits";
@@ -316,6 +322,7 @@ public class Constants {
     HEADERS.put(Configuration.HTTP_HEADER_ERROR_MESSAGEX, props.getProperty(Configuration.HTTP_HEADER_ERROR_MESSAGEX, HTTP_HEADER_ERROR_MESSAGE_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_TOKENX, props.getProperty(Configuration.HTTP_HEADER_TOKENX, HTTP_HEADER_TOKEN_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_META_TOKENX, props.getProperty(Configuration.HTTP_HEADER_META_TOKENX, HTTP_HEADER_META_TOKEN_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_DELETE_TOKENX, props.getProperty(Configuration.HTTP_HEADER_DELETE_TOKENX, HTTP_HEADER_DELETE_TOKEN_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_UPDATE_TOKENX, props.getProperty(Configuration.HTTP_HEADER_UPDATE_TOKENX, HTTP_HEADER_UPDATE_TOKEN_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_ARCHIVE_TOKENX, props.getProperty(Configuration.HTTP_HEADER_ARCHIVE_TOKENX, HTTP_HEADER_ARCHIVE_TOKEN_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_NOW_HEADERX, props.getProperty(Configuration.HTTP_HEADER_NOW_HEADERX, HTTP_HEADER_NOW_HEADER_DEFAULT));

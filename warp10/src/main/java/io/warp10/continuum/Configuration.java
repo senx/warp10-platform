@@ -118,15 +118,20 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_RUNNER_BOOTSTRAP_PERIOD = "warpscript.runner.bootstrap.period";
 
   /**
-   * URL for the 'update' endpoint
+   * URL for the 'update' endpoint accessed in UPDATE
    */
   public static final String CONFIG_WARPSCRIPT_UPDATE_ENDPOINT = "warpscript.update.endpoint";
   
   /**
-   * URL for the 'meta' endpoint
+   * URL for the 'meta' endpoint accessed in META
    */
   public static final String CONFIG_WARPSCRIPT_META_ENDPOINT = "warpscript.meta.endpoint";
 
+  /**
+   * URL for the 'delete' endpoint accessed in DELETE
+   */
+  public static final String CONFIG_WARPSCRIPT_DELETE_ENDPOINT = "warpscript.delete.endpoint";
+  
   /**
    * Pre-Shared key for signing fetch requests. Signed fetch request expose owner/producer
    */
@@ -1296,6 +1301,11 @@ public class Configuration {
    * HTTP Header to provide the token for outgoing META requests
    */
   public static final String HTTP_HEADER_META_TOKENX = "http.header.token.META";
+
+  /**
+   * HTTP Header to provide the token for outgoing DELETE requests
+   */
+  public static final String HTTP_HEADER_DELETE_TOKENX = "http.header.token.DELETE";
 
   /**
    * HTTP Header to provide the token for outgoing UPDATE requests
