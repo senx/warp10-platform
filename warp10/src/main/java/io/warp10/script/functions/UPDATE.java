@@ -158,7 +158,8 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
       }
       
       //is.close();
-      conn.disconnect();          
+      conn.disconnect();
+      conn = null;
     } catch (IOException ioe) { 
       throw new WarpScriptException(getName() + " failed.");
     } finally {
