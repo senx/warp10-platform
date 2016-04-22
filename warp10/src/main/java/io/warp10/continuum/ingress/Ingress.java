@@ -970,6 +970,8 @@ public class Ingress extends AbstractHandler implements Runnable {
     long gts = 0;
     
     boolean completeDeletion = false;
+
+    boolean dryrun = null != request.getParameter(Constants.HTTP_PARAM_DRYRUN);
     
     try {      
       if (null == producer || null == owner) {
@@ -1103,23 +1105,27 @@ public class Ingress extends AbstractHandler implements Runnable {
         while(iterator.hasNext()) {
           Metadata metadata = iterator.next();
         
-          pushDeleteMessage(start, end, minage, metadata);
-          
-          if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
-            completeDeletion = true;
-            // We must also push the metadata deletion and remove the metadata from the cache
-            Metadata meta = new Metadata(metadata);
-            meta.setSource(Configuration.INGRESS_METADATA_DELETE_SOURCE);
-            pushMetadataMessage(meta);          
-            byte[] bytes = new byte[16];
-            // We know class/labels Id were computed in pushMetadataMessage
-            GTSHelper.fillGTSIds(bytes, 0, meta.getClassId(), meta.getLabelsId());
-            BigInteger key = new BigInteger(bytes);
-            synchronized(this.metadataCache) {
-              this.metadataCache.remove(key);
+          if (!dryrun) {
+            pushDeleteMessage(start, end, minage, metadata);
+            
+            if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
+              completeDeletion = true;
+              // We must also push the metadata deletion and remove the metadata from the cache
+              Metadata meta = new Metadata(metadata);
+              meta.setSource(Configuration.INGRESS_METADATA_DELETE_SOURCE);
+              pushMetadataMessage(meta);          
+              byte[] bytes = new byte[16];
+              // We know class/labels Id were computed in pushMetadataMessage
+              GTSHelper.fillGTSIds(bytes, 0, meta.getClassId(), meta.getLabelsId());
+              BigInteger key = new BigInteger(bytes);
+              synchronized(this.metadataCache) {
+                this.metadataCache.remove(key);
+              }
             }
           }
+          
           sb.setLength(0);
+          
           GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
           
           if (metadata.getAttributesSize() > 0) {
@@ -1136,9 +1142,11 @@ public class Ingress extends AbstractHandler implements Runnable {
       }
     } finally {
       // Flush delete messages
-      pushDeleteMessage(0L,0L,0L,null);
-      if (completeDeletion) {
-        pushMetadataMessage(null, null);
+      if (!dryrun) {
+        pushDeleteMessage(0L,0L,0L,null);
+        if (completeDeletion) {
+          pushMetadataMessage(null, null);
+        }        
       }
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_DELETE_REQUESTS, sensisionLabels, 1);
     }

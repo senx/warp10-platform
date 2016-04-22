@@ -153,6 +153,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       throw new IOException("Standalone version does not support the '" + Constants.HTTP_PARAM_MINAGE + "' parameter in delete requests.");
     }
     
+    boolean dryrun = null != request.getParameter(Constants.HTTP_PARAM_DRYRUN);
+    
     try {      
       if (null == producer || null == owner) {
         response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
@@ -266,14 +268,21 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         //
        
         if (!hasRange) {
-          this.directoryClient.unregister(metadata);
+          if (!dryrun) {
+            this.directoryClient.unregister(metadata);
+          }
         }
         
         //
         // Remove data
         //
         
-        long localCount = this.storeClient.delete(writeToken, metadata, start, end);
+        long localCount = 0;
+        
+        if (!dryrun) {
+          localCount = this.storeClient.delete(writeToken, metadata, start, end);
+        }
+
         count += localCount;
 
         sb.setLength(0);
