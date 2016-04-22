@@ -96,6 +96,10 @@ public class HBaseStoreClient implements StoreClient {
       conf.set("zookeeper.znode.parent", properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_ZNODE));
     }
 
+    if (properties.containsKey(io.warp10.continuum.Configuration.EGRESS_HBASE_CLIENT_IPC_POOL_SIZE)) {
+      conf.set("hbase.client.ipc.pool.size", properties.get(io.warp10.continuum.Configuration.EGRESS_HBASE_CLIENT_IPC_POOL_SIZE));
+    }
+    
     this.conn = ConnectionFactory.createConnection(conf);
     this.tableName = TableName.valueOf(properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_TABLE));
     this.colfam = properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_COLFAM).getBytes(Charsets.UTF_8);

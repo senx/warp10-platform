@@ -1060,6 +1060,11 @@ public class Configuration {
   public static final String EGRESS_FETCHER_MAXSPLITAGE = "egress.fetcher.maxsplitage";
   
   /**
+   * Custom value of 'hbase.client.ipc.pool.size' for the Egress HBase pool
+   */
+  public static final String EGRESS_HBASE_CLIENT_IPC_POOL_SIZE = "egress.hbase.client.ipc.pool.size";
+
+  /**
    * Geo Time Series count threshold above which block caching will be disabled for HBase scanners.
    * The goal is to limit the cache pollution when scanning large chunks of data.
    */
