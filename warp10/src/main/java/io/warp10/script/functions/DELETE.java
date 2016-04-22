@@ -113,7 +113,6 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
     // Issue a dryrun call to DELETE
     //
     
-    
     HttpURLConnection conn = null;
 
     try {
@@ -158,14 +157,13 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
       //
       
       URL requrl = new URL(qsurl.toString() + "&" + Constants.HTTP_PARAM_DRYRUN + "=true");
-      
+
       conn = (HttpURLConnection) requrl.openConnection();
       
       conn.setDoOutput(false);
       conn.setDoInput(true);
       conn.setRequestMethod("GET");
       conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_DELETE_TOKENX), token);
-      conn.setChunkedStreamingMode(16384);
       conn.connect();
             
       if (200 != conn.getResponseCode()) {
@@ -184,15 +182,25 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
         }
         
         actualCount++;
-        
+
         // Do an early check for the expected count
         if (expected < actualCount) {
           throw new WarpScriptException(getName() + " expected at most " + expected + " Geo Time Series to be deleted but " + actualCount + " would have been deleted instead.");
         }
       }
-            
+
+      br.close();
       conn.disconnect();
       conn = null;
+      
+      //
+      // Do nothing if no GTS are to be removed
+      //
+      
+      if (0 == actualCount) {
+        stack.push(0);
+        return stack;
+      }
       
       //
       // Now issue the actual call, hoping the deleted count is identical to the one we expected...
@@ -206,17 +214,35 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
       conn.setDoInput(true);
       conn.setRequestMethod("GET");
       conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_DELETE_TOKENX), token);
-      conn.setChunkedStreamingMode(16384);
       conn.connect();
             
       if (200 != conn.getResponseCode()) {
         throw new WarpScriptException(getName() + " failed to complete actual request successfully (" + conn.getResponseMessage() + ")");
       }
 
+      br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+      
+      actualCount = 0;
+      
+      while(true) {
+        String line = br.readLine();
+        
+        if (null == line) {
+          break;
+        }
+        
+        actualCount++;
+      }
+
+      br.close();
+
       conn.disconnect();
       conn = null;
+
+      stack.push(actualCount);
       
-    } catch (IOException ioe) { 
+    } catch (IOException ioe) {
+      ioe.printStackTrace();
       throw new WarpScriptException(getName() + " failed.");
     } finally {
       if (null != conn) {
