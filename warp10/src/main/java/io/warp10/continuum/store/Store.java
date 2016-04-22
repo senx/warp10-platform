@@ -366,7 +366,7 @@ public class Store extends Thread {
             }
 
           } catch (Throwable t) {
-            LOG.error("Caught exception", t);
+            LOG.error("Caught Throwable while synchronizing", t);
           } finally {
             
             LOG.debug("Spawner reinitializing.");
@@ -431,11 +431,11 @@ public class Store extends Thread {
       }
     });
     
-    t.setName("[Continuum Store Spawner]");
+    t.setName("[Continuum Store Spawner " + this.uuid + "]");
     t.setDaemon(true);
     t.start();
     
-    this.setName("[Continuum Store]");
+    this.setName("[Continuum Store " + this.uuid + "]");
     this.setDaemon(true);
     this.start();
   }
@@ -618,9 +618,9 @@ public class Store extends Thread {
                     putsSize.set(0L);
                     // If an exception is thrown, abort
                     store.abort.set(true);
-                    LOG.debug("Received InterruptedException", ie);
+                    LOG.error("Received InterruptedException", ie);
                     return;                    
-                  } catch (IOException ioe) {
+                  } catch (Throwable t) {
                     store.connReset.set(true);
                     // Clear list of Puts
                     puts.clear();
@@ -628,9 +628,9 @@ public class Store extends Thread {
                     // If an exception is thrown, abort
                     store.abort.set(true);
                     resetHBase = true;
-                    LOG.debug("Received IOException - forcing HBase reset", ioe);
+                    LOG.error("Received Throwable while writing to HBase - forcing HBase reset", t);
                     return;
-                  }                  
+                  }
                   //
                   // Now join the cyclic barrier which will trigger the
                   // commit of offsets
@@ -641,7 +641,7 @@ public class Store extends Thread {
                     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_BARRIER_SYNCS, Sensision.EMPTY_LABELS, 1);
                   } catch (Exception e) {
                     store.abort.set(true);
-                    LOG.debug("Received Exception", e);
+                    LOG.debug("Received Exception while await barrier", e);
                     return;
                   } finally {
                     lastsync = System.currentTimeMillis();
@@ -698,9 +698,11 @@ public class Store extends Thread {
                       putsSize.set(0L);
                       // If an exception is thrown, abort
                       store.abort.set(true);
-                      LOG.debug("Received InterrupedException", ie);
+                      LOG.error("Received InterrupedException", ie);
                       return;                    
-                    } catch (IOException ioe) {
+                    } catch (Throwable t) {
+                      // Some errors of HBase are reported as RuntimeException, so we
+                      // handle those in a more general Throwable catch clause.
                       // Mark the HBase connection as needing reset
                       store.connReset.set(true);
                       // Clear list of Puts
@@ -709,9 +711,9 @@ public class Store extends Thread {
                       // If an exception is thrown, abort
                       store.abort.set(true);                      
                       resetHBase = true;
-                      LOG.debug("Received IOException - forcing HBase reset", ioe);
+                      LOG.error("Received Throwable while forced writing to HBase - forcing HBase reset", t);
                       return;
-                    }                  
+                    }
                   }                  
                 } catch (InterruptedException ie) {
                   store.abort.set(true);
@@ -743,6 +745,7 @@ public class Store extends Thread {
               // }
               //} 
               LOG.debug("Synchronizer done.");
+              localabort.set(true);
               done = true;
             }
           }
@@ -829,7 +832,7 @@ public class Store extends Thread {
         }        
       } catch (Throwable t) {
         // FIXME(hbs): log something/update Sensision metrics
-        LOG.debug("Received exception", t);
+        LOG.error("Received Throwable while processing Kafka message.", t);
       } finally {
         // Interrupt the synchronizer thread
         this.localabort.set(true);
