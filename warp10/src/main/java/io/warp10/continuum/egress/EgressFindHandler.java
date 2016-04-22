@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.egress;
 
+import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.store.Constants;
@@ -82,6 +83,10 @@ public class EgressFindHandler extends AbstractHandler {
     String selector = req.getParameter(Constants.HTTP_PARAM_SELECTOR);
     
     String token = req.getParameter(Constants.HTTP_PARAM_TOKEN);
+    
+    if (null == token) {
+      token = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
+    }
     
     if (null == token) {
       resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Missing token.");
