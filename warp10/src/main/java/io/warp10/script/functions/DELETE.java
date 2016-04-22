@@ -1,0 +1,229 @@
+//
+//   Copyright 2016  Cityzen Data
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
+package io.warp10.script.functions;
+
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.store.Constants;
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+
+/**
+ * Delete a set of GTS.
+ * 
+ * For safety reasons DELETE will first perform a dryrun call to the /delete endpoint to retrieve
+ * the number of GTS which would be deleted by the call. If this number is above the expected number provided
+ * by the user the actual delete will not be performed and instead an error will be raised. 
+ */
+public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+  
+  private URL url = null;
+  
+  public DELETE(String name) {
+    super(name);
+  }
+  
+  @Override
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    
+    //
+    // Extract expected number
+    //
+    
+    Object o = stack.pop();
+    
+    if (!(o instanceof Long)) {
+      throw new WarpScriptException(getName() + " expects a count on top of the stack.");
+    }
+    
+    long expected = (long) o;
+    
+    //
+    // Extract timespan and now
+    //
+    
+    o = stack.pop();
+    
+    if (!(o instanceof Long) && !((o instanceof Double) && Double.isNaN((double) o))) {
+      throw new WarpScriptException(getName() + " expects a timespan or NaN below the expected count.");
+    }
+    
+    Long timespan = (o instanceof Long) ? (long) o : null;
+    
+    o = stack.pop();
+    
+    if (!(o instanceof Long) && !((o instanceof Double) && Double.isNaN((double) o))) {
+      throw new WarpScriptException(getName() + " expects an end instant (now) or NaN below the timespan.");
+    }
+    
+    Long now = (o instanceof Long) ? (long) o : null;
+
+    if ((null == now && null != timespan) || (null != now && null == timespan)) {
+      throw new WarpScriptException(getName() + " expects both now and timespan to be NaN if one of them is.");
+    }
+    
+    //
+    // Extract selector
+    //
+    
+    o = stack.pop();
+    
+    if (!(o instanceof String)) {
+      throw new WarpScriptException(getName() + " expects a Geo Time Serie selector below the time parameters.");
+    }
+    
+    String selector = o.toString();
+    
+    //
+    // Extract token
+    //
+    
+    o = stack.pop();
+    
+    if (!(o instanceof String)) {
+      throw new WarpScriptException(getName() + " expects a token below the selector.");
+    }
+    
+    String token = (String) o;
+
+    //
+    // Issue a dryrun call to DELETE
+    //
+    
+    
+    HttpURLConnection conn = null;
+
+    try {
+
+      if (null == url) {
+        if (WarpConfig.getProperties().containsKey(Configuration.CONFIG_WARPSCRIPT_DELETE_ENDPOINT)) {
+          url = new URL(WarpConfig.getProperties().getProperty(Configuration.CONFIG_WARPSCRIPT_DELETE_ENDPOINT));
+        } else {
+          throw new WarpScriptException(getName() + " configuration parameter '" + Configuration.CONFIG_WARPSCRIPT_DELETE_ENDPOINT + "' not set.");
+        }
+      }
+
+      StringBuilder qsurl = new StringBuilder(url.toString());
+      
+      if (null == url.getQuery()) {
+        qsurl.append("?");
+      } else {
+        qsurl.append("&");
+      }
+
+      if (null != now) {
+        qsurl.append(Constants.HTTP_PARAM_NOW);
+        qsurl.append("=");
+        qsurl.append(now);
+        qsurl.append("&");
+        qsurl.append(Constants.HTTP_PARAM_TIMESPAN);
+        qsurl.append("=");
+        qsurl.append(timespan);
+      } else {
+        qsurl.append(Constants.HTTP_PARAM_DELETEALL);
+        qsurl.append("=");
+        qsurl.append("true");
+      }
+      
+      qsurl.append("&");
+      qsurl.append(Constants.HTTP_PARAM_SELECTOR);
+      qsurl.append("=");
+      qsurl.append(URLEncoder.encode(selector, "UTF-8"));
+
+      //
+      // Issue the dryrun request
+      //
+      
+      URL requrl = new URL(qsurl.toString() + "&" + Constants.HTTP_PARAM_DRYRUN + "=true");
+      
+      conn = (HttpURLConnection) requrl.openConnection();
+      
+      conn.setDoOutput(false);
+      conn.setDoInput(true);
+      conn.setRequestMethod("GET");
+      conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_DELETE_TOKENX), token);
+      conn.setChunkedStreamingMode(16384);
+      conn.connect();
+            
+      if (200 != conn.getResponseCode()) {
+        throw new WarpScriptException(getName() + " failed to complete dryrun request successfully (" + conn.getResponseMessage() + ")");
+      }
+      
+      BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+      
+      long actualCount = 0;
+      
+      while(true) {
+        String line = br.readLine();
+        
+        if (null == line) {
+          break;
+        }
+        
+        actualCount++;
+        
+        // Do an early check for the expected count
+        if (expected < actualCount) {
+          throw new WarpScriptException(getName() + " expected at most " + expected + " Geo Time Series to be deleted but " + actualCount + " would have been deleted instead.");
+        }
+      }
+            
+      conn.disconnect();
+      conn = null;
+      
+      //
+      // Now issue the actual call, hoping the deleted count is identical to the one we expected...
+      //
+      
+      requrl = new URL(qsurl.toString());
+      
+      conn = (HttpURLConnection) requrl.openConnection();
+      
+      conn.setDoOutput(false);
+      conn.setDoInput(true);
+      conn.setRequestMethod("GET");
+      conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_DELETE_TOKENX), token);
+      conn.setChunkedStreamingMode(16384);
+      conn.connect();
+            
+      if (200 != conn.getResponseCode()) {
+        throw new WarpScriptException(getName() + " failed to complete actual request successfully (" + conn.getResponseMessage() + ")");
+      }
+
+      conn.disconnect();
+      conn = null;
+      
+    } catch (IOException ioe) { 
+      throw new WarpScriptException(getName() + " failed.");
+    } finally {
+      if (null != conn) {
+        conn.disconnect();
+      }
+    }
+
+    return stack;
+  }
+}
