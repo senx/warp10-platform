@@ -242,8 +242,7 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
       stack.push(actualCount);
       
     } catch (IOException ioe) {
-      ioe.printStackTrace();
-      throw new WarpScriptException(getName() + " failed.");
+      throw new WarpScriptException(getName() + " failed (" + ioe.getMessage() + ")");
     } finally {
       if (null != conn) {
         conn.disconnect();
