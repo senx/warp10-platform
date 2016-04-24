@@ -623,14 +623,14 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             // Cannot happen...
             throw new WarpScriptException(uee);
           }
-        } else if (stmt.length() > 3 && stmt.charAt(1) == 'x' && stmt.charAt(0) == '0') {
+        } else if (stmt.length() > 2 && stmt.charAt(1) == 'x' && stmt.charAt(0) == '0') {
           long hexl = Long.parseLong(stmt.substring(2), 16);
           if (macros.isEmpty()) {
             push(hexl);
           } else {
             macros.get(0).add(hexl);
           }
-        } else if (stmt.length() > 3 && stmt.charAt(1) == 'b' && stmt.charAt(0) == '0') {
+        } else if (stmt.length() > 2 && stmt.charAt(1) == 'b' && stmt.charAt(0) == '0') {
           long binl = Long.parseLong(stmt.substring(2), 2);
           if (macros.isEmpty()) {
             push(binl);
