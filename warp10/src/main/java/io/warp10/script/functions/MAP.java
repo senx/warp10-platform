@@ -183,13 +183,19 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     
     // Call MAP
     
-    List<GeoTimeSerie> mapped = new ArrayList<GeoTimeSerie>();
+    List<Object> mapped = new ArrayList<Object>();
     
     for (GeoTimeSerie gts: series) {
-      mapped.add(GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), occurrences < 0 ? true : false, step, overrideTick));
+      List<GeoTimeSerie> res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), occurrences < 0 ? true : false, step, overrideTick);
+      if (res.size() < 2) {
+        mapped.addAll(res);
+      } else {
+        mapped.add(res);
+      }
     }
     
     stack.push(mapped);
+    
     return stack;
   }  
 }

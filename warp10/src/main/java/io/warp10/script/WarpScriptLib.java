@@ -198,6 +198,7 @@ import io.warp10.script.unary.NOT;
 import io.warp10.script.unary.REVERSEBITS;
 import io.warp10.script.unary.TOBIN;
 import io.warp10.script.unary.TOBITS;
+import io.warp10.script.unary.TOBOOLEAN;
 import io.warp10.script.unary.TODOUBLE;
 import io.warp10.script.unary.TOHEX;
 import io.warp10.script.unary.TOLONG;
@@ -250,50 +251,50 @@ public class WarpScriptLib {
     functions.put("TIMINGS", new TIMINGS("TIMINGS")); // NOT TO BE DOCUMENTED (YET)
     functions.put("NOTIMINGS", new NOTIMINGS("NOTIMINGS")); // NOT TO BE DOCUMENTED (YET)
     functions.put("ELAPSED", new ELAPSED("ELAPSED")); // NOT TO BE DOCUMENTED (YET)
-    functions.put("->LIST", new TOLIST("->LIST"));                      // doc/einstein/function_TOLIST         Example done    Refactored
-    functions.put("LIST->", new LISTTO("LIST->"));                      // doc/einstein/function_LISTTO         Example done    Refactored
+    functions.put("->LIST", new TOLIST("->LIST"));
+    functions.put("LIST->", new LISTTO("LIST->"));
     functions.put("->SET", new TOSET("->SET"));
     functions.put("SET->", new SETTO("SET->"));
     functions.put("UNION", new UNION("UNION"));
     functions.put("INTERSECTION", new INTERSECTION("INTERSECTION"));
     functions.put("DIFFERENCE", new DIFFERENCE("DIFFERENCE"));
-    functions.put("->MAP", new TOMAP("->MAP"));                         // doc/einstein/function_TOMAP          Example done    Refactored
-    functions.put("MAP->", new MAPTO("MAP->"));                         // doc/einstein/function_MAPTO          Example done    Refactored
+    functions.put("->MAP", new TOMAP("->MAP"));
+    functions.put("MAP->", new MAPTO("MAP->"));
     functions.put("MAPID", new MAPID("MAPID"));
     functions.put("->JSON", new TOJSON("->JSON"));      
     functions.put("JSON->", new JSONTO("JSON->"));
-    functions.put("GET", new GET("GET"));                               // doc/einstein/function_GET            Example done
-    functions.put("SET", new SET("SET"));                               // doc/einstein/function_SET            Example done
-    functions.put("PUT", new PUT("PUT"));                               // doc/einstein/function_PUT            Example done
-    functions.put("SUBMAP", new SUBMAP("SUBMAP"));                      // doc/einstein/function_SUBMAP         Example done   Unit test
-    functions.put("SUBLIST", new SUBLIST("SUBLIST"));                   // doc/einstein/function_SUBLIST        Example done   Unit test
+    functions.put("GET", new GET("GET"));
+    functions.put("SET", new SET("SET"));
+    functions.put("PUT", new PUT("PUT"));
+    functions.put("SUBMAP", new SUBMAP("SUBMAP"));
+    functions.put("SUBLIST", new SUBLIST("SUBLIST"));
     functions.put("DEVICES", new DEVICES("DEVICES"));
-    functions.put("KEYLIST", new KEYLIST("KEYLIST"));                   // doc/einstein/function_KEYLIST        Example done   Unit test
-    functions.put("VALUELIST", new VALUELIST("VALUELIST"));             // doc/einstein/function_VALUELIST      Example done   Unit test
-    functions.put("SIZE", new SIZE("SIZE"));                            // doc/einstein/function_SIZE           Example done   Unit test
-    functions.put("SHRINK", new SHRINK("SHRINK"));                      // doc/einstein/function_SHRINK         Example done   
-    functions.put("REMOVE", new REMOVE("REMOVE"));                      // doc/einstein/function_REMOVE         Example done   Unit test
-    functions.put("UNIQUE", new UNIQUE("UNIQUE"));                      // doc/einstein/function_UNIQUE         Example done   Unit test
-    functions.put("CONTAINS", new CONTAINS("CONTAINS"));                // doc/einstein/function_CONTAINS       Example done   Unit test
-    functions.put("CONTAINSKEY", new CONTAINSKEY("CONTAINSKEY"));       // doc/einstein/function_CONTAINSKEY    Example done   Unit test
-    functions.put("CONTAINSVALUE", new CONTAINSVALUE("CONTAINSVALUE")); // doc/einstein/function_CONTAINSVALUE  Example done   Unit test
-    functions.put("REVERSE", new REVERSE("REVERSE", true));             // doc/einstein/function_REVERSE        Example done   Unit test
-    functions.put("CLONEREVERSE", new REVERSE("CLONEREVERSE", false));  // doc/einstein/function_CLONEREVERSE   Example done   Unit test
-    functions.put("DUP", new DUP("DUP"));                               // doc/einstein/function_DUP            Example done   Refactored
-    functions.put("DUPN", new DUPN("DUPN"));                            // doc/einstein/function_DUPN           Example done   Refactored
-    functions.put("SWAP", new SWAP("SWAP"));                            // doc/einstein/function_SWAP           Example done   Unit test
-    functions.put("DROP", new DROP("DROP"));                            // doc/einstein/function_DROP           Example done   Unit test
+    functions.put("KEYLIST", new KEYLIST("KEYLIST"));
+    functions.put("VALUELIST", new VALUELIST("VALUELIST"));
+    functions.put("SIZE", new SIZE("SIZE"));
+    functions.put("SHRINK", new SHRINK("SHRINK"));
+    functions.put("REMOVE", new REMOVE("REMOVE"));
+    functions.put("UNIQUE", new UNIQUE("UNIQUE"));
+    functions.put("CONTAINS", new CONTAINS("CONTAINS"));
+    functions.put("CONTAINSKEY", new CONTAINSKEY("CONTAINSKEY"));
+    functions.put("CONTAINSVALUE", new CONTAINSVALUE("CONTAINSVALUE"));
+    functions.put("REVERSE", new REVERSE("REVERSE", true));
+    functions.put("CLONEREVERSE", new REVERSE("CLONEREVERSE", false));
+    functions.put("DUP", new DUP("DUP"));
+    functions.put("DUPN", new DUPN("DUPN"));
+    functions.put("SWAP", new SWAP("SWAP"));
+    functions.put("DROP", new DROP("DROP"));
     functions.put("SAVE", new SAVE("SAVE"));
     functions.put("RESTORE", new RESTORE("RESTORE"));
-    functions.put("CLEAR", new CLEAR("CLEAR"));                         // doc/einstein/function_CLEAR          Example done   Refactored
+    functions.put("CLEAR", new CLEAR("CLEAR"));
     functions.put("CLEARDEFS", new CLEARDEFS("CLEARDEFS"));
     functions.put("CLEARSYMBOLS", new CLEARSYMBOLS("CLEARSYMBOLS"));
-    functions.put("DROPN", new DROPN("DROPN"));                         // doc/einstein/function_DROPN          Example done   Unit test
-    functions.put("ROT", new ROT("ROT"));                               // doc/einstein/function_ROT            Example done   Unit test
-    functions.put("ROLL", new ROLL("ROLL"));                            // doc/einstein/function_ROLL           Example done   Unit test
-    functions.put("ROLLD", new ROLLD("ROLLD"));                         // doc/einstein/function_ROLLD          Example done   Unit test
-    functions.put("PICK", new PICK("PICK"));                            // doc/einstein/function_PICK           Example done   Unit test
-    functions.put("DEPTH", new DEPTH("DEPTH"));                         // doc/einstein/function_DEPTH          Example done   Unit test
+    functions.put("DROPN", new DROPN("DROPN"));
+    functions.put("ROT", new ROT("ROT"));
+    functions.put("ROLL", new ROLL("ROLL"));
+    functions.put("ROLLD", new ROLLD("ROLLD"));
+    functions.put("PICK", new PICK("PICK"));
+    functions.put("DEPTH", new DEPTH("DEPTH"));
     functions.put("MAXDEPTH", new MAXDEPTH("MAXDEPTH"));
     functions.put("RESET", new RESET("RESET"));
     functions.put("MAXOPS", new MAXOPS("MAXOPS"));
@@ -302,14 +303,14 @@ public class WarpScriptLib {
     functions.put("MAXPIXELS", new MAXPIXELS("MAXPIXELS"));
     functions.put("OPS", new OPS("OPS"));
     functions.put("MAXSYMBOLS", new MAXSYMBOLS("MAXSYMBOLS"));
-    functions.put(EVAL, new EVAL(EVAL));                                // doc/einstein/function_EVAL           Example done   Unit test
-    functions.put("NOW", new NOW("NOW"));                               // doc/einstein/function_NOW            Example done   Refactored
+    functions.put(EVAL, new EVAL(EVAL));
+    functions.put("NOW", new NOW("NOW"));
     functions.put("MSTU", new MSTU("MSTU"));
     functions.put("STU", new STU("STU"));
     functions.put("UNIXTIMEEND", new UNIXTIMEEND("UNIXTIMEEND"));
     functions.put("UNIXTIMEALIGN", new UNIXTIMEALIGN("UNIXTIMEALIGN"));
-    functions.put("APPEND", new APPEND("APPEND"));                      // doc/einstein/function_APPEND        Example done    Refactored
-    functions.put("STORE", new STORE("STORE"));                         // doc/einstein/function_STORE         Example done    Refactored
+    functions.put("APPEND", new APPEND("APPEND"));
+    functions.put("STORE", new STORE("STORE"));
     functions.put("CSTORE", new CSTORE("CSTORE"));
     functions.put(LOAD, new LOAD(LOAD));
     functions.put(RUN, new RUN(RUN));
@@ -317,25 +318,25 @@ public class WarpScriptLib {
     functions.put("UDF", new UDF("UDF", false));
     functions.put("CUDF", new UDF("CUDF", true));
     functions.put("FORGET", new FORGET("FORGET"));    
-    functions.put("DEFINED", new DEFINED("DEFINED"));                   // doc/einstein/function_DEFINED       Example done    Unit test
-    functions.put("NaN", new NaN("NaN"));                               // doc/einstein/function_NaN           Example done    Refactored
+    functions.put("DEFINED", new DEFINED("DEFINED"));
+    functions.put("NaN", new NaN("NaN"));
     functions.put("ISNaN", new ISNaN("ISNaN"));
     functions.put("TYPEOF", new TYPEOF("TYPEOF"));      
-    functions.put("ASSERT", new ASSERT("ASSERT"));                      // doc/einstein/function_ASSERT        Example done    Unit test
-    functions.put("FAIL", new FAIL("FAIL"));                            // doc/einstein/function_FAIL          Example done    Unit test
+    functions.put("ASSERT", new ASSERT("ASSERT"));
+    functions.put("FAIL", new FAIL("FAIL"));
     functions.put("MSGFAIL", new MSGFAIL("MSGFAIL"));
     functions.put("STOP", new STOP("STOP"));
-    functions.put("JSONSTRICT", new JSONSTRICT("JSONSTRICT"));          // doc/einstein/function_JSONSTRICT    Example done    Refactored
-    functions.put("JSONLOOSE", new JSONLOOSE("JSONLOOSE"));             // doc/einstein/function_JSONLOOSE     Example done    Refactored
+    functions.put("JSONSTRICT", new JSONSTRICT("JSONSTRICT"));
+    functions.put("JSONLOOSE", new JSONLOOSE("JSONLOOSE"));
     functions.put("DEBUGON", new DEBUGON("DEBUGON"));
     functions.put("NDEBUGON", new NDEBUGON("NDEBUGON"));
     functions.put("DEBUGOFF", new DEBUGOFF("DEBUGOFF"));
     functions.put("LMAP", new LMAP("LMAP"));
     functions.put("LFLATMAP", new LFLATMAP("LFLATMAP"));
-    functions.put("[]", new EMPTYLIST("[]"));                           // doc/einstein/function_EMPTYLIST      Example done   Unit test
+    functions.put("[]", new EMPTYLIST("[]"));
     functions.put("[", new MARK("["));
     functions.put("]", new ENDLIST("]"));
-    functions.put("{}", new EMPTYMAP("{}"));                            // doc/einstein/function_EMPTYMAP       Example done   Unit test
+    functions.put("{}", new EMPTYMAP("{}"));
     functions.put("IMMUTABLE", new IMMUTABLE("IMMUTABLE"));
     functions.put("{", new MARK("{"));
     functions.put("}", new ENDMAP("}"));
@@ -352,43 +353,46 @@ public class WarpScriptLib {
     functions.put("MACROFILTER", new MACROFILTER("MACROFILTER"));
     functions.put("STRICTMAPPER", new STRICTMAPPER("STRICTMAPPER"));
     
-    functions.put("PARSESELECTOR", new PARSESELECTOR("PARSESELECTOR"));     // doc/einstein/function_PARSESELECTOR    Example done    Refactored
-    functions.put("TOSELECTOR", new TOSELECTOR("TOSELECTOR"));              // doc/einstein/function_TOSELECTOR       Example done    Refactored
+    functions.put("PARSESELECTOR", new PARSESELECTOR("PARSESELECTOR"));
+    functions.put("TOSELECTOR", new TOSELECTOR("TOSELECTOR"));
     
     // Binary ops
-    functions.put("+", new ADD("+"));                                  // doc/einstein/function_ADD             Example done   Unit test
-    functions.put("-", new SUB("-"));                                  // doc/einstein/function_SUB             Example done   Unit test
-    functions.put("/", new DIV("/"));                                  // doc/einstein/function_DIV             Example done   Unit test
-    functions.put("*", new MUL("*"));                                  // doc/einstein/function_MUL             Example done   Unit test
-    functions.put("**", new POW("**"));                                // doc/einstein/function_POW             Example done   Unit test
-    functions.put("%", new MOD("%"));                                  // doc/einstein/function_MOD             Example done   Unit test
-    functions.put("==", new EQ("=="));                                 // doc/einstein/function_EQ              Example done   Unit test
-    functions.put("!=", new NE("!="));                                 // doc/einstein/function_NE              Example done   Unit test
-    functions.put("<", new LT("<"));                                   // doc/einstein/function_LT              Example done   Unit test
-    functions.put(">", new GT(">"));                                   // doc/einstein/function_GT              Example done   Unit test
-    functions.put("<=", new LE("<="));                                 // doc/einstein/function_LE              Example done   Unit test
-    functions.put(">=", new GE(">="));                                 // doc/einstein/function_GE              Example done   Unit test
-    functions.put("&&", new CondAND("&&"));                            // doc/einstein/function_COND_AND        Example done   Unit test
-    functions.put("AND", new CondAND("AND"));                            // doc/einstein/function_COND_AND        Example done   Unit test
-    functions.put("||", new CondOR("||"));                             // doc/einstein/function_COND_OR         Example done   Unit test
-    functions.put("OR", new CondOR("OR"));                             // doc/einstein/function_COND_OR         Example done   Unit test
-    functions.put("&", new BitwiseAND("&"));                           // doc/einstein/function_BITWISE_AND     Example done   Unit test
+    functions.put("+", new ADD("+"));
+    functions.put("-", new SUB("-"));
+    functions.put("/", new DIV("/"));
+    functions.put("*", new MUL("*"));
+    functions.put("**", new POW("**"));
+    functions.put("%", new MOD("%"));
+    functions.put("==", new EQ("=="));
+    functions.put("!=", new NE("!="));
+    functions.put("<", new LT("<"));
+    functions.put(">", new GT(">"));
+    functions.put("<=", new LE("<="));
+    functions.put(">=", new GE(">="));
+    functions.put("&&", new CondAND("&&"));
+    functions.put("AND", new CondAND("AND"));
+    functions.put("||", new CondOR("||"));
+    functions.put("OR", new CondOR("OR"));
+    functions.put("&", new BitwiseAND("&"));
     functions.put(">>", new SHIFTRIGHT(">>", true));
     functions.put(">>>", new SHIFTRIGHT(">>>", false));
     functions.put("<<", new SHIFTLEFT("<<"));
-    functions.put("|", new BitwiseOR("|"));                            // doc/einstein/function_BITWISE_OR      Example done   Unit test
-    functions.put("^", new BitwiseXOR("^"));                           // doc/einstein/function_BITWISE_XOR     Example done   Unit test
-    functions.put("~=", new ALMOSTEQ("~="));                           // doc/einstein/function_ALMOSTEQ        Example done   Unit test
+    functions.put("|", new BitwiseOR("|"));
+    functions.put("^", new BitwiseXOR("^"));
+    functions.put("~=", new ALMOSTEQ("~="));
 
+    functions.put("BITGET", new BITGET("BITGET"));
+    
     // Unary ops    
-    functions.put("!", new NOT("!"));                                   // doc/einstein/function_NOT             Example done   Unit test
+    functions.put("!", new NOT("!"));
     functions.put("~", new COMPLEMENT("~"));
     functions.put("REVBITS", new REVERSEBITS("REVBITS"));
-    functions.put("NOT", new NOT("NOT"));                               // doc/einstein/function_NOT             Example done   Unit test
-    functions.put("ABS", new ABS("ABS"));                               // doc/einstein/function_ABS             Example done   Unit test
-    functions.put("TODOUBLE", new TODOUBLE("TODOUBLE"));                // doc/einstein/function_TODOUBLE        Example done   Unit test
-    functions.put("TOLONG", new TOLONG("TOLONG"));                      // doc/einstein/function_TOLONG          Example done   Unit test
-    functions.put("TOSTRING", new TOSTRING("TOSTRING"));                // doc/einstein/function_TOSTRING        Example done   Unit test
+    functions.put("NOT", new NOT("NOT"));
+    functions.put("ABS", new ABS("ABS"));
+    functions.put("TODOUBLE", new TODOUBLE("TODOUBLE"));
+    functions.put("TOBOOLEAN", new TOBOOLEAN("TOBOOLEAN"));
+    functions.put("TOLONG", new TOLONG("TOLONG"));
+    functions.put("TOSTRING", new TOSTRING("TOSTRING"));
     functions.put("TOHEX", new TOHEX("TOHEX"));
     functions.put("TOBIN", new TOBIN("TOBIN"));
     functions.put("FROMHEX", new FROMHEX("FROMHEX"));
@@ -466,11 +470,11 @@ public class WarpScriptLib {
     // GTS standalone functions
     //
     
-    functions.put("NEWGTS", new NEWGTS("NEWGTS"));                      // doc/einstein/function_NEWGTS         Example done   Refactored
+    functions.put("NEWGTS", new NEWGTS("NEWGTS"));
     functions.put("MAKEGTS", new MAKEGTS("MAKEGTS"));
-    functions.put("ADDVALUE", new ADDVALUE("ADDVALUE", false));                // doc/einstein/function_ADDVALUE       Example done   Refactored
+    functions.put("ADDVALUE", new ADDVALUE("ADDVALUE", false));
     functions.put("SETVALUE", new ADDVALUE("SETVALUE", true));
-    functions.put("FETCH", new FETCH("FETCH", false, null));                  // doc/einstein/function_FETCH          Example done   Refactored
+    functions.put("FETCH", new FETCH("FETCH", false, null));
     functions.put("FETCHLONG", new FETCH("FETCHLONG", false, TYPE.LONG));
     functions.put("FETCHDOUBLE", new FETCH("FETCHDOUBLE", false, TYPE.DOUBLE));
     functions.put("FETCHSTRING", new FETCH("FETCHSTRING", false, TYPE.STRING));
@@ -478,48 +482,48 @@ public class WarpScriptLib {
     functions.put("AFETCH", new FETCH("AFETCH", true, null));
     functions.put("LIMIT", new LIMIT("LIMIT"));
     functions.put("MAXGTS", new MAXGTS("MAXGTS"));
-    functions.put("FIND", new FIND("FIND", false));                     // doc/einstein/function_FIND           Example done   Refactored
+    functions.put("FIND", new FIND("FIND", false));
     functions.put("FINDSETS", new FIND("FINDSETS", true));
     functions.put("FINDSTATS", new FINDSTATS("FINDSTATS"));
-    functions.put("DEDUP", new DEDUP("DEDUP"));                         // doc/einstein/function_DEDUP          Example done   Unit test
+    functions.put("DEDUP", new DEDUP("DEDUP"));
     functions.put("ONLYBUCKETS", new ONLYBUCKETS("ONLYBUCKETS"));
     functions.put("VALUEDEDUP", new VALUEDEDUP("VALUEDEDUP"));
-    functions.put("CLONEEMPTY", new CLONEEMPTY("CLONEEMPTY"));          // doc/einstein/function_CLONEEMPTY     Example done   Unit test
-    functions.put("COMPACT", new COMPACT("COMPACT"));                   // doc/einstein/function_COMPACT        Example done   Unit test
-    functions.put("RANGECOMPACT", new RANGECOMPACT("RANGECOMPACT"));    // doc/einstein/function_RANGECOMPACT   Example done   Unit test
-    functions.put("STANDARDIZE", new STANDARDIZE("STANDARDIZE"));       // doc/einstein/function_STANDARDIZE    Example done   Unit test
-    functions.put("NORMALIZE", new NORMALIZE("NORMALIZE"));             // doc/einstein/function_NORMALIZE      Example done   Unit test
-    functions.put("ISONORMALIZE", new ISONORMALIZE("ISONORMALIZE"));    // doc/einstein/function_ISONORMALIZE   Example done   Unit test
+    functions.put("CLONEEMPTY", new CLONEEMPTY("CLONEEMPTY"));
+    functions.put("COMPACT", new COMPACT("COMPACT"));
+    functions.put("RANGECOMPACT", new RANGECOMPACT("RANGECOMPACT"));
+    functions.put("STANDARDIZE", new STANDARDIZE("STANDARDIZE"));
+    functions.put("NORMALIZE", new NORMALIZE("NORMALIZE"));
+    functions.put("ISONORMALIZE", new ISONORMALIZE("ISONORMALIZE"));
     functions.put("ZSCORE", new ZSCORE("ZSCORE"));
-    functions.put("FILLPREVIOUS", new FILLPREVIOUS("FILLPREVIOUS"));    // doc/einstein/function_FILLPREVIOUS   Example done   Unit test
-    functions.put("FILLNEXT", new FILLNEXT("FILLNEXT"));                // doc/einstein/function_FILLNEXT       Example done   Unit test
-    functions.put("FILLVALUE", new FILLVALUE("FILLVALUE"));             // doc/einstein/function_FILLVALUE      Example done   Unit test
-    functions.put("FILLTICKS", new FILLTICKS("FILLTICKS"));             // doc/einstein/function_FILLTICKS      Example done   Unit test
-    functions.put("INTERPOLATE", new INTERPOLATE("INTERPOLATE"));       // doc/einstein/function_INTERPOLATE    Example done   Unit test
-    functions.put("FIRSTTICK", new FIRSTTICK("FIRSTTICK"));             // doc/einstein/function_FIRSTTICK      Example done   Refactored
-    functions.put("LASTTICK", new LASTTICK("LASTTICK"));                // doc/einstein/function_LASTTICK       Example done   Refactored
-    functions.put("MERGE", new MERGE("MERGE"));                         // doc/einstein/function_MERGE          Example done   Unit test
-    functions.put("RESETS", new RESETS("RESETS"));                      // doc/einstein/function_RESETS         Example done   Unit test
+    functions.put("FILLPREVIOUS", new FILLPREVIOUS("FILLPREVIOUS"));
+    functions.put("FILLNEXT", new FILLNEXT("FILLNEXT"));
+    functions.put("FILLVALUE", new FILLVALUE("FILLVALUE"));
+    functions.put("FILLTICKS", new FILLTICKS("FILLTICKS"));
+    functions.put("INTERPOLATE", new INTERPOLATE("INTERPOLATE"));
+    functions.put("FIRSTTICK", new FIRSTTICK("FIRSTTICK"));
+    functions.put("LASTTICK", new LASTTICK("LASTTICK"));
+    functions.put("MERGE", new MERGE("MERGE"));
+    functions.put("RESETS", new RESETS("RESETS"));
     functions.put("MONOTONIC", new MONOTONIC("MONOTONIC"));
-    functions.put("TIMESPLIT", new TIMESPLIT("TIMESPLIT"));             // doc/einstein/function_TIMESPLIT      Example done   Unit test
-    functions.put("TIMECLIP", new TIMECLIP("TIMECLIP"));                // doc/einstein/function_TIMECLIP       Example done   Unit test
-    functions.put("TIMEMODULO", new TIMEMODULO("TIMEMODULO"));          // doc/einstein/function_TIMEMODULO     Example done   Unit test
+    functions.put("TIMESPLIT", new TIMESPLIT("TIMESPLIT"));
+    functions.put("TIMECLIP", new TIMECLIP("TIMECLIP"));
+    functions.put("TIMEMODULO", new TIMEMODULO("TIMEMODULO"));
     functions.put("CHUNK", new CHUNK("CHUNK"));
     functions.put("FUSE", new FUSE("FUSE"));
-    functions.put("RENAME", new RENAME("RENAME"));                      // doc/einstein/function_RENAME         Example done    Refactored
-    functions.put("RELABEL", new RELABEL("RELABEL"));                   // doc/einstein/function_RELABEL        Example done    Refactored
+    functions.put("RENAME", new RENAME("RENAME"));
+    functions.put("RELABEL", new RELABEL("RELABEL"));
     functions.put("SETATTRIBUTES", new SETATTRIBUTES("SETATTRIBUTES"));
     functions.put("CROP", new CROP("CROP"));
-    functions.put("TIMESHIFT", new TIMESHIFT("TIMESHIFT"));             // doc/einstein/function_TIMESHIFT      Example done   Unit test
+    functions.put("TIMESHIFT", new TIMESHIFT("TIMESHIFT"));
     functions.put("TIMESCALE", new TIMESCALE("TIMESCALE"));
-    functions.put("TICKINDEX", new TICKINDEX("TICKINDEX"));             // doc/einstein/function_TICKINDEX      Example done   Unit test
+    functions.put("TICKINDEX", new TICKINDEX("TICKINDEX"));
     functions.put("FFT", new FFT.Builder("FFT", true));
     functions.put("FFTAP", new FFT.Builder("FFT", false));
     functions.put("IFFT", new IFFT.Builder("IFFT"));
     functions.put("FDWT", new FDWT("FDWT"));
     functions.put("IDWT", new IDWT("IDWT"));
     functions.put("DWTSPLIT", new DWTSPLIT("DWTSPLIT"));
-    functions.put("NONEMPTY", new NONEMPTY("NONEMPTY"));                // doc/einstein/function_NONEMPTY       Example done   Unit test
+    functions.put("NONEMPTY", new NONEMPTY("NONEMPTY"));
     functions.put("PARTITION", new PARTITION("PARTITION"));
     functions.put("STRICTPARTITION", new PARTITION("STRICTPARTITION", true));
     functions.put("ZIP", new ZIP("ZIP"));
@@ -536,40 +540,41 @@ public class WarpScriptLib {
     functions.put("RLOWESS", new RLOWESS("RLOWESS"));
     functions.put("STL", new STL("STL"));
     functions.put("LOCATIONOFFSET", new LOCATIONOFFSET("LOCATIONOFFSET"));
-    functions.put("FLATTEN", new FLATTEN("FLATTEN"));                   // doc/einstein/function_FLATTEN  Example done   Unit test
+    functions.put("FLATTEN", new FLATTEN("FLATTEN"));
     functions.put("CORRELATE", new CORRELATE.Builder("CORRELATE"));
-    functions.put("SORT", new SORT("SORT"));                            // doc/einstein/function_SORT     Example done   Unit test
-    functions.put("RSORT", new RSORT("RSORT"));                         // doc/einstein/function_RSORT    Example done   Refactored
+    functions.put("SORT", new SORT("SORT"));
+    functions.put("RSORT", new RSORT("RSORT"));
     functions.put("LASTSORT", new LASTSORT("LASTSORT"));
     functions.put("METASORT", new METASORT("METASORT"));
     functions.put("VALUESORT", new VALUESORT("VALUESORT"));
     functions.put("RVALUESORT", new RVALUESORT("RVALUESORT"));
-    functions.put("LSORT", new LSORT("LSORT"));                         // doc/einstein/function_LSORT    Example done   Unit test
-    functions.put("MSORT", new MSORT("MSORT"));                         // doc/einstein/function_MSORT    Example done   Unit test
+    functions.put("LSORT", new LSORT("LSORT"));
+    functions.put("MSORT", new MSORT("MSORT"));
     functions.put("UPDATE", new UPDATE("UPDATE"));
     functions.put("META", new META("META"));
+    functions.put("DELETE", new DELETE("DELETE"));
     functions.put("WEBCALL", new WEBCALL("WEBCALL"));
     functions.put("URLFETCH", new URLFETCH("URLFETCH"));
-    functions.put("MATCH", new MATCH("MATCH"));                         // doc/einstein/function_MATCH    Example done   Unit test
+    functions.put("MATCH", new MATCH("MATCH"));
     functions.put("MATCHER", new MATCHER("MATCHER"));
     functions.put("TEMPLATE", new TEMPLATE("TEMPLATE"));
     functions.put("DISCORDS", new DISCORDS("DISCORDS"));
-    functions.put("INTEGRATE", new INTEGRATE("INTEGRATE"));             // doc/einstein/function_INTEGRATE      Example done   Unit test
+    functions.put("INTEGRATE", new INTEGRATE("INTEGRATE"));
     
-    functions.put("BUCKETSPAN", new BUCKETSPAN("BUCKETSPAN"));          // doc/einstein/function_BUCKETSPAN     Example done    Refactored
-    functions.put("BUCKETCOUNT", new BUCKETCOUNT("BUCKETCOUNT"));       // doc/einstein/function_BUCKETCOUNT    Example done    Refactored
-    functions.put("UNBUCKETIZE", new UNBUCKETIZE("UNBUCKETIZE"));       // doc/einstein/function_UNBUCKETIZE    Example done    Refactored
-    functions.put("LASTBUCKET", new LASTBUCKET("LASTBUCKET"));          // doc/einstein/function_LASTBUCKET     Example done    Refactored
-    functions.put("NAME", new NAME("NAME"));                            // doc/einstein/function_NAME           Example done    Unit test
-    functions.put("LABELS", new LABELS("LABELS"));                      // doc/einstein/function_LABELS         Example done    Refactored
+    functions.put("BUCKETSPAN", new BUCKETSPAN("BUCKETSPAN"));
+    functions.put("BUCKETCOUNT", new BUCKETCOUNT("BUCKETCOUNT"));
+    functions.put("UNBUCKETIZE", new UNBUCKETIZE("UNBUCKETIZE"));
+    functions.put("LASTBUCKET", new LASTBUCKET("LASTBUCKET"));
+    functions.put("NAME", new NAME("NAME"));
+    functions.put("LABELS", new LABELS("LABELS"));
     functions.put("ATTRIBUTES", new ATTRIBUTES("ATTRIBUTES"));
-    functions.put("TICKS", new TICKS("TICKS"));                         // doc/einstein/function_TICKS          Example done    Unit test
-    functions.put("LOCATIONS", new LOCATIONS("LOCATIONS"));             // doc/einstein/function_LOCATIONS      Example done    Refactored
+    functions.put("TICKS", new TICKS("TICKS"));
+    functions.put("LOCATIONS", new LOCATIONS("LOCATIONS"));
     functions.put("LOCSTRINGS", new LOCSTRINGS("LOCSTRINGS"));
-    functions.put("ELEVATIONS", new ELEVATIONS("ELEVATIONS"));          // doc/einstein/function_ELEVATIONS     Example done    Refactored
-    functions.put("VALUES", new VALUES("VALUES"));                      // doc/einstein/function_VALUES         Example done    Unit test
+    functions.put("ELEVATIONS", new ELEVATIONS("ELEVATIONS"));
+    functions.put("VALUES", new VALUES("VALUES"));
     functions.put("VALUESPLIT", new VALUESPLIT("VALUESPLIT"));
-    functions.put("TICKLIST", new TICKLIST("TICKLIST"));                // doc/einstein/function_TICKLIST       Example done    Unit test
+    functions.put("TICKLIST", new TICKLIST("TICKLIST"));
     functions.put("COMMONTICKS", new COMMONTICKS("COMMONTICKS"));
     functions.put("WRAP", new WRAP("WRAP"));
     functions.put("UNWRAP", new UNWRAP("UNWRAP"));
@@ -624,31 +629,31 @@ public class WarpScriptLib {
     // GTS manipulation frameworks
     //
     
-    functions.put("REDUCE", new REDUCE("REDUCE"));
-    functions.put("BUCKETIZE", new BUCKETIZE("BUCKETIZE"));             // doc/einstein/framework-bucketize
-    functions.put("MAP", new MAP("MAP"));                               // doc/einstein/framework-map
-    functions.put("FILTER", new FILTER("FILTER", true));                // doc/einstein/framework-filter
-    functions.put("APPLY", new APPLY("APPLY", true));                   // doc/einstein/framework-apply
+    functions.put("BUCKETIZE", new BUCKETIZE("BUCKETIZE"));
+    functions.put("MAP", new MAP("MAP"));
+    functions.put("FILTER", new FILTER("FILTER", true));
+    functions.put("APPLY", new APPLY("APPLY", true));
     functions.put("PFILTER", new FILTER("FILTER", false));
     functions.put("PAPPLY", new APPLY("APPLY", false));
-    functions.put("REDUCE", new REDUCE("REDUCE"));                      // doc/einstein/framework-reduce
+    functions.put("REDUCE", new REDUCE("REDUCE", true));
+    functions.put("PREDUCE", new REDUCE("PREDUCE", false));
     
     functions.put("max.tick.sliding.window", new MaxTickSlidingWindow("max.tick.sliding.window"));
     functions.put("max.time.sliding.window", new MaxTimeSlidingWindow("max.time.sliding.window"));
-    functions.put("NULL", new NULL("NULL"));                            // doc/einstein/function_NULL   Example done    Refactored
+    functions.put("NULL", new NULL("NULL"));
     functions.put("ISNULL", new ISNULL("ISNULL"));
-    functions.put("mapper.replace", new MapperReplace.Builder("mapper.replace"));   // doc/einstein/mapper_replace      Example done   Unit test
-    functions.put("mapper.gt", new MAPPERGT("mapper.gt"));                          // doc/einstein/mapper_gt           Example done   Unit test
-    functions.put("mapper.ge", new MAPPERGE("mapper.ge"));                          // doc/einstein/mapper_ge           Example done   Unit test
-    functions.put("mapper.eq", new MAPPEREQ("mapper.eq"));                          // doc/einstein/mapper_eq           Example done   Unit test
-    functions.put("mapper.ne", new MAPPERNE("mapper.ne"));                          // doc/einstein/mapper_ne           Example done   Unit test
-    functions.put("mapper.le", new MAPPERLE("mapper.le"));                          // doc/einstein/mapper_le           Example done   Unit test
-    functions.put("mapper.lt", new MAPPERLT("mapper.lt"));                          // doc/einstein/mapper_lt           Example done   Unit test
-    functions.put("mapper.add", new MapperAdd.Builder("mapper.add"));               // doc/einstein/mapper_add          Example done   Unit test
-    functions.put("mapper.mul", new MapperMul.Builder("mapper.mul"));               // doc/einstein/mapper_mul          Example done   Unit test
-    functions.put("mapper.pow", new MapperPow.Builder("mapper.pow"));               // doc/einstein/mapper_pow          Example done   Unit test
-    functions.put("mapper.exp", new MapperExp.Builder("mapper.exp"));               // doc/einstein/mapper_exp          Example done   Unit test
-    functions.put("mapper.log", new MapperLog.Builder("mapper.log"));               // doc/einstein/mapper_log          Example done   Unit test
+    functions.put("mapper.replace", new MapperReplace.Builder("mapper.replace"));
+    functions.put("mapper.gt", new MAPPERGT("mapper.gt"));
+    functions.put("mapper.ge", new MAPPERGE("mapper.ge"));
+    functions.put("mapper.eq", new MAPPEREQ("mapper.eq"));
+    functions.put("mapper.ne", new MAPPERNE("mapper.ne"));
+    functions.put("mapper.le", new MAPPERLE("mapper.le"));
+    functions.put("mapper.lt", new MAPPERLT("mapper.lt"));
+    functions.put("mapper.add", new MapperAdd.Builder("mapper.add"));
+    functions.put("mapper.mul", new MapperMul.Builder("mapper.mul"));
+    functions.put("mapper.pow", new MapperPow.Builder("mapper.pow"));
+    functions.put("mapper.exp", new MapperExp.Builder("mapper.exp"));
+    functions.put("mapper.log", new MapperLog.Builder("mapper.log"));
     functions.put("mapper.min.x", new MapperMinX.Builder("mapper.min.x"));          
     functions.put("mapper.max.x", new MapperMaxX.Builder("mapper.max.x"));          
 
@@ -684,15 +689,15 @@ public class WarpScriptLib {
     
     //functions.put("mapper.abscissa", new MapperSAX.Builder());
     
-    functions.put("filter.byclass", new FilterByClass.Builder("filter.byclass"));       // doc/einstein/filter_byclass        Example done   Unit test
-    functions.put("filter.bylabels", new FilterByLabels.Builder("filter.bylabels"));    // doc/einstein/filter_bylabels       Example done   Unit test
+    functions.put("filter.byclass", new FilterByClass.Builder("filter.byclass"));
+    functions.put("filter.bylabels", new FilterByLabels.Builder("filter.bylabels"));
     functions.put("filter.bymetadata", new FilterByMetadata.Builder("filter.bymetadata"));
-    functions.put("filter.last.eq", new FilterLastEQ.Builder("filter.last.eq"));        // doc/einstein/filter_last_eq        Example done   Unit test
-    functions.put("filter.last.ge", new FilterLastGE.Builder("filter.last.ge"));        // doc/einstein/filter_last_ge        Example done   Unit test
-    functions.put("filter.last.gt", new FilterLastGT.Builder("filter.last.gt"));        // doc/einstein/filter_last_gt        Example done   Unit test
-    functions.put("filter.last.le", new FilterLastLE.Builder("filter.last.le"));        // doc/einstein/filter_last_le        Example done   Unit test
-    functions.put("filter.last.lt", new FilterLastLT.Builder("filter.last.lt"));        // doc/einstein/filter_last_lt        Example done   Unit test
-    functions.put("filter.last.ne", new FilterLastNE.Builder("filter.last.ne"));        // doc/einstein/filter_last_ne        Example done   Unit test
+    functions.put("filter.last.eq", new FilterLastEQ.Builder("filter.last.eq"));
+    functions.put("filter.last.ge", new FilterLastGE.Builder("filter.last.ge"));
+    functions.put("filter.last.gt", new FilterLastGT.Builder("filter.last.gt"));
+    functions.put("filter.last.le", new FilterLastLE.Builder("filter.last.le"));
+    functions.put("filter.last.lt", new FilterLastLT.Builder("filter.last.lt"));
+    functions.put("filter.last.ne", new FilterLastNE.Builder("filter.last.ne"));
     
     functions.put("filter.latencies", new LatencyFilter.Builder("filter.latencies"));
     
@@ -732,55 +737,55 @@ public class WarpScriptLib {
     // Math functions
     //
     
-    functions.put("pi", new Pi("pi"));                                  // doc/einstein/function_pi     Example done    Refactored
-    functions.put("PI", new Pi("PI"));                                  // doc/einstein/function_pi     Example done    Refactored
-    functions.put("e", new E("e"));                                     // doc/einstein/function_e      Example done    Refactored
-    functions.put("E", new E("E"));                                     // doc/einstein/function_e      Example done    Refactored
-    functions.put("MINLONG", new MINLONG("MINLONG"));                   // doc/einstein/function_MINLONG        Example done
-    functions.put("MAXLONG", new MAXLONG("MAXLONG"));                   // doc/einstein/function_MAXLONG        Example done
-    functions.put("RAND", new RAND("RAND"));                            // doc/einstein/function_RAND           Example done    Unit test
+    functions.put("pi", new Pi("pi"));
+    functions.put("PI", new Pi("PI"));
+    functions.put("e", new E("e"));
+    functions.put("E", new E("E"));
+    functions.put("MINLONG", new MINLONG("MINLONG"));
+    functions.put("MAXLONG", new MAXLONG("MAXLONG"));
+    functions.put("RAND", new RAND("RAND"));
 
-    functions.put("NPDF", new NPDF.Builder("NPDF"));                        // doc/einstein/function_NPDF       Example done    Unit test
-    functions.put("MUSIGMA", new MUSIGMA("MUSIGMA"));                       // doc/einstein/function_MUSIGMA    Example done    Unit test
+    functions.put("NPDF", new NPDF.Builder("NPDF"));
+    functions.put("MUSIGMA", new MUSIGMA("MUSIGMA"));
     functions.put("NSUMSUMSQ", new NSUMSUMSQ("NSUMSUMSQ"));
     
     try {
 
-      functions.put("COS", new MATH("COS", "cos"));                         // doc/einstein/function_COS    Example done    Unit test
-      functions.put("COSH", new MATH("COSH", "cosh"));                      // doc/einstein/function_COSH   Example done    Unit test
-      functions.put("ACOS", new MATH("ACOS", "acos"));                      // doc/einstein/function_ACOS   Example done    Unit test
+      functions.put("COS", new MATH("COS", "cos"));
+      functions.put("COSH", new MATH("COSH", "cosh"));
+      functions.put("ACOS", new MATH("ACOS", "acos"));
       
-      functions.put("SIN", new MATH("SIN", "sin"));                         // doc/einstein/function_SIN    Example done    Unit test           
-      functions.put("SINH", new MATH("SINH", "sinh"));                      // doc/einstein/function_SINH   Example done    Unit test 
-      functions.put("ASIN", new MATH("ASIN", "asin"));                      // doc/einstein/function_ASIN   Example done    Unit test
+      functions.put("SIN", new MATH("SIN", "sin"));
+      functions.put("SINH", new MATH("SINH", "sinh"));
+      functions.put("ASIN", new MATH("ASIN", "asin"));
 
-      functions.put("TAN", new MATH("TAN", "tan"));                         // doc/einstein/function_TAN    Example done    Unit test
-      functions.put("TANH", new MATH("TANH", "tanh"));                      // doc/einstein/function_TANH   Example done    Unit test
-      functions.put("ATAN", new MATH("ATAN", "atan"));                      // doc/einstein/function_ATAN   Example done    Unit test
+      functions.put("TAN", new MATH("TAN", "tan"));
+      functions.put("TANH", new MATH("TANH", "tanh"));
+      functions.put("ATAN", new MATH("ATAN", "atan"));
 
 
-      functions.put("SIGNUM", new MATH("SIGNUM", "signum"));                // doc/einstein/function_SIGNUM Example done    Unit test
-      functions.put("FLOOR", new MATH("FLOOR", "floor"));                   // doc/einstein/function_FLOOR  Example done    Unit test
-      functions.put("CEIL", new MATH("CEIL", "ceil"));                      // doc/einstein/function_CEIL   Example done    Unit test
-      functions.put("ROUND", new MATH("ROUND", "round"));                   // doc/einstein/function_ROUND  Example done    Unit test
+      functions.put("SIGNUM", new MATH("SIGNUM", "signum"));
+      functions.put("FLOOR", new MATH("FLOOR", "floor"));
+      functions.put("CEIL", new MATH("CEIL", "ceil"));
+      functions.put("ROUND", new MATH("ROUND", "round"));
 
-      functions.put("RINT", new MATH("RINT", "rint"));                      // doc/einstein/function_RINT   Example done    Unit test
-      functions.put("NEXTUP", new MATH("NEXTUP", "nextUp"));                // doc/einstein/function_NEXTUP Example done    Unit test
+      functions.put("RINT", new MATH("RINT", "rint"));
+      functions.put("NEXTUP", new MATH("NEXTUP", "nextUp"));
       functions.put("ULP", new MATH("ULP", "ulp"));
 
-      functions.put("SQRT", new MATH("SQRT", "sqrt"));                      // doc/einstein/function_SQRT   Example done    Unit test
-      functions.put("CBRT", new MATH("CBRT", "cbrt"));                      // doc/einstein/function_CBRT   Example done    Unit test
-      functions.put("EXP", new MATH("EXP", "exp"));                         // doc/einstein/function_EXP    Example done    Unit test
+      functions.put("SQRT", new MATH("SQRT", "sqrt"));
+      functions.put("CBRT", new MATH("CBRT", "cbrt"));
+      functions.put("EXP", new MATH("EXP", "exp"));
       functions.put("EXPM1", new MATH("EXPM1", "expm1"));
-      functions.put("LOG", new MATH("LOG", "log"));                         // doc/einstein/function_LOG    Example done    Unit test
-      functions.put("LOG10", new MATH("LOG10", "log10"));                   // doc/einstein/function_LOG10  Example done    Unit test
+      functions.put("LOG", new MATH("LOG", "log"));
+      functions.put("LOG10", new MATH("LOG10", "log10"));
       functions.put("LOG1P", new MATH("LOG1P", "log1p"));
 
-      functions.put("TORADIANS", new MATH("TORADIANS", "toRadians"));       // doc/einstein/function_TORADIANS  Example done    Unit test
-      functions.put("TODEGREES", new MATH("TODEGREES", "toDegrees"));       // doc/einstein/function_TODEGREES  Example done    Unit test
+      functions.put("TORADIANS", new MATH("TORADIANS", "toRadians"));
+      functions.put("TODEGREES", new MATH("TODEGREES", "toDegrees"));
 
-      functions.put("MAX", new MATH2("MAX", "max"));                        // doc/einstein/function_MAX    Example done    Unit test
-      functions.put("MIN", new MATH2("MIN", "min"));                        // doc/einstein/function_MIN    Example done    Unit test
+      functions.put("MAX", new MATH2("MAX", "max"));
+      functions.put("MIN", new MATH2("MIN", "min"));
 
       functions.put("COPYSIGN", new MATH2("COPYSIGN", "copySign"));
       functions.put("HYPOT", new MATH2("HYPOT", "hypot"));

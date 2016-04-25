@@ -61,6 +61,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -3575,7 +3576,7 @@ public class GTSHelper {
    *                    
    * @return A new GTS instance with the result of the Mapper.
    */
-  public static GeoTimeSerie map(GeoTimeSerie gts, WarpScriptMapperFunction mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick) throws WarpScriptException {
+  public static List<GeoTimeSerie> map(GeoTimeSerie gts, WarpScriptMapperFunction mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick) throws WarpScriptException {
 
     //
     // Make sure step is positive
@@ -3584,6 +3585,8 @@ public class GTSHelper {
     if (step <= 0) {
       step = 1;
     }
+    
+    List<GeoTimeSerie> results = new ArrayList<GeoTimeSerie>();
     
     //
     // Clone gts
@@ -3596,7 +3599,8 @@ public class GTSHelper {
     //
     
     if (0 == mapped.values && !isBucketized(mapped)) {
-      return mapped;
+      results.add(mapped);
+      return results;
     }
     
     // Sort ticks
@@ -3620,6 +3624,10 @@ public class GTSHelper {
     GeoTimeSerie subgts = null;
     
     boolean hasOccurrences = (0 != occurrences);
+    
+    Map<String,GeoTimeSerie> multipleMapped = new TreeMap<String,GeoTimeSerie>();
+    
+    boolean hasSingleResult = false;
     
     while (idx < nticks) {
 
@@ -3751,28 +3759,57 @@ public class GTSHelper {
 
       parms[i++] = new long[] { prewindow, postwindow, start, stop, tickidx };
       
-      Object[] result = (Object[]) mapper.apply(parms);
+      Object mapResult = mapper.apply(parms);
       
-      //
-      // Set value if it was not null. Don't overwrite, we scan ticks only once
-      //
+      if (mapResult instanceof Map) {
+        for (Entry<Object,Object> entry: ((Map<Object,Object>) mapResult).entrySet()) {
+          GeoTimeSerie mgts = multipleMapped.get(entry.getKey().toString());
+          if (null == mgts) {
+            mgts = mapped.cloneEmpty();
 
-      if (null != result[3]) {
-        GTSHelper.setValue(mapped, overrideTick ? (long) result[0] : tick, (long) result[1], (long) result[2], result[3], false);
+            mgts.setName(entry.getKey().toString());
+            multipleMapped.put(entry.getKey().toString(), mgts);
+          }
+          
+          Object[] result = (Object[]) entry.getValue();
+          if (null != result[3]) {
+            GTSHelper.setValue(mgts, overrideTick ? (long) result[0] : tick, (long) result[1], (long) result[2], result[3], false);
+          }
+        }
+      } else {
+        Object[] result = (Object[]) mapResult;
+        
+        //
+        // Set value if it was not null. Don't overwrite, we scan ticks only once
+        //
+
+        hasSingleResult = true;
+        
+        if (null != result[3]) {
+          GTSHelper.setValue(mapped, overrideTick ? (long) result[0] : tick, (long) result[1], (long) result[2], result[3], false);
+        }        
       }
       
       idx += step;
       occurrences--;
     }
+
+    if (hasSingleResult) {
+      results.add(mapped);
+    }
     
-    return mapped;
+    if (!multipleMapped.isEmpty()) {
+      results.addAll(multipleMapped.values());
+    }
+    
+    return results;
   }
   
-  public static GeoTimeSerie map(GeoTimeSerie gts, WarpScriptMapperFunction mapper, long prewindow, long postwindow, long occurrences, boolean reversed) throws WarpScriptException {
+  public static List<GeoTimeSerie> map(GeoTimeSerie gts, WarpScriptMapperFunction mapper, long prewindow, long postwindow, long occurrences, boolean reversed) throws WarpScriptException {
     return map(gts, mapper, prewindow, postwindow, occurrences, reversed, 1, false);
   }
   
-  public static GeoTimeSerie map(GeoTimeSerie gts, WarpScriptMapperFunction mapper, long prewindow, long postwindow) throws WarpScriptException {
+  public static List<GeoTimeSerie> map(GeoTimeSerie gts, WarpScriptMapperFunction mapper, long prewindow, long postwindow) throws WarpScriptException {
     return map(gts, mapper, prewindow, postwindow, 0, false);
   }
   
@@ -5122,15 +5159,30 @@ public class GTSHelper {
   }
   
   public static List<GeoTimeSerie> reduce(WarpScriptReducerFunction reducer, Collection<GeoTimeSerie> series, Collection<String> bylabels) throws WarpScriptException {
+    Map<Map<String,String>,List<GeoTimeSerie>> unflattened = reduceUnflattened(reducer, series, bylabels);
+    
+    List<GeoTimeSerie> results = new ArrayList<GeoTimeSerie>();
+    
+    for (List<GeoTimeSerie> l: unflattened.values()) {
+      results.addAll(l);
+    }
+    
+    return results;
+  }
+  
+  public static Map<Map<String,String>,List<GeoTimeSerie>> reduceUnflattened(WarpScriptReducerFunction reducer, Collection<GeoTimeSerie> series, Collection<String> bylabels) throws WarpScriptException {
     //
     // Partition the GTS instances using the given labels
     //
     
     Map<Map<String,String>, List<GeoTimeSerie>> partitions = partition(series, bylabels);
     
-    List<GeoTimeSerie> results = new ArrayList<GeoTimeSerie>();
+    Map<Map<String,String>,List<GeoTimeSerie>> results = new LinkedHashMap<Map<String,String>, List<GeoTimeSerie>>();
+    
     
     for (Map<String,String> partitionLabels: partitions.keySet()) {
+      boolean singleGTSResult = false;
+
       List<GeoTimeSerie> partitionSeries = partitions.get(partitionLabels);
       
       //
@@ -5224,6 +5276,8 @@ public class GTSHelper {
       for (GeoTimeSerie gts: partitionSeries) {
         sort(gts, false);
       }
+      
+      Map<String,GeoTimeSerie> multipleResults = new TreeMap<String,GeoTimeSerie>();
       
       //
       // Initialize indices for each serie
@@ -5329,15 +5383,51 @@ public class GTSHelper {
         params[4] = locations;
         params[5] = elevations;
         params[6] = values;
+                
+        Object reducerResult = reducer.apply(params);
         
-        Object[] reduced = (Object[]) reducer.apply(params);
+        if (reducerResult instanceof Map) {
+          for (Entry<Object,Object> entry: ((Map<Object,Object>) reducerResult).entrySet()) {
+            GeoTimeSerie gts = multipleResults.get(entry.getKey().toString());
+            if (null == gts) {
+              if (0L != bucketspan) {
+                gts = new GeoTimeSerie(lastbucket, bucketcount, bucketspan, 0);
+              } else {
+                gts = new GeoTimeSerie();
+              }
 
-        if (null != reduced[3]) {
-          GTSHelper.setValue(result, smallest, (long) reduced[1], (long) reduced[2], reduced[3], false);
+              gts.setName(entry.getKey().toString());
+              gts.setLabels(partitionLabels);
+              multipleResults.put(entry.getKey().toString(), gts);
+            }
+            
+            Object[] reduced = (Object[]) entry.getValue();
+            
+            if (null != reduced[3]) {
+              GTSHelper.setValue(gts, smallest, (long) reduced[1], (long) reduced[2], reduced[3], false);
+            }
+          }
+        } else {
+          Object[] reduced = (Object[]) reducerResult;
+          singleGTSResult = true;
+          if (null != reduced[3]) {
+            GTSHelper.setValue(result, smallest, (long) reduced[1], (long) reduced[2], reduced[3], false);
+          }
         }
+        
       }
       
-      results.add(result);
+      if (!results.containsKey(partitionLabels)) {
+        results.put(partitionLabels, new ArrayList<GeoTimeSerie>());
+      }
+
+      if (singleGTSResult) {
+        results.get(partitionLabels).add(result);
+      }
+
+      if (!multipleResults.isEmpty()) {
+        results.get(partitionLabels).addAll(multipleResults.values());
+      }            
     }
     
     return results;

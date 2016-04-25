@@ -31,6 +31,7 @@ import io.warp10.script.WarpScriptStack.Macro;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.geoxp.GeoXPLib;
 
@@ -139,42 +140,96 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
       stack.exec(this.macro);
       
       //
-      // Retrieve result
+      // Check type of result
       //
       
-      Object value = stack.pop();
-      Object elevation = stack.pop();
-      Object longitude = stack.pop();
-      Object latitude = stack.pop();
-      Object rtick = stack.pop();
+      Object res = stack.peek();
       
-      long location = GeoTimeSerie.NO_LOCATION;
-      
-      if (!(longitude instanceof Double) || !(latitude instanceof Double)) {
-        throw new WarpScriptException("Macro MUST return a latitude and a longitude which are of type DOUBLE.");
-      } else {
-        if (!Double.isNaN((double) latitude) && !Double.isNaN((double) longitude)) {
-          location = GeoXPLib.toGeoXPPoint((double) latitude, (double) longitude);
+      if (res instanceof List) {
+        stack.drop();
+        Object[] ores = ((List) res).toArray();
+        Object[] ores2 = new Object[4];
+        
+        ores2[0] = ores[0];
+        if (Double.isNaN((double) ores[1]) || Double.isNaN((double) ores[2])) {
+          ores2[1] = GeoTimeSerie.NO_LOCATION;
+        } else {
+          ores2[1] = GeoXPLib.toGeoXPPoint((double) ores[1], (double) ores[2]);
         }
-      }
-      
-      long elev = GeoTimeSerie.NO_ELEVATION;
-            
-      if (!(elevation instanceof Double) && !(elevation instanceof Long)) {
-        throw new WarpScriptException("Macro MUST return an elevation which is either NaN or LONG.");
-      } else {
-        if (elevation instanceof Long) {
-          elev = (long) elevation;
-        } else if (!Double.isNaN((double) elevation)) {
-          throw new WarpScriptException("Macro MUST return an elevations which is NaN if it is of type DOUBLE.");
+        if (Double.isNaN((double) ores[3])) {
+          ores2[2] = GeoTimeSerie.NO_ELEVATION;
+        } else {
+          ores2[2] = (long) ores[3];
         }
+        ores2[3] = ores[4];
+        
+        return ores2;
+      } else if (res instanceof Map) {
+        stack.drop();
+        
+        Set<Object> keys = ((Map) res).keySet();
+        
+        for (Object key: keys) {
+          Object[] ores = (Object[]) ((List) ((Map) res).get(key)).toArray();
+          
+          Object[] ores2 = new Object[4];
+          
+          ores2[0] = ores[0];
+          if (Double.isNaN((double) ores[1]) || Double.isNaN((double) ores[2])) {
+            ores2[1] = GeoTimeSerie.NO_LOCATION;
+          } else {
+            ores2[1] = GeoXPLib.toGeoXPPoint((double) ores[1], (double) ores[2]);
+          }
+          if (Double.isNaN((double) ores[3])) {
+            ores2[2] = GeoTimeSerie.NO_ELEVATION;
+          } else {
+            ores2[2] = (long) ores[3];
+          }
+          ores2[3] = ores[4];
+          
+          ((Map) res).put(key, ores2);
+        }
+
+        return res;
+      } else {
+        //
+        // Retrieve result
+        //
+        
+        Object value = stack.pop();
+        Object elevation = stack.pop();
+        Object longitude = stack.pop();
+        Object latitude = stack.pop();
+        Object rtick = stack.pop();
+        
+        long location = GeoTimeSerie.NO_LOCATION;
+        
+        if (!(longitude instanceof Double) || !(latitude instanceof Double)) {
+          throw new WarpScriptException("Macro MUST return a latitude and a longitude which are of type DOUBLE.");
+        } else {
+          if (!Double.isNaN((double) latitude) && !Double.isNaN((double) longitude)) {
+            location = GeoXPLib.toGeoXPPoint((double) latitude, (double) longitude);
+          }
+        }
+        
+        long elev = GeoTimeSerie.NO_ELEVATION;
+              
+        if (!(elevation instanceof Double) && !(elevation instanceof Long)) {
+          throw new WarpScriptException("Macro MUST return an elevation which is either NaN or LONG.");
+        } else {
+          if (elevation instanceof Long) {
+            elev = (long) elevation;
+          } else if (!Double.isNaN((double) elevation)) {
+            throw new WarpScriptException("Macro MUST return an elevations which is NaN if it is of type DOUBLE.");
+          }
+        }
+        
+        if (!(rtick instanceof Long)) {
+          throw new WarpScriptException("Macro MUST return a tick of type LONG.");
+        }
+        
+        return new Object[] { (long) rtick, location, elev, value };        
       }
-      
-      if (!(rtick instanceof Long)) {
-        throw new WarpScriptException("Macro MUST return a tick of type LONG.");
-      }
-      
-      return new Object[] { (long) rtick, location, elev, value };
     }
   }
   

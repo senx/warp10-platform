@@ -36,8 +36,11 @@ import java.util.List;
  */
 public class REDUCE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public REDUCE(String name) {
+  private final boolean flatten;
+  
+  public REDUCE(String name, boolean flatten) {
     super(name);
+    this.flatten = flatten;
   }
   
   @Override
@@ -83,7 +86,11 @@ public class REDUCE extends NamedWarpScriptFunction implements WarpScriptStackFu
       series.addAll((Collection<GeoTimeSerie>) params.get(i));
     }    
 
-    stack.push(GTSHelper.reduce((WarpScriptReducerFunction) params.get(params.size() - 1), series, bylabels));
+    if (this.flatten) {
+      stack.push(GTSHelper.reduce((WarpScriptReducerFunction) params.get(params.size() - 1), series, bylabels));
+    } else {
+      stack.push(GTSHelper.reduceUnflattened((WarpScriptReducerFunction) params.get(params.size() - 1), series, bylabels));
+    }
     return stack;
   }
 }
