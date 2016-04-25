@@ -44,7 +44,7 @@ public class BYTESTO extends NamedWarpScriptFunction implements WarpScriptStackF
     
     o = stack.pop();
     
-    if (!(o instanceof String)) {
+    if (!(o instanceof byte[])) {
       throw new WarpScriptException(getName() + " operates on a byte array.");
     }
     
