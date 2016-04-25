@@ -425,17 +425,25 @@ public class WarpScriptLib {
     functions.put("TOUPPER", new TOUPPER("TOUPPER"));
     functions.put("TOLOWER", new TOLOWER("TOLOWER"));
     functions.put("TRIM", new TRIM("TRIM"));
-    functions.put("HEX->", new HEXTO("HEX->"));
-    functions.put("B64->", new B64TO("B64->"));
+    
     functions.put("B64TOHEX", new B64TOHEX("B64TOHEX"));
     functions.put("HEXTOB64", new HEXTOB64("HEXTOB64"));
     functions.put("BINTOHEX", new BINTOHEX("BINTOHEX"));
     functions.put("HEXTOBIN", new HEXTOBIN("HEXTOBIN"));
+    
+    functions.put("BIN->", new BINTO("BIN->"));
+    functions.put("HEX->", new HEXTO("HEX->"));
+    functions.put("B64->", new B64TO("B64->"));
     functions.put("B64URL->", new B64URLTO("B64URL->"));
+    functions.put("BYTES->", new BYTESTO("BYTES->"));
+
+    functions.put("->BYTES", new TOBYTES("->BYTES"));
+    functions.put("->BIN", new io.warp10.script.functions.TOBIN("->BIN"));
     functions.put("->HEX", new io.warp10.script.functions.TOHEX("->HEX"));
     functions.put("->B64", new TOB64("->B64"));
     functions.put("->B64URL", new TOB64URL("->B64URL"));
-    functions.put("OPB64TOHEX", new OPB64TOHEX("OPB64TOHEX"));
+    functions.put("->OPB64", new TOOPB64("->OPB64"));
+    functions.put("OPB64TOHEX", new OPB64TOHEX("OPB64TOHEX"));    
     
     //
     // Conditionals

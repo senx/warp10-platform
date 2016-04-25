@@ -16,21 +16,20 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import org.bouncycastle.util.encoders.Hex;
+import io.warp10.script.WarpScriptStackFunction;
 
 import com.google.common.base.Charsets;
 
 /**
- * Encode a String in hexadecimal
+ * Encode a String in order preserving base64
  */
-public class TOHEX extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class TOOPB64 extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public TOHEX(String name) {
+  public TOOPB64(String name) {
     super(name);
   }
   
@@ -39,14 +38,13 @@ public class TOHEX extends NamedWarpScriptFunction implements WarpScriptStackFun
     Object o = stack.pop();
     
     if (o instanceof String) {
-      stack.push(new String(Hex.encode(o.toString().getBytes(Charsets.UTF_8)), Charsets.UTF_8));
+      stack.push(new String(OrderPreservingBase64.encode(o.toString().getBytes(Charsets.UTF_8)), Charsets.UTF_8));      
     } else if (o instanceof byte[]) {
-      stack.push(new String(Hex.encode((byte[]) o), Charsets.UTF_8));
+      stack.push(new String(OrderPreservingBase64.encode((byte[]) o), Charsets.UTF_8));      
     } else {
       throw new WarpScriptException(getName() + " operates on a String or a byte array.");
     }
-    
-    
+        
     return stack;
   }
 }

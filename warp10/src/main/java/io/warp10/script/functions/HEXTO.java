@@ -42,7 +42,7 @@ public class HEXTO extends NamedWarpScriptFunction implements WarpScriptStackFun
       throw new WarpScriptException(getName() + " operates on a String.");
     }
     
-    stack.push(new String(Hex.decode(o.toString()), Charsets.UTF_8));
+    stack.push(Hex.decode(o.toString()));
     
     return stack;
   }

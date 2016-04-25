@@ -17,20 +17,18 @@
 package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
-import org.bouncycastle.util.encoders.Hex;
-
-import com.google.common.base.Charsets;
+import java.io.UnsupportedEncodingException;
 
 /**
- * Encode a String in hexadecimal
+ * Converts a string into its bytes given a charset
  */
-public class TOHEX extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class TOBYTES extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public TOHEX(String name) {
+  public TOBYTES(String name) {
     super(name);
   }
   
@@ -38,14 +36,26 @@ public class TOHEX extends NamedWarpScriptFunction implements WarpScriptStackFun
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
     
-    if (o instanceof String) {
-      stack.push(new String(Hex.encode(o.toString().getBytes(Charsets.UTF_8)), Charsets.UTF_8));
-    } else if (o instanceof byte[]) {
-      stack.push(new String(Hex.encode((byte[]) o), Charsets.UTF_8));
-    } else {
-      throw new WarpScriptException(getName() + " operates on a String or a byte array.");
+    if (!(o instanceof String)) {
+      throw new WarpScriptException(getName() + " operates on a String and expects a charset name on top of the stack.");
     }
     
+    String charset = o.toString();
+    
+    o = stack.pop();
+    
+    if (!(o instanceof String)) {
+      throw new WarpScriptException(getName() + " operates on a String.");
+    }
+    
+    String str = o.toString();
+    
+    try {
+      byte[] bytes = str.getBytes(charset);
+      stack.push(bytes);
+    } catch (UnsupportedEncodingException uee) {
+      throw new WarpScriptException(getName() + " unsupported encoding '" + charset + "'");
+    }
     
     return stack;
   }

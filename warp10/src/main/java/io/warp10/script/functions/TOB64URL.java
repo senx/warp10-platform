@@ -37,11 +37,14 @@ public class TOB64URL extends NamedWarpScriptFunction implements WarpScriptStack
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
     
-    if (!(o instanceof String)) {
-      throw new WarpScriptException(getName() + " operates on a String.");
+    if (o instanceof String) {
+      stack.push(BaseEncoding.base64Url().encode(o.toString().getBytes(Charsets.UTF_8)));
+    } else if (o instanceof byte[]) {
+      stack.push(BaseEncoding.base64Url().encode((byte[]) o));
+    } else {
+      throw new WarpScriptException(getName() + " operates on a String or a byte array.");
     }
     
-    stack.push(BaseEncoding.base64Url().encode(o.toString().getBytes(Charsets.UTF_8)));
     
     return stack;
   }

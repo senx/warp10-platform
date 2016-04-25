@@ -41,7 +41,7 @@ public class B64TO extends NamedWarpScriptFunction implements WarpScriptStackFun
       throw new WarpScriptException(getName() + " operates on a String.");
     }
     
-    stack.push(new String(BaseEncoding.base64().decode(o.toString()), Charsets.UTF_8));
+    stack.push(BaseEncoding.base64().decode(o.toString()));
     
     return stack;
   }
