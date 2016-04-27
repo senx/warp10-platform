@@ -307,4 +307,27 @@ public class GTSWrapperHelper {
     
     return id;
   }
+  
+  /**
+   * Method used to rewrap a GTSWrapper, typically to change the compression settings.
+   * 
+   * @param wrapper
+   * @param compress
+   * @param compratio
+   * @return
+   */
+  public static GTSWrapper rewrap(GTSWrapper wrapper, boolean compress, double compratio) {
+    byte[] unwrapped = unwrapEncoded(wrapper);
+    
+    GTSEncoder encoder = new GTSEncoder(wrapper.getBase(), null, unwrapped);
+
+    GTSWrapper tmp = fromGTSEncoderToGTSWrapper(encoder, compress, compratio);
+
+    GTSWrapper rewrapped = new GTSWrapper(wrapper);
+    rewrapped.setCompressed(tmp.isCompressed());
+    rewrapped.setCompressionPasses(tmp.getCompressionPasses());
+    rewrapped.setEncoded(tmp.getEncoded());
+    
+    return rewrapped;
+  }
 }
