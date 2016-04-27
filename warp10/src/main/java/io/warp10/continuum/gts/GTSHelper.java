@@ -1849,6 +1849,14 @@ public class GTSHelper {
       
       idx = idx2 + 1;
 
+      // FIXME(hbs): should we skip over attributes if they are present?
+      // if (idx < str.length() && str.charAt(idx) == '{') {
+      //   idx++;
+      //   while(idx < str.length() && str.charAt(idx) != '}') {
+      //     idx++;
+      //   }
+      // }
+      
       while (idx < str.length() && str.charAt(idx) == ' ') {
         idx++;
       }
