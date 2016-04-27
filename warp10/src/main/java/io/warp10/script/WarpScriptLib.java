@@ -382,6 +382,7 @@ public class WarpScriptLib {
 
     // Bitset ops
     functions.put("BITGET", new BITGET("BITGET"));
+    functions.put("BITCOUNT", new BITCOUNT("BITCOUNT"));
     functions.put("BITSTOBYTES", new BITSTOBYTES("BITSTOBYTES"));
     functions.put("BYTESTOBITS", new BYTESTOBITS("BYTESTOBITS"));
     
