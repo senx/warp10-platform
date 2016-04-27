@@ -34,33 +34,46 @@ import java.util.regex.Pattern;
  * operator (comparaison / arithemtic / logical )
  * Constants
  * frameworks (bucketize / map / reduce / apply )
- *
- * Adds stack structures <% %> <S S> [] {}
+ * stack structures <% %> <S S> [] {}
  */
 public class ExportFunctions {
 
-  private static String CONSTANTS = "constants";
-  private static String OP_ARITMETIC = "operator.artimetic";
-  private static String OP_LOGICAL = "operator.logical";
-  private static String OP_COMPARAISON = "operator.comparison";
-  private static String OP_BITWISE = "operator.bitwise";
+  private final static String OP_ARITMETIC = "operator.artimetic";
+  private final static String OP_LOGICAL = "operator.logical";
+  private final static String OP_COMPARAISON = "operator.comparison";
+  private final static String OP_BITWISE = "operator.bitwise";
 
-  private static String FCT_MATH = "functions.math";
-  private static String FCT_TIMEUNIT = "functions.timeunit";
-  private static String FCT_TRIGO = "functions.trigonometry";
-  private static String FCT_DATE = "functions.date";
-  private static String FCT_STRING = "functions.string";
-  private static String FCT_LIST = "functions.list";
-  private static String FCT_STACK = "functions.stack";
-  private static String FCT_GTS = "functions.gts";
-  private static String FCT_LOGIC_STRUCTURE = "functions.logicStructures";
-  private static String FCT_PLATFORM = "functions.platform";
-  private static String FCT_OUTLIER = "functions.outlier";
-  private static String FCT_BUCKETIZED  = "functions.bucketized";
-  private static String FCT_GEO  = "functions.geo";
-  private static String FCT_TYPE_CONVERSION  = "functions.typeConversion";
+  private final static String FCT_MATH = "functions.math";
+  private final static String FCT_TIMEUNIT = "functions.timeunit";
+  private final static String FCT_TRIGO = "functions.trigonometry";
+  private final static String FCT_DATE = "functions.date";
+  private final static String FCT_STRING = "functions.string";
+  private final static String FCT_LIST = "functions.list";
+  private final static String FCT_STACK = "functions.stack";
+  private final static String FCT_GTS = "functions.gts";
+  private final static String FCT_LOGIC_STRUCTURE = "functions.logicStructures";
+  private final static String FCT_PLATFORM = "functions.platform";
+  private final static String FCT_OUTLIER = "functions.outlier";
+  private final static String FCT_BUCKETIZED  = "functions.bucketized";
+  private final static String FCT_GEO  = "functions.geo";
+  private final static String FCT_TYPE_CONVERSION  = "functions.typeConversion";
+  private final static String FCT_MISC  = "functions.misc";
 
-  private static String MACROS = "macros";
+  private final static String SINGLE_VALUE_MAPPER = "mapper.singleValue";
+  private final static String SLIDING_WINDOW_MAPPER = "mapper.slidingWindow";
+  private final static String GEO_MAPPER = "mapper.geo";
+  private final static String CUSTOM_MAPPER = "mapper.custom";
+
+  private final static String DEFAULT_REDUCER = "reducer.default";
+  private final static String CUSTOM_REDUCER = "reducer.custom";
+
+  private final static String DEFAULT_FILTER = "filter.default";
+  private final static String CUSTOM_FILTER = "filter.custom";
+
+  private final static String DEFAULT_BUCKETIZER = "bucketizer.default";
+  private final static String CUSTOM_BUCKETIZER = "bucketizer.custom";
+
+  private final static String DEFAULT_OP = "op.default";
 
   public static void main(String[] args) throws Exception {
     List<String> functionsFullList = new ArrayList<>();
@@ -85,15 +98,14 @@ public class ExportFunctions {
     // -------------------------------------------------------------
     // output functions by category
     // -------------------------------------------------------------
-    Map<String, List<String>> frameworksFunctions = new HashMap<>();
-    frameworksFunctions.put("MAP", new ArrayList<String>());
-    frameworksFunctions.put("REDUCE", new ArrayList<String>());
-    frameworksFunctions.put("APPLY", new ArrayList<String>());
-    frameworksFunctions.put("FILTER", new ArrayList<String>());
-    frameworksFunctions.put("BUCKETIZE", new ArrayList<String>());
+    Map<String, Map<String,List<String>>> frameworksFunctions = new HashMap<>();
+    frameworksFunctions.put("MAP", getFrameworkStructure(SINGLE_VALUE_MAPPER, SLIDING_WINDOW_MAPPER, GEO_MAPPER, CUSTOM_MAPPER));
+    frameworksFunctions.put("REDUCE", getFrameworkStructure(DEFAULT_REDUCER, CUSTOM_REDUCER) );
+    frameworksFunctions.put("APPLY", getFrameworkStructure(DEFAULT_OP));
+    frameworksFunctions.put("FILTER", getFrameworkStructure(DEFAULT_FILTER, CUSTOM_FILTER));
+    frameworksFunctions.put("BUCKETIZE", getFrameworkStructure(DEFAULT_BUCKETIZER, CUSTOM_BUCKETIZER));
 
     Map<String, List<String>> operators = new HashMap<>();
-    //functions.put(CONSTANTS, new ArrayList<String>());
     operators.put(OP_ARITMETIC, new ArrayList<String>());
     operators.put(OP_LOGICAL, new ArrayList<String>());
     operators.put(OP_COMPARAISON, new ArrayList<String>());
@@ -114,9 +126,9 @@ public class ExportFunctions {
     functions.put(FCT_BUCKETIZED, new ArrayList<String>());
     functions.put(FCT_GEO, new ArrayList<String>());
     functions.put(FCT_TYPE_CONVERSION, new ArrayList<String>());
+    functions.put(FCT_MISC, new ArrayList<String>());
 
     List<String> constants = new ArrayList<String>();
-    List<String> macros = new ArrayList<String>();
 
     // -------------------------------------------------------------
     // patterns
@@ -127,24 +139,50 @@ public class ExportFunctions {
     Pattern applyPattern = Pattern.compile("op\\..*");
     Pattern filterPattern = Pattern.compile("filter\\..*");
     Pattern processingPattern = Pattern.compile("P[a-z].*");
-    Pattern macroPattern = Pattern.compile("MACRO.*");
 
 
+    // -------------------------------------------------------------
     // STATIC CATEGORISATION
+    // -------------------------------------------------------------
     List<String> frameworks = Lists.newArrayList("MAP", "REDUCE", "BUCKETIZE", "APPLY", "FILTER");
-    List<String> structure = Lists.newArrayList("[", "]", "{", "}", "<%", "%>", "<S", "S>", "<'", "'>");
+    List<String> structures = Lists.newArrayList("[", "]", "[]", "{", "}", "{}", "<%", "%>", "<S", "S>", "<'", "'>");
 
+    // -------------------------------------------------------------
     // OPERATORS
+    // -------------------------------------------------------------
     Map<String, List<String>> staticOperators = new HashMap<>();
     staticOperators.put(OP_ARITMETIC, Lists.newArrayList("+", "-", "*", "**", "/", "%"));
     staticOperators.put(OP_LOGICAL, Lists.newArrayList("&&", "||", "!", "AND", "OR", "NOT"));
     staticOperators.put(OP_COMPARAISON, Lists.newArrayList("==", "~=", "!=", "<=", ">=", "<", ">"));
     staticOperators.put(OP_BITWISE, Lists.newArrayList("<<", ">>", ">>>", "&", "|", "^", "~"));
 
+    // -------------------------------------------------------------
     // CONSTS
+    // -------------------------------------------------------------
     List<String> staticConstants = Lists.newArrayList("E", "e","MAXLONG","MINLONG","NaN","NULL","PI","pi", "max.time.sliding.window", "max.tick.sliding.window");
 
-    List<String> staticMacros = Lists.newArrayList("MACROMAPPER","MACROREDUCER","MACROFILTER","STRICTMAPPER","MACROBUCKETIZER");
+    // -------------------------------------------------------------
+    // FRAMEWORK MAP
+    // -------------------------------------------------------------
+    List<String> singleValueMapper = Lists.newArrayList("mapper.abs","mapper.add","mapper.mul","mapper.ceil","mapper.floor","mapper.round","mapper.toboolean","mapper.todouble","mapper.tolong","mapper.tostring","mapper.tick","mapper.yearmapper.month","mapper.day","mapper.weekday","mapper.hour","mapper.minute","mapper.second","mapper.exp","mapper.log","mapper.pow","mapper.tanh","mapper.sigmoid");
+    List<String> geoMapper = Lists.newArrayList("mapper.geo.within","mapper.geo.outside");
+    List<String> customMapper = Lists.newArrayList("MACROMAPPER","STRICTMAPPER");
+
+    // -------------------------------------------------------------
+    // FRAMEWORK REDUCE
+    // -------------------------------------------------------------
+    List<String> customReducer = Lists.newArrayList("MACROREDUCER");
+
+    // -------------------------------------------------------------
+    // FRAMEWORK BUCKETIZE
+    // -------------------------------------------------------------
+    List<String> customBucketizer = Lists.newArrayList();
+
+    // -------------------------------------------------------------
+    // FRAMEWORK FILTER
+    // -------------------------------------------------------------
+    List<String> customFilter = Lists.newArrayList();
+
 
     // FUNCTIONS
     Map<String, List<String>> staticFunctions = new HashMap<>();
@@ -153,7 +191,7 @@ public class ExportFunctions {
     staticFunctions.put(FCT_TRIGO, Lists.newArrayList("COS","COSH","ACOS","SIN","SINH","ASIN","TAN","TANH","ATAN","TODEGREES","TORADIANS"));
     staticFunctions.put(FCT_DATE, Lists.newArrayList("DURATION","ISO8601","MSTU","NOW","STU","TSELEMENTS"));
     staticFunctions.put(FCT_STRING, Lists.newArrayList("->HEX","B64TOHEX","B64->","B64URL->","BINTOHEX","FROMBIN","FROMBITS","FROMHEX","HASH","HEX->","HEXTOB64","HEXTOBIN","JOIN","MATCH","MATCHER","SPLIT","SUBSTRING","TEMPLATE","->B64URL","->B64","TOBIN","TOBITS","TOHEX","TOLOWER","TOUPPER","TRIM","URLDECODE","URLENCODE","UUID"));
-    staticFunctions.put(FCT_LIST, Lists.newArrayList("[]","{}","{","}","[","]","->LIST","->MAP","APPEND","CLONEREVERSE","CONTAINSKEY","CONTAINS","CONTAINSVALUE","FLATTEN","GET","KEYLIST","LFLATMAP","LIST->","LMAP","LSORT","MAP->","MSORT","PUT","REMOVE","REVERSE","SET","SIZE","SUBLIST","SUBMAP","UNIQUE","VALUELIST","ZIP"));
+    staticFunctions.put(FCT_LIST, Lists.newArrayList("->LIST","->MAP","APPEND","CLONEREVERSE","CONTAINSKEY","CONTAINS","CONTAINSVALUE","FLATTEN","GET","KEYLIST","LFLATMAP","LIST->","LMAP","LSORT","MAP->","MSORT","PUT","REMOVE","REVERSE","SET","SIZE","SUBLIST","SUBMAP","UNIQUE","VALUELIST","ZIP"));
     staticFunctions.put(FCT_LOGIC_STRUCTURE, Lists.newArrayList("ISNaN","ISNULL","ASSERT","BREAK","CONTINUE","DEFINED","EVAL","FAIL","FOREACH","FOR","FORSTEP","IFTE","IFT","MSGFAIL","NRETURN","RETURN","STOP","SWITCH","UNTIL","WHILE"));
     staticFunctions.put(FCT_PLATFORM, Lists.newArrayList("EVALSECURE","IDENT","JSONLOOSE","JSONSTRICT","LIMIT","MAXBUCKETS","MAXDEPTH","MAXGTS","MAXLOOP","MAXOPS","MAXSYMBOLS","NOOP","OPS","RESTORE","REV","SAVE","SECUREKEY","TOKENINFO","UNSECURE","URLFETCH","WEBCALL"));
     staticFunctions.put(FCT_GTS, Lists.newArrayList("ADDVALUE","ATINDEX","ATTICK","BBOX","CLONE","CLONEEMPTY","COMMONTICKS","COMPACT","CORRELATE","DEDUP","ELEVATIONS","FETCH","FETCHBOOLEAN","FETCHDOUBLE","FETCHLONG","FETCHSTRING","FILLTICKS","FIND","FIRSTTICK","INTEGRATE","ISONORMALIZE","LABELS","LASTSORT","LASTTICK","LOCATIONS","LOWESS","MERGE","META","METASORT","MUSIGMA","NAME","NEWGTS","NONEMPTY","NORMALIZE","NSUMSUMSQ","PARSESELECTOR","QUANTIZE","RANGECOMPACT","RELABEL","RENAME","RESETS","RLOWESS","RSORT","SHRINK","SINGLEEXPONENTIALSMOOTHING","SORT","STANDARDIZE","TICKINDEX","TICKLIST","TICKS","TIMECLIP","TIMEMODULO","TIMESCALE","TIMESHIFT","TIMESPLIT","TOSELECTOR","UNWRAP","UPDATE","VALUES","WRAP","ZSCORE"));
@@ -163,20 +201,10 @@ public class ExportFunctions {
     staticFunctions.put(FCT_TYPE_CONVERSION, Lists.newArrayList("->JSON","JSON->","TODOUBLE","TOLONG","TOSTRING","TOTIMESTAMP"));
     staticFunctions.put(FCT_STACK, Lists.newArrayList("AUTHENTICATE","BOOTSTRAP","COUNTTOMARK","CLEAR","CLEARTOMARK","CSTORE","DEF","DEPTH","DEBUGON","DEBUGOFF","DOC","DOCMODE","DROP","DROPN","DUP","DUPN","EXPORT","FORGET","LOAD","MARK","NDEBUGON","PICK","ROLL","ROLLD","ROT","RUN","STORE","SWAP","TYPEOF"));
 
-
-    /*
-
-
-
-
-
-
-     */
-
     // Sort all functions list
     for (String function: functionsFullList) {
-      // exclude frameworks
-      if (frameworks.contains(function)) {
+      // exclude frameworks  and structures
+      if (frameworks.contains(function) || structures.contains(function)) {
         continue;
       }
 
@@ -189,27 +217,48 @@ public class ExportFunctions {
       // test frameworks patterns
       // -----------------------------------------------
       if (mapPattern.matcher(function).matches()) {
-        frameworksFunctions.get("MAP").add(function);
+        if (singleValueMapper.contains(function)) {
+          frameworksFunctions.get("MAP").get(SINGLE_VALUE_MAPPER).add(function);
+        } else if (geoMapper.contains(function)) {
+          frameworksFunctions.get("MAP").get(GEO_MAPPER).add(function);
+        } else if (customMapper.contains(function)) {
+          frameworksFunctions.get("MAP").get(CUSTOM_MAPPER).add(function);
+        } else {
+          frameworksFunctions.get("MAP").get(SLIDING_WINDOW_MAPPER).add(function);
+        }
+
         continue;
       }
 
       if (reducePattern.matcher(function).matches()) {
-        frameworksFunctions.get("REDUCE").add(function);
+        if (customReducer.contains(function)) {
+          frameworksFunctions.get("REDUCE").get(CUSTOM_REDUCER).add(function);
+        } else {
+          frameworksFunctions.get("REDUCE").get(DEFAULT_REDUCER).add(function);
+        }
         continue;
       }
 
       if (bucketizePattern.matcher(function).matches()) {
-        frameworksFunctions.get("BUCKETIZE").add(function);
-        continue;
-      }
-
-      if (applyPattern.matcher(function).matches()) {
-        frameworksFunctions.get("APPLY").add(function);
+        if (customBucketizer.contains(function)) {
+          frameworksFunctions.get("BUCKETIZE").get(CUSTOM_BUCKETIZER).add(function);
+        } else {
+          frameworksFunctions.get("BUCKETIZE").get(DEFAULT_BUCKETIZER).add(function);
+        }
         continue;
       }
 
       if (filterPattern.matcher(function).matches()) {
-        frameworksFunctions.get("FILTER").add(function);
+        if (customFilter.contains(function)) {
+          frameworksFunctions.get("FILTER").get(CUSTOM_FILTER).add(function);
+        } else {
+          frameworksFunctions.get("FILTER").get(DEFAULT_FILTER).add(function);
+        }
+        continue;
+      }
+
+      if (applyPattern.matcher(function).matches()) {
+        frameworksFunctions.get("APPLY").get(DEFAULT_OP).add(function);
         continue;
       }
 
@@ -223,10 +272,6 @@ public class ExportFunctions {
         continue;
       }
 
-      if (staticMacros.contains(function)) {
-        macros.add(function);
-        continue;
-      }
 
       // ---------------------------------------------
       // Values with static categorisation (operators)
@@ -262,21 +307,37 @@ public class ExportFunctions {
         continue;
       }
 
-      System.out.println(function);
-
+      // -------------------------------------------------------------
+      // Uncategorized function add it to function.misc
+      // -------------------------------------------------------------
+      functions.get(FCT_MISC).add(function);
     }
 
+
+    // -------------------------------------------------------------
     // build output json object
+    // -------------------------------------------------------------
     Map<String, Object> output = new HashMap<>();
 
     output.put("frameworks", frameworksFunctions);
     output.put("operators", operators);
     output.put("functions", functions);
     output.put("constants", constants);
-    output.put("macros", macros);
+    output.put("structures", structures);
 
     ObjectMapper jsonOutput =  JsonFactory.create();
     System.out.println(jsonOutput.toJson(output));
   }
 
+  private static Map<String, List<String>> getFrameworkStructure(String... categories) {
+    Map<String, List<String>> fmk = new HashMap<>();
+
+    for (String category : categories) {
+      fmk.put(category, new ArrayList<String>());
+    }
+
+    return fmk;
+  }
 }
+
+
