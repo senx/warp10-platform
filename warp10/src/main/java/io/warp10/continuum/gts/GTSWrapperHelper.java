@@ -29,6 +29,11 @@ import java.util.zip.GZIPOutputStream;
 
 public class GTSWrapperHelper {
 
+  /**
+   * Default compression ratio threshold
+   */
+  private static final double DEFAULT_COMP_RATIO_THRESHOLD = 100.0D;
+  
   public static GTSDecoder fromGTSWrapperToGTSDecoder(GTSWrapper wrapper) {
     
     byte[] unwrapped = unwrapEncoded(wrapper);
@@ -86,7 +91,15 @@ public class GTSWrapperHelper {
   }
   
   public static GTSWrapper fromGTSEncoderToGTSWrapper(GTSEncoder encoder, boolean compress) {
+    return fromGTSEncoderToGTSWrapper(encoder, compress, DEFAULT_COMP_RATIO_THRESHOLD);
+  }
+  
+  public static GTSWrapper fromGTSEncoderToGTSWrapper(GTSEncoder encoder, boolean compress, double compratio) {
 
+    if (compratio <= 1.0D) {
+      compratio = DEFAULT_COMP_RATIO_THRESHOLD;
+    }
+        
     GTSWrapper wrapper = new GTSWrapper();
 
     try {      
@@ -123,7 +136,7 @@ public class GTSWrapperHelper {
           baos.reset();
           ratio = ratio / bytes.length;
           pass++;
-        } while (ratio >= 100.0D);
+        } while (ratio >= compratio);
         
         if (ratio > 1.0D) {
           // The last compression pass improved the footprint, so use the compressed data
@@ -162,6 +175,10 @@ public class GTSWrapperHelper {
    * @return GTSWrapper
    */
   public static GTSWrapper fromGTSToGTSWrapper(GeoTimeSerie gts, boolean compress) {
+    return fromGTSToGTSWrapper(gts, compress, DEFAULT_COMP_RATIO_THRESHOLD);
+  }
+  
+  public static GTSWrapper fromGTSToGTSWrapper(GeoTimeSerie gts, boolean compress, double compratio) {
 
     GTSEncoder encoder = new GTSEncoder(0L);
     encoder.setMetadata(gts.getMetadata());
@@ -171,7 +188,7 @@ public class GTSWrapperHelper {
     } catch (IOException ioe) {      
     }
 
-    GTSWrapper wrapper = fromGTSEncoderToGTSWrapper(encoder, compress);
+    GTSWrapper wrapper = fromGTSEncoderToGTSWrapper(encoder, compress, compratio);
     
     if (GTSHelper.isBucketized(gts)) {
       wrapper.setBucketcount(gts.bucketcount);
