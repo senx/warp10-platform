@@ -138,7 +138,7 @@ public class ExportFunctions {
     functions.put(FCT_TYPE_CONVERSION, new ArrayList<String>());
     functions.put(FCT_MISC, new ArrayList<String>());
 
-    List<String> constants = new ArrayList<>();
+    List<String> constants = Lists.newArrayList("true","false");
 
     // -------------------------------------------------------------
     // patterns
