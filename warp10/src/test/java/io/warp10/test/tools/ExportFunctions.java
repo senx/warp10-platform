@@ -14,10 +14,12 @@
 //   limitations under the License.
 //
 
-package io.warp10.script;
+package io.warp10.test.tools;
 
 
 import com.google.common.collect.Lists;
+import io.warp10.script.JavaLibrary;
+import io.warp10.script.WarpScriptLib;
 import org.boon.json.JsonFactory;
 import org.boon.json.ObjectMapper;
 
