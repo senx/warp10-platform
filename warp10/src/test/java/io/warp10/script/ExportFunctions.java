@@ -100,6 +100,7 @@ public class ExportFunctions {
       functionsFullList.addAll(functions.keySet());
     } catch (Exception exp) {
       exp.printStackTrace();
+      throw exp;
     }
 
     // -------------------------------------------------------------
