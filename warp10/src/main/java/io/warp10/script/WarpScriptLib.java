@@ -268,7 +268,6 @@ public class WarpScriptLib {
     functions.put("PUT", new PUT("PUT"));
     functions.put("SUBMAP", new SUBMAP("SUBMAP"));
     functions.put("SUBLIST", new SUBLIST("SUBLIST"));
-    functions.put("DEVICES", new DEVICES("DEVICES"));
     functions.put("KEYLIST", new KEYLIST("KEYLIST"));
     functions.put("VALUELIST", new VALUELIST("VALUELIST"));
     functions.put("SIZE", new SIZE("SIZE"));
@@ -381,7 +380,10 @@ public class WarpScriptLib {
     functions.put("^", new BitwiseXOR("^"));
     functions.put("~=", new ALMOSTEQ("~="));
 
+    // Bitset ops
     functions.put("BITGET", new BITGET("BITGET"));
+    functions.put("BITSTOBYTES", new BITSTOBYTES("BITSTOBYTES"));
+    functions.put("BYTESTOBITS", new BYTESTOBITS("BYTESTOBITS"));
     
     // Unary ops    
     functions.put("!", new NOT("!"));
