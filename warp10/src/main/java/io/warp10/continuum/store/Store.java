@@ -1086,8 +1086,8 @@ public class Store extends Thread {
       Metadata meta = msg.getMetadata();
       if (null != meta) {
         Map<String, String> labels = new HashMap<>();
-        labels.put(Constants.OWNER_LABEL, meta.getLabels().get(Constants.OWNER_LABEL));
-        labels.put(Constants.APPLICATION_LABEL, meta.getLabels().get(Constants.APPLICATION_LABEL));
+        labels.put(SensisionConstants.SENSISION_LABEL_OWNER, meta.getLabels().get(Constants.OWNER_LABEL));
+        labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, meta.getLabels().get(Constants.APPLICATION_LABEL));
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS_PEROWNERAPP, labels, noOfDeletedVersions);
       }
     }
