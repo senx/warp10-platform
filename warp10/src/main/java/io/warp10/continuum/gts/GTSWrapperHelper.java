@@ -115,13 +115,15 @@ public class GTSWrapperHelper {
 
         //
         // We compress the data once, if the compression ratio is greater
-        // than 100, we consider that the resulting compressed data will
+        // than 'compratio', we consider that the resulting compressed data will
         // probably still have lots of repetitions since we will have
         // overflowed the gzip sliding window several times, we therefore
         // enter a loop to compress the data until the compression ratio
-        // false below 1:100
+        // falls below 'compratio'
         // We then store the number of compression passes in the GTSWrapper
         // so we can apply a matching number of decompression ops
+        //
+        // For ultimate compression, set 'compratio' to 1.0
         //
         
         byte[] encoded = null;
@@ -136,7 +138,7 @@ public class GTSWrapperHelper {
           baos.reset();
           ratio = ratio / bytes.length;
           pass++;
-        } while (ratio >= compratio);
+        } while (ratio > compratio);
         
         if (ratio > 1.0D) {
           // The last compression pass improved the footprint, so use the compressed data
