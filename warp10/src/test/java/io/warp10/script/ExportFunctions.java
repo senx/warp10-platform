@@ -75,6 +75,13 @@ public class ExportFunctions {
 
   private final static String DEFAULT_OP = "op.default";
 
+  // WARP SCRIPT FRAMEWORKS
+  private final static String FMK_MAP = "MAP";
+  private final static String FMK_REDUCE = "REDUCE";
+  private final static String FMK_FILTER = "FILTER";
+  private final static String FMK_APPLY = "APPLY";
+  private final static String FMK_BUCKETIZE = "BUCKETIZE";
+
   public static void main(String[] args) throws Exception {
     List<String> functionsFullList = new ArrayList<>();
     try {
@@ -99,11 +106,11 @@ public class ExportFunctions {
     // output functions by category
     // -------------------------------------------------------------
     Map<String, Map<String,List<String>>> frameworksFunctions = new HashMap<>();
-    frameworksFunctions.put("MAP", getFrameworkStructure(SINGLE_VALUE_MAPPER, SLIDING_WINDOW_MAPPER, GEO_MAPPER, CUSTOM_MAPPER));
-    frameworksFunctions.put("REDUCE", getFrameworkStructure(DEFAULT_REDUCER, CUSTOM_REDUCER) );
-    frameworksFunctions.put("APPLY", getFrameworkStructure(DEFAULT_OP));
-    frameworksFunctions.put("FILTER", getFrameworkStructure(DEFAULT_FILTER, CUSTOM_FILTER));
-    frameworksFunctions.put("BUCKETIZE", getFrameworkStructure(DEFAULT_BUCKETIZER, CUSTOM_BUCKETIZER));
+    frameworksFunctions.put(FMK_MAP, getFrameworkStructure(SINGLE_VALUE_MAPPER, SLIDING_WINDOW_MAPPER, GEO_MAPPER, CUSTOM_MAPPER));
+    frameworksFunctions.put(FMK_REDUCE, getFrameworkStructure(DEFAULT_REDUCER, CUSTOM_REDUCER) );
+    frameworksFunctions.put(FMK_APPLY, getFrameworkStructure(DEFAULT_OP));
+    frameworksFunctions.put(FMK_FILTER, getFrameworkStructure(DEFAULT_FILTER, CUSTOM_FILTER));
+    frameworksFunctions.put(FMK_BUCKETIZE, getFrameworkStructure(DEFAULT_BUCKETIZER, CUSTOM_BUCKETIZER));
 
     Map<String, List<String>> operators = new HashMap<>();
     operators.put(OP_ARITMETIC, new ArrayList<String>());
@@ -128,7 +135,7 @@ public class ExportFunctions {
     functions.put(FCT_TYPE_CONVERSION, new ArrayList<String>());
     functions.put(FCT_MISC, new ArrayList<String>());
 
-    List<String> constants = new ArrayList<String>();
+    List<String> constants = new ArrayList<>();
 
     // -------------------------------------------------------------
     // patterns
@@ -144,7 +151,7 @@ public class ExportFunctions {
     // -------------------------------------------------------------
     // STATIC CATEGORISATION
     // -------------------------------------------------------------
-    List<String> frameworks = Lists.newArrayList("MAP", "REDUCE", "BUCKETIZE", "APPLY", "FILTER");
+    List<String> frameworks = Lists.newArrayList(FMK_MAP, FMK_REDUCE, FMK_BUCKETIZE, FMK_APPLY, FMK_FILTER);
     List<String> structures = Lists.newArrayList("[", "]", "[]", "{", "}", "{}", "<%", "%>", "<S", "S>", "<'", "'>");
 
     // -------------------------------------------------------------
@@ -218,13 +225,13 @@ public class ExportFunctions {
       // -----------------------------------------------
       if (mapPattern.matcher(function).matches()) {
         if (singleValueMapper.contains(function)) {
-          frameworksFunctions.get("MAP").get(SINGLE_VALUE_MAPPER).add(function);
+          frameworksFunctions.get(FMK_MAP).get(SINGLE_VALUE_MAPPER).add(function);
         } else if (geoMapper.contains(function)) {
-          frameworksFunctions.get("MAP").get(GEO_MAPPER).add(function);
+          frameworksFunctions.get(FMK_MAP).get(GEO_MAPPER).add(function);
         } else if (customMapper.contains(function)) {
-          frameworksFunctions.get("MAP").get(CUSTOM_MAPPER).add(function);
+          frameworksFunctions.get(FMK_MAP).get(CUSTOM_MAPPER).add(function);
         } else {
-          frameworksFunctions.get("MAP").get(SLIDING_WINDOW_MAPPER).add(function);
+          frameworksFunctions.get(FMK_MAP).get(SLIDING_WINDOW_MAPPER).add(function);
         }
 
         continue;
@@ -232,33 +239,33 @@ public class ExportFunctions {
 
       if (reducePattern.matcher(function).matches()) {
         if (customReducer.contains(function)) {
-          frameworksFunctions.get("REDUCE").get(CUSTOM_REDUCER).add(function);
+          frameworksFunctions.get(FMK_REDUCE).get(CUSTOM_REDUCER).add(function);
         } else {
-          frameworksFunctions.get("REDUCE").get(DEFAULT_REDUCER).add(function);
+          frameworksFunctions.get(FMK_REDUCE).get(DEFAULT_REDUCER).add(function);
         }
         continue;
       }
 
       if (bucketizePattern.matcher(function).matches()) {
         if (customBucketizer.contains(function)) {
-          frameworksFunctions.get("BUCKETIZE").get(CUSTOM_BUCKETIZER).add(function);
+          frameworksFunctions.get(FMK_BUCKETIZE).get(CUSTOM_BUCKETIZER).add(function);
         } else {
-          frameworksFunctions.get("BUCKETIZE").get(DEFAULT_BUCKETIZER).add(function);
+          frameworksFunctions.get(FMK_BUCKETIZE).get(DEFAULT_BUCKETIZER).add(function);
         }
         continue;
       }
 
       if (filterPattern.matcher(function).matches()) {
         if (customFilter.contains(function)) {
-          frameworksFunctions.get("FILTER").get(CUSTOM_FILTER).add(function);
+          frameworksFunctions.get(FMK_FILTER).get(CUSTOM_FILTER).add(function);
         } else {
-          frameworksFunctions.get("FILTER").get(DEFAULT_FILTER).add(function);
+          frameworksFunctions.get(FMK_FILTER).get(DEFAULT_FILTER).add(function);
         }
         continue;
       }
 
       if (applyPattern.matcher(function).matches()) {
-        frameworksFunctions.get("APPLY").get(DEFAULT_OP).add(function);
+        frameworksFunctions.get(FMK_APPLY).get(DEFAULT_OP).add(function);
         continue;
       }
 
