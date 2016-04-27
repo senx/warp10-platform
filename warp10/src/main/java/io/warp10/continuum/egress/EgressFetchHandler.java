@@ -285,6 +285,8 @@ public class EgressFetchHandler extends AbstractHandler {
       }      
     }
     
+    boolean showAttr = "true".equals(req.getParameter(Constants.HTTP_PARAM_SHOWATTR));
+    
     //
     // Extract the class and labels selectors
     // The class selector and label selectors are supposed to have
@@ -620,9 +622,9 @@ public class EgressFetchHandler extends AbstractHandler {
         if (metas.size() > FETCH_BATCHSIZE || !itermeta.hasNext()) {
           try(GTSDecoderIterator iter = storeClient.fetch(rtoken, metas, now, timespan, fromArchive, writeTimestamp)) {
             if("text".equals(format)) {
-              textDump(resp, iter, now, timespan, false, dedup, signed);
+              textDump(resp, iter, now, timespan, false, dedup, signed, showAttr);
             } else if ("fulltext".equals(format)) {
-              textDump(resp, iter, now, timespan, true, dedup, signed);
+              textDump(resp, iter, now, timespan, true, dedup, signed, showAttr);
             } else if ("raw".equals(format)) {
               rawDump(resp, iter, dedup, signed);
             } else if ("wrapper".equals(format)) {
@@ -634,7 +636,7 @@ public class EgressFetchHandler extends AbstractHandler {
             } else if ("fulltsv".equals(format)) {
               tsvDump(resp, iter, now, timespan, true, dedup, signed);
             } else {
-              textDump(resp, iter, now, timespan, false, dedup, signed);
+              textDump(resp, iter, now, timespan, false, dedup, signed, showAttr);
             }
           } catch (Exception e) {
             LOG.error("",e);
@@ -860,7 +862,7 @@ public class EgressFetchHandler extends AbstractHandler {
    * Output a text version of fetched data. Deduplication is done on the fly so we don't decode twice.
    * 
    */
-  private static void textDump(HttpServletResponse resp, GTSDecoderIterator iter, long now, long timespan, boolean raw, boolean dedup, boolean signed) throws IOException {
+  private static void textDump(HttpServletResponse resp, GTSDecoderIterator iter, long now, long timespan, boolean raw, boolean dedup, boolean signed, boolean showAttributes) throws IOException {
     
     //resp.setContentType("text/plain");
     
@@ -921,6 +923,15 @@ public class EgressFetchHandler extends AbstractHandler {
           first = false;
         }
         sb.append("}");
+        
+        if (showAttributes) {
+          Metadata meta = decoder.getMetadata();
+          if (meta.getAttributesSize() > 0) {
+            GTSHelper.labelsToString(sb, meta.getAttributes());
+          } else {
+            sb.append("{}");
+          }          
+        }
       }
       
       long timestamp = 0L;

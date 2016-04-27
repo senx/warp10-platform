@@ -279,6 +279,7 @@ public class Constants {
   public static final String HTTP_PARAM_DRYRUN = "dryrun";
   public static final String HTTP_PARAM_MINAGE = "minage";
   public static final String HTTP_PARAM_SHOWUUID = "showuuid";
+  public static final String HTTP_PARAM_SHOWATTR = "showattr";
   public static final String HTTP_PARAM_MINSPLITS = "minsplits";
   public static final String HTTP_PARAM_MAXSPLITS = "maxsplits";
 
