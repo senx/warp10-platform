@@ -224,6 +224,8 @@ public class ExportFunctions {
       // -----------------------------------------------
       // test frameworks patterns
       // -----------------------------------------------
+
+      // MAP
       if (mapPattern.matcher(function).matches()) {
         if (singleValueMapper.contains(function)) {
           frameworksFunctions.get(FMK_MAP).get(SINGLE_VALUE_MAPPER).add(function);
@@ -238,6 +240,7 @@ public class ExportFunctions {
         continue;
       }
 
+      // REDUCE
       if (reducePattern.matcher(function).matches()) {
         if (customReducer.contains(function)) {
           frameworksFunctions.get(FMK_REDUCE).get(CUSTOM_REDUCER).add(function);
@@ -247,6 +250,7 @@ public class ExportFunctions {
         continue;
       }
 
+      // BUCKETIZE
       if (bucketizePattern.matcher(function).matches()) {
         if (customBucketizer.contains(function)) {
           frameworksFunctions.get(FMK_BUCKETIZE).get(CUSTOM_BUCKETIZER).add(function);
@@ -256,6 +260,7 @@ public class ExportFunctions {
         continue;
       }
 
+      // FILTER
       if (filterPattern.matcher(function).matches()) {
         if (customFilter.contains(function)) {
           frameworksFunctions.get(FMK_FILTER).get(CUSTOM_FILTER).add(function);
@@ -265,6 +270,7 @@ public class ExportFunctions {
         continue;
       }
 
+      // APPLY
       if (applyPattern.matcher(function).matches()) {
         frameworksFunctions.get(FMK_APPLY).get(DEFAULT_OP).add(function);
         continue;
@@ -316,7 +322,7 @@ public class ExportFunctions {
       }
 
       // -------------------------------------------------------------
-      // Uncategorized function add it to function.misc
+      // Uncategorized function. Add it to function.misc
       // -------------------------------------------------------------
       functions.get(FCT_MISC).add(function);
     }
