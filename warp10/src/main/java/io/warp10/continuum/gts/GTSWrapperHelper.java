@@ -96,8 +96,8 @@ public class GTSWrapperHelper {
   
   public static GTSWrapper fromGTSEncoderToGTSWrapper(GTSEncoder encoder, boolean compress, double compratio) {
 
-    if (compratio <= 1.0D) {
-      compratio = DEFAULT_COMP_RATIO_THRESHOLD;
+    if (compratio < 1.0D) {
+      compratio = 1.0D;
     }
         
     GTSWrapper wrapper = new GTSWrapper();
