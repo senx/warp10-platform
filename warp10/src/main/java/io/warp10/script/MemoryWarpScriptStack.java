@@ -479,8 +479,19 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
         //statements = line.split(" +");
         statements = UnsafeString.split(line, ' ');
       } else {
+        // We're either in multiline mode or the line had no whitespace inside
         statements = new String[1];
-        statements[0] = inMultiline.get() ? rawline : line;
+        if (inMultiline.get()) {
+          // If the line only contained the end of multiline indicator with possible wsp on both sides
+          // then set the statement to that, otherwise set it to the raw line
+          if(WarpScriptStack.MULTILINE_END.equals(line)) {
+            statements[0] = line;
+          } else {
+            statements[0] = rawline;
+          }
+        } else {
+          statements[0] = line;
+        }
       }
       
       //
@@ -525,19 +536,22 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             throw new WarpScriptException("Not inside a multiline.");
           }
           inMultiline.set(false);
+          
+          String mlcontent = multiline.toString();
+          
           if (null != secureScript) {
             secureScript.append(" ");
             secureScript.append("'");
             try {
-              secureScript.append(URLEncoder.encode(multiline.toString(), "UTF-8"));
+              secureScript.append(URLEncoder.encode(mlcontent, "UTF-8"));
             } catch (UnsupportedEncodingException uee) {              
             }
             secureScript.append("'");
           } else {
             if (macros.isEmpty()) {
-              this.push(multiline.toString());
+              this.push(mlcontent);
             } else {
-              macros.get(0).add(multiline.toString());
+              macros.get(0).add(mlcontent);
             }            
           }
           multiline.setLength(0);
