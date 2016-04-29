@@ -833,10 +833,3 @@ project(':hbaseFilters') {
     //
     bintrayUpload.dependsOn jar
 }
-
-assemble {
-
-}
-
-
-
