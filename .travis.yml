@@ -4,10 +4,7 @@ jdk:
 
 install: /bin/true
 
-script:
-  - gradle crypto:install
-  - gradle token:install
-  - gradle warp10:pack
+script: gradle crypto:install token:install warp10:pack
 
 notifications:
   email: false
