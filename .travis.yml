@@ -7,9 +7,11 @@ jdk:
 
 before_install:
   - sudo apt-get update -qq
-  - wget http://launchpadlibrarian.net/188331461/thrift-compiler_0.9.1-2_amd64.deb
-  - sudo dpkg -i thrift-compiler_0.9.1-2_amd64.deb
-  - thrift --version
+  - wget https://api0.cityzendata.net/assets/thrift/thrift.tar.gz
+  - tar -xvzf thrift.tar.gz
+  - chmod +x thrift
+  - pwd
+  - ./thrift --version
 
 install: true
 
