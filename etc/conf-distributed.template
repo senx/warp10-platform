@@ -6,7 +6,7 @@
 
 //
 // Comma separated list of components to run in distributed mode
-// Valid values are 'ingress', 'directory', 'store', 'egress', 'fetch', 'delete', 'plasmaFE', 'plasmaBE', 'runner', 'geodir'
+// Valid values are 'ingress', 'directory', 'store', 'egress', 'fetch', 'plasmaFE', 'plasmaBE', 'runner', 'geodir'
 //
 continuum.components = 
 
