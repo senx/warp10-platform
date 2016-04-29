@@ -826,7 +826,7 @@ project(':hbaseFilters') {
                 vcsTag = getVersionName(warp10Version['hbaseFilters'])
             }
         }
-      }
+    }
 
     //
     // Tasks dependencies
