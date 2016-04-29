@@ -16,6 +16,10 @@
 
 package io.warp10.standalone;
 
+import io.warp10.continuum.TimeSource;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.sensision.Sensision;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.locks.LockSupport;
@@ -67,6 +71,8 @@ public class StandaloneSnapshotManager extends Thread {
         continue;
       }
       
+      long nano = System.nanoTime();
+      
       //
       // Trigger path exists, suspend compactions
       //
@@ -102,7 +108,7 @@ public class StandaloneSnapshotManager extends Thread {
         //
         
         while(trigger.exists()) {
-          LockSupport.parkNanos(1000000000L);
+          LockSupport.parkNanos(100000000L);
         }
         
         //
@@ -110,6 +116,11 @@ public class StandaloneSnapshotManager extends Thread {
         //
         
         db.resumeCompactions();
+
+        nano = System.nanoTime() - nano;
+        
+        Sensision.update(SensisionConstants.SENSISION_CLASS_WARP_STANDALONE_LEVELDB_SNAPSHOT_REQUESTS, Sensision.EMPTY_LABELS, 1);
+        Sensision.update(SensisionConstants.SENSISION_CLASS_WARP_STANDALONE_LEVELDB_SNAPSHOT_TIME_NS, Sensision.EMPTY_LABELS, nano);
         
         //
         // Remove the signal file

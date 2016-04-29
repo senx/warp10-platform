@@ -390,6 +390,16 @@ public class SensisionConstants {
    */
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_REQUESTS = "warp.standalone.update.stream.requests";
 
+  /*
+   * Number of snapshot requests made to the standalone storage layer 
+   */
+  public static final String SENSISION_CLASS_WARP_STANDALONE_LEVELDB_SNAPSHOT_REQUESTS = "warp.standalone.leveldb.snapshot.requests";
+
+  /**
+   * Time spent with compactions disabled to enable snapshots
+   */
+  public static final String SENSISION_CLASS_WARP_STANDALONE_LEVELDB_SNAPSHOT_TIME_NS = "warp.standalone.leveldb.snapshot.time.ns";
+  
   /**
    * Number of 'update' requests received by the streaming version of continuum
    */
