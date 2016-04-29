@@ -1019,6 +1019,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     
     if (null == value) {
       this.attributes.remove(key);
+      return currentValue;
     } else {
       this.attributes.put(key, value);
     }
