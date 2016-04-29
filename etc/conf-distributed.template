@@ -134,7 +134,7 @@ webcall.host.patterns = !.*
 // us means we store microseconds
 // ms means we store milliseconds
 //
-warp.timeunits = 1000
+warp.timeunits = us
 
 //
 // Path of the 'bootstrap' warpscript code
