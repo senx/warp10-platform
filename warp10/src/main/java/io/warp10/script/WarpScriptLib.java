@@ -345,6 +345,7 @@ public class WarpScriptLib {
     functions.put("NOOP", new NOOP("NOOP"));
     functions.put("DOC", new DOC("DOC"));
     functions.put("DOCMODE", new DOCMODE("DOCMODE"));
+    functions.put("SNAPSHOT", new SNAPSHOT("SNAPSHOT"));
        
     functions.put("MACROMAPPER", new MACROMAPPER("MACROMAPPER"));
     functions.put("MACROREDUCER", new MACROMAPPER("MACROREDUCER"));
