@@ -799,7 +799,7 @@ project(':hbaseFilters') {
     publishing {
         publications {
             hbaseFilters(MavenPublication) {
-                from components.java
+                artifact file("${buildDir}/libs/hbaseFilters-" + getVersionName(warp10Version['warp10']) + ".jar")
                 groupId 'io.warp10'
                 artifactId archivesBaseName
                 version version
@@ -816,7 +816,7 @@ project(':hbaseFilters') {
         publications = [ 'hbaseFilters' ]
 
         pkg {
-            repo = 'maven'
+            repo = 'generic'
             name = 'hbaseFilters'
             licenses = ['Apache-2.0']
             vcsUrl = 'https://github.com/cityzendata/warp10-platform.git'
