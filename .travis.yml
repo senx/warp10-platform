@@ -7,7 +7,7 @@ jdk:
 
 before_install:
   - sudo apt-get update -qq
-  - wget https://launchpad.net/ubuntu/+source/thrift-compiler/0.9.1-2/+build/6501703/+files/thrift-compiler_0.9.1-2_amd64.deb
+  - wget http://launchpadlibrarian.net/188331461/thrift-compiler_0.9.1-2_amd64.deb
   - sudo dpkg -i thrift-compiler_0.9.1-2_amd64.deb
   - thrift --version
 
