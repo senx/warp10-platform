@@ -6,12 +6,12 @@ jdk:
   - oraclejdk8
 
 before_install:
-  - sudo apt-get update -qq
+  # Thrift 0.9.1 is the avaible on ubuntu 14.04
+  # SAD fix waiting 16.04
   - wget https://api0.cityzendata.net/assets/thrift/thrift.tar.gz
   - tar -xvzf thrift.tar.gz
   - chmod +x thrift
-  - pwd
-  - ./thrift --version
+  - sudo mv thrift /usr/local/bin
 
 install: true
 
