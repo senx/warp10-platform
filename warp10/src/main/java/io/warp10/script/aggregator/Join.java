@@ -16,6 +16,9 @@
 
 package io.warp10.script.aggregator;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptAggregatorFunction;
@@ -33,34 +36,47 @@ import io.warp10.script.WarpScriptStack;
 public class Join extends NamedWarpScriptFunction implements WarpScriptAggregatorFunction, WarpScriptMapperFunction, WarpScriptBucketizerFunction, WarpScriptReducerFunction {
   
   private final boolean ignoreNulls;
+
+  private final boolean urlencode;
   
   private final String separator;
+  
+  private final String nullString;
   
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
     
     private final boolean ignoreNulls;
     
-    public Builder(String name, boolean ignoreNulls) {
+    private final boolean urlencode;
+    
+    private final String nulLString;
+    
+    public Builder(String name, boolean ignoreNulls, boolean urlencode, String nullString) {
       super(name);
       this.ignoreNulls = ignoreNulls;
+      this.urlencode = urlencode;
+      this.nulLString = nullString;
     }
     
     @Override
     public Object apply(WarpScriptStack stack) throws WarpScriptException {
       Object sep = stack.pop();
       
-      stack.push(new Join(getName(), sep.toString(), ignoreNulls));
+      stack.push(new Join(getName(), sep.toString(), ignoreNulls, urlencode, nulLString));
       
       return stack;
     }
     
   }
-  public Join(String name, String separator, boolean ignoreNulls) {
+  
+  public Join(String name, String separator, boolean ignoreNulls, boolean urlencode, String nullString) {
     super(name);
     this.separator = separator;
     this.ignoreNulls = ignoreNulls;
+    this.urlencode = urlencode;
+    this.nullString = nullString;
   }
-  
+
   @Override
   public Object apply(Object[] args) throws WarpScriptException {
     long[] ticks = (long[]) args[3];
@@ -80,6 +96,8 @@ public class Join extends NamedWarpScriptFunction implements WarpScriptAggregato
     
     boolean hasNulls = false;
     
+    boolean first =  true;
+    
     for (int i = 0; i < values.length; i++) {
       Object value = values[i];
     
@@ -91,14 +109,31 @@ public class Join extends NamedWarpScriptFunction implements WarpScriptAggregato
     
       if (null == value) {
         hasNulls = true;
+        
+        if (null != nullString) {
+          if (!first) {
+            sb.append(separator);
+            first = false;
+          }
+          sb.append(nullString);
+        }
         continue;
       }
 
-      if (sb.length() > 0) {
+      if (!first) {
         sb.append(separator);
+        first = false;
       }
       
-      sb.append(value.toString());
+      if (urlencode) {
+        try {
+          sb.append(URLEncoder.encode(value.toString(), "UTF-8"));
+        } catch (UnsupportedEncodingException uee) {
+          throw new WarpScriptException(uee);
+        }
+      } else {
+        sb.append(value.toString());
+      }     
     }
 
     String result = null;

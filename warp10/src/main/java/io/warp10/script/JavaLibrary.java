@@ -81,21 +81,21 @@ public class JavaLibrary {
     // Bucketizers
     //
     
-    functions.put("bucketizer.first", new First("bucketizer.first"));                       // doc/einstein/bucketizer_first        Example done   Unit test
-    functions.put("bucketizer.last", new Last("bucketizer.last"));                          // doc/einstein/bucketizer_last         Example done   Unit test
-    functions.put("bucketizer.min", new Min("bucketizer.min", true));                       // doc/einstein/bucketizer_min          Example done   Unit test
-    functions.put("bucketizer.max", new Max("bucketizer.max", true));                       // doc/einstein/bucketizer_max          Example done   Unit test
-    functions.put("bucketizer.mean", new Mean("bucketizer.mean", false));                          // doc/einstein/bucketizer_mean         Example done   Unit test
-    functions.put("bucketizer.median", new Median("bucketizer.median"));                    // doc/einstein/bucketizer_mean         Example done   Unit test
-    functions.put("bucketizer.sum", new Sum("bucketizer.sum", true));                       // doc/einstein/bucketizer_sum          Example done   Unit test
-    functions.put("bucketizer.join", new Join.Builder("bucketizer.join", true));            // doc/einstein/bucketizer_mean         Example done   Unit test
-    functions.put("bucketizer.count", new Count("bucketizer.count", false));                // doc/einstein/bucketizer_count        Example done   Unit test
+    functions.put("bucketizer.first", new First("bucketizer.first"));
+    functions.put("bucketizer.last", new Last("bucketizer.last"));
+    functions.put("bucketizer.min", new Min("bucketizer.min", true));
+    functions.put("bucketizer.max", new Max("bucketizer.max", true));
+    functions.put("bucketizer.mean", new Mean("bucketizer.mean", false));
+    functions.put("bucketizer.median", new Median("bucketizer.median"));
+    functions.put("bucketizer.sum", new Sum("bucketizer.sum", true));
+    functions.put("bucketizer.join", new Join.Builder("bucketizer.join", true, false, null));
+    functions.put("bucketizer.count", new Count("bucketizer.count", false));
     functions.put("bucketizer.percentile", new Percentile.Builder("bucketizer.percentile"));
     functions.put("bucketizer.min.forbid-nulls", new Min("bucketizer.min.forbid-nulls", false));
     functions.put("bucketizer.max.forbid-nulls", new Max("bucketizer.max.forbid-nulls", false));
     functions.put("bucketizer.mean.exclude-nulls", new Mean("bucketizer.mean.exclude-nulls", true));
     functions.put("bucketizer.sum.forbid-nulls", new Sum("bucketizer.sum.forbid-nulls", false));
-    functions.put("bucketizer.join.forbid-nulls", new Join.Builder("bucketizer.join.forbid-nulls", false));
+    functions.put("bucketizer.join.forbid-nulls", new Join.Builder("bucketizer.join.forbid-nulls", false, false, null));
     functions.put("bucketizer.count.exclude-nulls", new Count("bucketizer.count.exclude-nulls", true));
     functions.put("bucketizer.count.include-nulls", new Count("bucketizer.count.include-nulls", false));
     functions.put("bucketizer.count.nonnull", new Count("bucketizer.count.nonnull", true));
@@ -107,34 +107,34 @@ public class JavaLibrary {
     //
     
     functions.put("mapper.count", new Count("mapper.count", false));
-    functions.put("mapper.first", new First("mapper.first"));                           // doc/einstein/mapper_first        Example done   Unit test
-    functions.put("mapper.last", new Last("mapper.last"));                              // doc/einstein/mapper_last         Example done   Unit test
-    functions.put("mapper.min", new Min("mapper.min", true));                           // doc/einstein/mapper_min          Example done   Unit test
-    functions.put("mapper.max", new Max("mapper.max", true));                           // doc/einstein/mapper_max          Example done   Unit test
-    functions.put("mapper.mean", new Mean("mapper.mean", false));                              // doc/einstein/mapper_mean         Example done   Unit test
-    functions.put("mapper.median", new Median("mapper.median"));                        // doc/einstein/mapper_median       Example done   Unit test
-    functions.put("mapper.highest", new Highest("mapper.highest"));                     // doc/einstein/mapper_highest      Example done   Unit test
-    functions.put("mapper.lowest", new Lowest("mapper.lowest"));                        // doc/einstein/mapper_lowest       Example done   Unit test
-    functions.put("mapper.sum", new Sum("mapper.sum", true));                           // doc/einstein/mapper_sum          Example done   Unit test
-    functions.put("mapper.join", new Join.Builder("mapper.join", true));
-    functions.put("mapper.delta", new Delta("mapper.delta"));                           // doc/einstein/mapper_delta        Example done   Unit test
-    functions.put("mapper.rate", new Rate("mapper.rate"));                              // doc/einstein/mapper_rate         Example done   Unit test
-    functions.put("mapper.hspeed", new HSpeed("mapper.hspeed"));                        // doc/einstein/mapper_hspeed       Example done   Unit test
-    functions.put("mapper.hdist", new HDist("mapper.hdist"));                           // doc/einstein/mapper_hdist        Example done   Unit test
+    functions.put("mapper.first", new First("mapper.first"));
+    functions.put("mapper.last", new Last("mapper.last"));
+    functions.put("mapper.min", new Min("mapper.min", true));
+    functions.put("mapper.max", new Max("mapper.max", true));
+    functions.put("mapper.mean", new Mean("mapper.mean", false));
+    functions.put("mapper.median", new Median("mapper.median"));
+    functions.put("mapper.highest", new Highest("mapper.highest"));
+    functions.put("mapper.lowest", new Lowest("mapper.lowest"));
+    functions.put("mapper.sum", new Sum("mapper.sum", true));
+    functions.put("mapper.join", new Join.Builder("mapper.join", true, false, null));
+    functions.put("mapper.delta", new Delta("mapper.delta"));
+    functions.put("mapper.rate", new Rate("mapper.rate"));
+    functions.put("mapper.hspeed", new HSpeed("mapper.hspeed"));
+    functions.put("mapper.hdist", new HDist("mapper.hdist"));
     functions.put("mapper.truecourse", new TrueCourse("mapper.truecourse"));
-    functions.put("mapper.vspeed", new VSpeed("mapper.vspeed"));                        // doc/einstein/mapper_vspeed       Example done   Unit test
-    functions.put("mapper.vdist", new VDist("mapper.vdist"));                           // doc/einstein/mapper_vdist        Example done   Unit test
-    functions.put("mapper.var", new Variance.Builder("mapper.var", false));                    // doc/einstein/mapper_var          Example done   Unit test
-    functions.put("mapper.sd", new StandardDeviation.Builder("mapper.sd", false));             // doc/einstein/mapper_sd           Example done   Unit test
-    functions.put("mapper.abs", new MapperAbs("mapper.abs"));                           // doc/einstein/mapper_abs          Example done   Unit test
-    functions.put("mapper.ceil", new MapperCeil("mapper.ceil"));                        // doc/einstein/mapper_ceil         Example done   Unit test
-    functions.put("mapper.floor", new MapperFloor("mapper.floor"));                     // doc/einstein/mapper_floor        Example done   Unit test
+    functions.put("mapper.vspeed", new VSpeed("mapper.vspeed"));
+    functions.put("mapper.vdist", new VDist("mapper.vdist"));
+    functions.put("mapper.var", new Variance.Builder("mapper.var", false));
+    functions.put("mapper.sd", new StandardDeviation.Builder("mapper.sd", false));
+    functions.put("mapper.abs", new MapperAbs("mapper.abs"));
+    functions.put("mapper.ceil", new MapperCeil("mapper.ceil"));
+    functions.put("mapper.floor", new MapperFloor("mapper.floor"));
     functions.put("mapper.finite", new MapperFinite("mapper.finite"));
-    functions.put("mapper.round", new MapperRound("mapper.round"));                     // doc/einstein/mapper_round        Example done   Unit test
-    functions.put("mapper.toboolean", new MapperToBoolean("mapper.toboolean"));         // doc/einstein/mapper_toboolean    Example done   Unit test
-    functions.put("mapper.tolong", new MapperToLong("mapper.tolong"));                  // doc/einstein/mapper_tolong       Example done   Unit test
-    functions.put("mapper.todouble", new MapperToDouble("mapper.todouble"));            // doc/einstein/mapper_todouble     Example done   Unit test
-    functions.put("mapper.tostring", new MapperToString("mapper.tostring"));            // doc/einstein/mapper_tostring     Example done   Unit test
+    functions.put("mapper.round", new MapperRound("mapper.round"));
+    functions.put("mapper.toboolean", new MapperToBoolean("mapper.toboolean"));
+    functions.put("mapper.tolong", new MapperToLong("mapper.tolong"));
+    functions.put("mapper.todouble", new MapperToDouble("mapper.todouble"));
+    functions.put("mapper.tostring", new MapperToString("mapper.tostring"));
     functions.put("mapper.tanh", new MapperTanh("mapper.tanh"));
     functions.put("mapper.sigmoid", new MapperSigmoid("mapper.sigmoid"));
     functions.put("mapper.product", new MapperProduct("mapper.product"));
@@ -146,7 +146,7 @@ public class JavaLibrary {
     functions.put("mapper.max.forbid-nulls", new Max("mapper.max.forbid-nulls", false));
     functions.put("mapper.mean.exclude-nulls", new Mean("mapper.mean.exclude-nulls", true));
     functions.put("mapper.sum.forbid-nulls", new Sum("mapper.sum.forbid-nulls", false));
-    functions.put("mapper.join.forbid-nulls", new Join.Builder("mapper.join.forbid-nulls", false));
+    functions.put("mapper.join.forbid-nulls", new Join.Builder("mapper.join.forbid-nulls", false, false, null));
     functions.put("mapper.var.forbid-nulls", new Variance.Builder("mapper.var.forbid-nulls", true));
     functions.put("mapper.sd.forbid-nulls", new StandardDeviation.Builder("mapper.sd.forbid-nulls", true));
     functions.put("mapper.mean.circular", new CircularMean.Builder("mapper.mean.circular", true));
@@ -156,32 +156,33 @@ public class JavaLibrary {
     // Reducers
     //
     
-    functions.put("reducer.min", new Min("reducer.min", true));                         // doc/einstein/reducer_min             Example done   Unit test
+    functions.put("reducer.min", new Min("reducer.min", true));
     functions.put("reducer.min.forbid-nulls", new Min("reducer.min.forbid-nulls", false));
-    functions.put("reducer.min.nonnull", new Min("reducer.min.nonnull", false));        // doc/einstein/reducer_min.nonnull     Example done   Unit test
-    functions.put("reducer.max", new Max("reducer.max", true));                         // doc/einstein/reducer_max             Example done   Unit test
+    functions.put("reducer.min.nonnull", new Min("reducer.min.nonnull", false));
+    functions.put("reducer.max", new Max("reducer.max", true));
     functions.put("reducer.max.forbid-nulls", new Max("reducer.max.forbid-nulls", false));
-    functions.put("reducer.max.nonnull", new Max("reducer.max.nonnull", false));        // doc/einstein/reducer_max.nonnull     Example done   Unit test
-    functions.put("reducer.mean", new Mean("reducer.mean", false));                            // doc/einstein/reducer_mean            Example done   Unit test
+    functions.put("reducer.max.nonnull", new Max("reducer.max.nonnull", false));
+    functions.put("reducer.mean", new Mean("reducer.mean", false));
     functions.put("reducer.mean.exclude-nulls", new Mean("reducer.mean.exclude-nulls", true));
-    functions.put("reducer.median", new Median("reducer.median"));                      // doc/einstein/reducer_median          Example done   Unit test
-    functions.put("reducer.sum", new Sum("reducer.sum", true));                         // doc/einstein/reducer_sum             Example done   Unit test
+    functions.put("reducer.median", new Median("reducer.median"));
+    functions.put("reducer.sum", new Sum("reducer.sum", true));
     functions.put("reducer.sum.forbid-nulls", new Sum("reducer.sum.forbid-nulls", false));
-    functions.put("reducer.sum.nonnull", new Sum("reducer.sum.nonnull", false));        // doc/einstein/reducer_sum_nonull      Example done   Unit test
-    functions.put("reducer.join", new Join.Builder("reducer.join", true));              // doc/einstein/reducer_join            Example done   Unit test
-    functions.put("reducer.join.forbid-nulls", new Join.Builder("reducer.join.forbid-nulls", false));
-    functions.put("reducer.join.nonnull", new Join.Builder("reducer.join.nonnull", false));   // doc/einstein/reducer_sum_nonnull    Example done   Unit test
-    functions.put("reducer.var", new Variance.Builder("reducer.var", false));                  // doc/einstein/reducer_var             Example done   Unit test
+    functions.put("reducer.sum.nonnull", new Sum("reducer.sum.nonnull", false));
+    functions.put("reducer.join", new Join.Builder("reducer.join", true, false, null));
+    functions.put("reducer.join.forbid-nulls", new Join.Builder("reducer.join.forbid-nulls", false, false, null));
+    functions.put("reducer.join.nonnull", new Join.Builder("reducer.join.nonnull", false, false, null));
+    functions.put("reducer.join.urlencoded", new Join.Builder("reducer.join.urlencoded", false, true, ""));
+    functions.put("reducer.var", new Variance.Builder("reducer.var", false));
     functions.put("reducer.var.forbid-nulls", new Variance.Builder("reducer.var.forbid-nulls", false));
-    functions.put("reducer.sd", new StandardDeviation.Builder("reducer.sd", false));           // doc/einstein/reducer_sd              Example done   Unit test
-    functions.put("reducer.sd.forbid-nulls", new StandardDeviation.Builder("reducer.sd.forbid-nulls", false));           // doc/einstein/reducer_sd              Example done   Unit test
-    functions.put("reducer.argmin", new Argmin.Builder("reducer.argmin"));              // doc/einstein/reducer_argmin          Example done   Unit test
-    functions.put("reducer.argmax", new Argmax.Builder("reducer.argmax"));              // doc/einstein/reducer_argmax          Example done   Unit test
+    functions.put("reducer.sd", new StandardDeviation.Builder("reducer.sd", false));
+    functions.put("reducer.sd.forbid-nulls", new StandardDeviation.Builder("reducer.sd.forbid-nulls", false));
+    functions.put("reducer.argmin", new Argmin.Builder("reducer.argmin"));
+    functions.put("reducer.argmax", new Argmax.Builder("reducer.argmax"));
     functions.put("reducer.product", new MapperProduct("reducer.product"));
-    functions.put("reducer.count", new Count("reducer.count", false));                  // doc/einstein/reducer_count           Example done   Unit test
+    functions.put("reducer.count", new Count("reducer.count", false));
     functions.put("reducer.count.include-nulls", new Count("reducer.count.include-nulls", false));
     functions.put("reducer.count.exclude-nulls", new Count("reducer.count.exclude-nulls", true));
-    functions.put("reducer.count.nonnull", new Count("reducer.count.nonnull", true));         // doc/einstein/reducer_count_nonnull  Example done   Unit test
+    functions.put("reducer.count.nonnull", new Count("reducer.count.nonnull", true));
     functions.put("reducer.shannonentropy.0", new ShannonEntropy("reducer.shannonentropy.0", false));
     functions.put("reducer.shannonentropy.1", new ShannonEntropy("reducer.shannonentropy.1", true));
     functions.put("reducer.percentile", new Percentile.Builder("reducer.percentile"));
