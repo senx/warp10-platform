@@ -22,6 +22,12 @@ import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.store.Constants;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,6 +38,8 @@ import java.util.Set;
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
 import com.geoxp.geo.GeoBloomFilter;
+import com.google.common.base.Charsets;
+import com.google.common.primitives.Longs;
 
 public class GeoIndex {
   /**
@@ -103,8 +111,10 @@ public class GeoIndex {
     if (GeoTimeSerie.NO_LOCATION != location) {
       long[] cells = GeoXPLib.indexable(location);
       Arrays.sort(cells);
-      String gtsId = GTSHelper.gtsIdToString(encoder.getClassId(), encoder.getLabelsId(), false);      
-      lkpIndex.put(gtsId, cells);
+      String gtsId = GTSHelper.gtsIdToString(encoder.getClassId(), encoder.getLabelsId(), false);
+      synchronized(lkpIndex) {
+        lkpIndex.put(gtsId, cells);
+      }
     }
     
     return 1;
@@ -223,7 +233,7 @@ public class GeoIndex {
     
     long[] areaCells = GeoXPLib.getCells(area);
         
-    for (String id: unfilteredGTS) {
+    for (String id: unfilteredGTS) {      
       long[] cells = lkpIndex.get(id);
       
       if (null == cells) {
@@ -371,5 +381,108 @@ public class GeoIndex {
     }
     
     return total;
+  }
+
+  /**
+   * Store the LKP index into a file
+   */
+  public void dumpLKPIndex(File path) throws IOException {
+    
+    if (0 != this.depth) {
+      return;
+    }
+    
+    Set<String> gtsKeys = new HashSet<String>();
+    
+    synchronized(this.lkpIndex) {
+      gtsKeys.addAll(this.lkpIndex.keySet());
+    }
+    
+    OutputStream out = new FileOutputStream(path);
+
+    try {
+      for (String key: gtsKeys) {
+        long[] cells = this.lkpIndex.get(key);
+        
+        if (null == cells) {
+          continue;
+        }
+        
+        byte[] id = key.getBytes(Charsets.UTF_8);
+        
+        out.write(id.length);
+        out.write(id);
+        
+        out.write(cells.length);
+        
+        for (long cell: cells) {
+          out.write(Longs.toByteArray(cell));
+        }      
+      }      
+    } finally {
+      out.close();
+    }
+  }
+  
+  /**
+   * Load an LKP index previously dumped by dumpLKPIndex
+   */
+  public void loadLKPIndex(File path) throws IOException {
+    
+    if (0 != this.depth) {
+      return;
+    }
+    
+    InputStream in = new FileInputStream(path);
+    
+    byte[] buf = new byte[128];
+    
+    try {
+      while(true) {
+        // Read id len
+        int idlen = in.read();
+        
+        if (-1 == idlen) {
+          break;
+        }
+        
+        // Read id
+        int len = in.read(buf, 0, idlen);
+        
+        if (idlen != len) {
+          break;
+        }
+        
+        String key = new String(buf, 0, len, Charsets.UTF_8);
+        
+        // Read number of cells
+        int ncells = in.read();
+        
+        if (-1 == ncells) {
+          break;
+        }
+        
+        len = in.read(buf, 0, ncells * 8);
+        
+        if (ncells * 8 != len) {
+          break;
+        }
+
+        int offset = 0;
+        
+        long[] cells = new long[ncells];
+        
+        for (int i = 0; i < ncells; i++) {
+          offset = i * 8;
+          cells[i] = Longs.fromBytes(buf[offset], buf[offset + 1], buf[offset + 2], buf[offset + 3], buf[offset + 4], buf[offset + 5], buf[offset + 6], buf[offset + 7]);        
+        }
+        
+        synchronized(this.lkpIndex) {
+          this.lkpIndex.put(key, cells);
+        }
+      }
+    } finally {
+      in.close();
+    }
   }
 }    

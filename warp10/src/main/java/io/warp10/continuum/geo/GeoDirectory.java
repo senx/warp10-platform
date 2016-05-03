@@ -370,6 +370,37 @@ public class GeoDirectory extends AbstractHandler implements Runnable, GeoDirect
     
     this.index = new GeoIndex(resolution, chunks, depth);
     
+    final String dumpPrefix = properties.getProperty(Configuration.GEODIR_DUMP_PREFIX);
+    
+    final GeoDirectory self = this;
+    
+    if (null != dumpPrefix) {
+      File path = new File(dumpPrefix + "." + self.id);
+      try {
+        this.index.loadLKPIndex(path);        
+      } catch (IOException ioe) {
+        LOG.error("Error while loading LKP '" + this.id + "' from " + path, ioe);
+      }
+            
+      Runtime.getRuntime().addShutdownHook(new Thread() {
+        @Override
+        public void run() {
+          File path = new File(dumpPrefix + "." + self.id);
+          try {
+            self.index.dumpLKPIndex(path);
+          } catch (IOException ioe) {
+            LOG.error("Error while dumping LKP '" + self.id + "' into " + path);
+          }
+        }
+      });
+      
+      //
+      // Make sure ShutdownHookManager is initialized, otherwise it will try to
+      // register a shutdown hook during the shutdown hook we just registered...
+      //
+      
+      ShutdownHookManager.get();      
+    }
     
     //
     // Create the outbound Kafka producer for subscriptions

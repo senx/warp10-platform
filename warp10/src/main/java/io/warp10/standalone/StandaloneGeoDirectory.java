@@ -19,6 +19,7 @@ package io.warp10.standalone;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.egress.EgressFetchHandler;
+import io.warp10.continuum.geo.GeoDirectory;
 import io.warp10.continuum.geo.GeoDirectoryClient;
 import io.warp10.continuum.geo.GeoIndex;
 import io.warp10.continuum.gts.GTSDecoder;
@@ -39,6 +40,7 @@ import io.warp10.script.functions.PARSESELECTOR;
 import io.warp10.sensision.Sensision;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -63,6 +65,8 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
@@ -70,6 +74,8 @@ import com.google.common.base.Charsets;
 
 public class StandaloneGeoDirectory extends AbstractHandler implements StandalonePlasmaHandlerInterface, Runnable, GeoDirectoryClient {
 
+  private static final Logger LOG = LoggerFactory.getLogger(StandaloneGeoDirectory.class);
+  
   private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
 
   private final StoreClient storeClient;
@@ -136,15 +142,43 @@ public class StandaloneGeoDirectory extends AbstractHandler implements Standalon
 
     String[] geodirs = props.getProperty(Configuration.STANDALONE_GEODIRS).split(",");
     
+    final String dumpPrefix = props.getProperty(Configuration.GEODIR_DUMP_PREFIX);
+    
     for (String geodir: geodirs) {
       String[] tokens = geodir.split("/");
       
-      String name = tokens[0];
-      int resolution = Integer.parseInt(tokens[1]);
+      final String name = tokens[0];
+      
+      if (this.indices.containsKey(name)) {
+        throw new RuntimeException("GeoDirectory index '" + name + "' is already defined.");
+      }
+      
+      final int resolution = Integer.parseInt(tokens[1]);
       int chunks = Integer.parseInt(tokens[2]);
       long depth = Long.parseLong(tokens[3]);
       
-      GeoIndex index = new GeoIndex(resolution, chunks, depth);
+      final GeoIndex index = new GeoIndex(resolution, chunks, depth);
+      
+      if (null != dumpPrefix) {
+        File path = new File(dumpPrefix + "." + name);
+        try {
+          index.loadLKPIndex(path);        
+        } catch (IOException ioe) {
+          LOG.error("Error while loading LKP '" + name + "' from " + path, ioe);
+        }
+              
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+          @Override
+          public void run() {
+            File path = new File(dumpPrefix + "." + name);
+            try {
+              index.dumpLKPIndex(path);
+            } catch (IOException ioe) {
+              LOG.error("Error while dumping LKP '" + name + "' into " + path);
+            }
+          }
+        });
+      }
       
       this.indices.put(name, index);
       synchronized(this.selectors) {
@@ -242,6 +276,9 @@ public class StandaloneGeoDirectory extends AbstractHandler implements Standalon
     }    
   }
   
+  /**
+   * List the active subscriptions
+   */
   private void doList(String name, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
     baseRequest.setHandled(true);
     
@@ -267,10 +304,16 @@ public class StandaloneGeoDirectory extends AbstractHandler implements Standalon
     pw.println(this.subscriptions.get(name).containsKey(token) ? this.subscriptions.get(name).get(token).size() : 0);
   }
   
+  /**
+   * Add a subscription
+   */
   private void doAdd(String name, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
     doAddRemove(name, true, baseRequest, request, response);
   }
-  
+
+  /**
+   * Remove a subscription
+   */
   private void doRemove(String name, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
     doAddRemove(name, false, baseRequest, request, response);
   }
