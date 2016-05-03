@@ -271,6 +271,9 @@ public class Store extends Thread {
             Properties props = new Properties();
             props.setProperty("zookeeper.connect", properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_ZKCONNECT));
             props.setProperty("group.id", groupid);
+            if (null != properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_CLIENTID)) {
+              props.setProperty("client.id", properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_CLIENTID));
+            }
             props.setProperty("auto.commit.enable", "false");
             //
             // This is VERY important, offset MUST be reset to 'smallest' so we get a chance to store as many datapoints

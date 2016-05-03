@@ -240,12 +240,13 @@ public class ScriptRunner extends Thread {
       String zkconnect = config.getProperty(Configuration.RUNNER_KAFKA_ZKCONNECT);
       this.topic = config.getProperty(Configuration.RUNNER_KAFKA_TOPIC);
       String groupid = config.getProperty(Configuration.RUNNER_KAFKA_GROUPID);
+      String clientid = config.getProperty(Configuration.RUNNER_KAFKA_CONSUMER_CLIENTID);
       int nthreads = Integer.parseInt(config.getProperty(Configuration.RUNNER_KAFKA_NTHREADS));
       long commitPeriod = Long.parseLong(config.getProperty(Configuration.RUNNER_KAFKA_COMMITPERIOD));
       this.nthreads = Integer.parseInt(config.getProperty(Configuration.RUNNER_NTHREADS));
       this.executor = new ThreadPoolExecutor(1, nthreads, 30000L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(nthreads * 256));
       
-      this.consumerPool = new KafkaSynchronizedConsumerPool(zkconnect, topic, groupid, nthreads, commitPeriod, new ScriptRunnerConsumerFactory(this));
+      this.consumerPool = new KafkaSynchronizedConsumerPool(zkconnect, topic, clientid, groupid, nthreads, commitPeriod, new ScriptRunnerConsumerFactory(this));
     }
     
     if (isScheduler) {
@@ -262,6 +263,9 @@ public class ScriptRunner extends Thread {
       // @see http://kafka.apache.org/documentation.html#producerconfigs
       props.setProperty("zookeeper.connect", props.getProperty(Configuration.RUNNER_KAFKA_ZKCONNECT));
       props.setProperty("metadata.broker.list", props.getProperty(Configuration.RUNNER_KAFKA_BROKERLIST));
+      if (null != props.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CLIENTID)) {
+        props.setProperty("client.id", props.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CLIENTID));
+      }
       props.setProperty("request.required.acks", "-1");
       props.setProperty("producer.type","sync");
       props.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");

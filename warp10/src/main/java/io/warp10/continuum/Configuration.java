@@ -193,6 +193,11 @@ public class Configuration {
   public static final String DIRECTORY_KAFKA_METADATA_GROUPID = "directory.kafka.metadata.groupid";
 
   /**
+   * Kafka client.id to use for the metadata topic consumer
+   */
+  public static final String DIRECTORY_KAFKA_METADATA_CONSUMER_CLIENTID = "directory.kafka.metadata.consumer.clientid";
+  
+  /**
    * Delay between synchronization for offset commit
    */
   public static final String DIRECTORY_KAFKA_METADATA_COMMITPERIOD = "directory.kafka.metadata.commitperiod";
@@ -433,6 +438,11 @@ public class Configuration {
   public static final String INGRESS_KAFKA_META_BROKERLIST = "ingress.kafka.metadata.brokerlist";
 
   /**
+   * Kafka client id for producing on the 'meta' topic
+   */
+  public static final String INGRESS_KAFKA_META_PRODUCER_CLIENTID = "ingress.kafka.metadata.producer.clientid";
+
+  /**
    * Actual 'meta' topic
    */
   public static final String INGRESS_KAFKA_META_TOPIC = "ingress.kafka.metadata.topic";    
@@ -451,6 +461,11 @@ public class Configuration {
    * Groupid to use for consuming the 'metadata' topic
    */
   public static final String INGRESS_KAFKA_META_GROUPID = "ingress.kafka.metadata.groupid";
+  
+  /**
+   * Client id to use for consuming the 'metadata' topic
+   */
+  public static final String INGRESS_KAFKA_META_CONSUMER_CLIENTID = "ingress.kafka.metadata.consumer.clientid";
 
   /**
    * How often to commit the offsets for topic 'metadata' (in ms)
@@ -471,7 +486,12 @@ public class Configuration {
    * Kafka broker list for the 'data' topic
    */
   public static final String INGRESS_KAFKA_DATA_BROKERLIST = "ingress.kafka.data.brokerlist";
-  
+
+  /**
+   * Kafka client id for producing on the 'data' topic
+   */
+  public static final String INGRESS_KAFKA_DATA_PRODUCER_CLIENTID = "ingress.kafka.data.producer.clientid";
+
   /**
    * Actual 'data' topic
    */
@@ -523,6 +543,11 @@ public class Configuration {
   public static final String INGRESS_KAFKA_ARCHIVE_BROKERLIST = "ingress.kafka.archive.brokerlist";
 
   /**
+   * Kafka client id for producing on the 'archive' topic
+   */
+  public static final String INGRESS_KAFKA_ARCHIVE_PRODUCER_CLIENTID = "ingress.kafka.archive.producer.clientid";
+
+  /**
    * Actual 'archive' topic
    */
   public static final String INGRESS_KAFKA_ARCHIVE_TOPIC = "ingress.kafka.archive.topic";
@@ -556,7 +581,12 @@ public class Configuration {
    * Kafka broker list for the 'data' topic
    */
   public static final String STORE_KAFKA_DATA_BROKERLIST = "store.kafka.data.brokerlist";
-  
+
+  /**
+   * Kafka client.id for producing on the 'data' topic
+   */
+  public static final String STORE_KAFKA_DATA_PRODUCER_CLIENTID = "store.kafka.data.producer.clientid";
+
   /**
    * Actual 'data' topic
    */
@@ -577,6 +607,11 @@ public class Configuration {
    */
   public static final String STORE_KAFKA_DATA_GROUPID = "store.kafka.data.groupid";
 
+  /**
+   * Client id to use to consume the data topic
+   */
+  public static final String STORE_KAFKA_DATA_CONSUMER_CLIENTID = "store.kafka.data.consumer.clientid";
+  
   /**
    * Delay between synchronization for offset commit
    */
@@ -661,7 +696,12 @@ public class Configuration {
    * Kafka groupid under which to consume above topic
    */
   public static final String PLASMA_FRONTEND_KAFKA_GROUPID = "plasma.frontend.kafka.groupid";
-  
+
+  /**
+   * Kafka client id under which to consume above topic
+   */
+  public static final String PLASMA_FRONTEND_KAFKA_CONSUMER_CLIENTID = "plasma.frontend.kafka.consumer.clientid";
+
   /**
    * How often (in ms) to commit Kafka offsets
    */
@@ -755,6 +795,11 @@ public class Configuration {
   public static final String PLASMA_BACKEND_KAFKA_IN_GROUPID = "plasma.backend.kafka.in.groupid";
 
   /**
+   * Kafka client id with which to consume the in topic
+   */
+  public static final String PLASMA_BACKEND_KAFKA_IN_CONSUMER_CLIENTID = "plasma.backend.kafka.in.consumer.clientid";
+
+  /**
    * Delay between synchronization for offset commit
    */
   public static final String PLASMA_BACKEND_KAFKA_IN_COMMITPERIOD = "plasma.backend.kafka.in.commitperiod";
@@ -773,6 +818,11 @@ public class Configuration {
    * Kafka broker list for the 'out' topic
    */
   public static final String PLASMA_BACKEND_KAFKA_OUT_BROKERLIST = "plasma.backend.kafka.out.brokerlist";
+
+  /**
+   * Kafka client id for producing on the 'out' topic
+   */
+  public static final String PLASMA_BACKEND_KAFKA_OUT_PRODUCER_CLIENTID = "plasma.backend.kafka.out.producer.clientid";
 
   /**
    * Maximum size of Kafka outward messages
@@ -867,7 +917,12 @@ public class Configuration {
    * List of Kafka brokers
    */
   public static final String RUNNER_KAFKA_BROKERLIST = "runner.kafka.brokerlist";
-  
+
+  /**
+   * Kafka client id for producing on the runner topic
+   */
+  public static final String RUNNER_KAFKA_PRODUCER_CLIENTID = "runner.kafka.producer.clientid";
+
   /**
    * Size of Kafka producer pool
    */
@@ -882,7 +937,12 @@ public class Configuration {
    * Groupid to use when consuming scripts
    */
   public static final String RUNNER_KAFKA_GROUPID = "runner.kafka.groupid";
-  
+
+  /**
+   * Client id to use when consuming scripts
+   */
+  public static final String RUNNER_KAFKA_CONSUMER_CLIENTID = "runner.kafka.consumer.clientid";
+
   /**
    * Number of threads to spawn to consume scripts
    */
@@ -1152,8 +1212,10 @@ public class Configuration {
   
   public static final String GEODIR_KAFKA_SUBS_ZKCONNECT = "geodir.kafka.subs.zkconnect";
   public static final String GEODIR_KAFKA_SUBS_BROKERLIST = "geodir.kafka.subs.brokerlist";
+  public static final String GEODIR_KAFKA_SUBS_PRODUCER_CLIENTID = "geodir.kafka.subs.producer.clientid";
   public static final String GEODIR_KAFKA_SUBS_TOPIC = "geodir.kafka.subs.topic";
   public static final String GEODIR_KAFKA_SUBS_GROUPID = "geodir.kafka.subs.groupid";
+  public static final String GEODIR_KAFKA_SUBS_CONSUMER_CLIENTID = "geodir.kafka.subs.consumer.clientid";
   public static final String GEODIR_KAFKA_SUBS_NTHREADS = "geodir.kafka.subs.nthreads";
   public static final String GEODIR_KAFKA_SUBS_COMMITPERIOD = "geodir.kafka.subs.commitperiod";
   public static final String GEODIR_KAFKA_SUBS_MAC = "geodir.kafka.subs.mac";
@@ -1161,8 +1223,10 @@ public class Configuration {
 
   public static final String GEODIR_KAFKA_DATA_ZKCONNECT = "geodir.kafka.data.zkconnect";
   public static final String GEODIR_KAFKA_DATA_BROKERLIST = "geodir.kafka.data.brokerlist";
+  public static final String GEODIR_KAFKA_DATA_PRODUCER_CLIENTID = "geodir.kafka.data.producer.clientid";
   public static final String GEODIR_KAFKA_DATA_TOPIC = "geodir.kafka.data.topic";
   public static final String GEODIR_KAFKA_DATA_GROUPID = "geodir.kafka.data.groupid";
+  public static final String GEODIR_KAFKA_DATA_CONSUMER_CLIENTID = "geodir.kafka.data.consumer.clientid";
   public static final String GEODIR_KAFKA_DATA_NTHREADS = "geodir.kafka.data.nthreads";
   public static final String GEODIR_KAFKA_DATA_COMMITPERIOD = "geodir.kafka.data.commitperiod";
   public static final String GEODIR_KAFKA_DATA_MAC = "geodir.kafka.data.mac";

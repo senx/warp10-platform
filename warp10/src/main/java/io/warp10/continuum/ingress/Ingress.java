@@ -320,6 +320,9 @@ public class Ingress extends AbstractHandler implements Runnable {
     // @see http://kafka.apache.org/documentation.html#producerconfigs
     metaProps.setProperty("zookeeper.connect", props.getProperty(Configuration.INGRESS_KAFKA_META_ZKCONNECT));
     metaProps.setProperty("metadata.broker.list", props.getProperty(Configuration.INGRESS_KAFKA_META_BROKERLIST));
+    if (null != props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CLIENTID)) {
+      metaProps.setProperty("client.id", props.getProperty(Configuration.INGRESS_KAFKA_META_CONSUMER_CLIENTID));
+    }
     metaProps.setProperty("request.required.acks", "-1");
     metaProps.setProperty("producer.type","sync");
     metaProps.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");
@@ -341,6 +344,9 @@ public class Ingress extends AbstractHandler implements Runnable {
     // @see http://kafka.apache.org/documentation.html#producerconfigs
     dataProps.setProperty("zookeeper.connect", props.getProperty(Configuration.INGRESS_KAFKA_DATA_ZKCONNECT));
     dataProps.setProperty("metadata.broker.list", props.getProperty(Configuration.INGRESS_KAFKA_DATA_BROKERLIST));
+    if (null != props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_CLIENTID)) {
+      dataProps.setProperty("client.id", props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_CLIENTID));
+    }
     dataProps.setProperty("request.required.acks", "-1");
     dataProps.setProperty("producer.type","sync");
     dataProps.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");
@@ -403,6 +409,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     pool = new KafkaSynchronizedConsumerPool(props.getProperty(Configuration.INGRESS_KAFKA_META_ZKCONNECT),
         props.getProperty(Configuration.INGRESS_KAFKA_META_TOPIC),
+        props.getProperty(Configuration.INGRESS_KAFKA_META_CONSUMER_CLIENTID),
         props.getProperty(Configuration.INGRESS_KAFKA_META_GROUPID),
         Integer.parseInt(props.getProperty(Configuration.INGRESS_KAFKA_META_NTHREADS)),
         Long.parseLong(props.getProperty(Configuration.INGRESS_KAFKA_META_COMMITPERIOD)), metadataConsumerFactory);    

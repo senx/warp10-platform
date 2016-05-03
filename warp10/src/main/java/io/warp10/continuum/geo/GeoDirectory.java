@@ -51,6 +51,7 @@ import io.warp10.sensision.Sensision;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
@@ -84,6 +85,7 @@ import kafka.message.MessageAndMetadata;
 import kafka.producer.KeyedMessage;
 import kafka.producer.ProducerConfig;
 
+import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -364,9 +366,10 @@ public class GeoDirectory extends AbstractHandler implements Runnable, GeoDirect
     
     long depth = Long.parseLong(properties.getProperty(Configuration.GEODIR_CHUNK_DEPTH));
     int chunks = Integer.parseInt(properties.getProperty(Configuration.GEODIR_CHUNK_COUNT));
-    int resolution = Integer.parseInt(properties.getProperty(Configuration.GEODIR_RESOLUTION));
+    final int resolution = Integer.parseInt(properties.getProperty(Configuration.GEODIR_RESOLUTION));
     
     this.index = new GeoIndex(resolution, chunks, depth);
+    
     
     //
     // Create the outbound Kafka producer for subscriptions
@@ -376,6 +379,9 @@ public class GeoDirectory extends AbstractHandler implements Runnable, GeoDirect
     // @see http://kafka.apache.org/documentation.html#producerconfigs
     subsProps.setProperty("zookeeper.connect", properties.getProperty(Configuration.GEODIR_KAFKA_SUBS_ZKCONNECT));
     subsProps.setProperty("metadata.broker.list", properties.getProperty(Configuration.GEODIR_KAFKA_SUBS_BROKERLIST));
+    if (null != properties.getProperty(Configuration.GEODIR_KAFKA_SUBS_PRODUCER_CLIENTID)) {
+      subsProps.setProperty("client.id", properties.getProperty(Configuration.GEODIR_KAFKA_SUBS_PRODUCER_CLIENTID));
+    }
     subsProps.setProperty("request.required.acks", "-1");
     subsProps.setProperty("producer.type","sync");
     subsProps.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");
@@ -393,6 +399,9 @@ public class GeoDirectory extends AbstractHandler implements Runnable, GeoDirect
     // @see http://kafka.apache.org/documentation.html#producerconfigs
     plasmaProps.setProperty("zookeeper.connect", properties.getProperty(Configuration.GEODIR_KAFKA_DATA_ZKCONNECT));
     plasmaProps.setProperty("metadata.broker.list", properties.getProperty(Configuration.GEODIR_KAFKA_DATA_BROKERLIST));
+    if (null != properties.getProperty(Configuration.GEODIR_KAFKA_DATA_PRODUCER_CLIENTID)) {
+      plasmaProps.setProperty("client.id", properties.getProperty(Configuration.GEODIR_KAFKA_DATA_PRODUCER_CLIENTID));
+    }
     plasmaProps.setProperty("request.required.acks", "-1");
     plasmaProps.setProperty("producer.type","sync");
     plasmaProps.setProperty("request.required.acks", "-1");
@@ -482,6 +491,7 @@ public class GeoDirectory extends AbstractHandler implements Runnable, GeoDirect
     
     KafkaSynchronizedConsumerPool pool = new KafkaSynchronizedConsumerPool(properties.getProperty(Configuration.GEODIR_KAFKA_SUBS_ZKCONNECT),
         properties.getProperty(Configuration.GEODIR_KAFKA_SUBS_TOPIC),
+        properties.getProperty(Configuration.GEODIR_KAFKA_SUBS_CONSUMER_CLIENTID),
         properties.getProperty(Configuration.GEODIR_KAFKA_SUBS_GROUPID),
         Integer.parseInt(properties.getProperty(Configuration.GEODIR_KAFKA_SUBS_NTHREADS)),
         Long.parseLong(properties.getProperty(Configuration.GEODIR_KAFKA_SUBS_COMMITPERIOD)), subsConsumerFactory);
@@ -525,6 +535,7 @@ public class GeoDirectory extends AbstractHandler implements Runnable, GeoDirect
     
     KafkaSynchronizedConsumerPool datapool = new KafkaSynchronizedConsumerPool(properties.getProperty(Configuration.GEODIR_KAFKA_DATA_ZKCONNECT),
         properties.getProperty(Configuration.GEODIR_KAFKA_DATA_TOPIC),
+        properties.getProperty(Configuration.GEODIR_KAFKA_DATA_CONSUMER_CLIENTID),
         properties.getProperty(Configuration.GEODIR_KAFKA_DATA_GROUPID),
         Integer.parseInt(properties.getProperty(Configuration.GEODIR_KAFKA_DATA_NTHREADS)),
         Long.parseLong(properties.getProperty(Configuration.GEODIR_KAFKA_DATA_COMMITPERIOD)), subsConsumerFactory);

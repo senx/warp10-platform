@@ -125,6 +125,7 @@ public class KafkaSynchronizedConsumerPool {
     private final String zkconnect;
     private final String topic;
     private final String groupid;
+    private final String clientid;
     private final int nthreads;
     private final ConsumerFactory factory;
     
@@ -132,11 +133,12 @@ public class KafkaSynchronizedConsumerPool {
     private Hook preCommitOffsetHook = null;
     private Hook commitOffsetHook = null;
     
-    public Spawner(KafkaSynchronizedConsumerPool pool, String zkconnect, String topic, String groupid, int nthreads, ConsumerFactory factory) {
+    public Spawner(KafkaSynchronizedConsumerPool pool, String zkconnect, String topic, String clientid, String groupid, int nthreads, ConsumerFactory factory) {
       this.pool = pool;
       this.zkconnect = zkconnect;
       this.topic = topic;
       this.groupid = groupid;
+      this.clientid = clientid;
       this.nthreads = nthreads;
       this.factory = factory;
     }
@@ -162,6 +164,9 @@ public class KafkaSynchronizedConsumerPool {
           Properties props = new Properties();
           props.setProperty("zookeeper.connect", this.zkconnect);
           props.setProperty("group.id",this.groupid);
+          if (null != this.clientid) {
+            props.setProperty("client.id", this.clientid);
+          }
           props.setProperty("auto.commit.enable", "false");
           
           ConsumerConfig config = new ConsumerConfig(props);
@@ -273,13 +278,13 @@ public class KafkaSynchronizedConsumerPool {
     }    
   }
   
-  public KafkaSynchronizedConsumerPool(String zkconnect, String topic, String groupid, int nthreads, long commitPeriod, ConsumerFactory factory) {
+  public KafkaSynchronizedConsumerPool(String zkconnect, String topic, String clientid, String groupid, int nthreads, long commitPeriod, ConsumerFactory factory) {
     
     this.abort = new AtomicBoolean(false);
     this.initialized = new AtomicBoolean(false);
     
     this.synchronizer = new Synchronizer(this, commitPeriod);    
-    this.spawner = new Spawner(this, zkconnect, topic, groupid, nthreads, factory);
+    this.spawner = new Spawner(this, zkconnect, topic, clientid, groupid, nthreads, factory);
   
     this.counters = new KafkaOffsetCounters(topic, groupid, commitPeriod * 2);
     
