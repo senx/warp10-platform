@@ -129,6 +129,66 @@ webcall.user.agent = Warp10-WebCall
 webcall.host.patterns = !.*
 
 //
+// ZK Quorum to use for reaching the Kafka cluster to consume WebCall requests
+//
+webcall.kafka.zkconnect =
+
+
+//
+// List of Kafka brokers to use for sending WebCall requests
+//
+webcall.kafka.brokerlist =
+
+
+//
+// Topic to use for WebCall requests
+//
+webcall.kafka.topic =
+
+
+//
+// AES key to use for encrypting WebCall requests
+//
+//webcall.kafka.aes = hex:......
+
+
+//
+// SipHash key to use for computing WebCall requests HMACs
+//
+//webcall.kafka.mac = hex:.....
+
+
+//
+// Kafka client id to use when consuming WebCall requests
+//
+//webcall.kafka.consumer.clientid =
+
+
+//
+// Kafka client id to use when producing WebCall requests
+//
+//webcall.kafka.producer.clientid =
+
+
+//
+// How many threads to spawn
+//
+webcall.nthreads = 4
+
+
+//
+// Groupid to use when consuming Kafka
+//
+//webcall.kafka.groupid =
+
+
+//
+// How often to commit the Kafka offsets
+//
+webcall.kafka.commitperiod = 60000
+
+
+//
 // Time units of the platform
 // ns means we store nanoseconds
 // us means we store microseconds
@@ -357,6 +417,11 @@ directory.register = true
 directory.hbase.filter = false
 
 //
+// Kafka client id to use for consuming the metadata topic
+//
+//directory.kafka.metadata.consumer.clientid=
+
+//
 // I N G R E S S
 //
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -543,6 +608,26 @@ ingress.kafka.archive.mac = hex:hhhhhh...
 #ingress.kafka.archive.aes = 
 
 //
+// Kafka client id to use for the metadata producer
+//
+//ingress.kafka.metadata.producer.clientid=
+
+//
+// Kafka client id to use for the metadata consumer
+//
+//ingress.kafka.metadata.consumer.clientid=
+
+//
+// Kafka client id to use for the data producer
+//
+//ingress.kafka.data.producer.clientid=
+
+//
+// Kafka client id to use for the archive producer
+//
+//ingress.kafka.archive.producer.clientid=
+
+//
 // S T O R E
 //
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -645,6 +730,16 @@ store.hbase.hconnection.threads.max = 4
 // Custom value of 'hbase.hconnection.threads.core' for the Store HBase pool (MUST be <= STORE_HBASE_HCONNECTION_THREADS_MAX)
 //
 store.hbase.hconnection.threads.core = 4
+
+//
+// Kafka client id to use for the data producer
+//
+//store.kafka.data.producer.clientid=
+
+//
+// Kafka client id to use for the data consumer
+//
+//store.kafka.data.consumer.clientid=
 
 //
 // P L A S M A
@@ -810,6 +905,20 @@ plasma.backend.subscriptions.zkconnect = 127.0.0.1:2181
 //
 plasma.backend.subscriptions.znode = /zk/warp/localhost/plasma
 
+//
+// Kafka client id to use for the data consumer
+//
+//plasma.frontend.kafka.consumer.clientid=
+
+//
+// Kafka client id to use for the data consumer
+//
+//plasma.backend.kafka.in.consumer.clientid=
+
+//
+// Kafka client id to use for the data producer towards the frontends
+//
+//plasma.backend.kafka.out.producer.clientid=
 
 //
 // R U N N E R
@@ -908,6 +1017,17 @@ runner.kafka.mac = hex:hhhhhh...
 // Key for encryption of scripts on topic
 //
 #runner.kafka.aes = 
+
+//
+// Kafka client id to use for the producer
+//
+//runner.kafka.producer.clientid=
+
+//
+// Kafka client id to use for the consumer
+//
+//runner.kafka.consumer.clientid=
+
 
 //
 // E G R E S S
@@ -1275,6 +1395,26 @@ geodir.zk.directory.quorum = 127.0.0.1:2181
 // ZNode where Directory instances register
 //
 geodir.zk.directory.znode = /zk/warp/localhost/services
+
+//
+// Kafka client id to use for the subscription producer
+//
+//geodir.kafka.subs.producer.clientid=
+
+//
+// Kafka client id to use for the subscription consume
+//
+//geodir.kafka.subs.consumer.clientid=
+
+//
+// Kafka client id to use for the data producer
+//
+//geodir.kafka.data.producer.clientid=
+
+//
+// Kafka client id to use for the data consumer
+//
+//geodir.kafka.data.consumer.clientid=
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
