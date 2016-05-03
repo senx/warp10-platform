@@ -41,6 +41,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -336,6 +337,8 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       metadatas = new ArrayList<Metadata>();
     }
 
+    Set<String> classNames = null;
+    
     for (int i = 0; i < classExpr.size(); i++) {
       if (classExpr.get(i).startsWith("=") || !classExpr.get(i).startsWith("~")) {
         //classPattern = Pattern.compile(Pattern.quote(classExpr.startsWith("=") ? classExpr.substring(1) : classExpr)).matcher("");
@@ -362,12 +365,22 @@ public class StandaloneDirectoryClient implements DirectoryClient {
           
         }      
       }
-            
+       
+      
+      if (classPattern instanceof String && !this.metadatas.containsKey(classPattern)) {
+        continue;
+      } else if (classPattern instanceof String) {
+        classNames = new HashSet<String>();
+        classNames.add(classPattern.toString());
+      } else {
+        classNames = this.metadatas.keySet();
+      }
+      
       //
       // Loop over the class names to find matches
       //
       
-      for (String className: this.metadatas.keySet()) {
+      for (String className: classNames) {
         //
         // If class matches, check all labels for matches
         //
