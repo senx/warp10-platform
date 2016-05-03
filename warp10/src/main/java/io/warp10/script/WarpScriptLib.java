@@ -352,6 +352,7 @@ public class WarpScriptLib {
     functions.put("MACROBUCKETIZER", new MACROMAPPER("MACROBUCKETIZER"));
     functions.put("MACROFILTER", new MACROFILTER("MACROFILTER"));
     functions.put("STRICTMAPPER", new STRICTMAPPER("STRICTMAPPER"));
+    functions.put("STRICTREDUCER", new STRICTREDUCER("STRICTREDUCER"));
     
     functions.put("PARSESELECTOR", new PARSESELECTOR("PARSESELECTOR"));
     functions.put("TOSELECTOR", new TOSELECTOR("TOSELECTOR"));
@@ -760,6 +761,19 @@ public class WarpScriptLib {
     functions.put("NPDF", new NPDF.Builder("NPDF"));
     functions.put("MUSIGMA", new MUSIGMA("MUSIGMA"));
     functions.put("NSUMSUMSQ", new NSUMSUMSQ("NSUMSUMSQ"));
+    
+    //
+    // Linear Algebra
+    //
+    
+    functions.put("->MAT", new TOMAT("->MAT"));
+    functions.put("MAT->", new MATTO("MAT->"));
+    functions.put("TR", new TR("TR"));
+    functions.put("TRANSPOSE", new TRANSPOSE("TRANSPOSE"));
+    functions.put("DET", new DET("DET"));
+    functions.put("INV", new INV("INV"));
+    functions.put("->VEC", new TOVEC("->VEC"));
+    functions.put("VEC->", new VECTO("VEC->"));
     
     try {
 
