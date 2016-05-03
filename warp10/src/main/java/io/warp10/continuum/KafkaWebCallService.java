@@ -39,6 +39,8 @@ public class KafkaWebCallService {
   public static final String WEBCALL_KAFKA_TOPIC = "webcall.kafka.topic";
   public static final String WEBCALL_KAFKA_AES = "webcall.kafka.aes";
   public static final String WEBCALL_KAFKA_MAC = "webcall.kafka.mac";
+  public static final String WEBCALL_KAFKA_CONSUMER_CLIENTID = "webcall.kafka.consumer.clientid";
+  public static final String WEBCALL_KAFKA_PRODUCER_CLIENTID = "webcall.kafka.producer.clientid";
   
   private static boolean initialized = false;
   
@@ -129,6 +131,11 @@ public class KafkaWebCallService {
     // @see http://kafka.apache.org/documentation.html#producerconfigs
     properties.setProperty("zookeeper.connect", props.getProperty(WEBCALL_KAFKA_ZKCONNECT));
     properties.setProperty("metadata.broker.list", props.getProperty(WEBCALL_KAFKA_BROKERLIST));
+    
+    if (null != props.getProperty(WEBCALL_KAFKA_PRODUCER_CLIENTID)) {
+      properties.setProperty("client.id", props.getProperty(WEBCALL_KAFKA_PRODUCER_CLIENTID));
+    }
+    
     properties.setProperty("request.required.acks", "-1");
     properties.setProperty("producer.type","sync");
     properties.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");

@@ -152,6 +152,9 @@ public class KafkaWebCallBroker extends Thread {
             Properties props = new Properties();
             props.setProperty("zookeeper.connect", properties.getProperty(KafkaWebCallService.WEBCALL_KAFKA_ZKCONNECT));
             props.setProperty("group.id", groupid);
+            if (null != properties.getProperty(KafkaWebCallService.WEBCALL_KAFKA_CONSUMER_CLIENTID)) {
+              props.setProperty("client.id", properties.getProperty(KafkaWebCallService.WEBCALL_KAFKA_CONSUMER_CLIENTID));
+            }
             props.setProperty("auto.commit.enable", "false");    
             
             ConsumerConfig config = new ConsumerConfig(props);
