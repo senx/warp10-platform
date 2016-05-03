@@ -73,6 +73,8 @@ public class STRICTMAPPER extends NamedWarpScriptFunction implements WarpScriptS
       sb.append(" ");
       sb.append(getName());
       sb.append(" ");
+      sb.append(WarpScriptStack.MACRO_END);
+      sb.append(" ");
       sb.append(WarpScriptLib.EVAL);
       return sb.toString();
     }
