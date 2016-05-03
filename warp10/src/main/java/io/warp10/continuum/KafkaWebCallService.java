@@ -33,14 +33,6 @@ import org.apache.thrift.protocol.TCompactProtocol;
 import com.google.common.base.Preconditions;
 
 public class KafkaWebCallService {  
-
-  public static final String WEBCALL_KAFKA_ZKCONNECT = "webcall.kafka.zkconnect";
-  public static final String WEBCALL_KAFKA_BROKERLIST = "webcall.kafka.brokerlist";
-  public static final String WEBCALL_KAFKA_TOPIC = "webcall.kafka.topic";
-  public static final String WEBCALL_KAFKA_AES = "webcall.kafka.aes";
-  public static final String WEBCALL_KAFKA_MAC = "webcall.kafka.mac";
-  public static final String WEBCALL_KAFKA_CONSUMER_CLIENTID = "webcall.kafka.consumer.clientid";
-  public static final String WEBCALL_KAFKA_PRODUCER_CLIENTID = "webcall.kafka.producer.clientid";
   
   private static boolean initialized = false;
   
@@ -98,15 +90,15 @@ public class KafkaWebCallService {
    * @param keystore
    */
   public static void initKeys(KeyStore keystore, Properties props) {
-    if (props.containsKey(WEBCALL_KAFKA_AES)) {
-      byte[] key = keystore.decodeKey(props.getProperty(WEBCALL_KAFKA_AES));
-      Preconditions.checkArgument((16 == key.length || 24 == key.length || 32 == key.length), WEBCALL_KAFKA_AES + " MUST be 128, 192 or 256 bits long.");
+    if (props.containsKey(Configuration.WEBCALL_KAFKA_AES)) {
+      byte[] key = keystore.decodeKey(props.getProperty(Configuration.WEBCALL_KAFKA_AES));
+      Preconditions.checkArgument((16 == key.length || 24 == key.length || 32 == key.length), Configuration.WEBCALL_KAFKA_AES + " MUST be 128, 192 or 256 bits long.");
       keystore.setKey(KeyStore.AES_KAFKA_WEBCALL, key);
       aesKey = key;
     }
-    if (props.containsKey(WEBCALL_KAFKA_MAC)) {
-      byte[] key = keystore.decodeKey(props.getProperty(WEBCALL_KAFKA_MAC));
-      Preconditions.checkArgument((16 == key.length), WEBCALL_KAFKA_MAC + " MUST be 128 bits long.");
+    if (props.containsKey(Configuration.WEBCALL_KAFKA_MAC)) {
+      byte[] key = keystore.decodeKey(props.getProperty(Configuration.WEBCALL_KAFKA_MAC));
+      Preconditions.checkArgument((16 == key.length), Configuration.WEBCALL_KAFKA_MAC + " MUST be 128 bits long.");
       keystore.setKey(KeyStore.SIPHASH_KAFKA_WEBCALL, key);
       siphashKey = key;
     }    
@@ -115,25 +107,25 @@ public class KafkaWebCallService {
   private static void initialize() {
     Properties props = WarpConfig.getProperties();
     
-    if (null == props.getProperty(WEBCALL_KAFKA_ZKCONNECT)) {
-      throw new RuntimeException(WEBCALL_KAFKA_ZKCONNECT + " was not specified in the configuration.");
+    if (null == props.getProperty(Configuration.WEBCALL_KAFKA_ZKCONNECT)) {
+      throw new RuntimeException(Configuration.WEBCALL_KAFKA_ZKCONNECT + " was not specified in the configuration.");
     }
 
-    if (null == props.getProperty(WEBCALL_KAFKA_BROKERLIST)) {
-      throw new RuntimeException(WEBCALL_KAFKA_BROKERLIST + " was not specified in the configuration.");
+    if (null == props.getProperty(Configuration.WEBCALL_KAFKA_BROKERLIST)) {
+      throw new RuntimeException(Configuration.WEBCALL_KAFKA_BROKERLIST + " was not specified in the configuration.");
     }
 
-    if (null == props.getProperty(WEBCALL_KAFKA_TOPIC)) {
-      throw new RuntimeException(WEBCALL_KAFKA_TOPIC + " was not specified in the configuration.");
+    if (null == props.getProperty(Configuration.WEBCALL_KAFKA_TOPIC)) {
+      throw new RuntimeException(Configuration.WEBCALL_KAFKA_TOPIC + " was not specified in the configuration.");
     }
 
     Properties properties = new Properties();
     // @see http://kafka.apache.org/documentation.html#producerconfigs
-    properties.setProperty("zookeeper.connect", props.getProperty(WEBCALL_KAFKA_ZKCONNECT));
-    properties.setProperty("metadata.broker.list", props.getProperty(WEBCALL_KAFKA_BROKERLIST));
+    properties.setProperty("zookeeper.connect", props.getProperty(Configuration.WEBCALL_KAFKA_ZKCONNECT));
+    properties.setProperty("metadata.broker.list", props.getProperty(Configuration.WEBCALL_KAFKA_BROKERLIST));
     
-    if (null != props.getProperty(WEBCALL_KAFKA_PRODUCER_CLIENTID)) {
-      properties.setProperty("client.id", props.getProperty(WEBCALL_KAFKA_PRODUCER_CLIENTID));
+    if (null != props.getProperty(Configuration.WEBCALL_KAFKA_PRODUCER_CLIENTID)) {
+      properties.setProperty("client.id", props.getProperty(Configuration.WEBCALL_KAFKA_PRODUCER_CLIENTID));
     }
     
     properties.setProperty("request.required.acks", "-1");
@@ -144,7 +136,7 @@ public class KafkaWebCallService {
     ProducerConfig config = new ProducerConfig(properties);
     producer = new Producer<byte[], byte[]>(config);
 
-    topic = props.getProperty(WEBCALL_KAFKA_TOPIC);
+    topic = props.getProperty(Configuration.WEBCALL_KAFKA_TOPIC);
     
     initialized = true;
   }  

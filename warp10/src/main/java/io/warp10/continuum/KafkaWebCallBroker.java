@@ -49,32 +49,17 @@ import com.google.common.base.Preconditions;
  * Class which implements pulling data from Kafka and making WebCall calls
  */
 public class KafkaWebCallBroker extends Thread {
-  
-  /**
-   * How many threads to spawn
-   */
-  private static final String WEBCALL_NTHREADS = "webcall.nthreads";
-  
-  /**
-   * Groupid to use when consuming Kafka
-   */
-  private static final String WEBCALL_KAFKA_GROUPID = "webcall.kafka.groupid";
-  
-  /**
-   * How often to commit the Kafka offsets
-   */
-  private static final String WEBCALL_KAFKA_COMMITPERIOD = "webcall.kafka.commitperiod";
-  
+    
   /**
    * Set of required parameters, those MUST be set
    */
   private static final String[] REQUIRED_PROPERTIES = new String[] {
-    WEBCALL_NTHREADS,
-    KafkaWebCallService.WEBCALL_KAFKA_ZKCONNECT,
-    KafkaWebCallService.WEBCALL_KAFKA_BROKERLIST,
-    KafkaWebCallService.WEBCALL_KAFKA_TOPIC,
-    WEBCALL_KAFKA_GROUPID,
-    WEBCALL_KAFKA_COMMITPERIOD,
+    Configuration.WEBCALL_NTHREADS,
+    Configuration.WEBCALL_KAFKA_ZKCONNECT,
+    Configuration.WEBCALL_KAFKA_BROKERLIST,
+    Configuration.WEBCALL_KAFKA_TOPIC,
+    Configuration.WEBCALL_KAFKA_GROUPID,
+    Configuration.WEBCALL_KAFKA_COMMITPERIOD,
   };
 
   /**
@@ -112,8 +97,8 @@ public class KafkaWebCallBroker extends Thread {
     // Extract parameters
     //
             
-    final String topic = properties.getProperty(KafkaWebCallService.WEBCALL_KAFKA_TOPIC);
-    final int nthreads = Integer.valueOf(properties.getProperty(WEBCALL_NTHREADS));
+    final String topic = properties.getProperty(Configuration.WEBCALL_KAFKA_TOPIC);
+    final int nthreads = Integer.valueOf(properties.getProperty(Configuration.WEBCALL_NTHREADS));
     
     //
     // Extract keys
@@ -123,9 +108,9 @@ public class KafkaWebCallBroker extends Thread {
     
     final KafkaWebCallBroker self = this;
     
-    commitPeriod = Long.parseLong(properties.getProperty(WEBCALL_KAFKA_COMMITPERIOD));
+    commitPeriod = Long.parseLong(properties.getProperty(Configuration.WEBCALL_KAFKA_COMMITPERIOD));
     
-    final String groupid = properties.getProperty(WEBCALL_KAFKA_GROUPID);
+    final String groupid = properties.getProperty(Configuration.WEBCALL_KAFKA_GROUPID);
     
     final KafkaOffsetCounters counters = new KafkaOffsetCounters(topic, groupid, commitPeriod * 2);
 
@@ -150,10 +135,10 @@ public class KafkaWebCallBroker extends Thread {
             topicCountMap.put(topic, nthreads);
                           
             Properties props = new Properties();
-            props.setProperty("zookeeper.connect", properties.getProperty(KafkaWebCallService.WEBCALL_KAFKA_ZKCONNECT));
+            props.setProperty("zookeeper.connect", properties.getProperty(Configuration.WEBCALL_KAFKA_ZKCONNECT));
             props.setProperty("group.id", groupid);
-            if (null != properties.getProperty(KafkaWebCallService.WEBCALL_KAFKA_CONSUMER_CLIENTID)) {
-              props.setProperty("client.id", properties.getProperty(KafkaWebCallService.WEBCALL_KAFKA_CONSUMER_CLIENTID));
+            if (null != properties.getProperty(Configuration.WEBCALL_KAFKA_CONSUMER_CLIENTID)) {
+              props.setProperty("client.id", properties.getProperty(Configuration.WEBCALL_KAFKA_CONSUMER_CLIENTID));
             }
             props.setProperty("auto.commit.enable", "false");    
             

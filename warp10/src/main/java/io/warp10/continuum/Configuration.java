@@ -77,7 +77,57 @@ public class Configuration {
    * 
    */
   public static final String WEBCALL_HOST_PATTERNS = "webcall.host.patterns";
+
+  /**
+   * ZK Quorum to use for reaching the Kafka cluster to consume WebCall requests
+   */
+  public static final String WEBCALL_KAFKA_ZKCONNECT = "webcall.kafka.zkconnect";
   
+  /**
+   * List of Kafka brokers to use for sending WebCall requests
+   */
+  public static final String WEBCALL_KAFKA_BROKERLIST = "webcall.kafka.brokerlist";
+  
+  /**
+   * Topic to use for WebCall requests
+   */
+  public static final String WEBCALL_KAFKA_TOPIC = "webcall.kafka.topic";
+  
+  /**
+   * AES key to use for encrypting WebCall requests
+   */
+  public static final String WEBCALL_KAFKA_AES = "webcall.kafka.aes";
+  
+  /**
+   * SipHash key to use for computing WebCall requests HMACs
+   */
+  public static final String WEBCALL_KAFKA_MAC = "webcall.kafka.mac";
+  
+  /**
+   * Kafka client id to use when consuming WebCall requests
+   */
+  public static final String WEBCALL_KAFKA_CONSUMER_CLIENTID = "webcall.kafka.consumer.clientid";
+  
+  /**
+   * Kafka client id to use when producing WebCall requests
+   */
+  public static final String WEBCALL_KAFKA_PRODUCER_CLIENTID = "webcall.kafka.producer.clientid";
+
+  /**
+   * How many threads to spawn
+   */
+  public static final String WEBCALL_NTHREADS = "webcall.nthreads";
+  
+  /**
+   * Groupid to use when consuming Kafka
+   */
+  public static final String WEBCALL_KAFKA_GROUPID = "webcall.kafka.groupid";
+  
+  /**
+   * How often to commit the Kafka offsets
+   */
+  public static final String WEBCALL_KAFKA_COMMITPERIOD = "webcall.kafka.commitperiod";
+
   /**
    * Number of continuum time units per millisecond
    * 1000000 means we store nanoseconds
