@@ -5628,6 +5628,10 @@ public class GTSHelper {
     
     GTSHelper.sort(clone);
     
+    if (2 >= clone.values) {
+      return clone;
+    }
+    
     //
     // Now scan the ticks and remove duplicate value/location/elevation tuples
     //
@@ -8453,5 +8457,159 @@ public class GTSHelper {
 
     return bbox;
   }
+ 
+  /**
+   * Compute conditional probabilities given a GTS considering the values as the concatenation
+   * of given events plus the event for which we want to compute the probability, separated by 'separator'
+   * 
+   * If 'sepearator' is null then we simply compute the probability of values instead of conditional probabilities
+   * 
+   * @param gts
+   * @param separator
+   * @return
+   */
+  public static GeoTimeSerie cprob(GeoTimeSerie gts, String separator) throws WarpScriptException {
+    
+    Map<Object,AtomicInteger> histogram = new HashMap<Object, AtomicInteger>();
+
+    GeoTimeSerie prob = gts.cloneEmpty();
+
+    if (null == separator) {      
+      long total = 0L;
+      
+      for (int i = 0; i < gts.values; i++) {
+        Object value = GTSHelper.valueAtIndex(gts, i);
+        AtomicInteger count = histogram.get(value);
+        if (null == count) {
+          count = new AtomicInteger(0);
+          histogram.put(value, count);
+        }
+        count.addAndGet(1);
+        total++;
+      }
+      
+      for (int i = 0; i < gts.values; i++) {
+        long timestamp = GTSHelper.tickAtIndex(gts, i);
+        long geoxppoint = GTSHelper.locationAtIndex(gts, i);
+        long elevation = GTSHelper.elevationAtIndex(gts, i);
+        Object value = GTSHelper.valueAtIndex(gts, i);
+        double p = histogram.get(value).doubleValue() / total;
+        GTSHelper.setValue(prob, timestamp, geoxppoint, elevation, p, false);
+      }
+      
+      return prob;
+    }
+    
+    //
+    // Sort 'gts' by value so we group the 'given' events by common set of values
+    //
+    
+    GTSHelper.valueSort(gts);
+    
+    int idx = 0;
+    
+    while(idx < gts.values) {
+      //
+      // Extract 'given' events
+      //
+      
+      Object val = GTSHelper.valueAtIndex(gts, idx);
+      
+      if (!(val instanceof String)) {
+        throw new WarpScriptException("Can only compute conditional probabilities for String Geo Time Series.");
+      }
+      
+      int lastsep = val.toString().lastIndexOf(separator);
+      
+      if (-1 == lastsep) {
+        throw new WarpScriptException("Separator not found, unable to isolate given events.");
+      }
+      
+      String given = val.toString().substring(0, lastsep);
+     
+      histogram.clear();
+      long total = 0;
+      
+      int subidx = idx;
+      
+      while(subidx < gts.values) {
+        
+        val = GTSHelper.valueAtIndex(gts, subidx);
+        
+        lastsep = val.toString().lastIndexOf(separator);
+        
+        if (-1 == lastsep) {
+          throw new WarpScriptException("Separator not found, unable to isolate given events.");
+        }
+        
+        String givenEvents = val.toString().substring(0, lastsep);
+        
+        System.out.println("GIVEN=" + givenEvents + " >>> " + given);
+        
+        if (!givenEvents.equals(given)) {
+          break;
+        }
+        
+        String event = val.toString().substring(lastsep + separator.length());
+        
+        System.out.println("EVENT=" + event);
+        
+        AtomicInteger count = histogram.get(event);
+        
+        if (null == count) {
+          count = new AtomicInteger(0);
+          histogram.put(event, count);
+        }
+        
+        count.addAndGet(1);
+        total++;
+        
+        subidx++;
+      }
+      
+      for (int i = idx; i < subidx; i++) {
+        val = GTSHelper.valueAtIndex(gts, i);
+        
+        lastsep = val.toString().lastIndexOf(separator);
+        
+        String event = val.toString().substring(lastsep + separator.length());
+
+        long timestamp = GTSHelper.tickAtIndex(gts, i);
+        long location = GTSHelper.locationAtIndex(gts, i);
+        long elevation = GTSHelper.elevationAtIndex(gts, i);
+        
+        double p = histogram.get(event).doubleValue() / total;
+        
+        GTSHelper.setValue(prob, timestamp, location, elevation, p, false);
+      }
+      
+      idx = subidx;
+    } 
+    
+    return prob;
+  }
   
+  /**
+   * Convert a GTS into a GTS of the probability associated with the value present at each tick
+   * given the value histogram
+   * 
+   * @param gts
+   * @return
+   */
+  public static GeoTimeSerie prob(GeoTimeSerie gts) {
+    Map<Object, Long> histogram = valueHistogram(gts);
+    
+    GeoTimeSerie prob = gts.cloneEmpty(gts.values);
+    
+    for (int i = 0; i < gts.values; i++) {
+      long timestamp = tickAtIndex(gts, i);
+      long geoxppoint = locationAtIndex(gts, i);
+      long elevation = elevationAtIndex(gts, i);
+      Object value = valueAtIndex(gts, i);
+      
+      setValue(prob, timestamp, geoxppoint, elevation, histogram.get(value).doubleValue() / gts.values, false);
+    }
+    
+    return prob;
+  }
 }
