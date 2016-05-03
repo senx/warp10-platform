@@ -16,6 +16,9 @@
 
 package io.warp10.script.binary;
 
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
+
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -41,8 +44,12 @@ public class SUB extends NamedWarpScriptFunction implements WarpScriptStackFunct
       } else {
         stack.push(((Number) op1).longValue() - ((Number) op2).longValue());        
       }
+    } else if (op1 instanceof RealMatrix && op2 instanceof RealMatrix) {
+      stack.push(((RealMatrix) op1).subtract((RealMatrix) op2));
+    } else if (op1 instanceof RealVector && op2 instanceof RealVector) {
+      stack.push(((RealVector) op1).subtract((RealVector) op2));
     } else {
-      throw new WarpScriptException(getName() + " can only operate on numeric values.");
+      throw new WarpScriptException(getName() + " can only operate on numeric values, vectors and matrices.");
     }
     
     return stack;

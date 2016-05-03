@@ -27,6 +27,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
+
 /**
  * Adds the two operands on top of the stack
  */
@@ -64,8 +67,20 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       macro.addAll((Macro) op1);
       macro.addAll((Macro) op2);
       stack.push(macro);
+    } else if (op1 instanceof RealMatrix && op2 instanceof RealMatrix) {
+      stack.push(((RealMatrix) op1).add((RealMatrix) op2));
+    } else if (op1 instanceof RealMatrix && op2 instanceof Number) {
+      stack.push(((RealMatrix) op1).scalarAdd(((Number) op2).doubleValue()));
+    } else if (op2 instanceof RealMatrix && op1 instanceof Number) {
+      stack.push(((RealMatrix) op2).scalarAdd(((Number) op1).doubleValue()));
+    } else if (op1 instanceof RealVector && op2 instanceof RealVector) {
+      stack.push(((RealVector) op1).add((RealVector) op2));
+    } else if (op1 instanceof RealVector && op2 instanceof Number) {
+      stack.push(((RealVector) op1).mapAdd(((Number) op2).doubleValue()));
+    } else if (op2 instanceof RealVector && op1 instanceof Number) {
+      stack.push(((RealVector) op2).mapAdd(((Number) op1).doubleValue()));
     } else {
-      throw new WarpScriptException(getName() + " can only operate on numeric, string, lists and macro values.");
+      throw new WarpScriptException(getName() + " can only operate on numeric, string, lists, matrices, vectors and macro values.");
     }
     
     return stack;

@@ -16,6 +16,8 @@
 
 package io.warp10.script.binary;
 
+import org.apache.commons.math3.linear.RealVector;
+
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -41,6 +43,8 @@ public class DIV extends NamedWarpScriptFunction implements WarpScriptStackFunct
       } else {
         stack.push(((Number) op1).longValue() / ((Number) op2).longValue());        
       }
+    } else if (op1 instanceof RealVector && op2 instanceof Number) {
+      stack.push(((RealVector) op1).mapDivide(((Number) op2).doubleValue()));      
     } else {
       throw new WarpScriptException(getName() + " can only operate on numeric values.");
     }
