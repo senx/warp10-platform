@@ -1180,6 +1180,9 @@ public class Store extends Thread {
     if (!"".equals(properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_ZNODE))) {
       config.set("zookeeper.znode.parent", properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_ZNODE));
     }
+    if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT)) {
+      config.set("hbase.zookeeper.property.clientPort", properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT));
+    }
     if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_IPC_POOL_SIZE)) {
       config.set("hbase.client.ipc.pool.size", properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_IPC_POOL_SIZE));
     }
