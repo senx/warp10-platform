@@ -261,7 +261,12 @@ public class Configuration {
    * ZooKeeper Quorum for locating HBase
    */
   public static final String DIRECTORY_HBASE_METADATA_ZKCONNECT = "directory.hbase.metadata.zkconnect";
-  
+
+  /**
+   * ZooKeeper port for HBase client
+   */
+  public static final String DIRECTORY_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT = "directory.hbase.zookeeper.property.clientPort";
+
   /**
    * HBase table where metadata should be stored
    */
@@ -696,6 +701,11 @@ public class Configuration {
    * ZooKeeper connect string for HBase
    */
   public static final String STORE_HBASE_DATA_ZKCONNECT = "store.hbase.data.zkconnect";
+
+  /**
+   * ZooKeeper port for HBase client
+   */
+  public static final String STORE_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT = "store.hbase.zookeeper.property.clientPort";
   
   /**
    * HBase table where data should be stored
@@ -726,7 +736,8 @@ public class Configuration {
    * Custom value of 'hbase.hconnection.threads.core' for the Store HBase pool (MUST be <= STORE_HBASE_HCONNECTION_THREADS_MAX)
    */
   public static final String STORE_HBASE_HCONNECTION_THREADS_CORE = "store.hbase.hconnection.threads.core";
-  
+
+
   //
   // P L A S M A
   //
@@ -1199,7 +1210,12 @@ public class Configuration {
    * ZooKeeper Quorum for locating HBase
    */
   public static final String EGRESS_HBASE_DATA_ZKCONNECT = "egress.hbase.data.zkconnect";
-  
+
+  /**
+   * ZooKeeper port for HBase client
+   */
+  public static final String EGRESS_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT = "egress.hbase.zookeeper.property.clientPort";
+
   /**
    * Parent znode under which HBase znodes will be created
    */

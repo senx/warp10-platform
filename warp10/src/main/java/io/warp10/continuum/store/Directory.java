@@ -417,6 +417,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     if (!"".equals(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_ZNODE))) {
       conf.set("zookeeper.znode.parent", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_ZNODE));
     }
+
+    if (properties.containsKey(io.warp10.continuum.Configuration.DIRECTORY_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT)) {
+      conf.set("hbase.zookeeper.property.clientPort", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT));
+    }
     
     this.conn = ConnectionFactory.createConnection(conf);
 
