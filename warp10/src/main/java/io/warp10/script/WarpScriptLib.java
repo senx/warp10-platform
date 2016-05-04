@@ -763,6 +763,9 @@ public class WarpScriptLib {
     functions.put("MUSIGMA", new MUSIGMA("MUSIGMA"));
     functions.put("NSUMSUMSQ", new NSUMSUMSQ("NSUMSUMSQ"));
     
+    functions.put("->Z", new TOZ("->Z"));
+    functions.put("Z->", new ZTO("Z->"));
+    
     //
     // Linear Algebra
     //
