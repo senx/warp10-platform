@@ -547,6 +547,7 @@ public class WarpScriptLib {
     functions.put("VALUEHISTOGRAM", new VALUEHISTOGRAM("VALUEHISTORGRAM"));
     functions.put("PROBABILITY", new PROBABILITY.Builder("PROBABILITY"));
     functions.put("PROB", new PROB("PROB"));
+    functions.put("CPROB", new CPROB("CPROB"));
     functions.put("HASH", new HASH("HASH"));
     functions.put("SINGLEEXPONENTIALSMOOTHING", new SINGLEEXPONENTIALSMOOTHING("SINGLEEXPONENTIALSMOOTHING"));
     functions.put("DOUBLEEXPONENTIALSMOOTHING", new DOUBLEEXPONENTIALSMOOTHING("DOUBLEEXPONENTIALSMOOTHING"));

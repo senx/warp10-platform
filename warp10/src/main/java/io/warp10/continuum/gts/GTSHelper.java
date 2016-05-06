@@ -8544,15 +8544,11 @@ public class GTSHelper {
         
         String givenEvents = val.toString().substring(0, lastsep);
         
-        System.out.println("GIVEN=" + givenEvents + " >>> " + given);
-        
         if (!givenEvents.equals(given)) {
           break;
         }
         
-        String event = val.toString().substring(lastsep + separator.length());
-        
-        System.out.println("EVENT=" + event);
+        String event = val.toString().substring(lastsep + separator.length()).trim();
         
         AtomicInteger count = histogram.get(event);
         
