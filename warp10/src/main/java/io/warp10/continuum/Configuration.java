@@ -318,6 +318,11 @@ public class Configuration {
   public static final String DIRECTORY_STREAMING_PORT = "directory.streaming.port";
 
   /**
+   * Should we ignore the proxy settings when doing a streaming request?
+   */
+  public static final String DIRECTORY_STREAMING_NOPROXY = "directory.streaming.noproxy";
+
+  /**
    * Number of Jetty selectors for the streaming server
    */
   public static final String DIRECTORY_STREAMING_SELECTORS = "directory.streaming.selectors";

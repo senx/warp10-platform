@@ -28,6 +28,7 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.Proxy;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Iterator;
@@ -68,12 +69,15 @@ public class StreamingMetadataIterator extends MetadataIterator {
   private final List<Map<String,String>> labelsSelectors;
   
   private final List<URL> urls;
+
+  private final boolean noProxy;
   
-  public StreamingMetadataIterator(long[] SIPHASH_PSK, List<String> classSelectors, List<Map<String,String>> labelsSelectors, List<URL> urls) {
+  public StreamingMetadataIterator(long[] SIPHASH_PSK, List<String> classSelectors, List<Map<String,String>> labelsSelectors, List<URL> urls, boolean noProxy) {
     this.SIPHASH_PSK = SIPHASH_PSK;
     this.classSelectors = classSelectors;
     this.labelsSelectors = labelsSelectors;
     this.urls = urls;
+    this.noProxy = noProxy;
   }
     
   @Override
@@ -158,7 +162,7 @@ public class StreamingMetadataIterator extends MetadataIterator {
 
       URL url = new URL(urls.get(urlidx) + "?" + qs);
       
-      conn = (HttpURLConnection) url.openConnection();
+      conn = (HttpURLConnection) (this.noProxy ? url.openConnection(Proxy.NO_PROXY) : url.openConnection());
       
       conn.setChunkedStreamingMode(8192);
       conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE), signature);

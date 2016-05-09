@@ -113,6 +113,8 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
 
   final AtomicBoolean transportException = new AtomicBoolean(false);
 
+  private final boolean noProxy;
+  
   public ThriftDirectoryClient(KeyStore keystore, Properties props) throws Exception {
   
     // Extract Directory PSK
@@ -125,6 +127,12 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
         .connectString(props.getProperty(Configuration.DIRECTORY_ZK_QUORUM))
         .build();
     this.curatorFramework.start();
+  
+    if ("true".equals(props.getProperty(Configuration.DIRECTORY_STREAMING_NOPROXY))) {
+      this.noProxy = true;
+    } else {
+      this.noProxy = false;
+    }
     
     ServiceDiscovery<Map> discovery = ServiceDiscoveryBuilder.builder(Map.class)
         .basePath(props.getProperty(Configuration.DIRECTORY_ZK_ZNODE))
@@ -777,6 +785,6 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
       called.add(remainder.get(entry.getKey()));
     }
     
-    return new StreamingMetadataIterator(SIPHASH_PSK, classSelectors, labelsSelectors, urls);    
+    return new StreamingMetadataIterator(SIPHASH_PSK, classSelectors, labelsSelectors, urls, this.noProxy);    
   }
 }
