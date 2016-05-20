@@ -85,4 +85,15 @@ public class NPDF extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     return stack;
   }
+  
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(this.sigma);
+    sb.append(" ");
+    sb.append(this.mu);
+    sb.append(" ");
+    sb.append(this.getName());
+    return sb.toString();
+  }
 }

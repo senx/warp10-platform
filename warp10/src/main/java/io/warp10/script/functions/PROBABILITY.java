@@ -17,6 +17,8 @@
 package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.StackUtils;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -80,5 +82,23 @@ public class PROBABILITY extends NamedWarpScriptFunction implements WarpScriptSt
     }
 
     return stack;
+  }
+  
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(WarpScriptLib.MAP_START);
+    sb.append(" ");
+    for (Entry<Object,Double> entry: this.probabilities.entrySet()) {
+      sb.append(StackUtils.toString(entry.getKey()));
+      sb.append(" ");
+      sb.append(StackUtils.toString(entry.getValue()));
+      sb.append(" ");
+    }
+    sb.append(" ");
+    sb.append(WarpScriptLib.MAP_END);
+    sb.append(" ");
+    sb.append(this.getName());
+    return sb.toString();
   }
 }

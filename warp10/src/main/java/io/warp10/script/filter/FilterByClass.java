@@ -18,6 +18,7 @@ package io.warp10.script.filter;
 
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptFilterFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -31,6 +32,7 @@ import java.util.regex.Pattern;
 
 public class FilterByClass extends NamedWarpScriptFunction implements WarpScriptFilterFunction {
   
+  private final String selParam;
   private final Pattern selector;
   
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
@@ -52,6 +54,7 @@ public class FilterByClass extends NamedWarpScriptFunction implements WarpScript
   
   public FilterByClass(String name, String selector) {
     super(name);
+    this.selParam = selector;
     if (selector.startsWith("=")) {
       this.selector = Pattern.compile(Pattern.quote(selector.substring(1)));
     } else if (selector.startsWith("~")) {
@@ -77,5 +80,14 @@ public class FilterByClass extends NamedWarpScriptFunction implements WarpScript
     }
     
     return retained;
+  }
+  
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(StackUtils.toString(this.selParam));
+    sb.append(" ");
+    sb.append(this.getName());
+    return sb.toString();
   }
 }

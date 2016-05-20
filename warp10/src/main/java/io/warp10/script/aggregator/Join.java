@@ -21,6 +21,7 @@ import java.net.URLEncoder;
 
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptMapperFunction;
@@ -146,4 +147,13 @@ public class Join extends NamedWarpScriptFunction implements WarpScriptAggregato
     
     return new Object[] { 0L, location, elevation, result };    
   }
+  
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(StackUtils.toString(this.separator));
+    sb.append(" ");
+    sb.append(this.getName());
+    return sb.toString();
+  }  
 }

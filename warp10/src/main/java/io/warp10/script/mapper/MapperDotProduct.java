@@ -18,6 +18,8 @@ package io.warp10.script.mapper;
 
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.StackUtils;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -100,5 +102,21 @@ public class MapperDotProduct extends NamedWarpScriptFunction implements WarpScr
   
   public double[] getOmega() {
     return this.omega;
+  }
+    
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(WarpScriptLib.LIST_START);
+    sb.append(" ");
+    for (double d: this.omega) {
+      sb.append(StackUtils.toString(d));
+      sb.append(" ");
+    }
+    sb.append(WarpScriptLib.LIST_END);
+    sb.append(" ");
+    sb.append(this.getName());
+    
+    return sb.toString();
   }
 }

@@ -18,6 +18,7 @@ package io.warp10.script.aggregator;
 
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptMapperFunction;
@@ -172,5 +173,14 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptAgg
         throw new WarpScriptException("Twilight zone!");
       }
     }
+  }
+  
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(StackUtils.toString(this.percentile));
+    sb.append(" ");
+    sb.append(this.getName());
+    return sb.toString();
   }
 }

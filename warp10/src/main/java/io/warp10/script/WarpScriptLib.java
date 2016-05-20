@@ -21,12 +21,11 @@ import io.warp10.continuum.Configuration;
 import io.warp10.continuum.gts.CORRELATE;
 import io.warp10.continuum.gts.DISCORDS;
 import io.warp10.continuum.gts.FFT;
+import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.continuum.gts.IFFT;
 import io.warp10.continuum.gts.INTERPOLATE;
 import io.warp10.continuum.gts.LOCATIONOFFSET;
 import io.warp10.continuum.gts.ZIP;
-import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
-import io.warp10.script.*;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.aggregator.Percentile;
 import io.warp10.script.binary.ADD;
@@ -214,23 +213,43 @@ import java.util.Set;
 
 /**
  * Library of functions used to manipulate Geo Time Series
- * and more generally interact with an EinsteinStack
+ * and more generally interact with a WarpScriptStack
  */
 public class WarpScriptLib {
   private static Map<String,WarpScriptStackFunction> functions = new HashMap<String, WarpScriptStackFunction>();
   
   /**
-   * Static definition of name so it can be reused outside of EinsteinLib
+   * Static definition of name so it can be reused outside of WarpScriptLib
    */
   public static final String EVAL = "EVAL";
   public static final String LOAD = "LOAD";
   public static final String RUN = "RUN";
   public static final String BOOTSTRAP = "BOOTSTRAP";
   
+  public static final String MAP_START = "{";
+  public static final String MAP_END = "}";
+
+  public static final String LIST_START = "[";
+  public static final String LIST_END = "]";
+
+  public static final String NEWGTS = "NEWGTS";
+  public static final String SWAP = "SWAP";
+  public static final String RELABEL = "RELABEL";
+  public static final String RENAME = "RENAME";
+  public static final String PARSESELECTOR = "PARSESELECTOR";
+  
   public static final String GEO_WKT = "GEO.WKT";
   public static final String GEO_INTERSECTION = "GEO.INTERSECTION";
   public static final String GEO_DIFFERENCE = "GEO.DIFFERENCE";
   public static final String GEO_UNION = "GEO.UNION";
+  public static final String GEOPACK = "GEOPACK";
+  public static final String GEOUNPACK = "GEOUNPACK";
+  
+  public static final String UNWRAP = "UNWRAP";
+  public static final String OPB64TO = "OPB64->";
+  public static final String BYTESTOBITS = "BYTESTOBITS";
+  public static final String MARK = "MARK";
+  public static final String STORE = "STORE";
   
   static {
     
@@ -242,7 +261,7 @@ public class WarpScriptLib {
     // Stack manipulation functions
     //
     
-    functions.put("MARK", new MARK("MARK"));
+    functions.put(MARK, new MARK(MARK));
     functions.put("CLEARTOMARK", new CLEARTOMARK("CLEARTOMARK"));
     functions.put("COUNTTOMARK", new COUNTTOMARK("COUNTTOMARK"));
     functions.put("AUTHENTICATE", new AUTHENTICATE("AUTHENTICATE"));
@@ -281,7 +300,7 @@ public class WarpScriptLib {
     functions.put("CLONEREVERSE", new REVERSE("CLONEREVERSE", false));
     functions.put("DUP", new DUP("DUP"));
     functions.put("DUPN", new DUPN("DUPN"));
-    functions.put("SWAP", new SWAP("SWAP"));
+    functions.put(SWAP, new SWAP(SWAP));
     functions.put("DROP", new DROP("DROP"));
     functions.put("SAVE", new SAVE("SAVE"));
     functions.put("RESTORE", new RESTORE("RESTORE"));
@@ -309,7 +328,7 @@ public class WarpScriptLib {
     functions.put("UNIXTIMEEND", new UNIXTIMEEND("UNIXTIMEEND"));
     functions.put("UNIXTIMEALIGN", new UNIXTIMEALIGN("UNIXTIMEALIGN"));
     functions.put("APPEND", new APPEND("APPEND"));
-    functions.put("STORE", new STORE("STORE"));
+    functions.put(STORE, new STORE(STORE));
     functions.put("CSTORE", new CSTORE("CSTORE"));
     functions.put(LOAD, new LOAD(LOAD));
     functions.put(RUN, new RUN(RUN));
@@ -333,19 +352,22 @@ public class WarpScriptLib {
     functions.put("LMAP", new LMAP("LMAP"));
     functions.put("LFLATMAP", new LFLATMAP("LFLATMAP"));
     functions.put("[]", new EMPTYLIST("[]"));
-    functions.put("[", new MARK("["));
-    functions.put("]", new ENDLIST("]"));
+    functions.put(LIST_START, new MARK(LIST_START));
+    functions.put(LIST_END, new ENDLIST(LIST_END));
     functions.put("{}", new EMPTYMAP("{}"));
     functions.put("IMMUTABLE", new IMMUTABLE("IMMUTABLE"));
-    functions.put("{", new MARK("{"));
-    functions.put("}", new ENDMAP("}"));
+    functions.put(MAP_START, new MARK(MAP_START));
+    functions.put(MAP_END, new ENDMAP(MAP_END));
     functions.put("SECUREKEY", new SECUREKEY("SECUREKEY"));
     functions.put("UNSECURE", new UNSECURE("UNSECURE", true));
     functions.put("EVALSECURE", new EVALSECURE("EVALSECURE"));
     functions.put("NOOP", new NOOP("NOOP"));
     functions.put("DOC", new DOC("DOC"));
     functions.put("DOCMODE", new DOCMODE("DOCMODE"));
-    functions.put("SNAPSHOT", new SNAPSHOT("SNAPSHOT"));
+    functions.put("SNAPSHOT", new SNAPSHOT("SNAPSHOT", false, false));
+    functions.put("SNAPSHOTALL", new SNAPSHOT("SNAPSHOTALL", true, false));
+    functions.put("SNAPSHOTTOMARK", new SNAPSHOT("SNAPSHOTTOMARK", false, true));
+    functions.put("SNAPSHOTALLTOMARK", new SNAPSHOT("SNAPSHOTALLTOMARK", true, true));
        
     functions.put("MACROMAPPER", new MACROMAPPER("MACROMAPPER"));
     functions.put("MACROREDUCER", new MACROMAPPER("MACROREDUCER"));
@@ -354,7 +376,7 @@ public class WarpScriptLib {
     functions.put("STRICTMAPPER", new STRICTMAPPER("STRICTMAPPER"));
     functions.put("STRICTREDUCER", new STRICTREDUCER("STRICTREDUCER"));
     
-    functions.put("PARSESELECTOR", new PARSESELECTOR("PARSESELECTOR"));
+    functions.put(PARSESELECTOR, new PARSESELECTOR(PARSESELECTOR));
     functions.put("TOSELECTOR", new TOSELECTOR("TOSELECTOR"));
     
     // Binary ops
@@ -448,6 +470,7 @@ public class WarpScriptLib {
     functions.put("->B64", new TOB64("->B64"));
     functions.put("->B64URL", new TOB64URL("->B64URL"));
     functions.put("->OPB64", new TOOPB64("->OPB64"));
+    functions.put(OPB64TO, new OPB64TO(OPB64TO));
     functions.put("OPB64TOHEX", new OPB64TOHEX("OPB64TOHEX"));    
     
     //
@@ -483,7 +506,7 @@ public class WarpScriptLib {
     // GTS standalone functions
     //
     
-    functions.put("NEWGTS", new NEWGTS("NEWGTS"));
+    functions.put(NEWGTS, new NEWGTS(NEWGTS));
     functions.put("MAKEGTS", new MAKEGTS("MAKEGTS"));
     functions.put("ADDVALUE", new ADDVALUE("ADDVALUE", false));
     functions.put("SETVALUE", new ADDVALUE("SETVALUE", true));
@@ -523,8 +546,8 @@ public class WarpScriptLib {
     functions.put("TIMEMODULO", new TIMEMODULO("TIMEMODULO"));
     functions.put("CHUNK", new CHUNK("CHUNK"));
     functions.put("FUSE", new FUSE("FUSE"));
-    functions.put("RENAME", new RENAME("RENAME"));
-    functions.put("RELABEL", new RELABEL("RELABEL"));
+    functions.put(RENAME, new RENAME(RENAME));
+    functions.put(RELABEL, new RELABEL(RELABEL));
     functions.put("SETATTRIBUTES", new SETATTRIBUTES("SETATTRIBUTES"));
     functions.put("CROP", new CROP("CROP"));
     functions.put("TIMESHIFT", new TIMESHIFT("TIMESHIFT"));
@@ -548,6 +571,7 @@ public class WarpScriptLib {
     functions.put("PROBABILITY", new PROBABILITY.Builder("PROBABILITY"));
     functions.put("PROB", new PROB("PROB"));
     functions.put("CPROB", new CPROB("CPROB"));
+    functions.put("RANDPDF", new RANDPDF.Builder("RANDPDF"));
     functions.put("HASH", new HASH("HASH"));
     functions.put("SINGLEEXPONENTIALSMOOTHING", new SINGLEEXPONENTIALSMOOTHING("SINGLEEXPONENTIALSMOOTHING"));
     functions.put("DOUBLEEXPONENTIALSMOOTHING", new DOUBLEEXPONENTIALSMOOTHING("DOUBLEEXPONENTIALSMOOTHING"));
@@ -592,7 +616,7 @@ public class WarpScriptLib {
     functions.put("TICKLIST", new TICKLIST("TICKLIST"));
     functions.put("COMMONTICKS", new COMMONTICKS("COMMONTICKS"));
     functions.put("WRAP", new WRAP("WRAP"));
-    functions.put("UNWRAP", new UNWRAP("UNWRAP"));
+    functions.put(UNWRAP, new UNWRAP(UNWRAP));
     
     //
     // Outlier detection
@@ -681,9 +705,10 @@ public class WarpScriptLib {
     functions.put("mapper.hour", new MapperHourOfDay.Builder("mapper.hour"));
     functions.put("mapper.minute", new MapperMinuteOfHour.Builder("mapper.minute"));
     functions.put("mapper.second", new MapperSecondOfMinute.Builder("mapper.second"));
-    
+
     functions.put("mapper.npdf", new MapperNPDF.Builder("mapper.npdf"));
     functions.put("mapper.dotproduct", new MapperDotProduct.Builder("mapper.dotproduct"));
+
     functions.put("mapper.dotproduct.tanh", new MapperDotProductTanh.Builder("mapper.dotproduct.tanh"));
     functions.put("mapper.dotproduct.sigmoid", new MapperDotProductSigmoid.Builder("mapper.dotproduct.sigmoid"));
     functions.put("mapper.dotproduct.positive", new MapperDotProductPositive.Builder("mapper.dotproduct.positive"));
@@ -707,13 +732,14 @@ public class WarpScriptLib {
     functions.put("filter.byclass", new FilterByClass.Builder("filter.byclass"));
     functions.put("filter.bylabels", new FilterByLabels.Builder("filter.bylabels"));
     functions.put("filter.bymetadata", new FilterByMetadata.Builder("filter.bymetadata"));
+
     functions.put("filter.last.eq", new FilterLastEQ.Builder("filter.last.eq"));
     functions.put("filter.last.ge", new FilterLastGE.Builder("filter.last.ge"));
     functions.put("filter.last.gt", new FilterLastGT.Builder("filter.last.gt"));
     functions.put("filter.last.le", new FilterLastLE.Builder("filter.last.le"));
     functions.put("filter.last.lt", new FilterLastLT.Builder("filter.last.lt"));
     functions.put("filter.last.ne", new FilterLastNE.Builder("filter.last.ne"));
-    
+
     functions.put("filter.latencies", new LatencyFilter.Builder("filter.latencies"));
     
     //
@@ -727,6 +753,8 @@ public class WarpScriptLib {
     functions.put("GEO.WITHIN", new GEOWITHIN("GEO.WITHIN"));
     functions.put("GEO.INTERSECTS", new GEOINTERSECTS("GEO.WINTERSECTS"));
     functions.put("HAVERSINE", new HAVERSINE("HAVERSINE"));
+    functions.put(GEOPACK, new GEOPACK(GEOPACK));
+    functions.put(GEOUNPACK, new GEOUNPACK(GEOUNPACK));
     functions.put("mapper.geo.within", new MapperGeoWithin.Builder("mapper.geo.within"));
     functions.put("mapper.geo.outside", new MapperGeoOutside.Builder("mapper.geo.outside"));
     functions.put("mapper.geo.approximate", new MapperGeoApproximate.Builder("mapper.geo.approximate"));
@@ -766,6 +794,8 @@ public class WarpScriptLib {
     
     functions.put("->Z", new TOZ("->Z"));
     functions.put("Z->", new ZTO("Z->"));
+    functions.put("PACK", new PACK("PACK"));
+    functions.put("UNPACK", new UNPACK("UNPACK"));
     
     //
     // Linear Algebra

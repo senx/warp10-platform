@@ -16,10 +16,13 @@
 
 package io.warp10.script.filter;
 
+import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptFilterFunction;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -91,5 +94,33 @@ public class FilterByMetadata extends NamedWarpScriptFunction implements WarpScr
     }
     
     return retained;
+  }
+  
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    
+    sb.append(WarpScriptLib.LIST_START);
+    sb.append(" ");
+    for (Metadata metadata: this.metadatas) {
+      sb.append(StackUtils.toString(GTSHelper.buildSelector(metadata)));
+      sb.append(" ");
+      sb.append(WarpScriptLib.PARSESELECTOR);
+      sb.append(" ");
+      sb.append(WarpScriptLib.NEWGTS);
+      sb.append(" ");
+      sb.append(WarpScriptLib.SWAP);
+      sb.append(" ");
+      sb.append(WarpScriptLib.RELABEL);
+      sb.append(" ");
+      sb.append(WarpScriptLib.SWAP);
+      sb.append(" ");
+      sb.append(WarpScriptLib.RENAME);
+      sb.append(" ");
+    }
+    sb.append(WarpScriptLib.LIST_END);
+    sb.append(" ");
+    sb.append(this.getName());
+    return sb.toString();
   }
 }

@@ -20,8 +20,11 @@ import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.WarpScriptStack.Mark;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -32,6 +35,7 @@ import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.geoxp.GeoXPLib.GeoXPShape;
 import com.google.common.base.Charsets;
 
 /**
@@ -50,8 +54,14 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
   
   private static final String uuid = UUID.randomUUID().toString();
 
-  public SNAPSHOT(String name) {
+  private final boolean snapshotSymbols;
+  
+  private final boolean toMark;
+  
+  public SNAPSHOT(String name, boolean snapshotSymbols, boolean toMark) {
     super(name);
+    this.snapshotSymbols = snapshotSymbols;
+    this.toMark = toMark;
   }
   
   @Override
@@ -65,14 +75,49 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         
     stack.setAttribute(uuid, new AtomicInteger());
     
-    for (int i = stack.depth() - 1; i >= 0; i--) {
+    int lastidx = 0;
+    
+    if (!this.toMark) {
+      lastidx = stack.depth() - 1;
+    } else {      
+      int i = 0;
+      while(i < stack.depth() && !(stack.get(i) instanceof Mark)) {
+        i++;
+      }
+      lastidx = i;
+      if (lastidx >= stack.depth()) {
+        lastidx = stack.depth() - 1;
+      }
+    }
+    
+    for (int i = lastidx; i >= 0; i--) {
       Object o = stack.get(i);
       
       addElement(stack, sb, o);
+    }      
+
+    //
+    // Add the defined symbols if requested to do so
+    //
+    
+    if (this.snapshotSymbols) {
+      for (Entry<String,Object> entry: stack.getSymbolTable().entrySet()) {
+        addElement(stack, sb, entry.getValue());
+        addElement(stack, sb, entry.getKey());
+        sb.append(WarpScriptLib.STORE);
+        sb.append(" ");
+      }      
     }
     
     // Clear the stack
-    stack.clear();
+    if (stack.depth() - 1 == lastidx) {
+      stack.clear();
+    } else {
+      while(lastidx >= 0) {
+        stack.pop();
+        lastidx--;
+      }
+    }
     
     // Push the snapshot onto the stack
     stack.push(sb.toString());
@@ -113,7 +158,9 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         WRAP w = new WRAP("");
         w.apply(stack);
         sb.append(stack.pop());
-        sb.append("' UNWRAP ");
+        sb.append("' ");
+        sb.append(WarpScriptLib.UNWRAP);
+        sb.append(" ");
       } else if (o instanceof List) {
         sb.append("[ ");
         for (Object oo: (List) o) {
@@ -130,11 +177,29 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
       } else if (o instanceof BitSet) {
         sb.append("'");
         sb.append(new String(OrderPreservingBase64.encode(((BitSet) o).toByteArray()), Charsets.UTF_8));
-        sb.append("' OPB64-> BYTESTOBITS ");
+        sb.append("' ");
+        sb.append(WarpScriptLib.OPB64TO);
+        sb.append(" ");
+        sb.append(WarpScriptLib.BYTESTOBITS);
+        sb.append(" ");
       } else if (o instanceof byte[]) {
         sb.append("'");
         sb.append(new String(OrderPreservingBase64.encode((byte[]) o), Charsets.UTF_8));
-        sb.append("' OPB64-> ");
+        sb.append("' ");
+        sb.append(WarpScriptLib.OPB64TO);
+        sb.append(" ");
+      } else if (o instanceof GeoXPShape) {
+        sb.append("'");
+        sb.append(GEOPACK.pack((GeoXPShape) o));
+        sb.append("' ");
+        sb.append(WarpScriptLib.GEOUNPACK);
+        sb.append(" ");
+      } else if (o instanceof Mark) {
+        sb.append(WarpScriptLib.MARK);
+        sb.append(" ");
+      } else if (o instanceof Macro) {
+        sb.append(o.toString());
+        sb.append(" ");
       } else {
         // Some types are not supported
         // functions, macros, PImage...

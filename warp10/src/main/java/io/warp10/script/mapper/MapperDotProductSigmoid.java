@@ -16,7 +16,9 @@
 
 package io.warp10.script.mapper;
 
+import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 
 /**
@@ -52,5 +54,21 @@ public class MapperDotProductSigmoid extends MapperDotProduct {
     }
     
     return result;
+  }
+  
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(WarpScriptLib.LIST_START);
+    sb.append(" ");
+    for (double d: this.getOmega()) {
+      sb.append(StackUtils.toString(d));
+      sb.append(" ");
+    }
+    sb.append(WarpScriptLib.LIST_END);
+    sb.append(" ");
+    sb.append(this.getName());
+    
+    return sb.toString();
   }
 }

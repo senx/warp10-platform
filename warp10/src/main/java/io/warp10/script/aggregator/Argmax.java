@@ -19,6 +19,7 @@ package io.warp10.script.aggregator;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptMapperFunction;
@@ -202,4 +203,16 @@ public class Argmax extends NamedWarpScriptFunction implements WarpScriptAggrega
     
     return new Object[] { tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, sb.toString() };
   }
+  
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(StackUtils.toString(this.label));
+    sb.append(" ");
+    sb.append(StackUtils.toString(this.count));
+    sb.append(" ");
+    sb.append(this.getName());
+    return sb.toString();
+  }
+  
 }

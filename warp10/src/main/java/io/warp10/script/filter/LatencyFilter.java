@@ -19,7 +19,9 @@ package io.warp10.script.filter;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptFilterFunction;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -93,6 +95,8 @@ public class LatencyFilter extends NamedWarpScriptFunction implements WarpScript
    */
   private final boolean downlinksBitset;
 
+  private final List<String> options;
+  
   public static final class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
     
     public Builder(String name) {
@@ -136,6 +140,12 @@ public class LatencyFilter extends NamedWarpScriptFunction implements WarpScript
   }
   public LatencyFilter(String name, long minLatency, long maxLatency, List<Object> options) {
     super(name);
+    this.options = new ArrayList<String>();
+    
+    for (Object o: options) {
+      this.options.add(o.toString());
+    }
+    
     this.minLatency = minLatency;
     this.maxLatency = maxLatency;
     
@@ -601,5 +611,24 @@ public class LatencyFilter extends NamedWarpScriptFunction implements WarpScript
     }    
     
     return outGTS;
+  }
+  
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(this.minLatency);
+    sb.append(" ");
+    sb.append(this.maxLatency);
+    sb.append(" ");
+    sb.append(WarpScriptLib.LIST_START);
+    sb.append(" ");
+    for (String option: this.options) {
+      sb.append(StackUtils.toString(option));
+      sb.append(" ");
+    }
+    sb.append(WarpScriptLib.LIST_END);
+    sb.append(" ");
+    sb.append(this.getName());
+    return sb.toString();
   }
 }

@@ -18,10 +18,13 @@ package io.warp10.script.mapper;
 
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.StackUtils;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.functions.GEOPACK;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
@@ -89,4 +92,15 @@ public class MapperGeoApproximate extends NamedWarpScriptFunction implements War
       return new Object[] { tick, location, elevation, values[0] };
     }
   }
+  
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(this.resolution);
+    sb.append(" ");
+    sb.append(this.getName());
+    
+    return sb.toString();
+  }
+
 }

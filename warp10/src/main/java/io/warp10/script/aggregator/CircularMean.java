@@ -21,6 +21,7 @@ import com.geoxp.GeoXPLib;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptMapperFunction;
@@ -176,6 +177,6 @@ public class CircularMean extends NamedWarpScriptFunction implements WarpScriptA
   
   @Override
   public String toString() {
-    return this.period + " " + this.getName();
+    return StackUtils.toString(this.period) + " " + this.getName();
   }
 }

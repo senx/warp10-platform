@@ -18,7 +18,9 @@ package io.warp10.script.filter;
 
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptFilterFunction;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -33,6 +35,7 @@ import java.util.regex.Pattern;
 
 public class FilterByLabels extends NamedWarpScriptFunction implements WarpScriptFilterFunction {
   
+  private final Map<String,String> selParam;
   private final Map<String,Pattern> selectors;
   
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
@@ -56,6 +59,7 @@ public class FilterByLabels extends NamedWarpScriptFunction implements WarpScrip
     
     super(name);
     
+    this.selParam = selectors;
     this.selectors = new HashMap<String, Pattern>();
     
     for (Entry<String,String> entry: selectors.entrySet()) {
@@ -112,5 +116,21 @@ public class FilterByLabels extends NamedWarpScriptFunction implements WarpScrip
     }
     
     return retained;
+  }
+  
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(WarpScriptLib.MAP_START);
+    sb.append(" ");
+    for (Entry<String,String> entry: this.selParam.entrySet()) {
+      sb.append(StackUtils.toString(entry.getKey()));
+      sb.append(" ");
+      sb.append(StackUtils.toString(entry.getValue()));
+    }
+    sb.append(WarpScriptLib.MAP_END);
+    sb.append(" ");
+    sb.append(this.getName());
+    return sb.toString();
   }
 }

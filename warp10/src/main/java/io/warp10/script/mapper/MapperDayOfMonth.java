@@ -18,6 +18,7 @@ package io.warp10.script.mapper;
 
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -81,4 +82,13 @@ public class MapperDayOfMonth extends NamedWarpScriptFunction implements WarpScr
         
     return new Object[] { tick, location, elevation, dt.getDayOfMonth() };
   }
+  
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(StackUtils.toString(this.dtz.getID()));
+    sb.append(" ");
+    sb.append(this.getName());
+    return sb.toString();
+  }  
 }
