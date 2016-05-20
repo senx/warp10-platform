@@ -241,18 +241,11 @@ public interface WarpScriptStack {
 
       if (!secure) {
         for (Object o: this.statements()) {
-          if (o instanceof String) {
-            sb.append("'");
-            sb.append(o.toString());
-            sb.append("'");
-          } else {
-            sb.append(o.toString());
-          }
+          sb.append(StackUtils.toString(o));
           sb.append(" ");        
         }
       }
       
-      sb.append(" ");
       sb.append(MACRO_END);
       
       return sb.toString();
