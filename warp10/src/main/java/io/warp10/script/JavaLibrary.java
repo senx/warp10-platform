@@ -16,7 +16,6 @@
 
 package io.warp10.script;
 
-import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.aggregator.Argmax;
 import io.warp10.script.aggregator.Argmin;
 import io.warp10.script.aggregator.CircularMean;
