@@ -28,8 +28,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -590,5 +592,37 @@ public class StackUtils {
     } else {
       return o.toString();
     }
+  }
+  
+  public static String toString(Object o) {
+    StringBuilder sb = new StringBuilder();
+    
+    if (null == o) {
+      sb.append("NULL");
+    } else if (o instanceof Number) {
+      sb.append(o);
+    } else if (o instanceof String) {
+      sb.append("'");
+      try {
+        sb.append(URLEncoder.encode(o.toString(), "UTF-8"));
+      } catch (UnsupportedEncodingException uee) {        
+      }
+      sb.append("'");
+    } else if (o instanceof Boolean) {
+      sb.append(Boolean.toString((boolean) o));
+    } else if (o instanceof WarpScriptStackFunction) {
+      sb.append(o.toString());
+    } else if (o instanceof Macro) {
+      sb.append(WarpScriptStack.MACRO_START);
+      sb.append(" ");
+      if (!((Macro) o).isSecure()) {
+        for (Object statement: ((Macro) o).statements()) {
+          sb.append(StackUtils.toString(statement));
+          sb.append(" ");
+        }
+      }
+      sb.append(WarpScriptStack.MACRO_END);
+    }
+    return sb.toString();
   }
 }
