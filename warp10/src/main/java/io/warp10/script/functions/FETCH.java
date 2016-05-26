@@ -113,7 +113,13 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     super(name);
     this.fromArchive = fromArchive;
     this.forcedType = type;
-    KeyStore ks = WarpDist.getKeyStore();
+    KeyStore ks = null;
+    
+    try {
+      ks = WarpDist.getKeyStore();
+    } catch (Exception e) {      
+    }
+    
     if (null != ks) {
       this.SIPHASH_CLASS = SipHashInline.getKey(ks.getKey(KeyStore.SIPHASH_CLASS));
       this.SIPHASH_LABELS = SipHashInline.getKey(ks.getKey(KeyStore.SIPHASH_LABELS));      
