@@ -102,7 +102,12 @@ public class ThrottlingManager {
   /**
    * Maximum number of milliseconds to wait for RateLimiter permits
    */
-  private static final long MAXWAIT_PER_DATAPOINT = 10L;
+  private static long MAXWAIT_PER_DATAPOINT;
+  
+  /**
+   * Default value for MAXWAIT_PER_DATAPOINT
+   */
+  private static final long MAXWAIT_PER_DATAPOINT_DEFAULT = 10L;
   
   /**
    * Number of milliseconds in a 30 days period
@@ -398,6 +403,13 @@ public class ThrottlingManager {
     RateLimiter producerLimiter = producerRateLimiters.get(producer);
     RateLimiter applicationLimiter = applicationRateLimiters.get(application);
     
+    //
+    // TODO(hbs): store per producer/per app maxwait values? Extract them from the throttling file?
+    //
+    
+    long appMaxWait = maxwait;
+    long producerMaxWait = maxwait;
+      
     // -1.0 as the default rate means do not enforce DDP limit
     if (null == producerLimiter && null == applicationLimiter && -1.0D == DEFAULT_RATE_PRODUCER) {      
       return;
@@ -410,14 +422,14 @@ public class ThrottlingManager {
     // Check per application limiter
     if (null != applicationLimiter) {
       synchronized(applicationLimiter) {
-        if (!applicationLimiter.tryAcquire(count, MAXWAIT_PER_DATAPOINT * count, TimeUnit.MILLISECONDS)) {
+        if (!applicationLimiter.tryAcquire(count, appMaxWait * count, TimeUnit.MILLISECONDS)) {
           StringBuilder sb = new StringBuilder();
           sb.append("Storing data for ");
           if (null != metadata) {
             GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
           }
           sb.append(" would incur a wait greater than ");
-          sb.append(MAXWAIT_PER_DATAPOINT);
+          sb.append(appMaxWait);
           sb.append(" ms per datapoint due to your Daily Data Points limit being already exceeded for application '" + application + "'. Current max rate is " + applicationLimiter.getRate() + " datapoints/s.");
 
           Map<String,String> labels = new HashMap<String, String>();
@@ -431,14 +443,14 @@ public class ThrottlingManager {
     }
     
     synchronized(producerLimiter) {
-      if (!producerLimiter.tryAcquire(count, maxwait * count, TimeUnit.MILLISECONDS)) {
+      if (!producerLimiter.tryAcquire(count, producerMaxWait * count, TimeUnit.MILLISECONDS)) {
         StringBuilder sb = new StringBuilder();
         sb.append("Storing data for ");
         if (null != metadata) {
           GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
         }
         sb.append(" would incur a wait greater than ");
-        sb.append(MAXWAIT_PER_DATAPOINT);
+        sb.append(producerMaxWait);
         sb.append(" ms per datapoint due to your Daily Data Points limit being already exceeded. Current maximum rate is " + producerLimiter.getRate() + " datapoints/s.");
 
         Map<String,String> labels = new HashMap<String, String>();
@@ -530,6 +542,7 @@ public class ThrottlingManager {
     
     final Properties properties = WarpConfig.getProperties();
     
+    
     String rate = properties.getProperty(Configuration.THROTTLING_MANAGER_RATE_DEFAULT);
     
     if (null != rate) {
@@ -540,6 +553,14 @@ public class ThrottlingManager {
     
     if (null != mads) {
       DEFAULT_MADS_PRODUCER = Long.parseLong(mads);
+    }
+    
+    String maxwait = properties.getProperty(Configuration.THROTTLING_MANAGER_MAXWAIT_DEFAULT);
+    
+    if (null != maxwait) {
+      MAXWAIT_PER_DATAPOINT = Long.parseLong(maxwait);
+    } else {
+      MAXWAIT_PER_DATAPOINT = MAXWAIT_PER_DATAPOINT_DEFAULT;
     }
     
     //
