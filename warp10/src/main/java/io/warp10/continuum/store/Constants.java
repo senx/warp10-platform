@@ -283,6 +283,8 @@ public class Constants {
   public static final String HTTP_PARAM_MINSPLITS = "minsplits";
   public static final String HTTP_PARAM_MAXSPLITS = "maxsplits";
 
+  public static final String WARP10_DOC_URL = "http://www.warp10.io/";
+  
   static {
 
     Properties props = null;
