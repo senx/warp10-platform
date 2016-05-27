@@ -1270,6 +1270,10 @@ public class Configuration {
    */
   public static final String THROTTLING_MANAGER_MADS_DEFAULT = "throttling.manager.mads.default";
 
+  /**
+   * Default value for the maxwait timeout
+   */
+  public static final String THROTTLING_MANAGER_MAXWAIT_DEFAULT = "throttling.manager.maxwait.default";
 
   //
   // G E O D I R
@@ -1410,6 +1414,17 @@ public class Configuration {
   public static final String JARS_REFRESH = "warpscript.jars.refresh";
   public static final String JARS_FROMCLASSPATH = "warpscript.jars.fromclasspath";
   
+  /*
+   * CALL root directory property
+   */
+  
+  public static final String WARPSCRIPT_CALL_DIRECTORY = "warpscript.call.directory";
+  
+  /**
+   * Maximum number of subprogram instances which can be spawned
+   */
+  public static final String WARPSCRIPT_CALL_MAXCAPACITY = "warpscript.call.maxcapacity";
+      
   //
   // Macro Repository
   //
