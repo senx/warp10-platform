@@ -12,6 +12,7 @@ chmod 755 ${WARP10_HOME}
 chmod 755 ${WARP10_HOME}/bin
 chmod 755 ${WARP10_HOME}/etc
 chmod 755 ${WARP10_HOME}/macros
+chmod 755 ${WARP10_HOME}/templates
 chmod 755 ${WARP10_HOME}/warpscripts
 chmod 755 ${WARP10_HOME}/etc/throttle
 chmod 755 ${WARP10_HOME}/etc/trl
@@ -36,4 +37,4 @@ chown -R warp10:warp10 ${WARP10_HOME}
 
 # Generate the configuration file with Worf
 # Generate read/write tokens valid for a period of 100 years. We use 'io.warp10.bootstrap' as application name.
-su warp10 -c "${JAVA_HOME}/bin/java -cp ${WARP10_HOME}/bin/warp10-@VERSION@.jar io.warp10.worf.Worf -a io.warp10.bootstrap -puidg -t -ttl 3153600000000 ${WARP10_HOME}/etc/conf-standalone.template" >> ${WARP10_HOME}/etc/initial.tokens
+su warp10 -c "${JAVA_HOME}/bin/java -cp ${WARP10_HOME}/bin/warp10-@VERSION@.jar io.warp10.worf.Worf -a io.warp10.bootstrap -puidg -t -ttl 3153600000000 ${WARP10_HOME}/templates/conf-standalone.template -o ${WARP10_HOME}/etc/conf-standalone.conf" >> ${WARP10_HOME}/etc/initial.tokens
