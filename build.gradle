@@ -32,7 +32,7 @@ allprojects {
 
     // List of dependencies required by Warpscript
     ext.requiredLibsMc2 = [ 'warpscript', 'libthrift', 'bcprov-jdk16', 'boon', 'commons-io', 'commons-codec', 'commons-lang', 'commons-math3', 'compiler', 'core', 'curator-x-discovery', 'geoxplib', 'guava', \
-     'hadoop-common', 'hadoop-mapreduce-client-core', 'java-merge-sort', 'jetty-servlets', 'joda-time', 'jruby-complete', 'jtransforms', 'jts', 'junit', 'jython', 'kafka_2.9.2', \
+     'hadoop-common', 'hadoop-mapreduce-client-core', 'java-merge-sort', 'jetty-servlets', 'joda-time', 'jruby-complete', 'jtransforms', 'jts', 'junit', 'jython', 'kafka_2.11', \
      'luaj-jse', 'oss-client', 'renjin-script-engine', 'sensision', 'slf4j-api' ]
 }
 
@@ -442,6 +442,11 @@ project(':warp10') {
         compile group: 'com.github.rwl', name: 'jtransforms', version: '2.4.0'
 
         //
+        // Pyrolite
+        //
+        compile group: 'net.razorvine', name: 'pyrolite', version: '4.10'
+
+        //
         // LevelDB
         //
         //compile group: 'leveldb', name: 'leveldb', version: '0.7-SNAPSHOT-uber'
@@ -471,7 +476,8 @@ project(':warp10') {
         compile group: 'com.fasterxml', name: 'java-merge-sort', version: '0.5.3'
 
         // @see http://www.mail-archive.com/dev@kafka.apache.org/msg03829.html
-        compile("org.apache.kafka:kafka_2.9.2:0.8.1.1") {
+        //compile("org.apache.kafka:kafka_2.9.2:0.8.1.1") {
+        compile("org.apache.kafka:kafka_2.11:0.8.2.2") {
             exclude module: 'jms'
             exclude module: 'jmxtools'
             exclude module: 'jmxri'
