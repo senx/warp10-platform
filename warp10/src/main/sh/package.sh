@@ -19,6 +19,7 @@ rm -rf ${ARCHIVE}
 mkdir ${ARCHIVE}
 cd ${ARCHIVE}
 mkdir -p ${WARP10_HOME}/bin
+mkdir -p ${WARP10_HOME}/templates
 mkdir -p ${WARP10_HOME}/data/snapshots
 mkdir -p ${WARP10_HOME}/etc/throttle
 mkdir -p ${WARP10_HOME}/macros
@@ -40,13 +41,14 @@ cp ../../etc/install/README.md ${WARP10_HOME}
 sed -e "s/@VERSION@/${VERSION}/g" ../../etc/log4j.properties >> ${WARP10_HOME}/etc/log4j.properties
 
 # Copy template configuration
-sed -e "s/@VERSION@/${VERSION}/g" ../../etc/conf-standalone.template > ${WARP10_HOME}/etc/conf-standalone.template
+sed -e "s/@VERSION@/${VERSION}/g" ../../etc/conf-standalone.template > ${WARP10_HOME}/templates/conf-standalone.template
 
 # Copy jar
 cp ../build/libs/warp10-${VERSION}.jar ${WARP10_HOME}/bin/warp10-${VERSION}.jar
 
 chmod 755 ${WARP10_HOME}/bin
 chmod 755 ${WARP10_HOME}/etc
+chmod 755 ${WARP10_HOME}/templates
 chmod 755 ${WARP10_HOME}/macros
 chmod 755 ${WARP10_HOME}/warpscripts
 chmod 755 ${WARP10_HOME}/etc/throttle

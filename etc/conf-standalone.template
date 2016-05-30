@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 // S T A N D A L O N E
-//
+// REVISION_TAG=1.0
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
@@ -93,7 +93,7 @@ warpscript.maxloop.hard = 10000
 //
 // Macro Repository
 //
-warpscript.repository.directory = /opt/warp10-@VERSION@/macros
+warpscript.repository.directory = ${standalone.home}/macros
 warpscript.repository.refresh = 60000
 
 //
@@ -137,7 +137,7 @@ warp.timeunits = us
 //
 // Path of the 'bootstrap' warpscript code for Egress
 //
-warpscript.bootstrap.path = /opt/warp10-@VERSION@/etc/bootstrap/egress.mc2
+warpscript.bootstrap.path = ${standalone.home}/etc/bootstrap/egress.mc2
 
 //
 // How often to reload the bootstrap code (in ms) for Egress
@@ -147,7 +147,7 @@ warpscript.bootstrap.period = 120000
 //
 // Path of the 'bootstrap' warpscript code for Mobius
 //
-warpscript.mobius.bootstrap.path = /opt/warp10-@VERSION@/etc/bootstrap/mobius.mc2
+warpscript.mobius.bootstrap.path = ${standalone.home}/etc/bootstrap/mobius.mc2
 
 //
 // How often to reload the bootstrap code (in ms) for Mobius
@@ -157,7 +157,7 @@ warpscript.mobius.bootstrap.period = 120000
 //
 // Path of the 'bootstrap' warpscript code for Runner
 //
-warpscript.runner.bootstrap.path = /opt/warp10-@VERSION@/etc/bootstrap/runner.mc2
+warpscript.runner.bootstrap.path = ${standalone.home}/etc/bootstrap/runner.mc2
 
 //
 // How often to reload the bootstrap code (in ms) for Runner
@@ -177,7 +177,7 @@ warpscript.meta.endpoint = http://${standalone.host}:${standalone.port}/api/v0/m
 //
 // Directory where the leveldb files should be created
 //
-leveldb.home = /opt/warp10-@VERSION@/data
+leveldb.home = ${standalone.home}/data
 
 //
 // AES key to use for wrapping metadata prior to storage in leveldb
@@ -216,6 +216,11 @@ standalone.host = 127.0.0.1
 standalone.port = 8080
 
 //
+// Directory of Warp10 standalone install
+//
+standalone.home = /opt/warp10-@VERSION@
+
+//
 // Number of Jetty acceptors
 //
 standalone.acceptors = 1
@@ -238,12 +243,12 @@ standalone.max.encoder.size = 100000
 //
 // Path to a file to use for triggering compaction suspension to take snapshots
 //
-standalone.snapshot.trigger = /opt/warp10-@VERSION@/data/snapshot.trigger
+standalone.snapshot.trigger = ${standalone.home}/data/snapshot.trigger
 
 //
 // Path to a file to use for signaling that compactions are suspended
 //
-standalone.snapshot.signal = /opt/warp10-@VERSION@/data/snapshot.signal
+standalone.snapshot.signal = ${standalone.home}/data/snapshot.signal
 
 //
 // Max message size for the stream update websockets
@@ -294,7 +299,7 @@ in.memory = false
 //
 // root directory where trl files are stored.
 //
-# warp.trl.dir = /opt/warp10-@VERSION@/etc/trl
+# warp.trl.dir = ${standalone.home}/etc/trl
 
 //
 // Period (in ms) between two scans of the trl directory
@@ -320,7 +325,7 @@ in.memory = false
 // Name of system property (configuration property) which contains the
 // root directory where throttle files are stored.
 //  
-throttling.manager.dir = /opt/warp10-@VERSION@/etc/throttle
+throttling.manager.dir = ${standalone.home}/etc/throttle
 
 //
 // Period (in ms) between two scans of the THROTTLING_MANAGER_DIR
@@ -402,7 +407,7 @@ throttling.manager.mads.default = 100000
 //
 // Directory where subscriptions should be stored
 //
-#standalone.geodir.subs.dir = /opt/warp10-@VERSION@/data
+#standalone.geodir.subs.dir = ${standalone.home}/data
 
 //
 // Prefix for subscription files
@@ -430,7 +435,7 @@ runner.roles = standalone
 // subdirectories whose name is the periodicity (in ms) at which the scripts under it
 // should be run. The scripts MUST end with the '.mc2' extension.
 //
-runner.root = /opt/warp10-@VERSION@/warpscripts
+runner.root = ${standalone.home}/warpscripts
 
 //
 // Number of threads to use for running scripts.
