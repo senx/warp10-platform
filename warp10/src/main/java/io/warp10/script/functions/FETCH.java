@@ -117,7 +117,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     
     try {
       ks = WarpDist.getKeyStore();
-    } catch (Exception e) {      
+    } catch (Throwable t) {
+      // Catch NoClassDefFound
     }
     
     if (null != ks) {

@@ -94,7 +94,11 @@ public class SECURE extends NamedWarpScriptFunction implements WarpScriptStackFu
       
       synchronized(SECURE.class) {
         if (null == aesKey) {
-          aesKey = WarpDist.getKeyStore().getKey(KeyStore.AES_SECURESCRIPTS);
+          try {
+            aesKey = WarpDist.getKeyStore().getKey(KeyStore.AES_SECURESCRIPTS);
+          } catch (Throwable t) {
+            // Catch NoClassDefFoundError
+          }
         }
       }
       

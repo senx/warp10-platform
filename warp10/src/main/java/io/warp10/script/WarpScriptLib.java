@@ -257,6 +257,8 @@ public class WarpScriptLib {
     
     functions.put(BOOTSTRAP, new NOOP(BOOTSTRAP));
     
+    functions.put("RTFM", new RTFM("RTFM"));
+    
     //
     // Stack manipulation functions
     //
@@ -282,6 +284,8 @@ public class WarpScriptLib {
     functions.put("MAPID", new MAPID("MAPID"));
     functions.put("->JSON", new TOJSON("->JSON"));      
     functions.put("JSON->", new JSONTO("JSON->"));
+    functions.put("->PICKLE", new TOPICKLE("->PICKLE"));
+    functions.put("PICKLE->", new PICKLETO("PICKLE->"));
     functions.put("GET", new GET("GET"));
     functions.put("SET", new SET("SET"));
     functions.put("PUT", new PUT("PUT"));
@@ -335,6 +339,7 @@ public class WarpScriptLib {
     functions.put("DEF", new DEF("DEF"));
     functions.put("UDF", new UDF("UDF", false));
     functions.put("CUDF", new UDF("CUDF", true));
+    functions.put("CALL", new CALL("CALL"));
     functions.put("FORGET", new FORGET("FORGET"));    
     functions.put("DEFINED", new DEFINED("DEFINED"));
     functions.put("NaN", new NaN("NaN"));
@@ -616,6 +621,7 @@ public class WarpScriptLib {
     functions.put("TICKLIST", new TICKLIST("TICKLIST"));
     functions.put("COMMONTICKS", new COMMONTICKS("COMMONTICKS"));
     functions.put("WRAP", new WRAP("WRAP"));
+    functions.put("WRAPRAW", new WRAPRAW("WRAPRAW"));
     functions.put(UNWRAP, new UNWRAP(UNWRAP));
     
     //
