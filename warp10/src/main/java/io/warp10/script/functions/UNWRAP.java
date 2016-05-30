@@ -47,27 +47,27 @@ public class UNWRAP extends NamedWarpScriptFunction implements WarpScriptStackFu
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
     
-    if (!(top instanceof String) && !(top instanceof List)) {
-      throw new WarpScriptException(getName() + " operates on a string or a list thereof.");
+    if (!(top instanceof String) && !(top instanceof byte[]) && !(top instanceof List)) {
+      throw new WarpScriptException(getName() + " operates on a string or byte array or a list thereof.");
     }
     
-    List<String> inputs = new ArrayList<String>();
+    List<Object> inputs = new ArrayList<Object>();
     
     if (top instanceof String) {
-      inputs.add(top.toString());
+      inputs.add(top);
     } else {
       for (Object o: (List) top) {
-        if (!(o instanceof String)) {
-          throw new WarpScriptException(getName() + " operates on a string or a list thereof.");
+        if (!(o instanceof String) && !(o instanceof byte[])) {
+          throw new WarpScriptException(getName() + " operates on a string or byte array or a list thereof.");
         }
-        inputs.add(o.toString());
+        inputs.add(o);
       }
     }
     
     List<Object> outputs = new ArrayList<Object>();
     
-    for (String s: inputs) {
-      byte[] bytes = OrderPreservingBase64.decode(s.getBytes(Charsets.US_ASCII));
+    for (Object s: inputs) {
+      byte[] bytes = s instanceof String ? OrderPreservingBase64.decode(s.toString().getBytes(Charsets.US_ASCII)) : (byte[]) s;
       
       TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
       
