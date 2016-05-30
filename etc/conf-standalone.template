@@ -91,6 +91,11 @@ warpscript.maxloop = 5000
 warpscript.maxloop.hard = 10000
 
 //
+// Directory of Warp10 standalone install
+//
+standalone.home = /opt/warp10-@VERSION@
+
+//
 // Macro Repository
 //
 warpscript.repository.directory = ${standalone.home}/macros
@@ -214,11 +219,6 @@ standalone.host = 127.0.0.1
 // Port to bind to for listening to incoming connections.
 //
 standalone.port = 8080
-
-//
-// Directory of Warp10 standalone install
-//
-standalone.home = /opt/warp10-@VERSION@
 
 //
 // Number of Jetty acceptors
