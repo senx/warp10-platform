@@ -234,6 +234,7 @@ public class GTSSplitter {
         wrapper.setBucketspan(chunkwidth);
         wrapper.setLastbucket(chunkid);
         if (null != encoder) {
+          wrapper.setCount(encoder.getCount());
           wrapper.setEncoded(encoder.getBytes());
         }
         result.add(wrapper);
