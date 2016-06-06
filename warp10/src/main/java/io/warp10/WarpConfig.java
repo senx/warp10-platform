@@ -7,7 +7,7 @@ import io.warp10.script.WarpScriptJarRepository;
 import io.warp10.script.WarpScriptMacroRepository;
 
 import java.io.BufferedReader;
-import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -15,9 +15,9 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.net.URLDecoder;
 import java.util.HashSet;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
-import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,12 +26,20 @@ public class WarpConfig {
   private static Properties properties = null;
   
   public static void setProperties(String file) throws IOException {
+    if (null == file) {
+      setProperties((Reader) null);
+    } else {
+      setProperties(new FileReader(file));
+    }
+  }
+  
+  public static void setProperties(Reader reader) throws IOException {
     if (null != properties) {
       throw new RuntimeException("Properties already set.");
     }
     
-    if (null != file) {
-      properties = readConfig(new FileInputStream(file), null);
+    if (null != reader) {
+      properties = readConfig(reader, null);
     } else {
       properties = readConfig(new StringReader(""), null);
     }
