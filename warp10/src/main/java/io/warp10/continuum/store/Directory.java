@@ -833,6 +833,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             Properties props = new Properties();
             props.setProperty("zookeeper.connect", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_ZKCONNECT));
             props.setProperty("group.id", groupid);
+            if (null != properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_CLIENTID)) {
+              props.setProperty("client.id", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_CLIENTID));
+            }
             props.setProperty("auto.commit.enable", "false");    
             
             ConsumerConfig config = new ConsumerConfig(props);
