@@ -6358,7 +6358,7 @@ public class GTSHelper {
     StringBuilder sb = new StringBuilder();
     encodeName(sb, metadata.getName());
     sb.append("{");
-    Map<String,String> labels = metadata.getLabels();
+    TreeMap<String,String> labels = new TreeMap<String,String>(metadata.getLabels());
     boolean first = true;
     for (Entry<String,String> entry: labels.entrySet()) {
       if (!first) {
