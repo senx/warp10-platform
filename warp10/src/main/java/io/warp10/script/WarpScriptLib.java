@@ -549,7 +549,7 @@ public class WarpScriptLib {
     functions.put("TIMESPLIT", new TIMESPLIT("TIMESPLIT"));
     functions.put("TIMECLIP", new TIMECLIP("TIMECLIP"));
     functions.put("TIMEMODULO", new TIMEMODULO("TIMEMODULO"));
-    functions.put("CHUNK", new CHUNK("CHUNK"));
+    functions.put("CHUNK", new CHUNK("CHUNK", true));
     functions.put("FUSE", new FUSE("FUSE"));
     functions.put(RENAME, new RENAME(RENAME));
     functions.put(RELABEL, new RELABEL(RELABEL));

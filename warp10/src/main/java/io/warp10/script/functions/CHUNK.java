@@ -39,14 +39,18 @@ import java.util.Map;
  */
 public class CHUNK extends GTSStackFunction {
   
+  private static final String OVERLAP = "overlap";
   private static final String LASTCHUNK = "lastchunk";
   private static final String CHUNKWIDTH = "chunkwidth";
   private static final String CHUNKCOUNT = "chunkcount";
   private static final String CHUNKLABEL = "chunklabel";
   private static final String KEEPEMPTY = "keepempty";
   
-  public CHUNK(String name) {
+  private final boolean withOverlap;
+  
+  public CHUNK(String name, boolean withOverlap) {
     super(name);
+    this.withOverlap = withOverlap;
   }
   
   @Override
@@ -77,10 +81,24 @@ public class CHUNK extends GTSStackFunction {
     
     params.put(CHUNKCOUNT, (long) top);
     
+    if (this.withOverlap) {
+      top = stack.pop();
+      if (!(top instanceof Long)) {
+        throw new WarpScriptException(getName() + " expects an overlap below the chunk label.");
+      }
+      long overlap = (long) top;
+      
+      if (overlap < 0) {
+        overlap = 0;
+      }
+      
+      params.put(OVERLAP, overlap);
+    }
+    
     top = stack.pop();
     
     if (!(top instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects a chunk width under the chunk count.");
+      throw new WarpScriptException(getName() + " expects a chunk width before the last chunk.");
     }
     
     params.put(CHUNKWIDTH, (long) top);
@@ -88,7 +106,7 @@ public class CHUNK extends GTSStackFunction {
     top = stack.pop();
     
     if (!(top instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects the end timestamp of the most recent chunk under the box width.");
+      throw new WarpScriptException(getName() + " expects the end timestamp of the most recent chunk under the chunk width.");
     }
     
     params.put(LASTCHUNK, (long) top);
@@ -104,7 +122,13 @@ public class CHUNK extends GTSStackFunction {
     String chunklabel = (String) params.get(CHUNKLABEL);
     boolean keepempty = (boolean) params.get(KEEPEMPTY);
     
-    List<GeoTimeSerie> result = GTSHelper.chunk(gts, lastchunk, chunkwidth, chunkcount, chunklabel, keepempty);
+    long overlap = 0;
+    
+    if (params.containsKey(OVERLAP)) {
+      overlap = (long) params.get(OVERLAP);
+    }
+    
+    List<GeoTimeSerie> result = GTSHelper.chunk(gts, lastchunk, chunkwidth, chunkcount, chunklabel, keepempty, overlap);
 
     return result;
   }

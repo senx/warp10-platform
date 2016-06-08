@@ -6460,6 +6460,15 @@ public class GTSHelper {
    * @throws WarpScriptException
    */
   public static List<GeoTimeSerie> chunk(GeoTimeSerie gts, long lastchunk, long chunkwidth, long chunkcount, String chunklabel, boolean keepempty) throws WarpScriptException {
+    return chunk(gts, lastchunk, chunkwidth, chunkcount, chunklabel, keepempty, 0L);    
+  }
+  
+  public static List<GeoTimeSerie> chunk(GeoTimeSerie gts, long lastchunk, long chunkwidth, long chunkcount, String chunklabel, boolean keepempty, long overlap) throws WarpScriptException {
+    
+    if (overlap < 0 || overlap > chunkwidth) {
+      throw new WarpScriptException("Overlap cannot exceed chunk width.");
+    }
+    
     //
     // Check if 'chunklabel' exists in the GTS labels
     //
@@ -6470,7 +6479,7 @@ public class GTSHelper {
       throw new WarpScriptException("Cannot operate on Geo Time Series which already have a label named '" + chunklabel + "'");
     }
 
-    List<GeoTimeSerie> chunks = new ArrayList<GeoTimeSerie>();
+    TreeMap<Long, GeoTimeSerie> chunks = new TreeMap<Long,GeoTimeSerie>();
     
     //
     // If GTS is bucketized, make sure bucketspan is less than boxwidth
@@ -6486,7 +6495,7 @@ public class GTSHelper {
       // GTS is not bucketized and has 0 values, if lastchunk was 0, return an empty list as we
       // are unable to produce chunks
       if (0 == gts.values && 0L == lastchunk) {
-        return chunks;
+        return new ArrayList<GeoTimeSerie>();
       }
     }
     
@@ -6557,8 +6566,8 @@ public class GTSHelper {
         // Chunk is outside the GTS, it will be empty 
         if (lastbucket < chunkstart || chunkend <= lastbucket - (bucketcount * bucketspan)) {
           // Add the (empty) chunk if keepempty is true
-          if (keepempty) {
-            chunks.add(chunkgts);
+          if (keepempty || overlap > 0) {
+            chunks.put(chunkend,chunkgts);
           }
           continue;
         }
@@ -6590,8 +6599,8 @@ public class GTSHelper {
       // We've exhausted the values
       if (idx >= gts.values) {
         // only add chunk if it's not empty or empty with 'keepempty' set to true
-        if (0 != chunkgts.values || keepempty) {
-          chunks.add(chunkgts);
+        if (0 != chunkgts.values || (keepempty || overlap > 0)) {
+          chunks.put(chunkend, chunkgts);
         }
         continue;
       }
@@ -6599,8 +6608,8 @@ public class GTSHelper {
       // The current tick is before the beginning of the current chunk
       if (gts.ticks[idx] < chunkstart) {
         // only add chunk if it's not empty or empty with 'keepempty' set to true
-        if (0 != chunkgts.values || keepempty) {
-          chunks.add(chunkgts);
+        if (0 != chunkgts.values || (keepempty || overlap > 0)) {
+          chunks.put(chunkend, chunkgts);
         }
         continue;
       }
@@ -6611,12 +6620,98 @@ public class GTSHelper {
       }
       
       // only add chunk if it's not empty or empty with 'keepempty' set to true
-      if (0 != chunkgts.values || keepempty) {
-        chunks.add(chunkgts);
+      if (0 != chunkgts.values || (keepempty || overlap > 0)) {
+        chunks.put(chunkend,chunkgts);
       }
     }
     
-    return chunks;
+    //
+    // Handle overlapping is need be.
+    // We need to iterate over all ticks and add datapoints to each GTS they belong to
+    //
+    
+    if (overlap > 0) {
+      
+      //
+      // Check if we need to add a first and a last chunk
+      //
+      
+      long ts = GTSHelper.tickAtIndex(gts, 0);
+      
+      if (ts <= chunks.firstKey() - chunkwidth) {
+        Entry<Long,GeoTimeSerie> currentFirst = chunks.firstEntry();
+        GeoTimeSerie firstChunk = currentFirst.getValue().cloneEmpty();
+        if (GTSHelper.isBucketized(currentFirst.getValue())) {
+          firstChunk.lastbucket = firstChunk.lastbucket - firstChunk.bucketspan;
+        }
+        chunks.put(currentFirst.getKey() - chunkwidth, firstChunk);
+      }
+      
+      ts = GTSHelper.tickAtIndex(gts, gts.values - 1);
+      
+      if (ts >= chunks.lastKey() - chunkwidth + 1 - overlap) {
+        Entry<Long,GeoTimeSerie> currentLast = chunks.lastEntry();
+        GeoTimeSerie lastChunk = currentLast.getValue().cloneEmpty();
+        if (GTSHelper.isBucketized(currentLast.getValue())) {
+          lastChunk.lastbucket = lastChunk.lastbucket + lastChunk.bucketspan;
+        }
+        chunks.put(currentLast.getKey() + chunkwidth, lastChunk);
+      }
+      
+      //
+      // Put all entries in a list so we can access them randomly
+      //
+      
+      List<Entry<Long,GeoTimeSerie>> allchunks = new ArrayList<Entry<Long,GeoTimeSerie>>(chunks.entrySet());
+
+      int[] currentSizes = new int[allchunks.size()];
+            
+      for (int i = 0; i < currentSizes.length; i++) {
+        currentSizes[i] = allchunks.get(i).getValue().values;
+      }
+      
+      //
+      // Iterate over chunks, completing with prev and next overlaps
+      // Remember the timestamps are in reverse order so far.
+      //
+      
+      for (int i = 0; i < allchunks.size(); i++) {
+        GeoTimeSerie current = allchunks.get(i).getValue();
+        long lowerBound = allchunks.get(i).getKey() - chunkwidth + 1 - overlap;
+        long upperBound = allchunks.get(i).getKey() + overlap;
+        if (i > 0) {
+          GeoTimeSerie prev = allchunks.get(i - 1).getValue();
+          for (int j = 0; j < currentSizes[i - 1]; j++) {
+            long timestamp = GTSHelper.tickAtIndex(prev, j);
+            if (timestamp < lowerBound) {
+              break;
+            }
+            GTSHelper.setValue(current, timestamp, GTSHelper.locationAtIndex(prev, j), GTSHelper.elevationAtIndex(prev, j), GTSHelper.valueAtIndex(prev, j), false);
+          }
+        }
+        if (i < allchunks.size() - 1) {
+          GeoTimeSerie next = allchunks.get(i + 1).getValue();
+          for (int j = currentSizes[i + 1] - 1; j >=0; j--) {
+            long timestamp = GTSHelper.tickAtIndex(next, j);
+            if (timestamp > upperBound) {
+              break;
+            }
+            GTSHelper.setValue(current, timestamp, GTSHelper.locationAtIndex(next, j), GTSHelper.elevationAtIndex(next, j), GTSHelper.valueAtIndex(next, j), false);
+          }
+        }
+      }
+    }
+    
+    List<GeoTimeSerie> result = new ArrayList<GeoTimeSerie>();
+    
+    for (GeoTimeSerie g: chunks.values()) {
+      if (!keepempty && 0 == g.values) {
+        continue;
+      }
+      result.add(g);
+    }
+
+    return result;
   }
   
   public static GeoTimeSerie fuse(Collection<GeoTimeSerie> chunks) throws WarpScriptException {
