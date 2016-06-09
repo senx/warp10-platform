@@ -18,6 +18,7 @@ package io.warp10.script;
 
 import io.warp10.WarpConfig;
 import io.warp10.script.WarpScriptStack.Macro;
+import org.apache.hadoop.util.Progressable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,7 +39,7 @@ public class WarpScriptExecutor {
     // A new stack for every execution
     NEW,
   };
-  
+
   /**
    * Macro this executor will tirelessly apply
    */
@@ -87,17 +88,22 @@ public class WarpScriptExecutor {
       throw new RuntimeException(e);
     }
   }
-  
+
   public WarpScriptExecutor(StackSemantics semantics, String script) throws WarpScriptException {
     this(semantics, script, null);
   }
-  
+
   public WarpScriptExecutor(StackSemantics semantics, String script, Map<String,Object> symbols) throws WarpScriptException {
+    this(semantics,script,symbols,null);
+  }
+
+  public WarpScriptExecutor(StackSemantics semantics, String script, Map<String,Object> symbols, Progressable progressable) throws WarpScriptException {
 
     this.semantics = semantics;
     
     if (StackSemantics.SYNCHRONIZED.equals(semantics)) {
       this.stack = perThreadStack.get();
+      this.stack.setAttribute(WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE, progressable);
       this.sem = new Semaphore(1);
     } else {
       this.stack = null;
@@ -109,7 +115,8 @@ public class WarpScriptExecutor {
     // to define a macro
     //
       
-    WarpScriptStack stack = new MemoryWarpScriptStack(null, null, null, new Properties());    
+    WarpScriptStack stack = new MemoryWarpScriptStack(null, null, null, new Properties());
+    stack.setAttribute(WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE, progressable);
     stack.exec(WarpScriptLib.BOOTSTRAP);
 
     this.symbolTable = new HashMap<String,Object>();
@@ -200,8 +207,10 @@ public class WarpScriptExecutor {
       
       return output;
     } finally {
-      // Clear the stack
-      stack.clear();
+      if (null != stack) {
+        // Clear the stack
+        stack.clear();
+      }
       this.sem.release();
     }
   }
