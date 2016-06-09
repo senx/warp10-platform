@@ -144,6 +144,10 @@ public class EgressFetchHandler extends AbstractHandler {
     } else if (Constants.API_ENDPOINT_SFETCH.equals(target)) {
       baseRequest.setHandled(true);
       splitFetch = true;
+    } else if (Constants.API_ENDPOINT_CHECK.equals(target)) {
+      baseRequest.setHandled(true);
+      resp.setStatus(HttpServletResponse.SC_OK);
+      return;      
     } else {
       return;
     }

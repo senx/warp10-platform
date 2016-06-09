@@ -162,6 +162,11 @@ public class Constants {
   public static final byte[] EMPTY_COLQ = new byte[0];
   
   /**
+   * Endpoint for checks
+   */
+  public static final String API_ENDPOINT_CHECK = "/api/v0/check";
+  
+  /**
    * Endpoint for splits generation
    */
   public static final String API_ENDPOINT_SPLITS = "/api/v0/splits";

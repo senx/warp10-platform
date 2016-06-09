@@ -314,6 +314,10 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
     if (Constants.API_ENDPOINT_PLASMA_SERVER.equals(target)) {
       baseRequest.setHandled(true);
       super.handle(target, baseRequest, request, response);
+    } else if (Constants.API_ENDPOINT_CHECK.equals(target)) {
+      baseRequest.setHandled(true);
+      response.setStatus(HttpServletResponse.SC_OK);
+      return;
     }
   }
   

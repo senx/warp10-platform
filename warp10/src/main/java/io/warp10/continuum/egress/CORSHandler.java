@@ -33,6 +33,10 @@ public class CORSHandler extends AbstractHandler {
   public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
     if ("OPTIONS".equals(baseRequest.getMethod())) {
       baseRequest.setHandled(true);
+    } else if (Constants.API_ENDPOINT_CHECK.equals(target)) {
+      baseRequest.setHandled(true);
+      response.setStatus(HttpServletResponse.SC_OK);
+      return;
     } else {
       return;
     }    

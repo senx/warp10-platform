@@ -777,6 +777,13 @@ public class GeoDirectory extends AbstractHandler implements Runnable, GeoDirect
   
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+    
+    if (Constants.API_ENDPOINT_CHECK.equals(target)) {
+      baseRequest.setHandled(true);
+      response.setStatus(HttpServletResponse.SC_OK);
+      return;
+    }
+    
     //
     // Only support GEO endpoint calls for our GeoDirectory
     //
