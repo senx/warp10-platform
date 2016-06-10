@@ -372,7 +372,7 @@ project(':warp10') {
         //
         compile group: 'io.warp10', name: 'crypto', version: warp10Version['crypto']
         compile group: 'io.warp10', name: 'token', version: warp10Version['token']
-        compile group: 'io.warp10', name: 'sensision', version: '1.0.2'
+        compile group: 'io.warp10', name: 'sensision', version: '1.0.5'
 
         //compile group: 'org.xerial.snappy', name: 'snappy-java', version: '1.0.4.1'
         compile group: 'joda-time', name: 'joda-time', version: '2.2'
@@ -593,6 +593,7 @@ project(':warpscript') {
       from project(":warp10").sourceSets.main.output
         include 'io/warp10/script/**'
         include 'io/warp10/WarpConfig.class'
+        include 'io/warp10/continuum/Configuration.class'
         include 'io/warp10/continuum/TimeSource.class'
         include 'io/warp10/continuum/Tokens.class'
         include 'io/warp10/continuum/Tokens$*'
