@@ -593,6 +593,7 @@ project(':warpscript') {
       from project(":warp10").sourceSets.main.output
         include 'io/warp10/script/**'
         include 'io/warp10/WarpConfig.class'
+        include 'io/warp10/continuum/Configuration.class'
         include 'io/warp10/continuum/TimeSource.class'
         include 'io/warp10/continuum/Tokens.class'
         include 'io/warp10/continuum/Tokens$*'
