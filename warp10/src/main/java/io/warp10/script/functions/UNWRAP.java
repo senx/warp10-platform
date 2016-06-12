@@ -53,7 +53,7 @@ public class UNWRAP extends NamedWarpScriptFunction implements WarpScriptStackFu
     
     List<Object> inputs = new ArrayList<Object>();
     
-    if (top instanceof String) {
+    if (top instanceof String || top instanceof byte[]) {
       inputs.add(top);
     } else {
       for (Object o: (List) top) {
