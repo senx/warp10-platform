@@ -16,6 +16,13 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -27,19 +34,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
 import com.google.common.base.Charsets;
-
-import io.warp10.WarpConfig;
-import io.warp10.continuum.Configuration;
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptLoopBreakException;
-import io.warp10.script.WarpScriptStack;
 
 /**
  * Call a subprogram
@@ -53,7 +51,7 @@ public class CALL extends NamedWarpScriptFunction implements WarpScriptStackFunc
   static {
     properties = WarpConfig.getProperties();
     
-    if (properties.containsKey(Configuration.WARPSCRIPT_CALL_MAXCAPACITY)) {
+    if (null != properties && properties.containsKey(Configuration.WARPSCRIPT_CALL_MAXCAPACITY)) {
       maxCapacity = Integer.parseInt(properties.getProperty(Configuration.WARPSCRIPT_CALL_MAXCAPACITY));
     } else {
       maxCapacity = 1;
