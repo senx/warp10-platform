@@ -221,6 +221,9 @@ public class WarpScriptLib {
   /**
    * Static definition of name so it can be reused outside of WarpScriptLib
    */
+  
+  public static final String NULL = "NULL";
+  
   public static final String EVAL = "EVAL";
   public static final String LOAD = "LOAD";
   public static final String RUN = "RUN";
@@ -685,7 +688,7 @@ public class WarpScriptLib {
     
     functions.put("max.tick.sliding.window", new MaxTickSlidingWindow("max.tick.sliding.window"));
     functions.put("max.time.sliding.window", new MaxTimeSlidingWindow("max.time.sliding.window"));
-    functions.put("NULL", new NULL("NULL"));
+    functions.put(NULL, new NULL(NULL));
     functions.put("ISNULL", new ISNULL("ISNULL"));
     functions.put("mapper.replace", new MapperReplace.Builder("mapper.replace"));
     functions.put("mapper.gt", new MAPPERGT("mapper.gt"));
