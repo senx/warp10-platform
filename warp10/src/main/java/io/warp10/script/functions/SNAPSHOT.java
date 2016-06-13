@@ -135,7 +135,10 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
     }
     
     try {
-      if (o instanceof Number) {
+      if (null == o) {
+        sb.append(WarpScriptLib.NULL);
+        sb.append(" ");
+      } else if (o instanceof Number) {
         sb.append(o);
         sb.append(" ");
       } else if (o instanceof String) {
