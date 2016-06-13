@@ -147,6 +147,13 @@ public class WarpScriptExecutor {
     this.macro = macro;    
   }
 
+  /**
+   * Execute the embedded macro on the given stack content.
+   * 
+   * @param input Stack content to push on the stack, index 0 is the top of the stack.
+   * @return Return the state of the stack post execution, index 0 is the top of the stack.
+   * @throws WarpScriptException
+   */
   public List<Object> exec(List<Object> input) throws WarpScriptException {
     try {
       this.sem.acquire();
