@@ -183,8 +183,8 @@ public class WarpScriptExecutor {
       // Push the parameters onto the stack
       //
       
-      for (Object o: input) {
-        stack.push(o);
+      for (int i = input.size() - 1; i >= 0; i--) {
+        stack.push(input.get(i));
       }
       
       //
@@ -202,8 +202,6 @@ public class WarpScriptExecutor {
       while(stack.depth() > 0) {
         output.add(stack.pop());
       }
-      
-      java.util.Collections.reverse(output);
       
       return output;
     } finally {
