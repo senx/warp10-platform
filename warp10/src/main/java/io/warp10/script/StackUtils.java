@@ -621,6 +621,8 @@ public class StackUtils {
         }
       }
       sb.append(WarpScriptStack.MACRO_END);
+    } else if (o instanceof NamedWarpScriptFunction){
+      sb.append(o.toString());
     }
     return sb.toString();
   }
