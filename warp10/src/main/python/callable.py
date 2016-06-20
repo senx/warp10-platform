@@ -25,7 +25,7 @@ while True:
     #
     line = sys.stdin.readline()
     line = line.strip()
-    line = urllib.unquote_plus(line.decode('utf-8'))
+    line = urllib.unquote(line.decode('utf-8'))
     # Remove Base64 encoding
     str = base64.b64decode(line)
     args = cPickle.loads(str)
@@ -38,11 +38,11 @@ while True:
     #
     # Output result (URL encoded UTF-8).
     #
-    print urllib.quote_plus(output.encode('utf-8'))
+    print urllib.quote(output.encode('utf-8'))
   except Exception as err:
     #
     # If returning a content starting with ' ' (not URL encoded), then
     # the rest of the line is interpreted as a URL encoded UTF-8 of an error message
     # and will propagate the error to the calling WarpScript
     #
-    print ' ' + urllib.quote_plus(repr(err).encode('utf-8'))
+    print ' ' + urllib.quote(repr(err).encode('utf-8'))
