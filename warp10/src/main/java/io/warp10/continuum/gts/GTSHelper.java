@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.gts;
 
+import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.continuum.store.Constants;
@@ -41,7 +42,6 @@ import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.CharsetEncoder;
@@ -2747,17 +2747,8 @@ public class GTSHelper {
     } else if (value instanceof String) {
       sb.append("'");
       try {
-        String encoded = URLEncoder.encode((String) value, "UTF-8");
-        char[] chars = UnsafeString.getChars(encoded);
-        for (int i = 0; i < chars.length; i++) {
-          if ('\'' == chars[i]) {
-            sb.append("%27");
-          } else if ('+' == chars[i]) {
-            sb.append("%20");
-          } else {
-            sb.append(chars[i]);
-          }
-        }
+        String encoded = WarpURLEncoder.encode((String) value, "UTF-8");
+        sb.append(encoded);
       } catch (UnsupportedEncodingException uee) {
         // Won't happen
       }
@@ -2770,21 +2761,8 @@ public class GTSHelper {
       return;
     }
     try {
-      String encoded = URLEncoder.encode(name, "UTF-8");
-      char[] chars = UnsafeString.getChars(encoded);
-      for (int i = 0; i < chars.length; i++) {
-        if ('{' == chars[i]) {
-          sb.append("%7B");
-        } else if ('}' == chars[i]) {
-          sb.append("%7D");
-        } else if (',' == chars[i]) {
-          sb.append("%2C");
-        } else if ('+' == chars[i]) {
-          sb.append("%20");
-        } else {
-          sb.append(chars[i]);
-        }
-      }
+      String encoded = WarpURLEncoder.encode(name, "UTF-8");
+      sb.append(encoded);
     } catch (UnsupportedEncodingException uee) {      
     }
   }

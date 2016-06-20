@@ -1,5 +1,6 @@
 package io.warp10.hadoop;
 
+import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.store.Constants;
 
 import java.io.BufferedReader;
@@ -14,7 +15,6 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +27,7 @@ import org.apache.hadoop.io.Text;
 
 import com.fasterxml.sort.SortConfig;
 import com.fasterxml.sort.std.TextFileSorter;
+
 import org.apache.hadoop.mapreduce.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -152,7 +153,7 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     sb.append("?");
     sb.append(Constants.HTTP_PARAM_SELECTOR);
     sb.append("=");
-    sb.append(URLEncoder.encode(context.getConfiguration().get(PROPERTY_WARP10_SPLITS_SELECTOR), "UTF-8"));
+    sb.append(WarpURLEncoder.encode(context.getConfiguration().get(PROPERTY_WARP10_SPLITS_SELECTOR), "UTF-8"));
     sb.append("&");
     sb.append(Constants.HTTP_PARAM_TOKEN);
     sb.append("=");

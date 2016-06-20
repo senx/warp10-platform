@@ -16,6 +16,7 @@
 
 package io.warp10.script.aggregator;
 
+import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -29,7 +30,6 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
 import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.BitSet;
 import java.util.Map;
 
@@ -191,7 +191,7 @@ public class Argmin extends NamedWarpScriptFunction implements WarpScriptAggrega
         }
         String lval = labels[i].get(this.label);
         try {
-          sb.append(URLEncoder.encode(lval, "UTF-8"));
+          sb.append(WarpURLEncoder.encode(lval, "UTF-8"));
         } catch (UnsupportedEncodingException uee) {
           // Can't happen, we're using UTF-8 which is one of the 6 standard encodings of the JVM
         }

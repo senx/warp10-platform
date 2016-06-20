@@ -16,6 +16,7 @@
 
 package io.warp10.continuum;
 
+import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
@@ -29,7 +30,6 @@ import java.io.OutputStream;
 import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -113,7 +113,7 @@ public class ThrottlingConfigGenerator {
     // Compute the daily ingested datapoints for each producer/application
     //
     
-    String mc2 = "'" + URLEncoder.encode(cell, "UTF-8") + "' '" + URLEncoder.encode(token, "UTF-8") + "' @ops/throttling-ddp";
+    String mc2 = "'" + WarpURLEncoder.encode(cell, "UTF-8") + "' '" + WarpURLEncoder.encode(token, "UTF-8") + "' @ops/throttling-ddp";
 
     
 //    String mc2 = "" +
@@ -280,7 +280,7 @@ public class ThrottlingConfigGenerator {
     Map<String,Set<Long>> estimates = new HashMap<String,Set<Long>>();
     
     // We use /fetch so we know we can stream many values
-    url = new URL(warpEndPoint + "/fetch?format=fulltext&token=" + URLEncoder.encode(token, "UTF-8") + "&selector=" + SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_ESTIMATOR + "{cell=" + URLEncoder.encode(cell, "UTF-8") + "}&now=0&timespan=-1");
+    url = new URL(warpEndPoint + "/fetch?format=fulltext&token=" + WarpURLEncoder.encode(token, "UTF-8") + "&selector=" + SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_ESTIMATOR + "{cell=" + WarpURLEncoder.encode(cell, "UTF-8") + "}&now=0&timespan=-1");
     
     br = new BufferedReader(new InputStreamReader(url.openStream()));
     
@@ -399,7 +399,7 @@ public class ThrottlingConfigGenerator {
     
     estimates.clear();
     
-    url = new URL(warpEndPoint + "/fetch?format=fulltext&token=" + URLEncoder.encode(token, "UTF-8") + "&selector=" + SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_ESTIMATOR_PER_APP + "{cell=" + URLEncoder.encode(cell, "UTF-8") + "}&now=0&timespan=-1");
+    url = new URL(warpEndPoint + "/fetch?format=fulltext&token=" + WarpURLEncoder.encode(token, "UTF-8") + "&selector=" + SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_ESTIMATOR_PER_APP + "{cell=" + WarpURLEncoder.encode(cell, "UTF-8") + "}&now=0&timespan=-1");
     
     br = new BufferedReader(new InputStreamReader(url.openStream()));
     

@@ -16,12 +16,11 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.WarpURLEncoder;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import java.net.URLEncoder;
 
 /**
  * URL encode string using UTF-8 as the encoding.
@@ -41,7 +40,7 @@ public class URLENCODE extends NamedWarpScriptFunction implements WarpScriptStac
     }
     
     try {
-      stack.push(URLEncoder.encode(o.toString(), "UTF-8"));
+      stack.push(WarpURLEncoder.encode(o.toString(), "UTF-8"));
     } catch (Exception e) {
       throw new WarpScriptException(e);
     }

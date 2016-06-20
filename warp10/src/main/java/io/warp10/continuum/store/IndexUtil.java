@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.store;
 
+import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.index.thrift.data.IndexComponent;
 import io.warp10.continuum.index.thrift.data.IndexComponentType;
 import io.warp10.continuum.index.thrift.data.IndexSpec;
@@ -25,7 +26,6 @@ import io.warp10.crypto.SipHashInline;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -158,7 +158,7 @@ public class IndexUtil {
               sb.append(",");
             }
             try {
-              sb.append(URLEncoder.encode(label, "UTF-8"));
+              sb.append(WarpURLEncoder.encode(label, "UTF-8"));
             } catch (UnsupportedEncodingException uee) {
               // Can't happen, we're using UTF-8
             }

@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.egress;
 
+import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.store.Constants;
@@ -30,8 +31,6 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.Proxy;
 import java.net.URL;
-import java.net.URLEncoder;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -124,7 +123,7 @@ public class StreamingMetadataIterator extends MetadataIterator {
       // Rebuild selector
       
       StringBuilder selector = new StringBuilder();
-      selector.append(URLEncoder.encode(classSelectors.get(idx), "UTF-8"));
+      selector.append(WarpURLEncoder.encode(classSelectors.get(idx), "UTF-8"));
       selector.append("{");
       
       boolean first = true;
@@ -136,13 +135,13 @@ public class StreamingMetadataIterator extends MetadataIterator {
         selector.append(entry.getKey());
         if (entry.getValue().startsWith("=")) {
           selector.append("=");
-          selector.append(URLEncoder.encode(entry.getValue().substring(1), "UTF-8"));          
+          selector.append(WarpURLEncoder.encode(entry.getValue().substring(1), "UTF-8"));          
         } else if (entry.getValue().startsWith("~")) {
           selector.append("~");
-          selector.append(URLEncoder.encode(entry.getValue().substring(1), "UTF-8"));
+          selector.append(WarpURLEncoder.encode(entry.getValue().substring(1), "UTF-8"));
         } else {
           selector.append("=");
-          selector.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
+          selector.append(WarpURLEncoder.encode(entry.getValue(), "UTF-8"));
         }
         first = false;
       }

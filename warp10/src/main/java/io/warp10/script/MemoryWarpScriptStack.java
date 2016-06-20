@@ -17,6 +17,7 @@
 package io.warp10.script;
 
 import io.warp10.WarpConfig;
+import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.geo.GeoDirectoryClient;
 import io.warp10.continuum.gts.UnsafeString;
@@ -34,7 +35,6 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EmptyStackException;
@@ -543,7 +543,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             secureScript.append(" ");
             secureScript.append("'");
             try {
-              secureScript.append(URLEncoder.encode(mlcontent, "UTF-8"));
+              secureScript.append(WarpURLEncoder.encode(mlcontent, "UTF-8"));
             } catch (UnsupportedEncodingException uee) {              
             }
             secureScript.append("'");

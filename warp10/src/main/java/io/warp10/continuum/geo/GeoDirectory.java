@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.geo;
 
+import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.KafkaOffsetCounters;
@@ -59,7 +60,6 @@ import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -980,36 +980,36 @@ public class GeoDirectory extends AbstractHandler implements Runnable, GeoDirect
     //
     
     sb = new StringBuilder();
-    sb.append(URLEncoder.encode(Constants.HTTP_PARAM_TOKEN, "UTF-8"));
+    sb.append(WarpURLEncoder.encode(Constants.HTTP_PARAM_TOKEN, "UTF-8"));
     sb.append("=");
-    sb.append(URLEncoder.encode(token, "UTF-8"));
+    sb.append(WarpURLEncoder.encode(token, "UTF-8"));
     sb.append("&");
-    sb.append(URLEncoder.encode(Constants.HTTP_PARAM_SELECTOR, "UTF-8"));
+    sb.append(WarpURLEncoder.encode(Constants.HTTP_PARAM_SELECTOR, "UTF-8"));
     sb.append("=");
-    sb.append(URLEncoder.encode(selectors[0], "UTF-8"));
+    sb.append(WarpURLEncoder.encode(selectors[0], "UTF-8"));
     sb.append("&");
-    sb.append(URLEncoder.encode(Constants.HTTP_PARAM_FORMAT, "UTF-8"));
+    sb.append(WarpURLEncoder.encode(Constants.HTTP_PARAM_FORMAT, "UTF-8"));
     sb.append("=");
-    sb.append(URLEncoder.encode("wrapper", "UTF-8"));
+    sb.append(WarpURLEncoder.encode("wrapper", "UTF-8"));
     
     if (null != request.getParameter(Constants.HTTP_PARAM_NOW) && null != request.getParameter(Constants.HTTP_PARAM_TIMESPAN)) {
       sb.append("&");
-      sb.append(URLEncoder.encode(Constants.HTTP_PARAM_NOW, "UTF-8"));
+      sb.append(WarpURLEncoder.encode(Constants.HTTP_PARAM_NOW, "UTF-8"));
       sb.append("=");
-      sb.append(URLEncoder.encode(request.getParameter(Constants.HTTP_PARAM_NOW), "UTF-8"));
+      sb.append(WarpURLEncoder.encode(request.getParameter(Constants.HTTP_PARAM_NOW), "UTF-8"));
       sb.append("&");
-      sb.append(URLEncoder.encode(Constants.HTTP_PARAM_TIMESPAN, "UTF-8"));
+      sb.append(WarpURLEncoder.encode(Constants.HTTP_PARAM_TIMESPAN, "UTF-8"));
       sb.append("=");
-      sb.append(URLEncoder.encode(request.getParameter(Constants.HTTP_PARAM_TIMESPAN), "UTF-8"));
+      sb.append(WarpURLEncoder.encode(request.getParameter(Constants.HTTP_PARAM_TIMESPAN), "UTF-8"));
     } else if (null != request.getParameter(Constants.HTTP_PARAM_START) && null != request.getParameter(Constants.HTTP_PARAM_STOP)) {
       sb.append("&");
-      sb.append(URLEncoder.encode(Constants.HTTP_PARAM_START, "UTF-8"));
+      sb.append(WarpURLEncoder.encode(Constants.HTTP_PARAM_START, "UTF-8"));
       sb.append("=");
-      sb.append(URLEncoder.encode(request.getParameter(Constants.HTTP_PARAM_START), "UTF-8"));
+      sb.append(WarpURLEncoder.encode(request.getParameter(Constants.HTTP_PARAM_START), "UTF-8"));
       sb.append("&");
-      sb.append(URLEncoder.encode(Constants.HTTP_PARAM_STOP, "UTF-8"));
+      sb.append(WarpURLEncoder.encode(Constants.HTTP_PARAM_STOP, "UTF-8"));
       sb.append("=");
-      sb.append(URLEncoder.encode(request.getParameter(Constants.HTTP_PARAM_STOP), "UTF-8"));
+      sb.append(WarpURLEncoder.encode(request.getParameter(Constants.HTTP_PARAM_STOP), "UTF-8"));
     } else {
       throw new IOException("Missing parameters " + Constants.HTTP_PARAM_START + "/" + Constants.HTTP_PARAM_STOP + " or " + Constants.HTTP_PARAM_NOW + "/" + Constants.HTTP_PARAM_TIMESPAN);
     }

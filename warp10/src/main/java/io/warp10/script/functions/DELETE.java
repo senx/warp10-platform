@@ -17,6 +17,7 @@
 package io.warp10.script.functions;
 
 import io.warp10.WarpConfig;
+import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -29,7 +30,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLEncoder;
 
 /**
  * Delete a set of GTS.
@@ -150,7 +150,7 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
       qsurl.append("&");
       qsurl.append(Constants.HTTP_PARAM_SELECTOR);
       qsurl.append("=");
-      qsurl.append(URLEncoder.encode(selector, "UTF-8"));
+      qsurl.append(WarpURLEncoder.encode(selector, "UTF-8"));
 
       //
       // Issue the dryrun request

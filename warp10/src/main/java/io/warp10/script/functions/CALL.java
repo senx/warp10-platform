@@ -17,6 +17,7 @@
 package io.warp10.script.functions;
 
 import io.warp10.WarpConfig;
+import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.Configuration;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -28,7 +29,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -183,7 +183,7 @@ public class CALL extends NamedWarpScriptFunction implements WarpScriptStackFunc
         // Output the URLencoded string to the subprogram
         //
         
-        proc.getOutputStream().write(URLEncoder.encode(args.toString(), "UTF-8").getBytes(Charsets.UTF_8));
+        proc.getOutputStream().write(WarpURLEncoder.encode(args.toString(), "UTF-8").getBytes(Charsets.UTF_8));
         proc.getOutputStream().write('\n');
         proc.getOutputStream().flush();
         

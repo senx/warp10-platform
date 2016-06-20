@@ -16,10 +16,9 @@
 
 package io.warp10.warp.sdk;
 
-import io.warp10.continuum.gts.UnsafeString;
+import io.warp10.WarpURLEncoder;
 
 import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -107,21 +106,8 @@ public abstract class DirectoryPlugin {
     
     private void encode(StringBuilder sb, String str) {
       try {
-        String encoded = URLEncoder.encode(str, "UTF-8");
-        
-        for (int i = 0; i < encoded.length(); i++) {
-          if ('{' == encoded.charAt(i)) {
-            sb.append("%7B");
-          } else if ('}' == encoded.charAt(i)) {
-            sb.append("%7D");
-          } else if (',' == encoded.charAt(i)) {
-            sb.append("%2C");
-          } else if ('+' == encoded.charAt(i)) {
-            sb.append("%20");
-          } else {
-            sb.append(encoded.charAt(i));
-          }
-        }        
+        String encoded = WarpURLEncoder.encode(str, "UTF-8");
+        sb.append(encoded);
       } catch (UnsupportedEncodingException uee) {        
       }
     }

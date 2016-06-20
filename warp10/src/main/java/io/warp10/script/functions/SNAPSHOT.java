@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -27,7 +28,6 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptStack.Mark;
 
 import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
@@ -144,7 +144,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
       } else if (o instanceof String) {
         sb.append("'");
         try {
-          sb.append(URLEncoder.encode(o.toString(), "UTF-8"));
+          sb.append(WarpURLEncoder.encode(o.toString(), "UTF-8"));
         } catch (UnsupportedEncodingException uee) {
           throw new WarpScriptException(uee);
         }
@@ -209,7 +209,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         // Nevertheless we need to have the correct levels of the stack preserved, so
         // we push an informative string onto the stack there
         try {
-          sb.append("'UNSUPPORTED:" + URLEncoder.encode(o.getClass().toString(), "UTF-8") + "' ");
+          sb.append("'UNSUPPORTED:" + WarpURLEncoder.encode(o.getClass().toString(), "UTF-8") + "' ");
         } catch (UnsupportedEncodingException uee) {
           throw new WarpScriptException(uee);
         }        

@@ -16,6 +16,7 @@
 
 package io.warp10.script;
 
+import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.UnsafeString;
@@ -31,7 +32,6 @@ import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,7 +44,6 @@ import org.boon.json.JsonSerializer;
 import org.boon.json.JsonSerializerFactory;
 
 import com.geoxp.GeoXPLib;
-import com.geoxp.oss.jarjar.org.bouncycastle.util.Arrays;
 
 public class StackUtils {
   
@@ -604,7 +603,7 @@ public class StackUtils {
     } else if (o instanceof String) {
       sb.append("'");
       try {
-        sb.append(URLEncoder.encode(o.toString(), "UTF-8"));
+        sb.append(WarpURLEncoder.encode(o.toString(), "UTF-8"));
       } catch (UnsupportedEncodingException uee) {        
       }
       sb.append("'");
