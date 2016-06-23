@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.concurrent.locks.LockSupport;
 
 import org.bouncycastle.util.encoders.Hex;
 
@@ -193,10 +194,7 @@ public class WarpScriptJarRepository extends Thread {
       // Sleep a while
       //
       
-      try {
-        Thread.sleep(this.delay);
-      } catch (InterruptedException ie) {        
-      }
+      LockSupport.parkNanos(this.delay * 1000000L);
     }
   }
   
@@ -316,19 +314,9 @@ public class WarpScriptJarRepository extends Thread {
     //
     
     if (null == dir) {
-      classPathClassLoader = WarpScriptJarRepository.class.getClassLoader();
-//      classPathClassLoader = new ClassLoader(WarpScriptJarRepository.class.getClassLoader()) {
-//        @Override
-//        protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {                
-//          if (name.startsWith("io.warp10") && !name.startsWith("io.warp10.warp.sdk.")) {
-//            throw new ClassNotFoundException();
-//          } else {
-//            return this.getParent().loadClass(name);
-//          }
-//        }
-//      };
-      
+      classPathClassLoader = WarpScriptJarRepository.class.getClassLoader();      
       classLoadersFingerprints.put(classPathClassLoader, "");
+      return;
     }
     
     //
