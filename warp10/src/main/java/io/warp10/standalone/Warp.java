@@ -159,10 +159,16 @@ public class Warp extends WarpDist implements Runnable {
     //
     
     Options options = new Options();
-    options.createIfMissing(true);
+    
+    options.createIfMissing(false);
+    
+    if (properties.containsKey(Configuration.LEVELDB_MAXOPENFILES)) {
+      int maxOpenFiles = Integer.parseInt(properties.getProperty(Configuration.LEVELDB_MAXOPENFILES));
+      options.maxOpenFiles(maxOpenFiles);
+    }
     
     if (null != properties.getProperty(Configuration.LEVELDB_CACHE_SIZE)) {
-      options.cacheSize(Long.valueOf(properties.getProperty(Configuration.LEVELDB_CACHE_SIZE)));    
+      options.cacheSize(Long.parseLong(properties.getProperty(Configuration.LEVELDB_CACHE_SIZE)));    
     }
     
     if (null != properties.getProperty(Configuration.LEVELDB_COMPRESSION_TYPE)) {
@@ -185,7 +191,7 @@ public class Warp extends WarpDist implements Runnable {
         db = Iq80DBFactory.factory.open(new File(properties.getProperty(Configuration.LEVELDB_HOME)), options);
       }      
     }
-    
+
     // Register shutdown hook to close the DB.
     Runtime.getRuntime().addShutdownHook(new Thread(new Warp()));
     

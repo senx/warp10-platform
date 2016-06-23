@@ -1040,6 +1040,11 @@ public class Configuration {
   public static final String LEVELDB_HOME = "leveldb.home";
   
   /**
+   * Maximum number of open files to use for LevelDB
+   */
+  public static final String LEVELDB_MAXOPENFILES = "leveldb.maxopenfiles";
+  
+  /**
    * AES key to use for wrapping metadata prior to storage in leveldb
    */
   public static final String LEVELDB_METADATA_AES = "leveldb.metadata.aes";
