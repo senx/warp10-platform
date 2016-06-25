@@ -206,6 +206,21 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     }
   }
   
+  public void maxLimits() {
+    setAttribute(WarpScriptStack.ATTRIBUTE_FETCH_LIMIT, Long.MAX_VALUE - 1);
+    setAttribute(WarpScriptStack.ATTRIBUTE_GTS_LIMIT, Long.MAX_VALUE - 1);
+    setAttribute(WarpScriptStack.ATTRIBUTE_LOOP_MAXDURATION, Long.MAX_VALUE);
+    setAttribute(WarpScriptStack.ATTRIBUTE_RECURSION_MAXDEPTH, Integer.MAX_VALUE);
+    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_OPS, Long.MAX_VALUE - 1);
+    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_SYMBOLS, Integer.MAX_VALUE - 1);
+    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH, Integer.MAX_VALUE - 1);
+    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_WEBCALLS, new AtomicLong(Long.MAX_VALUE - 1));
+    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_BUCKETS, Long.MAX_VALUE - 1);
+    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_PIXELS, Long.MAX_VALUE - 1);
+    setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_LIMIT, Long.MAX_VALUE - 1);
+    setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_MAXSIZE, Long.MAX_VALUE - 1);
+  }
+  
   @Override
   public int depth() {
     return list.size();
