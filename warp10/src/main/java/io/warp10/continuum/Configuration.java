@@ -68,6 +68,11 @@ public class Configuration {
   public static final String WARPSCRIPT_URLFETCH_LIMIT_HARD = "warpscript.urlfetch.limit.hard";
   public static final String WARPSCRIPT_URLFETCH_MAXSIZE_HARD = "warpscript.urlfetch.maxsize.hard";
 
+  /**
+   * Flag to enable REXEC
+   */
+  public static final String WARPSCRIPT_REXEC_ENABLE = "warpscript.rexec.enable";
+
   public static final String WEBCALL_USER_AGENT = "webcall.user.agent";
 
   /**

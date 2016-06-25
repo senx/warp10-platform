@@ -225,6 +225,7 @@ public class WarpScriptLib {
   public static final String NULL = "NULL";
   
   public static final String EVAL = "EVAL";
+  public static final String SNAPSHOT = "SNAPSHOT";
   public static final String LOAD = "LOAD";
   public static final String RUN = "RUN";
   public static final String BOOTSTRAP = "BOOTSTRAP";
@@ -250,6 +251,8 @@ public class WarpScriptLib {
   
   public static final String UNWRAP = "UNWRAP";
   public static final String OPB64TO = "OPB64->";
+  public static final String TOOPB64 = "->OPB64";
+  public static final String BYTESTO = "BYTES->";
   public static final String BYTESTOBITS = "BYTESTOBITS";
   public static final String MARK = "MARK";
   public static final String STORE = "STORE";
@@ -261,6 +264,8 @@ public class WarpScriptLib {
     functions.put(BOOTSTRAP, new NOOP(BOOTSTRAP));
     
     functions.put("RTFM", new RTFM("RTFM"));
+    
+    functions.put("REXEC", new REXEC("REXEC"));
     
     //
     // Stack manipulation functions
@@ -372,7 +377,7 @@ public class WarpScriptLib {
     functions.put("NOOP", new NOOP("NOOP"));
     functions.put("DOC", new DOC("DOC"));
     functions.put("DOCMODE", new DOCMODE("DOCMODE"));
-    functions.put("SNAPSHOT", new SNAPSHOT("SNAPSHOT", false, false));
+    functions.put(SNAPSHOT, new SNAPSHOT(SNAPSHOT, false, false));
     functions.put("SNAPSHOTALL", new SNAPSHOT("SNAPSHOTALL", true, false));
     functions.put("SNAPSHOTTOMARK", new SNAPSHOT("SNAPSHOTTOMARK", false, true));
     functions.put("SNAPSHOTALLTOMARK", new SNAPSHOT("SNAPSHOTALLTOMARK", true, true));
@@ -470,14 +475,14 @@ public class WarpScriptLib {
     functions.put("HEX->", new HEXTO("HEX->"));
     functions.put("B64->", new B64TO("B64->"));
     functions.put("B64URL->", new B64URLTO("B64URL->"));
-    functions.put("BYTES->", new BYTESTO("BYTES->"));
+    functions.put(BYTESTO, new BYTESTO(BYTESTO));
 
     functions.put("->BYTES", new TOBYTES("->BYTES"));
     functions.put("->BIN", new io.warp10.script.functions.TOBIN("->BIN"));
     functions.put("->HEX", new io.warp10.script.functions.TOHEX("->HEX"));
     functions.put("->B64", new TOB64("->B64"));
     functions.put("->B64URL", new TOB64URL("->B64URL"));
-    functions.put("->OPB64", new TOOPB64("->OPB64"));
+    functions.put(TOOPB64, new TOOPB64(TOOPB64));
     functions.put(OPB64TO, new OPB64TO(OPB64TO));
     functions.put("OPB64TOHEX", new OPB64TOHEX("OPB64TOHEX"));    
     
