@@ -22,12 +22,14 @@ import io.warp10.continuum.egress.EgressFetchHandler;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.plasma.PlasmaSubscriptionListener;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
@@ -89,6 +91,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
     JSON,
     TEXT,
     FULLTEXT,
+    WRAPPER,
   };
 
   protected final KeyStore keystore;
@@ -243,6 +246,8 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
       } else if ("RAW".equals(tokens[0])) {
         // Output raw GTSEncoders
         this.handler.setOutputFormat(session, OUTPUT_FORMAT.RAW);
+      } else if ("WRAPPER".equals(tokens[0])) {
+        this.handler.setOutputFormat(session, OUTPUT_FORMAT.WRAPPER);
       } else if ("GEO".equals(tokens[0])) {
         //
         // Geofencing
@@ -571,6 +576,32 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
                 // Oh well, skip it!
               }
               
+              continue;
+            } else if (OUTPUT_FORMAT.WRAPPER.equals(format)) {
+              encoder.setMetadata(metadata);
+              
+              //
+              // Remove producer/owner
+              //
+              
+              encoder.getMetadata().getLabels().remove(Constants.PRODUCER_LABEL);
+              encoder.getMetadata().getLabels().remove(Constants.OWNER_LABEL);
+
+              // Compress with two pass max
+              GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true, GTSWrapperHelper.DEFAULT_COMP_RATIO_THRESHOLD, 2);
+              
+              TSerializer tserializer = new TSerializer(new TCompactProtocol.Factory());
+              
+              try {
+                byte[] serialized = tserializer.serialize(wrapper);
+
+                sb.append(new String(OrderPreservingBase64.encode(serialized), Charsets.US_ASCII));
+                
+                entry.getKey().getRemote().sendStringByFuture(sb.toString());                
+              } catch (TException te) {
+                // Oh well, skip it!
+              }
+
               continue;
             }
             
