@@ -32,7 +32,7 @@ public class GTSWrapperHelper {
   /**
    * Default compression ratio threshold
    */
-  private static final double DEFAULT_COMP_RATIO_THRESHOLD = 100.0D;
+  public static final double DEFAULT_COMP_RATIO_THRESHOLD = 100.0D;
   
   public static GTSDecoder fromGTSWrapperToGTSDecoder(GTSWrapper wrapper) {
     
@@ -95,6 +95,9 @@ public class GTSWrapperHelper {
   }
   
   public static GTSWrapper fromGTSEncoderToGTSWrapper(GTSEncoder encoder, boolean compress, double compratio) {
+    return fromGTSEncoderToGTSWrapper(encoder, compress, compratio, Integer.MAX_VALUE);
+  }
+  public static GTSWrapper fromGTSEncoderToGTSWrapper(GTSEncoder encoder, boolean compress, double compratio, int maxpasses) {
 
     if (compratio < 1.0D) {
       compratio = 1.0D;
@@ -103,7 +106,7 @@ public class GTSWrapperHelper {
     GTSWrapper wrapper = new GTSWrapper();
 
     try {      
-      if (!compress) {
+      if (!compress || maxpasses <= 0) {
         wrapper.setEncoded(encoder.getBytes());
       } else {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -138,7 +141,7 @@ public class GTSWrapperHelper {
           baos.reset();
           ratio = ratio / bytes.length;
           pass++;
-        } while (ratio > compratio);
+        } while (pass < maxpasses && ratio > compratio);
         
         if (ratio > 1.0D) {
           // The last compression pass improved the footprint, so use the compressed data
