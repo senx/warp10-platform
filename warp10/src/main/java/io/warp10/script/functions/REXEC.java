@@ -114,7 +114,6 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
       stack.exec(WarpScriptLib.EVAL);
       
     } catch (WarpScriptException e) {
-      e.printStackTrace();
       throw e;
     } catch (Exception e) {
       throw new WarpScriptException(e);
