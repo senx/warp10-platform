@@ -495,7 +495,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
   //
   
   protected void dispatch(GTSEncoder encoder) throws IOException {
-    
+        
     long nano = System.nanoTime();
     
     Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_FRONTEND_DISPATCH_CALLS, Sensision.EMPTY_LABELS, 1);
@@ -528,7 +528,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
       if (null == metadata) {
         return;
       }
-      
+    
       GTSHelper.metadataToString(metasb, metadata.getName(), metadata.getLabels());
       
       //Gson gson = null;
@@ -595,6 +595,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
               try {
                 byte[] serialized = tserializer.serialize(wrapper);
 
+                sb.setLength(0);
                 sb.append(new String(OrderPreservingBase64.encode(serialized), Charsets.US_ASCII));
                 
                 entry.getKey().getRemote().sendStringByFuture(sb.toString());                
