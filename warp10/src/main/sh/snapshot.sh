@@ -20,6 +20,12 @@ SNAPSHOT=$1
 WARP10_USER=warp10
 WARP10_CLASS=io.warp10.standalone.Warp
 
+if [ "" = "${SNAPSHOT}" ]
+then
+  echo "Snapshot name is empty."
+  exit 1
+fi
+
 if [ "`whoami`" != "${WARP10_USER}" ]
 then
   echo "$0 MUST be run under ${WARP10_USER}"
@@ -49,7 +55,7 @@ fi
 #
 # Check snapshots and leveldb data dir are on the same mount point
 #
-if [ "`df -P ${LEVELDB_HOME}|sed '1d'|awk '{ print $NF }'`" != "`df -P ${SNAPSHOT_DIR}|sed '1d'|awk '{ print $NF }'`" ]
+if [ "`df -P ${LEVELDB_HOME}|sed '1d'|awk '{ print $1 }'`" != "`df -P ${SNAPSHOT_DIR}|sed '1d'|awk '{ print $1 }'`" ]
 then
   echo "'${SNAPSHOT_DIR}' and '${LEVELDB_HOME}' must be mounted onto the same mount point."
   exit 1
@@ -97,7 +103,14 @@ cd ${SNAPSHOT_DIR}/${SNAPSHOT}
 # Create hard links of '.sst' files
 #
 
-find ${LEVELDB_HOME} -maxdepth 1 -name '*sst'|xargs echo|while read FILES; do if [ "${FILES}" != "" ]; then ln ${FILES} ${SNAPSHOT_DIR}/${SNAPSHOT}; fi; done
+find -L ${LEVELDB_HOME} -maxdepth 1 -name '*sst'|xargs echo|while read FILES; do if [ "${FILES}" != "" ]; then ln ${FILES} ${SNAPSHOT_DIR}/${SNAPSHOT}; fi; done
+
+if [ $? != 0 ]
+then
+  echo "Hard link creation failed - Cancel Snapshot !"
+  rm -rf ${SNAPSHOT_DIR}/${SNAPSHOT}
+  exit 1
+fi
 
 #
 # Copy CURRENT and MANIFEST
