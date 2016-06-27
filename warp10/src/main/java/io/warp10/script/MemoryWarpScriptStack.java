@@ -947,6 +947,10 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   public String dump(int n) {
     StringBuilder sb = new StringBuilder();
     
+    if (n > this.list.size()) {
+      n = this.list.size();
+    }
+    
     for (int i = n - 1; i >= 0; i--) {
       if (i < this.list.size()) {
         sb.append(i + 1);
