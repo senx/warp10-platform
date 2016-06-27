@@ -41,6 +41,7 @@ import java.util.UUID;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -124,6 +125,8 @@ public class Store extends Thread {
    */
   private final KeyStore keystore;
 
+  private final Properties properties;
+  
   /**
    * Column family under which to store the readings
    */
@@ -162,7 +165,7 @@ public class Store extends Thread {
   /**
    * Connection to HBase
    */
-  private final Connection conn;
+  private Connection conn;
   
   /**
    * Boolean indicating that we should recreate the connection to HBase
@@ -185,7 +188,8 @@ public class Store extends Thread {
   
   public Store(KeyStore keystore, final Properties properties, Integer nthr) throws IOException {
     this.keystore = keystore;
-
+    this.properties = properties;
+    
     if ("true".equals(properties.containsKey("store.skip.write"))) {
       this.SKIP_WRITE = true;
     } else {
@@ -300,6 +304,14 @@ public class Store extends Thread {
             counters.reset();
                         
             int idx = 0;
+            
+            //
+            // Wait until HBase has been reset if need be
+            //
+            
+            while(self.connReset.get()) {
+              LockSupport.parkNanos(100000L);
+            }
             
             for (final KafkaStream<byte[],byte[]> stream : streams) {
               if (null != consumers[idx] && consumers[idx].getHBaseReset()) {
@@ -446,11 +458,26 @@ public class Store extends Thread {
   @Override
   public void run() {
     while (true){      
-      LockSupport.parkNanos(1000000000L);
+      LockSupport.parkNanos(500000000L);
       
-      if (!this.connReset.getAndSet(false)) {
+      if (!this.connReset.get()) {
         continue;
       }
+      
+      if (null != this.conn) {
+        try {
+          this.conn.close();
+        } catch (Exception e) {        
+        }        
+      }
+      
+      try {
+        this.conn = getHBaseConnection(this.properties);
+      } catch (Exception e) {
+        this.conn = null;
+      }
+      
+      this.connReset.set(false);
       
       //ConnectionHelper.clearMetaCache(this.conn);
 
@@ -624,7 +651,9 @@ public class Store extends Thread {
                     LOG.error("Received InterruptedException", ie);
                     return;                    
                   } catch (Throwable t) {
-                    store.connReset.set(true);
+                    if (t.getCause() instanceof RejectedExecutionException) {
+                      store.connReset.set(true);
+                    }
                     // Clear list of Puts
                     puts.clear();
                     putsSize.set(0L);
@@ -707,7 +736,9 @@ public class Store extends Thread {
                       // Some errors of HBase are reported as RuntimeException, so we
                       // handle those in a more general Throwable catch clause.
                       // Mark the HBase connection as needing reset
-                      store.connReset.set(true);
+                      if (t.getCause() instanceof RejectedExecutionException) {
+                        store.connReset.set(true);
+                      }
                       // Clear list of Puts
                       puts.clear();
                       putsSize.set(0L);
@@ -1157,8 +1188,10 @@ public class Store extends Thread {
     
     Connection conn = connections.get(uuid);
     
-    if (null != conn) {
+    if (null != conn && !conn.isClosed() && !conn.isAborted()) {
       return conn;
+    } else {
+      try { conn.close(); } catch (Throwable t) {}
     }
     
     //
