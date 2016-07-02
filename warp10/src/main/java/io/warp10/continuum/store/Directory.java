@@ -1785,17 +1785,20 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         if (labelPatterns.containsKey(Constants.PRODUCER_LABEL)) {
           labelNames.add(Constants.PRODUCER_LABEL);
           labelSmartPatterns.add(labelPatterns.get(Constants.PRODUCER_LABEL));
-          labelSmartPatterns.remove(Constants.PRODUCER_LABEL);        
+          labelPatterns.remove(Constants.PRODUCER_LABEL);
+          labelValues.add(null);
         }
         if (labelPatterns.containsKey(Constants.APPLICATION_LABEL)) {
           labelNames.add(Constants.APPLICATION_LABEL);
           labelSmartPatterns.add(labelPatterns.get(Constants.APPLICATION_LABEL));
-          labelSmartPatterns.remove(Constants.APPLICATION_LABEL);        
+          labelPatterns.remove(Constants.APPLICATION_LABEL);
+          labelValues.add(null);
         }
         if (labelPatterns.containsKey(Constants.OWNER_LABEL)) {
           labelNames.add(Constants.OWNER_LABEL);
           labelSmartPatterns.add(labelPatterns.get(Constants.OWNER_LABEL));
-          labelSmartPatterns.remove(Constants.OWNER_LABEL);        
+          labelPatterns.remove(Constants.OWNER_LABEL);
+          labelValues.add(null);
         }
         
         //
@@ -2141,17 +2144,20 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         if (labelPatterns.containsKey(Constants.PRODUCER_LABEL)) {
           labelNames.add(Constants.PRODUCER_LABEL);
           labelSmartPatterns.add(labelPatterns.get(Constants.PRODUCER_LABEL));
-          labelSmartPatterns.remove(Constants.PRODUCER_LABEL);        
+          labelPatterns.remove(Constants.PRODUCER_LABEL);   
+          labelValues.add(null);
         }
         if (labelPatterns.containsKey(Constants.APPLICATION_LABEL)) {
           labelNames.add(Constants.APPLICATION_LABEL);
           labelSmartPatterns.add(labelPatterns.get(Constants.APPLICATION_LABEL));
-          labelSmartPatterns.remove(Constants.APPLICATION_LABEL);        
+          labelPatterns.remove(Constants.APPLICATION_LABEL);
+          labelValues.add(null);
         }
         if (labelPatterns.containsKey(Constants.OWNER_LABEL)) {
           labelNames.add(Constants.OWNER_LABEL);
           labelSmartPatterns.add(labelPatterns.get(Constants.OWNER_LABEL));
-          labelSmartPatterns.remove(Constants.OWNER_LABEL);        
+          labelPatterns.remove(Constants.OWNER_LABEL);
+          labelValues.add(null);
         }
         
         //
@@ -2565,17 +2571,20 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       if (labelPatterns.containsKey(Constants.PRODUCER_LABEL)) {
         labelNames.add(Constants.PRODUCER_LABEL);
         labelSmartPatterns.add(labelPatterns.get(Constants.PRODUCER_LABEL));
-        labelSmartPatterns.remove(Constants.PRODUCER_LABEL);        
+        labelPatterns.remove(Constants.PRODUCER_LABEL);
+        labelValues.add(null);        
       }
       if (labelPatterns.containsKey(Constants.APPLICATION_LABEL)) {
         labelNames.add(Constants.APPLICATION_LABEL);
         labelSmartPatterns.add(labelPatterns.get(Constants.APPLICATION_LABEL));
-        labelSmartPatterns.remove(Constants.APPLICATION_LABEL);        
+        labelPatterns.remove(Constants.APPLICATION_LABEL);        
+        labelValues.add(null);        
       }
       if (labelPatterns.containsKey(Constants.OWNER_LABEL)) {
         labelNames.add(Constants.OWNER_LABEL);
         labelSmartPatterns.add(labelPatterns.get(Constants.OWNER_LABEL));
-        labelSmartPatterns.remove(Constants.OWNER_LABEL);        
+        labelPatterns.remove(Constants.OWNER_LABEL);        
+        labelValues.add(null);        
       }
       
       //
