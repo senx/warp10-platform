@@ -1856,7 +1856,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               //
               
               for (int j = 0; j < labelNames.size(); j++) {
-                if (!labelSmartPatterns.get(i).matches(labelValues.get(j))) {
+                if (!labelSmartPatterns.get(j).matches(labelValues.get(j))) {
                   exclude = true;
                   break;
                 }
@@ -2216,7 +2216,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               //
               
               for (int j = 0; j < labelNames.size(); j++) {
-                if (!labelSmartPatterns.get(i).matches(labelValues.get(j))) {
+                if (!labelSmartPatterns.get(j).matches(labelValues.get(j))) {
                   exclude = true;
                   break;
                 }
