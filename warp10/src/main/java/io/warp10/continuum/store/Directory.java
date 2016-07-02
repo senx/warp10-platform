@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.store;
 
+import io.warp10.SmartPattern;
 import io.warp10.continuum.DirectoryUtil;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.KafkaOffsetCounters;
@@ -2403,29 +2404,29 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     } else {
       
       String exactClassName = null;
-      Matcher classPattern;
+      SmartPattern classSmartPattern;
       
       if (classSelector.startsWith("=") || !classSelector.startsWith("~")) {
         exactClassName = classSelector.startsWith("=") ? classSelector.substring(1) : classSelector;
-        classPattern = Pattern.compile(Pattern.quote(exactClassName)).matcher("");
+        classSmartPattern = new SmartPattern(exactClassName);
       } else {
-        classPattern = Pattern.compile(classSelector.substring(1)).matcher("");
+        classSmartPattern = new SmartPattern(Pattern.compile(classSelector.substring(1)));
       }
         
-      Map<String,Matcher> labelPatterns = new HashMap<String,Matcher>();
+      Map<String,SmartPattern> labelPatterns = new HashMap<String,SmartPattern>();
         
       for (Entry<String,String> entry: labelsSelector.entrySet()) {
         String label = entry.getKey();
         String expr = entry.getValue();
-        Pattern pattern;
+        SmartPattern pattern;
             
         if (expr.startsWith("=") || !expr.startsWith("~")) {
-          pattern = Pattern.compile(Pattern.quote(expr.startsWith("=") ? expr.substring(1) : expr));
+          pattern = new SmartPattern(expr.startsWith("=") ? expr.substring(1) : expr);
         } else {
-          pattern = Pattern.compile(expr.substring(1));
+          pattern = new SmartPattern(Pattern.compile(expr.substring(1)));
         }
             
-        labelPatterns.put(label,  pattern.matcher(""));
+        labelPatterns.put(label,  pattern);
       }      
 
       //
@@ -2457,33 +2458,86 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         }      
       }
             
+      List<String> labelNames = new ArrayList<String>(labelPatterns.size());
+      List<SmartPattern> labelSmartPatterns = new ArrayList<SmartPattern>(labelPatterns.size());
+      List<String> labelValues = new ArrayList<String>(labelPatterns.size());
+      
+      //
+      // Put producer/app/owner first
+      //
+      
+      if (labelPatterns.containsKey(Constants.PRODUCER_LABEL)) {
+        labelNames.add(Constants.PRODUCER_LABEL);
+        labelSmartPatterns.add(labelPatterns.get(Constants.PRODUCER_LABEL));
+        labelSmartPatterns.remove(Constants.PRODUCER_LABEL);        
+      }
+      if (labelPatterns.containsKey(Constants.APPLICATION_LABEL)) {
+        labelNames.add(Constants.APPLICATION_LABEL);
+        labelSmartPatterns.add(labelPatterns.get(Constants.APPLICATION_LABEL));
+        labelSmartPatterns.remove(Constants.APPLICATION_LABEL);        
+      }
+      if (labelPatterns.containsKey(Constants.OWNER_LABEL)) {
+        labelNames.add(Constants.OWNER_LABEL);
+        labelSmartPatterns.add(labelPatterns.get(Constants.OWNER_LABEL));
+        labelSmartPatterns.remove(Constants.OWNER_LABEL);        
+      }
+      
+      //
+      // Now add the other labels
+      //
+      
+      for(Entry<String,SmartPattern> entry: labelPatterns.entrySet()) {
+        labelNames.add(entry.getKey());
+        labelSmartPatterns.add(entry.getValue());
+        labelValues.add(null);
+      }
+      
       for (String className: classNames) {
         
         //
         // If class matches, check all labels for matches
         //
         
-        if (classPattern.reset(className).matches()) {
+        if (classSmartPattern.matches(className)) {
           for (Metadata metadata: this.metadatas.get(className).values()) {
             boolean exclude = false;
             
-            for (String labelName: labelPatterns.keySet()) {
+            int idx = 0;
+      
+            for (String labelName: labelNames) {
               //
               // Immediately exclude metadata which do not contain one of the
               // labels for which we have patterns either in labels or in attributes
               //
 
-              if (!metadata.getLabels().containsKey(labelName) && !metadata.getAttributes().containsKey(labelName)) {
-                exclude = true;
-                break;
+              String labelValue = metadata.getLabels().get(labelName);
+              
+              if (null == labelValue) {
+                labelValue = metadata.getAttributes().get(labelName);
+                if (null == labelValue) {
+                  exclude = true;
+                  break;
+                }
               }
               
-              //
-              // Check if the label value matches, if not, exclude the GTS
-              //
-              
-              if ((metadata.getLabels().containsKey(labelName) && !labelPatterns.get(labelName).reset(metadata.getLabels().get(labelName)).matches())
-                  || (metadata.getAttributes().containsKey(labelName) && !labelPatterns.get(labelName).reset(metadata.getAttributes().get(labelName)).matches())) {
+              labelValues.set(idx++, labelValue);
+            }
+            
+            // If we did not collect enough label/attribute values, exclude the GTS
+            if (idx < labelNames.size()) {
+              exclude = true;
+            }
+            
+            if (exclude) {
+              continue;
+            }
+            
+            //
+            // Check if the label value matches, if not, exclude the GTS
+            //
+            
+            for (int i = 0; i < labelNames.size(); i++) {
+              if (!labelSmartPatterns.get(i).matches(labelValues.get(i))) {
                 exclude = true;
                 break;
               }
