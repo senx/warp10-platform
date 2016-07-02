@@ -49,7 +49,7 @@ public class SmartPattern {
     
     // Replace anything after '\'
     
-    regexp = regexp.replaceAll("\\.*", "");
+    regexp = regexp.replaceAll("\\\\.*", "");
     
     // Replace any character not a=z A=Z 0-9 by a space
     
