@@ -28,11 +28,9 @@ public class SmartPattern {
     
     String regexp = p.pattern();
     
-    if (regexp.contains("|")) {
-      return;
-    }
     if (".*".equals(regexp) || "^.*".equals(regexp) || "^.*$".equals(regexp)) {
       this.matchall = true;
+      return;
     }
     
     //
@@ -50,7 +48,16 @@ public class SmartPattern {
     // Replace anything after '\'
     
     regexp = regexp.replaceAll("\\\\.*", "");
+
+    //
+    // If the regexp still contains '|' at this stage then we cannot
+    // extract a fragment.
+    //
     
+    if (regexp.contains("|")) {
+      return;
+    }
+
     // Replace any character not a=z A=Z 0-9 by a space
     
     regexp = regexp.replaceAll("[^a-zA-Z0-9]", " ");
