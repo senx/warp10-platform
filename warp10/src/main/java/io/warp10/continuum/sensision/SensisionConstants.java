@@ -1145,6 +1145,10 @@ public class SensisionConstants {
    */
   public static final String SENSISION_CLASS_CONTINUUM_RUNNER_KAFKA_PRODUCER_WAIT_NANOS = "warp.runner.kafka.producer.wait.nanos";
 
+  /**
+   * Number of tasks currently handled by a region server.
+   */
+  public static final String SENSISION_CLASS_WARP_HBASE_TASKS = "warp.hbase.tasks";
   
   //
   // Labels
@@ -1224,6 +1228,11 @@ public class SensisionConstants {
    * Component
    */
   public static final String SENSISION_LABEL_COMPONENT = "component";
+
+  /**
+   * Server (usually RegionServer)
+   */
+  public static final String SENSISION_LABEL_SERVER = "server";
   
   //
   // TTLs (in ms)

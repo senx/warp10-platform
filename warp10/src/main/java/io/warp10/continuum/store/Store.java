@@ -58,8 +58,12 @@ import kafka.message.MessageAndMetadata;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.ClusterConnection;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.ConnectionHelper;
+import org.apache.hadoop.hbase.client.HConnectionManager;
+import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
@@ -312,7 +316,7 @@ public class Store extends Thread {
             while(self.connReset.get()) {
               LockSupport.parkNanos(100000L);
             }
-            
+
             for (final KafkaStream<byte[],byte[]> stream : streams) {
               if (null != consumers[idx] && consumers[idx].getHBaseReset()) {
                 try {
@@ -457,8 +461,16 @@ public class Store extends Thread {
   
   @Override
   public void run() {
+    
+    long now = 0;
+    
     while (true){      
       LockSupport.parkNanos(500000000L);
+      
+      if (System.currentTimeMillis() - now > 10000L) {
+        ConnectionHelper.publishPerServerMetrics(this.conn);
+        now = System.currentTimeMillis();
+      }
       
       if (!this.connReset.get()) {
         continue;
