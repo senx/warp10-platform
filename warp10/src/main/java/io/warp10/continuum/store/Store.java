@@ -321,7 +321,7 @@ public class Store extends Thread {
               if (null != consumers[idx] && consumers[idx].getHBaseReset()) {
                 try {
                   tables[idx].close();
-                } catch (IOException ioe) {                  
+                } catch (Throwable t) {                  
                 }
                 try {
                   tables[idx] = conn.getTable(hbaseTable);
