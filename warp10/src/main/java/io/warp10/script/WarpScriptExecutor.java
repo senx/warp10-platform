@@ -18,6 +18,7 @@ package io.warp10.script;
 
 import io.warp10.WarpConfig;
 import io.warp10.script.WarpScriptStack.Macro;
+
 import org.apache.hadoop.util.Progressable;
 
 import java.util.ArrayList;
@@ -30,6 +31,8 @@ import java.util.concurrent.Semaphore;
 public class WarpScriptExecutor {
 
   private static final String WARP10_CONFIG = "warp10.config";
+  
+  private final Progressable progressable;
   
   public static enum StackSemantics {
     // Single stack which will be shared among calling threads
@@ -65,7 +68,10 @@ public class WarpScriptExecutor {
     @Override
     protected WarpScriptStack initialValue() {
       MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, null, properties);
-      
+      stack.maxLimits();
+      if (null != progressable) {
+        stack.setAttribute(WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE, progressable);
+      }
       try {
         stack.exec(WarpScriptLib.BOOTSTRAP);
       } catch (WarpScriptException e) {
@@ -100,10 +106,13 @@ public class WarpScriptExecutor {
   public WarpScriptExecutor(StackSemantics semantics, String script, Map<String,Object> symbols, Progressable progressable) throws WarpScriptException {
 
     this.semantics = semantics;
+    this.progressable = progressable;
     
     if (StackSemantics.SYNCHRONIZED.equals(semantics)) {
       this.stack = perThreadStack.get();
-      this.stack.setAttribute(WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE, progressable);
+      if (null != this.progressable) {
+        this.stack.setAttribute(WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE, progressable);
+      }
       this.sem = new Semaphore(1);
     } else {
       this.stack = null;
@@ -115,8 +124,18 @@ public class WarpScriptExecutor {
     // to define a macro
     //
       
-    WarpScriptStack stack = new MemoryWarpScriptStack(null, null, null, new Properties());
-    stack.setAttribute(WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE, progressable);
+    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, null, new Properties());
+    stack.maxLimits();
+    if (null != this.progressable) {
+      stack.setAttribute(WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE, this.progressable);
+    }
+    
+    try {
+      stack.exec(WarpScriptLib.BOOTSTRAP);
+    } catch (WarpScriptException wse) {
+      throw new RuntimeException(wse);
+    }
+
     stack.exec(WarpScriptLib.BOOTSTRAP);
 
     this.symbolTable = new HashMap<String,Object>();
@@ -169,7 +188,15 @@ public class WarpScriptExecutor {
           stack = perThreadStack.get();
         } else if (StackSemantics.NEW.equals(this.semantics)) {
           stack = new MemoryWarpScriptStack(null, null, null, properties);
-          stack.exec(WarpScriptLib.BOOTSTRAP);
+          ((MemoryWarpScriptStack) stack).maxLimits();
+          if (null != this.progressable) {
+            stack.setAttribute(WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE, this.progressable);
+          }
+          try {
+            stack.exec(WarpScriptLib.BOOTSTRAP);
+          } catch (WarpScriptException e) {
+            throw new RuntimeException(e);
+          }
         } else {
           throw new WarpScriptException("Invalid stack semantics.");
         }
