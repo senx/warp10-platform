@@ -140,6 +140,9 @@ public class KafkaWebCallBroker extends Thread {
             if (null != properties.getProperty(Configuration.WEBCALL_KAFKA_CONSUMER_CLIENTID)) {
               props.setProperty("client.id", properties.getProperty(Configuration.WEBCALL_KAFKA_CONSUMER_CLIENTID));
             }
+            if (null != properties.getProperty(Configuration.WEBCALL_KAFKA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY)) {
+              props.setProperty("partition.assignment.strategy", properties.getProperty(Configuration.WEBCALL_KAFKA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY));
+            }
             props.setProperty("auto.commit.enable", "false");    
             
             ConsumerConfig config = new ConsumerConfig(props);

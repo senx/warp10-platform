@@ -241,12 +241,13 @@ public class ScriptRunner extends Thread {
       this.topic = config.getProperty(Configuration.RUNNER_KAFKA_TOPIC);
       String groupid = config.getProperty(Configuration.RUNNER_KAFKA_GROUPID);
       String clientid = config.getProperty(Configuration.RUNNER_KAFKA_CONSUMER_CLIENTID);
+      String strategy = config.getProperty(Configuration.RUNNER_KAFKA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY);
       int nthreads = Integer.parseInt(config.getProperty(Configuration.RUNNER_KAFKA_NTHREADS));
       long commitPeriod = Long.parseLong(config.getProperty(Configuration.RUNNER_KAFKA_COMMITPERIOD));
       this.nthreads = Integer.parseInt(config.getProperty(Configuration.RUNNER_NTHREADS));
       this.executor = new ThreadPoolExecutor(1, nthreads, 30000L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(nthreads * 256));
       
-      this.consumerPool = new KafkaSynchronizedConsumerPool(zkconnect, topic, clientid, groupid, nthreads, commitPeriod, new ScriptRunnerConsumerFactory(this));
+      this.consumerPool = new KafkaSynchronizedConsumerPool(zkconnect, topic, clientid, groupid, strategy, nthreads, commitPeriod, new ScriptRunnerConsumerFactory(this));
     }
     
     if (isScheduler) {
