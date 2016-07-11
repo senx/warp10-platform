@@ -2600,6 +2600,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         labelValues.add(null);
       }
       
+      long labelsComparisons = 0;
+      long metadataInspected = 0;
+      
       for (String className: classNames) {
         
         //
@@ -2608,6 +2611,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         
         if (classSmartPattern.matches(className)) {
           for (Metadata metadata: this.metadatas.get(className).values()) {
+            metadataInspected++;
             boolean exclude = false;
             
             int idx = 0;
@@ -2645,6 +2649,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             //
             
             for (int i = 0; i < labelNames.size(); i++) {
+              labelsComparisons++;
               if (!labelSmartPatterns.get(i).matches(labelValues.get(i))) {
                 exclude = true;
                 break;
@@ -2665,7 +2670,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             }
           }
         }
-      }           
+      }    
+      
+      LOG.info("Search returned " + count + " results in " + ((System.nanoTime() - nano) / 1000000.0D) + " ms, inspected " + metadataInspected + " metadatas and performed " + labelsComparisons + " comparisons.");
     }
     
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_REQUESTS, Sensision.EMPTY_LABELS, 1);
