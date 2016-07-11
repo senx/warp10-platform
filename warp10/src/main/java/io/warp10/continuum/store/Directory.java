@@ -837,6 +837,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             if (null != properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_CLIENTID)) {
               props.setProperty("client.id", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_CLIENTID));
             }
+            if (null != properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY)) {
+              props.setProperty("partition.assignment.strategy", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY));
+            }
             props.setProperty("auto.commit.enable", "false");    
             
             ConsumerConfig config = new ConsumerConfig(props);

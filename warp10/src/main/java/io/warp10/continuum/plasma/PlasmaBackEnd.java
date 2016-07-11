@@ -183,7 +183,9 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
 
     final String groupid = properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_GROUPID);
     final String topic = properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_TOPIC);
-
+    final String strategy = properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY);
+    final String clientid = properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_CONSUMER_CLIENTID);
+    
     final long commitPeriod = 1000L;
     final KafkaOffsetCounters counters = new KafkaOffsetCounters(topic, groupid, commitPeriod * 2);
     
@@ -209,7 +211,12 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
             props.setProperty("auto.commit.enable", "false");
             // Reset offset to largest
             props.setProperty("auto.offset.reset", "largest");
-            
+            if (null != clientid) {
+              props.setProperty("client.id", clientid);
+            }
+            if (null != strategy) {
+              props.setProperty("partition.assignment.strategy", strategy);
+            }
             ConsumerConfig config = new ConsumerConfig(props);
             ConsumerConnector connector = Consumer.createJavaConsumerConnector(config);
 

@@ -282,6 +282,9 @@ public class Store extends Thread {
             if (null != properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_CLIENTID)) {
               props.setProperty("client.id", properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_CLIENTID));
             }
+            if (null != properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY)) {
+              props.setProperty("partition.assignment.strategy", properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY));
+            }
             props.setProperty("auto.commit.enable", "false");
             //
             // This is VERY important, offset MUST be reset to 'smallest' so we get a chance to store as many datapoints

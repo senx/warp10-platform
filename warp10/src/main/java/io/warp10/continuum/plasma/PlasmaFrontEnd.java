@@ -272,6 +272,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
         properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_TOPIC),
         properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_CONSUMER_CLIENTID),
         properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_GROUPID),
+        properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY),
         Integer.parseInt(properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_NTHREADS)),
         Long.parseLong(properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_COMMITPERIOD)), factory);
     

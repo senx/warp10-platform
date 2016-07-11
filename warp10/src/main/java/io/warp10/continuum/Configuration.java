@@ -114,6 +114,11 @@ public class Configuration {
   public static final String WEBCALL_KAFKA_CONSUMER_CLIENTID = "webcall.kafka.consumer.clientid";
   
   /**
+   * Name of partition assignment strategy to use
+   */
+  public static final String WEBCALL_KAFKA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY = "webcall.kafka.consumer.partition.assignment.strategy";
+
+  /**
    * Kafka client id to use when producing WebCall requests
    */
   public static final String WEBCALL_KAFKA_PRODUCER_CLIENTID = "webcall.kafka.producer.clientid";
@@ -251,6 +256,11 @@ public class Configuration {
    * Kafka client.id to use for the metadata topic consumer
    */
   public static final String DIRECTORY_KAFKA_METADATA_CONSUMER_CLIENTID = "directory.kafka.metadata.consumer.clientid";
+
+  /**
+   * Name of partition assignment strategy to use
+   */
+  public static final String DIRECTORY_KAFKA_METADATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY = "directory.kafka.metadata.consumer.partition.assignment.strategy";
   
   /**
    * Delay between synchronization for offset commit
@@ -533,6 +543,11 @@ public class Configuration {
   public static final String INGRESS_KAFKA_META_CONSUMER_CLIENTID = "ingress.kafka.metadata.consumer.clientid";
 
   /**
+   * Name of partition assignment strategy to use
+   */
+  public static final String INGRESS_KAFKA_META_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY = "ingress.kafka.metadata.consumer.partition.assignment.strategy";
+
+  /**
    * How often to commit the offsets for topic 'metadata' (in ms)
    */
   public static final String INGRESS_KAFKA_META_COMMITPERIOD = "ingress.kafka.metadata.commitperiod";
@@ -678,6 +693,11 @@ public class Configuration {
   public static final String STORE_KAFKA_DATA_CONSUMER_CLIENTID = "store.kafka.data.consumer.clientid";
   
   /**
+   * Name of partition assignment strategy to use
+   */
+  public static final String STORE_KAFKA_DATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY = "store.kafka.data.consumer.partition.assignment.strategy";
+
+  /**
    * Delay between synchronization for offset commit
    */
   public static final String STORE_KAFKA_DATA_COMMITPERIOD = "store.kafka.data.commitperiod";
@@ -772,6 +792,11 @@ public class Configuration {
    * Kafka client id under which to consume above topic
    */
   public static final String PLASMA_FRONTEND_KAFKA_CONSUMER_CLIENTID = "plasma.frontend.kafka.consumer.clientid";
+
+  /**
+   * Name of partition assignment strategy to use
+   */
+  public static final String PLASMA_FRONTEND_KAFKA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY = "plasma.frontend.kafka.consumer.partition.assignment.strategy";
 
   /**
    * How often (in ms) to commit Kafka offsets
@@ -869,6 +894,11 @@ public class Configuration {
    * Kafka client id with which to consume the in topic
    */
   public static final String PLASMA_BACKEND_KAFKA_IN_CONSUMER_CLIENTID = "plasma.backend.kafka.in.consumer.clientid";
+
+  /**
+   * Name of partition assignment strategy to use
+   */
+  public static final String PLASMA_BACKEND_KAFKA_IN_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY = "plasma.backend.kafka.in.consumer.partition.assignment.strategy";
 
   /**
    * Delay between synchronization for offset commit
@@ -1013,6 +1043,11 @@ public class Configuration {
    * Client id to use when consuming scripts
    */
   public static final String RUNNER_KAFKA_CONSUMER_CLIENTID = "runner.kafka.consumer.clientid";
+
+  /**
+   * Name of partition assignment strategy to use
+   */
+  public static final String RUNNER_KAFKA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY = "runner.kafka.consumer.partition.assignment.strategy";
 
   /**
    * Number of threads to spawn to consume scripts
@@ -1301,6 +1336,11 @@ public class Configuration {
   public static final String GEODIR_KAFKA_SUBS_TOPIC = "geodir.kafka.subs.topic";
   public static final String GEODIR_KAFKA_SUBS_GROUPID = "geodir.kafka.subs.groupid";
   public static final String GEODIR_KAFKA_SUBS_CONSUMER_CLIENTID = "geodir.kafka.subs.consumer.clientid";
+  /**
+   * Name of partition assignment strategy to use
+   */
+  public static final String GEODIR_KAFKA_SUBS_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY = "geodir.kafka.subs.consumer.partition.assignment.strategy";
+
   public static final String GEODIR_KAFKA_SUBS_NTHREADS = "geodir.kafka.subs.nthreads";
   public static final String GEODIR_KAFKA_SUBS_COMMITPERIOD = "geodir.kafka.subs.commitperiod";
   public static final String GEODIR_KAFKA_SUBS_MAC = "geodir.kafka.subs.mac";
@@ -1312,6 +1352,11 @@ public class Configuration {
   public static final String GEODIR_KAFKA_DATA_TOPIC = "geodir.kafka.data.topic";
   public static final String GEODIR_KAFKA_DATA_GROUPID = "geodir.kafka.data.groupid";
   public static final String GEODIR_KAFKA_DATA_CONSUMER_CLIENTID = "geodir.kafka.data.consumer.clientid";
+  /**
+   * Name of partition assignment strategy to use
+   */
+  public static final String GEODIR_KAFKA_DATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY = "geodir.kafka.data.consumer.partition.assignment.strategy";
+
   public static final String GEODIR_KAFKA_DATA_NTHREADS = "geodir.kafka.data.nthreads";
   public static final String GEODIR_KAFKA_DATA_COMMITPERIOD = "geodir.kafka.data.commitperiod";
   public static final String GEODIR_KAFKA_DATA_MAC = "geodir.kafka.data.mac";

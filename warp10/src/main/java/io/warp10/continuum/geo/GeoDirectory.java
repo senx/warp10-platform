@@ -524,6 +524,7 @@ public class GeoDirectory extends AbstractHandler implements Runnable, GeoDirect
         properties.getProperty(Configuration.GEODIR_KAFKA_SUBS_TOPIC),
         properties.getProperty(Configuration.GEODIR_KAFKA_SUBS_CONSUMER_CLIENTID),
         properties.getProperty(Configuration.GEODIR_KAFKA_SUBS_GROUPID),
+        properties.getProperty(Configuration.GEODIR_KAFKA_SUBS_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY),
         Integer.parseInt(properties.getProperty(Configuration.GEODIR_KAFKA_SUBS_NTHREADS)),
         Long.parseLong(properties.getProperty(Configuration.GEODIR_KAFKA_SUBS_COMMITPERIOD)), subsConsumerFactory);
     
@@ -568,6 +569,7 @@ public class GeoDirectory extends AbstractHandler implements Runnable, GeoDirect
         properties.getProperty(Configuration.GEODIR_KAFKA_DATA_TOPIC),
         properties.getProperty(Configuration.GEODIR_KAFKA_DATA_CONSUMER_CLIENTID),
         properties.getProperty(Configuration.GEODIR_KAFKA_DATA_GROUPID),
+        properties.getProperty(Configuration.GEODIR_KAFKA_DATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY),
         Integer.parseInt(properties.getProperty(Configuration.GEODIR_KAFKA_DATA_NTHREADS)),
         Long.parseLong(properties.getProperty(Configuration.GEODIR_KAFKA_DATA_COMMITPERIOD)), subsConsumerFactory);
     

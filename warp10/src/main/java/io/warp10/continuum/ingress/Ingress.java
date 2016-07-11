@@ -321,7 +321,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     metaProps.setProperty("zookeeper.connect", props.getProperty(Configuration.INGRESS_KAFKA_META_ZKCONNECT));
     metaProps.setProperty("metadata.broker.list", props.getProperty(Configuration.INGRESS_KAFKA_META_BROKERLIST));
     if (null != props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CLIENTID)) {
-      metaProps.setProperty("client.id", props.getProperty(Configuration.INGRESS_KAFKA_META_CONSUMER_CLIENTID));
+      metaProps.setProperty("client.id", props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CLIENTID));
     }
     metaProps.setProperty("request.required.acks", "-1");
     metaProps.setProperty("producer.type","sync");
@@ -411,6 +411,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         props.getProperty(Configuration.INGRESS_KAFKA_META_TOPIC),
         props.getProperty(Configuration.INGRESS_KAFKA_META_CONSUMER_CLIENTID),
         props.getProperty(Configuration.INGRESS_KAFKA_META_GROUPID),
+        props.getProperty(Configuration.INGRESS_KAFKA_META_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY),
         Integer.parseInt(props.getProperty(Configuration.INGRESS_KAFKA_META_NTHREADS)),
         Long.parseLong(props.getProperty(Configuration.INGRESS_KAFKA_META_COMMITPERIOD)), metadataConsumerFactory);    
 
