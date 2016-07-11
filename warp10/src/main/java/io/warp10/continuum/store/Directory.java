@@ -2601,15 +2601,20 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       }
       
       long labelsComparisons = 0;
+      long classesInspected = 0;
+      long classesMatched = 0;
       long metadataInspected = 0;
       
+      
       for (String className: classNames) {
+        classesInspected++;
         
         //
         // If class matches, check all labels for matches
         //
         
         if (classSmartPattern.matches(className)) {
+          classesMatched++;
           for (Metadata metadata: this.metadatas.get(className).values()) {
             metadataInspected++;
             boolean exclude = false;
@@ -2672,7 +2677,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         }
       }    
       
-      LOG.info("Search returned " + count + " results in " + ((System.nanoTime() - nano) / 1000000.0D) + " ms, inspected " + metadataInspected + " metadatas and performed " + labelsComparisons + " comparisons.");
+      LOG.info("Search returned " + count + " results in " + ((System.nanoTime() - nano) / 1000000.0D) + " ms, inspected " + metadataInspected + " metadatas in " + classesInspected + " (" + classesMatched + " matches) and performed " + labelsComparisons + " comparisons.");
     }
     
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_REQUESTS, Sensision.EMPTY_LABELS, 1);
