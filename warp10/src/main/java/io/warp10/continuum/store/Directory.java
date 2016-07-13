@@ -978,6 +978,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       LockSupport.parkNanos(1000000000L);
     }
 
+    //
+    // Let's call GC once after populating so we take the trash out.
+    //
+    
+    Runtime.getRuntime().gc();
+    
     Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
 
     //
@@ -1779,7 +1785,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
         List<String> labelNames = new ArrayList<String>(labelPatterns.size());
         List<SmartPattern> labelSmartPatterns = new ArrayList<SmartPattern>(labelPatterns.size());
-        List<String> labelValues = new ArrayList<String>(labelPatterns.size());
+        String[] labelValues = null;
         
         //
         // Put producer/app/owner first
@@ -1789,19 +1795,16 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           labelNames.add(Constants.PRODUCER_LABEL);
           labelSmartPatterns.add(labelPatterns.get(Constants.PRODUCER_LABEL));
           labelPatterns.remove(Constants.PRODUCER_LABEL);
-          labelValues.add(null);
         }
         if (labelPatterns.containsKey(Constants.APPLICATION_LABEL)) {
           labelNames.add(Constants.APPLICATION_LABEL);
           labelSmartPatterns.add(labelPatterns.get(Constants.APPLICATION_LABEL));
           labelPatterns.remove(Constants.APPLICATION_LABEL);
-          labelValues.add(null);
         }
         if (labelPatterns.containsKey(Constants.OWNER_LABEL)) {
           labelNames.add(Constants.OWNER_LABEL);
           labelSmartPatterns.add(labelPatterns.get(Constants.OWNER_LABEL));
           labelPatterns.remove(Constants.OWNER_LABEL);
-          labelValues.add(null);
         }
         
         //
@@ -1811,9 +1814,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         for(Entry<String,SmartPattern> entry: labelPatterns.entrySet()) {
           labelNames.add(entry.getKey());
           labelSmartPatterns.add(entry.getValue());
-          labelValues.add(null);
         }
 
+        labelValues = new String[labelNames.size()];
+        
         for (String className: classNames) {
           
           //
@@ -1842,7 +1846,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   }
                 }
                 
-                labelValues.set(idx++, labelValue);
+                labelValues[idx++] = labelValue;
               }
               
               // If we did not collect enough label/attribute values, exclude the GTS
@@ -1859,7 +1863,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               //
               
               for (int j = 0; j < labelNames.size(); j++) {
-                if (!labelSmartPatterns.get(j).matches(labelValues.get(j))) {
+                if (!labelSmartPatterns.get(j).matches(labelValues[j])) {
                   exclude = true;
                   break;
                 }
@@ -2677,7 +2681,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         }
       }    
       
-      LOG.info("Search returned " + count + " results in " + ((System.nanoTime() - nano) / 1000000.0D) + " ms, inspected " + metadataInspected + " metadatas in " + classesInspected + " (" + classesMatched + " matches) and performed " + labelsComparisons + " comparisons.");
+      LOG.info("Search returned " + count + " results in " + ((System.nanoTime() - nano) / 1000000.0D) + " ms, inspected " + metadataInspected + " metadatas in " + classesInspected + " classes (" + classesMatched + " matched) and performed " + labelsComparisons + " comparisons.");
     }
     
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_REQUESTS, Sensision.EMPTY_LABELS, 1);
