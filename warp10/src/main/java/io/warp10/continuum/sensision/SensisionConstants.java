@@ -66,9 +66,9 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_CLASSES = "warp.directory.classes";
 
   /**
-   * Number of distinct producers known by a Directory
+   * Number of distinct owners known by a Directory
    */
-  public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_PRODUCERS = "warp.directory.producers";
+  public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_OWNERS = "warp.directory.owners";
 
   /**
    * Number of times the Thrift directory client cache was changed

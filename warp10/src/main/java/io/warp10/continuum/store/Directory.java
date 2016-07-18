@@ -34,8 +34,8 @@ import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
-import io.warp10.script.WarpScriptException;
 import io.warp10.script.HyperLogLogPlus;
+import io.warp10.script.WarpScriptException;
 import io.warp10.script.functions.PARSESELECTOR;
 import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.DirectoryPlugin;
@@ -53,7 +53,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -70,7 +69,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
 
@@ -109,7 +107,6 @@ import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.AESWrapEngine;
 import org.bouncycastle.crypto.paddings.PKCS7Padding;
 import org.bouncycastle.crypto.params.KeyParameter;
-import org.bouncycastle.util.encoders.Hex;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
@@ -125,7 +122,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.MapMaker;
-import com.google.common.primitives.Longs;
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.retry.RetryNTimes;
@@ -303,7 +299,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   //private final Map<Long,String> classNames = new MapMaker().concurrencyLevel(64).makeMap();
   private final Map<Long,String> classNames = new ConcurrentSkipListMap<Long, String>(ID_COMPARATOR);
   
-  private final Map<String,Set<String>> classesPerProducer = new MapMaker().concurrencyLevel(64).makeMap();
+  private final Map<String,Set<String>> classesPerOwner = new MapMaker().concurrencyLevel(64).makeMap();
   
   /**
    * Number of threads for servicing requests
@@ -625,24 +621,24 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 }
                 
                 //
-                // Store per producer class name. We use the name since it has been internalized,
-                // therefore we conly consume the HashNode and the HashSet overhead
+                // Store per owner class name. We use the name since it has been internalized,
+                // therefore we only consume the HashNode and the HashSet overhead
                 //
                 
-                String producer = metadata.getLabels().get(Constants.PRODUCER_LABEL);
+                String owner = metadata.getLabels().get(Constants.OWNER_LABEL);
                 
-                synchronized(classesPerProducer) {
-                  Set<String> classes = classesPerProducer.get(producer);
+                synchronized(classesPerOwner) {
+                  Set<String> classes = classesPerOwner.get(owner);
                   
                   if (null == classes) {
                     classes = new HashSet<String>();
-                    classesPerProducer.put(producer, classes);
+                    classesPerOwner.put(owner, classes);
                   }
                   
                   classes.add(metadata.getName());
                 }
 
-                Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PRODUCERS, Sensision.EMPTY_LABELS, classesPerProducer.size());
+                Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_OWNERS, Sensision.EMPTY_LABELS, classesPerOwner.size());
 
                 synchronized(metadatas.get(metadata.getName())) {
                   if (!metadatas.get(metadata.getName()).containsKey(labelsId)) {
@@ -1572,23 +1568,23 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               }
               
               //
-              // Store per producer class
+              // Store per owner class
               //
 
-              String producer = metadata.getLabels().get(Constants.PRODUCER_LABEL);
+              String owner = metadata.getLabels().get(Constants.OWNER_LABEL);
               
-              synchronized(directory.classesPerProducer) {
-                Set<String> classes = directory.classesPerProducer.get(producer);
+              synchronized(directory.classesPerOwner) {
+                Set<String> classes = directory.classesPerOwner.get(owner);
                 
                 if (null == classes) {
                   classes = new HashSet<String>();
-                  directory.classesPerProducer.put(producer, classes);
+                  directory.classesPerOwner.put(owner, classes);
                 }
                 
                 classes.add(metadata.getName());
               }
               
-              Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PRODUCERS, Sensision.EMPTY_LABELS, directory.classesPerProducer.size());
+              Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_OWNERS, Sensision.EMPTY_LABELS, directory.classesPerOwner.size());
               
               //
               // Force classId/labelsId in Metadata, we will need them!
@@ -1767,14 +1763,14 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           classNames.add(exactClassName);
         } else {
           //
-          // Extract per producer classes if producer selector exists
+          // Extract per owner classes if owner selector exists
           //
           if (request.getLabelsSelectors().get(i).size() > 0) {
-            String producersel = request.getLabelsSelectors().get(i).get(Constants.PRODUCER_LABEL);
+            String ownersel = request.getLabelsSelectors().get(i).get(Constants.OWNER_LABEL);
             
-            if (null != producersel && producersel.startsWith("=")) {
+            if (null != ownersel && ownersel.startsWith("=")) {
               classNames = new ArrayList<String>();
-              classNames.addAll(classesPerProducer.get(producersel.substring(1)));
+              classNames.addAll(classesPerOwner.get(ownersel.substring(1)));
             } else {
               classNames.addAll(this.classNames.values());
             }
@@ -2124,14 +2120,14 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           classNames.add(exactClassName);
         } else {
           //
-          // Extract per producer classes if producer selector exists
+          // Extract per owner classes if owner selector exists
           //
           
           if (request.getLabelsSelectors().get(i).size() > 0) {
-            String producersel = request.getLabelsSelectors().get(i).get(Constants.PRODUCER_LABEL);
+            String ownersel = request.getLabelsSelectors().get(i).get(Constants.OWNER_LABEL);
             
-            if (null != producersel && producersel.startsWith("=")) {
-              classNames.addAll(classesPerProducer.get(producersel.substring(1)));
+            if (null != ownersel && ownersel.startsWith("=")) {
+              classNames.addAll(classesPerOwner.get(ownersel.substring(1)));
             } else {
               classNames.addAll(this.classNames.values());
             }
@@ -2551,14 +2547,14 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         classNames.add(exactClassName);
       } else {
         //
-        // Extract per producer classes if producer selector exists
+        // Extract per owner classes if owner selector exists
         //
         
         if (labelsSelector.size() > 0) {
-          String producersel = labelsSelector.get(Constants.PRODUCER_LABEL);
+          String ownersel = labelsSelector.get(Constants.OWNER_LABEL);
           
-          if (null != producersel && producersel.startsWith("=")) {
-            classNames.addAll(classesPerProducer.get(producersel.substring(1)));
+          if (null != ownersel && ownersel.startsWith("=")) {
+            classNames.addAll(classesPerOwner.get(ownersel.substring(1)));
           } else {        
             classNames.addAll(this.classNames.values());
           }
