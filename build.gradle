@@ -535,7 +535,9 @@ project(':warp10') {
     publishing {
         publications {
             warp10(MavenPublication) {
-                artifact file("${buildDir}/libs/warp10-" + getVersionName(warp10Version['warp10']) + ".tar.gz")
+                artifact("${buildDir}/libs/warp10-" + getVersionName(warp10Version['warp10']) + ".tar.gz"){
+                    extension = 'tar.gz'
+                }
                 groupId 'io.warp10'
                 artifactId archivesBaseName
                 version version
