@@ -37,6 +37,7 @@ chmod 755 ${WARP10_HOME}/bin/warp10-standalone.bootstrap
 # Copy log4j README, config, bootstrap...
 cp ../../etc/bootstrap/*.mc2 ${WARP10_HOME}/etc/bootstrap
 cp ../../etc/install/README.md ${WARP10_HOME}
+cp ${WARP_ROOT_PATH}/changelog.* ${WARP10_HOME}
 
 sed -e "s/@VERSION@/${VERSION}/g" ../../etc/log4j.properties >> ${WARP10_HOME}/etc/log4j.properties
 
