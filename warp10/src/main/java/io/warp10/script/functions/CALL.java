@@ -114,7 +114,7 @@ public class CALL extends NamedWarpScriptFunction implements WarpScriptStackFunc
           }
           if (!processes.isEmpty()) {
             proc = processes.remove(0);
-            if (proc.isAlive()) {
+            if (isAlive(proc)) {
               this.loaned.addAndGet(1);
               return proc;
             } else {
@@ -131,7 +131,7 @@ public class CALL extends NamedWarpScriptFunction implements WarpScriptStackFunc
     
     public void release(Process proc) {      
       synchronized(processes) {
-        if (proc.isAlive()) {
+        if (isAlive(proc)) {
           processes.add(proc);
         } else {
           this.readers.remove(proc);
@@ -254,5 +254,14 @@ public class CALL extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
     
     this.subprograms.put(subprogram, new ProcessPool(f.getAbsolutePath()));
+  }
+  
+  private static final boolean isAlive(Process proc) {
+    try {
+      proc.exitValue();
+      return false;
+    } catch(IllegalThreadStateException e) {
+      return true;
+    }
   }
 }

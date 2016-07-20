@@ -16,6 +16,7 @@
 
 package io.warp10.script.mapper;
 
+import io.warp10.DoubleUtils;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptException;
@@ -50,7 +51,7 @@ public class MapperFinite extends NamedWarpScriptFunction implements WarpScriptM
     long elevation = elevations[0];
         
     if (values[0] instanceof Double) {
-      if (Double.isFinite((double) values[0])) {
+      if (DoubleUtils.isFinite((double) values[0])) {
         value = values[0];
       }
     } else {
