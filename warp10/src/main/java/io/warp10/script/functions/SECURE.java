@@ -59,12 +59,18 @@ public class SECURE extends NamedWarpScriptFunction implements WarpScriptStackFu
     if (!(o instanceof String)) {
       throw new WarpScriptException(getName() + " operates on a string.");
     }
+        
+    stack.push(secure(stack.getAttribute(WarpScriptStack.ATTRIBUTE_SECURE_KEY).toString(), o.toString()));
     
+    return stack;
+  }
+  
+  public static final String secure(String key, String script) throws WarpScriptException {
     SecureScript sscript = new SecureScript();
     sscript.setTimestamp(System.currentTimeMillis());
-    sscript.setKey(stack.getAttribute(WarpScriptStack.ATTRIBUTE_SECURE_KEY).toString());
-    
-    byte[] scriptBytes = o.toString().getBytes(Charsets.UTF_8);
+    sscript.setKey(key);
+
+    byte[] scriptBytes = script.getBytes(Charsets.UTF_8);
     
     // Check if we should compress the script or not
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -109,11 +115,11 @@ public class SECURE extends NamedWarpScriptFunction implements WarpScriptStackFu
       byte[] wrapped = CryptoUtils.wrap(aesKey, serialized);
       
       String encoded = new String(OrderPreservingBase64.encode(wrapped), Charsets.US_ASCII);
-      stack.push(encoded);
+      
+      return encoded;
     } catch (TException te) {
       throw new WarpScriptException("Unable to secure script.");
     }
-    
-    return stack;
+
   }
 }
