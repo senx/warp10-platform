@@ -613,15 +613,7 @@ public class StackUtils {
     } else if (o instanceof WarpScriptStackFunction) {
       sb.append(o.toString());
     } else if (o instanceof Macro) {
-      sb.append(WarpScriptStack.MACRO_START);
-      sb.append(" ");
-      if (!((Macro) o).isSecure()) {
-        for (Object statement: ((Macro) o).statements()) {
-          sb.append(StackUtils.toString(statement));
-          sb.append(" ");
-        }
-      }
-      sb.append(WarpScriptStack.MACRO_END);
+      sb.append(o.toString());
     } else if (o instanceof NamedWarpScriptFunction){
       sb.append(o.toString());
     }
