@@ -225,6 +225,7 @@ public class WarpScriptLib {
   public static final String NULL = "NULL";
   
   public static final String EVAL = "EVAL";
+  public static final String EVALSECURE = "EVALSECURE";
   public static final String SNAPSHOT = "SNAPSHOT";
   public static final String LOAD = "LOAD";
   public static final String RUN = "RUN";
@@ -373,7 +374,7 @@ public class WarpScriptLib {
     functions.put(MAP_END, new ENDMAP(MAP_END));
     functions.put("SECUREKEY", new SECUREKEY("SECUREKEY"));
     functions.put("UNSECURE", new UNSECURE("UNSECURE", true));
-    functions.put("EVALSECURE", new EVALSECURE("EVALSECURE"));
+    functions.put(EVALSECURE, new EVALSECURE(EVALSECURE));
     functions.put("NOOP", new NOOP("NOOP"));
     functions.put("DOC", new DOC("DOC"));
     functions.put("DOCMODE", new DOCMODE("DOCMODE"));
@@ -440,6 +441,7 @@ public class WarpScriptLib {
     functions.put("TOBITS", new TOBITS("TOBITS"));
     functions.put("FROMBITS", new FROMBITS("FROMBITS"));
     functions.put("TOKENINFO", new TOKENINFO("TOKENINFO"));
+    functions.put("GETHOOK", new GETHOOK("GETHOOK"));
     
     // Unit converters
     functions.put("w", new UNIT("w", 7 * 24 * 60 * 60 * 1000));
