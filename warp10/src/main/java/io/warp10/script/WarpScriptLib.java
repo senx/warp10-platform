@@ -227,6 +227,7 @@ public class WarpScriptLib {
   public static final String EVAL = "EVAL";
   public static final String EVALSECURE = "EVALSECURE";
   public static final String SNAPSHOT = "SNAPSHOT";
+  public static final String SNAPSHOTALL = "SNAPSHOTALL";
   public static final String LOAD = "LOAD";
   public static final String RUN = "RUN";
   public static final String BOOTSTRAP = "BOOTSTRAP";
@@ -379,7 +380,7 @@ public class WarpScriptLib {
     functions.put("DOC", new DOC("DOC"));
     functions.put("DOCMODE", new DOCMODE("DOCMODE"));
     functions.put(SNAPSHOT, new SNAPSHOT(SNAPSHOT, false, false));
-    functions.put("SNAPSHOTALL", new SNAPSHOT("SNAPSHOTALL", true, false));
+    functions.put(SNAPSHOTALL, new SNAPSHOT(SNAPSHOTALL, true, false));
     functions.put("SNAPSHOTTOMARK", new SNAPSHOT("SNAPSHOTTOMARK", false, true));
     functions.put("SNAPSHOTALLTOMARK", new SNAPSHOT("SNAPSHOTALLTOMARK", true, true));
        
