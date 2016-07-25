@@ -49,10 +49,5 @@ chown -R warp10:warp10 ${WARP10_HOME}
 su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf -a io.warp10.bootstrap -puidg -t -ttl 3153600000000 ${WARP10_HOME}/templates/conf-standalone.template -o ${WARP10_CONFIG}" >> ${WARP10_HOME}/etc/initial.tokens
 
 # Create leveldb database
-if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '"`" != "" ]
-then
-  echo "Init failed ! - A Warp 10 instance is currently running"
-  exit 1
-fi
 echo "Init leveldb database..." >> ${WARP10_HOME}/logs/nohup.out
 su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${WARP10_HOME}/data >> ${WARP10_HOME}/logs/nohup.out 2>&1 &"
