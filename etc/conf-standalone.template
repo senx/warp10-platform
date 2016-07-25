@@ -96,6 +96,14 @@ warpscript.maxloop.hard = 10000
 standalone.home = /opt/warp10-@VERSION@
 
 //
+// Jar Repository
+//
+
+warpscript.jars.directory = ${standalone.home}/jars
+warpscript.jars.refresh = 60000
+warpscript.jars.fromclasspath = true
+
+//
 // Macro Repository
 //
 warpscript.repository.directory = ${standalone.home}/macros
