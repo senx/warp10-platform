@@ -20,6 +20,7 @@ chmod 755 ${WARP10_HOME}
 chmod 755 ${WARP10_HOME}/bin
 chmod 755 ${WARP10_HOME}/etc
 chmod 755 ${WARP10_HOME}/macros
+chmod 755 ${WARP10_HOME}/logs
 chmod 755 ${WARP10_HOME}/jars
 chmod 755 ${WARP10_HOME}/templates
 chmod 755 ${WARP10_HOME}/warpscripts
@@ -49,5 +50,5 @@ chown -R warp10:warp10 ${WARP10_HOME}
 su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf -a io.warp10.bootstrap -puidg -t -ttl 3153600000000 ${WARP10_HOME}/templates/conf-standalone.template -o ${WARP10_CONFIG}" >> ${WARP10_HOME}/etc/initial.tokens
 
 # Create leveldb database
-echo "Init leveldb database..." >> ${WARP10_HOME}/logs/nohup.out
-su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${WARP10_HOME}/data >> ${WARP10_HOME}/logs/nohup.out 2>&1 &"
+su ${WARP10_USER} -c "echo \"Init leveldb database...\" >> ${WARP10_HOME}/logs/nohup.out"
+su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${WARP10_HOME}/data >> ${WARP10_HOME}/logs/nohup.out 2>&1"
