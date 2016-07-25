@@ -23,6 +23,7 @@ mkdir -p ${WARP10_HOME}/templates
 mkdir -p ${WARP10_HOME}/data/snapshots
 mkdir -p ${WARP10_HOME}/etc/throttle
 mkdir -p ${WARP10_HOME}/macros
+mkdir -p ${WARP10_HOME}/jars
 mkdir -p ${WARP10_HOME}/warpscripts
 mkdir -p ${WARP10_HOME}/etc/bootstrap
 mkdir -p ${WARP10_HOME}/etc/trl
@@ -51,6 +52,7 @@ chmod 755 ${WARP10_HOME}/bin
 chmod 755 ${WARP10_HOME}/etc
 chmod 755 ${WARP10_HOME}/templates
 chmod 755 ${WARP10_HOME}/macros
+chmod 755 ${WARP10_HOME}/jars
 chmod 755 ${WARP10_HOME}/warpscripts
 chmod 755 ${WARP10_HOME}/etc/throttle
 chmod 755 ${WARP10_HOME}/etc/trl
