@@ -675,6 +675,11 @@ project(':warpscript') {
       from project(":warp10").sourceSets.main.output
         include 'io/warp10/script/**'
         include 'io/warp10/WarpConfig.class'
+        include 'io/warp10/DoubleUtils.class'
+        include 'io/warp10/FloatUtils.class'
+        include 'io/warp10/SmartPattern.class'
+        include 'io/warp10/WarpURLEncoder.class'
+        include 'io/warp10/Revision.class'
         include 'io/warp10/continuum/Configuration.class'
         include 'io/warp10/continuum/TimeSource.class'
         include 'io/warp10/continuum/Tokens.class'
