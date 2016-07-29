@@ -44,10 +44,6 @@ public class SmartPattern {
     regexp = regexp.replaceAll("\\(.*\\)", " ");
     regexp = regexp.replaceAll("\\[.*\\]", " ");
     regexp = regexp.replaceAll("\\{.*\\}", " ");
-    
-    // Replace anything after '\'
-    
-    regexp = regexp.replaceAll("\\\\.*", "");
 
     //
     // If the regexp still contains '|' at this stage then we cannot
@@ -56,7 +52,11 @@ public class SmartPattern {
     
     if (regexp.contains("|")) {
       return;
-    }
+    }    
+
+    // Replace anything after '\'
+    
+    regexp = regexp.replaceAll("\\\\.*", "");
 
     // Replace any character not a=z A=Z 0-9 by a space
     
@@ -95,7 +95,7 @@ public class SmartPattern {
       return false;
     }
     
-    this.matcher.reset(str);
+    this.matcher.reset(str);    
     return this.matcher.matches();
   }
 }
