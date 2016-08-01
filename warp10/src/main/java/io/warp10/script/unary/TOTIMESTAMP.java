@@ -41,9 +41,12 @@ public class TOTIMESTAMP extends NamedWarpScriptFunction implements WarpScriptSt
     Object top = stack.pop();
 
 
-    if (!(top instanceof String)) {
-      throw new WarpScriptException(getName() + " expects an ISO8601 timestamp on top of the stack.");
-    } else {
+    if (!(top instanceof String) && !(top instanceof java.util.Date)) {
+      throw new WarpScriptException(getName() + " expects an ISO8601 timestamp or a Date instance on top of the stack.");
+    } else if (top instanceof java.util.Date) {
+      long ts = ((java.util.Date) top).getTime() * Constants.TIME_UNITS_PER_MS;
+      stack.push(ts);
+    } else if (top instanceof String) {      
       try {
         ZonedDateTime zdt = ZonedDateTime.parse(top.toString());
                 
