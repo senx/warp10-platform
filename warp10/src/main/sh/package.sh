@@ -42,6 +42,7 @@ cp ../../etc/install/README.md ${WARP10_HOME}
 cp ${WARP_ROOT_PATH}/changelog.* ${WARP10_HOME}
 cp ../../etc/warpscripts/*.mc2 ${WARP10_HOME}/warpscripts/test/60000
 cp ../../etc/calls/*.sh ${WARP10_HOME}/warpscripts/calls
+cp ../../etc/calls/*.py ${WARP10_HOME}/warpscripts/calls
 sed -e "s/@VERSION@/${VERSION}/g" ../../etc/log4j.properties >> ${WARP10_HOME}/etc/log4j.properties
 
 # Copy template configuration
@@ -59,6 +60,7 @@ chmod -R 755 ${WARP10_HOME}/warpscripts
 chmod 644 ${WARP10_HOME}/warpscripts/test/60000/*.mc2
 chmod 755 ${WARP10_HOME}/calls
 chmod 755 ${WARP10_HOME}/calls/*.sh
+chmod 755 ${WARP10_HOME}/calls/*.py
 chmod 755 ${WARP10_HOME}/etc/throttle
 chmod 755 ${WARP10_HOME}/etc/trl
 chmod 755 ${WARP10_HOME}/etc/bootstrap
