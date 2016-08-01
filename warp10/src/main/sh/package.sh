@@ -24,7 +24,8 @@ mkdir -p ${WARP10_HOME}/data/snapshots
 mkdir -p ${WARP10_HOME}/etc/throttle
 mkdir -p ${WARP10_HOME}/macros
 mkdir -p ${WARP10_HOME}/jars
-mkdir -p ${WARP10_HOME}/warpscripts
+mkdir -p ${WARP10_HOME}/warpscripts/test/60000
+mkdir -p ${WARP10_HOME}/calls
 mkdir -p ${WARP10_HOME}/etc/bootstrap
 mkdir -p ${WARP10_HOME}/etc/trl
 mkdir -p ${WARP10_HOME}/logs
@@ -35,11 +36,12 @@ sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10-standalone.init >> ${WAR
 sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10-standalone.bootstrap >> ${WARP10_HOME}/bin/warp10-standalone.bootstrap
 chmod 755 ${WARP10_HOME}/bin/warp10-standalone.bootstrap
 
-# Copy log4j README, config, bootstrap...
+# Copy log4j README, config, runner, bootstrap...
 cp ../../etc/bootstrap/*.mc2 ${WARP10_HOME}/etc/bootstrap
 cp ../../etc/install/README.md ${WARP10_HOME}
 cp ${WARP_ROOT_PATH}/changelog.* ${WARP10_HOME}
-
+cp ../../etc/warpscripts/*.mc2 ${WARP10_HOME}/warpscripts/test/60000
+cp ../../etc/calls/*.sh ${WARP10_HOME}/warpscripts/calls
 sed -e "s/@VERSION@/${VERSION}/g" ../../etc/log4j.properties >> ${WARP10_HOME}/etc/log4j.properties
 
 # Copy template configuration
@@ -53,7 +55,10 @@ chmod 755 ${WARP10_HOME}/etc
 chmod 755 ${WARP10_HOME}/templates
 chmod 755 ${WARP10_HOME}/macros
 chmod 755 ${WARP10_HOME}/jars
-chmod 755 ${WARP10_HOME}/warpscripts
+chmod -R 755 ${WARP10_HOME}/warpscripts
+chmod 644 ${WARP10_HOME}/warpscripts/test/60000/*.mc2
+chmod 755 ${WARP10_HOME}/calls
+chmod 755 ${WARP10_HOME}/calls/*.sh
 chmod 755 ${WARP10_HOME}/etc/throttle
 chmod 755 ${WARP10_HOME}/etc/trl
 chmod 755 ${WARP10_HOME}/etc/bootstrap
