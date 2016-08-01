@@ -188,6 +188,11 @@ warpscript.update.endpoint = http://${standalone.host}:${standalone.port}/api/v0
 warpscript.meta.endpoint = http://${standalone.host}:${standalone.port}/api/v0/meta
 
 //
+// CALL root directory property
+//
+warpscript.call.directory = ${standalone.home}/calls
+
+//
 // Directory where the leveldb files should be created
 //
 leveldb.home = ${standalone.home}/data
