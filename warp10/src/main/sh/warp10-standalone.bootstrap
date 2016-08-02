@@ -7,6 +7,7 @@
 #JAVA_HOME=/opt/java8
 #WARP10_HOME=/opt/warp10-@VERSION@
 
+# If WARP10_HOME env var is not defined, set it to the parent directory
 if [ -z "${WARP10_HOME}" ]; then
   WARP10_HOME=$(dirname $(readlink -f $0))/..
 fi
@@ -20,6 +21,7 @@ WARP10_HEAP_MAX=256m
 JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC"
 export MALLOC_ARENA_MAX=1
 
+# Create Warp10 home directory if it does not exist
 if [ ! -e "${WARP10_HOME}" ]
 then
   mkdir ${WARP10_HOME}
