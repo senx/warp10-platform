@@ -31,7 +31,7 @@ while True:
     args = cPickle.loads(str)
 
     #
-    # Do out stuff
+    # Do our stuff
     #
     output = 'output'
 
