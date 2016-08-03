@@ -61,6 +61,10 @@ fi
 # Set standalone.home parameter to $WARP10_HOME
 sed -i 's_^standalone\.home.*_standalone\.home = '"$WARP10_HOME"'_' ${WARP10_HOME}/templates/conf-standalone.template
 sed -i 's_^WARP10\_HOME=.*_WARP10\_HOME='"$WARP10_HOME"'_' ${WARP10_HOME}/bin/warp10-standalone.init
+sed -i 's_^LEVELDB\_HOME=.*_LEVELDB\_HOME='"$WARP10_HOME"'/data_' ${WARP10_HOME}/bin/snapshot.sh
+
+sed -i 's_warpLog\.File=.*_warpLog\.File='"$WARP10_HOME"'/logs/nohup.out_' ${WARP10_HOME}/etc/log4j.properties
+sed -i 's_warpscriptLog\.File=.*_warpscriptLog\.File='"$WARP10_HOME"'/logs/warpscript.out_' ${WARP10_HOME}/etc/log4j.properties
 
 # Fix ownership
 chown -R warp10:warp10 ${WARP10_HOME}

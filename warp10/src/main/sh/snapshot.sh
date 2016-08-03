@@ -26,17 +26,11 @@ then
   exit 1
 fi
 
-if [ "`whoami`" != "${WARP10_USER}" ]
-then
-  echo "$0 MUST be run under ${WARP10_USER}"
-  exit 1
-fi
-
 #
 # Check if Warp instance is currently running
 #
 
-if [ "`${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '`" = "" ]
+if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '"`" = "" ]
 then
   echo "No Warp 10 instance is currently running !"
   exit 1
@@ -80,7 +74,7 @@ then
   echo "Trigger file '${TRIGGER_PATH}' already exists, aborting"
   exit 1
 else
-  touch  "${TRIGGER_PATH}"
+  su ${WARP10_USER} -c "touch  ${TRIGGER_PATH}"
 fi
 
 #
@@ -96,19 +90,19 @@ done
 # Create snapshot directory
 #
 
-mkdir ${SNAPSHOT_DIR}/${SNAPSHOT}
+su ${WARP10_USER} -c "mkdir ${SNAPSHOT_DIR}/${SNAPSHOT}"
 cd ${SNAPSHOT_DIR}/${SNAPSHOT}
 
 #
 # Create hard links of '.sst' files
 #
 
-find -L ${LEVELDB_HOME} -maxdepth 1 -name '*sst'|xargs echo|while read FILES; do if [ "${FILES}" != "" ]; then ln ${FILES} ${SNAPSHOT_DIR}/${SNAPSHOT}; fi; done
+su ${WARP10_USER} -c "find -L ${LEVELDB_HOME} -maxdepth 1 -name '*sst'|xargs echo|while read FILES; do if [ \"${FILES}\" != \"\" ]; then ln ${FILES} ${SNAPSHOT_DIR}/${SNAPSHOT}; fi; done"
 
 if [ $? != 0 ]
 then
   echo "Hard link creation failed - Cancel Snapshot !"
-  rm -rf ${SNAPSHOT_DIR}/${SNAPSHOT}
+  su ${WARP10_USER} -c "rm -rf ${SNAPSHOT_DIR}/${SNAPSHOT}"
   exit 1
 fi
 
@@ -116,11 +110,11 @@ fi
 # Copy CURRENT and MANIFEST
 #
 
-cp ${LEVELDB_HOME}/CURRENT ${SNAPSHOT_DIR}/${SNAPSHOT}
-cp ${LEVELDB_HOME}/MANIFEST-* ${SNAPSHOT_DIR}/${SNAPSHOT}
+su ${WARP10_USER} -c "cp ${LEVELDB_HOME}/CURRENT ${SNAPSHOT_DIR}/${SNAPSHOT}"
+su ${WARP10_USER} -c "cp ${LEVELDB_HOME}/MANIFEST-* ${SNAPSHOT_DIR}/${SNAPSHOT}"
 
 #
 # Remove 'trigger' file
 #
 
-rm -f "${TRIGGER_PATH}"
+su ${WARP10_USER} -c "rm -f ${TRIGGER_PATH}"
