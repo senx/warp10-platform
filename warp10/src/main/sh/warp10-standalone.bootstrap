@@ -5,7 +5,13 @@
 #
 
 #JAVA_HOME=/opt/java8
-WARP10_HOME=/opt/warp10-@VERSION@
+#WARP10_HOME=/opt/warp10-@VERSION@
+
+# If WARP10_HOME env var is not defined, set it to the parent directory
+if [ -z "${WARP10_HOME}" ]; then
+  WARP10_HOME=$(dirname $(readlink -f $0))/..
+fi
+
 WARP10_USER=warp10
 WARP10_CONFIG=${WARP10_HOME}/etc/conf-standalone.conf
 WARP10_JAR=${WARP10_HOME}/bin/warp10-@VERSION@.jar
@@ -14,6 +20,13 @@ WARP10_CP=${WARP10_HOME}/etc:${WARP10_JAR}
 WARP10_HEAP_MAX=256m
 JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC"
 export MALLOC_ARENA_MAX=1
+
+# Create Warp10 home directory if it does not exist
+if [ ! -e "${WARP10_HOME}" ]
+then
+  mkdir ${WARP10_HOME}
+  exit 1
+fi
 
 # Fix permissions
 chmod 755 ${WARP10_HOME}
@@ -35,12 +48,19 @@ chmod 755 ${WARP10_HOME}/bin/*.init
 chmod 644 ${WARP10_HOME}/bin/warp10-@VERSION@.jar
 
 # Create user warp10
-if [ "`which useradd`" = "" ]
+if ! id -u "warp10" >/dev/null 2>&1;
 then
-  adduser -D -s -H -h ${WARP10_HOME} -s /bin/bash warp10
-else
-  useradd -d ${WARP10_HOME} -M -r warp10
+  if [ "`which useradd`" = "" ]
+  then
+    adduser -D -s -H -h ${WARP10_HOME} -s /bin/bash warp10
+  else
+    useradd -d ${WARP10_HOME} -M -r warp10
+  fi
 fi
+
+# Set standalone.home parameter to $WARP10_HOME
+sed -i 's_^standalone\.home.*_standalone\.home = '"$WARP10_HOME"'_' ${WARP10_HOME}/templates/conf-standalone.template
+sed -i 's_^WARP10\_HOME=.*_WARP10\_HOME='"$WARP10_HOME"'_' ${WARP10_HOME}/bin/warp10-standalone.init
 
 # Fix ownership
 chown -R warp10:warp10 ${WARP10_HOME}
