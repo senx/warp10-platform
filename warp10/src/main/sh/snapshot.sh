@@ -97,7 +97,7 @@ cd ${SNAPSHOT_DIR}/${SNAPSHOT}
 # Create hard links of '.sst' files
 #
 
-su ${WARP10_USER} -c "find -L ${LEVELDB_HOME} -maxdepth 1 -name '*sst'|xargs echo|while read FILES; do if [ \"${FILES}\" != \"\" ]; then ln ${FILES} ${SNAPSHOT_DIR}/${SNAPSHOT}; fi; done"
+find -L ${LEVELDB_HOME} -maxdepth 1 -name '*sst'|xargs echo|while read FILES; do if [ -n "${FILES}" ]; then su ${WARP10_USER} -c "ln ${FILES} ${SNAPSHOT_DIR}/${SNAPSHOT}"; fi; done
 
 if [ $? != 0 ]
 then

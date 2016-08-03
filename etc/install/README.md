@@ -39,5 +39,5 @@ Data are stored via leveldb in the `data` directory
 Snapshot of leveldb data can be performed via the init script
 
 ~~~
-./warp10-standalone.init snapshot
+./warp10-standalone.init snapshot 'snapshot_name'
 ~~~
