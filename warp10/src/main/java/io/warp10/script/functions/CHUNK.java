@@ -84,7 +84,7 @@ public class CHUNK extends GTSStackFunction {
     if (this.withOverlap) {
       top = stack.pop();
       if (!(top instanceof Long)) {
-        throw new WarpScriptException(getName() + " expects an overlap below the chunk label.");
+        throw new WarpScriptException(getName() + " expects an overlap below the number of chunks.");
       }
       long overlap = (long) top;
       
@@ -98,7 +98,7 @@ public class CHUNK extends GTSStackFunction {
     top = stack.pop();
     
     if (!(top instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects a chunk width before the last chunk.");
+      throw new WarpScriptException(getName() + " expects a chunk width on top of the end timestamp of the most recent chunk.");
     }
     
     params.put(CHUNKWIDTH, (long) top);
