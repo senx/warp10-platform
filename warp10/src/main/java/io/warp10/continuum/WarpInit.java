@@ -28,12 +28,6 @@ public class WarpInit {
   
   private static List<String> ACCESS_KEYS = new ArrayList<String>();
   
-  static {
-    ACCESS_KEYS.add("c8:1b:9c:fc:a9:f4:99:c1:6d:84:1f:6e:e9:dc:8f:77"); // Herberts
-    ACCESS_KEYS.add("51:03:c4:98:ef:5d:d4:7c:03:45:19:38:1c:cb:1b:c9"); // Morin
-    ACCESS_KEYS.add("6d:8c:fb:ad:c8:a7:2b:07:dc:f5:f9:9a:56:6a:cb:99"); // Lambour
-    ACCESS_KEYS.add("42:30:d6:8e:67:68:6e:47:10:1f:52:57:f3:c0:a8:a5"); // Gonzalez
-  }
   
   private static String[] SIPHASH_KEYS = {
     "continuum.hash.class",
