@@ -81,7 +81,9 @@ public class WarpInit {
     if (null != ossURL && null != masterSecretName) {
       System.out.println("# Generating master key");
       OSSClient.genSecret(ossURL, masterSecretName, null);
-      OSSClient.addACL(ossURL, "c8:1b:9c:fc:a9:f4:99:c1:6d:84:1f:6e:e9:dc:8f:77", masterSecretName, ACCESS_KEYS);
+      if (!ACCESS_KEYS.isEmpty()) {
+        OSSClient.addACL(ossURL, "c8:1b:9c:fc:a9:f4:99:c1:6d:84:1f:6e:e9:dc:8f:77", masterSecretName, ACCESS_KEYS);
+      }
       masterKey = OSSClient.getSecret(ossURL, masterSecretName, null);
       quasarKey = OSSClient.getSecret(ossURL, "com.cityzendata.oss.quasar", null);
     }
