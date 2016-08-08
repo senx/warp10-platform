@@ -8,7 +8,7 @@
 // Comma separated list of components to run in distributed mode
 // Valid values are 'ingress', 'directory', 'store', 'egress', 'fetch', 'plasmaFE', 'plasmaBE', 'runner', 'geodir'
 //
-continuum.components = 
+warp.components =
 
 //
 // 128 bits key for verifying class names, format is hex:hhhhh...hhhh
