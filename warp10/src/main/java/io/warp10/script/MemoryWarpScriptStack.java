@@ -79,6 +79,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
    */
   private long currentops = 0L;
   
+  /**
+   * Are we currently in a secure macro?
+   */
+  private boolean inSecureMacro = false;
+  
   private final List<Object> list = new ArrayList<Object>(32);
 
   private final Map<String,Object> symbolTable = new HashMap<String,Object>();
@@ -1034,13 +1039,20 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   
   @Override
   public Object setAttribute(String key, Object value) {
-    Object currentValue = this.attributes.get(key);
     
     if (null == value) {
-      this.attributes.remove(key);
-      return currentValue;
-    } else {
-      this.attributes.put(key, value);
+      return this.attributes.remove(key);
+    }
+    
+    //
+    // Handle in_secure_macro separately as we set it very often
+    // in loops
+    //
+    
+    if (WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO.equals(key)) {
+      boolean old = this.inSecureMacro;
+      this.inSecureMacro = Boolean.TRUE.equals(value);
+      return old;
     }
     
     if (WarpScriptStack.ATTRIBUTE_MAX_DEPTH.equals(key)) {
@@ -1058,14 +1070,16 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
         this.progressable = (Progressable) value;
       }
     }
-    
-    return currentValue;
+
+    return this.attributes.put(key, value);
   }
   
   @Override
   public Object getAttribute(String key) {
     // Manage the number of ops in a special way
-    if (WarpScriptStack.ATTRIBUTE_OPS.equals(key)) {
+    if (WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO.equals(key)) {
+      return this.inSecureMacro;
+    } else if (WarpScriptStack.ATTRIBUTE_OPS.equals(key)) {
       return this.currentops;
     } else {
       return this.attributes.get(key);
