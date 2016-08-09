@@ -86,7 +86,7 @@ public class StackUtils {
     toJSON(out, stack, Integer.MAX_VALUE);
   }
   
-  private static void objectToJSON(PrintWriter out, Object o, AtomicInteger recursionLevel, boolean strictJSON) {
+  public static void objectToJSON(PrintWriter out, Object o, AtomicInteger recursionLevel, boolean strictJSON) {
     
     if (recursionLevel.addAndGet(1) > WarpScriptStack.DEFAULT_MAX_RECURSION_LEVEL && ((o instanceof Map) || (o instanceof List) || (o instanceof Macro))) {
       out.write(" ...NESTED_CONTENT_REMOVED... ");
@@ -132,7 +132,7 @@ public class StackUtils {
         objectToJSON(out, elt, recursionLevel, strictJSON);
         first = false;
       }
-      out.print("]");
+      out.print("]");    
     } else if (o instanceof GeoTimeSerie) {
       out.print("{");
       out.print("\"c\":");
@@ -176,6 +176,15 @@ public class StackUtils {
         first = false;
       }
       out.print("]");
+      out.print("}");
+    } else if (o instanceof Metadata) {
+      out.print("{");
+      out.print("\"c\":");
+      out.print(serializer.serialize(((Metadata) o).getName()));
+      out.print(",\"l\":");
+      objectToJSON(out, ((Metadata) o).getLabels(), recursionLevel, strictJSON);
+      out.print(",\"a\":");
+      objectToJSON(out, ((Metadata) o).getAttributes(), recursionLevel, strictJSON);
       out.print("}");
     //} else if (o instanceof JsonArray || o instanceof JsonElement || o instanceof JsonBuilder) {
     //  out.print(o.toString());
