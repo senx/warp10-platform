@@ -779,6 +779,8 @@ public class WarpScriptLib {
     functions.put("mapper.geo.approximate", new MapperGeoApproximate.Builder("mapper.geo.approximate"));
     functions.put("COPYGEO", new COPYGEO("COPYGEO"));
     functions.put("BBOX", new BBOX("BBOX"));
+    functions.put("->GEOHASH", new TOGEOHASH("->GEOHASH"));
+    functions.put("GEOHASH->", new GEOHASHTO("GEOHASH->"));
     
     //
     // Counters
