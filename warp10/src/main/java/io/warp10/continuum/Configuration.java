@@ -498,11 +498,6 @@ public class Configuration {
   public static final String INGRESS_ZK_QUORUM = "ingress.zk.quorum";
   
   /**
-   * ZooKeeper znode under which to register
-   */
-  public static final String INGRESS_ZK_ZNODE = "ingress.zk.znode";
-  
-  /**
    * ZK Connect String for the metadata kafka cluster
    */
   public static final String INGRESS_KAFKA_META_ZKCONNECT = "ingress.kafka.metadata.zkconnect";
@@ -721,11 +716,6 @@ public class Configuration {
    * ZooKeeper server list
    */
   public static final String STORE_ZK_QUORUM = "store.zk.quorum";
-  
-  /**
-   * ZooKeeper znode under which to register
-   */
-  public static final String STORE_ZK_ZNODE = "store.zk.znode";
   
   /**
    * ZooKeeper connect string for HBase
@@ -1151,6 +1141,11 @@ public class Configuration {
   public static final String STANDALONE_SNAPSHOT_SIGNAL = "standalone.snapshot.signal";
   
   /**
+   * Directory where data requests should be logged. This directory should be in 700 to protect sensitive token infos.
+   */
+  public static final String STANDALONE_DATALOG_DIR = "standalone.datalog.dir";
+  
+  /**
    * Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.
    */
   public static final String IN_MEMORY = "in.memory";
@@ -1214,11 +1209,6 @@ public class Configuration {
    * ZooKeeper server list
    */
   public static final String EGRESS_ZK_QUORUM = "egress.zk.quorum";
-  
-  /**
-   * ZooKeeper znode under which to register
-   */
-  public static final String EGRESS_ZK_ZNODE = "egress.zk.znode";
   
   /**
    * Key to use for encrypting GTSSplit instances

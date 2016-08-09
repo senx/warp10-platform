@@ -119,7 +119,6 @@ public class Ingress extends AbstractHandler implements Runnable {
     Configuration.INGRESS_IDLE_TIMEOUT,
     Configuration.INGRESS_JETTY_THREADPOOL,
     Configuration.INGRESS_ZK_QUORUM,
-    Configuration.INGRESS_ZK_ZNODE,
     Configuration.INGRESS_KAFKA_META_ZKCONNECT,
     Configuration.INGRESS_KAFKA_META_BROKERLIST,
     Configuration.INGRESS_KAFKA_META_TOPIC,

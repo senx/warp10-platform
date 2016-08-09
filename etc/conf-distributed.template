@@ -444,11 +444,6 @@ ingress.cache.dump.path = /opt/warp10/data/cache.metadata
 ingress.value.maxsize = 65536
 
 //
-// Identification of Ingress Metadata Update endpoint source
-//
-ingress.metadata.update = http//127.0.0.1:8882/api/v0/update
-
-//
 // Host onto which the ingress server should listen
 //
 ingress.host = 127.0.0.1
@@ -497,11 +492,6 @@ ingress.websocket.maxmessagesize = 1048576
 // ZooKeeper server list
 //
 ingress.zk.quorum = 127.0.0.1:2181
-
-//
-// ZooKeeper znode under which to register
-//
-ingress.zk.znode = /zk/hbase/localhost
 
 //
 // ZK Connect String for the metadata kafka cluster
@@ -703,11 +693,6 @@ store.nthreads = 2
 // ZooKeeper server list
 //
 store.zk.quorum = 127.0.0.1:2181
-
-//
-// ZooKeeper znode under which to register
-//
-store.zk.znode = /zk/warp/localhost/services
 
 //
 // ZooKeeper connect string for HBase
@@ -1074,11 +1059,6 @@ egress.idle.timeout = 300000
 // ZooKeeper server list
 //
 egress.zk.quorum = 127.0.0.1:2181
-
-//
-// ZooKeeper znode under which to register
-//
-egress.zk.znode = /zk/warp/localhost/services
 
 //
 // Key to use for encrypting data in HBase (128/192/256 bits in hex or OSS reference) 

@@ -89,6 +89,12 @@ public class GeoDirectoryThriftClient implements ServiceCacheListener, GeoDirect
   
   public GeoDirectoryThriftClient(KeyStore keystore, Properties props) throws Exception {
   
+    if (!props.containsKey(Configuration.GEODIR_ZK_SERVICE_QUORUM) || !props.containsKey(Configuration.GEODIR_ZK_SERVICE_ZNODE)) {
+      curatorFramework = null;
+      serviceCache = null;
+      return;
+    }
+    
     curatorFramework = CuratorFrameworkFactory.builder()
         .connectionTimeoutMs(1000)
         .retryPolicy(new RetryNTimes(10, 500))
