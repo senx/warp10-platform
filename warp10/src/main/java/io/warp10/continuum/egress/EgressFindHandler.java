@@ -27,6 +27,7 @@ import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.continuum.store.thrift.service.DirectoryService;
 import io.warp10.crypto.KeyStore;
 import io.warp10.quasar.token.thrift.data.ReadToken;
+import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.functions.PARSESELECTOR;
 
@@ -44,6 +45,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -93,6 +95,9 @@ public class EgressFindHandler extends AbstractHandler {
       return;
     }
     
+    String format = req.getParameter(Constants.HTTP_PARAM_FORMAT);
+    boolean json = "json".equals(format);
+    
     boolean showUUID = "true".equals(req.getParameter(Constants.HTTP_PARAM_SHOWUUID));
     
     ReadToken rtoken;
@@ -110,13 +115,25 @@ public class EgressFindHandler extends AbstractHandler {
     
     String[] selectors = selector.split("\\s+");
     
-    resp.setContentType("text/plain");
+    if (json) {
+      resp.setContentType("application/json");  
+    } else {
+      resp.setContentType("text/plain");      
+    }
+    
     resp.setCharacterEncoding("UTF-8");
 
     PrintWriter pw = resp.getWriter();
+
+    if (json) {
+      pw.println("[");
+    }
     
     StringBuilder sb = new StringBuilder();
 
+    AtomicInteger level = new AtomicInteger(0);
+    boolean first = true;
+    
     for (String sel: selectors) {
       Object[] elts = null;
       
@@ -144,19 +161,38 @@ public class EgressFindHandler extends AbstractHandler {
       
       clsSels.add(classSelector);
       lblsSels.add(labelsSelector);
-      
+
       try (MetadataIterator iterator = directoryClient.iterator(clsSels, lblsSels)) {
         while(iterator.hasNext()) {
           Metadata metadata = iterator.next();
-        
-          sb.setLength(0);
-          
-          GTSHelper.encodeName(sb, metadata.getName());
 
           if (showUUID) {
             UUID uuid = new UUID(metadata.getClassId(), metadata.getLabelsId());
+            if (null != metadata.getAttributes()) {
+              metadata.setAttributes(new HashMap<String,String>(metadata.getAttributes()));
+            }
             metadata.putToAttributes(Constants.UUID_ATTRIBUTE, uuid.toString());
           }
+
+          if (json) {
+            // Remove internal labels, need to copy the map as it is Immutable in Metadata
+            if (null != metadata.getLabels()) {
+              metadata.setLabels(new HashMap<String,String>(metadata.getLabels()));
+              metadata.getLabels().remove(Constants.OWNER_LABEL);
+              metadata.getLabels().remove(Constants.PRODUCER_LABEL);
+            }
+            if (!first) {
+              pw.println(",");
+            } else {
+              first = false;
+            }
+            StackUtils.objectToJSON(pw, metadata, level, true);
+            continue;
+          }
+          
+          sb.setLength(0);
+          
+          GTSHelper.encodeName(sb, metadata.getName());
           
           if (metadata.getLabelsSize() > 0) {
             GTSHelper.labelsToString(sb, metadata.getLabels());
@@ -172,6 +208,10 @@ public class EgressFindHandler extends AbstractHandler {
         }      
       } catch (Exception e) {        
       }
+    }
+    if (json) {
+      pw.println();
+      pw.println("]");
     }
   }
 }
