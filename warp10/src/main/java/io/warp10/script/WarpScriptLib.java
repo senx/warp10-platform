@@ -286,6 +286,8 @@ public class WarpScriptLib {
     functions.put("LIST->", new LISTTO("LIST->"));
     functions.put("->SET", new TOSET("->SET"));
     functions.put("SET->", new SETTO("SET->"));
+    functions.put("->V", new TOVECTOR("->V"));
+    functions.put("V->", new VECTORTO("V->"));
     functions.put("UNION", new UNION("UNION"));
     functions.put("INTERSECTION", new INTERSECTION("INTERSECTION"));
     functions.put("DIFFERENCE", new DIFFERENCE("DIFFERENCE"));
