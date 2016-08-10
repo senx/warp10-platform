@@ -23,13 +23,13 @@ import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
-import io.warp10.script.JavaLibrary;
 import io.warp10.script.SAXUtils;
 import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptBinaryOp;
 import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptFilterFunction;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptNAryFunction;
 import io.warp10.script.WarpScriptReducerFunction;
@@ -4068,7 +4068,7 @@ public class GTSHelper {
       ((Object[]) parms[6])[j] = valueAtIndex(gts, j);
     }
 
-    Object[] result = (Object[]) ((WarpScriptAggregatorFunction) JavaLibrary.getFunction("mapper.max")).apply(parms);
+    Object[] result = (Object[]) ((WarpScriptAggregatorFunction) WarpScriptLib.getFunction(WarpScriptLib.MAPPER_MAX)).apply(parms);
 
     return result[3];
   }
@@ -4109,7 +4109,7 @@ public class GTSHelper {
       ((Object[]) parms[6])[j] = valueAtIndex(gts, j);
     }
 
-    Object[] result = (Object[]) ((WarpScriptAggregatorFunction) JavaLibrary.getFunction("mapper.min")).apply(parms);
+    Object[] result = (Object[]) ((WarpScriptAggregatorFunction) WarpScriptLib.getFunction(WarpScriptLib.MAPPER_MIN)).apply(parms);
 
     return result[3];
   }
@@ -4148,7 +4148,7 @@ public class GTSHelper {
       ((Object[]) parms[5])[j] = valueAtIndex(gts, j);
     }
 
-    Object[] result = (Object[]) ((WarpScriptAggregatorFunction) JavaLibrary.getFunction("mapper.lowest")).apply(parms);
+    Object[] result = (Object[]) ((WarpScriptAggregatorFunction) WarpScriptLib.getFunction(WarpScriptLib.MAPPER_LOWEST)).apply(parms);
 
     return result[3];
   }
@@ -4187,7 +4187,7 @@ public class GTSHelper {
       ((Object[]) parms[5])[j] = valueAtIndex(gts, j);
     }
 
-    Object[] result = (Object[]) ((WarpScriptAggregatorFunction) JavaLibrary.getFunction("mapper.highest")).apply(parms);
+    Object[] result = (Object[]) ((WarpScriptAggregatorFunction) WarpScriptLib.getFunction(WarpScriptLib.MAPPER_HIGHEST)).apply(parms);
 
     return result[3];
   }

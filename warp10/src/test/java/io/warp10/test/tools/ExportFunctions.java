@@ -89,16 +89,10 @@ public class ExportFunctions {
     try {
       // THIS is a very bad thing, used only for extraction purpose
 
-      // Extract java functions
-      Field field = JavaLibrary.class.getDeclaredField("functions");
-      field.setAccessible(true);
-      Map<String,Object> functions  = (Map<String,Object>) field.get(null);
-      functionsFullList.addAll(functions.keySet());
-
       // Extract WarpScript functions
       Field warpScriptField = WarpScriptLib.class.getDeclaredField("functions");
       warpScriptField.setAccessible(true);
-      functions  = (Map<String,Object>) warpScriptField.get(null);
+      Map<String,Object> functions  = (Map<String,Object>) warpScriptField.get(null);
       functionsFullList.addAll(functions.keySet());
     } catch (Exception exp) {
       exp.printStackTrace();

@@ -767,7 +767,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
           func = null != func ? func : defined.get(stmt);
           func = null != func ? func : WarpScriptLib.getFunction(stmt);
-          func = null != func ? func : JavaLibrary.getFunction(stmt);
 
           if (null == func) {
             throw new WarpScriptException("Unknown function '" + stmt + "'");
