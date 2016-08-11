@@ -254,10 +254,12 @@ import io.warp10.script.unary.TOLONG;
 import io.warp10.script.unary.TOSTRING;
 import io.warp10.script.unary.TOTIMESTAMP;
 import io.warp10.script.unary.UNIT;
+import io.warp10.warp.sdk.WarpScriptExtension;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
@@ -1262,6 +1264,45 @@ public class WarpScriptLib {
   
   public static Object getFunction(String name) {
     return functions.get(name);
+  }
+  
+  public static void registerExtensions() {    
+    Properties props = WarpConfig.getProperties();
+    
+    if (null != props && props.containsKey(Configuration.CONFIG_WARPSCRIPT_EXTENSIONS)) {
+      String[] extensions = props.getProperty(Configuration.CONFIG_WARPSCRIPT_EXTENSIONS).split(",");
+      Set<String> ext = new HashSet<String>();
+      
+      for (String extension: extensions) {
+        ext.add(extension);
+      }
+      
+      for (String extension: ext) {
+        try {
+          Class cls = Class.forName(extension);
+          WarpScriptExtension wse = (WarpScriptExtension) cls.newInstance();          
+          wse.register();
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      }
+    }
+  }
+  
+  public static void register(WarpScriptExtension extension) {
+    Map<String,Object> extfuncs = extension.getFunctions();
+    
+    if (null == extfuncs) {
+      return;
+    }
+    
+    for (Entry<String,Object> entry: extfuncs.entrySet()) {
+      if (null == entry.getValue()) {
+        functions.remove(entry.getKey());
+      } else {
+        functions.put(entry.getKey(), entry.getValue());
+      }
+    }          
   }
   
   /**

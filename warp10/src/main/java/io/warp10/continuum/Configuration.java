@@ -42,6 +42,12 @@ public class Configuration {
    */
   public static final String CONFIG_WARPSCRIPT_LANGUAGES = "warpscript.languages";
   
+  /**
+   * Comma separated list of WarpScriptExtension classes to instantiate to modify
+   * the defined WarpScript functions.
+   */
+  public static final String CONFIG_WARPSCRIPT_EXTENSIONS = "warpscript.extensions";
+  
   public static final String WARPSCRIPT_MAX_OPS = "warpscript.maxops";
   public static final String WARPSCRIPT_MAX_BUCKETS = "warpscript.maxbuckets";
   public static final String WARPSCRIPT_MAX_DEPTH = "warpscript.maxdepth";

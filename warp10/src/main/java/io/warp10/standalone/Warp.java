@@ -34,6 +34,7 @@ import io.warp10.crypto.OSSKeyStore;
 import io.warp10.crypto.UnsecureKeyStore;
 import io.warp10.quasar.filter.QuasarTokenFilter;
 import io.warp10.script.ScriptRunner;
+import io.warp10.script.WarpScriptLib;
 
 import java.io.File;
 import java.io.IOException;
@@ -210,6 +211,8 @@ public class Warp extends WarpDist implements Runnable {
         backupManager.start();        
       }
     }
+    
+    WarpScriptLib.registerExtensions();
     
     //
     // Initialize ThrottlingManager

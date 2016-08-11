@@ -35,6 +35,7 @@ import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OSSKeyStore;
 import io.warp10.crypto.UnsecureKeyStore;
 import io.warp10.script.WarpScriptJarRepository;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptMacroRepository;
 import io.warp10.script.ScriptRunner;
 import io.warp10.sensision.Sensision;
@@ -184,6 +185,8 @@ public class WarpDist {
       keystore.setKey(KeyStore.SIPHASH_FETCH_PSK, keystore.decodeKey(properties.getProperty(Configuration.CONFIG_FETCH_PSK)));
       Preconditions.checkArgument((16 == keystore.getKey(KeyStore.SIPHASH_FETCH_PSK).length), Configuration.CONFIG_FETCH_PSK + " MUST be 128 bits long.");            
     }
+    
+    WarpScriptLib.registerExtensions();
     
     KafkaWebCallService.initKeys(keystore, properties);
         
