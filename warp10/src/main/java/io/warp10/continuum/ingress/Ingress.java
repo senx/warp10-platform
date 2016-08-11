@@ -522,9 +522,16 @@ public class Ingress extends AbstractHandler implements Runnable {
   
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+    
+    String token = null;
+    
     if (target.equals(Constants.API_ENDPOINT_UPDATE)) {
       baseRequest.setHandled(true);
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_REQUESTS, Sensision.EMPTY_LABELS, 1);
+    } else if (target.startsWith(Constants.API_ENDPOINT_UPDATE + "/")) {
+      baseRequest.setHandled(true);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_REQUESTS, Sensision.EMPTY_LABELS, 1);
+      token = target.substring(Constants.API_ENDPOINT_UPDATE.length() + 1);
     } else if (target.equals(Constants.API_ENDPOINT_META)) {
       handleMeta(target, baseRequest, request, response);
       return;
@@ -550,7 +557,9 @@ public class Ingress extends AbstractHandler implements Runnable {
     // TODO(hbs): Extract producer/owner from token
     //
     
-    String token = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
+    if (null == token) {
+      token = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
+    }
     
     WriteToken writeToken;
     
