@@ -17,6 +17,7 @@
 package io.warp10.continuum.egress;
 
 import io.warp10.continuum.Configuration;
+import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -70,6 +71,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import io.warp10.sensision.Sensision;
+
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -199,10 +201,14 @@ public class EgressFetchHandler extends AbstractHandler {
         timespan = tsstart - tsstop;
       }
     } else if (null != nowParam && null != timespanParam) {
-      try {
-        now = Long.parseLong(nowParam);
-      } catch (Exception e) {
-        now = fmt.parseDateTime(nowParam).getMillis() * Constants.TIME_UNITS_PER_MS;
+      if ("now".equals(nowParam)) {
+        now = TimeSource.getTime();
+      } else {
+        try {
+          now = Long.parseLong(nowParam);
+        } catch (Exception e) {
+          now = fmt.parseDateTime(nowParam).getMillis() * Constants.TIME_UNITS_PER_MS;
+        }        
       }
       
       timespan = Long.parseLong(timespanParam);
