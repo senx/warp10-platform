@@ -67,8 +67,8 @@ subprojects {
         warp10Version['crypto'] = commonVersion
         warp10Version['token'] = commonVersion
 
-        stagingUser = project.hasProperty('stagingUser') ? project.property('stagingUser') : System.getenv('STAGEING_USER')
-        stagingURL = project.hasProperty('stagingURL') ? project.property('stagingURL') : System.getenv('STAGEING_URL')
+        stagingUser = project.hasProperty('stagingUser') ? project.property('stagingUser') : System.getenv('STAGING_USER')
+        stagingURL = project.hasProperty('stagingURL') ? project.property('stagingURL') : System.getenv('STAGING_URL')
 
         if (null == stagingUser || null == stagingURL) {
             stagingUser = ''
@@ -79,8 +79,8 @@ subprojects {
         warpScriptPublishURL = project.hasProperty('warpScriptPublishURL') ? project.property('warpScriptPublishURL') : System.getenv('WARPSCRIPTPUBLISH_URL')
 
         if (null == warpScriptPublishUser || null == warpScriptPublishURL) {
-            warpScriptPublishUser = ''
-            warpScriptPublishURL = ''
+            warpScriptPublishUser = stagingUser
+            warpScriptPublishURL = stagingURL
         }
 
         gradle.taskGraph.whenReady { graph ->
@@ -835,7 +835,7 @@ project(':token') {
 
         // WARP10 DEPENDENCIES
         compile group: 'io.warp10', name: 'crypto', version: warp10Version['crypto']
-        compile group: 'io.warp10', name: 'sensision', version: '1.0.2'
+        compile group: 'io.warp10', name: 'sensision', version: '1.0.5'
 
         compile group: 'org.apache.thrift', name: 'libthrift', version: '0.9.1'
     }
