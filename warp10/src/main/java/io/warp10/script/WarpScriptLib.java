@@ -514,6 +514,11 @@ public class WarpScriptLib {
     functions.put("ns", new UNIT("ns", 0.000001));
     functions.put("ps", new UNIT("ps", 0.000000001));
     
+    // Crypto functions
+    functions.put("HASH", new HASH("HASH"));
+    functions.put("AESWRAP", new AESWRAP("AESWRAP"));
+    functions.put("AESUNWRAP", new AESUNWRAP("AESUNWRAP"));
+    
     //
     // String functions
     //
@@ -647,7 +652,6 @@ public class WarpScriptLib {
     functions.put("PROB", new PROB("PROB"));
     functions.put("CPROB", new CPROB("CPROB"));
     functions.put("RANDPDF", new RANDPDF.Builder("RANDPDF"));
-    functions.put("HASH", new HASH("HASH"));
     functions.put("SINGLEEXPONENTIALSMOOTHING", new SINGLEEXPONENTIALSMOOTHING("SINGLEEXPONENTIALSMOOTHING"));
     functions.put("DOUBLEEXPONENTIALSMOOTHING", new DOUBLEEXPONENTIALSMOOTHING("DOUBLEEXPONENTIALSMOOTHING"));
     functions.put("LOWESS", new LOWESS("LOWESS"));
