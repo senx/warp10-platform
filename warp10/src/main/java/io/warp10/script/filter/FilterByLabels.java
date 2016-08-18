@@ -38,26 +38,37 @@ public class FilterByLabels extends NamedWarpScriptFunction implements WarpScrip
   private final Map<String,String> selParam;
   private final Map<String,Pattern> selectors;
   
+  private final boolean checkLabels;
+  private final boolean checkAttributes;
+  
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
     
-    public Builder(String name) {
+    private final boolean checkLabels;
+    private final boolean checkAttributes;
+    
+    public Builder(String name, boolean checkLabels, boolean checkAttribtues) {
       super(name);
+      this.checkLabels = checkLabels;
+      this.checkAttributes = checkAttribtues;
     }
     
     @Override
     public Object apply(WarpScriptStack stack) throws WarpScriptException {
       Object arg = stack.pop();
       if (!(arg instanceof Map<?,?>)) {
-        throw new WarpScriptException("Invalid labels selector");
+        throw new WarpScriptException("Invalid labels/attributes selector");
       }
-      stack.push(new FilterByLabels(getName(), (Map<String,String>) arg));
+      stack.push(new FilterByLabels(getName(), (Map<String,String>) arg, checkLabels, checkAttributes));
       return stack;
     }
   }
 
-  public FilterByLabels(String name, Map<String,String> selectors) {
+  public FilterByLabels(String name, Map<String,String> selectors, boolean checkLabels, boolean checkAttributes) {
     
     super(name);
+    
+    this.checkLabels = checkLabels;
+    this.checkAttributes = checkAttributes;
     
     this.selParam = selectors;
     this.selectors = new HashMap<String, Pattern>();
@@ -92,22 +103,49 @@ public class FilterByLabels extends NamedWarpScriptFunction implements WarpScrip
     
     for (List<GeoTimeSerie> serie: series) {
       for (GeoTimeSerie gts: serie) {
-        Map<String,String> labels = gts.getLabels();
         
         boolean matched = true;
+
+        Map<String,String> labels = gts.getMetadata().getLabels();        
+        Map<String,String> attributes = gts.getMetadata().getAttributes();
         
         for (String label: matchers.keySet()) {
-          // Skip GTS if one of the required labels is not there.
-          if (!labels.containsKey(label)) {
-            matched = false;
+          
+          boolean hasLabel = false;
+          
+          // Check if labels or attributes contain the given key
+          if (checkLabels) {
+            if (labels.containsKey(label)) {
+              hasLabel = true;
+            }
+          }
+          
+          // If the GTS does not have the named label, check if it has a named attribtue
+          if (!hasLabel && checkAttributes) {
+            if (!attributes.containsKey(label)) {
+              matched = false;
+            }
+          } else {
+            matched = hasLabel;
+          }
+          
+          if (!matched) {
             break;
           }
-          // If the label value does not match its selector, skip the 
-          if (!matchers.get(label).reset(labels.get(label)).matches()) {
-            matched = false;
-            break;
-          }
-        }
+
+          // Now check the label or attribute value
+          if (hasLabel && checkLabels) {
+            if (!matchers.get(label).reset(labels.get(label)).matches()) {
+              matched = false;
+              break;
+            }            
+          } else if (checkAttributes) {
+            if (!matchers.get(label).reset(attributes.get(label)).matches()) {
+              matched = false;
+              break;
+            }
+          }          
+        }          
         
         if (matched) {
           retained.add(gts);

@@ -810,7 +810,9 @@ public class WarpScriptLib {
     //functions.put("mapper.abscissa", new MapperSAX.Builder());
     
     functions.put("filter.byclass", new FilterByClass.Builder("filter.byclass"));
-    functions.put("filter.bylabels", new FilterByLabels.Builder("filter.bylabels"));
+    functions.put("filter.bylabels", new FilterByLabels.Builder("filter.bylabels", true, false));
+    functions.put("filter.byattr", new FilterByLabels.Builder("filter.byattr", false, true));
+    functions.put("filter.bylabelsattr", new FilterByLabels.Builder("filter.bylabelsattr", true, true));
     functions.put("filter.bymetadata", new FilterByMetadata.Builder("filter.bymetadata"));
 
     functions.put("filter.last.eq", new FilterLastEQ.Builder("filter.last.eq"));
@@ -873,6 +875,7 @@ public class WarpScriptLib {
     functions.put("NPDF", new NPDF.Builder("NPDF"));
     functions.put("MUSIGMA", new MUSIGMA("MUSIGMA"));
     functions.put("NSUMSUMSQ", new NSUMSUMSQ("NSUMSUMSQ"));
+    functions.put("MODE", new MODE("MODE"));
     
     functions.put("->Z", new TOZ("->Z"));
     functions.put("Z->", new ZTO("Z->"));
