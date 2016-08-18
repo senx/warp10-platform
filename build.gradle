@@ -771,6 +771,7 @@ project(':warpscript') {
 // ------------------------------------------------------------------
 project(':crypto') {
     archivesBaseName = 'crypto'
+    group = 'io.warp10'
     version = getVersionName(warp10Version[archivesBaseName])
     //
     // Project dependencies
@@ -808,6 +809,34 @@ project(':crypto') {
             }
         }
     }
+
+    bintray {
+        dryRun = false
+
+        user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+        key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+
+        publications = [ 'crypto' ]
+
+        pkg {
+            repo = 'maven'
+            name = 'crypto'
+            licenses = ['Apache-2.0']
+            vcsUrl = 'https://github.com/cityzendata/warp10-platform.git'
+            version {
+                name = getVersionName(warp10Version['crypto'])
+                released  = new Date()
+                vcsTag = getVersionName(warp10Version['crypto'])
+            }
+        }
+    }
+
+    //
+    // Tasks dependencies
+    //
+    uploadArchives.dependsOn jar
+    bintrayUpload.dependsOn jar
+
 }
 
 // ------------------------------------------------------------------
@@ -835,7 +864,7 @@ project(':token') {
 
         // WARP10 DEPENDENCIES
         compile group: 'io.warp10', name: 'crypto', version: warp10Version['crypto']
-        compile group: 'io.warp10', name: 'sensision', version: '1.0.2'
+        compile group: 'io.warp10', name: 'sensision', version: '1.0.5'
 
         compile group: 'org.apache.thrift', name: 'libthrift', version: '0.9.1'
     }
@@ -861,10 +890,34 @@ project(':token') {
         }
     }
 
+    bintray {
+        dryRun = false
+
+        user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+        key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+
+        publications = [ 'token' ]
+
+        pkg {
+            repo = 'maven'
+            name = 'crypto'
+            licenses = ['Apache-2.0']
+            vcsUrl = 'https://github.com/cityzendata/warp10-platform.git'
+            version {
+                name = getVersionName(warp10Version['token'])
+                released  = new Date()
+                vcsTag = getVersionName(warp10Version['token'])
+            }
+        }
+    }
+
     //
     // Compile task dependency
     //
     compileJava.dependsOn generateThrift;
+    uploadArchives.dependsOn jar
+    bintrayUpload.dependsOn jar
+
 }
 
 // ------------------------------------------------------------------
