@@ -19,11 +19,11 @@ package io.warp10.script.functions;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -41,15 +41,17 @@ public class SIZE extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     if (obj instanceof Map) {
       stack.push((long) ((Map) obj).size());
-    } else if (obj instanceof List) {
-      stack.push((long) ((List) obj).size());
+    } else if (obj instanceof Collection) {
+      stack.push((long) ((Collection) obj).size());
     } else if (obj instanceof GeoTimeSerie) {
       // Return the number of values, not nticks whichi would return the number of buckets
       stack.push((long) GTSHelper.nvalues((GeoTimeSerie) obj));
     } else if (obj instanceof String) {
       stack.push((long) obj.toString().length());
+    } else if (obj instanceof byte[]) {
+      stack.push(((byte[]) obj).length);
     } else {
-      throw new WarpScriptException(getName() + " operates on a map, a list , a string or a GTS.");
+      throw new WarpScriptException(getName() + " operates on a map, a collection, a string, a byte array or a GTS.");
     }
     
     return stack;
