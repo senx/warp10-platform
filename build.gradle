@@ -835,7 +835,7 @@ project(':token') {
 
         // WARP10 DEPENDENCIES
         compile group: 'io.warp10', name: 'crypto', version: warp10Version['crypto']
-        compile group: 'io.warp10', name: 'sensision', version: '1.0.2'
+        compile group: 'io.warp10', name: 'sensision', version: '1.0.5'
 
         compile group: 'org.apache.thrift', name: 'libthrift', version: '0.9.1'
     }
