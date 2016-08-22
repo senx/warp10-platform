@@ -120,7 +120,9 @@ public class EgressExecHandler extends AbstractHandler {
     // Making the Elapsed header available in cross-domain context
     //
 
-    resp.setHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_ELAPSEDX));
+    resp.addHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_ELAPSEDX));
+    resp.addHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_OPSX));
+    resp.addHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_FETCHEDX));
     
     //
     // Generate UUID for this script execution
@@ -278,7 +280,8 @@ public class EgressExecHandler extends AbstractHandler {
       stack.checkBalanced();
       
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ELAPSEDX), Long.toString(System.nanoTime() - now));
-      
+      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_OPSX), stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS).toString());
+      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_FETCHEDX), stack.getAttribute(WarpScriptStack.ATTRIBUTE_FETCH_COUNT).toString());
       //resp.setContentType("application/json");
       //resp.setCharacterEncoding("UTF-8");
       
@@ -312,6 +315,8 @@ public class EgressExecHandler extends AbstractHandler {
       int debugDepth = (int) stack.getAttribute(WarpScriptStack.ATTRIBUTE_DEBUG_DEPTH);
 
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ELAPSEDX), Long.toString(System.nanoTime() - now));
+      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_OPSX), stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS).toString());
+      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_FETCHEDX), stack.getAttribute(WarpScriptStack.ATTRIBUTE_FETCH_COUNT).toString());
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX), Long.toString(lineno));
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX), t.getMessage());
       

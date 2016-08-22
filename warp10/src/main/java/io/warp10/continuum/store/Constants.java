@@ -92,9 +92,19 @@ public class Constants {
   public static final String HTTP_HEADER_WEBCALL_UUID_DEFAULT = "X-Warp10-WebCall";
     
   /**
-   * HTTP Header for elapsed time of Einstein scripts
+   * HTTP Header for elapsed time of WarpScript scripts
    */  
   public static final String HTTP_HEADER_ELAPSED_DEFAULT = "X-Warp10-Elapsed";
+  
+  /**
+   * HTTP Header for number of operations performed by a WarpScript
+   */
+  public static final String HTTP_HEADER_OPS_DEFAULT = "X-Warp10-Ops";
+  
+  /**
+   * HTTP Header for number of datapoints fetched during a WarpScript execution
+   */
+  public static final String HTTP_HEADER_FETCHED_DEFAULT = "X-Warp10-Fetched";
   
   /**
    * Script line where an error was encountered
@@ -331,6 +341,8 @@ public class Constants {
     
     HEADERS.put(Configuration.HTTP_HEADER_WEBCALL_UUIDX, props.getProperty(Configuration.HTTP_HEADER_WEBCALL_UUIDX, HTTP_HEADER_WEBCALL_UUID_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_ELAPSEDX, props.getProperty(Configuration.HTTP_HEADER_ELAPSEDX, HTTP_HEADER_ELAPSED_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_OPSX, props.getProperty(Configuration.HTTP_HEADER_OPSX, HTTP_HEADER_OPS_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_FETCHEDX, props.getProperty(Configuration.HTTP_HEADER_FETCHEDX, HTTP_HEADER_FETCHED_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_ERROR_LINEX, props.getProperty(Configuration.HTTP_HEADER_ERROR_LINEX, HTTP_HEADER_ERROR_LINE_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_ERROR_MESSAGEX, props.getProperty(Configuration.HTTP_HEADER_ERROR_MESSAGEX, HTTP_HEADER_ERROR_MESSAGE_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_TOKENX, props.getProperty(Configuration.HTTP_HEADER_TOKENX, HTTP_HEADER_TOKEN_DEFAULT));

@@ -1494,10 +1494,20 @@ public class Configuration {
   public static final String HTTP_HEADER_WEBCALL_UUIDX = "http.header.webcall.uuid";
 
   /**
-   * HTTP Header for elapsed time of Einstein scripts
+   * HTTP Header for elapsed time of WarpScript scripts
    */  
   public static final String HTTP_HEADER_ELAPSEDX = "http.header.elapsed";
 
+  /**
+   * HTTP Header for number of ops performed in a script invocation
+   */
+  public static final String HTTP_HEADER_OPSX = "http.header.ops";
+  
+  /**
+   * HTTP Header for number of datapoints fetched during a script invocation
+   */
+  public static final String HTTP_HEADER_FETCHEDX = "http.header.fetched";
+  
   /**
    * Script line where an error was encountered
    */
