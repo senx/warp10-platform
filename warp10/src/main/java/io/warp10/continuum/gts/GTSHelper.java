@@ -8681,4 +8681,131 @@ public class GTSHelper {
     
     return prob;
   }
+  
+  public static GeoTimeSerie lttb(GeoTimeSerie gts, int threshold, boolean timebased) throws WarpScriptException {
+    try{
+    //
+    // If the GTS has less than threshold values, return it as is
+    //
+    
+    if (gts.values <= threshold - 2) {
+      return gts;
+    }
+    
+    // Exclude the left and right datapoints, they will be retained.
+    threshold = threshold - 2;
+    
+    if (threshold <= 0) {
+      throw new WarpScriptException("Threshold MUST be >= 3.");
+    }
+    
+    int bucketsize = (int) Math.ceil((double) gts.values / (double) threshold);
+    
+    // Sort GTS
+    GTSHelper.sort(gts);
+
+    long timebucket = (long) Math.ceil((gts.ticks[gts.values - 1] - gts.ticks[0]) / (double) threshold); 
+    long firsttick = gts.ticks[0];
+    
+    GeoTimeSerie sampled = gts.cloneEmpty(threshold  + 2);
+
+    // Add first datapoint
+    GTSHelper.setValue(sampled, GTSHelper.tickAtIndex(gts,0), GTSHelper.locationAtIndex(gts, 0), GTSHelper.elevationAtIndex(gts, 0), GTSHelper.valueAtIndex(gts, 0), false);
+
+    int refidx = 0;
+    
+    int firstinrange = 1;
+    int lastinrange = -1;
+    
+    for (int i = 0; i < threshold; i++) {
+      
+      if (lastinrange >= gts.values - 1) {
+        break;
+      }
+      
+      //
+      // Determine the ticks to consider when computing the next datapoint
+      //
+      
+      if (timebased) {
+        long lowerts = firsttick + i * timebucket;
+        long upperts = lowerts + timebucket - 1;
+        
+        lastinrange++;
+        boolean empty = true;
+        for (int j = lastinrange; j < gts.values - 1; j++) {
+          if (firstinrange < lastinrange && gts.ticks[j] >= lowerts) {
+            firstinrange = j;
+          }
+          if (gts.ticks[j] <= upperts) {
+            lastinrange = j;
+            empty = false;
+          } else {
+            break;
+          }
+        }
+        if (empty) {
+          lastinrange--;
+          continue;
+        }
+      } else {
+        firstinrange = ++lastinrange;
+        lastinrange = firstinrange + bucketsize - 1;
+        if (lastinrange >= gts.values) {
+          lastinrange = gts.values - 2;
+        }
+        if (firstinrange > lastinrange) {
+          continue;
+        }
+      }
+      
+      //
+      // Compute the average value on the range and the average tick
+      //
+      
+      double ticksum = 0.0D;
+      double valuesum = 0.0D;
+      
+      for (int j = firstinrange; j <= lastinrange; j++) {
+        ticksum += gts.ticks[j];
+        valuesum += ((Number) GTSHelper.valueAtIndex(gts, j)).doubleValue();
+      }
+      
+      double tickavg = ticksum / (lastinrange - firstinrange + 1);
+      double valueavg = valuesum / (lastinrange - firstinrange + 1);
+      
+      //
+      // Now compute the triangle area and retain the point in the range which maximizes it
+      //
+      
+      double maxarea = -1.0D;
+      
+      double refvalue = ((Number) GTSHelper.valueAtIndex(gts, refidx)).doubleValue();
+      double reftick = gts.ticks[refidx];
+      
+      int nextref = -1;
+      
+      for (int j = firstinrange; j <= lastinrange; j++) {
+        double tick = gts.ticks[j];
+        double value = ((Number) GTSHelper.valueAtIndex(gts, j)).doubleValue();
+        double area = 0.5D * Math.abs(((reftick - tickavg) * (value - refvalue)) - (reftick - tick) * (valueavg - refvalue)); 
+               
+        if (area > maxarea) {
+          maxarea = area;
+          nextref = j;
+        }
+      }
+      
+      GTSHelper.setValue(sampled, GTSHelper.tickAtIndex(gts, nextref), GTSHelper.locationAtIndex(gts, nextref), GTSHelper.elevationAtIndex(gts, nextref), GTSHelper.valueAtIndex(gts, nextref), false);
+    }
+    
+    // Add last datapoint
+    GTSHelper.setValue(sampled, GTSHelper.tickAtIndex(gts,gts.values - 1), GTSHelper.locationAtIndex(gts, gts.values - 1), GTSHelper.elevationAtIndex(gts, gts.values - 1), GTSHelper.valueAtIndex(gts, gts.values - 1), false);
+    
+    return sampled;
+  } catch (Throwable t) {
+    t.printStackTrace();
+    throw t;
+  }
+  }
 }
