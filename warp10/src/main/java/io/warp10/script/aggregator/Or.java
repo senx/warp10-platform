@@ -58,9 +58,7 @@ public class Or extends NamedWarpScriptFunction implements WarpScriptAggregatorF
       if (null == value) {
         nulls++;
         continue;
-        //return new Object[] { Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null };
       } else {
-
         or = or || Boolean.TRUE.equals(values[i]);
         if (or) {
           break;

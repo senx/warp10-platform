@@ -58,9 +58,7 @@ public class And extends NamedWarpScriptFunction implements WarpScriptAggregator
       if (null == value) {
         nulls++;
         continue;
-        //return new Object[] { Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null };
       } else {
-       
         and = and && Boolean.TRUE.equals(values[i]);
         if (!and) {
           break;
@@ -78,4 +76,3 @@ public class And extends NamedWarpScriptFunction implements WarpScriptAggregator
     return new Object[] { tick, location, elevation, and };
   }
 }
-
