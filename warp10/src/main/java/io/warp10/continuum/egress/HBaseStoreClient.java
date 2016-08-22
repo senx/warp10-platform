@@ -23,6 +23,8 @@ import io.warp10.continuum.gts.MetadataIdComparator;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.GTSDecoderIterator;
+import io.warp10.continuum.store.HBaseRegionKeys;
+import io.warp10.continuum.store.OptimizedSlicedRowFilterGTSDecoderIterator;
 import io.warp10.continuum.store.SlicedRowFilterGTSDecoderIterator;
 import io.warp10.continuum.store.Store;
 import io.warp10.continuum.store.StoreClient;
@@ -106,6 +108,13 @@ public class HBaseStoreClient implements StoreClient {
     
     this.conn = ConnectionFactory.createConnection(conf);
     this.tableName = TableName.valueOf(properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_TABLE));
+    
+    //
+    // Initialize HBaseRegionKeys
+    //
+    
+    HBaseRegionKeys.getRegionKeys(conn, tableName);
+    
     this.colfam = properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_COLFAM).getBytes(Charsets.UTF_8);
   }
   
@@ -153,7 +162,9 @@ public class HBaseStoreClient implements StoreClient {
                )
             )
         ) {
-      return new SlicedRowFilterGTSDecoderIterator(now, timespan, metadatas, this.conn, this.tableName, this.colfam, this.keystore, metadatas.size() <= blockcacheThreshold);
+
+      //return new SlicedRowFilterGTSDecoderIterator(now, timespan, metadatas, this.conn, this.tableName, this.colfam, this.keystore, metadatas.size() <= blockcacheThreshold);
+      return new OptimizedSlicedRowFilterGTSDecoderIterator(now, timespan, metadatas, this.conn, this.tableName, this.colfam, this.keystore, metadatas.size() <= blockcacheThreshold);
     }
     
     //
