@@ -26,6 +26,7 @@ import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.WarpException;
 import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
+import io.warp10.continuum.egress.CORSHandler;
 import io.warp10.continuum.egress.EgressFetchHandler;
 import io.warp10.continuum.egress.ThriftDirectoryClient;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -85,6 +86,7 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
@@ -482,6 +484,10 @@ public class Ingress extends AbstractHandler implements Runnable {
     server.setConnectors(new Connector[] { connector });
 
     HandlerList handlers = new HandlerList();
+    
+    Handler cors = new CORSHandler();
+    handlers.addHandler(cors);
+
     handlers.addHandler(this);
     
     IngressStreamUpdateHandler suHandler = new IngressStreamUpdateHandler(this);
