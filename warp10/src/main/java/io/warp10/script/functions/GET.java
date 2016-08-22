@@ -37,21 +37,25 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object key = stack.pop();
     
-    Object maporlist = stack.pop();
+    Object coll = stack.pop();
 
-    if (!(maporlist instanceof Map) && !(maporlist instanceof List)) {
-      throw new WarpScriptException(getName() + " operates on a map or a list.");
+    if (!(coll instanceof Map) && !(coll instanceof List) && !(coll instanceof byte[])) {
+      throw new WarpScriptException(getName() + " operates on a map, list or byte array.");
     }
     
     Object value = null;
     
-    if (maporlist instanceof Map) {
-      value = ((Map) maporlist).get(key);
+    if (coll instanceof Map) {
+      value = ((Map) coll).get(key);
     } else {
       if (!(key instanceof Number)) {
         throw new WarpScriptException(getName() + " expects the key to be an integer when operating on a list.");
       }
-      value = ((List) maporlist).get(((Number) key).intValue());
+      if (coll instanceof List) {
+        value = ((List) coll).get(((Number) key).intValue());
+      } else {
+        value = (long) (((byte[]) coll)[((Number) key).intValue()] & 0xFFL);
+      }
     }
     
     stack.push(value);
