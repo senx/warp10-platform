@@ -343,6 +343,7 @@ public class WarpScriptLib {
     functions.put("ELAPSED", new ELAPSED("ELAPSED")); // NOT TO BE DOCUMENTED (YET)
     functions.put("->LIST", new TOLIST("->LIST"));
     functions.put("LIST->", new LISTTO("LIST->"));
+    functions.put("UNLIST", new UNLIST("UNLIST"));
     functions.put("->SET", new TOSET("->SET"));
     functions.put("SET->", new SETTO("SET->"));
     functions.put("->V", new TOVECTOR("->V"));
@@ -352,6 +353,7 @@ public class WarpScriptLib {
     functions.put("DIFFERENCE", new DIFFERENCE("DIFFERENCE"));
     functions.put("->MAP", new TOMAP("->MAP"));
     functions.put("MAP->", new MAPTO("MAP->"));
+    functions.put("UNMAP", new UNMAP("UNMAP"));
     functions.put("MAPID", new MAPID("MAPID"));
     functions.put("->JSON", new TOJSON("->JSON"));      
     functions.put("JSON->", new JSONTO("JSON->"));
