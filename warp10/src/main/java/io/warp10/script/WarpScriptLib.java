@@ -27,6 +27,7 @@ import io.warp10.continuum.gts.INTERPOLATE;
 import io.warp10.continuum.gts.LOCATIONOFFSET;
 import io.warp10.continuum.gts.ZIP;
 import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.aggregator.And;
 import io.warp10.script.aggregator.Argmax;
 import io.warp10.script.aggregator.Argmin;
 import io.warp10.script.aggregator.CircularMean;
@@ -43,6 +44,7 @@ import io.warp10.script.aggregator.Max;
 import io.warp10.script.aggregator.Mean;
 import io.warp10.script.aggregator.Median;
 import io.warp10.script.aggregator.Min;
+import io.warp10.script.aggregator.Or;
 import io.warp10.script.aggregator.Percentile;
 import io.warp10.script.aggregator.Rate;
 import io.warp10.script.aggregator.ShannonEntropy;
@@ -1090,13 +1092,15 @@ public class WarpScriptLib {
     //
     // Bucketizers
     //
-    
+
+    functions.put("bucketizer.and", new And("bucketizer.and", false));
     functions.put("bucketizer.first", new First("bucketizer.first"));
     functions.put("bucketizer.last", new Last("bucketizer.last"));
     functions.put("bucketizer.min", new Min("bucketizer.min", true));
     functions.put("bucketizer.max", new Max("bucketizer.max", true));
     functions.put("bucketizer.mean", new Mean("bucketizer.mean", false));
     functions.put("bucketizer.median", new Median("bucketizer.median"));
+    functions.put("bucketizer.or", new Or("bucketizer.or", false));
     functions.put("bucketizer.sum", new Sum("bucketizer.sum", true));
     functions.put("bucketizer.join", new Join.Builder("bucketizer.join", true, false, null));
     functions.put("bucketizer.count", new Count("bucketizer.count", false));
@@ -1111,11 +1115,11 @@ public class WarpScriptLib {
     functions.put("bucketizer.count.nonnull", new Count("bucketizer.count.nonnull", true));
     functions.put("bucketizer.mean.circular", new CircularMean.Builder("bucketizer.mean.circular", true));
     functions.put("bucketizer.mean.circular.exclude-nulls", new CircularMean.Builder("bucketizer.mean.circular.exclude-nulls", false));
-
     //
     // Mappers
     //
-    
+
+    functions.put("mapper.and", new And("mapper.and", false));
     functions.put("mapper.count", new Count("mapper.count", false));
     functions.put("mapper.first", new First("mapper.first"));
     functions.put("mapper.last", new Last("mapper.last"));
@@ -1123,6 +1127,7 @@ public class WarpScriptLib {
     functions.put(MAPPER_MAX, new Max(MAPPER_MAX, true));
     functions.put("mapper.mean", new Mean("mapper.mean", false));
     functions.put("mapper.median", new Median("mapper.median"));
+    functions.put("mapper.or", new Or("mapper.or", false));
     functions.put(MAPPER_HIGHEST, new Highest(MAPPER_HIGHEST));
     functions.put(MAPPER_LOWEST, new Lowest(MAPPER_LOWEST));
     functions.put("mapper.sum", new Sum("mapper.sum", true));
@@ -1165,7 +1170,9 @@ public class WarpScriptLib {
     //
     // Reducers
     //
-    
+
+    functions.put("reducer.and", new And("reducer.and", false));
+    functions.put("reducer.and.exclude-nulls", new And("reducer.and.exclude-nulls", true));
     functions.put("reducer.min", new Min("reducer.min", true));
     functions.put("reducer.min.forbid-nulls", new Min("reducer.min.forbid-nulls", false));
     functions.put("reducer.min.nonnull", new Min("reducer.min.nonnull", false));
@@ -1175,6 +1182,8 @@ public class WarpScriptLib {
     functions.put("reducer.mean", new Mean("reducer.mean", false));
     functions.put("reducer.mean.exclude-nulls", new Mean("reducer.mean.exclude-nulls", true));
     functions.put("reducer.median", new Median("reducer.median"));
+    functions.put("reducer.or", new Or("reducer.or", false));
+    functions.put("reducer.or.exclude-nulls", new Or("reducer.or.exclude-nulls", true));
     functions.put("reducer.sum", new Sum("reducer.sum", true));
     functions.put("reducer.sum.forbid-nulls", new Sum("reducer.sum.forbid-nulls", false));
     functions.put("reducer.sum.nonnull", new Sum("reducer.sum.nonnull", false));
