@@ -1559,5 +1559,9 @@ public class Configuration {
    */
   public static String HTTP_HEADER_DIRECTORY_SIGNATURE = "http.header.directory.signature";  
 
+  /**
+   * Name of header containing the name of the symbol in which to expose the request headers
+   */
+  public static String HTTP_HEADER_EXPOSE_HEADERS = "http.header.exposeheaders";
   
 }

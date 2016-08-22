@@ -45,7 +45,9 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.EmptyStackException;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -155,6 +157,27 @@ public class EgressExecHandler extends AbstractHandler {
     long now = System.nanoTime();
     
     try {
+      //
+      // Expose the headers if instructed to do so
+      //
+      String expose = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_EXPOSE_HEADERS));
+      
+      if (null != expose) {
+        Map<String,Object> headers = new HashMap<String,Object>();
+        Enumeration<String> names = req.getHeaderNames();
+        while(names.hasMoreElements()) {
+          String name = names.nextElement();
+          Enumeration<String> values = req.getHeaders(name);
+          List<String> elts = new ArrayList<String>();
+          while(values.hasMoreElements()) {
+            String value = values.nextElement();
+            elts.add(value);
+          }
+          headers.put(name, elts);
+        }
+        stack.store(expose, headers);
+      }
+      
       //
       // Replace the context with the bootstrap one
       //
