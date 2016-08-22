@@ -53,7 +53,7 @@ public class And extends NamedWarpScriptFunction implements WarpScriptAggregator
     boolean and = true;
     long location = GeoTimeSerie.NO_LOCATION;
     long elevation = GeoTimeSerie.NO_ELEVATION;
-    long timestamp = Long.MIN_VALUE;
+    Object timestamp = null;
     int nulls = 0;
 
     for (int i = 0; i < values.length; i++) {
@@ -65,7 +65,7 @@ public class And extends NamedWarpScriptFunction implements WarpScriptAggregator
       } else {
         and = and && Boolean.TRUE.equals(values[i]);
         
-        if (ticks[i] > timestamp) {
+        if (null == timestamp || ticks[i] > (Long) timestamp) {
           location = locations[i];
           elevation = elevations[i];
           timestamp = ticks[i];
