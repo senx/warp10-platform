@@ -95,6 +95,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
   private static final String PARAM_GEOOP_OUT = "out";
   private static final String PARAM_WRITE_TIMESTAMP = "wtimestamp";
   private static final String PARAM_SHOWUUID = "showuuid";
+  private static final String PARAM_TYPEATTR = "typeattr";
   
   public static final String POSTFETCH_HOOK = "postfetch";
   
@@ -251,9 +252,14 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     DirectoryClient directoryClient = stack.getDirectoryClient();
     
     GeoTimeSerie base = null;
+    GeoTimeSerie[] bases = null;
+    String typelabel = (String) params.get(PARAM_TYPEATTR);
+
+    if (null != typelabel) {
+      bases = new GeoTimeSerie[4];
+    }
     
     ReadToken rtoken = Tokens.extractReadToken(params.get(PARAM_TOKEN).toString());
-      
         
     List<String> clsSels = new ArrayList<String>();
     List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
@@ -379,11 +385,80 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         
         boolean showUUID = Boolean.TRUE.equals(params.get(PARAM_SHOWUUID));
         
-        try (GTSDecoderIterator gtsiter = gtsStore.fetch(rtoken, metadatas, (long) params.get(PARAM_END), timespan, fromArchive, writeTimestamp)) {  
+        
+        try (GTSDecoderIterator gtsiter = gtsStore.fetch(rtoken, metadatas, (long) params.get(PARAM_END), timespan, fromArchive, writeTimestamp)) {
           while(gtsiter.hasNext()) {
             GTSDecoder decoder = gtsiter.next();
                     
             GeoTimeSerie gts;
+            
+            //
+            // If we should ventilate per type, do so now
+            //
+            
+            if (null != typelabel) {
+              
+              Map<String,String> labels = new HashMap<String,String>(decoder.getMetadata().getLabels());
+              labels.remove(Constants.PRODUCER_LABEL);
+              labels.remove(Constants.OWNER_LABEL);
+
+              java.util.UUID uuid = null;
+              
+              if (showUUID) {
+                uuid = new java.util.UUID(decoder.getClassId(), decoder.getLabelsId());
+              }
+
+              long count = 0;
+              
+              Metadata decoderMeta = decoder.getMetadata();
+              
+              while(decoder.next()) {
+                count++;
+                long ts = decoder.getTimestamp();
+                long location = decoder.getLocation();
+                long elevation = decoder.getElevation();
+                Object value = decoder.getValue();
+                
+                int gtsidx = 0;
+                String typename = "DOUBLE";
+                
+                if (value instanceof Long) {
+                  gtsidx = 1;
+                  typename = "LONG";
+                } else if (value instanceof Boolean) {
+                  gtsidx = 2;
+                  typename = "BOOLEAN";
+                } else if (value instanceof String) {
+                  gtsidx = 3;
+                  typename = "STRING";
+                }
+                
+                base = bases[gtsidx];
+                
+                if (null == base || !base.getMetadata().getName().equals(decoderMeta.getName()) || !base.getMetadata().getLabels().equals(decoderMeta.getLabels())) {
+                  bases[gtsidx] = new GeoTimeSerie();
+                  base = bases[gtsidx];
+                  series.add(base);
+                  base.setLabels(decoder.getLabels());
+                  base.getMetadata().putToAttributes(typelabel, typename);
+                  base.setName(decoder.getName());
+                  if (null != uuid) {
+                    base.getMetadata().putToAttributes(Constants.UUID_ATTRIBUTE, uuid.toString());
+                  }
+                }
+                
+                GTSHelper.setValue(base, ts, location, elevation, value, false);                
+              }
+              
+              if (fetched.addAndGet(count) > fetchLimit) {
+                Map<String,String> sensisionLabels = new HashMap<String, String>();
+                sensisionLabels.put(SensisionConstants.SENSISION_LABEL_CONSUMERID, Tokens.getUUID(rtoken.getBilledId()));
+                Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_FETCHCOUNT_EXCEEDED, sensisionLabels, 1);
+                throw new WarpScriptException(getName() + " exceeded limit of " + fetchLimit + " datapoints, current count is " + fetched.get());
+              }
+
+              continue;
+            }
             
             if (null != type) {
               gts = decoder.decode(type);
@@ -445,10 +520,10 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         
         
         //
-        // If there is one current GTS, push it onto the stack
+        // If there is one current GTS, push it onto the stack (only if not ventilating per type)
         //
         
-        if (null != base) {
+        if (null != base && null == typelabel) {
           series.add(base);
         }     
         
@@ -601,6 +676,14 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
     }
 
+    if (map.containsKey(PARAM_TYPEATTR)) {
+      if (map.containsKey(PARAM_TYPE)) {
+        throw new WarpScriptException(getName() + " Incompatible parameters '" +  PARAM_TYPE + "' and '" + PARAM_TYPEATTR + "'.");
+      }
+      
+      params.put(PARAM_TYPEATTR, map.get(PARAM_TYPEATTR).toString());
+    }
+    
     if (map.containsKey(PARAM_EXTRA)) {
       if (!(map.get(PARAM_EXTRA) instanceof List)) {
         throw new WarpScriptException(getName() + " Invalid type for parameter '" + PARAM_EXTRA + "'.");
