@@ -1136,6 +1136,11 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_WARP_RUNNER_FAILURES = "warp.runner.failures";
 
   /**
+   * Number of regions known by HBaseRegionKeys for the given table
+   */
+  public static final String SENSISION_CLASS_WARP_HBASE_KNOWNREGIONS = "warp.hbase.knownregions";
+  
+  /**
    * Number of Producer get from the producer pool
    */
   public static final String SENSISION_CLASS_CONTINUUM_RUNNER_KAFKA_PRODUCER_POOL_GET = "warp.runner.kafka.producer.pool.get";
@@ -1233,6 +1238,11 @@ public class SensisionConstants {
    * Server (usually RegionServer)
    */
   public static final String SENSISION_LABEL_SERVER = "server";
+  
+  /**
+   * Table
+   */
+  public static final String SENSISION_LABEL_TABLE = "table";
   
   //
   // TTLs (in ms)
