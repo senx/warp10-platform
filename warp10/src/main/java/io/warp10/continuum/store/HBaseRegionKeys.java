@@ -1,5 +1,7 @@
 package io.warp10.continuum.store;
 
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.sensision.Sensision;
 
@@ -9,6 +11,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.LockSupport;
 
@@ -35,7 +38,7 @@ public class HBaseRegionKeys extends Thread {
   /**
    * Update region keys every 60s
    */
-  private static final long PERIOD = 60000L;
+  private static long PERIOD = 60000L;
   
   /**
    * Map of table name to key boundaries
@@ -45,6 +48,12 @@ public class HBaseRegionKeys extends Thread {
   private static Map<TableName, Connection> connections = new ConcurrentHashMap<TableName, Connection>();
   
   static {
+    Properties props = WarpConfig.getProperties();
+    
+    if (props.containsKey(Configuration.WARP_HBASE_REGIONKEYS_UPDATEPERIOD)) {
+      PERIOD = Long.parseLong(props.getProperty(Configuration.WARP_HBASE_REGIONKEYS_UPDATEPERIOD));
+    }
+    
     singleton = new HBaseRegionKeys();
     singleton.start();
   }

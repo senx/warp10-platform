@@ -33,8 +33,13 @@ public class Configuration {
   public static final String WARP_AES_SCRIPTS = "warp.aes.scripts";
   public static final String WARP_AES_LOGGING = "warp.aes.logging";
   public static final String WARP_DEFAULT_AES_LOGGING = "hex:3cf5cee9eadddba796f2cce0762f308ad9df36f4883841e167dab2889bcf215b";
-
+  
   public static final String WARP_IDENT = "warp.ident";
+  
+  /**
+   * How often (in ms) should we refetch the region start/end keys
+   */
+  public static final String WARP_HBASE_REGIONKEYS_UPDATEPERIOD = "warp.hbase.regionkeys.updateperiod";
   
   /**
    * Comma separated list of additional languages to support within WarpScript
