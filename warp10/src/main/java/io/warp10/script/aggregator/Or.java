@@ -28,9 +28,7 @@ import io.warp10.script.WarpScriptException;
 import com.geoxp.GeoXPLib;
 
 /**
- * Return the operation or of the values on the interval.
- * The returned location will be the centroid of all locations.
- * The returned elevation will be the average of all elevations.
+ * Return the operation or of the values on the interval. The elevation and location are cleared.
  */
 public class Or extends NamedWarpScriptFunction implements WarpScriptAggregatorFunction, WarpScriptMapperFunction, WarpScriptBucketizerFunction, WarpScriptReducerFunction {
 
@@ -43,24 +41,17 @@ public class Or extends NamedWarpScriptFunction implements WarpScriptAggregatorF
 
   @Override
   public Object apply(Object[] args) throws WarpScriptException {
+    long tick = (long) args[0];
     long[] ticks = (long[]) args[3];
-    long[] locations = (long[]) args[4];
-    long[] elevations = (long[]) args[5];
     Object[] values = (Object[]) args[6];
 
     if (0 == ticks.length) {
       return new Object[] { Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null };
     }
 
-    TYPE orType = TYPE.UNDEFINED;
     boolean or = false;
-    long tickor = 0L;
-    long latitudes = 0L;
-    long longitudes = 0L;
-    int locationcount = 0;
-    long elev = 0L;
-    int elevationcount = 0;
-
+    long location = GeoTimeSerie.NO_LOCATION;
+    long elevation = GeoTimeSerie.NO_ELEVATION;
     int nulls = 0;
 
     for (int i = 0; i < values.length; i++) {
@@ -71,36 +62,19 @@ public class Or extends NamedWarpScriptFunction implements WarpScriptAggregatorF
         continue;
         //return new Object[] { Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null };
       } else {
-
-        tickor += ticks[i] - ticks[0];
-
-        if (GeoTimeSerie.NO_LOCATION != locations[i]) {
-          long[] xy = GeoXPLib.xyFromGeoXPPoint(locations[i]);
-          latitudes += xy[0];
-          longitudes += xy[1];
-          locationcount++;
-        }
-
-        if (GeoTimeSerie.NO_ELEVATION != elevations[i]) {
-          elev += elevations[i];
-          elevationcount++;
+        
+        //
+        //
+        //
+        if (GeoTimeSerie.NO_ELEVATION == elevation) {
+          
         }
 
         or = or || Boolean.TRUE.equals(values[i]);
+        if (or) {
+          return new Object[] { tick, location, elevation, true };
+        }
       }
-    }
-
-    long meanlocation = GeoTimeSerie.NO_LOCATION;
-    long meanelevation = GeoTimeSerie.NO_ELEVATION;
-
-    if (locationcount > 0) {
-      latitudes = latitudes / locationcount;
-      longitudes = longitudes / locationcount;
-      meanlocation = GeoXPLib.toGeoXPPoint(latitudes, longitudes);
-    }
-
-    if (elevationcount > 0) {
-      meanelevation = elev / elevationcount;
     }
 
     //
@@ -111,6 +85,6 @@ public class Or extends NamedWarpScriptFunction implements WarpScriptAggregatorF
       return new Object[] { Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null };
     }
 
-    return new Object[] { ticks[0] + (tickor / ticks.length), meanlocation, meanelevation, or };
+    return new Object[] { tick, location, elevation, or };
   }
 }
