@@ -28,7 +28,7 @@ import io.warp10.script.WarpScriptException;
 import com.geoxp.GeoXPLib;
 
 /**
- * Return the operation and of the values on the interval.The elevation and location are cleared.
+ * Return the operation and of the values on the interval. The elevation and location are cleared.
  */
 public class And extends NamedWarpScriptFunction implements WarpScriptAggregatorFunction, WarpScriptMapperFunction, WarpScriptBucketizerFunction, WarpScriptReducerFunction {
 
@@ -66,7 +66,7 @@ public class And extends NamedWarpScriptFunction implements WarpScriptAggregator
        
         and = and && Boolean.TRUE.equals(values[i]);
         if (!and) {
-          return new Object[] { tick, location, elevation, false };
+          break;
         }
       }
     }

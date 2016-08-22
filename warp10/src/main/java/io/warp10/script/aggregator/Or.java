@@ -62,17 +62,10 @@ public class Or extends NamedWarpScriptFunction implements WarpScriptAggregatorF
         continue;
         //return new Object[] { Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null };
       } else {
-        
-        //
-        //
-        //
-        if (GeoTimeSerie.NO_ELEVATION == elevation) {
-          
-        }
 
         or = or || Boolean.TRUE.equals(values[i]);
         if (or) {
-          return new Object[] { tick, location, elevation, true };
+          break;
         }
       }
     }
