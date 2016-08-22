@@ -518,6 +518,8 @@ public class WarpScriptLib {
     functions.put("HASH", new HASH("HASH"));
     functions.put("AESWRAP", new AESWRAP("AESWRAP"));
     functions.put("AESUNWRAP", new AESUNWRAP("AESUNWRAP"));
+    functions.put("GZIP", new GZIP("GZIP"));
+    functions.put("UNGZIP", new UNGZIP("UNGZIP"));
     
     //
     // String functions
@@ -661,6 +663,7 @@ public class WarpScriptLib {
     functions.put("FLATTEN", new FLATTEN("FLATTEN"));
     functions.put("CORRELATE", new CORRELATE.Builder("CORRELATE"));
     functions.put("SORT", new SORT("SORT"));
+    functions.put("SORTBY", new SORTBY("SORTBY"));
     functions.put("RSORT", new RSORT("RSORT"));
     functions.put("LASTSORT", new LASTSORT("LASTSORT"));
     functions.put("METASORT", new METASORT("METASORT"));
