@@ -53,7 +53,7 @@ public class Or extends NamedWarpScriptFunction implements WarpScriptAggregatorF
     }
 
     TYPE orType = TYPE.UNDEFINED;
-    Boolean res = false;
+    boolean or = false;
     long tickor = 0L;
     long latitudes = 0L;
     long longitudes = 0L;
@@ -86,22 +86,7 @@ public class Or extends NamedWarpScriptFunction implements WarpScriptAggregatorF
           elevationcount++;
         }
 
-        if (TYPE.BOOLEAN == orType) {
-          res = res || ((Boolean) value).booleanValue();
-        } else {
-          // No type detected yet,
-          // check value
-
-          if (value instanceof Boolean) {
-            orType = TYPE.BOOLEAN;
-            res = ((Boolean) value).booleanValue();
-          } else {
-            //
-            // Or with an other type than Boolean has no meaning
-            //
-            return new Object[] { Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null };
-          }
-        }
+        or = or || Boolean.TRUE.equals(values[i]);
       }
     }
 
@@ -118,8 +103,6 @@ public class Or extends NamedWarpScriptFunction implements WarpScriptAggregatorF
       meanelevation = elev / elevationcount;
     }
 
-    Object orvalue = null;
-
     //
     // If we should not ignore nulls and there were some nulls, return null
     //
@@ -128,10 +111,6 @@ public class Or extends NamedWarpScriptFunction implements WarpScriptAggregatorF
       return new Object[] { Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null };
     }
 
-    if (TYPE.BOOLEAN == orType) {
-      orvalue = res;
-    }
-
-    return new Object[] { ticks[0] + (tickor / ticks.length), meanlocation, meanelevation, orvalue };
+    return new Object[] { ticks[0] + (tickor / ticks.length), meanlocation, meanelevation, or };
   }
 }
