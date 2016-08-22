@@ -84,6 +84,10 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
   
   private static final byte[] ZERO_BYTES = Longs.toByteArray(0L);
   private static final byte[] ONES_BYTES = Longs.toByteArray(0xffffffffffffffffL);
+  
+  // FIXME(hbs): use a different prefix for archived data
+  private static byte[] prefix = Store.HBASE_RAW_DATA_KEY_PREFIX;
+
   public SlicedRowFilterGTSDecoderIterator(long now, long timespan, List<Metadata> metadatas, Connection conn, TableName tableName, byte[] colfam, KeyStore keystore, boolean useBlockCache) {
       
     this.keystore = keystore;
@@ -119,43 +123,13 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
     // 
     
     List<Pair<byte[], byte[]>> ranges = new ArrayList<Pair<byte[], byte[]>>();
-
-    // FIXME(hbs): use a different prefix for archived data
-    byte[] prefix = Store.HBASE_RAW_DATA_KEY_PREFIX;
     
     for (Metadata metadata: metadatas) {
-      // 128BITS
-      byte[] lower = new byte[24 + prefix.length];
-      byte[] upper = new byte[lower.length];
+      byte[][] keys = getKeys(metadata, now, timespan);
+      byte[] lower = keys[0];
+      byte[] upper = keys[1];
       
-      System.arraycopy(prefix, 0, lower, 0, prefix.length);
-      
-      System.arraycopy(Longs.toByteArray(metadata.getClassId()), 0, lower, prefix.length, 8);
-      System.arraycopy(Longs.toByteArray(metadata.getLabelsId()), 0, lower, prefix.length + 8, 8);
-
       this.metadatas.put(new String(Arrays.copyOfRange(lower, prefix.length, prefix.length + 16), Charsets.ISO_8859_1), metadata);
-      
-      System.arraycopy(lower, 0, upper, 0, prefix.length + 16);
-
-      //
-      // Set lower/upper timestamps
-      //
-      
-      long modulus = Constants.DEFAULT_MODULUS;
-    
-      if (Long.MAX_VALUE == now) {
-        System.arraycopy(ZERO_BYTES, 0, lower, prefix.length + 16, 8);
-      } else {
-        System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - (now - (now % modulus))), 0, lower, prefix.length + 16, 8);        
-      }
-      
-      if (timespan < 0) {
-        System.arraycopy(ONES_BYTES, 0, upper, prefix.length + 16, 8);                
-      } else {
-        // Last timestamp does not need to be offset by modulus as it is the case when using a scanner, because
-        // SlicedRowFilter upper bound is included, not excluded.
-        System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - ((now - timespan) - ((now - timespan) % modulus))), 0, upper, prefix.length + 16, 8);        
-      }
       
       Pair<byte[],byte[]> range = new Pair<byte[],byte[]>(lower, upper);
       
@@ -191,6 +165,44 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
       LOG.error("",ioe);
       this.iter = null;
     }
+  }
+  
+  public static byte[][] getKeys(Metadata metadata, long now, long timespan) {
+    // 128BITS
+    byte[] lower = new byte[24 + prefix.length];
+    byte[] upper = new byte[lower.length];
+    
+    System.arraycopy(prefix, 0, lower, 0, prefix.length);
+    
+    System.arraycopy(Longs.toByteArray(metadata.getClassId()), 0, lower, prefix.length, 8);
+    System.arraycopy(Longs.toByteArray(metadata.getLabelsId()), 0, lower, prefix.length + 8, 8);
+
+    System.arraycopy(lower, 0, upper, 0, prefix.length + 16);
+
+    //
+    // Set lower/upper timestamps
+    //
+    
+    long modulus = Constants.DEFAULT_MODULUS;
+  
+    if (Long.MAX_VALUE == now) {
+      System.arraycopy(ZERO_BYTES, 0, lower, prefix.length + 16, 8);
+    } else {
+      System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - (now - (now % modulus))), 0, lower, prefix.length + 16, 8);        
+    }
+    
+    if (timespan < 0) {
+      System.arraycopy(ONES_BYTES, 0, upper, prefix.length + 16, 8);                
+    } else {
+      // Last timestamp does not need to be offset by modulus as it is the case when using a scanner, because
+      // SlicedRowFilter upper bound is included, not excluded.
+      System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - ((now - timespan) - ((now - timespan) % modulus))), 0, upper, prefix.length + 16, 8);        
+    }
+
+    byte[][] keys = new byte[2][];
+    keys[0] = lower;
+    keys[1] = upper;
+    return keys;
   }
   
   @Override
