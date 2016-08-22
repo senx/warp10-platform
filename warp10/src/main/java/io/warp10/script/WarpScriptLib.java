@@ -659,6 +659,8 @@ public class WarpScriptLib {
     functions.put("LOWESS", new LOWESS("LOWESS"));
     functions.put("RLOWESS", new RLOWESS("RLOWESS"));
     functions.put("STL", new STL("STL"));
+    functions.put("LTTB", new LTTB("LTTB", false));
+    functions.put("TLTTB", new LTTB("TLTTB", true));
     functions.put("LOCATIONOFFSET", new LOCATIONOFFSET("LOCATIONOFFSET"));
     functions.put("FLATTEN", new FLATTEN("FLATTEN"));
     functions.put("CORRELATE", new CORRELATE.Builder("CORRELATE"));
