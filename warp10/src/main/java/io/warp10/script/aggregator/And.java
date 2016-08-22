@@ -17,7 +17,6 @@
 package io.warp10.script.aggregator;
 
 import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptBucketizerFunction;
@@ -25,7 +24,6 @@ import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.WarpScriptException;
 
-import com.geoxp.GeoXPLib;
 
 /**
  * Return the operation and of the values on the interval. The elevation and location are cleared.
@@ -49,7 +47,6 @@ public class And extends NamedWarpScriptFunction implements WarpScriptAggregator
       return new Object[] { Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null };
     }
 
-    TYPE andType = TYPE.UNDEFINED;
     boolean and = true;
     long location = GeoTimeSerie.NO_LOCATION;
     long elevation = GeoTimeSerie.NO_ELEVATION;

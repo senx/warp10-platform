@@ -17,7 +17,6 @@
 package io.warp10.script.aggregator;
 
 import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptBucketizerFunction;
@@ -25,7 +24,6 @@ import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.WarpScriptException;
 
-import com.geoxp.GeoXPLib;
 
 /**
  * Return the operation or of the values on the interval. The elevation and location are cleared.
