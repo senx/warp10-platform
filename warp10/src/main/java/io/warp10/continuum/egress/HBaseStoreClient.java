@@ -75,6 +75,9 @@ public class HBaseStoreClient implements StoreClient {
   private final byte[] colfam;
   
   private final boolean useHBaseFilter;
+  private final int hbaseFilterThreshold;
+  
+  private static final int HBASE_FILTER_THRESHOLD_DEFAULT = 16;
   
   private final long blockcacheThreshold;
   
@@ -92,6 +95,8 @@ public class HBaseStoreClient implements StoreClient {
     
     this.useHBaseFilter = "true".equals(properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_FILTER));
     
+    this.hbaseFilterThreshold = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_FILTER_THRESHOLD, Integer.toString(HBASE_FILTER_THRESHOLD_DEFAULT)));
+
     Configuration conf = new Configuration();
     conf.set("hbase.zookeeper.quorum", properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_ZKCONNECT));
     if (!"".equals(properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_ZNODE))) {
@@ -154,7 +159,7 @@ public class HBaseStoreClient implements StoreClient {
     // or equal to Long.MAX_VALUE (EPOCHEND)
     //
     
-    if (useHBaseFilter && metadatas.size() > 16
+    if (useHBaseFilter && metadatas.size() > this.hbaseFilterThreshold
         && (timespan >= 0
             || (timespan < 0
                 && ((0 == (now % Constants.DEFAULT_MODULUS))

@@ -1282,6 +1282,11 @@ public class Configuration {
    */
   public static final String EGRESS_HBASE_FILTER = "egress.hbase.filter";
   
+  /**
+   * GTS count threshold above which the filter will be used.
+   */
+  public static final String EGRESS_HBASE_FILTER_THRESHOLD = "egress.hbase.filter.threshold";
+  
   //
   // T H R O T T L I N G    M A N A G E R
   //
