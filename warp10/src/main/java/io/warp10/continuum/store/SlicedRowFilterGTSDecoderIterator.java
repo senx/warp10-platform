@@ -66,6 +66,9 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
 
   private final KeyStore keystore;
 
+  private long cellCount = 0;
+  private long resultCount = 0;
+  
   private final byte[] hbaseAESKey;
 
   /**
@@ -243,6 +246,7 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
         this.pendingresult = null;
       } else {
         result = this.iter.next();
+        resultCount++;
       }
 
       // Encode this in ISO_8859_1 so we are sure every possible byte sequence is valid
@@ -273,7 +277,8 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
       try {
         while(cscanner.advance()) {
           Cell cell = cscanner.current();
-        
+          cellCount++;
+          
           //
           // Extract timestamp base from column qualifier
           // This is true even for packed readings, those have a base timestamp of 0L
@@ -345,6 +350,10 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
   
   @Override
   public void close() throws Exception {
+    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_RESULTS, Sensision.EMPTY_LABELS, resultCount);
+    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_CELLS, Sensision.EMPTY_LABELS, cellCount);
+    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_ITERATORS, Sensision.EMPTY_LABELS, 1);
+
     if (null != this.scanner) { try { this.scanner.close(); } catch (Exception e) { LOG.error("scanner", e); } }
     if (null != this.htable) { try { this.htable.close(); } catch (Exception e) { LOG.error("htable", e); } }
   }
