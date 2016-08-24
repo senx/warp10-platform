@@ -2,8 +2,10 @@ package io.warp10.continuum.store;
 
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.MetadataIdComparator;
+import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
+import io.warp10.sensision.Sensision;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -162,6 +164,11 @@ public class OptimizedSlicedRowFilterGTSDecoderIterator extends GTSDecoderIterat
       previousStartKeyIndex = currentStartKeyIndex;
       previousEndKeyIndex = currentEndKeyIndex;
     }          
+    
+    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_OPTIMIZED_SCANNERS, Sensision.EMPTY_LABELS, 1);
+    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_OPTIMIZED_SCANNERS_GROUPS, Sensision.EMPTY_LABELS, groups.size());
+    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_OPTIMIZED_SCANNERS_RANGES, Sensision.EMPTY_LABELS, metadatas.size());
+
   }
   
   @Override

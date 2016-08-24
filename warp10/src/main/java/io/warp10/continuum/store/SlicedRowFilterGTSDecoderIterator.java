@@ -18,8 +18,10 @@ package io.warp10.continuum.store;
 
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
+import io.warp10.sensision.Sensision;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -156,6 +158,9 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
     scan.setCaching(50000);
     
     scan.setCacheBlocks(useBlockCache);
+
+    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_FILTERED_SCANNERS, Sensision.EMPTY_LABELS, 1);
+    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_FILTERED_SCANNERS_RANGES, Sensision.EMPTY_LABELS, ranges.size());
 
     try {
       this.htable = conn.getTable(tableName);

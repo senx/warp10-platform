@@ -581,6 +581,31 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_SCANNERS = "warp.hbase.client.scanners";
 
   /**
+   * Number of HBase scanners which used a filter (SlicedRowFilter)
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_FILTERED_SCANNERS = "warp.hbase.client.scanners.filtered";
+  
+  /**
+   * Number of ranges filtered by the filtered scanners
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_FILTERED_SCANNERS_RANGES = "warp.hbase.client.scanners.filtered.ranges";
+  
+  /**
+   * Number of optimized scanners created
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_OPTIMIZED_SCANNERS = "warp.hbase.client.scanners.optimized";
+
+  /**
+   * Number of groups identified for optimized scanners
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_OPTIMIZED_SCANNERS_GROUPS = "warp.hbase.client.scanners.optimized.groups";
+
+  /**
+   * Number of ranges identified for optimized scanners
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_OPTIMIZED_SCANNERS_RANGES = "warp.hbase.client.scanners.optimized.ranges";
+
+  /**
    * Number of failed MAC verification for Kafka messages read in 'Directory'
    */
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_FAILEDMACS = "warp.directory.kafka.failedmacs";
