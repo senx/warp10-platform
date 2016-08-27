@@ -698,7 +698,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         }
       
         try {
-          encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize);
+          encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, false);
           count++;
         } catch (ParseException pe) {
           Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_PARSEERRORS, sensisionLabels, 1);
