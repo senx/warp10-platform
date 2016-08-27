@@ -821,6 +821,21 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_EINSTEIN_RUN_FAILURES = "warp.script.run.failures";
 
   /**
+   * Elapsed time per scheduled script
+   */
+  public static final String SENSISION_CLASS_EINSTEIN_RUN_ELAPSED = "warp.script.run.elapsed.ns";
+  
+  /**
+   * Number of ops per scheduled script
+   */
+  public static final String SENSISION_CLASS_EINSTEIN_RUN_OPS = "warp.script.run.ops";
+  
+  /**
+   * Number of datapoints fetched per scheduled script
+   */
+  public static final String SENSISION_CLASS_EINSTEIN_RUN_FETCHED = "warp.script.run.fetched";
+  
+  /**
    * Number of points currently stored in the memory store
    */
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_DATAPOINTS = "warp.standalone.inmemory.datapoints";

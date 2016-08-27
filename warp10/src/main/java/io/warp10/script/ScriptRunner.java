@@ -516,7 +516,7 @@ public class ScriptRunner extends Thread {
     }
     
     request.setContent(baos.toByteArray());
-    
+
     request.setScheduler(this.id);
         
     byte[] content = null;

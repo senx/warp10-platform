@@ -16,10 +16,12 @@
 
 package io.warp10.script;
 
+import io.warp10.continuum.Configuration;
 import io.warp10.continuum.KafkaOffsetCounters;
 import io.warp10.continuum.KafkaSynchronizedConsumerPool;
 import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
 import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.thrift.data.RunRequest;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.sensision.Sensision;
@@ -165,6 +167,10 @@ public class ScriptRunnerConsumerFactory implements ConsumerFactory {
                       
                       HttpURLConnection conn = null;
                       
+                      long ops = 0;
+                      long fetched = 0;
+                      long elapsed = 0;
+                      
                       try {
                         conn = (HttpURLConnection) new URL(runner.endpoint).openConnection();
                         
@@ -189,11 +195,37 @@ public class ScriptRunnerConsumerFactory implements ConsumerFactory {
                         if (200 != conn.getResponseCode()) {
                           Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_FAILURES, labels, 1);
                         }
+                        
+                        String header = conn.getRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_ELAPSEDX));
+                        if (null != header) {
+                          try {
+                            elapsed = Long.parseLong(header);
+                          } catch (Exception e) {                            
+                          }
+                        }
+                        header = conn.getRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_OPSX));
+                        if (null != header) {
+                          try {
+                            ops = Long.parseLong(header);
+                          } catch (Exception e) {                            
+                          }
+                        }
+                        header = conn.getRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_FETCHEDX));
+                        if (null != header) {
+                          try {
+                            fetched = Long.parseLong(header);
+                          } catch (Exception e) {                            
+                          }
+                        }
+                        
                       } catch (Exception e) {                
                         Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_FAILURES, labels, 1);
                       } finally {
                         nano = System.nanoTime() - nano;
                         Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_TIME_US, labels, (long) (nano / 1000L));
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_ELAPSED, labels, elapsed);
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_FETCHED, labels, fetched);
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_OPS, labels, ops);
                         Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_CURRENT, Sensision.EMPTY_LABELS, -1);
                         if (null != conn) { conn.disconnect(); }                                
                       }              

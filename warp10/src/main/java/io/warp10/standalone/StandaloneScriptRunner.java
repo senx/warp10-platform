@@ -142,6 +142,9 @@ public class StandaloneScriptRunner extends ScriptRunner {
           } finally {
             nano = System.nanoTime() - nano;
             Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_TIME_US, labels, (long) (nano / 1000L));
+            Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_ELAPSED, labels, nano); 
+            Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_OPS, labels, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS)); 
+            Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_FETCHED, labels, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_FETCH_COUNT));             
             Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_CURRENT, Sensision.EMPTY_LABELS, -1);
           }              
         }
