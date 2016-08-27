@@ -1380,7 +1380,7 @@ public class GTSHelper {
     }
 
     if (0 == bucketspan) {
-      throw new WarpScriptException("Undefined bucket span.");
+      throw new WarpScriptException("Undefined bucket span, check your GTS timestamps.");
     }
     
     //
@@ -1694,15 +1694,15 @@ public class GTSHelper {
   }
   
   public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now) throws ParseException, IOException {
-    return parse(encoder, str, extraLabels, null, Long.MAX_VALUE);
+    return parse(encoder, str, extraLabels, null, Long.MAX_VALUE, false);
   }
   
   public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize) throws ParseException, IOException {
+    return parse(encoder, str, extraLabels, null, maxValueSize, false);    
+  }
+  
+  public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, boolean parseAttributes) throws ParseException, IOException {
 
-    if ('{' == str.charAt(0)) {
-      return parseJSON(encoder, str, extraLabels, now);
-    }
-    
     int idx = 0;
     
     int tsoffset = 0;
@@ -1797,6 +1797,7 @@ public class GTSHelper {
 
     String name = null;
     Map<String,String> labels = null;
+    Map<String,String>  attributes = null;
     
     boolean reuseLabels = false;
     
@@ -1850,12 +1851,20 @@ public class GTSHelper {
       idx = idx2 + 1;
 
       // FIXME(hbs): should we skip over attributes if they are present?
-      // if (idx < str.length() && str.charAt(idx) == '{') {
-      //   idx++;
-      //   while(idx < str.length() && str.charAt(idx) != '}') {
-      //     idx++;
-      //   }
-      // }
+      if (idx < str.length() && str.charAt(idx) == '{') {        
+        idx++;
+        int attrstart = idx;
+        while(idx < str.length() && str.charAt(idx) != '}') {
+          idx++;
+        }
+        if (parseAttributes) {
+          if (idx >= str.length()) {
+            throw new ParseException("Missing attributes.", idx2);
+          }
+          attributes = parseLabels(str.substring(attrstart, idx));
+        }
+        idx++;
+      }
       
       while (idx < str.length() && str.charAt(idx) == ' ') {
         idx++;
@@ -1904,7 +1913,7 @@ public class GTSHelper {
     String valuestr = str.substring(idx);
 
     if (valuestr.length() > maxValueSize) {
-      throw new ParseException("Value too large at for GTS " + GTSHelper.buildSelector(encoder.getMetadata()), 0);
+      throw new ParseException("Value too large at for GTS " + (null != encoder ? GTSHelper.buildSelector(encoder.getMetadata()) : ""), 0);
     }
     
     Object value = parseValue(valuestr);
@@ -1919,6 +1928,9 @@ public class GTSHelper {
       encoder.setName(name);
       //encoder.setLabels(labels);
       encoder.getMetadata().setLabels(labels);
+      if (null != attributes) {
+        encoder.getMetadata().setAttributes(attributes);
+      }
     }
     
     encoder.addValue(timestamp, location, elevation, value);
