@@ -305,6 +305,11 @@ public class Constants {
 
   public static final String WARP10_DOC_URL = "http://www.warp10.io/";
   
+  
+  public static final String KEY_MODULUS = "modulus";
+  public static final String KEY_ALGORITHM = "algorithm";
+  public static final String KEY_EXPONENT = "exponent";
+  
   static {
 
     Properties props = null;
