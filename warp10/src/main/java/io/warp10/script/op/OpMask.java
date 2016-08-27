@@ -31,8 +31,11 @@ import java.util.Map;
  */
 public class OpMask extends NamedWarpScriptFunction implements WarpScriptNAryFunction {
   
-  public OpMask(String name) {
+  private final boolean negated;
+  
+  public OpMask(String name, boolean negated) {
     super(name);
+    this.negated = negated;
   }
   
   
@@ -58,7 +61,8 @@ public class OpMask extends NamedWarpScriptFunction implements WarpScriptNAryFun
     //
     // If the mask value is true, output the value of the second GTS
     //
-    if (Boolean.TRUE.equals(values[0])) {
+    boolean isTrue = Boolean.TRUE.equals(values[0]); 
+    if ((!negated && isTrue) || (negated && !isTrue)) {
       location = locations[1];
       elevation = elevations[1];
       value = values[1];

@@ -318,6 +318,9 @@ public class WarpScriptLib {
   public static final String MAPPER_MAX = "mapper.max";
   public static final String MAPPER_MIN = "mapper.min";
   
+  public static final String RSAPUBLIC = "RSAPUBLIC";
+  public static final String RSAPRIVATE = "RSAPRIVATE";
+  
   static {
     
     functions.put("REV", new REV("REV"));
@@ -456,6 +459,9 @@ public class WarpScriptLib {
     
     functions.put(PARSESELECTOR, new PARSESELECTOR(PARSESELECTOR));
     functions.put("TOSELECTOR", new TOSELECTOR("TOSELECTOR"));
+    functions.put("PARSE", new PARSE("PARSE"));
+    // We do not expose DUMP, it might allocate too much memory
+    //functions.put("DUMP", new DUMP("DUMP"));
     
     // Binary ops
     functions.put("+", new ADD("+"));
@@ -524,6 +530,13 @@ public class WarpScriptLib {
     functions.put("AESUNWRAP", new AESUNWRAP("AESUNWRAP"));
     functions.put("GZIP", new GZIP("GZIP"));
     functions.put("UNGZIP", new UNGZIP("UNGZIP"));
+    functions.put("RSAGEN", new RSAGEN("RSAGEN"));
+    functions.put(RSAPUBLIC, new RSAPUBLIC(RSAPUBLIC));
+    functions.put(RSAPRIVATE, new RSAPRIVATE(RSAPRIVATE));
+    functions.put("RSAENCRYPT", new RSAENCRYPT("RSAENCRYPT"));
+    functions.put("RSADECRYPT", new RSADECRYPT("RSADECRYPT"));
+    functions.put("RSASIGN", new RSASIGN("RSASIGN"));
+    functions.put("RSAVERIFY", new RSAVERIFY("RSAVERIFY"));
     
     //
     // String functions
@@ -837,6 +850,9 @@ public class WarpScriptLib {
     // Geo Manipulation functions
     //
     
+    functions.put("->HHCODE", new TOHHCODE("->HHCODE"));
+    functions.put("HHCODE->", new HHCODETO("HHCODE->"));
+    functions.put("GEO.REGEXP", new GEOREGEXP("GEO.REGEXP"));
     functions.put(GEO_WKT, new GeoWKT(GEO_WKT));
     functions.put(GEO_INTERSECTION, new GeoIntersection(GEO_INTERSECTION));
     functions.put(GEO_UNION, new GeoUnion(GEO_UNION));
@@ -1232,7 +1248,8 @@ public class WarpScriptLib {
     functions.put("op.mul", new OpMul("op.mul", true));
     functions.put("op.mul", new OpMul("op.mul.ignore-nulls", false));
     functions.put("op.div", new OpDiv("op.div"));
-    functions.put("op.mask", new OpMask("op.mask"));
+    functions.put("op.mask", new OpMask("op.mask", false));
+    functions.put("op.negmask", new OpMask("op.negmask", true)); 
     functions.put("op.ne", new OpNE("op.ne"));
     functions.put("op.eq", new OpEQ("op.eq"));
     functions.put("op.lt", new OpLT("op.lt"));
