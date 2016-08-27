@@ -29,6 +29,8 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptStack.Mark;
 
 import java.io.UnsupportedEncodingException;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
@@ -222,6 +224,22 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
       } else if (o instanceof Snapshotable) {
         sb.append(((Snapshotable) o).snapshot());
         sb.append(" ");
+      } else if (o instanceof RSAPublicKey) {
+        sb.append("{ 'algorithm' 'RSA' 'exponent' '");
+        sb.append(((RSAPublicKey) o).getPublicExponent());
+        sb.append("' 'modulus' '");
+        sb.append(((RSAPublicKey) o).getModulus());
+        sb.append("' } ");
+        sb.append(WarpScriptLib.RSAPUBLIC);
+        sb.append(" ");
+      } else if (o instanceof RSAPrivateKey) {
+        sb.append("{ 'algorithm' 'RSA' 'exponent' '");
+        sb.append(((RSAPrivateKey) o).getPrivateExponent());
+        sb.append("' 'modulus' '");
+        sb.append(((RSAPrivateKey) o).getModulus());
+        sb.append("' } ");
+        sb.append(WarpScriptLib.RSAPRIVATE);
+        sb.append(" ");        
       } else {
         // Some types are not supported
         // functions, PImage...
