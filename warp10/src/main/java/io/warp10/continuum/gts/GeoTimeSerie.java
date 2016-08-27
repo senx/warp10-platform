@@ -248,18 +248,41 @@ public class GeoTimeSerie implements Cloneable {
     StringBuilder sb = new StringBuilder(" ");
     
     GTSHelper.encodeName(sb, this.getName());
-    sb.append("{");
-    boolean first = true;
-    for (Entry<String,String> entry: this.getLabels().entrySet()) {
-      if (!first) {
-        sb.append(",");
+    if (this.metadata.getLabelsSize() > 0) {
+      sb.append("{");
+      boolean first = true;
+      for (Entry<String,String> entry: this.getLabels().entrySet()) {
+        if (!first) {
+          sb.append(",");
+        }
+        GTSHelper.encodeName(sb, entry.getKey());
+        sb.append("=");
+        GTSHelper.encodeName(sb, entry.getValue());
+        first = false;
       }
-      GTSHelper.encodeName(sb, entry.getKey());
-      sb.append("=");
-      GTSHelper.encodeName(sb, entry.getValue());
-      first = false;
+      sb.append("}");      
+    } else {
+      sb.append("{}");
     }
-    sb.append("} ");
+    
+    if (this.metadata.getAttributesSize() > 0) {
+      sb.append("{");
+      boolean first = true;    
+      for (Entry<String,String> entry: this.metadata.getAttributes().entrySet()) {
+        if (!first) {
+          sb.append(",");
+        }
+        GTSHelper.encodeName(sb, entry.getKey());
+        sb.append("=");
+        GTSHelper.encodeName(sb, entry.getValue());
+        first = false;
+      }
+      sb.append("}");
+    } else {
+      sb.append("{}");
+    }
+    
+    sb.append(" ");
     
     String clslbs = sb.toString();
     
