@@ -307,6 +307,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   private final int serviceNThreads;
   
   private final AtomicBoolean cachePopulated = new AtomicBoolean(false);
+  private final AtomicBoolean fullyInitialized = new AtomicBoolean(false);
   
   private final Properties properties;
 
@@ -805,10 +806,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       public void run() {
         
         //
-        // Wait until cache has been populated
+        // Wait until directory is fully initialized
         //
         
-        while(!self.cachePopulated.get()) {
+        while(!self.fullyInitialized.get()) {
           LockSupport.parkNanos(1000000000L);
         }
 
@@ -959,7 +960,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     // Wait for initialization to be done
     //
     
-    while(!this.cachePopulated.get()) {
+    while(!this.fullyInitialized.get()) {
       LockSupport.parkNanos(1000000000L);
     }
     
@@ -986,7 +987,14 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     // Let's call GC once after populating so we take the trash out.
     //
     
+    LOG.info("Triggering a GC to clean up after initial loading.");
+    long nano = System.nanoTime();
     Runtime.getRuntime().gc();
+    nano = System.nanoTime() - nano;
+    LOG.info("GC performed in " + (nano / 1000000.0D) + " ms.");
+    
+    
+    this.fullyInitialized.set(true);
     
     Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
 
