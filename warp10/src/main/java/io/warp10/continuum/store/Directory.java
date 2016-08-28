@@ -744,8 +744,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 
               } while (true);
               
-            } catch (IOException ioe) {
-              LOG.error("Caught exception in scanning loop, will attempt to continue where we stopped", ioe);
+            } catch (Exception e) {
+              LOG.error("Caught exception in scanning loop, will attempt to continue where we stopped", e);
             } finally {
               if (null != htable) { try { htable.close(); } catch (Exception e) {} }
               Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, count);
