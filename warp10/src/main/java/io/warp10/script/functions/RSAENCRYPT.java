@@ -60,7 +60,7 @@ public class RSAENCRYPT extends NamedWarpScriptFunction implements WarpScriptSta
     System.arraycopy(data, 0, nonced, 8, data.length);
     byte[] nonce = new byte[8];
     CryptoHelper.getSecureRandom().nextBytes(nonce);
-    System.arraycopy(nonced, 0, nonced, 0, 8);
+    System.arraycopy(nonce, 0, nonced, 0, 8);
     
     byte[] encrypted = CryptoHelper.encryptRSA(key, nonced);
     
