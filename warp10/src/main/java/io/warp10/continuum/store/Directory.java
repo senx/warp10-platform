@@ -955,6 +955,14 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     
     JettyUtil.setSendServerVersion(server, false);
     
+    //
+    // Wait for initialization to be done
+    //
+    
+    while(!this.cachePopulated.get()) {
+      LockSupport.parkNanos(1000000000L);
+    }
+    
     try {
       server.start();
     } catch (Exception e) {
@@ -2369,7 +2377,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     if (!Constants.API_ENDPOINT_DIRECTORY_STREAMING_INTERNAL.equals(target)) {
       return;
     }
-
+    
     long nano = System.nanoTime();
     
     baseRequest.setHandled(true);
