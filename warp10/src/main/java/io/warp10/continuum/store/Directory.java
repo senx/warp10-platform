@@ -1610,7 +1610,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               metadata.setClassId(classId);
               metadata.setLabelsId(labelsId);
               
-              if (null != directory.metadatas.get(metadata.getName()).put(labelsId, metadata)) {
+              if (null == directory.metadatas.get(metadata.getName()).put(labelsId, metadata)) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, 1);
               }
            
