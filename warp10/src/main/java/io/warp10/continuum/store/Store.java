@@ -324,6 +324,8 @@ public class Store extends Thread {
                 try {
                   tables[idx] = conn.getTable(hbaseTable);
                 } catch (IOException ioe) {
+                  // 
+                  connReset.set(true);
                   throw new RuntimeException(ioe);
                 }
               }
@@ -482,7 +484,9 @@ public class Store extends Thread {
         this.conn = null;
       }
       
-      this.connReset.set(false);
+      if (null != this.conn) {
+        this.connReset.set(false);
+      }
       
       //ConnectionHelper.clearMetaCache(this.conn);
 
