@@ -34,6 +34,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
+import java.math.BigInteger;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -657,15 +658,15 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             // Cannot happen...
             throw new WarpScriptException(uee);
           }
-        } else if (stmt.length() > 2 && stmt.charAt(1) == 'x' && stmt.charAt(0) == '0') {
-          long hexl = Long.parseLong(stmt.substring(2), 16);
+        } else if (stmt.length() > 2 && stmt.charAt(1) == 'x' && stmt.charAt(0) == '0') {          
+          long hexl = stmt.length() < 18 ? Long.parseLong(stmt.substring(2), 16) : new BigInteger(stmt.substring(2), 16).longValue();
           if (macros.isEmpty()) {
             push(hexl);
           } else {
             macros.get(0).add(hexl);
           }
         } else if (stmt.length() > 2 && stmt.charAt(1) == 'b' && stmt.charAt(0) == '0') {
-          long binl = Long.parseLong(stmt.substring(2), 2);
+          long binl = stmt.length() < 66 ? Long.parseLong(stmt.substring(2), 2) : new BigInteger(stmt.substring(2), 2).longValue();
           if (macros.isEmpty()) {
             push(binl);
           } else {
