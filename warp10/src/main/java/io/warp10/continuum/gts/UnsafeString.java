@@ -427,13 +427,25 @@ public class UnsafeString {
     String newstr = str;
     StringBuilder sb = null;
     boolean instring = false;
+    char stringsep = '\0';
+    
     int lastidx = 0;
     
     while (idx < c.length) {
-      if ('\'' == c[idx]) {
-        instring = !instring;
-      }
       
+      if (instring && stringsep == c[idx]) {
+        instring = false;
+        stringsep = '\0';
+      } else if (!instring) {
+        if ('\'' == c[idx]) {
+          instring = true; 
+          stringsep = '\'';
+        } else if ('\"' == c[idx]) {
+          instring = true;
+          stringsep = '\"';
+        }
+      }
+            
       if (instring) {
         if (' ' == c[idx]) {
           if (null == sb) {
