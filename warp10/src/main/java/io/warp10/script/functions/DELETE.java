@@ -62,27 +62,27 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
     long expected = (long) o;
     
     //
-    // Extract timespan and now
+    // Extract start / end
     //
     
     o = stack.pop();
     
-    if (!(o instanceof Long) && !((o instanceof Double) && Double.isNaN((double) o))) {
-      throw new WarpScriptException(getName() + " expects a timespan or NaN below the expected count.");
+    if (!(o instanceof Long) && !(o instanceof String) && (null != o)) {
+      throw new WarpScriptException(getName() + " expects the end timestamp to be a Long, a String or NULL.");
     }
     
-    Long timespan = (o instanceof Long) ? (long) o : null;
+    Object end = o;
     
     o = stack.pop();
     
-    if (!(o instanceof Long) && !((o instanceof Double) && Double.isNaN((double) o))) {
-      throw new WarpScriptException(getName() + " expects an end instant (now) or NaN below the timespan.");
+    if (!(o instanceof Long) && !(o instanceof String) && (null != o)) {
+      throw new WarpScriptException(getName() + " expects the start timestamp to be a Long, a String or NULL.");
     }
     
-    Long now = (o instanceof Long) ? (long) o : null;
+    Object start = o;
 
-    if ((null == now && null != timespan) || (null != now && null == timespan)) {
-      throw new WarpScriptException(getName() + " expects both now and timespan to be NaN if one of them is.");
+    if ((null == start && null != end) || (null != start && null == end)) {
+      throw new WarpScriptException(getName() + " expects both start and end timestamps MUST be NULL if one of them is.");
     }
     
     //
@@ -133,14 +133,14 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
         qsurl.append("&");
       }
 
-      if (null != now) {
-        qsurl.append(Constants.HTTP_PARAM_NOW);
+      if (null != start && null != end) {
+        qsurl.append(Constants.HTTP_PARAM_END);
         qsurl.append("=");
-        qsurl.append(now);
+        qsurl.append(end);
         qsurl.append("&");
-        qsurl.append(Constants.HTTP_PARAM_TIMESPAN);
+        qsurl.append(Constants.HTTP_PARAM_START);
         qsurl.append("=");
-        qsurl.append(timespan);
+        qsurl.append(start);
       } else {
         qsurl.append(Constants.HTTP_PARAM_DELETEALL);
         qsurl.append("=");
