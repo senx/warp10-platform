@@ -55,6 +55,11 @@ struct WriteToken {
      * default labels
      */
     9:optional map<string,string> labels,
+    
+    /**
+     * Token attributes, placeholder to store K/V
+     */
+    10: optional map<string,string> attributes,
 }
 
 /**
@@ -127,6 +132,11 @@ struct ReadToken {
      * Token hooks
      */
     12:optional map<string,string> hooks,
+    
+    /**
+     * Token attributes
+     */
+    13:optional map<string,string> attributes,
 
     /**
      * The read token is used for data visualisation, default false
