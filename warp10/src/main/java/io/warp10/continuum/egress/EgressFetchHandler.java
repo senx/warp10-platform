@@ -650,6 +650,7 @@ public class EgressFetchHandler extends AbstractHandler {
             }
           } catch (Exception e) {
             LOG.error("",e);
+            Sensision.update(SensisionConstants.CLASS_WARP_FETCH_ERRORS, Sensision.EMPTY_LABELS, 1);
             throw new IOException(e);
           } finally {      
             if (!itermeta.hasNext() && (itermeta instanceof MetadataIterator)) {

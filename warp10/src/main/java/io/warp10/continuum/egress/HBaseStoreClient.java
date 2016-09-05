@@ -48,6 +48,7 @@ import java.util.Properties;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellScanner;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
@@ -98,17 +99,25 @@ public class HBaseStoreClient implements StoreClient {
     this.hbaseFilterThreshold = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_FILTER_THRESHOLD, Integer.toString(HBASE_FILTER_THRESHOLD_DEFAULT)));
 
     Configuration conf = new Configuration();
-    conf.set("hbase.zookeeper.quorum", properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_ZKCONNECT));
+    conf.set(HConstants.ZOOKEEPER_QUORUM, properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_ZKCONNECT));
     if (!"".equals(properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_ZNODE))) {
-      conf.set("zookeeper.znode.parent", properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_ZNODE));
+      conf.set(HConstants.ZOOKEEPER_ZNODE_PARENT, properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_ZNODE));
     }
 
     if (properties.containsKey(io.warp10.continuum.Configuration.EGRESS_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT)) {
-      conf.set("hbase.zookeeper.property.clientPort", properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT));
+      conf.set(HConstants.ZOOKEEPER_CLIENT_PORT, properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT));
     }
 
     if (properties.containsKey(io.warp10.continuum.Configuration.EGRESS_HBASE_CLIENT_IPC_POOL_SIZE)) {
-      conf.set("hbase.client.ipc.pool.size", properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_CLIENT_IPC_POOL_SIZE));
+      conf.set(HConstants.HBASE_CLIENT_IPC_POOL_SIZE, properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_CLIENT_IPC_POOL_SIZE));
+    }
+    
+    if (properties.containsKey(io.warp10.continuum.Configuration.EGRESS_HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD)) {      
+      conf.set(HConstants.HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD, properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD));
+    }
+    
+    if (properties.containsKey(io.warp10.continuum.Configuration.EGRESS_HBASE_RPC_TIMEOUT)) {
+      conf.set(HConstants.HBASE_RPC_TIMEOUT_KEY, properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_RPC_TIMEOUT));
     }
     
     this.conn = ConnectionFactory.createConnection(conf);

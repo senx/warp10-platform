@@ -1237,6 +1237,16 @@ public class Configuration {
   public static final String EGRESS_HBASE_CLIENT_IPC_POOL_SIZE = "egress.hbase.client.ipc.pool.size";
 
   /**
+   * Custom scanner lease period
+   */
+  public static final String EGRESS_HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD = "egress.hbase.client.scanner.timeout.period";
+  
+  /**
+   * Custom value for RPC timeout
+   */
+  public static final String EGRESS_HBASE_RPC_TIMEOUT = "egress.hbase.rpc.timeout";
+  
+  /**
    * Geo Time Series count threshold above which block caching will be disabled for HBase scanners.
    * The goal is to limit the cache pollution when scanning large chunks of data.
    */

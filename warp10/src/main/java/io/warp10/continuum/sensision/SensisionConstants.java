@@ -29,7 +29,12 @@ public class SensisionConstants {
   //
   // Classes
   //
-    
+  
+  /**
+   * Number of errors encountered when fetching data, might be an indication of problem related to hbase
+   */
+  public static final String CLASS_WARP_FETCH_ERRORS = "warp.fetch.errors";
+  
   /**
    * Number of TimeSource calibrations  
    */
