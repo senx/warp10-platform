@@ -48,8 +48,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.math.BigInteger;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -174,10 +176,12 @@ public class EgressFetchHandler extends AbstractHandler {
     String nowParam = null;
     String timespanParam = null;
     String dedupParam = null;
-
+    String showErrorsParam = null;
+    
     if (splitFetch) {
       nowParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_NOW_HEADERX));
       timespanParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TIMESPAN_HEADERX));
+      showErrorsParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_SHOW_ERRORS_HEADERX));
     } else {
       start = req.getParameter(Constants.HTTP_PARAM_START);
       stop = req.getParameter(Constants.HTTP_PARAM_STOP);
@@ -185,8 +189,10 @@ public class EgressFetchHandler extends AbstractHandler {
       nowParam = req.getParameter(Constants.HTTP_PARAM_NOW);
       timespanParam = req.getParameter(Constants.HTTP_PARAM_TIMESPAN);
       dedupParam = req.getParameter(Constants.HTTP_PARAM_DEDUP);      
+      showErrorsParam = req.getParameter(Constants.HTTP_PARAM_SHOW_ERRORS);
     }
         
+    boolean showErrors = "true".equals(showErrorsParam);
     boolean dedup = null != dedupParam && "true".equals(dedupParam);
     
     if (null != start && null != stop) {
@@ -620,7 +626,7 @@ public class EgressFetchHandler extends AbstractHandler {
     iterators.add(cacheiterator);
         
     metas = new ArrayList<Metadata>();
-    
+
     for (Iterator<Metadata> itermeta: iterators) {
       while(itermeta.hasNext()) {
         metas.add(itermeta.next());
@@ -651,6 +657,16 @@ public class EgressFetchHandler extends AbstractHandler {
           } catch (Exception e) {
             LOG.error("",e);
             Sensision.update(SensisionConstants.CLASS_WARP_FETCH_ERRORS, Sensision.EMPTY_LABELS, 1);
+            if (showErrors) {
+              resp.getWriter().println();
+              StringWriter sw = new StringWriter();
+              PrintWriter pw = new PrintWriter(sw);
+              e.printStackTrace(pw);
+              pw.close();
+              sw.flush();
+              String error = URLEncoder.encode(sw.toString(), "UTF-8");
+              resp.getWriter().println("# ERROR: " + error);
+            }
             throw new IOException(e);
           } finally {      
             if (!itermeta.hasNext() && (itermeta instanceof MetadataIterator)) {
@@ -1061,170 +1077,175 @@ public class EgressFetchHandler extends AbstractHandler {
     
     pw.print("[");
     
-    StringBuilder sb = new StringBuilder();
-    
-    JsonSerializer serializer = new JsonSerializerFactory().create();
-    
-    boolean firstgts = true;
-
     boolean hasValues = false;
-    
-    long mask = (long) (Math.random() * Long.MAX_VALUE);
-    
-    while(iter.hasNext()) {
-      GTSDecoder decoder = iter.next();
-      
-      if (dedup) {
-        decoder = decoder.dedup();
-      }
-      
-      if (!decoder.next()) {
-        continue;
-      }
-          
-      //
-      // Only display the class + labels if they have changed since the previous GTS
-      //
-      
-      Map<String,String> lbls = decoder.getLabels();
-      
-      //
-      // Compute the new name
-      //
 
-      boolean displayName = false;
+    try {
+      StringBuilder sb = new StringBuilder();
       
-      if (null == name || (!name.equals(decoder.getName()) || !labels.equals(lbls))) {
-        displayName = true;
-        name = decoder.getName();
-        labels = lbls;
-        sb.setLength(0);
+      JsonSerializer serializer = new JsonSerializerFactory().create();
+      
+      boolean firstgts = true;
+      
+      long mask = (long) (Math.random() * Long.MAX_VALUE);
+      
+      while(iter.hasNext()) {
+        GTSDecoder decoder = iter.next();
         
-        sb.append("{\"c\":");
-    
-        //sb.append(gson.toJson(name));
-        sb.append(serializer.serialize(name));
-
-        boolean first = true;
-        
-        sb.append(",\"l\":{");
-        
-        for (Entry<String, String> entry: lbls.entrySet()) {
-          //
-          // Skip owner/producer labels and any other 'private' labels
-          //
-          if (!signed) {
-            if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
-              continue;
-            }
-            if (Constants.OWNER_LABEL.equals(entry.getKey())) {
-              continue;
-            }            
-          }
-          
-          if (!first) {
-            sb.append(",");
-          }
-          
-          //sb.append(gson.toJson(entry.getKey()));
-          sb.append(serializer.serialize(entry.getKey()));
-          sb.append(":");
-          //sb.append(gson.toJson(entry.getValue()));
-          sb.append(serializer.serialize(entry.getValue()));
-          first = false;
-        }
-        sb.append("}");
-        
-        sb.append(",\"a\":{");
-
-        first = true;
-        for (Entry<String, String> entry: decoder.getMetadata().getAttributes().entrySet()) {
-          if (!first) {
-            sb.append(",");
-          }
-          
-          //sb.append(gson.toJson(entry.getKey()));
-          sb.append(serializer.serialize(entry.getKey()));
-          sb.append(":");
-          //sb.append(gson.toJson(entry.getValue()));
-          sb.append(serializer.serialize(entry.getValue()));
-          first = false;
+        if (dedup) {
+          decoder = decoder.dedup();
         }
         
-        sb.append("}");
-        sb.append(",\"i\":\"");
-        sb.append(decoder.getLabelsId() & mask);
-        sb.append("\",\"v\":[");
-      }
-      
-      do {
-        // FIXME(hbs): only display the results which match the authorized (according to token) timerange and geo zones
-  
-        //
-        // Filter out any value not in the time range
-        //
-        
-        if (decoder.getTimestamp() > now || (timespan >= 0 && decoder.getTimestamp() <= (now -timespan))) {
+        if (!decoder.next()) {
           continue;
         }
+            
+        //
+        // Only display the class + labels if they have changed since the previous GTS
+        //
+        
+        Map<String,String> lbls = decoder.getLabels();
         
         //
-        // TODO(hbs): filter out values with no location or outside the selected geozone when a geozone was set
+        // Compute the new name
         //
+
+        boolean displayName = false;
         
-        // Display the name only if we have at least one value to display
-        if (displayName) {
-          if (!firstgts) {
-            pw.print("]},");
+        if (null == name || (!name.equals(decoder.getName()) || !labels.equals(lbls))) {
+          displayName = true;
+          name = decoder.getName();
+          labels = lbls;
+          sb.setLength(0);
+          
+          sb.append("{\"c\":");
+      
+          //sb.append(gson.toJson(name));
+          sb.append(serializer.serialize(name));
+
+          boolean first = true;
+          
+          sb.append(",\"l\":{");
+          
+          for (Entry<String, String> entry: lbls.entrySet()) {
+            //
+            // Skip owner/producer labels and any other 'private' labels
+            //
+            if (!signed) {
+              if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
+                continue;
+              }
+              if (Constants.OWNER_LABEL.equals(entry.getKey())) {
+                continue;
+              }            
+            }
+            
+            if (!first) {
+              sb.append(",");
+            }
+            
+            //sb.append(gson.toJson(entry.getKey()));
+            sb.append(serializer.serialize(entry.getKey()));
+            sb.append(":");
+            //sb.append(gson.toJson(entry.getValue()));
+            sb.append(serializer.serialize(entry.getValue()));
+            first = false;
           }
-          pw.print(sb.toString());
-          firstgts = false;
-          displayName = false;
-        } else {
-          pw.print(",");
+          sb.append("}");
+          
+          sb.append(",\"a\":{");
+
+          first = true;
+          for (Entry<String, String> entry: decoder.getMetadata().getAttributes().entrySet()) {
+            if (!first) {
+              sb.append(",");
+            }
+            
+            //sb.append(gson.toJson(entry.getKey()));
+            sb.append(serializer.serialize(entry.getKey()));
+            sb.append(":");
+            //sb.append(gson.toJson(entry.getValue()));
+            sb.append(serializer.serialize(entry.getValue()));
+            first = false;
+          }
+          
+          sb.append("}");
+          sb.append(",\"i\":\"");
+          sb.append(decoder.getLabelsId() & mask);
+          sb.append("\",\"v\":[");
         }
-        hasValues = true;
-        pw.print("[");
-        pw.print(decoder.getTimestamp());
-        if (GeoTimeSerie.NO_LOCATION != decoder.getLocation()) {
-          double[] latlon = GeoXPLib.fromGeoXPPoint(decoder.getLocation());
-          pw.print(",");
-          pw.print(latlon[0]);
-          pw.print(",");
-          pw.print(latlon[1]);
-        }
-        if (GeoTimeSerie.NO_ELEVATION != decoder.getElevation()) {
-          pw.print(",");
-          pw.print(decoder.getElevation());
-        }
-        pw.print(",");
-        Object value = decoder.getValue();
         
-        if (value instanceof Number) {
-          pw.print(value);
-        } else if (value instanceof Boolean) {
-          pw.print(Boolean.TRUE.equals(value) ? "true" : "false");
-        } else {
-          //pw.print(gson.toJson(value.toString()));
-          pw.print(serializer.serialize(value.toString()));
-        }
-        pw.print("]");
-      } while (decoder.next());        
-      
-      //
-      // If displayName is still true it means we should have displayed the name but no value matched,
-      // so set name to null so we correctly display the name for the next decoder if it has values
-      //
-      
-      if (displayName) {
-        name = null;
-      }
-    }
+        do {
+          // FIXME(hbs): only display the results which match the authorized (according to token) timerange and geo zones
     
-    if (hasValues) {
-      pw.print("]}");
+          //
+          // Filter out any value not in the time range
+          //
+          
+          if (decoder.getTimestamp() > now || (timespan >= 0 && decoder.getTimestamp() <= (now -timespan))) {
+            continue;
+          }
+          
+          //
+          // TODO(hbs): filter out values with no location or outside the selected geozone when a geozone was set
+          //
+          
+          // Display the name only if we have at least one value to display
+          if (displayName) {
+            if (!firstgts) {
+              pw.print("]},");
+            }
+            pw.print(sb.toString());
+            firstgts = false;
+            displayName = false;
+          } else {
+            pw.print(",");
+          }
+          hasValues = true;
+          pw.print("[");
+          pw.print(decoder.getTimestamp());
+          if (GeoTimeSerie.NO_LOCATION != decoder.getLocation()) {
+            double[] latlon = GeoXPLib.fromGeoXPPoint(decoder.getLocation());
+            pw.print(",");
+            pw.print(latlon[0]);
+            pw.print(",");
+            pw.print(latlon[1]);
+          }
+          if (GeoTimeSerie.NO_ELEVATION != decoder.getElevation()) {
+            pw.print(",");
+            pw.print(decoder.getElevation());
+          }
+          pw.print(",");
+          Object value = decoder.getValue();
+          
+          if (value instanceof Number) {
+            pw.print(value);
+          } else if (value instanceof Boolean) {
+            pw.print(Boolean.TRUE.equals(value) ? "true" : "false");
+          } else {
+            //pw.print(gson.toJson(value.toString()));
+            pw.print(serializer.serialize(value.toString()));
+          }
+          pw.print("]");
+        } while (decoder.next());        
+        
+        //
+        // If displayName is still true it means we should have displayed the name but no value matched,
+        // so set name to null so we correctly display the name for the next decoder if it has values
+        //
+        
+        if (displayName) {
+          name = null;
+        }
+      }
+      
+    } catch (Throwable t) {
+      throw t;
+    } finally {
+      if (hasValues) {
+        pw.print("]}");
+      }
+      pw.print("]");      
     }
-    pw.print("]");
   }
   
   /**

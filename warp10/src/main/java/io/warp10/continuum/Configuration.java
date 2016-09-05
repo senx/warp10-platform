@@ -1570,6 +1570,11 @@ public class Configuration {
   public static final String HTTP_HEADER_TIMESPAN_HEADERX = "http.header.timespan";
   
   /**
+   * HTTP Header to specify if we should show errors in /sfetch responses
+   */
+  public static final String HTTP_HEADER_SHOW_ERRORS_HEADERX = "http.header.showerrors";
+  
+  /**
    * Name of header containing the signature of the token used for the fetch
    */
   public static String HTTP_HEADER_FETCH_SIGNATURE = "http.header.fetch.signature";

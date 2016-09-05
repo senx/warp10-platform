@@ -697,6 +697,11 @@ public class Ingress extends AbstractHandler implements Runnable {
           break;
         }
       
+        // Skip lines which start with '#'
+        if ('#' == line.charAt(0)) {
+          continue;
+        }
+        
         try {
           encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, false);
           count++;

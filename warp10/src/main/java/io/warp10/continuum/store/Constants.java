@@ -152,6 +152,11 @@ public class Constants {
   public static final String HTTP_HEADER_TIMESPAN_HEADER_DEFAULT = "X-Warp10-Timespan";
   
   /**
+   * HTTP Header to specify if we should show errors in /sfetch responses
+   */
+  public static final String HTTP_HEADER_SHOW_ERRORS_HEADER_DEFAULT = "X-Warp10-ShowErrors";
+  
+  /**
    * Name of header containing the signature of the token used for the fetch
    */
   public static String HTTP_HEADER_FETCH_SIGNATURE_DEFAULT = "X-Warp10-Fetch-Signature";
@@ -293,6 +298,7 @@ public class Constants {
   public static final String HTTP_PARAM_NOW = "now";
   public static final String HTTP_PARAM_TIMESPAN = "timespan";
   public static final String HTTP_PARAM_DEDUP = "dedup";
+  public static final String HTTP_PARAM_SHOW_ERRORS = "showerrors";
   public static final String HTTP_PARAM_FORMAT = "format";
   public static final String HTTP_PARAM_END = "end";
   public static final String HTTP_PARAM_DELETEALL = "deleteall";
@@ -357,6 +363,7 @@ public class Constants {
     HEADERS.put(Configuration.HTTP_HEADER_ARCHIVE_TOKENX, props.getProperty(Configuration.HTTP_HEADER_ARCHIVE_TOKENX, HTTP_HEADER_ARCHIVE_TOKEN_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_NOW_HEADERX, props.getProperty(Configuration.HTTP_HEADER_NOW_HEADERX, HTTP_HEADER_NOW_HEADER_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_TIMESPAN_HEADERX, props.getProperty(Configuration.HTTP_HEADER_TIMESPAN_HEADERX, HTTP_HEADER_TIMESPAN_HEADER_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_SHOW_ERRORS_HEADERX, props.getProperty(Configuration.HTTP_HEADER_SHOW_ERRORS_HEADERX, HTTP_HEADER_SHOW_ERRORS_HEADER_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_FETCH_SIGNATURE, props.getProperty(Configuration.HTTP_HEADER_FETCH_SIGNATURE, HTTP_HEADER_FETCH_SIGNATURE_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_UPDATE_SIGNATURE, props.getProperty(Configuration.HTTP_HEADER_UPDATE_SIGNATURE, HTTP_HEADER_UPDATE_SIGNATURE_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE, props.getProperty(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE, HTTP_HEADER_DIRECTORY_SIGNATURE_DEFAULT));
