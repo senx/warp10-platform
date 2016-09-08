@@ -2428,7 +2428,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         OutputStream out = response.getOutputStream();
               
         TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
-        byte[] data = ser.serialize(resp);
+        byte[] data = OrderPreservingBase64.encode(ser.serialize(resp));
         
         out.write(data);
         out.write('\r');
