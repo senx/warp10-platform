@@ -87,10 +87,12 @@ import kafka.javaapi.consumer.ConsumerConnector;
 import kafka.message.MessageAndMetadata;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -1150,12 +1152,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         // none were added since the last flush
         //
         
-        final AtomicLong lastPut = new AtomicLong(0L);
+        final AtomicLong lastAction = new AtomicLong(0L);
         
-        final List<Put> puts = new ArrayList<Put>();
-        final ReentrantLock putsLock = new ReentrantLock();
+        final List<Mutation> actions = new ArrayList<Mutation>();
+        final ReentrantLock actionsLock = new ReentrantLock();
         
-        final AtomicLong putSize = new AtomicLong(0L);
+        final AtomicLong actionsSize = new AtomicLong(0L);
         
         //
         // Start the synchronization Thread
@@ -1182,42 +1184,42 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 
                 //synchronized (puts) {
                 try {
-                  putsLock.lockInterruptibly();
+                  actionsLock.lockInterruptibly();
                   
                   //
                   // Attempt to flush
                   //
                   
                   try {
-                    Object[] results = new Object[puts.size()];
+                    Object[] results = new Object[actions.size()];
                     
                     if (directory.store) {
-                      ht.batch(puts, results);
+                      ht.batch(actions, results);
 
                       // Check results for nulls
                       for (Object o: results) {
                         if (null == o) {
-                          throw new IOException("At least one Put failed.");
+                          throw new IOException("At least one action (Put/Delete) failed.");
                         }
                       }
                       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
                     }
                     
-                    puts.clear();
-                    putSize.set(0L);
+                    actions.clear();
+                    actionsSize.set(0L);
                     // Reset lastPut to 0
-                    lastPut.set(0L);                    
+                    lastAction.set(0L);                    
                   } catch (IOException ioe) {
                     // Clear list of Puts
-                    puts.clear();
-                    putSize.set(0L);
+                    actions.clear();
+                    actionsSize.set(0L);
                     // If an exception is thrown, abort
                     directory.abort.set(true);
                     return;
                   } catch (InterruptedException ie) {
                     // Clear list of Puts
-                    puts.clear();
-                    putSize.set(0L);
+                    actions.clear();
+                    actionsSize.set(0L);
                     // If an exception is thrown, abort
                     directory.abort.set(true);
                     return;                    
@@ -1239,23 +1241,23 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   directory.abort.set(true);
                   return;
                 } finally {
-                  if (putsLock.isHeldByCurrentThread()) {
-                    putsLock.unlock();
+                  if (actionsLock.isHeldByCurrentThread()) {
+                    actionsLock.unlock();
                   }                  
                 }
-              } else if (0 != lastPut.get() && (now - lastPut.get() > 500) || putSize.get() > directory.maxPendingPutsSize) {
+              } else if (0 != lastAction.get() && (now - lastAction.get() > 500) || actionsSize.get() > directory.maxPendingPutsSize) {
                 //
                 // If the last Put was added to 'ht' more than 500ms ago, force a flush
                 //
                 
                 try {
                   //synchronized(puts) {
-                  putsLock.lockInterruptibly();
+                  actionsLock.lockInterruptibly();
                   try {
-                    Object[] results = new Object[puts.size()];
+                    Object[] results = new Object[actions.size()];
                     
                     if (directory.store) {
-                      ht.batch(puts, results);
+                      ht.batch(actions, results);
                       
                       // Check results for nulls
                       for (Object o: results) {
@@ -1266,20 +1268,20 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
                     }
                     
-                    puts.clear();
-                    putSize.set(0L);
+                    actions.clear();
+                    actionsSize.set(0L);
                     // Reset lastPut to 0
-                    lastPut.set(0L);
+                    lastAction.set(0L);
                   } catch (IOException ioe) {
                     // Clear list of Puts
-                    puts.clear();
-                    putSize.set(0L);
+                    actions.clear();
+                    actionsSize.set(0L);
                     directory.abort.set(true);
                     return;
                   } catch(InterruptedException ie) {                  
                     // Clear list of Puts
-                    puts.clear();
-                    putSize.set(0L);
+                    actions.clear();
+                    actionsSize.set(0L);
                     directory.abort.set(true);
                     return;
                   }                  
@@ -1287,8 +1289,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   directory.abort.set(true);
                   return;
                 } finally {
-                  if (putsLock.isHeldByCurrentThread()) {
-                    putsLock.unlock();
+                  if (actionsLock.isHeldByCurrentThread()) {
+                    actionsLock.unlock();
                   }                  
                 }
               }
@@ -1458,6 +1460,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               // Prefix + classId + labelsId
               byte[] rowkey = new byte[HBASE_METADATA_KEY_PREFIX.length + 8 + 8];
 
+              // 128bits
               ByteBuffer bb = ByteBuffer.wrap(rowkey).order(ByteOrder.BIG_ENDIAN);
               bb.put(HBASE_METADATA_KEY_PREFIX);
               bb.putLong(classId);
@@ -1467,18 +1470,19 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               // Copy classId/labelsId
               //System.arraycopy(data, 0, rowkey, HBASE_METADATA_KEY_PREFIX.length, 16);
               
-              Delete delete = new Delete(rowkey);              
+              Delete delete = new Delete(rowkey);
+
               try {
-                synchronized (ht) {
-                  htable.delete(delete);
-                  lastPut.set(System.currentTimeMillis());
-                }                                            
-              } catch (IOException ioe) {
-                // Clear current list of puts
-                puts.clear();
-                putSize.set(0L);
-                directory.abort.set(true);
-                return;
+                actionsLock.lockInterruptibly();
+                //htable.delete(delete);
+                actions.add(delete);
+                // estimate the size of the Delete
+                actionsSize.addAndGet(rowkey.length + 16);
+                lastAction.set(System.currentTimeMillis());
+              } finally {
+                if (actionsLock.isHeldByCurrentThread()) {
+                  actionsLock.unlock();
+                }
               }
               
               continue;
@@ -1555,12 +1559,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             }
               
             try {
-              putsLock.lockInterruptibly();
+              actionsLock.lockInterruptibly();
               //synchronized (puts) {
               if (directory.store) {
-                puts.add(put);
-                putSize.addAndGet(encrypted.length);
-                lastPut.set(System.currentTimeMillis());
+                actions.add(put);
+                actionsSize.addAndGet(encrypted.length);
+                lastAction.set(System.currentTimeMillis());
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_PUTS, Sensision.EMPTY_LABELS, 1);                
               }
 
@@ -1619,8 +1623,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               }
            
             } finally {
-              if (putsLock.isHeldByCurrentThread()) {
-                putsLock.unlock();
+              if (actionsLock.isHeldByCurrentThread()) {
+                actionsLock.unlock();
               }
             }
           } else {
