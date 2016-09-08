@@ -600,9 +600,11 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
             try {
               conn = (HttpURLConnection) (noProxy ? url.openConnection(Proxy.NO_PROXY) : url.openConnection());
               
-              conn.setChunkedStreamingMode(8192);
-              conn.setDoInput(true);
               conn.setDoOutput(true);
+              conn.setDoInput(true);
+              conn.setRequestMethod("POST");
+              conn.setChunkedStreamingMode(2048);
+              conn.connect();
               
               OutputStream out = conn.getOutputStream();
     
