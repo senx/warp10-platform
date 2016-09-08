@@ -609,6 +609,7 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
               out.write(encodedReq);
               out.write('\r');
               out.write('\n');
+              out.close();
               
               BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
               
