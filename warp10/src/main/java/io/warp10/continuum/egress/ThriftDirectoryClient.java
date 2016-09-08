@@ -32,14 +32,21 @@ import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.continuum.store.thrift.service.DirectoryService;
 import io.warp10.continuum.store.thrift.service.DirectoryService.Client;
 import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.script.HyperLogLogPlus;
 import io.warp10.sensision.Sensision;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.Proxy;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -62,6 +69,8 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
@@ -70,6 +79,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Charsets;
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.framework.state.ConnectionState;
@@ -486,6 +496,178 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
   
   @Override
   public Map<String,Object> stats(List<String> classSelector, List<Map<String, String>> labelsSelectors) throws IOException {
+    //return statsThrift(classSelector, labelsSelectors);
+    return statsHttp(classSelector, labelsSelectors);
+  }
+    
+  public Map<String,Object> statsHttp(List<String> classSelector, List<Map<String, String>> labelsSelectors) throws IOException {
+    
+    //
+    // Extract the URLs we will use to retrieve the Metadata
+    //
+    
+    // Set of already called remainders for the selected modulus
+    Set<Integer> called = new HashSet<Integer>();
+
+    long selectedmodulus = -1L;
+    
+    final List<URL> urls = new ArrayList<URL>();
+    
+    List<Entry<String,DirectoryService.Client>> servers = new ArrayList<Entry<String,DirectoryService.Client>>();
+
+    synchronized(clientCacheMutex) {
+      servers.addAll(clientCache.entrySet());
+    }
+
+    // Shuffle the list
+    Collections.shuffle(servers);
+    
+    for (Entry<String,DirectoryService.Client> entry: servers) {
+      //
+      // Make sure the current entry has a streaming port defined
+      //
+      
+      if (!streamingPorts.containsKey(entry.getKey())) {
+        continue;
+      }
+      
+      if (-1L == selectedmodulus) {
+        selectedmodulus = modulus.get(entry.getKey());
+      }
+      
+      // Make sure we use a common modulus
+      if (modulus.get(entry.getKey()) != selectedmodulus) {
+        continue;
+      }
+      
+      // Skip client if we already called one with this remainder
+      if (called.contains(remainder.get(entry.getKey()))) {
+        continue;
+      }
+      
+      //
+      // Extract host and port
+      //
+      
+      String host = hosts.get(entry.getKey());
+      int port = streamingPorts.get(entry.getKey());
+  
+      URL url = new URL("http://" + host + ":" + port + "" + Constants.API_ENDPOINT_DIRECTORY_STATS_INTERNAL);
+  
+      urls.add(url);
+      
+      // Track which remainders we already selected
+      called.add(remainder.get(entry.getKey()));
+    }
+
+    
+    
+    final DirectoryStatsRequest request = new DirectoryStatsRequest();
+    request.setTimestamp(System.currentTimeMillis());
+    request.setClassSelector(classSelector);
+    request.setLabelsSelectors(labelsSelectors);
+    
+    long hash = DirectoryUtil.computeHash(this.SIPHASH_PSK[0], this.SIPHASH_PSK[1], request);
+    
+    request.setHash(hash);
+    
+    List<Future<DirectoryStatsResponse>> responses = new ArrayList<Future<DirectoryStatsResponse>>();
+    
+    final AtomicBoolean transportException = new AtomicBoolean(false);
+
+    TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+    
+    byte[] bytes = null;
+    
+    try {
+      bytes = OrderPreservingBase64.encode(serializer.serialize(request));
+    } catch (TException te) {
+      throw new IOException(te);
+    }
+    
+    final byte[] encodedReq = bytes;
+    
+    synchronized(executorMutex) {
+      for (URL urlx: urls) {
+
+        final URL url = urlx;
+        
+        responses.add(executor.submit(new Callable<DirectoryStatsResponse>() {
+          @Override
+          public DirectoryStatsResponse call() throws Exception {
+            HttpURLConnection conn = null;
+            
+            try {
+              conn = (HttpURLConnection) (noProxy ? url.openConnection(Proxy.NO_PROXY) : url.openConnection());
+              
+              conn.setChunkedStreamingMode(8192);
+              conn.setDoInput(true);
+              conn.setDoOutput(true);
+              
+              OutputStream out = conn.getOutputStream();
+    
+              out.write(encodedReq);
+              out.write('\r');
+              out.write('\n');
+              
+              BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+              
+              DirectoryStatsResponse resp = new DirectoryStatsResponse();
+
+              try {
+                                
+                while(true) {
+                  String line = reader.readLine();
+                  
+                  if (null == line) { 
+                    break;
+                  }
+                  
+                  byte[] data = OrderPreservingBase64.decode(line.getBytes(Charsets.US_ASCII));
+                  
+                  TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+                                                          
+                  deser.deserialize(resp, data);                                        
+                }
+
+                reader.close();
+                reader = null;
+                
+              } catch (IOException ioe){
+                if (null != reader) { try { reader.close(); } catch (Exception e) {} }
+                throw ioe;
+              }
+              
+              return resp;
+            } finally {
+              if (null != conn) { try { conn.disconnect(); } catch (Exception e) {} 
+            }
+          }        
+        }}));
+      }              
+    }
+  
+    
+    //
+    // Await for all requests to have completed, either successfully or not
+    //
+    
+    int count = 0;
+    
+    while(count != responses.size()) {
+      LockSupport.parkNanos(1000L);
+      count = 0;
+      for (Future<DirectoryStatsResponse> response: responses) {
+        if (response.isDone()) {
+          count++;
+        }
+      }
+    }
+    
+    return mergeStatsResponses(responses);
+  }
+  
+  public Map<String,Object> statsThrift(List<String> classSelector, List<Map<String, String>> labelsSelectors) throws IOException {
     final DirectoryStatsRequest request = new DirectoryStatsRequest();
     request.setTimestamp(System.currentTimeMillis());
     request.setClassSelector(classSelector);
@@ -572,6 +754,10 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
       cacheChanged();
     }
 
+    return mergeStatsResponses(responses);
+  }
+  
+  private Map<String,Object> mergeStatsResponses(Iterable<Future<DirectoryStatsResponse>> responses) throws IOException {
     //
     // Consolidate the results
     //
