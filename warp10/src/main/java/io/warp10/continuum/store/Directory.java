@@ -41,8 +41,11 @@ import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.DirectoryPlugin;
 import io.warp10.warp.sdk.DirectoryPlugin.GTS;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.Writer;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -122,6 +125,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.MapMaker;
+import com.google.common.primitives.Longs;
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.retry.RetryNTimes;
@@ -2381,9 +2385,61 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       throw new TException(e);
     }
   }
-  
+
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+    handleStreaming(target, baseRequest, request, response);
+    handleStats(target, baseRequest, request, response);
+  }
+  
+  void handleStats(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException { 
+    if (!Constants.API_ENDPOINT_DIRECTORY_STATS_INTERNAL.equals(target)) {
+      return;
+    }
+    
+    long nano = System.nanoTime();
+
+    baseRequest.setHandled(true);
+
+    //
+    // Read DirectoryRequests from stdin
+    //
+    
+    BufferedReader br = new BufferedReader(request.getReader());
+    
+    while (true) {
+      String line = br.readLine();
+      
+      if (null == line) {
+        break;
+      }
+      
+      byte[] raw = OrderPreservingBase64.decode(line.getBytes(Charsets.US_ASCII));
+
+      // Extract DirectoryStatsRequest
+      TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+      DirectoryStatsRequest req = new DirectoryStatsRequest();
+      
+      try {
+        deser.deserialize(req, raw);
+        DirectoryStatsResponse resp = stats(req);
+
+        response.setContentType("text/plain");
+        OutputStream out = response.getOutputStream();
+              
+        TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+        byte[] data = ser.serialize(resp);
+        
+        out.write(data);
+        out.write('\r');
+        out.write('\n');
+      } catch (TException te) {
+        throw new IOException(te);
+      }            
+    }
+  }
+  
+  public void handleStreaming(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
     if (!Constants.API_ENDPOINT_DIRECTORY_STREAMING_INTERNAL.equals(target)) {
       return;
     }

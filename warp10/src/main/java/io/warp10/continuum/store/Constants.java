@@ -287,6 +287,11 @@ public class Constants {
   public static final String API_ENDPOINT_DIRECTORY_STREAMING_INTERNAL = "/directory-streaming";
   
   /**
+   * Endpoint for internal stats requests
+   */
+  public static final String API_ENDPOINT_DIRECTORY_STATS_INTERNAL = "/directory-stats";
+  
+  /**
    * Header to extract POP from OVH CDN
    */
   public static final String OVH_CDN_GEO_HEADER = "X-CDN-Geo";
