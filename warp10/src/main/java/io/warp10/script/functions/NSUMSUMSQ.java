@@ -45,7 +45,7 @@ public class NSUMSUMSQ extends NamedWarpScriptFunction implements WarpScriptStac
     Object o = stack.pop();
         
     if (!(o instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " expects a Geo Time Series instance below the top of the stack.");
+      throw new WarpScriptException(getName() + " expects a Geo Time Series instance on top of the stack.");
     }
     
     GeoTimeSerie gts = (GeoTimeSerie) o;
@@ -66,7 +66,7 @@ public class NSUMSUMSQ extends NamedWarpScriptFunction implements WarpScriptStac
       } else {
         bd = BigDecimal.valueOf(((Number) GTSHelper.valueAtIndex(gts, i)).longValue()); 
       }
-      sum = sum.add(BigDecimal.valueOf(((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue()));
+      sum = sum.add(bd);
       sumsq = sumsq.add(bd.multiply(bd));
     }
 
