@@ -18,6 +18,7 @@ package io.warp10.crypto;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.Writer;
 import java.util.Arrays;
 
 import com.google.common.base.Charsets;
@@ -124,6 +125,50 @@ public class OrderPreservingBase64 {
           break;
         case 2:
           buf[bufidx++] = ALPHABET[(data[data.length - 1] << 2) & 0x3c];
+          break;
+      }
+    }
+        
+    out.write(buf, 0, bufidx);
+  }
+
+  public static void encodeToWriter(byte[] data, Writer out) throws IOException {
+    int i = 0;
+    
+    int len = 4 * (data.length / 3) + (data.length % 3 != 0 ? 1 + (data.length % 3) : 0);
+    
+    char[] buf = new char[8192];
+    int bufidx = 0;
+    
+    for (i = 0; i < data.length; i++) {
+      
+      // Flush buf if less than 3 bytes remain
+      if (bufidx > buf.length - 4) {
+        out.write(buf, 0, bufidx);
+        bufidx = 0;
+      }
+      
+      switch (i % 3) {
+        case 0:
+          buf[bufidx++] = (char) ALPHABET[(data[i] >> 2)& 0x3f];
+          break;
+        case 1:
+          buf[bufidx++] = (char) ALPHABET[((data[i-1] & 0x3) << 4)| ((data[i] >> 4) & 0xf)];
+          break;
+        case 2:
+          buf[bufidx++] = (char) ALPHABET[((data[i-1] & 0xf) << 2)| ((data[i] >> 6) & 0x3)];
+          buf[bufidx++] = (char) ALPHABET[data[i] & 0x3f];
+          break;
+      }
+    }
+    
+    if (i < len) {
+      switch (data.length % 3) {
+        case 1:
+          buf[bufidx++] = (char) ALPHABET[(data[data.length - 1] << 4) & 0x30];
+          break;
+        case 2:
+          buf[bufidx++] = (char) ALPHABET[(data[data.length - 1] << 2) & 0x3c];
           break;
       }
     }
