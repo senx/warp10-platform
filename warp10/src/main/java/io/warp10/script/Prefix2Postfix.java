@@ -19,7 +19,6 @@ package io.warp10.script;
 import io.warp10.continuum.gts.UnsafeString;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -43,13 +42,13 @@ public class Prefix2Postfix {
     // Replace '\n' with ';'
     //
     
-    prefix = prefix.replace("\n", ";");
+    prefix = prefix.replace('\n', ';');
     
     //
     // Split by ';'
     //
     
-    String[] lines = prefix.split("[;\n]");
+    String[] lines = prefix.split("[;]");
     
     for (String line: lines) {
       //
@@ -178,7 +177,6 @@ public class Prefix2Postfix {
         //
         // Find the next opening paren and the matching closing one
         //
-        
         
         while(idx < expressions.size() && !"(".equals(expressions.get(idx))) {
           if (")".equals(expressions.get(idx))) {
