@@ -460,6 +460,8 @@ public class WarpScriptLib {
     functions.put(PARSESELECTOR, new PARSESELECTOR(PARSESELECTOR));
     functions.put("TOSELECTOR", new TOSELECTOR("TOSELECTOR"));
     functions.put("PARSE", new PARSE("PARSE"));
+    
+    
     // We do not expose DUMP, it might allocate too much memory
     //functions.put("DUMP", new DUMP("DUMP"));
     
@@ -900,6 +902,7 @@ public class WarpScriptLib {
     functions.put("NPDF", new NPDF.Builder("NPDF"));
     functions.put("MUSIGMA", new MUSIGMA("MUSIGMA"));
     functions.put("NSUMSUMSQ", new NSUMSUMSQ("NSUMSUMSQ"));
+    functions.put("LR", new LR("LR"));
     functions.put("MODE", new MODE("MODE"));
     
     functions.put("->Z", new TOZ("->Z"));
