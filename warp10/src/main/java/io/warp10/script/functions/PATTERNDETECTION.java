@@ -31,8 +31,11 @@ import java.util.List;
  */
 public class PATTERNDETECTION extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public PATTERNDETECTION(String name) {
+  private final boolean standardizePAA;
+  
+  public PATTERNDETECTION(String name, boolean standardizePAA) {
     super(name);
+    this.standardizePAA = standardizePAA;
   }
   
   @Override
@@ -73,7 +76,7 @@ public class PATTERNDETECTION extends NamedWarpScriptFunction implements WarpScr
     top = stack.pop();
     
     if (top instanceof GeoTimeSerie) {
-      stack.push(GTSHelper.detect((GeoTimeSerie) top, alphabetSize, wordLen, windowLen, patterns));
+      stack.push(GTSHelper.detect((GeoTimeSerie) top, alphabetSize, wordLen, windowLen, patterns, standardizePAA));
     } else if (top instanceof List) {
       List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
       
@@ -82,7 +85,7 @@ public class PATTERNDETECTION extends NamedWarpScriptFunction implements WarpScr
           stack.push(top);
           throw new WarpScriptException(getName() + " can only operate on geo time serie instances.");
         }
-        series.add(GTSHelper.detect((GeoTimeSerie) o, alphabetSize, wordLen, windowLen, patterns));
+        series.add(GTSHelper.detect((GeoTimeSerie) o, alphabetSize, wordLen, windowLen, patterns, standardizePAA));
       }
       stack.push(series);
     } else {

@@ -664,8 +664,10 @@ public class WarpScriptLib {
     functions.put("PARTITION", new PARTITION("PARTITION"));
     functions.put("STRICTPARTITION", new PARTITION("STRICTPARTITION", true));
     functions.put("ZIP", new ZIP("ZIP"));
-    functions.put("PATTERNS", new PATTERNS("PATTERNS"));
-    functions.put("PATTERNDETECTION", new PATTERNDETECTION("PATTERNDETECTION"));
+    functions.put("PATTERNS", new PATTERNS("PATTERNS", true));
+    functions.put("PATTERNDETECTION", new PATTERNDETECTION("PATTERNDETECTION", true));
+    functions.put("ZPATTERNS", new PATTERNS("ZPATTERNS", false));
+    functions.put("ZPATTERNDETECTION", new PATTERNDETECTION("ZPATTERNDETECTION", false));
     functions.put("DTW", new DTW("DTW"));
     functions.put("OPTDTW", new OPTDTW("OPTDTW"));
     functions.put("VALUEHISTOGRAM", new VALUEHISTOGRAM("VALUEHISTORGRAM"));
@@ -700,7 +702,8 @@ public class WarpScriptLib {
     functions.put("MATCH", new MATCH("MATCH"));
     functions.put("MATCHER", new MATCHER("MATCHER"));
     functions.put("TEMPLATE", new TEMPLATE("TEMPLATE"));
-    functions.put("DISCORDS", new DISCORDS("DISCORDS"));
+    functions.put("DISCORDS", new DISCORDS("DISCORDS", true));
+    functions.put("ZDISCORDS", new DISCORDS("ZDISCORDS", false));
     functions.put("INTEGRATE", new INTEGRATE("INTEGRATE"));
     
     functions.put("BUCKETSPAN", new BUCKETSPAN("BUCKETSPAN"));

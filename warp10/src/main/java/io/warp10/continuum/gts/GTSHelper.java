@@ -5971,9 +5971,10 @@ public class GTSHelper {
    * @param alphabetSize
    * @param wordLen
    * @param windowLen
+   * @param standardizePAA
    * @return
    */
-  public static GeoTimeSerie bSAX(GeoTimeSerie gts, int alphabetSize, int wordLen, int windowLen) throws WarpScriptException {
+  public static GeoTimeSerie bSAX(GeoTimeSerie gts, int alphabetSize, int wordLen, int windowLen, boolean standardizePAA) throws WarpScriptException {
     
     if (!GTSHelper.isBucketized(gts) || (TYPE.DOUBLE != gts.type && TYPE.LONG != gts.type)) {
       throw new WarpScriptException("Function can only be applied to numeric, bucketized, filled geo time series.");
@@ -6036,7 +6037,11 @@ public class GTSHelper {
         for (int k = 0; k < paaLen; k++) {
           paaSum[w] += TYPE.LONG == gts.type ? gts.longValues[i + w * paaLen + k] : gts.doubleValues[i + w * paaLen + k];
         }
-      
+              
+        if (!standardizePAA) {
+          continue;
+        }
+
         double mean = paaSum[w] / paaLen;
         sum += mean;
         sumsq += mean * mean;
@@ -6048,24 +6053,33 @@ public class GTSHelper {
       // Normalize window
       //
       
-      double mu = sum / wordLen;
+      double mu = 0.0D;
       
-      double variance = (sumsq / wordLen) - (sum * sum) / ((double) wordLen * (double) wordLen);
+      double variance = 0.0D;
+      double sigma = 0.0D;
       
-      //
-      // Apply Bessel's correction
-      // @see http://en.wikipedia.org/wiki/Bessel's_correction
-      //
-      
-      if (wordLen > 1) {
-        variance = variance * wordLen / (wordLen - 1.0D);
+      if (standardizePAA) {
+        mu = sum / wordLen;
+        variance = (sumsq / wordLen) - (sum * sum) / ((double) wordLen * (double) wordLen);
+        //
+        // Apply Bessel's correction
+        // @see http://en.wikipedia.org/wiki/Bessel's_correction
+        //
+        
+        if (wordLen > 1) {
+          variance = variance * wordLen / (wordLen - 1.0D);
+        }
+        
+        sigma =  Math.sqrt(variance);
       }
-
-      double sigma =  Math.sqrt(variance);
       
       for (int w = 0; w < wordLen; w++) {
         // Compute value to use for generating SAX symbol
-        symbols[w] = SAXUtils.SAX(levels, sigma != 0D ? ((paaSum[w] / paaLen) - mu) / sigma : ((paaSum[w] / paaLen) - mu));
+        if (standardizePAA) {
+          symbols[w] = SAXUtils.SAX(levels, sigma != 0D ? ((paaSum[w] / paaLen) - mu) / sigma : ((paaSum[w] / paaLen) - mu));
+        } else {
+          symbols[w] = SAXUtils.SAX(levels, paaSum[w] / paaLen);         
+        }
       }
 
       //
@@ -6251,14 +6265,15 @@ public class GTSHelper {
    * @param alphabetSize
    * @param wordLen
    * @param windowLen
+   * @param standardizePAA
    * @return
    */
-  public static GeoTimeSerie detect(GeoTimeSerie gts, int alphabetSize, int wordLen, int windowLen, Collection<String> patterns) throws WarpScriptException {
+  public static GeoTimeSerie detect(GeoTimeSerie gts, int alphabetSize, int wordLen, int windowLen, Collection<String> patterns, boolean standardizePAA) throws WarpScriptException {
     //
     // Generate patterns for the provided GTS
     //
     
-    GeoTimeSerie gtsPatterns = GTSHelper.bSAX(gts, alphabetSize, wordLen, windowLen);
+    GeoTimeSerie gtsPatterns = GTSHelper.bSAX(gts, alphabetSize, wordLen, windowLen, standardizePAA);
     
     //
     // Sort gtsPatterns

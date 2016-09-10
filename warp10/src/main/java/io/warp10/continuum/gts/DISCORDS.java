@@ -59,8 +59,11 @@ public class DISCORDS extends GTSStackFunction {
   private static final String OVERLAP = "overlap";
   private static final String DISTRATIO = "distratio";
   
-  public DISCORDS(String name) {
+  private final boolean standardizePAA;
+  
+  public DISCORDS(String name, boolean standardizePAA) {
     super(name);
+    this.standardizePAA = standardizePAA;
   }
   
   @Override
@@ -71,7 +74,8 @@ public class DISCORDS extends GTSStackFunction {
                     (int) params.get(ALPHABETSIZE),
                     (int) params.get(COUNT),
                     (boolean) params.get(OVERLAP),
-                    (double) params.get(DISTRATIO));
+                    (double) params.get(DISTRATIO),
+                    this.standardizePAA);
   }
   
   @Override
@@ -153,12 +157,12 @@ public class DISCORDS extends GTSStackFunction {
    * @return
    * @throws WarpScriptException
    */
-  public static final GeoTimeSerie discords(GeoTimeSerie gts, int windowLen, int wordLen, int alphabetSize, int count, boolean mayOverlap, double distRatio) throws WarpScriptException {
+  public static final GeoTimeSerie discords(GeoTimeSerie gts, int windowLen, int wordLen, int alphabetSize, int count, boolean mayOverlap, double distRatio, boolean standardizePAA) throws WarpScriptException {
     //
     // Compute bSAX symbols
     //
         
-    GeoTimeSerie symbols = GTSHelper.bSAX(gts, alphabetSize, wordLen, windowLen);
+    GeoTimeSerie symbols = GTSHelper.bSAX(gts, alphabetSize, wordLen, windowLen, standardizePAA);
 
     //
     // Compute Map of symbol to list of locations where it appears
