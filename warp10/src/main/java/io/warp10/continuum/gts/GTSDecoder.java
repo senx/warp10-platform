@@ -678,6 +678,10 @@ public class GTSDecoder {
     this.lastStringValue = initialStringValue;
   } 
   
+  public long getCount() {
+    return this.count;
+  }
+  
   void setCount(long count) {
     this.count = count;
   }
