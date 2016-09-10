@@ -6037,8 +6037,11 @@ public class GTSHelper {
           paaSum[w] += TYPE.LONG == gts.type ? gts.longValues[i + w * paaLen + k] : gts.doubleValues[i + w * paaLen + k];
         }
       
-        sum += paaSum[w];
-        sumsq += paaSum[w] * paaSum[w];        
+        double mean = paaSum[w] / paaLen;
+        sum += mean;
+        sumsq += mean * mean;
+        //sum += paaSum[w];
+        //sumsq += paaSum[w] * paaSum[w];        
       }
       
       //
