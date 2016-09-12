@@ -45,7 +45,7 @@ public class LR extends NamedWarpScriptFunction implements WarpScriptStackFuncti
     Object o = stack.pop();
         
     if (!(o instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " expects a Geo Time Series instance below the top of the stack.");
+      throw new WarpScriptException(getName() + " expects a Geo Time Series instance on top of the stack.");
     }
     
     GeoTimeSerie gts = (GeoTimeSerie) o;
@@ -56,7 +56,7 @@ public class LR extends NamedWarpScriptFunction implements WarpScriptStackFuncti
       throw new WarpScriptException(getName() + " can only compute simple linear regression parameters for numerical series.");
     }
     
-    BigDecimal zero = new BigDecimal(0.0D, MathContext.UNLIMITED);
+    BigDecimal zero = new BigDecimal(0.0D, MathContext.UNLIMITED).setScale(16);
     BigDecimal sumx = zero;
     BigDecimal sumy = zero;
     BigDecimal sumxx = zero;
