@@ -1523,7 +1523,18 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   && directory.metadatas.get(metadata.getName()).containsKey(labelsId)) {
                 continue;
               }              
+              
+              //
+              // If metadata is an update, only take it into consideration if the GTS is already known
+              //
+              
+              if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())
+                  && (!directory.metadatas.containsKey(metadata.getName())
+                      || !directory.metadatas.get(metadata.getName()).containsKey(labelsId))) {
+                continue;
+              }              
             }
+            
             
             //
             // Write Metadata to HBase as it is either new or an updated version\
