@@ -499,7 +499,19 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       //
       // Metadata registration is not from Ingress, this means we can update the value as it comes from the directory service or a metadata update
       //
-      store(metadata);
+      
+      // When it is a metadata update request, only store the metadata if the GTS is already known
+      if (Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
+        if (metadatas.containsKey(metadata.getName())) {
+          // 128BITS
+          long labelsId = GTSHelper.labelsId(this.labelsLongs, metadata.getLabels());
+          if (metadatas.get(metadata.getName()).containsKey(labelsId)) {
+            store(metadata);
+          }
+        }
+      } else {
+        store(metadata);
+      }
     }
   }
   
