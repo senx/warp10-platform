@@ -2153,7 +2153,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             String ownersel = request.getLabelsSelectors().get(i).get(Constants.OWNER_LABEL);
             
             if (null != ownersel && ownersel.startsWith("=")) {
-              classNames.addAll(classesPerOwner.get(ownersel.substring(1)));
+              Set<String> cpo = classesPerOwner.get(ownersel.substring(1));
+              if (null != cpo) {
+                classNames.addAll(cpo);
+              }
             } else {
               classNames.addAll(this.classNames.values());
             }
@@ -2633,7 +2636,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           String ownersel = labelsSelector.get(Constants.OWNER_LABEL);
           
           if (null != ownersel && ownersel.startsWith("=")) {
-            classNames.addAll(classesPerOwner.get(ownersel.substring(1)));
+            Set<String> cpo = classesPerOwner.get(ownersel.substring(1));
+            if (null != cpo) {
+              classNames.addAll(cpo);
+            }
           } else {        
             classNames.addAll(this.classNames.values());
           }
