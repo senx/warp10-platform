@@ -31,6 +31,7 @@ public abstract class DirectoryPlugin {
   
   public static class GTS {
 
+    // 128bits
     private final UUID uuid;
     private final String name;
     private final Map<String,String> labels;
@@ -151,4 +152,20 @@ public abstract class DirectoryPlugin {
    * @return An iterator on the matching GTS.
    */
   public abstract GTSIterator find(int shard, String classSelector, Map<String,String> labelsSelectors);
+  
+  /**
+   * Check if a given GTS is known.
+   * This is used to avoid storing unknown GTS in HBase simply because they were
+   * part of a /meta request.
+   * 
+   * Note that the default implementation returns false, this means that attribute updates
+   * will NOT be persisted in HBase. This is annoying but trust us, it's less annoying than
+   * having a simple /meta request create millions of entries in HBase...
+   * 
+   * @param gts The GTS to check.
+   * @return true if the GTS is known.
+   */
+  public boolean known (GTS gts) {
+    return false;
+  }
 }

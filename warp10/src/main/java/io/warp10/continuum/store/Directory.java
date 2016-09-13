@@ -1501,10 +1501,19 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                     metadata.getName(),
                     metadata.getLabels(),
                     metadata.getAttributes());
+
+                //
+                // If we are doing a metadata update and the GTS is not known, skip writing to HBase.
+                //
                 
+                if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource()) && !directory.plugin.known(gts)) {
+                  continue;
+                }
+
                 nano = System.nanoTime();
                 
                 if (!directory.plugin.store(metadata.getSource(), gts)) {
+                  // If we could not store the GTS, stop the directory consumer
                   break;
                 }                
               } finally {
@@ -1512,6 +1521,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_STORE_CALLS, Sensision.EMPTY_LABELS, 1);
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_STORE_TIME_NANOS, Sensision.EMPTY_LABELS, nano);                  
               }
+              
             } else {
               //
               // If Metadata comes from Ingress and it is already in the cache, do
