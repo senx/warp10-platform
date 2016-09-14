@@ -845,6 +845,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             }
             props.setProperty("auto.commit.enable", "false");    
             
+            if (null != properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_AUTO_OFFSET_RESET)) {
+              props.setProperty("auto.offset.reset", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_AUTO_OFFSET_RESET));
+            }
+            
             ConsumerConfig config = new ConsumerConfig(props);
             ConsumerConnector connector = Consumer.createJavaConsumerConnector(config);
 
@@ -885,7 +889,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 //
                 
                 // Commit offsets
-                connector.commitOffsets();
+                connector.commitOffsets(true);
                 counters.sensisionPublish();
                 
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_COMMITS, Sensision.EMPTY_LABELS, 1);

@@ -274,6 +274,11 @@ public class Configuration {
   public static final String DIRECTORY_KAFKA_METADATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY = "directory.kafka.metadata.consumer.partition.assignment.strategy";
   
   /**
+   * Strategy to adopt if consuming for the first time or if the last committed offset is past Kafka history
+   */
+  public static final String DIRECTORY_KAFKA_METADATA_CONSUMER_AUTO_OFFSET_RESET = "directory.kafka.metadata.consumer.auto.offset.reset";
+  
+  /**
    * Delay between synchronization for offset commit
    */
   public static final String DIRECTORY_KAFKA_METADATA_COMMITPERIOD = "directory.kafka.metadata.commitperiod";
