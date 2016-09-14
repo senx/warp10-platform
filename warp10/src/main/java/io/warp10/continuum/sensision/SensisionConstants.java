@@ -276,6 +276,11 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_INGRESS_DELETE_REQUESTS = "warp.ingress.delete.requests";
 
   /**
+   * Number of GTS which were concerned by the 'delete' requests.
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_INGRESS_DELETE_GTS = "warp.ingress.delete.gts";
+
+  /**
    * Number of times an 'update' request was done using an invalid token
    */
   public static final String SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_INVALIDTOKEN = "warp.ingress.update.invalidtoken";

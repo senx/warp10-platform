@@ -1180,6 +1180,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         }        
       }
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_DELETE_REQUESTS, sensisionLabels, 1);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_DELETE_GTS, sensisionLabels, gts);
     }
 
     response.setStatus(HttpServletResponse.SC_OK);
