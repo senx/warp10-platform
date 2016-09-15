@@ -216,6 +216,11 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_EXPORTED_SYMBOLS = "exported.symbols";
   
   /**
+   * Map of headers to return with the response
+   */
+  public static final String ATTRIBUTE_HEADERS = "response.headers";
+  
+  /**
    * Index of RETURN_DEPTH counter
    */
   public static final int COUNTER_RETURN_DEPTH = 0;

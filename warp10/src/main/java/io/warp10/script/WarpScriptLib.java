@@ -449,7 +449,8 @@ public class WarpScriptLib {
     functions.put(SNAPSHOTALL, new SNAPSHOT(SNAPSHOTALL, true, false));
     functions.put("SNAPSHOTTOMARK", new SNAPSHOT("SNAPSHOTTOMARK", false, true));
     functions.put("SNAPSHOTALLTOMARK", new SNAPSHOT("SNAPSHOTALLTOMARK", true, true));
-       
+    functions.put("HEADER", new HEADER("HEADER"));
+    
     functions.put("MACROMAPPER", new MACROMAPPER("MACROMAPPER"));
     functions.put("MACROREDUCER", new MACROMAPPER("MACROREDUCER"));
     functions.put("MACROBUCKETIZER", new MACROMAPPER("MACROBUCKETIZER"));

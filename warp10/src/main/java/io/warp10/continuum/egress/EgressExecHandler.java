@@ -51,6 +51,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
@@ -120,10 +121,8 @@ public class EgressExecHandler extends AbstractHandler {
     // Making the Elapsed header available in cross-domain context
     //
 
-    resp.addHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_ELAPSEDX));
-    resp.addHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_OPSX));
-    resp.addHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_FETCHEDX));
-    
+    resp.addHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_ELAPSEDX) + "," + Constants.getHeader(Configuration.HTTP_HEADER_OPSX) + "," + Constants.getHeader(Configuration.HTTP_HEADER_FETCHEDX));
+
     //
     // Generate UUID for this script execution
     //
@@ -278,10 +277,30 @@ public class EgressExecHandler extends AbstractHandler {
       //
       
       stack.checkBalanced();
-      
+            
+      //
+      // Check the user defined headers and set them.
+      //
+
+      if (null != stack.getAttribute(WarpScriptStack.ATTRIBUTE_HEADERS)) {
+        Map<String,String> headers = (Map<String,String>) stack.getAttribute(WarpScriptStack.ATTRIBUTE_HEADERS);
+        if (!Constants.hasReservedHeader(headers)) {
+          StringBuilder sb = new StringBuilder();         
+          for (Entry<String,String> header: headers.entrySet()) {
+            if (sb.length() > 0) {
+              sb.append(",");
+            }
+            sb.append(header.getKey());
+            resp.setHeader(header.getKey(), header.getValue());
+          }
+          resp.addHeader("Access-Control-Expose-Headers", sb.toString());
+        }
+      }
+
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ELAPSEDX), Long.toString(System.nanoTime() - now));
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_OPSX), stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS).toString());
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_FETCHEDX), stack.getAttribute(WarpScriptStack.ATTRIBUTE_FETCH_COUNT).toString());
+      
       //resp.setContentType("application/json");
       //resp.setCharacterEncoding("UTF-8");
       
@@ -314,9 +333,30 @@ public class EgressExecHandler extends AbstractHandler {
       
       int debugDepth = (int) stack.getAttribute(WarpScriptStack.ATTRIBUTE_DEBUG_DEPTH);
 
+      //
+      // Check the user defined headers and set them.
+      //
+
+      if (null != stack.getAttribute(WarpScriptStack.ATTRIBUTE_HEADERS)) {
+        Map<String,String> headers = (Map<String,String>) stack.getAttribute(WarpScriptStack.ATTRIBUTE_HEADERS);
+        if (!Constants.hasReservedHeader(headers)) {
+          StringBuilder sb = new StringBuilder();         
+          for (Entry<String,String> header: headers.entrySet()) {
+            if (sb.length() > 0) {
+              sb.append(",");
+            }
+            sb.append(header.getKey());
+            resp.setHeader(header.getKey(), header.getValue());
+          }
+          resp.addHeader("Access-Control-Expose-Headers", sb.toString());
+        }
+      }
+
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ELAPSEDX), Long.toString(System.nanoTime() - now));
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_OPSX), stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS).toString());
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_FETCHEDX), stack.getAttribute(WarpScriptStack.ATTRIBUTE_FETCH_COUNT).toString());
+
+      resp.addHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX) + "," + Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX));
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX), Long.toString(lineno));
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX), t.getMessage());
       

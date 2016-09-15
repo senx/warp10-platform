@@ -19,9 +19,13 @@ package io.warp10.continuum.store;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 public class Constants {
   
@@ -377,5 +381,21 @@ public class Constants {
   
   public static String getHeader(String name) {
     return HEADERS.get(name);
+  }
+  
+  public static boolean hasReservedHeader(Map<String,String> headers) {
+    Set<String> hdrs = new HashSet<String>();
+    
+    for (String definedHeader: headers.keySet()) {
+      hdrs.add(definedHeader.toLowerCase());
+    }
+    
+    for (String key: HEADERS.keySet()) {
+      if (hdrs.contains(key.toLowerCase())) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 }
