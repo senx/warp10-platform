@@ -81,6 +81,16 @@ public class GTSWrapperHelper {
       metadata = new Metadata();
     }
     
+    if (wrapper.isSetBucketcount()) {
+      gts.bucketcount = (int) wrapper.getBucketcount();
+    }
+    if (wrapper.isSetBucketspan()) {
+      gts.bucketspan = wrapper.getBucketspan();
+    }
+    if (wrapper.isSetLastbucket()) {
+      gts.lastbucket = wrapper.getLastbucket();
+    }
+    
     gts.setMetadata(metadata);
 
     return gts;
