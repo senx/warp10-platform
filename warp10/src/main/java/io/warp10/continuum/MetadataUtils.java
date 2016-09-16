@@ -17,6 +17,7 @@
 package io.warp10.continuum;
 
 import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.UnsafeString;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.thrift.data.Metadata;
 
@@ -27,6 +28,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.google.common.base.Charsets;
 
 public class MetadataUtils {
   
@@ -139,5 +142,52 @@ public class MetadataUtils {
     }
     
     return true;
+  }
+
+  /**
+   * Fill a String's char array with the metadata id
+   * @param container
+   * @param meta
+   */
+  public static String idString(String container, Metadata meta) {
+    
+    if (null == container) {
+      return idString(meta);
+    }
+    
+    char[] chars = UnsafeString.getChars(container);
+    if (chars.length != 8) {
+      throw new RuntimeException("Invalid container size.");
+    }
+    //
+    // Fill the char array
+    //    
+    long id = meta.getLabelsId();
+    int offset = 4;
+    for (int i = 3; i >= 0; i--) {
+      chars[offset + i] = (char) (id & 0xFFFFL);
+      id >>>= 16;
+    }    
+    offset = 0;
+    id = meta.getClassId();
+    for (int i = 3; i >= 0; i--) {
+      chars[offset + i] = (char) (id & 0xFFFFL);
+      id >>>= 16;
+    }    
+    //
+    // Reset hashcode
+    //
+    UnsafeString.resetHash(container);
+    
+    return container;
+  }
+  
+  public static String idString(Metadata meta) {
+    String id = new String("01234567");
+    return idString(id, meta);
+  }
+  
+  public static byte[] idBytes(String id) {
+    return id.getBytes(Charsets.UTF_16);
   }
 }

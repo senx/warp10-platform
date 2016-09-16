@@ -20,6 +20,7 @@ import io.warp10.SmartPattern;
 import io.warp10.continuum.DirectoryUtil;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.KafkaOffsetCounters;
+import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.DirectoryFindRequest;
@@ -55,6 +56,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -364,6 +366,18 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
    */
   private final DirectoryPlugin plugin;
   
+  private int METADATA_CACHE_SIZE = 1000000;
+  
+  /**
+   * Cache to keep a serialized version of recently returned Metadata.
+   */
+  final Map<String, byte[]> serializedMetadataCache = new LinkedHashMap<String, byte[]>(100, 0.75F, true) {
+    @Override
+    protected boolean removeEldestEntry(java.util.Map.Entry<String, byte[]> eldest) {
+      return this.size() > METADATA_CACHE_SIZE;
+    }
+  };
+
   public Directory(KeyStore keystore, final Properties props) throws IOException {
     this.keystore = keystore;
 
@@ -390,11 +404,15 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     this.init = "true".equals(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_INIT));
     this.store = "true".equals(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STORE));
     this.delete = "true".equals(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_DELETE));
-
+    
     //
     // Extract parameters
     //
-    
+
+    if (null != props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_METADATA_CACHE_SIZE)) {
+      this.METADATA_CACHE_SIZE = Integer.valueOf(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_METADATA_CACHE_SIZE));
+    }
+
     idleTimeout = Long.parseLong(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_IDLE_TIMEOUT));
 
     if (properties.containsKey(io.warp10.continuum.Configuration.DIRECTORY_STATS_CLASS_MAXCARDINALITY)) {
@@ -1315,6 +1333,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         
         // TODO(hbs): allow setting of writeBufferSize
 
+        String id = null;
+        
         while (iter.hasNext()) {
           Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
 
@@ -1472,6 +1492,13 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, -1);
                 }
               }
+
+              //
+              // Clear the cache
+              //
+              
+              id = MetadataUtils.idString(metadata);
+              directory.serializedMetadataCache.remove(id);
               
               if (!directory.delete) {
                 continue;
@@ -1567,7 +1594,15 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               }              
             }
             
+            //
+            // Clear the cache if it is an update
+            //
             
+            if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
+              id = MetadataUtils.idString(metadata);
+              directory.serializedMetadataCache.remove(id);
+            }
+                        
             //
             // Write Metadata to HBase as it is either new or an updated version\
             // WARNING(hbs): in case of an updated version, we might erase a newer version of
@@ -1589,7 +1624,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             //System.arraycopy(data, 0, rowkey, HBASE_METADATA_KEY_PREFIX.length, 16);
 
             //
-            // Encrypt content
+            // Encrypt contents
             //
                         
             Put put = null;
@@ -2594,7 +2629,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
     TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
 
-
+    String id = null;
+    
     if (null != this.plugin) {
       
       long nanofind = System.nanoTime();
@@ -2623,7 +2659,25 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           metadata.setLabelsId(labelsId);
           
           try {
-            response.getOutputStream().write(OrderPreservingBase64.encode(serializer.serialize(metadata)));
+            //
+            // Extract id 
+            //
+            
+            id = MetadataUtils.idString(id, metadata);
+            
+            //
+            // Attempt to retrieve serialized content from the cache
+            //
+            
+            byte[] data = serializedMetadataCache.get(id);
+            
+            if (null == data) {
+              data = serializer.serialize(metadata);
+              // cache content
+              serializedMetadataCache.put(id,data);
+            }
+
+            response.getOutputStream().write(OrderPreservingBase64.encode(data));
             response.getOutputStream().write('\r');
             response.getOutputStream().write('\n');
             count++;
@@ -2741,7 +2795,6 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       long classesMatched = 0;
       long metadataInspected = 0;
       
-      
       for (String className: classNames) {
         classesInspected++;
         
@@ -2802,7 +2855,25 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             }
 
             try {
-              response.getOutputStream().write(OrderPreservingBase64.encode(serializer.serialize(metadata)));
+              //
+              // Extract id 
+              //
+              
+              id = MetadataUtils.idString(id, metadata);
+              
+              //
+              // Attempt to retrieve serialized content from the cache
+              //
+              
+              byte[] data = serializedMetadataCache.get(id);
+              
+              if (null == data) {
+                data = serializer.serialize(metadata);
+                // cache content
+                serializedMetadataCache.put(id,data);
+              }
+              
+              response.getOutputStream().write(OrderPreservingBase64.encode(data));
               response.getOutputStream().write('\r');
               response.getOutputStream().write('\n');
               count++;
@@ -2821,4 +2892,5 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     nano = System.nanoTime() - nano;
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_TIME_US, Sensision.EMPTY_LABELS, nano / 1000);
   }
+  
 }

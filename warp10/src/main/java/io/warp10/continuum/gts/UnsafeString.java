@@ -36,7 +36,8 @@ public class UnsafeString {
   private static final long valueOffset;
   private static final long offsetOffset;
   private static final long countOffset;
-
+  private static final long hashOffset;
+  
   static {
     try {
       // This is a bit of voodoo to force the unsafe object into
@@ -76,6 +77,22 @@ public class UnsafeString {
       } else {
         offsetOffset = -1L;
       }
+      
+      declaredField = null;
+
+      try {
+        declaredField = String.class.getDeclaredField("hash");
+      } catch (NoSuchFieldException e) {
+        // this will happen for jdk7 as these fields have been removed
+        declaredField = null;
+      }
+      
+      if (null != declaredField) {
+        hashOffset = unsafe.objectFieldOffset(declaredField);
+      } else {
+        hashOffset = -1L;
+      }
+
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -471,5 +488,15 @@ public class UnsafeString {
     }
     
     return newstr;
-  }  
+  }
+  
+  /**
+   * Reset the hash by setting it to 0 so hashcode computation is performed
+   * again when the internal char array has changed.
+   * 
+   * @param s
+   */
+  public static void resetHash(String s) {
+    unsafe.getAndSetInt(s, hashOffset,  0);
+  }
 }

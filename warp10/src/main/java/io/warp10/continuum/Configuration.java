@@ -428,6 +428,11 @@ public class Configuration {
    */
   public static final String DIRECTORY_HBASE_FILTER = "directory.hbase.filter";
   
+  /**
+   * Size of metadata cache in number of entries
+   */
+  public static final String DIRECTORY_METADATA_CACHE_SIZE = "directory.metadata.cache.size";
+
   //
   // I N G R E S S
   //
