@@ -45,7 +45,6 @@ import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.Writer;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -306,6 +305,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   private final Map<Long,String> classNames = new ConcurrentSkipListMap<Long, String>(ID_COMPARATOR);
   
   private final Map<String,Set<String>> classesPerOwner = new MapMaker().concurrencyLevel(64).makeMap();
+  
+  private final ReentrantLock metadatasLock = new ReentrantLock();
   
   /**
    * Number of threads for servicing requests
@@ -619,12 +620,16 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   continue;
                 }
                 
-                synchronized(metadatas) {
+                try {
+                  metadatasLock.lockInterruptibly();
                   if (!metadatas.containsKey(metadata.getName())) {
-                    //metadatas.put(metadata.getName(), new ConcurrentHashMap<Long, Metadata>());
                     metadatas.put(metadata.getName(), new ConcurrentSkipListMap<Long, Metadata>(ID_COMPARATOR));
                     classNames.put(classId, metadata.getName());
-                  }                
+                  }
+                } finally {
+                  if (metadatasLock.isHeldByCurrentThread()) {
+                    metadatasLock.unlock();
+                  }
                 }
                 
                 //
@@ -1451,6 +1456,19 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
                 // Remove cache entry
                 if (null != directory.metadatas.get(metadata.getName()).remove(labelsId)) {
+                  try {
+                    directory.metadatasLock.lockInterruptibly();
+                    if (directory.metadatas.get(metadata.getName()).isEmpty()) {
+                      directory.metadatas.remove(metadata.getName());
+                      directory.classNames.remove(metadata.getClassId());
+                      // FIXME(hbs): we should also update classes per owner
+                      Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_CLASSES, Sensision.EMPTY_LABELS, directory.classNames.size());
+                    }
+                  } finally {
+                    if (directory.metadatasLock.isHeldByCurrentThread()) {
+                      directory.metadatasLock.unlock();
+                    }
+                  }
                   Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, -1);
                 }
               }
@@ -1609,12 +1627,20 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
               //byte[] classBytes = Arrays.copyOf(data, 8);            
               //long classId = Longs.fromByteArray(classBytes);
-              
-              if (!directory.metadatas.containsKey(metadata.getName())) {
-                //directory.metadatas.put(metadata.getName(), new ConcurrentHashMap<Long,Metadata>());
-                directory.metadatas.put(metadata.getName(), new ConcurrentSkipListMap<Long,Metadata>(ID_COMPARATOR));
-                directory.classNames.put(classId, metadata.getName());
-                Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_CLASSES, Sensision.EMPTY_LABELS, directory.classNames.size());
+
+              try {
+                directory.metadatasLock.lockInterruptibly();
+                if (!directory.metadatas.containsKey(metadata.getName())) {
+                  //directory.metadatas.put(metadata.getName(), new ConcurrentHashMap<Long,Metadata>());
+                  // This is done under the synchronization of actionsLock
+                  directory.metadatas.put(metadata.getName(), new ConcurrentSkipListMap<Long,Metadata>(ID_COMPARATOR));
+                  directory.classNames.put(classId, metadata.getName());
+                  Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_CLASSES, Sensision.EMPTY_LABELS, directory.classNames.size());
+                }                
+              } finally {
+                if (directory.metadatasLock.isHeldByCurrentThread()) {
+                  directory.metadatasLock.unlock();
+                }
               }
               
               //
@@ -2770,7 +2796,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 break;
               }
             }
-            
+
             if (exclude) {
               continue;
             }
