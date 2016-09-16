@@ -2633,6 +2633,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
     String id = null;
     
+    OutputStream out = response.getOutputStream();
+    
     if (null != this.plugin) {
       
       long nanofind = System.nanoTime();
@@ -2681,9 +2683,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               hits++;
             }
 
-            response.getOutputStream().write(OrderPreservingBase64.encode(data));
-            response.getOutputStream().write('\r');
-            response.getOutputStream().write('\n');
+            OrderPreservingBase64.encodeToStream(data, out);
+            out.write('\r');
+            out.write('\n');
             count++;
           } catch (TException te) {
           }        
@@ -2881,9 +2883,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 hits++;
               }
               
-              response.getOutputStream().write(OrderPreservingBase64.encode(data));
-              response.getOutputStream().write('\r');
-              response.getOutputStream().write('\n');
+              OrderPreservingBase64.encodeToStream(data, out);
+              out.write('\r');
+              out.write('\n');
               count++;
             } catch (TException te) {
               continue;
