@@ -224,7 +224,7 @@ public class Ingress extends AbstractHandler implements Runnable {
    * around 40 bytes
    * FIXME(hbs): need to compute exactly
    */
-  private static int METADATA_CACHE_SIZE = 10000000;
+  private int METADATA_CACHE_SIZE = 10000000;
   
   /**
    * Cache used to determine if we should push metadata into Kafka or if it was previously seen.
