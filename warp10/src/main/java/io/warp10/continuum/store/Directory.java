@@ -374,6 +374,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   final Map<String, byte[]> serializedMetadataCache = new LinkedHashMap<String, byte[]>(100, 0.75F, true) {
     @Override
     protected boolean removeEldestEntry(java.util.Map.Entry<String, byte[]> eldest) {
+      Sensision.set(SensisionConstants.CLASS_WARP_DIRECTORY_METADATA_CACHE_SIZE, Sensision.EMPTY_LABELS, this.size());
       return this.size() > METADATA_CACHE_SIZE;
     }
   };
@@ -2626,7 +2627,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     //
     
     long count = 0;
-
+    long hits = 0;
+    
     TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
 
     String id = null;
@@ -2675,6 +2677,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               data = serializer.serialize(metadata);
               // cache content
               serializedMetadataCache.put(id,data);
+            } else {
+              hits++;
             }
 
             response.getOutputStream().write(OrderPreservingBase64.encode(data));
@@ -2690,8 +2694,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       } finally {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_CALLS, Sensision.EMPTY_LABELS, 1);
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_RESULTS, Sensision.EMPTY_LABELS, count);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_TIME_NANOS, Sensision.EMPTY_LABELS, time);                  
+        Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_METADATA_CACHE_HITS, Sensision.EMPTY_LABELS, hits);
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_TIME_NANOS, Sensision.EMPTY_LABELS, time);        
       }
+      return;
     } else {
       
       String exactClassName = null;
@@ -2871,6 +2877,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 data = serializer.serialize(metadata);
                 // cache content
                 serializedMetadataCache.put(id,data);
+              } else {
+                hits++;
               }
               
               response.getOutputStream().write(OrderPreservingBase64.encode(data));
@@ -2889,6 +2897,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_REQUESTS, Sensision.EMPTY_LABELS, 1);
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_RESULTS, Sensision.EMPTY_LABELS, count);
+    Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_METADATA_CACHE_HITS, Sensision.EMPTY_LABELS, hits);
     nano = System.nanoTime() - nano;
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_TIME_US, Sensision.EMPTY_LABELS, nano / 1000);
   }

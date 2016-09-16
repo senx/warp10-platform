@@ -51,6 +51,16 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_WARP_REVISION = "warp.revision";
   
   /**
+   * Number of entries in the serialized metadata cache 
+   */
+  public static final String CLASS_WARP_DIRECTORY_METADATA_CACHE_SIZE = "warp.directory.metadata.cache.size";
+  
+  /**
+   * Number of hits in the serialized metadata cache
+   */
+  public static final String CLASS_WARP_DIRECTORY_METADATA_CACHE_HITS = "warp.directory.metadata.cache.hits";
+
+  /**
    * Number of collisions detected for class Id
    */
   public static final String CLASS_WARP_DIRECTORY_CLASS_COLLISIONS = "warp.directory.class.collisions";
