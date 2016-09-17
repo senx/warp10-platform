@@ -89,91 +89,83 @@ public class OrderPreservingBase64 {
   }
   
   public static void encodeToStream(byte[] data, OutputStream out) throws IOException {
+    encodeToStream(out, data, 0, data.length);
+  }
+  
+  public static void encodeToStream(OutputStream out, byte[] data, int offset, int datalen) throws IOException {
     int i = 0;
     
-    int len = 4 * (data.length / 3) + (data.length % 3 != 0 ? 1 + (data.length % 3) : 0);
+    int len = 4 * (datalen / 3) + (datalen % 3 != 0 ? 1 + (datalen % 3) : 0);
     
-    byte[] buf = new byte[8192];
     int bufidx = 0;
     
-    for (i = 0; i < data.length; i++) {
-      
-      // Flush buf if less than 3 bytes remain
-      if (bufidx > buf.length - 4) {
-        out.write(buf, 0, bufidx);
-        bufidx = 0;
-      }
-      
-      switch (i % 3) {
+    for (i = offset; i < offset + datalen; i++) {
+            
+      switch (bufidx % 3) {
         case 0:
-          buf[bufidx++] = ALPHABET[(data[i] >> 2)& 0x3f];
+          out.write(ALPHABET[(data[i] >> 2)& 0x3f]);
           break;
         case 1:
-          buf[bufidx++] = ALPHABET[((data[i-1] & 0x3) << 4)| ((data[i] >> 4) & 0xf)];
+          out.write(ALPHABET[((data[i-1] & 0x3) << 4)| ((data[i] >> 4) & 0xf)]);
           break;
         case 2:
-          buf[bufidx++] = ALPHABET[((data[i-1] & 0xf) << 2)| ((data[i] >> 6) & 0x3)];
-          buf[bufidx++] = ALPHABET[data[i] & 0x3f];
+          out.write(ALPHABET[((data[i-1] & 0xf) << 2)| ((data[i] >> 6) & 0x3)]);
+          out.write(ALPHABET[data[i] & 0x3f]);
           break;
       }
+      bufidx++;
     }
     
-    if (i < len) {
-      switch (data.length % 3) {
+    if (bufidx < len) {
+      switch (datalen % 3) {
         case 1:
-          buf[bufidx++] = ALPHABET[(data[data.length - 1] << 4) & 0x30];
+          out.write(ALPHABET[(data[offset + datalen - 1] << 4) & 0x30]);
           break;
         case 2:
-          buf[bufidx++] = ALPHABET[(data[data.length - 1] << 2) & 0x3c];
+          out.write(ALPHABET[(data[offset + datalen - 1] << 2) & 0x3c]);
           break;
       }
     }
-        
-    out.write(buf, 0, bufidx);
   }
 
   public static void encodeToWriter(byte[] data, Writer out) throws IOException {
+    encodeToWriter(out, data, 0, data.length);
+  }
+  
+  public static void encodeToWriter(Writer out, byte[] data, int offset, int datalen) throws IOException {
     int i = 0;
     
-    int len = 4 * (data.length / 3) + (data.length % 3 != 0 ? 1 + (data.length % 3) : 0);
+    int len = 4 * (datalen / 3) + (datalen % 3 != 0 ? 1 + (datalen % 3) : 0);
     
-    char[] buf = new char[8192];
     int bufidx = 0;
     
-    for (i = 0; i < data.length; i++) {
-      
-      // Flush buf if less than 3 bytes remain
-      if (bufidx > buf.length - 4) {
-        out.write(buf, 0, bufidx);
-        bufidx = 0;
-      }
-      
-      switch (i % 3) {
+    for (i = offset; i < offset + datalen; i++) {
+            
+      switch (bufidx % 3) {
         case 0:
-          buf[bufidx++] = (char) ALPHABET[(data[i] >> 2)& 0x3f];
+          out.write(ALPHABET[(data[i] >> 2)& 0x3f]);
           break;
         case 1:
-          buf[bufidx++] = (char) ALPHABET[((data[i-1] & 0x3) << 4)| ((data[i] >> 4) & 0xf)];
+          out.write(ALPHABET[((data[i-1] & 0x3) << 4)| ((data[i] >> 4) & 0xf)]);
           break;
         case 2:
-          buf[bufidx++] = (char) ALPHABET[((data[i-1] & 0xf) << 2)| ((data[i] >> 6) & 0x3)];
-          buf[bufidx++] = (char) ALPHABET[data[i] & 0x3f];
+          out.write(ALPHABET[((data[i-1] & 0xf) << 2)| ((data[i] >> 6) & 0x3)]);
+          out.write(ALPHABET[data[i] & 0x3f]);
           break;
       }
+      bufidx++;
     }
     
-    if (i < len) {
-      switch (data.length % 3) {
+    if (bufidx < len) {
+      switch (datalen % 3) {
         case 1:
-          buf[bufidx++] = (char) ALPHABET[(data[data.length - 1] << 4) & 0x30];
+          out.write(ALPHABET[(data[offset + datalen - 1] << 4) & 0x30]);
           break;
         case 2:
-          buf[bufidx++] = (char) ALPHABET[(data[data.length - 1] << 2) & 0x3c];
+          out.write(ALPHABET[(data[offset + datalen - 1] << 2) & 0x3c]);
           break;
       }
     }
-        
-    out.write(buf, 0, bufidx);
   }
 
   public static byte[] decode(byte[] data) {
