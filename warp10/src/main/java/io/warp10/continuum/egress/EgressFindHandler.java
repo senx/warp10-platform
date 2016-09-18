@@ -114,15 +114,7 @@ public class EgressFindHandler extends AbstractHandler {
     }
     
     String[] selectors = selector.split("\\s+");
-    
-    if (json) {
-      resp.setContentType("application/json");  
-    } else {
-      resp.setContentType("text/plain");      
-    }
-    
-    resp.setCharacterEncoding("UTF-8");
-
+        
     PrintWriter pw = resp.getWriter();
 
     if (json) {
