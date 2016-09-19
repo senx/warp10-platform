@@ -6003,7 +6003,7 @@ public class GTSHelper {
       throw new WarpScriptException("Alphabet size MUST be a power of two.");      
     }
 
-    if (levels < 2 || levels > SAXUtils.SAX_MAX_LEVELS) {
+    if (levels < 1 || levels > SAXUtils.SAX_MAX_LEVELS) {
       throw new WarpScriptException("Alphabet size MUST be a power of two between 2 and 2^" + SAXUtils.SAX_MAX_LEVELS);
     }
 
