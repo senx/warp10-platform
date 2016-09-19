@@ -302,6 +302,10 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     AtomicLong gtscount = (AtomicLong) stack.getAttribute(WarpScriptStack.ATTRIBUTE_GTS_COUNT);    
     
+    // Variables to keep track of the last Metadata and fetched count
+    Metadata lastMetadata = null;
+    long lastCount = 0L;
+    
     try {
       while(iter.hasNext()) {
         
@@ -389,7 +393,15 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         try (GTSDecoderIterator gtsiter = gtsStore.fetch(rtoken, metadatas, (long) params.get(PARAM_END), timespan, fromArchive, writeTimestamp)) {
           while(gtsiter.hasNext()) {
             GTSDecoder decoder = gtsiter.next();
-                    
+            
+            boolean identical = true;
+            
+            if (null == lastMetadata || !lastMetadata.equals(decoder.getMetadata())) {
+              lastMetadata = decoder.getMetadata();
+              identical = false;
+              lastCount = 0;
+            }
+                         
             GeoTimeSerie gts;
             
             //
@@ -413,6 +425,12 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               Metadata decoderMeta = decoder.getMetadata();
               
               while(decoder.next()) {
+                
+                // If we've read enough data, exit
+                if (identical && timespan < 0 && lastCount + count >= -timespan) {
+                  break;
+                }
+                
                 count++;
                 long ts = decoder.getTimestamp();
                 long location = decoder.getLocation();
@@ -457,6 +475,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                 throw new WarpScriptException(getName() + " exceeded limit of " + fetchLimit + " datapoints, current count is " + fetched.get());
               }
 
+              lastCount += count;
+              
               continue;
             }
             
@@ -466,6 +486,15 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               gts = decoder.decode();
             }
         
+            if (identical && timespan < 0 && lastCount + GTSHelper.nvalues(gts) > -timespan) {
+              // We would add too many datapoints, we will shrink the GTS.
+              // As it it sorted in reverse order of the ticks (since the datapoints are organized
+              // this way in HBase), we just need to shrink the GTS.
+              gts = GTSHelper.shrinkTo(gts, (int) Math.max(-timespan - lastCount, 0));
+            }
+            
+            lastCount += GTSHelper.nvalues(gts);
+            
             //
             // Remove producer/owner labels
             //
