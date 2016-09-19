@@ -1127,7 +1127,6 @@ public class Ingress extends AbstractHandler implements Runnable {
       
       
       response.setStatus(HttpServletResponse.SC_OK);
-      response.setContentType("text/plain");
 
       PrintWriter pw = response.getWriter();
       StringBuilder sb = new StringBuilder();
