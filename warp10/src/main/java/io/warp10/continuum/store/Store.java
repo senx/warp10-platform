@@ -474,6 +474,20 @@ public class Store extends Thread {
       if (null != this.conn) {
         try {
           this.conn.close();
+          
+          //
+          // Wait for the connection to be closed
+          //
+          
+          long nano = System.nanoTime();
+          
+          while(!this.conn.isClosed() && !this.conn.isAborted()) {
+            LockSupport.parkNanos(100000000L);
+          }
+          
+          nano = System.nanoTime() - nano;
+          
+          LOG.info("HBase connection closed after " + (nano / 1000000.0D) + " ms.");
         } catch (Exception e) {        
         }        
       }
