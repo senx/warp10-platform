@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.KeyValueUtil;
@@ -125,6 +124,12 @@ public class SlicedRowFilter extends FilterBase {
    * current row is in a different range or not
    */
   private int currentRange = -1;
+  
+  /**
+   * Minimum range we expect to be in, if before that range, row should be excluded and SEEK_NEXT_USING_HINT suggested.
+   * This is to overcome a problem encountered once, where, it seems, getNextKeyHint was not called.
+   */
+  private int minRange = -1;
   
 //  private long nano;
 //  private long resetCount = 0;
@@ -340,6 +345,7 @@ public class SlicedRowFilter extends FilterBase {
   /**
    * @see HBASE-9717 for an API change suggestion that would speed up scanning.
    */
+      
   @Override
   public boolean filterRowKey(byte[] buffer, int offset, int length) {
     if (done) {
@@ -464,6 +470,11 @@ public class SlicedRowFilter extends FilterBase {
     return false;
   }
   
+  public boolean filterRowKey(Cell cell) {
+    byte[] row = cell.getRowArray();
+    return filterRowKey(row, cell.getRowOffset(), cell.getRowLength());    
+  }
+
   @Override
   public ReturnCode filterKeyValue(Cell cell) throws IOException {
     if (done) {
@@ -512,6 +523,7 @@ public class SlicedRowFilter extends FilterBase {
     
     if (Bytes.compareTo(slice, 0, this.slicesLength, this.rangekeys, 0, this.slicesLength) < 0) {
       hintOffset = 0;
+      minRange = 0;
       // Re-initialize number of values to consider
       this.nvalues = this.count;
       return ReturnCode.SEEK_NEXT_USING_HINT;
@@ -546,7 +558,7 @@ public class SlicedRowFilter extends FilterBase {
         this.nvalues = this.count;
       }
       this.currentRange = insertionPoint / 2;
-      if (this.nvalues > 0) {
+      if (this.nvalues > 0 && this.currentRange >= this.minRange) {
         includeRow = true;
         // Decrement number of remaining values to consider
         this.nvalues--;
@@ -558,6 +570,7 @@ public class SlicedRowFilter extends FilterBase {
         //
         
         hintOffset = this.slicesLength * ((0 == insertionPoint % 2) ? insertionPoint + 2 : insertionPoint + 1);
+        minRange = (hintOffset / this.slicesLength) / 2;
         this.nvalues = this.count;
         return ReturnCode.SEEK_NEXT_USING_HINT;
       }
@@ -570,6 +583,7 @@ public class SlicedRowFilter extends FilterBase {
     
     if (-1 == insertionPoint) {
       hintOffset = 0;
+      minRange = 0;
       // Re-initialize number of values to consider
       this.nvalues = this.count;
       return ReturnCode.SEEK_NEXT_USING_HINT;
@@ -591,6 +605,7 @@ public class SlicedRowFilter extends FilterBase {
     if (-(insertionPoint + 1) % 2 == 0) {
       // hintOffset will be the start of the next range
       hintOffset = this.slicesLength * (-(insertionPoint + 1));
+      minRange = (hintOffset / this.slicesLength) / 2;
       // Re-initialize number of values to consider
       this.nvalues = this.count;
       return ReturnCode.SEEK_NEXT_USING_HINT;
@@ -602,7 +617,7 @@ public class SlicedRowFilter extends FilterBase {
     
     this.currentRange = -(insertionPoint + 1) / 2;
     
-    if (this.nvalues > 0) {
+    if (this.nvalues > 0 && this.currentRange >= this.minRange) {
       //
       // Set 'includeRow' to true so we can fast track columns inclusion
       //
@@ -619,6 +634,7 @@ public class SlicedRowFilter extends FilterBase {
       //
       
       hintOffset = this.slicesLength * (-(insertionPoint + 1) + 1);
+      minRange = (hintOffset / this.slicesLength) / 2;
       // Re-initialize number of values to consider
       this.nvalues = this.count;
       return ReturnCode.SEEK_NEXT_USING_HINT;
@@ -630,11 +646,23 @@ public class SlicedRowFilter extends FilterBase {
     //hintCount++;
     KeyValue hint = null;
         
-    if (this.hintOffset >= 0 && this.hintOffset <= this.rangekeys.length - slicesLength + 1) {
+    if (this.hintOffset >= 0 && this.hintOffset <= this.rangekeys.length - slicesLength) {
       hint = KeyValueUtil.createFirstOnRow(this.rangekeys, this.hintOffset, (short) (this.bounds[1] + 1));
+      minRange = (hintOffset / this.slicesLength) / 2;
     } else {
       done = true;
     }
+
+    /*
+    byte[] row = currentKV.getRowArray();
+    System.out.println("getNextKeyHint " + encodeHex(row, currentKV.getRowOffset(), currentKV.getRowLength()) + " nvalues = " + this.nvalues + " count = " + this.count + " hintOffset = " + hintOffset);
+    if (null != hint) {
+      row = hint.getRowArray();
+      System.out.println("  hint = " + encodeHex(row, hint.getRowOffset(), hint.getRowLength())); 
+    } else {
+      System.out.println(" hint = null");
+    }
+    */
     
     return hint;
   }
@@ -773,6 +801,8 @@ public class SlicedRowFilter extends FilterBase {
   
   public static SlicedRowFilter parseFrom(final byte [] pbBytes) throws DeserializationException {
         
+    //System.out.println("parseFrom " + encodeHex(pbBytes));
+    
     ByteBuffer bb = ByteBuffer.wrap(pbBytes).order(ByteOrder.BIG_ENDIAN);
     
     SlicedRowFilter filter = new SlicedRowFilter();
@@ -817,7 +847,7 @@ public class SlicedRowFilter extends FilterBase {
       sb.append("\n");
     }
 
-    sb.append(new String(Hex.encodeHexString(this.rangekeys)));
+    sb.append(encodeHex(this.rangekeys));
     /*
     for (Pair<byte[],byte[]> pair: this.ranges) {
       sb.append(" ");
@@ -835,6 +865,22 @@ public class SlicedRowFilter extends FilterBase {
       sb.append("\n");
     }
     */
+    return sb.toString();
+  }
+  
+  private static final String HEXDIGITS = "0123456789ABCDEF";
+  
+  private static String encodeHex(byte[] buf) {
+    return encodeHex(buf, 0, buf.length);
+  }
+  private static String encodeHex(byte[] buf, int offset, int len) {
+    StringBuilder sb = new StringBuilder();
+    
+    for (int i = 0; i < len; i++) {
+      sb.append(HEXDIGITS.charAt((buf[offset + i] & 0xF0) >>> 4));
+      sb.append(HEXDIGITS.charAt(buf[offset + i] & 0xF));
+    }
+    
     return sb.toString();
   }
 }
