@@ -481,8 +481,17 @@ public class Store extends Thread {
           
           long nano = System.nanoTime();
           
+          int loop = 0;
+          
+          LOG.info("Closing HBase connection.");
+          
           while(!this.conn.isClosed() && !this.conn.isAborted()) {
             LockSupport.parkNanos(100000000L);
+            loop++;
+            
+            if (0 == loop % 10) {
+              LOG.info("Still waiting for HBase connection to be closed... " + ((System.nanoTime() - nano) / 1000000.0D) + " ms elapsed.");
+            }
           }
           
           nano = System.nanoTime() - nano;
