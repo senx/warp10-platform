@@ -408,7 +408,6 @@ public class GeoDirectory extends AbstractHandler implements Runnable, GeoDirect
     
     Properties subsProps = new Properties();
     // @see http://kafka.apache.org/documentation.html#producerconfigs
-    subsProps.setProperty("zookeeper.connect", properties.getProperty(Configuration.GEODIR_KAFKA_SUBS_ZKCONNECT));
     subsProps.setProperty("metadata.broker.list", properties.getProperty(Configuration.GEODIR_KAFKA_SUBS_BROKERLIST));
     if (null != properties.getProperty(Configuration.GEODIR_KAFKA_SUBS_PRODUCER_CLIENTID)) {
       subsProps.setProperty("client.id", properties.getProperty(Configuration.GEODIR_KAFKA_SUBS_PRODUCER_CLIENTID));
@@ -428,7 +427,6 @@ public class GeoDirectory extends AbstractHandler implements Runnable, GeoDirect
     
     Properties plasmaProps = new Properties();
     // @see http://kafka.apache.org/documentation.html#producerconfigs
-    plasmaProps.setProperty("zookeeper.connect", properties.getProperty(Configuration.GEODIR_KAFKA_DATA_ZKCONNECT));
     plasmaProps.setProperty("metadata.broker.list", properties.getProperty(Configuration.GEODIR_KAFKA_DATA_BROKERLIST));
     if (null != properties.getProperty(Configuration.GEODIR_KAFKA_DATA_PRODUCER_CLIENTID)) {
       plasmaProps.setProperty("client.id", properties.getProperty(Configuration.GEODIR_KAFKA_DATA_PRODUCER_CLIENTID));

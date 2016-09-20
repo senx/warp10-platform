@@ -121,7 +121,6 @@ public class KafkaWebCallService {
 
     Properties properties = new Properties();
     // @see http://kafka.apache.org/documentation.html#producerconfigs
-    properties.setProperty("zookeeper.connect", props.getProperty(Configuration.WEBCALL_KAFKA_ZKCONNECT));
     properties.setProperty("metadata.broker.list", props.getProperty(Configuration.WEBCALL_KAFKA_BROKERLIST));
     
     if (null != props.getProperty(Configuration.WEBCALL_KAFKA_PRODUCER_CLIENTID)) {

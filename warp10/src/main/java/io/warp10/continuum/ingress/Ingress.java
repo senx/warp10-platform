@@ -319,7 +319,6 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     Properties metaProps = new Properties();
     // @see http://kafka.apache.org/documentation.html#producerconfigs
-    metaProps.setProperty("zookeeper.connect", props.getProperty(Configuration.INGRESS_KAFKA_META_ZKCONNECT));
     metaProps.setProperty("metadata.broker.list", props.getProperty(Configuration.INGRESS_KAFKA_META_BROKERLIST));
     if (null != props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CLIENTID)) {
       metaProps.setProperty("client.id", props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CLIENTID));
@@ -343,7 +342,6 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     Properties dataProps = new Properties();
     // @see http://kafka.apache.org/documentation.html#producerconfigs
-    dataProps.setProperty("zookeeper.connect", props.getProperty(Configuration.INGRESS_KAFKA_DATA_ZKCONNECT));
     dataProps.setProperty("metadata.broker.list", props.getProperty(Configuration.INGRESS_KAFKA_DATA_BROKERLIST));
     if (null != props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_CLIENTID)) {
       dataProps.setProperty("client.id", props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_CLIENTID));
@@ -385,7 +383,6 @@ public class Ingress extends AbstractHandler implements Runnable {
     /*
     Properties deleteProps = new Properties();
     // @see http://kafka.apache.org/documentation.html#producerconfigs
-    deleteProps.setProperty("zookeeper.connect", props.getProperty(INGRESS_KAFKA_D_ZKCONNECT));
     deleteProps.setProperty("metadata.broker.list", props.getProperty(INGRESS_KAFKA_DELETE_BROKERLIST));
     deleteProps.setProperty("request.required.acks", "-1");
     deleteProps.setProperty("producer.type","sync");
