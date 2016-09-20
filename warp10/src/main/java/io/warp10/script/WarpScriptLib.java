@@ -435,6 +435,7 @@ public class WarpScriptLib {
     functions.put("[]", new EMPTYLIST("[]"));
     functions.put(LIST_START, new MARK(LIST_START));
     functions.put(LIST_END, new ENDLIST(LIST_END));
+    functions.put("STACKTOLIST", new STACKTOLIST("STACKTOLIST"));
     functions.put("{}", new EMPTYMAP("{}"));
     functions.put("IMMUTABLE", new IMMUTABLE("IMMUTABLE"));
     functions.put(MAP_START, new MARK(MAP_START));
@@ -461,8 +462,7 @@ public class WarpScriptLib {
     functions.put(PARSESELECTOR, new PARSESELECTOR(PARSESELECTOR));
     functions.put("TOSELECTOR", new TOSELECTOR("TOSELECTOR"));
     functions.put("PARSE", new PARSE("PARSE"));
-    
-    
+        
     // We do not expose DUMP, it might allocate too much memory
     //functions.put("DUMP", new DUMP("DUMP"));
     
