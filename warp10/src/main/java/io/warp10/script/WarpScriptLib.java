@@ -257,6 +257,8 @@ import io.warp10.script.unary.TOSTRING;
 import io.warp10.script.unary.TOTIMESTAMP;
 import io.warp10.script.unary.UNIT;
 import io.warp10.warp.sdk.WarpScriptExtension;
+import org.apache.commons.lang3.JavaVersion;
+import org.apache.commons.lang3.SystemUtils;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -702,7 +704,12 @@ public class WarpScriptLib {
     functions.put("URLFETCH", new URLFETCH("URLFETCH"));
     functions.put("MATCH", new MATCH("MATCH"));
     functions.put("MATCHER", new MATCHER("MATCHER"));
-    functions.put("TEMPLATE", new TEMPLATE("TEMPLATE"));
+
+    if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
+      functions.put("TEMPLATE", new TEMPLATE("TEMPLATE"));
+      functions.put("TOTIMESTAMP", new TOTIMESTAMP("TOTIMESTAMP"));
+    }
+
     functions.put("DISCORDS", new DISCORDS("DISCORDS", true));
     functions.put("ZDISCORDS", new DISCORDS("ZDISCORDS", false));
     functions.put("INTEGRATE", new INTEGRATE("INTEGRATE"));
@@ -760,7 +767,6 @@ public class WarpScriptLib {
     functions.put("HUMANDURATION", new HUMANDURATION("HUMANDURATION"));
     functions.put("ISODURATION", new ISODURATION("ISODURATION"));
     functions.put("ISO8601", new ISO8601("ISO8601"));                   // doc/einstein/function_ISO8601        Example done    Unit test
-    functions.put("TOTIMESTAMP", new TOTIMESTAMP("TOTIMESTAMP"));
     functions.put("NOTBEFORE", new NOTBEFORE("NOTBEFORE"));
     functions.put("NOTAFTER", new NOTAFTER("NOTAFTER"));
     functions.put("TSELEMENTS", new TSELEMENTS("TSELEMENTS"));
