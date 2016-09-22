@@ -535,11 +535,6 @@ ingress.kafka.metadata.commitperiod = 1000
 ingress.kafka.metadata.nthreads = 2
 
 //
-// ZK Connect String for the data kafka cluster
-//
-ingress.kafka.data.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
-
-//
 // Kafka broker list for the 'data' topic
 //
 ingress.kafka.data.brokerlist = 127.0.0.1:9092
@@ -857,11 +852,6 @@ plasma.backend.kafka.in.commitperiod = 1000
 // Number of threads to run for reading off of Kafka
 //
 plasma.backend.kafka.in.nthreads = 2
-
-//
-// Zookeeper ZK connect string for Kafka ('out' topic)
-//  
-plasma.backend.kafka.out.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
 
 //
 // Kafka broker list for the 'out' topic

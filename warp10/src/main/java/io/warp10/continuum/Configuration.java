@@ -574,11 +574,6 @@ public class Configuration {
   public static final String INGRESS_KAFKA_META_NTHREADS = "ingress.kafka.metadata.nthreads";
 
   /**
-   * ZK Connect String for the data kafka cluster
-   */
-  public static final String INGRESS_KAFKA_DATA_ZKCONNECT = "ingress.kafka.data.zkconnect";
-  
-  /**
    * Kafka broker list for the 'data' topic
    */
   public static final String INGRESS_KAFKA_DATA_BROKERLIST = "ingress.kafka.data.brokerlist";
@@ -921,11 +916,6 @@ public class Configuration {
    */
   public static final String PLASMA_BACKEND_KAFKA_IN_NTHREADS = "plasma.backend.kafka.in.nthreads";
 
-  /**
-   * Zookeeper ZK connect string for Kafka ('out' topic)
-   */  
-  public static final String PLASMA_BACKEND_KAFKA_OUT_ZKCONNECT = "plasma.backend.kafka.out.zkconnect";
-  
   /**
    * Kafka broker list for the 'out' topic
    */

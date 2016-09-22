@@ -127,7 +127,6 @@ public class Ingress extends AbstractHandler implements Runnable {
     Configuration.INGRESS_KAFKA_META_GROUPID,
     Configuration.INGRESS_KAFKA_META_NTHREADS,
     Configuration.INGRESS_KAFKA_META_COMMITPERIOD,
-    Configuration.INGRESS_KAFKA_DATA_ZKCONNECT,
     Configuration.INGRESS_KAFKA_DATA_BROKERLIST,
     Configuration.INGRESS_KAFKA_DATA_TOPIC,
     Configuration.INGRESS_KAFKA_ARCHIVE_ZKCONNECT,
@@ -319,7 +318,6 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     Properties metaProps = new Properties();
     // @see http://kafka.apache.org/documentation.html#producerconfigs
-    metaProps.setProperty("zookeeper.connect", props.getProperty(Configuration.INGRESS_KAFKA_META_ZKCONNECT));
     metaProps.setProperty("metadata.broker.list", props.getProperty(Configuration.INGRESS_KAFKA_META_BROKERLIST));
     if (null != props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CLIENTID)) {
       metaProps.setProperty("client.id", props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CLIENTID));
@@ -343,7 +341,6 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     Properties dataProps = new Properties();
     // @see http://kafka.apache.org/documentation.html#producerconfigs
-    dataProps.setProperty("zookeeper.connect", props.getProperty(Configuration.INGRESS_KAFKA_DATA_ZKCONNECT));
     dataProps.setProperty("metadata.broker.list", props.getProperty(Configuration.INGRESS_KAFKA_DATA_BROKERLIST));
     if (null != props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_CLIENTID)) {
       dataProps.setProperty("client.id", props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_CLIENTID));
