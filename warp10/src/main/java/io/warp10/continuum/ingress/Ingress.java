@@ -382,7 +382,6 @@ public class Ingress extends AbstractHandler implements Runnable {
     /*
     Properties deleteProps = new Properties();
     // @see http://kafka.apache.org/documentation.html#producerconfigs
-    deleteProps.setProperty("zookeeper.connect", props.getProperty(INGRESS_KAFKA_D_ZKCONNECT));
     deleteProps.setProperty("metadata.broker.list", props.getProperty(INGRESS_KAFKA_DELETE_BROKERLIST));
     deleteProps.setProperty("request.required.acks", "-1");
     deleteProps.setProperty("producer.type","sync");
