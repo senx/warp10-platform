@@ -708,6 +708,9 @@ public class WarpScriptLib {
     if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
       functions.put("TEMPLATE", new TEMPLATE("TEMPLATE"));
       functions.put("TOTIMESTAMP", new TOTIMESTAMP("TOTIMESTAMP"));
+    } else {
+      functions.put("TEMPLATE", new FAIL("TEMPLATE requires JAVA 1.8+"));
+      functions.put("TOTIMESTAMP", new FAIL("TOTIMESTAMP requires JAVA 1.8+"));
     }
 
     functions.put("DISCORDS", new DISCORDS("DISCORDS", true));
