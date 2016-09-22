@@ -1404,17 +1404,26 @@ geodir.zk.directory.znode = /zk/warp/localhost/services
 
 //
 // Jar Repository
+// 
 //
 
+// The path to a directory containing jar files from which UDFs can be loaded
 #warpscript.jars.directory = 
+
+// How often (in ms) should Warp 10 rescan the above directory
 #warpscript.jars.refresh = 60000
+
+// Set to 'true' to allow loading the UDFs from the classpath when no directory is explicitely defined
 #warpscript.jars.fromclasspath = 
 
 //
 // Macro Repository
 //
 
+// Directory which contains subdirectories with macros
 #warpscript.repository.directory = 
+
+// How often (in ms) should the above directory be rescanned
 #warpscript.repository.refresh = 60000
 
 //
