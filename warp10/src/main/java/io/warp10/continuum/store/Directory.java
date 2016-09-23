@@ -21,6 +21,7 @@ import io.warp10.continuum.DirectoryUtil;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.KafkaOffsetCounters;
 import io.warp10.continuum.MetadataUtils;
+import io.warp10.continuum.MetadataUtils.MetadataID;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.DirectoryFindRequest;
@@ -371,9 +372,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   /**
    * Cache to keep a serialized version of recently returned Metadata.
    */
-  final Map<String, byte[]> serializedMetadataCache = new LinkedHashMap<String, byte[]>(100, 0.75F, true) {
+  final Map<MetadataID, byte[]> serializedMetadataCache = new LinkedHashMap<MetadataID, byte[]>(100, 0.75F, true) {
     @Override
-    protected boolean removeEldestEntry(java.util.Map.Entry<String, byte[]> eldest) {
+    protected boolean removeEldestEntry(java.util.Map.Entry<MetadataID, byte[]> eldest) {
       Sensision.set(SensisionConstants.CLASS_WARP_DIRECTORY_METADATA_CACHE_SIZE, Sensision.EMPTY_LABELS, this.size());
       return this.size() > METADATA_CACHE_SIZE;
     }
@@ -1334,7 +1335,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         
         // TODO(hbs): allow setting of writeBufferSize
 
-        String id = null;
+        MetadataID id = null;
         
         while (iter.hasNext()) {
           Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
@@ -1498,7 +1499,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               // Clear the cache
               //
               
-              id = MetadataUtils.idString(metadata);
+              id = MetadataUtils.id(metadata);
               directory.serializedMetadataCache.remove(id);
               
               if (!directory.delete) {
@@ -1600,7 +1601,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             //
             
             if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
-              id = MetadataUtils.idString(metadata);
+              id = MetadataUtils.id(metadata);
               directory.serializedMetadataCache.remove(id);
             }
                         
@@ -2631,7 +2632,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     
     TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
 
-    String id = null;
+    MetadataID id = null;
     
     OutputStream out = response.getOutputStream();
     
@@ -2667,7 +2668,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             // Extract id 
             //
             
-            id = MetadataUtils.idString(id, metadata);
+            id = MetadataUtils.id(id, metadata);
             
             //
             // Attempt to retrieve serialized content from the cache
@@ -2678,7 +2679,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             if (null == data) {
               data = serializer.serialize(metadata);
               // cache content
-              serializedMetadataCache.put(MetadataUtils.idString(metadata),data);
+              serializedMetadataCache.put(MetadataUtils.id(metadata),data);
             } else {
               hits++;
             }
@@ -2867,7 +2868,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               // Extract id 
               //
               
-              id = MetadataUtils.idString(id, metadata);
+              id = MetadataUtils.id(id, metadata);
               
               //
               // Attempt to retrieve serialized content from the cache
@@ -2878,7 +2879,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               if (null == data) {
                 data = serializer.serialize(metadata);
                 // cache content
-                serializedMetadataCache.put(MetadataUtils.idString(metadata),data);
+                serializedMetadataCache.put(MetadataUtils.id(metadata),data);
               } else {
                 hits++;
               }

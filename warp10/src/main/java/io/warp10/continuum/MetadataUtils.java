@@ -45,6 +45,26 @@ public class MetadataUtils {
   
   private static final Pattern METADATA_PATTERN = Pattern.compile("^+([^\\}]+)\\{([^\\}]*)\\}\\{([^\\}]*)\\}$");
   
+  public static class MetadataID {
+    private long classId;
+    private long labelsId;
+    
+    public MetadataID(Metadata metadata) {
+      this.classId = classId;
+      this.labelsId = labelsId;
+    }
+    
+    @Override
+    public boolean equals(Object obj) {
+      MetadataID id = (MetadataID) obj;
+      if (obj instanceof MetadataID) {
+        return this.classId == id.classId && this.labelsId == id.labelsId;
+      } else {
+        return false;
+      }
+    }
+  }
+  
   public static Metadata parseMetadata(String str) {
     Matcher m = METADATA_PATTERN.matcher(str.trim());
     
@@ -144,50 +164,18 @@ public class MetadataUtils {
     return true;
   }
 
-  /**
-   * Fill a String's char array with the metadata id
-   * @param container
-   * @param meta
-   */
-  public static String idString(String container, Metadata meta) {
-    
-    if (null == container) {
-      return idString(meta);
-    }
-    
-    char[] chars = UnsafeString.getChars(container);
-    if (chars.length != 8) {
-      throw new RuntimeException("Invalid container size.");
-    }
-    //
-    // Fill the char array
-    //    
-    long id = meta.getLabelsId();
-    int offset = 4;
-    for (int i = 3; i >= 0; i--) {
-      chars[offset + i] = (char) (id & 0xFFFFL);
-      id >>>= 16;
-    }    
-    offset = 0;
-    id = meta.getClassId();
-    for (int i = 3; i >= 0; i--) {
-      chars[offset + i] = (char) (id & 0xFFFFL);
-      id >>>= 16;
-    }    
-    //
-    // Reset hashcode
-    //
-    UnsafeString.resetHash(container);
-    
-    return container;
+  public static MetadataID id(Metadata meta) {
+    return new MetadataID(meta);
   }
   
-  public static String idString(Metadata meta) {
-    String id = new String("01234567");
-    return idString(id, meta);
-  }
-  
-  public static byte[] idBytes(String id) {
-    return id.getBytes(Charsets.UTF_16);
+  public static MetadataID id(MetadataID id, Metadata meta) {
+    if (null == id) {
+      return id(meta);
+    }
+    
+    id.classId = meta.getClassId();
+    id.labelsId = meta.getLabelsId();
+    
+    return id;
   }
 }
