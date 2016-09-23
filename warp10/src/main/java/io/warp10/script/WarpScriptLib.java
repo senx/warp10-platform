@@ -701,7 +701,6 @@ public class WarpScriptLib {
     functions.put("META", new META("META"));
     functions.put("DELETE", new DELETE("DELETE"));
     functions.put("WEBCALL", new WEBCALL("WEBCALL"));
-    functions.put("URLFETCH", new URLFETCH("URLFETCH"));
     functions.put("MATCH", new MATCH("MATCH"));
     functions.put("MATCHER", new MATCHER("MATCHER"));
 
