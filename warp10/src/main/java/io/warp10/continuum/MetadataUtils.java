@@ -50,14 +50,14 @@ public class MetadataUtils {
     private long labelsId;
     
     public MetadataID(Metadata metadata) {
-      this.classId = classId;
-      this.labelsId = labelsId;
+      this.classId = metadata.getClassId();
+      this.labelsId = metadata.getLabelsId();
     }
     
     @Override
     public boolean equals(Object obj) {
-      MetadataID id = (MetadataID) obj;
       if (obj instanceof MetadataID) {
+        MetadataID id = (MetadataID) obj;
         return this.classId == id.classId && this.labelsId == id.labelsId;
       } else {
         return false;
