@@ -189,7 +189,7 @@ public class Store extends Thread {
     this.keystore = keystore;
     this.properties = properties;
     
-    if ("true".equals(properties.containsKey("store.skip.write"))) {
+    if ("true".equals(properties.getProperty("store.skip.write"))) {
       this.SKIP_WRITE = true;
     } else {
       this.SKIP_WRITE = false;
