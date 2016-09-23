@@ -63,6 +63,11 @@ public class MetadataUtils {
         return false;
       }
     }
+    
+    @Override
+    public int hashCode() {
+      return (int) ((this.classId ^ this.labelsId) & 0xFFFFFFFFL);
+    }
   }
   
   public static Metadata parseMetadata(String str) {
