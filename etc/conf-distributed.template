@@ -5,6 +5,14 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
+// Time units of the platform
+// ns means we store nanoseconds
+// us means we store microseconds
+// ms means we store milliseconds
+//
+warp.timeunits = us
+
+//
 // Comma separated list of components to run in distributed mode
 // Valid values are 'ingress', 'directory', 'store', 'egress', 'fetch', 'plasmaFE', 'plasmaBE', 'runner', 'geodir'
 //
@@ -51,11 +59,60 @@ warp.aes.scripts = hex:hhhhhh...
 #warp.aes.logging = hex:hhhhhh...
 
 //
+// How often (in ms) should we refetch the region start/end keys
+//
+#warp.hbase.regionkeys.updateperiod = 
+
+//
+// String returned by the IDENT function
+//
+#warp.ident = 
+
+//
 // OSS Master Key, used to decrypt any 'wrapped:base64' key
 //
 #oss.master.key = hex:hhhhhh...
 
-//continuum.token.file = 
+//
+// Token file
+//
+#warp.token.file = 
+
+//
+// Pre-Shared key for signing fetch requests. Signed fetch request expose owner/producer
+//
+#fetch.psk =
+
+
+/////////////////////////////////////////////////////////////////////////////////////////
+//
+// W A R P S R I P T
+//
+/////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// Jar Repository
+// 
+//
+
+// The path to a directory containing jar files from which UDFs can be loaded
+#warpscript.jars.directory = 
+
+// How often (in ms) should Warp 10 rescan the above directory
+#warpscript.jars.refresh = 60000
+
+// Set to 'true' to allow loading the UDFs from the classpath when no directory is explicitely defined
+#warpscript.jars.fromclasspath = 
+
+//
+// Macro Repository
+//
+
+// Directory which contains subdirectories with macros
+#warpscript.repository.directory = 
+
+// How often (in ms) should the above directory be rescanned
+#warpscript.repository.refresh = 60000
 
 //
 // Default maximum number of operations a single WarpScript execution can do
@@ -118,83 +175,10 @@ warpscript.maxpixels.hard = 1000000
 
 warpscript.maxwebcalls = 4
 
-webcall.user.agent = Warp10-WebCall
-
 //
-// List of patterns to include/exclude for hosts in WebCall calls
+// CALL root directory property
 //
-// Typical value is .*,!^127.0.0.1$,!^localhost$,!^192.168.*,!^10.*,!^172.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|39|31)\..*
-// 
-//
-webcall.host.patterns = !.*
-
-//
-// ZK Quorum to use for reaching the Kafka cluster to consume WebCall requests
-//
-webcall.kafka.zkconnect =
-
-
-//
-// List of Kafka brokers to use for sending WebCall requests
-//
-webcall.kafka.brokerlist =
-
-
-//
-// Topic to use for WebCall requests
-//
-webcall.kafka.topic =
-
-
-//
-// AES key to use for encrypting WebCall requests
-//
-//webcall.kafka.aes = hex:......
-
-
-//
-// SipHash key to use for computing WebCall requests HMACs
-//
-//webcall.kafka.mac = hex:.....
-
-
-//
-// Kafka client id to use when consuming WebCall requests
-//
-//webcall.kafka.consumer.clientid =
-
-
-//
-// Kafka client id to use when producing WebCall requests
-//
-//webcall.kafka.producer.clientid =
-
-
-//
-// How many threads to spawn
-//
-webcall.nthreads = 4
-
-
-//
-// Groupid to use when consuming Kafka
-//
-//webcall.kafka.groupid =
-
-
-//
-// How often to commit the Kafka offsets
-//
-webcall.kafka.commitperiod = 60000
-
-
-//
-// Time units of the platform
-// ns means we store nanoseconds
-// us means we store microseconds
-// ms means we store milliseconds
-//
-warp.timeunits = us
+#warpscript.call.directory = 
 
 //
 // Path of the 'bootstrap' warpscript code
@@ -217,9 +201,139 @@ warpscript.update.endpoint = http://127.0.0.1:8080/api/v0/update
 warpscript.meta.endpoint = http://127.0.0.1:8080/api/v0/meta
 
 //
-// Pre-Shared key for signing fetch requests. Signed fetch request expose owner/producer
+// URL for the 'delete' endpoint
 //
-//fetch.psk =
+warpscript.delete.endpoint = http://127.0.0.1:8080/api/v0/delete
+
+//
+// Maximum number of subprogram instances which can be spawned
+//
+//warpscript.call.maxcapacity = 1
+
+//
+// Comma separated list of WarpScriptExtension classes to instantiate to modify the defined WarpScript functions
+//
+//warpscript.extensions = 
+
+//
+// Comma separated list of additional languages to support within WarpScript. This MUST be set as a system property
+//
+//warpscript.languages = 
+
+//
+// Path of the 'bootstrap' Einstein code for Mobius
+//
+//warpscript.mobius.bootstrap.path = 
+
+//
+// How often to reload the bootstrap code (in ms) for Mobius
+//
+//warpscript.mobius.bootstrap.period = 
+
+//
+// Flag to enable REXEC
+//
+//warpscript.rexec.enable = 
+
+//
+// Path of the 'bootstrap' Einstein code for Runner
+//
+//warpscript.runner.bootstrap.path = 
+
+//
+// How often to reload the bootstrap code (in ms) for Mobius
+//
+//warpscript.runner.bootstrap.period = 
+
+//
+// Default maximum urls we can fetch
+//
+//warpscript.urlfetch.limit = 
+
+//
+// URLFETCH: not exposed in WarpScript. Implement extension to expose this function
+//
+
+//
+// Default maximum urls we can fetch
+//
+//warpscript.urlfetch.limit =
+//warpscript.urlfetch.limit.hard =
+//warpscript.urlfetch.maxsize = 
+//warpscript.urlfetch.maxsize.hard = 
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////
+//
+// W E B C A L L
+//
+/////////////////////////////////////////////////////////////////////////////////////////
+
+webcall.user.agent = Warp10-WebCall
+
+//
+// List of patterns to include/exclude for hosts in WebCall calls
+//
+// Typical value is .*,!^127.0.0.1$,!^localhost$,!^192.168.*,!^10.*,!^172.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|39|31)\..*
+// 
+//
+webcall.host.patterns = !.*
+
+//
+// ZK Quorum to use for reaching the Kafka cluster to consume WebCall requests
+//
+webcall.kafka.zkconnect =
+
+//
+// List of Kafka brokers to use for sending WebCall requests
+//
+webcall.kafka.brokerlist =
+
+//
+// Topic to use for WebCall requests
+//
+webcall.kafka.topic =
+
+//
+// AES key to use for encrypting WebCall requests
+//
+//webcall.kafka.aes = hex:......
+
+//
+// SipHash key to use for computing WebCall requests HMACs
+//
+//webcall.kafka.mac = hex:.....
+
+//
+// Kafka client id to use when consuming WebCall requests
+//
+//webcall.kafka.consumer.clientid =
+
+//
+// Kafka client id to use when producing WebCall requests
+//
+//webcall.kafka.producer.clientid =
+
+//
+// How many threads to spawn
+//
+webcall.nthreads = 4
+
+//
+// Groupid to use when consuming Kafka
+//
+//webcall.kafka.groupid =
+
+//
+// How often to commit the Kafka offsets
+//
+webcall.kafka.commitperiod = 60000
+
+//
+// Name of partition assignment strategy to use
+//
+//webcall.kafka.consumer.partition.assignment.strategy = 
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -425,7 +539,37 @@ directory.hbase.filter = false
 //
 // Kafka client id to use for consuming the metadata topic
 //
-//directory.kafka.metadata.consumer.clientid=
+//directory.kafka.metadata.consumer.clientid =
+
+//
+// ZooKeeper port for HBase client
+//
+# directory.hbase.zookeeper.property.clientPort =
+
+//
+// Strategy to adopt if consuming for the first time or if the last committed offset is past Kafka history
+//
+#directory.kafka.metadata.consumer.auto.offset.reset =
+
+//
+// Kafka client.id to use for the metadata topic consumer
+//
+#directory.kafka.metadata.consumer.clientid =
+
+//
+// Name of partition assignment strategy to use
+//
+#directory.kafka.metadata.consumer.partition.assignment.strategy =
+
+//
+// Size of metadata cache in number of entries
+//
+#directory.metadata.cache.size =
+
+//
+// Should we ignore the proxy settings when doing a streaming request?
+//
+#directory.streaming.noproxy =
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -602,22 +746,42 @@ ingress.kafka.archive.mac = hex:hhhhhh...
 //
 // Kafka client id to use for the metadata producer
 //
-//ingress.kafka.metadata.producer.clientid=
+#ingress.kafka.metadata.producer.clientid =
 
 //
 // Kafka client id to use for the metadata consumer
 //
-//ingress.kafka.metadata.consumer.clientid=
+#ingress.kafka.metadata.consumer.clientid =
 
 //
 // Kafka client id to use for the data producer
 //
-//ingress.kafka.data.producer.clientid=
+#ingress.kafka.data.producer.clientid =
 
 //
 // Kafka client id to use for the archive producer
 //
-//ingress.kafka.archive.producer.clientid=
+#ingress.kafka.archive.producer.clientid =
+
+//
+// Do we send Metadata in the Kafka message for delete operations?
+//
+#ingress.delete.metadata.include =
+
+//
+// Request timeout when talking to Kafka
+//
+#ingress.kafka.data.request.timeout.ms = 
+
+//
+// Name of partition assignment strategy to use
+//
+#ingress.kafka.metadata.consumer.partition.assignment.strategy = 
+
+//
+// Identification of Ingress Metadata Update endpoint source
+//
+#ingress.metadata.update = 
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -722,12 +886,27 @@ store.hbase.hconnection.threads.core = 4
 //
 // Kafka client id to use for the data producer
 //
-//store.kafka.data.producer.clientid=
+#store.kafka.data.producer.clientid =
 
 //
-// Kafka client id to use for the data consumer
+// Client id to use to consume the data topic
 //
-//store.kafka.data.consumer.clientid=
+#store.kafka.data.consumer.clientid = 
+
+//
+// Custom value of 'hbase.client.ipc.pool.size' for the Store HBase pool
+//
+#store.hbase.client.ipc.pool.size = 
+
+//
+// ZooKeeper port for HBase client
+//
+#store.hbase.zookeeper.property.clientPort = 
+
+//
+// Name of partition assignment strategy to use
+//
+#store.kafka.data.consumer.partition.assignment.strategy = 
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -892,17 +1071,27 @@ plasma.backend.subscriptions.znode = /zk/warp/localhost/plasma
 //
 // Kafka client id to use for the data consumer
 //
-//plasma.frontend.kafka.consumer.clientid=
+//plasma.frontend.kafka.consumer.clientid =
 
 //
 // Kafka client id to use for the data consumer
 //
-//plasma.backend.kafka.in.consumer.clientid=
+//plasma.backend.kafka.in.consumer.clientid =
 
 //
 // Kafka client id to use for the data producer towards the frontends
 //
-//plasma.backend.kafka.out.producer.clientid=
+//plasma.backend.kafka.out.producer.clientid =
+
+//
+// Name of partition assignment strategy to use
+//
+//plasma.backend.kafka.in.consumer.partition.assignment.strategy = 
+
+//
+// Name of partition assignment strategy to use
+//
+//plasma.frontend.kafka.consumer.partition.assignment.strategy = 
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -1006,13 +1195,17 @@ runner.kafka.mac = hex:hhhhhh...
 //
 // Kafka client id to use for the producer
 //
-//runner.kafka.producer.clientid=
+//runner.kafka.producer.clientid =
 
 //
 // Kafka client id to use for the consumer
 //
-//runner.kafka.consumer.clientid=
+//runner.kafka.consumer.clientid =
 
+//
+// Name of partition assignment strategy to use
+//
+//runner.kafka.consumer.partition.assignment.strategy = 
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -1090,6 +1283,41 @@ egress.fetch.batchsize = 10000
 //
 egress.hbase.filter = true
 
+//
+// Key to use for encrypting GTSSplit instances
+//
+#egress.fetcher.aes = 
+
+//
+// Maximum age of a valid GTSSplit (in ms)
+//
+#egress.fetcher.maxsplitage = 
+
+//
+// Custom value of 'hbase.client.ipc.pool.size' for the Egress HBase pool
+//
+#egress.hbase.client.ipc.pool.size = 
+
+//
+// Custom scanner lease period
+//
+#egress.hbase.client.scanner.timeout.period = 
+
+//
+// GTS count threshold above which the filter will be used
+//
+#egress.hbase.filter.threshold = 
+
+//
+// Custom value for RPC timeout
+//
+#egress.hbase.rpc.timeout = 
+
+//
+// ZooKeeper port for HBase client
+//
+#egress.hbase.zookeeper.property.clientPort = 
+
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 // T H R O T T L I N G    M A N A G E R
@@ -1125,6 +1353,10 @@ throttling.manager.period = 1000
 //
 //throttling.manager.mads.default = 0
 
+//
+// Default value for the maxwait timeout
+//
+//throttling.manager.maxwait.default = 
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -1400,31 +1632,23 @@ geodir.zk.directory.znode = /zk/warp/localhost/services
 //
 //geodir.kafka.data.consumer.clientid=
 
+//
+// Prefix to use if dumping/loading the LKP indices
+//
+//geodir.dump.prefix = 
+
+//
+// Name of partition assignment strategy to use
+//
+//geodir.kafka.data.consumer.partition.assignment.strategy
+
+//
+// Name of partition assignment strategy to use
+//
+//geodir.kafka.subs.consumer.partition.assignment.strategy
+
 /////////////////////////////////////////////////////////////////////////////////////////
 
-//
-// Jar Repository
-// 
-//
-
-// The path to a directory containing jar files from which UDFs can be loaded
-#warpscript.jars.directory = 
-
-// How often (in ms) should Warp 10 rescan the above directory
-#warpscript.jars.refresh = 60000
-
-// Set to 'true' to allow loading the UDFs from the classpath when no directory is explicitely defined
-#warpscript.jars.fromclasspath = 
-
-//
-// Macro Repository
-//
-
-// Directory which contains subdirectories with macros
-#warpscript.repository.directory = 
-
-// How often (in ms) should the above directory be rescanned
-#warpscript.repository.refresh = 60000
 
 //
 // Header containing the request UUID when calling the endpoint
@@ -1462,6 +1686,11 @@ geodir.zk.directory.znode = /zk/warp/localhost/services
 #http.header.token.UPDATE = 
 
 //
+// HTTP Header to provide the token for outgoing DELETE requests
+//
+#http.header.token.DELETE = 
+
+//
 // HTTP Header for access tokens used for archival
 //
 #http.header.token.archive = 
@@ -1484,4 +1713,29 @@ geodir.zk.directory.znode = /zk/warp/localhost/services
 //
 // Name of header containing the signature of streaming directory requests
 //
-#http.header.directory.signature =   
+#http.header.directory.signature = 
+
+//
+// Name of header containing the name of the symbol in which to expose the request headers
+//
+#http.header.exposeheaders = 
+
+//
+// HTTP Header for number of datapoints fetched during a script invocation
+//
+#http.header.fetched = 
+
+//
+// HTTP Header for number of ops performed in a script invocation
+//
+#http.header.ops = 
+
+//
+// HTTP Header to specify if we should show errors in /sfetch responses
+//
+#http.header.showerrors = 
+
+//
+// HTTP Header for specifying the timespan in /sfetch requests
+//
+#http.header.timespan = 
