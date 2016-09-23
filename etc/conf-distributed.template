@@ -185,12 +185,7 @@ warpscript.maxwebcalls = 4
 //
 // CALL root directory property
 //
-#warpscript.call.directory = 
-
-//
-// Path of the 'bootstrap' warpscript code
-//
-warpscript.bootstrap.path = /opt/warp10/etc/hello.mc2
+#warpscript.call.directory =
 
 //
 // How often to reload the bootstrap code (in ms)
@@ -228,7 +223,7 @@ warpscript.delete.endpoint = http://127.0.0.1:8080/api/v0/delete
 //warpscript.languages = 
 
 //
-// Path of the 'bootstrap' Einstein code for Mobius
+// Path of the 'bootstrap' WarpScript code for Mobius
 //
 //warpscript.mobius.bootstrap.path = 
 
@@ -243,7 +238,7 @@ warpscript.delete.endpoint = http://127.0.0.1:8080/api/v0/delete
 //warpscript.rexec.enable = 
 
 //
-// Path of the 'bootstrap' Einstein code for Runner
+// Path of the 'bootstrap' WarpScript code for Runner
 //
 //warpscript.runner.bootstrap.path = 
 
