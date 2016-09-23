@@ -44,7 +44,7 @@ import org.bouncycastle.util.encoders.Hex;
 import com.google.common.base.Charsets;
 
 /**
- * Class which manages Einstein functions stored in jar files from a directory
+ * Class which manages WarpScript functions stored in jar files from a directory
  */
 public class WarpScriptJarRepository extends Thread {
   
