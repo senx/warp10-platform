@@ -224,6 +224,11 @@ leveldb.cache.size = 1000000000
 leveldb.compression.type = SNAPPY
 
 //
+// Maximum number of open files to use for LevelDB
+//
+//leveldb.maxopenfiles = 
+
+//
 // IP to bind to for listening to incoming connections. Use 0.0.0.0 to listen to all interfaces
 //
 standalone.host = 127.0.0.1
