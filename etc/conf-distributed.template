@@ -5,7 +5,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
-// FYI you can reference attributes to avoid duplication
+// FYI you can reference attributes to avoid duplication and make configuration easy to update
 //
 // kafka.data.topic = data
 // ingress.kafka.data.topic = ${kafka.data.topic}
