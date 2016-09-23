@@ -187,10 +187,15 @@ warpscript.maxwebcalls = 4
 //
 #warpscript.call.directory =
 
+//   
+// Path of the 'bootstrap' WarpScript code    
+//    
+//warpscript.bootstrap.path = /opt/warp10/etc/hello.mc2
+
 //
 // How often to reload the bootstrap code (in ms)
 //
-warpscript.bootstrap.period = 120000
+//warpscript.bootstrap.period = 120000
 
 //
 // URL for the 'update' endpoint
