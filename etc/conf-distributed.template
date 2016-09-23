@@ -5,6 +5,13 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
+// FYI you can reference attributes to avoid duplication
+//
+// kafka.data.topic = data
+// ingress.kafka.data.topic = ${kafka.data.topic}
+//
+
+//
 // Time units of the platform
 // ns means we store nanoseconds
 // us means we store microseconds
