@@ -30,7 +30,7 @@ import java.util.concurrent.Semaphore;
 
 public class WarpScriptExecutor {
 
-  private static final String WARP10_CONFIG = "warp10.config";
+  public static final String WARP10_CONFIG = "warp10.config";
   
   private final Progressable progressable;
   
