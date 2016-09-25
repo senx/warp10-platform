@@ -221,7 +221,7 @@ public class WarpDist {
         int nthreads = Integer.valueOf(properties.getProperty(Configuration.STORE_NTHREADS));
         for (int i = 0; i < nthreads; i++) {
           //Store store = new Store(getKeyStore(), getProperties(), null);
-          Store store = new Store(getKeyStore(), getProperties(), 1);
+          Store store = new Store(getKeyStore(), getProperties(), null);
         }
         Map<String,String> labels = new HashMap<String, String>();
         labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "store");

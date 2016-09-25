@@ -57,6 +57,7 @@ import kafka.javaapi.consumer.ConsumerConnector;
 import kafka.message.MessageAndMetadata;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
@@ -208,7 +209,7 @@ public class Store extends Thread {
     //
             
     final String topic = properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_TOPIC);
-    final int nthreads = null != nthr ? nthr.intValue() : Integer.valueOf(properties.getProperty(io.warp10.continuum.Configuration.STORE_NTHREADS));
+    final int nthreads = null != nthr ? nthr.intValue() : Integer.valueOf(properties.getProperty(io.warp10.continuum.Configuration.STORE_NTHREADS_KAFKA, "1"));
     
     //
     // Retrieve the connection singleton for this set of properties
@@ -947,6 +948,7 @@ public class Store extends Thread {
         encoder.addValue(basets, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
         
         // Prefix + classId + labelsId + timestamp
+        // 128 bits
         byte[] rowkey = new byte[HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
 
         System.arraycopy(HBASE_RAW_DATA_KEY_PREFIX, 0, rowkey, 0, HBASE_RAW_DATA_KEY_PREFIX.length);
@@ -1241,15 +1243,15 @@ public class Store extends Thread {
     } else {
       config.set("hbase.hconnection.threads.core", Integer.toString(Runtime.getRuntime().availableProcessors() * 8));
     }
-    config.set("hbase.zookeeper.quorum", properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_ZKCONNECT));
+    config.set(HConstants.ZOOKEEPER_QUORUM, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_ZKCONNECT));
     if (!"".equals(properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_ZNODE))) {
-      config.set("zookeeper.znode.parent", properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_ZNODE));
+      config.set(HConstants.ZOOKEEPER_ZNODE_PARENT, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_ZNODE));
     }
     if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT)) {
-      config.set("hbase.zookeeper.property.clientPort", properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT));
+      config.set(HConstants.ZOOKEEPER_CLIENT_PORT, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT));
     }
     if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_IPC_POOL_SIZE)) {
-      config.set("hbase.client.ipc.pool.size", properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_IPC_POOL_SIZE));
+      config.set(HConstants.HBASE_CLIENT_IPC_POOL_SIZE, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_IPC_POOL_SIZE));
     }
     
     conn = ConnectionFactory.createConnection(config);
