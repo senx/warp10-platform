@@ -88,6 +88,11 @@ public class Constants {
    */
   public static final String APPLICATION_LABEL = ".app";
 
+  /**
+   * Prefix used when Egress Fetch reports an error
+   */
+  public static final String EGRESS_FETCH_ERROR_PREFIX = "# ERROR: ";
+
   private static final Map<String,String> HEADERS = new HashMap<String,String>();
   
   /**

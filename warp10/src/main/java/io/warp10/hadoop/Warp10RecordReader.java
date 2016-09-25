@@ -1,6 +1,7 @@
 package io.warp10.hadoop;
 
 import io.warp10.continuum.Configuration;
+import io.warp10.continuum.store.Constants;
 import io.warp10.crypto.OrderPreservingBase64;
 
 import java.io.*;
@@ -135,6 +136,10 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
       return false;
     }
 
+    if (line.startsWith(Constants.EGRESS_FETCH_ERROR_PREFIX)) {
+      throw new IOException("Fetcher reported an error, aborting.");
+    }
+    
     // Format: GTSWrapperId <WSP> HASH <WSP> GTSWrapper
 
     String[] tokens = line.split("\\s+");

@@ -247,6 +247,8 @@ public class EgressFetchHandler extends AbstractHandler {
     boolean signed = false;
     
     if (splitFetch) {
+      // Force showErrors
+      showErrors = true;
       signed = true;
     }
     
@@ -669,7 +671,7 @@ public class EgressFetchHandler extends AbstractHandler {
               pw2.close();
               sw.flush();
               String error = URLEncoder.encode(sw.toString(), "UTF-8");
-              pw.println("# ERROR: " + error);
+              pw.println(Constants.EGRESS_FETCH_ERROR_PREFIX + error);
             }
             throw new IOException(e);
           } finally {      
