@@ -729,6 +729,11 @@ public class Configuration {
   public static final String STORE_NTHREADS = "store.nthreads";
   
   /**
+   * Number of threads for consuming Kafka in each one of the 'store.nthreads' hbase threads. Defaults to 1
+   */
+  public static final String STORE_NTHREADS_KAFKA = "store.nthreads.kafka";
+  
+  /**
    * ZooKeeper server list
    */
   public static final String STORE_ZK_QUORUM = "store.zk.quorum";
