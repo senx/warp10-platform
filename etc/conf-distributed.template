@@ -852,8 +852,15 @@ store.hbase.data.maxpendingputssize = 1000000
 
 //
 // How many threads to spawn for consuming
+// Each of these threads will commit data to HBase
 //
 store.nthreads = 2
+
+//
+// How many threads under each of 'store.nthreads' should consume Kafka.
+// Defaults to 1 if unset.
+//
+store.nthreads.kafka = 1
 
 //
 // ZooKeeper server list
