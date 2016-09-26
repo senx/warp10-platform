@@ -897,34 +897,40 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             }      
             
             while(!abort.get() && !Thread.currentThread().isInterrupted()) {
-              if (streams.size() == barrier.getNumberWaiting()) {
-                //
-                // Check if we should abort, which could happen when
-                // an exception was thrown when flushing the commits just before
-                // entering the barrier
-                //
-                
-                if (abort.get()) {
-                  break;
-                }
+              try {
+                if (streams.size() == barrier.getNumberWaiting()) {
+                  //
+                  // Check if we should abort, which could happen when
+                  // an exception was thrown when flushing the commits just before
+                  // entering the barrier
+                  //
                   
-                //
-                // All processing threads are waiting on the barrier, this means we can flush the offsets because
-                // they have all processed data successfully for the given activity period
-                //
-                
-                // Commit offsets
-                connector.commitOffsets(true);
-                counters.sensisionPublish();
-                
-                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_COMMITS, Sensision.EMPTY_LABELS, 1);
-                
-                // Release the waiting threads
-                try {
-                  barrier.await();
-                } catch (Exception e) {
-                  break;
-                }
+                  if (abort.get()) {
+                    break;
+                  }
+                    
+                  //
+                  // All processing threads are waiting on the barrier, this means we can flush the offsets because
+                  // they have all processed data successfully for the given activity period
+                  //
+                  
+                  // Commit offsets
+                  connector.commitOffsets(true);
+                  counters.sensisionPublish();
+                  
+                  Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_COMMITS, Sensision.EMPTY_LABELS, 1);
+                  
+                  // Release the waiting threads
+                  try {
+                    barrier.await();
+                  } catch (Exception e) {
+                    break;
+                  }
+                }                
+              } catch (Throwable t) {
+                // We need to catch possible errors in commitOffsets
+                LOG.error("", t);
+                abort.set(true);
               }
               
               LockSupport.parkNanos(100000000L);
