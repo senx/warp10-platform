@@ -16,6 +16,8 @@
 
 package io.warp10.continuum;
 
+import io.warp10.continuum.store.Directory;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +27,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import kafka.consumer.Consumer;
 import kafka.consumer.ConsumerConfig;
@@ -44,6 +49,8 @@ import kafka.javaapi.consumer.ConsumerConnector;
  * The consuming threads consume the Kafka messages and act upon them.
  */
 public class KafkaSynchronizedConsumerPool {
+
+  private static final Logger LOG = LoggerFactory.getLogger(KafkaSynchronizedConsumerPool.class);
 
   private CyclicBarrier barrier;
   private final AtomicBoolean abort;
@@ -200,52 +207,54 @@ public class KafkaSynchronizedConsumerPool {
                 
           pool.getInitialized().set(true);
           
-          while(!pool.getAbort().get()) {
-            if (1 == pool.getBarrier().getNumberWaiting()) {
-              //
-              // Check if we should abort, which could happen when
-              // an exception was thrown when flushing the commits just before
-              // entering the barrier
-              //
-                  
-              if (pool.getAbort().get()) {
-                break;
-              }
-                    
-              //
-              // All processing threads are waiting on the barrier, this means we can flush the offsets because
-              // they have all processed data successfully for the given activity period
-              //
-                  
-              
-              if (null != preCommitOffsetHook) {
-                preCommitOffsetHook.call();
-              }
-              
-              // Commit offsets
-              connector.commitOffsets();              
-              pool.getCounters().sensisionPublish();
-              
-              if (null != commitOffsetHook) {
-                commitOffsetHook.call();
-              }
-              // MOVE in COMMIT HOOK - Sensision.update(SensisionConstants.SENSISION_CLASS_WEBCALL_KAFKA_IN_COMMITS, Sensision.EMPTY_LABELS, 1);
-                
-              // Release the waiting threads
-              try {
-                pool.getBarrier().await();
-              } catch (Exception e) {
-                break;
-              }
-            }
+          while(!pool.getAbort().get() && !Thread.currentThread().isInterrupted()) {
             try {
-              Thread.sleep(100L);          
-            } catch (InterruptedException ie) {          
+              if (1 == pool.getBarrier().getNumberWaiting()) {
+                //
+                // Check if we should abort, which could happen when
+                // an exception was thrown when flushing the commits just before
+                // entering the barrier
+                //
+                    
+                if (pool.getAbort().get()) {
+                  break;
+                }
+                      
+                //
+                // All processing threads are waiting on the barrier, this means we can flush the offsets because
+                // they have all processed data successfully for the given activity period
+                //
+                    
+                
+                if (null != preCommitOffsetHook) {
+                  preCommitOffsetHook.call();
+                }
+                
+                // Commit offsets
+                connector.commitOffsets();              
+                pool.getCounters().sensisionPublish();
+                
+                if (null != commitOffsetHook) {
+                  commitOffsetHook.call();
+                }
+                // MOVE in COMMIT HOOK - Sensision.update(SensisionConstants.SENSISION_CLASS_WEBCALL_KAFKA_IN_COMMITS, Sensision.EMPTY_LABELS, 1);
+                  
+                // Release the waiting threads
+                try {
+                  pool.getBarrier().await();
+                } catch (Exception e) {
+                  break;
+                }
+              }              
+            } catch (Throwable t) {
+              pool.getAbort().set(true);
             }
+            
+            LockSupport.parkNanos(100000000L);
           }
 
         } catch (Throwable t) {
-          t.printStackTrace(System.out);
+          LOG.error("", t);
         } finally {
           //
           // We exited the loop, this means one of the threads triggered an abort,

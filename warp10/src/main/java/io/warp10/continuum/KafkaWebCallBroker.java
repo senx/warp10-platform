@@ -17,6 +17,7 @@
 package io.warp10.continuum;
 
 import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Directory;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.script.thrift.data.WebCallRequest;
@@ -32,6 +33,7 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.LockSupport;
 
 import kafka.consumer.Consumer;
 import kafka.consumer.ConsumerConfig;
@@ -42,6 +44,8 @@ import kafka.message.MessageAndMetadata;
 
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
@@ -49,7 +53,9 @@ import com.google.common.base.Preconditions;
  * Class which implements pulling data from Kafka and making WebCall calls
  */
 public class KafkaWebCallBroker extends Thread {
-    
+
+  private static final Logger LOG = LoggerFactory.getLogger(KafkaWebCallBroker.class);
+
   /**
    * Set of required parameters, those MUST be set
    */
@@ -166,43 +172,44 @@ public class KafkaWebCallBroker extends Thread {
               executor.submit(new WebCallConsumer(self, stream, counters));
             }      
                 
-            while(!abort.get()) {
-              if (streams.size() == barrier.getNumberWaiting()) {
-                //
-                // Check if we should abort, which could happen when
-                // an exception was thrown when flushing the commits just before
-                // entering the barrier
-                //
-                  
-                if (abort.get()) {
-                  break;
-                }
-                    
-                //
-                // All processing threads are waiting on the barrier, this means we can flush the offsets because
-                // they have all processed data successfully for the given activity period
-                //
-                  
-                // Commit offsets
-                connector.commitOffsets();
-
-                Sensision.update(SensisionConstants.SENSISION_CLASS_WEBCALL_KAFKA_IN_COMMITS, Sensision.EMPTY_LABELS, 1);
-                
-                // Release the waiting threads
-                try {
-                  barrier.await();
-                } catch (Exception e) {
-                  break;
-                }
-              }
+            while(!abort.get() && !Thread.currentThread().isInterrupted()) {
               try {
-                Thread.sleep(100L);          
-              } catch (InterruptedException ie) {          
-              }
-            }
+                if (streams.size() == barrier.getNumberWaiting()) {
+                  //
+                  // Check if we should abort, which could happen when
+                  // an exception was thrown when flushing the commits just before
+                  // entering the barrier
+                  //
+                    
+                  if (abort.get()) {
+                    break;
+                  }
+                      
+                  //
+                  // All processing threads are waiting on the barrier, this means we can flush the offsets because
+                  // they have all processed data successfully for the given activity period
+                  //
+                    
+                  // Commit offsets
+                  connector.commitOffsets();
 
+                  Sensision.update(SensisionConstants.SENSISION_CLASS_WEBCALL_KAFKA_IN_COMMITS, Sensision.EMPTY_LABELS, 1);
+                  
+                  // Release the waiting threads
+                  try {
+                    barrier.await();
+                  } catch (Exception e) {
+                    break;
+                  }
+                }                
+              } catch (Throwable t) {
+                abort.set(true);
+              }
+              
+              LockSupport.parkNanos(100000000L);
+            }
           } catch (Throwable t) {
-            t.printStackTrace(System.out);
+            LOG.error("", t);
           } finally {
             //
             // We exited the loop, this means one of the threads triggered an abort,

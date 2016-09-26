@@ -337,48 +337,53 @@ public class Store extends Thread {
                 
             long lastBarrierSync = System.currentTimeMillis();
             
-            while(!abort.get()) {
-              if (streams.size() == barrier.getNumberWaiting()) {
-                //
-                // Check if we should abort, which could happen when
-                // an exception was thrown when flushing the commits just before
-                // entering the barrier
-                //
+            while(!abort.get() && !Thread.currentThread().isInterrupted()) {
+              try {
+                if (streams.size() == barrier.getNumberWaiting()) {
+                  //
+                  // Check if we should abort, which could happen when
+                  // an exception was thrown when flushing the commits just before
+                  // entering the barrier
+                  //
+                    
+                  if (abort.get()) {
+                    break;
+                  }
+                   
+                  //
+                  // All processing threads are waiting on the barrier, this means we can flush the offsets because
+                  // they have all processed data successfully for the given activity period
+                  //
+                    
+                  // Commit offsets
+                  connector.commitOffsets();
+                  counters.sensisionPublish();
+                  Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_KAFKA_COMMITS, Sensision.EMPTY_LABELS, 1);
                   
-                if (abort.get()) {
-                  break;
-                }
-                 
-                //
-                // All processing threads are waiting on the barrier, this means we can flush the offsets because
-                // they have all processed data successfully for the given activity period
-                //
-                  
-                // Commit offsets
-                connector.commitOffsets();
-                counters.sensisionPublish();
-                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_KAFKA_COMMITS, Sensision.EMPTY_LABELS, 1);
-                
-                // Release the waiting threads
-                try {
-                  barrier.await();
-                  lastBarrierSync = System.currentTimeMillis();
-                } catch (Exception e) {
-                  break;
-                }
-              } else if (System.currentTimeMillis() - lastBarrierSync > maxTimeBetweenCommits) {
-                //
-                // If the last barrier synchronization was more than 'maxTimeBetweenCommits' ms ago
-                // we abort, because it probably means the call to htable.batch has hang and
-                // we need to respawn the consuming threads.
-                //
-                // FIXME(hbs): We might have to fix this to be able to tolerate long deletes.
-                //
-                Sensision.update(SensisionConstants.CLASS_WARP_STORE_KAFKA_COMMITS_OVERDUE, Sensision.EMPTY_LABELS, 1);
-                LOG.debug("Last Kafka commit was more than " + maxTimeBetweenCommits + " ms ago, aborting.");
-                for (int i = 0; i < consumers.length; i++) {
-                  consumers[i].setHBaseReset(true);
-                }
+                  // Release the waiting threads
+                  try {
+                    barrier.await();
+                    lastBarrierSync = System.currentTimeMillis();
+                  } catch (Exception e) {
+                    break;
+                  }
+                } else if (System.currentTimeMillis() - lastBarrierSync > maxTimeBetweenCommits) {
+                  //
+                  // If the last barrier synchronization was more than 'maxTimeBetweenCommits' ms ago
+                  // we abort, because it probably means the call to htable.batch has hang and
+                  // we need to respawn the consuming threads.
+                  //
+                  // FIXME(hbs): We might have to fix this to be able to tolerate long deletes.
+                  //
+                  Sensision.update(SensisionConstants.CLASS_WARP_STORE_KAFKA_COMMITS_OVERDUE, Sensision.EMPTY_LABELS, 1);
+                  LOG.debug("Last Kafka commit was more than " + maxTimeBetweenCommits + " ms ago, aborting.");
+                  for (int i = 0; i < consumers.length; i++) {
+                    consumers[i].setHBaseReset(true);
+                  }
+                  abort.set(true);
+                }                
+              } catch (Throwable t) {
+                LOG.error("", t);
                 abort.set(true);
               }
               

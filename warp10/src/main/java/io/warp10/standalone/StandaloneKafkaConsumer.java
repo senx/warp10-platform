@@ -37,6 +37,7 @@ import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.LockSupport;
 
 import kafka.consumer.Consumer;
 import kafka.consumer.ConsumerConfig;
@@ -429,23 +430,22 @@ public class StandaloneKafkaConsumer {
 
           long lastCommit = System.currentTimeMillis();
           
-          while(!abort.get()) {
-            try {
-              long sleepUntil = lastCommit + commitPeriod;
-              long delta = sleepUntil - System.currentTimeMillis();
+          while(!abort.get() && !Thread.currentThread().isInterrupted()) {
+            long sleepUntil = lastCommit + commitPeriod;
+            long delta = sleepUntil - System.currentTimeMillis();
               
-              if (delta > 0) {
-                Thread.sleep(delta);
-              }
-            } catch (InterruptedException ie) {
-              continue;
+            if (delta > 0) {
+              LockSupport.parkNanos(delta * 1000000L);
             }
 
-            // Commit offsets
-            connector.commitOffsets();
-            lastCommit = System.currentTimeMillis();
-            
-            //Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_KAFKA_DATA_COMMITS, Sensision.EMPTY_LABELS, 1);
+            try {
+              // Commit offsets
+              connector.commitOffsets();
+              lastCommit = System.currentTimeMillis();
+              //Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_KAFKA_DATA_COMMITS, Sensision.EMPTY_LABELS, 1);              
+            } catch (Throwable t) {
+              abort.set(true);
+            }            
           }
         } catch (Throwable t) {
           t.printStackTrace(System.err);
@@ -473,7 +473,7 @@ public class StandaloneKafkaConsumer {
           
           abort.set(false);
 
-          try { Thread.sleep(1000L); } catch (InterruptedException ie) {}
+          LockSupport.parkNanos(1000000000L);
         }
       }      
     }

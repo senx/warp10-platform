@@ -38,6 +38,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
 
 import kafka.consumer.Consumer;
 import kafka.consumer.ConsumerConfig;
@@ -237,11 +238,8 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
             
             long lastsync = 0L;
             
-            while(!abort.get()) {
-              try {
-                Thread.sleep(100L);          
-              } catch (InterruptedException ie) {          
-              }
+            while(!abort.get() && !Thread.currentThread().isInterrupted()) {
+              LockSupport.parkNanos(100000000L);
               
               //
               // Publish offsets every second to Sensision, after flushing the offsets
@@ -252,7 +250,8 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
                   connector.commitOffsets();
                   counters.sensisionPublish();
                   lastsync = System.currentTimeMillis();
-                } catch (Exception e) {                  
+                } catch (Exception e) {
+                  abort.set(true);
                 }
               }
             }
