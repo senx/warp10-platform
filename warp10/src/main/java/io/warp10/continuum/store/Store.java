@@ -1133,18 +1133,18 @@ public class Store extends Thread {
         }
       };
 
+      long nano = System.nanoTime();
+
+      Map<byte[], BulkDeleteResponse> result = table.coprocessorService(BulkDeleteService.class, scan.getStartRow(), scan.getStopRow(), callable);
+
+      nano = System.nanoTime() - nano;
+
       //
       // Check if controller trapped an exception (may happen if a region is too busy)
       //
 
       controller.checkFailed();
 
-      long nano = System.nanoTime();
-
-      Map<byte[], BulkDeleteResponse> result = table.coprocessorService(BulkDeleteService.class, scan.getStartRow(), scan.getStopRow(), callable);
-
-      nano = System.nanoTime() - nano;
-      
       long noOfDeletedRows = 0L;
       long noOfDeletedVersions = 0L;
       long noOfRegions = result.size();
