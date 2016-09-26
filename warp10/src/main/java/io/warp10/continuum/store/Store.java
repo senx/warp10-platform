@@ -1114,10 +1114,11 @@ public class Store extends Thread {
       //
       
       
-      Batch.Call<BulkDeleteService, BulkDeleteResponse> callable = new Batch.Call<BulkDeleteService, BulkDeleteResponse>() {
-        ServerRpcController controller = new ServerRpcController();
-        BlockingRpcCallback<BulkDeleteResponse> rpcCallback = new BlockingRpcCallback<BulkDeleteResponse>();
+      final ServerRpcController controller = new ServerRpcController();
 
+      Batch.Call<BulkDeleteService, BulkDeleteResponse> callable = new Batch.Call<BulkDeleteService, BulkDeleteResponse>() {
+        BlockingRpcCallback<BulkDeleteResponse> rpcCallback = new BlockingRpcCallback<BulkDeleteResponse>();
+        
         public BulkDeleteResponse call(BulkDeleteService service) throws IOException {
           Builder builder = BulkDeleteRequest.newBuilder();
           builder.setScan(ProtobufUtil.toScan(scan));
@@ -1128,15 +1129,15 @@ public class Store extends Thread {
           builder.setRowBatchSize(1000);
           service.delete(controller, builder.build(), rpcCallback);
 
-          //
-          // Check if controller trapped an exception (may happen if a region is too busy)
-          //
-
-          controller.checkFailed();
-          
           return rpcCallback.get();
         }
       };
+
+      //
+      // Check if controller trapped an exception (may happen if a region is too busy)
+      //
+
+      controller.checkFailed();
 
       long nano = System.nanoTime();
 
