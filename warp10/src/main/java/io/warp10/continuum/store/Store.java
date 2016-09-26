@@ -1140,11 +1140,15 @@ public class Store extends Thread {
       nano = System.nanoTime() - nano;
 
       //
-      // Check if controller trapped an exception (may happen if a region is too busy)
+      // Check if controller trapped an exception or an error message (may happen if a region is too busy)
       //
 
       controller.checkFailed();
 
+      if (controller.failed()) {
+        throw new IOException(controller.errorText());
+      }
+      
       long noOfDeletedRows = 0L;
       long noOfDeletedVersions = 0L;
       long noOfRegions = result.size();
