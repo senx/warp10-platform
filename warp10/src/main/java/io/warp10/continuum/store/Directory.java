@@ -65,6 +65,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -308,7 +309,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   private final Map<Long,String> classNames = new ConcurrentSkipListMap<Long, String>(ID_COMPARATOR);
   
   private final Map<String,Set<String>> classesPerOwner = new MapMaker().concurrencyLevel(64).makeMap();
-  
+
   private final ReentrantLock metadatasLock = new ReentrantLock();
   
   /**
@@ -663,7 +664,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   Set<String> classes = classesPerOwner.get(owner);
                   
                   if (null == classes) {
-                    classes = new HashSet<String>();
+                    classes = new ConcurrentSkipListSet<String>();
                     classesPerOwner.put(owner, classes);
                   }
                   
@@ -1889,13 +1890,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             String ownersel = request.getLabelsSelectors().get(i).get(Constants.OWNER_LABEL);
             
             if (null != ownersel && ownersel.startsWith("=")) {
-              classNames = new ArrayList<String>();
-              classNames.addAll(classesPerOwner.get(ownersel.substring(1)));
+              classNames = classesPerOwner.get(ownersel.substring(1));
             } else {
-              classNames.addAll(this.classNames.values());
+              classNames = this.classNames.values();
             }
           } else {
-            classNames.addAll(this.classNames.values());
+            classNames = this.classNames.values();
           }
         }
 
@@ -2247,15 +2247,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             String ownersel = request.getLabelsSelectors().get(i).get(Constants.OWNER_LABEL);
             
             if (null != ownersel && ownersel.startsWith("=")) {
-              Set<String> cpo = classesPerOwner.get(ownersel.substring(1));
-              if (null != cpo) {
-                classNames.addAll(cpo);
-              }
+              classNames = classesPerOwner.get(ownersel.substring(1));
             } else {
-              classNames.addAll(this.classNames.values());
+              classNames = this.classNames.values();
             }
           } else {
-            classNames.addAll(this.classNames.values());
+            classNames = this.classNames.values();
           }
         }
         
@@ -2646,15 +2643,17 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       
       long nanofind = System.nanoTime();
       long time = 0;
-      
+
+      Metadata metadata = new Metadata();
+
       try (DirectoryPlugin.GTSIterator iter = this.plugin.find(this.remainder, classSelector, labelsSelector)) {
         
         while(iter.hasNext()) {
           GTS gts = iter.next();
           nanofind = System.nanoTime() - nanofind;
           time += nanofind;
-          
-          Metadata metadata = new Metadata();
+    
+          metadata.clear();
           metadata.setName(gts.getName());
           metadata.setLabels(gts.getLabels());
           metadata.setAttributes(gts.getAttributes());
@@ -2756,15 +2755,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           String ownersel = labelsSelector.get(Constants.OWNER_LABEL);
           
           if (null != ownersel && ownersel.startsWith("=")) {
-            Set<String> cpo = classesPerOwner.get(ownersel.substring(1));
-            if (null != cpo) {
-              classNames.addAll(cpo);
-            }
+            classNames = classesPerOwner.get(ownersel.substring(1));
           } else {        
-            classNames.addAll(this.classNames.values());
+            classNames = this.classNames.values();
           }
         } else {
-          classNames.addAll(this.classNames.values());
+          classNames = this.classNames.values();
         }
       }
             
