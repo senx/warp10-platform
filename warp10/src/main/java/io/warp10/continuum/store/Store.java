@@ -1127,6 +1127,13 @@ public class Store extends Thread {
           // Arbitrary for now, maybe come up with a better heuristic
           builder.setRowBatchSize(1000);
           service.delete(controller, builder.build(), rpcCallback);
+
+          //
+          // Check if controller trapped an exception (may happen if a region is too busy)
+          //
+
+          controller.checkFailed();
+          
           return rpcCallback.get();
         }
       };
