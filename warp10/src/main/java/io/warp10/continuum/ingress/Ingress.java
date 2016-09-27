@@ -21,6 +21,7 @@ import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.KafkaProducerPool;
 import io.warp10.continuum.KafkaSynchronizedConsumerPool;
 import io.warp10.continuum.MetadataUtils;
+import io.warp10.continuum.TextFileShuffler;
 import io.warp10.continuum.ThrottlingManager;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
@@ -40,14 +41,18 @@ import io.warp10.continuum.store.thrift.data.KafkaDataMessageType;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -65,6 +70,8 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Random;
 import java.util.Set;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
@@ -82,6 +89,7 @@ import kafka.producer.KeyedMessage;
 import kafka.producer.ProducerConfig;
 
 import org.apache.hadoop.util.ShutdownHookManager;
+import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -99,6 +107,8 @@ import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.sort.SortConfig;
+import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 
 // FIXME(hbs): handle archive
@@ -137,6 +147,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     Configuration.INGRESS_KAFKA_DATA_MAXSIZE,
     Configuration.INGRESS_KAFKA_METADATA_MAXSIZE,
     Configuration.INGRESS_VALUE_MAXSIZE,
+    Configuration.INGRESS_DELETE_SHUFFLE,
     Configuration.DIRECTORY_PSK,
   };
   
@@ -252,6 +263,8 @@ public class Ingress extends AbstractHandler implements Runnable {
 
   private final KafkaSynchronizedConsumerPool  pool;
   
+  private final boolean doShuffle;
+  
   public Ingress(KeyStore keystore, Properties props) {
 
     //
@@ -274,6 +287,8 @@ public class Ingress extends AbstractHandler implements Runnable {
     //
     // Extract parameters from 'props'
     //
+    
+    this.doShuffle = "true".equals(props.getProperty(Configuration.INGRESS_DELETE_SHUFFLE));
     
     if (props.containsKey(Configuration.INGRESS_CACHE_DUMP_PATH)) {
       this.cacheDumpPath = props.getProperty(Configuration.INGRESS_CACHE_DUMP_PATH);
@@ -1127,44 +1142,226 @@ public class Ingress extends AbstractHandler implements Runnable {
       PrintWriter pw = response.getWriter();
       StringBuilder sb = new StringBuilder();
 
-      try (MetadataIterator iterator = directoryClient.iterator(clsSels, lblsSels)) {
-        while(iterator.hasNext()) {
-          Metadata metadata = iterator.next();
+      //
+      // Shuffle only if not in dryrun mode
+      //
+      
+      if (!dryrun && doShuffle) {
+        //
+        // Loop over the iterators, storing the read metadata to a temporary file encrypted on disk
+        // Data is encrypted using a onetime pad
+        //
         
-          if (!dryrun) {
-            pushDeleteMessage(start, end, minage, metadata);
-            
-            if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
-              completeDeletion = true;
-              // We must also push the metadata deletion and remove the metadata from the cache
-              Metadata meta = new Metadata(metadata);
-              meta.setSource(Configuration.INGRESS_METADATA_DELETE_SOURCE);
-              pushMetadataMessage(meta);          
-              byte[] bytes = new byte[16];
-              // We know class/labels Id were computed in pushMetadataMessage
-              GTSHelper.fillGTSIds(bytes, 0, meta.getClassId(), meta.getLabelsId());
-              BigInteger key = new BigInteger(bytes);
-              synchronized(this.metadataCache) {
-                this.metadataCache.remove(key);
+        final byte[] onetimepad = new byte[(int) Math.min(65537, System.currentTimeMillis() % 100000)];
+        new Random().nextBytes(onetimepad);
+        
+        final File cache = File.createTempFile(Long.toHexString(System.currentTimeMillis()) + "-" + Long.toHexString(System.nanoTime()), ".delete.dircache");
+        cache.deleteOnExit();
+        
+        FileWriter writer = new FileWriter(cache);
+
+        TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+        
+        try (MetadataIterator iterator = directoryClient.iterator(clsSels, lblsSels)) {
+          while(iterator.hasNext()) {
+            Metadata metadata = iterator.next();
+          
+            try {
+              byte[] bytes = serializer.serialize(metadata);
+              // Apply onetimepad
+              // We pad each line separately since we will later shuffle them!
+              int padidx = 0;
+              
+              for (int i = 0; i < bytes.length; i++) {
+                bytes[i] = (byte) (bytes[i] ^ onetimepad[padidx++]);
+                if (padidx >= onetimepad.length) {
+                  padidx = 0;
+                }
               }
+              OrderPreservingBase64.encodeToWriter(bytes, writer);
+              writer.write('\n');
+            } catch (TException te) {          
+            }         
+          }
+        } catch (Exception e) { 
+          throw new IOException(e);
+        }        
+        
+        writer.close();
+        
+        //
+        // Shuffle the content of the file
+        //
+        
+        final File shuffled = File.createTempFile(Long.toHexString(System.currentTimeMillis()) + "-" + Long.toHexString(System.nanoTime()), ".delete.shuffled");
+        shuffled.deleteOnExit();
+
+        TextFileShuffler shuffler = new TextFileShuffler(new SortConfig().withMaxMemoryUsage(1000000L));
+        
+        InputStream in = new FileInputStream(cache);
+        OutputStream out = new FileOutputStream(shuffled);
+        
+        shuffler.sort(in, out);
+
+        out.close();
+        in.close();
+
+        // Delete the unshuffled file
+        cache.delete();
+        
+        //
+        // Create an iterator based on the shuffled cache
+        //
+        
+        MetadataIterator shufflediterator = new MetadataIterator() {
+          
+          BufferedReader reader = new BufferedReader(new FileReader(shuffled));
+          
+          private Metadata current = null;
+          private boolean done = false;
+          
+          private TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+                    
+          @Override
+          public boolean hasNext() {
+            if (done) {
+              return false;
+            }
+            
+            if (null != current) {
+              return true;
+            }
+            
+            try {
+              String line = reader.readLine();
+              if (null == line) {
+                done = true;
+                return false;
+              }
+              byte[] raw = OrderPreservingBase64.decode(line.getBytes(Charsets.US_ASCII));
+              // Apply one time pad
+              int padidx = 0;
+
+              for (int i = 0; i < raw.length; i++) {
+                raw[i] = (byte) (raw[i] ^ onetimepad[padidx++]);
+                if (padidx >= onetimepad.length) {
+                  padidx = 0;
+                }
+              }
+              Metadata metadata = new Metadata();
+              try {
+                deserializer.deserialize(metadata, raw);
+                this.current = metadata;
+                return true;
+              } catch (TException te) {
+                LOG.error("", te);
+              }
+            } catch (IOException ioe) {
+              LOG.error("", ioe);
+            }
+            
+            return false;
+          }
+          
+          @Override
+          public Metadata next() {
+            if (null != this.current) {
+              Metadata metadata = this.current;
+              this.current = null;
+              return metadata;
+            } else {
+              throw new NoSuchElementException();
             }
           }
           
-          sb.setLength(0);
-          
-          GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
-          
-          if (metadata.getAttributesSize() > 0) {
-            GTSHelper.labelsToString(sb, metadata.getAttributes());
-          } else {
-            sb.append("{}");
+          @Override
+          public void close() throws Exception {
+            this.reader.close();
+            shuffled.delete();
           }
+        };
+  
+        try {
+          while(shufflediterator.hasNext()) {
+            Metadata metadata = shufflediterator.next();
+            
+            if (!dryrun) {
+              pushDeleteMessage(start, end, minage, metadata);
+              
+              if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
+                completeDeletion = true;
+                // We must also push the metadata deletion and remove the metadata from the cache
+                Metadata meta = new Metadata(metadata);
+                meta.setSource(Configuration.INGRESS_METADATA_DELETE_SOURCE);
+                pushMetadataMessage(meta);          
+                byte[] bytes = new byte[16];
+                // We know class/labels Id were computed in pushMetadataMessage
+                GTSHelper.fillGTSIds(bytes, 0, meta.getClassId(), meta.getLabelsId());
+                BigInteger key = new BigInteger(bytes);
+                synchronized(this.metadataCache) {
+                  this.metadataCache.remove(key);
+                }
+              }
+            }
+            
+            sb.setLength(0);
+            
+            GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
+            
+            if (metadata.getAttributesSize() > 0) {
+              GTSHelper.labelsToString(sb, metadata.getAttributes());
+            } else {
+              sb.append("{}");
+            }
 
-          pw.write(sb.toString());
-          pw.write("\r\n");
-          gts++;
-        }      
-      } catch (Exception e) {        
+            pw.write(sb.toString());
+            pw.write("\r\n");
+            gts++;          
+          }          
+        } finally {
+          try { shufflediterator.close(); } catch (Exception e) {}
+        }
+      } else {
+        try (MetadataIterator iterator = directoryClient.iterator(clsSels, lblsSels)) {
+          while(iterator.hasNext()) {
+            Metadata metadata = iterator.next();
+            
+            if (!dryrun) {
+              pushDeleteMessage(start, end, minage, metadata);
+              
+              if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
+                completeDeletion = true;
+                // We must also push the metadata deletion and remove the metadata from the cache
+                Metadata meta = new Metadata(metadata);
+                meta.setSource(Configuration.INGRESS_METADATA_DELETE_SOURCE);
+                pushMetadataMessage(meta);          
+                byte[] bytes = new byte[16];
+                // We know class/labels Id were computed in pushMetadataMessage
+                GTSHelper.fillGTSIds(bytes, 0, meta.getClassId(), meta.getLabelsId());
+                BigInteger key = new BigInteger(bytes);
+                synchronized(this.metadataCache) {
+                  this.metadataCache.remove(key);
+                }
+              }
+            }
+            
+            sb.setLength(0);
+            
+            GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
+            
+            if (metadata.getAttributesSize() > 0) {
+              GTSHelper.labelsToString(sb, metadata.getAttributes());
+            } else {
+              sb.append("{}");
+            }
+
+            pw.write(sb.toString());
+            pw.write("\r\n");
+            gts++;
+          }      
+        } catch (Exception e) {  
+          throw new IOException(e);
+        }        
       }
     } finally {
       // Flush delete messages

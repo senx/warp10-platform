@@ -439,6 +439,13 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
+   * Should we shuffle the GTS prior to issueing delete messages. Set to true or false.
+   * It is highly recommended to set this to true as it will induce a much lower pressure
+   * on region servers.
+   */
+  public static final String INGRESS_DELETE_SHUFFLE = "ingress.delete.shuffle";
+      
+  /**
    * Path where the metadata cache should be dumped
    */
   public static final String INGRESS_CACHE_DUMP_PATH = "ingress.cache.dump.path";
