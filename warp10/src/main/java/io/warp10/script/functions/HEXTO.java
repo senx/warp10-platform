@@ -23,8 +23,6 @@ import io.warp10.script.WarpScriptStack;
 
 import org.bouncycastle.util.encoders.Hex;
 
-import com.google.common.base.Charsets;
-
 /**
  * Decode a String in hexadecimal
  */
@@ -42,7 +40,9 @@ public class HEXTO extends NamedWarpScriptFunction implements WarpScriptStackFun
       throw new WarpScriptException(getName() + " operates on a String.");
     }
     
-    stack.push(Hex.decode(o.toString()));
+    String hex = o.toString();
+    
+    stack.push(Hex.decode(1 == (hex.length() % 2) ? ("0" + hex) : hex));
     
     return stack;
   }
