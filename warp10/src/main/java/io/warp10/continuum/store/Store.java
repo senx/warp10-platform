@@ -1113,23 +1113,35 @@ public class Store extends Thread {
       // Call the Coprocessor endpoint on each RegionServer
       //
       
+      final AtomicBoolean error = new AtomicBoolean(false);
       
-      final ServerRpcController controller = new ServerRpcController();
-
       Batch.Call<BulkDeleteService, BulkDeleteResponse> callable = new Batch.Call<BulkDeleteService, BulkDeleteResponse>() {
         BlockingRpcCallback<BulkDeleteResponse> rpcCallback = new BlockingRpcCallback<BulkDeleteResponse>();
-        
+        ServerRpcController controller = new ServerRpcController();
+  
         public BulkDeleteResponse call(BulkDeleteService service) throws IOException {
           Builder builder = BulkDeleteRequest.newBuilder();
           builder.setScan(ProtobufUtil.toScan(scan));
-          
+
           builder.setDeleteType(DeleteType.VERSION);
-          
+                    
           // Arbitrary for now, maybe come up with a better heuristic
           builder.setRowBatchSize(1000);
           service.delete(controller, builder.build(), rpcCallback);
 
-          return rpcCallback.get();
+          BulkDeleteResponse resp = rpcCallback.get();
+          
+          //
+          // Check if controller trapped an exception or an error message (may happen if a region is too busy)
+          //
+
+          if (controller.failed()) {
+            error.set(true);
+          }
+
+          controller.checkFailed();
+                
+          return resp;
         }
       };
 
@@ -1139,14 +1151,8 @@ public class Store extends Thread {
 
       nano = System.nanoTime() - nano;
 
-      //
-      // Check if controller trapped an exception or an error message (may happen if a region is too busy)
-      //
-
-      controller.checkFailed();
-
-      if (controller.failed()) {
-        throw new IOException(controller.errorText());
+      if (error.get()) {
+        throw new IOException("Error while processing delete request.");
       }
       
       long noOfDeletedRows = 0L;
