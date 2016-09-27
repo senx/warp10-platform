@@ -585,6 +585,13 @@ directory.hbase.filter = false
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
+// Should we shuffle the Geo Time Series prior to sending the delete messages?
+// It is highly recommended to leave this to 'true', otherwise deletion of many series
+// may lead to regions being pounded.
+//
+ingress.delete.shuffle = true
+
+//
 // Path where the metadata cache should be dumped
 //
 ingress.cache.dump.path = /opt/warp10/data/cache.metadata
