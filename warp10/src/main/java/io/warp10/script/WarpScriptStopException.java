@@ -16,7 +16,7 @@
 
 package io.warp10.script;
 
-public class WarpScriptStopException extends WarpScriptException {
+public class WarpScriptStopException extends WarpScriptATCException {
   public WarpScriptStopException(String message) {
     super(message);
   }

@@ -821,13 +821,15 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     
     this.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, macro.isSecure());
     
+    int i = 0;
+    
     try {
       
       if (this.recursionLevel.addAndGet(1) > this.maxrecurse) {
         throw new WarpScriptException("Maximum recursion level reached (" + this.recursionLevel.get() + ")");
       }
 
-      for (int i = 0; i < macro.size(); i++) {
+      for (i = 0; i < macro.size(); i++) {
         // Notify progress
         progress();
         
@@ -855,6 +857,14 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     } catch (WarpScriptReturnException ere) {
       if (this.getCounter(WarpScriptStack.COUNTER_RETURN_DEPTH).decrementAndGet() > 0) {
         throw ere;
+      }
+    } catch (WarpScriptATCException wsatce) {
+      throw wsatce;
+    } catch (Exception ee) {
+      if (macro.isSecure()) {
+        throw ee;
+      } else {
+        throw new WarpScriptException("Exception at statement '" + macro.get(i).toString() + "' (" + ee.getMessage() + ")");
       }
     } finally {
       this.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, secure);

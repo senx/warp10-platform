@@ -16,7 +16,7 @@
 
 package io.warp10.script;
 
-public class WarpScriptLoopBreakException extends WarpScriptException {
+public class WarpScriptLoopBreakException extends WarpScriptATCException {
   public WarpScriptLoopBreakException(String message) {
     super(message);
   }
