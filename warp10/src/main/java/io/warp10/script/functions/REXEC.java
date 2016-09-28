@@ -47,7 +47,7 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
     
     Properties props = WarpConfig.getProperties();
   
-    this.enabled = "true".equals(props.getProperty(Configuration.WARPSCRIPT_REXEC_ENABLE));
+    this.enabled = null != props && "true".equals(props.getProperty(Configuration.WARPSCRIPT_REXEC_ENABLE));
   }
   
   @Override
