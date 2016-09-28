@@ -19,6 +19,7 @@ package io.warp10.continuum;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.sensision.Sensision;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,7 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Class used to keep track of Kafka offsets
  */
 public class KafkaOffsetCounters {
-  private static final int GROWBY = 16;
+  private static final int GROWBY = 128;
   
   private final String topic;
   private final String groupid;
@@ -37,6 +38,13 @@ public class KafkaOffsetCounters {
   
   private final long ttl;
   
+  private long[] committedOffsets = null;
+
+  /**
+   * Map of labels for Sensision, meant to be accessed ONLY from synchronized methods
+   */
+  private final Map<String,String> labels = new HashMap<String,String>();    
+
   public KafkaOffsetCounters(String topic, String groupid, long ttl) {
     this.topic = topic;
     this.groupid = groupid;
@@ -47,7 +55,7 @@ public class KafkaOffsetCounters {
    * Remove per partition counters and associated Sensision metrics
    */
   public synchronized void reset() {
-    Map<String,String> labels = new HashMap<String,String>();    
+    labels.clear();
     labels.put(SensisionConstants.SENSISION_LABEL_TOPIC, this.topic);
     labels.put(SensisionConstants.SENSISION_LABEL_GROUPID, this.groupid);
     
@@ -63,8 +71,7 @@ public class KafkaOffsetCounters {
     }
   }
   
-  public synchronized void count(int partition, long offset) {
-    
+  public synchronized void count(int partition, long offset) {    
     AtomicLong counter = null;
     
     if (partition >= this.counters.length) {
@@ -76,11 +83,95 @@ public class KafkaOffsetCounters {
       counters[partition] = counter;
     }
     
-    counter.set(offset);
+    counter.set(offset);    
+  }
+  
+  /**
+   * Will account for the new offset, checking several things:
+   * 
+   * 1.- the offset is not below the previously committed offset
+   * 2.- the offset does not differ of more than 1 from the previously known counter
+   * 
+   * If 1. happens, safeCount will return 'false'.
+   * If 2. happens, safeCount will throw an IOException.
+   * 
+   * @param partition
+   * @param offset
+   * @return
+   * @throws IOException
+   */
+  public synchronized boolean safeCount(int partition, long offset) throws IOException {
+    AtomicLong counter = null;
+    
+    if (partition >= this.counters.length) {
+      this.counters = Arrays.copyOf(this.counters, this.counters.length + GROWBY);
+    }
+    
+    counter = counters[partition];
+    
+    if (null == counter) {
+      counter = new AtomicLong(0L);
+      counters[partition] = counter;
+      counter.set(offset);
+      
+      if (committedOffsets.length > partition && committedOffsets[partition] >= 0 && 1 < (offset - committedOffsets[partition])) {
+        labels.clear();
+        labels.put(SensisionConstants.SENSISION_LABEL_TOPIC, this.topic);
+        labels.put(SensisionConstants.SENSISION_LABEL_GROUPID, this.groupid);
+        labels.put(SensisionConstants.SENSISION_LABEL_PARTITION, Integer.toString(partition));
+        Sensision.update(SensisionConstants.SENSISION_CLASS_WARP_KAFKA_CONSUMER_OFFSET_FORWARD_LEAPS, labels, 1);
+        throw new IOException("Kafka offset " + offset + " leapt forward relative to previously committed value " + committedOffsets[partition]);
+      }
+    } else {
+      //
+      // Check if we leapt forward
+      //
+      
+      long previousOffset = counter.getAndSet(offset);
+      
+      if (1 < (offset - previousOffset)) {
+        labels.clear();
+        labels.put(SensisionConstants.SENSISION_LABEL_TOPIC, this.topic);
+        labels.put(SensisionConstants.SENSISION_LABEL_GROUPID, this.groupid);
+        labels.put(SensisionConstants.SENSISION_LABEL_PARTITION, Integer.toString(partition));
+        Sensision.update(SensisionConstants.SENSISION_CLASS_WARP_KAFKA_CONSUMER_OFFSET_FORWARD_LEAPS, labels, 1);
+        throw new IOException("Kafka offset " + offset + " leapt forward relative to previous offset " + previousOffset);
+      }
+    }
+    
+
+    //
+    // Check if we leapt backward relative to the previous committed offset
+    //
+    
+    if (committedOffsets.length > partition && offset < committedOffsets[partition]) {
+      labels.clear();
+      labels.put(SensisionConstants.SENSISION_LABEL_TOPIC, this.topic);
+      labels.put(SensisionConstants.SENSISION_LABEL_GROUPID, this.groupid);
+      labels.put(SensisionConstants.SENSISION_LABEL_PARTITION, Integer.toString(partition));
+      Sensision.update(SensisionConstants.SENSISION_CLASS_WARP_KAFKA_CONSUMER_OFFSET_BACKWARD_LEAPS, labels, 1);
+      return false;
+    }
+  
+    return true;
+  }
+  
+  /**
+   * Notify the counter that offsets were committed to Kafka, this is
+   * only used when checkRatchet is intended to be called
+   */
+  public synchronized void commit() {    
+    if (null == this.committedOffsets || this.committedOffsets.length < this.counters.length) {
+      this.committedOffsets = new long[this.counters.length];
+    }
+    
+    for (int i = 0; i < this.committedOffsets.length; i++) {
+      this.committedOffsets[i] = null != this.counters[i] ? this.counters[i].get() : -1L;
+    }
   }
   
   public synchronized void sensisionPublish() {
-    Map<String,String> labels = new HashMap<String,String>();    
+    labels.clear();
     labels.put(SensisionConstants.SENSISION_LABEL_TOPIC, this.topic);
     labels.put(SensisionConstants.SENSISION_LABEL_GROUPID, this.groupid);
     
@@ -94,5 +185,5 @@ public class KafkaOffsetCounters {
       // Reset counter so we do not continue publishing an old value
       this.counters[i] = null;
     }
-  }
+  }  
 }

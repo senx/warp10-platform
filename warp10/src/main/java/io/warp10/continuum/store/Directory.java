@@ -914,9 +914,11 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   // All processing threads are waiting on the barrier, this means we can flush the offsets because
                   // they have all processed data successfully for the given activity period
                   //
-                  
+
                   // Commit offsets
                   connector.commitOffsets(true);
+                  counters.commit();
+                                   
                   counters.sensisionPublish();
                   
                   Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_COMMITS, Sensision.EMPTY_LABELS, 1);
@@ -1358,7 +1360,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           
           if (nonEmpty) {
             MessageAndMetadata<byte[], byte[]> msg = iter.next();
-            counters.count(msg.partition(), msg.offset());
+            if (!counters.safeCount(msg.partition(), msg.offset())) {
+              continue;
+            }
             
             //
             // We do an early selection check based on the Kafka key.
