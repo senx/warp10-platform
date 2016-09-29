@@ -114,7 +114,12 @@ public class KafkaOffsetCounters {
       counters[partition] = counter;
       counter.set(offset);
       
-      if (null != committedOffsets && committedOffsets.length > partition && committedOffsets[partition] >= 0 && 1 < (offset - committedOffsets[partition])) {
+      //
+      // Note that we check if the difference is greater than 2 because the offset returned by the message is the one AFTER the given
+      // message but the committed offset is the one BEFORE the last consumed message
+      //
+      
+      if (null != committedOffsets && committedOffsets.length > partition && committedOffsets[partition] >= 0 && 2 < (offset - committedOffsets[partition])) {
         labels.clear();
         labels.put(SensisionConstants.SENSISION_LABEL_TOPIC, this.topic);
         labels.put(SensisionConstants.SENSISION_LABEL_GROUPID, this.groupid);
