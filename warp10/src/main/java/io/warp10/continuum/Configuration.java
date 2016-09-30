@@ -741,6 +741,12 @@ public class Configuration {
   public static final String STORE_NTHREADS_KAFKA = "store.nthreads.kafka";
   
   /**
+   * Number of threads in the pool used to process deletes. One such pool is created for each of 'store.nthreads'. Defaults to
+   * 0 meaning no pool is used.
+   */
+  public static final String STORE_NTHREADS_DELETE = "store.nthreads.delete";
+  
+  /**
    * ZooKeeper server list
    */
   public static final String STORE_ZK_QUORUM = "store.zk.quorum";
