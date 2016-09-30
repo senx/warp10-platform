@@ -73,6 +73,7 @@ public class Join extends NamedWarpScriptFunction implements WarpScriptAggregato
   public Join(String name, String separator, boolean ignoreNulls, boolean urlencode, String nullString) {
     super(name);
     this.separator = separator;
+    
     this.ignoreNulls = ignoreNulls;
     this.urlencode = urlencode;
     this.nullString = nullString;
@@ -114,18 +115,19 @@ public class Join extends NamedWarpScriptFunction implements WarpScriptAggregato
         if (null != nullString) {
           if (!first) {
             sb.append(separator);
-            first = false;
           }
           sb.append(nullString);
         }
+        first = false;
         continue;
       }
 
       if (!first) {
         sb.append(separator);
-        first = false;
       }
-      
+
+      first = false;
+
       if (urlencode) {
         try {
           sb.append(WarpURLEncoder.encode(value.toString(), "UTF-8"));
