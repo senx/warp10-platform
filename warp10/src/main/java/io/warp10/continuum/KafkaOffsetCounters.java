@@ -149,7 +149,7 @@ public class KafkaOffsetCounters {
     // Check if we leapt backward relative to the previous committed offset
     //
     
-    if (null != committedOffsets && committedOffsets.length > partition && offset < committedOffsets[partition]) {
+    if (null != committedOffsets && committedOffsets.length > partition && offset <= committedOffsets[partition]) {
       labels.clear();
       labels.put(SensisionConstants.SENSISION_LABEL_TOPIC, this.topic);
       labels.put(SensisionConstants.SENSISION_LABEL_GROUPID, this.groupid);
