@@ -134,6 +134,7 @@ public class KafkaSynchronizedConsumerPool {
     private final String groupid;
     private final String clientid;
     private final String strategy;
+    private final String autoOffsetReset;
     private final int nthreads;
     private final ConsumerFactory factory;
     
@@ -141,12 +142,13 @@ public class KafkaSynchronizedConsumerPool {
     private Hook preCommitOffsetHook = null;
     private Hook commitOffsetHook = null;
     
-    public Spawner(KafkaSynchronizedConsumerPool pool, String zkconnect, String topic, String clientid, String groupid, String strategy, int nthreads, ConsumerFactory factory) {
+    public Spawner(KafkaSynchronizedConsumerPool pool, String zkconnect, String topic, String clientid, String groupid, String strategy, String autoOffsetReset, int nthreads, ConsumerFactory factory) {
       this.pool = pool;
       this.zkconnect = zkconnect;
       this.topic = topic;
       this.groupid = groupid;
       this.strategy = strategy;
+      this.autoOffsetReset = autoOffsetReset;
       this.clientid = clientid;
       this.nthreads = nthreads;
       this.factory = factory;
@@ -180,6 +182,10 @@ public class KafkaSynchronizedConsumerPool {
             props.setProperty("partition.assignment.strategy", this.strategy);
           }
           props.setProperty("auto.commit.enable", "false");
+          
+          if (null != this.autoOffsetReset) {
+            props.setProperty("auto.offset.reset", this.autoOffsetReset);
+          }
           
           ConsumerConfig config = new ConsumerConfig(props);
           connector = Consumer.createJavaConsumerConnector(config);
@@ -231,7 +237,8 @@ public class KafkaSynchronizedConsumerPool {
                 }
                 
                 // Commit offsets
-                connector.commitOffsets();              
+                connector.commitOffsets();
+                pool.getCounters().commit();
                 pool.getCounters().sensisionPublish();
                 
                 if (null != commitOffsetHook) {
@@ -293,12 +300,16 @@ public class KafkaSynchronizedConsumerPool {
   }
   
   public KafkaSynchronizedConsumerPool(String zkconnect, String topic, String clientid, String groupid, String strategy, int nthreads, long commitPeriod, ConsumerFactory factory) {
+    this(zkconnect, topic, clientid, groupid, strategy, null, nthreads, commitPeriod, factory);
+  }
+  
+  public KafkaSynchronizedConsumerPool(String zkconnect, String topic, String clientid, String groupid, String strategy, String autoOffsetReset, int nthreads, long commitPeriod, ConsumerFactory factory) {
     
     this.abort = new AtomicBoolean(false);
     this.initialized = new AtomicBoolean(false);
     
     this.synchronizer = new Synchronizer(this, commitPeriod);    
-    this.spawner = new Spawner(this, zkconnect, topic, clientid, groupid, strategy, nthreads, factory);
+    this.spawner = new Spawner(this, zkconnect, topic, clientid, groupid, strategy, autoOffsetReset, nthreads, factory);
   
     this.counters = new KafkaOffsetCounters(topic, groupid, commitPeriod * 2);
     
