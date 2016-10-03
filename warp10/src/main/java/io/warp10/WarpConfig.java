@@ -25,12 +25,28 @@ public class WarpConfig {
   
   private static Properties properties = null;
   
+  public static void safeSetProperties(String file) throws IOException {
+    if (null == file) {
+      safeSetProperties((Reader) null);
+    } else {
+      safeSetProperties(new FileReader(file));
+    }
+  }
+  
   public static void setProperties(String file) throws IOException {
     if (null == file) {
       setProperties((Reader) null);
     } else {
       setProperties(new FileReader(file));
     }
+  }
+  
+  public static void safeSetProperties(Reader reader) throws IOException {
+    if (null != properties) {
+      return;
+    }
+    
+    setProperties(reader);
   }
   
   public static void setProperties(Reader reader) throws IOException {
