@@ -88,7 +88,7 @@ public class WarpScriptExecutor {
     //
   
     try {
-      WarpConfig.setProperties((String) System.getProperty(WARP10_CONFIG));
+      WarpConfig.safeSetProperties((String) System.getProperty(WARP10_CONFIG));
       properties = WarpConfig.getProperties();
       WarpScriptLib.registerExtensions();
     } catch (Exception e) {
