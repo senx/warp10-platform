@@ -49,6 +49,10 @@ public class WarpConfig {
     setProperties(reader);
   }
   
+  public static boolean isPropertiesSet() {
+    return null != properties;
+  }
+  
   public static void setProperties(Reader reader) throws IOException {
     if (null != properties) {
       throw new RuntimeException("Properties already set.");
