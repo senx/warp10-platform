@@ -1161,6 +1161,16 @@ public class SensisionConstants {
    */
   public static final String SENSISION_CLASS_WARP_KAFKA_CONSUMER_OFFSET = "warp.kafka.consumer.offset";
   
+  /**
+   * Number of messages which were more than 1 message ahead of the previously consumed (or committed) message
+   */
+  public static final String SENSISION_CLASS_WARP_KAFKA_CONSUMER_OFFSET_FORWARD_LEAPS = "warp.kafka.consumer.forward.leaps";
+  
+  /**
+   * Number of messages which were in the past relative to the previously committed message offset
+   */
+  public static final String SENSISION_CLASS_WARP_KAFKA_CONSUMER_OFFSET_BACKWARD_LEAPS = "warp.kafka.consumer.backward.leaps";
+  
   //
   // ScriptRunner
   //
