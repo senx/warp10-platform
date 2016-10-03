@@ -174,6 +174,11 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_MOBIUS_BOOTSTRAP_PATH = "warpscript.mobius.bootstrap.path";
   
   /**
+   * Number of threads in the Mobius pool
+   */
+  public static final String CONFIG_WARPSCRIPT_MOBIUS_POOL = "warpscript.mobius.pool";
+  
+  /**
    * How often to reload the bootstrap code (in ms) for Mobius
    */
   public static final String CONFIG_WARPSCRIPT_MOBIUS_BOOTSTRAP_PERIOD = "warpscript.mobius.bootstrap.period";
