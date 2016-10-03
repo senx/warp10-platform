@@ -16,8 +16,10 @@
 
 package io.warp10.continuum.egress;
 
+import io.warp10.WarpConfig;
 import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
+import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
@@ -29,6 +31,7 @@ import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStack.StackContext;
 import io.warp10.script.functions.EVERY;
+import io.warp10.sensision.Sensision;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -43,6 +46,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -54,6 +58,7 @@ import org.eclipse.jetty.websocket.api.UpgradeRequest;
 import org.eclipse.jetty.websocket.api.UpgradeResponse;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
+import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import org.eclipse.jetty.websocket.server.WebSocketHandler;
@@ -70,6 +75,8 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
   private final StoreClient storeClient;
   private final DirectoryClient directoryClient;
   private final BootstrapManager bootstrapManager;
+
+  private int poolsize = 16;
   
   private static final String CONTEXT_SYMBOL = "context";
   
@@ -131,12 +138,7 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
         // Abort current background Einstein execution
         //
         
-        synchronized(macros) {
-          scheduledRuns.remove(session);
-          macros.remove(session);
-          deadlines.remove(session);
-          contexts.remove(session);
-        }
+        mobius.removeSession(session);
         
         return;
       }
@@ -223,14 +225,14 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
     
     @OnWebSocketClose    
     public void onWebSocketClose(Session session, int statusCode, String reason) {
-      synchronized(macros) {
-        scheduledRuns.remove(session);
-        macros.remove(session);
-        deadlines.remove(session);
-        contexts.remove(session);
-      }
+      mobius.removeSession(session);
     }
-    
+
+    @OnWebSocketError        
+    public void onWebSocketError(Session session, Throwable t) {
+      mobius.removeSession(session);
+    }
+
     public void setMobiusHandler(EgressMobiusHandler mobius) {
       this.mobius = mobius;
     }
@@ -256,7 +258,12 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
       this.bootstrapManager = new BootstrapManager();
     }
 
+    if (properties.containsKey(Configuration.CONFIG_WARPSCRIPT_MOBIUS_POOL)) {
+      this.poolsize = Integer.parseInt(properties.getProperty(Configuration.CONFIG_WARPSCRIPT_MOBIUS_POOL));
+    }
+    
     configure(super.getWebSocketFactory());
+    
     
     Thread t = new Thread(this);
     t.setDaemon(true);
@@ -304,22 +311,21 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
     // Configure executor
     //
     
-    Executor executor = new ThreadPoolExecutor(8, 16, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(16));
+    Executor executor = new ThreadPoolExecutor(poolsize >>> 1, poolsize, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1 + (poolsize >>> 1)));
     
     while (true) {
       
-      try {
-        Long deadline = deadlines.get(scheduledRuns.peek());
-        
-        if (null == deadline || deadline - System.currentTimeMillis() > 100L) {
-          Thread.sleep(99L);
-        } else {
-          long delay = deadline - System.currentTimeMillis() - 1L;
-          if (delay > 0) {
-            Thread.sleep(delay);
-          }
+      Long deadline = deadlines.get(scheduledRuns.peek());
+      
+      Sensision.set(SensisionConstants.CLASS_WARP_MOBIUS_ACTIVE_SESSIONS, Sensision.EMPTY_LABELS, scheduledRuns.size());
+
+      if (null == deadline || deadline - System.currentTimeMillis() > 100L) {
+        LockSupport.parkNanos(99000000L);
+      } else {
+        long delay = deadline - System.currentTimeMillis() - 1L;
+        if (delay > 0) {
+          LockSupport.parkNanos(delay * 1000000L);
         }
-      } catch (InterruptedException ie) {        
       }
       
       //
@@ -334,13 +340,21 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
       if (null == session) {
         continue;
       }
+
+      //
+      // Check if session is still open, if not, remove it and continue
+      //
+      
+      if (!session.isOpen()) {
+        removeSession(session);
+        continue;
+      }
       
       //
       // Check deadline
       //
       
       Macro macro = null;
-      Long deadline = null;
       
       synchronized(macros) {
         macro = macros.get(session);
@@ -369,11 +383,16 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
       Runnable runner = new Runnable() {
         @Override
         public void run() {
+          
+          long nano = System.nanoTime();
+          
           //
           // Create a stack
           //
           
           WarpScriptStack stack = new MemoryWarpScriptStack(storeClient, directoryClient);
+          
+          boolean error = false;
           
           try {
             //
@@ -393,6 +412,7 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
             stack.exec(fmacro);
             
           } catch (Exception e) {
+            error = true;
             try { stack.push(e.getMessage()); } catch (WarpScriptException ee) {}
           }
 
@@ -418,6 +438,12 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
             }
           }
 
+          nano = System.nanoTime() - nano;
+          
+          Sensision.update(SensisionConstants.CLASS_WARP_MOBIUS_MACROS_EXECUTIONS, Sensision.EMPTY_LABELS, 1);
+          Sensision.update(SensisionConstants.CLASS_WARP_MOBIUS_MACROS_TIME_NANOS, Sensision.EMPTY_LABELS, nano);
+          Sensision.update(SensisionConstants.CLASS_WARP_MOBIUS_MACROS_ERRORS, Sensision.EMPTY_LABELS, error ? 1 : 0);
+          
           //
           // Output result
           //
@@ -441,5 +467,14 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
         }
       }
     }
-  }    
+  }
+  
+  private void removeSession(Session session) {
+    synchronized(macros) {
+      scheduledRuns.remove(session);
+      macros.remove(session);
+      deadlines.remove(session);
+      contexts.remove(session);
+    }
+  }
 }

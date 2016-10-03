@@ -856,6 +856,26 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_EINSTEIN_RUN_FETCHED = "warp.script.run.fetched";
   
   /**
+   * Number of sessions with macros currently scheduled by Mobius
+   */
+  public static final String CLASS_WARP_MOBIUS_ACTIVE_SESSIONS = "warp.script.mobius.sessions.scheduled";
+
+  /**
+   * Total number of macro executions
+   */
+  public static final String CLASS_WARP_MOBIUS_MACROS_EXECUTIONS = "warp.script.mobius.macros.executions";
+
+  /**
+   * Total number of failed macro executions
+   */
+  public static final String CLASS_WARP_MOBIUS_MACROS_ERRORS = "warp.script.mobius.macros.errors";
+
+  /**
+   * Total time of macro executions (in ns)
+   */
+  public static final String CLASS_WARP_MOBIUS_MACROS_TIME_NANOS = "warp.script.mobius.macros.time.nanos";
+
+  /**
    * Number of points currently stored in the memory store
    */
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_DATAPOINTS = "warp.standalone.inmemory.datapoints";
