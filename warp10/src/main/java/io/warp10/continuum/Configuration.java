@@ -546,6 +546,11 @@ public class Configuration {
   public static final String INGRESS_KAFKA_META_TOPIC = "ingress.kafka.metadata.topic";    
 
   /**
+   * Offset reset strategy.
+   */
+  public static final String INGRESS_KAFKA_META_CONSUMER_AUTO_OFFSET_RESET = "ingress.kafka.metadata.consumer.auto.offset.reset";
+
+  /**
    * Key to use for computing MACs (128 bits in hex or OSS reference)
    */
   public static final String INGRESS_KAFKA_META_MAC = "ingress.kafka.metadata.mac";

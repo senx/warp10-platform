@@ -139,9 +139,6 @@ public class Ingress extends AbstractHandler implements Runnable {
     Configuration.INGRESS_KAFKA_META_COMMITPERIOD,
     Configuration.INGRESS_KAFKA_DATA_BROKERLIST,
     Configuration.INGRESS_KAFKA_DATA_TOPIC,
-    Configuration.INGRESS_KAFKA_ARCHIVE_ZKCONNECT,
-    Configuration.INGRESS_KAFKA_ARCHIVE_BROKERLIST,
-    Configuration.INGRESS_KAFKA_ARCHIVE_TOPIC,
     Configuration.INGRESS_KAFKA_DATA_POOLSIZE,
     Configuration.INGRESS_KAFKA_METADATA_POOLSIZE,
     Configuration.INGRESS_KAFKA_DATA_MAXSIZE,
@@ -424,8 +421,10 @@ public class Ingress extends AbstractHandler implements Runnable {
         props.getProperty(Configuration.INGRESS_KAFKA_META_CONSUMER_CLIENTID),
         props.getProperty(Configuration.INGRESS_KAFKA_META_GROUPID),
         props.getProperty(Configuration.INGRESS_KAFKA_META_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY),
+        props.getProperty(Configuration.INGRESS_KAFKA_META_CONSUMER_AUTO_OFFSET_RESET),
         Integer.parseInt(props.getProperty(Configuration.INGRESS_KAFKA_META_NTHREADS)),
-        Long.parseLong(props.getProperty(Configuration.INGRESS_KAFKA_META_COMMITPERIOD)), metadataConsumerFactory);    
+        Long.parseLong(props.getProperty(Configuration.INGRESS_KAFKA_META_COMMITPERIOD)),
+        metadataConsumerFactory);    
 
     //
     // Initialize ThriftDirectoryService
