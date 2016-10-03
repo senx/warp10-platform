@@ -23,6 +23,11 @@ import java.util.regex.Pattern;
 
 public class WarpConfig {
   
+  /**
+   * Name of property used in various submodules to locate the Warp 10 configuration file
+   */
+  public static final String WARP10_CONFIG = "warp10.config";
+  
   private static Properties properties = null;
   
   public static void safeSetProperties(String file) throws IOException {
