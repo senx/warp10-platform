@@ -626,6 +626,18 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_OPTIMIZED_SCANNERS_RANGES = "warp.hbase.client.scanners.optimized.ranges";
 
   /**
+   * Number of parallel scanners spawned
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS = "warp.hbase.client.scanners.parallel";
+
+  /**
+   * Number of times a mutex was requested among parallel scanners. A Mutex is requested when consecutive GTSDecoders belong
+   * to the same GTS, they must be pushed to the queue as a block. This can happen when the size of a GTSDecoder grows beyond
+   * a limit or when a GTS spawns several regions.
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_MUTEX = "warp.hbase.client.scanners.parallel.mutex";
+
+  /**
    * Number of failed MAC verification for Kafka messages read in 'Directory'
    */
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_FAILEDMACS = "warp.directory.kafka.failedmacs";
