@@ -41,14 +41,16 @@ public class OptimizedSlicedRowFilterGTSDecoderIterator extends GTSDecoderIterat
   private final byte[] colfam;
   private final boolean useBlockCache;
   private final KeyStore keystore;
+  private final boolean writeTimestamp;
   
-  public OptimizedSlicedRowFilterGTSDecoderIterator(long now, long timespan, List<Metadata> metadatas, Connection conn, TableName tableName, byte[] colfam, KeyStore keystore, boolean useBlockCache) {
+  public OptimizedSlicedRowFilterGTSDecoderIterator(long now, long timespan, List<Metadata> metadatas, Connection conn, TableName tableName, byte[] colfam, boolean writeTimestamp, KeyStore keystore, boolean useBlockCache) {
     
     this.now = now;
     this.timespan = timespan;
     this.conn = conn;
     this.tableName = tableName;
     this.colfam = colfam;
+    this.writeTimestamp = writeTimestamp;
     this.useBlockCache = useBlockCache;
     this.keystore = keystore;
     
@@ -184,7 +186,7 @@ public class OptimizedSlicedRowFilterGTSDecoderIterator extends GTSDecoderIterat
       if (null != iterator) {
         try { iterator.close(); } catch (Exception e) {}
       }
-      iterator = new SlicedRowFilterGTSDecoderIterator(now, timespan, groups.get(groupidx), conn, tableName, colfam, keystore, useBlockCache);
+      iterator = new SlicedRowFilterGTSDecoderIterator(now, timespan, groups.get(groupidx), conn, tableName, colfam, writeTimestamp, keystore, useBlockCache);
       groupidx++;
       hasNext = iterator.hasNext();
     }
