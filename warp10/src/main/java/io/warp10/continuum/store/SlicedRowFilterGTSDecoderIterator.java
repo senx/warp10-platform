@@ -93,14 +93,17 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
   // FIXME(hbs): use a different prefix for archived data
   private static byte[] prefix = Store.HBASE_RAW_DATA_KEY_PREFIX;
 
-  public SlicedRowFilterGTSDecoderIterator(long now, long timespan, List<Metadata> metadatas, Connection conn, TableName tableName, byte[] colfam, KeyStore keystore, boolean useBlockCache) {
+  private final boolean writeTimestamp;
+  
+  public SlicedRowFilterGTSDecoderIterator(long now, long timespan, List<Metadata> metadatas, Connection conn, TableName tableName, byte[] colfam, boolean writeTimestamp, KeyStore keystore, boolean useBlockCache) {
       
     this.keystore = keystore;
     this.now = now;
     this.timespan = timespan;
     // FIXME(hbs): different key for archival
     this.hbaseAESKey = keystore.getKey(KeyStore.AES_HBASE_DATA);
-
+    this.writeTimestamp = writeTimestamp;
+    
     //
     // Check that if 'timespan' is < 0 then 'now' is either Long.MAX_VALUE or congruent to 0 modulo DEFAULT_MODULUS
     //
@@ -326,7 +329,11 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
             long timestamp = decoder.getTimestamp();
             if (timestamp <= now && (timespan < 0 || (timestamp > (now - timespan)))) {
               try {
-                encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+                if (writeTimestamp) {
+                  encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), cell.getTimestamp() * Constants.TIME_UNITS_PER_MS);
+                } else {
+                  encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+                }
                 nvalues--;
               } catch (IOException ioe) {
                 LOG.error("", ioe);

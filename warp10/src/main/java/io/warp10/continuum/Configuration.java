@@ -174,6 +174,11 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_MOBIUS_BOOTSTRAP_PATH = "warpscript.mobius.bootstrap.path";
   
   /**
+   * Number of threads in the Mobius pool
+   */
+  public static final String CONFIG_WARPSCRIPT_MOBIUS_POOL = "warpscript.mobius.pool";
+  
+  /**
    * How often to reload the bootstrap code (in ms) for Mobius
    */
   public static final String CONFIG_WARPSCRIPT_MOBIUS_BOOTSTRAP_PERIOD = "warpscript.mobius.bootstrap.period";
@@ -544,6 +549,11 @@ public class Configuration {
    * Actual 'meta' topic
    */
   public static final String INGRESS_KAFKA_META_TOPIC = "ingress.kafka.metadata.topic";    
+
+  /**
+   * Offset reset strategy.
+   */
+  public static final String INGRESS_KAFKA_META_CONSUMER_AUTO_OFFSET_RESET = "ingress.kafka.metadata.consumer.auto.offset.reset";
 
   /**
    * Key to use for computing MACs (128 bits in hex or OSS reference)
@@ -1258,11 +1268,48 @@ public class Configuration {
    * Custom scanner lease period
    */
   public static final String EGRESS_HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD = "egress.hbase.client.scanner.timeout.period";
+
+  /**
+   * Custom value of 'hbase.client.max.perserver.tasks', defaults to 2
+   */
+  public static final String EGRESS_HBASE_CLIENT_MAX_PERSERVER_TASKS = "egress.hbase.client.max.perserver.tasks";
+  
+  /**
+   * Custom value of 'hbase.client.max.perregion.tasks', defaults to 1
+   */
+  public static final String EGRESS_HBASE_CLIENT_MAX_PERREGION_TASKS = "egress.hbase.client.max.perregion.tasks";
+  
+  /**
+   * Custom value of 'hbase.client.max.total.tasks', defaults to 100
+   */
+  public static final String EGRESS_HBASE_CLIENT_MAX_TOTAL_TASKS = "egress.hbase.client.max.total.tasks";
   
   /**
    * Custom value for RPC timeout
    */
   public static final String EGRESS_HBASE_RPC_TIMEOUT = "egress.hbase.rpc.timeout";
+  
+  /**
+   * Number of threads to use for scheduling parallel scanners. Use 0 to disable parallel scanners
+   */
+  public static final String EGRESS_HBASE_PARALLELSCANNERS_POOLSIZE = "egress.hbase.parallelscanners.poolsize";
+
+  /**
+   * Maximum number of parallel scanners per fetch request. Use 0 to disable parallel scanners.
+   */
+  public static final String EGRESS_HBASE_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST = "egress.hbase.parallelscanners.maxinflightperrequest";
+
+  /**
+   * Minimum number of GTS to assign to a parallel scanner. If the number of GTS to fetch is below this limit, no
+   * parallel scanners will be spawned. Defaults to 4.
+   */
+  public static final String EGRESS_HBASE_PARALLELSCANNERS_MIN_GTS_PERSCANNER = "egress.hbase.parallelscanners.min.gts.perscanner";
+  
+  /**
+   * Maximum number of parallel scanners to use when fetching datapoints for a batch of GTS (see EGRESS_FETCH_BATCHSIZE).
+   * Defaults to 16. 
+   */
+  public static final String EGRESS_HBASE_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS = "egress.hbase.parallelscanners.max.parallel.scanners";
   
   /**
    * Geo Time Series count threshold above which block caching will be disabled for HBase scanners.

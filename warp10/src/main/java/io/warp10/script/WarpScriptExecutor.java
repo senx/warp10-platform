@@ -30,8 +30,6 @@ import java.util.concurrent.Semaphore;
 
 public class WarpScriptExecutor {
 
-  public static final String WARP10_CONFIG = "warp10.config";
-  
   private final Progressable progressable;
   
   public static enum StackSemantics {
@@ -88,7 +86,7 @@ public class WarpScriptExecutor {
     //
   
     try {
-      WarpConfig.setProperties((String) System.getProperty(WARP10_CONFIG));
+      WarpConfig.safeSetProperties((String) System.getProperty(WarpConfig.WARP10_CONFIG));
       properties = WarpConfig.getProperties();
       WarpScriptLib.registerExtensions();
     } catch (Exception e) {

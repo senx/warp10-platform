@@ -40,7 +40,7 @@ public class COUNTTOMARK extends NamedWarpScriptFunction implements WarpScriptSt
       count++;
     }
     
-    stack.push(count);
+    stack.push((long) count);
     
     return stack;
   }

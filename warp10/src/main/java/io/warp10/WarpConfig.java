@@ -23,7 +23,20 @@ import java.util.regex.Pattern;
 
 public class WarpConfig {
   
+  /**
+   * Name of property used in various submodules to locate the Warp 10 configuration file
+   */
+  public static final String WARP10_CONFIG = "warp10.config";
+  
   private static Properties properties = null;
+  
+  public static void safeSetProperties(String file) throws IOException {
+    if (null == file) {
+      safeSetProperties((Reader) null);
+    } else {
+      safeSetProperties(new FileReader(file));
+    }
+  }
   
   public static void setProperties(String file) throws IOException {
     if (null == file) {
@@ -31,6 +44,18 @@ public class WarpConfig {
     } else {
       setProperties(new FileReader(file));
     }
+  }
+  
+  public static void safeSetProperties(Reader reader) throws IOException {
+    if (null != properties) {
+      return;
+    }
+    
+    setProperties(reader);
+  }
+  
+  public static boolean isPropertiesSet() {
+    return null != properties;
   }
   
   public static void setProperties(Reader reader) throws IOException {

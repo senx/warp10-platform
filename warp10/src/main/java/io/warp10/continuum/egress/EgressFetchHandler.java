@@ -657,6 +657,8 @@ public class EgressFetchHandler extends AbstractHandler {
               tsvDump(pw, iter, now, timespan, false, dedup, signed, lastMeta, lastCount);
             } else if ("fulltsv".equals(format)) {
               tsvDump(pw, iter, now, timespan, true, dedup, signed, lastMeta, lastCount);
+            } else if ("null".equals(format)) {
+              nullDump(iter);
             } else {
               textDump(pw, iter, now, timespan, false, dedup, signed, showAttr, lastMeta, lastCount);
             }
@@ -1674,4 +1676,9 @@ public class EgressFetchHandler extends AbstractHandler {
     lastCount.set(currentCount);
   }
 
+  private void nullDump(GTSDecoderIterator iter) {
+    while(iter.hasNext()) {
+      GTSDecoder decoder = iter.next();
+    }
+  }
 }
