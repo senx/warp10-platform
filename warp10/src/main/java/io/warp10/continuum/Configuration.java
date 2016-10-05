@@ -1179,6 +1179,11 @@ public class Configuration {
   public static final String STANDALONE_DATALOG_DIR = "standalone.datalog.dir";
   
   /**
+   * Optional key to encrypt the token in the file name used for datalogging
+   */
+  public static final String STANDALONE_DATALOG_AES = "standalone.datalog.aes";
+  
+  /**
    * Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.
    */
   public static final String IN_MEMORY = "in.memory";
