@@ -294,6 +294,9 @@ public class WarpScriptLib {
   public static final String LIST_START = "[";
   public static final String LIST_END = "]";
 
+  public static final String TO_VECTOR = "->V";
+  public static final String TO_SET = "->SET";
+  
   public static final String NEWGTS = "NEWGTS";
   public static final String SWAP = "SWAP";
   public static final String RELABEL = "RELABEL";
@@ -349,9 +352,9 @@ public class WarpScriptLib {
     functions.put("->LIST", new TOLIST("->LIST"));
     functions.put("LIST->", new LISTTO("LIST->"));
     functions.put("UNLIST", new UNLIST("UNLIST"));
-    functions.put("->SET", new TOSET("->SET"));
+    functions.put(TO_SET, new TOSET(TO_SET));
     functions.put("SET->", new SETTO("SET->"));
-    functions.put("->V", new TOVECTOR("->V"));
+    functions.put(TO_VECTOR, new TOVECTOR(TO_VECTOR));
     functions.put("V->", new VECTORTO("V->"));
     functions.put("UNION", new UNION("UNION"));
     functions.put("INTERSECTION", new INTERSECTION("INTERSECTION"));
