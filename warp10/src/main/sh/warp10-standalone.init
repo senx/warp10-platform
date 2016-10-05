@@ -32,6 +32,9 @@ start() {
     echo "JAVA_HOME not set";
     exit 1
   fi
+  if [ -f ${JAVA_HEAP_DUMP} ]; then
+    mv ${JAVA_HEAP_DUMP} ${JAVA_HEAP_DUMP}-`date +%s`
+  fi
   if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '"`" != "" ]
   then
     echo "Start failed ! - A Warp 10 instance is currently running"
