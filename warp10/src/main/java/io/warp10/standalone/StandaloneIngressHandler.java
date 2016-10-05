@@ -253,10 +253,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
         sb.append("-");
         sb.append(update ? "UPDATE" : "ARCHIVE");
         sb.append("-");
-        if (null == this.tokenWrappingKey) {
-          sb.append(OrderPreservingBase64.encode(token.getBytes("ISO-8859-1")));
+        if (null == this.tokenWrappingKey) {          
+          sb.append(new String(OrderPreservingBase64.encode(token.getBytes("ISO-8859-1")), "US-ASCII"));
         } else {
-          sb.append(OrderPreservingBase64.encode(CryptoUtils.wrap(this.tokenWrappingKey, token.getBytes("ISO-8859-1"))));              
+          sb.append(new String(OrderPreservingBase64.encode(CryptoUtils.wrap(this.tokenWrappingKey, token.getBytes("ISO-8859-1"))), "US-ASCII"));              
         }
         loggingFile = new File(loggingDir, sb.toString());
         loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
@@ -573,10 +573,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
       sb.append("-");
       sb.append("META");
       sb.append("-");
-      if (null == this.tokenWrappingKey) {
-        sb.append(token);
+      if (null == this.tokenWrappingKey) {          
+        sb.append(new String(OrderPreservingBase64.encode(token.getBytes("ISO-8859-1")), "US-ASCII"));
       } else {
-        sb.append(OrderPreservingBase64.encode(CryptoUtils.wrap(this.tokenWrappingKey, token.getBytes("US-ASCII"))));              
+        sb.append(new String(OrderPreservingBase64.encode(CryptoUtils.wrap(this.tokenWrappingKey, token.getBytes("ISO-8859-1"))), "US-ASCII"));              
       }
       loggingFile = new File(loggingDir, sb.toString());
       loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
