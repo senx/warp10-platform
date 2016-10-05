@@ -254,9 +254,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
         sb.append(update ? "UPDATE" : "ARCHIVE");
         sb.append("-");
         if (null == this.tokenWrappingKey) {
-          sb.append(token);
+          sb.append(OrderPreservingBase64.encode(token.getBytes("ISO-8859-1")));
         } else {
-          sb.append(OrderPreservingBase64.encode(CryptoUtils.wrap(this.tokenWrappingKey, token.getBytes("US-ASCII"))));              
+          sb.append(OrderPreservingBase64.encode(CryptoUtils.wrap(this.tokenWrappingKey, token.getBytes("ISO-8859-1"))));              
         }
         loggingFile = new File(loggingDir, sb.toString());
         loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
