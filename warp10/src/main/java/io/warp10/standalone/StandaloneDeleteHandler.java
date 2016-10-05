@@ -16,8 +16,10 @@
 
 package io.warp10.standalone;
 
+import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.LogUtil;
+import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.egress.EgressExecHandler;
 import io.warp10.continuum.egress.EgressFetchHandler;
@@ -27,12 +29,15 @@ import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.continuum.thrift.data.LoggingEvent;
+import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URLDecoder;
@@ -41,18 +46,22 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.regex.Matcher;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.io.output.FileWriterWithEncoding;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Charsets;
 
 public class StandaloneDeleteHandler extends AbstractHandler {
   
@@ -65,11 +74,18 @@ public class StandaloneDeleteHandler extends AbstractHandler {
   private final byte[] classKey;
   private final byte[] labelsKey;  
   
+  /**
+   * Key to wrap the token in the file names
+   */
+  private final byte[] tokenWrappingKey;
+  
   private final long[] classKeyLongs;
   private final long[] labelsKeyLongs;
   
   private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
 
+  private final File loggingDir;
+  
   public StandaloneDeleteHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
     this.keyStore = keystore;
     this.storeClient = storeClient;
@@ -80,6 +96,28 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     
     this.labelsKey = this.keyStore.getKey(KeyStore.SIPHASH_LABELS);
     this.labelsKeyLongs = SipHashInline.getKey(this.labelsKey);
+    
+    Properties props = WarpConfig.getProperties();
+    
+    if (props.containsKey(Configuration.STANDALONE_DATALOG_DIR)) {
+      File dir = new File(props.getProperty(Configuration.STANDALONE_DATALOG_DIR));
+      
+      if (!dir.exists()) {
+        throw new RuntimeException("Data logging target '" + dir + "' does not exist.");
+      } else if (!dir.isDirectory()) {
+        throw new RuntimeException("Data logging target '" + dir + "' is not a directory.");
+      } else {
+        loggingDir = dir;
+      }
+    } else {
+      loggingDir = null;
+    }
+    
+    if (props.containsKey(Configuration.STANDALONE_DATALOG_AES)) {
+      this.tokenWrappingKey = this.keyStore.decodeKey(props.getProperty(Configuration.STANDALONE_DATALOG_AES));
+    } else {
+      this.tokenWrappingKey = null;
+    }
   }
   
   @Override
@@ -155,6 +193,31 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     
     boolean dryrun = null != request.getParameter(Constants.HTTP_PARAM_DRYRUN);
     
+    File loggingFile = null;
+    PrintWriter loggingWriter = null;
+    
+    //
+    // Open the logging file if logging is enabled
+    //
+    
+    if (null != loggingDir) {
+      Long now = TimeSource.getNanoTime();
+      
+      StringBuilder sb = new StringBuilder();
+      sb.append(Long.toHexString(now));
+      sb.insert(0, "0000000000000000", 0, 16 - sb.length());
+      sb.append("-");
+      sb.append("DELETE");
+      sb.append("-");
+      if (null == this.tokenWrappingKey) {
+        sb.append(token);
+      } else {
+        sb.append(OrderPreservingBase64.encode(CryptoUtils.wrap(this.tokenWrappingKey, token.getBytes("US-ASCII"))));              
+      }
+      loggingFile = new File(loggingDir, sb.toString());
+      loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
+    }
+
     try {      
       if (null == producer || null == owner) {
         response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
@@ -241,6 +304,10 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         throw new IOException(pe);
       }
       
+      if (null != loggingWriter) {
+        loggingWriter.println(request.getQueryString());
+      }
+      
       //
       // Force 'producer'/'owner'/'app' from token
       //
@@ -309,7 +376,12 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     } catch (Exception e) {
       t = e;
       throw e;
-    } finally {      
+    } finally {
+      if (null != loggingWriter) {
+        loggingWriter.close();
+        loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + ".done"));
+      }      
+
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_REQUESTS, sensisionLabels, 1);
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_GTS, sensisionLabels, gts);
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_DATAPOINTS, sensisionLabels, count);
@@ -328,7 +400,6 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       }
       
       LOG.info(LogUtil.serializeLoggingEvent(this.keyStore, event));
-
     }
 
     response.setStatus(HttpServletResponse.SC_OK);

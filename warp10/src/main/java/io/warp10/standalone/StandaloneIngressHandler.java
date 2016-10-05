@@ -16,6 +16,7 @@
 
 package io.warp10.standalone;
 
+import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.ThrottlingManager;
@@ -28,28 +29,40 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.zip.GZIPInputStream;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.io.output.FileWriterWithEncoding;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Charsets;
 
 public class StandaloneIngressHandler extends AbstractHandler {
+  
+  private static final Logger LOG = LoggerFactory.getLogger(StandaloneIngressHandler.class);
   
   /**
    * How many bytes do we buffer before flushing to persistent storage, this will also end up being the size of each archival chunk
@@ -68,9 +81,16 @@ public class StandaloneIngressHandler extends AbstractHandler {
   private final byte[] classKey;
   private final byte[] labelsKey;  
   
+  /**
+   * Key to wrap the token in the file names
+   */
+  private final byte[] tokenWrappingKey;
+
   private final long[] classKeyLongs;
   private final long[] labelsKeyLongs;
     
+  private final File loggingDir;
+  
   public StandaloneIngressHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
     this.keyStore = keystore;
     this.storeClient = storeClient;
@@ -81,16 +101,45 @@ public class StandaloneIngressHandler extends AbstractHandler {
     
     this.labelsKey = this.keyStore.getKey(KeyStore.SIPHASH_LABELS);
     this.labelsKeyLongs = SipHashInline.getKey(this.labelsKey);
+    
+    Properties props = WarpConfig.getProperties();
+    
+    if (props.containsKey(Configuration.STANDALONE_DATALOG_DIR)) {
+      File dir = new File(props.getProperty(Configuration.STANDALONE_DATALOG_DIR));
+      
+      if (!dir.exists()) {
+        throw new RuntimeException("Data logging target '" + dir + "' does not exist.");
+      } else if (!dir.isDirectory()) {
+        throw new RuntimeException("Data logging target '" + dir + "' is not a directory.");
+      } else {
+        loggingDir = dir;
+        LOG.info("Data logging enabled in directory '" + dir + "'.");
+      }
+    } else {
+      loggingDir = null;
+    }
+    
+    if (props.containsKey(Configuration.STANDALONE_DATALOG_AES)) {
+      this.tokenWrappingKey = this.keyStore.decodeKey(props.getProperty(Configuration.STANDALONE_DATALOG_AES));
+    } else {
+      this.tokenWrappingKey = null;
+    }
   }
   
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+    
+    String token = null;
     
     boolean update = true;
     
     if (target.equals(Constants.API_ENDPOINT_UPDATE)) {
       baseRequest.setHandled(true);
       update = true;
+    } else if (target.startsWith(Constants.API_ENDPOINT_UPDATE + "/")) {
+      baseRequest.setHandled(true);
+      update = true;
+      token = target.substring(Constants.API_ENDPOINT_UPDATE.length() + 1);
     } else if (target.equals(Constants.API_ENDPOINT_ARCHIVE)) {
       baseRequest.setHandled(true);
       update = false;
@@ -113,7 +162,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
     // TODO(hbs): Extract producer/owner from token
     //
     
-    String token = request.getHeader(update ? Constants.getHeader(Configuration.HTTP_HEADER_TOKENX) : Constants.getHeader(Configuration.HTTP_HEADER_ARCHIVE_TOKENX));
+    if (null == token) {
+      token = request.getHeader(update ? Constants.getHeader(Configuration.HTTP_HEADER_TOKENX) : Constants.getHeader(Configuration.HTTP_HEADER_ARCHIVE_TOKENX));
+    }
             
     WriteToken writeToken;
     
@@ -133,6 +184,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
     long count = 0;
     long total = 0;
     
+    File loggingFile = null;   
+    PrintWriter loggingWriter = null;
+
     try {      
       if (null == producer || null == owner) {
         response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
@@ -187,6 +241,27 @@ public class StandaloneIngressHandler extends AbstractHandler {
       
       Long now = TimeSource.getTime();
 
+      //
+      // Open the logging file if logging is enabled
+      //
+      
+      if (null != loggingDir) {
+        long nanos = TimeSource.getNanoTime();
+        StringBuilder sb = new StringBuilder();
+        sb.append(Long.toHexString(nanos));
+        sb.insert(0, "0000000000000000", 0, 16 - sb.length());
+        sb.append("-");
+        sb.append(update ? "UPDATE" : "ARCHIVE");
+        sb.append("-");
+        if (null == this.tokenWrappingKey) {
+          sb.append(token);
+        } else {
+          sb.append(OrderPreservingBase64.encode(CryptoUtils.wrap(this.tokenWrappingKey, token.getBytes("US-ASCII"))));              
+        }
+        loggingFile = new File(loggingDir, sb.toString());
+        loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
+      }
+      
       //
       // Check the value of the 'now' header
       //
@@ -250,13 +325,13 @@ public class StandaloneIngressHandler extends AbstractHandler {
         if (null == line) {
           break;
         }
-
+        
         line = line.trim();
         
         if (0 == line.length()) {
           continue;
         }
-        
+
         //
         // Check for pushback
         // TODO(hbs): implement the actual push back if we are over the subscribed limit
@@ -330,7 +405,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
               }
             }
           }
-          
+
           if (encoder != lastencoder) {
             lastencoder = encoder;
           } else {
@@ -345,6 +420,13 @@ public class StandaloneIngressHandler extends AbstractHandler {
           }
         }
         
+        //
+        // Write the line last, so we do not write lines which triggered exceptions
+        //
+        
+        if (null != loggingWriter) {
+          loggingWriter.println(line);
+        }
       } while (true); 
       
       br.close();
@@ -370,7 +452,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
       //
     } catch (WarpException we) {
       throw new IOException(we);
-    } finally {      
+    } finally {               
       if (update) {
         this.storeClient.store(null);
         this.directoryClient.register(null);
@@ -385,6 +467,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_ARCHIVE_TIME_US, sensisionLabels, (System.nanoTime() - nano) / 1000);
       }
             
+      if (null != loggingWriter) {
+        loggingWriter.close();
+        loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + ".done"));
+      }
+
       //
       // Update stats with CDN
       //
@@ -469,45 +556,85 @@ public class StandaloneIngressHandler extends AbstractHandler {
     } else {    
       br = request.getReader();
     }
+
+    File loggingFile = null;   
+    PrintWriter loggingWriter = null;
+
+    //
+    // Open the logging file if logging is enabled
+    //
     
-    //
-    // Loop on all lines
-    //
+    if (null != loggingDir) {
+      long nanos = TimeSource.getNanoTime();
 
-    while(true) {
-      String line = br.readLine();
-      
-      if (null == line) {
-        break;
-      }
-      
-      Metadata metadata = MetadataUtils.parseMetadata(line);
-      
-      // Add labels from the WriteToken if they exist
-      if (wtoken.getLabelsSize() > 0) {
-        metadata.getLabels().putAll(wtoken.getLabels());
-      }
-      //
-      // Force owner/producer
-      //
-      
-      metadata.getLabels().put(Constants.PRODUCER_LABEL, producer);
-      metadata.getLabels().put(Constants.OWNER_LABEL, owner);
-      
-      if (null != application) {
-        metadata.getLabels().put(Constants.APPLICATION_LABEL, application);
+      StringBuilder sb = new StringBuilder();
+      sb.append(Long.toHexString(nanos));
+      sb.insert(0, "0000000000000000", 0, 16 - sb.length());
+      sb.append("-");
+      sb.append("META");
+      sb.append("-");
+      if (null == this.tokenWrappingKey) {
+        sb.append(token);
       } else {
-        // remove application label
-        metadata.getLabels().remove(Constants.APPLICATION_LABEL);
+        sb.append(OrderPreservingBase64.encode(CryptoUtils.wrap(this.tokenWrappingKey, token.getBytes("US-ASCII"))));              
       }
+      loggingFile = new File(loggingDir, sb.toString());
+      loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
+    }
 
-      if (!MetadataUtils.validateMetadata(metadata)) {
-        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid metadata " + line);
-        return;
-      }
-      
-      metadata.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
-      this.directoryClient.register(metadata);
+    try {
+      //
+      // Loop on all lines
+      //
+
+      while(true) {
+        String line = br.readLine();
+        
+        if (null == line) {
+          break;
+        }
+        
+        Metadata metadata = MetadataUtils.parseMetadata(line);
+        
+        // Add labels from the WriteToken if they exist
+        if (wtoken.getLabelsSize() > 0) {
+          metadata.getLabels().putAll(wtoken.getLabels());
+        }
+        //
+        // Force owner/producer
+        //
+        
+        metadata.getLabels().put(Constants.PRODUCER_LABEL, producer);
+        metadata.getLabels().put(Constants.OWNER_LABEL, owner);
+        
+        if (null != application) {
+          metadata.getLabels().put(Constants.APPLICATION_LABEL, application);
+        } else {
+          // remove application label
+          metadata.getLabels().remove(Constants.APPLICATION_LABEL);
+        }
+
+        if (!MetadataUtils.validateMetadata(metadata)) {
+          response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid metadata " + line);
+          return;
+        }
+        
+        metadata.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+        this.directoryClient.register(metadata);
+        
+        //
+        // Write the line last, so we do not write lines which triggered exceptions
+        //
+        
+        if (null != loggingWriter) {
+          loggingWriter.println(line);
+        }
+      }      
+    } finally {
+      if (null != loggingWriter) {
+        loggingWriter.close();
+        loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + ".done"));
+      }      
     }
     
     response.setStatus(HttpServletResponse.SC_OK);
