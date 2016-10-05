@@ -8,7 +8,7 @@ jdk:
 before_install:
   # Thrift 0.9.1 is the avaible on ubuntu 14.04
   # SAD fix waiting 16.04
-  - wget https://api0.cityzendata.net/assets/thrift/thrift.tar.gz
+  - wget https://home.cityzendata.net/assets/thrift/thrift.tar.gz
   - tar -xvzf thrift.tar.gz
   - chmod +x thrift
   - sudo mv thrift /usr/local/bin
