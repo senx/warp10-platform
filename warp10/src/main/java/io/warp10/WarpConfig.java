@@ -28,6 +28,11 @@ public class WarpConfig {
    */
   public static final String WARP10_CONFIG = "warp10.config";
   
+  /**
+   * Name of property used at various places to define BOOTSTRAP code.
+   */
+  public static final String WARPSCRIPT_BOOTSTRAP = "warpscript.bootstrap";
+  
   private static Properties properties = null;
   
   public static void safeSetProperties(String file) throws IOException {
