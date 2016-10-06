@@ -2304,7 +2304,11 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           //
           
           if (classSmartPattern.matches(className)) {
-            for (Metadata metadata: this.metadatas.get(className).values()) {
+            Map<Long,Metadata> classMetadatas = this.metadatas.get(className);
+            if (null == classMetadatas) {
+              continue;
+            }
+            for (Metadata metadata: classMetadatas.values()) {
               
               boolean exclude = false;
               
@@ -2819,7 +2823,11 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         
         if (classSmartPattern.matches(className)) {
           classesMatched++;
-          for (Metadata metadata: this.metadatas.get(className).values()) {
+          Map<Long,Metadata> classMetadatas = this.metadatas.get(className);
+          if (null == classMetadatas) {
+            continue;
+          }
+          for (Metadata metadata: classMetadatas.values()) {
             metadataInspected++;
             boolean exclude = false;
             

@@ -36,7 +36,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
+import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.geoxp.GeoXPLib.GeoXPShape;
@@ -183,18 +185,42 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(WarpScriptLib.UNWRAP);
         sb.append(" ");
       } else if (o instanceof List) {
-        sb.append("[ ");
+        sb.append(WarpScriptLib.LIST_START);
+        sb.append(" ");
         for (Object oo: (List) o) {
           addElement(sb, oo);
         }
-        sb.append("] ");
+        sb.append(WarpScriptLib.LIST_END);
+        sb.append(" ");
+      } else if (o instanceof Vector) {
+        sb.append(WarpScriptLib.LIST_START);
+        sb.append(" ");
+        for (Object oo: (List) o) {
+          addElement(sb, oo);
+        }
+        sb.append(WarpScriptLib.LIST_END);
+        sb.append(" ");
+        sb.append(WarpScriptLib.TO_VECTOR);
+        sb.append(" ");
+      } else if (o instanceof Set) {
+        sb.append(WarpScriptLib.LIST_START);
+        sb.append(" ");
+        for (Object oo: (List) o) {
+          addElement(sb, oo);
+        }
+        sb.append(WarpScriptLib.LIST_END);
+        sb.append(" ");
+        sb.append(WarpScriptLib.TO_SET);
+        sb.append(" ");
       } else if (o instanceof Map) {
-        sb.append("{ ");
+        sb.append(WarpScriptLib.MAP_START);
+        sb.append(" ");
         for (Entry<Object, Object> entry: ((Map<Object,Object>) o).entrySet()) {
           addElement(sb, entry.getKey());
           addElement(sb, entry.getValue());
         }
-        sb.append("} ");
+        sb.append(WarpScriptLib.MAP_END);
+        sb.append(" ");
       } else if (o instanceof BitSet) {
         sb.append("'");
         sb.append(new String(OrderPreservingBase64.encode(((BitSet) o).toByteArray()), Charsets.UTF_8));

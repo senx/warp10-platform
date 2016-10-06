@@ -163,6 +163,11 @@ warpscript.bootstrap.period = 120000
 warpscript.mobius.bootstrap.path = ${standalone.home}/etc/bootstrap/mobius.mc2
 
 //
+// Number of threads in the Mobius pool (those threads are used to execute the mobius macros)
+//
+warpscript.mobius.pool = 16
+
+//
 // How often to reload the bootstrap code (in ms) for Mobius
 //
 warpscript.mobius.bootstrap.period = 120000
@@ -267,6 +272,19 @@ standalone.snapshot.trigger = ${standalone.home}/data/snapshot.trigger
 // Path to a file to use for signaling that compactions are suspended
 //
 standalone.snapshot.signal = ${standalone.home}/data/snapshot.signal
+
+//
+// Datalogging directory. If set, every data modification action (UPDATE, META, DELETE) will produce
+// a file in this directory with the timestamp, the token used and the action type. These files can then
+// be used to update another instance of Warp 10
+//
+#standalone.datalog.dir = ${standalone.home}/datalog
+
+//
+// Datalog token key. If this AES key is set, the token will be encrypted prior to be used in the file name
+// mentioned above.
+//
+#standalone.datalog.aes = hex:hhhhhhhh....
 
 //
 // Max message size for the stream update websockets
