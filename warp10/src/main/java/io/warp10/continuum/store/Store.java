@@ -631,6 +631,9 @@ public class Store extends Thread {
     
     private Thread synchronizer = null;    
 
+    final AtomicBoolean inflightMessage = new AtomicBoolean(false);
+    final AtomicBoolean needToSync = new AtomicBoolean(false);
+
     public StoreConsumer(Table table, Store store, KafkaStream<byte[], byte[]> stream, KafkaOffsetCounters counters) {
       this.store = store;
       this.stream = stream;
@@ -687,10 +690,7 @@ public class Store extends Thread {
         //
         
         final CyclicBarrier ourbarrier = store.barrier;
-        
-        final AtomicBoolean inflightMessage = new AtomicBoolean(false);
-        final AtomicBoolean needToSync = new AtomicBoolean(false);
-        
+                
         synchronizer = new Thread(new Runnable() {
           @Override
           public void run() {
@@ -718,6 +718,7 @@ public class Store extends Thread {
                   //
                   if (inflightMessage.get()) {
                     needToSync.set(true);
+                    LockSupport.parkNanos(10000000L);
                     continue;
                   }
                   
@@ -941,7 +942,12 @@ public class Store extends Thread {
 
         // TODO(hbs): allow setting of writeBufferSize
 
-        while (iter.hasNext() && !Thread.currentThread().isInterrupted()) {
+        // The call to resetInflight is a hack, we need to reset inflightMessage BUT iter.hasNext() may block
+        // so we add an artificial call to resetInflight which always returns true but has the side effect
+        // of resetting inflightMessage, this makes the code cleaner as we don't have to add calls to inflightMessage.set(false)
+        // throughout the code
+        
+        while (resetInflight() && iter.hasNext() && !Thread.currentThread().isInterrupted()) {
           
           // Clear the 'inflight' status
           inflightMessage.set(false);
@@ -966,6 +972,8 @@ public class Store extends Thread {
               putslock.lockInterruptibly();
               // Continue the loop if we need to synchronize
               if (needToSync.get()) {
+                putslock.unlock();
+                LockSupport.parkNanos(1000000L);
                 continue;
               }
               inflightMessage.set(true);
@@ -1060,6 +1068,11 @@ public class Store extends Thread {
         //  try { table.close(); } catch (IOException ioe) { LOG.error("Error closing table ", ioe); }
         //}
       }
+    }
+    
+    private boolean resetInflight() {
+      inflightMessage.set(false);
+      return true;
     }
     
     private void handleStore(Table ht, KafkaDataMessage msg) throws IOException {
