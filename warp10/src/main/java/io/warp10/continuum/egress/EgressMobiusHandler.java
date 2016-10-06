@@ -346,6 +346,7 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
       //
       
       if (!session.isOpen()) {
+        try { session.disconnect(); } catch (IOException ioe) {}
         removeSession(session);
         continue;
       }
