@@ -707,6 +707,10 @@ public class Ingress extends AbstractHandler implements Runnable {
           break;
         }
       
+        if ("".equals(line)) {
+          continue;
+        }
+        
         // Skip lines which start with '#'
         if ('#' == line.charAt(0)) {
           continue;
@@ -896,7 +900,8 @@ public class Ingress extends AbstractHandler implements Runnable {
 
       boolean gzipped = false;
           
-      if (null != request.getHeader("Content-Type") && "application/gzip".equals(request.getHeader("Content-Type"))) {       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_META_REQUESTS, Sensision.EMPTY_LABELS, 1);
+      if (null != request.getHeader("Content-Type") && "application/gzip".equals(request.getHeader("Content-Type"))) {       
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_META_REQUESTS, Sensision.EMPTY_LABELS, 1);
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_META_GZIPPED, sensisionLabels, 1);     
         gzipped = true;
       }
@@ -921,7 +926,26 @@ public class Ingress extends AbstractHandler implements Runnable {
           break;
         }
         
+        //
+        // Ignore blank lines
+        //
+        
+        if ("".equals(line)) {
+          continue;
+        }
+        
+        // Skip lines which start with '#'
+        if ('#' == line.charAt(0)) {
+          continue;
+        }
+
         Metadata metadata = MetadataUtils.parseMetadata(line);
+        
+        if (null == metadata) {
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_META_INVALID, sensisionLabels, 1);
+          response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid metadata " + line);
+          return;
+        }
         
         //
         // Force owner/producer
