@@ -43,7 +43,7 @@ public class MetadataUtils {
    */
   private static final int MAX_ATTRIBUTES_SIZE = 8192;
   
-  private static final Pattern METADATA_PATTERN = Pattern.compile("^+([^\\}]+)\\{([^\\}]*)\\}\\{([^\\}]*)\\}$");
+  private static final Pattern METADATA_PATTERN = Pattern.compile("^+([^\\{]+)\\{([^\\}]*)\\}\\{([^\\}]*)\\}$");
   
   public static class MetadataID {
     private long classId;
