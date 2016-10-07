@@ -718,7 +718,7 @@ public class Store extends Thread {
                   //
                   if (inflightMessage.get()) {
                     needToSync.set(true);
-                    LockSupport.parkNanos(10000000L);
+                    LockSupport.parkNanos(100000L);
                     continue;
                   }
                   
@@ -729,7 +729,7 @@ public class Store extends Thread {
                   //
                   
                   while(store.inflightDeletions.get() > 0) {                    
-                    LockSupport.parkNanos(10000000L);
+                    LockSupport.parkNanos(100000L);
                   }
                   
                   if (store.deletionErrors.get() > 0) {
@@ -973,7 +973,7 @@ public class Store extends Thread {
               // Continue the loop if we need to synchronize
               if (needToSync.get()) {
                 putslock.unlock();
-                LockSupport.parkNanos(1000000L);
+                LockSupport.parkNanos(100000L);
                 continue;
               }
               inflightMessage.set(true);
