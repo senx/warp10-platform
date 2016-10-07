@@ -333,6 +333,14 @@ public class StandaloneIngressHandler extends AbstractHandler {
         }
 
         //
+        // Ignore comments
+        //
+        
+        if ('#' == line.charAt(0)) {
+          continue;
+        }
+        
+        //
         // Check for pushback
         // TODO(hbs): implement the actual push back if we are over the subscribed limit
         //
@@ -592,6 +600,16 @@ public class StandaloneIngressHandler extends AbstractHandler {
         
         if (null == line) {
           break;
+        }
+        
+        // Ignore blank lines
+        if ("".equals(line)) {
+          continue;          
+        }
+        
+        // Ignore comments
+        if ('#' == line.charAt(0)) {
+          continue;
         }
         
         Metadata metadata = MetadataUtils.parseMetadata(line);
