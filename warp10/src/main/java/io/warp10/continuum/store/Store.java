@@ -320,14 +320,16 @@ public class Store extends Thread {
               if (null != consumers[idx] && consumers[idx].getHBaseReset()) {
                 try {
                   tables[idx].close();
-                } catch (Throwable t) {                  
+                } catch (Throwable t) {    
+                  LOG.error("Caught throwable while closing HBase table.", t);
                 }
                 try {
                   tables[idx] = conn.getTable(hbaseTable);
-                } catch (IOException ioe) {
-                  // 
+                } catch (Throwable t) {
+                  LOG.error("Caught throwable while getting new HBase connection.", t);
+                  // Force connection reset 
                   connReset.set(true);
-                  throw new RuntimeException(ioe);
+                  throw new RuntimeException(t);
                 }
               }
               consumers[idx] = new StoreConsumer(tables[idx], self, stream, counters);
