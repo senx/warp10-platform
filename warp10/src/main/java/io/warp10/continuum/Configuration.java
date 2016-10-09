@@ -1176,12 +1176,52 @@ public class Configuration {
   /**
    * Directory where data requests should be logged. This directory should be in 700 to protect sensitive token infos.
    */
-  public static final String STANDALONE_DATALOG_DIR = "standalone.datalog.dir";
+  public static final String DATALOG_DIR = "datalog.dir";
   
   /**
    * Optional key to encrypt the token in the file name used for datalogging
    */
-  public static final String STANDALONE_DATALOG_AES = "standalone.datalog.aes";
+  public static final String DATALOG_AES = "datalog.aes";
+  
+  /**
+   * Directory where successfully forwarded files will be moved
+   */
+  public static final String DATALOG_FORWARDER_DIR = "datalog.forwarder.dir";
+  
+  /**
+   * Delay between directory scans (in ms)
+   */
+  public static final String DATALOG_FORWARDER_PERIOD = "datalog.forwarder.period";
+  
+  /**
+   * Set to 'true' to compress forwarded update/meta requests
+   */
+  public static final String DATALOG_FORWARDER_COMPRESS = "datalog.forwarder.compress";
+  
+  /**
+   * Number of threads to spawn to handle datalog actions
+   */
+  public static final String DATALOG_FORWARDER_NTHREADS = "datalog.forwarder.nthreads";
+  
+  /**
+   * Header to use when specifying the token
+   */
+  public static final String DATALOG_FORWARDER_TOKENHEADER = "datalog.forwarder.tokenheader";
+  
+  /**
+   * Endpoint to use when forwarding UPDATE actions
+   */
+  public static final String DATALOG_FORWARDER_ENDPOINT_UPDATE = "datalog.forwarder.endpoint.update";
+  
+  /**
+   * Endpoint to use when forwarding DELETE actions
+   */  
+  public static final String DATALOG_FORWARDER_ENDPOINT_DELETE = "datalog.forwarder.endpoint.delete";
+  
+  /**
+   * Endpoint to use when forwarding META actions
+   */
+  public static final String DATALOG_FORWARDER_ENDPOINT_META = "datalog.forwarder.endpoint.meta";
   
   /**
    * Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.
