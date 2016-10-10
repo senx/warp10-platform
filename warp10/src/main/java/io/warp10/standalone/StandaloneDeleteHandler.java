@@ -28,6 +28,7 @@ import io.warp10.continuum.ingress.DatalogForwarder;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.StoreClient;
+import io.warp10.continuum.store.thrift.data.DatalogRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.CryptoUtils;
@@ -55,6 +56,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.output.FileWriterWithEncoding;
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.joda.time.format.DateTimeFormatter;
@@ -78,7 +83,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
   /**
    * Key to wrap the token in the file names
    */
-  private final byte[] tokenWrappingKey;
+  private final byte[] datalogPSK;
   
   private final long[] classKeyLongs;
   private final long[] labelsKeyLongs;
@@ -86,6 +91,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
   private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
 
   private final File loggingDir;
+  
+  private final String datalogId;
   
   public StandaloneDeleteHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
     this.keyStore = keystore;
@@ -110,14 +117,23 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       } else {
         loggingDir = dir;
       }
+      
+      String id = props.getProperty(Configuration.DATALOG_ID);
+      
+      if (null == id) {
+        throw new RuntimeException("Property '" + Configuration.DATALOG_ID + "' MUST be set to a unique value for this instance.");
+      } else {
+        datalogId = new String(OrderPreservingBase64.encode(id.getBytes(Charsets.UTF_8)), Charsets.US_ASCII);
+      }
     } else {
       loggingDir = null;
+      datalogId = null;
     }
     
-    if (props.containsKey(Configuration.DATALOG_AES)) {
-      this.tokenWrappingKey = this.keyStore.decodeKey(props.getProperty(Configuration.DATALOG_AES));
+    if (props.containsKey(Configuration.DATALOG_PSK)) {
+      this.datalogPSK = this.keyStore.decodeKey(props.getProperty(Configuration.DATALOG_PSK));
     } else {
-      this.tokenWrappingKey = null;
+      this.datalogPSK = null;
     }
   }
   
@@ -139,10 +155,39 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     long nano = System.nanoTime();
     
     //
+    // Extract DatalogRequest if specified
+    //
+          
+    String datalogHeader = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_DATALOG));
+    
+    DatalogRequest dr = null;
+    
+    if (null != datalogHeader) {
+      byte[] bytes = OrderPreservingBase64.decode(datalogHeader.getBytes(Charsets.US_ASCII));
+      
+      if (null != datalogPSK) {
+        bytes = CryptoUtils.unwrap(datalogPSK, bytes);
+      }
+      
+      if (null == bytes) {
+        throw new IOException("Invalid Datalog header.");
+      }
+        
+      TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+        
+      try {
+        dr = new DatalogRequest();
+        deser.deserialize(dr, bytes);
+      } catch (TException te) {
+        throw new IOException();
+      }
+    }
+    
+    //
     // TODO(hbs): Extract producer/owner from token
     //
     
-    String token = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
+    String token = null != dr ? dr.getToken() : request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
             
     WriteToken writeToken;
     
@@ -202,21 +247,47 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     //
     
     if (null != loggingDir) {
-      Long now = TimeSource.getNanoTime();
-      
+      long nanos = null != dr ? dr.getTimestamp() : TimeSource.getNanoTime();
       StringBuilder sb = new StringBuilder();
-      sb.append(Long.toHexString(now));
+      sb.append(Long.toHexString(nanos));
       sb.insert(0, "0000000000000000", 0, 16 - sb.length());
-      sb.append("-");
-      sb.append("DELETE");
-      sb.append("-");      
-      if (null == this.tokenWrappingKey) {          
-        sb.append(new String(OrderPreservingBase64.encode(token.getBytes("ISO-8859-1")), "US-ASCII"));
-      } else {
-        sb.append(new String(OrderPreservingBase64.encode(CryptoUtils.wrap(this.tokenWrappingKey, token.getBytes("ISO-8859-1"))), "US-ASCII"));              
+      
+      if (null == dr) {
+        dr = new DatalogRequest();
+        dr.setTimestamp(nanos);
+        dr.setType(Constants.DATALOG_DELETE);
+        dr.setId(datalogId);
+        dr.setToken(token);          
       }
+      
+      //
+      // Serialize the request
+      //
+      
+      TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+      
+      byte[] encoded;
+      
+      try {
+        encoded = ser.serialize(dr);
+      } catch (TException te) {
+        throw new IOException(te);
+      }
+      
+      if (null != this.datalogPSK) {
+        encoded = CryptoUtils.wrap(this.datalogPSK, encoded);
+      }
+      
+      encoded = OrderPreservingBase64.encode(encoded);
+              
       loggingFile = new File(loggingDir, sb.toString());
       loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
+      
+      //
+      // Write request
+      //
+      
+      loggingWriter.println(new String(encoded, Charsets.US_ASCII));
     }
 
     try {      
@@ -380,7 +451,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     } finally {
       if (null != loggingWriter) {
         loggingWriter.close();
-        loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DONE_SUFFIX));
+        loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
       }      
 
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_REQUESTS, sensisionLabels, 1);

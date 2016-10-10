@@ -181,9 +181,19 @@ public class Constants {
   public static String HTTP_HEADER_DIRECTORY_SIGNATURE_DEFAULT = "X-Warp10-Directory-Signature";
 
   /**
-   * Name of header specifying the name of the symbol in which to expose the reques headers
+   * Name of header specifying the name of the symbol in which to expose the request headers
    */
   public static String HTTP_HEADER_EXPOSE_HEADERS_DEFAULT = "X-Warp10-ExposeHeaders";
+  
+  /**
+   * Name of header containing the wrapped Datalog request
+   */
+  public static String HTTP_HEADER_DATALOG_DEFAULT = "X-Warp10-Datalog";
+  
+  public static String DATALOG_UPDATE = "UPDATE";
+  public static String DATALOG_ARCHIVE = "ARCHIVE";
+  public static String DATALOG_META = "META";
+  public static String DATALOG_DELETE = "DELETE";
   
   /**
    * Empty column qualifier for HBase writes
@@ -382,6 +392,7 @@ public class Constants {
     HEADERS.put(Configuration.HTTP_HEADER_UPDATE_SIGNATURE, props.getProperty(Configuration.HTTP_HEADER_UPDATE_SIGNATURE, HTTP_HEADER_UPDATE_SIGNATURE_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE, props.getProperty(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE, HTTP_HEADER_DIRECTORY_SIGNATURE_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_EXPOSE_HEADERS, props.getProperty(Configuration.HTTP_HEADER_EXPOSE_HEADERS, HTTP_HEADER_EXPOSE_HEADERS_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_DATALOG, props.getProperty(Configuration.HTTP_HEADER_DATALOG, HTTP_HEADER_DATALOG_DEFAULT));
   }
   
   public static String getHeader(String name) {

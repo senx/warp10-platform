@@ -1179,9 +1179,26 @@ public class Configuration {
   public static final String DATALOG_DIR = "datalog.dir";
   
   /**
-   * Optional key to encrypt the token in the file name used for datalogging
+   * Id of this datalog node. The id will be used in the file name and will be passed down to child nodes via
+   * a header.
    */
-  public static final String DATALOG_AES = "datalog.aes";
+  public static final String DATALOG_ID = "datalog.id";
+  
+  /**
+   * Pre-shared AES key to wrap datalog.id and datalog.timestamp header values
+   */
+  public static final String DATALOG_PSK = "datalog.psk";
+  
+  /**
+   * Configuration key to modify the datalog header
+   */
+  public static final String HTTP_HEADER_DATALOG = "http.header.datalog";
+  
+  /**
+   * Comma separated list of ids which should be ignored by the forwarder. This is to prevent loops from
+   * forming.
+   */
+  public static final String DATALOG_FORWARDER_NOFORWARD = "datalog.forwarder.noforward";
   
   /**
    * Directory where successfully forwarded files will be moved
@@ -1202,11 +1219,6 @@ public class Configuration {
    * Number of threads to spawn to handle datalog actions
    */
   public static final String DATALOG_FORWARDER_NTHREADS = "datalog.forwarder.nthreads";
-  
-  /**
-   * Header to use when specifying the token
-   */
-  public static final String DATALOG_FORWARDER_TOKENHEADER = "datalog.forwarder.tokenheader";
   
   /**
    * Endpoint to use when forwarding UPDATE actions

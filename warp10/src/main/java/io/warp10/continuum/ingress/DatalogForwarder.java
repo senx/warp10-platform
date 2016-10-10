@@ -2,6 +2,7 @@ package io.warp10.continuum.ingress;
 
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.thrift.data.DatalogRequest;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
@@ -23,6 +24,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.LockSupport;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TException;
+import org.apache.thrift.protocol.TCompactProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,18 +39,16 @@ public class DatalogForwarder extends Thread {
   
   private static final Logger LOG = LoggerFactory.getLogger(DatalogForwarder.class);
   
-  public static final String DONE_SUFFIX = ".done";
+  public static final String DATALOG_SUFFIX = ".done";
   
   /**
    * Queues to forward datalog actions according to token
    */
   private final LinkedBlockingQueue<DatalogAction>[] queues;
   
-  private final String tokenHeader;
-  
   private final Path rootdir;
   
-  private final byte[] aesKey;
+  private final byte[] datalogPSK;
   
   /**
    * URL for the UPDATE endpoint
@@ -87,8 +89,8 @@ public class DatalogForwarder extends Thread {
   }
   
   private static final class DatalogAction {
-    private DatalogActionType type;
-    private String token;
+    private DatalogRequest request;
+    private String encodedRequest;
     private File file;
   }
   
@@ -119,7 +121,7 @@ public class DatalogForwarder extends Thread {
           continue;
         }
         
-        switch (action.type) {
+        switch (DatalogActionType.valueOf(action.request.getType())) {
           case DELETE:
             if (!doDelete(action)) {
               continue;
@@ -150,7 +152,7 @@ public class DatalogForwarder extends Thread {
     }
     
     private boolean doUpdate(DatalogAction action) {
-      if (!DatalogActionType.UPDATE.equals(action.type)) {
+      if (!DatalogActionType.UPDATE.equals(DatalogActionType.valueOf(action.request.getType()))) {
         return false;
       }
       
@@ -166,7 +168,7 @@ public class DatalogForwarder extends Thread {
         conn.setDoOutput(true);
         conn.setDoInput(true);
         conn.setRequestMethod("POST");
-        conn.setRequestProperty(forwarder.tokenHeader, action.token);
+        conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_DATALOG), action.encodedRequest);
         
         if (forwarder.compress) {
           conn.setRequestProperty("Content-Type", "application/gzip");
@@ -187,10 +189,17 @@ public class DatalogForwarder extends Thread {
         
         PrintWriter pw = new PrintWriter(out);
                 
+        boolean first = true;
+        
         while(true) {
           String line = br.readLine();
           if (null == line) {
             break;
+          }
+          // Ignore first line as it is the DatalogRequest
+          if (first) {
+            first = false;
+            continue;
           }
           pw.println(line);
         }
@@ -224,7 +233,7 @@ public class DatalogForwarder extends Thread {
     }
     
     private boolean doDelete(DatalogAction action) {
-      if (!DatalogActionType.DELETE.equals(action.type)) {
+      if (!DatalogActionType.DELETE.equals(DatalogActionType.valueOf(action.request.getType()))) {
         return false;
       }
       
@@ -235,6 +244,7 @@ public class DatalogForwarder extends Thread {
       try {        
         br = new BufferedReader(new FileReader(action.file));
         
+        String discardReq = br.readLine();
         String qs = br.readLine();
         
         if (null == qs) {
@@ -247,7 +257,7 @@ public class DatalogForwarder extends Thread {
         
         conn.setDoInput(true);
         conn.setRequestMethod("GET");
-        conn.setRequestProperty(forwarder.tokenHeader, action.token);        
+        conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_DATALOG), action.encodedRequest);
         conn.setChunkedStreamingMode(16384);
         conn.connect();
         
@@ -278,7 +288,7 @@ public class DatalogForwarder extends Thread {
     }
     
     private boolean doMeta(DatalogAction action) {
-      if (!DatalogActionType.META.equals(action.type)) {
+      if (!DatalogActionType.META.equals(DatalogActionType.valueOf(action.request.getType()))) {
         return false;
       }
       
@@ -294,7 +304,7 @@ public class DatalogForwarder extends Thread {
         conn.setDoOutput(true);
         conn.setDoInput(true);
         conn.setRequestMethod("POST");
-        conn.setRequestProperty(forwarder.tokenHeader, action.token);
+        conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_DATALOG), action.encodedRequest);
         
         if (forwarder.compress) {
           conn.setRequestProperty("Content-Type", "application/gzip");
@@ -315,10 +325,17 @@ public class DatalogForwarder extends Thread {
         
         PrintWriter pw = new PrintWriter(out);
                 
+        boolean first = true;
+        
         while(true) {
           String line = br.readLine();
           if (null == line) {
             break;
+          }
+          // Discard the DatalogRequest line
+          if (first) {
+            first = false;
+            continue;
           }
           pw.println(line);
         }
@@ -357,10 +374,10 @@ public class DatalogForwarder extends Thread {
     
     this.rootdir = new File(properties.getProperty(Configuration.DATALOG_DIR)).toPath();
     
-    if (properties.containsKey(Configuration.DATALOG_AES)) {
-      this.aesKey = keystore.decodeKey(properties.getProperty(Configuration.DATALOG_AES));
+    if (properties.containsKey(Configuration.DATALOG_PSK)) {
+      this.datalogPSK = keystore.decodeKey(properties.getProperty(Configuration.DATALOG_PSK));
     } else {
-      this.aesKey = null;
+      this.datalogPSK = null;
     }
     
     this.period = Long.parseLong(properties.getProperty(Configuration.DATALOG_FORWARDER_PERIOD, DEFAULT_PERIOD));
@@ -378,9 +395,6 @@ public class DatalogForwarder extends Thread {
     }
     
     int nthreads = Integer.parseInt(properties.getProperty(Configuration.DATALOG_FORWARDER_NTHREADS, "1"));
-    
-    this.tokenHeader = properties.getProperty(Configuration.DATALOG_FORWARDER_TOKENHEADER, Constants.HTTP_HEADER_TOKEN_DEFAULT);
-    
     
     if (!properties.containsKey(Configuration.DATALOG_FORWARDER_ENDPOINT_UPDATE)) {
       throw new RuntimeException("Missing UPDATE endpoint.");
@@ -419,7 +433,7 @@ public class DatalogForwarder extends Thread {
       DirectoryStream<Path> ds = null;
       
       try {
-        ds = Files.newDirectoryStream(rootdir, "*" + DONE_SUFFIX);        
+        ds = Files.newDirectoryStream(rootdir, "*" + DATALOG_SUFFIX);        
       } catch (IOException ioe) {
         LOG.error("Error while getting file list for directory " + rootdir, ioe);
         LockSupport.parkNanos(1000000000L);
@@ -434,43 +448,61 @@ public class DatalogForwarder extends Thread {
         //
         
         Path p = iter.next();
+        String filename = p.getFileName().toString();
         
-        String[] subtokens = p.getFileName().toString().split("-");
-        
-        //
-        // Ignore files which do not have the correct name
-        //
-        
-        if (3 != subtokens.length) {
-          continue;
-        }
-        
-        long ts = Long.parseLong(subtokens[0], 16);
-        DatalogActionType type = DatalogActionType.valueOf(subtokens[1]);
-        String token = subtokens[2].substring(0, subtokens[2].length() - DONE_SUFFIX.length());
-        
+        long ts = Long.parseLong(filename.substring(0, filename.length() - DATALOG_SUFFIX.length()));
+                
         DatalogAction action = new DatalogAction();
         
-        //
-        // extract token
-        //
-
-        byte[] tokenbytes = OrderPreservingBase64.decode(token.getBytes(Charsets.US_ASCII));
+        action.file = p.toFile();
         
-        if (null != this.aesKey) {
-          tokenbytes = CryptoUtils.unwrap(this.aesKey, tokenbytes);
+        //
+        // Read DatalogRequest
+        //
+        
+        String encoded;
+        
+        try {
+          BufferedReader br = new BufferedReader(new FileReader(action.file));
+          encoded = br.readLine();
+          br.close();          
+        } catch (IOException ioe) {
+          LOG.error("Error while reading Datalog Request", ioe);
+          break;
+        }
+                
+        byte[] data = OrderPreservingBase64.decode(encoded.getBytes(Charsets.US_ASCII));
+        
+        if (null != this.datalogPSK) {
+          data = CryptoUtils.unwrap(this.datalogPSK, data);
         }
         
-        token = new String(tokenbytes, Charsets.ISO_8859_1);
-        action.token = token;
-        action.type = type;
-        action.file = p.toFile();
+        TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+        
+        DatalogRequest dr = new DatalogRequest();
+        try {
+          deser.deserialize(dr, data);
+        } catch (TException te) {
+          LOG.error("Error while deserializing Datalog Request", te);
+          break;
+        }
+        
+        action.request = dr;
+        
+        //
+        // Check that timestamp matches
+        //
+        
+        if (ts != dr.getTimestamp()) {
+          LOG.error("Datalog Request '" + action.file + "' has a timestamp which differs from that of its file, timestamp is 0x" + Long.toHexString(dr.getTimestamp()));
+          break;
+        }
         
         //
         // Dispatch the action to the correct queue according to the token
         //
         
-        int q = token.hashCode() % queues.length;
+        int q = dr.getToken().hashCode() % queues.length;
         
         try {
           queues[q].put(action);
