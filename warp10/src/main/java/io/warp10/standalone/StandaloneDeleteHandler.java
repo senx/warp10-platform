@@ -24,6 +24,7 @@ import io.warp10.continuum.Tokens;
 import io.warp10.continuum.egress.EgressExecHandler;
 import io.warp10.continuum.egress.EgressFetchHandler;
 import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.ingress.DatalogForwarder;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.StoreClient;
@@ -99,8 +100,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     
     Properties props = WarpConfig.getProperties();
     
-    if (props.containsKey(Configuration.STANDALONE_DATALOG_DIR)) {
-      File dir = new File(props.getProperty(Configuration.STANDALONE_DATALOG_DIR));
+    if (props.containsKey(Configuration.DATALOG_DIR)) {
+      File dir = new File(props.getProperty(Configuration.DATALOG_DIR));
       
       if (!dir.exists()) {
         throw new RuntimeException("Data logging target '" + dir + "' does not exist.");
@@ -113,8 +114,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       loggingDir = null;
     }
     
-    if (props.containsKey(Configuration.STANDALONE_DATALOG_AES)) {
-      this.tokenWrappingKey = this.keyStore.decodeKey(props.getProperty(Configuration.STANDALONE_DATALOG_AES));
+    if (props.containsKey(Configuration.DATALOG_AES)) {
+      this.tokenWrappingKey = this.keyStore.decodeKey(props.getProperty(Configuration.DATALOG_AES));
     } else {
       this.tokenWrappingKey = null;
     }
@@ -379,7 +380,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     } finally {
       if (null != loggingWriter) {
         loggingWriter.close();
-        loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + ".done"));
+        loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DONE_SUFFIX));
       }      
 
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_REQUESTS, sensisionLabels, 1);
