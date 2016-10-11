@@ -42,7 +42,7 @@ public class DatalogForwarder extends Thread {
   
   private static final Logger LOG = LoggerFactory.getLogger(DatalogForwarder.class);
   
-  public static final String DATALOG_SUFFIX = ".done";
+  public static final String DATALOG_SUFFIX = ".datalog";
   
   /**
    * Queues to forward datalog actions according to token
