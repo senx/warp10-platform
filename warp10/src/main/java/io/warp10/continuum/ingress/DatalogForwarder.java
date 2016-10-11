@@ -456,7 +456,7 @@ public class DatalogForwarder extends Thread {
         String[] subtokens = filename.split("=");
         
         long ts = new BigInteger(subtokens[0], 16).longValue();
-        String id = subtokens[1].substring(0, subtokens[1].length() - DATALOG_SUFFIX.length());
+        String id = new String(OrderPreservingBase64.decode(subtokens[1].substring(0, subtokens[1].length() - DATALOG_SUFFIX.length()).getBytes(Charsets.US_ASCII)), Charsets.UTF_8);
         
         DatalogAction action = new DatalogAction();
         
