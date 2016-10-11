@@ -16,6 +16,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.DirectoryStream;
@@ -452,9 +453,11 @@ public class DatalogForwarder extends Thread {
         
         Path p = iter.next();
         String filename = p.getFileName().toString();
+        String[] subtokens = filename.split("=");
         
-        long ts = Long.parseLong(filename.substring(0, filename.length() - DATALOG_SUFFIX.length()));
-                
+        long ts = new BigInteger(subtokens[0], 16).longValue();
+        String id = subtokens[1].substring(0, subtokens[1].length() - DATALOG_SUFFIX.length());
+        
         DatalogAction action = new DatalogAction();
         
         action.file = p.toFile();
@@ -493,12 +496,17 @@ public class DatalogForwarder extends Thread {
         action.request = dr;
         
         //
-        // Check that timestamp matches
+        // Check that timestamp and id match
         //
         
         if (ts != dr.getTimestamp()) {
           LOG.error("Datalog Request '" + action.file + "' has a timestamp which differs from that of its file, timestamp is 0x" + Long.toHexString(dr.getTimestamp()));
           break;
+        }
+        
+        if (!id.equals(dr.getId())) {
+          LOG.error("Datalog Request '" + action.file + "' has an id which differs from that of its file, id is " + dr.getId());
+          break;          
         }
         
         //

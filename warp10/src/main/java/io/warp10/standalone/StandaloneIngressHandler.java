@@ -342,6 +342,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
         StringBuilder sb = new StringBuilder();
         sb.append(Long.toHexString(nanos));
         sb.insert(0, "0000000000000000", 0, 16 - sb.length());
+        sb.append("-");
+        sb.append(new String(OrderPreservingBase64.encode(datalogId.getBytes(Charsets.UTF_8)), Charsets.US_ASCII));
         
         if (null == dr) {
           dr = new DatalogRequest();
@@ -687,7 +689,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
       StringBuilder sb = new StringBuilder();
       sb.append(Long.toHexString(nanos));
       sb.insert(0, "0000000000000000", 0, 16 - sb.length());
-      
+      sb.append("-");
+      sb.append(new String(OrderPreservingBase64.encode(datalogId.getBytes(Charsets.UTF_8)), Charsets.US_ASCII));
+
       if (null == dr) {
         dr = new DatalogRequest();
         dr.setTimestamp(nanos);
