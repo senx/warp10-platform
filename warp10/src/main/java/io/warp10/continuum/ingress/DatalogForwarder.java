@@ -22,8 +22,10 @@ import java.net.URL;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.LockSupport;
 import java.util.zip.GZIPOutputStream;
@@ -84,8 +86,13 @@ public class DatalogForwarder extends Thread {
    */
   private final boolean compress;
   
-  private static final String DEFAULT_PERIOD = "1000";
+  /**
+   * IDs we should ignore and not forward, usually to avoid loops.
+   */
+  private final Set<String> ignoredIds;
   
+  private static final String DEFAULT_PERIOD = "1000";
+    
   private static enum DatalogActionType {
     UPDATE,
     DELETE,
@@ -388,6 +395,16 @@ public class DatalogForwarder extends Thread {
     
     this.compress = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_COMPRESS));
     
+    this.ignoredIds = new HashSet<String>();
+    
+    if (properties.containsKey(Configuration.DATALOG_FORWARDER_IGNORED)) {
+      String[] ids = properties.getProperty(Configuration.DATALOG_FORWARDER_IGNORED).split(",");
+      
+      for (String id: ids) {
+        ignoredIds.add(id.trim());
+      }
+    }
+    
     if (!properties.containsKey(Configuration.DATALOG_FORWARDER_DIR)) {
       throw new RuntimeException("Datalog forwarder target directory (" +  Configuration.DATALOG_FORWARDER_DIR + ") not set.");
     }
@@ -507,6 +524,14 @@ public class DatalogForwarder extends Thread {
         if (!id.equals(dr.getId())) {
           LOG.error("Datalog Request '" + action.file + "' has an id which differs from that of its file, id is " + dr.getId());
           break;          
+        }
+        
+        //
+        // Check if id should be ignored
+        //
+        
+        if (this.ignoredIds.contains(id)) {
+          continue;
         }
         
         //

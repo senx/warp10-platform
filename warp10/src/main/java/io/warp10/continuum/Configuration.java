@@ -1198,7 +1198,7 @@ public class Configuration {
    * Comma separated list of ids which should be ignored by the forwarder. This is to prevent loops from
    * forming.
    */
-  public static final String DATALOG_FORWARDER_NOFORWARD = "datalog.forwarder.noforward";
+  public static final String DATALOG_FORWARDER_IGNORED = "datalog.forwarder.ignored";
   
   /**
    * Directory where successfully forwarded files will be moved
