@@ -531,6 +531,8 @@ public class DatalogForwarder extends Thread {
         //
         
         if (this.ignoredIds.contains(id)) {
+          // File should be ignored, move it directly to the target directory
+          action.file.renameTo(new File(this.targetDir, action.file.getName()));
           continue;
         }
         
