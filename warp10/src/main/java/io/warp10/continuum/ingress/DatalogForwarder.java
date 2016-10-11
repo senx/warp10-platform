@@ -1,11 +1,14 @@
 package io.warp10.continuum.ingress;
 
 import io.warp10.continuum.Configuration;
+import io.warp10.continuum.Tokens;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.thrift.data.DatalogRequest;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.quasar.token.thrift.data.WriteToken;
+import io.warp10.script.WarpScriptException;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -499,10 +502,25 @@ public class DatalogForwarder extends Thread {
         }
         
         //
-        // Dispatch the action to the correct queue according to the token
+        // Dispatch the action to the correct queue according to the producer/app/owner of the token
         //
         
-        int q = dr.getToken().hashCode() % queues.length;
+        WriteToken wtoken;
+        
+        try {
+          wtoken = Tokens.extractWriteToken(dr.getToken());
+        } catch (WarpScriptException ee) {
+          LOG.error("Encountered error while extracting token.", ee);
+          break;
+        }
+
+        String application = wtoken.getAppName();
+        String producer = Tokens.getUUID(wtoken.getProducerId());
+        String owner = Tokens.getUUID(wtoken.getOwnerId());
+
+        String hashkey = producer + "/" + application + "/" + owner;
+        
+        int q = hashkey.hashCode() % queues.length;
         
         try {
           queues[q].put(action);
