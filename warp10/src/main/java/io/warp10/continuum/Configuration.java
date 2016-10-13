@@ -1201,9 +1201,14 @@ public class Configuration {
   public static final String DATALOG_FORWARDER_IGNORED = "datalog.forwarder.ignored";
   
   /**
+   * Directory from which to read the datalog files to forward
+   */
+  public static final String DATALOG_FORWARDER_SRCDIR = "datalog.forwarder.srcdir";
+  
+  /**
    * Directory where successfully forwarded files will be moved
    */
-  public static final String DATALOG_FORWARDER_DIR = "datalog.forwarder.dir";
+  public static final String DATALOG_FORWARDER_DSTDIR = "datalog.forwarder.dstdir";
   
   /**
    * Delay between directory scans (in ms)

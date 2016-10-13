@@ -407,7 +407,7 @@ public class DatalogForwarder extends Thread {
   
   public DatalogForwarder(KeyStore keystore, Properties properties) throws Exception {
     
-    this.rootdir = new File(properties.getProperty(Configuration.DATALOG_DIR)).toPath();
+    this.rootdir = new File(properties.getProperty(Configuration.DATALOG_FORWARDER_SRCDIR)).toPath();
     
     if (properties.containsKey(Configuration.DATALOG_PSK)) {
       this.datalogPSK = keystore.decodeKey(properties.getProperty(Configuration.DATALOG_PSK));
@@ -431,11 +431,11 @@ public class DatalogForwarder extends Thread {
       }
     }
     
-    if (!properties.containsKey(Configuration.DATALOG_FORWARDER_DIR)) {
-      throw new RuntimeException("Datalog forwarder target directory (" +  Configuration.DATALOG_FORWARDER_DIR + ") not set.");
+    if (!properties.containsKey(Configuration.DATALOG_FORWARDER_DSTDIR)) {
+      throw new RuntimeException("Datalog forwarder target directory (" +  Configuration.DATALOG_FORWARDER_DSTDIR + ") not set.");
     }
 
-    this.targetDir = new File(properties.getProperty(Configuration.DATALOG_FORWARDER_DIR));
+    this.targetDir = new File(properties.getProperty(Configuration.DATALOG_FORWARDER_DSTDIR));
 
     if (!this.targetDir.isDirectory()) {
       throw new RuntimeException("Invalid datalog forwarder target directory.");

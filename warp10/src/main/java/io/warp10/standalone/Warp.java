@@ -298,7 +298,7 @@ public class Warp extends WarpDist implements Runnable {
     // Start the Datalog Forwarder
     //
     
-    if (properties.containsKey(Configuration.DATALOG_FORWARDER_DIR)) {
+    if (properties.containsKey(Configuration.DATALOG_FORWARDER_SRCDIR) && properties.containsKey(Configuration.DATALOG_FORWARDER_DSTDIR)) {
       DatalogForwarder forwarder = new DatalogForwarder(keystore, properties);
     }
     
