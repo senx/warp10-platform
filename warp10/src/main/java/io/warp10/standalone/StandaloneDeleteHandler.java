@@ -21,7 +21,6 @@ import io.warp10.continuum.Configuration;
 import io.warp10.continuum.LogUtil;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
-import io.warp10.continuum.egress.EgressExecHandler;
 import io.warp10.continuum.egress.EgressFetchHandler;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.ingress.DatalogForwarder;
@@ -62,6 +61,7 @@ import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
@@ -94,6 +94,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
   
   private final String datalogId;
   
+  private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
+
   public StandaloneDeleteHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
     this.keyStore = keystore;
     this.storeClient = storeClient;
@@ -181,6 +183,14 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       } catch (TException te) {
         throw new IOException();
       }
+      
+      //
+      // Check that the request query string matches the QS in the datalog request
+      //
+      
+      if (!request.getQueryString().equals(dr.getDeleteQueryString())) {
+        throw new IOException("Invalid DatalogRequest.");
+      }
     }
     
     //
@@ -258,12 +268,18 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         sb.append(datalogId);
       }
 
+      sb.append("-");
+      sb.append(dtf.print(nanos / 1000000L));
+      sb.append(Long.toString(1000000L + (nanos % 1000000L)).substring(1));
+      sb.append("Z");
+      
       if (null == dr) {
         dr = new DatalogRequest();
         dr.setTimestamp(nanos);
         dr.setType(Constants.DATALOG_DELETE);
         dr.setId(datalogId);
-        dr.setToken(token);          
+        dr.setToken(token); 
+        dr.setDeleteQueryString(request.getQueryString());
       }
       
       //
@@ -296,6 +312,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       loggingWriter.println(new String(encoded, Charsets.US_ASCII));
     }
 
+    boolean validated = false;
+    
     try {      
       if (null == producer || null == owner) {
         response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
@@ -382,9 +400,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         throw new IOException(pe);
       }
       
-      if (null != loggingWriter) {
-        loggingWriter.println(request.getQueryString());
-      }
+      validated = true;
       
       //
       // Force 'producer'/'owner'/'app' from token
@@ -457,7 +473,11 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     } finally {
       if (null != loggingWriter) {
         loggingWriter.close();
-        loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+        if (validated) {
+          loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+        } else {
+          loggingFile.delete();
+        }
       }      
 
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_REQUESTS, sensisionLabels, 1);

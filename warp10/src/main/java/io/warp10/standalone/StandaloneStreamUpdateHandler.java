@@ -67,6 +67,8 @@ import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import org.eclipse.jetty.websocket.server.WebSocketHandler;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,6 +93,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
   private final byte[] datalogPSK;
   private final File loggingDir;
   
+  private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
+
   @WebSocket(maxMessageSize=1024 * 1024)
   public static class StandaloneStreamUpdateWebSocket {
     
@@ -229,6 +233,11 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                 sb.insert(0, "0000000000000000", 0, 16 - sb.length());
                 sb.append("-");
                 sb.append(handler.datalogId);
+                
+                sb.append("-");
+                sb.append(handler.dtf.print(nanos / 1000000L));
+                sb.append(Long.toString(1000000L + (nanos % 1000000L)).substring(1));
+                sb.append("Z");
                 
                 DatalogRequest dr = new DatalogRequest();
                 dr.setTimestamp(nanos);

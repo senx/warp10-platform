@@ -266,32 +266,18 @@ public class DatalogForwarder extends Thread {
         return false;
       }
       
-      BufferedReader br = null;
-
       HttpURLConnection conn = null;
       
-      try {        
-        br = new BufferedReader(new FileReader(action.file));
-        
-        String discardReq = br.readLine();
-        String qs = br.readLine();
-        
-        if (null == qs) {
-          return true;
-        }
-        
-        URL urlAndQS = new URL(forwarder.deleteUrl.toString() + "?" + qs);
+      try {
+        URL urlAndQS = new URL(forwarder.deleteUrl.toString() + "?" + action.request.getDeleteQueryString());
         
         conn = (HttpURLConnection) urlAndQS.openConnection();
         
         conn.setDoInput(true);
         conn.setRequestMethod("GET");
         conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_DATALOG), action.encodedRequest);
-        conn.setChunkedStreamingMode(16384);
         conn.connect();
-        
-        br.close();
-        
+                
         //
         // Update was successful, delete all batchfiles
         //
@@ -312,7 +298,6 @@ public class DatalogForwarder extends Thread {
         if (null != conn) {
           conn.disconnect();
         }
-        if (null != br) { try { br.close(); } catch (IOException ioe) {} }
       }
     }
     
@@ -500,7 +485,7 @@ public class DatalogForwarder extends Thread {
         String[] subtokens = filename.split("-");
         
         long ts = new BigInteger(subtokens[0], 16).longValue();
-        String id = subtokens[1].substring(0, subtokens[1].length() - DATALOG_SUFFIX.length());
+        String id = subtokens[1];
         
         DatalogAction action = new DatalogAction();
         

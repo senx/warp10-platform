@@ -61,6 +61,9 @@ import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,6 +101,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
   private final File loggingDir;
   
   private final String datalogId;
+  
+  private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
   
   public StandaloneIngressHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
     this.keyStore = keystore;
@@ -348,6 +353,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
         } else {
           sb.append(datalogId);
         }
+        
+        sb.append("-");
+        sb.append(dtf.print(nanos / 1000000L));
+        sb.append(Long.toString(1000000L + (nanos % 1000000L)).substring(1));
+        sb.append("Z");
         
         if (null == dr) {
           dr = new DatalogRequest();
@@ -700,6 +710,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
         sb.append(datalogId);
       }
 
+      sb.append("-");
+      sb.append(dtf.print(nanos / 1000000L));
+      sb.append(Long.toString(1000000L + (nanos % 1000000L)).substring(1));
+      sb.append("Z");
+      
       if (null == dr) {
         dr = new DatalogRequest();
         dr.setTimestamp(nanos);

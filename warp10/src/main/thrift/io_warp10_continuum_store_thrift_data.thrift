@@ -344,4 +344,8 @@ struct DatalogRequest {
    * Optional now parameter needed to decode relative timestamps
    */
   5: optional string now,
+  /**
+   * Delete query string. We store it in the request so it cannot be modified in the datalog file
+   */
+  6: optional string deleteQueryString,
 }
