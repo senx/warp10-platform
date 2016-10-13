@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.LockSupport;
 import java.util.zip.GZIPOutputStream;
@@ -50,7 +51,7 @@ public class DatalogForwarder extends Thread {
   /**
    * Queues to forward datalog actions according to token
    */
-  private final LinkedBlockingQueue<DatalogAction>[] queues;
+  private final LinkedBlockingDeque<DatalogAction>[] queues;
   
   private final Path rootdir;
   
@@ -93,6 +94,11 @@ public class DatalogForwarder extends Thread {
   
   private static final String DEFAULT_PERIOD = "1000";
     
+  /**
+   * Set of files currently processed
+   */
+  private final Set<String> processing = new HashSet<String>();
+
   private static enum DatalogActionType {
     UPDATE,
     DELETE,
@@ -107,11 +113,11 @@ public class DatalogForwarder extends Thread {
   
   private static final class DatalogForwarderWorker extends Thread {
 
-    private final LinkedBlockingQueue<DatalogAction> queue;
+    private final LinkedBlockingDeque<DatalogAction> queue;
     
     private final DatalogForwarder forwarder;
-    
-    public DatalogForwarderWorker(DatalogForwarder forwarder, LinkedBlockingQueue<DatalogAction> queue) {
+        
+    public DatalogForwarderWorker(DatalogForwarder forwarder, LinkedBlockingDeque<DatalogAction> queue) {
       this.queue = queue;
       this.forwarder = forwarder;
       this.setDaemon(true);
@@ -124,41 +130,52 @@ public class DatalogForwarder extends Thread {
       
       DatalogAction action = null;
       
-      while(true) {
+      while(true) {        
         action = queue.peek();
         
         if (null == action) {
           LockSupport.parkNanos(100000000L);
           continue;
         }
+
+        boolean processed = false;
         
-        switch (DatalogActionType.valueOf(action.request.getType())) {
-          case DELETE:
-            if (!doDelete(action)) {
-              continue;
-            }
-            break;
-          case META:
-            if (!doMeta(action)) {
-              continue;
-            }
-            break;
-          case UPDATE:
-            if (!doUpdate(action)) {
-              continue;
-            }
-            break;
+        try {
+          switch (DatalogActionType.valueOf(action.request.getType())) {
+            case DELETE:
+              if (!doDelete(action)) {
+                continue;
+              }
+              break;
+            case META:
+              if (!doMeta(action)) {
+                continue;
+              }
+              break;
+            case UPDATE:
+              if (!doUpdate(action)) {
+                continue;
+              }
+              break;
+          }
+          
+          //
+          // Move the file to our target directory and remove the action from the queue as we forwarded it successfully
+          //
+          
+          if (!action.file.renameTo(new File(this.forwarder.targetDir, action.file.getName()))) {
+            continue;
+          }
+          
+          queue.poll();
+          forwarder.processing.remove(action.file.getName());
+          processed = true;
+        } finally {
+          if (!processed) {
+            // Wait 10s before re-attempting the same file.
+            LockSupport.parkNanos(10000000000L);
+          }
         }
-        
-        //
-        // Move the file to our target directory and remove the action from the queue as we forwarded it successfully
-        //
-        
-        if (!action.file.renameTo(new File(this.forwarder.targetDir, action.file.getName()))) {
-          continue;
-        }
-        
-        queue.poll();
       }
     }
     
@@ -234,6 +251,7 @@ public class DatalogForwarder extends Thread {
 
         return success;
       } catch (IOException ioe){
+        ioe.printStackTrace();
         return false;
       } finally {
         if (null != conn) {
@@ -432,10 +450,10 @@ public class DatalogForwarder extends Thread {
     }
     this.metaUrl = new URL(properties.getProperty(Configuration.DATALOG_FORWARDER_ENDPOINT_META));
 
-    queues = new LinkedBlockingQueue[nthreads];
+    queues = new LinkedBlockingDeque[nthreads];
     
     for (int i = 0; i < nthreads; i++) {
-      queues[i] = new LinkedBlockingQueue<DatalogAction>(64);
+      queues[i] = new LinkedBlockingDeque<DatalogAction>(64);
       DatalogForwarderWorker forwarder = new DatalogForwarderWorker(this, queues[i]);
     }
     
@@ -465,15 +483,24 @@ public class DatalogForwarder extends Thread {
       
       while(iter.hasNext()) {
         //
-        // Extract timestamp/action/token
+        // Extract timestamp/id
         //
         
         Path p = iter.next();
         String filename = p.getFileName().toString();
-        String[] subtokens = filename.split("=");
+        
+        //
+        // Skip file if it is currently being processed
+        //
+        
+        if (this.processing.contains(filename)) {
+          continue;
+        }
+        
+        String[] subtokens = filename.split("-");
         
         long ts = new BigInteger(subtokens[0], 16).longValue();
-        String id = new String(OrderPreservingBase64.decode(subtokens[1].substring(0, subtokens[1].length() - DATALOG_SUFFIX.length()).getBytes(Charsets.US_ASCII)), Charsets.UTF_8);
+        String id = subtokens[1].substring(0, subtokens[1].length() - DATALOG_SUFFIX.length());
         
         DatalogAction action = new DatalogAction();
         
@@ -503,6 +530,7 @@ public class DatalogForwarder extends Thread {
         TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
         
         DatalogRequest dr = new DatalogRequest();
+
         try {
           deser.deserialize(dr, data);
         } catch (TException te) {
@@ -511,7 +539,8 @@ public class DatalogForwarder extends Thread {
         }
         
         action.request = dr;
-        
+        action.encodedRequest = encoded;
+
         //
         // Check that timestamp and id match
         //
@@ -530,7 +559,8 @@ public class DatalogForwarder extends Thread {
         // Check if id should be ignored
         //
         
-        if (this.ignoredIds.contains(id)) {
+        String decodedId = new String(OrderPreservingBase64.decode(id.getBytes(Charsets.US_ASCII)), Charsets.UTF_8);
+        if (this.ignoredIds.contains(decodedId)) {
           // File should be ignored, move it directly to the target directory
           action.file.renameTo(new File(this.targetDir, action.file.getName()));
           continue;
@@ -559,6 +589,7 @@ public class DatalogForwarder extends Thread {
         
         try {
           queues[q].put(action);
+          processing.add(action.file.getName());
         } catch (InterruptedException ie) {
           break;
         }                                

@@ -252,7 +252,11 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       sb.append(Long.toHexString(nanos));
       sb.insert(0, "0000000000000000", 0, 16 - sb.length());
       sb.append("-");
-      sb.append(new String(OrderPreservingBase64.encode(datalogId.getBytes(Charsets.UTF_8)), Charsets.US_ASCII));
+      if (null != dr) {
+        sb.append(dr.getId());
+      } else {
+        sb.append(datalogId);
+      }
 
       if (null == dr) {
         dr = new DatalogRequest();

@@ -228,7 +228,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                 sb.append(Long.toHexString(nanos));
                 sb.insert(0, "0000000000000000", 0, 16 - sb.length());
                 sb.append("-");
-                sb.append(new String(OrderPreservingBase64.encode(handler.datalogId.getBytes(Charsets.UTF_8)), Charsets.US_ASCII));
+                sb.append(handler.datalogId);
                 
                 DatalogRequest dr = new DatalogRequest();
                 dr.setTimestamp(nanos);
