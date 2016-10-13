@@ -88,6 +88,11 @@ public class DatalogForwarder extends Thread {
   private final boolean compress;
   
   /**
+   * Should we forward the datalog request or act as a regular client
+   */
+  private final boolean actasclient;
+  
+  /**
    * IDs we should ignore and not forward, usually to avoid loops.
    */
   private final Set<String> ignoredIds;
@@ -196,7 +201,15 @@ public class DatalogForwarder extends Thread {
         conn.setDoOutput(true);
         conn.setDoInput(true);
         conn.setRequestMethod("POST");
-        conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_DATALOG), action.encodedRequest);
+        
+        if (forwarder.actasclient) {
+          conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX), action.request.getToken());
+          if (action.request.isSetNow()) {
+            conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_NOW_HEADERX), action.request.getNow());
+          }
+        } else {
+          conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_DATALOG), action.encodedRequest);
+        }
         
         if (forwarder.compress) {
           conn.setRequestProperty("Content-Type", "application/gzip");
@@ -275,7 +288,11 @@ public class DatalogForwarder extends Thread {
         
         conn.setDoInput(true);
         conn.setRequestMethod("GET");
-        conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_DATALOG), action.encodedRequest);
+        if (forwarder.actasclient) {
+          conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX), action.request.getToken());
+        } else {
+          conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_DATALOG), action.encodedRequest);
+        }
         conn.connect();
                 
         //
@@ -318,7 +335,11 @@ public class DatalogForwarder extends Thread {
         conn.setDoOutput(true);
         conn.setDoInput(true);
         conn.setRequestMethod("POST");
-        conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_DATALOG), action.encodedRequest);
+        if (forwarder.actasclient) {
+          conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX), action.request.getToken());
+        } else {
+          conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_DATALOG), action.encodedRequest);
+        }
         
         if (forwarder.compress) {
           conn.setRequestProperty("Content-Type", "application/gzip");
@@ -397,6 +418,8 @@ public class DatalogForwarder extends Thread {
     this.period = Long.parseLong(properties.getProperty(Configuration.DATALOG_FORWARDER_PERIOD, DEFAULT_PERIOD));
     
     this.compress = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_COMPRESS));
+    
+    this.actasclient = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_ACTASCLIENT));
     
     this.ignoredIds = new HashSet<String>();
     

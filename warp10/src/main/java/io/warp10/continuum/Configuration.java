@@ -1216,6 +1216,12 @@ public class Configuration {
   public static final String DATALOG_FORWARDER_COMPRESS = "datalog.forwarder.compress";
   
   /**
+   * Set to 'true' to act as a regular client when forwarding actions. Otherwise the datalog request will be forwarded.
+   * This MUST be set to 'true' when forwarding to a distributed version of Warp 10.
+   */
+  public static final String DATALOG_FORWARDER_ACTASCLIENT = "datalog.forwarder.actasclient";
+  
+  /**
    * Number of threads to spawn to handle datalog actions
    */
   public static final String DATALOG_FORWARDER_NTHREADS = "datalog.forwarder.nthreads";
