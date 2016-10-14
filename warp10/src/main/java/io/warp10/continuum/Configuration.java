@@ -1190,6 +1190,11 @@ public class Configuration {
   public static final String DATALOG_PSK = "datalog.psk";
   
   /**
+   * Flag indicating whether or not to log forwarded requests.
+   */
+  public static final String DATALOG_LOGFORWARDED = "datalog.logforwarded";
+  
+  /**
    * Configuration key to modify the datalog header
    */
   public static final String HTTP_HEADER_DATALOG = "http.header.datalog";
@@ -1210,6 +1215,16 @@ public class Configuration {
    */
   public static final String DATALOG_FORWARDER_DSTDIR = "datalog.forwarder.dstdir";
   
+  /**
+   * Flag used to indicate that forwarded requests should be deleted instead of moved.
+   */
+  public static final String DATALOG_FORWARDER_DELETEFORWARDED = "datalog.forwarder.deleteforwarded";
+
+  /**
+   * Flag used to indicate that ignored requests should be deleted instead of moved.
+   */
+  public static final String DATALOG_FORWARDER_DELETEIGNORED = "datalog.forwarder.deleteignored";
+
   /**
    * Delay between directory scans (in ms)
    */

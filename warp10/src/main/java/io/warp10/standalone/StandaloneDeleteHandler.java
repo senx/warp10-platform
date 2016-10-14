@@ -94,6 +94,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
   
   private final String datalogId;
   
+  private final boolean logforwarded;
+  
   private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
 
   public StandaloneDeleteHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
@@ -137,6 +139,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     } else {
       this.datalogPSK = null;
     }
+        
+    this.logforwarded = "true".equals(props.getProperty(Configuration.DATALOG_LOGFORWARDED));
   }
   
   @Override
@@ -280,36 +284,36 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         dr.setId(datalogId);
         dr.setToken(token); 
         dr.setDeleteQueryString(request.getQueryString());
+      } else if (this.logforwarded) {        
+        //
+        // Serialize the request
+        //
+        
+        TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+        
+        byte[] encoded;
+        
+        try {
+          encoded = ser.serialize(dr);
+        } catch (TException te) {
+          throw new IOException(te);
+        }
+        
+        if (null != this.datalogPSK) {
+          encoded = CryptoUtils.wrap(this.datalogPSK, encoded);
+        }
+        
+        encoded = OrderPreservingBase64.encode(encoded);
+                
+        loggingFile = new File(loggingDir, sb.toString());
+        loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
+        
+        //
+        // Write request
+        //
+        
+        loggingWriter.println(new String(encoded, Charsets.US_ASCII));        
       }
-      
-      //
-      // Serialize the request
-      //
-      
-      TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
-      
-      byte[] encoded;
-      
-      try {
-        encoded = ser.serialize(dr);
-      } catch (TException te) {
-        throw new IOException(te);
-      }
-      
-      if (null != this.datalogPSK) {
-        encoded = CryptoUtils.wrap(this.datalogPSK, encoded);
-      }
-      
-      encoded = OrderPreservingBase64.encode(encoded);
-              
-      loggingFile = new File(loggingDir, sb.toString());
-      loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
-      
-      //
-      // Write request
-      //
-      
-      loggingWriter.println(new String(encoded, Charsets.US_ASCII));
     }
 
     boolean validated = false;

@@ -105,6 +105,16 @@ public class DatalogForwarder extends Thread {
    */
   private final Set<String> processing = new HashSet<String>();
 
+  /**
+   * Flag to indicate whether or not to delete forwarded requests
+   */
+  private final boolean deleteForwarded;
+
+  /**
+   * Flag to indicate whether or not to delete ignored requests
+   */
+  private final boolean deleteIgnored;
+  
   private static enum DatalogActionType {
     UPDATE,
     DELETE,
@@ -169,8 +179,14 @@ public class DatalogForwarder extends Thread {
           // Move the file to our target directory and remove the action from the queue as we forwarded it successfully
           //
           
-          if (!action.file.renameTo(new File(this.forwarder.targetDir, action.file.getName()))) {
-            continue;
+          if (this.forwarder.deleteForwarded) {
+            if (!action.file.delete()) {
+              continue;
+            }
+          } else {
+            if (!action.file.renameTo(new File(this.forwarder.targetDir, action.file.getName()))) {
+              continue;
+            }            
           }
           
           queue.poll();
@@ -442,6 +458,9 @@ public class DatalogForwarder extends Thread {
       throw new RuntimeException("Invalid datalog forwarder target directory.");
     }
     
+    this.deleteForwarded = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_DELETEFORWARDED));
+    this.deleteIgnored = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_DELETEIGNORED));
+    
     int nthreads = Integer.parseInt(properties.getProperty(Configuration.DATALOG_FORWARDER_NTHREADS, "1"));
     
     if (!properties.containsKey(Configuration.DATALOG_FORWARDER_ENDPOINT_UPDATE)) {
@@ -579,7 +598,11 @@ public class DatalogForwarder extends Thread {
         String decodedId = new String(OrderPreservingBase64.decode(id.getBytes(Charsets.US_ASCII)), Charsets.UTF_8);
         if (this.ignoredIds.contains(decodedId)) {
           // File should be ignored, move it directly to the target directory
-          action.file.renameTo(new File(this.targetDir, action.file.getName()));
+          if(this.deleteIgnored) {
+            action.file.renameTo(new File(this.targetDir, action.file.getName()));
+          } else {
+            action.file.delete();
+          }
           continue;
         }
         
