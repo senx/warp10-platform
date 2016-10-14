@@ -215,6 +215,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
       }
       
       token = dr.getToken();
+      
+      Map<String,String> labels = new HashMap<String,String>();
+      labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+      labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
+      Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_RECEIVED, labels, 1);
     }
 
     //
@@ -656,6 +661,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
       } catch (TException te) {
         throw new IOException();
       }
+      
+      Map<String,String> labels = new HashMap<String,String>();
+      labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+      labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
+      Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_RECEIVED, labels, 1);
     }
 
     //

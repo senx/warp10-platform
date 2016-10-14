@@ -188,6 +188,11 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         throw new IOException();
       }
       
+      Map<String,String> labels = new HashMap<String,String>();
+      labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+      labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
+      Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_RECEIVED, labels, 1);
+
       //
       // Check that the request query string matches the QS in the datalog request
       //
