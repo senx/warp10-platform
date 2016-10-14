@@ -477,12 +477,12 @@ project(':warp10') {
         //
         // Geo
         //
-        compile group: 'com.geoxp', name: 'geoxplib', version: '1.0.0-rc3'
+        compile group: 'com.geoxp', name: 'geoxplib', version: '1.0.0-rc4'
 
         //
         // Java Merge Sort
         //
-        compile group: 'com.fasterxml', name: 'java-merge-sort', version: '0.5.3'
+        compile group: 'com.fasterxml.util', name: 'java-merge-sort', version: '1.0.0'
 
         // @see http://www.mail-archive.com/dev@kafka.apache.org/msg03829.html
         //compile("org.apache.kafka:kafka_2.9.2:0.8.1.1") {
