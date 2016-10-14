@@ -1,5 +1,6 @@
 package io.warp10.continuum.ingress;
 
+import io.warp10.SortedPathIterator;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.store.Constants;
@@ -487,7 +488,15 @@ public class DatalogForwarder extends Thread {
         continue;
       }
       
-      Iterator<Path> iter = ds.iterator();
+      Iterator<Path> iter = null;
+      
+      try {
+        iter = new SortedPathIterator(ds.iterator());
+      } catch (IOException ioe) {
+        LOG.error("Error while getting path iterator.");
+        LockSupport.parkNanos(1000000000L);
+        continue;
+      }
       
       while(iter.hasNext()) {
         //
