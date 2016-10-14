@@ -31,6 +31,31 @@ public class SensisionConstants {
   //
   
   /**
+   * Number of datalog requests which were forwarded successfully
+   */
+  public static final String CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FORWARDED = "warp.datalog,forwarder.requests.forwarded";
+
+  /**
+   * Number of datalog requests which failed to be forwarded
+   */
+  public static final String CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FAILED = "warp.datalog.forwarder.requests.failed";
+
+  /**
+   * Number of datalog requests which were ignored
+   */
+  public static final String CLASS_WARP_DATALOG_FORWARDER_REQUESTS_IGNORED = "warp.datalog.forwarder.requests.ignored";
+
+  /**
+   * Number of datalog requests logged
+   */
+  public static final String CLASS_WARP_DATALOG_REQUESTS_LOGGED = "warp.datalog.requests.logged";
+
+  /**
+   * Number of datalog requests received
+   */
+  public static final String CLASS_WARP_DATALOG_REQUESTS_RECEIVED = "warp.datalog.requests.received";
+
+  /**
    * Number of errors encountered when fetching data, might be an indication of problem related to hbase
    */
   public static final String CLASS_WARP_FETCH_ERRORS = "warp.fetch.errors";
@@ -1331,6 +1356,11 @@ public class SensisionConstants {
    */
   public static final String SENSISION_LABEL_TYPE = "type";
 
+  /**
+   * Id of something
+   */
+  public static final String SENSISION_LABEL_ID = "id";
+  
   /**
    * Component
    */

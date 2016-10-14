@@ -476,6 +476,11 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       throw e;
     } finally {
       if (null != loggingWriter) {
+        Map<String,String> labels = new HashMap<String,String>();
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
+        Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
+
         loggingWriter.close();
         if (validated) {
           loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));

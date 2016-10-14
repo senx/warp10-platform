@@ -26,6 +26,7 @@ import io.warp10.continuum.WarpException;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.ingress.DatalogForwarder;
+import io.warp10.continuum.ingress.DatalogForwarder.DatalogActionType;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.StoreClient;
@@ -579,6 +580,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
       }
             
       if (null != loggingWriter) {
+        Map<String,String> labels = new HashMap<String,String>();
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
+        Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
+
         loggingWriter.close();
         loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
       }
@@ -819,6 +825,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
       }      
     } finally {
       if (null != loggingWriter) {
+        Map<String,String> labels = new HashMap<String,String>();
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
+        Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
+
         loggingWriter.close();
         loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
       }      

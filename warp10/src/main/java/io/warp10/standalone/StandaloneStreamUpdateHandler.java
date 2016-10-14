@@ -182,7 +182,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
           
           File loggingFile = null;   
           PrintWriter loggingWriter = null;
-
+          DatalogRequest dr = null;
+          
           try {
             GTSEncoder lastencoder = null;
             GTSEncoder encoder = null;
@@ -209,6 +210,11 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                 //
                 
                 if (null != loggingWriter) {
+                  Map<String,String> labels = new HashMap<String,String>();
+                  labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+                  labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
+                  Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
+
                   loggingWriter.close();
                   loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
                   loggingFile = null;
@@ -239,7 +245,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                 sb.append(Long.toString(1000000L + (nanos % 1000000L)).substring(1));
                 sb.append("Z");
                 
-                DatalogRequest dr = new DatalogRequest();
+                dr = new DatalogRequest();
                 dr.setTimestamp(nanos);
                 dr.setType(Constants.DATALOG_UPDATE);
                 dr.setId(handler.datalogId);
@@ -360,7 +366,12 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               count += lastencoder.getCount();
             }
           } finally {
-            if (null != loggingWriter) {
+            if (null != loggingWriter) {              
+              Map<String,String> labels = new HashMap<String,String>();
+              labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+              labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
+              Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
+
               loggingWriter.close();
               loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
               loggingFile = null;

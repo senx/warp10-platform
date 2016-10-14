@@ -3,6 +3,7 @@ package io.warp10.continuum.ingress;
 import io.warp10.SortedPathIterator;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
+import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.thrift.data.DatalogRequest;
 import io.warp10.crypto.CryptoUtils;
@@ -10,6 +11,7 @@ import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
+import io.warp10.sensision.Sensision;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -23,8 +25,10 @@ import java.net.URL;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -115,7 +119,7 @@ public class DatalogForwarder extends Thread {
    */
   private final boolean deleteIgnored;
   
-  private static enum DatalogActionType {
+  public static enum DatalogActionType {
     UPDATE,
     DELETE,
     META
@@ -279,6 +283,15 @@ public class DatalogForwarder extends Thread {
         conn.disconnect();
         conn = null;
 
+        Map<String,String> labels = new HashMap<String,String>();
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.UPDATE.name());
+        if (success) {
+          Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FORWARDED, labels, 1);
+        } else {
+          Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FAILED, labels, 1);
+        }
+
         return success;
       } catch (IOException ioe){
         ioe.printStackTrace();
@@ -325,6 +338,15 @@ public class DatalogForwarder extends Thread {
         conn.disconnect();
         conn = null;
 
+        Map<String,String> labels = new HashMap<String,String>();
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.UPDATE.name());
+        if (success) {
+          Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FORWARDED, labels, 1);
+        } else {
+          Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FAILED, labels, 1);
+        }
+        
         return success;
       } catch (IOException ioe){
         return false;
@@ -408,6 +430,15 @@ public class DatalogForwarder extends Thread {
 
         conn.disconnect();
         conn = null;
+
+        Map<String,String> labels = new HashMap<String,String>();
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.UPDATE.name());
+        if (success) {
+          Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FORWARDED, labels, 1);
+        } else {
+          Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FAILED, labels, 1);
+        }
 
         return success;
       } catch (IOException ioe){
@@ -597,6 +628,11 @@ public class DatalogForwarder extends Thread {
         
         String decodedId = new String(OrderPreservingBase64.decode(id.getBytes(Charsets.US_ASCII)), Charsets.UTF_8);
         if (this.ignoredIds.contains(decodedId)) {
+          Map<String,String> labels = new HashMap<String,String>();
+          labels.put(SensisionConstants.SENSISION_LABEL_ID, decodedId);
+          labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.UPDATE.name());
+          Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_IGNORED, labels, 1);
+
           // File should be ignored, move it directly to the target directory
           if(this.deleteIgnored) {
             action.file.renameTo(new File(this.targetDir, action.file.getName()));
