@@ -292,6 +292,12 @@ standalone.snapshot.signal = ${standalone.home}/data/snapshot.signal
 #datalog.psk = hex:hhhhhhhh....
 
 //
+// Set this property to 'false' to skip logging forwarded requests or to 'true' if you want to log them to
+// forward them to an additional hop.
+//
+#datalog.logforwarded = false
+
+//
 // Directory where datalog files to forward reside. If this property and 'datalog.forwarder.dstdir' are set, then
 // the DatalogForwarder daemon will run.
 //
@@ -301,6 +307,18 @@ standalone.snapshot.signal = ${standalone.home}/data/snapshot.signal
 // Directory where forwarded datalog files will be moved. MUST be on the same device as datalog.forwarder.srcdir
 //
 #datalog.forwarder.dstdir =
+
+//
+// Set to 'true' to delete the datalog files which were forwarded. If set to false or absent, such files will be moved
+// to 'datalog.forwarder.dstdir'.
+//
+#datalog,forwarded.deleteforwarded = true
+
+//
+// Set to 'true' to delete the datalog files which were ignored. If set to false or absent, such files will be moved
+// to 'datalog.forwarder.dstdir'.
+//
+#datalog,forwarded.deleteignored = true
 
 //
 // How often (in ms) to scan 'datalog.forwarder.srcdir' for datalog files to forward
