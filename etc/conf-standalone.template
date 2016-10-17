@@ -278,13 +278,76 @@ standalone.snapshot.signal = ${standalone.home}/data/snapshot.signal
 // a file in this directory with the timestamp, the token used and the action type. These files can then
 // be used to update another instance of Warp 10
 //
-#standalone.datalog.dir = ${standalone.home}/datalog
+#datalog.dir = ${standalone.home}/datalog
 
 //
-// Datalog token key. If this AES key is set, the token will be encrypted prior to be used in the file name
-// mentioned above.
+// Unique id for this datalog instance.
 //
-#standalone.datalog.aes = hex:hhhhhhhh....
+#datalog.id = datalog-0
+
+//
+// Datalog pre-shared key to protect the DatalogRequest instances. If this AES key is not set, the requests will not be
+// encrypted and could be altered.
+//
+#datalog.psk = hex:hhhhhhhh....
+
+//
+// Directory where datalog files to forward reside. If this property and 'datalog.forwarder.dstdir' are set, then
+// the DatalogForwarder daemon will run.
+//
+#datalog.forwarder.srcdir =
+
+//
+// Directory where forwarded datalog files will be moved. MUST be on the same device as datalog.forwarder.srcdir
+//
+#datalog.forwarder.dstdir =
+
+//
+// How often (in ms) to scan 'datalog.forwarder.srcdir' for datalog files to forward
+//
+#datalog.forwarder.period = 1000
+
+//
+// Comma separated list of datalog ids which should not be forwarded. This is used to avoid loops.
+//
+#datalog.forwarder.ignored =
+
+//
+// Set this property to 'true' to compress the forwarded requests
+//
+#datalog.forwarder.compress = true
+
+//
+// Set this property to 'true' to behave like a normal Warp 10 client. If not set to 'true' then
+// the original datalog requests will be forwarded. Set to 'true' when forwarding to a distributed Warp 10.
+//
+#datalog.forwarder.actasclient = true
+
+//
+// Number of threads which will process the datalog requests. Requests for a identical (producer,app,owner) tuple
+// will always be processed by the same thread to guarantee the sequence of actions.
+//
+#datalog.forwarder.nthreads = 4
+
+//
+// Endpoint to use when forwarding datalog UPDATE requests.
+//
+#datalog.forwarder.endpoint.update = http://host:port/api/v0/update
+
+//
+// Endpoint to use when forwarding datalog META requests.
+//
+#datalog.forwarder.endpoint.meta = http://host:port/api/v0/meta
+
+//
+// Endpoint to use when forwarding datalog DELETE requests.
+//
+#datalog.forwarder.endpoint.delete = http://host:port/api/v0/delete
+
+//
+// Configuration parameter to modify the datalog header. DO NOT MODIFY
+//
+#http.header.datalog =
 
 //
 // Max message size for the stream update websockets

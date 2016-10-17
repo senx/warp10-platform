@@ -21,12 +21,13 @@ import io.warp10.continuum.Configuration;
 import io.warp10.continuum.LogUtil;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
-import io.warp10.continuum.egress.EgressExecHandler;
 import io.warp10.continuum.egress.EgressFetchHandler;
 import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.ingress.DatalogForwarder;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.StoreClient;
+import io.warp10.continuum.store.thrift.data.DatalogRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.CryptoUtils;
@@ -54,8 +55,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.output.FileWriterWithEncoding;
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
@@ -77,7 +83,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
   /**
    * Key to wrap the token in the file names
    */
-  private final byte[] tokenWrappingKey;
+  private final byte[] datalogPSK;
   
   private final long[] classKeyLongs;
   private final long[] labelsKeyLongs;
@@ -86,6 +92,12 @@ public class StandaloneDeleteHandler extends AbstractHandler {
 
   private final File loggingDir;
   
+  private final String datalogId;
+  
+  private final boolean logforwarded;
+  
+  private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
+
   public StandaloneDeleteHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
     this.keyStore = keystore;
     this.storeClient = storeClient;
@@ -99,8 +111,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     
     Properties props = WarpConfig.getProperties();
     
-    if (props.containsKey(Configuration.STANDALONE_DATALOG_DIR)) {
-      File dir = new File(props.getProperty(Configuration.STANDALONE_DATALOG_DIR));
+    if (props.containsKey(Configuration.DATALOG_DIR)) {
+      File dir = new File(props.getProperty(Configuration.DATALOG_DIR));
       
       if (!dir.exists()) {
         throw new RuntimeException("Data logging target '" + dir + "' does not exist.");
@@ -109,15 +121,26 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       } else {
         loggingDir = dir;
       }
+      
+      String id = props.getProperty(Configuration.DATALOG_ID);
+      
+      if (null == id) {
+        throw new RuntimeException("Property '" + Configuration.DATALOG_ID + "' MUST be set to a unique value for this instance.");
+      } else {
+        datalogId = new String(OrderPreservingBase64.encode(id.getBytes(Charsets.UTF_8)), Charsets.US_ASCII);
+      }
     } else {
       loggingDir = null;
+      datalogId = null;
     }
     
-    if (props.containsKey(Configuration.STANDALONE_DATALOG_AES)) {
-      this.tokenWrappingKey = this.keyStore.decodeKey(props.getProperty(Configuration.STANDALONE_DATALOG_AES));
+    if (props.containsKey(Configuration.DATALOG_PSK)) {
+      this.datalogPSK = this.keyStore.decodeKey(props.getProperty(Configuration.DATALOG_PSK));
     } else {
-      this.tokenWrappingKey = null;
+      this.datalogPSK = null;
     }
+        
+    this.logforwarded = "true".equals(props.getProperty(Configuration.DATALOG_LOGFORWARDED));
   }
   
   @Override
@@ -138,10 +161,52 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     long nano = System.nanoTime();
     
     //
+    // Extract DatalogRequest if specified
+    //
+          
+    String datalogHeader = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_DATALOG));
+    
+    DatalogRequest dr = null;
+    
+    if (null != datalogHeader) {
+      byte[] bytes = OrderPreservingBase64.decode(datalogHeader.getBytes(Charsets.US_ASCII));
+      
+      if (null != datalogPSK) {
+        bytes = CryptoUtils.unwrap(datalogPSK, bytes);
+      }
+      
+      if (null == bytes) {
+        throw new IOException("Invalid Datalog header.");
+      }
+        
+      TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+        
+      try {
+        dr = new DatalogRequest();
+        deser.deserialize(dr, bytes);
+      } catch (TException te) {
+        throw new IOException();
+      }
+      
+      Map<String,String> labels = new HashMap<String,String>();
+      labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+      labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
+      Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_RECEIVED, labels, 1);
+
+      //
+      // Check that the request query string matches the QS in the datalog request
+      //
+      
+      if (!request.getQueryString().equals(dr.getDeleteQueryString())) {
+        throw new IOException("Invalid DatalogRequest.");
+      }
+    }
+    
+    //
     // TODO(hbs): Extract producer/owner from token
     //
     
-    String token = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
+    String token = null != dr ? dr.getToken() : request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
             
     WriteToken writeToken;
     
@@ -201,23 +266,63 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     //
     
     if (null != loggingDir) {
-      Long now = TimeSource.getNanoTime();
-      
+      long nanos = null != dr ? dr.getTimestamp() : TimeSource.getNanoTime();
       StringBuilder sb = new StringBuilder();
-      sb.append(Long.toHexString(now));
+      sb.append(Long.toHexString(nanos));
       sb.insert(0, "0000000000000000", 0, 16 - sb.length());
       sb.append("-");
-      sb.append("DELETE");
-      sb.append("-");      
-      if (null == this.tokenWrappingKey) {          
-        sb.append(new String(OrderPreservingBase64.encode(token.getBytes("ISO-8859-1")), "US-ASCII"));
+      if (null != dr) {
+        sb.append(dr.getId());
       } else {
-        sb.append(new String(OrderPreservingBase64.encode(CryptoUtils.wrap(this.tokenWrappingKey, token.getBytes("ISO-8859-1"))), "US-ASCII"));              
+        sb.append(datalogId);
       }
-      loggingFile = new File(loggingDir, sb.toString());
-      loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
+
+      sb.append("-");
+      sb.append(dtf.print(nanos / 1000000L));
+      sb.append(Long.toString(1000000L + (nanos % 1000000L)).substring(1));
+      sb.append("Z");
+      
+      if (null == dr) {
+        dr = new DatalogRequest();
+        dr.setTimestamp(nanos);
+        dr.setType(Constants.DATALOG_DELETE);
+        dr.setId(datalogId);
+        dr.setToken(token); 
+        dr.setDeleteQueryString(request.getQueryString());
+      } else if (this.logforwarded) {        
+        //
+        // Serialize the request
+        //
+        
+        TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+        
+        byte[] encoded;
+        
+        try {
+          encoded = ser.serialize(dr);
+        } catch (TException te) {
+          throw new IOException(te);
+        }
+        
+        if (null != this.datalogPSK) {
+          encoded = CryptoUtils.wrap(this.datalogPSK, encoded);
+        }
+        
+        encoded = OrderPreservingBase64.encode(encoded);
+                
+        loggingFile = new File(loggingDir, sb.toString());
+        loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
+        
+        //
+        // Write request
+        //
+        
+        loggingWriter.println(new String(encoded, Charsets.US_ASCII));        
+      }
     }
 
+    boolean validated = false;
+    
     try {      
       if (null == producer || null == owner) {
         response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
@@ -304,9 +409,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         throw new IOException(pe);
       }
       
-      if (null != loggingWriter) {
-        loggingWriter.println(request.getQueryString());
-      }
+      validated = true;
       
       //
       // Force 'producer'/'owner'/'app' from token
@@ -378,8 +481,17 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       throw e;
     } finally {
       if (null != loggingWriter) {
+        Map<String,String> labels = new HashMap<String,String>();
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
+        Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
+
         loggingWriter.close();
-        loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + ".done"));
+        if (validated) {
+          loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+        } else {
+          loggingFile.delete();
+        }
       }      
 
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_REQUESTS, sensisionLabels, 1);

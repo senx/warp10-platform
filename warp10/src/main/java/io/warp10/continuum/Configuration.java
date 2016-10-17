@@ -1176,12 +1176,90 @@ public class Configuration {
   /**
    * Directory where data requests should be logged. This directory should be in 700 to protect sensitive token infos.
    */
-  public static final String STANDALONE_DATALOG_DIR = "standalone.datalog.dir";
+  public static final String DATALOG_DIR = "datalog.dir";
   
   /**
-   * Optional key to encrypt the token in the file name used for datalogging
+   * Id of this datalog node. The id will be used in the file name and will be passed down to child nodes via
+   * a header.
    */
-  public static final String STANDALONE_DATALOG_AES = "standalone.datalog.aes";
+  public static final String DATALOG_ID = "datalog.id";
+  
+  /**
+   * Pre-shared AES key to wrap datalog.id and datalog.timestamp header values
+   */
+  public static final String DATALOG_PSK = "datalog.psk";
+  
+  /**
+   * Flag indicating whether or not to log forwarded requests.
+   */
+  public static final String DATALOG_LOGFORWARDED = "datalog.logforwarded";
+  
+  /**
+   * Configuration key to modify the datalog header
+   */
+  public static final String HTTP_HEADER_DATALOG = "http.header.datalog";
+  
+  /**
+   * Comma separated list of ids which should be ignored by the forwarder. This is to prevent loops from
+   * forming.
+   */
+  public static final String DATALOG_FORWARDER_IGNORED = "datalog.forwarder.ignored";
+  
+  /**
+   * Directory from which to read the datalog files to forward
+   */
+  public static final String DATALOG_FORWARDER_SRCDIR = "datalog.forwarder.srcdir";
+  
+  /**
+   * Directory where successfully forwarded files will be moved
+   */
+  public static final String DATALOG_FORWARDER_DSTDIR = "datalog.forwarder.dstdir";
+  
+  /**
+   * Flag used to indicate that forwarded requests should be deleted instead of moved.
+   */
+  public static final String DATALOG_FORWARDER_DELETEFORWARDED = "datalog.forwarder.deleteforwarded";
+
+  /**
+   * Flag used to indicate that ignored requests should be deleted instead of moved.
+   */
+  public static final String DATALOG_FORWARDER_DELETEIGNORED = "datalog.forwarder.deleteignored";
+
+  /**
+   * Delay between directory scans (in ms)
+   */
+  public static final String DATALOG_FORWARDER_PERIOD = "datalog.forwarder.period";
+  
+  /**
+   * Set to 'true' to compress forwarded update/meta requests
+   */
+  public static final String DATALOG_FORWARDER_COMPRESS = "datalog.forwarder.compress";
+  
+  /**
+   * Set to 'true' to act as a regular client when forwarding actions. Otherwise the datalog request will be forwarded.
+   * This MUST be set to 'true' when forwarding to a distributed version of Warp 10.
+   */
+  public static final String DATALOG_FORWARDER_ACTASCLIENT = "datalog.forwarder.actasclient";
+  
+  /**
+   * Number of threads to spawn to handle datalog actions
+   */
+  public static final String DATALOG_FORWARDER_NTHREADS = "datalog.forwarder.nthreads";
+  
+  /**
+   * Endpoint to use when forwarding UPDATE actions
+   */
+  public static final String DATALOG_FORWARDER_ENDPOINT_UPDATE = "datalog.forwarder.endpoint.update";
+  
+  /**
+   * Endpoint to use when forwarding DELETE actions
+   */  
+  public static final String DATALOG_FORWARDER_ENDPOINT_DELETE = "datalog.forwarder.endpoint.delete";
+  
+  /**
+   * Endpoint to use when forwarding META actions
+   */
+  public static final String DATALOG_FORWARDER_ENDPOINT_META = "datalog.forwarder.endpoint.meta";
   
   /**
    * Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.

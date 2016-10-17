@@ -22,18 +22,24 @@ import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.ingress.DatalogForwarder;
 import io.warp10.continuum.ingress.Ingress;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
+import io.warp10.continuum.store.thrift.data.DatalogRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.sensision.Sensision;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.StringReader;
 import java.math.BigInteger;
 import java.text.ParseException;
@@ -46,6 +52,10 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.io.output.FileWriterWithEncoding;
+import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.UpgradeRequest;
@@ -57,6 +67,12 @@ import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import org.eclipse.jetty.websocket.server.WebSocketHandler;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Charsets;
 
 /**
  * WebSocket handler which handles streaming updates
@@ -66,11 +82,19 @@ import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
  */
 public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     
+  private static final Logger LOG = LoggerFactory.getLogger(StandaloneStreamUpdateHandler.class);
+  
   private final KeyStore keyStore;
   private final Properties properties;
   private final StoreClient storeClient;
   private final StandaloneDirectoryClient directoryClient;
   
+  private final String datalogId;
+  private final byte[] datalogPSK;
+  private final File loggingDir;
+  
+  private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
+
   @WebSocket(maxMessageSize=1024 * 1024)
   public static class StandaloneStreamUpdateWebSocket {
     
@@ -84,6 +108,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     
     private WriteToken wtoken;
 
+    private String encodedToken;
+    
     /**
      * Cache used to determine if we should push metadata into Kafka or if it was previously seen.
      * Key is a BigInteger constructed from a byte array of classId+labelsId (we cannot use byte[] as map key)
@@ -154,6 +180,10 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
           
           long now = TimeSource.getTime();
           
+          File loggingFile = null;   
+          PrintWriter loggingWriter = null;
+          DatalogRequest dr = null;
+          
           try {
             GTSEncoder lastencoder = null;
             GTSEncoder encoder = null;
@@ -174,11 +204,81 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               if (line.startsWith("UPDATE ")) {
                 String[] subtokens = line.split("\\s+");
                 setToken(subtokens[1]);
+                
+                //
+                // Close the current datalog file if it exists
+                //
+                
+                if (null != loggingWriter) {
+                  Map<String,String> labels = new HashMap<String,String>();
+                  labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+                  labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
+                  Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
+
+                  loggingWriter.close();
+                  loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+                  loggingFile = null;
+                  loggingWriter = null;
+                }
+                
                 continue;
               }
 
               if (null == this.wtoken) {
                 throw new IOException("Missing token.");
+              }
+
+              //
+              // Open the logging file if it is not open yet and if datalogging is enabled
+              //
+              
+              if (null != handler.loggingDir && null == loggingFile) {
+                long nanos = TimeSource.getNanoTime();
+                StringBuilder sb = new StringBuilder();
+                sb.append(Long.toHexString(nanos));
+                sb.insert(0, "0000000000000000", 0, 16 - sb.length());
+                sb.append("-");
+                sb.append(handler.datalogId);
+                
+                sb.append("-");
+                sb.append(handler.dtf.print(nanos / 1000000L));
+                sb.append(Long.toString(1000000L + (nanos % 1000000L)).substring(1));
+                sb.append("Z");
+                
+                dr = new DatalogRequest();
+                dr.setTimestamp(nanos);
+                dr.setType(Constants.DATALOG_UPDATE);
+                dr.setId(handler.datalogId);
+                dr.setToken(encodedToken); 
+                
+                //
+                // Serialize the request
+                //
+                
+                TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+                
+                byte[] encoded;
+                
+                try {
+                  encoded = ser.serialize(dr);
+                } catch (TException te) {
+                  throw new IOException(te);
+                }
+                
+                if (null != handler.datalogPSK) {
+                  encoded = CryptoUtils.wrap(handler.datalogPSK, encoded);
+                }
+                
+                encoded = OrderPreservingBase64.encode(encoded);
+                        
+                loggingFile = new File(handler.loggingDir, sb.toString());
+                loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
+                
+                //
+                // Write request
+                //
+                
+                loggingWriter.println(new String(encoded, Charsets.US_ASCII));
               }
 
               try {
@@ -241,6 +341,9 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                 }
               }
               
+              if (null != loggingWriter) {
+                loggingWriter.println(line);
+              }
             } while (true); 
             
             br.close();
@@ -261,8 +364,20 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.keyStore.getKey(KeyStore.SIPHASH_LABELS), lastencoder.getLabels()));
               this.handler.storeClient.store(lastencoder);
               count += lastencoder.getCount();
-            }                  
+            }
           } finally {
+            if (null != loggingWriter) {              
+              Map<String,String> labels = new HashMap<String,String>();
+              labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+              labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
+              Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
+
+              loggingWriter.close();
+              loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+              loggingFile = null;
+              loggingWriter = null;
+            }
+
             this.handler.storeClient.store(null);
             nano = System.nanoTime() - nano;
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);          
@@ -342,7 +457,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
         sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
       }
 
-      this.wtoken = wtoken;            
+      this.wtoken = wtoken;
+      this.encodedToken = token;
     }
   }
   
@@ -353,6 +469,37 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
     this.properties = properties;
+    
+    if (properties.containsKey(Configuration.DATALOG_DIR)) {
+      File dir = new File(properties.getProperty(Configuration.DATALOG_DIR));
+      
+      if (!dir.exists()) {
+        throw new RuntimeException("Data logging target '" + dir + "' does not exist.");
+      } else if (!dir.isDirectory()) {
+        throw new RuntimeException("Data logging target '" + dir + "' is not a directory.");
+      } else {
+        loggingDir = dir;
+        LOG.info("Data logging enabled in directory '" + dir + "'.");
+      }
+      
+      String id = properties.getProperty(Configuration.DATALOG_ID);
+      
+      if (null == id) {
+        throw new RuntimeException("Property '" + Configuration.DATALOG_ID + "' MUST be set to a unique value for this instance.");
+      } else {
+        datalogId = new String(OrderPreservingBase64.encode(id.getBytes(Charsets.UTF_8)), Charsets.US_ASCII);
+      }
+      
+    } else {
+      loggingDir = null;
+      datalogId = null;
+    }
+    
+    if (properties.containsKey(Configuration.DATALOG_PSK)) {
+      this.datalogPSK = this.keyStore.decodeKey(properties.getProperty(Configuration.DATALOG_PSK));
+    } else {
+      this.datalogPSK = null;
+    }
     
     configure(super.getWebSocketFactory());    
   }

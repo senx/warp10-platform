@@ -319,3 +319,33 @@ struct GTSSplit {
    */
   3: list<Metadata> metadatas,
 }
+
+/**
+ * Datalog request
+ */
+struct DatalogRequest {
+  /**
+   * Timestamp at which the datalog request originated, in ns
+   */
+  1: i64 timestamp,
+  /**
+   * Id of the node where the datalog request originated
+   */
+  2: string id,  
+  /**
+   * Type of datalog request, UPDATE, META, DELETE
+   */
+  3: string type,
+  /**
+   * Associated token
+   */
+  4: string token,
+  /**
+   * Optional now parameter needed to decode relative timestamps
+   */
+  5: optional string now,
+  /**
+   * Delete query string. We store it in the request so it cannot be modified in the datalog file
+   */
+  6: optional string deleteQueryString,
+}

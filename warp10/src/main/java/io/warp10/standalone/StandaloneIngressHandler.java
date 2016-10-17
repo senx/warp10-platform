@@ -25,9 +25,12 @@ import io.warp10.continuum.Tokens;
 import io.warp10.continuum.WarpException;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.ingress.DatalogForwarder;
+import io.warp10.continuum.ingress.DatalogForwarder.DatalogActionType;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.StoreClient;
+import io.warp10.continuum.store.thrift.data.DatalogRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
@@ -53,8 +56,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.output.FileWriterWithEncoding;
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,12 +94,18 @@ public class StandaloneIngressHandler extends AbstractHandler {
   /**
    * Key to wrap the token in the file names
    */
-  private final byte[] tokenWrappingKey;
+  private final byte[] datalogPSK;
 
   private final long[] classKeyLongs;
   private final long[] labelsKeyLongs;
     
   private final File loggingDir;
+  
+  private final String datalogId;
+  
+  private final boolean logforwarded;
+  
+  private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
   
   public StandaloneIngressHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
     this.keyStore = keystore;
@@ -104,8 +120,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
     
     Properties props = WarpConfig.getProperties();
     
-    if (props.containsKey(Configuration.STANDALONE_DATALOG_DIR)) {
-      File dir = new File(props.getProperty(Configuration.STANDALONE_DATALOG_DIR));
+    if (props.containsKey(Configuration.DATALOG_DIR)) {
+      File dir = new File(props.getProperty(Configuration.DATALOG_DIR));
       
       if (!dir.exists()) {
         throw new RuntimeException("Data logging target '" + dir + "' does not exist.");
@@ -115,15 +131,27 @@ public class StandaloneIngressHandler extends AbstractHandler {
         loggingDir = dir;
         LOG.info("Data logging enabled in directory '" + dir + "'.");
       }
+      
+      String id = props.getProperty(Configuration.DATALOG_ID);
+      
+      if (null == id) {
+        throw new RuntimeException("Property '" + Configuration.DATALOG_ID + "' MUST be set to a unique value for this instance.");
+      } else {
+        datalogId = new String(OrderPreservingBase64.encode(id.getBytes(Charsets.UTF_8)), Charsets.US_ASCII);
+      }
+      
     } else {
       loggingDir = null;
+      datalogId = null;
     }
     
-    if (props.containsKey(Configuration.STANDALONE_DATALOG_AES)) {
-      this.tokenWrappingKey = this.keyStore.decodeKey(props.getProperty(Configuration.STANDALONE_DATALOG_AES));
+    if (props.containsKey(Configuration.DATALOG_PSK)) {
+      this.datalogPSK = this.keyStore.decodeKey(props.getProperty(Configuration.DATALOG_PSK));
     } else {
-      this.tokenWrappingKey = null;
+      this.datalogPSK = null;
     }
+    
+    this.logforwarded = "true".equals(props.getProperty(Configuration.DATALOG_LOGFORWARDED));
   }
   
   @Override
@@ -158,6 +186,42 @@ public class StandaloneIngressHandler extends AbstractHandler {
     
     long nano = System.nanoTime();
     
+    //
+    // Extract DatalogRequest if specified
+    //
+          
+    String datalogHeader = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_DATALOG));
+    
+    DatalogRequest dr = null;
+    
+    if (null != datalogHeader) {
+      byte[] bytes = OrderPreservingBase64.decode(datalogHeader.getBytes(Charsets.US_ASCII));
+      
+      if (null != datalogPSK) {
+        bytes = CryptoUtils.unwrap(datalogPSK, bytes);
+      }
+      
+      if (null == bytes) {
+        throw new IOException("Invalid Datalog header.");
+      }
+        
+      TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+        
+      try {
+        dr = new DatalogRequest();
+        deser.deserialize(dr, bytes);
+      } catch (TException te) {
+        throw new IOException();
+      }
+      
+      token = dr.getToken();
+      
+      Map<String,String> labels = new HashMap<String,String>();
+      labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+      labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
+      Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_RECEIVED, labels, 1);
+    }
+
     //
     // TODO(hbs): Extract producer/owner from token
     //
@@ -234,34 +298,13 @@ public class StandaloneIngressHandler extends AbstractHandler {
       } else {    
         br = request.getReader();
       }
-      
+
       //
       // Get the present time
       //
       
       Long now = TimeSource.getTime();
 
-      //
-      // Open the logging file if logging is enabled
-      //
-      
-      if (null != loggingDir) {
-        long nanos = TimeSource.getNanoTime();
-        StringBuilder sb = new StringBuilder();
-        sb.append(Long.toHexString(nanos));
-        sb.insert(0, "0000000000000000", 0, 16 - sb.length());
-        sb.append("-");
-        sb.append(update ? "UPDATE" : "ARCHIVE");
-        sb.append("-");
-        if (null == this.tokenWrappingKey) {          
-          sb.append(new String(OrderPreservingBase64.encode(token.getBytes("ISO-8859-1")), "US-ASCII"));
-        } else {
-          sb.append(new String(OrderPreservingBase64.encode(CryptoUtils.wrap(this.tokenWrappingKey, token.getBytes("ISO-8859-1"))), "US-ASCII"));              
-        }
-        loggingFile = new File(loggingDir, sb.toString());
-        loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
-      }
-      
       //
       // Check the value of the 'now' header
       //
@@ -277,7 +320,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
       // each time it's needed.
       //
       
-      String nowstr = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_NOW_HEADERX));
+      String nowstr = null != dr ? dr.getNow() : request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_NOW_HEADERX));
       
       if (null != nowstr) {
         if ("*".equals(nowstr)) {
@@ -304,6 +347,72 @@ public class StandaloneIngressHandler extends AbstractHandler {
           }                  
         }
       }
+      
+      //
+      // Open the logging file if logging is enabled
+      //
+      
+      if (null != loggingDir) {
+        long nanos = null != dr ? dr.getTimestamp() : TimeSource.getNanoTime();
+        StringBuilder sb = new StringBuilder();
+        sb.append(Long.toHexString(nanos));
+        sb.insert(0, "0000000000000000", 0, 16 - sb.length());
+        sb.append("-");
+        if (null != dr) {
+          sb.append(dr.getId());
+        } else {
+          sb.append(datalogId);
+        }
+        
+        sb.append("-");
+        sb.append(dtf.print(nanos / 1000000L));
+        sb.append(Long.toString(1000000L + (nanos % 1000000L)).substring(1));
+        sb.append("Z");
+        
+        if (null == dr) {
+          dr = new DatalogRequest();
+          dr.setTimestamp(nanos);
+          dr.setType(update ? Constants.DATALOG_UPDATE : Constants.DATALOG_ARCHIVE);
+          dr.setId(datalogId);
+          dr.setToken(token); 
+          
+          if (null != nowstr) {
+            dr.setNow(nowstr);
+          }
+        } else if (this.logforwarded) {
+          
+          //
+          // Serialize the request
+          //
+          
+          TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+          
+          byte[] encoded;
+          
+          try {
+            encoded = ser.serialize(dr);
+          } catch (TException te) {
+            throw new IOException(te);
+          }
+          
+          if (null != this.datalogPSK) {
+            encoded = CryptoUtils.wrap(this.datalogPSK, encoded);
+          }
+          
+          encoded = OrderPreservingBase64.encode(encoded);
+                  
+          loggingFile = new File(loggingDir, sb.toString());
+          
+          loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
+          
+          //
+          // Write request
+          //
+          
+          loggingWriter.println(new String(encoded, Charsets.US_ASCII));          
+        }
+      }
+      
 
       //
       // Loop on all lines
@@ -476,8 +585,13 @@ public class StandaloneIngressHandler extends AbstractHandler {
       }
             
       if (null != loggingWriter) {
+        Map<String,String> labels = new HashMap<String,String>();
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
+        Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
+
         loggingWriter.close();
-        loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + ".done"));
+        loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
       }
 
       //
@@ -521,13 +635,47 @@ public class StandaloneIngressHandler extends AbstractHandler {
     response.setHeader("Access-Control-Allow-Origin", "*");
 
     //
+    // Extract DatalogRequest if specified
+    //
+          
+    String datalogHeader = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_DATALOG));
+    
+    DatalogRequest dr = null;
+    
+    if (null != datalogHeader) {
+      byte[] bytes = OrderPreservingBase64.decode(datalogHeader.getBytes(Charsets.US_ASCII));
+      
+      if (null != datalogPSK) {
+        bytes = CryptoUtils.unwrap(datalogPSK, bytes);
+      }
+      
+      if (null == bytes) {
+        throw new IOException("Invalid Datalog header.");
+      }
+        
+      TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+        
+      try {
+        dr = new DatalogRequest();
+        deser.deserialize(dr, bytes);
+      } catch (TException te) {
+        throw new IOException();
+      }
+      
+      Map<String,String> labels = new HashMap<String,String>();
+      labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+      labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
+      Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_RECEIVED, labels, 1);
+    }
+
+    //
     // Loop over the input lines.
     // Each has the following format:
     //
     // class{labels}{attributes}
     //
     
-    String token = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
+    String token = null != dr ? dr.getToken() : request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
         
     WriteToken wtoken;
     
@@ -573,21 +721,58 @@ public class StandaloneIngressHandler extends AbstractHandler {
     //
     
     if (null != loggingDir) {
-      long nanos = TimeSource.getNanoTime();
-
+      long nanos = null != dr ? dr.getTimestamp() : TimeSource.getNanoTime();
       StringBuilder sb = new StringBuilder();
       sb.append(Long.toHexString(nanos));
       sb.insert(0, "0000000000000000", 0, 16 - sb.length());
       sb.append("-");
-      sb.append("META");
-      sb.append("-");
-      if (null == this.tokenWrappingKey) {          
-        sb.append(new String(OrderPreservingBase64.encode(token.getBytes("ISO-8859-1")), "US-ASCII"));
+      if (null != dr) {
+        sb.append(dr.getId());
       } else {
-        sb.append(new String(OrderPreservingBase64.encode(CryptoUtils.wrap(this.tokenWrappingKey, token.getBytes("ISO-8859-1"))), "US-ASCII"));              
+        sb.append(datalogId);
       }
-      loggingFile = new File(loggingDir, sb.toString());
-      loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
+
+      sb.append("-");
+      sb.append(dtf.print(nanos / 1000000L));
+      sb.append(Long.toString(1000000L + (nanos % 1000000L)).substring(1));
+      sb.append("Z");
+      
+      if (null == dr) {
+        dr = new DatalogRequest();
+        dr.setTimestamp(nanos);
+        dr.setType(Constants.DATALOG_META);
+        dr.setId(datalogId);
+        dr.setToken(token);          
+      } else if (this.logforwarded) {        
+        //
+        // Serialize the request
+        //
+        
+        TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+        
+        byte[] encoded;
+        
+        try {
+          encoded = ser.serialize(dr);
+        } catch (TException te) {
+          throw new IOException(te);
+        }
+        
+        if (null != this.datalogPSK) {
+          encoded = CryptoUtils.wrap(this.datalogPSK, encoded);
+        }
+        
+        encoded = OrderPreservingBase64.encode(encoded);
+                
+        loggingFile = new File(loggingDir, sb.toString());
+        loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
+        
+        //
+        // Write request
+        //
+        
+        loggingWriter.println(new String(encoded, Charsets.US_ASCII));        
+      }
     }
 
     try {
@@ -650,8 +835,13 @@ public class StandaloneIngressHandler extends AbstractHandler {
       }      
     } finally {
       if (null != loggingWriter) {
+        Map<String,String> labels = new HashMap<String,String>();
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
+        Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
+
         loggingWriter.close();
-        loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + ".done"));
+        loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
       }      
     }
     

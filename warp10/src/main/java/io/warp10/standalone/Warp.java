@@ -26,6 +26,7 @@ import io.warp10.continuum.egress.EgressExecHandler;
 import io.warp10.continuum.egress.EgressFetchHandler;
 import io.warp10.continuum.egress.EgressFindHandler;
 import io.warp10.continuum.egress.EgressMobiusHandler;
+import io.warp10.continuum.ingress.DatalogForwarder;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.crypto.CryptoUtils;
@@ -291,6 +292,14 @@ public class Warp extends WarpDist implements Runnable {
         ScriptRunner runner = new ScriptRunner(keystore.clone(), properties);
       }
 
+    }
+    
+    //
+    // Start the Datalog Forwarder
+    //
+    
+    if (properties.containsKey(Configuration.DATALOG_FORWARDER_SRCDIR) && properties.containsKey(Configuration.DATALOG_FORWARDER_DSTDIR)) {
+      DatalogForwarder forwarder = new DatalogForwarder(keystore, properties);
     }
     
     //
