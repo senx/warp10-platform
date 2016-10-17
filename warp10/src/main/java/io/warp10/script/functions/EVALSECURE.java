@@ -17,6 +17,7 @@
 package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -45,17 +46,32 @@ public class EVALSECURE extends NamedWarpScriptFunction implements WarpScriptSta
     int debugDepth = (int) stack.getAttribute(WarpScriptStack.ATTRIBUTE_DEBUG_DEPTH);
     stack.setAttribute(WarpScriptStack.ATTRIBUTE_DEBUG_DEPTH, 0);
     
-    new UNSECURE("", false).apply(stack);
+    //
+    // Force secure macro mode
+    //
     
-    o = stack.pop();
-    
-    stack.execMulti(o.toString());      
+    boolean secure = Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO));
+    stack.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, true);
 
-    //
-    // Set debug depth back to its original value
-    //
-    
-    stack.setAttribute(WarpScriptStack.ATTRIBUTE_DEBUG_DEPTH, debugDepth);
+    try {
+      new UNSECURE("", false).apply(stack);
+      
+      o = stack.pop();
+      
+      stack.execMulti(o.toString());            
+    } finally {
+      //
+      // Set debug depth back to its original value
+      //
+      
+      stack.setAttribute(WarpScriptStack.ATTRIBUTE_DEBUG_DEPTH, debugDepth);
+
+      //
+      // Set secure macro mode to its original value
+      //
+      
+      stack.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, secure);
+    }
     
     return stack;
   }

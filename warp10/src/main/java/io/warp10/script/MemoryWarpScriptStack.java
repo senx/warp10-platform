@@ -819,7 +819,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
     boolean secure = Boolean.TRUE.equals(this.getAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO));
     
-    this.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, macro.isSecure());
+    //
+    // If we are already in a secure macro, stay in this mode, otherwise an inner macro could lower the
+    // secure level
+    //
+    
+    this.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, !secure ? macro.isSecure() : secure);
     
     int i = 0;
     
