@@ -881,6 +881,12 @@ store.nthreads = 2
 store.nthreads.kafka = 1
 
 //
+// Number of threads in the pool used to process deletes. One such pool is created for each of 'store.nthreads'.
+// Defaults to 0 meaning no pool is used.
+//
+store.nthreads.delete = 0
+
+//
 // ZooKeeper server list
 //
 store.zk.quorum = 127.0.0.1:2181
