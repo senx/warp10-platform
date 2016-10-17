@@ -140,6 +140,56 @@ webcall.user.agent = Warp10-WebCall
 webcall.host.patterns = !.*
 
 //
+// CALL root directory property
+//
+#warpscript.call.directory =
+
+//   
+// Path of the 'bootstrap' WarpScript code    
+//    
+//warpscript.bootstrap.path = /opt/warp10/etc/hello.mc2
+
+//
+// How often to reload the bootstrap code (in ms)
+//
+//warpscript.bootstrap.period = 120000
+
+//
+// URL for the 'update' endpoint
+//
+warpscript.update.endpoint = http://127.0.0.1:8080/api/v0/update
+
+//
+// URL for the 'meta' endpoint
+//
+warpscript.meta.endpoint = http://127.0.0.1:8080/api/v0/meta
+
+//
+// URL for the 'delete' endpoint
+//
+warpscript.delete.endpoint = http://127.0.0.1:8080/api/v0/delete
+
+//
+// Maximum number of subprogram instances which can be spawned
+//
+//warpscript.call.maxcapacity = 1
+
+//
+// Comma separated list of WarpScriptExtension classes to instantiate to modify the defined WarpScript functions
+//
+//warpscript.extensions = 
+
+//
+// Comma separated list of additional languages to support within WarpScript. This MUST be set as a system property
+//
+//warpscript.languages = 
+
+//
+// Flag to enable REXEC
+//
+//warpscript.rexec.enable = 
+
+//
 // Time units of the platform
 // ns means we store nanoseconds
 // us means we store microseconds
