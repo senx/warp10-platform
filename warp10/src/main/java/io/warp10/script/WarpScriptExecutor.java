@@ -273,7 +273,11 @@ public class WarpScriptExecutor implements Serializable {
       // Execute the macro
       //
       
-      stack.exec(this.macro);
+      try {
+        stack.exec(this.macro);
+      } catch (WarpScriptStopException wsse) {
+        // We catch those as they only mean the script terminated voluntarly early
+      }
       
       //
       // Pop the output off the stack
