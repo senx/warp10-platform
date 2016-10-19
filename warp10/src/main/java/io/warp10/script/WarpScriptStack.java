@@ -501,6 +501,14 @@ public interface WarpScriptStack {
   public void exec(WarpScriptJavaFunction function) throws WarpScriptException;
 
   /**
+   * Find a macro by name
+   * 
+   * @param macroName Name of macro to find
+   * @throws WarpScriptException if macro is not found
+   */
+  public Macro find(String macroName) throws WarpScriptException;
+  
+  /**
    * Execute a macro known by name.
 
    * @param macroName

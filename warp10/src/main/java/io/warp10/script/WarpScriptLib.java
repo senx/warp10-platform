@@ -257,6 +257,7 @@ import io.warp10.script.unary.TOSTRING;
 import io.warp10.script.unary.TOTIMESTAMP;
 import io.warp10.script.unary.UNIT;
 import io.warp10.warp.sdk.WarpScriptExtension;
+
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
 
@@ -423,6 +424,7 @@ public class WarpScriptLib {
     functions.put("CALL", new CALL("CALL"));
     functions.put("FORGET", new FORGET("FORGET"));    
     functions.put("DEFINED", new DEFINED("DEFINED"));
+    functions.put("DEFINEDMACRO", new DEFINEDMACRO("DEFINEDMACRO"));
     functions.put("NaN", new NaN("NaN"));
     functions.put("ISNaN", new ISNaN("ISNaN"));
     functions.put("TYPEOF", new TYPEOF("TYPEOF"));      

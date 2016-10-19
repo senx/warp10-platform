@@ -930,6 +930,18 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   
   @Override
   public void run(String symbol) throws WarpScriptException {
+    
+    Macro macro = find(symbol);
+    
+    //
+    // Execute macro
+    //
+    
+    exec((Macro) macro);    
+  }
+  
+  @Override
+  public Macro find(String symbol) throws WarpScriptException {
     //
     // Look up the macro in the local symbol table
     //
@@ -956,11 +968,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       throw new WarpScriptException("'" + symbol + "' is not a macro.");
     }
     
-    //
-    // Execute macro
-    //
-    
-    exec((Macro) macro);    
+    return (Macro) macro;
   }
   
   @Override
