@@ -252,6 +252,12 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                 dr.setToken(encodedToken); 
                 
                 //
+                // Force 'now'
+                //
+                
+                dr.setNow(Long.toString(now));
+                
+                //
                 // Serialize the request
                 //
                 

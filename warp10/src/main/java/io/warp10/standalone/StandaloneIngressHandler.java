@@ -376,9 +376,15 @@ public class StandaloneIngressHandler extends AbstractHandler {
           dr.setId(datalogId);
           dr.setToken(token); 
           
-          if (null != nowstr) {
-            dr.setNow(nowstr);
+          if (null != now) {
+            //
+            // We MUST force 'now', otherwise forwarded metrics will not have a
+            // coherent time. This alters the semantics slightly but make it
+            // coherent across the board.
+            //
+            now = TimeSource.getTime();
           }
+          dr.setNow(Long.toString(now));
         } else if (this.logforwarded) {
           
           //

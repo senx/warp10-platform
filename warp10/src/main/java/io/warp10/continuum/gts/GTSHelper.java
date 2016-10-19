@@ -1694,11 +1694,11 @@ public class GTSHelper {
   }
   
   public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now) throws ParseException, IOException {
-    return parse(encoder, str, extraLabels, null, Long.MAX_VALUE, false);
+    return parse(encoder, str, extraLabels, now, Long.MAX_VALUE, false);
   }
   
   public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize) throws ParseException, IOException {
-    return parse(encoder, str, extraLabels, null, maxValueSize, false);    
+    return parse(encoder, str, extraLabels, now, maxValueSize, false);    
   }
   
   public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, boolean parseAttributes) throws ParseException, IOException {
