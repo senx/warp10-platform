@@ -22,6 +22,10 @@ struct HyperLogLogPlusParameters {
   6: optional binary sparseList,
   7: optional binary registers,
   8: optional bool gzipped,
+  /**
+   * Key these HLL parameters relate to (producer, app, ...)
+   */
+  9: optional string key,
 }
 
 /**

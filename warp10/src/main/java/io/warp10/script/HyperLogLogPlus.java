@@ -206,6 +206,8 @@ public class HyperLogLogPlus {
   private long initTime;
   private long expiry;
   
+  private String key = null;
+  
   private HyperLogLogPlus() {}
   
   public HyperLogLogPlus(int p, int pprime) {
@@ -878,6 +880,10 @@ public class HyperLogLogPlus {
     params.setPprime((byte) this.pprime);
     params.setSparse(Format.SPARSE == this.format);
     
+    if (null != this.key) {
+      params.setKey(this.key);
+    }
+    
     if (Format.SPARSE == this.format) {      
       // Trigger a merge
       merge();
@@ -926,6 +932,10 @@ public class HyperLogLogPlus {
     HyperLogLogPlus hllp = new HyperLogLogPlus();
     
     hllp.setInitTime(params.getInitTime());
+    
+    if (params.isSetKey()) {
+      hllp.setKey(params.getKey());
+    }
     
     // Read p
     hllp.p = params.getP();
@@ -980,5 +990,13 @@ public class HyperLogLogPlus {
   
   public int getPPrime() {
     return this.pprime;
+  }
+  
+  public String getKey() {
+    return this.key;
+  }
+  
+  public void setKey(String key) {
+    this.key = key;
   }
 }

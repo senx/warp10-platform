@@ -17,9 +17,12 @@
 package io.warp10.continuum;
 
 import io.warp10.WarpConfig;
+import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
 import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.ingress.IngressMetadataConsumerFactory;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.HyperLogLogPlus;
 import io.warp10.sensision.Sensision;
@@ -43,6 +46,10 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import kafka.javaapi.producer.Producer;
+import kafka.producer.KeyedMessage;
+import kafka.producer.ProducerConfig;
+
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 
@@ -56,6 +63,8 @@ import com.google.common.util.concurrent.RateLimiter;
  */
 public class ThrottlingManager {
 
+  private static final char APPLICATION_PREFIX_CHAR = '+';
+  
   public static final String LIMITS_PRODUCER_RATE_CURRENT = "producer.rate.limit";
   public static final String LIMITS_PRODUCER_MADS_LIMIT = "producer.mads.limit";
   public static final String LIMITS_PRODUCER_MADS_CURRENT = "producer.mads.current";
@@ -182,6 +191,10 @@ public class ThrottlingManager {
   
   private static boolean enabled = false;
   
+  private static Producer<byte[],byte[]> throttlingProducer = null;
+  private static String throttlingTopic = null;
+  private static byte[] throttlingMAC = null;
+  
   static {
     init();
   }
@@ -271,6 +284,7 @@ public class ThrottlingManager {
         } catch (IOException ioe) {
           throw new WarpException(ioe);
         }
+        producerHLLP.setKey(producer);
         producerHLLPEstimators.put(producer, producerHLLP);
       }
     }
@@ -308,6 +322,7 @@ public class ThrottlingManager {
           } catch (IOException ioe) {
             throw new WarpException(ioe);
           }
+          applicationHLLP.setKey(APPLICATION_PREFIX_CHAR + application);
           applicationHLLPEstimators.put(application, applicationHLLP);
         }
       }
@@ -573,6 +588,45 @@ public class ThrottlingManager {
     
     final long rampup = Long.parseLong(properties.getProperty(Configuration.THROTTLING_MANAGER_RAMPUP, "0")); 
     
+    //
+    // Configure Kafka if defined
+    //
+    
+    if (properties.containsKey(Configuration.INGRESS_KAFKA_THROTTLING_BROKERLIST)) {
+      Properties dataProps = new Properties();
+      // @see http://kafka.apache.org/documentation.html#producerconfigs
+      dataProps.setProperty("metadata.broker.list", properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_BROKERLIST));
+      if (null != properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID)) {
+        dataProps.setProperty("client.id", properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID));
+      }
+      dataProps.setProperty("request.required.acks", "-1");
+      dataProps.setProperty("producer.type","sync");
+      dataProps.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");
+      
+      if (null != properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_REQUEST_TIMEOUT_MS)) {
+        dataProps.setProperty("request.timeout.ms", properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_REQUEST_TIMEOUT_MS));
+      }
+
+      ProducerConfig dataConfig = new ProducerConfig(dataProps);
+      
+      throttlingProducer = new Producer<byte[],byte[]>(dataConfig);
+      throttlingTopic = properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_TOPIC);
+    }
+    
+    if (properties.containsKey(Configuration.INGRESS_KAFKA_THROTTLING_ZKCONNECT)) {
+      ConsumerFactory estimatorConsumerFactory = new ThrottlingManagerEstimatorConsumerFactory(throttlingMAC);
+      
+      KafkaSynchronizedConsumerPool pool = new KafkaSynchronizedConsumerPool(properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_ZKCONNECT),
+          properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_TOPIC),
+          properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_CLIENTID),
+          properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_GROUPID),
+          null,
+          properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_AUTO_OFFSET_RESET, "largest"),
+          1,
+          1000L,
+          estimatorConsumerFactory);      
+    }
+    
     Thread t = new Thread() {
       
       // Set of files already read
@@ -587,11 +641,11 @@ public class ThrottlingManager {
         while(true) {
           
           //
-          // If manager was not enabled, sleed then continue the loop
+          // If manager was not enabled, sleep then continue the loop
           //
           
           if (!enabled) {
-            try { Thread.sleep(100); } catch (InterruptedException ie) {}
+            try { Thread.sleep(1000); } catch (InterruptedException ie) {}
             continue;
           }
           
@@ -663,7 +717,7 @@ public class ThrottlingManager {
                 String rate = tokens[2];
                 String estimator = tokens[3];
                 
-                boolean isProducer = entity.charAt(0) != '+';
+                boolean isProducer = entity.charAt(0) != APPLICATION_PREFIX_CHAR;
                 
                 if (isProducer) {
                   // Attempt to read UUID
@@ -728,6 +782,8 @@ public class ThrottlingManager {
                         hllp.fuse(old);
                       }
                       
+                      hllp.setKey(entity);
+                      
                       synchronized(producerHLLPEstimators) {
                         producerHLLPEstimators.put(entity, hllp);                      
                       }
@@ -742,6 +798,8 @@ public class ThrottlingManager {
                       if (null != old) {
                         hllp.fuse(old);
                       }
+
+                      hllp.setKey(APPLICATION_PREFIX_CHAR + entity);
                       
                       synchronized(applicationHLLPEstimators) {
                         applicationHLLPEstimators.put(entity, hllp);                      
@@ -836,6 +894,7 @@ public class ThrottlingManager {
                 labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, key);
                 Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels, hllp.cardinality());              
                 Sensision.event(0L, null, null, null, SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_ESTIMATOR, labels, encoded);
+                broadcastEstimator(bytes);
               } catch (IOException ioe) {
                 // Ignore exception
               }
@@ -859,6 +918,7 @@ public class ThrottlingManager {
                 labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, key);
                 Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT_PER_APP, labels, hllp.cardinality());
                 Sensision.event(0L, null, null, null, SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_ESTIMATOR_PER_APP, labels, encoded);
+                broadcastEstimator(bytes);
               } catch (IOException ioe) {
                 // Ignore exception
               }
@@ -882,5 +942,79 @@ public class ThrottlingManager {
   
   public static void enable() {
     enabled = true;
+  }
+  
+  /**
+   * Broadcast an estimator on Kafka if Kafka is configured.
+   * @param bytes serialized estimator to forward
+   */
+  private static synchronized void broadcastEstimator(byte[] bytes) {
+    if (null != throttlingProducer) {
+      try {
+        //
+        // Apply the MAC if defined
+        //
+        
+        if (null != throttlingMAC) {
+          bytes = CryptoUtils.addMAC(throttlingMAC, bytes);
+        }
+
+        KeyedMessage<byte[], byte[]> message = new KeyedMessage<byte[], byte[]>(throttlingTopic, bytes);
+        
+        throttlingProducer.send(message);
+        Sensision.update(SensisionConstants.CLASS_WARP_INGRESS_KAFKA_THROTTLING_OUT_MESSAGES, Sensision.EMPTY_LABELS, 1);
+        Sensision.update(SensisionConstants.CLASS_WARP_INGRESS_KAFKA_THROTTLING_OUT_BYTES, Sensision.EMPTY_LABELS, bytes.length);
+      } catch (Exception e) {
+        Sensision.update(SensisionConstants.CLASS_WARP_INGRESS_KAFKA_THROTTLING_ERRORS, Sensision.EMPTY_LABELS, 1);
+      }
+    }
+  }
+  
+  public static void fuse(HyperLogLogPlus hllp) throws Exception {
+    //
+    // Ignore estimators with no keys
+    //
+    
+    if (null == hllp.getKey()) {
+      return;
+    }
+    
+    boolean isApp = false;
+    
+    if (hllp.getKey().length() > 0 && hllp.getKey().charAt(0) == APPLICATION_PREFIX_CHAR) {
+      isApp = true;
+    }
+    
+    if (isApp) {
+      HyperLogLogPlus old = applicationHLLPEstimators.get(hllp.getKey());
+
+      // Merge estimators and replace with the result, keeping the most recent estimator as the base
+      if (null == old || hllp.getInitTime() > old.getInitTime()) {
+        if (null != old) {
+          hllp.fuse(old);
+        }
+
+        synchronized(applicationHLLPEstimators) {
+          applicationHLLPEstimators.put(hllp.getKey(), hllp);                      
+        }
+      } else {
+        old.fuse(hllp);
+      }      
+    } else {
+      HyperLogLogPlus old = producerHLLPEstimators.get(hllp.getKey());
+
+      // Merge estimators and replace with the result, keeping the most recent estimator as the base
+      if (null == old || hllp.getInitTime() > old.getInitTime()) {
+        if (null != old){
+          hllp.fuse(old);
+        }
+        
+        synchronized(producerHLLPEstimators) {
+          producerHLLPEstimators.put(hllp.getKey(), hllp);                      
+        }
+      } else {
+        old.fuse(hllp);
+      }                          
+    }
   }
 }
