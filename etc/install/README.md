@@ -10,16 +10,6 @@ tar xf warp10-1.0.1.tar.gz
 cd warp10-1.0.1
 ~~~
 
-## Launch bootstrap
-
-Launch bootstrap as `root`
-
-Bootstrap creates warp10 user and generates configuration
-
-~~~
-./warp10-standalone.bootstrap
-~~~
-
 ## Start Warp 10 Standalone
 
 Launch Warp 10 init script as `root`

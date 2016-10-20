@@ -17,9 +17,13 @@
 package io.warp10.continuum;
 
 import io.warp10.WarpConfig;
+import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
 import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.ingress.IngressMetadataConsumerFactory;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.continuum.thrift.data.HyperLogLogPlusParameters;
+import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.HyperLogLogPlus;
 import io.warp10.sensision.Sensision;
@@ -29,7 +33,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -43,8 +49,16 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import kafka.javaapi.producer.Producer;
+import kafka.producer.KeyedMessage;
+import kafka.producer.ProducerConfig;
+
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.ISODateTimeFormat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
 import com.google.common.util.concurrent.RateLimiter;
@@ -56,6 +70,10 @@ import com.google.common.util.concurrent.RateLimiter;
  */
 public class ThrottlingManager {
 
+  private static final Logger LOG = LoggerFactory.getLogger(ThrottlingManager.class);
+  
+  private static final char APPLICATION_PREFIX_CHAR = '+';
+  
   public static final String LIMITS_PRODUCER_RATE_CURRENT = "producer.rate.limit";
   public static final String LIMITS_PRODUCER_MADS_LIMIT = "producer.mads.limit";
   public static final String LIMITS_PRODUCER_MADS_CURRENT = "producer.mads.current";
@@ -88,11 +106,11 @@ public class ThrottlingManager {
    * Suffix of the throttle files in the throttle dir
    */
   private static final String THROTTLING_MANAGER_SUFFIX = ".throttle";
-  
+    
   /**
    * Maximum number of HyperLogLogPlus estimators we retain in memory
    */
-  private static final int ESTIMATOR_CACHE_SIZE = 10000;
+  private static int ESTIMATOR_CACHE_SIZE = 10000;
   
   /**
    * Keys to compute the hash of classId/labelsId
@@ -181,6 +199,12 @@ public class ThrottlingManager {
   private static boolean loaded = false;
   
   private static boolean enabled = false;
+  
+  private static Producer<byte[],byte[]> throttlingProducer = null;
+  private static String throttlingTopic = null;
+  private static byte[] throttlingMAC = null;
+  
+  private static String dir;
   
   static {
     init();
@@ -271,6 +295,7 @@ public class ThrottlingManager {
         } catch (IOException ioe) {
           throw new WarpException(ioe);
         }
+        producerHLLP.setKey(producer);
         producerHLLPEstimators.put(producer, producerHLLP);
       }
     }
@@ -308,6 +333,7 @@ public class ThrottlingManager {
           } catch (IOException ioe) {
             throw new WarpException(ioe);
           }
+          applicationHLLP.setKey(APPLICATION_PREFIX_CHAR + application);
           applicationHLLPEstimators.put(application, applicationHLLP);
         }
       }
@@ -542,6 +568,7 @@ public class ThrottlingManager {
     
     final Properties properties = WarpConfig.getProperties();
     
+    ESTIMATOR_CACHE_SIZE = Integer.parseInt(properties.getProperty(Configuration.THROTTLING_MANAGER_ESTIMATOR_CACHE_SIZE, Integer.toString(ESTIMATOR_CACHE_SIZE)));
     
     String rate = properties.getProperty(Configuration.THROTTLING_MANAGER_RATE_DEFAULT);
     
@@ -567,31 +594,92 @@ public class ThrottlingManager {
     // Start the thread which will read the throttling configuration periodically
     //
     
-    final String dir = properties.getProperty(Configuration.THROTTLING_MANAGER_DIR);
+    dir = properties.getProperty(Configuration.THROTTLING_MANAGER_DIR);
 
     final long now = System.currentTimeMillis();
-    
+   
     final long rampup = Long.parseLong(properties.getProperty(Configuration.THROTTLING_MANAGER_RAMPUP, "0")); 
+    
+    //
+    // Register a shutdown hook which will dump the current throttling configuration to a file
+    //
+    
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+      @Override
+      public void run() {
+        dumpCurrentConfig();
+      }
+    });
+    
+    //
+    // Configure Kafka if defined
+    //
+    
+    if (properties.containsKey(Configuration.INGRESS_KAFKA_THROTTLING_BROKERLIST)) {
+      Properties dataProps = new Properties();
+      // @see http://kafka.apache.org/documentation.html#producerconfigs
+      dataProps.setProperty("metadata.broker.list", properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_BROKERLIST));
+      if (null != properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID)) {
+        dataProps.setProperty("client.id", properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID));
+      }
+      dataProps.setProperty("request.required.acks", "-1");
+      dataProps.setProperty("producer.type","sync");
+      dataProps.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");
+      
+      if (null != properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_REQUEST_TIMEOUT_MS)) {
+        dataProps.setProperty("request.timeout.ms", properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_REQUEST_TIMEOUT_MS));
+      }
+
+      ProducerConfig dataConfig = new ProducerConfig(dataProps);
+      
+      throttlingProducer = new Producer<byte[],byte[]>(dataConfig);
+      throttlingTopic = properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_TOPIC);
+    }
+    
+    final long delay = Long.parseLong(properties.getProperty(Configuration.THROTTLING_MANAGER_PERIOD, "60000"));
+
+    if (properties.containsKey(Configuration.INGRESS_KAFKA_THROTTLING_ZKCONNECT)) {
+      ConsumerFactory estimatorConsumerFactory = new ThrottlingManagerEstimatorConsumerFactory(throttlingMAC);
+      
+      //
+      // The commitPeriod is set to twice the delay between throttling file reloads.
+      // The reason behind this is that the estimators are pushed into Kafka when the file is reloaded
+      // and therefore we do not want to have committed offsets for all estimators when we stop and restart
+      // ingress (and the throttling manager), because then it would not have any estimators to read from Kafka
+      // and would have empty estimators which it would push to kafka when the file is next read. This would have the
+      // unwanted consequence of resetting MADS for all accounts.
+      //
+      
+      long commitOffset = 2 * delay;
+      
+      KafkaSynchronizedConsumerPool pool = new KafkaSynchronizedConsumerPool(properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_ZKCONNECT),
+          properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_TOPIC),
+          properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_CLIENTID),
+          properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_GROUPID),
+          null,
+          properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_AUTO_OFFSET_RESET, "largest"),
+          1,
+          commitOffset,
+          estimatorConsumerFactory);      
+    }
     
     Thread t = new Thread() {
       
       // Set of files already read
       
       private Set<String> read = new HashSet<String>();
-      
-      long delay = Long.parseLong(properties.getProperty(Configuration.THROTTLING_MANAGER_PERIOD, "60000"));
-            
+                  
       @Override
       public void run() {
         
         while(true) {
           
           //
-          // If manager was not enabled, sleed then continue the loop
+          // If manager was not enabled, sleep then continue the loop
           //
           
           if (!enabled) {
-            try { Thread.sleep(100); } catch (InterruptedException ie) {}
+            try { Thread.sleep(1000); } catch (InterruptedException ie) {}
             continue;
           }
           
@@ -663,7 +751,7 @@ public class ThrottlingManager {
                 String rate = tokens[2];
                 String estimator = tokens[3];
                 
-                boolean isProducer = entity.charAt(0) != '+';
+                boolean isProducer = entity.charAt(0) != APPLICATION_PREFIX_CHAR;
                 
                 if (isProducer) {
                   // Attempt to read UUID
@@ -728,6 +816,8 @@ public class ThrottlingManager {
                         hllp.fuse(old);
                       }
                       
+                      hllp.setKey(entity);
+                      
                       synchronized(producerHLLPEstimators) {
                         producerHLLPEstimators.put(entity, hllp);                      
                       }
@@ -742,6 +832,8 @@ public class ThrottlingManager {
                       if (null != old) {
                         hllp.fuse(old);
                       }
+
+                      hllp.setKey(APPLICATION_PREFIX_CHAR + entity);
                       
                       synchronized(applicationHLLPEstimators) {
                         applicationHLLPEstimators.put(entity, hllp);                      
@@ -836,6 +928,7 @@ public class ThrottlingManager {
                 labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, key);
                 Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels, hllp.cardinality());              
                 Sensision.event(0L, null, null, null, SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_ESTIMATOR, labels, encoded);
+                broadcastEstimator(bytes);
               } catch (IOException ioe) {
                 // Ignore exception
               }
@@ -859,6 +952,7 @@ public class ThrottlingManager {
                 labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, key);
                 Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT_PER_APP, labels, hllp.cardinality());
                 Sensision.event(0L, null, null, null, SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_ESTIMATOR_PER_APP, labels, encoded);
+                broadcastEstimator(bytes);
               } catch (IOException ioe) {
                 // Ignore exception
               }
@@ -882,5 +976,147 @@ public class ThrottlingManager {
   
   public static void enable() {
     enabled = true;
+  }
+  
+  /**
+   * Broadcast an estimator on Kafka if Kafka is configured.
+   * @param bytes serialized estimator to forward
+   */
+  private static synchronized void broadcastEstimator(byte[] bytes) {
+    if (null != throttlingProducer) {
+      try {
+        //
+        // Apply the MAC if defined
+        //
+        
+        if (null != throttlingMAC) {
+          bytes = CryptoUtils.addMAC(throttlingMAC, bytes);
+        }
+
+        KeyedMessage<byte[], byte[]> message = new KeyedMessage<byte[], byte[]>(throttlingTopic, bytes);
+        
+        throttlingProducer.send(message);
+        Sensision.update(SensisionConstants.CLASS_WARP_INGRESS_KAFKA_THROTTLING_OUT_MESSAGES, Sensision.EMPTY_LABELS, 1);
+        Sensision.update(SensisionConstants.CLASS_WARP_INGRESS_KAFKA_THROTTLING_OUT_BYTES, Sensision.EMPTY_LABELS, bytes.length);
+      } catch (Exception e) {
+        Sensision.update(SensisionConstants.CLASS_WARP_INGRESS_KAFKA_THROTTLING_ERRORS, Sensision.EMPTY_LABELS, 1);
+      }
+    }
+  }
+  
+  public static void fuse(HyperLogLogPlus hllp) throws Exception {
+    //
+    // Ignore estimators with no keys
+    //
+    
+    if (null == hllp.getKey()) {
+      return;
+    }
+    
+    boolean isApp = false;
+    
+    if (hllp.getKey().length() > 0 && hllp.getKey().charAt(0) == APPLICATION_PREFIX_CHAR) {
+      isApp = true;
+    }
+    
+    if (isApp) {
+      HyperLogLogPlus old = applicationHLLPEstimators.get(hllp.getKey().substring(1));
+
+      // Merge estimators and replace with the result, keeping the most recent estimator as the base
+      if (null == old || hllp.getInitTime() > old.getInitTime()) {
+        if (null != old) {
+          hllp.fuse(old);
+        }
+
+        synchronized(applicationHLLPEstimators) {
+          applicationHLLPEstimators.put(hllp.getKey().substring(1), hllp);                      
+        }
+      } else {
+        old.fuse(hllp);
+      }      
+    } else {
+      HyperLogLogPlus old = producerHLLPEstimators.get(hllp.getKey());
+
+      // Merge estimators and replace with the result, keeping the most recent estimator as the base
+      if (null == old || hllp.getInitTime() > old.getInitTime()) {
+        if (null != old){
+          hllp.fuse(old);
+        }
+        
+        synchronized(producerHLLPEstimators) {
+          producerHLLPEstimators.put(hllp.getKey(), hllp);                      
+        }
+      } else {
+        old.fuse(hllp);
+      }                          
+    }
+  }
+  
+  private static void dumpCurrentConfig() {
+    if (null != dir && !producerHLLPEstimators.isEmpty() && !applicationHLLPEstimators.isEmpty()) {
+      File config;
+      if (".dump".endsWith(THROTTLING_MANAGER_SUFFIX)) {
+        config = new File(dir, "current" + THROTTLING_MANAGER_SUFFIX + ".dump.");      
+      } else {
+        config = new File(dir, "current" + THROTTLING_MANAGER_SUFFIX + ".dump");
+      }
+      
+      try {
+        PrintWriter pw = new PrintWriter(config);
+        
+        pw.println("###");
+        pw.println("### Automatic throttling configuration dumped on " + ISODateTimeFormat.dateTime().print(System.currentTimeMillis()));
+        pw.println("###");
+        
+        Set<String> keys = producerHLLPEstimators.keySet();
+        keys.addAll(producerRateLimiters.keySet());
+        
+        for (String key: keys) {
+          pw.print(key);
+          pw.print(":");
+          Long limit = producerMADSLimits.get(key);
+          if (null != limit) {
+            pw.print(limit);
+          }
+          pw.print(":");
+          RateLimiter limiter = producerRateLimiters.get(key);
+          if (null != limiter) {
+            pw.print(limiter.getRate());
+          }
+          pw.print(":");
+          if (producerHLLPEstimators.containsKey(key)) {
+            pw.print(new String(OrderPreservingBase64.encode(producerHLLPEstimators.get(key).toBytes()), Charsets.US_ASCII));
+          }
+          pw.println(":#");
+        }
+        
+        keys = applicationHLLPEstimators.keySet();
+        keys.addAll(applicationRateLimiters.keySet());
+        
+        for (String key: keys) {
+          pw.print(APPLICATION_PREFIX_CHAR);
+          pw.print(URLEncoder.encode(key, "UTF-8"));
+          pw.print(":");
+          Long limit = applicationMADSLimits.get(key);
+          if (null != limit) {
+            pw.print(limit);
+          }
+          pw.print(":");
+          RateLimiter limiter = applicationRateLimiters.get(key);
+          if (null != limiter) {
+            pw.print(limiter.getRate());
+          }
+          pw.print(":");
+          if (applicationHLLPEstimators.containsKey(key)) {
+            pw.print(new String(OrderPreservingBase64.encode(applicationHLLPEstimators.get(key).toBytes()), Charsets.US_ASCII));
+          }
+          pw.println(":#");
+        }
+        
+        pw.close();
+      } catch (Exception e) {
+        LOG.error("Error while dumping throttling configuration.");
+      }
+    }
   }
 }

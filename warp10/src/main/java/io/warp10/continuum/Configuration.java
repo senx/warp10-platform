@@ -670,6 +670,47 @@ public class Configuration {
    */
   public static final String INGRESS_KAFKA_ARCHIVE_AES = "ingress.kafka.archive.aes";
   
+  /**
+   * Kafka broker list for the throttling topic
+   */
+  public static final String INGRESS_KAFKA_THROTTLING_BROKERLIST = "ingress.kafka.throttling.brokerlist";
+  
+  /**
+   * Optional client id to use when producing messages in the throttling topic
+   */
+  public static final String INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID = "ingress.kafka.throttling.producer.clientid";
+  
+  /**
+   * Kafka producer timeout for the throttling topic
+   */
+  public static final String INGRESS_KAFKA_THROTTLING_REQUEST_TIMEOUT_MS = "ingress.kafka.throttling.request.timeout.ms";
+  
+  /**
+   * Name of the throttling topic
+   */
+  public static final String INGRESS_KAFKA_THROTTLING_TOPIC = "ingress.kafka.throttling.topic";
+  
+  /**
+   * ZK connect string for the throttling kafka cluster
+   */
+  public static final String INGRESS_KAFKA_THROTTLING_ZKCONNECT = "ingress.kafka.throttling.zkconnect";
+  
+  /**
+   * Client id to use when consuming the throttling topic
+   */
+  public static final String INGRESS_KAFKA_THROTTLING_CONSUMER_CLIENTID = "ingress.kafka.throttling.consumer.clientid";
+  
+  /**
+   * Group id to use when consuming the throttling topic
+   */
+  public static final String INGRESS_KAFKA_THROTTLING_GROUPID = "ingress.kafka.throttling.groupid";
+  
+  /**
+   * Auto offset strategy to use when consuming the throttling topic. Set to 'largest' unless you want to do
+   * a special experiment.
+   */
+  public static final String INGRESS_KAFKA_THROTTLING_CONSUMER_AUTO_OFFSET_RESET = "ingress.kafka.throttling.consumer.auto.offset.reset";
+  
   //
   // S T O R E
   //
@@ -1468,6 +1509,11 @@ public class Configuration {
    * we just restarted.
    */
   public static final String THROTTLING_MANAGER_RAMPUP = "throttling.manager.rampup";
+  
+  /**
+   * Maximum number of estimators we keep in memory
+   */
+  public static final String THROTTLING_MANAGER_ESTIMATOR_CACHE_SIZE = "throttling.manager.estimator.cache.size";
   
   /**
    * Default value for the rate when not configured through a file

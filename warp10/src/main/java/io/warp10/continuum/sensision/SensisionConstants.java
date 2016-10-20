@@ -221,6 +221,46 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_AFETCH_DATAPOINTS_PEROWNER = "warp.afetch.datapoints.perowner";
 
   /**
+   * Number of messages sent on the throttling topic
+   */
+  public static final String CLASS_WARP_INGRESS_KAFKA_THROTTLING_OUT_MESSAGES = "warp.ingress.kafka.throttling.out.messages";
+  
+  /**
+   * Number of bytes sent on the throttling topic
+   */
+  public static final String CLASS_WARP_INGRESS_KAFKA_THROTTLING_OUT_BYTES = "warp.ingress.kafka.throttling.out.bytes";
+  
+  /**
+   * Number of errors encountered while sending on the throttling topic
+   */
+  public static final String CLASS_WARP_INGRESS_KAFKA_THROTTLING_ERRORS = "warp.ingress.kafka.throttling.error";
+  
+  /**
+   * Number of messages consumed from the throttling topic
+   */
+  public static final String CLASS_WARP_INGRESS_KAFKA_THROTTLING_IN_MESSAGES = "warp.ingress.kafka.throttling.in.messages";
+  
+  /**
+   * Number of bytes consumed from the throttling topic
+   */
+  public static final String CLASS_WARP_INGRESS_KAFKA_THROTTLING_IN_BYTES = "warp.ingress.kafka.throttling.in.bytes";
+    
+  /**
+   * Number of invalid MACs encountered while consuming the throttling topic
+   */
+  public static final String CLASS_WARP_INGRESS_KAFKA_THROTTLING_IN_INVALIDMACS = "warp.ingress.kafka.throttling.in.invalidmacs";
+  
+  /**
+   * Number of successful throttling estimators fusions
+   */
+  public static final String CLASS_WARP_INGRESS_THROTLLING_FUSIONS = "warp.ingress.throttling.fusions";
+  
+  /**
+   * Number of failed throttling estimators fusions
+   */
+  public static final String CLASS_WARP_INGRESS_THROTLLING_FUSIONS_FAILED = "warp.ingress.throttling.fusions.failed";
+
+  /**
    * Number of Metadata cached in 'ingress'
    */
   public static final String SENSISION_CLASS_CONTINUUM_INGRESS_METADATA_CACHED = "warp.ingress.metadata.cached";
