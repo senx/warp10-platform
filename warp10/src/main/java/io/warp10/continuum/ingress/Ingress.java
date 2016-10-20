@@ -335,6 +335,8 @@ public class Ingress extends AbstractHandler implements Runnable {
       metaProps.setProperty("client.id", props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CLIENTID));
     }
     metaProps.setProperty("request.required.acks", "-1");
+    // TODO(hbs): when we move to the new KafkaProducer API
+    //metaProps.setProperty(org.apache.kafka.clients.producer.ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1");
     metaProps.setProperty("producer.type","sync");
     metaProps.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");
     metaProps.setProperty("partitioner.class", io.warp10.continuum.KafkaPartitioner.class.getName());
@@ -361,6 +363,8 @@ public class Ingress extends AbstractHandler implements Runnable {
     dataProps.setProperty("producer.type","sync");
     dataProps.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");
     dataProps.setProperty("partitioner.class", io.warp10.continuum.KafkaPartitioner.class.getName());
+    // TODO(hbs): when we move to the new KafkaProducer API
+    //dataProps.setProperty(org.apache.kafka.clients.producer.ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1");
     
     if (null != props.getProperty(Configuration.INGRESS_KAFKA_DATA_REQUEST_TIMEOUT_MS)) {
       dataProps.setProperty("request.timeout.ms", props.getProperty(Configuration.INGRESS_KAFKA_DATA_REQUEST_TIMEOUT_MS));
@@ -373,6 +377,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     //dataProps.setProperty("client.id","");
 
     ProducerConfig dataConfig = new ProducerConfig(dataProps);
+
     //this.dataProducer = new Producer<byte[], byte[]>(dataConfig);
 
     //
