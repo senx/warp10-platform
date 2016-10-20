@@ -1000,7 +1000,7 @@ plasma.frontend.kafka.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
 
 //
 // Kafka topic to consume. This topic is dedicated to this Plasma frontend.
-// One topic per instance of plasma frontend and 'plasma.frontend.kafka.topic' must be equals to 'plasma.backend.kafka.out.topic'
+// One topic per instance of plasma frontend.
 //
 plasma.frontend.kafka.topic = plasmafe1
 
@@ -1120,12 +1120,6 @@ plasma.backend.kafka.out.brokerlist = 127.0.0.1:9092
 // Maximum size of Kafka outward messages
 //
 plasma.backend.kafka.out.maxsize = 500000
-
-//
-// Actual 'out' topic
-// MUST be equals to 'plasma.frontend.kafka.topic'
-//
-plasma.backend.kafka.out.topic = plasmafe1
 
 //
 // Key to use for computing MACs (128 bits in hex or OSS reference)

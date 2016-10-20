@@ -1001,11 +1001,6 @@ public class Configuration {
   public static final String PLASMA_BACKEND_KAFKA_OUT_MAXSIZE = "plasma.backend.kafka.out.maxsize";
 
   /**
-   * Actual 'out' topic
-   */
-  public static final String PLASMA_BACKEND_KAFKA_OUT_TOPIC = "plasma.backend.kafka.out.topic";
-  
-  /**
    * Key to use for computing MACs (128 bits in hex or OSS reference)
    */
   public static final String PLASMA_BACKEND_KAFKA_OUT_MAC = "plasma.backend.kafka.out.mac";

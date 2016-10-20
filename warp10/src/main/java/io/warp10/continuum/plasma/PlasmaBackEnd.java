@@ -88,7 +88,6 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_COMMITPERIOD,
     io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_NTHREADS,
     io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_BROKERLIST,
-    io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_TOPIC,
     io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZKCONNECT,
     io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZNODE,
     io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_MAXSIZE,
