@@ -1511,6 +1511,11 @@ public class Configuration {
   public static final String THROTTLING_MANAGER_RAMPUP = "throttling.manager.rampup";
   
   /**
+   * Maximum number of estimators we keep in memory
+   */
+  public static final String THROTTLING_MANAGER_ESTIMATOR_CACHE_SIZE = "throttling.manager.estimator.cache.size";
+  
+  /**
    * Default value for the rate when not configured through a file
    */
   public static final String THROTTLING_MANAGER_RATE_DEFAULT = "throttling.manager.rate.default";

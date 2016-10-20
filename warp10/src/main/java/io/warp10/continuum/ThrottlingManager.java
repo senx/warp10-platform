@@ -110,7 +110,7 @@ public class ThrottlingManager {
   /**
    * Maximum number of HyperLogLogPlus estimators we retain in memory
    */
-  private static final int ESTIMATOR_CACHE_SIZE = 10000;
+  private static int ESTIMATOR_CACHE_SIZE = 10000;
   
   /**
    * Keys to compute the hash of classId/labelsId
@@ -568,6 +568,7 @@ public class ThrottlingManager {
     
     final Properties properties = WarpConfig.getProperties();
     
+    ESTIMATOR_CACHE_SIZE = Integer.parseInt(properties.getProperty(Configuration.THROTTLING_MANAGER_ESTIMATOR_CACHE_SIZE, Integer.toString(ESTIMATOR_CACHE_SIZE)));
     
     String rate = properties.getProperty(Configuration.THROTTLING_MANAGER_RATE_DEFAULT);
     
