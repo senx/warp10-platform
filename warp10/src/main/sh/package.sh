@@ -21,6 +21,8 @@ cd ${ARCHIVE}
 mkdir -p ${WARP10_HOME}/bin
 mkdir -p ${WARP10_HOME}/templates
 mkdir -p ${WARP10_HOME}/data/snapshots
+mkdir -p ${WARP10_HOME}/data/datalog
+mkdir -p ${WARP10_HOME}/data/datalog_done
 mkdir -p ${WARP10_HOME}/etc/throttle
 mkdir -p ${WARP10_HOME}/macros
 mkdir -p ${WARP10_HOME}/jars
