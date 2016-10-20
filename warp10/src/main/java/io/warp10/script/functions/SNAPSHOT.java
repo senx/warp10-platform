@@ -164,7 +164,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         if (Boolean.TRUE.equals(o)) {
           sb.append("true ");
         } else {
-          sb.append(" false");
+          sb.append("false ");
         }
       } else if (o instanceof GeoTimeSerie) {
         sb.append("'");
