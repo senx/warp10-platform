@@ -744,6 +744,47 @@ ingress.kafka.data.maxsize = 900000
 ingress.kafka.metadata.maxsize = 900000
 
 //
+// Kafka broker list for the throttling topic
+//
+#ingress.kafka.throttling.brokerlist = 
+  
+//
+// Optional client id to use when producing messages in the throttling topic
+//
+#ingress.kafka.throttling.producer.clientid = 
+  
+//
+// Kafka producer timeout for the throttling topic
+//
+#ingress.kafka.throttling.request.timeout.ms = 
+  
+//
+// Name of the throttling topic
+//
+#ingress.kafka.throttling.topic = 
+  
+//
+// ZK connect string for the throttling kafka cluster
+//
+#ingress.kafka.throttling.zkconnect = 
+  
+//
+// Client id to use when consuming the throttling topic
+//
+#ingress.kafka.throttling.consumer.clientid = 
+  
+//
+// Group id to use when consuming the throttling topic
+//
+#ingress.kafka.throttling.groupid = 
+  
+//
+// Auto offset strategy to use when consuming the throttling topic. Set to 'largest' unless you want to do
+// a special experiment.
+//
+#ingress.kafka.throttling.consumer.auto.offset.reset = largest
+
+//
 // ZK Connect String for the archive kafka cluster
 //
 ingress.kafka.archive.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
