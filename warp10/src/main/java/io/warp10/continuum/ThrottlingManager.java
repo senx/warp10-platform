@@ -1013,6 +1013,14 @@ public class ThrottlingManager {
       return;
     }
     
+    //
+    // Ignore expired estimators
+    //
+    
+    if (hllp.hasExpired()) {
+      return;
+    }
+    
     boolean isApp = false;
     
     if (hllp.getKey().length() > 0 && hllp.getKey().charAt(0) == APPLICATION_PREFIX_CHAR) {
