@@ -16,7 +16,11 @@
 
 package io.warp10.warp.sdk;
 
+import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStackFunction;
 
 import java.util.Map;
 
@@ -35,6 +39,31 @@ public abstract class WarpScriptExtension {
    * simply associate null as the value.
    */
   public abstract Map<String,Object> getFunctions();
+  
+  /**
+   * Wrap a macro into a function
+   * 
+   * @param macro Macro to wrap.
+   * @return the wrapped macro as a WarpScriptStackFunction instance
+   */
+  public static final WarpScriptStackFunction wrapMacro(final Macro macro) {
+    return new WarpScriptStackFunction() {      
+      @Override
+      public Object apply(WarpScriptStack stack) throws WarpScriptException {
+        stack.exec(macro);
+        return stack;
+      }
+      
+      @Override
+      public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(macro.toString());
+        sb.append(" ");
+        sb.append(WarpScriptLib.EVAL);
+        return sb.toString();
+      }
+    };
+  }
   
   public final void register() {
     WarpScriptLib.register(this);
