@@ -69,6 +69,31 @@ initConfig() {
   # Generate read/write tokens valid for a period of 100 years. We use 'io.warp10.bootstrap' as application name.
   su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf -a io.warp10.bootstrap -puidg -t -ttl 3153600000000 ${WARP10_HOME}/templates/conf-standalone.template -o ${WARP10_CONFIG}" >> ${WARP10_HOME}/etc/initial.tokens
 
+  #
+  # Output the generated tokens
+  #
+
+  READ_TOKEN=`tail -n 1 ${WARP10_HOME}/etc/initial.tokens | sed -e 's/{"read":{"token":"//' -e 's/".*//'`
+  WRITE_TOKEN=`tail -n 1 ${WARP10_HOME}/etc/initial.tokens | sed -e 's/.*,"write":{"token":"//' -e 's/".*//'`
+
+  echo "##"
+  echo "## An initial set of tokens was generated for you so you can immediately use Warp 10:"
+  echo "##"
+  echo "## Write Token: ${WRITE_TOKEN}"
+  echo "## Read Token: ${READ_TOKEN}"
+  echo "##"
+  echo "## Push some test data using:"
+  echo "##"
+  echo "##   curl -H 'X-Warp10-Token: ${WRITE_TOKEN}' http://127.0.0.1:8080/api/v0/update --data-binary '// test{} 42'"
+  echo "##"
+  echo "## And read it back using:"
+  echo "##"
+  echo "##   curl 'http://127.0.0.1:8080/api/v0/fetch?token=${READ_TOKEN}&selector=~.*\{\}&now=now&timespan=-1'"
+  echo "##"
+  echo "## You can submit WarpScrpt for execution via:"
+  echo "##"
+  echo "##   curl http://127.0.0.1:8080/api/v0/exec --data-binary @path/to/WarpScriptFile"
+  echo "##"
 }
 
 start() {
