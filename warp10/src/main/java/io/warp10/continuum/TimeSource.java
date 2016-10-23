@@ -40,7 +40,7 @@ public class TimeSource {
   static long baseTimeunits = 0L;
   static long lastCalibration = 0L;
 
-  static AtomicBoolean mustRecalibrate = new AtomicBoolean(false);
+  static AtomicBoolean mustRecalibrate = new AtomicBoolean(true);
   
   static {
     // Start the recalibration thread
