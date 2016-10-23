@@ -379,7 +379,7 @@ in.memory = false
 // a file in this directory with the timestamp, the token used and the action type. These files can then
 // be used to update another instance of Warp 10
 //
-#datalog.dir = ${standalone.home}/datalog
+#datalog.dir = ${standalone.home}/data/datalog
 
 //
 // Unique id for this datalog instance.
