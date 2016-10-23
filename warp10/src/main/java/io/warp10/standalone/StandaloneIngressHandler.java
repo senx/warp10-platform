@@ -194,6 +194,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
     
     DatalogRequest dr = null;
     
+    boolean forwarded = false;
+    
     if (null != datalogHeader) {
       byte[] bytes = OrderPreservingBase64.decode(datalogHeader.getBytes(Charsets.US_ASCII));
       
@@ -220,6 +222,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
       labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
       labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
       Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_RECEIVED, labels, 1);
+      forwarded = true;
     }
 
     //
@@ -376,7 +379,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
           dr.setId(datalogId);
           dr.setToken(token); 
           
-          if (null != now) {
+          if (null == now) {
             //
             // We MUST force 'now', otherwise forwarded metrics will not have a
             // coherent time. This alters the semantics slightly but make it
@@ -385,7 +388,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
             now = TimeSource.getTime();
           }
           dr.setNow(Long.toString(now));
-        } else if (this.logforwarded) {
+        }
+        
+        if (null != dr && (!forwarded || (forwarded && this.logforwarded))) {
           
           //
           // Serialize the request
@@ -417,6 +422,12 @@ public class StandaloneIngressHandler extends AbstractHandler {
           
           loggingWriter.println(new String(encoded, Charsets.US_ASCII));          
         }
+        
+        //
+        // Force 'now'
+        //
+        
+        now = Long.parseLong(dr.getNow());
       }
       
 
@@ -648,6 +659,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
     
     DatalogRequest dr = null;
     
+    boolean forwarded = false;
+    
     if (null != datalogHeader) {
       byte[] bytes = OrderPreservingBase64.decode(datalogHeader.getBytes(Charsets.US_ASCII));
       
@@ -672,6 +685,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
       labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
       labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
       Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_RECEIVED, labels, 1);
+      
+      forwarded = true;
     }
 
     //
@@ -749,7 +764,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
         dr.setType(Constants.DATALOG_META);
         dr.setId(datalogId);
         dr.setToken(token);          
-      } else if (this.logforwarded) {        
+      }
+      
+      if (null != dr && (!forwarded || (forwarded && this.logforwarded))) {        
         //
         // Serialize the request
         //

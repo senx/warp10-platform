@@ -168,6 +168,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     
     DatalogRequest dr = null;
     
+    boolean forwarded = false;
+    
     if (null != datalogHeader) {
       byte[] bytes = OrderPreservingBase64.decode(datalogHeader.getBytes(Charsets.US_ASCII));
       
@@ -200,6 +202,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       if (!request.getQueryString().equals(dr.getDeleteQueryString())) {
         throw new IOException("Invalid DatalogRequest.");
       }
+      
+      forwarded = true;
     }
     
     //
@@ -289,7 +293,9 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         dr.setId(datalogId);
         dr.setToken(token); 
         dr.setDeleteQueryString(request.getQueryString());
-      } else if (this.logforwarded) {        
+      }
+      
+      if (null != dr && (!forwarded || (forwarded && this.logforwarded))) {        
         //
         // Serialize the request
         //
