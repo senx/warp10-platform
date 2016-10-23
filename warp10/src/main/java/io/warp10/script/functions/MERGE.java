@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -23,6 +24,7 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,18 +62,14 @@ public class MERGE extends NamedWarpScriptFunction implements WarpScriptStackFun
       }      
     }
     
-    //
-    // We clone the first element so we don't risk merging it with itself
-    //
+    try {
+      GeoTimeSerie merged = GTSHelper.mergeViaEncoders(series);
     
-    GeoTimeSerie base = series.get(0).clone();
-    
-    for (int i = 1; i < series.size(); i++) {
-      GTSHelper.merge(base, series.get(i));
+      stack.push(merged);
+    } catch (IOException ioe) {
+      throw new WarpScriptException(ioe);
     }
-    
-    stack.push(base);
-    
+
     return stack;
   }
 }

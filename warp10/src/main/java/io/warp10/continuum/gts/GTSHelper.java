@@ -2917,6 +2917,37 @@ public class GTSHelper {
   }
 
   /**
+   * Merge GeoTimeSerie instances using GTSEncoders.
+   * This is noticeably faster than what 'merge' is doing.
+   * 
+   * @param series List of series to merge, the first one will be considered the base. Its metadata will be used.
+   * @return The merged series.
+   */
+  public static GeoTimeSerie mergeViaEncoders(List<GeoTimeSerie> series) throws IOException {
+    //
+    // We merge the GTS but do not use GTSHelper#merge
+    // as it is less efficient than the use of GTSDecoder
+    //
+    
+    GTSEncoder encoder = new GTSEncoder(0L);
+
+    try {
+      for (int i = 0; i < series.size(); i++) {
+        GeoTimeSerie gts = series.get(i);
+
+        if (0 == i) {
+          encoder.setMetadata(gts.getMetadata());
+        }
+        encoder.encode(gts);
+      }
+    } catch (IOException ioe) {
+      throw new IOException(ioe);
+    }
+    
+    return encoder.getDecoder(true).decode();
+  }
+  
+  /**
    * Fill missing values/locations/elevations in a bucketized GTS with the previously
    * encountered one.
    * 
