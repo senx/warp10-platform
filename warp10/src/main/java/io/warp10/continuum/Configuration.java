@@ -1708,11 +1708,6 @@ public class Configuration {
   public static final String HTTP_HEADER_UPDATE_TOKENX = "http.header.token.UPDATE";
 
   /**
-   * HTTP Header for access tokens used for archival
-   */
-  public static final String HTTP_HEADER_ARCHIVE_TOKENX = "http.header.token.archive";
-
-  /**
    * HTTP Header for setting the base timestamp for relative timestamps or for the 'now'
    * parameter of /sfetch
    */

@@ -1772,11 +1772,6 @@ geodir.zk.directory.znode = /zk/warp/localhost/services
 #http.header.token.DELETE = 
 
 //
-// HTTP Header for access tokens used for archival
-//
-#http.header.token.archive = 
-
-//
 // HTTP Header for setting the base timestamp for relative timestamps
 //
 #http.header.now = 

@@ -146,11 +146,6 @@ public class Constants {
   public static final String HTTP_HEADER_UPDATE_TOKEN_DEFAULT = "X-Warp10-Token";
 
   /**
-   * HTTP Header for access tokens used for archival
-   */
-  public static final String HTTP_HEADER_ARCHIVE_TOKEN_DEFAULT = "X-Warp10-ArchiveToken";
-  
-  /**
    * HTTP Header for setting the base timestamp for relative timestamps
    */
   public static final String HTTP_HEADER_NOW_HEADER_DEFAULT = "X-Warp10-Now";
@@ -191,7 +186,6 @@ public class Constants {
   public static String HTTP_HEADER_DATALOG_DEFAULT = "X-Warp10-Datalog";
   
   public static String DATALOG_UPDATE = "UPDATE";
-  public static String DATALOG_ARCHIVE = "ARCHIVE";
   public static String DATALOG_META = "META";
   public static String DATALOG_DELETE = "DELETE";
   
@@ -240,11 +234,6 @@ public class Constants {
    */
   public static final String API_ENDPOINT_AFETCH = "/api/v0/afetch";
 
-  /**
-   * Archive endpoint for the API
-   */
-  public static final String API_ENDPOINT_ARCHIVE = "/api/v0/archive";
-  
   /**
    * Delete endpoint for the API
    */
@@ -384,7 +373,6 @@ public class Constants {
     HEADERS.put(Configuration.HTTP_HEADER_META_TOKENX, props.getProperty(Configuration.HTTP_HEADER_META_TOKENX, HTTP_HEADER_META_TOKEN_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_DELETE_TOKENX, props.getProperty(Configuration.HTTP_HEADER_DELETE_TOKENX, HTTP_HEADER_DELETE_TOKEN_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_UPDATE_TOKENX, props.getProperty(Configuration.HTTP_HEADER_UPDATE_TOKENX, HTTP_HEADER_UPDATE_TOKEN_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_ARCHIVE_TOKENX, props.getProperty(Configuration.HTTP_HEADER_ARCHIVE_TOKENX, HTTP_HEADER_ARCHIVE_TOKEN_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_NOW_HEADERX, props.getProperty(Configuration.HTTP_HEADER_NOW_HEADERX, HTTP_HEADER_NOW_HEADER_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_TIMESPAN_HEADERX, props.getProperty(Configuration.HTTP_HEADER_TIMESPAN_HEADERX, HTTP_HEADER_TIMESPAN_HEADER_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_SHOW_ERRORS_HEADERX, props.getProperty(Configuration.HTTP_HEADER_SHOW_ERRORS_HEADERX, HTTP_HEADER_SHOW_ERRORS_HEADER_DEFAULT));
