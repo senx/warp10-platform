@@ -26,7 +26,6 @@ import io.warp10.continuum.WarpException;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.ingress.DatalogForwarder;
-import io.warp10.continuum.ingress.DatalogForwarder.DatalogActionType;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.StoreClient;
@@ -64,7 +63,6 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -435,8 +433,6 @@ public class StandaloneIngressHandler extends AbstractHandler {
       // Chunk index when archiving
       //
       
-      int chunk = 0;
-
       do {
         
         String line = br.readLine();
