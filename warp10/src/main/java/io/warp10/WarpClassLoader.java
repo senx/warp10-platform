@@ -95,9 +95,9 @@ public class WarpClassLoader extends ClassLoader {
       Class c = defineClass(name, data, 0, data.length);
     
       return c;
-    } catch (Exception e) {
-      LOG.error("Error calling defineClass(" + name + ")", e);
-      throw new ClassNotFoundException("Error calling defineClass(" + name + ")", e);
+    } catch (Throwable t) {
+      LOG.error("Error calling defineClass(" + name + ")", t);
+      throw new ClassNotFoundException("Error calling defineClass(" + name + ")", t);
     }
   }
 }
