@@ -798,11 +798,6 @@ public class Configuration {
   public static final String STORE_NTHREADS_DELETE = "store.nthreads.delete";
   
   /**
-   * ZooKeeper server list
-   */
-  public static final String STORE_ZK_QUORUM = "store.zk.quorum";
-  
-  /**
    * ZooKeeper connect string for HBase
    */
   public static final String STORE_HBASE_DATA_ZKCONNECT = "store.hbase.data.zkconnect";

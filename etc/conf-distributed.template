@@ -928,11 +928,6 @@ store.nthreads.kafka = 1
 store.nthreads.delete = 0
 
 //
-// ZooKeeper server list
-//
-store.zk.quorum = 127.0.0.1:2181
-
-//
 // ZooKeeper connect string for HBase
 //
 store.hbase.data.zkconnect = 127.0.0.1:2181
