@@ -131,12 +131,8 @@ public class Ingress extends AbstractHandler implements Runnable {
     Configuration.INGRESS_IDLE_TIMEOUT,
     Configuration.INGRESS_JETTY_THREADPOOL,
     Configuration.INGRESS_ZK_QUORUM,
-    Configuration.INGRESS_KAFKA_META_ZKCONNECT,
     Configuration.INGRESS_KAFKA_META_BROKERLIST,
     Configuration.INGRESS_KAFKA_META_TOPIC,
-    Configuration.INGRESS_KAFKA_META_GROUPID,
-    Configuration.INGRESS_KAFKA_META_NTHREADS,
-    Configuration.INGRESS_KAFKA_META_COMMITPERIOD,
     Configuration.INGRESS_KAFKA_DATA_BROKERLIST,
     Configuration.INGRESS_KAFKA_DATA_TOPIC,
     Configuration.INGRESS_KAFKA_DATA_POOLSIZE,
@@ -421,15 +417,19 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     ConsumerFactory metadataConsumerFactory = new IngressMetadataConsumerFactory(this);
     
-    pool = new KafkaSynchronizedConsumerPool(props.getProperty(Configuration.INGRESS_KAFKA_META_ZKCONNECT),
-        props.getProperty(Configuration.INGRESS_KAFKA_META_TOPIC),
-        props.getProperty(Configuration.INGRESS_KAFKA_META_CONSUMER_CLIENTID),
-        props.getProperty(Configuration.INGRESS_KAFKA_META_GROUPID),
-        props.getProperty(Configuration.INGRESS_KAFKA_META_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY),
-        props.getProperty(Configuration.INGRESS_KAFKA_META_CONSUMER_AUTO_OFFSET_RESET),
-        Integer.parseInt(props.getProperty(Configuration.INGRESS_KAFKA_META_NTHREADS)),
-        Long.parseLong(props.getProperty(Configuration.INGRESS_KAFKA_META_COMMITPERIOD)),
-        metadataConsumerFactory);    
+    if (props.containsKey(Configuration.INGRESS_KAFKA_META_GROUPID)) {
+      pool = new KafkaSynchronizedConsumerPool(props.getProperty(Configuration.INGRESS_KAFKA_META_ZKCONNECT),
+          props.getProperty(Configuration.INGRESS_KAFKA_META_TOPIC),
+          props.getProperty(Configuration.INGRESS_KAFKA_META_CONSUMER_CLIENTID),
+          props.getProperty(Configuration.INGRESS_KAFKA_META_GROUPID),
+          props.getProperty(Configuration.INGRESS_KAFKA_META_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY),
+          props.getProperty(Configuration.INGRESS_KAFKA_META_CONSUMER_AUTO_OFFSET_RESET),
+          Integer.parseInt(props.getProperty(Configuration.INGRESS_KAFKA_META_NTHREADS)),
+          Long.parseLong(props.getProperty(Configuration.INGRESS_KAFKA_META_COMMITPERIOD)),
+          metadataConsumerFactory);          
+    } else {
+      pool = null;
+    }
 
     //
     // Initialize ThriftDirectoryService
@@ -455,15 +455,18 @@ public class Ingress extends AbstractHandler implements Runnable {
         // when restarting and using the cache we are about to store
         //
         
-        self.pool.shutdown();
-        
-        LOG.info("Waiting for Ingress Kafka consumers to stop.");
-        
-        while(!self.pool.isStopped()) {
-          LockSupport.parkNanos(250000000L);
+        if (null != self.pool) {
+          self.pool.shutdown();
+          
+          LOG.info("Waiting for Ingress Kafka consumers to stop.");
+          
+          while(!self.pool.isStopped()) {
+            LockSupport.parkNanos(250000000L);
+          }
+          
+          LOG.info("Kafka consumers stopped, dumping GTS cache");          
         }
         
-        LOG.info("Kafka consumers stopped, dumping GTS cache");
         
         self.dumpCache();
       }
