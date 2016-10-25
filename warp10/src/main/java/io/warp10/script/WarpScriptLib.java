@@ -16,6 +16,7 @@
 
 package io.warp10.script;
 
+import io.warp10.WarpClassLoader;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.gts.CORRELATE;
@@ -257,10 +258,16 @@ import io.warp10.script.unary.TOSTRING;
 import io.warp10.script.unary.TOTIMESTAMP;
 import io.warp10.script.unary.UNIT;
 import io.warp10.warp.sdk.WarpScriptExtension;
+import io.warp10.warp.sdk.WarpScriptExtensionClassLoader;
 
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
+import org.xeustechnologies.jcl.JarClassLoader;
 
+import com.geoxp.GeoXPLib;
+
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -1339,7 +1346,31 @@ public class WarpScriptLib {
       
       for (String extension: ext) {
         try {
-          Class cls = Class.forName(extension);
+          //
+          // Locate the class using the current class loader
+          //
+          
+          URL url = WarpScriptLib.class.getResource('/' + extension.replace('.', '/') + ".class");
+          
+          Class cls = null;
+
+          //
+          // If the class was located in a jar, load it using a specific class loader
+          // so we can have fat jars with specific deps.
+          //
+          
+          if ("jar".equals(url.getProtocol())) {
+            String urlstr = url.toString().replaceAll("!/.*", "!/");
+            String jarfile = url.toString().replaceAll("!/.*", "").replaceAll("jar:file:", "");
+            
+            WarpClassLoader cl = new WarpClassLoader(jarfile, WarpScriptLib.class.getClassLoader());
+          
+            cls = Class.forName(extension, true, cl);
+          } else {
+            cls = Class.forName(extension, true, WarpScriptLib.class.getClassLoader());
+          }
+
+          //Class cls = Class.forName(extension);
           WarpScriptExtension wse = (WarpScriptExtension) cls.newInstance();          
           wse.register();
         } catch (Exception e) {

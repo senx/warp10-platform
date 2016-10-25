@@ -16,6 +16,7 @@
 
 package io.warp10.script;
 
+import io.warp10.WarpClassLoader;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.sensision.Sensision;
@@ -27,8 +28,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
@@ -148,23 +147,8 @@ public class WarpScriptJarRepository extends Thread {
               }
             }
           } else if (!newClassLoadersFingerprints.containsKey(hash)){
-            // Create new classloader with filtering so caller cannot access the io.warp10 classes, except those needed
-            ClassLoader filteringCL = this.getClass().getClassLoader();
-//            ClassLoader filteringCL = new ClassLoader(this.getClass().getClassLoader()) {
-//              @Override
-//              protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {                
-//                if (name.startsWith("io.warp10") && !name.startsWith("io.warp10.warp.sdk.")) {
-//                  throw new ClassNotFoundException();
-//                } else {
-//                  return this.getParent().loadClass(name);
-//                }
-//              }
-//            };
-
-            URL[] urls = new URL[1];
-            urls[0] = file.toURI().toURL();
-            
-            newClassLoadersFingerprints.put(new URLClassLoader(urls, filteringCL), hash);
+            ClassLoader parentCL = this.getClass().getClassLoader();
+            newClassLoadersFingerprints.put(new WarpClassLoader(file.getCanonicalPath(), parentCL), hash);
           }
         }  
       } catch (NoSuchAlgorithmException nsae) {
