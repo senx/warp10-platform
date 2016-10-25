@@ -6,7 +6,12 @@ import java.io.InputStream;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class WarpClassLoader extends ClassLoader {
+
+  private static final Logger LOG = LoggerFactory.getLogger(WarpClassLoader.class);
   
   private final String jarpath;
   
@@ -86,8 +91,13 @@ public class WarpClassLoader extends ClassLoader {
     // Return class
     //
     
-    Class c = defineClass(name, data, 0, data.length);
+    try {
+      Class c = defineClass(name, data, 0, data.length);
     
-    return c;
+      return c;
+    } catch (Exception e) {
+      LOG.error("Error calling defineClass(" + name + ")", e);
+      throw new ClassNotFoundException("Error calling defineClass(" + name + ")", e);
+    }
   }
 }
