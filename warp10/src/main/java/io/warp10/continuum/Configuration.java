@@ -641,36 +641,6 @@ public class Configuration {
   public static final String INGRESS_KAFKA_METADATA_MAXSIZE = "ingress.kafka.metadata.maxsize";
 
   /**
-   * ZK Connect String for the archive kafka cluster
-   */
-  public static final String INGRESS_KAFKA_ARCHIVE_ZKCONNECT = "ingress.kafka.archive.zkconnect";
-  
-  /**
-   * Kafka broker list for the 'archive' topic
-   */
-  public static final String INGRESS_KAFKA_ARCHIVE_BROKERLIST = "ingress.kafka.archive.brokerlist";
-
-  /**
-   * Kafka client id for producing on the 'archive' topic
-   */
-  public static final String INGRESS_KAFKA_ARCHIVE_PRODUCER_CLIENTID = "ingress.kafka.archive.producer.clientid";
-
-  /**
-   * Actual 'archive' topic
-   */
-  public static final String INGRESS_KAFKA_ARCHIVE_TOPIC = "ingress.kafka.archive.topic";
-
-  /**
-   * Key to use for computing archive requests MACs (128 bits in hex or OSS reference)
-   */
-  public static final String INGRESS_KAFKA_ARCHIVE_MAC = "ingress.kafka.archive.mac";
-
-  /**
-   * Key to use for encrypting archive payloads (128/192/256 bits in hex or OSS reference) 
-   */
-  public static final String INGRESS_KAFKA_ARCHIVE_AES = "ingress.kafka.archive.aes";
-  
-  /**
    * Kafka broker list for the throttling topic
    */
   public static final String INGRESS_KAFKA_THROTTLING_BROKERLIST = "ingress.kafka.throttling.brokerlist";

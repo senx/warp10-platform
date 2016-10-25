@@ -785,31 +785,6 @@ ingress.kafka.metadata.maxsize = 900000
 #ingress.kafka.throttling.consumer.auto.offset.reset = largest
 
 //
-// ZK Connect String for the archive kafka cluster
-//
-ingress.kafka.archive.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
-
-//
-// Kafka broker list for the 'archive' topic
-//
-ingress.kafka.archive.brokerlist = 127.0.0.1:9092
-
-//
-// Actual 'archive' topic
-//
-ingress.kafka.archive.topic = archive
-
-//
-// Key to use for computing archive requests MACs (128 bits in hex or OSS reference)
-//
-ingress.kafka.archive.mac = hex:hhhhhh...
-
-//
-// Key to use for encrypting archive payloads (128/192/256 bits in hex or OSS reference) 
-//
-#ingress.kafka.archive.aes = 
-
-//
 // Kafka client id to use for the metadata producer
 //
 #ingress.kafka.metadata.producer.clientid =
@@ -823,11 +798,6 @@ ingress.kafka.archive.mac = hex:hhhhhh...
 // Kafka client id to use for the data producer
 //
 #ingress.kafka.data.producer.clientid =
-
-//
-// Kafka client id to use for the archive producer
-//
-#ingress.kafka.archive.producer.clientid =
 
 //
 // Do we send Metadata in the Kafka message for delete operations?
