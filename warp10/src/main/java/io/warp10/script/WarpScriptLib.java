@@ -258,22 +258,17 @@ import io.warp10.script.unary.TOSTRING;
 import io.warp10.script.unary.TOTIMESTAMP;
 import io.warp10.script.unary.UNIT;
 import io.warp10.warp.sdk.WarpScriptExtension;
-import io.warp10.warp.sdk.WarpScriptExtensionClassLoader;
-
-import org.apache.commons.lang3.JavaVersion;
-import org.apache.commons.lang3.SystemUtils;
-import org.xeustechnologies.jcl.JarClassLoader;
-
-import com.geoxp.GeoXPLib;
 
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+
+import org.apache.commons.lang3.JavaVersion;
+import org.apache.commons.lang3.SystemUtils;
 
 /**
  * Library of functions used to manipulate Geo Time Series
