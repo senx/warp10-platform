@@ -597,6 +597,11 @@ directory.hbase.filter = false
 ingress.delete.shuffle = true
 
 //
+// Set to 'true' to reject all /delete requests
+//
+ingress.delete.reject = false
+
+//
 // Path where the metadata cache should be dumped
 //
 ingress.cache.dump.path = /opt/warp10/data/cache.metadata

@@ -449,7 +449,13 @@ public class Configuration {
    * on region servers.
    */
   public static final String INGRESS_DELETE_SHUFFLE = "ingress.delete.shuffle";
-      
+  
+  /**
+   * If set to 'true' the /delete endpoint will reject all requests. This is useful
+   * to have ingress endpoints which only honor meta and update.
+   */
+  public static final String INGRESS_DELETE_REJECT = "ingress.delete.reject";
+  
   /**
    * Path where the metadata cache should be dumped
    */
