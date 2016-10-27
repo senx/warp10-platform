@@ -137,7 +137,11 @@ public class StackUtils {
       out.print("{");
       out.print("\"c\":");
       //out.print(gson.toJson(((GeoTimeSerie) o).getMetadata().getName()));
-      out.print(serializer.serialize(((GeoTimeSerie) o).getMetadata().getName()));
+      String name = ((GeoTimeSerie) o).getMetadata().getName();
+      if (null == name) {
+        name = "";
+      }
+      out.print(serializer.serialize(name));
       out.print(",\"l\":");
       objectToJSON(out, ((GeoTimeSerie) o).getMetadata().getLabels(), recursionLevel, strictJSON);
       out.print(",\"a\":");
