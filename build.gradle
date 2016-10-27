@@ -381,7 +381,7 @@ project(':warp10') {
         //
         compile group: 'io.warp10', name: 'crypto', version: warp10Version['crypto']
         compile group: 'io.warp10', name: 'token', version: warp10Version['token']
-        compile group: 'io.warp10', name: 'sensision', version: '1.0.5'
+        compile group: 'io.warp10', name: 'sensision', version: '1.0.11'
 
         //compile group: 'org.xerial.snappy', name: 'snappy-java', version: '1.0.4.1'
         compile group: 'joda-time', name: 'joda-time', version: '2.2'
@@ -681,6 +681,7 @@ project(':warpscript') {
         include 'io/warp10/Revision.class'
         include 'io/warp10/continuum/Configuration.class'
         include 'io/warp10/continuum/TimeSource.class'
+        include 'io/warp10/continuum/TimeSource$*'
         include 'io/warp10/continuum/Tokens.class'
         include 'io/warp10/continuum/Tokens$*'
         include 'io/warp10/continuum/gts/**'
@@ -835,7 +836,7 @@ project(':token') {
 
         // WARP10 DEPENDENCIES
         compile group: 'io.warp10', name: 'crypto', version: warp10Version['crypto']
-        compile group: 'io.warp10', name: 'sensision', version: '1.0.5'
+        compile group: 'io.warp10', name: 'sensision', version: '1.0.11'
 
         compile group: 'org.apache.thrift', name: 'libthrift', version: '0.9.1'
     }
