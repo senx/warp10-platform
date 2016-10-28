@@ -109,7 +109,6 @@ public class Store extends Thread {
    * Set of required parameters, those MUST be set
    */
   private static final String[] REQUIRED_PROPERTIES = new String[] {
-    io.warp10.continuum.Configuration.STORE_ZK_QUORUM,
     io.warp10.continuum.Configuration.STORE_NTHREADS,
     io.warp10.continuum.Configuration.STORE_KAFKA_DATA_ZKCONNECT,
     io.warp10.continuum.Configuration.STORE_KAFKA_DATA_BROKERLIST,

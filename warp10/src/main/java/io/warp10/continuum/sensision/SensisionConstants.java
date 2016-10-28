@@ -531,26 +531,6 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_PARSEERRORS = "warp.update.stream.parseerrors";
 
   /**
-   * Number of microseconds spent in 'archive' in the standalone version of Continuum
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_ARCHIVE_TIME_US = "warp.standalone.archive.time.us";
-
-  /**
-   * Number of 'archive' requests received by the standlone version of continuum
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_ARCHIVE_REQUESTS = "warp.standalone.archive.requests";
-
-  /**
-   * Number of raw readings pushed into Continuum (standalone version) in archive mode
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_ARCHIVE_DATAPOINTS_RAW = "warp.standalone.archive.datapoints.raw";
-
-  /**
-   * Number of parse error encountered in 'archive' requests in the standalone version of continuum
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_ARCHIVE_PARSEERRORS = "warp.standalone.archive.parseerrors";
-  
-  /**
    * Number of HBase Puts created in 'Store'
    */
   public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_PUTS = "warp.store.hbase.puts";

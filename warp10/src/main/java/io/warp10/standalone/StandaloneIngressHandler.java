@@ -26,7 +26,6 @@ import io.warp10.continuum.WarpException;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.ingress.DatalogForwarder;
-import io.warp10.continuum.ingress.DatalogForwarder.DatalogActionType;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.StoreClient;
@@ -64,7 +63,6 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -159,18 +157,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
     
     String token = null;
     
-    boolean update = true;
-    
     if (target.equals(Constants.API_ENDPOINT_UPDATE)) {
       baseRequest.setHandled(true);
-      update = true;
     } else if (target.startsWith(Constants.API_ENDPOINT_UPDATE + "/")) {
       baseRequest.setHandled(true);
-      update = true;
       token = target.substring(Constants.API_ENDPOINT_UPDATE.length() + 1);
-    } else if (target.equals(Constants.API_ENDPOINT_ARCHIVE)) {
-      baseRequest.setHandled(true);
-      update = false;
     } else if (target.equals(Constants.API_ENDPOINT_META)) {
       handleMeta(target, baseRequest, request, response);
       return;
@@ -230,7 +221,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
     //
     
     if (null == token) {
-      token = request.getHeader(update ? Constants.getHeader(Configuration.HTTP_HEADER_TOKENX) : Constants.getHeader(Configuration.HTTP_HEADER_ARCHIVE_TOKENX));
+      token = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
     }
             
     WriteToken writeToken;
@@ -375,7 +366,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
         if (null == dr) {
           dr = new DatalogRequest();
           dr.setTimestamp(nanos);
-          dr.setType(update ? Constants.DATALOG_UPDATE : Constants.DATALOG_ARCHIVE);
+          dr.setType(Constants.DATALOG_UPDATE);
           dr.setId(datalogId);
           dr.setToken(token); 
           
@@ -442,8 +433,6 @@ public class StandaloneIngressHandler extends AbstractHandler {
       // Chunk index when archiving
       //
       
-      int chunk = 0;
-
       do {
         
         String line = br.readLine();
@@ -472,11 +461,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
         //
         
         if (count % PUSHBACK_CHECK_INTERVAL == 0) {
-          if (update) {
-            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);
-          } else {
-            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_ARCHIVE_DATAPOINTS_RAW, sensisionLabels, count);
-          }
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);
           total += count;
           count = 0;
         }
@@ -487,11 +472,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
           encoder = GTSHelper.parse(lastencoder, line, extraLabels, now);
           //nano2 += System.nanoTime() - nano0;
         } catch (ParseException pe) {
-          if (update) {
-            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_PARSEERRORS, sensisionLabels, 1);            
-          } else {
-            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_ARCHIVE_PARSEERRORS, sensisionLabels, 1);
-          }
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_PARSEERRORS, sensisionLabels, 1);            
           throw new IOException("Parse error at '" + line + "'", pe);
         }
 
@@ -507,13 +488,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
             lastencoder.setClassId(GTSHelper.classId(classKeyLongs, lastencoder.getName()));
             lastencoder.setLabelsId(GTSHelper.labelsId(labelsKeyLongs, lastencoder.getMetadata().getLabels()));
 
-            if (update) {
-              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
-            } else {
-              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
-            }
+            ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
+            ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
           }
           
           //
@@ -530,14 +506,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
 
           
           if (null != lastencoder) {
-            if (update) {
-              this.storeClient.store(lastencoder);              
-            } else {
-              this.storeClient.archive(chunk++, lastencoder);              
-              if (encoder != lastencoder) {
-                chunk = 0;
-              }
-            }
+            this.storeClient.store(lastencoder);              
           }
 
           if (encoder != lastencoder) {
@@ -570,15 +539,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
         lastencoder.setClassId(GTSHelper.classId(classKeyLongs, lastencoder.getName()));
         lastencoder.setLabelsId(GTSHelper.labelsId(labelsKeyLongs, lastencoder.getMetadata().getLabels()));
                 
-        if (update) {
-          ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-          ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
-          this.storeClient.store(lastencoder);
-        } else {
-          ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-          ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
-          this.storeClient.archive(chunk, lastencoder);
-        }
+        ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
+        ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
+        this.storeClient.store(lastencoder);
       }        
       
       //
@@ -587,19 +550,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
     } catch (WarpException we) {
       throw new IOException(we);
     } finally {               
-      if (update) {
-        this.storeClient.store(null);
-        this.directoryClient.register(null);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_REQUESTS, sensisionLabels, 1);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_TIME_US, sensisionLabels, (System.nanoTime() - nano) / 1000);
-      } else {
-        this.storeClient.archive(-1, null);
-        this.directoryClient.register(null);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_ARCHIVE_DATAPOINTS_RAW, sensisionLabels, count);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_ARCHIVE_REQUESTS, sensisionLabels, 1);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_ARCHIVE_TIME_US, sensisionLabels, (System.nanoTime() - nano) / 1000);
-      }
+      this.storeClient.store(null);
+      this.directoryClient.register(null);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_REQUESTS, sensisionLabels, 1);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_TIME_US, sensisionLabels, (System.nanoTime() - nano) / 1000);
             
       if (null != loggingWriter) {
         Map<String,String> labels = new HashMap<String,String>();
@@ -620,15 +575,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
       if (null != cdn) {
         sensisionLabels.put(SensisionConstants.SENSISION_LABEL_CDN, cdn);
         // Per CDN stat is updated at the end, so update with 'total' + 'count'
-        if (update) {
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_DATAPOINTS_RAW, sensisionLabels, count + total);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_REQUESTS, sensisionLabels, 1);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_TIME_US, sensisionLabels, (System.nanoTime() - nano) / 1000);                  
-        } else {
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_ARCHIVE_DATAPOINTS_RAW, sensisionLabels, count + total);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_ARCHIVE_REQUESTS, sensisionLabels, 1);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_ARCHIVE_TIME_US, sensisionLabels, (System.nanoTime() - nano) / 1000);        
-        }
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_DATAPOINTS_RAW, sensisionLabels, count + total);
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_REQUESTS, sensisionLabels, 1);
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_TIME_US, sensisionLabels, (System.nanoTime() - nano) / 1000);                  
       }
     }
 

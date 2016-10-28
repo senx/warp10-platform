@@ -449,7 +449,13 @@ public class Configuration {
    * on region servers.
    */
   public static final String INGRESS_DELETE_SHUFFLE = "ingress.delete.shuffle";
-      
+  
+  /**
+   * If set to 'true' the /delete endpoint will reject all requests. This is useful
+   * to have ingress endpoints which only honor meta and update.
+   */
+  public static final String INGRESS_DELETE_REJECT = "ingress.delete.reject";
+  
   /**
    * Path where the metadata cache should be dumped
    */
@@ -641,36 +647,6 @@ public class Configuration {
   public static final String INGRESS_KAFKA_METADATA_MAXSIZE = "ingress.kafka.metadata.maxsize";
 
   /**
-   * ZK Connect String for the archive kafka cluster
-   */
-  public static final String INGRESS_KAFKA_ARCHIVE_ZKCONNECT = "ingress.kafka.archive.zkconnect";
-  
-  /**
-   * Kafka broker list for the 'archive' topic
-   */
-  public static final String INGRESS_KAFKA_ARCHIVE_BROKERLIST = "ingress.kafka.archive.brokerlist";
-
-  /**
-   * Kafka client id for producing on the 'archive' topic
-   */
-  public static final String INGRESS_KAFKA_ARCHIVE_PRODUCER_CLIENTID = "ingress.kafka.archive.producer.clientid";
-
-  /**
-   * Actual 'archive' topic
-   */
-  public static final String INGRESS_KAFKA_ARCHIVE_TOPIC = "ingress.kafka.archive.topic";
-
-  /**
-   * Key to use for computing archive requests MACs (128 bits in hex or OSS reference)
-   */
-  public static final String INGRESS_KAFKA_ARCHIVE_MAC = "ingress.kafka.archive.mac";
-
-  /**
-   * Key to use for encrypting archive payloads (128/192/256 bits in hex or OSS reference) 
-   */
-  public static final String INGRESS_KAFKA_ARCHIVE_AES = "ingress.kafka.archive.aes";
-  
-  /**
    * Kafka broker list for the throttling topic
    */
   public static final String INGRESS_KAFKA_THROTTLING_BROKERLIST = "ingress.kafka.throttling.brokerlist";
@@ -796,11 +772,6 @@ public class Configuration {
    * 0 meaning no pool is used.
    */
   public static final String STORE_NTHREADS_DELETE = "store.nthreads.delete";
-  
-  /**
-   * ZooKeeper server list
-   */
-  public static final String STORE_ZK_QUORUM = "store.zk.quorum";
   
   /**
    * ZooKeeper connect string for HBase
@@ -1741,11 +1712,6 @@ public class Configuration {
    * HTTP Header to provide the token for outgoing UPDATE requests
    */
   public static final String HTTP_HEADER_UPDATE_TOKENX = "http.header.token.UPDATE";
-
-  /**
-   * HTTP Header for access tokens used for archival
-   */
-  public static final String HTTP_HEADER_ARCHIVE_TOKENX = "http.header.token.archive";
 
   /**
    * HTTP Header for setting the base timestamp for relative timestamps or for the 'now'

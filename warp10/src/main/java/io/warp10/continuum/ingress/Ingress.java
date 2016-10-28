@@ -258,6 +258,11 @@ public class Ingress extends AbstractHandler implements Runnable {
   
   private final boolean doShuffle;
   
+  /**
+   * Flag indicating whether or not we reject delete requests
+   */
+  private final boolean rejectDelete;
+  
   public Ingress(KeyStore keystore, Properties props) {
 
     //
@@ -283,6 +288,8 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     this.doShuffle = "true".equals(props.getProperty(Configuration.INGRESS_DELETE_SHUFFLE));
     
+    this.rejectDelete = "true".equals(props.getProperty(Configuration.INGRESS_DELETE_REJECT));
+        
     if (props.containsKey(Configuration.INGRESS_CACHE_DUMP_PATH)) {
       this.cacheDumpPath = props.getProperty(Configuration.INGRESS_CACHE_DUMP_PATH);
     } else {
@@ -1001,6 +1008,10 @@ public class Ingress extends AbstractHandler implements Runnable {
     } else {
       return;
     }    
+    
+    if (this.rejectDelete) {
+      throw new IOException(Constants.API_ENDPOINT_DELETE + " endpoint is not activated.");
+    }
     
     //
     // CORS header

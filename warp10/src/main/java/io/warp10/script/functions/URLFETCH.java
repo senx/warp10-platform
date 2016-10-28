@@ -29,6 +29,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -142,7 +143,14 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
         } else {
           res.add("");
         }
+
+        //
+        // Make the headers map modifiable
+        //
+        
+        hdrs = new HashMap<String, List<String>>(hdrs);
         hdrs.remove(null);
+        
         res.add(hdrs);
         res.add(Base64.encodeBase64String(baos.toByteArray()));
 

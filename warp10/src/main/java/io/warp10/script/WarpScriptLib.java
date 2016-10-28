@@ -710,7 +710,9 @@ public class WarpScriptLib {
     functions.put("WEBCALL", new WEBCALL("WEBCALL"));
     functions.put("MATCH", new MATCH("MATCH"));
     functions.put("MATCHER", new MATCHER("MATCHER"));
-
+    functions.put("REPLACE", new REPLACE("REPLACE", false));
+    functions.put("REPLACEALL", new REPLACE("REPLACEALL", true));
+    
     if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
       functions.put("TEMPLATE", new TEMPLATE("TEMPLATE"));
       functions.put("TOTIMESTAMP", new TOTIMESTAMP("TOTIMESTAMP"));

@@ -186,7 +186,7 @@ public class TUNWRAP extends NamedWarpScriptFunction implements WarpScriptStackF
       }      
     }
     
-    if (top instanceof String) {
+    if (!(top instanceof List)) {
       stack.push(outputs.get(0));      
     } else {
       stack.push(outputs);

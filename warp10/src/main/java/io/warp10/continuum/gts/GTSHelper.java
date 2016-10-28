@@ -6353,7 +6353,19 @@ public class GTSHelper {
   public static long getLastBucket(GeoTimeSerie gts) {
     return gts.lastbucket;
   }
+
+  public static void setBucketCount(GeoTimeSerie gts, int bucketcount) {
+    gts.bucketcount = bucketcount;
+  }
   
+  public static void setBucketSpan(GeoTimeSerie gts, long bucketspan) {
+    gts.bucketspan = bucketspan;
+  }
+  
+  public static void setLastBucket(GeoTimeSerie gts, long lastbucket) {
+    gts.lastbucket = lastbucket;
+  }
+
   public static void metadataToString(StringBuilder sb, String name, Map<String,String> labels) {
     GTSHelper.encodeName(sb, name);
     

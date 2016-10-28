@@ -24,6 +24,7 @@ import io.warp10.script.WarpScriptStack;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.boon.json.JsonException;
 import org.boon.json.JsonParser;
 import org.boon.json.JsonParserFactory;
 
@@ -47,9 +48,16 @@ public class JSONTO extends NamedWarpScriptFunction implements WarpScriptStackFu
     }
     
     JsonParser parser = BOON_PARSER_FACTORY.create();
-
-    Object json = parser.parse(o.toString());
     
+    Object json = null;
+    
+    try {
+      json = parser.parse(o.toString());
+    } catch(JsonException je) {      
+      // We don't include the original message as it can be very long
+      throw new WarpScriptException("Error parsing JSON");
+    }
+
     //
     // Do a simple replacement of Integers by Longs if we have a list
     //
@@ -70,7 +78,7 @@ public class JSONTO extends NamedWarpScriptFunction implements WarpScriptStackFu
     } else {
       stack.push(json);
     }    
-    
+
     return stack;
   }
 }
