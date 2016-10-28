@@ -680,7 +680,6 @@ project(':warpscript') {
         include 'io/warp10/udf/**'
         include 'io/warp10/thrift/**'
         include 'io/warp10/WarpConfig.class'
-        include 'io/warp10/WarpClassLoader.class'
         include 'io/warp10/WarpURLEncoder.class'
         include 'io/warp10/DoubleUtils.class'
         include 'io/warp10/FloatUtils.class'
@@ -692,13 +691,10 @@ project(':warpscript') {
         include 'io/warp10/continuum/Configuration.class'
         include 'io/warp10/continuum/TimeSource.class'
         include 'io/warp10/continuum/TimeSource$*'
-<<<<<<< HEAD
         include 'io/warp10/continuum/TextFileShuffler.class'
         include 'io/warp10/continuum/TextFileShuffler$*'
         include 'io/warp10/continuum/SortUtil.class'
         include 'io/warp10/continuum/SortUtil$*'
-=======
->>>>>>> 712d9fe53b39d1bf72b0cda0b7a1516129161879
         include 'io/warp10/continuum/Tokens.class'
         include 'io/warp10/continuum/Tokens$*'
         include 'io/warp10/continuum/gts/**'
