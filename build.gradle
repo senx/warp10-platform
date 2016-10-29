@@ -67,6 +67,8 @@ subprojects {
         warp10Version['crypto'] = commonVersion
         warp10Version['token'] = commonVersion
 
+        quantumVersion = '2.1.44'
+
         stagingUser = project.hasProperty('stagingUser') ? project.property('stagingUser') : System.getenv('STAGING_USER')
         stagingURL = project.hasProperty('stagingURL') ? project.property('stagingURL') : System.getenv('STAGING_URL')
 
@@ -538,7 +540,7 @@ project(':warp10') {
 
     task createTarArchive(type: Exec, dependsOn: pack) {
         workingDir = '.'
-        commandLine = [ "${workingDir}/src/main/sh/package.sh", getVersionName(warp10Version['warp10']), "${buildDir}/.."]
+        commandLine = [ "${workingDir}/src/main/sh/package.sh", getVersionName(warp10Version['warp10']), "${buildDir}/..", "${quantumVersion}"]
     }
 
     publishing {
