@@ -230,13 +230,9 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
   @Override
   public GTSDecoder next() {
     
-    // FIXME(hbs): make it configurable?
-    // If we do, then it MUST be less than what Kafka accepts, otherwise Plasma/GeoDir may fail
-    int MAX_ENCODER_SIZE = 100000;
-  
     GTSEncoder encoder = new GTSEncoder(0L);
 
-    while(encoder.size() < MAX_ENCODER_SIZE && (null != this.pendingresult || this.iter.hasNext()) && nvalues > 0) {
+    while(encoder.size() < Constants.MAX_ENCODER_SIZE && (null != this.pendingresult || this.iter.hasNext()) && nvalues > 0) {
       
       //
       // Extract next result from scan iterator, unless there is a current pending Result

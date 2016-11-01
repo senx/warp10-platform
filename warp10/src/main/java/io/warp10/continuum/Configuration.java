@@ -37,6 +37,13 @@ public class Configuration {
   public static final String WARP_IDENT = "warp.ident";
   
   /**
+   * Maximum encoder size (in bytes) for internal data transfers. Use values from 64k to 512k for
+   * optimum performance and make sure this size is less than the maximum message size of Kafka
+   * otherwise bad things will happen as messages may not be able to be exchanged within Warp 10.
+   */
+  public static final String MAX_ENCODER_SIZE = "max.encoder.size";
+
+  /**
    * How often (in ms) should we refetch the region start/end keys
    */
   public static final String WARP_HBASE_REGIONKEYS_UPDATEPERIOD = "warp.hbase.regionkeys.updateperiod";
@@ -462,7 +469,7 @@ public class Configuration {
   public static final String INGRESS_CACHE_DUMP_PATH = "ingress.cache.dump.path";
   
   /**
-   * Maximum value size
+   * Maximum value size, make sure it is less than 'max.encoder.size'
    */
   public static final String INGRESS_VALUE_MAXSIZE = "ingress.value.maxsize";
   
@@ -1175,7 +1182,7 @@ public class Configuration {
    * Maximum encoder size (in bytes) for internal data transfers. Use values from 64k to 512k
    */
   public static final String STANDALONE_MAX_ENCODER_SIZE = "standalone.max.encoder.size";
-
+  
   /**
    * Path to a file to use for triggering compaction suspension to take snapshots
    */

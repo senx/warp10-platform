@@ -304,6 +304,11 @@ public class Constants {
    */
   public static final String OVH_CDN_GEO_HEADER = "X-CDN-Geo";
   
+  /**
+   * Maximum size for internal encoders. MUST be less than Kafka's max message size.
+   */
+  public static final int MAX_ENCODER_SIZE;
+  
   public static final String HTTP_PARAM_TOKEN = "token";
   public static final String HTTP_PARAM_SELECTOR = "selector";
   public static final String HTTP_PARAM_START = "start";
@@ -321,6 +326,7 @@ public class Constants {
   public static final String HTTP_PARAM_SHOWATTR = "showattr";
   public static final String HTTP_PARAM_MINSPLITS = "minsplits";
   public static final String HTTP_PARAM_MAXSPLITS = "maxsplits";
+  public static final String HTTP_PARAM_MAXSIZE = "maxsize";
 
   public static final String WARP10_DOC_URL = "http://www.warp10.io/";
   
@@ -328,6 +334,8 @@ public class Constants {
   public static final String KEY_MODULUS = "modulus";
   public static final String KEY_ALGORITHM = "algorithm";
   public static final String KEY_EXPONENT = "exponent";
+  
+  private static final int DEFAULT_MAX_ENCODER_SIZE = 100000;
   
   static {
 
@@ -340,7 +348,7 @@ public class Constants {
     }
 
     String tu = props.getProperty(Configuration.WARP_TIME_UNITS);
-
+    
     if (null == tu) {
       throw new RuntimeException("Missing time units.");
     } else if ("ms".equals(tu)) {
@@ -356,6 +364,12 @@ public class Constants {
     TIME_UNITS_PER_S =  1000L * TIME_UNITS_PER_MS;
     NS_PER_TIME_UNIT = 1000000L / TIME_UNITS_PER_MS;
     //DEFAULT_MODULUS = 600L * TIME_UNITS_PER_S;
+    
+    if (props.containsKey(Configuration.MAX_ENCODER_SIZE)) {
+      MAX_ENCODER_SIZE = Integer.parseInt(props.getProperty(Configuration.MAX_ENCODER_SIZE));
+    } else {
+      MAX_ENCODER_SIZE = DEFAULT_MAX_ENCODER_SIZE;
+    }
     
     System.out.println("########[ Initialized with " + TIME_UNITS_PER_MS + " time units per millisecond ]########");
     

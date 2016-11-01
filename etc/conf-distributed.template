@@ -20,6 +20,13 @@
 warp.timeunits = us
 
 //
+// Maximum size for encoders exchanged within Warp 10.
+// Make sure this value is less than the maximum size of
+// a Kafka message.
+//
+max.encoder.size = 100000
+
+//
 // Comma separated list of components to run in distributed mode
 // Valid values are 'ingress', 'directory', 'store', 'egress', 'fetch', 'plasmaFE', 'plasmaBE', 'runner', 'geodir'
 //
@@ -608,6 +615,7 @@ ingress.cache.dump.path = /opt/warp10/data/cache.metadata
 
 //
 // Maximum value size of a measurement
+// Make sure this is less than 'max.encoder.size'
 //
 ingress.value.maxsize = 65536
 

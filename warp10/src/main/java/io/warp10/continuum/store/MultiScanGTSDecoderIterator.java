@@ -247,9 +247,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     
     GTSEncoder encoder = new GTSEncoder(0L);
 
-    int MAX_ENCODER_SIZE = 100000;
-    
-    while(encoder.size() < MAX_ENCODER_SIZE && nvalues > 0 && scaniter.hasNext()) {
+    while(encoder.size() < Constants.MAX_ENCODER_SIZE && nvalues > 0 && scaniter.hasNext()) {
       
       //
       // Extract next result from scaniter
