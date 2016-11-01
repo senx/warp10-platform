@@ -84,7 +84,7 @@ public class UNWRAP extends NamedWarpScriptFunction implements WarpScriptStackFu
       }      
     }
     
-    if (top instanceof String) {
+    if (!(top instanceof List)) {
       stack.push(outputs.get(0));      
     } else {
       stack.push(outputs);
