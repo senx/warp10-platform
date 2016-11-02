@@ -920,7 +920,6 @@ public class ThrottlingManager {
                 continue;
               }
               
-              long initTime = hllp.getInitTime();
               try {
                 byte[] bytes = hllp.toBytes();
                 String encoded = new String(OrderPreservingBase64.encode(bytes), Charsets.US_ASCII);
@@ -944,7 +943,6 @@ public class ThrottlingManager {
                 continue;
               }
               
-              long initTime = hllp.getInitTime();
               try {
                 byte[] bytes = hllp.toBytes();
                 String encoded = new String(OrderPreservingBase64.encode(bytes), Charsets.US_ASCII);
