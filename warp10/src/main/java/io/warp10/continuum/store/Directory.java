@@ -1351,6 +1351,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
         MetadataID id = null;
         
+        byte[] hbaseAESKey = directory.keystore.getKey(KeyStore.AES_HBASE_METADATA);
+        
         while (iter.hasNext()) {
           Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
 
@@ -1398,8 +1400,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             }
             
             // Unwrap data if need be
-            if (null != aesKey) {
-              data = CryptoUtils.unwrap(aesKey, data);
+            if (null != hbaseAESKey) {
+              data = CryptoUtils.unwrap(hbaseAESKey, data);
             }
             
             // Skip data that was not unwrapped successfuly
