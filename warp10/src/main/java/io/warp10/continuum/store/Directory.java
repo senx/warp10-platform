@@ -1184,7 +1184,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         ConsumerIterator<byte[],byte[]> iter = this.stream.iterator();
 
         byte[] siphashKey = directory.keystore.getKey(KeyStore.SIPHASH_KAFKA_METADATA);
-        byte[] aesKey = directory.keystore.getKey(KeyStore.AES_KAFKA_METADATA);
+        byte[] kafkaAESKey = directory.keystore.getKey(KeyStore.AES_KAFKA_METADATA);
             
         htable = directory.conn.getTable(directory.hbaseTable);
 
@@ -1400,8 +1400,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             }
             
             // Unwrap data if need be
-            if (null != hbaseAESKey) {
-              data = CryptoUtils.unwrap(hbaseAESKey, data);
+            if (null != kafkaAESKey) {
+              data = CryptoUtils.unwrap(kafkaAESKey, data);
             }
             
             // Skip data that was not unwrapped successfuly
@@ -1652,8 +1652,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             
             if (directory.store) {
               put = new Put(rowkey);
-              if (null != aesKey) {
-                encrypted = CryptoUtils.wrap(aesKey, metadataBytes);
+              if (null != hbaseAESKey) {
+                encrypted = CryptoUtils.wrap(hbaseAESKey, metadataBytes);
                 put.addColumn(directory.colfam, new byte[0], encrypted);
               } else {
                 put.addColumn(directory.colfam, new byte[0], metadataBytes);
