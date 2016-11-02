@@ -155,21 +155,6 @@ webcall.host.patterns = !.*
 //warpscript.bootstrap.period = 120000
 
 //
-// URL for the 'update' endpoint
-//
-warpscript.update.endpoint = http://127.0.0.1:8080/api/v0/update
-
-//
-// URL for the 'meta' endpoint
-//
-warpscript.meta.endpoint = http://127.0.0.1:8080/api/v0/meta
-
-//
-// URL for the 'delete' endpoint
-//
-warpscript.delete.endpoint = http://127.0.0.1:8080/api/v0/delete
-
-//
 // Maximum number of subprogram instances which can be spawned
 //
 //warpscript.call.maxcapacity = 1
@@ -241,6 +226,11 @@ warpscript.update.endpoint = http://${standalone.host}:${standalone.port}/api/v0
 // URL for the 'meta' endpoint
 //
 warpscript.meta.endpoint = http://${standalone.host}:${standalone.port}/api/v0/meta
+
+//
+// URL for the 'delete' endpoint
+//
+warpscript.delete.endpoint = http://${standalone.host}:${standalone.port}/api/v0/delete
 
 //
 // CALL root directory property
@@ -368,6 +358,19 @@ in.memory = false
 // Set to 'true' to only forward data to Plasma. Not data storage will take place.
 //
 //pureplasma = 
+
+//
+// Q U A N T U M
+//
+/////////////////////////////////////////////////////////////////////////////////////////
+
+
+//
+// Quantum - Host/Port to bind to
+//
+quantum.port = 8090
+quantum.host = ${standalone.host}
+
 
 //
 // D A T A L O G
