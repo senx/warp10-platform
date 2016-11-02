@@ -368,10 +368,8 @@ in.memory = false
 //
 // Quantum - Host/Port to bind to
 //
-// Warning: Do not use value with ${...}
-//
 quantum.port = 8090
-quantum.host = 127.0.0.1
+quantum.host = ${standalone.host}
 
 
 //
