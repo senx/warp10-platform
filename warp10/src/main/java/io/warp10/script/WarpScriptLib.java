@@ -269,12 +269,17 @@ import java.util.Set;
 
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Library of functions used to manipulate Geo Time Series
  * and more generally interact with a WarpScriptStack
  */
 public class WarpScriptLib {
+  
+  private static final Logger LOG = LoggerFactory.getLogger(WarpScriptLib.class);
+  
   private static Map<String,Object> functions = new HashMap<String, Object>();
   
   /**
@@ -1341,6 +1346,8 @@ public class WarpScriptLib {
         ext.add(extension);
       }
       
+      boolean failedExt = false;
+      
       for (String extension: ext) {
         try {
           //
@@ -1348,6 +1355,12 @@ public class WarpScriptLib {
           //
           
           URL url = WarpScriptLib.class.getResource('/' + extension.replace('.', '/') + ".class");
+          
+          if (null == url) {
+            LOG.error("Unable to load extension '" + extension + "', make sure it is in the class path.");
+            failedExt = true;
+            continue;
+          }
           
           Class cls = null;
 
@@ -1373,6 +1386,10 @@ public class WarpScriptLib {
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
+      }
+      
+      if (failedExt) {
+        throw new RuntimeException("Some WarpScript extensions could not be loaded, aborting.");
       }
     }
   }
