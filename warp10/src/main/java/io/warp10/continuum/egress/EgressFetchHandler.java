@@ -643,6 +643,8 @@ public class EgressFetchHandler extends AbstractHandler {
     AtomicReference<Metadata> lastMeta = new AtomicReference<Metadata>(null);
     AtomicLong lastCount = new AtomicLong(0L);
     
+    long fetchtimespan = timespan;
+    
     for (Iterator<Metadata> itermeta: iterators) {
       while(itermeta.hasNext()) {
         metas.add(itermeta.next());
@@ -652,11 +654,12 @@ public class EgressFetchHandler extends AbstractHandler {
         //
         
         if (metas.size() > FETCH_BATCHSIZE || !itermeta.hasNext()) {
-          try(GTSDecoderIterator iterrsc = storeClient.fetch(rtoken, metas, now, timespan, fromArchive, writeTimestamp)) {
+          try(GTSDecoderIterator iterrsc = storeClient.fetch(rtoken, metas, now, fetchtimespan, fromArchive, writeTimestamp)) {
             GTSDecoderIterator iter = iterrsc;
                         
             if (unpack) {
               iter = new UnpackingGTSDecoderIterator(iter, suffix);
+              timespan = Long.MIN_VALUE + 1;
             }
             
             if("text".equals(format)) {
