@@ -121,6 +121,16 @@ public class GTSDecoder {
   private boolean nextCalled = false;
   
   /**
+   * Flag indicating whether or not we decoded some encrypted data
+   */
+  private boolean decodedEncrypted = false;
+  
+  /**
+   * Number of calls to next() which consumed datapoints
+   */
+  private int consumingNextCalls = 0;
+  
+  /**
    * AES key for encrypting content
    */
   private final byte[] wrappingKey;
@@ -189,7 +199,7 @@ public class GTSDecoder {
     }
 
     this.nextCalled = true;
-    
+
     //
     // Read timestamp/type flag
     //
@@ -251,7 +261,8 @@ public class GTSDecoder {
         bb.put(this.buffer);
         bb.flip();
         
-        this.buffer = bb;        
+        this.buffer = bb;
+        decodedEncrypted = true;
       } catch (InvalidCipherTextException icte) {
         // FIXME(hbs): log this somewhere...
         //
@@ -465,6 +476,7 @@ public class GTSDecoder {
         throw new RuntimeException("Invalid type encountered!");
     }
 
+    this.consumingNextCalls++;
     return true;
   }
   
@@ -655,7 +667,10 @@ public class GTSDecoder {
     
     encoder.safeDelta();
     
-    encoder.setCount(this.count);
+    // Only set the count if we did not decode encrypted chunks otherwise the value would be wrong
+    if (!this.decodedEncrypted) {
+      encoder.setCount(this.count - this.consumingNextCalls + 1);
+    }
     
     return encoder;
   }
