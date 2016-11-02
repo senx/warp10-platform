@@ -532,9 +532,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         initThreads[i] = new Thread(new Runnable() {
           @Override
           public void run() {
-            AESWrapEngine engine = new AESWrapEngine();
-            CipherParameters params = new KeyParameter(self.keystore.getKey(KeyStore.AES_HBASE_METADATA));
-            engine.init(false, params);
+            AESWrapEngine engine = null;
+            if (null != self.keystore.getKey(KeyStore.AES_HBASE_METADATA)) {
+              engine = new AESWrapEngine();
+              CipherParameters params = new KeyParameter(self.keystore.getKey(KeyStore.AES_HBASE_METADATA));
+              engine.init(false, params);
+            }
 
             PKCS7Padding padding = new PKCS7Padding();
 
@@ -550,26 +553,28 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 }
                 
                 byte[] value = result.getValue(self.colfam, Constants.EMPTY_COLQ);
-                
-                //
-                // Unwrap
-                //
-                
-                byte[] unwrapped = engine.unwrap(value, 0, value.length);
-                
-                //
-                // Unpad
-                //
-                
-                int padcount = padding.padCount(unwrapped);
-                byte[] unpadded = Arrays.copyOf(unwrapped, unwrapped.length - padcount);
+
+                if (null != engine) {
+                  //
+                  // Unwrap
+                  //
+                  
+                  byte[] unwrapped = engine.unwrap(value, 0, value.length);
+                  
+                  //
+                  // Unpad
+                  //
+                  
+                  int padcount = padding.padCount(unwrapped);
+                  value = Arrays.copyOf(unwrapped, unwrapped.length - padcount);                                   
+                }
                 
                 //
                 // Deserialize
                 //
 
                 Metadata metadata = new Metadata();
-                deserializer.deserialize(metadata, unpadded);
+                deserializer.deserialize(metadata, value);
 
                 //
                 // Compute classId/labelsId and compare it to the values in the row key
@@ -1346,6 +1351,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
         MetadataID id = null;
         
+        byte[] aesKey = directory.keystore.getKey(KeyStore.AES_HBASE_METADATA);
+        
         while (iter.hasNext()) {
           Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
 
@@ -1645,8 +1652,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             
             if (directory.store) {
               put = new Put(rowkey);
-              encrypted = CryptoUtils.wrap(directory.keystore.getKey(KeyStore.AES_HBASE_METADATA), metadataBytes);
-              put.addColumn(directory.colfam, new byte[0], encrypted);              
+              if (null != aesKey) {
+                encrypted = CryptoUtils.wrap(aesKey, metadataBytes);
+                put.addColumn(directory.colfam, new byte[0], encrypted);
+              } else {
+                put.addColumn(directory.colfam, new byte[0], metadataBytes);
+              }
             }
               
             try {
