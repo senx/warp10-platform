@@ -1702,12 +1702,6 @@ public class EgressFetchHandler extends AbstractHandler {
   
   private void packedDump(PrintWriter pw, GTSDecoderIterator iter, long now, long timespan, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, int maxDecoderLen, String classSuffix) throws IOException {
     
-    //
-    // Wrap the iterator in a size limiting wrapper
-    //
-    
-    iter = new SizeLimitingGTSDecoderIterator(iter, maxDecoderLen);
-    
     String name = null;
     Map<String,String> labels = null;
     
@@ -1715,6 +1709,8 @@ public class EgressFetchHandler extends AbstractHandler {
     
     Metadata lastMetadata = lastMeta.get();
     long currentCount = lastCount.get();
+    
+    List<GTSEncoder> encoders = new ArrayList<GTSEncoder>();
     
     while(iter.hasNext()) {
       GTSDecoder decoder = iter.next();
@@ -1798,55 +1794,92 @@ public class EgressFetchHandler extends AbstractHandler {
         currentCount += encoder.getCount();
       }
 
-      if (encoder.size() > 0) {
-        //
-        // Determine most recent timestamp
-        //
-        
-        GTSDecoder dec = encoder.getDecoder(true);
-        
-        long timestamp = Long.MIN_VALUE;
-        
-        while(dec.next()) {
-          long ts = dec.getTimestamp(); 
-          if (ts > timestamp) {
-            timestamp = ts;
+      encoders.clear();
+      encoders.add(encoder);
+      
+      while(!encoders.isEmpty()) {
+        encoder = encoders.remove(0);
+
+        if (encoder.size() > 0) {
+          //
+          // Determine most recent timestamp
+          //
+          
+          GTSDecoder dec = encoder.getDecoder(true);
+
+          dec.next();
+          
+          long timestamp = dec.getTimestamp();
+
+          //
+          // Build GTSWrapper
+          //
+
+          encoder.setMetadata(new Metadata());
+          // Clear labels
+          encoder.setName("");
+          encoder.setLabels(new HashMap<String,String>());
+          encoder.getMetadata().setAttributes(new HashMap<String,String>());
+          
+          GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true);
+          
+          TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+          byte[] serialized;
+          
+          try {
+            serialized = ser.serialize(wrapper);
+          } catch (TException te) {
+            throw new IOException(te);
           }
-        }
-        
-        //
-        // Build GTSWrapper
-        //
 
-        encoder.setMetadata(new Metadata());
-        // Clear labels
-        encoder.setName("");
-        encoder.setLabels(new HashMap<String,String>());
-        encoder.getMetadata().setAttributes(new HashMap<String,String>());
-        
-        GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true);
-        
-        TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
-        byte[] serialized;
-        
-        try {
-          serialized = ser.serialize(wrapper);
-        } catch (TException te) {
-          throw new IOException(te);
-        }
-        
-        pw.print(timestamp);
-        pw.print("//");
-        pw.print(encoder.getCount());
-        pw.print(" ");
-        pw.print(sb.toString());
-        pw.print(" '");
+          //
+          // Check the size of the generatd wrapper. If it is over 75% of maxDecoderLen,
+          // split the original encoder in two
+          //
+          
+          if (serialized.length >= Math.ceil(0.75D * maxDecoderLen)) {
+            GTSEncoder split = new GTSEncoder(0L);
+            split.setMetadata(encoder.getMetadata());
+            
+            List<GTSEncoder> splits = new ArrayList<GTSEncoder>();
+            
+            splits.add(split);
+            
+            int threshold = encoder.size() / 2;
+            
+            GTSDecoder deco = encoder.getDecoder(true);
+            
+            while(deco.next()) {
+              split.addValue(deco.getTimestamp(), deco.getLocation(), deco.getElevation(), deco.getValue());
+              if (split.size() > threshold) {
+                split = new GTSEncoder(0L);
+                splits.add(split);
+              }
+            }
+            
+            //
+            // Now insert the splits at the beginning of 'encoders'
+            //
+            
+            for (int i = splits.size() - 1; i >= 0; i--) {
+              encoders.add(0, splits.get(i));
+            }
+            continue;
+          }
+          
+          pw.print(timestamp);
+          pw.print("//");
+          pw.print(encoder.getCount());
+          pw.print(" ");
+          pw.print(sb.toString());
+          pw.print(" '");
 
-        OrderPreservingBase64.encodeToWriter(serialized, pw);
-        
-        pw.print("'");
-        pw.write('\r');
-        pw.write('\n');        
+          OrderPreservingBase64.encodeToWriter(serialized, pw);
+          
+          pw.print("'");
+          pw.write('\r');
+          pw.write('\n');        
+        }
       }
     }
     
