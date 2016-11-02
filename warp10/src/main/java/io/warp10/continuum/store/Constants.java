@@ -327,7 +327,11 @@ public class Constants {
   public static final String HTTP_PARAM_MINSPLITS = "minsplits";
   public static final String HTTP_PARAM_MAXSPLITS = "maxsplits";
   public static final String HTTP_PARAM_MAXSIZE = "maxsize";
-
+  public static final String HTTP_PARAM_SUFFIX = "suffix";
+  public static final String HTTP_PARAM_UNPACK = "unpack";
+  
+  public static final String DEFAULT_PACKED_CLASS_SUFFIX = ":packed";
+  
   public static final String WARP10_DOC_URL = "http://www.warp10.io/";
   
   

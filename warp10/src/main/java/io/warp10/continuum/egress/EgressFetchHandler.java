@@ -192,6 +192,16 @@ public class EgressFetchHandler extends AbstractHandler {
       showErrorsParam = req.getParameter(Constants.HTTP_PARAM_SHOW_ERRORS);
     }
         
+    String maxDecoderLenParam = req.getParameter(Constants.HTTP_PARAM_MAXSIZE);
+    int maxDecoderLen = null != maxDecoderLenParam ? Integer.parseInt(maxDecoderLenParam) : Integer.MAX_VALUE;
+    
+    String suffix = req.getParameter(Constants.HTTP_PARAM_SUFFIX);
+    if (null == suffix) {
+      suffix = Constants.DEFAULT_PACKED_CLASS_SUFFIX;
+    }
+    
+    boolean unpack = null != req.getParameter(Constants.HTTP_PARAM_UNPACK);
+    
     boolean showErrors = "true".equals(showErrorsParam);
     boolean dedup = null != dedupParam && "true".equals(dedupParam);
     
@@ -642,7 +652,13 @@ public class EgressFetchHandler extends AbstractHandler {
         //
         
         if (metas.size() > FETCH_BATCHSIZE || !itermeta.hasNext()) {
-          try(GTSDecoderIterator iter = storeClient.fetch(rtoken, metas, now, timespan, fromArchive, writeTimestamp)) {
+          try(GTSDecoderIterator iterrsc = storeClient.fetch(rtoken, metas, now, timespan, fromArchive, writeTimestamp)) {
+            GTSDecoderIterator iter = iterrsc;
+                        
+            if (unpack) {
+              iter = new UnpackingGTSDecoderIterator(iter, suffix);
+            }
+            
             if("text".equals(format)) {
               textDump(pw, iter, now, timespan, false, dedup, signed, showAttr, lastMeta, lastCount);
             } else if ("fulltext".equals(format)) {
@@ -657,6 +673,8 @@ public class EgressFetchHandler extends AbstractHandler {
               tsvDump(pw, iter, now, timespan, false, dedup, signed, lastMeta, lastCount);
             } else if ("fulltsv".equals(format)) {
               tsvDump(pw, iter, now, timespan, true, dedup, signed, lastMeta, lastCount);
+            } else if ("pack".equals(format)) {
+              packedDump(pw, iter, now, timespan, dedup, signed, lastMeta, lastCount, maxDecoderLen, suffix);
             } else if ("null".equals(format)) {
               nullDump(iter);
             } else {
@@ -1680,5 +1698,159 @@ public class EgressFetchHandler extends AbstractHandler {
     while(iter.hasNext()) {
       GTSDecoder decoder = iter.next();
     }
+  }
+  
+  private void packedDump(PrintWriter pw, GTSDecoderIterator iter, long now, long timespan, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, int maxDecoderLen, String classSuffix) throws IOException {
+    
+    //
+    // Wrap the iterator in a size limiting wrapper
+    //
+    
+    iter = new SizeLimitingGTSDecoderIterator(iter, maxDecoderLen);
+    
+    String name = null;
+    Map<String,String> labels = null;
+    
+    StringBuilder sb = new StringBuilder();
+    
+    Metadata lastMetadata = lastMeta.get();
+    long currentCount = lastCount.get();
+    
+    while(iter.hasNext()) {
+      GTSDecoder decoder = iter.next();
+
+      if (dedup) {
+        decoder = decoder.dedup();
+      }
+      
+      if(!decoder.next()) {
+        continue;
+      }
+
+      long toDecodeCount = Long.MAX_VALUE;
+      
+      if (timespan < 0) {
+        Metadata meta = decoder.getMetadata();
+        if (!meta.equals(lastMetadata)) {
+          lastMetadata = meta;
+          currentCount = 0;
+        }
+        toDecodeCount = Math.max(0, -timespan - currentCount);
+      }
+
+      GTSEncoder encoder = decoder.getEncoder(true);
+      
+      //
+      // Only display the class + labels if they have changed since the previous GTS
+      //
+      
+      Map<String,String> lbls = decoder.getLabels();
+      
+      //
+      // Compute the name
+      //
+
+      name = decoder.getName();
+      labels = lbls;
+      sb.setLength(0);
+      GTSHelper.encodeName(sb, name + classSuffix);
+      sb.append("{");
+      boolean first = true;
+      
+      for (Entry<String, String> entry: lbls.entrySet()) {
+        //
+        // Skip owner/producer labels and any other 'private' labels
+        //
+        if (!signed) {
+          if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
+            continue;
+          }
+          if (Constants.OWNER_LABEL.equals(entry.getKey())) {
+            continue;
+          }          
+        }
+        
+        if (!first) {
+          sb.append(",");
+        }
+        GTSHelper.encodeName(sb, entry.getKey());
+        sb.append("=");
+        GTSHelper.encodeName(sb, entry.getValue());
+        first = false;
+      }
+      sb.append("}");
+
+      // We treat the case where encoder.getCount() is 0 in a special way
+      // as this may be because the encoder was generated from a partly
+      // consumed decoder and thus its count was reset to 0
+      if (0 == encoder.getCount() || encoder.getCount() > toDecodeCount) {
+        // We have too much data, shrink the encoder
+        GTSEncoder enc = new GTSEncoder();
+        enc.safeSetMetadata(decoder.getMetadata());
+        while(decoder.next() && toDecodeCount > 0) {
+          enc.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+          toDecodeCount--;
+        }
+        encoder = enc;
+      }
+
+      if (timespan < 0) {
+        currentCount += encoder.getCount();
+      }
+
+      if (encoder.size() > 0) {
+        //
+        // Determine most recent timestamp
+        //
+        
+        GTSDecoder dec = encoder.getDecoder(true);
+        
+        long timestamp = Long.MIN_VALUE;
+        
+        while(dec.next()) {
+          long ts = dec.getTimestamp(); 
+          if (ts > timestamp) {
+            timestamp = ts;
+          }
+        }
+        
+        //
+        // Build GTSWrapper
+        //
+
+        encoder.setMetadata(new Metadata());
+        // Clear labels
+        encoder.setName("");
+        encoder.setLabels(new HashMap<String,String>());
+        encoder.getMetadata().setAttributes(new HashMap<String,String>());
+        
+        GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true);
+        
+        TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+        byte[] serialized;
+        
+        try {
+          serialized = ser.serialize(wrapper);
+        } catch (TException te) {
+          throw new IOException(te);
+        }
+        
+        pw.print(timestamp);
+        pw.print("//");
+        pw.print(encoder.getCount());
+        pw.print(" ");
+        pw.print(sb.toString());
+        pw.print(" '");
+
+        OrderPreservingBase64.encodeToWriter(serialized, pw);
+        
+        pw.print("'");
+        pw.write('\r');
+        pw.write('\n');        
+      }
+    }
+    
+    lastMeta.set(lastMetadata);
+    lastCount.set(currentCount);
   }
 }
