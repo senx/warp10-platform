@@ -1351,8 +1351,6 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
         MetadataID id = null;
         
-        byte[] aesKey = directory.keystore.getKey(KeyStore.AES_HBASE_METADATA);
-        
         while (iter.hasNext()) {
           Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
 
