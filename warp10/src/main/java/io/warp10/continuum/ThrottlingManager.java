@@ -1030,7 +1030,7 @@ public class ThrottlingManager {
     if (isApp) {
       HyperLogLogPlus old = applicationHLLPEstimators.get(hllp.getKey().substring(1));
 
-      if (old.hasExpired()) {
+      if (null != old && old.hasExpired()) {
         old = null;
       }
       
@@ -1049,7 +1049,7 @@ public class ThrottlingManager {
     } else {
       HyperLogLogPlus old = producerHLLPEstimators.get(hllp.getKey());
 
-      if (old.hasExpired()) {
+      if (null != old && old.hasExpired()) {
         old = null;
       }
       
