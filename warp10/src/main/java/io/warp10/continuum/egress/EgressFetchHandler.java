@@ -202,7 +202,7 @@ public class EgressFetchHandler extends AbstractHandler {
     
     boolean unpack = null != req.getParameter(Constants.HTTP_PARAM_UNPACK);
     
-    boolean showErrors = "true".equals(showErrorsParam);
+    boolean showErrors = null != showErrorsParam;
     boolean dedup = null != dedupParam && "true".equals(dedupParam);
     
     if (null != start && null != stop) {
@@ -1714,7 +1714,7 @@ public class EgressFetchHandler extends AbstractHandler {
     long currentCount = lastCount.get();
     
     List<GTSEncoder> encoders = new ArrayList<GTSEncoder>();
-    
+
     while(iter.hasNext()) {
       GTSDecoder decoder = iter.next();
 
@@ -1839,8 +1839,8 @@ public class EgressFetchHandler extends AbstractHandler {
           // Check the size of the generatd wrapper. If it is over 75% of maxDecoderLen,
           // split the original encoder in two
           //
-          
-          if (serialized.length >= Math.ceil(0.75D * maxDecoderLen)) {
+                    
+          if (serialized.length >= Math.ceil(0.75D * maxDecoderLen) && encoder.getCount() > 2) {
             GTSEncoder split = new GTSEncoder(0L);
             split.setMetadata(encoder.getMetadata());
             
@@ -1870,6 +1870,10 @@ public class EgressFetchHandler extends AbstractHandler {
             continue;
           }
           
+          if (serialized.length > Math.ceil(0.75D * maxDecoderLen)) {
+            throw new IOException("Encountered a value whose length is above the configured threshold of " + maxDecoderLen);
+          }
+          
           pw.print(timestamp);
           pw.print("//");
           pw.print(encoder.getCount());
@@ -1885,7 +1889,7 @@ public class EgressFetchHandler extends AbstractHandler {
         }
       }
     }
-    
+
     lastMeta.set(lastMetadata);
     lastCount.set(currentCount);
   }
