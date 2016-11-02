@@ -5,8 +5,9 @@
 #
 
 VERSION=$1
-# Warp 10 root project path (...../warp10)
+# Warp 10 root project path (../warp10)
 WARP_ROOT_PATH=$2
+QUANTUM_VERSION=$3
 
 WARP10_HOME=warp10-${VERSION}
 
@@ -32,9 +33,18 @@ mkdir -p ${WARP10_HOME}/etc/bootstrap
 mkdir -p ${WARP10_HOME}/etc/trl
 mkdir -p ${WARP10_HOME}/logs
 
+# Get Quantum
+URL_QUANTUM="https://dl.bintray.com/cityzendata/generic/io/warp10/warp10-quantum-server/${QUANTUM_VERSION}/warp10-quantum-server-${QUANTUM_VERSION}.jar"
+
+cd ${WARP10_HOME}/bin
+echo "wget ${URL_QUANTUM}..."
+wget -q ${URL_QUANTUM}
+
+cd ${ARCHIVE}
 # Copy init and startup scripts
 sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/snapshot.sh >> ${WARP10_HOME}/bin/snapshot.sh
 sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10-standalone.init >> ${WARP10_HOME}/bin/warp10-standalone.init
+sed -i -e "s/@QUANTUM_VERSION@/${QUANTUM_VERSION}/g" ${WARP10_HOME}/bin/warp10-standalone.init
 
 # Copy log4j README, config, runner, bootstrap...
 cp ../../etc/bootstrap/*.mc2 ${WARP10_HOME}/etc/bootstrap
@@ -47,8 +57,9 @@ sed -e "s/@VERSION@/${VERSION}/g" ../../etc/log4j.properties >> ${WARP10_HOME}/e
 
 # Copy template configuration
 sed -e "s/@VERSION@/${VERSION}/g" ../../etc/conf-standalone.template > ${WARP10_HOME}/templates/conf-standalone.template
+sed -e "s/@VERSION@/${VERSION}/g" ../../etc/conf-distributed.template > ${WARP10_HOME}/templates/conf-distributed.template
 
-# Copy jar
+# Copy jars
 cp ../build/libs/warp10-${VERSION}.jar ${WARP10_HOME}/bin/warp10-${VERSION}.jar
 
 chmod 755 ${WARP10_HOME}/bin
@@ -72,4 +83,4 @@ chmod 755 ${WARP10_HOME}/bin/*.init
 chmod 644 ${WARP10_HOME}/bin/warp10-${VERSION}.jar
 
 # Build tar
-tar zcpf ../build/libs/warp10-${VERSION}.tar.gz ${WARP10_HOME}
+tar czpf ../build/libs/warp10-${VERSION}.tar.gz ${WARP10_HOME}

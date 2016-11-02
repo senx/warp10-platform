@@ -25,6 +25,12 @@ WARP10_CP=etc:${WARP10_JAR}
 WARP10_HEAP=512m
 WARP10_HEAP_MAX=1g
 
+QUANTUM_REVISION=@QUANTUM_VERSION@
+QUANTUM_JAR=${WARP10_HOME}/bin/warp10-quantum-server-${QUANTUM_REVISION}.jar
+QUANTUM_HEAP=64m
+QUANTUM_HEAP_MAX=64m
+QUANTUM_JAVA_OPTS="-Djava.awt.headless=true -Xms${QUANTUM_HEAP} -Xmx${QUANTUM_HEAP_MAX} -XX:+UseG1GC"
+
 SENSISION_EVENTS_DIR=/var/run/sensision/metrics
 
 LOG4J_CONF=${WARP10_HOME}/etc/log4j.properties
@@ -143,17 +149,26 @@ start() {
   fi
 
   #
-  # Start instance..
+  # Start Warp10 instance..
   #
   su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${WARP10_CONFIG} >> ${WARP10_HOME}/logs/nohup.out 2>&1 &"
+
+  #
+  # Start Quantum..
+  #
+  su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${QUANTUM_JAVA_OPTS} -jar ${QUANTUM_JAR} ${WARP10_CONFIG} >> ${WARP10_HOME}/logs/quantum.log 2>&1 &"
 }
 
 stop() {
+  echo "Stop Warp10..."
   kill `su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '"`
+  echo "Stop Quantum..."
+  kill `su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep warp10-quantum-server-${QUANTUM_REVISION}|cut -f 1 -d' '"`
 }
 
 status() {
   su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}"
+  su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep warp10-quantum-server-${QUANTUM_REVISION}"
 }
 
 snapshot() {
