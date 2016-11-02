@@ -1030,6 +1030,10 @@ public class ThrottlingManager {
     if (isApp) {
       HyperLogLogPlus old = applicationHLLPEstimators.get(hllp.getKey().substring(1));
 
+      if (old.hasExpired()) {
+        old = null;
+      }
+      
       // Merge estimators and replace with the result, keeping the most recent estimator as the base
       if (null == old || hllp.getInitTime() > old.getInitTime()) {
         if (null != old) {
@@ -1045,6 +1049,10 @@ public class ThrottlingManager {
     } else {
       HyperLogLogPlus old = producerHLLPEstimators.get(hllp.getKey());
 
+      if (old.hasExpired()) {
+        old = null;
+      }
+      
       // Merge estimators and replace with the result, keeping the most recent estimator as the base
       if (null == old || hllp.getInitTime() > old.getInitTime()) {
         if (null != old){
