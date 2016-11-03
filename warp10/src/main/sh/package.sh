@@ -37,8 +37,15 @@ mkdir -p ${WARP10_HOME}/logs
 URL_QUANTUM="https://dl.bintray.com/cityzendata/generic/io/warp10/warp10-quantum-server/${QUANTUM_VERSION}/warp10-quantum-server-${QUANTUM_VERSION}.jar"
 
 cd ${WARP10_HOME}/bin
-echo "wget ${URL_QUANTUM}..."
-wget -q ${URL_QUANTUM}
+echo "curl -L ${URL_QUANTUM} -o warp10-quantum-server-${QUANTUM_VERSION}.jar"
+curl -L ${URL_QUANTUM} -o warp10-quantum-server-${QUANTUM_VERSION}.jar
+
+# test download is ok
+unzip -t warp10-quantum-server-2.1.46.jar > /dev/null
+if [ $? -ne 0 ]; then
+    echo "Error during Quantum download"
+    exit 1
+fi
 
 cd ${ARCHIVE}
 # Copy init and startup scripts
