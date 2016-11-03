@@ -3,6 +3,8 @@ package io.warp10;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 
@@ -15,9 +17,12 @@ public class WarpClassLoader extends ClassLoader {
   
   private final String jarpath;
   
+  private final Map<String,Class> knownClasses;
+  
   public WarpClassLoader(String jarpath, ClassLoader parent) {
     super(parent);
     this.jarpath = jarpath;
+    this.knownClasses = new HashMap<String,Class>();
     registerAsParallelCapable();
   }
   
@@ -31,7 +36,9 @@ public class WarpClassLoader extends ClassLoader {
   protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
     try {
       Class c = findClass(name);
-      super.resolveClass(c);
+      if (resolve) {
+        super.resolveClass(c);
+      }
       return c;
     } catch (ClassNotFoundException cnfe) {
       return super.loadClass(name, resolve);
@@ -41,6 +48,13 @@ public class WarpClassLoader extends ClassLoader {
   
   @Override
   protected Class<?> findClass(String name) throws ClassNotFoundException {
+    
+    Class knownClass = this.knownClasses.get(name);
+    
+    if (null != knownClass) {
+      return knownClass;
+    }
+    
     String clsFile = name.replace('.', '/') + ".class";
     
     JarFile jf = null;
@@ -94,6 +108,11 @@ public class WarpClassLoader extends ClassLoader {
     try {
       Class c = defineClass(name, data, 0, data.length);
     
+      //
+      // Store the class in the cache
+      //      
+      this.knownClasses.put(name, c);
+      
       return c;
     } catch (Throwable t) {
       LOG.error("Error calling defineClass(" + name + ")", t);
