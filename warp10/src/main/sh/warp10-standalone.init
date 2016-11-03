@@ -7,6 +7,16 @@
 # description: Manage Standalone instance of Warp 10
 #
 
+#
+# Make sure the caller is root
+#
+
+if [ "`whoami`" != "root" ]
+then
+  echo "You must be root to run this script."
+  exit 1
+fi
+
 #JAVA_HOME=/opt/java8
 #WARP10_HOME=/opt/warp10-@VERSION@
 
