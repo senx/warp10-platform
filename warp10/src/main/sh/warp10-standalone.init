@@ -17,12 +17,19 @@ then
   exit 1
 fi
 
+OS=$(uname -s)
+
 #JAVA_HOME=/opt/java8
 #WARP10_HOME=/opt/warp10-@VERSION@
 
 # If WARP10_HOME is not defined, set it to the parent directory
 if [ -z "${WARP10_HOME}" ]; then
-  WARP10_HOME=$(dirname $(readlink -f $0))/..
+  if [ "Darwin" == "${OS}" ]
+  then
+    WARP10_HOME=$(dirname $0)/..
+  else
+    WARP10_HOME=$(dirname $(readlink -f $0))/..
+  fi
 fi
 
 WARP10_REVISION=@VERSION@
@@ -129,7 +136,7 @@ start() {
       then
         adduser -D -s -H -h ${WARP10_HOME} -s /bin/bash ${WARP10_USER}
       else
-        # Assume it's OSX
+        echo "Hmmm that's embarassing but I do not know how to create the ${WARP10_USER} user with home directory ${WARP10_HOME}, could you do it for me and run the script again?"
       fi
     else
       useradd -d ${WARP10_HOME} -M -r ${WARP10_USER} -s /bin/bash
