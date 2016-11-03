@@ -40,8 +40,8 @@ cd ${WARP10_HOME}/bin
 echo "curl -L ${URL_QUANTUM} -o warp10-quantum-server-${QUANTUM_VERSION}.jar"
 curl -L ${URL_QUANTUM} -o warp10-quantum-server-${QUANTUM_VERSION}.jar
 
-# test download is ok
-unzip -t warp10-quantum-server-2.1.46.jar > /dev/null
+# test archive is ok
+unzip -t warp10-quantum-server-${QUANTUM_VERSION}.jar > /dev/null
 if [ $? -ne 0 ]; then
     echo "Error during Quantum download"
     exit 1
