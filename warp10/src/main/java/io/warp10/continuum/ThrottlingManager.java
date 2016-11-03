@@ -920,6 +920,10 @@ public class ThrottlingManager {
                 continue;
               }
               
+              if (hllp.hasExpired()) {
+                continue;
+              }
+              
               try {
                 byte[] bytes = hllp.toBytes();
                 String encoded = new String(OrderPreservingBase64.encode(bytes), Charsets.US_ASCII);
@@ -940,6 +944,10 @@ public class ThrottlingManager {
               HyperLogLogPlus hllp = applicationHLLPEstimators.get(key);
               
               if (null == hllp) {
+                continue;
+              }
+              
+              if (hllp.hasExpired()) {
                 continue;
               }
               
