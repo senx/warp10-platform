@@ -416,6 +416,7 @@ public class WarpScriptLib {
     functions.put("MAXSYMBOLS", new MAXSYMBOLS("MAXSYMBOLS"));
     functions.put(EVAL, new EVAL(EVAL));
     functions.put("NOW", new NOW("NOW"));
+    functions.put("AGO", new AGO("AGO"));
     functions.put("MSTU", new MSTU("MSTU"));
     functions.put("STU", new STU("STU"));
     functions.put("UNIXTIMEEND", new UNIXTIMEEND("UNIXTIMEEND"));
