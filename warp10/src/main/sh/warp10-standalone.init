@@ -24,7 +24,7 @@ OS=$(uname -s)
 
 # If WARP10_HOME is not defined, set it to the parent directory
 if [ -z "${WARP10_HOME}" ]; then
-  if [ "Darwin" == "${OS}" ]
+  if [ "Darwin" = "${OS}" ]
   then
     WARP10_HOME=$(dirname $0)/..
   else
@@ -85,7 +85,7 @@ initConfig() {
   sed -i 's_^standalone\.home.*_standalone\.home = '"$WARP10_HOME"'_' ${WARP10_HOME}/templates/conf-standalone.template
   sed -i 's_^LEVELDB\_HOME=.*_LEVELDB\_HOME='"$WARP10_HOME"'/data_' ${WARP10_HOME}/bin/snapshot.sh
 
-  sed -i 's_warpLog\.File=.*_warpLog\.File='"$WARP10_HOME"'/logs/nohup.out_' ${WARP10_HOME}/etc/log4j.properties
+  sed -i 's_warpLog\.File=.*_warpLog\.File='"$WARP10_HOME"'/logs/warp10.log_' ${WARP10_HOME}/etc/log4j.properties
   sed -i 's_warpscriptLog\.File=.*_warpscriptLog\.File='"$WARP10_HOME"'/logs/warpscript.out_' ${WARP10_HOME}/etc/log4j.properties
 
   # Generate the configuration file with Worf
@@ -137,6 +137,7 @@ start() {
         adduser -D -s -H -h ${WARP10_HOME} -s /bin/bash ${WARP10_USER}
       else
         echo "Hmmm that's embarassing but I do not know how to create the ${WARP10_USER} user with home directory ${WARP10_HOME}, could you do it for me and run the script again?"
+        exit 1
       fi
     else
       useradd -d ${WARP10_HOME} -M -r ${WARP10_USER} -s /bin/bash
@@ -146,9 +147,16 @@ start() {
   if [ -f ${JAVA_HEAP_DUMP} ]; then
     mv ${JAVA_HEAP_DUMP} ${JAVA_HEAP_DUMP}-`date +%s`
   fi
+
   if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '"`" != "" ]
   then
     echo "Start failed! - A Warp 10 instance is currently running"
+    exit 1
+  fi
+
+  if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep warp10-quantum-server-${QUANTUM_REVISION}|cut -f 1 -d' '"`" != "" ]
+  then
+    echo "Start failed! - A Quantum instance is currently running"
     exit 1
   fi
 
@@ -166,26 +174,48 @@ start() {
   if [ "$(find ${WARP10_HOME}/data -maxdepth 1 -type f -printf 1 | wc -m)" -eq 0 ]; then
     echo "Init leveldb"
     # Create leveldb database
-    su ${WARP10_USER} -c "echo \"Init leveldb database...\" >> ${WARP10_HOME}/logs/nohup.out"
-    su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${WARP10_HOME}/data >> ${WARP10_HOME}/logs/nohup.out 2>&1"
+    su ${WARP10_USER} -c "echo \"Init leveldb database...\" >> ${WARP10_HOME}/logs/warp10.log"
+    su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${WARP10_HOME}/data >> ${WARP10_HOME}/logs/warp10.log 2>&1"
   fi
 
   #
   # Start Warp10 instance..
   #
-  su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${WARP10_CONFIG} >> ${WARP10_HOME}/logs/nohup.out 2>&1 &"
+  su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${WARP10_CONFIG} >> ${WARP10_HOME}/logs/warp10.log 2>&1 &"
+
+  if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '"`" = "" ]
+  then
+    echo "Start failed! - See warp10.log for more details"
+    exit 1
+  fi
 
   #
   # Start Quantum..
   #
   su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${QUANTUM_JAVA_OPTS} -jar ${QUANTUM_JAR} ${WARP10_CONFIG} >> ${WARP10_HOME}/logs/quantum.log 2>&1 &"
+
+  if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep warp10-quantum-server-${QUANTUM_REVISION}|cut -f 1 -d' '"`" = "" ]
+  then
+    echo "Start Quantum has failed! - See quantum.log for more details"
+  fi
 }
 
 stop() {
   echo "Stop Warp10..."
-  kill `su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '"`
+  if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '"`" != "" ]
+  then
+    kill `su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '"`
+  else
+    echo "No instance of Warp 10 is currently running"
+  fi
+
   echo "Stop Quantum..."
-  kill `su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep warp10-quantum-server-${QUANTUM_REVISION}|cut -f 1 -d' '"`
+  if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep warp10-quantum-server-${QUANTUM_REVISION}|cut -f 1 -d' '"`" != "" ]
+  then
+    kill `su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep warp10-quantum-server-${QUANTUM_REVISION}|cut -f 1 -d' '"`
+  else
+    echo "No instance of Quantum is currently running"
+  fi
 }
 
 status() {
