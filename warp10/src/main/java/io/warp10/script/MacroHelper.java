@@ -52,7 +52,7 @@ public class MacroHelper {
       return wrap(name, getResource(mc2.substring(1)), secure);
     }
     
-    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, new Properties());
+    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
     stack.maxLimits();
     
     try {
