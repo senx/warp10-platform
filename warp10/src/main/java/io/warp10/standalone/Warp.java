@@ -39,6 +39,7 @@ import io.warp10.script.WarpScriptLib;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.Properties;
 
 import org.eclipse.jetty.server.Connector;
@@ -235,6 +236,7 @@ public class Warp extends WarpDist implements Runnable {
     ServerConnector connector = new ServerConnector(server, acceptors, selectors);
 
     connector.setPort(port);
+    
     if (null != host) {
       connector.setHost(host);
     }
@@ -367,6 +369,7 @@ public class Warp extends WarpDist implements Runnable {
     keystore.forget();
 
     try {
+      System.out.print("#### standalone.endpoint " + InetAddress.getByName(host) + ":" + port);
       server.start();
     } catch (Exception e) {
       throw new RuntimeException(e);
