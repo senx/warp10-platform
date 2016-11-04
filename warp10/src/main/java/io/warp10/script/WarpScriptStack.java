@@ -249,6 +249,11 @@ public interface WarpScriptStack {
           sb.append(StackUtils.toString(o));
           sb.append(" ");        
         }
+      } else {
+        sb.append(WarpScriptStack.COMMENT_START);
+        sb.append(" Secure Macro ");
+        sb.append(WarpScriptStack.COMMENT_END);
+        sb.append(" ");
       }
       
       sb.append(MACRO_END);
