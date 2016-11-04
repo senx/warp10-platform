@@ -175,6 +175,7 @@ public class WarpScriptMacroRepository extends Thread {
           sb.append("\n");
           
           MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
+          stack.maxLimits();
 
           //
           // Add 'INCLUDE', 'enabled' will disable 'INCLUDE' after we've used it when loading 
