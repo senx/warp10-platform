@@ -52,7 +52,7 @@ import org.apache.hadoop.util.Progressable;
 
 public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
-  private final AtomicLong[] counters;
+  private AtomicLong[] counters;
   
   /**
    * Default maximum depth of the stack
@@ -131,6 +131,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
    */
   private Progressable progressable = null;
   
+  private Properties properties;
+  
   public static class StackContext extends WarpScriptStack.StackContext {
     public Map<String, Object> symbolTable;
     public Map<String, WarpScriptStackFunction> defined;
@@ -161,54 +163,62 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
   
   public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient, GeoDirectoryClient geoDirectoryClient, Properties properties) {
+    this(storeClient, directoryClient, geoDirectoryClient, properties, true);
+  }
+  
+  public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient, GeoDirectoryClient geoDirectoryClient, Properties properties, boolean init) {
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
     this.geoDirectoryClient = geoDirectoryClient;
-    
-    setAttribute(WarpScriptStack.ATTRIBUTE_DEBUG_DEPTH, 0);
-    setAttribute(WarpScriptStack.ATTRIBUTE_JSON_STRICT, false);
-    setAttribute(WarpScriptStack.ATTRIBUTE_FETCH_COUNT, new AtomicLong(0L));
-    setAttribute(WarpScriptStack.ATTRIBUTE_GTS_COUNT, new AtomicLong(0L));
-    setAttribute(WarpScriptStack.ATTRIBUTE_FETCH_LIMIT, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_FETCH, Long.toString(WarpScriptStack.DEFAULT_FETCH_LIMIT))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_GTS_LIMIT, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_GTS, Long.toString(WarpScriptStack.DEFAULT_GTS_LIMIT))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_ELAPSED, new ArrayList<Long>());
-    setAttribute(WarpScriptStack.ATTRIBUTE_LOOP_MAXDURATION, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_LOOP_DURATION, Long.toString(WarpScriptStack.DEFAULT_MAX_LOOP_DURATION))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_RECURSION_MAXDEPTH, Integer.parseInt(properties.getProperty(Configuration.WARPSCRIPT_MAX_RECURSION, Integer.toString(WarpScriptStack.DEFAULT_MAX_RECURSION_LEVEL))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_OPS, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_OPS, Long.toString(WarpScriptStack.DEFAULT_MAX_OPS))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_SYMBOLS, Integer.parseInt(properties.getProperty(Configuration.WARPSCRIPT_MAX_SYMBOLS, Integer.toString(WarpScriptStack.DEFAULT_MAX_SYMBOLS))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH, Integer.parseInt(properties.getProperty(Configuration.WARPSCRIPT_MAX_DEPTH, Integer.toString(WarpScriptStack.DEFAULT_MAX_DEPTH))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_WEBCALLS, new AtomicLong(Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_WEBCALLS, Integer.toString(WarpScriptStack.DEFAULT_MAX_WEBCALLS)))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_BUCKETS, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_BUCKETS, Integer.toString(WarpScriptStack.DEFAULT_MAX_BUCKETS))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_PIXELS, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_PIXELS, Long.toString(WarpScriptStack.DEFAULT_MAX_PIXELS))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_COUNT, new AtomicLong(0L));
-    setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_SIZE, new AtomicLong(0L));
-    setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_LIMIT, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_URLFETCH_LIMIT, Long.toString(WarpScriptStack.DEFAULT_URLFETCH_LIMIT))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_MAXSIZE, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_URLFETCH_MAXSIZE, Long.toString(WarpScriptStack.DEFAULT_URLFETCH_MAXSIZE))));
+  
+    if (init) {
+      setAttribute(WarpScriptStack.ATTRIBUTE_DEBUG_DEPTH, 0);
+      setAttribute(WarpScriptStack.ATTRIBUTE_JSON_STRICT, false);
+      setAttribute(WarpScriptStack.ATTRIBUTE_FETCH_COUNT, new AtomicLong(0L));
+      setAttribute(WarpScriptStack.ATTRIBUTE_GTS_COUNT, new AtomicLong(0L));
+      setAttribute(WarpScriptStack.ATTRIBUTE_FETCH_LIMIT, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_FETCH, Long.toString(WarpScriptStack.DEFAULT_FETCH_LIMIT))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_GTS_LIMIT, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_GTS, Long.toString(WarpScriptStack.DEFAULT_GTS_LIMIT))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_ELAPSED, new ArrayList<Long>());
+      setAttribute(WarpScriptStack.ATTRIBUTE_LOOP_MAXDURATION, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_LOOP_DURATION, Long.toString(WarpScriptStack.DEFAULT_MAX_LOOP_DURATION))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_RECURSION_MAXDEPTH, Integer.parseInt(properties.getProperty(Configuration.WARPSCRIPT_MAX_RECURSION, Integer.toString(WarpScriptStack.DEFAULT_MAX_RECURSION_LEVEL))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_MAX_OPS, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_OPS, Long.toString(WarpScriptStack.DEFAULT_MAX_OPS))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_MAX_SYMBOLS, Integer.parseInt(properties.getProperty(Configuration.WARPSCRIPT_MAX_SYMBOLS, Integer.toString(WarpScriptStack.DEFAULT_MAX_SYMBOLS))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH, Integer.parseInt(properties.getProperty(Configuration.WARPSCRIPT_MAX_DEPTH, Integer.toString(WarpScriptStack.DEFAULT_MAX_DEPTH))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_MAX_WEBCALLS, new AtomicLong(Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_WEBCALLS, Integer.toString(WarpScriptStack.DEFAULT_MAX_WEBCALLS)))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_MAX_BUCKETS, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_BUCKETS, Integer.toString(WarpScriptStack.DEFAULT_MAX_BUCKETS))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_MAX_PIXELS, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_PIXELS, Long.toString(WarpScriptStack.DEFAULT_MAX_PIXELS))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_COUNT, new AtomicLong(0L));
+      setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_SIZE, new AtomicLong(0L));
+      setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_LIMIT, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_URLFETCH_LIMIT, Long.toString(WarpScriptStack.DEFAULT_URLFETCH_LIMIT))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_MAXSIZE, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_URLFETCH_MAXSIZE, Long.toString(WarpScriptStack.DEFAULT_URLFETCH_MAXSIZE))));
 
-    //
-    // Set hard limits
-    //
-    
-    setAttribute(WarpScriptStack.ATTRIBUTE_LOOP_MAXDURATION_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_LOOP_DURATION_HARD, Long.toString(WarpScriptStack.DEFAULT_MAX_LOOP_DURATION))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_RECURSION_MAXDEPTH_HARD, Integer.parseInt(properties.getProperty(Configuration.WARPSCRIPT_MAX_RECURSION_HARD, Integer.toString(WarpScriptStack.DEFAULT_MAX_RECURSION_LEVEL))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH_HARD, Integer.parseInt(properties.getProperty(Configuration.WARPSCRIPT_MAX_DEPTH_HARD, Integer.toString(WarpScriptStack.DEFAULT_MAX_DEPTH))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_OPS_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_OPS_HARD, Long.toString(WarpScriptStack.DEFAULT_MAX_OPS))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_SYMBOLS_HARD, Integer.parseInt(properties.getProperty(Configuration.WARPSCRIPT_MAX_SYMBOLS_HARD, Integer.toString(WarpScriptStack.DEFAULT_MAX_SYMBOLS))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_BUCKETS_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_BUCKETS_HARD, Integer.toString(WarpScriptStack.DEFAULT_MAX_BUCKETS))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_MAX_PIXELS_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_PIXELS_HARD, Long.toString(WarpScriptStack.DEFAULT_MAX_PIXELS))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_FETCH_LIMIT_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_FETCH_HARD, Long.toString(WarpScriptStack.DEFAULT_FETCH_LIMIT))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_GTS_LIMIT_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_GTS_HARD, Long.toString(WarpScriptStack.DEFAULT_GTS_LIMIT))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_LIMIT_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_URLFETCH_LIMIT_HARD, Long.toString(WarpScriptStack.DEFAULT_URLFETCH_LIMIT))));
-    setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_MAXSIZE_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_URLFETCH_MAXSIZE_HARD, Long.toString(WarpScriptStack.DEFAULT_URLFETCH_MAXSIZE))));
+      //
+      // Set hard limits
+      //
+      
+      setAttribute(WarpScriptStack.ATTRIBUTE_LOOP_MAXDURATION_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_LOOP_DURATION_HARD, Long.toString(WarpScriptStack.DEFAULT_MAX_LOOP_DURATION))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_RECURSION_MAXDEPTH_HARD, Integer.parseInt(properties.getProperty(Configuration.WARPSCRIPT_MAX_RECURSION_HARD, Integer.toString(WarpScriptStack.DEFAULT_MAX_RECURSION_LEVEL))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH_HARD, Integer.parseInt(properties.getProperty(Configuration.WARPSCRIPT_MAX_DEPTH_HARD, Integer.toString(WarpScriptStack.DEFAULT_MAX_DEPTH))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_MAX_OPS_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_OPS_HARD, Long.toString(WarpScriptStack.DEFAULT_MAX_OPS))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_MAX_SYMBOLS_HARD, Integer.parseInt(properties.getProperty(Configuration.WARPSCRIPT_MAX_SYMBOLS_HARD, Integer.toString(WarpScriptStack.DEFAULT_MAX_SYMBOLS))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_MAX_BUCKETS_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_BUCKETS_HARD, Integer.toString(WarpScriptStack.DEFAULT_MAX_BUCKETS))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_MAX_PIXELS_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_PIXELS_HARD, Long.toString(WarpScriptStack.DEFAULT_MAX_PIXELS))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_FETCH_LIMIT_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_FETCH_HARD, Long.toString(WarpScriptStack.DEFAULT_FETCH_LIMIT))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_GTS_LIMIT_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_GTS_HARD, Long.toString(WarpScriptStack.DEFAULT_GTS_LIMIT))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_LIMIT_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_URLFETCH_LIMIT_HARD, Long.toString(WarpScriptStack.DEFAULT_URLFETCH_LIMIT))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_MAXSIZE_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_URLFETCH_MAXSIZE_HARD, Long.toString(WarpScriptStack.DEFAULT_URLFETCH_MAXSIZE))));
 
-    //
-    // Initialize counters
-    //
-    
-    this.counters = new AtomicLong[1];
-    
-    for (int i = 0; i < this.counters.length; i++) {
-      this.counters[i] = new AtomicLong(0L);
+      //
+      // Initialize counters
+      //
+      
+      this.counters = new AtomicLong[1];
+      
+      for (int i = 0; i < this.counters.length; i++) {
+        this.counters[i] = new AtomicLong(0L);
+      }   
+      
+      this.properties = properties;
     }
   }
   
@@ -482,9 +492,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     String rawline = line;
     
     try {
-      if (this.recursionLevel.addAndGet(1) > this.maxrecurse) {
-        throw new WarpScriptException("Maximum recursion level reached (" + this.recursionLevel.get() + ")");
-      }
+      recurseIn();
       
       String[] statements;
       
@@ -806,7 +814,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       
       return;      
     } finally {
-      this.recursionLevel.addAndGet(-1);
+      recurseOut();
     }
   }
   
@@ -830,10 +838,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     
     try {
       
-      if (this.recursionLevel.addAndGet(1) > this.maxrecurse) {
-        throw new WarpScriptException("Maximum recursion level reached (" + this.recursionLevel.get() + ")");
-      }
-
+      recurseIn();
+      
       for (i = 0; i < macro.size(); i++) {
         // Notify progress
         progress();
@@ -873,7 +879,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       }
     } finally {
       this.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, secure);
-      this.recursionLevel.addAndGet(-1);
+      recurseOut();
     }
   }
   
@@ -1049,7 +1055,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   public Map<String,Object> getSymbolTable() {
     return this.symbolTable;
   }
-  
+
   @Override
   public Map<String, WarpScriptStackFunction> getDefined() {
     return this.defined;
@@ -1116,7 +1122,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
    * 
    * @throws WarpScriptException
    */
-  private final void incOps() throws WarpScriptException {
+  public void incOps() throws WarpScriptException {
     this.currentops++;
     
     if (this.currentops > this.maxops) {
@@ -1245,4 +1251,90 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       this.defined.putAll(context.defined);
     }
   }  
+  
+  protected void recurseIn() throws WarpScriptException {
+    if (this.recursionLevel.addAndGet(1) > this.maxrecurse) {
+      throw new WarpScriptException("Maximum recursion level reached (" + this.recursionLevel.get() + ")");
+    }
+  }
+  
+  protected void recurseOut() {
+    this.recursionLevel.addAndGet(-1);
+  }
+  
+  /**
+   * Create a 'sub' stack of the current one.
+   * A substack will share a certain number of elements with its parent stack.
+   * 
+   * @return
+   */
+  public MemoryWarpScriptStack getSubStack() {
+    
+    final MemoryWarpScriptStack parentStack = this;
+    
+    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(getStoreClient(), getDirectoryClient(), getGeoDirectoryClient(), properties, false) {
+      
+      private final Map<String,Object> attributes = new HashMap<String, Object>();
+               
+      @Override
+      public void incOps() throws WarpScriptException {
+        parentStack.incOps();
+      }
+      
+      @Override
+      public Object getAttribute(String key) {
+        //
+        // The secure mode is to be treated differently as we don't want to allow
+        // privilege escalation
+        //
+        if (WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO.equals(key)) {
+          if (Boolean.TRUE.equals(parentStack.getAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO))) {
+            return true;
+          } else {
+            return this.attributes.get(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO);
+          }
+        } else {
+          return parentStack.getAttribute(key);
+        }
+      }        
+      
+      @Override
+      public Object setAttribute(String key, Object value) {            
+        //
+        // The secure mode is to be treated differently as we don't want to allow
+        // privilege escalation
+        //
+        if (WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO.equals(key)) {
+          if (!Boolean.TRUE.equals(parentStack.getAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO))) {
+            return this.attributes.put(key, value);
+          } else {
+            return parentStack.getAttribute(key);
+          }
+        } else {
+          return parentStack.setAttribute(key, value);
+        }
+      }
+      
+      @Override
+      protected void recurseIn() throws WarpScriptException {
+        parentStack.recurseIn();
+      }
+      
+      @Override
+      protected void recurseOut() {
+        parentStack.recurseOut();
+      }
+    };
+    
+    //
+    // Set some levels
+    //
+    
+    stack.maxdepth = this.maxdepth;
+    stack.counters = this.counters;
+    stack.maxops = this.maxops;
+    stack.maxrecurse = this.maxrecurse;
+    stack.maxsymbols = this.maxsymbols;
+    return stack;
+  }
 }
