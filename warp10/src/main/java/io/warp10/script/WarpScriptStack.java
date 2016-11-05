@@ -73,6 +73,11 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_DOCMODE = "docmode";
   
   /**
+   * Flag indicating whether or not the stack is currently in signature mode
+   */
+  public static final String ATTRIBUTE_SIGMODE = "sigmode";
+  
+  /**
    * Debug depth of the stack. This is the number
    * of elements to return when an error occurs.
    */
@@ -249,6 +254,11 @@ public interface WarpScriptStack {
           sb.append(StackUtils.toString(o));
           sb.append(" ");        
         }
+      } else {
+        sb.append(WarpScriptStack.COMMENT_START);
+        sb.append(" Secure Macro ");
+        sb.append(WarpScriptStack.COMMENT_END);
+        sb.append(" ");
       }
       
       sb.append(MACRO_END);

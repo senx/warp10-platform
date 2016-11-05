@@ -1336,7 +1336,7 @@ public class WarpScriptLib {
     return functions.get(name);
   }
   
-  public static void registerExtensions() {    
+  public static void registerExtensions() { 
     Properties props = WarpConfig.getProperties();
     
     if (null != props && props.containsKey(Configuration.CONFIG_WARPSCRIPT_EXTENSIONS)) {
@@ -1348,6 +1348,16 @@ public class WarpScriptLib {
       }
       
       boolean failedExt = false;
+      
+      //
+      // Determine the possible jar from which WarpScriptLib was loaded
+      //
+      
+      String wsljar = null;
+      URL wslurl = WarpScriptLib.class.getResource('/' + WarpScriptLib.class.getCanonicalName().replace('.',  '/') + ".class");
+      if (null != wslurl && "jar".equals(wslurl.getProtocol())) {
+        wsljar = wslurl.toString().replaceAll("!/.*", "").replaceAll("jar:file:", "");
+      }
       
       for (String extension: ext) {
         try {
@@ -1367,14 +1377,20 @@ public class WarpScriptLib {
 
           //
           // If the class was located in a jar, load it using a specific class loader
-          // so we can have fat jars with specific deps.
+          // so we can have fat jars with specific deps, unless the jar is the same as
+          // the one from which WarpScriptLib was loaded, in which case we use the same
+          // class loader.
           //
           
           if ("jar".equals(url.getProtocol())) {
-            String urlstr = url.toString().replaceAll("!/.*", "!/");
             String jarfile = url.toString().replaceAll("!/.*", "").replaceAll("jar:file:", "");
+
+            ClassLoader cl = WarpScriptLib.class.getClassLoader();
             
-            WarpClassLoader cl = new WarpClassLoader(jarfile, WarpScriptLib.class.getClassLoader());
+            // If the jar differs from that from which WarpScriptLib was loaded, create a dedicated class loader
+            if (!jarfile.equals(wsljar)) {
+              cl = new WarpClassLoader(jarfile, WarpScriptLib.class.getClassLoader());
+            }
           
             cls = Class.forName(extension, true, cl);
           } else {

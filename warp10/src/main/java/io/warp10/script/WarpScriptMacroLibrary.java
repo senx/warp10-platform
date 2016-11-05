@@ -142,6 +142,7 @@ public class WarpScriptMacroLibrary {
       sb.append("\n");
       
       MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, new Properties());
+      stack.maxLimits();
 
       //
       // Add 'INCLUDE'
@@ -181,6 +182,7 @@ public class WarpScriptMacroLibrary {
       }
       
       Macro macro = (Macro) stack.pop();
+      macro.setSecure(true);
       
       return macro;
     } catch (IOException ioe) {
