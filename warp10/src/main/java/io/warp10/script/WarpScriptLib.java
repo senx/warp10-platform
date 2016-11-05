@@ -65,6 +65,7 @@ import io.warp10.script.binary.DIV;
 import io.warp10.script.binary.EQ;
 import io.warp10.script.binary.GE;
 import io.warp10.script.binary.GT;
+import io.warp10.script.binary.INPLACEADD;
 import io.warp10.script.binary.LE;
 import io.warp10.script.binary.LT;
 import io.warp10.script.binary.MOD;
@@ -483,6 +484,7 @@ public class WarpScriptLib {
     
     // Binary ops
     functions.put("+", new ADD("+"));
+    functions.put("+!", new INPLACEADD("+!"));
     functions.put("-", new SUB("-"));
     functions.put("/", new DIV("/"));
     functions.put("*", new MUL("*"));
