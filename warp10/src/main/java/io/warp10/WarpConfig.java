@@ -280,4 +280,26 @@ public class WarpConfig {
     }
     return (Properties) properties.clone();
   }
+
+  public static void main(String... args) {
+    if (2 != args.length) {
+      System.err.println("2 arguments required: properties file and the property key");
+      System.exit(-1);
+    }
+
+    if (null != properties) {
+      System.err.println("Properties already set");
+      System.exit(-1);
+    }
+
+    String file = args[0];
+    String key = args[1];
+    try {
+      WarpConfig.setProperties(file);
+      System.out.println(key + "=" + WarpConfig.getProperties().getProperty(key));
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+
+  }
 }
