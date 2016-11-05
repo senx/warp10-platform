@@ -369,7 +369,7 @@ public class Warp extends WarpDist implements Runnable {
     keystore.forget();
 
     try {
-      System.out.print("#### standalone.endpoint " + InetAddress.getByName(host) + ":" + port);
+      System.out.println("#### standalone.endpoint " + InetAddress.getByName(host) + ":" + port);
       server.start();
     } catch (Exception e) {
       throw new RuntimeException(e);
