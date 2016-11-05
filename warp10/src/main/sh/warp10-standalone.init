@@ -41,6 +41,7 @@ WARP10_INIT=io.warp10.standalone.WarpInit
 WARP10_CP=etc:${WARP10_JAR}
 WARP10_HEAP=512m
 WARP10_HEAP_MAX=1g
+INITCONFIG=false
 
 QUANTUM_REVISION=@QUANTUM_VERSION@
 QUANTUM_JAR=${WARP10_HOME}/bin/warp10-quantum-server-${QUANTUM_REVISION}.jar
@@ -99,24 +100,8 @@ initConfig() {
   READ_TOKEN=`tail -n 1 ${WARP10_HOME}/etc/initial.tokens | sed -e 's/{"read":{"token":"//' -e 's/".*//'`
   WRITE_TOKEN=`tail -n 1 ${WARP10_HOME}/etc/initial.tokens | sed -e 's/.*,"write":{"token":"//' -e 's/".*//'`
 
-  echo "##"
-  echo "## An initial set of tokens was generated for you so you can immediately use Warp 10:"
-  echo "##"
-  echo "## Write Token: ${WRITE_TOKEN}"
-  echo "## Read Token: ${READ_TOKEN}"
-  echo "##"
-  echo "## Push some test data using:"
-  echo "##"
-  echo "##   curl -H 'X-Warp10-Token: ${WRITE_TOKEN}' http://127.0.0.1:8080/api/v0/update --data-binary '// test{} 42'"
-  echo "##"
-  echo "## And read it back using:"
-  echo "##"
-  echo "##   curl 'http://127.0.0.1:8080/api/v0/fetch?token=${READ_TOKEN}&selector=~.*\{\}&now=now&timespan=-1'"
-  echo "##"
-  echo "## You can submit WarpScrpt for execution via:"
-  echo "##"
-  echo "##   curl http://127.0.0.1:8080/api/v0/exec --data-binary @path/to/WarpScriptFile"
-  echo "##"
+  INITCONFIG=true
+
 }
 
 start() {
@@ -181,7 +166,7 @@ start() {
   #
   # Start Warp10 instance..
   #
-  su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${WARP10_CONFIG} >> ${WARP10_HOME}/logs/warp10.log 2>&1 &"
+  su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${WARP10_CONFIG} 2>&1 | tee ${WARP10_HOME}/logs/current.log >> ${WARP10_HOME}/logs/warp10.log &"
 
   if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '"`" = "" ]
   then
@@ -192,11 +177,63 @@ start() {
   #
   # Start Quantum..
   #
-  su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${QUANTUM_JAVA_OPTS} -jar ${QUANTUM_JAR} ${WARP10_CONFIG} >> ${WARP10_HOME}/logs/quantum.log 2>&1 &"
+  echo "#### Quantum #####" >> ${WARP10_HOME}/logs/current.log
+  su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${QUANTUM_JAVA_OPTS} -jar ${QUANTUM_JAR} ${WARP10_CONFIG} 2>&1 | tee -a ${WARP10_HOME}/logs/current.log >> ${WARP10_HOME}/logs/quantum.log &"
 
   if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep warp10-quantum-server-${QUANTUM_REVISION}|cut -f 1 -d' '"`" = "" ]
   then
     echo "Start Quantum has failed! - See quantum.log for more details"
+  fi
+
+  # wait logs have been flushed..
+  sleep 2
+
+  WARP10_LISTENSTO=$(cat ${WARP10_HOME}/logs/current.log | sed -n -r 's/####\standalone\.endpoint\s(\w*)/\1/p' | sed 's/^\///' | tail -1 | tr -d '\n')
+  WARP10_LISTENSTO_IPONLY=$(echo ${WARP10_LISTENSTO} | sed -r 's/(\w+)\/(.*)/\2/')
+
+  QUANTUM_LISTENSTO=$(cat ${WARP10_HOME}/logs/current.log | sed -n -r 's/####\squantum\.endpoint\s(\w*)/\1/p' | sed 's/^\///' | tail -1 | tr -d '\n')
+  QUANTUM_LISTENSTO_IPONLY=$(echo ${QUANTUM_LISTENSTO} | sed -r 's/(\w+)\/(.*)/\2/')
+
+  rm ${WARP10_HOME}/logs/current.log
+
+  echo '  ____    __    ____  ___      .______      .______       __    ___   '
+  echo '  \   \  /  \  /   / /   \     |   _  \     |   _  \     /_ |  / _ \  '
+  echo '   \   \/    \/   / /  ^  \    |  |_)  |    |  |_)  |     | | | | | | '
+  echo '    \            / /  /_\  \   |      /     |   ___/      | | | | | | '
+  echo '     \    /\    / /  _____  \  |  |\  \----.|  |          | | | |_| | '
+  echo '      \__/  \__/ /__/     \__\ | _| `._____|| _|          |_|  \___/  '
+  echo '                                                                      '
+
+  echo "##"
+  echo "## Warp 10 listens to ${WARP10_LISTENSTO}"
+  echo "##"
+  echo "## Quantum listens to ${QUANTUM_LISTENSTO}"
+  echo "##"
+
+
+  if [ "$INITCONFIG" = true ]; then
+      echo "##"
+      echo "## An initial set of tokens was generated for you so you can immediately use Warp 10:"
+      echo "##"
+      echo "## Write Token: ${WRITE_TOKEN}"
+      echo "## Read Token: ${READ_TOKEN}"
+      echo "##"
+      echo "## Push some test data using:"
+      echo "##"
+      echo "##   curl -H 'X-Warp10-Token: ${WRITE_TOKEN}' http://${WARP10_LISTENSTO_IPONLY}/api/v0/update --data-binary '// test{} 42'"
+      echo "##"
+      echo "## And read it back using:"
+      echo "##"
+      echo "##   curl 'http://${WARP10_LISTENSTO_IPONLY}/api/v0/fetch?token=${READ_TOKEN}&selector=~.*\{\}&now=now&timespan=-1'"
+      echo "##"
+      echo "## You can submit WarpScript for execution via:"
+      echo "##"
+      echo "##   curl http://${WARP10_LISTENSTO_IPONLY}/api/v0/exec --data-binary @path/to/WarpScriptFile"
+      echo "##"
+      echo "## The alternative to command-line interaction is Quantum, a web application to interact with the platform in an user-friendly way:"
+      echo "##"
+      echo "##   http://${QUANTUM_LISTENSTO_IPONLY}"
+      echo "##"
   fi
 }
 
@@ -239,6 +276,11 @@ case "$1" in
   ;;
   status)
   status
+  ;;
+  restart)
+  stop
+  sleep 2
+  start
   ;;
   snapshot)
   snapshot "$2"
