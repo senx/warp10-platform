@@ -41,6 +41,7 @@ WARP10_INIT=io.warp10.standalone.WarpInit
 WARP10_CP=etc:${WARP10_JAR}
 WARP10_HEAP=512m
 WARP10_HEAP_MAX=1g
+INITCONFIG=false
 
 QUANTUM_REVISION=@QUANTUM_VERSION@
 QUANTUM_JAR=${WARP10_HOME}/bin/warp10-quantum-server-${QUANTUM_REVISION}.jar
@@ -99,24 +100,8 @@ initConfig() {
   READ_TOKEN=`tail -n 1 ${WARP10_HOME}/etc/initial.tokens | sed -e 's/{"read":{"token":"//' -e 's/".*//'`
   WRITE_TOKEN=`tail -n 1 ${WARP10_HOME}/etc/initial.tokens | sed -e 's/.*,"write":{"token":"//' -e 's/".*//'`
 
-  echo "##"
-  echo "## An initial set of tokens was generated for you so you can immediately use Warp 10:"
-  echo "##"
-  echo "## Write Token: ${WRITE_TOKEN}"
-  echo "## Read Token: ${READ_TOKEN}"
-  echo "##"
-  echo "## Push some test data using:"
-  echo "##"
-  echo "##   curl -H 'X-Warp10-Token: ${WRITE_TOKEN}' http://127.0.0.1:8080/api/v0/update --data-binary '// test{} 42'"
-  echo "##"
-  echo "## And read it back using:"
-  echo "##"
-  echo "##   curl 'http://127.0.0.1:8080/api/v0/fetch?token=${READ_TOKEN}&selector=~.*\{\}&now=now&timespan=-1'"
-  echo "##"
-  echo "## You can submit WarpScrpt for execution via:"
-  echo "##"
-  echo "##   curl http://127.0.0.1:8080/api/v0/exec --data-binary @path/to/WarpScriptFile"
-  echo "##"
+  INITCONFIG=true
+
 }
 
 start() {
@@ -198,6 +183,55 @@ start() {
   then
     echo "Start Quantum has failed! - See quantum.log for more details"
   fi
+
+  WARP10_LISTENSTO_HOST="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'standalone.host'" | grep 'standalone.host' | sed -r 's/(\w+\.\w+=)(.*)$/\2/'`"
+  WARP10_LISTENSTO_PORT="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'standalone.port'" | grep 'standalone.port' | sed -r 's/(\w+\.\w+=)(.*)$/\2/'`"
+  QUANTUM_LISTENSTO_HOST="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.host'" | grep 'quantum.host' | sed -r 's/(\w+\.\w+=)(.*)$/\2/'`"
+  QUANTUM_LISTENSTO_PORT="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.port'" | grep 'quantum.port' | sed -r 's/(\w+\.\w+=)(.*)$/\2/'`"
+
+  WARP10_LISTENSTO="${WARP10_LISTENSTO_HOST}:${WARP10_LISTENSTO_PORT}"
+
+  QUANTUM_LISTENSTO="${QUANTUM_LISTENSTO_HOST}:${QUANTUM_LISTENSTO_PORT}"
+
+  echo '  ____    __    ____  ___      .______      .______       __    ___   '
+  echo '  \   \  /  \  /   / /   \     |   _  \     |   _  \     /_ |  / _ \  '
+  echo '   \   \/    \/   / /  ^  \    |  |_)  |    |  |_)  |     | | | | | | '
+  echo '    \            / /  /_\  \   |      /     |   ___/      | | | | | | '
+  echo '     \    /\    / /  _____  \  |  |\  \----.|  |          | | | |_| | '
+  echo '      \__/  \__/ /__/     \__\ | _| `._____|| _|          |_|  \___/  '
+  echo '                                                                      '
+
+  echo "##"
+  echo "## Warp 10 listens on ${WARP10_LISTENSTO}"
+  echo "##"
+  echo "## Quantum listens on ${QUANTUM_LISTENSTO}"
+  echo "##"
+
+
+  if [ "$INITCONFIG" = true ]; then
+      echo "##"
+      echo "## An initial set of tokens was generated for you so you can immediately use Warp 10:"
+      echo "##"
+      echo "## Write Token: ${WRITE_TOKEN}"
+      echo "## Read Token: ${READ_TOKEN}"
+      echo "##"
+      echo "## Push some test data using:"
+      echo "##"
+      echo "##   curl -H 'X-Warp10-Token: ${WRITE_TOKEN}' http://${WARP10_LISTENSTO}/api/v0/update --data-binary '// test{} 42'"
+      echo "##"
+      echo "## And read it back using:"
+      echo "##"
+      echo "##   curl 'http://${WARP10_LISTENSTO}/api/v0/fetch?token=${READ_TOKEN}&selector=~.*\{\}&now=now&timespan=-1'"
+      echo "##"
+      echo "## You can submit WarpScript for execution via:"
+      echo "##"
+      echo "##   curl http://${WARP10_LISTENSTO}/api/v0/exec --data-binary @path/to/WarpScriptFile"
+      echo "##"
+      echo "## The alternative to command-line interaction is Quantum, a web application to interact with the platform in an user-friendly way:"
+      echo "##"
+      echo "##   http://${QUANTUM_LISTENSTO}"
+      echo "##"
+  fi
 }
 
 stop() {
@@ -239,6 +273,11 @@ case "$1" in
   ;;
   status)
   status
+  ;;
+  restart)
+  stop
+  sleep 2
+  start
   ;;
   snapshot)
   snapshot "$2"
