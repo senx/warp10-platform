@@ -53,17 +53,23 @@ public class IFT extends NamedWarpScriptFunction implements WarpScriptStackFunct
     // Check that what we popped are macros
     //
     
-    for (Object macro: macros) {
-      if (!WarpScriptLib.isMacro(macro)) {
-        throw new WarpScriptException(getName() + " expects two macros on top of the stack.");
-      }
+    if (!WarpScriptLib.isMacro(macros[0])) {
+      throw new WarpScriptException(getName() + " expects a *THEN* macro on top of the stack.");
+    }
+    
+    if (!WarpScriptLib.isMacro(macros[1]) && !(macros[1] instanceof Boolean)) {
+      throw new WarpScriptException(getName() + " expects an *IF* macro or a boolean below the *THEN* macro.");
     }
     
     //
     // Execute IF-macro
     //
-    
-    stack.exec((Macro) macros[1]);
+
+    if (WarpScriptLib.isMacro(macros[1])) {
+      stack.exec((Macro) macros[1]);
+    } else {
+      stack.push(macros[1]);
+    }
     
     //
     // Check that the top of the stack is a boolean

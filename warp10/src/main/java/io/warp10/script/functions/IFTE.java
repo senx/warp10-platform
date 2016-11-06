@@ -55,17 +55,23 @@ public class IFTE extends NamedWarpScriptFunction implements WarpScriptStackFunc
     // Check that what we popped are macros
     //
     
-    for (Object macro: macros) {
-      if (!WarpScriptLib.isMacro(macro)) {
-        throw new WarpScriptException(getName() + " expects three macros on top of the stack.");
-      }
+    for (int i = 0; i < 2; i++) {
+      if (2 == i && !WarpScriptLib.isMacro(macros[i]) && !(macros[i] instanceof Boolean)) {
+        throw new WarpScriptException(getName() + " expects three macros or two macros and a boolean on top of the stack.");
+      } else if (!WarpScriptLib.isMacro(macros[i])) {
+        throw new WarpScriptException(getName() + " expects three macros or two macros and a boolean on top of the stack.");
+      }      
     }
     
     //
     // Execute IF-macro
     //
     
-    stack.exec((Macro) macros[2]);
+    if (WarpScriptLib.isMacro(macros[2])) {
+      stack.exec((Macro) macros[2]);
+    } else {
+      stack.push(macros[2]);
+    }
     
     //
     // Check that the top of the stack is a boolean
