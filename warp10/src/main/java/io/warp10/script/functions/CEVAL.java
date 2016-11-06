@@ -91,6 +91,14 @@ public class CEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
     }
 
+    //
+    // Limit parallelism to number of macros to run
+    //
+    
+    if (parallelism > ((List) top).size()) {
+      parallelism = ((List) top).size();
+    }
+    
     ExecutorService executor = null;
     
     try {
