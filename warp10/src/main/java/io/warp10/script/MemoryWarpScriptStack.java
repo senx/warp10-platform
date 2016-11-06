@@ -1173,9 +1173,20 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
    * If 'macro' is null, clear the (re)definition of 'stmt'
    */
   @Override
-  public void define(String stmt, final Macro macro) {
+  public void define(final String stmt, final Macro macro) {
     if (null == macro) {
-      this.defined.remove(stmt);
+      //
+      // 'Undef'ining a stmt is a matter of setting a failing macro for it.
+      // If we were to remove the redefinition it would expose again the original
+      // code which is not something we want to allow as BOOTSTRAP might have
+      // voluntarly hide some functions
+      //
+      this.defined.put(stmt, new WarpScriptStackFunction() {        
+        @Override
+        public Object apply(WarpScriptStack stack) throws WarpScriptException {
+          throw new WarpScriptException("Function '" + stmt + "' is undefined.");
+        }
+      });
     } else {
       // Wrap the macro into a function
       WarpScriptStackFunction func = new WarpScriptStackFunction() {        
