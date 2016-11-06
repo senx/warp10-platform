@@ -18,6 +18,8 @@ package io.warp10.crypto;
 
 import io.warp10.crypto.OrderPreservingBase64;
 
+import java.io.ByteArrayOutputStream;
+import java.io.StringWriter;
 import java.security.SecureRandom;
 import java.util.Random;
 
@@ -120,6 +122,22 @@ public class OrderPreservingBase64Test {
     
   }
   
+  @Test
+  public void testStream() throws Exception {
+    SecureRandom sr = new SecureRandom();
+    for (int i = 1; i < 100; i++) {
+      byte[] bytes = new byte[i];
+      //sr.nextBytes(bytes);
+      byte[] raw = OrderPreservingBase64.encode(bytes);
+      ByteArrayOutputStream baos = new ByteArrayOutputStream(raw.length);
+      OrderPreservingBase64.encodeToStream(bytes, baos);
+      Assert.assertArrayEquals(raw, baos.toByteArray());
+      StringWriter sw = new StringWriter();
+      OrderPreservingBase64.encodeToWriter(bytes, sw);
+      byte[] writer = sw.toString().getBytes(Charsets.US_ASCII);
+      Assert.assertArrayEquals(raw, writer);
+    }
+  }
   // Bytes comparator
   private int compareTo(byte[] buffer1, int offset1, int length1, byte[] buffer2, int offset2, int length2) {
     int end1 = offset1 + length1;
