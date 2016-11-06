@@ -45,12 +45,14 @@ public class SYNC extends NamedWarpScriptFunction implements WarpScriptStackFunc
     ReentrantLock lock = (ReentrantLock) stack.getAttribute(CEVAL.CONCURRENT_LOCK_ATTRIBUTE);
     
     try {
-      lock.lockInterruptibly();      
+      if (null != lock) {
+        lock.lockInterruptibly();
+      }
       stack.exec((Macro) top);   
     } catch (InterruptedException ie) {
       throw new WarpScriptException(ie);
     } finally {      
-      if (lock.isHeldByCurrentThread()) {
+      if (null != lock && lock.isHeldByCurrentThread()) {
         lock.unlock();
       }
     }
