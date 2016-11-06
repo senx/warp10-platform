@@ -16,6 +16,7 @@
 
 package io.warp10.standalone;
 
+import io.warp10.Revision;
 import io.warp10.WarpConfig;
 import io.warp10.WarpDist;
 import io.warp10.continuum.Configuration;
@@ -97,7 +98,9 @@ public class Warp extends WarpDist implements Runnable {
     
     System.out.println();
     System.out.println(Constants.WARP10_BANNER);
-    
+    System.out.println("  Revision " + Revision.REVISION);
+    System.out.println();
+
     setProperties(args[0]);
     
     boolean nullbackend = "true".equals(WarpConfig.getProperties().getProperty(NULL));

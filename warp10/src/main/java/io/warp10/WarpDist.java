@@ -123,6 +123,8 @@ public class WarpDist {
 
     System.out.println();
     System.out.println(Constants.WARP10_BANNER);
+    System.out.println("  Revision " + Revision.REVISION);
+    System.out.println();
     
     System.setProperty("java.awt.headless", "true");
     
