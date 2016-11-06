@@ -95,6 +95,9 @@ public class Warp extends WarpDist implements Runnable {
     
     System.setProperty("java.awt.headless", "true");
     
+    System.out.println();
+    System.out.println(Constants.WARP10_BANNER);
+    
     setProperties(args[0]);
     
     boolean nullbackend = "true".equals(WarpConfig.getProperties().getProperty(NULL));

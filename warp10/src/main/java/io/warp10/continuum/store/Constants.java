@@ -58,6 +58,13 @@ public class Constants {
    */
   public static final long NS_PER_TIME_UNIT;
   
+  public static final String WARP10_BANNER = "  ___       __                           ____________ \n" + 
+      "  __ |     / /_____ _______________      __<  /_  __ \\\n" + 
+      "  __ | /| / /_  __ `/_  ___/__  __ \\     __  /_  / / /\n" + 
+      "  __ |/ |/ / / /_/ /_  /   __  /_/ /     _  / / /_/ / \n" + 
+      "  ____/|__/  \\__,_/ /_/    _  .___/      /_/  \\____/  \n" + 
+      "                           /_/                        \n"; 
+
   /**
    * Row key time boundary in time units
    */

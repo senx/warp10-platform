@@ -121,6 +121,9 @@ public class WarpDist {
     
   public static void main(String[] args) throws Exception {
 
+    System.out.println();
+    System.out.println(Constants.WARP10_BANNER);
+    
     System.setProperty("java.awt.headless", "true");
     
     setProperties(args[0]);
