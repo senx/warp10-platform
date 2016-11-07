@@ -50,6 +50,14 @@ warp.aes.scripts = @key:256:warp.aes.scripts@
 #oss.master.key = hex:hhhhhh...
 
 //
+// This configuration parameter determines if undefining a funciton (via NULL 'XXX' DEF)
+// will unshadow the original statement thus making it available again or if it will replace
+// it with a function that will fail with a message saying the function is undefined.
+// The safest behavior is to leave this undefined or set to 'false'.
+//
+warpscript.def.unshadow = false
+
+//
 // Default maximum number of operations a single WarpScript execution can do
 //
 warpscript.maxops = 1000

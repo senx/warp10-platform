@@ -60,6 +60,14 @@ public class Configuration {
    */
   public static final String CONFIG_WARPSCRIPT_EXTENSIONS = "warpscript.extensions";
   
+  /**
+   * This configuration parameter determines if undefining a funciton (via NULL 'XXX' DEF)
+   * will unshadow the original statement thus making it available again or if it will replace
+   * it with a function that will fail with a message saying the function is undefined.
+   * The safest behavior is to leave this undefined or set to 'false'.
+   */
+  public static final String WARPSCRIPT_DEF_UNSHADOW = "warpscript.def.unshadow";
+  
   public static final String WARPSCRIPT_MAX_OPS = "warpscript.maxops";
   public static final String WARPSCRIPT_MAX_BUCKETS = "warpscript.maxbuckets";
   public static final String WARPSCRIPT_MAX_DEPTH = "warpscript.maxdepth";

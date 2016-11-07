@@ -133,6 +133,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   
   private Properties properties;
   
+  private final boolean unshadow;
+  
   public static class StackContext extends WarpScriptStack.StackContext {
     public Map<String, Object> symbolTable;
     public Map<String, WarpScriptStackFunction> defined;
@@ -171,6 +173,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     this.directoryClient = directoryClient;
     this.geoDirectoryClient = geoDirectoryClient;
   
+    this.unshadow = "true".equals(properties.getProperty(Configuration.WARPSCRIPT_DEF_UNSHADOW));
+    
     if (init) {
       setAttribute(WarpScriptStack.ATTRIBUTE_DEBUG_DEPTH, 0);
       setAttribute(WarpScriptStack.ATTRIBUTE_JSON_STRICT, false);
@@ -1175,18 +1179,16 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   @Override
   public void define(final String stmt, final Macro macro) {
     if (null == macro) {
-      //
-      // 'Undef'ining a stmt is a matter of setting a failing macro for it.
-      // If we were to remove the redefinition it would expose again the original
-      // code which is not something we want to allow as BOOTSTRAP might have
-      // voluntarly hide some functions
-      //
-      this.defined.put(stmt, new WarpScriptStackFunction() {        
-        @Override
-        public Object apply(WarpScriptStack stack) throws WarpScriptException {
-          throw new WarpScriptException("Function '" + stmt + "' is undefined.");
-        }
-      });
+      if (this.unshadow) {
+        this.defined.remove(stmt);
+      } else {
+        this.defined.put(stmt, new WarpScriptStackFunction() {        
+          @Override
+          public Object apply(WarpScriptStack stack) throws WarpScriptException {
+            throw new WarpScriptException("Function '" + stmt + "' is undefined.");
+          }
+        });        
+      }
     } else {
       // Wrap the macro into a function
       WarpScriptStackFunction func = new WarpScriptStackFunction() {        
