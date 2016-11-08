@@ -31,87 +31,157 @@ import io.warp10.quasar.token.thrift.data.WriteToken;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class QuasarTokenEncoder {
 
-    private final TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+  private final TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
 
-    public String  deliverReadToken(String appName, String producerUID, String ownerUID, java.util.List<java.lang.String> apps,  long ttl, KeyStore keyStore) throws TException {
-        long currentTime = System.currentTimeMillis();
+  public String deliverReadToken(String appName, String producerUID, String ownerUID, java.util.List<java.lang.String> apps, long ttl, KeyStore keystore) throws TException {
+    ReadToken token = getReadToken(appName, producerUID, Arrays.asList(ownerUID), null, apps, null, ttl);
+    return cypherToken(token, keystore);
+  }
 
-        // Generate the READ Tokens
-        ReadToken token = new ReadToken();
-        token.setAppName(appName);
-        token.setIssuanceTimestamp(currentTime);
-        token.setExpiryTimestamp(currentTime + ttl);
-        token.setTokenType(TokenType.READ);
+  public String deliverReadToken(String appName, String producerUID, java.util.List<java.lang.String> owners, java.util.List<java.lang.String> apps, java.util.Map<java.lang.String, java.lang.String> hooks, long ttl, KeyStore keystore) throws TException {
+    ReadToken token = getReadToken(appName, producerUID, owners, null, apps, hooks, ttl);
+    return cypherToken(token, keystore);
+  }
 
-        token.setApps(apps);
-        token.addToOwners(toByteBuffer(ownerUID));
-        token.setProducers(new ArrayList<ByteBuffer>());
+  /**
+   * @param appName     this token belongs to this application
+   * @param producerUID this token belongs to this producer
+   * @param owners      this tokens can access time series belongs to these owners
+   * @param producers   this tokens can access time series pushed by these producers
+   * @param apps        this tokens can access time series store in these applications
+   * @param hooks       tokens Warpscript hooks
+   * @param ttl         Time to live (ms)
+   * @return ReadToken thrift structure
+   * @throws TException
+   */
+  public ReadToken getReadToken(String appName, String producerUID, java.util.List<java.lang.String> owners, java.util.List<java.lang.String> producers, java.util.List<java.lang.String> apps, java.util.Map<java.lang.String, java.lang.String> hooks, long ttl) throws TException {
+    long currentTime = System.currentTimeMillis();
 
-        // Billing
-        token.setBilledId(toByteBuffer(producerUID));
-        return cypherToken(token, keyStore);
+    // Generate the READ Tokens
+    ReadToken token = new ReadToken();
+    token.setAppName(appName);
+    token.setIssuanceTimestamp(currentTime);
+    token.setExpiryTimestamp(currentTime + ttl);
+    token.setTokenType(TokenType.READ);
+
+    // applications
+    token.setApps(apps);
+
+    // owners
+    if (null != owners && owners.size() > 0) {
+      for (String owner : owners) {
+        token.addToOwners(toByteBuffer(owner));
+      }
+    } else {
+      token.setOwners(new ArrayList<ByteBuffer>());
     }
 
-    public String deliverWriteToken(String appName, String producerUID, String ownerUID, Map<String,String> labels, long ttl, KeyStore keystore) throws TException{
-        long currentTime = System.currentTimeMillis();
-
-        WriteToken token = new WriteToken();
-        token.setAppName(appName);
-        token.setIssuanceTimestamp(currentTime);
-        token.setExpiryTimestamp(currentTime + ttl);
-        token.setTokenType(TokenType.WRITE);
-
-        if (labels != null && labels.size() >0) {
-            token.setLabels(labels);
-        }
-
-        token.setProducerId(toByteBuffer(producerUID));
-        token.setOwnerId(toByteBuffer(ownerUID));
-
-        return cypherToken(token, keystore);
+    // producers
+    if (null != producers && producers.size() > 0) {
+      for (String producer : producers) {
+        token.addToProducers(toByteBuffer(producer));
+      }
+    } else {
+      token.setProducers(new ArrayList<ByteBuffer>());
     }
 
-    public String cypherToken(TBase<?, ?> token, KeyStore keyStore) throws TException {
-        byte[] tokenAesKey = keyStore.getKey(KeyStore.AES_TOKEN);
-        byte[] tokenSipHashkey = keyStore.getKey(KeyStore.SIPHASH_TOKEN);
-
-        // Serialize the  thrift token into byte array
-        byte[] serialized = serializer.serialize(token);
-
-        // Calculate the SIP
-        long sip = SipHashInline.hash24_palindromic(tokenSipHashkey, serialized);
-
-        //Create the token byte buffer
-        ByteBuffer buffer = ByteBuffer.allocate(8 + serialized.length);
-        // adds the sip
-        buffer.putLong(sip);
-        // adds the thrift token
-        buffer.put(serialized);
-
-        // Wrap the TOKEN
-        byte[] wrappedData = CryptoUtils.wrap(tokenAesKey, buffer.array());
-
-        String accessToken = new String(OrderPreservingBase64.encode(wrappedData));
-
-        return accessToken;
+    // hooks
+    if (null != hooks && hooks.size() > 0) {
+      token.setHooks(hooks);
     }
 
-    private ByteBuffer toByteBuffer(String strUUID) {
-        ByteBuffer buffer = ByteBuffer.allocate(16);
-        buffer.order(ByteOrder.BIG_ENDIAN);
+    // Billing
+    token.setBilledId(toByteBuffer(producerUID));
+    return token;
+  }
 
-        UUID uuid = UUID.fromString(strUUID);
 
-        buffer.putLong(uuid.getMostSignificantBits());
-        buffer.putLong(uuid.getLeastSignificantBits());
+  /**
+   * Classic Write token owner = producer
+   *
+   * @param appName  Warp10 application's name
+   * @param uuid     producer and owner uuid
+   * @param ttl      token time to live (ms)
+   * @param keystore
+   * @return Warp10 writes token
+   * @throws TException
+   */
+  public String deliverWriteToken(String appName, String uuid, long ttl, KeyStore keystore) throws TException {
+    WriteToken token = getWriteToken(appName, uuid, uuid, null, null, ttl);
+    return cypherToken(token, keystore);
+  }
 
-        buffer.position(0);
-        return buffer;
+  public String deliverWriteToken(String appName, String producerUID, String ownerUID, long ttl, KeyStore keystore) throws TException {
+    WriteToken token = getWriteToken(appName, producerUID, ownerUID, null, null, ttl);
+    return cypherToken(token, keystore);
+  }
+
+  public String deliverWriteToken(String appName, String producerUID, String ownerUID, Map<String, String> labels, long ttl, KeyStore keystore) throws TException {
+    WriteToken token = getWriteToken(appName, producerUID, ownerUID, labels, null, ttl);
+    return cypherToken(token, keystore);
+  }
+
+  public WriteToken getWriteToken(String appName, String producerUID, String ownerUID, Map<String, String> labels, List<Long> indices, long ttl) throws TException {
+    long currentTime = System.currentTimeMillis();
+
+    WriteToken token = new WriteToken();
+    token.setAppName(appName);
+    token.setIssuanceTimestamp(currentTime);
+    token.setExpiryTimestamp(currentTime + ttl);
+    token.setTokenType(TokenType.WRITE);
+
+    if (null != labels && labels.size() > 0) {
+      token.setLabels(labels);
     }
+
+    if (null != indices && indices.size() > 0) {
+      token.setIndices(indices);
+    }
+
+    token.setProducerId(toByteBuffer(producerUID));
+    token.setOwnerId(toByteBuffer(ownerUID));
+    return token;
+  }
+
+  public String cypherToken(TBase<?, ?> token, KeyStore keyStore) throws TException {
+    byte[] tokenAesKey = keyStore.getKey(KeyStore.AES_TOKEN);
+    byte[] tokenSipHashkey = keyStore.getKey(KeyStore.SIPHASH_TOKEN);
+
+    // Serialize the  thrift token into byte array
+    byte[] serialized = serializer.serialize(token);
+
+    // Calculate the SIP
+    long sip = SipHashInline.hash24_palindromic(tokenSipHashkey, serialized);
+
+    //Create the token byte buffer
+    ByteBuffer buffer = ByteBuffer.allocate(8 + serialized.length);
+    // adds the sip
+    buffer.putLong(sip);
+    // adds the thrift token
+    buffer.put(serialized);
+
+    // Wrap the TOKEN
+    byte[] wrappedData = CryptoUtils.wrap(tokenAesKey, buffer.array());
+
+    String accessToken = new String(OrderPreservingBase64.encode(wrappedData));
+
+    return accessToken;
+  }
+
+  private ByteBuffer toByteBuffer(String strUUID) {
+    ByteBuffer buffer = ByteBuffer.allocate(16);
+    buffer.order(ByteOrder.BIG_ENDIAN);
+
+    UUID uuid = UUID.fromString(strUUID);
+
+    buffer.putLong(uuid.getMostSignificantBits());
+    buffer.putLong(uuid.getLeastSignificantBits());
+
+    buffer.position(0);
+    return buffer;
+  }
 }
