@@ -82,6 +82,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
    */
   public static final long PUSHBACK_CHECK_INTERVAL = 1000L;
   
+  /**
+   * Default max size of value
+   */
+  public static final String DEFAULT_VALUE_MAXSIZE = "65536";
+  
   private final KeyStore keyStore;
   private final StoreClient storeClient;
   private final StandaloneDirectoryClient directoryClient;
@@ -104,6 +109,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
   private final boolean logforwarded;
   
   private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
+  
+  private final long maxValueSize;
   
   public StandaloneIngressHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
     this.keyStore = keystore;
@@ -150,6 +157,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
     }
     
     this.logforwarded = "true".equals(props.getProperty(Configuration.DATALOG_LOGFORWARDED));
+    
+    this.maxValueSize = Long.parseLong(props.getProperty(Configuration.STANDALONE_VALUE_MAXSIZE, DEFAULT_VALUE_MAXSIZE));
   }
   
   @Override
@@ -469,7 +478,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
         count++;
 
         try {
-          encoder = GTSHelper.parse(lastencoder, line, extraLabels, now);
+          encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, false);
           //nano2 += System.nanoTime() - nano0;
         } catch (ParseException pe) {
           Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_PARSEERRORS, sensisionLabels, 1);            
