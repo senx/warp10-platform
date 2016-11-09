@@ -281,7 +281,7 @@ public class Pack {
 
     int maxsize = 65536;
     String timeunits = "us";
-    String suffix = null;
+    String suffix = ":packed";
     long chunksize = Long.MAX_VALUE;
     
     if (cmd.hasOption("m")) {
