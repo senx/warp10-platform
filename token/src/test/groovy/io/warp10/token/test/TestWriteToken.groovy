@@ -20,7 +20,6 @@ import io.warp10.quasar.filter.QuasarTokenFilter
 import io.warp10.quasar.filter.exception.QuasarNoToken
 import io.warp10.quasar.filter.exception.QuasarTokenExpired
 import io.warp10.quasar.filter.exception.QuasarTokenInvalid
-import io.warp10.quasar.token.thrift.data.ReadToken
 import io.warp10.quasar.token.thrift.data.WriteToken
 
 class TestWriteToken extends TokenTestCase {
