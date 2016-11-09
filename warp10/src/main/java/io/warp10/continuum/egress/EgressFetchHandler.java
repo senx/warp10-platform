@@ -1840,7 +1840,7 @@ public class EgressFetchHandler extends AbstractHandler {
           // split the original encoder in two
           //
                     
-          if (serialized.length >= Math.ceil(0.75D * maxDecoderLen) && encoder.getCount() > 2) {
+          if (serialized.length >= Math.floor(0.75D * maxDecoderLen) && encoder.getCount() > 2) {
             GTSEncoder split = new GTSEncoder(0L);
             split.setMetadata(encoder.getMetadata());
             
