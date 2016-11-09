@@ -382,7 +382,9 @@ public class Constants {
       MAX_ENCODER_SIZE = DEFAULT_MAX_ENCODER_SIZE;
     }
     
-    System.out.println("########[ Initialized with " + TIME_UNITS_PER_MS + " time units per millisecond ]########");
+    if (null == System.getProperty(Configuration.WARP10_QUIET)) {
+      System.out.println("########[ Initialized with " + TIME_UNITS_PER_MS + " time units per millisecond ]########");
+    }
     
     //
     // Initialize headers

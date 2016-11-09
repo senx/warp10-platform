@@ -36,6 +36,8 @@ public class Configuration {
   
   public static final String WARP_IDENT = "warp.ident";
   
+  public static final String WARP10_QUIET = "warp10.quiet";
+  
   /**
    * Maximum encoder size (in bytes) for internal data transfers. Use values from 64k to 512k for
    * optimum performance and make sure this size is less than the maximum message size of Kafka
@@ -1190,6 +1192,11 @@ public class Configuration {
    * Maximum encoder size (in bytes) for internal data transfers. Use values from 64k to 512k
    */
   public static final String STANDALONE_MAX_ENCODER_SIZE = "standalone.max.encoder.size";
+  
+  /**
+   * Maximum size in bytes of a value
+   */
+  public static final String STANDALONE_VALUE_MAXSIZE = "standalone.value.maxsize";
   
   /**
    * Path to a file to use for triggering compaction suspension to take snapshots
