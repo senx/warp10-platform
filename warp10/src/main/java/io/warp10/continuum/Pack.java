@@ -279,7 +279,7 @@ public class Pack {
     CommandLineParser parser = new DefaultParser();
     CommandLine cmd = parser.parse(options, args);
 
-    int maxsize = 65536;
+    int maxsize = Constants.DEFAULT_PACKED_MAXSIZE;
     String timeunits = "us";
     String suffix = ":packed";
     long chunksize = Long.MAX_VALUE;
