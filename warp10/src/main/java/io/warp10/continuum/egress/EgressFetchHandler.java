@@ -193,7 +193,7 @@ public class EgressFetchHandler extends AbstractHandler {
     }
         
     String maxDecoderLenParam = req.getParameter(Constants.HTTP_PARAM_MAXSIZE);
-    int maxDecoderLen = null != maxDecoderLenParam ? Integer.parseInt(maxDecoderLenParam) : Integer.MAX_VALUE;
+    int maxDecoderLen = null != maxDecoderLenParam ? Integer.parseInt(maxDecoderLenParam) : Constants.DEFAULT_PACKED_MAXSIZE;
     
     String suffix = req.getParameter(Constants.HTTP_PARAM_SUFFIX);
     if (null == suffix) {
@@ -201,6 +201,16 @@ public class EgressFetchHandler extends AbstractHandler {
     }
     
     boolean unpack = null != req.getParameter(Constants.HTTP_PARAM_UNPACK);
+ 
+    long chunksize = Long.MAX_VALUE;
+    
+    if (null != req.getParameter(Constants.HTTP_PARAM_CHUNKSIZE)) {
+      chunksize = Long.parseLong(req.getParameter(Constants.HTTP_PARAM_CHUNKSIZE));      
+    }
+    
+    if (chunksize <= 0) {
+      throw new IOException("Invalid chunksize.");
+    }    
     
     boolean showErrors = null != showErrorsParam;
     boolean dedup = null != dedupParam && "true".equals(dedupParam);
@@ -677,7 +687,7 @@ public class EgressFetchHandler extends AbstractHandler {
             } else if ("fulltsv".equals(format)) {
               tsvDump(pw, iter, now, timespan, true, dedup, signed, lastMeta, lastCount);
             } else if ("pack".equals(format)) {
-              packedDump(pw, iter, now, timespan, dedup, signed, lastMeta, lastCount, maxDecoderLen, suffix);
+              packedDump(pw, iter, now, timespan, dedup, signed, lastMeta, lastCount, maxDecoderLen, suffix, chunksize);
             } else if ("null".equals(format)) {
               nullDump(iter);
             } else {
@@ -1703,7 +1713,7 @@ public class EgressFetchHandler extends AbstractHandler {
     }
   }
   
-  private void packedDump(PrintWriter pw, GTSDecoderIterator iter, long now, long timespan, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, int maxDecoderLen, String classSuffix) throws IOException {
+  private void packedDump(PrintWriter pw, GTSDecoderIterator iter, long now, long timespan, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, int maxDecoderLen, String classSuffix, long chunksize) throws IOException {
     
     String name = null;
     Map<String,String> labels = null;
@@ -1798,8 +1808,40 @@ public class EgressFetchHandler extends AbstractHandler {
       }
 
       encoders.clear();
-      encoders.add(encoder);
       
+      //
+      // Add encoders per chunk
+      //
+      
+      GTSDecoder chunkdec = encoder.getDecoder(true);
+      
+      GTSEncoder chunkenc = null;
+      
+      Long lastchunk = null;
+      
+      if (Long.MAX_VALUE == chunksize) {
+        encoders.add(encoder);
+      } else {
+        while(chunkdec.next()) {
+          long ts = chunkdec.getTimestamp();
+          long chunk = ts / chunksize;
+
+          //
+          // If it is the first chunk or we changed chunk, create a new encoder
+          //
+          
+          if (null == chunkenc || (null != lastchunk && chunk != lastchunk)) {
+            chunkenc = new GTSEncoder(0L);
+            chunkenc.setMetadata(encoder.getMetadata());
+            encoders.add(chunkenc);
+          }
+         
+          lastchunk = chunk;
+          
+          chunkenc.addValue(ts, chunkdec.getLocation(), chunkdec.getElevation(), chunkdec.getValue());
+        }        
+      }
+            
       while(!encoders.isEmpty()) {
         encoder = encoders.remove(0);
 
