@@ -23,6 +23,7 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 /**
  * Adds a month to a timestamp
@@ -46,13 +47,26 @@ public class ADDMONTHS extends NamedWarpScriptFunction implements WarpScriptStac
     
     top = stack.pop();
     
+    String tz = null;
+    
+    if (top instanceof String) {
+      tz = top.toString();
+      top = stack.pop();
+    }
+    
     if (!(top instanceof Long)) {
-      throw new WarpScriptException(getName() + " operates on a timestamp expressed in time units.");
+      throw new WarpScriptException(getName() + " operates on a timestamp expressed in time units or a timestamp and timezone.");
     }
     
     long instant = ((Number) top).longValue();
     
-    DateTime dt = new DateTime(instant / Constants.TIME_UNITS_PER_MS);
+    if (null == tz) {
+      tz = "UTC";
+    }
+    
+    DateTimeZone dtz = DateTimeZone.forID(null == tz ? "UTC" : tz);
+    
+    DateTime dt = new DateTime(instant / Constants.TIME_UNITS_PER_MS, dtz);
     
     dt = dt.plusMonths(months);
     
