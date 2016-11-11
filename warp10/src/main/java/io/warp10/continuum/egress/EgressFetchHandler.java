@@ -1824,7 +1824,7 @@ public class EgressFetchHandler extends AbstractHandler {
       } else {
         while(chunkdec.next()) {
           long ts = chunkdec.getTimestamp();
-          long chunk = ts / chunksize;
+          long chunk = ts >= 0 ? ts / chunksize : ((ts + 1) / chunksize) - 1;
 
           //
           // If it is the first chunk or we changed chunk, create a new encoder

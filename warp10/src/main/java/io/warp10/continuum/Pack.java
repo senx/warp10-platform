@@ -91,7 +91,7 @@ public class Pack {
     
     while(decoder.next()) {
       long ts = decoder.getTimestamp();
-      long chunk = ts / chunksize;
+      long chunk = ts >= 0 ? ts / chunksize : ((ts + 1) / chunksize) - 1;
       
       if (null == lastChunk) {
         lastChunk = chunk;
