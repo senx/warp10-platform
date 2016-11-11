@@ -789,6 +789,8 @@ public class WarpScriptLib {
     functions.put("NOTBEFORE", new NOTBEFORE("NOTBEFORE"));
     functions.put("NOTAFTER", new NOTAFTER("NOTAFTER"));
     functions.put("TSELEMENTS", new TSELEMENTS("TSELEMENTS"));
+    functions.put("ADDMONTHS", new ADDMONTHS("ADDMONTHS"));
+    functions.put("ADDYEARS", new ADDYEARS("ADDYEARS"));
     
     functions.put("QUANTIZE", new QUANTIZE("QUANTIZE"));
     functions.put("NBOUNDS", new NBOUNDS("NBOUNDS"));
