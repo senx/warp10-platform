@@ -16,6 +16,8 @@
 
 package io.warp10.script.functions;
 
+import java.util.List;
+
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -54,25 +56,73 @@ public class ADDMONTHS extends NamedWarpScriptFunction implements WarpScriptStac
       top = stack.pop();
     }
     
-    if (!(top instanceof Long)) {
-      throw new WarpScriptException(getName() + " operates on a timestamp expressed in time units or a timestamp and timezone.");
+    if (!(top instanceof Long) && !(top instanceof List)) {
+      throw new WarpScriptException(getName() + " operates on a timestamp expressed in time units or a tselements list or a timestamp or tselements list and timezone.");
     }
     
-    long instant = ((Number) top).longValue();
+    if (top instanceof Long) {
+      long instant = ((Number) top).longValue();
+        
+      if (null == tz) {
+        tz = "UTC";
+      }
+
+      DateTimeZone dtz = DateTimeZone.forID(null == tz ? "UTC" : tz);
     
-    if (null == tz) {
-      tz = "UTC";
+      DateTime dt = new DateTime(instant / Constants.TIME_UNITS_PER_MS, dtz);
+    
+      dt = dt.plusMonths(months);
+    
+      long ts = dt.getMillis() * Constants.TIME_UNITS_PER_MS + (instant % Constants.TIME_UNITS_PER_MS);
+    
+      stack.push(ts);
+    } else {
+      List<Object> elts = (List<Object>) top;
+      
+      int year = ((Number) elts.get(0)).intValue();
+      int month = ((Number) elts.get(1)).intValue();
+
+      if (months < 0) {
+        while(months < 0) {
+          months++;
+          month = month - 1;
+          if (month < 1) {
+            month = 12;
+            year--;
+          }
+        }        
+      } else {
+        while(months > 0) {
+          months--;
+          month = month + 1;
+          if (month > 12) {
+            month = 1;
+            year++;
+          }
+        }
+      }
+      
+      elts.set(0, (long) year);
+      elts.set(1, (long) month);
+      
+      // Now check that the month is compatible with the day
+      
+      if (elts.size() > 2) {
+        int day = ((Number) elts.get(2)).intValue();
+
+        if (2 == month && day > 28) {
+          if ((0 != year % 4) || (0 == year % 100)) {
+            elts.set(2, (long) 28);
+          } else {
+            elts.set(2, (long) 29);
+          }
+        } else if (day > 30 && (4 == month || 6 == month || 9 == month || 11 == month)) {
+          elts.set(2, (long) 30);
+        }
+      }
+     
+      stack.push(elts);
     }
-    
-    DateTimeZone dtz = DateTimeZone.forID(null == tz ? "UTC" : tz);
-    
-    DateTime dt = new DateTime(instant / Constants.TIME_UNITS_PER_MS, dtz);
-    
-    dt = dt.plusMonths(months);
-    
-    long ts = dt.getMillis() * Constants.TIME_UNITS_PER_MS + (instant % Constants.TIME_UNITS_PER_MS);
-    
-    stack.push(ts);
         
     return stack;
   }

@@ -16,6 +16,8 @@
 
 package io.warp10.script.functions;
 
+import java.util.List;
+
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -54,25 +56,50 @@ public class ADDYEARS extends NamedWarpScriptFunction implements WarpScriptStack
       top = stack.pop();
     }
     
-    if (!(top instanceof Long)) {
-      throw new WarpScriptException(getName() + " operates on a timestamp expressed in time units or a timestamp and timezone.");
+    if (!(top instanceof Long) && !(top instanceof List)) {
+      throw new WarpScriptException(getName() + " operates on a timestamp expressed in time units or tselements or a timestamp or tselements and timezone.");
     }
     
-    long instant = ((Number) top).longValue();
-    
-    if (null == tz) {
-      tz = "UTC";
+    if (top instanceof Long) {
+      long instant = ((Number) top).longValue();
+      
+      if (null == tz) {
+        tz = "UTC";
+      }
+      
+      DateTimeZone dtz = DateTimeZone.forID(null == tz ? "UTC" : tz);
+      
+      DateTime dt = new DateTime(instant / Constants.TIME_UNITS_PER_MS, dtz);
+      
+      dt = dt.plusYears(years);
+      
+      long ts = dt.getMillis() * Constants.TIME_UNITS_PER_MS + (instant % Constants.TIME_UNITS_PER_MS);
+      
+      stack.push(ts);      
+    } else {
+      List<Object> elts = (List<Object>) top;
+      
+      int year = ((Number) elts.get(0)).intValue();
+      year += years;
+      
+      elts.set(0, (long) year);
+      
+      // Now check if we are in ferbuary and if this is coherent with
+      // a possibly non leap year
+      
+      if (elts.size() > 2) {
+        int month = ((Number) elts.get(1)).intValue();
+        int day = ((Number) elts.get(2)).intValue();
+        
+        if (2 == month && day > 28) {
+          if ((0 != year % 4) || (0 == year % 100)) {
+            elts.set(2, (long) 28);
+          }
+        }
+      }
+     
+      stack.push(elts);
     }
-    
-    DateTimeZone dtz = DateTimeZone.forID(null == tz ? "UTC" : tz);
-    
-    DateTime dt = new DateTime(instant / Constants.TIME_UNITS_PER_MS, dtz);
-    
-    dt = dt.plusYears(years);
-    
-    long ts = dt.getMillis() * Constants.TIME_UNITS_PER_MS + (instant % Constants.TIME_UNITS_PER_MS);
-    
-    stack.push(ts);
         
     return stack;
   }
