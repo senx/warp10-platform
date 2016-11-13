@@ -6441,6 +6441,9 @@ public class GTSHelper {
       long ts = GTSHelper.tickAtIndex(gts, idx);
       
       if (ts < start || ts > end) {
+        if (gts.sorted && ts > end) {
+          break;
+        }
         continue;     
       }
       
