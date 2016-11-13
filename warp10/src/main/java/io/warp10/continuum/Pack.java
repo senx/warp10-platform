@@ -100,6 +100,7 @@ public class Pack {
       if (chunk != lastChunk) {
         outputChunk(chunkEncoder, maxTS, maxsize);
         chunkEncoder = null;
+        lastChunk = chunk;
         maxTS = Long.MIN_VALUE;        
       }
 
