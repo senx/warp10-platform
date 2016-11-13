@@ -85,7 +85,7 @@ public class QuasarTokenDecoder {
    * @return the ReadToken or WriteToken decoded
    * @throws QuasarTokenException
    */
-  private TBase<?, ?> decodeToken(byte[] nolookupToken, TBase<?, ?> thriftToken) throws QuasarTokenException {
+  protected TBase<?, ?> decodeToken(byte[] nolookupToken, TBase<?, ?> thriftToken) throws QuasarTokenException {
     try {
       //  Uncrypt the token
       byte[] uncrypted = CryptoUtils.unwrap(tokenAESKey, nolookupToken);
