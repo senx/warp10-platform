@@ -662,6 +662,7 @@ public class WarpScriptLib {
     functions.put("MONOTONIC", new MONOTONIC("MONOTONIC"));
     functions.put("TIMESPLIT", new TIMESPLIT("TIMESPLIT"));
     functions.put("TIMECLIP", new TIMECLIP("TIMECLIP"));
+    functions.put("CLIP", new CLIP("CLIP"));
     functions.put("TIMEMODULO", new TIMEMODULO("TIMEMODULO"));
     functions.put("CHUNK", new CHUNK("CHUNK", true));
     functions.put("FUSE", new FUSE("FUSE"));
@@ -789,6 +790,9 @@ public class WarpScriptLib {
     functions.put("NOTBEFORE", new NOTBEFORE("NOTBEFORE"));
     functions.put("NOTAFTER", new NOTAFTER("NOTAFTER"));
     functions.put("TSELEMENTS", new TSELEMENTS("TSELEMENTS"));
+    functions.put("->TSELEMENTS", new TSELEMENTS("->TSELEMENTS"));
+    functions.put("TSELEMENTS->", new FROMTSELEMENTS("TSELEMENTS->"));
+    functions.put("ADDDAYS", new ADDDAYS("ADDDAYS"));
     functions.put("ADDMONTHS", new ADDMONTHS("ADDMONTHS"));
     functions.put("ADDYEARS", new ADDYEARS("ADDYEARS"));
     
