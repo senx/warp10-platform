@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import io.warp10.continuum.store.Constants;
@@ -77,7 +78,7 @@ public class ADDYEARS extends NamedWarpScriptFunction implements WarpScriptStack
       
       stack.push(ts);      
     } else {
-      List<Object> elts = (List<Object>) top;
+      List<Object> elts = new ArrayList<Object>((List<Object>) top);
       
       int year = ((Number) elts.get(0)).intValue();
       year += years;
