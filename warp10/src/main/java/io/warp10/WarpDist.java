@@ -105,6 +105,7 @@ public class WarpDist {
     //
     
     SensisionConstants constants = new SensisionConstants();
+    Sensision.getStartTime();
     
     System.out.println();
     System.out.println(Constants.WARP10_BANNER);
