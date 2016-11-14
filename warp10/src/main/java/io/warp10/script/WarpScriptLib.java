@@ -557,14 +557,14 @@ public class WarpScriptLib {
     functions.put("RSADECRYPT", new RSADECRYPT("RSADECRYPT"));
     functions.put("RSASIGN", new RSASIGN("RSASIGN"));
     functions.put("RSAVERIFY", new RSAVERIFY("RSAVERIFY"));
-    
+
     //
     // String functions
     //
     
-    functions.put("URLDECODE", new URLDECODE("URLDECODE"));            // doc/einstein/function_URLDECODE        Example done   Unit test
+    functions.put("URLDECODE", new URLDECODE("URLDECODE"));
     functions.put("URLENCODE", new URLENCODE("URLENCODE"));
-    functions.put("SPLIT", new SPLIT("SPLIT"));                        // doc/einstein/function_SPLIT            Example done   Unit test
+    functions.put("SPLIT", new SPLIT("SPLIT"));
     functions.put("UUID", new UUID("UUID"));
     functions.put("JOIN", new JOIN("JOIN"));
     functions.put("SUBSTRING", new SUBSTRING("SUBSTRING"));
@@ -596,19 +596,19 @@ public class WarpScriptLib {
     // Conditionals
     //
     
-    functions.put("IFT", new IFT("IFT"));                              // doc/einstein/function_IFT              Example done   Unit test
-    functions.put("IFTE", new IFTE("IFTE"));                           // doc/einstein/function_IFTE             Example done   Unit test
-    functions.put("SWITCH", new SWITCH("SWITCH"));                     // doc/einstein/function_SWITCH           Example done   Unit test
+    functions.put("IFT", new IFT("IFT"));
+    functions.put("IFTE", new IFTE("IFTE"));
+    functions.put("SWITCH", new SWITCH("SWITCH"));
     
     //
     // Loops
     //
     
-    functions.put("WHILE", new WHILE("WHILE"));                        // doc/einstein/function_WHILE            Example done   Unit test
-    functions.put("UNTIL", new UNTIL("UNTIL"));                        // doc/einstein/function_UNTIL            Example done   Unit test
-    functions.put("FOR", new FOR("FOR"));                              // doc/einstein/function_FOR              Example done   Unit test
-    functions.put("FORSTEP", new FORSTEP("FORSTEP"));                  // doc/einstein/function_FORSTEP          Example done   Unit test
-    functions.put("FOREACH", new FOREACH("FOREACH"));                  // doc/einstein/function_FOREACH          Example done   Unit test
+    functions.put("WHILE", new WHILE("WHILE"));
+    functions.put("UNTIL", new UNTIL("UNTIL"));
+    functions.put("FOR", new FOR("FOR"));
+    functions.put("FORSTEP", new FORSTEP("FORSTEP"));
+    functions.put("FOREACH", new FOREACH("FOREACH"));
     functions.put("BREAK", new BREAK("BREAK"));
     functions.put("CONTINUE", new CONTINUE("CONTINUE"));
     functions.put("EVERY", new EVERY("EVERY"));
@@ -778,15 +778,15 @@ public class WarpScriptLib {
     functions.put("QROTATION", new QROTATION("QROTATION"));
     functions.put("ROTATIONQ", new ROTATIONQ("ROTATIONQ"));
     
-    functions.put("ATINDEX", new ATINDEX("ATINDEX"));                   // doc/einstein/function_ATINDEX        Example done    Unit test
-    functions.put("ATTICK", new ATTICK("ATTICK"));                      // doc/einstein/function_ATTICK         Example done    Unit test
-    functions.put("ATBUCKET", new ATBUCKET("ATBUCKET"));                // doc/einstein/function_ATBUCKET       Example done    Unit test
+    functions.put("ATINDEX", new ATINDEX("ATINDEX"));
+    functions.put("ATTICK", new ATTICK("ATTICK"));
+    functions.put("ATBUCKET", new ATBUCKET("ATBUCKET"));
     
-    functions.put("CLONE", new CLONE("CLONE"));                         // doc/einstein/function_CLONE          Example done    Refactored
-    functions.put("DURATION", new DURATION("DURATION"));                // doc/einstein/function_DURATION       Example done    Unit test
+    functions.put("CLONE", new CLONE("CLONE"));
+    functions.put("DURATION", new DURATION("DURATION"));
     functions.put("HUMANDURATION", new HUMANDURATION("HUMANDURATION"));
     functions.put("ISODURATION", new ISODURATION("ISODURATION"));
-    functions.put("ISO8601", new ISO8601("ISO8601"));                   // doc/einstein/function_ISO8601        Example done    Unit test
+    functions.put("ISO8601", new ISO8601("ISO8601"));
     functions.put("NOTBEFORE", new NOTBEFORE("NOTBEFORE"));
     functions.put("NOTAFTER", new NOTAFTER("NOTAFTER"));
     functions.put("TSELEMENTS", new TSELEMENTS("TSELEMENTS"));
