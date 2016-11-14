@@ -270,6 +270,9 @@ import java.util.Set;
 
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
+import org.bouncycastle.crypto.digests.MD5Digest;
+import org.bouncycastle.crypto.digests.SHA1Digest;
+import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -546,6 +549,11 @@ public class WarpScriptLib {
     
     // Crypto functions
     functions.put("HASH", new HASH("HASH"));
+    functions.put("MD5", new DIGEST("MD5", MD5Digest.class));
+    functions.put("SHA1", new DIGEST("SHA1", SHA1Digest.class));
+    functions.put("SHA256", new DIGEST("SHA256", SHA256Digest.class));
+    functions.put("SHA256HMAC", new HMAC("SHA256HMAC", SHA256Digest.class));
+    functions.put("SHA1HMAC", new HMAC("SHA1HMAC", SHA1Digest.class));
     functions.put("AESWRAP", new AESWRAP("AESWRAP"));
     functions.put("AESUNWRAP", new AESUNWRAP("AESUNWRAP"));
     functions.put("GZIP", new GZIP("GZIP"));
