@@ -41,6 +41,7 @@ import io.warp10.script.aggregator.Highest;
 import io.warp10.script.aggregator.Join;
 import io.warp10.script.aggregator.Last;
 import io.warp10.script.aggregator.Lowest;
+import io.warp10.script.aggregator.MAD;
 import io.warp10.script.aggregator.Max;
 import io.warp10.script.aggregator.Mean;
 import io.warp10.script.aggregator.Median;
@@ -1172,6 +1173,7 @@ public class WarpScriptLib {
     functions.put("bucketizer.max", new Max("bucketizer.max", true));
     functions.put("bucketizer.mean", new Mean("bucketizer.mean", false));
     functions.put("bucketizer.median", new Median("bucketizer.median"));
+    functions.put("bucketizer.mad", new MAD("bucketizer.mad"));
     functions.put("bucketizer.or", new Or("bucketizer.or", false));
     functions.put("bucketizer.sum", new Sum("bucketizer.sum", true));
     functions.put("bucketizer.join", new Join.Builder("bucketizer.join", true, false, null));
@@ -1199,6 +1201,7 @@ public class WarpScriptLib {
     functions.put(MAPPER_MAX, new Max(MAPPER_MAX, true));
     functions.put("mapper.mean", new Mean("mapper.mean", false));
     functions.put("mapper.median", new Median("mapper.median"));
+    functions.put("mapper.mad", new MAD("mapper.mad"));
     functions.put("mapper.or", new Or("mapper.or", false));
     functions.put(MAPPER_HIGHEST, new Highest(MAPPER_HIGHEST));
     functions.put(MAPPER_LOWEST, new Lowest(MAPPER_LOWEST));
@@ -1254,6 +1257,7 @@ public class WarpScriptLib {
     functions.put("reducer.mean", new Mean("reducer.mean", false));
     functions.put("reducer.mean.exclude-nulls", new Mean("reducer.mean.exclude-nulls", true));
     functions.put("reducer.median", new Median("reducer.median"));
+    functions.put("reducer.mad", new MAD("reducer.mad"));
     functions.put("reducer.or", new Or("reducer.or", false));
     functions.put("reducer.or.exclude-nulls", new Or("reducer.or.exclude-nulls", true));
     functions.put("reducer.sum", new Sum("reducer.sum", true));
