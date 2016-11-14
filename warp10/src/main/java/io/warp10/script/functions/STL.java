@@ -47,6 +47,14 @@ public class STL extends GTSStackFunction {
   
   private static final String PRECISION_PARAM = "PRECISION";
   private static final String ROBUSTNESS_PARAM = "ROBUSTNESS";
+
+  //
+  // High Level optional parameter
+  // if true, set PRECISION to 1, ROBUSTNESS to 15
+  // if false, set PRECISION to 2, ROBUSTNESS to 0
+  //
+
+  private static final String ROBUST_PARAM = "ROBUST";
   
   //
   // Optional lowess parameters
@@ -100,7 +108,7 @@ public class STL extends GTSStackFunction {
     String[] field_names_1 = {"PERIOD","PRECISION","ROBUSTNESS"};
     String[] field_names_2 = {"BANDWIDTH","DEGREE","SPEED"};
     String[] suffixes = {"_S","_L","_T","_P"};
-      
+    
     Map<String,Object> last_params = (Map<String, Object>) top;
     
     for (Map.Entry<String, Object> entry : last_params.entrySet()) {
@@ -113,7 +121,17 @@ public class STL extends GTSStackFunction {
       // retrieve value
       Object value = entry.getValue();
       
-      // put to params if correct        
+      // handle boolean parameter
+      if (key.equals(ROBUST_PARAM)) {
+        if (!(value instanceof Boolean)) {
+          throw new WarpScriptException(getName() + " expects argument " + key + " to be of type BOOLEAN.");
+        }
+
+        params.put(key, ((Boolean) value).booleanValue());
+        continue;
+      }
+
+      // put to params if correct
       if (!(Arrays.asList(field_names_1).contains(key) || (Arrays.asList(field_names_2).contains(body)) && Arrays.asList(suffixes).contains(suffix) || Arrays.asList(field_names_2).contains(key))) {
         throw new WarpScriptException(getName() + " does not expect argument " + key);          
       } else {
@@ -125,6 +143,11 @@ public class STL extends GTSStackFunction {
           }
         }
       }        
+    }
+
+    // If ROBUST_PARAM is not set, consider it false
+    if (null == params.get(ROBUST_PARAM)) {
+      params.put(ROBUST_PARAM, false);
     }
     
     // Handle multinomial fields if any (ie BANDWITDTH, DEGREE and SPEED without suffixes are set to every lowess call)
@@ -166,8 +189,16 @@ public class STL extends GTSStackFunction {
     
     // only buckets_per_period is mandatory
     int buckets_per_period = (int) params.get(PERIOD_PARAM);
-    int inner = null == params.get(PRECISION_PARAM) ? 2 : (int) params.get(PRECISION_PARAM);
-    int outer = null == params.get(ROBUSTNESS_PARAM) ? 15 : (int) params.get(ROBUSTNESS_PARAM);
+
+    // number of inner and outer loop: 1 and 15 if robust, 2 and 0 otherwise.
+    int inner = (boolean) params.get(ROBUST_PARAM) ? 1 : 2;
+    int outer = (boolean) params.get(ROBUST_PARAM) ? 15 : 0;
+    if (null != params.get(PRECISION_PARAM)) {
+      inner = (int) params.get(PRECISION_PARAM);
+    }
+    if (null != params.get(ROBUSTNESS_PARAM)) {
+      outer = (int) params.get(ROBUSTNESS_PARAM);
+    }
     
     // authors recommend ns to be odd and at least 7
     int ns = null == params.get(BANDWIDTH_S_PARAM) ? 7 : (int) params.get(BANDWIDTH_S_PARAM);
