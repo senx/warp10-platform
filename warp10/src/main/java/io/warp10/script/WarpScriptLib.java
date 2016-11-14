@@ -563,7 +563,6 @@ public class WarpScriptLib {
     functions.put("RSASIGN", new RSASIGN("RSASIGN"));
     functions.put("RSAVERIFY", new RSAVERIFY("RSAVERIFY"));
 
-    
     //
     // String functions
     //
