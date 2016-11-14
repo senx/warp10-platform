@@ -48,6 +48,7 @@ public class ExportFunctions {
   private final static String FCT_TIMEUNIT = "functions.timeunit";
   private final static String FCT_TRIGO = "functions.trigonometry";
   private final static String FCT_DATE = "functions.date";
+  private final static String FCT_UTIL = "functions.util";
   private final static String FCT_STRING = "functions.string";
   private final static String FCT_LIST = "functions.list";
   private final static String FCT_STACK = "functions.stack";
@@ -58,6 +59,7 @@ public class ExportFunctions {
   private final static String FCT_BUCKETIZED  = "functions.bucketized";
   private final static String FCT_GEO  = "functions.geo";
   private final static String FCT_TYPE_CONVERSION  = "functions.typeConversion";
+  private final static String FCT_CRYPTO = "functions.crypto";
   private final static String FCT_MISC  = "functions.misc";
 
   private final static String SINGLE_VALUE_MAPPER = "mapper.singleValue";
@@ -130,6 +132,8 @@ public class ExportFunctions {
     functions.put(FCT_GEO, new ArrayList<String>());
     functions.put(FCT_TYPE_CONVERSION, new ArrayList<String>());
     functions.put(FCT_MISC, new ArrayList<String>());
+    functions.put(FCT_UTIL, new ArrayList<String>());
+    functions.put(FCT_CRYPTO, new ArrayList<String>());
 
     List<String> constants = Lists.newArrayList("true","false");
 
@@ -192,18 +196,20 @@ public class ExportFunctions {
     staticFunctions.put(FCT_MATH, Lists.newArrayList("ABS","CBRT","CEIL","EXP","FLOOR","IEEEREMAINDER","LBOUNDS","LOG","LOG10","MAX","MIN","NBOUNDS","NEXTAFTER","NEXTUP","NPDF","PROBABILITY","RAND","REVBITS","RINT","ROUND","SIGNUM","SQRT"));
     staticFunctions.put(FCT_TIMEUNIT, Lists.newArrayList("w","d","h","m","s", "ms","us", "ns", "ps"));
     staticFunctions.put(FCT_TRIGO, Lists.newArrayList("COS","COSH","ACOS","SIN","SINH","ASIN","TAN","TANH","ATAN","TODEGREES","TORADIANS"));
-    staticFunctions.put(FCT_DATE, Lists.newArrayList("DURATION","ISO8601","MSTU","NOW","STU","TSELEMENTS"));
-    staticFunctions.put(FCT_STRING, Lists.newArrayList("->HEX","B64TOHEX","B64->","B64URL->","BINTOHEX","FROMBIN","FROMBITS","FROMHEX","HASH","HEX->","HEXTOB64","HEXTOBIN","JOIN","MATCH","MATCHER","SPLIT","SUBSTRING","TEMPLATE","->B64URL","->B64","TOBIN","TOBITS","TOHEX","TOLOWER","TOUPPER","TRIM","URLDECODE","URLENCODE","UUID"));
-    staticFunctions.put(FCT_LIST, Lists.newArrayList("->LIST","->MAP","APPEND","CLONEREVERSE","CONTAINSKEY","CONTAINS","CONTAINSVALUE","FLATTEN","GET","KEYLIST","LFLATMAP","LIST->","LMAP","LSORT","MAP->","MSORT","PUT","REMOVE","REVERSE","SET","SIZE","SUBLIST","SUBMAP","UNIQUE","VALUELIST","ZIP"));
+    staticFunctions.put(FCT_DATE, Lists.newArrayList("ADDDAYS","ADDMONTHS","ADDYEARS","AGO","DURATION","HUMANDURATION","ISO8601","ISODURATION","MSTU","NOW","STU","TSELEMENTS"));
+    staticFunctions.put(FCT_STRING, Lists.newArrayList("->HEX","B64TOHEX","B64->","B64URL->","BINTOHEX","BYTES->","FROMBIN","FROMBITS","FROMHEX","HASH","HEX->","HEXTOB64","HEXTOBIN","JOIN","MATCH","MATCHER","OPB64->","SPLIT","SUBSTRING","TEMPLATE","->B64URL","->B64","->BYTES","->OPB64","TOBIN","TOBITS","TOHEX","TOLOWER","TOUPPER","TRIM","URLDECODE","URLENCODE","UUID"));
+    staticFunctions.put(FCT_LIST, Lists.newArrayList("->LIST","->MAP","->SET","APPEND","CLONEREVERSE","CONTAINSKEY","CONTAINS","CONTAINSVALUE","DIFFERENCE","FLATTEN","GET","INTERSECTION","KEYLIST","LFLATMAP","LIST->","LMAP","LSORT","MAP->","MAPID","MSORT","PUT","REMOVE","REVERSE","SET","SET->","SIZE","SUBLIST","SUBMAP","UNION","UNIQUE","VALUELIST","ZIP"));
     staticFunctions.put(FCT_LOGIC_STRUCTURE, Lists.newArrayList("ISNaN","ISNULL","ASSERT","BREAK","CONTINUE","DEFINED","EVAL","FAIL","FOREACH","FOR","FORSTEP","IFTE","IFT","MSGFAIL","NRETURN","RETURN","STOP","SWITCH","UNTIL","WHILE"));
     staticFunctions.put(FCT_PLATFORM, Lists.newArrayList("EVALSECURE","IDENT","JSONLOOSE","JSONSTRICT","LIMIT","MAXBUCKETS","MAXDEPTH","MAXGTS","MAXLOOP","MAXOPS","MAXSYMBOLS","NOOP","OPS","RESTORE","REV","SAVE","SECUREKEY","TOKENINFO","UNSECURE","URLFETCH","WEBCALL"));
-    staticFunctions.put(FCT_GTS, Lists.newArrayList("ADDVALUE","ATINDEX","ATTICK","BBOX","CLONE","CLONEEMPTY","COMMONTICKS","COMPACT","CORRELATE","DEDUP","ELEVATIONS","FETCH","FETCHBOOLEAN","FETCHDOUBLE","FETCHLONG","FETCHSTRING","FILLTICKS","FIND","FIRSTTICK","INTEGRATE","ISONORMALIZE","LABELS","LASTSORT","LASTTICK","LOCATIONS","LOWESS","MERGE","META","METASORT","MUSIGMA","NAME","NEWGTS","NONEMPTY","NORMALIZE","NSUMSUMSQ","PARSESELECTOR","QUANTIZE","RANGECOMPACT","RELABEL","RENAME","RESETS","RLOWESS","RSORT","SHRINK","SINGLEEXPONENTIALSMOOTHING","SORT","STANDARDIZE","TICKINDEX","TICKLIST","TICKS","TIMECLIP","TIMEMODULO","TIMESCALE","TIMESHIFT","TIMESPLIT","TOSELECTOR","UNWRAP","UPDATE","VALUES","WRAP","ZSCORE"));
+    staticFunctions.put(FCT_GTS, Lists.newArrayList("ADDVALUE","ATINDEX","ATTICK","ATTRIBUTES","BBOX","CHUNK","CLONE","CLONEEMPTY","COMMONTICKS","COMPACT","CORRELATE","DEDUP","DISCORDS","ELEVATIONS","FETCH","FETCHBOOLEAN","FETCHDOUBLE","FETCHLONG","FETCHSTRING","FILLTICKS","FIND","FIRSTTICK","INTEGRATE","ISONORMALIZE","LABELS","LASTSORT","LASTTICK","LOCATIONS","LOWESS","MERGE","META","METASORT","MUSIGMA","NAME","NEWGTS","NONEMPTY","NORMALIZE","NSUMSUMSQ","PATTERNDETECTION","PATTERNS","PARSESELECTOR","PARTITION","QUANTIZE","RANGECOMPACT","RELABEL","RENAME","RESETS","RLOWESS","RSORT","RVALUESORT","SETATTRIBUTES","SETVALUE","SHRINK","SINGLEEXPONENTIALSMOOTHING","SORT","SORTBY","STANDARDIZE","TICKINDEX","TICKLIST","TICKS","TIMECLIP","TIMEMODULO","TIMESCALE","TIMESHIFT","TIMESPLIT","TOSELECTOR","UNWRAP","UPDATE","VALUEDEDUP","VALUEHISTOGRAM","VALUES","VALUESORT","VALUESPLIT","WRAP","WRAPRAW","ZSCORE"));
     staticFunctions.put(FCT_OUTLIER, Lists.newArrayList("THRESHOLDTEST","ZSCORETEST","GRUBBSTEST","ESDTEST","STLESDTEST","HYBRIDTEST","HYBRIDTEST2"));
     staticFunctions.put(FCT_BUCKETIZED, Lists.newArrayList("ATBUCKET","BUCKETCOUNT","BUCKETSPAN","CROP","FILLNEXT","FILLPREVIOUS","FILLVALUE","INTERPOLATE","LASTBUCKET","STL","UNBUCKETIZE"));
     staticFunctions.put(FCT_GEO, Lists.newArrayList("GEO.DIFFERENCE","GEO.INTERSECTION","GEO.INTERSECTS","GEO.UNION","GEO.WITHIN","GEO.WKT","HAVERSINE"));
-    staticFunctions.put(FCT_TYPE_CONVERSION, Lists.newArrayList("->JSON","JSON->","TODOUBLE","TOLONG","TOSTRING","TOTIMESTAMP"));
+    staticFunctions.put(FCT_TYPE_CONVERSION, Lists.newArrayList("->JSON","JSON->","TOBOOLEAN","TODOUBLE","TOLONG","TOSTRING","TOTIMESTAMP"));
     staticFunctions.put(FCT_STACK, Lists.newArrayList("AUTHENTICATE","BOOTSTRAP","COUNTTOMARK","CLEAR","CLEARTOMARK","CSTORE","DEF","DEPTH","DEBUGON","DEBUGOFF","DOC","DOCMODE","DROP","DROPN","DUP","DUPN","EXPORT","FORGET","LOAD","MARK","NDEBUGON","PICK","ROLL","ROLLD","ROT","RUN","STORE","SWAP","TYPEOF"));
-
+    staticFunctions.put(FCT_UTIL, Lists.newArrayList("CUDF","GZIP","RANGE","UNGZIP","UDF"));
+    staticFunctions.put(FCT_CRYPTO, Lists.newArrayList("AESWRAP","AESUNWRAP"));
+    
     // Sort all functions list
     for (String function: functionsFullList) {
       // exclude frameworks  and structures
