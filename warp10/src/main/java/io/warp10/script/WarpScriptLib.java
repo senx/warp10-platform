@@ -546,6 +546,11 @@ public class WarpScriptLib {
     
     // Crypto functions
     functions.put("HASH", new HASH("HASH"));
+    functions.put("MD5", new SHA1("MD5"));
+    functions.put("SHA1", new SHA1("SHA1"));
+    functions.put("SHA256", new SHA1("SHA256"));
+    functions.put("SHA256HMAC", new SHA1("SHA256HMAC"));
+    functions.put("SHA1HMAC", new SHA1("SHA1HMAC"));
     functions.put("AESWRAP", new AESWRAP("AESWRAP"));
     functions.put("AESUNWRAP", new AESUNWRAP("AESUNWRAP"));
     functions.put("GZIP", new GZIP("GZIP"));
@@ -557,6 +562,7 @@ public class WarpScriptLib {
     functions.put("RSADECRYPT", new RSADECRYPT("RSADECRYPT"));
     functions.put("RSASIGN", new RSASIGN("RSASIGN"));
     functions.put("RSAVERIFY", new RSAVERIFY("RSAVERIFY"));
+
     
     //
     // String functions
