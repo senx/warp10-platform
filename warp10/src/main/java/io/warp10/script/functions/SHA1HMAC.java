@@ -25,13 +25,10 @@ import org.bouncycastle.crypto.macs.HMac;
 import org.bouncycastle.crypto.params.KeyParameter;
 
 /**
- * Compute a SipHash of its input converted to String
+ * Hash MAC of a byte array with the cryptographic hash function SHA-1 and a given key
  */
 public class SHA1HMAC extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  /**
-   * HHash MAC of a byte array with the cryptographic hash function SHA-1  and a given key
-   */
   public SHA1HMAC(String name) {
     super(name);
   }
