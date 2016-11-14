@@ -28,6 +28,7 @@ import io.warp10.continuum.egress.EgressFetchHandler;
 import io.warp10.continuum.egress.EgressFindHandler;
 import io.warp10.continuum.egress.EgressMobiusHandler;
 import io.warp10.continuum.ingress.DatalogForwarder;
+import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.crypto.CryptoUtils;
@@ -43,6 +44,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Properties;
 
+import org.apache.hadoop.util.ShutdownHookManager;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
@@ -93,6 +95,8 @@ public class Warp extends WarpDist implements Runnable {
   }
   
   public static void main(String[] args) throws Exception {
+    
+    SensisionConstants constants = new SensisionConstants();
     
     System.setProperty("java.awt.headless", "true");
     
@@ -204,6 +208,13 @@ public class Warp extends WarpDist implements Runnable {
     // Register shutdown hook to close the DB.
     Runtime.getRuntime().addShutdownHook(new Thread(new Warp()));
     
+    //
+    // Make sure ShutdownHookManager is initialized, otherwise it will try to
+    // register a shutdown hook during the shutdown hook we just registered...
+    //
+    
+    ShutdownHookManager.get();      
+
     //
     // Initialize the backup manager
     //
