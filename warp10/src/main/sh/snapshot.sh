@@ -16,13 +16,28 @@ SIGNAL_PATH=${LEVELDB_HOME}/snapshot.signal
 # Name of snapshot
 SNAPSHOT=$1
 
-#JAVA_HOME=/opt/jdk1.8.0_31
+#JAVA_HOME=/opt/java8
 WARP10_USER=warp10
 WARP10_CLASS=io.warp10.standalone.Warp
+
+#
+# Make sure the caller is root
+#
+
+if [ "`whoami`" != "root" ]
+then
+  echo "You must be root to run this script."
+  exit 1
+fi
 
 if [ "" = "${SNAPSHOT}" ]
 then
   echo "Snapshot name is empty."
+  exit 1
+fi
+
+if [ -z "$JAVA_HOME" ]; then
+  echo "JAVA_HOME not set";
   exit 1
 fi
 
@@ -49,6 +64,7 @@ fi
 #
 # Check snapshots and leveldb data dir are on the same mount point
 #
+
 if [ "`df -P ${LEVELDB_HOME}|sed '1d'|awk '{ print $1 }'`" != "`df -P ${SNAPSHOT_DIR}|sed '1d'|awk '{ print $1 }'`" ]
 then
   echo "'${SNAPSHOT_DIR}' and '${LEVELDB_HOME}' must be mounted onto the same mount point."
@@ -112,6 +128,8 @@ fi
 
 su ${WARP10_USER} -c "cp ${LEVELDB_HOME}/CURRENT ${SNAPSHOT_DIR}/${SNAPSHOT}"
 su ${WARP10_USER} -c "cp ${LEVELDB_HOME}/MANIFEST-* ${SNAPSHOT_DIR}/${SNAPSHOT}"
+su ${WARP10_USER} -c "cp ${LEVELDB_HOME}/LOG* ${SNAPSHOT_DIR}/${SNAPSHOT}"
+su ${WARP10_USER} -c "cp ${LEVELDB_HOME}/*.log ${SNAPSHOT_DIR}/${SNAPSHOT}"
 
 #
 # Remove 'trigger' file

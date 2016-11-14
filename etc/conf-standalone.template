@@ -61,21 +61,21 @@ warpscript.def.unshadow = false
 // Default maximum number of operations a single WarpScript execution can do
 //
 warpscript.maxops = 1000
-warpscript.maxops.hard = 2000
+warpscript.maxops.hard = 20000
 
 //
 // Maximum number of buckets which can result of a call to BUCKETIZE
 // Can be modified by MAXBUCKETS up to the hard limit below
 //
 warpscript.maxbuckets = 1000000
-warpscript.maxbuckets.hard = 100000
+warpscript.maxbuckets.hard = 1000000
 
 //
 // Maximum depth of the stack
 // Can be modified by MAXDEPTH up to the hard limit below
 //
 warpscript.maxdepth = 1000
-warpscript.maxdepth.hard = 1000
+warpscript.maxdepth.hard = 2000
 
 //
 // Maximum number of datapoint which can be fetched during a WarpScript execution
