@@ -20,14 +20,17 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import org.bouncycastle.crypto.digests.MD5Digest;
+import org.bouncycastle.crypto.Digest;
+import org.bouncycastle.crypto.digests.GeneralDigest;
 
-/**
- * Message Digest of a byte array with the cryptographic hash function MD5
- */
-public class MD5 extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class DIGEST extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public MD5(String name) {super(name); }
+  private Class digestAlgo;
+
+  public DIGEST(String name, Class<? extends GeneralDigest> digestAlgo) {
+    super(name);
+    this.digestAlgo = digestAlgo;
+  }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
@@ -39,16 +42,20 @@ public class MD5 extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
     byte[] bytes = (byte[]) o;
 
-    MD5Digest digest = new MD5Digest();
+    try {
+      Digest digest = (Digest) digestAlgo.newInstance();
 
-    byte[] digestOctets = new byte[digest.getDigestSize()];
+      byte[] digestOctets = new byte[digest.getDigestSize()];
 
-    digest.update(bytes, 0, bytes.length);
+      digest.update(bytes, 0, bytes.length);
 
-    digest.doFinal(digestOctets, 0);
+      digest.doFinal(digestOctets, 0);
 
-    stack.push(digestOctets);
+      stack.push(digestOctets);
 
-    return stack;
+      return stack;
+    } catch (Exception exp) {
+      throw new WarpScriptException("Unable to instantiate digest " + getName());
+    }
   }
 }

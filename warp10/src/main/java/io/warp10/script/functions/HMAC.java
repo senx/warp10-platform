@@ -16,23 +16,25 @@
 
 package io.warp10.script.functions;
 
+
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import org.bouncycastle.crypto.digests.SHA1Digest;
+import org.bouncycastle.crypto.Digest;
+import org.bouncycastle.crypto.digests.GeneralDigest;
 import org.bouncycastle.crypto.macs.HMac;
 import org.bouncycastle.crypto.params.KeyParameter;
 
-/**
- * Hash MAC of a byte array with the cryptographic hash function SHA-1 and a given key
- */
-public class SHA1HMAC extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class HMAC extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public SHA1HMAC(String name) {
+  private Class digestAlgo;
+
+  public HMAC(String name, Class<? extends GeneralDigest> digestAlgo) {
     super(name);
+    this.digestAlgo = digestAlgo;
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
@@ -51,18 +53,22 @@ public class SHA1HMAC extends NamedWarpScriptFunction implements WarpScriptStack
 
     byte[] bytes = (byte[]) top;
 
-    HMac m=new HMac(new SHA1Digest());
+    try {
+      HMac m = new HMac((Digest) digestAlgo.newInstance());
 
-    m.init(new KeyParameter(key));
+      m.init(new KeyParameter(key));
 
-    m.update(bytes,0,bytes.length);
+      m.update(bytes,0,bytes.length);
 
-    byte[] mac=new byte[m.getMacSize()];
+      byte[] mac=new byte[m.getMacSize()];
 
-    m.doFinal(mac,0);
+      m.doFinal(mac,0);
 
-    stack.push(mac);
+      stack.push(mac);
 
-    return stack;
+      return stack;
+    } catch (Exception exp) {
+      throw new WarpScriptException("Unable to instantiate digest " + getName(), exp);
+    }
   }
 }
