@@ -20,7 +20,6 @@ import io.warp10.continuum.Configuration;
 import io.warp10.continuum.KafkaWebCallBroker;
 import io.warp10.continuum.KafkaWebCallService;
 import io.warp10.continuum.ThrottlingManager;
-import io.warp10.continuum.Tokens;
 import io.warp10.continuum.egress.Egress;
 import io.warp10.continuum.geo.GeoDirectory;
 import io.warp10.continuum.ingress.Ingress;
@@ -34,28 +33,16 @@ import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OSSKeyStore;
 import io.warp10.crypto.UnsecureKeyStore;
-import io.warp10.script.WarpScriptJarRepository;
-import io.warp10.script.WarpScriptLib;
-import io.warp10.script.WarpScriptMacroRepository;
 import io.warp10.script.ScriptRunner;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.sensision.Sensision;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringReader;
-import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.google.common.base.Preconditions;
 
@@ -63,16 +50,6 @@ import com.google.common.base.Preconditions;
  * Main class for launching components of the Continuum geo time series storage system
  */
 public class WarpDist {
-
-  //
-  // We create an instance of SensisionConstants so Sensision gets its instance name set
-  // before any metric or event is pushed. Otherwise registration won't take into account
-  // the instance name.
-  //
-  
-  static {
-    SensisionConstants constant = new SensisionConstants();
-  }
       
   private static KeyStore keystore = null;
   private static Properties properties = null;
@@ -121,6 +98,14 @@ public class WarpDist {
     
   public static void main(String[] args) throws Exception {
 
+    //
+    // We create an instance of SensisionConstants so Sensision gets its instance name set
+    // before any metric or event is pushed. Otherwise registration won't take into account
+    // the instance name.
+    //
+    
+    SensisionConstants constants = new SensisionConstants();
+    
     System.out.println();
     System.out.println(Constants.WARP10_BANNER);
     System.out.println("  Revision " + Revision.REVISION);
