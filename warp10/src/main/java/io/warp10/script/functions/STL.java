@@ -50,7 +50,7 @@ public class STL extends GTSStackFunction {
 
   //
   // High Level optional parameter
-  // if true, set PRECISION to 1, ROBUSTNESS to 10
+  // if true, set PRECISION to 1, ROBUSTNESS to 15
   // if false, set PRECISION to 2, ROBUSTNESS to 0
   //
 
