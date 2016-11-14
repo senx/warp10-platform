@@ -55,11 +55,13 @@ public class ADDDAYS extends NamedWarpScriptFunction implements WarpScriptStackF
     if (top instanceof String) {
       tz = top.toString();
       top = stack.pop();
+      if (!(top instanceof Long)) {
+        throw new WarpScriptException(getName() + " operates on a tselements list, timestamp, or timestamp and timezone.");
+      }
+    } else if (!(top instanceof List)) {
+      throw new WarpScriptException(getName() + " operates on a tselements list, timestamp, or timestamp and timezone.");
     }
     
-    if (!(top instanceof Long) && !(top instanceof List)) {
-      throw new WarpScriptException(getName() + " operates on a timestamp expressed in time units or a tselements list or a timestamp or tselements list and timezone.");
-    }
     
     if (top instanceof Long) {
       long instant = ((Number) top).longValue();
