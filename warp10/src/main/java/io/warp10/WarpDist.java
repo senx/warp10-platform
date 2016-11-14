@@ -105,12 +105,12 @@ public class WarpDist {
     //
     
     SensisionConstants constants = new SensisionConstants();
-    Sensision.getStartTime();
     
     System.out.println();
     System.out.println(Constants.WARP10_BANNER);
     System.out.println("  Revision " + Revision.REVISION);
     System.out.println();
+    System.out.println("Sensision started at " + Sensision.getStartTime());
     
     System.setProperty("java.awt.headless", "true");
     
