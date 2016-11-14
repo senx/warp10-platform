@@ -68,7 +68,7 @@ public class HMAC extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
       return stack;
     } catch (Exception exp) {
-      throw new WarpScriptException("Unable to instantiate digest " + getName(), exp);
+      throw new WarpScriptException(getName() + " unable to instantiate message digest", exp);
     }
   }
 }
