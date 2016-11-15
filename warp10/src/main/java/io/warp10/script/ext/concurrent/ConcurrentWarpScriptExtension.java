@@ -13,17 +13,18 @@ import io.warp10.warp.sdk.WarpScriptExtension;
  */
 public class ConcurrentWarpScriptExtension extends WarpScriptExtension {
   
-  private final Map<String,Object> functions;
+  private static final Map<String,Object> functions;
   
-  public ConcurrentWarpScriptExtension() {
-    this.functions = new HashMap<String, Object>();
+  static {
+    functions = new HashMap<String, Object>();
+
     functions.put("CEVAL", new CEVAL("CEVAL"));
     functions.put("SYNC", new SYNC("SYNC"));
   }
   
   @Override
   public Map<String, Object> getFunctions() {
-    return this.functions;
+    return functions;
   }
 
 }
