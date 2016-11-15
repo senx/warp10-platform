@@ -295,7 +295,7 @@ public class WarpConfig {
     String file = args[0];
     String key = args[1];
     try {
-      WarpConfig.setProperties(file);
+      properties = WarpConfig.readConfig(new FileReader(file), null);
       System.out.println(key + "=" + WarpConfig.getProperties().getProperty(key));
     } catch (Exception e) {
       e.printStackTrace();
