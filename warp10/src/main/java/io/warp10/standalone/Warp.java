@@ -97,15 +97,12 @@ public class Warp extends WarpDist implements Runnable {
   
   public static void main(String[] args) throws Exception {
     
-    SensisionConstants constants = new SensisionConstants();
-    
     System.setProperty("java.awt.headless", "true");
     
     System.out.println();
     System.out.println(Constants.WARP10_BANNER);
     System.out.println("  Revision " + Revision.REVISION);
     System.out.println();
-    System.out.println("Sensision started at " + Sensision.getStartTime());
 
     setProperties(args[0]);
     
