@@ -424,8 +424,6 @@ public class WarpScriptLib {
     functions.put("AGO", new AGO("AGO"));
     functions.put("MSTU", new MSTU("MSTU"));
     functions.put("STU", new STU("STU"));
-    functions.put("UNIXTIMEEND", new UNIXTIMEEND("UNIXTIMEEND"));
-    functions.put("UNIXTIMEALIGN", new UNIXTIMEALIGN("UNIXTIMEALIGN"));
     functions.put("APPEND", new APPEND("APPEND"));
     functions.put(STORE, new STORE(STORE));
     functions.put("CSTORE", new CSTORE("CSTORE"));
