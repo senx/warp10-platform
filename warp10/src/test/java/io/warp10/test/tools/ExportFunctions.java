@@ -18,7 +18,10 @@ package io.warp10.test.tools;
 
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
 import io.warp10.script.WarpScriptLib;
+import io.warp10.script.ext.concurrent.ConcurrentWarpScriptExtension;
+import io.warp10.script.ext.sensision.SensisionWarpScriptExtension;
 import org.boon.json.JsonFactory;
 import org.boon.json.ObjectMapper;
 
@@ -47,7 +50,10 @@ public class ExportFunctions {
   private final static String FCT_MATH = "functions.math";
   private final static String FCT_TIMEUNIT = "functions.timeunit";
   private final static String FCT_TRIGO = "functions.trigonometry";
+  private final static String FCT_COUNTER = "functions.counter";
+  private final static String FCT_COMPRESSION = "functions.compression";
   private final static String FCT_DATE = "functions.date";
+  private final static String FCT_UDF = "functions.udf";
   private final static String FCT_UTIL = "functions.util";
   private final static String FCT_STRING = "functions.string";
   private final static String FCT_LIST = "functions.list";
@@ -94,6 +100,17 @@ public class ExportFunctions {
       Field warpScriptField = WarpScriptLib.class.getDeclaredField("functions");
       warpScriptField.setAccessible(true);
       Map<String,Object> functions  = (Map<String,Object>) warpScriptField.get(null);
+
+      // Extract Sensision WarpScript ext functions
+      Field sensisionWarpScriptField = SensisionWarpScriptExtension.class.getDeclaredField("functions");
+      sensisionWarpScriptField.setAccessible(true);
+      functions.putAll((Map<String,Object>) sensisionWarpScriptField.get(null));
+
+      Field concurrentWarpScriptField = ConcurrentWarpScriptExtension.class.getDeclaredField("functions");
+      concurrentWarpScriptField.setAccessible(true);
+      functions.putAll((Map<String,Object>) concurrentWarpScriptField.get(null));
+
+
       functionsFullList.addAll(functions.keySet());
     } catch (Exception exp) {
       exp.printStackTrace();
@@ -134,6 +151,9 @@ public class ExportFunctions {
     functions.put(FCT_MISC, new ArrayList<String>());
     functions.put(FCT_UTIL, new ArrayList<String>());
     functions.put(FCT_CRYPTO, new ArrayList<String>());
+    functions.put(FCT_COMPRESSION, new ArrayList<String>());
+    functions.put(FCT_COUNTER, new ArrayList<String>());
+    functions.put(FCT_UDF, new ArrayList<String>());
 
     List<String> constants = Lists.newArrayList("true","false");
 
@@ -183,12 +203,12 @@ public class ExportFunctions {
     // -------------------------------------------------------------
     // FRAMEWORK BUCKETIZE
     // -------------------------------------------------------------
-    List<String> customBucketizer = Lists.newArrayList();
+    List<String> customBucketizer = Lists.newArrayList("MACROBUCKETIZER");
 
     // -------------------------------------------------------------
     // FRAMEWORK FILTER
     // -------------------------------------------------------------
-    List<String> customFilter = Lists.newArrayList();
+    List<String> customFilter = Lists.newArrayList("");
 
 
     // FUNCTIONS
@@ -196,19 +216,21 @@ public class ExportFunctions {
     staticFunctions.put(FCT_MATH, Lists.newArrayList("ABS","CBRT","CEIL","EXP","FLOOR","IEEEREMAINDER","LBOUNDS","LOG","LOG10","MAX","MIN","NBOUNDS","NEXTAFTER","NEXTUP","NPDF","PROBABILITY","RAND","REVBITS","RINT","ROUND","SIGNUM","SQRT"));
     staticFunctions.put(FCT_TIMEUNIT, Lists.newArrayList("w","d","h","m","s", "ms","us", "ns", "ps"));
     staticFunctions.put(FCT_TRIGO, Lists.newArrayList("COS","COSH","ACOS","SIN","SINH","ASIN","TAN","TANH","ATAN","TODEGREES","TORADIANS"));
-    staticFunctions.put(FCT_DATE, Lists.newArrayList("ADDDAYS","ADDMONTHS","ADDYEARS","AGO","DURATION","HUMANDURATION","ISO8601","ISODURATION","MSTU","NOW","STU","TSELEMENTS"));
+    staticFunctions.put(FCT_DATE, Lists.newArrayList("ADDDAYS","ADDMONTHS","ADDYEARS","AGO","DURATION","HUMANDURATION","ISO8601","ISODURATION","MSTU","NOTAFTER", "NOTBEFORE", "NOW","STU","TSELEMENTS"));
     staticFunctions.put(FCT_STRING, Lists.newArrayList("->HEX","B64TOHEX","B64->","B64URL->","BINTOHEX","BYTES->","FROMBIN","FROMBITS","FROMHEX","HASH","HEX->","HEXTOB64","HEXTOBIN","JOIN","MATCH","MATCHER","OPB64->","SPLIT","SUBSTRING","TEMPLATE","->B64URL","->B64","->BYTES","->OPB64","TOBIN","TOBITS","TOHEX","TOLOWER","TOUPPER","TRIM","URLDECODE","URLENCODE","UUID"));
     staticFunctions.put(FCT_LIST, Lists.newArrayList("->LIST","->MAP","->SET","APPEND","CLONEREVERSE","CONTAINSKEY","CONTAINS","CONTAINSVALUE","DIFFERENCE","FLATTEN","GET","INTERSECTION","KEYLIST","LFLATMAP","LIST->","LMAP","LSORT","MAP->","MAPID","MSORT","PUT","REMOVE","REVERSE","SET","SET->","SIZE","SUBLIST","SUBMAP","UNION","UNIQUE","VALUELIST","ZIP"));
-    staticFunctions.put(FCT_LOGIC_STRUCTURE, Lists.newArrayList("ISNaN","ISNULL","ASSERT","BREAK","CONTINUE","DEFINED","EVAL","FAIL","FOREACH","FOR","FORSTEP","IFTE","IFT","MSGFAIL","NRETURN","RETURN","STOP","SWITCH","UNTIL","WHILE"));
-    staticFunctions.put(FCT_PLATFORM, Lists.newArrayList("EVALSECURE","IDENT","JSONLOOSE","JSONSTRICT","LIMIT","MAXBUCKETS","MAXDEPTH","MAXGTS","MAXLOOP","MAXOPS","MAXSYMBOLS","NOOP","OPS","RESTORE","REV","SAVE","SECUREKEY","TOKENINFO","UNSECURE","URLFETCH","WEBCALL"));
+    staticFunctions.put(FCT_LOGIC_STRUCTURE, Lists.newArrayList("ISNaN","ISNULL","ASSERT","BREAK","CONTINUE","DEFINED","DEFINEDMACRO","EVAL","FAIL","FOREACH","FOR","FORSTEP","IFTE","IFT","MSGFAIL","NRETURN","RETURN","STOP","SWITCH","UNTIL","WHILE"));
+    staticFunctions.put(FCT_PLATFORM, Lists.newArrayList("EVALSECURE","HEADER","IDENT","JSONLOOSE","JSONSTRICT","LIMIT","MAXBUCKETS","MAXDEPTH","MAXGTS","MAXLOOP","MAXOPS","MAXSYMBOLS","NOOP","OPS","RESTORE","REV","SAVE","SECUREKEY","TOKENINFO","UNSECURE","URLFETCH","WEBCALL"));
     staticFunctions.put(FCT_GTS, Lists.newArrayList("ADDVALUE","ATINDEX","ATTICK","ATTRIBUTES","BBOX","CHUNK","CLONE","CLONEEMPTY","COMMONTICKS","COMPACT","CORRELATE","DEDUP","DISCORDS","ELEVATIONS","FETCH","FETCHBOOLEAN","FETCHDOUBLE","FETCHLONG","FETCHSTRING","FILLTICKS","FIND","FIRSTTICK","INTEGRATE","ISONORMALIZE","LABELS","LASTSORT","LASTTICK","LOCATIONS","LOWESS","MERGE","META","METASORT","MUSIGMA","NAME","NEWGTS","NONEMPTY","NORMALIZE","NSUMSUMSQ","PATTERNDETECTION","PATTERNS","PARSESELECTOR","PARTITION","QUANTIZE","RANGECOMPACT","RELABEL","RENAME","RESETS","RLOWESS","RSORT","RVALUESORT","SETATTRIBUTES","SETVALUE","SHRINK","SINGLEEXPONENTIALSMOOTHING","SORT","SORTBY","STANDARDIZE","TICKINDEX","TICKLIST","TICKS","TIMECLIP","TIMEMODULO","TIMESCALE","TIMESHIFT","TIMESPLIT","TOSELECTOR","UNWRAP","UPDATE","VALUEDEDUP","VALUEHISTOGRAM","VALUES","VALUESORT","VALUESPLIT","WRAP","WRAPRAW","ZSCORE"));
     staticFunctions.put(FCT_OUTLIER, Lists.newArrayList("THRESHOLDTEST","ZSCORETEST","GRUBBSTEST","ESDTEST","STLESDTEST","HYBRIDTEST","HYBRIDTEST2"));
     staticFunctions.put(FCT_BUCKETIZED, Lists.newArrayList("ATBUCKET","BUCKETCOUNT","BUCKETSPAN","CROP","FILLNEXT","FILLPREVIOUS","FILLVALUE","INTERPOLATE","LASTBUCKET","STL","UNBUCKETIZE"));
     staticFunctions.put(FCT_GEO, Lists.newArrayList("GEO.DIFFERENCE","GEO.INTERSECTION","GEO.INTERSECTS","GEO.UNION","GEO.WITHIN","GEO.WKT","HAVERSINE"));
     staticFunctions.put(FCT_TYPE_CONVERSION, Lists.newArrayList("->JSON","JSON->","TOBOOLEAN","TODOUBLE","TOLONG","TOSTRING","TOTIMESTAMP"));
     staticFunctions.put(FCT_STACK, Lists.newArrayList("AUTHENTICATE","BOOTSTRAP","COUNTTOMARK","CLEAR","CLEARTOMARK","CSTORE","DEF","DEPTH","DEBUGON","DEBUGOFF","DOC","DOCMODE","DROP","DROPN","DUP","DUPN","EXPORT","FORGET","LOAD","MARK","NDEBUGON","PICK","ROLL","ROLLD","ROT","RUN","STORE","SWAP","TYPEOF"));
-    staticFunctions.put(FCT_UTIL, Lists.newArrayList("CUDF","GZIP","RANGE","UNGZIP","UDF"));
-    staticFunctions.put(FCT_CRYPTO, Lists.newArrayList("AESWRAP","AESUNWRAP"));
+    staticFunctions.put(FCT_UDF, Lists.newArrayList("CUDF","UDF"));
+    staticFunctions.put(FCT_COUNTER, Lists.newArrayList("RANGE","COUNTER", "COUNTERDELTA", "COUNTERVALUE"));
+    staticFunctions.put(FCT_COMPRESSION, Lists.newArrayList("GZIP","UNGZIP"));
+    staticFunctions.put(FCT_CRYPTO, Lists.newArrayList("AESWRAP","AESUNWRAP","MD5","SHA1","SHA256","SHA1HMAC","SHA256HMAC","RSAGEN","RSAPRIVATE","RSAPUBLIC","RSADECRYPT","RSAENCRYPT","RSASIGN","RSAVERIFY"));
     
     // Sort all functions list
     for (String function: functionsFullList) {
@@ -232,8 +254,6 @@ public class ExportFunctions {
           frameworksFunctions.get(FMK_MAP).get(SINGLE_VALUE_MAPPER).add(function);
         } else if (geoMapper.contains(function)) {
           frameworksFunctions.get(FMK_MAP).get(GEO_MAPPER).add(function);
-        } else if (customMapper.contains(function)) {
-          frameworksFunctions.get(FMK_MAP).get(CUSTOM_MAPPER).add(function);
         } else {
           frameworksFunctions.get(FMK_MAP).get(SLIDING_WINDOW_MAPPER).add(function);
         }
@@ -241,33 +261,45 @@ public class ExportFunctions {
         continue;
       }
 
+      // CUSTOM MAPEPR
+      if (customMapper.contains(function)) {
+        frameworksFunctions.get(FMK_MAP).get(CUSTOM_MAPPER).add(function);
+        continue;
+      }
+
       // REDUCE
       if (reducePattern.matcher(function).matches()) {
-        if (customReducer.contains(function)) {
-          frameworksFunctions.get(FMK_REDUCE).get(CUSTOM_REDUCER).add(function);
-        } else {
-          frameworksFunctions.get(FMK_REDUCE).get(DEFAULT_REDUCER).add(function);
-        }
+        frameworksFunctions.get(FMK_REDUCE).get(DEFAULT_REDUCER).add(function);
+        continue;
+      }
+
+      // CUSTOM REDUCER
+      if (customReducer.contains(function)) {
+        frameworksFunctions.get(FMK_REDUCE).get(CUSTOM_REDUCER).add(function);
         continue;
       }
 
       // BUCKETIZE
       if (bucketizePattern.matcher(function).matches()) {
-        if (customBucketizer.contains(function)) {
-          frameworksFunctions.get(FMK_BUCKETIZE).get(CUSTOM_BUCKETIZER).add(function);
-        } else {
-          frameworksFunctions.get(FMK_BUCKETIZE).get(DEFAULT_BUCKETIZER).add(function);
-        }
+        frameworksFunctions.get(FMK_BUCKETIZE).get(DEFAULT_BUCKETIZER).add(function);
+        continue;
+      }
+
+      // CUSTOM BUCKETIZE
+      if (customBucketizer.contains(function)) {
+        frameworksFunctions.get(FMK_BUCKETIZE).get(CUSTOM_BUCKETIZER).add(function);
         continue;
       }
 
       // FILTER
       if (filterPattern.matcher(function).matches()) {
-        if (customFilter.contains(function)) {
-          frameworksFunctions.get(FMK_FILTER).get(CUSTOM_FILTER).add(function);
-        } else {
-          frameworksFunctions.get(FMK_FILTER).get(DEFAULT_FILTER).add(function);
-        }
+        frameworksFunctions.get(FMK_FILTER).get(DEFAULT_FILTER).add(function);
+        continue;
+      }
+
+      // CUSTOM FILTER
+      if (customFilter.contains(function)) {
+        frameworksFunctions.get(FMK_FILTER).get(CUSTOM_FILTER).add(function);
         continue;
       }
 
@@ -326,6 +358,14 @@ public class ExportFunctions {
       // Uncategorized function. Add it to function.misc
       // -------------------------------------------------------------
       functions.get(FCT_MISC).add(function);
+    }
+
+    // -------------------------------------------------------------
+    // -- SORT functions
+    // -------------------------------------------------------------
+    for (Map.Entry<String, List<String>> entry : functions.entrySet()) {
+      List<String> sortedFunctions = Ordering.natural().sortedCopy(entry.getValue());
+      functions.put(entry.getKey(), sortedFunctions);
     }
 
 
