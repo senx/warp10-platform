@@ -29,7 +29,9 @@ public class CLEARDEFS extends NamedWarpScriptFunction implements WarpScriptStac
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    stack.getDefined().clear();
+    for (String key: stack.getDefined().keySet()) {
+      stack.define(key, null);
+    }
     return stack;
   }
 }
