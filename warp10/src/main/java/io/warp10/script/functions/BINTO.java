@@ -47,7 +47,7 @@ public class BINTO extends NamedWarpScriptFunction implements WarpScriptStackFun
     String bin = o.toString();
     
     if (bin.length() % 8 != 0) {
-      bin = "0000000".substring(7 - (bin.length() % 8)) + bin;
+      bin = "00000000".substring(bin.length() % 8) + bin;
     }
     
     char[] chars = UnsafeString.getChars(bin);
@@ -63,7 +63,7 @@ public class BINTO extends NamedWarpScriptFunction implements WarpScriptStackFun
       
       curbyte <<= 4;
       
-      String nibble = new String(chars, 0, 4);
+      String nibble = new String(chars, i, 4);
       
       if ("0000".equals(nibble)) {
         curbyte |= 0;
@@ -99,7 +99,7 @@ public class BINTO extends NamedWarpScriptFunction implements WarpScriptStackFun
         curbyte |= 0xF;
       }
       
-      if (i > 0 && 0 == i % 8) {
+      if (i > 0 && 4 == i % 8) {
         bytes[byteidx++] = curbyte;
         curbyte = 0;
       }
