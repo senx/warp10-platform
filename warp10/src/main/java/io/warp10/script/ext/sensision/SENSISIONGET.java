@@ -10,7 +10,9 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.functions.PARSESELECTOR;
 import io.warp10.sensision.Sensision;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import com.geoxp.GeoXPLib;
 
@@ -35,7 +37,11 @@ public class SENSISIONGET extends NamedWarpScriptFunction implements WarpScriptS
       Object[] parsed = PARSESELECTOR.parse(top.toString());
     
       cls = parsed[0].toString();
-      labels = (Map<String,String>) parsed[1];
+      labels = new HashMap<String, String>();
+      
+      for (Entry<String,String> entry: ((Map<String,String>) parsed[1]).entrySet()) {
+        labels.put(entry.getKey(), entry.getValue().substring(1));
+      }
     } else {
       labels = (Map<String,String>) top;
       cls = stack.pop().toString();
