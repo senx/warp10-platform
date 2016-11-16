@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.functions;
+package io.warp10.script.ext.concurrent;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;

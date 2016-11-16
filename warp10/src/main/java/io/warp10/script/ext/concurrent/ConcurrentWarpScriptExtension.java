@@ -3,8 +3,6 @@ package io.warp10.script.ext.concurrent;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.warp10.script.functions.CEVAL;
-import io.warp10.script.functions.SYNC;
 import io.warp10.warp.sdk.WarpScriptExtension;
 
 /**
