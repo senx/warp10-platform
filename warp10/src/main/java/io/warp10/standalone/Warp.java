@@ -28,6 +28,7 @@ import io.warp10.continuum.egress.EgressFetchHandler;
 import io.warp10.continuum.egress.EgressFindHandler;
 import io.warp10.continuum.egress.EgressMobiusHandler;
 import io.warp10.continuum.ingress.DatalogForwarder;
+import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.crypto.CryptoUtils;
@@ -37,10 +38,13 @@ import io.warp10.crypto.UnsecureKeyStore;
 import io.warp10.quasar.filter.QuasarTokenFilter;
 import io.warp10.script.ScriptRunner;
 import io.warp10.script.WarpScriptLib;
+import io.warp10.sensision.Sensision;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import org.eclipse.jetty.server.Connector;
@@ -100,6 +104,10 @@ public class Warp extends WarpDist implements Runnable {
     System.out.println(Constants.WARP10_BANNER);
     System.out.println("  Revision " + Revision.REVISION);
     System.out.println();
+
+    Map<String,String> labels = new HashMap<String, String>();
+    labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "standalone");
+    Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);
 
     setProperties(args[0]);
     
