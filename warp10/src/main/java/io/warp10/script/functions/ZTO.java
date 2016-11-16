@@ -58,7 +58,7 @@ public class ZTO extends NamedWarpScriptFunction implements WarpScriptStackFunct
     o = stack.pop();
 
     if (!(o instanceof byte[])) {
-      throw new WarpScriptException(getName() + " operates on a Morton coded encoded as a byte array.");
+      throw new WarpScriptException(getName() + " operates on a Morton code encoded as a byte array.");
     }
     
     byte[] encoded = (byte[]) o;
