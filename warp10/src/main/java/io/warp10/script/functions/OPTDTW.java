@@ -22,7 +22,12 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
+import java.util.PriorityQueue;
+
+import org.apache.commons.math3.util.Pair;
 
 /**
  * Perform Dynamic Time Warping distance computation
@@ -42,15 +47,15 @@ public class OPTDTW extends NamedWarpScriptFunction implements WarpScriptStackFu
     Object o = stack.pop();
     
     if (!(o instanceof Number)) {
-      throw new WarpScriptException(getName() + " expects a numeric threshold on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a count of best restults to return on top of the stack.");
     }
     
-    double threshold = ((Number) o).doubleValue();
+    int count = ((Number) o).intValue();
     
     o = stack.pop();
     
     if (!(o instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a query number list below the threshold.");
+      throw new WarpScriptException(getName() + " expects a numeric list to use as query below the count.");
     }
 
     double[] query = new double[((List) o).size()];
@@ -62,7 +67,7 @@ public class OPTDTW extends NamedWarpScriptFunction implements WarpScriptStackFu
     o = stack.pop();
     
     if (!(o instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a list of numbers below the query list.");
+      throw new WarpScriptException(getName() + " expects a numeric list as the sequence in which to find best mataches below the 'query' list.");
     }
 
     double[] sequence = new double[((List) o).size()];
@@ -75,10 +80,15 @@ public class OPTDTW extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException(getName() + " expects the query list to be shorter than the sequence list.");
     }
     
-    double mindist = Double.POSITIVE_INFINITY;
+    double mindist = 0.0;
     
-    List<Integer> bestmatches = new ArrayList<Integer>();
-        
+    PriorityQueue<Pair<Integer, Double>> distances = new PriorityQueue<Pair<Integer,Double>>(new Comparator<Pair<Integer,Double>>() {
+      @Override
+      public int compare(Pair<Integer, Double> o1, Pair<Integer, Double> o2) {
+        return o1.getValue().compareTo(o2.getValue());
+      }
+    });
+    
     for (i = 0; i <= sequence.length - query.length; i++) {
       double dist = dtw.compute(query, 0, query.length, sequence, i, query.length, mindist);
       
@@ -86,16 +96,36 @@ public class OPTDTW extends NamedWarpScriptFunction implements WarpScriptStackFu
         continue;
       }
       
-      if (dist < mindist) {
-        mindist = dist;
-        bestmatches.clear();
+      distances.add(new Pair<Integer, Double>(i, dist));
+
+      //
+      // If the priority queue is of 'count' size, retrieve the largest distance and
+      // use it as the threshold for the DTW computation
+      //
+        
+      if (count > 0 && distances.size() >= count) {
+        Object adist[] = distances.toArray();
+        mindist = ((Pair<Integer,Double>) adist[count - 1]).getValue();
       }
-      
-      bestmatches.add(i);
     }
     
-    stack.push(bestmatches);
-    stack.push(mindist);
+    List<List<Object>> results = new ArrayList<List<Object>>();
+    
+    while(!distances.isEmpty()) {
+      
+      Pair<Integer,Double> entry = distances.poll();
+      
+      List<Object> result = new ArrayList<Object>();
+      result.add(entry.getKey());
+      result.add(entry.getValue());
+      results.add(result);
+      
+      if (count > 0 && count == results.size()) {
+        break;
+      }
+    }
+    
+    stack.push(results);
 
     return stack;
   }
