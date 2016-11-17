@@ -47,7 +47,7 @@ public class UNLIST extends NamedWarpScriptFunction implements WarpScriptStackFu
         stack.push(o);
       }
     } else if (list instanceof List) {
-      stack.push(WarpScriptLib.getFunction(WarpScriptLib.MARK));
+      stack.push(new WarpScriptStack.Mark());
       for (Object o: (List<Object>) list) {
         stack.push(o);
       }
