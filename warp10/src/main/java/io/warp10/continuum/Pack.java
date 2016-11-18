@@ -12,6 +12,7 @@ import io.warp10.crypto.OrderPreservingBase64;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,7 +26,6 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.python.jline.internal.InputStreamReader;
 
 /**
  * Packs Geo Time Series into chunks spanning at most a given

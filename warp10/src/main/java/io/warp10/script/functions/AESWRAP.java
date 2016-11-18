@@ -23,8 +23,7 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 import java.security.SecureRandom;
-
-import org.python.bouncycastle.util.Arrays;
+import java.util.Arrays;
 
 import com.google.common.base.Charsets;
 

@@ -27,6 +27,7 @@ import io.warp10.sensision.Sensision;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -56,7 +57,6 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.python.bouncycastle.util.Arrays;
 
 import com.google.common.base.Preconditions;
 import com.netflix.curator.framework.CuratorFramework;
