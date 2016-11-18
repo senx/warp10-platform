@@ -6441,8 +6441,10 @@ public class GTSHelper {
       long ts = GTSHelper.tickAtIndex(gts, idx);
       
       if (ts < start || ts > end) {
-        if (gts.sorted && ts > end) {
-          break;
+        if (gts.sorted) {
+          if ((gts.reversed && ts < start) || (!gts.reversed && ts > end)) {
+            break;
+          }
         }
         continue;     
       }
