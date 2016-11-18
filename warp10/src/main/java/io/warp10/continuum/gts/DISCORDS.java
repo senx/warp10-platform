@@ -91,7 +91,7 @@ public class DISCORDS extends GTSStackFunction {
     
     double dr = (double) dratio;
     
-    if (dr <= 0.0) {
+    if (dr < 0.0D) {
       throw new WarpScriptException(getName() + " expects a positive distance ratio.");
     }
     
@@ -109,14 +109,14 @@ public class DISCORDS extends GTSStackFunction {
     if (!(count instanceof Long)) {
       throw new WarpScriptException(getName() + " expects an integer discord count.");
     }
-    params.put(COUNT, (int) count);
+    params.put(COUNT, ((Number) count).intValue());
     
     Object alphabetsize = stack.pop();
     
     if (!(alphabetsize instanceof Long)) {
       throw new WarpScriptException(getName() + " expects an integer quantization scale.");
     }
-    int asize = (int) alphabetsize;
+    int asize = ((Number) alphabetsize).intValue();
     
     if (0 != (asize & (asize - 1)) || asize < 2) {
       throw new WarpScriptException(getName() + " expects a quantization scale which is a power of 2 greater or equal to 2.");
@@ -133,8 +133,8 @@ public class DISCORDS extends GTSStackFunction {
       throw new WarpScriptException(getName() + " expects an integer detection window length.");
     }
     
-    int wolen = (int) wordlen;
-    int wilen = (int) windowlen;
+    int wolen = ((Number) wordlen).intValue();
+    int wilen = ((Number) windowlen).intValue();
     
     if (0 != (wilen % wolen)) {
       throw new WarpScriptException(getName() + " expects pattern length to divide detection window length.");
@@ -161,7 +161,6 @@ public class DISCORDS extends GTSStackFunction {
     //
     // Compute bSAX symbols
     //
-        
     GeoTimeSerie symbols = GTSHelper.bSAX(gts, alphabetSize, wordLen, windowLen, standardizePAA);
 
     //
