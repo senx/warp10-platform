@@ -14,7 +14,9 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.functions;
+package io.warp10.script.ext.ruby;
+
+import io.warp10.script.functions.SCRIPTENGINE;
 
 import javax.script.Bindings;
 import javax.script.ScriptContext;

@@ -14,10 +14,11 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.functions;
+package io.warp10.script.ext.lua;
 
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.functions.SCRIPTENGINE;
 
 import javax.script.ScriptEngine;
 

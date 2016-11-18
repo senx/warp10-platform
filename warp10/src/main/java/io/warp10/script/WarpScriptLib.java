@@ -76,6 +76,15 @@ import io.warp10.script.binary.POW;
 import io.warp10.script.binary.SHIFTLEFT;
 import io.warp10.script.binary.SHIFTRIGHT;
 import io.warp10.script.binary.SUB;
+import io.warp10.script.ext.groovy.GroovyWarpScriptExtension;
+import io.warp10.script.ext.js.JSWarpScriptExtension;
+import io.warp10.script.ext.lua.LUA;
+import io.warp10.script.ext.lua.LUAWarpScriptExtension;
+import io.warp10.script.ext.python.PYTHON;
+import io.warp10.script.ext.python.PythonWarpScriptExtension;
+import io.warp10.script.ext.r.RWarpScriptExtension;
+import io.warp10.script.ext.ruby.RUBY;
+import io.warp10.script.ext.ruby.RubyWarpScriptExtension;
 import io.warp10.script.filter.FilterByClass;
 import io.warp10.script.filter.FilterByLabels;
 import io.warp10.script.filter.FilterByMetadata;
@@ -1329,23 +1338,22 @@ public class WarpScriptLib {
       }
       
       if (lang.contains("R")) {
-        functions.put("R", new R("R"));
-        functions.put("R->", new RTO("R->"));        
+        register(new RWarpScriptExtension());
       }      
       if (lang.contains("JS")) {
-        functions.put("JS", new JS("JS"));        
+        register(new JSWarpScriptExtension());
       }      
       if (lang.contains("GROOVY")) {
-        functions.put("GROOVY", new SCRIPTENGINE("GROOVY", "groovy"));        
+        register(new GroovyWarpScriptExtension());
       }      
       if (lang.contains("LUA")) {
-        functions.put("LUA", new LUA("LUA"));        
+        register(new LUAWarpScriptExtension());
       }      
       if (lang.contains("RUBY")) {
-        functions.put("RUBY", new RUBY("RUBY"));        
+        register(new RubyWarpScriptExtension());
       }
       if (lang.contains("PYTHON")) {
-        functions.put("PYTHON", new PYTHON("PYTHON"));              
+        register(new PythonWarpScriptExtension());
       }
     }    
   }

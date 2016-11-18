@@ -14,32 +14,22 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.functions;
+package io.warp10.script.ext.js;
 
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
+import io.warp10.script.functions.SCRIPTENGINE;
 
 import javax.script.ScriptEngine;
 
-import org.python.jsr223.PyScriptEngineFactory;
+import jdk.nashorn.api.scripting.NashornScriptEngineFactory;
 
-public class PYTHON extends SCRIPTENGINE {
+public class JS extends SCRIPTENGINE {
   
-  public PYTHON(String name) {
-    super(name, "python");
-  }
-  
-  @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object ret = super.apply(stack);
-    stack.pop();
-    return ret;
+  public JS(String name) {
+    super(name, "js");
   }
   
   @Override
   protected ScriptEngine getEngine() {
-    System.setProperty("python.import.site", "false");
-    ScriptEngine se = new PyScriptEngineFactory().getScriptEngine();
-    return se;
+    return new NashornScriptEngineFactory().getScriptEngine(new String[] { "--no-java" });
   }
 }

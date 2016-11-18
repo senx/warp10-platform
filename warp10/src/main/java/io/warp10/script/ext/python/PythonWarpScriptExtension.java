@@ -14,20 +14,24 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.functions;
+package io.warp10.script.ext.python;
 
-import javax.script.ScriptEngine;
+import java.util.HashMap;
+import java.util.Map;
 
-import jdk.nashorn.api.scripting.NashornScriptEngineFactory;
+import io.warp10.warp.sdk.WarpScriptExtension;
 
-public class JS extends SCRIPTENGINE {
+public class PythonWarpScriptExtension extends WarpScriptExtension {
   
-  public JS(String name) {
-    super(name, "js");
+  private static final Map<String,Object> functions;
+  
+  static {
+    functions = new HashMap<String,Object>();
+    functions.put("PYTHON", new PYTHON("PYTHON"));              
   }
   
   @Override
-  protected ScriptEngine getEngine() {
-    return new NashornScriptEngineFactory().getScriptEngine(new String[] { "--no-java" });
-  }
+  public Map<String, Object> getFunctions() {
+    return functions;
+  }  
 }
