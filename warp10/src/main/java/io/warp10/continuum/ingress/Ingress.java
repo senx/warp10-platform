@@ -200,7 +200,7 @@ public class Ingress extends AbstractHandler implements Runnable {
   /**
    * Size threshold after which we flush dataMessages into Kafka
    * 
-   * This and METADATA_MESSAGES_THRESHOLD has to be lower than the configured Kafka max message size (max.message.size)
+   * This and METADATA_MESSAGES_THRESHOLD has to be lower than the configured Kafka max message size (message.max.bytes)
    */
   private final long DATA_MESSAGES_THRESHOLD;
     
