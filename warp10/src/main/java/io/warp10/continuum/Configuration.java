@@ -39,6 +39,11 @@ public class Configuration {
   public static final String WARP10_QUIET = "warp10.quiet";
   
   /**
+   * List of Warp 10 plugins to initialize
+   */
+  public static final String WARP10_PLUGINS = "warp10.plugins";
+  
+  /**
    * Maximum encoder size (in bytes) for internal data transfers. Use values from 64k to 512k for
    * optimum performance and make sure this size is less than the maximum message size of Kafka
    * otherwise bad things will happen as messages may not be able to be exchanged within Warp 10.

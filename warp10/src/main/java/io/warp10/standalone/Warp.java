@@ -39,6 +39,7 @@ import io.warp10.quasar.filter.QuasarTokenFilter;
 import io.warp10.script.ScriptRunner;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.sensision.Sensision;
+import io.warp10.warp.sdk.AbstractWarp10Plugin;
 
 import java.io.File;
 import java.io.IOException;
@@ -229,7 +230,7 @@ public class Warp extends WarpDist implements Runnable {
     }
     
     WarpScriptLib.registerExtensions();
-    
+
     //
     // Initialize ThrottlingManager
     //
@@ -381,6 +382,12 @@ public class Warp extends WarpDist implements Runnable {
     
     // Clear master key from memory
     keystore.forget();
+
+    //
+    // Register the plugins after we've cleared the master key
+    //
+    
+    AbstractWarp10Plugin.registerPlugins();
 
     try {
       System.out.println("#### standalone.endpoint " + InetAddress.getByName(host) + ":" + port);

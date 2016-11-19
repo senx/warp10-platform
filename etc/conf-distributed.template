@@ -20,6 +20,12 @@
 warp.timeunits = us
 
 //
+// Comma separated list of Warp 10 plugins to instantiate.
+//
+//warp10.plugins = 
+
+
+//
 // Maximum size for encoders exchanged within Warp 10.
 // Make sure this value is less than the maximum size of
 // a Kafka message.

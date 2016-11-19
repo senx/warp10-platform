@@ -191,6 +191,11 @@ webcall.host.patterns = !.*
 warp.timeunits = us
 
 //
+// Comma separated list of Warp 10 plugins to instantiate. 
+//
+//warp10.plugins =
+
+//
 // Path of the 'bootstrap' warpscript code for Egress
 //
 warpscript.bootstrap.path = ${standalone.home}/etc/bootstrap/egress.mc2

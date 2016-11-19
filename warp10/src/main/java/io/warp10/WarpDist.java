@@ -36,6 +36,7 @@ import io.warp10.crypto.UnsecureKeyStore;
 import io.warp10.script.ScriptRunner;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.sensision.Sensision;
+import io.warp10.warp.sdk.AbstractWarp10Plugin;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -258,6 +259,12 @@ public class WarpDist {
     
     // Clear master key from memory
     keystore.forget();
+    
+    //
+    // Register the plugins after we've cleared the master key
+    //
+    
+    AbstractWarp10Plugin.registerPlugins();
     
     setInitialized(true);
     
