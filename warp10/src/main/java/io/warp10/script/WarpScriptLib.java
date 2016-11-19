@@ -1370,7 +1370,7 @@ public class WarpScriptLib {
       Set<String> ext = new HashSet<String>();
       
       for (String extension: extensions) {
-        ext.add(extension);
+        ext.add(extension.trim());
       }
       
       boolean failedExt = false;
