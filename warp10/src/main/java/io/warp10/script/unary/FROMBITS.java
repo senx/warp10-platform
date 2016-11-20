@@ -26,8 +26,11 @@ import io.warp10.script.WarpScriptStack;
  */
 public class FROMBITS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public FROMBITS(String name) {
+  private final boolean asFloat;
+  
+  public FROMBITS(String name, boolean asFloat) {
     super(name);
+    this.asFloat = asFloat;
   }
   
   @Override
@@ -38,7 +41,11 @@ public class FROMBITS extends NamedWarpScriptFunction implements WarpScriptStack
       throw new WarpScriptException(getName() + " operates on a LONG.");
     }
     
-    stack.push(Double.longBitsToDouble((long) op));
+    if (this.asFloat) {
+      stack.push((double) Float.intBitsToFloat((int) (((long) op) & 0xFFFFFFFFL)));
+    } else {
+      stack.push(Double.longBitsToDouble((long) op));
+    }
         
     return stack;
   }

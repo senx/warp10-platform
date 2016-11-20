@@ -26,8 +26,11 @@ import io.warp10.script.WarpScriptStack;
  */
 public class TOBITS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public TOBITS(String name) {
+  private final boolean asFloat;
+  
+  public TOBITS(String name, boolean asFloat) {
     super(name);
+    this.asFloat = asFloat;
   }
   
   @Override
@@ -38,7 +41,12 @@ public class TOBITS extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException(getName() + " operates on a DOUBLE.");
     }
     
-    stack.push(Double.doubleToRawLongBits((double) op));
+    if (this.asFloat) {
+      int bits = Float.floatToRawIntBits((float) ((double) op));
+      stack.push(((long) bits) & 0xFFFFFFFFL);
+    } else {
+      stack.push(Double.doubleToRawLongBits((double) op));      
+    }
         
     return stack;
   }

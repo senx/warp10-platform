@@ -539,8 +539,12 @@ public class WarpScriptLib {
     functions.put("TOBIN", new TOBIN("TOBIN"));
     functions.put("FROMHEX", new FROMHEX("FROMHEX"));
     functions.put("FROMBIN", new FROMBIN("FROMBIN"));
-    functions.put("TOBITS", new TOBITS("TOBITS"));
-    functions.put("FROMBITS", new FROMBITS("FROMBITS"));
+    functions.put("TOBITS", new TOBITS("TOBITS", false));
+    functions.put("FROMBITS", new FROMBITS("FROMBITS", false));
+    functions.put("->DOUBLEBITS", new TOBITS("->DOUBLEBITS", false));
+    functions.put("DOUBLEBITS->", new FROMBITS("DOUBLEBITS->", false));
+    functions.put("->FLOATBITS", new TOBITS("->FLOATBITS", true));
+    functions.put("FLOATBITS->", new FROMBITS("FLOATBITS->", true));
     functions.put("TOKENINFO", new TOKENINFO("TOKENINFO"));
     functions.put("GETHOOK", new GETHOOK("GETHOOK"));
     
