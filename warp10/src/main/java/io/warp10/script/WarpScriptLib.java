@@ -654,7 +654,6 @@ public class WarpScriptLib {
     functions.put("FETCHDOUBLE", new FETCH("FETCHDOUBLE", false, TYPE.DOUBLE));
     functions.put("FETCHSTRING", new FETCH("FETCHSTRING", false, TYPE.STRING));
     functions.put("FETCHBOOLEAN", new FETCH("FETCHBOOLEAN", false, TYPE.BOOLEAN));
-    functions.put("AFETCH", new FETCH("AFETCH", true, null));
     functions.put("LIMIT", new LIMIT("LIMIT"));
     functions.put("MAXGTS", new MAXGTS("MAXGTS"));
     functions.put("FIND", new FIND("FIND", false));
