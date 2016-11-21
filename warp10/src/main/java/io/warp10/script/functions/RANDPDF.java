@@ -25,6 +25,7 @@ import io.warp10.script.WarpScriptStackFunction;
 
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -87,7 +88,7 @@ public class RANDPDF extends NamedWarpScriptFunction implements WarpScriptStackF
     for (Entry<Object, Double> entry: probabilities.entrySet()) {
       cumulative += entry.getValue();
       this.values[idx] = entry.getKey();
-      this.cumulativeProbability[idx] = cumulative;
+      this.cumulativeProbability[idx++] = cumulative;
     }
     
   }
