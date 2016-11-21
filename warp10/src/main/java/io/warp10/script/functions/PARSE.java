@@ -65,9 +65,9 @@ public class PARSE extends NamedWarpScriptFunction implements WarpScriptStackFun
         }
         
         encoder = GTSHelper.parse(lastencoder, line, null, null, Long.MAX_VALUE, true);
-        
+
         if (null != lastencoder && lastencoder != encoder) {
-          series.add(encoder.getDecoder(true).decode());
+          series.add(lastencoder.getDecoder(true).decode());
           lastencoder = encoder;
         } else {
           lastencoder = encoder;
