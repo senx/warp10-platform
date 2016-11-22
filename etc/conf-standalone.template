@@ -50,6 +50,11 @@ warp.aes.scripts = @key:256:warp.aes.scripts@
 #oss.master.key = hex:hhhhhh...
 
 //
+// Maximum number of Geo Time Series a single Plasma session can subscribe to
+//
+#warp.plasma.maxsubs
+
+//
 // This configuration parameter determines if undefining a funciton (via NULL 'XXX' DEF)
 // will unshadow the original statement thus making it available again or if it will replace
 // it with a function that will fail with a message saying the function is undefined.

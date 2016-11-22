@@ -139,6 +139,11 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
   
   private PlasmaSubscriptionListener subscriptionListener = null;
   
+  /**
+   * Max number of subscriptions per session
+   */
+  private final int maxSubscriptions;
+  
   @WebSocket
   public static class StandalonePlasmaWebSocket {
     
@@ -206,25 +211,34 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
         
         Iterator<Metadata> iter = this.handler.getDirectoryClient().iterator(clsSels, lblsSels);
 
-        //
-        // FIXME(hbs): we do not limit the number of subscriptions
-        //
-        
         try {
           while(iter.hasNext()) {
             metadatas.add(iter.next());
-          }          
+            
+            //
+            // Process subscriptions 10000 at a time
+            //
+            
+            if (metadatas.size() >= 10000) {
+              if ('S' == tokens[0].charAt(0)) {
+                this.handler.subscribe(session, metadatas);
+              } else {
+                this.handler.unsubscribe(session, metadatas);
+              }
+              metadatas.clear();
+            }
+          }
+          
+          if ('S' == tokens[0].charAt(0)) {
+            this.handler.subscribe(session, metadatas);
+          } else {
+            this.handler.unsubscribe(session, metadatas);
+          }
         } finally {
           if (iter instanceof MetadataIterator) {
             try { ((MetadataIterator) iter).close(); } catch (Exception e) {}
           }
-        }
-                
-        if ('S' == tokens[0].charAt(0)) {
-          this.handler.subscribe(session, metadatas);
-        } else {
-          this.handler.unsubscribe(session, metadatas);
-        }
+        }                
       } else if ("SUBSCRIPTIONS".equals(tokens[0])) {
         //
         // List subscriptions
@@ -293,7 +307,11 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
     this.keystore = keystore;
     this.properties = properties;
     this.directoryClient = directoryClient;
-    
+    if (properties.containsKey(Configuration.WARP_PLASMA_MAXSUBS)) {
+      this.maxSubscriptions = Integer.parseInt(properties.getProperty(Configuration.WARP_PLASMA_MAXSUBS));
+    } else {
+      this.maxSubscriptions = Constants.WARP_PLASMA_MAXSUBS_DEFAULT;
+    }
     this.metadataKey = keystore.getKey(KeyStore.AES_KAFKA_METADATA);
     
     configure(super.getWebSocketFactory());
@@ -356,6 +374,10 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
   
   private synchronized void subscribe(Session session, List<Metadata> metadatas) {
     
+    if (metadatas.isEmpty()) {
+      return;
+    }
+    
     // 128BITS
     byte[] bytes = new byte[16];
     ByteBuffer bb = ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN);
@@ -371,6 +393,14 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
       
       BigInteger id = new BigInteger(bytes);
       
+      //
+      // Limit the number of subscriptions per session to 'maxSubscriptions'
+      //
+      
+      if (subscriptions.get(session).size() >= maxSubscriptions) {
+        break;
+      }
+
       this.metadatas.put(id, metadata);
       
       if (!this.refcounts.containsKey(id)) {
@@ -390,6 +420,10 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
   }
 
   private synchronized void unsubscribe(Session session, List<Metadata> metadatas) {   
+    
+    if (metadatas.isEmpty()) {
+      return;
+    }
     
     // 128BITS
     byte[] bytes = new byte[16];

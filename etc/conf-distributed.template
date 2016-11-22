@@ -986,6 +986,11 @@ store.hbase.hconnection.threads.core = 4
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
+// Maximum number of Geo Time Series a single Plasma session can subscribe to
+//
+#warp.plasma.maxsubs
+
+//
 // ZooKeeper connect string for Kafka consumer
 //
 plasma.frontend.kafka.zkconnect = 127.0.0.1:2181/zk/kafka/localhost

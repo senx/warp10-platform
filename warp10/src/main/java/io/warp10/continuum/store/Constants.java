@@ -343,6 +343,7 @@ public class Constants {
   
   public static final String WARP10_DOC_URL = "http://www.warp10.io/";
   
+  public static final int WARP_PLASMA_MAXSUBS_DEFAULT = 256000;
   
   public static final String KEY_MODULUS = "modulus";
   public static final String KEY_ALGORITHM = "algorithm";
