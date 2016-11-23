@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +45,7 @@ import java.util.zip.GZIPOutputStream;
 public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
   private URL url = null;
+  private boolean dynURL = false;
   
   public UPDATE(String name) {
     super(name);
@@ -52,6 +54,11 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
   public UPDATE(String name, URL url) {
     super(name);
     this.url = url;
+  }
+  
+  public UPDATE(String name, boolean dynURL) {
+    super(name);
+    this.dynURL = dynURL;
   }
 
   @Override
@@ -67,6 +74,18 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
     }
     
     String token = (String) otoken;
+    
+    URL url = this.url;
+    
+    if (this.dynURL) {
+      Object urlstr = stack.pop();
+      
+      try {
+        url = new URL(urlstr.toString());
+      } catch (MalformedURLException mue) {
+        throw new WarpScriptException(mue);
+      }
+    }
     
     List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
     
@@ -121,7 +140,8 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
 
       if (null == url) {
         if (WarpConfig.getProperties().containsKey(Configuration.CONFIG_WARPSCRIPT_UPDATE_ENDPOINT)) {
-          url = new URL(WarpConfig.getProperties().getProperty(Configuration.CONFIG_WARPSCRIPT_UPDATE_ENDPOINT));
+          this.url = new URL(WarpConfig.getProperties().getProperty(Configuration.CONFIG_WARPSCRIPT_UPDATE_ENDPOINT));
+          url = this.url;
         } else {
           throw new WarpScriptException(getName() + " configuration parameter '" + Configuration.CONFIG_WARPSCRIPT_UPDATE_ENDPOINT + "' not set.");
         }
