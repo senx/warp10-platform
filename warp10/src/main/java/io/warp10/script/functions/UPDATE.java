@@ -48,7 +48,12 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
   public UPDATE(String name) {
     super(name);
   }
-  
+
+  public UPDATE(String name, URL url) {
+    super(name);
+    this.url = url;
+  }
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     //
