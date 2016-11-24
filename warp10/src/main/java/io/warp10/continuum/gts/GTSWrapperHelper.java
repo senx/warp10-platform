@@ -199,7 +199,7 @@ public class GTSWrapperHelper {
     encoder.setMetadata(gts.getMetadata());
     
     try {
-      encoder.encode(gts);
+      encoder.encodeOptimized(gts);
     } catch (IOException ioe) {      
     }
 

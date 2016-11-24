@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.MathContext;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
@@ -777,7 +778,24 @@ public class GTSEncoder {
       addValue(gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, GTSHelper.valueAtIndex(gts, i));
     }
   }
-  
+
+  /**
+   * Encode the given GTS instance, converting doubles to BigDecimal to get a chance to
+   * store them more efficiently
+   * 
+   * @param gts
+   */
+  public void encodeOptimized(GeoTimeSerie gts) throws IOException {
+    for (int i = 0; i < gts.values; i++) {
+      Object value = GTSHelper.valueAtIndex(gts, i);
+      if (value instanceof Double && !Double.isInfinite((double) value) && !Double.isNaN((double) value)) {
+        // Convert to BigDecimal using IEEE754 math context
+        value = new BigDecimal((double) value, MathContext.DECIMAL64);
+      }
+      addValue(gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, value);
+    }
+  }
+
   /**
    * Return a decoder instance capable of decoding the encoded content of this
    * encoder.
