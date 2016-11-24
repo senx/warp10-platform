@@ -129,6 +129,7 @@ import io.warp10.script.mapper.MapperLog;
 import io.warp10.script.mapper.MapperMaxX;
 import io.warp10.script.mapper.MapperMinX;
 import io.warp10.script.mapper.MapperMinuteOfHour;
+import io.warp10.script.mapper.MapperMod;
 import io.warp10.script.mapper.MapperMonthOfYear;
 import io.warp10.script.mapper.MapperMul;
 import io.warp10.script.mapper.MapperNPDF;
@@ -1251,6 +1252,7 @@ public class WarpScriptLib {
     functions.put("mapper.sd.forbid-nulls", new StandardDeviation.Builder("mapper.sd.forbid-nulls", true));
     functions.put("mapper.mean.circular", new CircularMean.Builder("mapper.mean.circular", true));
     functions.put("mapper.mean.circular.exclude-nulls", new CircularMean.Builder("mapper.mean.circular.exclude-nulls", false));
+    functions.put("mapper.mod", new MapperMod.Builder("mapper.mod"));
     
     //
     // Reducers
