@@ -34,23 +34,22 @@ if [ -z "${WARP10_HOME}" ]; then
   fi
 fi
 
+#
+# Quantum plugin - Plugin embeds Quantum
+#
+QUANTUM_REVISION=@QUANTUM_VERSION@
+QUANTUM_PLUGIN_JAR=${WARP10_HOME}/bin/warp10-quantum-plugin-${QUANTUM_REVISION}.jar
+
 WARP10_REVISION=@VERSION@
 WARP10_USER=warp10
 WARP10_CONFIG=${WARP10_HOME}/etc/conf-standalone.conf
 WARP10_JAR=${WARP10_HOME}/bin/warp10-${WARP10_REVISION}.jar
 WARP10_CLASS=io.warp10.standalone.Warp
 WARP10_INIT=io.warp10.standalone.WarpInit
-WARP10_CP=etc:${WARP10_JAR}
+WARP10_CP=etc:${WARP10_JAR}:${QUANTUM_PLUGIN_JAR}
 WARP10_HEAP=1g
 WARP10_HEAP_MAX=1g
 INITCONFIG=false
-
-QUANTUM_REVISION=@QUANTUM_VERSION@
-QUANTUM_JAR=${WARP10_HOME}/bin/warp10-quantum-server-${QUANTUM_REVISION}.jar
-QUANTUM_HEAP=64m
-QUANTUM_HEAP_MAX=64m
-QUANTUM_JAVA_OPTS="-Djava.awt.headless=true -Xms${QUANTUM_HEAP} -Xmx${QUANTUM_HEAP_MAX} -XX:+UseG1GC"
-QUANTUM_START=true
 
 SENSISION_EVENTS_DIR=/var/run/sensision/metrics
 
@@ -177,21 +176,9 @@ start() {
     exit 1
   fi
 
-  #
-  # Start Quantum..
-  #
-  if [ "$QUANTUM_START" = true ]; then
-    su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${QUANTUM_JAVA_OPTS} -jar ${QUANTUM_JAR} ${WARP10_CONFIG} >> ${WARP10_HOME}/logs/quantum.log 2>&1 &"
-
-    if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep warp10-quantum-server-${QUANTUM_REVISION}|cut -f 1 -d' '"`" = "" ]
-    then
-      echo "Start Quantum has failed! - See quantum.log for more details"
-    fi
-
-    QUANTUM_LISTENSTO_HOST="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.host'" | grep 'quantum.host' | sed -e 's/^.*=//'`"
-    QUANTUM_LISTENSTO_PORT="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.port'" | grep 'quantum.port' | sed -e 's/^.*=//'`"
-    QUANTUM_LISTENSTO="${QUANTUM_LISTENSTO_HOST}:${QUANTUM_LISTENSTO_PORT}"
-  fi
+  QUANTUM_LISTENSTO_HOST="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.host'" | grep 'quantum.host' | sed -e 's/^.*=//'`"
+  QUANTUM_LISTENSTO_PORT="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.port'" | grep 'quantum.port' | sed -e 's/^.*=//'`"
+  QUANTUM_LISTENSTO="${QUANTUM_LISTENSTO_HOST}:${QUANTUM_LISTENSTO_PORT}"
 
   WARP10_LISTENSTO_HOST="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'standalone.host'" | grep 'standalone.host' | sed -e 's/^.*=//'`"
   WARP10_LISTENSTO_PORT="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'standalone.port'" | grep 'standalone.port' | sed -e 's/^.*=//'`"
@@ -231,12 +218,10 @@ start() {
       echo "##"
       echo "##   curl http://${WARP10_LISTENSTO}/api/v0/exec --data-binary @path/to/WarpScriptFile"
       echo "##"
-      if [ "$QUANTUM_START" = true ]; then
-        echo "## The alternative to command-line interaction is Quantum, a web application to interact with the platform in an user-friendly way:"
-        echo "##"
-        echo "##   http://${QUANTUM_LISTENSTO}"
-        echo "##"
-      fi
+      echo "## The alternative to command-line interaction is Quantum, a web application to interact with the platform in an user-friendly way:"
+      echo "##"
+      echo "##   http://${QUANTUM_LISTENSTO}"
+      echo "##"
   fi
 }
 
