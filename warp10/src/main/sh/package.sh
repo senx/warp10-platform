@@ -33,15 +33,15 @@ mkdir -p ${WARP10_HOME}/etc/bootstrap
 mkdir -p ${WARP10_HOME}/etc/trl
 mkdir -p ${WARP10_HOME}/logs
 
-# Get Quantum
-URL_QUANTUM="https://dl.bintray.com/cityzendata/generic/io/warp10/warp10-quantum-server/${QUANTUM_VERSION}/warp10-quantum-server-${QUANTUM_VERSION}.jar"
+# Get Quantum plugin
+URL_QUANTUM_PLUGIN="https://dl.bintray.com/cityzendata/generic/io/warp10/warp10-quantum-plugin/${QUANTUM_VERSION}/warp10-quantum-plugin-${QUANTUM_VERSION}.jar"
 
 cd ${WARP10_HOME}/bin
-echo "curl -L ${URL_QUANTUM} -o warp10-quantum-server-${QUANTUM_VERSION}.jar"
-curl -L ${URL_QUANTUM} -o warp10-quantum-server-${QUANTUM_VERSION}.jar
+echo "curl -L ${URL_QUANTUM_PLUGIN} -o warp10-quantum-plugin-${QUANTUM_VERSION}.jar"
+curl -L ${URL_QUANTUM_PLUGIN} -o warp10-quantum-plugin-${QUANTUM_VERSION}.jar
 
 # test archive is ok
-unzip -t warp10-quantum-server-${QUANTUM_VERSION}.jar > /dev/null
+unzip -t warp10-quantum-plugin-${QUANTUM_VERSION}.jar > /dev/null
 if [ $? -ne 0 ]; then
     echo "Error during Quantum download"
     exit 1

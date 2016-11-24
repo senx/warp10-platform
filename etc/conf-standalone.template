@@ -198,7 +198,7 @@ warp.timeunits = us
 //
 // Comma separated list of Warp 10 plugins to instantiate. 
 //
-//warp10.plugins =
+warp10.plugins = io.warp10.plugins.quantum.QuantumPlugin
 
 //
 // Path of the 'bootstrap' warpscript code for Egress
