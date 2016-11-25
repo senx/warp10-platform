@@ -8753,7 +8753,6 @@ public class GTSHelper {
   }
   
   public static GeoTimeSerie lttb(GeoTimeSerie gts, int threshold, boolean timebased) throws WarpScriptException {
-    try{
     //
     // If the GTS has less than threshold values, return it as is
     //
@@ -8873,9 +8872,5 @@ public class GTSHelper {
     GTSHelper.setValue(sampled, GTSHelper.tickAtIndex(gts,gts.values - 1), GTSHelper.locationAtIndex(gts, gts.values - 1), GTSHelper.elevationAtIndex(gts, gts.values - 1), GTSHelper.valueAtIndex(gts, gts.values - 1), false);
     
     return sampled;
-  } catch (Throwable t) {
-    t.printStackTrace();
-    throw t;
-  }
   }
 }
