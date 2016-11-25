@@ -165,16 +165,6 @@ start() {
     su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${WARP10_HOME}/data >> ${WARP10_HOME}/logs/warp10.log 2>&1"
   fi
 
-  #
-  # Start Warp10 instance..
-  #
-  su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${WARP10_CONFIG} >> ${WARP10_HOME}/logs/warp10.log 2>&1 &"
-
-  if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '"`" = "" ]; then
-    echo "Start failed! - See warp10.log for more details"
-    exit 1
-  fi
-
   WARP10_LISTENSTO_HOST="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'standalone.host'" | grep 'standalone.host' | sed -e 's/^.*=//'`"
   WARP10_LISTENSTO_PORT="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'standalone.port'" | grep 'standalone.port' | sed -e 's/^.*=//'`"
   WARP10_LISTENSTO="${WARP10_LISTENSTO_HOST}:${WARP10_LISTENSTO_PORT}"
@@ -191,6 +181,18 @@ start() {
     QUANTUM_LISTENSTO="${QUANTUM_LISTENSTO_HOST}:${QUANTUM_LISTENSTO_PORT}"
   else
     QUANTUM_START=false
+    # Delete Quantum from CP
+    WARP10_CP=etc:${WARP10_JAR}
+  fi
+
+  #
+  # Start Warp10 instance..
+  #
+  su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${WARP10_CONFIG} >> ${WARP10_HOME}/logs/warp10.log 2>&1 &"
+
+  if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '"`" = "" ]; then
+    echo "Start failed! - See warp10.log for more details"
+    exit 1
   fi
 
   echo '  ___       __                           ____________   '
