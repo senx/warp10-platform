@@ -34,23 +34,24 @@ if [ -z "${WARP10_HOME}" ]; then
   fi
 fi
 
+#
+# Quantum plugin - Plugin embeds Quantum
+#
+QUANTUM_REVISION=@QUANTUM_VERSION@
+QUANTUM_PLUGIN_JAR=${WARP10_HOME}/bin/warp10-quantum-plugin-${QUANTUM_REVISION}.jar
+QUANTUM_PLUGIN_NAME=io.warp10.plugins.quantum.QuantumPlugin
+QUANTUM_START=true
+
 WARP10_REVISION=@VERSION@
 WARP10_USER=warp10
 WARP10_CONFIG=${WARP10_HOME}/etc/conf-standalone.conf
 WARP10_JAR=${WARP10_HOME}/bin/warp10-${WARP10_REVISION}.jar
 WARP10_CLASS=io.warp10.standalone.Warp
 WARP10_INIT=io.warp10.standalone.WarpInit
-WARP10_CP=etc:${WARP10_JAR}
+WARP10_CP=etc:${WARP10_JAR}:${QUANTUM_PLUGIN_JAR}
 WARP10_HEAP=1g
 WARP10_HEAP_MAX=1g
 INITCONFIG=false
-
-QUANTUM_REVISION=@QUANTUM_VERSION@
-QUANTUM_JAR=${WARP10_HOME}/bin/warp10-quantum-server-${QUANTUM_REVISION}.jar
-QUANTUM_HEAP=64m
-QUANTUM_HEAP_MAX=64m
-QUANTUM_JAVA_OPTS="-Djava.awt.headless=true -Xms${QUANTUM_HEAP} -Xmx${QUANTUM_HEAP_MAX} -XX:+UseG1GC"
-QUANTUM_START=true
 
 SENSISION_EVENTS_DIR=/var/run/sensision/metrics
 
@@ -136,14 +137,12 @@ start() {
     mv ${JAVA_HEAP_DUMP} ${JAVA_HEAP_DUMP}-`date +%s`
   fi
 
-  if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '"`" != "" ]
-  then
+  if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '"`" != "" ]; then
     echo "Start failed! - A Warp 10 instance is currently running"
     exit 1
   fi
 
-  if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep warp10-quantum-server-${QUANTUM_REVISION}|cut -f 1 -d' '"`" != "" ]
-  then
+  if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep warp10-quantum-server-${QUANTUM_REVISION}|cut -f 1 -d' '"`" != "" ]; then
     echo "Start failed! - A Quantum instance is currently running"
     exit 1
   fi
@@ -171,31 +170,28 @@ start() {
   #
   su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${WARP10_CONFIG} >> ${WARP10_HOME}/logs/warp10.log 2>&1 &"
 
-  if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '"`" = "" ]
-  then
+  if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '"`" = "" ]; then
     echo "Start failed! - See warp10.log for more details"
     exit 1
-  fi
-
-  #
-  # Start Quantum..
-  #
-  if [ "$QUANTUM_START" = true ]; then
-    su ${WARP10_USER} -c "${JAVA_HOME}/bin/java ${QUANTUM_JAVA_OPTS} -jar ${QUANTUM_JAR} ${WARP10_CONFIG} >> ${WARP10_HOME}/logs/quantum.log 2>&1 &"
-
-    if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep warp10-quantum-server-${QUANTUM_REVISION}|cut -f 1 -d' '"`" = "" ]
-    then
-      echo "Start Quantum has failed! - See quantum.log for more details"
-    fi
-
-    QUANTUM_LISTENSTO_HOST="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.host'" | grep 'quantum.host' | sed -e 's/^.*=//'`"
-    QUANTUM_LISTENSTO_PORT="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.port'" | grep 'quantum.port' | sed -e 's/^.*=//'`"
-    QUANTUM_LISTENSTO="${QUANTUM_LISTENSTO_HOST}:${QUANTUM_LISTENSTO_PORT}"
   fi
 
   WARP10_LISTENSTO_HOST="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'standalone.host'" | grep 'standalone.host' | sed -e 's/^.*=//'`"
   WARP10_LISTENSTO_PORT="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'standalone.port'" | grep 'standalone.port' | sed -e 's/^.*=//'`"
   WARP10_LISTENSTO="${WARP10_LISTENSTO_HOST}:${WARP10_LISTENSTO_PORT}"
+
+  #
+  # Check if Warp10 Quantum plugin is defined
+  #
+  QUANTUM_PLUGIN="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'warp10.plugins'" | grep ${QUANTUM_PLUGIN_NAME}`"
+
+  if [ "$QUANTUM_PLUGIN" != "" ]; then
+    QUANTUM_START=true
+    QUANTUM_LISTENSTO_HOST="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.host'" | grep 'quantum.host' | sed -e 's/^.*=//'`"
+    QUANTUM_LISTENSTO_PORT="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.port'" | grep 'quantum.port' | sed -e 's/^.*=//'`"
+    QUANTUM_LISTENSTO="${QUANTUM_LISTENSTO_HOST}:${QUANTUM_LISTENSTO_PORT}"
+  else
+    QUANTUM_START=false
+  fi
 
   echo '  ___       __                           ____________   '
   echo '  __ |     / /_____ _______________      __<  /_  __ \  '
@@ -237,6 +233,7 @@ start() {
         echo "##   http://${QUANTUM_LISTENSTO}"
         echo "##"
       fi
+
   fi
 }
 
@@ -248,24 +245,10 @@ stop() {
   else
     echo "No instance of Warp 10 is currently running"
   fi
-
-  if [ "$QUANTUM_START" = true ]; then
-    echo "Stop Quantum..."
-    if [ "`su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep warp10-quantum-server-${QUANTUM_REVISION}|cut -f 1 -d' '"`" != "" ]
-    then
-      kill `su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep warp10-quantum-server-${QUANTUM_REVISION}|cut -f 1 -d' '"`
-    else
-      echo "No instance of Quantum is currently running"
-    fi
-  fi
 }
 
 status() {
   su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}"
-
-  if [ "$QUANTUM_START" = true ]; then
-    su ${WARP10_USER} -c "${JAVA_HOME}/bin/jps -lm|grep warp10-quantum-server-${QUANTUM_REVISION}"
-  fi
 }
 
 snapshot() {
