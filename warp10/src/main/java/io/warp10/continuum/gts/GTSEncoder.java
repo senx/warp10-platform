@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.MathContext;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
@@ -35,6 +34,9 @@ import java.util.zip.GZIPOutputStream;
 import org.bouncycastle.crypto.engines.AESWrapEngine;
 import org.bouncycastle.crypto.paddings.PKCS7Padding;
 import org.bouncycastle.crypto.params.KeyParameter;
+
+import sun.misc.FloatingDecimal;
+import sun.misc.FloatingDecimal.BinaryToASCIIConverter;
 
 import com.google.common.base.Charsets;
 
@@ -786,11 +788,24 @@ public class GTSEncoder {
    * @param gts
    */
   public void encodeOptimized(GeoTimeSerie gts) throws IOException {
+    StringBuilder sb = new StringBuilder();
+    
+    char[] chars = null;
+    
     for (int i = 0; i < gts.values; i++) {
       Object value = GTSHelper.valueAtIndex(gts, i);
-      if (value instanceof Double && !Double.isInfinite((double) value) && !Double.isNaN((double) value)) {
-        // Convert to BigDecimal using IEEE754 math context
-        value = new BigDecimal((double) value, MathContext.DECIMAL64);
+      
+      if ((value instanceof Double) && Double.isFinite((double) value)) {
+        sb.setLength(0);
+        BinaryToASCIIConverter btoa = FloatingDecimal.getBinaryToASCIIConverter((double) value);
+        btoa.appendTo(sb);
+        if (null == chars || chars.length < sb.length()) {
+          chars = new char[sb.length()];
+        }
+        
+        sb.getChars(0, sb.length(), chars, 0);
+        
+        value = new BigDecimal(chars, 0, sb.length());
       }
       addValue(gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, value);
     }

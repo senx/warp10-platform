@@ -34,8 +34,15 @@ import org.apache.thrift.protocol.TCompactProtocol;
  */
 public class WRAPRAW  extends GTSStackFunction {
   
+  private final boolean opt;
+  
   public WRAPRAW(String name) {
+    this(name, false);
+  }
+  
+  public WRAPRAW(String name, boolean opt) {
     super(name);
+    this.opt = opt;
   }
 
   @Override
@@ -46,7 +53,13 @@ public class WRAPRAW  extends GTSStackFunction {
   @Override
   protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
 
-    GTSWrapper wrapper = GTSWrapperHelper.fromGTSToGTSWrapper(gts, true);
+    GTSWrapper wrapper;
+    
+    if (opt) {
+      wrapper = GTSWrapperHelper.fromGTSToGTSWrapper(gts, true, 1.0, true);
+    } else {
+      wrapper = GTSWrapperHelper.fromGTSToGTSWrapper(gts, true);
+    }
     
     TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
     

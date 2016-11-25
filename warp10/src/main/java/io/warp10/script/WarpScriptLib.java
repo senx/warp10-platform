@@ -771,6 +771,8 @@ public class WarpScriptLib {
     functions.put("COMMONTICKS", new COMMONTICKS("COMMONTICKS"));
     functions.put("WRAP", new WRAP("WRAP"));
     functions.put("WRAPRAW", new WRAPRAW("WRAPRAW"));
+    functions.put("WRAPOPT", new WRAP("WRAPOPT", true));
+    functions.put("WRAPRAWOPT", new WRAPRAW("WRAPRAWOPT", true));
     functions.put(UNWRAP, new UNWRAP(UNWRAP));
     
     //
