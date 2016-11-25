@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.gts;
 
+import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.continuum.store.thrift.data.Metadata;
 
@@ -107,6 +108,7 @@ public class GTSWrapperHelper {
   public static GTSWrapper fromGTSEncoderToGTSWrapper(GTSEncoder encoder, boolean compress, double compratio) {
     return fromGTSEncoderToGTSWrapper(encoder, compress, compratio, Integer.MAX_VALUE);
   }
+  
   public static GTSWrapper fromGTSEncoderToGTSWrapper(GTSEncoder encoder, boolean compress, double compratio, int maxpasses) {
 
     if (compratio < 1.0D) {
@@ -194,12 +196,20 @@ public class GTSWrapperHelper {
   }
   
   public static GTSWrapper fromGTSToGTSWrapper(GeoTimeSerie gts, boolean compress, double compratio) {
+    return fromGTSToGTSWrapper(gts, compress, compratio, false);
+  }
+  
+  public static GTSWrapper fromGTSToGTSWrapper(GeoTimeSerie gts, boolean compress, double compratio, boolean optimized) {
 
     GTSEncoder encoder = new GTSEncoder(0L);
     encoder.setMetadata(gts.getMetadata());
     
     try {
-      encoder.encodeOptimized(gts);
+      if (optimized && TYPE.DOUBLE == gts.getType()) {
+        encoder.encodeOptimized(gts);
+      } else {
+        encoder.encode(gts);
+      }
     } catch (IOException ioe) {      
     }
 
