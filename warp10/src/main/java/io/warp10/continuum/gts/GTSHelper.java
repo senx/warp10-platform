@@ -1394,13 +1394,13 @@ public class GTSHelper {
     GeoTimeSerie bucketized = new GeoTimeSerie(lastbucket, bucketcount, bucketspan, hint);
     
     //
-    // Copy name and labels
+    // Copy name, labels and attributes
     //
     
-    bucketized.setName(gts.getName());
-    Map<String,String> labels = gts.getLabels();
-    bucketized.setLabels(labels);
+    bucketized.setMetadata(new Metadata(gts.getMetadata()));
 
+    Map<String,String> labels = gts.getLabels();
+    
     //
     // Loop on all buckets
     //
@@ -3475,8 +3475,7 @@ public class GTSHelper {
     long firstbucket = gts.lastbucket - (gts.bucketcount - 1) * gts.bucketspan;
     
     GeoTimeSerie cropped = new GeoTimeSerie(4);
-    cropped.setName(gts.getName());
-    cropped.setLabels(gts.getLabels());
+    cropped.setMetadata(new Metadata(gts.getMetadata()));
     
     for (int i = 0; i < gts.values; i++) {
       if (gts.ticks[i] >= firstbucket
@@ -5824,8 +5823,7 @@ public class GTSHelper {
     // Don't use clone or cloneEmpty, this would force the type to that of 'gts'
     
     GeoTimeSerie normalized = new GeoTimeSerie(gts.lastbucket, gts.bucketcount, gts.bucketspan, gts.values);
-    normalized.setName(gts.getName());
-    normalized.setLabels(gts.getLabels());
+    normalized.setMetadata(new Metadata(gts.getMetadata()));
     
     for (int i = 0; i < gts.values; i++) {
       Object value;
@@ -5907,8 +5905,7 @@ public class GTSHelper {
     // Don't use clone or cloneEmpty, this would force the type to that of 'gts'
     
     GeoTimeSerie isonormalized = new GeoTimeSerie(gts.lastbucket, gts.bucketcount, gts.bucketspan, gts.values);
-    isonormalized.setName(gts.getName());
-    isonormalized.setLabels(gts.getLabels());
+    isonormalized.setMetadata(new Metadata(gts.getMetadata()));
     
     double mean = sum / gts.values;
     
@@ -5976,8 +5973,7 @@ public class GTSHelper {
     double sd = Math.sqrt(variance);
     
     GeoTimeSerie standardized = new GeoTimeSerie(gts.lastbucket, gts.bucketcount, gts.bucketspan, gts.values);
-    standardized.setName(gts.getName());
-    standardized.setLabels(gts.getLabels());
+    standardized.setMetadata(new Metadata(gts.getMetadata()));
 
     for (int i = 0; i < gts.values; i++) {
       double value = ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue();
@@ -6155,9 +6151,7 @@ public class GTSHelper {
     }
     
     GeoTimeSerie s = new GeoTimeSerie(gts.lastbucket, gts.bucketcount, gts.bucketspan, gts.values);
-    
-    s.setName(gts.getName());
-    s.setLabels(gts.getLabels());
+    s.setMetadata(new Metadata(gts.getMetadata()));
     
     //
     // Sort input GTS
@@ -6222,9 +6216,7 @@ public class GTSHelper {
     
     // Smoothed GTS
     GeoTimeSerie s = new GeoTimeSerie(gts.lastbucket, gts.bucketcount, gts.bucketspan, gts.values);
-    
-    s.setName(gts.getName());
-    s.setLabels(gts.getLabels());
+    s.setMetadata(new Metadata(gts.getMetadata()));
 
     // Best estimate GTS
     GeoTimeSerie b = s.clone();
