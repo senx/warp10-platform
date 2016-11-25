@@ -31,6 +31,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.RejectedExecutionException;
@@ -42,6 +43,8 @@ import kafka.message.MessageAndMetadata;
 
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.protocol.TCompactProtocol;
+
+import com.google.common.base.Charsets;
 
 public class ScriptRunnerConsumerFactory implements ConsumerFactory {
   
@@ -105,7 +108,7 @@ public class ScriptRunnerConsumerFactory implements ConsumerFactory {
               }
 
               final RunRequest request = new RunRequest();
-              
+
               deserializer.deserialize(request, data);
 
               //
@@ -183,9 +186,60 @@ public class ScriptRunnerConsumerFactory implements ConsumerFactory {
                         
                         OutputStream out = conn.getOutputStream();
                         
+                        //
+                        // Push the script parameters
+                        //
+                        
+                        out.write(Long.toString(request.getPeriodicity()).getBytes(Charsets.UTF_8));
+                        out.write(' ');
+                        out.write('\'');
+                        out.write(URLEncoder.encode(Constants.RUNNER_PERIODICITY, "UTF-8").replaceAll("\\+","%20").getBytes(Charsets.US_ASCII));            
+                        out.write('\'');
+                        out.write(' ');
+                        out.write(WarpScriptLib.STORE.getBytes(Charsets.UTF_8));
+                        out.write('\n');
+                        
+                        out.write('\'');
+                        out.write(URLEncoder.encode(request.getPath(), "UTF-8").replaceAll("\\+","%20").getBytes(Charsets.US_ASCII));            
+                        out.write('\'');
+                        out.write(' ');
+                        out.write('\'');
+                        out.write(URLEncoder.encode(Constants.RUNNER_PATH, "UTF-8").replaceAll("\\+","%20").getBytes(Charsets.US_ASCII));            
+                        out.write('\'');
+                        out.write(' ');
+                        out.write(WarpScriptLib.STORE.getBytes(Charsets.UTF_8));
+                        out.write('\n');
+
+                        out.write(Long.toString(request.getScheduledAt()).getBytes(Charsets.UTF_8));
+                        out.write(' ');
+                        out.write('\'');
+                        out.write(URLEncoder.encode(Constants.RUNNER_SCHEDULEDAT, "UTF-8").replaceAll("\\+","%20").getBytes(Charsets.US_ASCII));            
+                        out.write('\'');
+                        out.write(' ');
+                        out.write(WarpScriptLib.STORE.getBytes(Charsets.UTF_8));
+                        out.write('\n');
+
                         byte[] data = request.getContent();
                         
-                        out.write(data, 0, data.length);
+                        if (request.isCompressed()) {
+                          ByteArrayInputStream bais = new ByteArrayInputStream(data);
+                          GZIPInputStream gzis = new GZIPInputStream(bais);
+                          byte[] buf = new byte[1024];
+                          
+                          while(true) {
+                            int len = bais.read(buf);
+                            
+                            if (len < 0) {
+                              break;
+                            }
+                            
+                            out.write(buf, 0, len);
+                          }
+                          
+                          gzis.close();
+                        } else {
+                          out.write(data, 0, data.length);
+                        }
                         
                         // Add a 'CLEAR' at the end of the script so we don't return anything
                         out.write(runner.CLEAR);

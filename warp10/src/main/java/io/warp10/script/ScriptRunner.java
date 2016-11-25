@@ -20,12 +20,14 @@ import io.warp10.continuum.Configuration;
 import io.warp10.continuum.KafkaProducerPool;
 import io.warp10.continuum.KafkaSynchronizedConsumerPool;
 import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.thrift.data.RunRequest;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.DummyKeyStore;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.sensision.Sensision;
+import io.warp10.standalone.StandaloneScriptRunner;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -35,6 +37,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -335,10 +338,9 @@ public class ScriptRunner extends Thread {
     while(true) {
       long now = System.currentTimeMillis();
       
-      
       if (now - lastscan > this.scanperiod) {
         Map<String,Long> newscripts = scanSuperRoot(this.root);
-        
+
         Set<String> currentScripts = scripts.keySet();
         scripts.clear();
         scripts.putAll(newscripts);
@@ -439,6 +441,39 @@ public class ScriptRunner extends Thread {
             
             byte[] buf = new byte[1024];
             
+            //
+            // Push the script parameters
+            //
+            
+            out.write(Long.toString(periodicity).getBytes(Charsets.UTF_8));
+            out.write(' ');
+            out.write('\'');
+            out.write(URLEncoder.encode(Constants.RUNNER_PERIODICITY, "UTF-8").replaceAll("\\+","%20").getBytes(Charsets.US_ASCII));            
+            out.write('\'');
+            out.write(' ');
+            out.write(WarpScriptLib.STORE.getBytes(Charsets.UTF_8));
+            out.write('\n');
+            
+            out.write('\'');
+            out.write(URLEncoder.encode(path, "UTF-8").replaceAll("\\+","%20").getBytes(Charsets.US_ASCII));            
+            out.write('\'');
+            out.write(' ');
+            out.write('\'');
+            out.write(URLEncoder.encode(Constants.RUNNER_PATH, "UTF-8").replaceAll("\\+","%20").getBytes(Charsets.US_ASCII));            
+            out.write('\'');
+            out.write(' ');
+            out.write(WarpScriptLib.STORE.getBytes(Charsets.UTF_8));
+            out.write('\n');
+
+            out.write(Long.toString(System.currentTimeMillis()).getBytes(Charsets.UTF_8));
+            out.write(' ');
+            out.write('\'');
+            out.write(URLEncoder.encode(Constants.RUNNER_SCHEDULEDAT, "UTF-8").replaceAll("\\+","%20").getBytes(Charsets.US_ASCII));            
+            out.write('\'');
+            out.write(' ');
+            out.write(WarpScriptLib.STORE.getBytes(Charsets.UTF_8));
+            out.write('\n');
+
             while(true) {
               int len = in.read(buf);
               
@@ -603,8 +638,9 @@ public class ScriptRunner extends Thread {
     }
     
     try (DirectoryStream<Path> pathes = Files.newDirectoryStream(dir.toPath())) {
+      
       for (Path path: pathes) {
-        
+      
         File f = path.toFile();
 
         //
@@ -615,7 +651,7 @@ public class ScriptRunner extends Thread {
         if (!f.isDirectory() || !f.getParentFile().equals(dir)) {
           continue;
         }
-        
+
         long period;
         
         try {

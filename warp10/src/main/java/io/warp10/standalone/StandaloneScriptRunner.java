@@ -20,6 +20,7 @@ import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.geo.GeoDirectoryClient;
 import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.crypto.KeyStore;
@@ -52,7 +53,7 @@ public class StandaloneScriptRunner extends ScriptRunner {
   
   public StandaloneScriptRunner(Properties properties, KeyStore keystore, StoreClient storeClient, DirectoryClient directoryClient, GeoDirectoryClient geoDirectoryClient, Properties props) throws IOException {
     super(keystore, props);
-    
+
     this.props = props;
     this.directoryClient = directoryClient;
     this.geoDirectoryClient = geoDirectoryClient;
@@ -86,7 +87,8 @@ public class StandaloneScriptRunner extends ScriptRunner {
           
           Map<String,String> labels = new HashMap<String,String>();
           //labels.put(SensisionConstants.SENSISION_LABEL_PATH, Long.toString(periodicity) + "/" + f.getName());
-          labels.put(SensisionConstants.SENSISION_LABEL_PATH, f.getAbsolutePath().substring(getRoot().length() + 1));
+          String path = f.getAbsolutePath().substring(getRoot().length() + 1);
+          labels.put(SensisionConstants.SENSISION_LABEL_PATH, path);
           
           Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_COUNT, labels, 1);
 
@@ -136,6 +138,10 @@ public class StandaloneScriptRunner extends ScriptRunner {
 
             stack.exec(WarpScriptLib.BOOTSTRAP);
 
+            stack.store(Constants.RUNNER_PERIODICITY, periodicity);
+            stack.store(Constants.RUNNER_PATH, path);
+            stack.store(Constants.RUNNER_SCHEDULEDAT, System.currentTimeMillis());
+            
             stack.execMulti(new String(baos.toByteArray(), Charsets.UTF_8));
           } catch (Exception e) {                
             Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_FAILURES, labels, 1);
