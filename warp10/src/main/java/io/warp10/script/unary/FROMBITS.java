@@ -16,6 +16,13 @@
 
 package io.warp10.script.unary;
 
+import java.io.IOException;
+
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
+import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -37,14 +44,40 @@ public class FROMBITS extends NamedWarpScriptFunction implements WarpScriptStack
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object op = stack.pop();
     
-    if (!(op instanceof Long)) {
-      throw new WarpScriptException(getName() + " operates on a LONG.");
+    if (!(op instanceof Long) && !(op instanceof GeoTimeSerie)) {
+      throw new WarpScriptException(getName() + " operates on a LONG or a Geo Time Series thereof.");
     }
     
-    if (this.asFloat) {
-      stack.push((double) Float.intBitsToFloat((int) (((long) op) & 0xFFFFFFFFL)));
+    if ((op instanceof GeoTimeSerie) && TYPE.LONG != ((GeoTimeSerie) op).getType()) {
+      throw new WarpScriptException(getName() + " operates on a LONG Geo Time Series.");
+    }
+    
+    if (op instanceof Long) {
+      if (this.asFloat) {
+        stack.push((double) Float.intBitsToFloat((int) (((long) op) & 0xFFFFFFFFL)));
+      } else {
+        stack.push(Double.longBitsToDouble((long) op));
+      }      
     } else {
-      stack.push(Double.longBitsToDouble((long) op));
+      GeoTimeSerie gts = (GeoTimeSerie) op;
+      GTSEncoder encoder = new GTSEncoder(0L);
+      encoder.setMetadata(new Metadata(gts.getMetadata()));
+      int n = gts.size();
+      try {
+        for (int i = 0; i < n; i++) {
+          double value;
+          if (this.asFloat) {
+            value = (double) Float.intBitsToFloat((int) (((long) GTSHelper.valueAtIndex(gts, i)) & 0xFFFFFFFFL));
+          } else {
+            value = (double) Double.longBitsToDouble((long) GTSHelper.valueAtIndex(gts, i));
+          }
+          encoder.addValue(GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value);
+        }        
+      } catch (IOException ioe) {
+        throw new WarpScriptException(ioe);
+      }
+      
+      stack.push(encoder.getDecoder(true).decode());
     }
         
     return stack;
