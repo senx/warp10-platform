@@ -58,7 +58,7 @@ public class ADDMONTHS extends NamedWarpScriptFunction implements WarpScriptStac
       if (!(top instanceof Long)) {
         throw new WarpScriptException(getName() + " operates on a tselements list, timestamp, or timestamp and timezone.");
       }
-    } else if (!(top instanceof List)) {
+    } else if (!(top instanceof List) && !(top instanceof Long)) {
       throw new WarpScriptException(getName() + " operates on a tselements list, timestamp, or timestamp and timezone.");
     }
     
