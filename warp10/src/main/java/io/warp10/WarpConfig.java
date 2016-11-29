@@ -194,16 +194,21 @@ public class WarpConfig {
       String name = entry.getKey().toString();
       String value = entry.getValue().toString();
 
-      // URL Decode name/value if needed
-      if (name.contains("%")) {
-        name = URLDecoder.decode(name, "UTF-8");
-      }
-      if (value.contains("%")) {
-        value = URLDecoder.decode(value, "UTF-8");
-      }
+      try {
+        // URL Decode name/value if needed
+        if (name.contains("%")) {
+          name = URLDecoder.decode(name, "UTF-8");
+        }
+        if (value.contains("%")) {
+          value = URLDecoder.decode(value, "UTF-8");
+        }
 
-      // Override property
-      properties.setProperty(name, value);
+        // Override property
+        properties.setProperty(name, value);        
+      } catch (Exception e) {
+        System.err.println("Error decoding system property '" + entry.getKey().toString() + "' = '" + entry.getValue().toString() + "', using raw values.");
+        properties.setProperty(entry.getKey().toString(), entry.getValue().toString());
+      }
     }
     
     //
