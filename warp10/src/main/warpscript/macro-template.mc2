@@ -1,0 +1,59 @@
+<%
+  <'
+    This is the docstring for the macro, it contains relevant information about
+    what the macro is actually doing and the parameters needed to call it.
+
+    This doc will be pushed on the stack when calling the macro after having called DOCMODE.
+
+    The '@param' section details all the parameters of the macro. Each parameter
+    description is either for a named parameter (a pre-existing symbol at the
+    time the macro is called) or a stack level (represented as [xx] with xx > 1 or [TOP] for
+    the top of the stack).
+
+    In general macros should not be callable with different stack level combos, instead
+    use named parameters in order to limit confusion.
+
+    @param foo Parameter 'foo' contains ... This parameter is optional.
+    @param [2] Stack level 2 contains ....
+    @param [TOP] The top of the stack should contain ....
+
+    The '@return' section details what the macro leaves on the stack and what symbols
+    it alters.
+
+    @return [TOP] This macro leaves xxx on top of the stack
+    @return bar This macro modifies the 'bar' symbol
+  '>
+  DOC
+
+  //
+  // Start by saving the context
+  //
+  // Note that any symbols which should be visibly altered by the macro should
+  // be altered either before the call to STORE or after the call to RESTOR
+  //
+
+  SAVE 'context' STORE
+
+    //
+    // Code of the actual macro
+    //
+
+  //
+  // Restore the context
+  //
+
+  $context RESTORE
+%>
+'macro' STORE
+
+//
+// Unit tests
+//
+
+// Add some code to make sure your macro is behaving as expected
+
+//
+// Leave the macro on the stack
+//
+
+$macro
