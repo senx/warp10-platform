@@ -1310,7 +1310,7 @@ public class WarpScriptLib {
     functions.put("op.add", new OpAdd("op.add.ignore-nulls", false));
     functions.put("op.sub", new OpSub("op.sub"));
     functions.put("op.mul", new OpMul("op.mul", true));
-    functions.put("op.mul", new OpMul("op.mul.ignore-nulls", false));
+    functions.put("op.mul.ignore-nulls", new OpMul("op.mul.ignore-nulls", false));
     functions.put("op.div", new OpDiv("op.div"));
     functions.put("op.mask", new OpMask("op.mask", false));
     functions.put("op.negmask", new OpMask("op.negmask", true)); 
