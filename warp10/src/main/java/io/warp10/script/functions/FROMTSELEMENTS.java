@@ -54,8 +54,8 @@ public class FROMTSELEMENTS extends NamedWarpScriptFunction implements WarpScrip
     if (obj instanceof String) {
       tz = (String) obj;
       stack.pop();
-    } else if (!(obj instanceof Long)) {
-      throw new WarpScriptException(getName() + " operates on a timestamp or a timestamp + timezone.");
+    } else if (!(obj instanceof List)) {
+      throw new WarpScriptException(getName() + " operates on a list of timestamp elements or a list of timestamp elements + timezone.");
     }
 
     DateTimeZone dtz = this.tzones.get(tz);
