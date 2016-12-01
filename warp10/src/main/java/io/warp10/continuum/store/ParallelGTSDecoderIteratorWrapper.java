@@ -308,9 +308,13 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     // run or running.
     //
     
-    while(this.queue.isEmpty() && !(0 == this.pending.get() &&  0 == this.inflight.get())) {
+    while(!this.errorFlag.get() && this.queue.isEmpty() && !(0 == this.pending.get() &&  0 == this.inflight.get())) {
       schedule();
       LockSupport.parkNanos(10000L);
+    }
+    
+    if (this.errorFlag.get()) {
+      throw new RuntimeException("Error in an underlying parallel scanner.");
     }
     
     return !this.queue.isEmpty();
@@ -318,6 +322,11 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
   
   @Override
   public GTSDecoder next() {
+    
+    if (this.errorFlag.get()) {
+      throw new RuntimeException("Error in an underlying parallel scanner.");
+    }
+
     try {
       return this.queue.take();
     } catch (InterruptedException ie) {
