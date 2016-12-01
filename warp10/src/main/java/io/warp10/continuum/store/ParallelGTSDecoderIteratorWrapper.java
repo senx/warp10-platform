@@ -18,6 +18,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -49,6 +50,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     private final AtomicInteger pendingCounter;
     private final AtomicInteger inflightCounter;
     private final AtomicBoolean errorFlag;
+    private final AtomicReference<Throwable> errorThrowable;
     private final GTSDecoderIterator iterator;
     private final LinkedBlockingQueue<GTSDecoder> queue;
     private final Semaphore sem;
@@ -57,10 +59,11 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     
     private static volatile boolean foo = false;
     
-    public GTSDecoderIteratorRunnable(GTSDecoderIterator iterator, LinkedBlockingQueue<GTSDecoder> queue, Semaphore sem, AtomicInteger pendingCounter, AtomicInteger inflightCounter, AtomicBoolean errorFlag) {
+    public GTSDecoderIteratorRunnable(GTSDecoderIterator iterator, LinkedBlockingQueue<GTSDecoder> queue, Semaphore sem, AtomicInteger pendingCounter, AtomicInteger inflightCounter, AtomicBoolean errorFlag, AtomicReference<Throwable> errorThrowable) {
       this.pendingCounter = pendingCounter;
       this.inflightCounter = inflightCounter;
       this.errorFlag = errorFlag;
+      this.errorThrowable = errorThrowable;
       this.iterator = iterator;
       this.queue = queue;
       this.sem = sem;
@@ -157,6 +160,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
         
       } catch (Throwable t) {
         this.errorFlag.set(true);
+        this.errorThrowable.set(t);
       } finally {
         if (0 != held) {
           this.sem.release(held);
@@ -209,6 +213,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
   private final AtomicInteger pending = new AtomicInteger(0);
   private final AtomicInteger inflight = new AtomicInteger(0);
   private final AtomicBoolean errorFlag = new AtomicBoolean(false);
+  private final AtomicReference errorThrowable = new AtomicReference<Throwable>();
   
   /**
    * Semaphore for synchronizing the various runnables. Fairness should be enforced.
@@ -257,7 +262,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
           iterator = new MultiScanGTSDecoderIterator(fromArchive, token, now, timespan, metas, conn, tableName, colfam, writeTimestamp, keystore, useBlockCache);      
         }      
 
-        GTSDecoderIteratorRunnable runnable = new GTSDecoderIteratorRunnable(iterator, queue, sem, this.pending, this.inflight, this.errorFlag);
+        GTSDecoderIteratorRunnable runnable = new GTSDecoderIteratorRunnable(iterator, queue, sem, this.pending, this.inflight, this.errorFlag, this.errorThrowable);
         runnables.add(runnable);
         metas = null;
       }      
@@ -272,7 +277,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
         iterator = new MultiScanGTSDecoderIterator(fromArchive, token, now, timespan, metas, conn, tableName, colfam, writeTimestamp, keystore, useBlockCache);      
       }      
 
-      GTSDecoderIteratorRunnable runnable = new GTSDecoderIteratorRunnable(iterator, queue, sem, this.pending, this.inflight, this.errorFlag);
+      GTSDecoderIteratorRunnable runnable = new GTSDecoderIteratorRunnable(iterator, queue, sem, this.pending, this.inflight, this.errorFlag, this.errorThrowable);
       runnables.add(runnable);
     }
     
@@ -314,7 +319,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     }
     
     if (this.errorFlag.get()) {
-      throw new RuntimeException("Error in an underlying parallel scanner.");
+      throw new RuntimeException("Error in an underlying parallel scanner.", (Throwable) this.errorThrowable.get());
     }
     
     return !this.queue.isEmpty();
@@ -324,7 +329,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
   public GTSDecoder next() {
     
     if (this.errorFlag.get()) {
-      throw new RuntimeException("Error in an underlying parallel scanner.");
+      throw new RuntimeException("Error in an underlying parallel scanner.", (Throwable) this.errorThrowable.get());
     }
 
     try {
