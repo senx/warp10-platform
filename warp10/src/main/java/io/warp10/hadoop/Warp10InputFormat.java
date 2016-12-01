@@ -121,8 +121,21 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
    */
   public static final String HTTP_HEADER_TIMESPAN_HEADER_DEFAULT = "X-Warp10-Timespan";
 
-
+  /**
+   * Suffix for the properties
+   */
+  private final String suffix;
+  
+  public Warp10InputFormat(String suffix) {
+    if (null != suffix) {
+      this.suffix = "." + suffix;
+    } else {
+      this.suffix = "";
+    }
+  }
+  
   public Warp10InputFormat() {
+    this.suffix = "";
   }
 
   @Override
@@ -130,34 +143,34 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     
     List<String> fallbacks = new ArrayList<>();
     
-    boolean fallbacksonly = Boolean.TRUE.equals(context.getConfiguration().get(PROPERTY_WARP10_FETCHER_FALLBACKSONLY));
+    boolean fallbacksonly = Boolean.TRUE.equals(getProperty(context, PROPERTY_WARP10_FETCHER_FALLBACKSONLY));
     
-    if (null != context.getConfiguration().get(PROPERTY_WARP10_FETCHER_FALLBACKS)) {
-      String[] servers = context.getConfiguration().get(PROPERTY_WARP10_FETCHER_FALLBACKS).split(",");
+    if (null != getProperty(context, PROPERTY_WARP10_FETCHER_FALLBACKS)) {
+      String[] servers = getProperty(context, PROPERTY_WARP10_FETCHER_FALLBACKS).split(",");
       for (String server: servers) {
         fallbacks.add(server);
       }
     }
 
-    int connectTimeout = Integer.valueOf(context.getConfiguration().get(Warp10InputFormat.PROPERTY_WARP10_HTTP_CONNECT_TIMEOUT, Warp10InputFormat.DEFAULT_WARP10_HTTP_CONNECT_TIMEOUT));
-    int readTimeout = Integer.valueOf(context.getConfiguration().get(Warp10InputFormat.PROPERTY_WARP10_HTTP_READ_TIMEOUT, Warp10InputFormat.DEFAULT_WARP10_HTTP_READ_TIMEOUT));
+    int connectTimeout = Integer.valueOf(getProperty(context, Warp10InputFormat.PROPERTY_WARP10_HTTP_CONNECT_TIMEOUT, Warp10InputFormat.DEFAULT_WARP10_HTTP_CONNECT_TIMEOUT));
+    int readTimeout = Integer.valueOf(getProperty(context, Warp10InputFormat.PROPERTY_WARP10_HTTP_READ_TIMEOUT, Warp10InputFormat.DEFAULT_WARP10_HTTP_READ_TIMEOUT));
 
     //
     // Issue a call to the /splits endpoint to retrieve the individual splits
     //
 
-    String splitEndpoint = context.getConfiguration().get(PROPERTY_WARP10_SPLITS_ENDPOINT);
+    String splitEndpoint = getProperty(context, PROPERTY_WARP10_SPLITS_ENDPOINT);
 
     StringBuilder sb = new StringBuilder();
     sb.append(splitEndpoint);
     sb.append("?");
     sb.append(Constants.HTTP_PARAM_SELECTOR);
     sb.append("=");
-    sb.append(WarpURLEncoder.encode(context.getConfiguration().get(PROPERTY_WARP10_SPLITS_SELECTOR), "UTF-8"));
+    sb.append(WarpURLEncoder.encode(getProperty(context, PROPERTY_WARP10_SPLITS_SELECTOR), "UTF-8"));
     sb.append("&");
     sb.append(Constants.HTTP_PARAM_TOKEN);
     sb.append("=");
-    sb.append(context.getConfiguration().get(PROPERTY_WARP10_SPLITS_TOKEN));
+    sb.append(getProperty(context, PROPERTY_WARP10_SPLITS_TOKEN));
     
     URL url = new URL(sb.toString());
 
@@ -232,14 +245,14 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     // Compute the maximum number of splits which can be combined given the number of servers (RS)
     int avgsplitcount = (int) Math.ceil((double) count / perServer.size());
     
-    if (null != context.getConfiguration().get(PROPERTY_WARP10_MAX_SPLITS)) {
-      int maxsplitavg = (int) Math.ceil((double) count / Integer.parseInt(context.getConfiguration().get(PROPERTY_WARP10_MAX_SPLITS)));
+    if (null != getProperty(context, PROPERTY_WARP10_MAX_SPLITS)) {
+      int maxsplitavg = (int) Math.ceil((double) count / Integer.parseInt(getProperty(context, PROPERTY_WARP10_MAX_SPLITS)));
       
       avgsplitcount = maxsplitavg;
     }
     
-    if (null != context.getConfiguration().get(PROPERTY_WARP10_MAX_COMBINED_SPLITS)) {
-      int maxcombined = Integer.parseInt(context.getConfiguration().get(PROPERTY_WARP10_MAX_COMBINED_SPLITS));
+    if (null != getProperty(context, PROPERTY_WARP10_MAX_COMBINED_SPLITS)) {
+      int maxcombined = Integer.parseInt(getProperty(context, PROPERTY_WARP10_MAX_COMBINED_SPLITS));
       
       if (maxcombined < avgsplitcount) {
         avgsplitcount = maxcombined;
@@ -387,7 +400,22 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     if (!(split instanceof Warp10InputSplit)) {
       throw new IOException("Invalid split type.");
     }
-    return new Warp10RecordReader();
+    return new Warp10RecordReader(this.suffix);
   }
 
+  private String getProperty(JobContext context, String property) {
+    return getProperty(context, property, null);
+  }
+  
+  private String getProperty(JobContext context, String property, String defaultValue) {
+    if (null != context.getConfiguration().get(property + suffix)) {
+      return context.getConfiguration().get(property + suffix);      
+    } else if (null != context.getConfiguration().get(property)) {
+      return context.getConfiguration().get(property);
+    } else if (null != defaultValue) {
+      return defaultValue;
+    } else {
+      return null;
+    }
+  }
 }

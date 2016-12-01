@@ -16,6 +16,15 @@
 
 package io.warp10.script.unary;
 
+import java.io.IOException;
+
+import com.sun.org.apache.bcel.internal.generic.Type;
+
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
+import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -37,15 +46,41 @@ public class TOBITS extends NamedWarpScriptFunction implements WarpScriptStackFu
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object op = stack.pop();
     
-    if (!(op instanceof Double)) {
-      throw new WarpScriptException(getName() + " operates on a DOUBLE.");
+    if (!(op instanceof Number) && !(op instanceof GeoTimeSerie)) {
+      throw new WarpScriptException(getName() + " operates on a DOUBLE, LONG or Geo Time Serie thereof.");
     }
     
-    if (this.asFloat) {
-      int bits = Float.floatToRawIntBits((float) ((double) op));
-      stack.push(((long) bits) & 0xFFFFFFFFL);
+    if (op instanceof Number) {
+      if (this.asFloat) {
+        int bits = Float.floatToRawIntBits(((Number) op).floatValue());
+        stack.push(((long) bits) & 0xFFFFFFFFL);
+      } else {
+        stack.push(Double.doubleToRawLongBits(((Number) op).doubleValue()));      
+      }      
     } else {
-      stack.push(Double.doubleToRawLongBits((double) op));      
+      GeoTimeSerie gts = (GeoTimeSerie) op;
+      if (TYPE.LONG != gts.getType() && TYPE.DOUBLE != gts.getType()) {
+        throw new WarpScriptException(getName() + " operates on a DOUBLE or LONG Geo Time Series.");
+      }
+      GTSEncoder encoder = new GTSEncoder(0L);
+      encoder.setMetadata(new Metadata(gts.getMetadata()));
+      int n = gts.size();
+      try {
+        for (int i = 0; i < n; i++) {
+          Object value;
+          if (this.asFloat) {
+            int bits = Float.floatToRawIntBits(((Number) GTSHelper.valueAtIndex(gts, i)).floatValue());
+            value = ((long) bits) & 0xFFFFFFFFL;          
+          } else {
+            value = Double.doubleToRawLongBits(((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue());
+          }
+          encoder.addValue(GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value);
+        }        
+      } catch (IOException ioe) {
+        throw new WarpScriptException(ioe);
+      }
+      
+      stack.push(encoder.getDecoder(true).decode());
     }
         
     return stack;

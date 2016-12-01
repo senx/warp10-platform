@@ -11,6 +11,7 @@ import java.net.URL;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.Progressable;
@@ -31,6 +32,16 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
 
   private Progressable progress = null;
 
+  private final String suffix;
+  
+  public Warp10RecordReader() {
+    this.suffix = "";
+  }
+
+  public Warp10RecordReader(String suffix) {
+    this.suffix = suffix;
+  }
+  
   @Override
   public void initialize(InputSplit split, TaskAttemptContext context)
       throws IOException, InterruptedException {
@@ -45,23 +56,23 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
     // Retrieve now and timespan parameters
     //
 
-    long now = Long.valueOf(context.getConfiguration().get(Warp10InputFormat.PROPERTY_WARP10_FETCH_NOW));
-    long timespan = Long.valueOf(context.getConfiguration().get(Warp10InputFormat.PROPERTY_WARP10_FETCH_TIMESPAN));
+    long now = Long.valueOf(getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCH_NOW));
+    long timespan = Long.valueOf(getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCH_TIMESPAN));
 
-    int connectTimeout = Integer.valueOf(context.getConfiguration().get(Warp10InputFormat.PROPERTY_WARP10_HTTP_CONNECT_TIMEOUT, Warp10InputFormat.DEFAULT_WARP10_HTTP_CONNECT_TIMEOUT));
-    int readTimeout = Integer.valueOf(context.getConfiguration().get(Warp10InputFormat.PROPERTY_WARP10_HTTP_READ_TIMEOUT, Warp10InputFormat.DEFAULT_WARP10_HTTP_READ_TIMEOUT));
+    int connectTimeout = Integer.valueOf(getProperty(context, Warp10InputFormat.PROPERTY_WARP10_HTTP_CONNECT_TIMEOUT, Warp10InputFormat.DEFAULT_WARP10_HTTP_CONNECT_TIMEOUT));
+    int readTimeout = Integer.valueOf(getProperty(context, Warp10InputFormat.PROPERTY_WARP10_HTTP_READ_TIMEOUT, Warp10InputFormat.DEFAULT_WARP10_HTTP_READ_TIMEOUT));
 
     //
     // Call each provided fetcher until one answers
     //
 
-    String protocol = context.getConfiguration().get(Warp10InputFormat.PROPERTY_WARP10_FETCHER_PROTOCOL, Warp10InputFormat.DEFAULT_WARP10_FETCHER_PROTOCOL);
-    String port = context.getConfiguration().get(Warp10InputFormat.PROPERTY_WARP10_FETCHER_PORT, Warp10InputFormat.DEFAULT_WARP10_FETCHER_PORT);
-    String path = context.getConfiguration().get(Warp10InputFormat.PROPERTY_WARP10_FETCHER_PATH, Warp10InputFormat.DEFAULT_WARP10_FETCHER_PATH);
+    String protocol = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCHER_PROTOCOL, Warp10InputFormat.DEFAULT_WARP10_FETCHER_PROTOCOL);
+    String port = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCHER_PORT, Warp10InputFormat.DEFAULT_WARP10_FETCHER_PORT);
+    String path = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCHER_PATH, Warp10InputFormat.DEFAULT_WARP10_FETCHER_PATH);
 
     // FIXME: use Constants instead ?? but warp.timeunits is mandatory and property file must be provided..
-    String nowHeader = context.getConfiguration().get(Configuration.HTTP_HEADER_NOW_HEADERX, Warp10InputFormat.HTTP_HEADER_NOW_HEADER_DEFAULT);
-    String timespanHeader = context.getConfiguration().get(Configuration.HTTP_HEADER_TIMESPAN_HEADERX, Warp10InputFormat.HTTP_HEADER_TIMESPAN_HEADER_DEFAULT);
+    String nowHeader = getProperty(context, Configuration.HTTP_HEADER_NOW_HEADERX, Warp10InputFormat.HTTP_HEADER_NOW_HEADER_DEFAULT);
+    String timespanHeader = getProperty(context, Configuration.HTTP_HEADER_TIMESPAN_HEADERX, Warp10InputFormat.HTTP_HEADER_TIMESPAN_HEADER_DEFAULT);
 
     for (String fetcher: split.getLocations()) {
       try {
@@ -192,6 +203,22 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
   @Override public void progress() {
     if (null != this.progress) {
       this.progress.progress();
+    }
+  }
+  
+  private String getProperty(JobContext context, String property) {
+    return getProperty(context, property, null);
+  }
+  
+  private String getProperty(JobContext context, String property, String defaultValue) {
+    if (null != context.getConfiguration().get(property + suffix)) {
+      return context.getConfiguration().get(property + suffix);      
+    } else if (null != context.getConfiguration().get(property)) {
+      return context.getConfiguration().get(property);
+    } else if (null != defaultValue) {
+      return defaultValue;
+    } else {
+      return null;
     }
   }
 }
