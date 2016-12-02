@@ -42,7 +42,7 @@ public class CORSHandler extends AbstractHandler {
     }    
     
     response.setHeader("Access-Control-Allow-Origin", "*");
-    response.setHeader("Access-Control-Allow-Methods", "OPTIONS,POST");
+    response.setHeader("Access-Control-Allow-Methods", "OPTIONS,POST,GET");
     response.setHeader("Access-Control-Allow-Headers", Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
     // Allow to cache preflight response for 30 days
     response.setHeader("Access-Control-Max-Age", "" + 24 * 3600 * 30);
