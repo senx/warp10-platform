@@ -6591,9 +6591,28 @@ public class GTSHelper {
         }
       }            
     }
+
+    //
+    // Compute size hints so allocations are faster.
+    // We heuristically consider that each chunk will contain an equal share of
+    // the original points. We do the same for the overlaps.
+    //
+    
+    int hint = (int) (chunkcount > 0 ? gts.values / chunkcount : 0);
+    int overlaphint = (int) (overlap > 0 ? gts.values / overlap : 0);
+    
+    //
+    // The final hint takes intoaccount the overlaps
+    //
+    
+    if (hint > 0) {
+      hint += 2 * overlaphint;
+    }
     
     for (long i = 0; i < chunkcount; i++) {
 
+      //System.out.println("CHUNK=" + i + " HINT=" + hint);
+      
       // If we have no more values and were not specified a chunk count, exit the loop, we're done
       if (idx >= gts.values && zeroChunkCount) {
         break;
@@ -6603,7 +6622,7 @@ public class GTSHelper {
       long chunkend = lastchunk - i * chunkwidth;
       long chunkstart = chunkend - chunkwidth + 1;
 
-      GeoTimeSerie chunkgts = new GeoTimeSerie(lastbucket, bucketcount, bucketspan, 16);
+      GeoTimeSerie chunkgts = new GeoTimeSerie(lastbucket, bucketcount, bucketspan, hint);
       
       // Set metadata for the GTS
       chunkgts.setMetadata(metadata);
@@ -6670,6 +6689,30 @@ public class GTSHelper {
       // only add chunk if it's not empty or empty with 'keepempty' set to true
       if (0 != chunkgts.values || (keepempty || overlap > 0)) {
         chunks.put(chunkend,chunkgts);
+      }
+      
+      //
+      // If there is no overlap and the chunk has empty slots, shrink it now so we save memory.
+      // If using overlap and the chunk has more empty array slots than 2 * overlaphint, shrink it.
+      // This will slow down the overlap computation but will save memory.
+      //
+      
+      if (0 == chunkgts.values) {
+        GTSHelper.shrink(chunkgts);
+      } else if (overlap <= 0 && gts.values > 0 && chunkgts.ticks.length - chunkgts.values > 0) {
+        GTSHelper.shrink(chunkgts);
+      } else if (overlap > 0 && chunkgts.values > 0 && chunkgts.ticks.length - chunkgts.values > 2 * overlaphint) {
+        GTSHelper.shrink(chunkgts);
+      }
+      
+      //
+      // Adapt the hint
+      //
+      
+      if (chunkgts.values > hint) {
+        hint = chunkgts.values + 2 * overlaphint;
+      } else if (chunkgts.values < hint) {
+        hint = ((hint + chunkgts.values) / 2) + 2 * overlaphint;
       }
     }
     
@@ -6756,6 +6799,15 @@ public class GTSHelper {
       if (!keepempty && 0 == g.values) {
         continue;
       }
+      
+      //
+      // Shrink the GTS if the underlying storage is unused for more than 10% of the capacity
+      //
+      
+      if (g.values > 0 && g.ticks.length - g.values > g.values * 0.1) {
+        GTSHelper.shrink(g);
+      }
+      
       result.add(g);
     }
 
