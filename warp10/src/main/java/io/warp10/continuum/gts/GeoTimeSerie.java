@@ -376,7 +376,7 @@ public class GeoTimeSerie implements Cloneable {
   }
   
   public GeoTimeSerie cloneEmpty() {
-    return cloneEmpty(this.sizehint);
+    return cloneEmpty(0);
   }
   
   /**
