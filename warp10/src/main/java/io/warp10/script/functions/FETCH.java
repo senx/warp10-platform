@@ -543,8 +543,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
           }      
         } catch (WarpScriptException ee) {
           throw ee;
-        } catch (Exception e) {
-          e.printStackTrace();
+        } catch (Throwable t) {          
+          throw new WarpScriptException(t);
         }
         
         

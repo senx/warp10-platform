@@ -49,14 +49,16 @@ public class GeoTimeSerie implements Cloneable {
   static final float ARRAY_GROWTH_FACTOR = 0.2F;
   
   /**
-   * Mininum number of elements to add to arrays when growing them
+   * Mininum number of elements to add to arrays when growing them.
+   * 64 elements consumes grossly 2kb when location/elevation are present
    */
-  static final int MIN_ARRAY_GROWTH = 20;
+  static final int MIN_ARRAY_GROWTH = 64;
   
   /**
    * Maximum number of elements to add to arrays when growing them.
+   * 32768 represents ~1Mb when location/elevation are present
    */
-  static final int MAX_ARRAY_GROWTH = 10000;
+  static final int MAX_ARRAY_GROWTH = 32768;
   
   /**
    * Value used for elevation when there is no elevation.
@@ -376,7 +378,7 @@ public class GeoTimeSerie implements Cloneable {
   }
   
   public GeoTimeSerie cloneEmpty() {
-    return cloneEmpty(this.sizehint);
+    return cloneEmpty(0);
   }
   
   /**
