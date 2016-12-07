@@ -5791,7 +5791,7 @@ public class GTSHelper {
     
     if (TYPE.LONG == gts.getType()) {
       for (int i = 0; i < gts.values; i++) {
-        long value = (long) GTSHelper.valueAtIndex(gts, i);
+        long value = ((Number) GTSHelper.valueAtIndex(gts, i)).longValue();
         
         if (value > lmax) {
           lmax = value;
@@ -5802,7 +5802,7 @@ public class GTSHelper {
       }      
     } else {
       for (int i = 0; i < gts.values; i++) {
-        double value = (double) GTSHelper.valueAtIndex(gts, i);
+        double value = ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue();
         
         if (value > dmax) {
           dmax = value;
@@ -5831,9 +5831,9 @@ public class GTSHelper {
       if (constant) {
         value = 1.0D;
       } else if (TYPE.LONG == gts.getType()) {
-        value = ((long) GTSHelper.valueAtIndex(gts, i) - lmin) / (double) (lmax - lmin);
+        value = (((Number) GTSHelper.valueAtIndex(gts, i)).longValue() - lmin) / (double) (lmax - lmin);
       } else {
-        value = ((double) GTSHelper.valueAtIndex(gts, i) - dmin) / (double) (dmax - dmin);
+        value = (((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue() - dmin) / (double) (dmax - dmin);
       }
       
       GTSHelper.setValue(normalized, gts.ticks[i], GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value, false);
@@ -5869,7 +5869,7 @@ public class GTSHelper {
     
     if (TYPE.LONG == gts.getType()) {
       for (int i = 0; i < gts.values; i++) {
-        long value = (long) GTSHelper.valueAtIndex(gts, i);
+        long value = ((Number) GTSHelper.valueAtIndex(gts, i)).longValue();
         
         if (value > lmax) {
           lmax = value;
@@ -5882,7 +5882,7 @@ public class GTSHelper {
       }      
     } else {
       for (int i = 0; i < gts.values; i++) {
-        double value = (double) GTSHelper.valueAtIndex(gts, i);
+        double value = ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue();
         
         if (value > dmax) {
           dmax = value;
@@ -5915,9 +5915,9 @@ public class GTSHelper {
       if (constant) {
         value = 1.0D;
       } else if (TYPE.LONG == gts.getType()) {
-        value = ((long) GTSHelper.valueAtIndex(gts, i) - mean) / (double) (lmax - lmin);
+        value = (((Number) GTSHelper.valueAtIndex(gts, i)).longValue() - mean) / (double) (lmax - lmin);
       } else {
-        value = ((double) GTSHelper.valueAtIndex(gts, i) - mean) / (double) (dmax - dmin);
+        value = (((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue() - mean) / (double) (dmax - dmin);
       }
       
       GTSHelper.setValue(isonormalized, gts.ticks[i], GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value, false);
@@ -7013,7 +7013,7 @@ public class GTSHelper {
     //
     
     for (int i = 0; i < gts.values; i++) {
-      double v = ((double) GTSHelper.valueAtIndex(gts, i) - mu) / sigma;
+      double v = (((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue() - mu) / sigma;
       
       int insertion = Arrays.binarySearch(bounds, v);
       
