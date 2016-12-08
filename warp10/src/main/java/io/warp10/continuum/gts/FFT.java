@@ -127,7 +127,7 @@ public class FFT {
         throw new WarpScriptException("Found a displaced tick, should have been 'bucketspan' away from previous.");
       }
       lasttick = gts.ticks[i];
-      x[i*2] = (double) GTSHelper.valueAtIndex(gts, i);
+      x[i*2] = ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue();
     }
     
     DoubleFFT_1D dfft = new DoubleFFT_1D(x.length / 2);

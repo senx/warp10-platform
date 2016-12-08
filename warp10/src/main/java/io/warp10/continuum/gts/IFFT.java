@@ -79,8 +79,8 @@ public class IFFT {
     double[] x = new double[n + n];
 
     for (int i = 0; i < n; i++) {
-      x[2 * i] = (double) GTSHelper.valueAtIndex(re, i);
-      x[2 * i + 1] = (double) GTSHelper.valueAtIndex(im, i);
+      x[2 * i] = ((Number) GTSHelper.valueAtIndex(re, i)).doubleValue();
+      x[2 * i + 1] = ((Number) GTSHelper.valueAtIndex(im, i)).doubleValue();
     }
     
     DoubleFFT_1D dfft = new DoubleFFT_1D(n);
