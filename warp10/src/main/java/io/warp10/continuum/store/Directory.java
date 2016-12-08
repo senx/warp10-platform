@@ -941,7 +941,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 abort.set(true);
               }
               
-              LockSupport.parkNanos(100000000L);
+              LockSupport.parkNanos(1000000L);
             }
 
             //
@@ -1236,7 +1236,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   try {
                     Object[] results = new Object[actions.size()];
                     
-                    if (directory.store) {
+                    if (directory.store||directory.delete) {
                       ht.batch(actions, results);
 
                       // Check results for nulls
@@ -1338,7 +1338,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 }
               }
  
-              LockSupport.parkNanos(100000000L);
+              LockSupport.parkNanos(100000L);
             }
           }
         });
@@ -1548,6 +1548,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 // estimate the size of the Delete
                 actionsSize.addAndGet(rowkey.length + 16);
                 lastAction.set(System.currentTimeMillis());
+                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_DELETES, Sensision.EMPTY_LABELS, 1);                
               } finally {
                 if (actionsLock.isHeldByCurrentThread()) {
                   actionsLock.unlock();
