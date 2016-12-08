@@ -698,6 +698,11 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_PUTS = "warp.directory.hbase.puts";
 
   /**
+   * Number of HBase Delete done in 'Directory'
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_DELETES = "warp.directory.hbase.deletes";
+
+  /**
    * Number of calls to 'flushCommits' done in 'Directory'
    */
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_COMMITS = "warp.directory.hbase.commits";
