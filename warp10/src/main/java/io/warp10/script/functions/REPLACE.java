@@ -41,9 +41,9 @@ public class REPLACE extends NamedWarpScriptFunction implements WarpScriptStackF
     String in = stack.pop().toString();
     
     if (this.all) {
-      stack.push(in.replaceFirst(regexp, replacement));
-    } else {
       stack.push(in.replaceAll(regexp, replacement));
+    } else {
+      stack.push(in.replaceFirst(regexp, replacement));
     }
     
     return stack;
