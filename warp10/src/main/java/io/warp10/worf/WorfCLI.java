@@ -85,7 +85,6 @@ public class WorfCLI {
       out.println(message);
       out.flush();
     }
-
   }
 
   public int execute(String[] args) {
@@ -105,7 +104,6 @@ public class WorfCLI {
       long ttl = 0L;
 
       PrintWriter out =new PrintWriter(System.out);
-
 
       if (cmd.hasOption(HELP)) {
         help();
@@ -128,7 +126,6 @@ public class WorfCLI {
       if (cmd.hasOption(QUIET)) {
         quiet = true;
       }
-
 
       if (cmd.hasOption(OUTPUT)) {
         outputFile = cmd.getOptionValue(OUTPUT);
@@ -177,7 +174,6 @@ public class WorfCLI {
         }
       }
 
-
       // get the input file name
       switch(cmd.getArgs().length) {
         case 0:
@@ -197,7 +193,6 @@ public class WorfCLI {
       }
 
       Properties config = Worf.readConfig(inputFile, out);
-
 
       //
       // TEMPLATE CONFIGURATION
@@ -318,7 +313,6 @@ public class WorfCLI {
         jsonToken.put("application", appName);
         jsonToken.put("owner", ownerUID);
         jsonToken.put("producer", producerUID);
-
 
         jsonOutput.put("read", jsonToken);
 
