@@ -175,7 +175,7 @@ public class WorfCLI {
       }
 
       // get the input file name
-      switch(cmd.getArgs().length) {
+      switch (cmd.getArgs().length) {
         case 0:
           throw new WorfException("Config or template file missing.");
 
@@ -369,7 +369,7 @@ public class WorfCLI {
 
   private void help() {
     // This prints out some help
-    HelpFormatter formater = new HelpFormatter();
+    HelpFormatter formatter = new HelpFormatter();
 
     String header = "DESCRIPTION";
     String footer = " \n \nCOPYRIGHT\nCopyright © 2016 Cityzen Data.\n Licensed under the Apache License, Version 2.0 (the \"License\")\n" +
@@ -377,7 +377,7 @@ public class WorfCLI {
         "You may obtain a copy of the License at\n" +
         "http://www.apache.org/licenses/LICENSE-2.0";
 
-    formater.printHelp("worf [OPTION] SOURCE_CONFIG [-o OUTPUT_CONFIG]", header,  options, footer, false);
+    formatter.printHelp("worf [OPTION] SOURCE_CONFIG [-o OUTPUT_CONFIG]", header,  options, footer, false);
     System.exit(0);
   }
 
