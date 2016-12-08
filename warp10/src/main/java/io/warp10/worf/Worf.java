@@ -257,7 +257,7 @@ public class Worf {
       // load a properties file
       prop.load(input);
 
-      out.println("default options loaded from file:" + file );
+      WorfCLI.consolePrintln("default options loaded from file:" + file, out );
 
       return prop;
     } catch (IOException ex) {

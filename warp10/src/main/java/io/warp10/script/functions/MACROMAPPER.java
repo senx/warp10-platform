@@ -151,15 +151,15 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
         Object[] ores2 = new Object[4];
         
         ores2[0] = ores[0];
-        if (Double.isNaN((double) ores[1]) || Double.isNaN((double) ores[2])) {
+        if (Double.isNaN(((Number) ores[1]).doubleValue()) || Double.isNaN(((Number) ores[2]).doubleValue())) {
           ores2[1] = GeoTimeSerie.NO_LOCATION;
         } else {
-          ores2[1] = GeoXPLib.toGeoXPPoint((double) ores[1], (double) ores[2]);
+          ores2[1] = GeoXPLib.toGeoXPPoint(((Number) ores[1]).doubleValue(), ((Number) ores[2]).doubleValue());
         }
-        if (Double.isNaN((double) ores[3])) {
+        if (Double.isNaN(((Number) ores[3]).doubleValue())) {
           ores2[2] = GeoTimeSerie.NO_ELEVATION;
         } else {
-          ores2[2] = (long) ores[3];
+          ores2[2] = ((Number) ores[3]).longValue();
         }
         ores2[3] = ores[4];
         
@@ -175,15 +175,15 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
           Object[] ores2 = new Object[4];
           
           ores2[0] = ores[0];
-          if (Double.isNaN((double) ores[1]) || Double.isNaN((double) ores[2])) {
+          if (Double.isNaN(((Number) ores[1]).doubleValue()) || Double.isNaN(((Number) ores[2]).doubleValue())) {
             ores2[1] = GeoTimeSerie.NO_LOCATION;
           } else {
-            ores2[1] = GeoXPLib.toGeoXPPoint((double) ores[1], (double) ores[2]);
+            ores2[1] = GeoXPLib.toGeoXPPoint(((Number) ores[1]).doubleValue(), ((Number) ores[2]).doubleValue());
           }
-          if (Double.isNaN((double) ores[3])) {
+          if (Double.isNaN(((Number) ores[3]).doubleValue())) {
             ores2[2] = GeoTimeSerie.NO_ELEVATION;
           } else {
-            ores2[2] = (long) ores[3];
+            ores2[2] = ((Number) ores[3]).longValue();
           }
           ores2[3] = ores[4];
           
@@ -207,8 +207,8 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
         if (!(longitude instanceof Double) || !(latitude instanceof Double)) {
           throw new WarpScriptException("Macro MUST return a latitude and a longitude which are of type DOUBLE.");
         } else {
-          if (!Double.isNaN((double) latitude) && !Double.isNaN((double) longitude)) {
-            location = GeoXPLib.toGeoXPPoint((double) latitude, (double) longitude);
+          if (!Double.isNaN(((Number) latitude).doubleValue()) && !Double.isNaN(((Number) longitude).doubleValue())) {
+            location = GeoXPLib.toGeoXPPoint(((Number) latitude).doubleValue(), ((Number) longitude).doubleValue());
           }
         }
         
@@ -218,8 +218,8 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
           throw new WarpScriptException("Macro MUST return an elevation which is either NaN or LONG.");
         } else {
           if (elevation instanceof Long) {
-            elev = (long) elevation;
-          } else if (!Double.isNaN((double) elevation)) {
+            elev = ((Number) elevation).longValue();
+          } else if (!Double.isNaN(((Number) elevation).doubleValue())) {
             throw new WarpScriptException("Macro MUST return an elevations which is NaN if it is of type DOUBLE.");
           }
         }

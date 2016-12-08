@@ -434,13 +434,13 @@ quantum.host = ${standalone.host}
 // Set to 'true' to delete the datalog files which were forwarded. If set to false or absent, such files will be moved
 // to 'datalog.forwarder.dstdir'.
 //
-#datalog,forwarded.deleteforwarded = true
+#datalog.forwarder.deleteforwarded = true
 
 //
 // Set to 'true' to delete the datalog files which were ignored. If set to false or absent, such files will be moved
 // to 'datalog.forwarder.dstdir'.
 //
-#datalog,forwarded.deleteignored = true
+#datalog.forwarder.deleteignored = true
 
 //
 // How often (in ms) to scan 'datalog.forwarder.srcdir' for datalog files to forward
