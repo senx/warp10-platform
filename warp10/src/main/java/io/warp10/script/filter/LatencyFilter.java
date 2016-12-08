@@ -320,7 +320,7 @@ public class LatencyFilter extends NamedWarpScriptFunction implements WarpScript
     long maxinidx = inGTS.size();
     
     while(indices[0] < maxinidx) {
-      long uplinkHash = (long) GTSHelper.valueAtIndex(inGTS, indices[0]);
+      long uplinkHash = ((Number) GTSHelper.valueAtIndex(inGTS, indices[0])).longValue();
       long uplinkTimestamp = GTSHelper.tickAtIndex(inGTS, indices[0]);
       
       long minLatency = Long.MAX_VALUE;
@@ -353,7 +353,7 @@ public class LatencyFilter extends NamedWarpScriptFunction implements WarpScript
             break;
           }
           
-          long downlinkHash = (long) GTSHelper.valueAtIndex(gts, indices[i]);
+          long downlinkHash = ((Number) GTSHelper.valueAtIndex(gts, indices[i])).longValue();
 
           //
           // Skip downlinkHash which are too low
@@ -557,11 +557,11 @@ public class LatencyFilter extends NamedWarpScriptFunction implements WarpScript
       
       for (int i = 1; i < allseries.size(); i++) {
         GeoTimeSerie gts = allseries.get(i);
-        if (payloadHash == (long) GTSHelper.valueAtIndex(gts, indices[i]) || -1 != Arrays.binarySearch(sortedHashes[i], payloadHash)) {
+        if (payloadHash == ((Number) GTSHelper.valueAtIndex(gts, indices[i])).longValue() || -1 != Arrays.binarySearch(sortedHashes[i], payloadHash)) {
           int k = indices[i];
           int nn = GTSHelper.nvalues(gts);
           
-          while(k < nn && payloadHash != (long) GTSHelper.valueAtIndex(gts, k) && GTSHelper.tickAtIndex(gts, k) <= maxoutts) {
+          while(k < nn && payloadHash != ((Number) GTSHelper.valueAtIndex(gts, k)).longValue() && GTSHelper.tickAtIndex(gts, k) <= maxoutts) {
             k++;
           }
           

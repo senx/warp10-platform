@@ -67,9 +67,9 @@ public class FROMBITS extends NamedWarpScriptFunction implements WarpScriptStack
         for (int i = 0; i < n; i++) {
           double value;
           if (this.asFloat) {
-            value = (double) Float.intBitsToFloat((int) (((long) GTSHelper.valueAtIndex(gts, i)) & 0xFFFFFFFFL));
+            value = (double) Float.intBitsToFloat((int) ((((Number) GTSHelper.valueAtIndex(gts, i)).longValue()) & 0xFFFFFFFFL));
           } else {
-            value = (double) Double.longBitsToDouble((long) GTSHelper.valueAtIndex(gts, i));
+            value = (double) Double.longBitsToDouble(((Number) GTSHelper.valueAtIndex(gts, i)).longValue());
           }
           encoder.addValue(GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value);
         }        
