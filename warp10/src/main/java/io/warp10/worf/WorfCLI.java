@@ -29,6 +29,7 @@ import java.util.UUID;
 
 public class WorfCLI {
   public static boolean verbose = false;
+  public static boolean quiet = false;
 
 
   private Options options = new Options();
@@ -46,6 +47,7 @@ public class WorfCLI {
   private static String VERSION = "version";
   private static String INTERACTIVE = "i";
   private static String OUTPUT = "o";
+  private static String QUIET = "q";
   private static String TOKEN = "t";
   private static String TTL = "ttl";
   private static String KEYSTORE = "ks";
@@ -55,6 +57,7 @@ public class WorfCLI {
     options.addOption(new Option(OUTPUT, "output", true, "output configuration destination file"));
     options.addOption(new Option(TOKEN, "tokens", false, "generate read/write tokens"));
     options.addOption(new Option("f", "format", false, "output tokens format. (default JSON)"));
+    options.addOption(new Option(QUIET, "quiet", false, "Only tokens or error are written on the console"));
 
     OptionGroup groupProducerUID = new OptionGroup();
     groupProducerUID.addOption(new Option(UUIDGEN_PRODUCER, "producer-uuid-gen", false, "creates a new universally unique identifier for the producer"));
@@ -77,6 +80,13 @@ public class WorfCLI {
     options.addOption(INTERACTIVE, "interactive", false, "Interactive mode, all other options are ignored");
   }
 
+  public static void consolePrintln(String message, PrintWriter out) {
+    if (!quiet) {
+      out.println(message);
+      out.flush();
+    }
+  }
+
   public int execute(String[] args) {
     try {
       CommandLineParser parser = new BasicParser();
@@ -95,7 +105,6 @@ public class WorfCLI {
 
       PrintWriter out =new PrintWriter(System.out);
 
-
       if (cmd.hasOption(HELP)) {
         help();
         return 0;
@@ -112,6 +121,10 @@ public class WorfCLI {
 
       if (cmd.hasOption(INTERACTIVE)) {
         interactive = true;
+      }
+
+      if (cmd.hasOption(QUIET)) {
+        quiet = true;
       }
 
       if (cmd.hasOption(OUTPUT)) {
@@ -161,9 +174,8 @@ public class WorfCLI {
         }
       }
 
-
       // get the input file name
-      switch(cmd.getArgs().length) {
+      switch (cmd.getArgs().length) {
         case 0:
           throw new WorfException("Config or template file missing.");
 
@@ -181,7 +193,6 @@ public class WorfCLI {
       }
 
       Properties config = Worf.readConfig(inputFile, out);
-
 
       //
       // TEMPLATE CONFIGURATION
@@ -207,7 +218,7 @@ public class WorfCLI {
         for (String cryptoKey : tpl.getCryptoKeys()) {
           String keySize = tpl.generateCryptoKey(cryptoKey);
           if (keySize != null) {
-            out.println(keySize + " bits secured key for " + cryptoKey + "  generated");
+            consolePrintln(keySize + " bits secured key for " + cryptoKey + "  generated", out);
           } else {
             throw new WorfException("Unable to generate " + cryptoKey + ", template error");
           }
@@ -230,7 +241,7 @@ public class WorfCLI {
           }
 
           String tokenIdent = tpl.generateTokenKey(tokenKey, appName, ownerUID, producerUID, ttl, templateKeyMaster);
-          out.println("Token generated key=" + tokenKey + "  ident=" + tokenIdent);
+          consolePrintln("Token generated key=" + tokenKey + "  ident=" + tokenIdent, out);
         }
 
         // GET INTERACTIVE CONFIGURATION
@@ -254,16 +265,14 @@ public class WorfCLI {
           outputFile = sb.toString();
         }
         tpl.saveConfig(outputFile);
-        out.println("Warp configuration saved (" + outputFile + ")");
-        out.flush();
+        consolePrintln("Warp configuration saved (" + outputFile + ")", out);
         inputFile = outputFile;
 
         // Keystore is given as input
         //end of the job
         if (!Strings.isNullOrEmpty(keyStoreFile)) {
-          out.println("Warp configuration file used for tokens generation in templates");
-          out.println("For generate tokens, reload Worf without 'ks' option");
-          out.flush();
+          consolePrintln("Warp configuration file used for tokens generation in templates", out);
+          consolePrintln("For generate tokens, reload Worf without 'ks' option", out);
           System.exit(0);
         }
       }
@@ -305,7 +314,6 @@ public class WorfCLI {
         jsonToken.put("owner", ownerUID);
         jsonToken.put("producer", producerUID);
 
-
         jsonOutput.put("read", jsonToken);
 
         jsonToken = new JSONObject();
@@ -338,12 +346,11 @@ public class WorfCLI {
     PrintWriter out = worfInteractive.getPrintWriter();
 
     // read warp10 configuration
-    out.println("Reading warp10 configuration " + warp10Configuration);
+    consolePrintln("Reading warp10 configuration " + warp10Configuration, out);
     Properties config = Worf.readConfig(warp10Configuration, out);
 
     if (config == null) {
-      out.println("Unable to read warp10 configuration.");
-      out.flush();
+      consolePrintln("Unable to read warp10 configuration.", out);
       return -1;
     }
 
@@ -362,7 +369,7 @@ public class WorfCLI {
 
   private void help() {
     // This prints out some help
-    HelpFormatter formater = new HelpFormatter();
+    HelpFormatter formatter = new HelpFormatter();
 
     String header = "DESCRIPTION";
     String footer = " \n \nCOPYRIGHT\nCopyright © 2016 Cityzen Data.\n Licensed under the Apache License, Version 2.0 (the \"License\")\n" +
@@ -370,7 +377,7 @@ public class WorfCLI {
         "You may obtain a copy of the License at\n" +
         "http://www.apache.org/licenses/LICENSE-2.0";
 
-    formater.printHelp("worf [OPTION] SOURCE_CONFIG [-o OUTPUT_CONFIG]", header,  options, footer, false);
+    formatter.printHelp("worf [OPTION] SOURCE_CONFIG [-o OUTPUT_CONFIG]", header,  options, footer, false);
     System.exit(0);
   }
 

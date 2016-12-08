@@ -66,7 +66,14 @@ public class ExportFunctions {
   private final static String FCT_GEO  = "functions.geo";
   private final static String FCT_TYPE_CONVERSION  = "functions.typeConversion";
   private final static String FCT_CRYPTO = "functions.crypto";
+  private final static String FCT_BITSET = "functions.bitset";
+  private final static String FCT_QUATERNION= "functions.quaternion";
+  private final static String FCT_PROCESSING = "functions.processing";
   private final static String FCT_MISC  = "functions.misc";
+  private final static String FCT_BETA  = "functions.beta";
+
+  private final static String FCT_EXT_CONCURRENT  = "functions.ext.concurrent";
+  private final static String FCT_EXT_SENSISION  = "functions.ext.sensision";
 
   private final static String SINGLE_VALUE_MAPPER = "mapper.singleValue";
   private final static String SLIDING_WINDOW_MAPPER = "mapper.slidingWindow";
@@ -149,11 +156,18 @@ public class ExportFunctions {
     functions.put(FCT_GEO, new ArrayList<String>());
     functions.put(FCT_TYPE_CONVERSION, new ArrayList<String>());
     functions.put(FCT_MISC, new ArrayList<String>());
+    functions.put(FCT_BETA, new ArrayList<String>());
     functions.put(FCT_UTIL, new ArrayList<String>());
     functions.put(FCT_CRYPTO, new ArrayList<String>());
     functions.put(FCT_COMPRESSION, new ArrayList<String>());
     functions.put(FCT_COUNTER, new ArrayList<String>());
     functions.put(FCT_UDF, new ArrayList<String>());
+    functions.put(FCT_BITSET, new ArrayList<String>());
+    functions.put(FCT_QUATERNION, new ArrayList<String>());
+
+    functions.put(FCT_EXT_CONCURRENT, new ArrayList<String>());
+    functions.put(FCT_EXT_SENSISION, new ArrayList<String>());
+    functions.put(FCT_PROCESSING, new ArrayList<String>());
 
     List<String> constants = Lists.newArrayList("true","false");
 
@@ -165,7 +179,7 @@ public class ExportFunctions {
     Pattern bucketizePattern = Pattern.compile("bucketizer\\..*");
     Pattern applyPattern = Pattern.compile("op\\..*");
     Pattern filterPattern = Pattern.compile("filter\\..*");
-    Pattern processingPattern = Pattern.compile("P[a-z].*");
+    Pattern processingPattern = Pattern.compile("P[Ga-z].*");
 
 
     // -------------------------------------------------------------
@@ -208,45 +222,55 @@ public class ExportFunctions {
     // -------------------------------------------------------------
     // FRAMEWORK FILTER
     // -------------------------------------------------------------
-    List<String> customFilter = Lists.newArrayList("");
+    List<String> customFilter = Lists.newArrayList("MACROFILTER");
 
 
     // FUNCTIONS
     Map<String, List<String>> staticFunctions = new HashMap<>();
-    staticFunctions.put(FCT_MATH, Lists.newArrayList("ABS","CBRT","CEIL","EXP","FLOOR","IEEEREMAINDER","LBOUNDS","LOG","LOG10","MAX","MIN","NBOUNDS","NEXTAFTER","NEXTUP","NPDF","PROBABILITY","RAND","REVBITS","RINT","ROUND","SIGNUM","SQRT"));
+    staticFunctions.put(FCT_MATH, Lists.newArrayList("+!","RANDPDF","->DOUBLEBITS","->FLOATBITS","DOUBLEBITS->","FLOATBITS->","ABS","CBRT","CEIL","COPYSIGN","EXP","FLOOR","IEEEREMAINDER","LBOUNDS","LOG","LOG10","MAX","MIN","NBOUNDS","NEXTAFTER","NEXTUP","NPDF","PROBABILITY","RAND","REVBITS","RINT","ROUND","SIGNUM","SQRT"));
     staticFunctions.put(FCT_TIMEUNIT, Lists.newArrayList("w","d","h","m","s", "ms","us", "ns", "ps"));
     staticFunctions.put(FCT_TRIGO, Lists.newArrayList("COS","COSH","ACOS","SIN","SINH","ASIN","TAN","TANH","ATAN","TODEGREES","TORADIANS"));
-    staticFunctions.put(FCT_DATE, Lists.newArrayList("ADDDAYS","ADDMONTHS","ADDYEARS","AGO","DURATION","HUMANDURATION","ISO8601","ISODURATION","MSTU","NOTAFTER", "NOTBEFORE", "NOW","STU","TSELEMENTS"));
-    staticFunctions.put(FCT_STRING, Lists.newArrayList("->HEX","B64TOHEX","B64->","B64URL->","BINTOHEX","BYTES->","FROMBIN","FROMBITS","FROMHEX","HASH","HEX->","HEXTOB64","HEXTOBIN","JOIN","MATCH","MATCHER","OPB64->","SPLIT","SUBSTRING","TEMPLATE","->B64URL","->B64","->BYTES","->OPB64","TOBIN","TOBITS","TOHEX","TOLOWER","TOUPPER","TRIM","URLDECODE","URLENCODE","UUID"));
-    staticFunctions.put(FCT_LIST, Lists.newArrayList("->LIST","->MAP","->SET","APPEND","CLONEREVERSE","CONTAINSKEY","CONTAINS","CONTAINSVALUE","DIFFERENCE","FLATTEN","GET","INTERSECTION","KEYLIST","LFLATMAP","LIST->","LMAP","LSORT","MAP->","MAPID","MSORT","PUT","REMOVE","REVERSE","SET","SET->","SIZE","SUBLIST","SUBMAP","UNION","UNIQUE","VALUELIST","ZIP"));
-    staticFunctions.put(FCT_LOGIC_STRUCTURE, Lists.newArrayList("ISNaN","ISNULL","ASSERT","BREAK","CONTINUE","DEFINED","DEFINEDMACRO","EVAL","FAIL","FOREACH","FOR","FORSTEP","IFTE","IFT","MSGFAIL","NRETURN","RETURN","STOP","SWITCH","UNTIL","WHILE"));
-    staticFunctions.put(FCT_PLATFORM, Lists.newArrayList("EVALSECURE","HEADER","IDENT","JSONLOOSE","JSONSTRICT","LIMIT","MAXBUCKETS","MAXDEPTH","MAXGTS","MAXLOOP","MAXOPS","MAXSYMBOLS","NOOP","OPS","RESTORE","REV","SAVE","SECUREKEY","TOKENINFO","UNSECURE","URLFETCH","WEBCALL"));
-    staticFunctions.put(FCT_GTS, Lists.newArrayList("ADDVALUE","ATINDEX","ATTICK","ATTRIBUTES","BBOX","CHUNK","CLONE","CLONEEMPTY","COMMONTICKS","COMPACT","CORRELATE","DEDUP","DISCORDS","ELEVATIONS","FETCH","FETCHBOOLEAN","FETCHDOUBLE","FETCHLONG","FETCHSTRING","FILLTICKS","FIND","FIRSTTICK","INTEGRATE","ISONORMALIZE","LABELS","LASTSORT","LASTTICK","LOCATIONS","LOWESS","MERGE","META","METASORT","MUSIGMA","NAME","NEWGTS","NONEMPTY","NORMALIZE","NSUMSUMSQ","PATTERNDETECTION","PATTERNS","PARSESELECTOR","PARTITION","QUANTIZE","RANGECOMPACT","RELABEL","RENAME","RESETS","RLOWESS","RSORT","RVALUESORT","SETATTRIBUTES","SETVALUE","SHRINK","SINGLEEXPONENTIALSMOOTHING","SORT","SORTBY","STANDARDIZE","TICKINDEX","TICKLIST","TICKS","TIMECLIP","TIMEMODULO","TIMESCALE","TIMESHIFT","TIMESPLIT","TOSELECTOR","UNWRAP","UPDATE","VALUEDEDUP","VALUEHISTOGRAM","VALUES","VALUESORT","VALUESPLIT","WRAP","WRAPRAW","ZSCORE"));
+    staticFunctions.put(FCT_DATE, Lists.newArrayList("ADDDAYS","ADDMONTHS","ADDYEARS","AGO","DURATION","HUMANDURATION","ISO8601","ISODURATION","MSTU","NOTAFTER", "NOTBEFORE", "NOW","STU","TSELEMENTS","->TSELEMENTS","TSELEMENTS->"));
+    staticFunctions.put(FCT_STRING, Lists.newArrayList("BIN->","B64TOHEX","B64->","B64URL->","BINTOHEX","BYTES->","FROMBIN","FROMBITS","FROMHEX","HASH","HEX->","HEXTOB64","HEXTOBIN","JOIN","MATCH","MATCHER","OPB64->","OPB64TOHEX","SPLIT","SUBSTRING","REPLACE","REPLACEALL","TEMPLATE","->B64URL","->B64","->BIN","->BYTES","->HEX","->OPB64","->V","->VEC","TOBIN","TOBITS","TOHEX","TOLOWER","TOUPPER","TRIM","URLDECODE","URLENCODE","UUID","V->","VEC->"));
+    staticFunctions.put(FCT_LIST, Lists.newArrayList("->LIST","->MAP","->MAT","->SET","APPEND","CLONEREVERSE","CONTAINSKEY","CONTAINS","CONTAINSVALUE","DIFFERENCE","FLATTEN","GET","INTERSECTION","KEYLIST","LFLATMAP","LIST->","LMAP","LSORT","MAP->","MAT->","MAPID","MSORT","PACK","PUT","REMOVE","REVERSE","SET","SET->","SIZE","SUBLIST","SUBMAP","UNION","UNIQUE","UNLIST","UNMAP","UNPACK","VALUELIST","ZIP"));
+    staticFunctions.put(FCT_LOGIC_STRUCTURE, Lists.newArrayList("ISNaN","ISNULL","ASSERT","BREAK","CEVAL","CONTINUE","DEFINED","DEFINEDMACRO","EVAL","FAIL","FOREACH","FOR","FORSTEP","IFTE","IFT","MSGFAIL","NRETURN","RETURN","STOP","SWITCH","SYNC","UNTIL","WHILE"));
+    staticFunctions.put(FCT_PLATFORM, Lists.newArrayList("EVALSECURE","HEADER","IDENT","JSONLOOSE","JSONSTRICT","LIMIT","MAXBUCKETS","MAXDEPTH","MAXGTS","MAXLOOP","MAXOPS","MAXSYMBOLS","NOOP","OPS","RESET","RESTORE","REV","RTFM","SAVE","SECUREKEY","TOKENINFO","UNSECURE","URLFETCH","WEBCALL"));
+    staticFunctions.put(FCT_GTS, Lists.newArrayList("REXEC","LOCATIONOFFSET","TLTTB","PROB","PARSE","LTTB","LOCSTRINGS","ADDVALUE","ATINDEX","ATTICK","ATTRIBUTES","BBOX","CHUNK","CLIP","CLONE","CLONEEMPTY","COMMONTICKS","COMPACT","COPYGEO","CORRELATE","CPROB","DEDUP","DELETE","DISCORDS","DTW","DWTSPLIT","ELEVATIONS","FDWT","FETCH","FETCHBOOLEAN","FETCHDOUBLE","FETCHLONG","FETCHSTRING","FFT","FFTAP","FILLTICKS","FIND","FINDSTATS","FIRSTTICK","IDWT","IFFT","INTEGRATE","ISONORMALIZE","LABELS","LASTSORT","LASTTICK","LOCATIONS","LOWESS","MAKEGTS","MERGE","META","METASORT","MODE","MONOTONIC","MUSIGMA","NAME","NEWGTS","NONEMPTY","NORMALIZE","NSUMSUMSQ","OPTDTW","PATTERNDETECTION","PATTERNS","PARSESELECTOR","PARTITION","QUANTIZE","RANGECOMPACT","RELABEL","RENAME","RESETS","RLOWESS","RSORT","RVALUESORT","SETATTRIBUTES","SETVALUE","SHRINK","SINGLEEXPONENTIALSMOOTHING","SORT","SORTBY","STANDARDIZE","TICKINDEX","TICKLIST","TICKS","TIMECLIP","TIMEMODULO","TIMESCALE","TIMESHIFT","TIMESPLIT","TOSELECTOR","UNWRAP","UPDATE","VALUEDEDUP","VALUEHISTOGRAM","VALUES","VALUESORT","VALUESPLIT","WRAP","WRAPRAW","ZDISCORDS","ZPATTERNDETECTION", "ZPATTERNS","ZSCORE"));
     staticFunctions.put(FCT_OUTLIER, Lists.newArrayList("THRESHOLDTEST","ZSCORETEST","GRUBBSTEST","ESDTEST","STLESDTEST","HYBRIDTEST","HYBRIDTEST2"));
     staticFunctions.put(FCT_BUCKETIZED, Lists.newArrayList("ATBUCKET","BUCKETCOUNT","BUCKETSPAN","CROP","FILLNEXT","FILLPREVIOUS","FILLVALUE","INTERPOLATE","LASTBUCKET","STL","UNBUCKETIZE"));
-    staticFunctions.put(FCT_GEO, Lists.newArrayList("GEO.DIFFERENCE","GEO.INTERSECTION","GEO.INTERSECTS","GEO.UNION","GEO.WITHIN","GEO.WKT","HAVERSINE"));
-    staticFunctions.put(FCT_TYPE_CONVERSION, Lists.newArrayList("->JSON","JSON->","TOBOOLEAN","TODOUBLE","TOLONG","TOSTRING","TOTIMESTAMP"));
-    staticFunctions.put(FCT_STACK, Lists.newArrayList("AUTHENTICATE","BOOTSTRAP","COUNTTOMARK","CLEAR","CLEARTOMARK","CSTORE","DEF","DEPTH","DEBUGON","DEBUGOFF","DOC","DOCMODE","DROP","DROPN","DUP","DUPN","EXPORT","FORGET","LOAD","MARK","NDEBUGON","PICK","ROLL","ROLLD","ROT","RUN","STORE","SWAP","TYPEOF"));
-    staticFunctions.put(FCT_UDF, Lists.newArrayList("CUDF","UDF"));
+    staticFunctions.put(FCT_GEO, Lists.newArrayList("->GEOHASH","->HHCODE","GEO.DIFFERENCE","GEO.INTERSECTION","GEO.INTERSECTS","GEO.REGEXP","GEO.UNION","GEO.WITHIN","GEO.WKT","GEOHASH->","GEOPACK","GEOUNPACK","HAVERSINE","HHCODE->"));
+    staticFunctions.put(FCT_TYPE_CONVERSION, Lists.newArrayList("->PICKLE","PICKLE->","->JSON","JSON->","TOBOOLEAN","TODOUBLE","TOLONG","TOSTRING","TOTIMESTAMP"));
+    staticFunctions.put(FCT_STACK, Lists.newArrayList("AUTHENTICATE","BOOTSTRAP","COUNTTOMARK","CLEAR","CLEARDEFS","CLEARSYMBOLS","CLEARTOMARK","CSTORE","DEF","DEPTH","DEBUGON","DEBUGOFF","DOC","DOCMODE","DROP","DROPN","DUP","DUPN","EXPORT","ELAPSED","TIMINGS","NOTIMINGS","FORGET","LOAD","MARK","NDEBUGON","PICK","ROLL","ROLLD","ROT","RUN","SNAPSHOT","SNAPSHOTALL","SNAPSHOTALLTOMARK","SNAPSHOTTOMARK","STACKATTRIBUTE","STACKTOLIST","STORE","SWAP","TYPEOF"));
+    staticFunctions.put(FCT_UDF, Lists.newArrayList("CALL","CUDF","UDF"));
     staticFunctions.put(FCT_COUNTER, Lists.newArrayList("RANGE","COUNTER", "COUNTERDELTA", "COUNTERVALUE"));
-    staticFunctions.put(FCT_COMPRESSION, Lists.newArrayList("GZIP","UNGZIP"));
+    staticFunctions.put(FCT_COMPRESSION, Lists.newArrayList("->Z","Z->","GZIP","UNGZIP"));
     staticFunctions.put(FCT_CRYPTO, Lists.newArrayList("AESWRAP","AESUNWRAP","MD5","SHA1","SHA256","SHA1HMAC","SHA256HMAC","RSAGEN","RSAPRIVATE","RSAPUBLIC","RSADECRYPT","RSAENCRYPT","RSASIGN","RSAVERIFY"));
-    
+    staticFunctions.put(FCT_BITSET, Lists.newArrayList("BITCOUNT","BITGET","BITSTOBYTES","BYTESTOBITS"));
+    staticFunctions.put(FCT_QUATERNION, Lists.newArrayList("->Q","Q->","QCONJUGATE","QDIVIDE","QMULTIPLY","QROTATE","QROTATION","ROTATIONQ"));
+    staticFunctions.put(FCT_EXT_CONCURRENT, Lists.newArrayList("CEVAL","SYNC"));
+    staticFunctions.put(FCT_BETA, Lists.newArrayList("LORAENC","LORAMIC","GETHOOK"));
+    staticFunctions.put(FCT_EXT_SENSISION, Lists.newArrayList("SENSISION.EVENT","SENSISION.GET","SENSISION.SET","SENSISION.UPDATE"));
+
+
+    List<String> bannedFunctions = Lists.newArrayList("TICKSHIFT");
+
     // Sort all functions list
     for (String function: functionsFullList) {
       // exclude frameworks  and structures
-      if (frameworks.contains(function) || structures.contains(function)) {
+      if (frameworks.contains(function) || structures.contains(function) || bannedFunctions.contains(function)) {
         continue;
       }
 
-      // exclude processing
+
+      // -----------------------------------------------
+      // test frameworks patterns & processing
+      // -------------------------------------
+
+      // Processing
       if (processingPattern.matcher(function).matches()) {
+        functions.get(FCT_PROCESSING).add(function);
         continue;
       }
-
-      // -----------------------------------------------
-      // test frameworks patterns
-      // -----------------------------------------------
 
       // MAP
       if (mapPattern.matcher(function).matches()) {
@@ -382,6 +406,36 @@ public class ExportFunctions {
 
     ObjectMapper jsonOutput =  JsonFactory.create();
     System.out.println(jsonOutput.toJson(output));
+
+    // -------------------------------
+    // ---- COUNT TOTAL FOUNCTIONS ---
+    // -------------------------------
+    int totalFunctions = 0;
+    int miscFunctions = 0;
+
+    for (Map.Entry<String, Map<String,List<String>>> entry : frameworksFunctions.entrySet()) {
+      for(Map.Entry<String,List<String>> fmkEntry: entry.getValue().entrySet() ) {
+        totalFunctions += fmkEntry.getValue().size();
+      }
+    }
+
+    for(Map.Entry<String,List<String>> operatorsEntry: operators.entrySet() ) {
+      totalFunctions += operatorsEntry.getValue().size();
+    }
+    for(Map.Entry<String,List<String>> functionsEntry: functions.entrySet() ) {
+      if (functionsEntry.getKey().equals(FCT_MISC)) {
+        miscFunctions = functionsEntry.getValue().size();
+      } else {
+        totalFunctions += functionsEntry.getValue().size();
+      }
+    }
+
+    totalFunctions += constants.size();
+    totalFunctions += structures.size();
+
+    System.out.println("documented functions = " + totalFunctions);
+    System.out.println("undocumented function = " + miscFunctions);
+
   }
 
   private static Map<String, List<String>> getFrameworkStructure(String... categories) {
@@ -394,5 +448,6 @@ public class ExportFunctions {
     return fmk;
   }
 }
+
 
 
