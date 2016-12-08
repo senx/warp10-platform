@@ -1236,7 +1236,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   try {
                     Object[] results = new Object[actions.size()];
                     
-                    if (directory.store) {
+                    if (directory.store||directory.delete) {
                       ht.batch(actions, results);
 
                       // Check results for nulls
