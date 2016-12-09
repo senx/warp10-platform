@@ -21,6 +21,7 @@ import com.google.common.base.Strings;
 import io.warp10.quasar.token.thrift.data.TokenType;
 
 import java.io.PrintWriter;
+import java.util.Map;
 
 public class EncodeTokenCommand extends TokenCommand {
 
@@ -33,6 +34,7 @@ public class EncodeTokenCommand extends TokenCommand {
   public String owner = null;
   public String producer = null;
   public long ttl = 0L;
+  public Map<String,String> labels = null;
 
   @Override
   public boolean isReady() {
@@ -50,7 +52,7 @@ public class EncodeTokenCommand extends TokenCommand {
             token = worfKeyMaster.deliverReadToken(application, producer, owner, ttl);
             break;
           case WRITE:
-            token = worfKeyMaster.deliverWriteToken(application, producer, owner, ttl);
+            token = worfKeyMaster.deliverWriteToken(application, producer, owner, labels, ttl);
             break;
         }
 
@@ -58,6 +60,9 @@ public class EncodeTokenCommand extends TokenCommand {
         out.println("tokenIdent=" + worfKeyMaster.getTokenIdent(token));
         out.println("application name=" + application);
         out.println("producer & owner=" + producer + " & " + owner);
+        if (null != labels && labels.size() > 0) {
+          out.println("labels=" + labels.toString());
+        }
         out.println("ttl=" + ttl);
 
         // reset current command
