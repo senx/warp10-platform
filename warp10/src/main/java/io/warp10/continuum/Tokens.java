@@ -18,6 +18,7 @@ package io.warp10.continuum;
 
 import io.warp10.WarpConfig;
 import io.warp10.WarpDist;
+import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.store.Constants;
 import io.warp10.crypto.KeyStore;
 import io.warp10.quasar.filter.QuasarTokenFilter;
@@ -46,7 +47,7 @@ public class Tokens {
   public static final Map<String,String> UUIDByEgressToken = new HashMap<String,String>();
   public static final Map<String,String> OwnerByToken = new HashMap<String,String>();
   public static final Map<String,String> ApplicationByUUID = new HashMap<String,String>();
-      
+  
   private static KeyStore keystore;
   
   private static QuasarTokenFilter tokenFilter;
@@ -419,6 +420,9 @@ public class Tokens {
             writeToken.setExpiryTimestamp(Long.valueOf(value));
           } else if ("name".equals(key) || "id".equals(key)) {
             tokens.put(value, writeToken);
+          } else if ("labels".equals(key)) {
+            Map<String,String> labels = GTSHelper.parseLabels(value);
+            writeToken.setLabels(labels);
           }
         }
       }
