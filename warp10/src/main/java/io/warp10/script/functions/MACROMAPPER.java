@@ -20,13 +20,13 @@ import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptBucketizerFunction;
-import io.warp10.script.WarpScriptMapperFunction;
-import io.warp10.script.WarpScriptReducerFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
+import io.warp10.script.WarpScriptMapperFunction;
+import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStackFunction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,8 +39,6 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
 
   public static class MacroMapperWrapper extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptReducerFunction, WarpScriptBucketizerFunction, WarpScriptAggregatorFunction {
 
-    private TOLIST tolist = new TOLIST("");
-    
     private final WarpScriptStack stack;
     private final Macro macro;
     
@@ -79,25 +77,29 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
       long[] elevations = (long[]) args[5];
       Object[] values = (Object[]) args[6];
       
-      stack.push(tick);
+      List<Object> params = new ArrayList<Object>(8);
+      
+      params.add(tick);
   
       List<String> lnames = new ArrayList<String>();      
       for (String name: names) {
         lnames.add(name);
       }      
-      stack.push(lnames);
+
+      params.add(lnames);
 
       List<Map<String,String>> llabels = new ArrayList<Map<String,String>>();      
       for (Map<String,String> label: labels) {
         llabels.add(label);
       }
-      stack.push(llabels);
+
+      params.add(llabels);
       
       ArrayList<Long> lticks = new ArrayList<Long>();
       for (long l: ticks) {
         lticks.add(l);
       }
-      stack.push(lticks);
+      params.add(lticks);
       
       ArrayList<Double> lats = new ArrayList<Double>();
       ArrayList<Double> lons = new ArrayList<Double>();
@@ -111,8 +113,8 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
           lons.add(latlon[1]);
         }
       }
-      stack.push(lats);
-      stack.push(lons);
+      params.add(lats);
+      params.add(lons);
 
       ArrayList<Object> elevs = new ArrayList<Object>();
       for (long l: elevations) {
@@ -122,16 +124,15 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
           elevs.add(l);
         }
       }
-      stack.push(elevs);
+      params.add(elevs);
 
       ArrayList<Object> lvalues = new ArrayList<Object>();      
       for (Object value: values) {
         lvalues.add(value);
       }
-      stack.push(lvalues);
+      params.add(lvalues);
       
-      stack.push(8);
-      tolist.apply(stack);
+      stack.push(params);
 
       //
       // Execute macro
@@ -150,7 +151,7 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
         Object[] ores = ((List) res).toArray();
         Object[] ores2 = new Object[4];
         
-        ores2[0] = ores[0];
+        ores2[0] = ((Number) ores[0]).longValue();
         if (Double.isNaN(((Number) ores[1]).doubleValue()) || Double.isNaN(((Number) ores[2]).doubleValue())) {
           ores2[1] = GeoTimeSerie.NO_LOCATION;
         } else {
@@ -174,7 +175,7 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
           
           Object[] ores2 = new Object[4];
           
-          ores2[0] = ores[0];
+          ores2[0] = ((Number) ores[0]).longValue();
           if (Double.isNaN(((Number) ores[1]).doubleValue()) || Double.isNaN(((Number) ores[2]).doubleValue())) {
             ores2[1] = GeoTimeSerie.NO_LOCATION;
           } else {
