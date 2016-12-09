@@ -18,6 +18,7 @@ package io.warp10.worf;
 
 import com.google.common.base.Strings;
 import com.google.common.net.InetAddresses;
+import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.quasar.token.thrift.data.TokenType;
 import jline.console.ConsoleReader;
 import jline.console.completer.Completer;
@@ -31,9 +32,7 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Properties;
-import java.util.Stack;
-import java.util.UUID;
+import java.util.*;
 
 public class WorfInteractive {
 
@@ -361,6 +360,8 @@ public class WorfInteractive {
           encodeTokenCommand.owner = getUUID(input, out, WorfCLI.O_UUID, encodeTokenCommand.producer);
         } else if (encodeTokenCommand.ttl == 0L) {
           encodeTokenCommand.ttl = getTTL(input, out);
+        } else if (encodeTokenCommand.labels == null) {
+          encodeTokenCommand.labels = getLabels(input, out);
         }
         break;
 
@@ -400,6 +401,8 @@ public class WorfInteractive {
         defaultValue = getUUID(null, null, WorfCLI.O_UUID, encodeTokenCommand.producer);
       } else if (encodeTokenCommand.ttl == 0L) {
         sb.append("/token ttl (ms) ");
+      } else if (encodeTokenCommand.labels == null && TokenType.WRITE.equals(encodeTokenCommand.tokenType)) {
+        sb.append("/OPTIONAL fixed labels (key1=value1,key2=value2) ");
       } else {
         sb.append("(generate | cancel)");
       }
@@ -523,6 +526,19 @@ public class WorfInteractive {
     } catch (NumberFormatException exp) {
       out.println(line + " is not a long");
       return 0L;
+    }
+  }
+
+  private static Map<String,String> getLabels(String line, PrintWriter out) {
+    try {
+      if (Strings.isNullOrEmpty(line)) {
+        return new HashMap<String,String>();
+      }
+
+      return GTSHelper.parseLabels(line);
+    } catch (Exception exp) {
+      out.println(line + " is not a label selector");
+      return null;
     }
   }
 }

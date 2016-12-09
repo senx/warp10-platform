@@ -35,6 +35,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Properties;
 
 public class WorfKeyMaster {
@@ -72,8 +73,18 @@ public class WorfKeyMaster {
   }
 
   public String deliverWriteToken(String application, String producer, String owner, long ttl) throws WorfException {
+    return deliverWriteToken(application, producer, owner, null, ttl);
+  }
+
+  public String deliverWriteToken(String application, String producer, String owner, Map<String,String> labels, long ttl) throws WorfException {
     try {
-      return encoder.deliverWriteToken(application, producer, owner, null, ttl, keyStore);
+      // add label only if the map contains values
+      Map<String,String> fixedLabels = null;
+
+      if (null != labels && labels.size() > 0) {
+        fixedLabels = labels;
+      }
+      return encoder.deliverWriteToken(application, producer, owner, fixedLabels, ttl, keyStore);
     } catch (TException e) {
       throw new WorfException("Unable to deliver write token cause=" + e.getMessage());
     }
