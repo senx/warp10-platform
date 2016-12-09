@@ -927,7 +927,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   counters.sensisionPublish();
                   
                   Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_COMMITS, Sensision.EMPTY_LABELS, 1);
-                  
+
                   // Release the waiting threads
                   try {
                     barrier.await();
@@ -1299,7 +1299,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   try {
                     Object[] results = new Object[actions.size()];
                     
-                    if (directory.store) {
+                    if (directory.store||directory.delete) {
                       ht.batch(actions, results);
                       
                       // Check results for nulls
@@ -1338,7 +1338,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 }
               }
  
-              LockSupport.parkNanos(100000L);
+              LockSupport.parkNanos(1000000L);
             }
           }
         });
@@ -1490,24 +1490,29 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 }
 
               } else {
-                if (!directory.metadatas.containsKey(metadata.getName())) {
+                // If the name does not exist AND we actually loaded the metadata from HBase, continue.
+                // If we did not load from HBase, handle the delete
+                if (!directory.metadatas.containsKey(metadata.getName()) && directory.init) {
                   continue;
                 }
 
                 // Remove cache entry
-                if (null != directory.metadatas.get(metadata.getName()).remove(labelsId)) {
-                  try {
-                    directory.metadatasLock.lockInterruptibly();
-                    if (directory.metadatas.get(metadata.getName()).isEmpty()) {
-                      directory.metadatas.remove(metadata.getName());
-                      directory.classNames.remove(metadata.getClassId());
-                      // FIXME(hbs): we should also update classes per owner
-                      Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_CLASSES, Sensision.EMPTY_LABELS, directory.classNames.size());
-                    }
-                  } finally {
-                    if (directory.metadatasLock.isHeldByCurrentThread()) {
-                      directory.metadatasLock.unlock();
-                    }
+                Map<Long,Metadata> metamap = directory.metadatas.get(metadata.getName());
+                if (null != metamap && null != metamap.remove(labelsId)) {
+                  if (metamap.isEmpty()) {
+                    try {
+                      directory.metadatasLock.lockInterruptibly();
+                      metamap = directory.metadatas.get(metadata.getName());
+                      if (null != metamap && metamap.isEmpty()) {
+                        directory.metadatas.remove(metadata.getName());
+                        directory.classNames.remove(metadata.getClassId());
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_CLASSES, Sensision.EMPTY_LABELS, -1);
+                      }
+                    } finally {
+                      if (directory.metadatasLock.isHeldByCurrentThread()) {
+                        directory.metadatasLock.unlock();
+                      }
+                    }                    
                   }
                   Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, -1);
                 }
@@ -1695,7 +1700,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   // This is done under the synchronization of actionsLock
                   directory.metadatas.put(metadata.getName(), new ConcurrentSkipListMap<Long,Metadata>(ID_COMPARATOR));
                   directory.classNames.put(classId, metadata.getName());
-                  Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_CLASSES, Sensision.EMPTY_LABELS, directory.classNames.size());
+                  Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_CLASSES, Sensision.EMPTY_LABELS, 1);
                 }                
               } finally {
                 if (directory.metadatasLock.isHeldByCurrentThread()) {
