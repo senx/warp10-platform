@@ -118,7 +118,7 @@ start() {
     exit 1
   fi
 
-  CHECK_JAVA7="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -version 2>&1 | head -n 1 | sed -e 's/.*\\"1.8.*//'"`"
+  CHECK_JAVA7="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -version 2>&1 | head -n 1 | grep '.*\\"1.7.*'"`"
   if [ "$CHECK_JAVA7" != "" ]; then
     IS_JAVA7=true
   fi
