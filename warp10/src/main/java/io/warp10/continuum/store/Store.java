@@ -706,7 +706,10 @@ public class Store extends Thread {
             while(!localabort.get() && !synchronizer.isInterrupted()) { 
               long now = System.currentTimeMillis();
               
-              if (now - lastsync > store.commitPeriod) {
+              if (now - lastsync > store.commitPeriod
+                  && (!inflightMessage.get() || !needToSync.get()
+                      || !(forcecommit.get() || (0 != lastPut.get() && (now - lastPut.get() > 500) || putsSize.get() > store.maxPendingPutsSize)))) {
+                
                 //
                 // We synchronize on 'puts' so the main Thread does not add Puts to ht
                 //
@@ -988,7 +991,6 @@ public class Store extends Thread {
             // Synchronize with the synchronizer so we know the committed offsets will only include the processed messages
             //
             
-
             count++;
             MessageAndMetadata<byte[], byte[]> msg = iter.next();
             self.counters.count(msg.partition(), msg.offset());
@@ -1162,6 +1164,7 @@ public class Store extends Thread {
 
           puts.add(put);
           datapoints++;
+          // We should use put.heapSize()
           putsSize.addAndGet(bytes.length);          
           lastPut.set(System.currentTimeMillis());
         } catch (InterruptedException ie) {
