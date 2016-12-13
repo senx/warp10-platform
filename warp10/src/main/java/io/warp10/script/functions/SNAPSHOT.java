@@ -184,14 +184,6 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append("' ");
         sb.append(WarpScriptLib.UNWRAP);
         sb.append(" ");
-      } else if (o instanceof List) {
-        sb.append(WarpScriptLib.LIST_START);
-        sb.append(" ");
-        for (Object oo: (List) o) {
-          addElement(sb, oo);
-        }
-        sb.append(WarpScriptLib.LIST_END);
-        sb.append(" ");
       } else if (o instanceof Vector) {
         sb.append(WarpScriptLib.LIST_START);
         sb.append(" ");
@@ -201,6 +193,14 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(WarpScriptLib.LIST_END);
         sb.append(" ");
         sb.append(WarpScriptLib.TO_VECTOR);
+        sb.append(" ");
+      } else if (o instanceof List) {
+        sb.append(WarpScriptLib.LIST_START);
+        sb.append(" ");
+        for (Object oo: (List) o) {
+          addElement(sb, oo);
+        }
+        sb.append(WarpScriptLib.LIST_END);
         sb.append(" ");
       } else if (o instanceof Set) {
         sb.append(WarpScriptLib.LIST_START);
