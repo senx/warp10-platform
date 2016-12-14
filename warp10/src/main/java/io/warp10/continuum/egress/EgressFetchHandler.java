@@ -693,20 +693,20 @@ public class EgressFetchHandler extends AbstractHandler {
             } else {
               textDump(pw, iter, now, timespan, false, dedup, signed, showAttr, lastMeta, lastCount);
             }
-          } catch (Exception e) {
-            LOG.error("",e);
+          } catch (Throwable t) {
+            LOG.error("",t);
             Sensision.update(SensisionConstants.CLASS_WARP_FETCH_ERRORS, Sensision.EMPTY_LABELS, 1);
             if (showErrors) {
               pw.println();
               StringWriter sw = new StringWriter();
               PrintWriter pw2 = new PrintWriter(sw);
-              e.printStackTrace(pw2);
+              t.printStackTrace(pw2);
               pw2.close();
               sw.flush();
               String error = URLEncoder.encode(sw.toString(), "UTF-8");
               pw.println(Constants.EGRESS_FETCH_ERROR_PREFIX + error);
             }
-            throw new IOException(e);
+            throw new IOException(t);
           } finally {      
             if (!itermeta.hasNext() && (itermeta instanceof MetadataIterator)) {
               try {
