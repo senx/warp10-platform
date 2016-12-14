@@ -703,6 +703,8 @@ public class Store extends Thread {
             // flush any pending commits and synchronize with the other threads so offsets can be committed
             //
 
+            boolean doPause = false;
+            
             while(!localabort.get() && !synchronizer.isInterrupted()) { 
               long now = System.currentTimeMillis();
               
@@ -722,7 +724,8 @@ public class Store extends Thread {
                   //
                   if (inflightMessage.get()) {
                     needToSync.set(true);
-                    LockSupport.parkNanos(100000L);
+                    // Indicate we should pause after we've relinquished the lock
+                    doPause = true;
                     continue;
                   }
                   
@@ -822,6 +825,10 @@ public class Store extends Thread {
                 } finally {
                   if (putslock.isHeldByCurrentThread()) {
                     putslock.unlock();
+                  }
+                  if (doPause) {
+                    doPause = false;
+                    LockSupport.parkNanos(100000L);
                   }
                 }
 //                synchronized (puts) {
