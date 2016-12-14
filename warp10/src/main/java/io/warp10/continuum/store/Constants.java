@@ -100,6 +100,16 @@ public class Constants {
    */
   public static final String EGRESS_FETCH_ERROR_PREFIX = "# ERROR: ";
 
+  /**
+   * Prefix used when Egress find reports an error
+   */
+  public static final String EGRESS_FIND_ERROR_PREFIX = "# ERROR: ";
+
+  /**
+   * Prefix used when Ingress Delete reports an error
+   */
+  public static final String INGRESS_DELETE_ERROR_PREFIX = "# ERROR: ";
+
   public static final String RUNNER_PERIODICITY = "runner.periodicity";
   public static final String RUNNER_PATH = "runner.path";
   public static final String RUNNER_SCHEDULEDAT = "runner.scheduledat";

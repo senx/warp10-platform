@@ -20,13 +20,13 @@ import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.KafkaProducerPool;
 import io.warp10.continuum.KafkaSynchronizedConsumerPool;
+import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
 import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.TextFileShuffler;
 import io.warp10.continuum.ThrottlingManager;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.WarpException;
-import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
 import io.warp10.continuum.egress.CORSHandler;
 import io.warp10.continuum.egress.EgressFetchHandler;
 import io.warp10.continuum.egress.ThriftDirectoryClient;
@@ -58,8 +58,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.math.BigInteger;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -71,9 +73,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 import java.util.regex.Matcher;
@@ -851,10 +853,7 @@ public class Ingress extends AbstractHandler implements Runnable {
    * Handle Metadata updating
    */
   public void handleMeta(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-    
-    //FIXME(hbs) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // NEED TO REWRITE THIS FUNCTION
-    
+        
     if (target.equals(Constants.API_ENDPOINT_META)) {
       baseRequest.setHandled(true);
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_META_REQUESTS, Sensision.EMPTY_LABELS, 1);
@@ -1057,6 +1056,10 @@ public class Ingress extends AbstractHandler implements Runnable {
 
     boolean dryrun = null != request.getParameter(Constants.HTTP_PARAM_DRYRUN);
     
+    boolean showErrors = null != request.getParameter(Constants.HTTP_PARAM_SHOW_ERRORS);    
+
+    PrintWriter pw = null;
+    
     try {      
       if (null == producer || null == owner) {
         response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
@@ -1181,7 +1184,7 @@ public class Ingress extends AbstractHandler implements Runnable {
       
       response.setStatus(HttpServletResponse.SC_OK);
 
-      PrintWriter pw = response.getWriter();
+      pw = response.getWriter();
       StringBuilder sb = new StringBuilder();
 
       //
@@ -1405,6 +1408,20 @@ public class Ingress extends AbstractHandler implements Runnable {
           throw new IOException(e);
         }        
       }
+    } catch (Throwable t) {
+      LOG.error("",t);
+      Sensision.update(SensisionConstants.CLASS_WARP_INGRESS_DELETE_ERRORS, Sensision.EMPTY_LABELS, 1);
+      if (showErrors && null != pw) {
+        pw.println();
+        StringWriter sw = new StringWriter();
+        PrintWriter pw2 = new PrintWriter(sw);
+        t.printStackTrace(pw2);
+        pw2.close();
+        sw.flush();
+        String error = URLEncoder.encode(sw.toString(), "UTF-8");
+        pw.println(Constants.INGRESS_DELETE_ERROR_PREFIX + error);
+      }
+      throw new IOException(t);
     } finally {
       // Flush delete messages
       if (!dryrun) {

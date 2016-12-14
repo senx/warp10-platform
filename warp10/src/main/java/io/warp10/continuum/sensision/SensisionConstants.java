@@ -59,7 +59,17 @@ public class SensisionConstants {
    * Number of errors encountered when fetching data, might be an indication of problem related to hbase
    */
   public static final String CLASS_WARP_FETCH_ERRORS = "warp.fetch.errors";
-  
+
+  /**
+   * Number of errors encountered when finding data, might be an indication of problem related to directory
+   */
+  public static final String CLASS_WARP_FIND_ERRORS = "warp.find.errors";
+
+  /**
+   * Number of errors encountered when deleting data, might be an indication of problem related to directory
+   */
+  public static final String CLASS_WARP_INGRESS_DELETE_ERRORS = "warp.ingress.delete.errors";
+
   /**
    * Number of TimeSource calibrations  
    */
