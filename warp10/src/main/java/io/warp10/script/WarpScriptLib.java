@@ -78,12 +78,9 @@ import io.warp10.script.binary.SHIFTRIGHT;
 import io.warp10.script.binary.SUB;
 import io.warp10.script.ext.groovy.GroovyWarpScriptExtension;
 import io.warp10.script.ext.js.JSWarpScriptExtension;
-import io.warp10.script.ext.lua.LUA;
 import io.warp10.script.ext.lua.LUAWarpScriptExtension;
-import io.warp10.script.ext.python.PYTHON;
 import io.warp10.script.ext.python.PythonWarpScriptExtension;
 import io.warp10.script.ext.r.RWarpScriptExtension;
-import io.warp10.script.ext.ruby.RUBY;
 import io.warp10.script.ext.ruby.RubyWarpScriptExtension;
 import io.warp10.script.filter.FilterByClass;
 import io.warp10.script.filter.FilterByLabels;
@@ -363,6 +360,7 @@ public class WarpScriptLib {
     // Stack manipulation functions
     //
     
+    functions.put("PIGSCHEMA", new PIGSCHEMA("PIGSCHEMA"));
     functions.put(MARK, new MARK(MARK));
     functions.put("CLEARTOMARK", new CLEARTOMARK("CLEARTOMARK"));
     functions.put("COUNTTOMARK", new COUNTTOMARK("COUNTTOMARK"));
