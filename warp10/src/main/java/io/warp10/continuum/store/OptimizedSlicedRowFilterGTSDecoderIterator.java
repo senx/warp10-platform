@@ -184,7 +184,7 @@ public class OptimizedSlicedRowFilterGTSDecoderIterator extends GTSDecoderIterat
     
     while(!hasNext && groupidx < groups.size()) {
       if (null != iterator) {
-        try { iterator.close(); } catch (Exception e) {}
+        try { iterator.close(); } catch (Throwable t) {}
       }
       iterator = new SlicedRowFilterGTSDecoderIterator(now, timespan, groups.get(groupidx), conn, tableName, colfam, writeTimestamp, keystore, useBlockCache);
       groupidx++;
@@ -197,7 +197,7 @@ public class OptimizedSlicedRowFilterGTSDecoderIterator extends GTSDecoderIterat
   @Override
   public void close() throws Exception {
     if (null != iterator) {
-      try { iterator.close(); } catch (Exception e) {}
+      try { iterator.close(); } catch (Throwable t) {}
       iterator = null;
     }
   }

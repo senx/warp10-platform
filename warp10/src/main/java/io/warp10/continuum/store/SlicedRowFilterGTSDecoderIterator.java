@@ -357,7 +357,7 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_CELLS, Sensision.EMPTY_LABELS, cellCount);
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_ITERATORS, Sensision.EMPTY_LABELS, 1);
 
-    if (null != this.scanner) { try { this.scanner.close(); } catch (Exception e) { LOG.error("scanner", e); } }
-    if (null != this.htable) { try { this.htable.close(); } catch (Exception e) { LOG.error("htable", e); } }
+    if (null != this.scanner) { try { this.scanner.close(); } catch (Throwable t) { LOG.error("scanner", t); } }
+    if (null != this.htable) { try { this.htable.close(); } catch (Throwable t) { LOG.error("htable", t); } }
   }
 }
