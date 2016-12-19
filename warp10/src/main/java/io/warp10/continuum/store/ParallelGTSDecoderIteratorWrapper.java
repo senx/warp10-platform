@@ -174,6 +174,8 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
         if (null != name) {
           this.thread.setName(name);
         }
+        
+        this.thread = null;
       }
     }
     
