@@ -25,12 +25,8 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
-
-  private static final Logger LOG = LoggerFactory.getLogger(MultiScanGTSDecoderIterator.class);
 
   int idx = 0;
 
@@ -454,10 +450,10 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_CELLS, Sensision.EMPTY_LABELS, cellCount);
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_ITERATORS, Sensision.EMPTY_LABELS, 1);
     if (null != this.scanner) {
-      try { this.scanner.close(); } catch (Throwable t) { LOG.error("scanner", t); }
+      this.scanner.close();
     }
     if (null != this.htable) {
-      try { this.htable.close(); } catch (Throwable t) { LOG.error("htable", t); }
+      this.htable.close();
     }
   }
 
