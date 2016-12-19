@@ -907,7 +907,8 @@ public class WarpScriptLib {
     // Geo Manipulation functions
     //
     
-    functions.put("->HHCODE", new TOHHCODE("->HHCODE"));
+    functions.put("->HHCODE", new TOHHCODE("->HHCODE", true));
+    functions.put("->HHCODELONG", new TOHHCODE("->HHCODELONG", false));
     functions.put("HHCODE->", new HHCODETO("HHCODE->"));
     functions.put("GEO.REGEXP", new GEOREGEXP("GEO.REGEXP"));
     functions.put(GEO_WKT, new GeoWKT(GEO_WKT));

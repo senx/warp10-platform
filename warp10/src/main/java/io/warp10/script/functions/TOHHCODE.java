@@ -30,8 +30,11 @@ import com.google.common.primitives.Longs;
  */
 public class TOHHCODE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public TOHHCODE(String name) {
+  private final boolean tostring;
+  
+  public TOHHCODE(String name, boolean tostring) {
     super(name);
+    this.tostring = tostring;
   }
   
   @Override
@@ -45,9 +48,14 @@ public class TOHHCODE extends NamedWarpScriptFunction implements WarpScriptStack
     }
     
     long geoxppoint = GeoXPLib.toGeoXPPoint(((Number) lat).doubleValue(), ((Number) lon).doubleValue());
-    String hhcode = Hex.encodeHexString(Longs.toByteArray(geoxppoint));
     
-    stack.push(hhcode);
+    if (this.tostring) {
+      String hhcode = Hex.encodeHexString(Longs.toByteArray(geoxppoint));
+    
+      stack.push(hhcode);
+    } else {
+      stack.push(geoxppoint);
+    }
 
     return stack;
   }
