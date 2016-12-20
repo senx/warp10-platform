@@ -51,7 +51,7 @@ public class LISTTO extends NamedWarpScriptFunction implements WarpScriptStackFu
       }
       stack.push((long) ((List<Object>) list).size());
     } else {
-      stack.push(list);
+      throw new WarpScriptException(getName() + " operates on a list.");
     }
     return stack;
   }
