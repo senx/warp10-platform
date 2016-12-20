@@ -720,6 +720,21 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
+   * Path to the throttling file. This file contains a single line with a double value in [0.0,1.0]
+   */
+  public static final String STORE_THROTTLING_FILE = "store.throttling.file";
+
+  /**
+   * How often (in ms) should we read the content of the throttling file
+   */
+  public static final String STORE_THROTTLING_PERIOD = "store.throttling.period";
+
+  /**
+   * How much to wait when the consumption was throttled, in ns (nanoseconds), defaults to 10 ms (milliseconds)
+   */
+  public static final String STORE_THROTTLING_DELAY = "store.throttling.delay";
+  
+  /**
    * Key for encrypting data in HBase
    */
   public static final String STORE_HBASE_DATA_AES = "store.hbase.data.aes";

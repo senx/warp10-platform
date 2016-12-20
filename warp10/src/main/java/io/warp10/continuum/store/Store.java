@@ -28,6 +28,9 @@ import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.sensision.Sensision;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -199,6 +202,13 @@ public class Store extends Thread {
   private AtomicInteger inflightDeletions = new AtomicInteger(0);
   private AtomicInteger deletionErrors = new AtomicInteger(0);
   
+  /**
+   * Rate limit to slow consumption down
+   */
+  private Double rateLimit = null;
+  
+  private long throttlingDelay = 10000000L;
+  
   public Store(KeyStore keystore, final Properties properties, Integer nthr) throws IOException {
     this.keystore = keystore;
     this.properties = properties;
@@ -225,6 +235,63 @@ public class Store extends Thread {
     final int nthreads = null != nthr ? nthr.intValue() : Integer.valueOf(properties.getProperty(io.warp10.continuum.Configuration.STORE_NTHREADS_KAFKA, "1"));
     
     nthreadsDelete = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.STORE_NTHREADS_DELETE, "0"));
+    
+    //
+    // If instructed to do so, launch a thread which will read the throttling file periodically
+    //
+    
+    if (null != properties.getProperty(io.warp10.continuum.Configuration.STORE_THROTTLING_FILE)) {
+      
+      if (null != properties.getProperty(io.warp10.continuum.Configuration.STORE_THROTTLING_DELAY)) {
+        throttlingDelay = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.STORE_THROTTLING_DELAY));
+      }
+      
+      final File throttlingFile = new File(properties.getProperty(io.warp10.continuum.Configuration.STORE_THROTTLING_FILE));
+      final long period = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.STORE_THROTTLING_PERIOD, "60000"));      
+      final Store self = this;
+      
+      Thread t = new Thread() {
+        @Override
+        public void run() {
+          while (true) {
+            BufferedReader br = null;
+            try {
+              if (throttlingFile.exists()) {
+                br = new BufferedReader(new FileReader(throttlingFile));
+                
+                String line = br.readLine();
+                
+                if (null == line) {
+                  self.rateLimit = null;
+                } else {
+                  self.rateLimit = Double.parseDouble(line);
+                }
+              } else {
+                self.rateLimit = null;
+                Sensision.clear(SensisionConstants.CLASS_WARP_STORE_THROTTLING_RATE, Sensision.EMPTY_LABELS);
+              }
+            } catch (Throwable t) {
+              // Clear current throttling rate
+              self.rateLimit = null;
+              Sensision.clear(SensisionConstants.CLASS_WARP_STORE_THROTTLING_RATE, Sensision.EMPTY_LABELS);
+            } finally {
+              if (null != br) {
+                try { br.close(); } catch (IOException ioe) {}
+              }
+              if (null != self.rateLimit) {
+                Sensision.set(SensisionConstants.CLASS_WARP_STORE_THROTTLING_RATE, Sensision.EMPTY_LABELS, self.rateLimit);
+              }
+            }
+            
+            LockSupport.parkNanos(period * 1000000L);
+          }
+        }
+      };
+      
+      t.setName("[Store Throttling Reader]");
+      t.setDaemon(true);
+      t.start();
+    }
     
     //
     // Retrieve the connection singleton for this set of properties
@@ -973,6 +1040,21 @@ public class Store extends Thread {
           boolean nonEmpty = iter.nonEmpty();
           
           if (nonEmpty) {
+            
+            //
+            // If throttling is defined, check if we should consume this message
+            //
+            
+            if (null != store.rateLimit) {
+              double rand = Math.random();
+              
+              if (rand >= store.rateLimit) {
+                // Wait 1us and continue
+                LockSupport.parkNanos(store.throttlingDelay);
+                continue;
+              }
+            }
+            
             //
             // Indicate we have a message currently being processed.
             // We change the value of the flag while holding putsLock so we know

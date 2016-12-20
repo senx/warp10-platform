@@ -611,6 +611,12 @@ public class SensisionConstants {
   public static final String CLASS_WARP_STORE_HBASE_CONN_RESETS = "warp.store.hbase.conn.resets";
   
   /**
+   * Rate at which we throttle the Kafka consumers. This rate is used by generating a random number and only
+   * process an incoming message if that number is <= CLASS_WARP_STORE_THROTTLING_RATE
+   */
+  public static final String CLASS_WARP_STORE_THROTTLING_RATE = "warp.store.throttling.rate";
+  
+  /**
    * Time spent in DELETE ops in 'Store'
    */
   public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_TIME_NANOS = "warp.store.hbase.delete.time.nanos";
