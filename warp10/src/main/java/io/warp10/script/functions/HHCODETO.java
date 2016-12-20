@@ -45,6 +45,13 @@ public class HHCODETO extends NamedWarpScriptFunction implements WarpScriptStack
     if (hhcode instanceof Long) {
       latlon = GeoXPLib.fromGeoXPPoint((long) hhcode);
     } else if (hhcode instanceof String) {
+      String hhstr = hhcode.toString();
+      if (hhstr.length() > 16) {
+        throw new WarpScriptException(getName() + " expects an hexadecimal HHCode string of length <= 16");
+      } else if (hhstr.length() < 16) {
+        hhcode = new StringBuilder(hhstr).append("0000000000000000");
+        ((StringBuilder) hhcode).setLength(16);
+      }
       long hh = new BigInteger(hhcode.toString(),16).longValue();
       latlon = GeoXPLib.fromGeoXPPoint(hh);
     } else if (hhcode instanceof byte[]) {
