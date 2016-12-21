@@ -5,9 +5,9 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
-public class LOG extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class LOGMSG extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public LOG(String name) {
+  public LOGMSG(String name) {
     super(name);
   }
   

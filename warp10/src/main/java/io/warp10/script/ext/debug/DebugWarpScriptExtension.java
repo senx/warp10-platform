@@ -11,7 +11,7 @@ public class DebugWarpScriptExtension extends WarpScriptExtension {
   static {
     functions = new HashMap<String, Object>();
     
-    functions.put("LOG", new LOG("LOG"));
+    functions.put("LOGMSG", new LOGMSG("LOGMSG"));
     functions.put("STDOUT", new STDOUT("STDOUT"));
     functions.put("STDERR", new STDERR("STDERR"));
   }
