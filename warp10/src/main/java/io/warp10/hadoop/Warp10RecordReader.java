@@ -148,7 +148,7 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
     }
 
     if (line.startsWith(Constants.EGRESS_FETCH_ERROR_PREFIX)) {
-      throw new IOException("Fetcher reported an error, aborting.");
+      throw new IOException("Fetcher reported an error, aborting: " + line);
     }
     
     // Format: GTSWrapperId <WSP> HASH <WSP> GTSWrapper
