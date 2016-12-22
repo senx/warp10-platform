@@ -179,7 +179,7 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
       //
       
       if (200 != conn.getResponseCode()) {
-        throw new WarpScriptException(getName() + " failed to complete successfully.");
+        throw new WarpScriptException(getName() + " failed to complete successfully (" + conn.getResponseMessage() + ")");
       }
       
       //is.close();
