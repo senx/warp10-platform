@@ -75,10 +75,16 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
   
   private final boolean toMark;
   
-  public SNAPSHOT(String name, boolean snapshotSymbols, boolean toMark) {
+  /**
+   * Should we pop the elements out of the stack when building the snapshot
+   */
+  private final boolean pop;
+  
+  public SNAPSHOT(String name, boolean snapshotSymbols, boolean toMark, boolean pop) {
     super(name);
     this.snapshotSymbols = snapshotSymbols;
     this.toMark = toMark;
+    this.pop = pop;
   }
   
   @Override
@@ -120,13 +126,15 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
     }
     
     // Clear the stack
-    if (stack.depth() - 1 == lastidx) {
-      stack.clear();
-    } else {
-      while(lastidx >= 0) {
-        stack.pop();
-        lastidx--;
-      }
+    if (pop) {
+      if (stack.depth() - 1 == lastidx) {
+        stack.clear();
+      } else {
+        while(lastidx >= 0) {
+          stack.pop();
+          lastidx--;
+        }
+      }      
     }
     
     // Push the snapshot onto the stack

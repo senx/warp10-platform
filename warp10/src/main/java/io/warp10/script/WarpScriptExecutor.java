@@ -348,7 +348,7 @@ public class WarpScriptExecutor implements Serializable {
       //
       // Write stack content and current symbol table
       //
-      SNAPSHOT snapshot = new SNAPSHOT(WarpScriptLib.SNAPSHOTALL, true, false);
+      SNAPSHOT snapshot = new SNAPSHOT(WarpScriptLib.SNAPSHOTALL, true, false, true);
 
       if (null != this.stack) {
 

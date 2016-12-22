@@ -472,10 +472,14 @@ public class WarpScriptLib {
     functions.put("NOOP", new NOOP("NOOP"));
     functions.put("DOC", new DOC("DOC"));
     functions.put("DOCMODE", new DOCMODE("DOCMODE"));
-    functions.put(SNAPSHOT, new SNAPSHOT(SNAPSHOT, false, false));
-    functions.put(SNAPSHOTALL, new SNAPSHOT(SNAPSHOTALL, true, false));
-    functions.put("SNAPSHOTTOMARK", new SNAPSHOT("SNAPSHOTTOMARK", false, true));
-    functions.put("SNAPSHOTALLTOMARK", new SNAPSHOT("SNAPSHOTALLTOMARK", true, true));
+    functions.put(SNAPSHOT, new SNAPSHOT(SNAPSHOT, false, false, true));
+    functions.put(SNAPSHOTALL, new SNAPSHOT(SNAPSHOTALL, true, false, true));
+    functions.put("SNAPSHOTTOMARK", new SNAPSHOT("SNAPSHOTTOMARK", false, true, true));
+    functions.put("SNAPSHOTALLTOMARK", new SNAPSHOT("SNAPSHOTALLTOMARK", true, true, true));
+    functions.put("SNAPSHOTCOPY", new SNAPSHOT("SNAPSHOTCOPY", false, false, false));
+    functions.put("SNAPSHOTCOPYALL", new SNAPSHOT("SNAPSHOTCOPYALL", true, false, false));
+    functions.put("SNAPSHOTCOPYTOMARK", new SNAPSHOT("SNAPSHOTCOPYTOMARK", false, true, false));
+    functions.put("SNAPSHOTCOPYALLTOMARK", new SNAPSHOT("SNAPSHOTCOPYALLTOMARK", true, true, false));
     functions.put("HEADER", new HEADER("HEADER"));
     
     functions.put("MACROMAPPER", new MACROMAPPER("MACROMAPPER"));
