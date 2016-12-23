@@ -258,7 +258,8 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
             nano = System.nanoTime() - nano;
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);          
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_MESSAGES, sensisionLabels, 1);
-            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_TIME_US, sensisionLabels, nano / 1000);      
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_TIME_US, sensisionLabels, nano / 1000);  
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_DATAPOINTS_GLOBAL, Sensision.EMPTY_LABELS, count);
           }
           session.getRemote().sendString("OK " + (seqno++) + " UPDATE " + count + " " + nano);
         }        

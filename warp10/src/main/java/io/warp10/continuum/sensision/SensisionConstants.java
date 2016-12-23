@@ -526,6 +526,11 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_DATAPOINTS_RAW = "warp.update.stream.datapoints.raw";
 
   /**
+   * Number of datapoints pushed into Continuum via the streaming update endpoint (at the global level, not by producer)
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_DATAPOINTS_GLOBAL = "warp.update.stream.datapoints.global";
+
+  /**
    * Number of parse error encountered in 'update' requests in the standalone version of continuum
    */
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_PARSEERRORS = "warp.standalone.update.parseerrors";
