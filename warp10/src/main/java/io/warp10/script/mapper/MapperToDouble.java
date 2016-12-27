@@ -29,16 +29,22 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Mapper which returns the absolute value of the value passed as parameter
+ * Mapper which returns the double value of the value passed as parameter
  */
 public class MapperToDouble extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
 
-  private String language = null;
+  
+  private final NumberFormat format;
   
   public MapperToDouble(String name) {
     super(name);
+    this.format = null;
   }
   
+  /**
+   * Builder for case user specify a language tag according to an
+   * IETF BCP 47 language tag string of the Locale Java class
+   */
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
     
     public Builder(String name) {
@@ -62,9 +68,10 @@ public class MapperToDouble extends NamedWarpScriptFunction implements WarpScrip
     super(name);
     
     if (value instanceof String) {
-      this.language = (String) value;
+      Locale locale = Locale.forLanguageTag((String) value);
+      format = NumberFormat.getInstance(locale);
     } else {
-      throw new WarpScriptException("Invalid value type for " + getName());
+      throw new WarpScriptException("Invalid value type for " + getName() + ", expects a String");
     }
   }
   
@@ -95,13 +102,11 @@ public class MapperToDouble extends NamedWarpScriptFunction implements WarpScrip
         value = Boolean.TRUE.equals(values[0]) ? 1.0D : 0.0D;
       } else if (values[0] instanceof String) {
         try {
-          if (null == this.language) {
-            value = Double.valueOf((String) values[0]);
+          if (null == this.format) {
+            value = Double.parseDouble((String) values[0]);
           } else
-          {
-              Locale locale = Locale.forLanguageTag(this.language);
-              NumberFormat format = NumberFormat.getInstance(locale);
-              value = format.parse((String) values[0]).doubleValue();
+          {           
+            value = format.parse((String) values[0]).doubleValue();
           }
         } catch (NumberFormatException | ParseException e) {
           value = null;
