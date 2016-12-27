@@ -99,15 +99,11 @@ public class MapperToDouble extends NamedWarpScriptFunction implements WarpScrip
             value = Double.valueOf((String) values[0]);
           } else
           {
-            try {
               Locale locale = Locale.forLanguageTag(this.language);
               NumberFormat format = NumberFormat.getInstance(locale);
               value = format.parse((String) values[0]).doubleValue();
-            } catch (ParseException e) {
-              value = null;
-            }
           }
-        } catch (NumberFormatException nfe) {
+        } catch (NumberFormatException | ParseException e) {
           value = null;
         }
       }
