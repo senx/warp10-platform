@@ -41,6 +41,17 @@ public class MapperToDouble extends NamedWarpScriptFunction implements WarpScrip
     this.format = null;
   }
   
+  public MapperToDouble(String name, Object language) throws WarpScriptException {   
+    super(name);
+    
+    if (language instanceof String) {
+      Locale locale = Locale.forLanguageTag((String) language);
+      format = NumberFormat.getInstance(locale);
+    } else {
+      throw new WarpScriptException("Invalid value type for " + getName() + ", expects a String");
+    }
+  }
+  
   /**
    * Builder for case user specify a language tag according to an
    * IETF BCP 47 language tag string of the Locale Java class
@@ -61,17 +72,6 @@ public class MapperToDouble extends NamedWarpScriptFunction implements WarpScrip
       
       stack.push(new MapperToDouble(getName(), value));
       return stack;
-    }
-  }
-  
-  public MapperToDouble(String name, Object value) throws WarpScriptException {   
-    super(name);
-    
-    if (value instanceof String) {
-      Locale locale = Locale.forLanguageTag((String) value);
-      format = NumberFormat.getInstance(locale);
-    } else {
-      throw new WarpScriptException("Invalid value type for " + getName() + ", expects a String");
     }
   }
   
