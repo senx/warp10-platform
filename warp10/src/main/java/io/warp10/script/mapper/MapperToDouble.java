@@ -24,6 +24,7 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 
 import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.Locale;
 import java.util.Map;
 
@@ -102,8 +103,8 @@ public class MapperToDouble extends NamedWarpScriptFunction implements WarpScrip
               Locale locale = Locale.forLanguageTag(this.language);
               NumberFormat format = NumberFormat.getInstance(locale);
               value = format.parse((String) values[0]).doubleValue();
-            } catch (Exception e) {
-              throw new WarpScriptException(getName() + " expects a valid IETF BCP 47 language tag string as parameter.");
+            } catch (ParseException e) {
+              value = null;
             }
           }
         } catch (NumberFormatException nfe) {
