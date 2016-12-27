@@ -16,10 +16,15 @@
 
 package io.warp10.script.mapper;
 
+import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptMapperFunction;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 
+import java.text.NumberFormat;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -27,8 +32,39 @@ import java.util.Map;
  */
 public class MapperToDouble extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
 
+  private String language = null;
+  
   public MapperToDouble(String name) {
     super(name);
+  }
+  
+  public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+    
+    public Builder(String name) {
+      super(name);
+    }
+    
+    @Override
+    public Object apply(WarpScriptStack stack) throws WarpScriptException {
+      Object value = stack.pop();
+      
+      if (!(value instanceof String)) {
+        throw new WarpScriptException("Invalid parameter for " + getName());
+      }
+      
+      stack.push(new MapperToDouble(getName(), value));
+      return stack;
+    }
+  }
+  
+  public MapperToDouble(String name, Object value) throws WarpScriptException {   
+    super(name);
+    
+    if (value instanceof String) {
+      this.language = (String) value;
+    } else {
+      throw new WarpScriptException("Invalid value type for " + getName());
+    }
   }
   
   @Override
@@ -58,7 +94,18 @@ public class MapperToDouble extends NamedWarpScriptFunction implements WarpScrip
         value = Boolean.TRUE.equals(values[0]) ? 1.0D : 0.0D;
       } else if (values[0] instanceof String) {
         try {
-          value = Double.valueOf((String) values[0]);
+          if (null == this.language) {
+            value = Double.valueOf((String) values[0]);
+          } else
+          {
+            try {
+              Locale locale = Locale.forLanguageTag(this.language);
+              NumberFormat format = NumberFormat.getInstance(locale);
+              value = format.parse((String) values[0]).doubleValue();
+            } catch (Exception e) {
+              throw new WarpScriptException(getName() + " expects a valid IETF BCP 47 language tag string as parameter.");
+            }
+          }
         } catch (NumberFormatException nfe) {
           value = null;
         }
