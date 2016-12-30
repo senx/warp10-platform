@@ -148,46 +148,15 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
       
       if (res instanceof List) {
         stack.drop();
-        Object[] ores = ((List) res).toArray();
-        Object[] ores2 = new Object[4];
         
-        ores2[0] = ((Number) ores[0]).longValue();
-        if (Double.isNaN(((Number) ores[1]).doubleValue()) || Double.isNaN(((Number) ores[2]).doubleValue())) {
-          ores2[1] = GeoTimeSerie.NO_LOCATION;
-        } else {
-          ores2[1] = GeoXPLib.toGeoXPPoint(((Number) ores[1]).doubleValue(), ((Number) ores[2]).doubleValue());
-        }
-        if (Double.isNaN(((Number) ores[3]).doubleValue())) {
-          ores2[2] = GeoTimeSerie.NO_ELEVATION;
-        } else {
-          ores2[2] = ((Number) ores[3]).longValue();
-        }
-        ores2[3] = ores[4];
-        
-        return ores2;
+        return listToObjects((List) res);
       } else if (res instanceof Map) {
         stack.drop();
         
         Set<Object> keys = ((Map) res).keySet();
         
         for (Object key: keys) {
-          Object[] ores = (Object[]) ((List) ((Map) res).get(key)).toArray();
-          
-          Object[] ores2 = new Object[4];
-          
-          ores2[0] = ((Number) ores[0]).longValue();
-          if (Double.isNaN(((Number) ores[1]).doubleValue()) || Double.isNaN(((Number) ores[2]).doubleValue())) {
-            ores2[1] = GeoTimeSerie.NO_LOCATION;
-          } else {
-            ores2[1] = GeoXPLib.toGeoXPPoint(((Number) ores[1]).doubleValue(), ((Number) ores[2]).doubleValue());
-          }
-          if (Double.isNaN(((Number) ores[3]).doubleValue())) {
-            ores2[2] = GeoTimeSerie.NO_ELEVATION;
-          } else {
-            ores2[2] = ((Number) ores[3]).longValue();
-          }
-          ores2[3] = ores[4];
-          
+          Object[] ores2 = listToObjects((List) ((Map) res).get(key));
           ((Map) res).put(key, ores2);
         }
 
@@ -196,40 +165,8 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
         //
         // Retrieve result
         //
-        
-        Object value = stack.pop();
-        Object elevation = stack.pop();
-        Object longitude = stack.pop();
-        Object latitude = stack.pop();
-        Object rtick = stack.pop();
-        
-        long location = GeoTimeSerie.NO_LOCATION;
-        
-        if (!(longitude instanceof Double) || !(latitude instanceof Double)) {
-          throw new WarpScriptException("Macro MUST return a latitude and a longitude which are of type DOUBLE.");
-        } else {
-          if (!Double.isNaN(((Number) latitude).doubleValue()) && !Double.isNaN(((Number) longitude).doubleValue())) {
-            location = GeoXPLib.toGeoXPPoint(((Number) latitude).doubleValue(), ((Number) longitude).doubleValue());
-          }
-        }
-        
-        long elev = GeoTimeSerie.NO_ELEVATION;
-              
-        if (!(elevation instanceof Double) && !(elevation instanceof Long)) {
-          throw new WarpScriptException("Macro MUST return an elevation which is either NaN or LONG.");
-        } else {
-          if (elevation instanceof Long) {
-            elev = ((Number) elevation).longValue();
-          } else if (!Double.isNaN(((Number) elevation).doubleValue())) {
-            throw new WarpScriptException("Macro MUST return an elevations which is NaN if it is of type DOUBLE.");
-          }
-        }
-        
-        if (!(rtick instanceof Long)) {
-          throw new WarpScriptException("Macro MUST return a tick of type LONG.");
-        }
-        
-        return new Object[] { (long) rtick, location, elev, value };        
+
+        return stackToObjects(stack);
       }
     }
   }
@@ -251,4 +188,91 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
     return stack;
   }
 
+  public static Object[] listToObjects(List<Object> list) throws WarpScriptException {
+    Object[] inarray = list.toArray();
+    Object[] outarray = new Object[4];
+    
+    if (5 == inarray.length) { // tick,lat,lon,elev,value
+      outarray[0] = ((Number) inarray[0]).longValue();
+      if (Double.isNaN(((Number) inarray[1]).doubleValue()) || Double.isNaN(((Number) inarray[2]).doubleValue())) {
+        outarray[1] = GeoTimeSerie.NO_LOCATION;
+      } else {
+        outarray[1] = GeoXPLib.toGeoXPPoint(((Number) inarray[1]).doubleValue(), ((Number) inarray[2]).doubleValue());
+      }
+      if (Double.isNaN(((Number) inarray[3]).doubleValue())) {
+        outarray[2] = GeoTimeSerie.NO_ELEVATION;
+      } else {
+        outarray[2] = ((Number) inarray[3]).longValue();
+      }
+      outarray[3] = inarray[4];      
+    } else if (4 == inarray.length) { // tick,lat,lon,value
+      outarray[0] = ((Number) inarray[0]).longValue();
+      if (Double.isNaN(((Number) inarray[1]).doubleValue()) || Double.isNaN(((Number) inarray[2]).doubleValue())) {
+        outarray[1] = GeoTimeSerie.NO_LOCATION;
+      } else {
+        outarray[1] = GeoXPLib.toGeoXPPoint(((Number) inarray[1]).doubleValue(), ((Number) inarray[2]).doubleValue());
+      }
+      outarray[2] = GeoTimeSerie.NO_ELEVATION;
+      outarray[3] = inarray[3];            
+    } else if (3 == inarray.length) { // tick,elev,value
+      outarray[0] = ((Number) inarray[0]).longValue();
+      outarray[1] = GeoTimeSerie.NO_LOCATION;
+      if (Double.isNaN(((Number) inarray[1]).doubleValue())) {
+        outarray[2] = GeoTimeSerie.NO_ELEVATION;
+      } else {
+        outarray[2] = ((Number) inarray[1]).longValue();
+      }
+      outarray[3] = inarray[2];            
+    } else if (2 == inarray.length) { // tick,value
+      outarray[0] = ((Number) inarray[0]).longValue();
+      outarray[1] = GeoTimeSerie.NO_LOCATION;
+      outarray[2] = GeoTimeSerie.NO_ELEVATION;
+      outarray[3] = inarray[1];                  
+    } else if (1 == inarray.length) { // value
+      outarray[0] = 0;
+      outarray[1] = GeoTimeSerie.NO_LOCATION;
+      outarray[2] = GeoTimeSerie.NO_ELEVATION;
+      outarray[3] = inarray[0];                  
+    } else {
+      throw new WarpScriptException("Expected a list of 1 to 5 elements, got " + inarray.length);
+    }
+    
+    return outarray;
+  }
+  
+  public static Object[] stackToObjects(WarpScriptStack stack) throws WarpScriptException {
+    Object value = stack.pop();
+    Object elevation = stack.pop();
+    Object longitude = stack.pop();
+    Object latitude = stack.pop();
+    Object rtick = stack.pop();
+    
+    long location = GeoTimeSerie.NO_LOCATION;
+    
+    if (!(longitude instanceof Double) || !(latitude instanceof Double)) {
+      throw new WarpScriptException("Macro MUST return a latitude and a longitude which are of type DOUBLE.");
+    } else {
+      if (!Double.isNaN(((Number) latitude).doubleValue()) && !Double.isNaN(((Number) longitude).doubleValue())) {
+        location = GeoXPLib.toGeoXPPoint(((Number) latitude).doubleValue(), ((Number) longitude).doubleValue());
+      }
+    }
+    
+    long elev = GeoTimeSerie.NO_ELEVATION;
+          
+    if (!(elevation instanceof Double) && !(elevation instanceof Long)) {
+      throw new WarpScriptException("Macro MUST return an elevation which is either NaN or LONG.");
+    } else {
+      if (elevation instanceof Long) {
+        elev = ((Number) elevation).longValue();
+      } else if (!Double.isNaN(((Number) elevation).doubleValue())) {
+        throw new WarpScriptException("Macro MUST return an elevations which is NaN if it is of type DOUBLE.");
+      }
+    }
+    
+    if (!(rtick instanceof Long)) {
+      throw new WarpScriptException("Macro MUST return a tick of type LONG.");
+    }
+    
+    return new Object[] { (long) rtick, location, elev, value };        
+  }
 }

@@ -16,6 +16,8 @@
 
 package io.warp10.script.functions;
 
+import java.util.List;
+
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -47,61 +49,71 @@ public class ADDVALUE extends NamedWarpScriptFunction implements WarpScriptStack
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
+    Object value = null;
+    long elevation = GeoTimeSerie.NO_ELEVATION;
+    long location = GeoTimeSerie.NO_LOCATION;
+    long timestamp = 0L;
+
     Object o = stack.pop();
     
-    if (!(o instanceof Number) && !(o instanceof String) && !(o instanceof Boolean)) {
-      throw new WarpScriptException(getName() + " expects a LONG, DOUBLE, STRING or BOOLEAN value.");
-    }
-    
-    Object value = o;
-    
-    o = stack.pop();
-    
-    if (!(o instanceof Number)) {
-      throw new WarpScriptException(getName() + " expects the elevation to be numeric or NaN.");
-    }
-    
-    long elevation = GeoTimeSerie.NO_ELEVATION;
-    
-    if (!(o instanceof Double && Double.isNaN((double) o))) {
-      elevation = ((Number) o).longValue();
-    }
+    if (o instanceof List) {
+      Object[] array = MACROMAPPER.listToObjects((List) o);
+      
+      timestamp = (long) array[0];
+      location = (long) array[1];
+      elevation = (long) array[2];
+      value = array[3];
+    } else {
+      if (!(o instanceof Number) && !(o instanceof String) && !(o instanceof Boolean)) {
+        throw new WarpScriptException(getName() + " expects a LONG, DOUBLE, STRING or BOOLEAN value.");
+      }
+      
+      value = o;
+      
+      o = stack.pop();
+      
+      if (!(o instanceof Number)) {
+        throw new WarpScriptException(getName() + " expects the elevation to be numeric or NaN.");
+      }
+           
+      if (!(o instanceof Double && Double.isNaN((double) o))) {
+        elevation = ((Number) o).longValue();
+      }
 
-    o = stack.pop();
-    
-    if (!(o instanceof Number)) {
-      throw new WarpScriptException(getName() + " expects the longitude to be numeric or NaN.");
-    }
-    
-    double longitude = o instanceof Double ? (double) o : ((Number) o).doubleValue();
+      o = stack.pop();
+      
+      if (!(o instanceof Number)) {
+        throw new WarpScriptException(getName() + " expects the longitude to be numeric or NaN.");
+      }
+      
+      double longitude = o instanceof Double ? (double) o : ((Number) o).doubleValue();
 
-    o = stack.pop();
-    
-    if (!(o instanceof Number)) {
-      throw new WarpScriptException(getName() + " expects the latitude to be numeric or NaN.");
+      o = stack.pop();
+      
+      if (!(o instanceof Number)) {
+        throw new WarpScriptException(getName() + " expects the latitude to be numeric or NaN.");
+      }
+      
+      double latitude = o instanceof Double ? (double) o : ((Number) o).doubleValue();
+      
+      if (!Double.isNaN(latitude) && !Double.isNaN(longitude)) {
+        location = GeoXPLib.toGeoXPPoint(latitude, longitude);
+      }
+      
+      o = stack.pop();
+      
+      if (!(o instanceof Number)) {
+        throw new WarpScriptException(getName() + " expects the tick to be numeric.");
+      }
+      
+      timestamp = ((Number) o).longValue();      
     }
-    
-    double latitude = o instanceof Double ? (double) o : ((Number) o).doubleValue();
-
-    long location = GeoTimeSerie.NO_LOCATION;
-    
-    if (!Double.isNaN(latitude) && !Double.isNaN(longitude)) {
-      location = GeoXPLib.toGeoXPPoint(latitude, longitude);
-    }
-    
-    o = stack.pop();
-    
-    if (!(o instanceof Number)) {
-      throw new WarpScriptException(getName() + " expects the tick to be numeric.");
-    }
-    
-    long timestamp = ((Number) o).longValue();
     
     o = stack.pop();
     
     if (!(o instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " operates on a single GTS.");
+      throw new WarpScriptException(getName() + " operates on a single Geo Time Series.");
     }
     
     GeoTimeSerie gts = (GeoTimeSerie) o;
