@@ -1,7 +1,7 @@
 package io.warp10.script.mapper;
   
-  //
-//Copyright 2016  Cityzen Data
+//
+//Copyright 2017  Cityzen Data
 //
 //Licensed under the Apache License, Version 2.0 (the "License");
 //you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ import java.util.Map;
 */
 public class MapperParseDouble extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
 
-private final NumberFormat format;
+  private final NumberFormat format;
   
   public MapperParseDouble(String name) {
     super(name);
@@ -47,7 +47,7 @@ private final NumberFormat format;
       Locale locale = Locale.forLanguageTag((String) language);
       format = NumberFormat.getInstance(locale);
     } else {
-      throw new WarpScriptException("Invalid value type for " + getName() + ", expects a String");
+      throw new WarpScriptException("Invalid value type for " + getName() + ", expects a language tag (a string) on top of the stack.");
     }
   }
   
@@ -63,13 +63,13 @@ private final NumberFormat format;
     
     @Override
     public Object apply(WarpScriptStack stack) throws WarpScriptException {
-      Object value = stack.pop();
+      Object language = stack.pop();
       
-      if (!(value instanceof String)) {
-        throw new WarpScriptException("Invalid parameter for " + getName());
+      if (!(language instanceof String)) {
+        throw new WarpScriptException("Invalid value type for " + getName() + ", expects a language tag (a string) on top of the stack.");
       }
       
-      stack.push(new MapperParseDouble(getName(), value));
+      stack.push(new MapperParseDouble(getName(), language));
       return stack;
     }
   }
@@ -94,13 +94,8 @@ private final NumberFormat format;
     
     if (null != values[0]) {
       if (values[0] instanceof String) {
-        try {
-          if (null == this.format) {
-            value = Double.parseDouble((String) values[0]);
-          } else
-          {           
-            value = format.parse((String) values[0]).doubleValue();
-          }
+        try {          
+          value = format.parse((String) values[0]).doubleValue();
         } catch (NumberFormatException | ParseException e) {
           value = null;
         }
