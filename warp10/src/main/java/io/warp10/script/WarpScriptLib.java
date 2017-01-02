@@ -130,6 +130,7 @@ import io.warp10.script.mapper.MapperMod;
 import io.warp10.script.mapper.MapperMonthOfYear;
 import io.warp10.script.mapper.MapperMul;
 import io.warp10.script.mapper.MapperNPDF;
+import io.warp10.script.mapper.MapperParseDouble;
 import io.warp10.script.mapper.MapperPow;
 import io.warp10.script.mapper.MapperProduct;
 import io.warp10.script.mapper.MapperReplace;
@@ -857,7 +858,8 @@ public class WarpScriptLib {
     functions.put("mapper.exp", new MapperExp.Builder("mapper.exp"));
     functions.put("mapper.log", new MapperLog.Builder("mapper.log"));
     functions.put("mapper.min.x", new MapperMinX.Builder("mapper.min.x"));          
-    functions.put("mapper.max.x", new MapperMaxX.Builder("mapper.max.x"));          
+    functions.put("mapper.max.x", new MapperMaxX.Builder("mapper.max.x"));         
+    functions.put("mapper.parsedouble", new MapperParseDouble.Builder("mapper.parsedouble"));           
 
     
     functions.put("mapper.tick", new MapperTick.Builder("mapper.tick"));
