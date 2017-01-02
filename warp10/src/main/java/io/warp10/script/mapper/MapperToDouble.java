@@ -16,19 +16,63 @@
 
 package io.warp10.script.mapper;
 
+import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptMapperFunction;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 
+import java.text.NumberFormat;
+import java.text.ParseException;
+import java.util.Locale;
 import java.util.Map;
 
 /**
- * Mapper which returns the absolute value of the value passed as parameter
+ * Mapper which returns the double value of the value passed as parameter
  */
 public class MapperToDouble extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
 
+  
+  private final NumberFormat format;
+  
   public MapperToDouble(String name) {
     super(name);
+    this.format = null;
+  }
+  
+  public MapperToDouble(String name, Object language) throws WarpScriptException {   
+    super(name);
+    
+    if (language instanceof String) {
+      Locale locale = Locale.forLanguageTag((String) language);
+      format = NumberFormat.getInstance(locale);
+    } else {
+      throw new WarpScriptException("Invalid value type for " + getName() + ", expects a String");
+    }
+  }
+  
+  /**
+   * Builder for case user specify a language tag according to an
+   * IETF BCP 47 language tag string of the Locale Java class
+   */
+  public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+    
+    public Builder(String name) {
+      super(name);
+    }
+    
+    @Override
+    public Object apply(WarpScriptStack stack) throws WarpScriptException {
+      Object value = stack.pop();
+      
+      if (!(value instanceof String)) {
+        throw new WarpScriptException("Invalid parameter for " + getName());
+      }
+      
+      stack.push(new MapperToDouble(getName(), value));
+      return stack;
+    }
   }
   
   @Override
@@ -58,8 +102,13 @@ public class MapperToDouble extends NamedWarpScriptFunction implements WarpScrip
         value = Boolean.TRUE.equals(values[0]) ? 1.0D : 0.0D;
       } else if (values[0] instanceof String) {
         try {
-          value = Double.valueOf((String) values[0]);
-        } catch (NumberFormatException nfe) {
+          if (null == this.format) {
+            value = Double.parseDouble((String) values[0]);
+          } else
+          {           
+            value = format.parse((String) values[0]).doubleValue();
+          }
+        } catch (NumberFormatException | ParseException e) {
           value = null;
         }
       }

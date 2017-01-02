@@ -857,7 +857,8 @@ public class WarpScriptLib {
     functions.put("mapper.exp", new MapperExp.Builder("mapper.exp"));
     functions.put("mapper.log", new MapperLog.Builder("mapper.log"));
     functions.put("mapper.min.x", new MapperMinX.Builder("mapper.min.x"));          
-    functions.put("mapper.max.x", new MapperMaxX.Builder("mapper.max.x"));          
+    functions.put("mapper.max.x", new MapperMaxX.Builder("mapper.max.x"));  
+    functions.put("mapper.todouble.from.language", new MapperToDouble.Builder("mapper.todouble.from.language"));        
 
     
     functions.put("mapper.tick", new MapperTick.Builder("mapper.tick"));
