@@ -47,7 +47,7 @@ public class MapperParseDouble extends NamedWarpScriptFunction implements WarpSc
       Locale locale = Locale.forLanguageTag((String) language);
       format = NumberFormat.getInstance(locale);
     } else {
-      throw new WarpScriptException("Invalid value type for " + getName() + ", expects a language tag (a string) on top of the stack.");
+      throw new WarpScriptException("Invalid parameter type for " + getName() + ", expects a language tag (a string) on top of the stack.");
     }
   }
   
@@ -66,7 +66,7 @@ public class MapperParseDouble extends NamedWarpScriptFunction implements WarpSc
       Object language = stack.pop();
       
       if (!(language instanceof String)) {
-        throw new WarpScriptException("Invalid value type for " + getName() + ", expects a language tag (a string) on top of the stack.");
+        throw new WarpScriptException("Invalid parameter type for " + getName() + ", expects a language tag (a string) on top of the stack.");
       }
       
       stack.push(new MapperParseDouble(getName(), language));
