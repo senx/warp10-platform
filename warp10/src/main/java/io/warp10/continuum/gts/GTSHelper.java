@@ -35,6 +35,8 @@ import io.warp10.script.WarpScriptNAryFunction;
 import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.functions.MACROMAPPER;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -1302,6 +1304,10 @@ public class GTSHelper {
    * @return A bucketized version of the GTS.
    */
   public static final GeoTimeSerie bucketize(GeoTimeSerie gts, long bucketspan, int bucketcount, long lastbucket, WarpScriptBucketizerFunction aggregator, long maxbuckets) throws WarpScriptException {
+    return bucketize(gts, bucketspan, bucketcount, lastbucket, aggregator, maxbuckets, null);
+  }
+  
+  public static final GeoTimeSerie bucketize(GeoTimeSerie gts, long bucketspan, int bucketcount, long lastbucket, Object aggregator, long maxbuckets, WarpScriptStack stack) throws WarpScriptException {
 
     //
     // If lastbucket is 0, compute it from the last timestamp
@@ -1430,52 +1436,75 @@ public class GTSHelper {
         continue;
       }
       
-      //
-      // Call the aggregation functions on this sub serie and add the resulting value
-      //
+      Object[] aggregated = null;
       
-      //
-      // Aggregator functions have 8 parameters (so mappers or reducers can be used as aggregators)
-      //
-      // bucket timestamp: end timestamp of the bucket we're currently computing a value for
-      // names: array of GTS names
-      // labels: array of GTS labels
-      // ticks: array of ticks being aggregated
-      // locations: array of locations being aggregated
-      // elevations: array of elevations being aggregated
-      // values: array of values being aggregated
-      // bucket span: width (in microseconds) of bucket
-      //
-      
-      Object[] parms = new Object[8];
-
-      int idx = 0;
-      parms[idx++] = bucketend;
-      parms[idx] = new String[1];
-      ((String[]) parms[idx++])[0] = bucketized.getName();
-      parms[idx] = new Map[1];
-      ((Map[]) parms[idx++])[0] = labels;
-      parms[idx++] = Arrays.copyOf(subgts.ticks, subgts.values);
-      if (null != subgts.locations) {
-        parms[idx++] = Arrays.copyOf(subgts.locations, subgts.values);
+      if (null != stack) {
+        if (!(aggregator instanceof Macro)) {
+          throw new WarpScriptException("Expected a macro as bucketizer.");
+        }
+        
+        subgts.safeSetMetadata(bucketized.getMetadata());
+        stack.push(subgts);
+        stack.exec((Macro) aggregator);
+        
+        Object res = stack.peek();
+        
+        if (res instanceof List) {
+          aggregated = MACROMAPPER.listToObjects((List<Object>) stack.pop());
+        } else {
+          aggregated = MACROMAPPER.stackToObjects(stack);
+        }                
       } else {
-        parms[idx++] = new long[subgts.values];
-        Arrays.fill((long[]) parms[idx - 1], GeoTimeSerie.NO_LOCATION);
-      }
-      if (null != subgts.elevations) {
-        parms[idx++] = Arrays.copyOf(subgts.elevations, subgts.values);
-      } else {
-        parms[idx++] = new long[subgts.values];
-        Arrays.fill((long[]) parms[idx - 1], GeoTimeSerie.NO_ELEVATION);
-      }
-      parms[idx++] = new Object[subgts.values];
-      parms[idx++] = new long[] { 0, -bucketspan, bucketend - bucketspan, bucketend };
-      
-      for (int j = 0; j < subgts.values; j++) {
-        ((Object[]) parms[6])[j] = valueAtIndex(subgts, j);
-      }
+        if (!(aggregator instanceof WarpScriptBucketizerFunction)) {
+          throw new WarpScriptException("Invalid bucketizer function.");
+        }
+        //
+        // Call the aggregation functions on this sub serie and add the resulting value
+        //
+        
+        //
+        // Aggregator functions have 8 parameters (so mappers or reducers can be used as aggregators)
+        //
+        // bucket timestamp: end timestamp of the bucket we're currently computing a value for
+        // names: array of GTS names
+        // labels: array of GTS labels
+        // ticks: array of ticks being aggregated
+        // locations: array of locations being aggregated
+        // elevations: array of elevations being aggregated
+        // values: array of values being aggregated
+        // bucket span: width (in microseconds) of bucket
+        //
+        
+        Object[] parms = new Object[8];
 
-      Object[] aggregated = (Object[]) aggregator.apply(parms);
+        int idx = 0;
+        parms[idx++] = bucketend;
+        parms[idx] = new String[1];
+        ((String[]) parms[idx++])[0] = bucketized.getName();
+        parms[idx] = new Map[1];
+        ((Map[]) parms[idx++])[0] = labels;
+        parms[idx++] = Arrays.copyOf(subgts.ticks, subgts.values);
+        if (null != subgts.locations) {
+          parms[idx++] = Arrays.copyOf(subgts.locations, subgts.values);
+        } else {
+          parms[idx++] = new long[subgts.values];
+          Arrays.fill((long[]) parms[idx - 1], GeoTimeSerie.NO_LOCATION);
+        }
+        if (null != subgts.elevations) {
+          parms[idx++] = Arrays.copyOf(subgts.elevations, subgts.values);
+        } else {
+          parms[idx++] = new long[subgts.values];
+          Arrays.fill((long[]) parms[idx - 1], GeoTimeSerie.NO_ELEVATION);
+        }
+        parms[idx++] = new Object[subgts.values];
+        parms[idx++] = new long[] { 0, -bucketspan, bucketend - bucketspan, bucketend };
+        
+        for (int j = 0; j < subgts.values; j++) {
+          ((Object[]) parms[6])[j] = valueAtIndex(subgts, j);
+        }
+
+        aggregated = (Object[]) ((WarpScriptBucketizerFunction) aggregator).apply(parms);        
+      }
 
       //
       // Only set value if it was non null
@@ -3605,6 +3634,10 @@ public class GTSHelper {
    * @return A new GTS instance with the result of the Mapper.
    */
   public static List<GeoTimeSerie> map(GeoTimeSerie gts, WarpScriptMapperFunction mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick) throws WarpScriptException {
+    return map(gts, mapper, prewindow, postwindow, occurrences, reversed, step, overrideTick, null);
+  }
+  
+  public static List<GeoTimeSerie> map(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack) throws WarpScriptException {
 
     //
     // Make sure step is positive
@@ -3712,83 +3745,123 @@ public class GTSHelper {
       
       subgts = GTSHelper.subSerie(gts, start, stop, false, false, subgts);
       
-      //
-      // Mapper functions have 8 parameters
-      //
-      // tick: timestamp we're computing the value for
-      // names: array of names (for reducer compatibility)
-      // labels: array of labels (for reducer compatibility)
-      // ticks: array of ticks being aggregated
-      // locations: array of locations being aggregated
-      // elevations: array of elevations being aggregated
-      // values: array of values being aggregated
-      // window: An array with the window parameters [ prewindow, postwindow, start, stop, tick index ] on which the mapper runs
-      //
-      // 'window' nullity should be checked prior to using to allow mappers to be used as reducers.
-      //
-      // They return an array of 4 values:
-      //
-      // timestamp, location, elevation, value
-      //
-      // timestamp: an indication relative to timestamp (may be the timestamp at which the returned value was observed).
-      //            it is usually not used (the returned value will be set at 'tick') but must be present.
-      // location: location associated with the returned value
-      // elevation: elevation associated with the returned value
-      // value: computed value
-      //
+      Object mapResult = null;
       
-      Object[] parms = new Object[8];
+      if (null != stack) {
+        if (mapper instanceof Macro) {
+          subgts.safeSetMetadata(mapped.getMetadata());
+          stack.push(subgts);
+          stack.exec((Macro) mapper);
+          Object res = stack.peek();
+          
+          if (res instanceof List) {
+            stack.drop();
+            
+            mapResult = MACROMAPPER.listToObjects((List) res);
+          } else if (res instanceof Map) {
+            stack.drop();
+            
+            Set<Object> keys = ((Map) res).keySet();
+            
+            for (Object key: keys) {
+              Object[] ores2 = MACROMAPPER.listToObjects((List) ((Map) res).get(key));
+              ((Map) res).put(key, ores2);
+            }
 
-      int i = 0;
-      parms[i++] = tick;
-      
-      //
-      // All arrays are allocated each time, so we don't risk
-      // having a rogue mapper modify them.
-      //
-      
-      parms[i++] = new String[subgts.values];
-      Arrays.fill((Object[]) parms[i-1], gts.getName());
+            mapResult = res;
+          } else {
+            //
+            // Retrieve result
+            //
 
-      parms[i++] = new Map[subgts.values]; 
-      Arrays.fill((Object[]) parms[i-1], labels);
+            mapResult = MACROMAPPER.stackToObjects(stack);
+          }
 
-      parms[i++] = subgts.values > 0 ? Arrays.copyOf(subgts.ticks, subgts.values) : new long[0];
-      if (null != subgts.locations) {
-        parms[i++] = subgts.values > 0 ? Arrays.copyOf(subgts.locations, subgts.values) : new long[0];
-      } else {
-        if (subgts.values > 0) {
-          parms[i++] = new long[subgts.values];
-          Arrays.fill((long[]) parms[i - 1], GeoTimeSerie.NO_LOCATION);
         } else {
-          parms[i++] = new long[0];
-        }
-      }
-      if (null != subgts.elevations) {
-        parms[i++] = subgts.values > 0 ? Arrays.copyOf(subgts.elevations, subgts.values) : new long[0];
+          throw new WarpScriptException("Invalid mapper function.");
+        }        
       } else {
-        if (subgts.values > 0) {
-          parms[i++] = new long[subgts.values];
-          Arrays.fill((long[]) parms[i - 1], GeoTimeSerie.NO_ELEVATION);
+        if (!(mapper instanceof WarpScriptMapperFunction)) {
+          throw new WarpScriptException("Expected a mapper function.");
+        }
+        //
+        // Mapper functions have 8 parameters
+        //
+        // tick: timestamp we're computing the value for
+        // names: array of names (for reducer compatibility)
+        // labels: array of labels (for reducer compatibility)
+        // ticks: array of ticks being aggregated
+        // locations: array of locations being aggregated
+        // elevations: array of elevations being aggregated
+        // values: array of values being aggregated
+        // window: An array with the window parameters [ prewindow, postwindow, start, stop, tick index ] on which the mapper runs
+        //
+        // 'window' nullity should be checked prior to using to allow mappers to be used as reducers.
+        //
+        // They return an array of 4 values:
+        //
+        // timestamp, location, elevation, value
+        //
+        // timestamp: an indication relative to timestamp (may be the timestamp at which the returned value was observed).
+        //            it is usually not used (the returned value will be set at 'tick') but must be present.
+        // location: location associated with the returned value
+        // elevation: elevation associated with the returned value
+        // value: computed value
+        //
+        
+        Object[] parms = new Object[8];
+
+        int i = 0;
+        parms[i++] = tick;
+        
+        //
+        // All arrays are allocated each time, so we don't risk
+        // having a rogue mapper modify them.
+        //
+        
+        parms[i++] = new String[subgts.values];
+        Arrays.fill((Object[]) parms[i-1], gts.getName());
+
+        parms[i++] = new Map[subgts.values]; 
+        Arrays.fill((Object[]) parms[i-1], labels);
+
+        parms[i++] = subgts.values > 0 ? Arrays.copyOf(subgts.ticks, subgts.values) : new long[0];
+        if (null != subgts.locations) {
+          parms[i++] = subgts.values > 0 ? Arrays.copyOf(subgts.locations, subgts.values) : new long[0];
         } else {
-          parms[i++] = new long[0];
+          if (subgts.values > 0) {
+            parms[i++] = new long[subgts.values];
+            Arrays.fill((long[]) parms[i - 1], GeoTimeSerie.NO_LOCATION);
+          } else {
+            parms[i++] = new long[0];
+          }
         }
-      }
-      parms[i++] = new Object[subgts.values];      
-
-      int tickidx = -1;
-      
-      for (int j = 0; j < subgts.values; j++) {
-        ((Object[]) parms[6])[j] = valueAtIndex(subgts, j);
-        if (-1 == tickidx && tick == tickAtIndex(subgts, j)) {
-          tickidx = j;
+        if (null != subgts.elevations) {
+          parms[i++] = subgts.values > 0 ? Arrays.copyOf(subgts.elevations, subgts.values) : new long[0];
+        } else {
+          if (subgts.values > 0) {
+            parms[i++] = new long[subgts.values];
+            Arrays.fill((long[]) parms[i - 1], GeoTimeSerie.NO_ELEVATION);
+          } else {
+            parms[i++] = new long[0];
+          }
         }
-      }
+        parms[i++] = new Object[subgts.values];      
 
-      parms[i++] = new long[] { prewindow, postwindow, start, stop, tickidx };
-      
-      Object mapResult = mapper.apply(parms);
-      
+        int tickidx = -1;
+        
+        for (int j = 0; j < subgts.values; j++) {
+          ((Object[]) parms[6])[j] = valueAtIndex(subgts, j);
+          if (-1 == tickidx && tick == tickAtIndex(subgts, j)) {
+            tickidx = j;
+          }
+        }
+
+        parms[i++] = new long[] { prewindow, postwindow, start, stop, tickidx };
+        
+        mapResult = ((WarpScriptMapperFunction) mapper).apply(parms);
+      }
+            
       if (mapResult instanceof Map) {
         for (Entry<Object,Object> entry: ((Map<Object,Object>) mapResult).entrySet()) {
           GeoTimeSerie mgts = multipleMapped.get(entry.getKey().toString());
@@ -3805,7 +3878,7 @@ public class GTSHelper {
           }
         }
       } else {
-        Object[] result = (Object[]) mapResult;
+        Object[] result = mapResult instanceof List ? ((List) mapResult).toArray() : (Object[]) mapResult;
         
         //
         // Set value if it was not null. Don't overwrite, we scan ticks only once

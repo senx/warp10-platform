@@ -20,6 +20,7 @@ import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptBucketizerFunction;
+import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -56,8 +57,8 @@ public class BUCKETIZE extends NamedWarpScriptFunction implements WarpScriptStac
       }      
     }
     
-    if (!(params.get(params.size() - 4) instanceof WarpScriptBucketizerFunction)) {
-      throw new WarpScriptException(getName() + " expects a bucketizer function as fourth to last parameter.");
+    if (!(params.get(params.size() - 4) instanceof WarpScriptBucketizerFunction) && !(params.get(params.size() - 4) instanceof Macro)) {
+      throw new WarpScriptException(getName() + " expects a bucketizer function or macro as fourth to last parameter.");
     }
     
     if (!(params.get(params.size() - 3) instanceof Long) || !(params.get(params.size() - 2) instanceof Long) || !(params.get(params.size() - 1) instanceof Long)) {
@@ -80,7 +81,7 @@ public class BUCKETIZE extends NamedWarpScriptFunction implements WarpScriptStac
       }      
     }
     
-    WarpScriptBucketizerFunction bucketizer = (WarpScriptBucketizerFunction) params.get(params.size() - 4);
+    Object bucketizer = params.get(params.size() - 4);
     long lastbucket = (long) params.get(params.size() - 3);
     long bucketspan = (long) params.get(params.size() - 2);
     int bucketcount = (int) ((long) params.get(params.size() - 1));
@@ -90,7 +91,7 @@ public class BUCKETIZE extends NamedWarpScriptFunction implements WarpScriptStac
     long maxbuckets = (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MAX_BUCKETS);
     
     for (GeoTimeSerie gts: series) {
-      GeoTimeSerie b = GTSHelper.bucketize(gts, bucketspan, bucketcount, lastbucket, bucketizer, maxbuckets);
+      GeoTimeSerie b = GTSHelper.bucketize(gts, bucketspan, bucketcount, lastbucket, bucketizer, maxbuckets, bucketizer instanceof Macro ? stack : null);
       
       bucketized.add(b);
     }

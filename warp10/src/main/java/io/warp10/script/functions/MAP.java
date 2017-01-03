@@ -20,6 +20,7 @@ import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptMapperFunction;
+import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -80,8 +81,8 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
       throw new WarpScriptException(getName() + " expects Geo Time Series or lists thereof as first parameters.");
     }
     
-    if (!(params.get(nseries) instanceof WarpScriptMapperFunction)) {
-      throw new WarpScriptException(getName() + " expects a mapper function after Geo Time Series.");
+    if (!(params.get(nseries) instanceof WarpScriptMapperFunction) && !(params.get(nseries) instanceof Macro)) {
+      throw new WarpScriptException(getName() + " expects a mapper function or a macro after Geo Time Series.");
     }
     
     if (!(params.get(nseries + 1) instanceof Long) || !(params.get(nseries + 2) instanceof Long) || !(params.get(nseries + 3) instanceof Long)) {
@@ -137,7 +138,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
       throw new WarpScriptException(getName() + " Missing '" + PARAM_MAPPER + "' parameter.");
     }
     
-    WarpScriptMapperFunction mapper = (WarpScriptMapperFunction) params.get(PARAM_MAPPER);
+    Object mapper = params.get(PARAM_MAPPER);
     long prewindow = !params.containsKey(PARAM_PREWINDOW) ? 0 : (long) params.get(PARAM_PREWINDOW);
     long postwindow = !params.containsKey(PARAM_POSTWINDOW) ? 0 : (long) params.get(PARAM_POSTWINDOW);
     int occurrences = !params.containsKey(PARAM_OCCURENCES) ? 0 : (int) ((long) params.get(PARAM_OCCURENCES));
@@ -186,7 +187,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     List<Object> mapped = new ArrayList<Object>();
     
     for (GeoTimeSerie gts: series) {
-      List<GeoTimeSerie> res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), occurrences < 0 ? true : false, step, overrideTick);
+      List<GeoTimeSerie> res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), occurrences < 0 ? true : false, step, overrideTick, mapper instanceof Macro ? stack : null);
       if (res.size() < 2) {
         mapped.addAll(res);
       } else {
