@@ -59,7 +59,7 @@ standalone.acceptors
 # [*] Number of Jetty selectors
 standalone.selectors
 
-# [*] Depth of historical data to preserve, expressed in the platform time units
+# [*] Depth of historical data to preserve, expressed in ms
 in.memory.depth
 
 # Periodicity of the garbage collector scan expressed in ms, if unset, 25% of 'depth'
