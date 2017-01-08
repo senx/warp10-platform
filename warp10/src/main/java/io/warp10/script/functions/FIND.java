@@ -94,7 +94,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
   public FIND(String name, boolean elements, boolean metasets) {
     super(name);
     
-    if (this.elements && this.metaset) {
+    if (elements && metaset) {
       throw new RuntimeException("Invalid parameter combination.");
     }
     this.elements = false;
