@@ -31,6 +31,7 @@ public class Configuration {
   public static final String WARP_HASH_APP = "warp.hash.app";
   public static final String WARP_AES_TOKEN = "warp.aes.token";
   public static final String WARP_AES_SCRIPTS = "warp.aes.scripts";
+  public static final String WARP_AES_METASETS = "warp.aes.metasets";
   public static final String WARP_AES_LOGGING = "warp.aes.logging";
   public static final String WARP_DEFAULT_AES_LOGGING = "hex:3cf5cee9eadddba796f2cce0762f308ad9df36f4883841e167dab2889bcf215b";
   

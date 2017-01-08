@@ -1594,6 +1594,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     if (null != encoder) {
       KafkaDataMessage msg = new KafkaDataMessage();
       msg.setType(KafkaDataMessageType.STORE);
+      ## FIX
       msg.setData(encoder.getBytes());
       msg.setClassId(encoder.getClassId());
       msg.setLabelsId(encoder.getLabelsId());
