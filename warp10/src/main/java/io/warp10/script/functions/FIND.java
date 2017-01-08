@@ -91,14 +91,15 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     this.METASETS_KEY = null;
   }
   
-  public FIND(String name, boolean elements, boolean metasets) {
+  public FIND(String name, boolean elements, boolean metaset) {
     super(name);
     
     if (elements && metaset) {
       throw new RuntimeException("Invalid parameter combination.");
     }
+
     this.elements = false;
-    this.metaset = metasets;
+    this.metaset = metaset;
     
     if (this.metaset) {
       this.METASETS_KEY = WarpDist.getKeyStore().getKey(KeyStore.AES_METASETS);      
