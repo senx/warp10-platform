@@ -130,7 +130,6 @@ import io.warp10.script.mapper.MapperMod;
 import io.warp10.script.mapper.MapperMonthOfYear;
 import io.warp10.script.mapper.MapperMul;
 import io.warp10.script.mapper.MapperNPDF;
-import io.warp10.script.mapper.MapperParseDouble;
 import io.warp10.script.mapper.MapperPow;
 import io.warp10.script.mapper.MapperProduct;
 import io.warp10.script.mapper.MapperReplace;
@@ -444,6 +443,7 @@ public class WarpScriptLib {
     functions.put("CALL", new CALL("CALL"));
     functions.put("FORGET", new FORGET("FORGET"));    
     functions.put("DEFINED", new DEFINED("DEFINED"));
+    functions.put("REDEFS", new REDEFS("REDEFS"));
     functions.put("DEFINEDMACRO", new DEFINEDMACRO("DEFINEDMACRO"));
     functions.put("NaN", new NaN("NaN"));
     functions.put("ISNaN", new ISNaN("ISNaN"));
@@ -662,6 +662,7 @@ public class WarpScriptLib {
     functions.put("MAXGTS", new MAXGTS("MAXGTS"));
     functions.put("FIND", new FIND("FIND", false));
     functions.put("FINDSETS", new FIND("FINDSETS", true));
+    functions.put("METASET", new FIND("METASET", false, true));
     functions.put("FINDSTATS", new FINDSTATS("FINDSTATS"));
     functions.put("DEDUP", new DEDUP("DEDUP"));
     functions.put("ONLYBUCKETS", new ONLYBUCKETS("ONLYBUCKETS"));
@@ -858,8 +859,7 @@ public class WarpScriptLib {
     functions.put("mapper.exp", new MapperExp.Builder("mapper.exp"));
     functions.put("mapper.log", new MapperLog.Builder("mapper.log"));
     functions.put("mapper.min.x", new MapperMinX.Builder("mapper.min.x"));          
-    functions.put("mapper.max.x", new MapperMaxX.Builder("mapper.max.x"));         
-    functions.put("mapper.parsedouble", new MapperParseDouble.Builder("mapper.parsedouble"));           
+    functions.put("mapper.max.x", new MapperMaxX.Builder("mapper.max.x"));          
 
     
     functions.put("mapper.tick", new MapperTick.Builder("mapper.tick"));
