@@ -130,6 +130,7 @@ import io.warp10.script.mapper.MapperMod;
 import io.warp10.script.mapper.MapperMonthOfYear;
 import io.warp10.script.mapper.MapperMul;
 import io.warp10.script.mapper.MapperNPDF;
+import io.warp10.script.mapper.MapperParseDouble;
 import io.warp10.script.mapper.MapperPow;
 import io.warp10.script.mapper.MapperProduct;
 import io.warp10.script.mapper.MapperReplace;
