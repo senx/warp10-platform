@@ -275,16 +275,23 @@ public class Warp extends WarpDist implements Runnable {
     StoreClient scc = null;
 
     if (inmemory) {
-      sdc = new StandaloneDirectoryClient(null, keystore);    
-      scc = new StandaloneMemoryStore(keystore,
-          Long.valueOf(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_DEPTH, Long.toString(60 * 60 * 1000 * Constants.TIME_UNITS_PER_MS))),
-          Long.valueOf(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_HIGHWATERMARK, "100000")),
-          Long.valueOf(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_LOWWATERMARK, "80000")));
-      ((StandaloneMemoryStore) scc).setDirectoryClient((StandaloneDirectoryClient) sdc);
-      if ("true".equals(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_EPHEMERAL))) {
-        ((StandaloneMemoryStore) scc).setEphemeral(true);
+      sdc = new StandaloneDirectoryClient(null, keystore);
+      
+      if ("true".equals(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_SHARDED))) {
+        scc = new StandaloneShardedMemoryStore(WarpDist.getProperties(), keystore);
+        ((StandaloneShardedMemoryStore) scc).setDirectoryClient((StandaloneDirectoryClient) sdc);
+        ((StandaloneShardedMemoryStore) scc).load();
+      } else {
+        scc = new StandaloneMemoryStore(keystore,
+            Long.valueOf(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_DEPTH, Long.toString(60 * 60 * 1000 * Constants.TIME_UNITS_PER_MS))),
+            Long.valueOf(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_HIGHWATERMARK, "100000")),
+            Long.valueOf(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_LOWWATERMARK, "80000")));
+        ((StandaloneMemoryStore) scc).setDirectoryClient((StandaloneDirectoryClient) sdc);
+        if ("true".equals(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_EPHEMERAL))) {
+          ((StandaloneMemoryStore) scc).setEphemeral(true);
+        }        
+        ((StandaloneMemoryStore) scc).load();
       }
-      ((StandaloneMemoryStore) scc).load();
     } else if (plasmabackend) {
       sdc = new StandaloneDirectoryClient(null, keystore);
       scc = new PlasmaStoreClient();
@@ -308,7 +315,6 @@ public class Warp extends WarpDist implements Runnable {
         //
         ScriptRunner runner = new ScriptRunner(keystore.clone(), properties);
       }
-
     }
     
     //

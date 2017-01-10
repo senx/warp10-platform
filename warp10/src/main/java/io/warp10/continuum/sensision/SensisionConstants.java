@@ -959,6 +959,11 @@ public class SensisionConstants {
   public static final String CLASS_WARP_MOBIUS_MACROS_TIME_NANOS = "warp.script.mobius.macros.time.nanos";
 
   /**
+   * Number of shards dropped by the GC since the launch of the platform instance
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_SHARDS_DROPPED = "warp.standalone.inmemory.shards.dropped";
+  
+  /**
    * Number of points currently stored in the memory store
    */
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_DATAPOINTS = "warp.standalone.inmemory.datapoints";

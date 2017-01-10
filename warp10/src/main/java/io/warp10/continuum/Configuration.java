@@ -1327,6 +1327,11 @@ public class Configuration {
   public static final String IN_MEMORY = "in.memory";
   
   /**
+   * Set to 'true' to use a sharded memory store.
+   */
+  public static final String IN_MEMORY_SHARDED = "in.memory.sharded";
+  
+  /**
    * Depth of timestamps to retain (in ms)
    */
   public static final String IN_MEMORY_DEPTH = "in.memory.depth";
@@ -1347,6 +1352,16 @@ public class Configuration {
    */
   public static final String IN_MEMORY_EPHEMERAL = "in.memory.ephemeral";
 
+  /**
+   * Number of shard to handle in memory (defaults to 3)
+   */
+  public static final String IN_MEMORY_SHARD_COUNT = "in.memory.shard.count";
+  
+  /**
+   * Length of each shard (in time units), defaults to Long.MAX_VALUE
+   */
+  public static final String IN_MEMORY_SHARD_LENGTH = "in.memory.shard.length";
+  
   /**
    * Set to 'true' to only forward data to Plasma. Not data storage will take place.
    */

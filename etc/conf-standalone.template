@@ -373,6 +373,24 @@ in.memory = false
 //in.memory.ephemeral = 
 
 //
+// Set to 'true' to use a sharded version of the in memory datastore
+// When this datastore is in effect, the depth of data retained is
+// configured using in.memory.shard.count and in.memory.shard.length
+// All other in.memory.* parameters are ignored
+//
+//in.memory.sharded = true
+
+//
+// Number of shards to retain (defaults to 3)
+//
+//in.memory.shard.count =
+
+//
+// Length in platform time units of each shard (defaults to 2**63)
+//
+//in.memory.shard.length =
+
+//
 // Set to 'true' to only forward data to Plasma. Not data storage will take place.
 //
 //pureplasma = 
