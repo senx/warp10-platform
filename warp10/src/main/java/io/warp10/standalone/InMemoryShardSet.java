@@ -173,6 +173,9 @@ public class InMemoryShardSet {
   
   public GTSEncoder fetchEncoder(long now, long timespan) throws IOException {
 
+    // Clean up first
+    clean(TimeSource.getTime());
+    
     if (timespan < 0) {
       return fetchCountEncoder(now, -timespan);
     }
