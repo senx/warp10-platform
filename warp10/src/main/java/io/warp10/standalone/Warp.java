@@ -277,10 +277,10 @@ public class Warp extends WarpDist implements Runnable {
     if (inmemory) {
       sdc = new StandaloneDirectoryClient(null, keystore);
       
-      if ("true".equals(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_SHARDED))) {
-        scc = new StandaloneShardedMemoryStore(WarpDist.getProperties(), keystore);
-        ((StandaloneShardedMemoryStore) scc).setDirectoryClient((StandaloneDirectoryClient) sdc);
-        ((StandaloneShardedMemoryStore) scc).load();
+      if ("true".equals(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_CHUNKED))) {
+        scc = new StandaloneChunkedMemoryStore(WarpDist.getProperties(), keystore);
+        ((StandaloneChunkedMemoryStore) scc).setDirectoryClient((StandaloneDirectoryClient) sdc);
+        ((StandaloneChunkedMemoryStore) scc).load();
       } else {
         scc = new StandaloneMemoryStore(keystore,
             Long.valueOf(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_DEPTH, Long.toString(60 * 60 * 1000 * Constants.TIME_UNITS_PER_MS))),

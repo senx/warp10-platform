@@ -961,7 +961,7 @@ public class SensisionConstants {
   /**
    * Number of shards dropped by the GC since the launch of the platform instance
    */
-  public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_SHARDS_DROPPED = "warp.standalone.inmemory.shards.dropped";
+  public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_CHUNKS_DROPPED = "warp.standalone.inmemory.chunks.dropped";
   
   /**
    * Number of points currently stored in the memory store

@@ -58,45 +58,45 @@ import com.google.common.collect.MapMaker;
 
 /**
  * This class implements an in memory store which handles data expiration
- * using shards which can be discarded when they no longer belong to the
+ * using chunks which can be discarded when they no longer belong to the
  * active data period.
  * 
- * Shards can optionally be dumped to disk when discarded.
+ * Chunks can optionally be dumped to disk when discarded.
  */
-public class StandaloneShardedMemoryStore extends Thread implements StoreClient {
+public class StandaloneChunkedMemoryStore extends Thread implements StoreClient {
   
   private static final String STANDALONE_MEMORY_STORE_LOAD = "in.memory.load";
   private static final String STANDALONE_MEMORY_STORE_DUMP = "in.memory.dump";
   private static final String STANDALONE_MEMORY_GC_PERIOD = "in.memory.gcperiod";
   
-  private final Map<BigInteger,InMemoryShardSet> series;
+  private final Map<BigInteger,InMemoryChunkSet> series;
   
   private List<StandalonePlasmaHandlerInterface> plasmaHandlers = new ArrayList<StandalonePlasmaHandlerInterface>();
 
   private StandaloneDirectoryClient directoryClient = null;
 
   /**
-   * Length of shards in time units
+   * Length of chunks in time units
    */
-  private final long shardspan;
+  private final long chunkspan;
   
   /**
-   * Number of shards
+   * Number of chunks
    */
-  private final int shardcount;
+  private final int chunkcount;
 
   private final Properties properties;
 
   private final long[] classKeyLongs;
   private final long[] labelsKeyLongs;
   
-  public StandaloneShardedMemoryStore(Properties properties, KeyStore keystore) {
+  public StandaloneChunkedMemoryStore(Properties properties, KeyStore keystore) {
     this.properties = properties;
 
     this.series = new MapMaker().concurrencyLevel(64).makeMap();
 
-    this.shardcount = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.IN_MEMORY_SHARD_COUNT, "3"));
-    this.shardspan = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.IN_MEMORY_SHARD_LENGTH, Long.toString(Long.MAX_VALUE)));
+    this.chunkcount = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.IN_MEMORY_CHUNK_COUNT, "3"));
+    this.chunkspan = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.IN_MEMORY_CHUNK_LENGTH, Long.toString(Long.MAX_VALUE)));
   
     this.labelsKeyLongs = SipHashInline.getKey(keystore.getKey(KeyStore.SIPHASH_LABELS));
     this.classKeyLongs = SipHashInline.getKey(keystore.getKey(KeyStore.SIPHASH_CLASS));
@@ -107,7 +107,7 @@ public class StandaloneShardedMemoryStore extends Thread implements StoreClient 
     
     if (null != properties.getProperty(STANDALONE_MEMORY_STORE_DUMP)) {
       
-      final StandaloneShardedMemoryStore self = this;
+      final StandaloneChunkedMemoryStore self = this;
       final String path = properties.getProperty(STANDALONE_MEMORY_STORE_DUMP); 
       Thread dumphook = new Thread() {
         @Override
@@ -132,7 +132,7 @@ public class StandaloneShardedMemoryStore extends Thread implements StoreClient 
     }
     
     this.setDaemon(true);
-    this.setName("[StandaloneShardedMemoryStore Janitor]");
+    this.setName("[StandaloneChunkedMemoryStore Janitor]");
     this.setPriority(Thread.MIN_PRIORITY);
     this.start();
   }
@@ -197,10 +197,10 @@ public class StandaloneShardedMemoryStore extends Thread implements StoreClient 
             BigInteger clslbls = new BigInteger(bytes);
             
             if (idx < metadatas.size() && series.containsKey(clslbls)) {
-              InMemoryShardSet shardset = series.get(clslbls);
+              InMemoryChunkSet chunkset = series.get(clslbls);
               
               try {
-                this.decoder = shardset.fetch(now, timespan);
+                this.decoder = chunkset.fetch(now, timespan);
               } catch (IOException ioe) {
                 this.decoder = null;
                 return false;
@@ -262,25 +262,25 @@ public class StandaloneShardedMemoryStore extends Thread implements StoreClient 
     BigInteger clslbls = new BigInteger(bytes);
 
     //
-    // Retrieve the shard for the current GTS
+    // Retrieve the chunk for the current GTS
     //
     
-    InMemoryShardSet shardset = null;
+    InMemoryChunkSet chunkset = null;
     
     //
     // WARNING(hbs): the following 2 synchronized blocks MUST stay sequential (cf run())
     //
     
     synchronized (this.series) {
-      shardset = this.series.get(clslbls);
+      chunkset = this.series.get(clslbls);
       
       //
-      // We need to allocate a new shard
+      // We need to allocate a new chunk
       //
       
-      if (null == shardset) {
-        shardset = new InMemoryShardSet(this.shardcount, this.shardspan);
-        this.series.put(clslbls,  shardset);
+      if (null == chunkset) {
+        chunkset = new InMemoryChunkSet(this.chunkcount, this.chunkspan);
+        this.series.put(clslbls,  chunkset);
       }
     }
 
@@ -288,7 +288,7 @@ public class StandaloneShardedMemoryStore extends Thread implements StoreClient 
     // Store data
     //
     
-    shardset.store(encoder);
+    chunkset.store(encoder);
 
     //
     // Forward data to Plasma
@@ -312,7 +312,7 @@ public class StandaloneShardedMemoryStore extends Thread implements StoreClient 
     // Loop endlessly over the series, cleaning them as they grow
     //
     
-    long gcperiod = this.shardspan;
+    long gcperiod = this.chunkspan;
     
     if (null != properties.getProperty(STANDALONE_MEMORY_GC_PERIOD)) {
       gcperiod = Long.valueOf(properties.getProperty(STANDALONE_MEMORY_GC_PERIOD));
@@ -336,16 +336,16 @@ public class StandaloneShardedMemoryStore extends Thread implements StoreClient 
       long bytes = 0L;
       
       for (int idx = 0 ; idx < metadatas.size(); idx++) {
-        InMemoryShardSet shardset = this.series.get(metadatas.get(idx));
+        InMemoryChunkSet chunkset = this.series.get(metadatas.get(idx));
 
-        if (null == shardset) {
+        if (null == chunkset) {
           continue;
         }
         
-        shardset.clean(now);
+        chunkset.clean(now);
         
-        datapoints += shardset.getCount();
-        bytes += shardset.getSize();        
+        datapoints += chunkset.getCount();
+        bytes += chunkset.getSize();        
       }
       
       //
@@ -446,13 +446,13 @@ public class StandaloneShardedMemoryStore extends Thread implements StoreClient 
     long now = TimeSource.getTime();
     
     try {
-      for (Entry<BigInteger,InMemoryShardSet> entry: this.series.entrySet()) {
+      for (Entry<BigInteger,InMemoryChunkSet> entry: this.series.entrySet()) {
         gts++;
         Metadata metadata = this.directoryClient.getMetadataById(entry.getKey());
 
         GTSWrapper wrapper = new GTSWrapper(metadata);        
         
-        GTSEncoder encoder = entry.getValue().fetchEncoder(now, this.shardcount * this.shardspan);
+        GTSEncoder encoder = entry.getValue().fetchEncoder(now, this.chunkcount * this.chunkspan);
 
         wrapper.setBase(encoder.getBaseTimestamp());
         wrapper.setCount(encoder.getCount());

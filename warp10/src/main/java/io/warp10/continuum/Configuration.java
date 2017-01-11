@@ -1327,9 +1327,9 @@ public class Configuration {
   public static final String IN_MEMORY = "in.memory";
   
   /**
-   * Set to 'true' to use a sharded memory store.
+   * Set to 'true' to use a chunked memory store.
    */
-  public static final String IN_MEMORY_SHARDED = "in.memory.sharded";
+  public static final String IN_MEMORY_CHUNKED = "in.memory.chunked";
   
   /**
    * Depth of timestamps to retain (in ms)
@@ -1353,14 +1353,14 @@ public class Configuration {
   public static final String IN_MEMORY_EPHEMERAL = "in.memory.ephemeral";
 
   /**
-   * Number of shard to handle in memory (defaults to 3)
+   * Number of chunks per GTS to handle in memory (defaults to 3)
    */
-  public static final String IN_MEMORY_SHARD_COUNT = "in.memory.shard.count";
+  public static final String IN_MEMORY_CHUNK_COUNT = "in.memory.chunk.count";
   
   /**
-   * Length of each shard (in time units), defaults to Long.MAX_VALUE
+   * Length of each chunk (in time units), defaults to Long.MAX_VALUE
    */
-  public static final String IN_MEMORY_SHARD_LENGTH = "in.memory.shard.length";
+  public static final String IN_MEMORY_CHUNK_LENGTH = "in.memory.chunk.length";
   
   /**
    * Set to 'true' to only forward data to Plasma. Not data storage will take place.
