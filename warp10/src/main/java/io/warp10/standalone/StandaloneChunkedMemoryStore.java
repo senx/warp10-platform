@@ -35,6 +35,7 @@ import io.warp10.sensision.Sensision;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -450,22 +451,27 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
         gts++;
         Metadata metadata = this.directoryClient.getMetadataById(entry.getKey());
 
-        GTSWrapper wrapper = new GTSWrapper(metadata);        
-        
-        GTSEncoder encoder = entry.getValue().fetchEncoder(now, this.chunkcount * this.chunkspan);
+        List<GTSDecoder> decoders = entry.getValue().getDecoders();
 
-        wrapper.setBase(encoder.getBaseTimestamp());
-        wrapper.setCount(encoder.getCount());
-        
-        byte[] data = serializer.serialize(wrapper);
-        key.set(data, 0, data.length);
-        
-        data = encoder.getBytes();
-        value.set(data, 0, data.length);
+        //GTSEncoder encoder = entry.getValue().fetchEncoder(now, this.chunkcount * this.chunkspan);
 
-        bytes += key.getLength() + value.getLength();
-        
-        writer.append(key, value);
+        for (GTSDecoder decoder: decoders) {
+          GTSWrapper wrapper = new GTSWrapper(metadata);        
+
+          wrapper.setBase(decoder.getBaseTimestamp());
+          wrapper.setCount(decoder.getCount());
+          
+          byte[] data = serializer.serialize(wrapper);
+          key.set(data, 0, data.length);
+          
+          ByteBuffer bb = decoder.getBuffer();
+          
+          value.set(bb.array(), bb.arrayOffset(), bb.remaining());
+
+          bytes += key.getLength() + value.getLength();
+          
+          writer.append(key, value);
+        }        
       }
     } catch (IOException ioe) {
       ioe.printStackTrace();

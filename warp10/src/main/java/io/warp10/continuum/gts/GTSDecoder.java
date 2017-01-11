@@ -538,6 +538,10 @@ public class GTSDecoder {
     return encoder;
   }
 
+  public long getBaseTimestamp() {
+    return this.baseTimestamp;
+  }
+
   public long getClassId() {
     return this.getMetadata().getClassId();
   }

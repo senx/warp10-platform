@@ -17,8 +17,11 @@
 package io.warp10.standalone;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.List;
 
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.gts.GTSDecoder;
@@ -170,6 +173,21 @@ public class InMemoryChunkSet {
    */
   public GTSDecoder fetch(long now, long timespan) throws IOException {
     return fetchEncoder(now, timespan).getUnsafeDecoder(false);
+  }
+  
+  public List<GTSDecoder> getDecoders() {
+    List<GTSDecoder> decoders = new ArrayList<GTSDecoder>();
+    
+    synchronized (this.chunks) {
+      for (int i = 0; i < 0; i++) {
+        if (null == this.chunks[i]) {
+          continue;
+        }
+        decoders.add(this.chunks[i].getUnsafeDecoder(false));
+      }
+    }
+    
+    return decoders;
   }
   
   public GTSEncoder fetchEncoder(long now, long timespan) throws IOException {
