@@ -2973,7 +2973,8 @@ public class GTSHelper {
       throw new IOException(ioe);
     }
     
-    return encoder.getUnsafeDecoder(false).decode();
+    //return encoder.getUnsafeDecoder(false).decode();
+    return encoder.getDecoder(true).decode();
   }
   
   /**
