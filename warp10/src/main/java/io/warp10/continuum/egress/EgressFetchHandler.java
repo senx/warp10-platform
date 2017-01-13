@@ -134,7 +134,6 @@ public class EgressFetchHandler extends AbstractHandler {
   
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
-
     boolean fromArchive = false;
     boolean splitFetch = false;
     boolean writeTimestamp = false;
@@ -336,7 +335,12 @@ public class EgressFetchHandler extends AbstractHandler {
     Set<Metadata> metadatas = new HashSet<Metadata>();
     List<Iterator<Metadata>> iterators = new ArrayList<Iterator<Metadata>>();
     
-    if (!splitFetch) {
+    if (!splitFetch) {      
+      
+      if (null == selector) {
+        throw new IOException("Missing '" + Constants.HTTP_PARAM_SELECTOR + "' parameter.");
+      }
+      
       String[] selectors = selector.split("\\s+");
       
       for (String sel: selectors) {
@@ -733,7 +737,6 @@ public class EgressFetchHandler extends AbstractHandler {
     }
 
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_REQUESTS, labels, 1);
-
   }
   
   private static void rawDump(PrintWriter pw, GTSDecoderIterator iter, boolean dedup, boolean signed, long timespan, AtomicReference<Metadata> lastMeta, AtomicLong lastCount) throws IOException {
