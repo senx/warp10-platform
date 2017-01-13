@@ -25,7 +25,6 @@ import io.warp10.script.WarpScriptStackFunction;
 
 import java.security.SecureRandom;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
