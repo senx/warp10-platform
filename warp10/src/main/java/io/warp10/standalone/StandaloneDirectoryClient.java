@@ -465,7 +465,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     }    
   };
   
-  public void register(Metadata metadata) throws IOException {
+  public synchronized void register(Metadata metadata) throws IOException {
     
     //
     // Special case of null means flush leveldb
