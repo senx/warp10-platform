@@ -343,9 +343,11 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
           continue;
         }
         
+        long before = chunkset.getCount();
+        
         chunkset.clean(now);
         
-        datapoints += chunkset.getCount();
+        datapoints += (before - chunkset.getCount());
         bytes += chunkset.getSize();        
       }
       
