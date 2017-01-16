@@ -398,9 +398,9 @@ public class InMemoryChunkSet {
           //
           // Now we need to extract the ticks of the intermediary encoder
           //
-          long[] ticks = new long[(int) intenc.getCount()];
-          int k = 0;
           chunkDecoder = intenc.getUnsafeDecoder(false);
+          long[] ticks = new long[(int) chunkDecoder.getCount()];
+          int k = 0;
           while(chunkDecoder.next()) {
             ticks[k++] = chunkDecoder.getTimestamp();
           }
