@@ -702,6 +702,7 @@ public class WarpScriptLib {
     functions.put("FDWT", new FDWT("FDWT"));
     functions.put("IDWT", new IDWT("IDWT"));
     functions.put("DWTSPLIT", new DWTSPLIT("DWTSPLIT"));
+    functions.put("EMPTY", new EMPTY("EMPTY"));
     functions.put("NONEMPTY", new NONEMPTY("NONEMPTY"));
     functions.put("PARTITION", new PARTITION("PARTITION"));
     functions.put("STRICTPARTITION", new PARTITION("STRICTPARTITION", true));
