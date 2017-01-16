@@ -157,11 +157,17 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       
       @Override
       public GTSDecoder next() {
-        return this.decoder;
+        GTSDecoder dec = this.decoder;
+        this.decoder = null;
+        return dec;
       }
       
       @Override
       public boolean hasNext() {  
+        
+        if (null != this.decoder) {
+          return true;
+        }
         
         byte[] bytes = new byte[16];
         
@@ -201,7 +207,14 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
               InMemoryChunkSet chunkset = series.get(clslbls);
               
               try {
-                this.decoder = chunkset.fetch(now, timespan);
+                GTSDecoder dec = chunkset.fetch(now, timespan);
+
+                if (0 == dec.getCount()) {
+                  idx++;
+                  continue;
+                }
+
+                this.decoder = dec;                 
               } catch (IOException ioe) {
                 this.decoder = null;
                 return false;
