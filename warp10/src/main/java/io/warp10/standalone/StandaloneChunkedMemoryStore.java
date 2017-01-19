@@ -331,13 +331,11 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     if (null != properties.getProperty(STANDALONE_MEMORY_GC_PERIOD)) {
       gcperiod = Long.valueOf(properties.getProperty(STANDALONE_MEMORY_GC_PERIOD));
     }
-    
-    List<BigInteger> metadatas = new ArrayList<BigInteger>();
-    
+        
     while(true) {
       LockSupport.parkNanos(1000000L * (gcperiod / Constants.TIME_UNITS_PER_MS));
 
-      metadatas.clear();
+      List<BigInteger> metadatas = new ArrayList<BigInteger>();
       metadatas.addAll(this.series.keySet());
 
       if (0 == metadatas.size()) {
