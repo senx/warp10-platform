@@ -296,6 +296,11 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_INGRESS_KAFKA_DATA_PRODUCER_WAIT_NANO = "warp.ingress.kafka.data.producer.wait.nanos";
 
   /**
+   * Total number of nanoseconds spent sending a list of data by a producer
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_INGRESS_KAFKA_DATA_PRODUCER_SEND = "warp.ingress.kafka.data.producer.send.nanos";
+
+  /**
    * Number of Producer get from the metadata producer pool
    */
   public static final String SENSISION_CLASS_CONTINUUM_INGRESS_KAFKA_METADATA_PRODUCER_POOL_GET = "warp.ingress.kafka.metadata.producer.pool.get";
@@ -304,6 +309,11 @@ public class SensisionConstants {
    * Total number of nanoseconds spent waiting for a metadata producer to be available
    */
   public static final String SENSISION_CLASS_CONTINUUM_INGRESS_KAFKA_METADATA_PRODUCER_WAIT_NANO = "warp.ingress.kafka.metadata.producer.wait.nanos";
+
+  /**
+   * Total number of nanoseconds spent sending a list of metadata by a producer
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_INGRESS_KAFKA_METADATA_PRODUCER_SEND = "warp.ingress.kafka.metadata.producer.send.nanos";
 
   /**
    * Number of Kafka delete messages produced by 'Ingress'
