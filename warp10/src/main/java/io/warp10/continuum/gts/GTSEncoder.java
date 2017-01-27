@@ -29,6 +29,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.GZIPOutputStream;
 
 import org.bouncycastle.crypto.engines.AESWrapEngine;
@@ -44,7 +46,7 @@ import com.google.common.base.Charsets;
  * Utility class used to create Geo Time Series
  */
 public class GTSEncoder {
-
+  
   /**
    * Mask to extract encryption flag.
    */
@@ -132,6 +134,8 @@ public class GTSEncoder {
   static final byte FLAGS_ELEVATION_DELTA_PREVIOUS = 0x02;
   static final byte FLAGS_ELEVATION_IDENTICAL = 0x01;
 
+  private boolean readonly = false;
+  
   private long baseTimestamp = 0L;
 
   /**
@@ -271,9 +275,16 @@ public class GTSEncoder {
    * @return
    */
   // Allocate an 8 bytes buffer that we will reuse in 'addValue' since addValue is synchronized
-  private byte[] buf8 = new byte[8];
-  private byte[] buf10 = new byte[10];
+  //private byte[] buf8 = new byte[8];
+  //private byte[] buf10 = new byte[10];
+  private byte[] buf8 = new byte[10];
+  private byte[] buf10 = buf8;
   public synchronized int addValue(long timestamp, long location, long elevation, Object value) throws IOException {
+    
+    if (this.readonly) {
+      throw new IOException("Encoder is read-only.");
+    }
+    
     //
     // Determine the encoding for the timestamp
     // We choose the encoding mode which leads to the least number of bytes
@@ -509,7 +520,7 @@ public class GTSEncoder {
         buf[6] = (byte) ((timestamp >> 8) & 0xff);
         buf[7] = (byte) (timestamp & 0xff);
         
-        this.stream.write(buf);
+        this.stream.write(buf, 0, 8);
       }
         break;
       //case FLAGS_TIMESTAMP_ZIGZAG_ABSOLUTE:
@@ -559,7 +570,7 @@ public class GTSEncoder {
           buf[6] = (byte) ((location >> 8) & 0xff);
           buf[7] = (byte) (location & 0xff);
 
-          this.stream.write(buf);
+          this.stream.write(buf, 0, 8);
         }
       }
       lastGeoXPPoint = location;
@@ -595,7 +606,7 @@ public class GTSEncoder {
           buf[6] = (byte) ((toencode >> 8) & 0xff);
           buf[7] = (byte) (toencode & 0xff);
 
-          this.stream.write(buf);
+          this.stream.write(buf, 0, 8);
         }
       }
       lastElevation = elevation;
@@ -649,7 +660,7 @@ public class GTSEncoder {
             buf[6] = (byte) ((toencode >> 8) & 0xff);
             buf[7] = (byte) (toencode & 0xff);
 
-            this.stream.write(buf);
+            this.stream.write(buf, 0, 8);
           }
 
           noDeltaValue = false;
@@ -668,7 +679,7 @@ public class GTSEncoder {
             // Keep track of last value
             lastDoubleValue = ((Number) value).doubleValue();
             bb.putDouble(lastDoubleValue);
-            this.stream.write(buf);
+            this.stream.write(buf, 0, 8);
             // Clear the last BDValue otherwise we might incorrectly encode the next value specified as a BigDecimal
             lastBDValue = null;
           } else {
@@ -701,6 +712,10 @@ public class GTSEncoder {
   }
   
   public void setWrappingKey(byte[] key) {
+    if (this.readonly) {
+      throw new RuntimeException("Encoder is read-only.");
+    }
+
     this.wrappingKey = null == key ? null : Arrays.copyOf(key, key.length);
   }
   
@@ -775,7 +790,7 @@ public class GTSEncoder {
    * 
    * @param gts
    */
-  public void encode(GeoTimeSerie gts) throws IOException {
+  public synchronized void encode(GeoTimeSerie gts) throws IOException {
     for (int i = 0; i < gts.values; i++) {
       addValue(gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, GTSHelper.valueAtIndex(gts, i));
     }
@@ -787,7 +802,7 @@ public class GTSEncoder {
    * 
    * @param gts
    */
-  public void encodeOptimized(GeoTimeSerie gts) throws IOException {
+  public synchronized void encodeOptimized(GeoTimeSerie gts) throws IOException {
     StringBuilder sb = new StringBuilder();
     
     char[] chars = null;
@@ -818,7 +833,7 @@ public class GTSEncoder {
    * @param safeMetadata Is it safe to reuse the Metadata instance?
    * @return A suitable GTSDecoder instance.
    */
-  public GTSDecoder getDecoder(boolean safeMetadata) {
+  public synchronized GTSDecoder getDecoder(boolean safeMetadata) {
     GTSDecoder decoder = new GTSDecoder(this.baseTimestamp, this.wrappingKey, ByteBuffer.wrap(this.stream.toByteArray()));
     if (!safeMetadata) {
       decoder.setMetadata(this.getMetadata());
@@ -843,6 +858,71 @@ public class GTSEncoder {
   }
   
   /**
+   * Retrieve a GTSDecoder which uses the same metadata as
+   * this GTSEncoder and has a ByteBuffer which wraps the current
+   * byte array in this GTSEncoder's stream.
+   * 
+   * Calling this method will render the GTSEncoder 'read-only'
+   * 
+   */
+  public synchronized GTSDecoder getUnsafeDecoder(boolean blockWrites) {
+    //
+    // If the wrapping key is not null, fallback to getGTSDecoder as we must first
+    // encrypt the content
+    //
+    
+    if (null != this.wrappingKey) {
+      return getDecoder(true);
+    }
+    
+    //
+    // Retrieve the underlying byte[], we do this using
+    // a dummy OutputStream
+    //
+        
+    final AtomicReference<byte[]> aref = new AtomicReference<byte[]>();
+    final AtomicInteger alen = new AtomicInteger();
+    final AtomicInteger aoff = new AtomicInteger();
+    
+    OutputStream out = new OutputStream() {      
+      @Override
+      public void write(int b) throws IOException {}
+      @Override
+      public void write(byte[] b, int off, int len) throws IOException {
+        aref.set(b);
+        alen.set(len);
+        aoff.set(off);
+      }
+    };
+    
+    try {
+      this.stream.writeTo(out);
+    } catch (IOException ioe) {
+      throw new RuntimeException(ioe);
+    }
+    
+    GTSDecoder decoder = new GTSDecoder(this.baseTimestamp, this.wrappingKey, ByteBuffer.wrap(aref.get(), aoff.get(), alen.get()));
+    decoder.safeSetMetadata(this.getMetadata());
+
+    decoder.initialize(
+      this.initialTimestamp,
+      this.initialGeoXPPoint,
+      this.initialElevation,
+      this.initialLongValue,
+      this.initialDoubleValue,
+      this.initialBDValue,
+      this.initialStringValue);
+    
+    decoder.setCount(this.getCount());
+    
+    if (blockWrites) {
+      this.readonly = true;
+    }
+    
+    return decoder;    
+  }
+  
+  /**
    * Set the initial values of the encoder, to be used in the created decoder to decode delta encoded values
    * 
    * @param initialTimestamp
@@ -854,6 +934,9 @@ public class GTSEncoder {
    * @param initialStringValue
    */
   synchronized void initialize(long initialTimestamp, long initialGeoXPPoint, long initialElevation, long initialLongValue, double initialDoubleValue, BigDecimal initialBDValue, String initialStringValue) {
+    if (this.readonly) {
+      throw new RuntimeException("Encoder is read-only.");
+    }
     this.initialTimestamp = initialTimestamp;
     this.initialGeoXPPoint = initialGeoXPPoint;
     this.initialElevation = initialElevation;
@@ -869,7 +952,10 @@ public class GTSEncoder {
    * @param encoder
    * @throws IOException
    */
-  public void reset(GTSEncoder encoder) throws IOException {
+  public synchronized void reset(GTSEncoder encoder) throws IOException {
+    if (this.readonly) {
+      throw new RuntimeException("Encoder is read-only.");
+    }
     this.initialize(encoder.initialTimestamp, encoder.initialGeoXPPoint, encoder.initialElevation, encoder.initialLongValue, encoder.initialDoubleValue, encoder.initialBDValue, encoder.initialStringValue);
     
     this.baseTimestamp = encoder.baseTimestamp;
@@ -893,10 +979,13 @@ public class GTSEncoder {
     this.noDeltaValue = encoder.noDeltaValue;
     
     this.stream.reset();
-    this.stream.write(encoder.stream.toByteArray());
+    encoder.stream.writeTo(this.stream);
   }
   
-  public void reset(long baseTS) throws IOException {
+  public synchronized void reset(long baseTS) throws IOException {
+    if (this.readonly) {
+      throw new RuntimeException("Encoder is read-only.");
+    }
     baseTimestamp = baseTS;
     lastTimestamp = 0L;
     lastGeoXPPoint = GeoTimeSerie.NO_LOCATION;
@@ -937,6 +1026,9 @@ public class GTSEncoder {
    * @throws IOException
    */
   public synchronized void merge(GTSEncoder encoder) throws IOException {
+    if (this.readonly) {
+      throw new RuntimeException("Encoder is read-only.");
+    }
 
     //
     // If the current encoder is empty and the base timestamps and wrapping
@@ -1074,17 +1166,18 @@ public class GTSEncoder {
     this.noDeltaValue = true;
   }
   
-  public void setCount(long count) {
+  public synchronized void setCount(long count) {
     this.count = count;
   }
   
   /**
    * Empty the output stream and disable delta encoding
    */
-  public void flush() {
+  public synchronized void flush() {
     // We allocate a new stream so we get rid of the potentially large underlying byte array
     this.stream = new ByteArrayOutputStream();
     this.safeDelta();
+    this.readonly = false;
   }
   
   /**

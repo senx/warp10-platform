@@ -165,6 +165,11 @@ public class Warp extends WarpDist implements Runnable {
     keystore.setKey(KeyStore.AES_SECURESCRIPTS, keystore.decodeKey(properties.getProperty(Configuration.WARP_AES_SCRIPTS)));
     Preconditions.checkArgument((16 == keystore.getKey(KeyStore.AES_SECURESCRIPTS).length) || (24 == keystore.getKey(KeyStore.AES_SECURESCRIPTS).length) || (32 == keystore.getKey(KeyStore.AES_SECURESCRIPTS).length), Configuration.WARP_AES_SCRIPTS + " MUST be 128, 192 or 256 bits long.");
 
+    if (properties.containsKey(Configuration.WARP_AES_METASETS)) {
+      keystore.setKey(KeyStore.AES_METASETS, keystore.decodeKey(properties.getProperty(Configuration.WARP_AES_METASETS)));
+      Preconditions.checkArgument((16 == keystore.getKey(KeyStore.AES_METASETS).length) || (24 == keystore.getKey(KeyStore.AES_METASETS).length) || (32 == keystore.getKey(KeyStore.AES_METASETS).length), Configuration.WARP_AES_METASETS + " MUST be 128, 192 or 256 bits long.");
+    }
+
     if (null != properties.getProperty(Configuration.WARP_AES_LOGGING, Configuration.WARP_DEFAULT_AES_LOGGING)) {
       keystore.setKey(KeyStore.AES_LOGGING, keystore.decodeKey(properties.getProperty(Configuration.WARP_AES_LOGGING, Configuration.WARP_DEFAULT_AES_LOGGING)));
       Preconditions.checkArgument((16 == keystore.getKey(KeyStore.AES_LOGGING).length) || (24 == keystore.getKey(KeyStore.AES_LOGGING).length) || (32 == keystore.getKey(KeyStore.AES_LOGGING).length), Configuration.WARP_AES_LOGGING + " MUST be 128, 192 or 256 bits long.");      
@@ -275,16 +280,23 @@ public class Warp extends WarpDist implements Runnable {
     StoreClient scc = null;
 
     if (inmemory) {
-      sdc = new StandaloneDirectoryClient(null, keystore);    
-      scc = new StandaloneMemoryStore(keystore,
-          Long.valueOf(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_DEPTH, Long.toString(60 * 60 * 1000 * Constants.TIME_UNITS_PER_MS))),
-          Long.valueOf(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_HIGHWATERMARK, "100000")),
-          Long.valueOf(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_LOWWATERMARK, "80000")));
-      ((StandaloneMemoryStore) scc).setDirectoryClient((StandaloneDirectoryClient) sdc);
-      if ("true".equals(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_EPHEMERAL))) {
-        ((StandaloneMemoryStore) scc).setEphemeral(true);
+      sdc = new StandaloneDirectoryClient(null, keystore);
+      
+      if ("true".equals(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_CHUNKED))) {
+        scc = new StandaloneChunkedMemoryStore(WarpDist.getProperties(), keystore);
+        ((StandaloneChunkedMemoryStore) scc).setDirectoryClient((StandaloneDirectoryClient) sdc);
+        ((StandaloneChunkedMemoryStore) scc).load();
+      } else {
+        scc = new StandaloneMemoryStore(keystore,
+            Long.valueOf(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_DEPTH, Long.toString(60 * 60 * 1000 * Constants.TIME_UNITS_PER_MS))),
+            Long.valueOf(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_HIGHWATERMARK, "100000")),
+            Long.valueOf(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_LOWWATERMARK, "80000")));
+        ((StandaloneMemoryStore) scc).setDirectoryClient((StandaloneDirectoryClient) sdc);
+        if ("true".equals(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_EPHEMERAL))) {
+          ((StandaloneMemoryStore) scc).setEphemeral(true);
+        }        
+        ((StandaloneMemoryStore) scc).load();
       }
-      ((StandaloneMemoryStore) scc).load();
     } else if (plasmabackend) {
       sdc = new StandaloneDirectoryClient(null, keystore);
       scc = new PlasmaStoreClient();
@@ -308,7 +320,6 @@ public class Warp extends WarpDist implements Runnable {
         //
         ScriptRunner runner = new ScriptRunner(keystore.clone(), properties);
       }
-
     }
     
     //

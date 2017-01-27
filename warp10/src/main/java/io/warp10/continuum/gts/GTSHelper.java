@@ -2973,6 +2973,7 @@ public class GTSHelper {
       throw new IOException(ioe);
     }
     
+    //return encoder.getUnsafeDecoder(false).decode();
     return encoder.getDecoder(true).decode();
   }
   
@@ -8924,7 +8925,6 @@ public class GTSHelper {
       if (timebased) {
         long lowerts = firsttick + i * timebucket;
         long upperts = lowerts + timebucket - 1;
-        
         lastinrange++;
         boolean empty = true;
         for (int j = lastinrange; j < gts.values - 1; j++) {
@@ -8940,6 +8940,9 @@ public class GTSHelper {
         }
         if (empty) {
           lastinrange--;
+          continue;
+        }
+        if (firstinrange > lastinrange) {
           continue;
         }
       } else {

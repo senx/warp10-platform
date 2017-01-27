@@ -16,10 +16,12 @@
 
 package io.warp10.standalone;
 
+import io.warp10.SmartPattern;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.thrift.data.Metadata;
@@ -46,7 +48,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.hadoop.hbase.util.Bytes;
@@ -327,7 +328,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     // Build patterns from expressions
     //
     
-    Object classPattern;
+    SmartPattern classSmartPattern;
     
     Collection<Metadata> metadatas;
     
@@ -340,14 +341,17 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     Set<String> classNames = null;
     
     for (int i = 0; i < classExpr.size(); i++) {
+      
+      String exactClassName = null;
+      
       if (classExpr.get(i).startsWith("=") || !classExpr.get(i).startsWith("~")) {
-        //classPattern = Pattern.compile(Pattern.quote(classExpr.startsWith("=") ? classExpr.substring(1) : classExpr)).matcher("");
-        classPattern = classExpr.get(i).startsWith("=") ? classExpr.get(i).substring(1) : classExpr.get(i);
+        exactClassName = classExpr.get(i).startsWith("=") ? classExpr.get(i).substring(1) : classExpr.get(i);
+        classSmartPattern = new SmartPattern(exactClassName);
       } else {
-        classPattern = Pattern.compile(classExpr.get(i).substring(1)).matcher("");
+        classSmartPattern = new SmartPattern(Pattern.compile(classExpr.get(i).substring(1)));
       }
       
-      Map<String,Object> labelPatterns = new HashMap<String,Object>();
+      Map<String,SmartPattern> labelPatterns = new HashMap<String,SmartPattern>();
       
       if (null != labelsExpr.get(i)) {
         for (Entry<String,String> entry: labelsExpr.get(i).entrySet()) {
@@ -356,71 +360,115 @@ public class StandaloneDirectoryClient implements DirectoryClient {
           Pattern pattern;
           
           if (expr.startsWith("=") || !expr.startsWith("~")) {
-            //pattern = Pattern.compile(Pattern.quote(expr.startsWith("=") ? expr.substring(1) : expr));
-            labelPatterns.put(label, expr.startsWith("=") ? expr.substring(1) : expr);
+            labelPatterns.put(label, new SmartPattern(expr.startsWith("=") ? expr.substring(1) : expr));
           } else {
             pattern = Pattern.compile(expr.substring(1));
-            labelPatterns.put(label,  pattern.matcher(""));
-          }
-          
+            labelPatterns.put(label,  new SmartPattern(pattern));
+          }          
         }      
       }
-       
-      
-      if (classPattern instanceof String && !this.metadatas.containsKey(classPattern)) {
-        continue;
-      } else if (classPattern instanceof String) {
+             
+      if (null != exactClassName) {
+        if (!this.metadatas.containsKey(exactClassName)) {
+          continue;
+        }
         classNames = new HashSet<String>();
-        classNames.add(classPattern.toString());
+        classNames.add(exactClassName);
       } else {
         classNames = this.metadatas.keySet();
       }
+
+      //
+      // Create arrays to check the labels, this is to speed up discard
+      //
       
+      List<String> labelNames = new ArrayList<String>(labelPatterns.size());
+      List<SmartPattern> labelSmartPatterns = new ArrayList<SmartPattern>(labelPatterns.size());
+      String[] labelValues = null;
+      
+      //
+      // Put producer/app/owner first
+      //
+      
+      if (labelPatterns.containsKey(Constants.PRODUCER_LABEL)) {
+        labelNames.add(Constants.PRODUCER_LABEL);
+        labelSmartPatterns.add(labelPatterns.get(Constants.PRODUCER_LABEL));
+        labelPatterns.remove(Constants.PRODUCER_LABEL);
+      }
+      if (labelPatterns.containsKey(Constants.APPLICATION_LABEL)) {
+        labelNames.add(Constants.APPLICATION_LABEL);
+        labelSmartPatterns.add(labelPatterns.get(Constants.APPLICATION_LABEL));
+        labelPatterns.remove(Constants.APPLICATION_LABEL);
+      }
+      if (labelPatterns.containsKey(Constants.OWNER_LABEL)) {
+        labelNames.add(Constants.OWNER_LABEL);
+        labelSmartPatterns.add(labelPatterns.get(Constants.OWNER_LABEL));
+        labelPatterns.remove(Constants.OWNER_LABEL);
+      }
+      
+      //
+      // Now add the other labels
+      //
+      
+      for(Entry<String,SmartPattern> entry: labelPatterns.entrySet()) {
+        labelNames.add(entry.getKey());
+        labelSmartPatterns.add(entry.getValue());
+      }
+
+      labelValues = new String[labelNames.size()];
+
       //
       // Loop over the class names to find matches
       //
       
       for (String className: classNames) {
+                
         //
         // If class matches, check all labels for matches
         //
         
-        if (((classPattern instanceof Matcher) && ((Matcher) classPattern).reset(className).matches()) || ((classPattern instanceof String) && classPattern.equals(className))) {
+        if (classSmartPattern.matches(className)) {
           for (Metadata metadata: this.metadatas.get(className).values()) {
             boolean exclude = false;
             
-            for (String labelName: labelPatterns.keySet()) {
+            int idx = 0;
+      
+            for (String labelName: labelNames) {
               //
               // Immediately exclude metadata which do not contain one of the
               // labels for which we have patterns either in labels or in attributes
               //
-              //
-              // If either label or attribute contain the label name, check if it matches the regexp
-              //
-                          
-              if (!metadata.getLabels().containsKey(labelName) && !metadata.getAttributes().containsKey(labelName)) {
-                exclude = true;
-                break;
+
+              String labelValue = metadata.getLabels().get(labelName);
+              
+              if (null == labelValue) {
+                labelValue = metadata.getAttributes().get(labelName);
+                if (null == labelValue) {
+                  exclude = true;
+                  break;
+                }
               }
               
-              Object m = labelPatterns.get(labelName);
-              
-              //
-              // Check if the label value matches, if not, exclude the GTS
-              //
-
-              if (m instanceof Matcher) {
-                if ((metadata.getLabels().containsKey(labelName) && !((Matcher) m).reset(metadata.getLabels().get(labelName)).matches())
-                    || (metadata.getAttributes().containsKey(labelName) && !((Matcher) m).reset(metadata.getAttributes().get(labelName)).matches())) {
-                  exclude = true;
-                  break;
-                }                          
-              } else if (m instanceof String) {
-                if ((metadata.getLabels().containsKey(labelName) && !((String) m).equals(metadata.getLabels().get(labelName)))
-                    || (metadata.getAttributes().containsKey(labelName) && !((String) m).equals(metadata.getAttributes().get(labelName)))) {
-                  exclude = true;
-                  break;
-                }                                        
+              labelValues[idx++] = labelValue;
+            }
+            
+            // If we did not collect enough label/attribute values, exclude the GTS
+            if (idx < labelNames.size()) {
+              exclude = true;
+            }
+            
+            if (exclude) {
+              continue;
+            }
+            
+            //
+            // Check if the label value matches, if not, exclude the GTS
+            //
+            
+            for (int j = 0; j < labelNames.size(); j++) {
+              if (!labelSmartPatterns.get(j).matches(labelValues[j])) {
+                exclude = true;
+                break;
               }
             }
             
@@ -465,7 +513,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     }    
   };
   
-  public synchronized void register(Metadata metadata) throws IOException {
+  public void register(Metadata metadata) throws IOException {
     
     //
     // Special case of null means flush leveldb
@@ -482,7 +530,6 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         
     if (Configuration.INGRESS_METADATA_SOURCE.equals(metadata.getSource()) && !metadatas.containsKey(metadata.getName())) {
       store(metadata);
-      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, 1);
     } else if (Configuration.INGRESS_METADATA_SOURCE.equals(metadata.getSource())) {
       // Compute labelsId
       // 128BITS
@@ -490,7 +537,6 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       
       if (!metadatas.get(metadata.getName()).containsKey(labelsId)) {
         store(metadata);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, 1);
       } else if (!metadatas.get(metadata.getName()).get(labelsId).getLabels().equals(metadata.getLabels())){
         LOG.warn("LabelsId collision under class '" + metadata.getName() + "' " + metadata.getLabels() + " and " + metadatas.get(metadata.getName()).get(labelsId).getLabels());
         Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_LABELS_COLLISIONS, Sensision.EMPTY_LABELS, 1);
@@ -675,7 +721,9 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         if (!metadatas.containsKey(metadata.getName())) {
           metadatas.put(metadata.getName(), (Map) new MapMaker().concurrencyLevel(64).makeMap());
         }
-        metadatas.get(metadata.getName()).put(labelsId, metadata);
+        if (null == metadatas.get(metadata.getName()).put(labelsId, metadata)) {
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, 1);
+        }
       }
       //
       // Store Metadata under 'id'

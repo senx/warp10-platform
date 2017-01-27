@@ -1558,7 +1558,18 @@ public class Ingress extends AbstractHandler implements Runnable {
     if (msglist.size() > 0 && (null == key || null == value || mms.get() > METADATA_MESSAGES_THRESHOLD)) {
       Producer<byte[],byte[]> producer = this.metaProducerPool.getProducer();
       try {
+
+        //
+        // How long it takes to send messages to Kafka
+        //
+
+        long nano = System.nanoTime();
+
         producer.send(msglist);
+
+        nano = System.nanoTime() - nano;
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_KAFKA_METADATA_PRODUCER_SEND, Sensision.EMPTY_LABELS, nano);
+
       } catch (Throwable t) {
         //
         // We need to remove the IDs of Metadata in 'msglist' from the cache so they get a chance to be
@@ -1660,7 +1671,18 @@ public class Ingress extends AbstractHandler implements Runnable {
       Producer<byte[],byte[]> producer = getDataProducer();
       //this.dataProducer.send(msglist);
       try {
+
+        //
+        // How long it takes to send messages to Kafka
+        //
+
+        long nano = System.nanoTime();
+
         producer.send(msglist);
+
+        nano = System.nanoTime() - nano;
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_KAFKA_DATA_PRODUCER_SEND, Sensision.EMPTY_LABELS, nano);
+
       } catch (Throwable t) {
         throw t;
       } finally {
@@ -1677,7 +1699,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     //
     // We will count how long we wait for a producer
     //
-    
+
     long nano = System.nanoTime();
     
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_KAFKA_DATA_PRODUCER_POOL_GET, Sensision.EMPTY_LABELS, 1);

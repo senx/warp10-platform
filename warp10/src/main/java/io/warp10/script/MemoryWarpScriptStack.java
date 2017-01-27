@@ -480,6 +480,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       br.close();
     } catch (IOException ioe) {
       throw new WarpScriptException(ioe);
+    } catch (WarpScriptStopException wsse) {
+      // Rethrow WarpScriptStopExceptions as is
+      throw wsse;
     } catch (Exception e) {
       throw new WarpScriptException("Line #" + i + ": " + e.getMessage());
     }
@@ -779,6 +782,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           //
 
           func = null != func ? func : defined.get(stmt);
+          
+          if (null != func && Boolean.FALSE.equals(getAttribute(WarpScriptStack.ATTRIBUTE_ALLOW_REDEFINED))) {
+            throw new WarpScriptException("Disallowed redefined function '" + stmt + "'.");
+          }
+          
           func = null != func ? func : WarpScriptLib.getFunction(stmt);
 
           if (null == func) {

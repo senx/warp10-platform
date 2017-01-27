@@ -17,6 +17,7 @@
 package io.warp10.script.functions;
 
 import io.warp10.WarpDist;
+import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.egress.EgressFetchHandler;
 import io.warp10.continuum.geo.GeoDirectoryClient;
@@ -30,8 +31,11 @@ import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.GTSDecoderIterator;
 import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.StoreClient;
+import io.warp10.continuum.store.thrift.data.MetaSet;
 import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -40,7 +44,9 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.sensision.Sensision;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,12 +55,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.zip.GZIPInputStream;
 
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TException;
+import org.apache.thrift.protocol.TCompactProtocol;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
 import com.geoxp.GeoXPLib.GeoXPShape;
+import com.google.common.base.Charsets;
 
 /**
  * Fetch GeoTimeSeries from continuum
@@ -96,6 +108,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
   private static final String PARAM_WRITE_TIMESTAMP = "wtimestamp";
   private static final String PARAM_SHOWUUID = "showuuid";
   private static final String PARAM_TYPEATTR = "typeattr";
+  private static final String PARAM_METASET = "metaset";
   
   public static final String POSTFETCH_HOOK = "postfetch";
   
@@ -109,6 +122,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
   
   private final long[] SIPHASH_CLASS;
   private final long[] SIPHASH_LABELS;
+
+  private final byte[] AES_METASET;
   
   public FETCH(String name, boolean fromArchive, TYPE type) {
     super(name);
@@ -124,11 +139,13 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     
     if (null != ks) {
       this.SIPHASH_CLASS = SipHashInline.getKey(ks.getKey(KeyStore.SIPHASH_CLASS));
-      this.SIPHASH_LABELS = SipHashInline.getKey(ks.getKey(KeyStore.SIPHASH_LABELS));      
+      this.SIPHASH_LABELS = SipHashInline.getKey(ks.getKey(KeyStore.SIPHASH_LABELS));
+      this.AES_METASET = ks.getKey(KeyStore.AES_METASETS);
     } else {
       this.SIPHASH_CLASS = null;
       this.SIPHASH_LABELS = null;
-    }
+      this.AES_METASET = null;
+    }    
   }
   
   @Override
@@ -260,41 +277,48 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     }
     
     ReadToken rtoken = Tokens.extractReadToken(params.get(PARAM_TOKEN).toString());
-        
+
     List<String> clsSels = new ArrayList<String>();
     List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
     
-    if (params.containsKey(PARAM_SELECTOR_PAIRS)) {
-      for (Pair<Object,Object> pair: (List<Pair<Object,Object>>) params.get(PARAM_SELECTOR_PAIRS)) {
-        clsSels.add(pair.getLeft().toString());
-        Map<String,String> labelSelectors = (Map<String,String>) pair.getRight();
-        labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
-        lblsSels.add((Map<String,String>) labelSelectors);
-      }
-    } else {
-      Map<String,String> labelSelectors = (Map<String,String>) params.get(PARAM_LABELS);
-      labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
-      clsSels.add(params.get(PARAM_CLASS).toString());
-      lblsSels.add(labelSelectors);
-    }
-
+    MetaSet metaset = null;
+    
     List<Metadata> metadatas = null;
-    
     Iterator<Metadata> iter = null;
-    
-    try {
-      metadatas = directoryClient.find(clsSels, lblsSels);
-      iter = metadatas.iterator();
-    } catch (IOException ioe) {
-      try {
-        iter = directoryClient.iterator(clsSels, lblsSels);
-      } catch (Exception e) {
-        throw new WarpScriptException(e);
-      }
-    }
 
+    if (params.containsKey(PARAM_METASET)) {
+      metaset = (MetaSet) params.get(PARAM_METASET);
+      
+      iter = metaset.getMetadatas().iterator();
+    } else {
+      if (params.containsKey(PARAM_SELECTOR_PAIRS)) {
+        for (Pair<Object,Object> pair: (List<Pair<Object,Object>>) params.get(PARAM_SELECTOR_PAIRS)) {
+          clsSels.add(pair.getLeft().toString());
+          Map<String,String> labelSelectors = (Map<String,String>) pair.getRight();
+          labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
+          lblsSels.add((Map<String,String>) labelSelectors);
+        }
+      } else {
+        Map<String,String> labelSelectors = (Map<String,String>) params.get(PARAM_LABELS);
+        labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
+        clsSels.add(params.get(PARAM_CLASS).toString());
+        lblsSels.add(labelSelectors);
+      }      
+            
+      try {
+        metadatas = directoryClient.find(clsSels, lblsSels);
+        iter = metadatas.iterator();
+      } catch (IOException ioe) {
+        try {
+          iter = directoryClient.iterator(clsSels, lblsSels);
+        } catch (Exception e) {
+          throw new WarpScriptException(e);
+        }
+      }      
+    }
+       
     metadatas = new ArrayList<Metadata>();
-    
+
     List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();    
     AtomicLong fetched = (AtomicLong) stack.getAttribute(WarpScriptStack.ATTRIBUTE_FETCH_COUNT);    
     long fetchLimit = (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_FETCH_LIMIT);
@@ -590,11 +614,84 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
   private Map<String,Object> paramsFromMap(WarpScriptStack stack, Map<String,Object> map) throws WarpScriptException {
     Map<String,Object> params = new HashMap<String, Object>();
     
-    if (!map.containsKey(PARAM_TOKEN)) {
-      throw new WarpScriptException(getName() + " Missing '" + PARAM_TOKEN + "' parameter");
+    //
+    // Handle the case where a MetaSet was passed as this will
+    // modify some other parameters
+    //
+    
+    MetaSet metaset = null;
+    
+    if (map.containsKey(PARAM_METASET)) {
+      
+      if (null == AES_METASET) {
+        throw new WarpScriptException(getName() + " MetaSet support not available.");
+      }
+      
+      Object ms = map.get(PARAM_METASET);
+      
+      if (!(ms instanceof byte[])) {
+        // Decode
+        byte[] decoded = OrderPreservingBase64.decode(ms.toString().getBytes(Charsets.US_ASCII));
+        
+        // Decrypt
+        byte[] decrypted = CryptoUtils.unwrap(AES_METASET, decoded);
+        
+        // Decompress
+        
+        try {
+          ByteArrayOutputStream out = new ByteArrayOutputStream(decrypted.length);
+          InputStream in = new GZIPInputStream(new ByteArrayInputStream(decrypted));
+          
+          byte[] buf = new byte[1024];
+          
+          while(true) {
+            int len = in.read(buf);
+            if (len < 0) {
+              break;
+            }
+            out.write(buf, 0, len);
+          }
+          
+          in.close();
+          out.close();
+          
+          ms = out.toByteArray();          
+        } catch (IOException e) {
+          throw new WarpScriptException(getName() + " encountered an invalid MetaSet.");
+        }                
+      }
+      
+      metaset = new MetaSet();
+      TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+      
+      try {
+        deser.deserialize(metaset, (byte[]) ms);
+      } catch (TException te) {
+        throw new WarpScriptException(getName() + " was unable to decode the provided MetaSet.");
+      }
+
+      //
+      // Check if MetaSet has expired
+      //
+      
+      if (metaset.getExpiry() < System.currentTimeMillis()) {
+        throw new WarpScriptException(getName() + " MetaSet has expired.");
+      }
+      
+      // Attempt to extract token, this will raise an exception if token has expired or was revoked
+      ReadToken rtoken = Tokens.extractReadToken(metaset.getToken());
+      
+      params.put(PARAM_METASET, metaset);      
+      params.put(PARAM_TOKEN, metaset.getToken());
     }
     
-    params.put(PARAM_TOKEN, map.get(PARAM_TOKEN));
+    if (!params.containsKey(PARAM_TOKEN)) {
+      if (!map.containsKey(PARAM_TOKEN)) {
+        throw new WarpScriptException(getName() + " Missing '" + PARAM_TOKEN + "' parameter");
+      }
+      
+      params.put(PARAM_TOKEN, map.get(PARAM_TOKEN));      
+    }
     
     if (map.containsKey(PARAM_SELECTORS)) {
       Object sels = map.get(PARAM_SELECTORS);
@@ -615,7 +712,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     } else if (map.containsKey(PARAM_CLASS) && map.containsKey(PARAM_LABELS)) {
       params.put(PARAM_CLASS, map.get(PARAM_CLASS));
       params.put(PARAM_LABELS, map.get(PARAM_LABELS));
-    } else {
+    } else if (!params.containsKey(PARAM_METASET)) {
       throw new WarpScriptException(getName() + " Missing '" + PARAM_SELECTOR + "', '" + PARAM_SELECTORS + "' or '" + PARAM_CLASS + "' and '" + PARAM_LABELS + "' parameters.");
     }
     
@@ -624,7 +721,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     }
     
     if (map.get(PARAM_END) instanceof Long) {
-      params.put(PARAM_END, map.get(PARAM_END));
+      params.put(PARAM_END, map.get(PARAM_END));      
     } else if (map.get(PARAM_END) instanceof String) {
       params.put(PARAM_END, fmt.parseDateTime(map.get(PARAM_END).toString()).getMillis() * Constants.TIME_UNITS_PER_MS);      
     } else {
@@ -659,8 +756,64 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     } else {
       throw new WarpScriptException(getName() + " Missing parameter '" + PARAM_TIMESPAN + "' or '" + PARAM_COUNT + "' or '" + PARAM_START + "'");
     }
+
+    //
+    // Check end/timespan against MetaSet, adjust limits accordingly
+    //
     
-    if (map.containsKey(PARAM_GEO)) {
+    if (null != metaset) {
+      
+      long end = (long) params.get(PARAM_END);
+      long timespan = params.containsKey(PARAM_TIMESPAN) ? (long) params.get(PARAM_TIMESPAN) : -1;
+      long count = params.containsKey(PARAM_COUNT) ? (long) params.get(PARAM_COUNT) : -1;
+
+      if (metaset.isSetMaxduration()) {
+        // Force 'end' to 'now'
+        params.put(PARAM_END, TimeSource.getTime());
+        
+        if (-1 != count && metaset.getMaxduration() >= 0) {
+          throw new WarpScriptException(getName() + " MetaSet forbids count based requests.");
+        }
+        
+        if (-1 != timespan && metaset.getMaxduration() <= 0) {
+          throw new WarpScriptException(getName() + " MetaSet forbids duration based requests.");
+        }
+        
+        if (-1 != count && count > -metaset.getMaxduration()) {
+          count = -metaset.getMaxduration();
+          params.put(PARAM_COUNT, count);
+        }
+        
+        if (-1 != timespan && timespan > metaset.getMaxduration()) {
+          timespan = metaset.getMaxduration();
+          params.put(PARAM_TIMESPAN, timespan);
+        }
+      }
+
+      if (metaset.isSetNotbefore()) {
+        // forbid count based requests
+        if (-1 != count) {
+          throw new WarpScriptException(getName() + " MetaSet forbids count based requests.");
+        }
+        
+        if (end < metaset.getNotbefore()) {
+          throw new WarpScriptException(getName() + " MetaSet forbids time ranges before " + metaset.getNotbefore());
+        }
+        
+        // Adjust timespan so maxDuration is respected
+        if (timespan > metaset.getMaxduration()) {
+          timespan = metaset.getMaxduration();
+          params.put(PARAM_TIMESPAN, timespan);
+        }
+      }
+      
+      if (metaset.isSetNotafter() && end >= metaset.getNotafter()) {
+        end = metaset.getNotafter();
+        params.put(PARAM_END, end);
+      }
+    }
+
+    if (map.containsKey(PARAM_GEO)) {      
       if (!(map.get(PARAM_GEO) instanceof GeoXPShape)) {
         throw new WarpScriptException(getName() + " Invalid '" + PARAM_GEO + "' type.");
       }
@@ -714,6 +867,11 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     }
     
     if (map.containsKey(PARAM_EXTRA)) {
+      // Check that we are not using a MetaSet
+      if (params.containsKey(PARAM_METASET)) {
+        throw new WarpScriptException(getName() + " Cannot specify '" + PARAM_EXTRA + "' when '" + PARAM_METASET + "' is used.");
+      }
+      
       if (!(map.get(PARAM_EXTRA) instanceof List)) {
         throw new WarpScriptException(getName() + " Invalid type for parameter '" + PARAM_EXTRA + "'.");
       }
