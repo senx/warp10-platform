@@ -198,6 +198,11 @@ public interface KeyStore {
   public static final String AES_SECURESCRIPTS = "warp.aes.securescripts";
   
   /**
+   * Key for wrapping MetaSets
+   */
+  public static final String AES_METASETS = "warp.aes.metasets";
+  
+  /**
    * Key for wrapping GTSSplit instances
    */
   public static final String AES_FETCHER = "warp.aes.fetcher";

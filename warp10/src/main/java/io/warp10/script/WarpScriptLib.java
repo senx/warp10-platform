@@ -663,6 +663,7 @@ public class WarpScriptLib {
     functions.put("MAXGTS", new MAXGTS("MAXGTS"));
     functions.put("FIND", new FIND("FIND", false));
     functions.put("FINDSETS", new FIND("FINDSETS", true));
+    functions.put("METASET", new FIND("METASET", false, true));
     functions.put("FINDSTATS", new FINDSTATS("FINDSTATS"));
     functions.put("DEDUP", new DEDUP("DEDUP"));
     functions.put("ONLYBUCKETS", new ONLYBUCKETS("ONLYBUCKETS"));

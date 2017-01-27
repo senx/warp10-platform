@@ -349,3 +349,50 @@ struct DatalogRequest {
    */
   6: optional string deleteQueryString,
 }
+
+/**
+ * A MetaSet is a container for giving access to specific GTS without giving
+ * away a token. It can be used to cache Directory requests or to let third
+ * party access specific GTS.
+ */
+struct MetaSet {
+  /**
+   * Timestamp (in ms since epoch) at which the MetaSet expires. This is the first
+   * field so it also serves as a seed for the encryption.
+   */ 
+  1: i64 expiry,
+
+  /**
+   * The original token used to construct the MetaSet. It will be verified when the
+   * MetaSet is used.
+   */
+  2: string token,
+    
+  /**
+   * List of Metadata in this MetaSet.
+   */
+  3: list<Metadata> metadatas,
+  
+  /**
+   * Maximum duration this MetaSet can be used with. Setting this field
+   * will force the end timestamp to be 'now' and the duration to be
+   * <= maxduration if duration (timespan) is >= 0
+   * >= maxduration if timespan < 0
+   */
+  4: optional i64 maxduration,
+  
+  /**
+   * If this field is set, maxduration will be ignored and count based
+   * requests will be forbidden.
+   * The value of this field (in time units) will constraint the
+   * queryable time range.
+   */
+  5: optional i64 notbefore,
+  
+  /**
+   * If this field is set, maxduration will still be considered, unless
+   * notbefore is also set, but the end timestamp will be constraint to
+   * be <= notafter.
+   */
+  6: optional i64 notafter,
+}

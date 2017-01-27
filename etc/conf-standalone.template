@@ -40,6 +40,11 @@ warp.aes.token = @key:256:warp.aes.token@
 warp.aes.scripts = @key:256:warp.aes.scripts@
 
 //
+// AES key to wrap metasets
+//
+warp.aes.metasets = @key:256:warp.aes.metasets@
+
+//
 // 256 bits key for protecting log messages, format is hex:hhhhh...hhhh
 //
 #warp.aes.logging = @key:256:warp.aes.logging@

@@ -16,18 +16,26 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.WarpConfig;
+import io.warp10.WarpDist;
+import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.MetaSet;
 import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.CryptoUtils;
+import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,10 +45,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.zip.GZIPOutputStream;
 import java.util.Set;
 
+import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TCompactProtocol;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
+
+import com.geoxp.oss.CryptoHelper;
+import com.google.common.base.Charsets;
 
 /**
  * Find Geo Time Series matching some criteria
@@ -57,18 +72,49 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
   private WarpScriptStackFunction listTo = new LISTTO("");
   
   /**
-   * Flag indicating whether we want to include the detail of GTS of only the
+   * Flag indicating whether we want to include the detail of GTS or only the
    * elements (class / labels) values
    */
   private final boolean elements;
   
+  /**
+   * Flag indicating if we want to build a MetaSet
+   */
+  private final boolean metaset;
+  
+  private final byte[] METASETS_KEY;
+  
   public FIND(String name, boolean elements) {
     super(name);
     this.elements = elements;
+    this.metaset = false;
+    this.METASETS_KEY = null;
+  }
+  
+  public FIND(String name, boolean elements, boolean metaset) {
+    super(name);
+    
+    if (elements && metaset) {
+      throw new RuntimeException("Invalid parameter combination.");
+    }
+
+    this.elements = false;
+    this.metaset = metaset;
+    
+    if (this.metaset) {
+      this.METASETS_KEY = WarpDist.getKeyStore().getKey(KeyStore.AES_METASETS);      
+    } else {
+      this.METASETS_KEY = null;
+    }    
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
+
+    if (this.metaset && null == this.METASETS_KEY) {
+      throw new WarpScriptException(getName() + " is disabled, as no key is set in '" + Configuration.WARP_AES_METASETS + "'.");
+    }
+    
     //
     // Extract parameters from the stack
     //
@@ -77,20 +123,80 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
   
     boolean hasUUIDFlag = false;
     
-    if (top instanceof List) {      
-      if (3 != ((List) top).size() && 4 != ((List) top).size()) {
-        stack.drop();
-        throw new WarpScriptException(getName() + " expects 3 or 4 parameters.");
-      }
+    if (top instanceof List) {
+      
+      if (!this.metaset) {
+        if (3 != ((List) top).size() && 4 != ((List) top).size()) {
+          stack.drop();
+          throw new WarpScriptException(getName() + " expects 3 or 4 parameters.");
+        }
 
-      //
-      // Explode list and remove its size
-      //
+        //
+        // Explode list and remove its size
+        //
+        
+        listTo.apply(stack);
+        Object n = stack.pop();
+        
+        hasUUIDFlag = 4 == ((Number) n).intValue() ? Boolean.TRUE.equals(stack.pop()) : false;        
+      } else {
+        
+        if (7 != ((List) top).size()) {
+          throw new WarpScriptException(getName() + " expects 7 parameters.");
+        }
+        
+        //
+        // Explode list and remove its size
+        //
+        
+        listTo.apply(stack);
+        Object n = stack.pop();        
+      }
+    }
+    
+    MetaSet set = null;
+    
+    if (this.metaset) {
       
-      listTo.apply(stack);
-      Object n = stack.pop();
+      set = new MetaSet();
       
-      hasUUIDFlag = 4 == ((Number) n).intValue() ? Boolean.TRUE.equals(stack.pop()) : false;
+      top = stack.pop();
+      
+      if (!(top instanceof Long)) {
+        throw new WarpScriptException(getName() + " expects and expiration timestamp on top of the stack.");
+      }
+      
+      set.setExpiry(System.currentTimeMillis() + (((long) top) / Constants.TIME_UNITS_PER_MS));
+      
+      top = stack.pop();
+      
+      if (!(top instanceof Long) && !(top instanceof Double && Double.isNaN((double) top))) {
+        throw new WarpScriptException(getName() + " expects a maximum duration or NaN below the expiration.");      
+      }
+      
+      if (top instanceof Long) {
+        set.setMaxduration((long) top);
+      }
+      
+      top = stack.pop();
+      
+      if (!(top instanceof Long) && !(top instanceof Double && Double.isNaN((double) top))) {
+        throw new WarpScriptException(getName() + " expects a 'notafter' parameter below the maximum duration.");      
+      }
+      
+      if (top instanceof Long) {
+        set.setNotafter((long) top);
+      }
+      
+      top = stack.pop();
+      
+      if (!(top instanceof Long) && !(top instanceof Double && Double.isNaN((double) top))) {
+        throw new WarpScriptException(getName() + " expects a 'notbefore' parameter below 'notafter'.");      
+      }
+      
+      if (top instanceof Long) {
+        set.setNotafter((long) top);
+      }
     }
     
     //
@@ -128,7 +234,6 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
     
     String token = (String) oToken;
-
     
     DirectoryClient directoryClient = stack.getDirectoryClient();
     
@@ -146,6 +251,10 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     lblsSels.add(labelSelectors);
 
     List<Metadata> metadatas = null;
+
+    if (this.metaset) {
+      set.setToken(token);      
+    }
     
     Iterator<Metadata> iter = null;
     
@@ -175,7 +284,9 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     Map<String,Set<String>> attributes = null;
     
     if (!elements) {
-      series = new ArrayList<GeoTimeSerie>();
+      if (!this.metaset) {
+        series = new ArrayList<GeoTimeSerie>();
+      }
     } else {
       classes = new HashSet<String>();
       labels = new HashMap<String, Set<String>>();
@@ -215,7 +326,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
         }
         
         if (gtscount.incrementAndGet() > gtsLimit) {
-          throw new WarpScriptException(getName() + " exceeded limit of " + gtsLimit + " Geo Time Series, current count is " + gtscount);
+          throw new WarpScriptException(getName() + " exceeded limit of " + gtsLimit + " Geo Time Series, current count is " + gtscount.get());
         }
 
         GeoTimeSerie gts = new GeoTimeSerie();
@@ -236,13 +347,16 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
         // Remove producer/owner labels
         //
         
-        Map<String,String> gtslabels = new HashMap<String, String>();
-        gtslabels.putAll(gts.getLabels());
-        gtslabels.remove(Constants.PRODUCER_LABEL);
-        gtslabels.remove(Constants.OWNER_LABEL);
-        gts.setLabels(gtslabels);
-      
-        series.add(gts);
+        if (!this.metaset) {
+          Map<String,String> gtslabels = new HashMap<String, String>();
+          gtslabels.putAll(gts.getLabels());
+          gtslabels.remove(Constants.PRODUCER_LABEL);
+          gtslabels.remove(Constants.OWNER_LABEL);
+          gts.setLabels(gtslabels);          
+          series.add(gts);
+        } else {
+          set.addToMetadatas(gts.getMetadata());
+        }      
       }      
     } catch (Throwable t) {
       throw t;
@@ -260,7 +374,35 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     //
     
     if (!elements) {
-      stack.push(series);
+      if (!this.metaset) {
+        stack.push(series);
+      } else {
+        //
+        // Encode the MetaSet
+        //
+        
+        TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+        
+        try {
+          byte[] serialized = serializer.serialize(set);
+          
+          // Compress the serialized content
+          ByteArrayOutputStream baos = new ByteArrayOutputStream();
+          GZIPOutputStream out = new GZIPOutputStream(baos);
+          out.write(serialized);
+          out.close();
+          
+          byte[] compressed = baos.toByteArray();
+          
+          // Now encrypt the content          
+          byte[] wrapped = CryptoUtils.wrap(METASETS_KEY, compressed);
+          
+          // Encode it and push it on the stack
+          stack.push(new String(OrderPreservingBase64.encode(wrapped), Charsets.UTF_8));
+        } catch (TException | IOException e) {
+          throw new WarpScriptException(getName() + " unable to build MetaSet.");
+        }
+      }
     } else {
       List<String> list = new ArrayList<String>();
       list.addAll(classes);
