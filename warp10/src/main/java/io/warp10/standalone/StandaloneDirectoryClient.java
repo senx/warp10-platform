@@ -465,7 +465,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     }    
   };
   
-  public synchronized void register(Metadata metadata) throws IOException {
+  public void register(Metadata metadata) throws IOException {
     
     //
     // Special case of null means flush leveldb
@@ -482,7 +482,6 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         
     if (Configuration.INGRESS_METADATA_SOURCE.equals(metadata.getSource()) && !metadatas.containsKey(metadata.getName())) {
       store(metadata);
-      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, 1);
     } else if (Configuration.INGRESS_METADATA_SOURCE.equals(metadata.getSource())) {
       // Compute labelsId
       // 128BITS
@@ -490,7 +489,6 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       
       if (!metadatas.get(metadata.getName()).containsKey(labelsId)) {
         store(metadata);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, 1);
       } else if (!metadatas.get(metadata.getName()).get(labelsId).getLabels().equals(metadata.getLabels())){
         LOG.warn("LabelsId collision under class '" + metadata.getName() + "' " + metadata.getLabels() + " and " + metadatas.get(metadata.getName()).get(labelsId).getLabels());
         Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_LABELS_COLLISIONS, Sensision.EMPTY_LABELS, 1);
@@ -675,7 +673,9 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         if (!metadatas.containsKey(metadata.getName())) {
           metadatas.put(metadata.getName(), (Map) new MapMaker().concurrencyLevel(64).makeMap());
         }
-        metadatas.get(metadata.getName()).put(labelsId, metadata);
+        if (null == metadatas.get(metadata.getName()).put(labelsId, metadata)) {
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, 1);
+        }
       }
       //
       // Store Metadata under 'id'
