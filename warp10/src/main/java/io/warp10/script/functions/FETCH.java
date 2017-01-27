@@ -763,8 +763,6 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     
     if (null != metaset) {
       
-      System.out.println(metaset);
-      
       long end = (long) params.get(PARAM_END);
       long timespan = params.containsKey(PARAM_TIMESPAN) ? (long) params.get(PARAM_TIMESPAN) : -1;
       long count = params.containsKey(PARAM_COUNT) ? (long) params.get(PARAM_COUNT) : -1;
