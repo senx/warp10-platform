@@ -444,6 +444,7 @@ public class WarpScriptLib {
     functions.put("CALL", new CALL("CALL"));
     functions.put("FORGET", new FORGET("FORGET"));    
     functions.put("DEFINED", new DEFINED("DEFINED"));
+    functions.put("REDEFS", new REDEFS("REDEFS"));
     functions.put("DEFINEDMACRO", new DEFINEDMACRO("DEFINEDMACRO"));
     functions.put("NaN", new NaN("NaN"));
     functions.put("ISNaN", new ISNaN("ISNaN"));
@@ -859,9 +860,8 @@ public class WarpScriptLib {
     functions.put("mapper.exp", new MapperExp.Builder("mapper.exp"));
     functions.put("mapper.log", new MapperLog.Builder("mapper.log"));
     functions.put("mapper.min.x", new MapperMinX.Builder("mapper.min.x"));          
-    functions.put("mapper.max.x", new MapperMaxX.Builder("mapper.max.x"));         
-    functions.put("mapper.parsedouble", new MapperParseDouble.Builder("mapper.parsedouble"));           
-
+    functions.put("mapper.max.x", new MapperMaxX.Builder("mapper.max.x"));          
+    functions.put("mapper.parsedouble", new MapperParseDouble.Builder("mapper.parsedouble"));
     
     functions.put("mapper.tick", new MapperTick.Builder("mapper.tick"));
     functions.put("mapper.year", new MapperYear.Builder("mapper.year"));

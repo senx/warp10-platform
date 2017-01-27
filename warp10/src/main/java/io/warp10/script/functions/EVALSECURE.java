@@ -17,10 +17,11 @@
 package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptLib;
-import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.WarpScriptATCException;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptReturnException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Evaluate a secure script
@@ -40,6 +41,13 @@ public class EVALSECURE extends NamedWarpScriptFunction implements WarpScriptSta
     }
     
     //
+    // Disable exports while in a secure script
+    //
+    
+    Object exported = stack.getAttribute(WarpScriptStack.ATTRIBUTE_EXPORTED_SYMBOLS);
+    stack.setAttribute(WarpScriptStack.ATTRIBUTE_EXPORTED_SYMBOLS, null);
+    
+    //
     // Clear debug depth so you can't peek into a Secure Script
     //
     
@@ -52,25 +60,59 @@ public class EVALSECURE extends NamedWarpScriptFunction implements WarpScriptSta
     
     boolean secure = Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO));
     stack.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, true);
-
+    
+    //
+    // Disallow redefined functions
+    //
+    
+    boolean allowredefs = Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_ALLOW_REDEFINED));
+    stack.setAttribute(WarpScriptStack.ATTRIBUTE_ALLOW_REDEFINED, false);
+    
+    Throwable error = null;
+    
     try {
       new UNSECURE("", false).apply(stack);
       
       o = stack.pop();
-      
-      stack.execMulti(o.toString());            
+            
+      stack.execMulti(o.toString());
+    } catch (WarpScriptReturnException ere) {
+      if (stack.getCounter(WarpScriptStack.COUNTER_RETURN_DEPTH).decrementAndGet() > 0) {
+        throw ere;
+      }
+    } catch (WarpScriptATCException wsatce) {
+        throw wsatce;
+    } catch (Throwable t) {
+      error = t;
+      // We need to clear the stack otherwise we may leak some information
+      stack.clear();
+      throw t;      
     } finally {
-      //
-      // Set debug depth back to its original value
-      //
-      
-      stack.setAttribute(WarpScriptStack.ATTRIBUTE_DEBUG_DEPTH, debugDepth);
-
       //
       // Set secure macro mode to its original value
       //
       
       stack.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, secure);
+
+      //
+      // Reset the redefined function support
+      //
+      
+      stack.setAttribute(WarpScriptStack.ATTRIBUTE_ALLOW_REDEFINED, allowredefs);
+      
+      if (null == error) {
+        //
+        // Set debug depth back to its original value
+        //
+        
+        stack.setAttribute(WarpScriptStack.ATTRIBUTE_DEBUG_DEPTH, debugDepth);
+
+        //
+        // Reset list of exported symbols
+        //
+        
+        stack.setAttribute(WarpScriptStack.ATTRIBUTE_EXPORTED_SYMBOLS, exported);        
+      }
     }
     
     return stack;

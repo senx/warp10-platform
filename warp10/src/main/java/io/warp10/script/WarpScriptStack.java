@@ -18,12 +18,10 @@ package io.warp10.script;
 
 import io.warp10.continuum.geo.GeoDirectoryClient;
 import io.warp10.continuum.store.DirectoryClient;
-import io.warp10.continuum.store.GTSStore;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.warp.sdk.WarpScriptJavaFunction;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.EmptyStackException;
 import java.util.List;
 import java.util.Map;
@@ -193,6 +191,11 @@ public interface WarpScriptStack {
    * Key for securing scripts
    */
   public static final String ATTRIBUTE_SECURE_KEY = "secure.key";
+  
+  /**
+   * Flag indicating whether or not redefined functions are allowed
+   */
+  public static final String ATTRIBUTE_ALLOW_REDEFINED = "allow.redefined";
   
   /**
    * Key for storing an instance of Hadoop's Progressable to report progress to the Hadoop framework
