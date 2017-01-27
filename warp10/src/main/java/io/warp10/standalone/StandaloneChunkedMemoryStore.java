@@ -346,6 +346,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       
       long datapoints = 0L;
       long bytes = 0L;
+      long bytesdelta = 0L;
       
       for (int idx = 0 ; idx < metadatas.size(); idx++) {
         InMemoryChunkSet chunkset = this.series.get(metadatas.get(idx));
@@ -355,11 +356,14 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
         }
         
         long before = chunkset.getCount();
+        long beforeBytes = chunkset.getSize();
         
         chunkset.clean(now);
         
         datapoints += (before - chunkset.getCount());
-        bytes += chunkset.getSize();        
+        long size = chunkset.getSize();
+        bytesdelta += beforeBytes - size;
+        bytes += size;
       }
       
       //
@@ -369,15 +373,12 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_RUNS, Sensision.EMPTY_LABELS, 1);
       
-      // We set the number of bytes but update the number of points (since we can't reliably determine the number of
-      // datapoints in an encoder returned by decoder.getEncoder().
-      
-      Long oldbytes = (Long) Sensision.getValue(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_BYTES, Sensision.EMPTY_LABELS);     
-      
       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_BYTES, Sensision.EMPTY_LABELS, bytes);
+
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_DATAPOINTS, Sensision.EMPTY_LABELS, datapoints);
-      if (null != oldbytes && oldbytes > bytes) {
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_BYTES, Sensision.EMPTY_LABELS, oldbytes - bytes);
+      
+      if (bytesdelta > 0) {
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_BYTES, Sensision.EMPTY_LABELS, bytesdelta);
       }
     }
   }
