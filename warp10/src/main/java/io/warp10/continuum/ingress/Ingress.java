@@ -1228,7 +1228,9 @@ public class Ingress extends AbstractHandler implements Runnable {
             } catch (TException te) {          
             }         
           }
-        } catch (Exception e) { 
+        } catch (Exception e) {
+          try { writer.close(); } catch(IOException ioe) {}
+          cache.delete();
           throw new IOException(e);
         }        
         
@@ -1246,8 +1248,18 @@ public class Ingress extends AbstractHandler implements Runnable {
         InputStream in = new FileInputStream(cache);
         OutputStream out = new FileOutputStream(shuffled);
         
-        shuffler.sort(in, out);
-
+        try {
+          shuffler.sort(in, out);
+        } catch (Exception e) {
+          try { in.close(); } catch (IOException ioe) {}
+          try { out.close(); } catch (IOException ioe) {}
+          shuffler.close();
+          shuffled.delete();
+          cache.delete();
+          throw new IOException(e);
+        }
+        
+        shuffler.close();
         out.close();
         in.close();
 
