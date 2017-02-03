@@ -975,6 +975,28 @@ store.hbase.hconnection.threads.max = 4
 store.hbase.hconnection.threads.core = 4
 
 //
+// Custom value of 'hbase.rpc.timeout' (in ms) for Store HBase client, this is especially important to adapt when
+// large deletes are possible.
+// This value SHOULD be larger than the 'hbase.client.operation.timeout'.
+//
+#store.hbase.rpc.timeout =
+
+//
+// Timeout (in ms) for client operations (bulk delete, region listing, ..) in the Store HBase client. Defaults to 1200000 ms.
+//
+#store.hbase.client.operation.timeout =
+
+//
+// Number of times to retry RPCs in the Store HBase client. HBase default is 31.
+//
+#store.hbase.client.retries.number =
+
+//
+// Pause (in ms) between retries for the Store HBase client. HBase default is 100ms
+//
+#store.hbase.client.pause =
+
+//
 // Kafka client id to use for the data producer
 //
 #store.kafka.data.producer.clientid =

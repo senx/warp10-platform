@@ -856,6 +856,27 @@ public class Configuration {
    */
   public static final String STORE_HBASE_HCONNECTION_THREADS_CORE = "store.hbase.hconnection.threads.core";
 
+  /**
+   * Custom value of 'hbase.rpc.timeout' (in ms) for Store HBase client, this is especially important to adapt when
+   * large deletes are possible.
+   * This value SHOULD be larger than the 'hbase.client.operation.timeout'.
+   */
+  public static final String STORE_HBASE_RPC_TIMEOUT = "store.hbase.rpc.timeout";
+
+  /**
+   * Timeout (in ms) for client operations (bulk delete, region listing, ..) in the Store HBase client. Defaults to 1200000 ms.
+   */
+  public static final String STORE_HBASE_CLIENT_OPERATION_TIMEOUT = "store.hbase.client.operation.timeout";
+  
+  /**
+   * Number of times to retry RPCs in the Store HBase client. HBase default is 31.
+   */
+  public static final String STORE_HBASE_CLIENT_RETRIES_NUMBER = "store.hbase.client.retries.number";
+  
+  /**
+   * Pause (in ms) between retries for the Store HBase client. HBase default is 100ms
+   */
+  public static final String STORE_HBASE_CLIENT_PAUSE = "store.hbase.client.pause";
 
   //
   // P L A S M A

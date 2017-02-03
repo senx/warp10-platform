@@ -1374,11 +1374,11 @@ public class Store extends Thread {
       
       final AtomicBoolean error = new AtomicBoolean(false);
       
-      final Batch.Call<BulkDeleteService, BulkDeleteResponse> callable = new Batch.Call<BulkDeleteService, BulkDeleteResponse>() {
-        BlockingRpcCallback<BulkDeleteResponse> rpcCallback = new BlockingRpcCallback<BulkDeleteResponse>();
-        ServerRpcController controller = new ServerRpcController();
-  
+      final Batch.Call<BulkDeleteService, BulkDeleteResponse> callable = new Batch.Call<BulkDeleteService, BulkDeleteResponse>() {  
         public BulkDeleteResponse call(BulkDeleteService service) throws IOException {
+          BlockingRpcCallback<BulkDeleteResponse> rpcCallback = new BlockingRpcCallback<BulkDeleteResponse>();
+          ServerRpcController controller = new ServerRpcController();
+
           Builder builder = BulkDeleteRequest.newBuilder();
           builder.setScan(ProtobufUtil.toScan(scan));
 
@@ -1447,6 +1447,7 @@ public class Store extends Thread {
               Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS_PEROWNERAPP, labels, noOfDeletedVersions);
             }            
           } catch (Throwable t) {
+            t.printStackTrace();
             if (t instanceof Exception) {
               throw (Exception) t;
             } else {
@@ -1474,7 +1475,7 @@ public class Store extends Thread {
           putslock.lockInterruptibly();
 
           boolean submitted = false;
-          while(!submitted) {
+          while(!submitted && !store.deleteExecutor.isShutdown() && !store.deleteExecutor.isTerminated()) {
             try {
               store.deleteExecutor.submit(deleteCallable);
               submitted = true;
@@ -1605,6 +1606,19 @@ public class Store extends Thread {
     }
     if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_IPC_POOL_SIZE)) {
       config.set(HConstants.HBASE_CLIENT_IPC_POOL_SIZE, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_IPC_POOL_SIZE));
+    }
+    
+    if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_OPERATION_TIMEOUT)) {
+      config.set(HConstants.HBASE_CLIENT_OPERATION_TIMEOUT, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_OPERATION_TIMEOUT));
+    }
+    if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_RPC_TIMEOUT)) {
+      config.set(HConstants.HBASE_RPC_TIMEOUT_KEY, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_RPC_TIMEOUT));
+    }
+    if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_RETRIES_NUMBER)) {
+      config.set(HConstants.HBASE_CLIENT_RETRIES_NUMBER, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_RETRIES_NUMBER));
+    }
+    if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_PAUSE)) {
+      config.set(HConstants.HBASE_CLIENT_PAUSE, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_PAUSE));
     }
     
     conn = ConnectionFactory.createConnection(config);
