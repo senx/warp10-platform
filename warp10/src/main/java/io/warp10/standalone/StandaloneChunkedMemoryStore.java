@@ -348,6 +348,8 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       long bytes = 0L;
       long bytesdelta = 0L;
       
+      CapacityExtractorOutputStream extractor = new CapacityExtractorOutputStream();
+      
       for (int idx = 0 ; idx < metadatas.size(); idx++) {
         InMemoryChunkSet chunkset = this.series.get(metadatas.get(idx));
 
@@ -359,6 +361,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
         long beforeBytes = chunkset.getSize();
         
         chunkset.clean(now);
+        chunkset.optimize(extractor, now);
         
         datapoints += (before - chunkset.getCount());
         long size = chunkset.getSize();

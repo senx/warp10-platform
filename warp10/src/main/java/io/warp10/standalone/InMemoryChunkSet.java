@@ -17,6 +17,7 @@
 package io.warp10.standalone;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -480,5 +481,33 @@ public class InMemoryChunkSet {
     }
     
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_CHUNKS_DROPPED, Sensision.EMPTY_LABELS, dropped);
+  }
+  
+  /**
+   * Optimize all non current chunks by shrinking their buffers.
+   * 
+   * @param now
+   */
+  void optimize(CapacityExtractorOutputStream out, long now) {
+    int currentChunk = chunk(now);
+    
+    synchronized(this.chunks) {
+      for (int i = 0; i < this.chunks.length; i++) {
+        if (null == this.chunks[i] || i == currentChunk) {
+          continue;
+        }
+        int size = this.chunks[i].size();
+        
+        try {
+          this.chunks[i].writeTo(out);
+          int capacity = out.getCapacity();
+          
+          if (capacity > size) {
+            this.chunks[i].resize(size);
+          }          
+        } catch (IOException ioe) {          
+        }
+      }
+    }
   }
 }
