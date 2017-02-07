@@ -16,7 +16,6 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.WarpConfig;
 import io.warp10.WarpDist;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
@@ -31,9 +30,9 @@ import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -44,17 +43,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPOutputStream;
-import java.util.Set;
 
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 
-import com.geoxp.oss.CryptoHelper;
 import com.google.common.base.Charsets;
 
 /**
@@ -82,7 +78,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
    */
   private final boolean metaset;
   
-  private final byte[] METASETS_KEY;
+  private byte[] METASETS_KEY;
   
   public FIND(String name, boolean elements) {
     super(name);
@@ -99,18 +95,18 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
 
     this.elements = false;
-    this.metaset = metaset;
-    
-    if (this.metaset) {
-      this.METASETS_KEY = WarpDist.getKeyStore().getKey(KeyStore.AES_METASETS);      
-    } else {
-      this.METASETS_KEY = null;
-    }    
+    this.metaset = metaset;    
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
+    if (this.metaset && null == this.METASETS_KEY) {
+      synchronized(FIND.class) {
+        this.METASETS_KEY = WarpDist.getKeyStore().getKey(KeyStore.AES_METASETS);      
+      }
+    }
+    
     if (this.metaset && null == this.METASETS_KEY) {
       throw new WarpScriptException(getName() + " is disabled, as no key is set in '" + Configuration.WARP_AES_METASETS + "'.");
     }
