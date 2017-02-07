@@ -111,6 +111,10 @@ public class WarpScriptExecutor implements Serializable {
   }
 
   public WarpScriptExecutor(StackSemantics semantics, String script, Map<String,Object> symbols, Progressable progressable) throws WarpScriptException {
+    this(semantics, script, symbols, progressable, true);
+  }
+  
+  public WarpScriptExecutor(StackSemantics semantics, String script, Map<String,Object> symbols, Progressable progressable, boolean wrapInMacro) throws WarpScriptException {
 
     /**
      * Semantics of the stack
@@ -161,11 +165,18 @@ public class WarpScriptExecutor implements Serializable {
     }
         
     StringBuilder sb = new StringBuilder();
-    sb.append(WarpScriptStack.MACRO_START);
-    sb.append("\n");
+
+    if (wrapInMacro) {
+      sb.append(WarpScriptStack.MACRO_START);
+      sb.append("\n");
+    }
+    
     sb.append(script);
-    sb.append("\n");
-    sb.append(WarpScriptStack.MACRO_END);
+
+    if (wrapInMacro) {
+      sb.append("\n");
+      sb.append(WarpScriptStack.MACRO_END);
+    }
 
     //
     // Force the symbol table
