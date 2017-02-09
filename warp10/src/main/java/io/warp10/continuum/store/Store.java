@@ -1621,6 +1621,20 @@ public class Store extends Thread {
       config.set(HConstants.HBASE_CLIENT_PAUSE, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_PAUSE));
     }
     
+    //
+    // Handle additional HBase configurations
+    //
+    
+    if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_CONFIG)) {
+      String[] keys = properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_CONFIG).split(",");
+      for (String key: keys) {
+        if (!properties.containsKey("store." + key.trim())) {
+          throw new RuntimeException("Missing declared property 'store." + key.trim() + "'.");
+        }
+        config.set(key, properties.getProperty("store." + key.trim()));
+      }
+    }
+    
     conn = ConnectionFactory.createConnection(config);
 
     connections.put(uuid,conn);

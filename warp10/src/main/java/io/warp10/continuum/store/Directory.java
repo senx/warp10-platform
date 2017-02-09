@@ -448,6 +448,20 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       conf.set("hbase.zookeeper.property.clientPort", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT));
     }
     
+    //
+    // Handle additional HBase configurations
+    //
+    
+    if (properties.containsKey(io.warp10.continuum.Configuration.DIRECTORY_HBASE_CONFIG)) {
+      String[] keys = properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_CONFIG).split(",");
+      for (String key: keys) {
+        if (!properties.containsKey("directory." + key.trim())) {
+          throw new RuntimeException("Missing declared property 'directory." + key.trim() + "'.");
+        }
+        conf.set(key, properties.getProperty("directory." + key.trim()));
+      }
+    }
+
     this.conn = ConnectionFactory.createConnection(conf);
 
     this.hbaseTable = TableName.valueOf(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_TABLE));
