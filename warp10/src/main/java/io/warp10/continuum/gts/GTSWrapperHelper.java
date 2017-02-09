@@ -52,11 +52,15 @@ public class GTSWrapperHelper {
    * @return GeoTimeSerie
    */
   public static GeoTimeSerie fromGTSWrapperToGTS(GTSWrapper wrapper) {
+    return fromGTSWrapperToGTS(wrapper, false);
+  }
+  
+  public static GeoTimeSerie fromGTSWrapperToGTS(GTSWrapper wrapper, boolean empty) {
 
     Metadata metadata = wrapper.getMetadata();
     GeoTimeSerie gts = null;
 
-    if (null != wrapper.getEncoded()) {
+    if (null != wrapper.getEncoded() && !empty) {
 
       byte[] bytes = null;
       

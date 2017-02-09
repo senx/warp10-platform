@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2017  Cityzen Data
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,14 +16,12 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.continuum.gts.GTSWrapperHelper;
-import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,21 +33,13 @@ import org.apache.thrift.protocol.TCompactProtocol;
 import com.google.common.base.Charsets;
 
 /**
- * Unwrap a GTS from GTSWrapper
+ * Extract the size of a GTS from GTSWrapper
  */
-public class UNWRAP extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class UNWRAPSIZE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  private final boolean empty;
-  
-  public UNWRAP(String name, boolean empty) {
+  public UNWRAPSIZE(String name) {
     super(name);
-    this.empty = empty;
   }
-
-  public UNWRAP(String name) {
-    super(name);
-    this.empty = false;
-  }  
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
@@ -83,10 +73,8 @@ public class UNWRAP extends NamedWarpScriptFunction implements WarpScriptStackFu
         GTSWrapper wrapper = new GTSWrapper();
         
         deser.deserialize(wrapper, bytes);
-        
-        GeoTimeSerie gts = GTSWrapperHelper.fromGTSWrapperToGTS(wrapper, this.empty);
-        
-        outputs.add(gts);
+
+        outputs.add(wrapper.getCount());
       } catch (TException te) {
         throw new WarpScriptException(getName() + " failed to unwrap GTS.");
       }      
