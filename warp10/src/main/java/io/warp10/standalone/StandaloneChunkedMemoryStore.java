@@ -147,8 +147,6 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       
       private GTSDecoder decoder = null;
       
-      private long nvalues = Long.MAX_VALUE;
-      
       @Override
       public void close() throws Exception {}
       
@@ -345,10 +343,13 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       long now = TimeSource.getTime();
       
       long datapoints = 0L;
+      long datapointsdelta = 0L;
       long bytes = 0L;
       long bytesdelta = 0L;
       
       CapacityExtractorOutputStream extractor = new CapacityExtractorOutputStream();
+      
+      long reclaimed = 0L;
       
       for (int idx = 0 ; idx < metadatas.size(); idx++) {
         InMemoryChunkSet chunkset = this.series.get(metadatas.get(idx));
@@ -357,13 +358,13 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
           continue;
         }
         
-        long before = chunkset.getCount();
         long beforeBytes = chunkset.getSize();
         
-        chunkset.clean(now);
-        chunkset.optimize(extractor, now);
-        
-        datapoints += (before - chunkset.getCount());
+        datapointsdelta += chunkset.clean(now);
+        reclaimed += chunkset.optimize(extractor, now);
+        long count = chunkset.getCount();
+        datapoints += count;
+
         long size = chunkset.getSize();
         bytesdelta += beforeBytes - size;
         bytes += size;
@@ -377,12 +378,17 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_RUNS, Sensision.EMPTY_LABELS, 1);
       
       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_BYTES, Sensision.EMPTY_LABELS, bytes);
+      Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_DATAPOINTS, Sensision.EMPTY_LABELS, datapoints);
 
-      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_DATAPOINTS, Sensision.EMPTY_LABELS, datapoints);
-      
+      if (datapointsdelta > 0) {
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_DATAPOINTS, Sensision.EMPTY_LABELS, datapointsdelta);
+      }
+
       if (bytesdelta > 0) {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_BYTES, Sensision.EMPTY_LABELS, bytesdelta);
       }
+      
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_RECLAIMED, Sensision.EMPTY_LABELS, reclaimed);
     }
   }
   
@@ -460,8 +466,6 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     writer = SequenceFile.createWriter(conf, optPath, optKey, optVal, optCom);
 
     TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-    
-    long now = TimeSource.getTime();
     
     try {
       for (Entry<BigInteger,InMemoryChunkSet> entry: this.series.entrySet()) {

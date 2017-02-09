@@ -465,22 +465,26 @@ public class InMemoryChunkSet {
    * 
    * @param now
    */
-  public void clean(long now) {
+  public long clean(long now) {
     long cutoff = chunkEnd(now) - this.chunkcount * this.chunklen;
     int dropped = 0;
+    long droppedDatapoints = 0L;
     synchronized(this.chunks) {
       for (int i = 0; i < this.chunks.length; i++) {
         if (null == this.chunks[i]) {
           continue;
         }
         if (this.chunkends[i] <= cutoff) {
+          droppedDatapoints += this.chunks[i].getCount();
           this.chunks[i] = null;
           dropped++;
         }
       }
     }
     
-    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_CHUNKS_DROPPED, Sensision.EMPTY_LABELS, dropped);
+    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_CHUNKS, Sensision.EMPTY_LABELS, dropped);
+    
+    return droppedDatapoints;
   }
   
   /**
@@ -488,10 +492,12 @@ public class InMemoryChunkSet {
    * 
    * @param now
    */
-  void optimize(CapacityExtractorOutputStream out, long now) {
+  long optimize(CapacityExtractorOutputStream out, long now) {
     int currentChunk = chunk(now);
     
-    synchronized(this.chunks) {
+    long reclaimed = 0L;
+
+    synchronized(this.chunks) {      
       for (int i = 0; i < this.chunks.length; i++) {
         if (null == this.chunks[i] || i == currentChunk) {
           continue;
@@ -504,10 +510,13 @@ public class InMemoryChunkSet {
           
           if (capacity > size) {
             this.chunks[i].resize(size);
+            reclaimed += (capacity - size);
           }          
         } catch (IOException ioe) {          
         }
       }
     }
+    
+    return reclaimed;
   }
 }
