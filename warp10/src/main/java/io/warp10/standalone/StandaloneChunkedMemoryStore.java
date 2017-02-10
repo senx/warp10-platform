@@ -67,11 +67,6 @@ import com.google.common.collect.MapMaker;
  */
 public class StandaloneChunkedMemoryStore extends Thread implements StoreClient {
   
-  private static final String STANDALONE_MEMORY_STORE_LOAD = "in.memory.load";
-  private static final String STANDALONE_MEMORY_STORE_DUMP = "in.memory.dump";
-  private static final String STANDALONE_MEMORY_GC_PERIOD = "in.memory.gcperiod";
-  private static final String STANDALONE_MEMORY_GC_MAXALLOC = "in.memory.gc.maxalloc";
-  
   private final Map<BigInteger,InMemoryChunkSet> series;
   
   private List<StandalonePlasmaHandlerInterface> plasmaHandlers = new ArrayList<StandalonePlasmaHandlerInterface>();
@@ -108,10 +103,10 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     // Add a shutdown hook to dump the memory store on exit
     //
     
-    if (null != properties.getProperty(STANDALONE_MEMORY_STORE_DUMP)) {
+    if (null != properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_STORE_DUMP)) {
       
       final StandaloneChunkedMemoryStore self = this;
-      final String path = properties.getProperty(STANDALONE_MEMORY_STORE_DUMP); 
+      final String path = properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_STORE_DUMP); 
       Thread dumphook = new Thread() {
         @Override
         public void run() {
@@ -328,14 +323,14 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     
     long gcperiod = this.chunkspan;
     
-    if (null != properties.getProperty(STANDALONE_MEMORY_GC_PERIOD)) {
-      gcperiod = Long.valueOf(properties.getProperty(STANDALONE_MEMORY_GC_PERIOD));
+    if (null != properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_GC_PERIOD)) {
+      gcperiod = Long.valueOf(properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_GC_PERIOD));
     }
         
     long maxalloc = Long.MAX_VALUE;
     
-    if (null != properties.getProperty(STANDALONE_MEMORY_GC_MAXALLOC)) {
-      maxalloc = Long.parseLong(properties.getProperty(STANDALONE_MEMORY_GC_MAXALLOC));
+    if (null != properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_GC_MAXALLOC)) {
+      maxalloc = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_GC_MAXALLOC));
     }
     
     while(true) {
@@ -538,9 +533,9 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     // Load data from the specified file
     //
     
-    if (null != properties.getProperty(STANDALONE_MEMORY_STORE_LOAD)) {
+    if (null != properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_STORE_LOAD)) {
       try {
-        load(properties.getProperty(STANDALONE_MEMORY_STORE_LOAD));
+        load(properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_STORE_LOAD));
       } catch (IOException ioe) {
         throw new RuntimeException(ioe);
       }
