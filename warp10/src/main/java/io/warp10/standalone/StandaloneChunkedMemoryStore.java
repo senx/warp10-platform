@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 
 import org.apache.hadoop.conf.Configuration;
@@ -69,6 +70,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
   private static final String STANDALONE_MEMORY_STORE_LOAD = "in.memory.load";
   private static final String STANDALONE_MEMORY_STORE_DUMP = "in.memory.dump";
   private static final String STANDALONE_MEMORY_GC_PERIOD = "in.memory.gcperiod";
+  private static final String STANDALONE_MEMORY_GC_MAXALLOC = "in.memory.gc.maxalloc";
   
   private final Map<BigInteger,InMemoryChunkSet> series;
   
@@ -330,6 +332,12 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       gcperiod = Long.valueOf(properties.getProperty(STANDALONE_MEMORY_GC_PERIOD));
     }
         
+    long maxalloc = Long.MAX_VALUE;
+    
+    if (null != properties.getProperty(STANDALONE_MEMORY_GC_MAXALLOC)) {
+      maxalloc = Long.parseLong(properties.getProperty(STANDALONE_MEMORY_GC_MAXALLOC));
+    }
+    
     while(true) {
       LockSupport.parkNanos(1000000L * (gcperiod / Constants.TIME_UNITS_PER_MS));
 
@@ -351,6 +359,10 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       
       long reclaimed = 0L;
       
+      AtomicLong allocation = new AtomicLong(0L);
+      
+      boolean doreclaim = true;
+      
       for (int idx = 0 ; idx < metadatas.size(); idx++) {
         InMemoryChunkSet chunkset = this.series.get(metadatas.get(idx));
 
@@ -361,7 +373,19 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
         long beforeBytes = chunkset.getSize();
         
         datapointsdelta += chunkset.clean(now);
-        reclaimed += chunkset.optimize(extractor, now);
+        
+        //
+        // Optimize the chunkset until we've reclaimed
+        // so many bytes.
+        //
+        
+        if (doreclaim) {
+          reclaimed += chunkset.optimize(extractor, now, allocation);
+          if (allocation.get() > maxalloc) {
+            doreclaim = false;
+          }
+        }
+        
         long count = chunkset.getCount();
         datapoints += count;
 

@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.gts.GTSDecoder;
@@ -492,7 +493,7 @@ public class InMemoryChunkSet {
    * 
    * @param now
    */
-  long optimize(CapacityExtractorOutputStream out, long now) {
+  long optimize(CapacityExtractorOutputStream out, long now, AtomicLong allocation) {
     int currentChunk = chunk(now);
     
     long reclaimed = 0L;
@@ -510,6 +511,7 @@ public class InMemoryChunkSet {
           
           if (capacity > size) {
             this.chunks[i].resize(size);
+            allocation.addAndGet(size);
             reclaimed += (capacity - size);
           }          
         } catch (IOException ioe) {          
