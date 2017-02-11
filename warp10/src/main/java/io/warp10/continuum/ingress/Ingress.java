@@ -76,7 +76,9 @@ import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.regex.Matcher;
 import java.util.zip.GZIPInputStream;
@@ -95,6 +97,7 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.bouncycastle.util.encoders.Hex;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
@@ -1197,7 +1200,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         // Data is encrypted using a onetime pad
         //
         
-        final byte[] onetimepad = new byte[(int) Math.min(65537, System.currentTimeMillis() % 100000)];
+        final byte[] onetimepad = new byte[(int) Math.max(65537, System.currentTimeMillis() % 100000)];
         new Random().nextBytes(onetimepad);
         
         final File cache = File.createTempFile(Long.toHexString(System.currentTimeMillis()) + "-" + Long.toHexString(System.nanoTime()), ".delete.dircache");
@@ -1225,7 +1228,8 @@ public class Ingress extends AbstractHandler implements Runnable {
               }
               OrderPreservingBase64.encodeToWriter(bytes, writer);
               writer.write('\n');
-            } catch (TException te) {          
+            } catch (TException te) {
+              throw new IOException(te);
             }         
           }
         } catch (Exception e) {
@@ -1270,6 +1274,8 @@ public class Ingress extends AbstractHandler implements Runnable {
         // Create an iterator based on the shuffled cache
         //
         
+        final AtomicReference<Throwable> error = new AtomicReference<Throwable>(null);
+        
         MetadataIterator shufflediterator = new MetadataIterator() {
           
           BufferedReader reader = new BufferedReader(new FileReader(shuffled));
@@ -1311,9 +1317,11 @@ public class Ingress extends AbstractHandler implements Runnable {
                 this.current = metadata;
                 return true;
               } catch (TException te) {
+                error.set(te);
                 LOG.error("", te);
               }
             } catch (IOException ioe) {
+              error.set(ioe);
               LOG.error("", ioe);
             }
             
@@ -1374,7 +1382,11 @@ public class Ingress extends AbstractHandler implements Runnable {
             pw.write(sb.toString());
             pw.write("\r\n");
             gts++;          
-          }          
+          }
+          
+          if (null != error.get()) {
+            throw error.get();
+          }
         } finally {
           try { shufflediterator.close(); } catch (Exception e) {}
         }
