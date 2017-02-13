@@ -375,7 +375,15 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
         //
         
         if (doreclaim) {
-          reclaimed += chunkset.optimize(extractor, now, allocation);
+          try {
+            reclaimed += chunkset.optimize(extractor, now, allocation);
+          } catch (OutOfMemoryError oome) {
+            // We encountered an OOM, this probably means that the GC has not yet
+            // managed to free up some space, so we stop reclaiming data for this
+            // run.
+            doreclaim = false;
+          }
+          
           if (allocation.get() > maxalloc) {
             doreclaim = false;
           }
