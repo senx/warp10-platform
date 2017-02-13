@@ -403,7 +403,7 @@ in.memory = false
 //
 // Path to a dump file in which the current state of an in-memory Warp 10 will be persisted.
 //
-@in.memory.dump =
+#in.memory.dump =
   
 // 
 // How often (in ms) to perform a gc of the in-memory store.
