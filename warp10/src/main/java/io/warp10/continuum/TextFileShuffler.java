@@ -2,14 +2,62 @@ package io.warp10.continuum;
 
 import io.warp10.crypto.SipHashInline;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Comparator;
 
+import org.python.jline.internal.InputStreamReader;
+
+import com.fasterxml.sort.DataReader;
+import com.fasterxml.sort.DataReaderFactory;
 import com.fasterxml.sort.SortConfig;
 import com.fasterxml.sort.Sorter;
-import com.fasterxml.sort.std.RawTextLineReader;
 import com.fasterxml.sort.std.RawTextLineWriter;
+import com.google.common.base.Charsets;
 
 public class TextFileShuffler extends Sorter<byte[]> {
+  
+  public static class CustomReader<T> extends DataReader<T> {
+    
+    private final BufferedReader reader;
+    
+    public CustomReader(InputStream in) {
+      this.reader = new BufferedReader(new InputStreamReader(in));
+    }
+    
+    @Override
+    public T readNext() throws IOException {
+      String line = this.reader.readLine();
+      
+      if (null == line) {
+        return null;
+      } else {
+        return (T) line.getBytes(Charsets.UTF_8);
+      }
+    }
+    
+    @Override
+    public int estimateSizeInBytes(T item) {
+      if (item instanceof byte[]) {
+        return 24 + ((byte[]) item).length;
+      } else {
+        return 24;
+      }
+    }
+    
+    @Override
+    public void close() throws IOException {
+      this.reader.close();
+    }
+  }
+  
+  private static class CustomReaderFactory<T> extends DataReaderFactory<T> {
+    @Override
+    public DataReader<T> constructReader(InputStream in) throws IOException {
+      return new CustomReader<T>(in);
+    }
+  }
   
   private static final class ShufflingComparator implements Comparator<byte[]> {
     
@@ -34,6 +82,7 @@ public class TextFileShuffler extends Sorter<byte[]> {
   }
 
   public TextFileShuffler(SortConfig config) {
-    super(config, RawTextLineReader.factory(), RawTextLineWriter.factory(), new ShufflingComparator());        
+    //super(config, RawTextLineReader.factory(), RawTextLineWriter.factory(), new ShufflingComparator());        
+    super(config, new CustomReaderFactory<byte[]>(), RawTextLineWriter.factory(), new ShufflingComparator());        
   }
 }

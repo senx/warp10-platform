@@ -1,6 +1,7 @@
 package io.warp10.hadoop;
 
 import io.warp10.WarpURLEncoder;
+import io.warp10.continuum.TextFileShuffler;
 import io.warp10.continuum.store.Constants;
 
 import java.io.BufferedReader;
@@ -26,6 +27,7 @@ import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
 
 import com.fasterxml.sort.SortConfig;
+import com.fasterxml.sort.std.RawTextLineWriter;
 import com.fasterxml.sort.std.TextFileSorter;
 
 import org.apache.hadoop.mapreduce.*;
@@ -224,14 +226,14 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     conn.disconnect();
 
     TextFileSorter sorter = new TextFileSorter(new SortConfig().withMaxMemoryUsage(64000000L));
-    
+
     File outfile = File.createTempFile("Warp10InputFormat-", "-out");
     outfile.deleteOnExit();
 
     in = new FileInputStream(tmpfile);
     out = new FileOutputStream(outfile);
     
-    sorter.sort(in, out);
+    sorter.sort(new TextFileShuffler.CustomReader<byte[]>(in), new RawTextLineWriter(out));
 
     out.close();
     in.close();
