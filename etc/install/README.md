@@ -12,12 +12,20 @@ cd warp10-1.0.1
 
 ## Start Warp 10 Standalone
 
-Launch Warp 10 init script as `root`
-
-Then the init script starts the Standalone mode with the right user `warp10`
+Untar the Warp10 archive.
 
 ~~~
-./warp10-standalone.init start
+  tar xf warp10-X.Y.Z.tar.gz
+  cd warp10-X.Y.Z/bin
+~~~
+
+Execute Warp10 init script `warp10-standalone.init`. This script must be run as **root**
+It will create the Leveldb database and all the stuff surrounding it.
+Then the init script starts the Standalone mode with the right user `warp10`
+An initial set of tokens will be provided and some useful commands to start playing with your Warp10 instance.
+
+~~~
+  ./warp10-standalone.init start
 ~~~
 
 Logs are available in the `logs` directory
