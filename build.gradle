@@ -485,7 +485,7 @@ project(':warp10') {
         //
         // Geo
         //
-        compile group: 'com.geoxp', name: 'geoxplib', version: '1.0.0-rc7'
+        compile group: 'com.geoxp', name: 'geoxplib', version: '1.0.0-rc8'
 
         //
         // Java Merge Sort
