@@ -16,26 +16,25 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.store.Constants;
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptLib;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
+
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Properties;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import com.google.common.base.Charsets;
-import com.jcraft.jzlib.GZIPInputStream;
-import com.jcraft.jzlib.GZIPOutputStream;
-
-import io.warp10.WarpConfig;
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.store.Constants;
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.StackUtils;
-import io.warp10.script.WarpScriptLib;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
 
 /**
  * Execute WarpScript on a remote endpoint
