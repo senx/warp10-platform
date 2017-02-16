@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 
 import org.apache.hadoop.conf.Configuration;
@@ -65,10 +66,6 @@ import com.google.common.collect.MapMaker;
  * Chunks can optionally be dumped to disk when discarded.
  */
 public class StandaloneChunkedMemoryStore extends Thread implements StoreClient {
-  
-  private static final String STANDALONE_MEMORY_STORE_LOAD = "in.memory.load";
-  private static final String STANDALONE_MEMORY_STORE_DUMP = "in.memory.dump";
-  private static final String STANDALONE_MEMORY_GC_PERIOD = "in.memory.gcperiod";
   
   private final Map<BigInteger,InMemoryChunkSet> series;
   
@@ -106,10 +103,10 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     // Add a shutdown hook to dump the memory store on exit
     //
     
-    if (null != properties.getProperty(STANDALONE_MEMORY_STORE_DUMP)) {
+    if (null != properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_STORE_DUMP)) {
       
       final StandaloneChunkedMemoryStore self = this;
-      final String path = properties.getProperty(STANDALONE_MEMORY_STORE_DUMP); 
+      final String path = properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_STORE_DUMP); 
       Thread dumphook = new Thread() {
         @Override
         public void run() {
@@ -146,8 +143,6 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       private int idx = 0;
       
       private GTSDecoder decoder = null;
-      
-      private long nvalues = Long.MAX_VALUE;
       
       @Override
       public void close() throws Exception {}
@@ -328,10 +323,16 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     
     long gcperiod = this.chunkspan;
     
-    if (null != properties.getProperty(STANDALONE_MEMORY_GC_PERIOD)) {
-      gcperiod = Long.valueOf(properties.getProperty(STANDALONE_MEMORY_GC_PERIOD));
+    if (null != properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_GC_PERIOD)) {
+      gcperiod = Long.valueOf(properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_GC_PERIOD));
     }
         
+    long maxalloc = Long.MAX_VALUE;
+    
+    if (null != properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_GC_MAXALLOC)) {
+      maxalloc = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_GC_MAXALLOC));
+    }
+    
     while(true) {
       LockSupport.parkNanos(1000000L * (gcperiod / Constants.TIME_UNITS_PER_MS));
 
@@ -345,8 +346,17 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       long now = TimeSource.getTime();
       
       long datapoints = 0L;
+      long datapointsdelta = 0L;
       long bytes = 0L;
       long bytesdelta = 0L;
+      
+      CapacityExtractorOutputStream extractor = new CapacityExtractorOutputStream();
+      
+      long reclaimed = 0L;
+      
+      AtomicLong allocation = new AtomicLong(0L);
+      
+      boolean doreclaim = true;
       
       for (int idx = 0 ; idx < metadatas.size(); idx++) {
         InMemoryChunkSet chunkset = this.series.get(metadatas.get(idx));
@@ -355,12 +365,33 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
           continue;
         }
         
-        long before = chunkset.getCount();
         long beforeBytes = chunkset.getSize();
         
-        chunkset.clean(now);
+        datapointsdelta += chunkset.clean(now);
         
-        datapoints += (before - chunkset.getCount());
+        //
+        // Optimize the chunkset until we've reclaimed
+        // so many bytes.
+        //
+        
+        if (doreclaim) {
+          try {
+            reclaimed += chunkset.optimize(extractor, now, allocation);
+          } catch (OutOfMemoryError oome) {
+            // We encountered an OOM, this probably means that the GC has not yet
+            // managed to free up some space, so we stop reclaiming data for this
+            // run.
+            doreclaim = false;
+          }
+          
+          if (allocation.get() > maxalloc) {
+            doreclaim = false;
+          }
+        }
+        
+        long count = chunkset.getCount();
+        datapoints += count;
+
         long size = chunkset.getSize();
         bytesdelta += beforeBytes - size;
         bytes += size;
@@ -374,12 +405,17 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_RUNS, Sensision.EMPTY_LABELS, 1);
       
       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_BYTES, Sensision.EMPTY_LABELS, bytes);
+      Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_DATAPOINTS, Sensision.EMPTY_LABELS, datapoints);
 
-      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_DATAPOINTS, Sensision.EMPTY_LABELS, datapoints);
-      
+      if (datapointsdelta > 0) {
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_DATAPOINTS, Sensision.EMPTY_LABELS, datapointsdelta);
+      }
+
       if (bytesdelta > 0) {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_BYTES, Sensision.EMPTY_LABELS, bytesdelta);
       }
+      
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_RECLAIMED, Sensision.EMPTY_LABELS, reclaimed);
     }
   }
   
@@ -458,8 +494,6 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
     TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
     
-    long now = TimeSource.getTime();
-    
     try {
       for (Entry<BigInteger,InMemoryChunkSet> entry: this.series.entrySet()) {
         gts++;
@@ -507,9 +541,9 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     // Load data from the specified file
     //
     
-    if (null != properties.getProperty(STANDALONE_MEMORY_STORE_LOAD)) {
+    if (null != properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_STORE_LOAD)) {
       try {
-        load(properties.getProperty(STANDALONE_MEMORY_STORE_LOAD));
+        load(properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_STORE_LOAD));
       } catch (IOException ioe) {
         throw new RuntimeException(ioe);
       }

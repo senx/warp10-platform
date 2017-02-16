@@ -74,7 +74,7 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_EXTENSIONS = "warpscript.extensions";
   
   /**
-   * This configuration parameter determines if undefining a funciton (via NULL 'XXX' DEF)
+   * This configuration parameter determines if undefining a function (via NULL 'XXX' DEF)
    * will unshadow the original statement thus making it available again or if it will replace
    * it with a function that will fail with a message saying the function is undefined.
    * The safest behavior is to leave this undefined or set to 'false'.
@@ -1396,6 +1396,26 @@ public class Configuration {
    */
   public static final String IN_MEMORY_CHUNK_LENGTH = "in.memory.chunk.length";
   
+  /**
+   * Path to a dump file containing the state of an in-memory Warp 10 to restore.
+   */
+  public static final String STANDALONE_MEMORY_STORE_LOAD = "in.memory.load";
+  
+  /**
+   * Path to a dump file in which the current state of an in-memory Warp 10 will be persisted.
+   */
+  public static final String STANDALONE_MEMORY_STORE_DUMP = "in.memory.dump";
+  
+  /**
+   * How often (in ms) to perform a gc of the in-memory store.
+   */
+  public static final String STANDALONE_MEMORY_GC_PERIOD = "in.memory.gcperiod";
+  
+  /**
+   * Maximum size (in bytes) of re-allocations performed during a gc cycle of the chunked in-memory store. 
+   */
+  public static final String STANDALONE_MEMORY_GC_MAXALLOC = "in.memory.gc.maxalloc";  
+
   /**
    * Set to 'true' to only forward data to Plasma. Not data storage will take place.
    */

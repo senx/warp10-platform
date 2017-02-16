@@ -268,7 +268,7 @@ public class Tokens {
     
     if (rtoken.getAppsSize() > 0) {
       if (1 == rtoken.getAppsSize()) {
-        labelSelectors.put(Constants.APPLICATION_LABEL, rtoken.getApps().get(0));
+        labelSelectors.put(Constants.APPLICATION_LABEL, "=" + rtoken.getApps().get(0));
       } else {
         StringBuilder sb = new StringBuilder();
         

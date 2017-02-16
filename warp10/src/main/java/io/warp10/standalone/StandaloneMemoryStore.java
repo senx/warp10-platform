@@ -57,10 +57,6 @@ import com.google.common.collect.MapMaker;
 
 public class StandaloneMemoryStore extends Thread implements StoreClient {
   
-  private static final String STANDALONE_MEMORY_STORE_LOAD = "in.memory.load";
-  private static final String STANDALONE_MEMORY_STORE_DUMP = "in.memory.dump";
-  private static final String STANDALONE_MEMORY_GC_PERIOD = "in.memory.gcperiod";
-  
   //private final ConcurrentHashMap<BigInteger,GTSEncoder> series;
   private final Map<BigInteger,GTSEncoder> series;
   
@@ -104,10 +100,10 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
     // Add a shutdown hook to dump the memory store on exit
     //
     
-    if (null != WarpConfig.getProperties().getProperty(STANDALONE_MEMORY_STORE_DUMP)) {
+    if (null != WarpConfig.getProperties().getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_STORE_DUMP)) {
       
       final StandaloneMemoryStore self = this;
-      final String path = WarpConfig.getProperties().getProperty(STANDALONE_MEMORY_STORE_DUMP); 
+      final String path = WarpConfig.getProperties().getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_STORE_DUMP); 
       Thread dumphook = new Thread() {
         @Override
         public void run() {
@@ -406,8 +402,8 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
     
     long gcperiod = (long) (0.25 * (timespan / Constants.TIME_UNITS_PER_MS));
     
-    if (null != WarpConfig.getProperties().getProperty(STANDALONE_MEMORY_GC_PERIOD)) {
-      gcperiod = Long.valueOf(WarpConfig.getProperties().getProperty(STANDALONE_MEMORY_GC_PERIOD));
+    if (null != WarpConfig.getProperties().getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_GC_PERIOD)) {
+      gcperiod = Long.valueOf(WarpConfig.getProperties().getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_GC_PERIOD));
     }
     
     while(true) {
@@ -704,9 +700,9 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
     // Load data from the specified file
     //
     
-    if (null != WarpConfig.getProperties().getProperty(STANDALONE_MEMORY_STORE_LOAD)) {
+    if (null != WarpConfig.getProperties().getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_STORE_LOAD)) {
       try {
-        load(WarpConfig.getProperties().getProperty(STANDALONE_MEMORY_STORE_LOAD));
+        load(WarpConfig.getProperties().getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_STORE_LOAD));
       } catch (IOException ioe) {
         throw new RuntimeException(ioe);
       }

@@ -1013,6 +1013,24 @@ public class GTSEncoder {
     
     stream.reset();
   }
+
+  /**
+   * Resize the byte array backing 'stream'
+   * @throws IOException
+   */
+  public synchronized void resize(int target) throws IOException {
+    if (this.readonly) {
+      throw new RuntimeException("Encoder is read-only.");
+    }
+
+    int size = size();
+    
+    if (target >= size) {
+      ByteArrayOutputStream out = new ByteArrayOutputStream(target);
+      this.stream.writeTo(out);
+      this.stream = out;
+    }
+  }
   
   /**
    * Merge data encoded in another encoder with this one.
@@ -1237,5 +1255,9 @@ public class GTSEncoder {
     data[3] = (byte) (len & 0xff);
     
     return data;
+  }
+  
+  public void writeTo(OutputStream out) throws IOException {
+    this.stream.writeTo(out);    
   }
 }

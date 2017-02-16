@@ -187,10 +187,10 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     
     InputStream in = conn.getInputStream();
     
-    File tmpfile = File.createTempFile("Warp10InputFormat-", "-in");
-    tmpfile.deleteOnExit();
+    File infile = File.createTempFile("Warp10InputFormat-", "-in");
+    infile.deleteOnExit();
 
-    OutputStream out = new FileOutputStream(tmpfile);
+    OutputStream out = new FileOutputStream(infile);
     
     BufferedReader br = new BufferedReader(new InputStreamReader(in));
     PrintWriter pw = new PrintWriter(out);
@@ -230,14 +230,18 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     File outfile = File.createTempFile("Warp10InputFormat-", "-out");
     outfile.deleteOnExit();
 
-    in = new FileInputStream(tmpfile);
+    in = new FileInputStream(infile);
     out = new FileOutputStream(outfile);
     
-    sorter.sort(new TextFileShuffler.CustomReader<byte[]>(in), new RawTextLineWriter(out));
-
-    out.close();
-    in.close();
-    
+    try {
+      sorter.sort(new TextFileShuffler.CustomReader<byte[]>(in), new RawTextLineWriter(out));
+    } finally {      
+      out.close();
+      in.close();
+      sorter.close();
+      infile.delete();
+    }
+        
     //
     // Do a naive split generation, using the RegionServer as the ideal fetcher. We will need
     // to adapt this later so we ventilate the splits on all fetchers if we notice that a single
@@ -299,6 +303,8 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     
     br.close();
 
+    outfile.delete();
+    
     if (subsplits > 0) {
       // Add fallback fetchers, shuffle them first
       Collections.shuffle(fallbacks);
