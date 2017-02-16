@@ -971,7 +971,7 @@ public class SensisionConstants {
   /**
    * Number of shards dropped by the GC since the launch of the platform instance
    */
-  public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_CHUNKS_DROPPED = "warp.standalone.inmemory.chunks.dropped";
+  public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_CHUNKS = "warp.standalone.inmemory.gc.chunks";
   
   /**
    * Number of points currently stored in the memory store
@@ -989,10 +989,15 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_RUNS = "warp.standalone.inmemory.gc.runs";
 
   /**
-   * Number of bytes garbage collected in the memory store
+   * Number of data bytes garbage collected in the memory store by dropping complete chunks
    */
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_BYTES = "warp.standalone.inmemory.gc.bytes";
 
+  /**
+   * Number of bytes reclaimed by shrinking arrays backing buffers.
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_RECLAIMED = "warp.standalone.inmemory.gc.reclaimed";
+  
   /**
    * Number of datapoints garbage collected in the memory store
    */
