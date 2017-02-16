@@ -17,11 +17,13 @@
 package io.warp10.standalone;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.gts.GTSDecoder;
@@ -464,21 +466,59 @@ public class InMemoryChunkSet {
    * 
    * @param now
    */
-  public void clean(long now) {
+  public long clean(long now) {
     long cutoff = chunkEnd(now) - this.chunkcount * this.chunklen;
     int dropped = 0;
+    long droppedDatapoints = 0L;
     synchronized(this.chunks) {
       for (int i = 0; i < this.chunks.length; i++) {
         if (null == this.chunks[i]) {
           continue;
         }
         if (this.chunkends[i] <= cutoff) {
+          droppedDatapoints += this.chunks[i].getCount();
           this.chunks[i] = null;
           dropped++;
         }
       }
     }
     
-    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_CHUNKS_DROPPED, Sensision.EMPTY_LABELS, dropped);
+    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_CHUNKS, Sensision.EMPTY_LABELS, dropped);
+    
+    return droppedDatapoints;
+  }
+  
+  /**
+   * Optimize all non current chunks by shrinking their buffers.
+   * 
+   * @param now
+   */
+  long optimize(CapacityExtractorOutputStream out, long now, AtomicLong allocation) {
+    int currentChunk = chunk(now);
+    
+    long reclaimed = 0L;
+
+    synchronized(this.chunks) {      
+      for (int i = 0; i < this.chunks.length; i++) {
+        if (null == this.chunks[i] || i == currentChunk) {
+          continue;
+        }
+        int size = this.chunks[i].size();
+        
+        try {
+          this.chunks[i].writeTo(out);
+          int capacity = out.getCapacity();
+          
+          if (capacity > size) {
+            this.chunks[i].resize(size);
+            allocation.addAndGet(size);
+            reclaimed += (capacity - size);
+          }          
+        } catch (IOException ioe) {          
+        }
+      }
+    }
+    
+    return reclaimed;
   }
 }
