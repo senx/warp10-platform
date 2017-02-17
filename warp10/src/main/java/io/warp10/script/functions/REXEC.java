@@ -16,24 +16,25 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.store.Constants;
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptLib;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
+
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Properties;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import com.google.common.base.Charsets;
-
-import io.warp10.WarpConfig;
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.store.Constants;
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.StackUtils;
-import io.warp10.script.WarpScriptLib;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
 
 /**
  * Execute WarpScript on a remote endpoint
@@ -42,8 +43,16 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
   
   private final boolean enabled;
   
+  private final boolean compress;
+
   public REXEC(String name) {
+    this(name, false);
+  }
+  
+  public REXEC(String name, boolean compress) {
     super(name);
+  
+    this.compress = compress;
     
     Properties props = WarpConfig.getProperties();
   
@@ -69,13 +78,25 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
       if (!"http".equals(url.getProtocol()) && !"https".equals(url.getProtocol())) {
         throw new WarpScriptException(getName() + " invalid endpoint protocol.");
       }
+      
       conn = (HttpURLConnection) url.openConnection();
       conn.setChunkedStreamingMode(8192);
+      conn.setRequestProperty("Accept-Encoding", "gzip");
+      
+      if (this.compress) {
+        conn.setRequestProperty("Content-Type", "application/gzip");
+      }
+      
       conn.setDoInput(true);
       conn.setDoOutput(true);
       conn.setRequestMethod("POST");
       
-      OutputStream out = conn.getOutputStream();
+      OutputStream connout = conn.getOutputStream();
+      OutputStream out = connout;
+      
+      if (this.compress) {
+        out = new GZIPOutputStream(out);
+      }
       
       out.write(warpscript.getBytes(Charsets.UTF_8));
       out.write('\n');
@@ -84,7 +105,17 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
       out.write(WarpScriptLib.TOOPB64.getBytes(Charsets.UTF_8));
       out.write('\n');
       
+      if (this.compress) {
+        out.close();
+      }
+      
+      connout.flush();
+      
       InputStream in = conn.getInputStream();
+      
+      if ("gzip".equals(conn.getContentEncoding())) {
+        in = new GZIPInputStream(in);
+      }
       
       if (HttpURLConnection.HTTP_OK != conn.getResponseCode()) {
         throw new WarpScriptException(getName() + " remote execution encountered an error: " + conn.getHeaderField(Constants.getHeader(Constants.HTTP_HEADER_ERROR_MESSAGE_DEFAULT)));
@@ -104,6 +135,7 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
 
       byte[] bytes = baos.toByteArray();
       
+      // Strip '[ ' ' ]'
       String result = new String(bytes, 2, bytes.length - 4, Charsets.US_ASCII);
       
       stack.push(result);
