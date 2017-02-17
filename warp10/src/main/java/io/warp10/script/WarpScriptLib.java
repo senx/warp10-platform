@@ -356,6 +356,7 @@ public class WarpScriptLib {
     functions.put("RTFM", new RTFM("RTFM"));
     
     functions.put("REXEC", new REXEC("REXEC"));
+    functions.put("REXECZ", new REXEC("REXECZ", true));
     
     //
     // Stack manipulation functions

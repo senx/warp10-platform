@@ -87,7 +87,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
   private final long[] classKeyLongs;
   private final long[] labelsKeyLongs;
-  
+
   public StandaloneChunkedMemoryStore(Properties properties, KeyStore keystore) {
     this.properties = properties;
 
@@ -359,7 +359,9 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       boolean doreclaim = true;
       
       for (int idx = 0 ; idx < metadatas.size(); idx++) {
-        InMemoryChunkSet chunkset = this.series.get(metadatas.get(idx));
+        BigInteger key = metadatas.get(idx);
+        
+        InMemoryChunkSet chunkset = this.series.get(key);
 
         if (null == chunkset) {
           continue;
@@ -395,6 +397,21 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
         long size = chunkset.getSize();
         bytesdelta += beforeBytes - size;
         bytes += size;
+        
+        //
+        // If count is zero check in a safe manner if this is
+        // still the case and if it is, remove the chunkset for
+        // this GTS.
+        // Note that it does not remove the GTS from the directory.
+        //
+       
+        if (0 == count) {
+          synchronized (this.series) {
+            if (0 == chunkset.getCount()) {
+              this.series.remove(key);
+            }
+          }
+        }
       }
       
       //
