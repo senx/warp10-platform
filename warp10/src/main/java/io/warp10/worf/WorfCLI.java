@@ -24,8 +24,7 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Properties;
-import java.util.UUID;
+import java.util.*;
 
 public class WorfCLI {
   public static boolean verbose = false;
@@ -41,6 +40,7 @@ public class WorfCLI {
   public static String O_UUID = "ouid";
 
   public static String APPNAME = "a";
+  public static String LABELS = "l";
 
   private static String HELP = "h";
   private static String VERBOSE = "v";
@@ -48,6 +48,8 @@ public class WorfCLI {
   private static String INTERACTIVE = "i";
   private static String OUTPUT = "o";
   private static String QUIET = "q";
+
+
   private static String TOKEN = "t";
   private static String TTL = "ttl";
   private static String KEYSTORE = "ks";
@@ -71,6 +73,7 @@ public class WorfCLI {
     options.addOptionGroup(groupOwnerUID);
 
     options.addOption(new Option(APPNAME, "app-name", true, "token application name. Used by token option or @warp:writeToken@ template"));
+    options.addOption(new Option(LABELS, "labels", true, "provide labels to be included in the write token"));
     options.addOption(new Option(TTL, "ttl", true, "token time to live (ms). Used by token option or @warp:writeToken@ template"));
 
 
@@ -101,9 +104,12 @@ public class WorfCLI {
       String producerUID = null;
       String ownerUID = null;
       String appName = null;
+      String lbs = null;
+      boolean labelMap = false;
+      Map<String, String> labels = new HashMap<String, String>();
       long ttl = 0L;
 
-      PrintWriter out =new PrintWriter(System.out);
+      PrintWriter out = new PrintWriter(System.out);
 
       if (cmd.hasOption(HELP)) {
         help();
@@ -126,6 +132,7 @@ public class WorfCLI {
       if (cmd.hasOption(QUIET)) {
         quiet = true;
       }
+
 
       if (cmd.hasOption(OUTPUT)) {
         outputFile = cmd.getOptionValue(OUTPUT);
@@ -160,6 +167,21 @@ public class WorfCLI {
         if (cmd.hasOption(APPNAME)) {
           appName = cmd.getOptionValue(APPNAME);
         }
+
+        if (cmd.hasOption(LABELS)) try {
+            lbs = cmd.getOptionValue(LABELS);
+            String[] array = lbs.split(" ");
+            if (array.length % 2 != 0) {
+                throw new WorfException("Odd number of values provided as labels ");
+            }
+            for (int i = 0; i <= array.length - 1; i = +2) {
+                labels.put(array[i], array[i + 1]);
+            }
+            labelMap = true;
+        } catch (Exception e) {
+            throw new WorfException("Unable to map your labels : " + e);
+        }
+
 
         if (cmd.hasOption(TTL)) {
           ttl = Long.parseLong(cmd.getOptionValue(TTL));
@@ -294,6 +316,7 @@ public class WorfCLI {
         appName = Worf.getDefault(defaultProperties, out, appName, APPNAME);
         producerUID = Worf.getDefault(defaultProperties, out, producerUID, P_UUID);
         ownerUID = Worf.getDefault(defaultProperties, out, ownerUID, O_UUID);
+        String writeToken = null;
 
         // save default
         if (defaultProperties == null) {
@@ -302,7 +325,12 @@ public class WorfCLI {
 
         // deliver token
         String readToken = keyMaster.deliverReadToken(appName, producerUID, ownerUID, ttl);
-        String writeToken = keyMaster.deliverWriteToken(appName, producerUID, ownerUID, ttl);
+        if (labelMap) {
+           writeToken = keyMaster.deliverWriteToken(appName, producerUID, ownerUID, labels, ttl);
+        } else {
+           writeToken = keyMaster.deliverWriteToken(appName, producerUID, ownerUID,  ttl);
+        }
+
 
         // write outputformat
         JSONObject jsonOutput = new JSONObject();
@@ -323,7 +351,9 @@ public class WorfCLI {
         jsonToken.put("application", appName);
         jsonToken.put("owner", ownerUID);
         jsonToken.put("producer", producerUID);
-
+        if (labelMap) {
+          jsonToken.put("labels", labels.toString());
+        }
         jsonOutput.put("write", jsonToken);
 
         System.out.println(jsonOutput.toString());
