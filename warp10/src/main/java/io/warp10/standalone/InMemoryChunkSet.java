@@ -378,8 +378,8 @@ public class InMemoryChunkSet {
           while(chunkDecoder.next()) {
             long ts = chunkDecoder.getTimestamp();
             if (ts > now) {
-              // we can break because we know the encoder is in chronological order.
-              break;
+              // we skip the value as the encoder is not in chronological order
+              continue;
             }
             encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
             nvalues--;
@@ -395,7 +395,6 @@ public class InMemoryChunkSet {
               continue;
             }
             intenc.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
-            nvalues--;
           }
           //
           // Now we need to extract the ticks of the intermediary encoder
