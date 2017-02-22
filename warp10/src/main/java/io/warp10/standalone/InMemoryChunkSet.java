@@ -395,7 +395,6 @@ public class InMemoryChunkSet {
               continue;
             }
             intenc.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
-            nvalues--;
           }
           //
           // Now we need to extract the ticks of the intermediary encoder
