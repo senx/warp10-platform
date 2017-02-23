@@ -408,21 +408,33 @@ public class InMemoryChunkSet {
           // Now sort the ticks
           Arrays.sort(ticks);
           // We must skip values whose timestamp is <= ticks[ticks.length - nvalues]
-          long skipbelow = ticks[ticks.length - (int) nvalues];
           
-          // Then transfer the intermediate encoder to the result
-          chunkDecoder = intenc.getUnsafeDecoder(false);
-          while(chunkDecoder.next()) {
-            long ts = chunkDecoder.getTimestamp();
-            if (ts < skipbelow) {
-              continue;
-            }
-            encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
-            nvalues--;
-          }                      
+          if (ticks.length > nvalues) {
+            long skipbelow = ticks[ticks.length - (int) nvalues];
+            
+            // Then transfer the intermediate encoder to the result
+            chunkDecoder = intenc.getUnsafeDecoder(false);
+            while(chunkDecoder.next() && nvalues > 0) {
+              long ts = chunkDecoder.getTimestamp();
+              if (ts < skipbelow) {
+                continue;
+              }
+              encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
+              nvalues--;
+            }                                  
+          } else {
+            // The intermediary decoder has less than nvalues whose ts is <= now, transfer everything
+            chunkDecoder = intenc.getUnsafeDecoder(false);
+            while(chunkDecoder.next()) {
+              long ts = chunkDecoder.getTimestamp();
+              encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
+              nvalues--;
+            }                                              
+          }
         }
       }      
     }
+    
     return encoder;
   }
   
