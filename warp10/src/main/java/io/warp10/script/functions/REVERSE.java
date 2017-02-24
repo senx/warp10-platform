@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.continuum.gts.UnsafeString;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -40,22 +41,40 @@ public class REVERSE extends NamedWarpScriptFunction implements WarpScriptStackF
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
-    Object list = stack.pop();
+    Object top = stack.pop();
     
-    if (!(list instanceof List)) {
-      throw new WarpScriptException(getName() + " operates on a list.");
+    if (!(top instanceof List) && !(top instanceof String)) {
+      throw new WarpScriptException(getName() + " operates on a list or String.");
     }
 
     if (!this.stable) {      
-      List l = new ArrayList<Object>();
-      l.addAll((List) list);
-      Collections.reverse(l);
-      list = l;
-    } else {
-      Collections.reverse((List) list); 
+      if (top instanceof List) {
+        List l = new ArrayList<Object>();
+        l.addAll((List) top);
+        Collections.reverse(l);
+        top = l;        
+      } else {
+        top = new String(UnsafeString.getChars(top.toString()));
+      }
+    } else if (top instanceof List) {
+      Collections.reverse((List) top); 
+    }
+
+    if (top instanceof String) {
+      char[] chars = UnsafeString.getChars(top.toString());
+      int i = 0;
+      int j = chars.length - 1;
+      
+      while (i < j) {
+        char tmp = chars[i];
+        chars[i] = chars[j];
+        chars[j] = tmp;
+        i++;
+        j--;
+      }
     }
     
-    stack.push(list);
+    stack.push(top);
     
     return stack;
   }
