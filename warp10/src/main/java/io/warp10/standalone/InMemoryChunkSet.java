@@ -352,7 +352,6 @@ try {
                 break;
               }
               intenc.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
-              nvalues--;
             }
             // Then transfer the intermediate encoder to the result
             chunkDecoder = intenc.getUnsafeDecoder(false);
