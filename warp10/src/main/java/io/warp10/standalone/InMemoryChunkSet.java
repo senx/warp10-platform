@@ -254,7 +254,7 @@ public class InMemoryChunkSet {
   }
   
   private GTSEncoder fetchCountEncoder(long now, long count) throws IOException {
-
+try {
     //
     // Determine the chunk id of 'now'
     // We offset it by chunkcount so we can safely decrement and
@@ -269,6 +269,11 @@ public class InMemoryChunkSet {
     
     // Loop over the chunks
     for (int i = 0; i < this.chunkcount; i++) {
+      
+      if (nvalues <= 0) {
+        break;
+      }
+      
       int chunk = (nowchunk - i) % this.chunkcount;
       
       GTSDecoder chunkDecoder = null;
@@ -410,7 +415,7 @@ public class InMemoryChunkSet {
           // We must skip values whose timestamp is <= ticks[ticks.length - nvalues]
           
           if (ticks.length > nvalues) {
-            long skipbelow = ticks[ticks.length - (int) nvalues];
+            long skipbelow = ticks[ticks.length - 1 - (int) nvalues];
             
             // Then transfer the intermediate encoder to the result
             chunkDecoder = intenc.getUnsafeDecoder(false);
@@ -436,6 +441,10 @@ public class InMemoryChunkSet {
     }
     
     return encoder;
+} catch (Throwable t) {
+  t.printStackTrace();
+  throw t;
+}
   }
   
   /**
