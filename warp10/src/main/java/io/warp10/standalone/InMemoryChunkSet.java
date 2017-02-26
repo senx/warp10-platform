@@ -36,7 +36,7 @@ public class InMemoryChunkSet {
    * Maximum number of wasted bytes per encoder returned by fetch. Any waste above this limit
    * will trigger a resize of the encoder.
    */
-  private static final int ENCODER_MAX_WASTED = 32;
+  private static final int ENCODER_MAX_WASTED = 1024;
   
   private final GTSEncoder[] chunks;
   
