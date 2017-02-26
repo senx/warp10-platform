@@ -194,9 +194,6 @@ public class InMemoryChunkSet {
   
   public GTSEncoder fetchEncoder(long now, long timespan) throws IOException {
 
-    // Clean up first
-    clean(TimeSource.getTime());
-    
     if (timespan < 0) {
       return fetchCountEncoder(now, -timespan);
     }
@@ -262,7 +259,11 @@ try {
     //
     int nowchunk = chunk(now) + this.chunkcount;
     
-    GTSEncoder encoder = new GTSEncoder();
+    long oursize = this.getSize();
+    long ourcount = this.getCount();
+    int avgsize = (int) Math.ceil((double) oursize / (double) ourcount);
+    int hint = (int) Math.min((int) (count * avgsize), this.getSize());
+    GTSEncoder encoder = new GTSEncoder(0L, null, hint);
     
     // Initialize the number of datapoints to fetch
     long nvalues = count;
@@ -280,6 +281,8 @@ try {
       boolean inorder = true;
       long chunkEnd = -1;
       
+      int chunkSize = 0;
+      
       synchronized(this.chunks) {
         // Ignore a given chunk if it is after 'now'
         if (this.chunkends[chunk] - this.chunklen >= now) {
@@ -291,6 +294,7 @@ try {
           chunkDecoder = this.chunks[chunk].getUnsafeDecoder(false);
           inorder = this.chronological.get(chunk);
           chunkEnd = this.chunkends[chunk];
+          chunkSize = this.chunks[chunk].size();
         }
       }
       
@@ -344,7 +348,7 @@ try {
             }          
           } else {
             // We will transfer the datapoints whose timestamp is <= now in a an intermediate encoder
-            GTSEncoder intenc = new GTSEncoder();
+            GTSEncoder intenc = new GTSEncoder(0L, null, chunkSize);
             while(chunkDecoder.next()) {
               long ts = chunkDecoder.getTimestamp();
               if (ts > now) {
@@ -392,7 +396,8 @@ try {
           // We have a chunk which has more values than what we need and/or whose end
           // is after 'now'
           // We will transfer the datapoints whose timestamp is <= now in a an intermediate encoder
-          GTSEncoder intenc = new GTSEncoder();
+          // We use nvalues * avgsize as the hint for the intermediate encoder
+          GTSEncoder intenc = new GTSEncoder(0L, null, (int) (avgsize * nvalues));          
           while(chunkDecoder.next()) {
             long ts = chunkDecoder.getTimestamp();
             if (ts > now) {
@@ -438,6 +443,12 @@ try {
         }
       }      
     }
+    
+    //
+    // Resize the encoder so we don't waste too much memory
+    //
+    
+    encoder.resize(encoder.size());
     
     return encoder;
 } catch (Throwable t) {
