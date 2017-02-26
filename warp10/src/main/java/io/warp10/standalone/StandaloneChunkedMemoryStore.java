@@ -144,6 +144,8 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       
       private GTSDecoder decoder = null;
       
+      private CapacityExtractorOutputStream extractor = new CapacityExtractorOutputStream();
+      
       @Override
       public void close() throws Exception {}
       
@@ -202,7 +204,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
               InMemoryChunkSet chunkset = series.get(clslbls);
               
               try {
-                GTSDecoder dec = chunkset.fetch(now, timespan);
+                GTSDecoder dec = chunkset.fetch(now, timespan, extractor);
 
                 if (0 == dec.getCount()) {
                   idx++;

@@ -32,8 +32,11 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.sensision.Sensision;
 
 public class InMemoryChunkSet {
-  // Keep track whether or not a GTSEncoder has all its timestamps in chronological order, speeds up fetching
-  // 
+  /**
+   * Maximum number of wasted bytes per encoder returned by fetch. Any waste above this limit
+   * will trigger a resize of the encoder.
+   */
+  private static final int ENCODER_MAX_WASTED = 32;
   
   private final GTSEncoder[] chunks;
   
@@ -173,8 +176,27 @@ public class InMemoryChunkSet {
    * @param timespan The timespan or value count to consider.
    * @return
    */
+  public GTSDecoder fetch(long now, long timespan, CapacityExtractorOutputStream extractor) throws IOException {
+    GTSEncoder encoder = fetchEncoder(now, timespan);
+    
+    //
+    // Resize the encoder so we don't waste too much memory
+    //
+    
+    if (null != extractor) {
+      encoder.writeTo(extractor);
+      int capacity = extractor.getCapacity();
+      
+      if (capacity - encoder.size() > ENCODER_MAX_WASTED) {
+        encoder.resize(encoder.size());        
+      }
+    }
+
+    return encoder.getUnsafeDecoder(false);
+  }
+
   public GTSDecoder fetch(long now, long timespan) throws IOException {
-    return fetchEncoder(now, timespan).getUnsafeDecoder(false);
+    return fetch(now, timespan, null);
   }
   
   public List<GTSDecoder> getDecoders() {
@@ -249,7 +271,7 @@ public class InMemoryChunkSet {
   private GTSDecoder fetchCount(long now, long count) throws IOException {
     return fetchCountEncoder(now, count).getUnsafeDecoder(false);
   }
-  
+
   private GTSEncoder fetchCountEncoder(long now, long count) throws IOException {
 try {
     //
@@ -443,13 +465,7 @@ try {
         }
       }      
     }
-    
-    //
-    // Resize the encoder so we don't waste too much memory
-    //
-    
-    encoder.resize(encoder.size());
-    
+        
     return encoder;
 } catch (Throwable t) {
   t.printStackTrace();
