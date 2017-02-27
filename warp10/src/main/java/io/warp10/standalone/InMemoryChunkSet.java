@@ -117,17 +117,19 @@ public class InMemoryChunkSet {
             this.chunkends[chunkid] = end;          
           }
           
-          chunkEncoder = this.chunks[chunkid];
-          
-          if (timestamp < this.lasttimestamp[chunkid]) {
-            this.chronological.set(chunkid, false);
-          }
-          this.lasttimestamp[chunkid] = timestamp;
+          chunkEncoder = this.chunks[chunkid];          
         }
         
         lastchunk = chunkid;
       }
 
+      synchronized(this.chunks[chunkid]) {
+        if (timestamp < this.lasttimestamp[chunkid]) {
+          this.chronological.set(chunkid, false);
+        }
+        this.lasttimestamp[chunkid] = timestamp;
+      }
+      
       chunkEncoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());      
     }
   }
@@ -178,15 +180,15 @@ public class InMemoryChunkSet {
    */
   public GTSDecoder fetch(long now, long timespan, CapacityExtractorOutputStream extractor) throws IOException {
     GTSEncoder encoder = fetchEncoder(now, timespan);
-    
+
     //
     // Resize the encoder so we don't waste too much memory
     //
     
-    if (null != extractor) {
+    if (null != extractor) {      
       encoder.writeTo(extractor);
       int capacity = extractor.getCapacity();
-      
+
       if (capacity - encoder.size() > ENCODER_MAX_WASTED) {
         encoder.resize(encoder.size());        
       }
@@ -419,7 +421,7 @@ try {
           // is after 'now'
           // We will transfer the datapoints whose timestamp is <= now in a an intermediate encoder
           // We use nvalues * avgsize as the hint for the intermediate encoder
-          GTSEncoder intenc = new GTSEncoder(0L, null, (int) (avgsize * nvalues));          
+          GTSEncoder intenc = new GTSEncoder(0L, null, (int) (avgsize * nvalues));
           while(chunkDecoder.next()) {
             long ts = chunkDecoder.getTimestamp();
             if (ts > now) {
