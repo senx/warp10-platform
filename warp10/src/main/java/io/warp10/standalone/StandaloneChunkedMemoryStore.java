@@ -166,6 +166,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
           return true;
         }
         
+        // 128 bits
         byte[] bytes = new byte[16];
         
         while(true) {
