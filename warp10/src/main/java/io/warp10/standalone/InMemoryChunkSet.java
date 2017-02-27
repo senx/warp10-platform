@@ -305,8 +305,6 @@ try {
       boolean inorder = true;
       long chunkEnd = -1;
       
-      int chunkSize = 0;
-      
       synchronized(this.chunks) {
         // Ignore a given chunk if it is after 'now'
         if (this.chunkends[chunk] - this.chunklen >= now) {
@@ -318,7 +316,6 @@ try {
           chunkDecoder = this.chunks[chunk].getUnsafeDecoder(false);
           inorder = this.chronological.get(chunk);
           chunkEnd = this.chunkends[chunk];
-          chunkSize = this.chunks[chunk].size();
         }
       }
       
@@ -370,31 +367,37 @@ try {
               encoder.addValue(chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
               nvalues--;
             }          
-          } else {
-            // We will transfer the datapoints whose timestamp is <= now in a an intermediate encoder
-            GTSEncoder intenc = new GTSEncoder(0L, null, chunkSize);
+          } else {            
+            // We will count the number of datapoints whose timestamp is <= now
+            GTSDecoder dupdecoder = chunkDecoder.duplicate();
+            long valid = 0;
             while(chunkDecoder.next()) {
               long ts = chunkDecoder.getTimestamp();
               if (ts > now) {
                 // we can break because we know the encoder is in chronological order.
                 break;
               }
-              intenc.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
+              valid++;
             }
-            // Then transfer the intermediate encoder to the result
-            chunkDecoder = intenc.getUnsafeDecoder(false);
-            long skip = chunkDecoder.getCount() - nvalues;
+            
+            chunkDecoder = dupdecoder;
+            long skip = valid - nvalues;
             while(skip > 0 && chunkDecoder.next()) {
               skip--;
+              valid--;
             }
-            while(chunkDecoder.next()) {
+            while(valid > 0 && chunkDecoder.next()) {
               encoder.addValue(chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
               nvalues--;
+              valid--;
             }                      
           }
         }
       } else {
         // The chunk decoder is not in chronological order...
+        
+        // Create a duplicate of the buffer in case we need it later
+        GTSDecoder dupdecoder = chunkDecoder.duplicate();
         
         // If the chunk decoder end is <= 'now' and the decoder contains less values than
         // what is still needed, add everything.
@@ -419,34 +422,30 @@ try {
         } else {
           // We have a chunk which has more values than what we need and/or whose end
           // is after 'now'
-          // We will transfer the datapoints whose timestamp is <= now in a an intermediate encoder
-          // We use nvalues * avgsize as the hint for the intermediate encoder
-          GTSEncoder intenc = new GTSEncoder(0L, null, (int) (avgsize * nvalues));
+          // We will transfer the datapoints whose timestamp is <= now in an array so we can sort them
+          
+          long[] ticks = new long[(int) chunkDecoder.getCount()];
+
+          int idx = 0;
+          
           while(chunkDecoder.next()) {
             long ts = chunkDecoder.getTimestamp();
             if (ts > now) {
               continue;
             }
-            intenc.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
+            
+            ticks[idx++] = ts;
           }
-          //
-          // Now we need to extract the ticks of the intermediary encoder
-          //
-          chunkDecoder = intenc.getUnsafeDecoder(false);
-          long[] ticks = new long[(int) chunkDecoder.getCount()];
-          int k = 0;
-          while(chunkDecoder.next()) {
-            ticks[k++] = chunkDecoder.getTimestamp();
-          }
-          // Now sort the ticks
-          Arrays.sort(ticks);
+          
+          Arrays.sort(ticks, 0, idx - 1);
+        
+          chunkDecoder = dupdecoder;
+          
           // We must skip values whose timestamp is <= ticks[ticks.length - nvalues]
           
-          if (ticks.length > nvalues) {
-            long skipbelow = ticks[ticks.length - 1 - (int) nvalues];
+          if (idx > nvalues) {
+            long skipbelow = ticks[idx - 1 - (int) nvalues];
             
-            // Then transfer the intermediate encoder to the result
-            chunkDecoder = intenc.getUnsafeDecoder(false);
             while(chunkDecoder.next() && nvalues > 0) {
               long ts = chunkDecoder.getTimestamp();
               if (ts < skipbelow) {
@@ -457,9 +456,13 @@ try {
             }                                  
           } else {
             // The intermediary decoder has less than nvalues whose ts is <= now, transfer everything
-            chunkDecoder = intenc.getUnsafeDecoder(false);
+            chunkDecoder = dupdecoder;
+            
             while(chunkDecoder.next()) {
               long ts = chunkDecoder.getTimestamp();
+              if (ts > now) {
+                continue;
+              }
               encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
               nvalues--;
             }                                              
