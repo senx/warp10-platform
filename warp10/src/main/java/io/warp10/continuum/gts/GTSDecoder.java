@@ -806,6 +806,42 @@ public class GTSDecoder {
     return this.buffer.asReadOnlyBuffer();
   }
   
+  /**
+   * Duplicate the current GTSDecoder. The copy is backed by the same
+   * buffer.
+   */
+  public GTSDecoder duplicate() {
+    GTSDecoder decoder = new GTSDecoder(this.baseTimestamp, this.wrappingKey, this.buffer.asReadOnlyBuffer());
+    
+    decoder.safeSetMetadata(new Metadata(this.getMetadata()));
+
+    decoder.consumingNextCalls = this.consumingNextCalls;
+    decoder.count = this.count;
+    decoder.decodedEncrypted = this.decodedEncrypted;
+    decoder.nextCalled = this.nextCalled;
+    decoder.position = this.position;
+
+    decoder.previousLastBDValue = this.previousLastBDValue;
+    decoder.previousLastDoubleValue = this.previousLastDoubleValue;
+    decoder.previousLastElevation = this.previousLastElevation;
+    decoder.previousLastGeoXPPoint = this.previousLastGeoXPPoint;
+    decoder.previousLastLongValue = this.previousLastLongValue;
+    decoder.previousLastStringValue = this.previousLastStringValue;
+    decoder.previousLastTimestamp = this.previousLastTimestamp;
+
+    decoder.lastTimestamp = this.lastTimestamp;
+    decoder.lastGeoXPPoint = this.lastGeoXPPoint;
+    decoder.lastElevation = this.lastElevation;
+    decoder.lastLongValue = this.lastLongValue;
+    decoder.lastDoubleValue = this.lastDoubleValue;
+    decoder.lastBDValue = this.lastBDValue;
+    decoder.lastStringValue = this.lastStringValue;
+    decoder.lastBooleanValue = this.lastBooleanValue;
+    decoder.lastType = this.lastType;
+
+    return decoder;
+  }
+  
   public void dump(PrintWriter pw) {
     StringBuilder sb = new StringBuilder(" ");
     
