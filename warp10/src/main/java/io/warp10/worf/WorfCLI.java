@@ -17,6 +17,7 @@ package io.warp10.worf;
 
 import com.google.common.base.Strings;
 import io.warp10.Revision;
+import io.warp10.continuum.gts.GTSHelper;
 import org.apache.commons.cli.*;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -73,7 +74,7 @@ public class WorfCLI {
     options.addOptionGroup(groupOwnerUID);
 
     options.addOption(new Option(APPNAME, "app-name", true, "token application name. Used by token option or @warp:writeToken@ template"));
-    options.addOption(new Option(LABELS, "labels", true, "provide labels to be included in the write token"));
+    options.addOption(new Option(LABELS, "labels", true, "enclosed label list for write token (following ingress input format : xbeeId=XBee_40670F0D,moteId=53)"));
     options.addOption(new Option(TTL, "ttl", true, "token time to live (ms). Used by token option or @warp:writeToken@ template"));
 
 
@@ -105,8 +106,8 @@ public class WorfCLI {
       String ownerUID = null;
       String appName = null;
       String lbs = null;
+      Map<String, String> labels = null;
       boolean labelMap = false;
-      Map<String, String> labels = new HashMap<String, String>();
       long ttl = 0L;
 
       PrintWriter out = new PrintWriter(System.out);
@@ -168,18 +169,15 @@ public class WorfCLI {
           appName = cmd.getOptionValue(APPNAME);
         }
 
-        if (cmd.hasOption(LABELS)) try {
-            lbs = cmd.getOptionValue(LABELS);
-            String[] array = lbs.split(" ");
-            if (array.length % 2 != 0) {
-                throw new WorfException("Odd number of values provided as labels ");
-            }
-            for (int i = 0; i <= array.length - 1; i = +2) {
-                labels.put(array[i], array[i + 1]);
-            }
+        if (cmd.hasOption(LABELS)) {
+          lbs = cmd.getOptionValue(LABELS);
+          try {
+            labels = GTSHelper.parseLabels(lbs);
             labelMap = true;
-        } catch (Exception e) {
-            throw new WorfException("Unable to map your labels : " + e);
+          }
+          catch ( Exception e) {
+            throw new WorfException("Not a valid label selector : " + e.getMessage());
+          }
         }
 
 
