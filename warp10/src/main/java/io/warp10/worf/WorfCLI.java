@@ -25,7 +25,8 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Properties;
+import java.util.UUID;
 
 public class WorfCLI {
   public static boolean verbose = false;
@@ -49,8 +50,6 @@ public class WorfCLI {
   private static String INTERACTIVE = "i";
   private static String OUTPUT = "o";
   private static String QUIET = "q";
-
-
   private static String TOKEN = "t";
   private static String TTL = "ttl";
   private static String KEYSTORE = "ks";
@@ -133,7 +132,6 @@ public class WorfCLI {
       if (cmd.hasOption(QUIET)) {
         quiet = true;
       }
-
 
       if (cmd.hasOption(OUTPUT)) {
         outputFile = cmd.getOptionValue(OUTPUT);
@@ -328,8 +326,7 @@ public class WorfCLI {
         } else {
            writeToken = keyMaster.deliverWriteToken(appName, producerUID, ownerUID,  ttl);
         }
-
-
+        
         // write outputformat
         JSONObject jsonOutput = new JSONObject();
         JSONObject jsonToken = new JSONObject();
