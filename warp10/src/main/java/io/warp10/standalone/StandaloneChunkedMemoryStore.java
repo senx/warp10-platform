@@ -405,7 +405,10 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
         // If count is zero check in a safe manner if this is
         // still the case and if it is, remove the chunkset for
         // this GTS.
-        // Note that it does not remove the GTS from the directory.
+        // Note that it does not remove the GTS from the directory
+        // as we do not hold a lock opening a critical section
+        // where we can guarantee that no GTS is added to the
+        // directory.
         //
        
         if (0 == count) {
