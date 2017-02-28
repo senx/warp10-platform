@@ -279,10 +279,6 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     
     InMemoryChunkSet chunkset = null;
     
-    //
-    // WARNING(hbs): the following 2 synchronized blocks MUST stay sequential (cf run())
-    //
-    
     synchronized (this.series) {
       chunkset = this.series.get(clslbls);
       
