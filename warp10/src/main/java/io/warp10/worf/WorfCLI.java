@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -326,7 +327,7 @@ public class WorfCLI {
         } else {
            writeToken = keyMaster.deliverWriteToken(appName, producerUID, ownerUID,  ttl);
         }
-        
+
         // write outputformat
         JSONObject jsonOutput = new JSONObject();
         JSONObject jsonToken = new JSONObject();
