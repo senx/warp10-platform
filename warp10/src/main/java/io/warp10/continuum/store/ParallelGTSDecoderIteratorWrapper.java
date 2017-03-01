@@ -30,11 +30,14 @@ import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.sensision.Sensision;
+import io.warp10.standalone.Warp;
 
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 
 public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
+  
+  private static final boolean standalone;
   
   //
   // Have a semaphore which gets picked up by a thread having
@@ -86,7 +89,11 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
         this.thread = Thread.currentThread();
         name = this.thread.getName();
         this.thread.setName("GTSDecoderIteratorRunnable");
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS, Sensision.EMPTY_LABELS, 1);
+        if (standalone) {
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS, Sensision.EMPTY_LABELS, 1);
+        } else {
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS, Sensision.EMPTY_LABELS, 1);
+        }
 
         // Increment inflight BEFORE decrementing pending        
         this.inflightCounter.addAndGet(1);
@@ -141,7 +148,11 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
             if (0 == held) {
               this.sem.acquire(POOLSIZE);
               held = POOLSIZE;
-              Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_MUTEX, Sensision.EMPTY_LABELS, 1);
+              if (standalone) {
+                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS_MUTEX, Sensision.EMPTY_LABELS, 1);                
+              } else {
+                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_MUTEX, Sensision.EMPTY_LABELS, 1);
+              }
             }
             
             queue.put(lastdecoder);
@@ -197,17 +208,27 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
   static {
     Properties properties = WarpConfig.getProperties();
     
-    MAX_INFLIGHT = Integer.parseInt(properties.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST, "0"));      
-    POOLSIZE = Integer.parseInt(properties.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_POOLSIZE, "0"));
+    standalone = Warp.isStandaloneMode();
+    
+    if (standalone) {
+      MAX_INFLIGHT = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST, "0"));      
+      POOLSIZE = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_POOLSIZE, "0"));
+            
+      MIN_GTS_PERSCANNER = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MIN_GTS_PERSCANNER, "4"));
+      MAX_PARALLEL_SCANNERS = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS, "16"));
+    } else {
+      MAX_INFLIGHT = Integer.parseInt(properties.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST, "0"));      
+      POOLSIZE = Integer.parseInt(properties.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_POOLSIZE, "0"));
+            
+      MIN_GTS_PERSCANNER = Integer.parseInt(properties.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MIN_GTS_PERSCANNER, "4"));
+      MAX_PARALLEL_SCANNERS = Integer.parseInt(properties.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS, "16"));      
+    }
     
     if (MAX_INFLIGHT> 0 && POOLSIZE > 0) {
       executor = new ThreadPoolExecutor(POOLSIZE >>> 1, POOLSIZE, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(POOLSIZE));
     } else {
       executor = null;
     }
-    
-    MIN_GTS_PERSCANNER = Integer.parseInt(properties.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MIN_GTS_PERSCANNER, "4"));
-    MAX_PARALLEL_SCANNERS = Integer.parseInt(properties.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS, "16"));
   }
   
   private LinkedList<GTSDecoderIteratorRunnable> runnables = new LinkedList<GTSDecoderIteratorRunnable>();
@@ -215,7 +236,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
   private final AtomicInteger pending = new AtomicInteger(0);
   private final AtomicInteger inflight = new AtomicInteger(0);
   private final AtomicBoolean errorFlag = new AtomicBoolean(false);
-  private final AtomicReference errorThrowable = new AtomicReference<Throwable>();
+  private final AtomicReference<Throwable> errorThrowable = new AtomicReference<Throwable>();
   
   /**
    * Semaphore for synchronizing the various runnables. Fairness should be enforced.
@@ -230,6 +251,10 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
   private static final int MAX_PARALLEL_SCANNERS;
   
   public ParallelGTSDecoderIteratorWrapper(boolean optimized, boolean fromArchive, ReadToken token, long now, long timespan, List<Metadata> metadatas, KeyStore keystore, Connection conn, TableName tableName, byte[] colfam, boolean writeTimestamp, boolean useBlockCache) throws IOException {
+    if (standalone) {
+      throw new IOException("Incompatible parallel scanner instantiated.");
+    }
+
     //
     // Allocate a queue for the GTSDecoders
     //
@@ -289,6 +314,60 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     
     Collections.shuffle(runnables);
 
+    this.pending.set(runnables.size());
+  }
+  
+  public ParallelGTSDecoderIteratorWrapper(StoreClient client, ReadToken token, long now, long timespan, List<Metadata> metadatas) throws IOException {
+    
+    if (!standalone) {
+      throw new IOException("Incompatible parallel scanner instantiated.");
+    }
+    
+    //
+    // Allocate a queue for the GTSDecoders
+    //
+
+    this.queue = new LinkedBlockingQueue<GTSDecoder>(MAX_INFLIGHT * 4);
+        
+    //
+    // Split the Metadata list in chunks which will be retrieved separately
+    // according to 'mingts', the minimum number of GTS per parallel scanner
+    // and 'maxscanners', the maximum number of parallel scanners to create
+    //
+    
+    int gtsPerScanner = (int) Math.max(MIN_GTS_PERSCANNER, Math.floor(metadatas.size() / MAX_PARALLEL_SCANNERS));
+    
+    int metaidx = 0;
+    
+    List<Metadata> metas = null;
+    
+    while (metaidx < metadatas.size()) {
+      if (null == metas) {
+        metas = new ArrayList<Metadata>();
+      }
+      
+      metas.add(metadatas.get(metaidx++));
+      
+      if (gtsPerScanner == metas.size()) {
+        GTSDecoderIterator iterator = null;
+    
+        iterator = client.fetch(token, metas, now, timespan, false, false);
+
+        GTSDecoderIteratorRunnable runnable = new GTSDecoderIteratorRunnable(iterator, queue, sem, this.pending, this.inflight, this.errorFlag, this.errorThrowable);
+        runnables.add(runnable);
+        metas = null;
+      }      
+    }
+    
+    if (null != metas) {
+      GTSDecoderIterator iterator = null;
+      
+      iterator = client.fetch(token, metas, now, timespan, false, false);
+
+      GTSDecoderIteratorRunnable runnable = new GTSDecoderIteratorRunnable(iterator, queue, sem, this.pending, this.inflight, this.errorFlag, this.errorThrowable);
+      runnables.add(runnable);
+    }
+    
     this.pending.set(runnables.size());
   }
   
