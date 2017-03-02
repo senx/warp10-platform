@@ -283,6 +283,10 @@ try {
     //
     int nowchunk = chunk(now) + this.chunkcount;
     
+    //
+    // Create a target encoder with a hint based on the average size of datapoints
+    //
+    
     long oursize = this.getSize();
     long ourcount = this.getCount();
     int avgsize = (int) Math.ceil((double) oursize / (double) ourcount);
@@ -295,10 +299,11 @@ try {
     // Loop over the chunks
     for (int i = 0; i < this.chunkcount; i++) {
       
+      // Are we done fetching datapoints?
       if (nvalues <= 0) {
         break;
       }
-      
+            
       int chunk = (nowchunk - i) % this.chunkcount;
       
       GTSDecoder chunkDecoder = null;
@@ -327,20 +332,22 @@ try {
       // it is in chronological order or not
       
       if (inorder) {
-        //
-        // If the end timestamp of the chunk is before 'now' and the
-        // chunk contains less than the remaining values we need to fetch
-        // we can add everything.
-        //
         
         if (chunkEnd <= now && chunkDecoder.getCount() <= nvalues) {
+          //
+          // If the end timestamp of the chunk is before 'now' and the
+          // chunk contains less than the remaining values we need to fetch
+          // we can add everything.
+          //
           while(chunkDecoder.next()) {
             encoder.addValue(chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
             nvalues--;
           }
         } else if (chunkDecoder.getCount() <= nvalues) {
+          //
           // We have a chunk with chunkEnd > 'now' but which contains less than nvalues,
           // so we add all the values whose timestamp is <= 'now'
+          //
           while(chunkDecoder.next()) {
             long ts = chunkDecoder.getTimestamp();
             if (ts > now) {
@@ -368,8 +375,9 @@ try {
               nvalues--;
             }          
           } else {            
-            // We will count the number of datapoints whose timestamp is <= now
+            // Duplicate the decoder so we can scan it again later
             GTSDecoder dupdecoder = chunkDecoder.duplicate();
+            // We will count the number of datapoints whose timestamp is <= now
             long valid = 0;
             while(chunkDecoder.next()) {
               long ts = chunkDecoder.getTimestamp();
@@ -398,18 +406,21 @@ try {
         
         // Create a duplicate of the buffer in case we need it later
         GTSDecoder dupdecoder = chunkDecoder.duplicate();
-        
-        // If the chunk decoder end is <= 'now' and the decoder contains less values than
-        // what is still needed, add everything.
-        
+                
         if (chunkEnd <= now && chunkDecoder.getCount() <= nvalues) {
+          //
+          // If the chunk decoder end is <= 'now' and the decoder contains less values than
+          // what is still needed, add everything.
+          //
           while(chunkDecoder.next()) {
             encoder.addValue(chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
             nvalues--;
           }          
         } else if(chunkDecoder.getCount() <= nvalues) {
+          //
           // We have a chunk with chunkEnd > 'now' but which contains less than nvalues,
           // so we add all the values whose timestamp is <= 'now'
+          //
           while(chunkDecoder.next()) {
             long ts = chunkDecoder.getTimestamp();
             if (ts > now) {
@@ -437,18 +448,18 @@ try {
             ticks[idx++] = ts;
           }
           
-          Arrays.sort(ticks, 0, idx - 1);
+          Arrays.sort(ticks, 0, idx);
         
           chunkDecoder = dupdecoder;
           
-          // We must skip values whose timestamp is <= ticks[ticks.length - nvalues]
+          // We must skip values whose timestamp is <= ticks[idx - nvalues]
           
           if (idx > nvalues) {
-            long skipbelow = ticks[idx - 1 - (int) nvalues];
+            long lowest = ticks[idx - (int) nvalues];
             
             while(chunkDecoder.next() && nvalues > 0) {
               long ts = chunkDecoder.getTimestamp();
-              if (ts < skipbelow) {
+              if (ts < lowest) {
                 continue;
               }
               encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
