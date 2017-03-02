@@ -59,6 +59,11 @@ LEVELDB_HOME=${WARP10_HOME}/data
 
 SENSISION_EVENTS_DIR=/var/run/sensision/metrics
 
+#
+# Set SENSISIONID as environment variable to identify this instance by Sensision
+#
+export SENSISIONID=warp10
+
 LOG4J_CONF=${WARP10_HOME}/etc/log4j.properties
 JAVA_HEAP_DUMP=${WARP10_HOME}/logs/java.heapdump
 JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC"
@@ -100,6 +105,8 @@ initConfig() {
   # Generate the configuration file with Worf
   # Generate read/write tokens valid for a period of 100 years. We use 'io.warp10.bootstrap' as application name.
   su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf -q -a io.warp10.bootstrap -puidg -t -ttl 3153600000000 ${WARP10_HOME}/templates/conf-standalone.template -o ${WARP10_CONFIG}" >> ${WARP10_HOME}/etc/initial.tokens
+
+  echo "Warp10 config has been generated here: ${WARP10_CONFIG}"
 
   #
   # Output the generated tokens
@@ -276,7 +283,11 @@ snapshot() {
 }
 
 worf() {
-  su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -cp ${WARP10_CP} io.warp10.worf.Worf -i ${WARP10_CONFIG}"
+  if [ "$#" -ne 3 ]; then
+    echo "Usage: $0 $1 appName ttl(ms)"
+    exit 1
+  fi
+  su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -puidg -t -a $2 -ttl $3"
 }
 
 # See how we were called.
@@ -296,13 +307,13 @@ case "$1" in
   start
   ;;
   worf)
-  worf
+  worf "$@"
   ;;
   snapshot)
   snapshot "$2"
   ;;
   *)
-  echo $"Usage: $0 {start|stop|status|worf|snapshot 'snapshot_name'}"
+  echo $"Usage: $0 {start|stop|status|worf appName ttl(ms)|snapshot 'snapshot_name'}"
   exit 2
 esac
 

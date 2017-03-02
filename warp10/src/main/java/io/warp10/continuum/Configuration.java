@@ -74,7 +74,7 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_EXTENSIONS = "warpscript.extensions";
   
   /**
-   * This configuration parameter determines if undefining a funciton (via NULL 'XXX' DEF)
+   * This configuration parameter determines if undefining a function (via NULL 'XXX' DEF)
    * will unshadow the original statement thus making it available again or if it will replace
    * it with a function that will fail with a message saying the function is undefined.
    * The safest behavior is to leave this undefined or set to 'false'.
@@ -240,6 +240,12 @@ public class Configuration {
    * Pre-Shared key for signing fetch requests. Signed fetch request expose owner/producer
    */
   public static final String CONFIG_FETCH_PSK = "fetch.psk";
+
+  /**
+   * Comma separated list of Directory related HBase configuration keys to extract from the Warp 10 configuration.
+   * The listed keys will be extracted from 'directory.' prefixed configuration keys.
+   */
+  public static final String DIRECTORY_HBASE_CONFIG = "directory.hbase.config";
 
   /**
    * Maximum number of classes for which to report detailed stats in 'stats'
@@ -719,6 +725,12 @@ public class Configuration {
   // S T O R E
   //
   /////////////////////////////////////////////////////////////////////////////////////////
+  
+  /**
+   * Comma separated list of Store related HBase configuration keys to extract from the Warp 10 configuration.
+   * The listed keys will be extracted from 'store.' prefixed configuration keys.
+   */
+  public static final String STORE_HBASE_CONFIG = "store.hbase.config";
   
   /**
    * Path to the throttling file. This file contains a single line with a double value in [0.0,1.0]
@@ -1413,6 +1425,12 @@ public class Configuration {
   // E G R E S S
   //
   
+  /**
+   * Comma separated list of Egress related HBase configuration keys to extract from the Warp 10 configuration.
+   * The listed keys will be extracted from 'egress.' prefixed configuration keys.
+   */
+  public static final String EGRESS_HBASE_CONFIG = "egress.hbase.config";
+
   /**
    * Port onto which the egress server should listen
    */

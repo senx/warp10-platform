@@ -52,6 +52,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.zip.GZIPInputStream;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
@@ -228,7 +229,24 @@ public class EgressExecHandler extends AbstractHandler {
       // Now read lines of the body, interpreting them
       //
       
-      BufferedReader br = req.getReader();
+      //
+      // Determine if content if gzipped
+      //
+
+      boolean gzipped = false;
+          
+      if ("application/gzip".equals(req.getHeader("Content-Type"))) {       
+        gzipped = true;
+      }
+      
+      BufferedReader br = null;
+          
+      if (gzipped) {
+        GZIPInputStream is = new GZIPInputStream(req.getInputStream());
+        br = new BufferedReader(new InputStreamReader(is));
+      } else {    
+        br = req.getReader();
+      }
                   
       labels.put(SensisionConstants.SENSISION_LABEL_THREAD, Long.toHexString(Thread.currentThread().getId()));
       

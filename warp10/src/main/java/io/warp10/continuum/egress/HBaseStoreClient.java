@@ -134,6 +134,20 @@ public class HBaseStoreClient implements StoreClient {
       conf.set(HConstants.HBASE_CLIENT_MAX_TOTAL_TASKS, properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_CLIENT_MAX_TOTAL_TASKS));
     }
 
+    //
+    // Handle additional HBase configurations
+    //
+    
+    if (properties.containsKey(io.warp10.continuum.Configuration.EGRESS_HBASE_CONFIG)) {
+      String[] keys = properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_CONFIG).split(",");
+      for (String key: keys) {
+        if (!properties.containsKey("egress." + key.trim())) {
+          throw new RuntimeException("Missing declared property 'egress." + key.trim() + "'.");
+        }
+        conf.set(key, properties.getProperty("egress." + key.trim()));
+      }
+    }
+
     this.conn = ConnectionFactory.createConnection(conf);
     this.tableName = TableName.valueOf(properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_TABLE));
     

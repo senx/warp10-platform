@@ -1,6 +1,7 @@
 package io.warp10.hadoop;
 
 import io.warp10.WarpURLEncoder;
+import io.warp10.continuum.TextFileShuffler;
 import io.warp10.continuum.store.Constants;
 
 import java.io.BufferedReader;
@@ -26,6 +27,7 @@ import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
 
 import com.fasterxml.sort.SortConfig;
+import com.fasterxml.sort.std.RawTextLineWriter;
 import com.fasterxml.sort.std.TextFileSorter;
 
 import org.apache.hadoop.mapreduce.*;
@@ -185,10 +187,10 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     
     InputStream in = conn.getInputStream();
     
-    File tmpfile = File.createTempFile("Warp10InputFormat-", "-in");
-    tmpfile.deleteOnExit();
+    File infile = File.createTempFile("Warp10InputFormat-", "-in");
+    infile.deleteOnExit();
 
-    OutputStream out = new FileOutputStream(tmpfile);
+    OutputStream out = new FileOutputStream(infile);
     
     BufferedReader br = new BufferedReader(new InputStreamReader(in));
     PrintWriter pw = new PrintWriter(out);
@@ -224,18 +226,22 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     conn.disconnect();
 
     TextFileSorter sorter = new TextFileSorter(new SortConfig().withMaxMemoryUsage(64000000L));
-    
+
     File outfile = File.createTempFile("Warp10InputFormat-", "-out");
     outfile.deleteOnExit();
 
-    in = new FileInputStream(tmpfile);
+    in = new FileInputStream(infile);
     out = new FileOutputStream(outfile);
     
-    sorter.sort(in, out);
-
-    out.close();
-    in.close();
-    
+    try {
+      sorter.sort(new TextFileShuffler.CustomReader<byte[]>(in), new RawTextLineWriter(out));
+    } finally {      
+      out.close();
+      in.close();
+      sorter.close();
+      infile.delete();
+    }
+        
     //
     // Do a naive split generation, using the RegionServer as the ideal fetcher. We will need
     // to adapt this later so we ventilate the splits on all fetchers if we notice that a single
@@ -297,6 +303,8 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     
     br.close();
 
+    outfile.delete();
+    
     if (subsplits > 0) {
       // Add fallback fetchers, shuffle them first
       Collections.shuffle(fallbacks);

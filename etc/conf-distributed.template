@@ -116,7 +116,7 @@ warp.aes.metasets = hex:hhhhhhhh....
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
-// This configuration parameter determines if undefining a funciton (via NULL 'XXX' DEF)
+// This configuration parameter determines if undefining a function (via NULL 'XXX' DEF)
 // will unshadow the original statement thus making it available again or if it will replace
 // it with a function that will fail with a message saying the function is undefined.
 // The safest behavior is to leave this undefined or set to 'false'.
@@ -378,6 +378,14 @@ webcall.kafka.commitperiod = 60000
 // D I R E C T O R Y
 //
 /////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// Comma separated list of Directory related HBase configuration keys. Each key will
+// be set in the HBase configuration by assigning the value defined in the Warp 10 config
+// under the key 'directory.<HBASE_CONFIGURATION_KEY>'. Each listed HBase configuration key
+// MUST have a value defined in the 'directory.' prefixed configuration parameter.
+//
+#directory.hbase.config =
 
 //
 // Maximum number of classes for which to report detailed stats in 'stats'
@@ -858,6 +866,14 @@ ingress.kafka.metadata.maxsize = 900000
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
+// Comma separated list of Store related HBase configuration keys. Each key will
+// be set in the HBase configuration by assigning the value defined in the Warp 10 config
+// under the key 'store.<HBASE_CONFIGURATION_KEY>'. Each listed HBase configuration key
+// MUST have a value defined in the 'store.' prefixed configuration parameter.
+//
+#store.hbase.config = 
+
+//
 // Throttling file path
 //
 #store.throttling.file =
@@ -1324,6 +1340,14 @@ runner.kafka.mac = hex:hhhhhh...
 // E G R E S S
 //
 /////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// Comma separated list of Egress related HBase configuration keys. Each key will
+// be set in the HBase configuration by assigning the value defined in the Warp 10 config
+// under the key 'egress.<HBASE_CONFIGURATION_KEY>'. Each listed HBase configuration key
+// MUST have a value defined in the 'egress.' prefixed configuration parameter.
+//
+#egress.hbase.config = 
 
 //
 // Port onto which the egress server should listen

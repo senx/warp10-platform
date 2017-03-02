@@ -77,7 +77,13 @@ public class EgressFindHandler extends AbstractHandler {
     } else {
       return;
     }
-     
+
+    //
+    // Add CORS header
+    //
+
+    resp.setHeader("Access-Control-Allow-Origin", "*");
+
     String selector = req.getParameter(Constants.HTTP_PARAM_SELECTOR);
     
     String token = req.getParameter(Constants.HTTP_PARAM_TOKEN);

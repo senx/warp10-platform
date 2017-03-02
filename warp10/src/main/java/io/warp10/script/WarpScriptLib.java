@@ -356,6 +356,7 @@ public class WarpScriptLib {
     functions.put("RTFM", new RTFM("RTFM"));
     
     functions.put("REXEC", new REXEC("REXEC"));
+    functions.put("REXECZ", new REXEC("REXECZ", true));
     
     //
     // Stack manipulation functions
@@ -780,6 +781,8 @@ public class WarpScriptLib {
     functions.put("WRAPOPT", new WRAP("WRAPOPT", true));
     functions.put("WRAPRAWOPT", new WRAPRAW("WRAPRAWOPT", true));
     functions.put(UNWRAP, new UNWRAP(UNWRAP));
+    functions.put("UNWRAPEMPTY", new UNWRAP("UNWRAPEMPTY", true));
+    functions.put("UNWRAPSIZE", new UNWRAPSIZE("UNWRAPSIZE"));
     
     //
     // Outlier detection

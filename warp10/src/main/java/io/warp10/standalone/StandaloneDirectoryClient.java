@@ -588,6 +588,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     //
     
     if (null == this.db) {
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, -1);
       return;
     }
 
