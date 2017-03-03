@@ -122,6 +122,8 @@ public class WarpScriptMacroRepository extends Thread {
       
       byte[] buf = new byte[8192];
       
+      boolean hasNew = false;
+      
       for (File file: files) {
         
         String name = file.getAbsolutePath().substring(rootdir.length() + 1).replaceAll("\\.mc2$", "");
@@ -170,6 +172,8 @@ public class WarpScriptMacroRepository extends Thread {
             continue;
           }
       
+          hasNew = true;
+          
           sb.append(new String(data, Charsets.UTF_8));
           
           sb.append("\n");
@@ -244,10 +248,12 @@ public class WarpScriptMacroRepository extends Thread {
       // Replace the previous macros
       //
       
-      synchronized(macros) {
-        macros.clear();
-        macros.putAll(newmacros);
-        fingerprints = newfingerprints;
+      if (hasNew) {
+        synchronized(macros) {
+          macros.clear();
+          macros.putAll(newmacros);
+          fingerprints = newfingerprints;
+        }        
       }
       
       //
@@ -267,10 +273,11 @@ public class WarpScriptMacroRepository extends Thread {
     }
   }
   
-  public static Macro find(String name) throws WarpScriptException {    
-    Macro macro = (Macro) macros.get(name);
-    
-    return macro;
+  public static Macro find(String name) throws WarpScriptException {
+    synchronized(macros) {
+      Macro macro = (Macro) macros.get(name);
+      return macro;
+    }    
   }
   
   public List<File> getEinsteinFiles(String rootdir) {
