@@ -3,8 +3,28 @@
 # Script to create a snapshot of the leveldb (standalone) version of Warp.
 #
 
-LEVELDB_HOME=/opt/warp10-@VERSION@/data
+#JAVA_HOME=/opt/java8
+WARP10_USER=warp10
+WARP10_CLASS=io.warp10.standalone.Warp
 
+if [ "$#" -eq 1 ]; then
+  # Name of snapshot
+  SNAPSHOT=$1
+  # default
+  WARP10_HOME=/opt/warp10-@VERSION@
+  LEVELDB_HOME=${WARP10_HOME}/data
+elif [ "$#" -eq 3 ]; then
+  # Name of snapshot
+  SNAPSHOT=$1
+  # default
+  WARP10_HOME=$2
+  LEVELDB_HOME=$3
+else
+  echo "Usage: $0 'snapshot-name' ['{WARP10_HOME}' '{LEVELDB_HOME}']"
+  exit 1
+fi
+
+WARP10_CONFIG=${WARP10_HOME}/etc/conf-standalone.conf
 # Snapshot directory, MUST be on the same device as LEVELDB_HOME so we can create hard links
 SNAPSHOT_DIR=${LEVELDB_HOME}/snapshots
 
@@ -12,13 +32,6 @@ SNAPSHOT_DIR=${LEVELDB_HOME}/snapshots
 TRIGGER_PATH=${LEVELDB_HOME}/snapshot.trigger
 # Path to the 'signal' file
 SIGNAL_PATH=${LEVELDB_HOME}/snapshot.signal
-
-# Name of snapshot
-SNAPSHOT=$1
-
-#JAVA_HOME=/opt/java8
-WARP10_USER=warp10
-WARP10_CLASS=io.warp10.standalone.Warp
 
 #
 # Make sure the caller is root
@@ -136,3 +149,12 @@ su ${WARP10_USER} -c "cp ${LEVELDB_HOME}/*.log ${SNAPSHOT_DIR}/${SNAPSHOT}"
 #
 
 su ${WARP10_USER} -c "rm -f ${TRIGGER_PATH}"
+
+#
+# Snapshot configuration (contains hash/aes keys)
+#
+
+su ${WARP10_USER} -c "mkdir ${SNAPSHOT_DIR}/${SNAPSHOT}/warp10-config"
+# only warp10 user can have access to this config
+chmod 700 ${SNAPSHOT_DIR}/${SNAPSHOT}/warp10-config
+su ${WARP10_USER} -c "cp  ${WARP10_CONFIG} ${SNAPSHOT_DIR}/${SNAPSHOT}/warp10-config/"
