@@ -279,7 +279,7 @@ status() {
 snapshot() {
   # Name of snapshot
   SNAPSHOT=$1
-  ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT}
+  ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT} "${WARP10_HOME}" "${LEVELDB_HOME}" 
 }
 
 worf() {
