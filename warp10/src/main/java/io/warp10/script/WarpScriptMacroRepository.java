@@ -240,7 +240,8 @@ public class WarpScriptMacroRepository extends Thread {
           Macro macro = new Macro();
           macro.add("Error while loading macro '" + name + "': " + e.getMessage());
           macro.add(MSGFAIL_FUNC);
-          newmacros.put(name, macro);            
+          newmacros.put(name, macro);
+          hasNew = true;
         }
       }
       
