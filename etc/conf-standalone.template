@@ -114,7 +114,7 @@ warpscript.maxloop.hard = 10000
 standalone.home = /opt/warp10-@VERSION@
 
 //
-// Jar Repository
+// Jar Repository - for Warp10 UDF only
 //
 
 warpscript.jars.directory = ${standalone.home}/jars
@@ -263,7 +263,7 @@ warpscript.call.directory = ${standalone.home}/calls
 //
 // Directory where the leveldb files should be created
 //
-leveldb.home = ${standalone.home}/data
+leveldb.home = ${standalone.home}/leveldb
 
 //
 // AES key to use for wrapping metadata prior to storage in leveldb
@@ -329,12 +329,12 @@ standalone.max.encoder.size = 100000
 //
 // Path to a file to use for triggering compaction suspension to take snapshots
 //
-standalone.snapshot.trigger = ${standalone.home}/data/snapshot.trigger
+standalone.snapshot.trigger = ${standalone.home}/leveldb/snapshot.trigger
 
 //
 // Path to a file to use for signaling that compactions are suspended
 //
-standalone.snapshot.signal = ${standalone.home}/data/snapshot.signal
+standalone.snapshot.signal = ${standalone.home}/leveldb/snapshot.signal
 
 //
 // Configuration parameter to modify the datalog header. DO NOT MODIFY
@@ -443,7 +443,7 @@ quantum.host = ${standalone.host}
 // a file in this directory with the timestamp, the token used and the action type. These files can then
 // be used to update another instance of Warp 10
 //
-#datalog.dir = ${standalone.home}/data/datalog
+#datalog.dir = ${standalone.home}/datalog
 
 //
 // Unique id for this datalog instance.
@@ -466,12 +466,12 @@ quantum.host = ${standalone.host}
 // Directory where datalog files to forward reside. If this property and 'datalog.forwarder.dstdir' are set, then
 // the DatalogForwarder daemon will run.
 //
-#datalog.forwarder.srcdir = ${standalone.home}/data/datalog
+#datalog.forwarder.srcdir = ${standalone.home}/datalog
 
 //
 // Directory where forwarded datalog files will be moved. MUST be on the same device as datalog.forwarder.srcdir
 //
-#datalog.forwarder.dstdir = ${standalone.home}/data/datalog_done
+#datalog.forwarder.dstdir = ${standalone.home}/datalog_done
 
 //
 // Set to 'true' to delete the datalog files which were forwarded. If set to false or absent, such files will be moved
@@ -643,7 +643,7 @@ throttling.manager.mads.default = 100000
 //
 // Directory where subscriptions should be stored
 //
-#standalone.geodir.subs.dir = ${standalone.home}/data
+#standalone.geodir.subs.dir = ${standalone.home}/geodir
 
 //
 // Prefix for subscription files

@@ -21,17 +21,19 @@ mkdir ${ARCHIVE}
 cd ${ARCHIVE}
 mkdir -p ${WARP10_HOME}/bin
 mkdir -p ${WARP10_HOME}/templates
-mkdir -p ${WARP10_HOME}/data/snapshots
-mkdir -p ${WARP10_HOME}/data/datalog
-mkdir -p ${WARP10_HOME}/data/datalog_done
+mkdir -p ${WARP10_HOME}/leveldb/snapshots
+mkdir -p ${WARP10_HOME}/datalog
+mkdir -p ${WARP10_HOME}/datalog_done
 mkdir -p ${WARP10_HOME}/etc/throttle
 mkdir -p ${WARP10_HOME}/macros
 mkdir -p ${WARP10_HOME}/jars
+mkdir -p ${WARP10_HOME}/lib
 mkdir -p ${WARP10_HOME}/warpscripts/test/60000
 mkdir -p ${WARP10_HOME}/calls
 mkdir -p ${WARP10_HOME}/etc/bootstrap
 mkdir -p ${WARP10_HOME}/etc/trl
 mkdir -p ${WARP10_HOME}/logs
+mkdir -p ${WARP10_HOME}/geodir
 
 # Get Quantum plugin
 URL_QUANTUM_PLUGIN="https://dl.bintray.com/cityzendata/generic/io/warp10/warp10-quantum-plugin/${QUANTUM_VERSION}/warp10-quantum-plugin-${QUANTUM_VERSION}.jar"
@@ -43,8 +45,8 @@ curl -L ${URL_QUANTUM_PLUGIN} -o warp10-quantum-plugin-${QUANTUM_VERSION}.jar
 # test archive is ok
 unzip -t warp10-quantum-plugin-${QUANTUM_VERSION}.jar > /dev/null
 if [ $? -ne 0 ]; then
-    echo "Error during Quantum download"
-    exit 1
+  echo "Error during Quantum download"
+  exit 1
 fi
 
 cd ${ARCHIVE}
@@ -76,6 +78,7 @@ chmod 755 ${WARP10_HOME}/templates
 chmod 755 ${WARP10_HOME}/macros
 chmod 644 ${WARP10_HOME}/macros/README
 chmod 755 ${WARP10_HOME}/jars
+chmod 755 ${WARP10_HOME}/lib
 chmod -R 755 ${WARP10_HOME}/warpscripts
 chmod 644 ${WARP10_HOME}/warpscripts/test/60000/*.mc2*
 chmod 755 ${WARP10_HOME}/calls
@@ -86,10 +89,13 @@ chmod 755 ${WARP10_HOME}/etc/trl
 chmod 755 ${WARP10_HOME}/etc/bootstrap
 chmod 644 ${WARP10_HOME}/etc/bootstrap/*.mc2
 chmod 644 ${WARP10_HOME}/README.*
-chmod -R 755 ${WARP10_HOME}/data
+chmod -R 755 ${WARP10_HOME}/leveldb
+chmod -R 755 ${WARP10_HOME}/datalog
+chmod -R 755 ${WARP10_HOME}/datalog_done
 chmod 755 ${WARP10_HOME}/bin/*.sh
 chmod 755 ${WARP10_HOME}/bin/*.init
 chmod 644 ${WARP10_HOME}/bin/warp10-${VERSION}.jar
+chmod 755 ${WARP10_HOME}/geodir
 
 # Build tar
 tar czpf ../build/libs/warp10-${VERSION}.tar.gz ${WARP10_HOME}
