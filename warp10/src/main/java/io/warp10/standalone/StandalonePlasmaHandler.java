@@ -78,6 +78,8 @@ import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import org.eclipse.jetty.websocket.server.WebSocketHandler;
+import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
+import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 
@@ -314,8 +316,6 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
     }
     this.metadataKey = keystore.getKey(KeyStore.AES_KAFKA_METADATA);
     
-    configure(super.getWebSocketFactory());
-    
     if (startThread) {
       Thread t = new Thread(this);
       t.setDaemon(true);
@@ -353,7 +353,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
     
     WebSocketCreator creator = new WebSocketCreator() {
       @Override
-      public Object createWebSocket(UpgradeRequest req, UpgradeResponse resp) {
+      public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp) {
         StandalonePlasmaWebSocket ws = (StandalonePlasmaWebSocket) oldcreator.createWebSocket(req, resp);
         ws.setHandler(self);
         return ws;
@@ -366,7 +366,8 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
     // Update the maxMessageSize if need be
     //
     if (this.properties.containsKey(Configuration.PLASMA_FRONTEND_WEBSOCKET_MAXMESSAGESIZE)) {
-      factory.getPolicy().setMaxMessageSize(Long.parseLong(this.properties.getProperty(Configuration.PLASMA_FRONTEND_WEBSOCKET_MAXMESSAGESIZE)));
+      factory.getPolicy().setMaxTextMessageSize((int) Long.parseLong(this.properties.getProperty(Configuration.PLASMA_FRONTEND_WEBSOCKET_MAXMESSAGESIZE)));
+      factory.getPolicy().setMaxBinaryMessageSize((int) Long.parseLong(this.properties.getProperty(Configuration.PLASMA_FRONTEND_WEBSOCKET_MAXMESSAGESIZE)));
     }
 
     super.configure(factory);
@@ -552,7 +553,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
     
     if (refcount > 0) {
       
-      long maxmessagesize = this.getWebSocketFactory().getPolicy().getMaxMessageSize();
+      long maxmessagesize = Math.min(this.getWebSocketFactory().getPolicy().getMaxTextMessageSize(), this.getWebSocketFactory().getPolicy().getMaxBinaryMessageSize());
       
       StringBuilder metasb = new StringBuilder();
       StringBuilder sb = new StringBuilder();
@@ -727,6 +728,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
                   sb.append(" ");
                 }
                 GTSHelper.encodeValue(sb, decoder.getValue());
+                sb.append("\n");
                 first = false;
               }
               

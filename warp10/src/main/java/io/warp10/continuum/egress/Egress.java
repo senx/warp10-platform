@@ -32,7 +32,7 @@ import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.HandlerList;
-import org.eclipse.jetty.servlets.gzip.GzipHandler;
+import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 
 import com.google.common.base.Preconditions;
 
@@ -133,25 +133,21 @@ public class Egress {
       GzipHandler gzip = new GzipHandler();
       EgressExecHandler egressExecHandler = new EgressExecHandler(this.keystore, this.properties, directoryClient, geoDirectoryClient, storeClient);
       gzip.setHandler(egressExecHandler);
-      gzip.setBufferSize(65536);
       gzip.setMinGzipSize(0);
       handlers.addHandler(gzip);
           
       gzip = new GzipHandler();    
       gzip.setHandler(new EgressFetchHandler(this.keystore, this.properties, directoryClient, storeClient));
-      gzip.setBufferSize(65536);
       gzip.setMinGzipSize(0);
       handlers.addHandler(gzip);
       
       gzip = new GzipHandler();
       gzip.setHandler(new EgressFindHandler(this.keystore, directoryClient));
-      gzip.setBufferSize(65536);
       gzip.setMinGzipSize(0);
       handlers.addHandler(gzip);
       
       gzip = new GzipHandler();
       gzip.setHandler(new EgressSplitsHandler(this.keystore, directoryClient, (HBaseStoreClient) storeClient));
-      gzip.setBufferSize(65536);
       gzip.setMinGzipSize(0);
       handlers.addHandler(gzip);
 
@@ -160,7 +156,6 @@ public class Egress {
     } else {
       GzipHandler gzip = new GzipHandler();
       gzip.setHandler(new EgressFetchHandler(this.keystore, this.properties, null, storeClient));
-      gzip.setBufferSize(65536);
       gzip.setMinGzipSize(0);
       handlers.addHandler(gzip);      
     }

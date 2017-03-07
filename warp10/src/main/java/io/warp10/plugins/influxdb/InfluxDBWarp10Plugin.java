@@ -41,7 +41,7 @@ public class InfluxDBWarp10Plugin extends AbstractWarp10Plugin implements Runnab
   
   @Override
   public void run() {
-    Server server = new Server(new QueuedThreadPool(maxThreads, 8, (int) idleTimeout, queue));
+    Server server = new Server(new QueuedThreadPool(maxThreads, 9, (int) idleTimeout, queue));
     ServerConnector connector = new ServerConnector(server, acceptors, selectors);
     connector.setIdleTimeout(idleTimeout);
     connector.setPort(port);
@@ -72,7 +72,7 @@ public class InfluxDBWarp10Plugin extends AbstractWarp10Plugin implements Runnab
   public void init(Properties properties) {
     this.acceptors = Integer.parseInt(properties.getProperty(CONF_INFLUXDB_ACCEPTORS, "4"));
     this.selectors = Integer.parseInt(properties.getProperty(CONF_INFLUXDB_SELECTORS, "2"));
-    this.maxThreads = Integer.parseInt(properties.getProperty(CONF_INFLUXDB_JETTY_THREADPOOL, "8"));
+    this.maxThreads = Integer.parseInt(properties.getProperty(CONF_INFLUXDB_JETTY_THREADPOOL, "9"));
     this.idleTimeout = Integer.parseInt(properties.getProperty(CONF_INFLUXDB_IDLE_TIMEOUT, "30000"));
     this.port = Integer.parseInt(properties.getProperty(CONF_INFLUXDB_PORT, "8086"));
     this.host = properties.getProperty(CONF_INFLUXDB_HOST, "127.0.0.1");

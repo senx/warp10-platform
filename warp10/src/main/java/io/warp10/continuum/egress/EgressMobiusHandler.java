@@ -62,6 +62,8 @@ import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import org.eclipse.jetty.websocket.server.WebSocketHandler;
+import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
+import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 
@@ -261,10 +263,7 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
     if (properties.containsKey(Configuration.CONFIG_WARPSCRIPT_MOBIUS_POOL)) {
       this.poolsize = Integer.parseInt(properties.getProperty(Configuration.CONFIG_WARPSCRIPT_MOBIUS_POOL));
     }
-    
-    configure(super.getWebSocketFactory());
-    
-    
+            
     Thread t = new Thread(this);
     t.setDaemon(true);
     t.setName("[MobiusHandler]");
@@ -292,7 +291,7 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
     
     WebSocketCreator creator = new WebSocketCreator() {
       @Override
-      public Object createWebSocket(UpgradeRequest req, UpgradeResponse resp) {
+      public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp) {
         MobiusWebSocket ws = (MobiusWebSocket) oldcreator.createWebSocket(req, resp);
         ws.setMobiusHandler(self);
         return ws;

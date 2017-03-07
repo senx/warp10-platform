@@ -65,6 +65,8 @@ import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import org.eclipse.jetty.websocket.server.WebSocketHandler;
+import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
+import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 import org.joda.time.format.DateTimeFormat;
@@ -95,7 +97,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
   
   private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
 
-  @WebSocket(maxMessageSize=1024 * 1024)
+  @WebSocket(maxTextMessageSize=1024 * 1024, maxBinaryMessageSize=1024 * 1024)
   public static class StandaloneStreamUpdateWebSocket {
     
     private static final int METADATA_CACHE_SIZE = 1000;
@@ -505,11 +507,9 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
       this.datalogPSK = this.keyStore.decodeKey(properties.getProperty(Configuration.DATALOG_PSK));
     } else {
       this.datalogPSK = null;
-    }
-    
-    configure(super.getWebSocketFactory());    
+    }    
   }
-        
+     
   public DirectoryClient getDirectoryClient() {
     return this.directoryClient;
   }
@@ -531,7 +531,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     
     WebSocketCreator creator = new WebSocketCreator() {
       @Override
-      public Object createWebSocket(UpgradeRequest req, UpgradeResponse resp) {
+      public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp) {
         StandaloneStreamUpdateWebSocket ws = (StandaloneStreamUpdateWebSocket) oldcreator.createWebSocket(req, resp);
         ws.setHandler(self);
         return ws;
@@ -544,7 +544,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     // Update the maxMessageSize if need be
     //
     if (this.properties.containsKey(Configuration.INGRESS_WEBSOCKET_MAXMESSAGESIZE)) {
-      factory.getPolicy().setMaxMessageSize(Long.parseLong(this.properties.getProperty(Configuration.INGRESS_WEBSOCKET_MAXMESSAGESIZE)));
+      factory.getPolicy().setMaxTextMessageSize((int) Long.parseLong(this.properties.getProperty(Configuration.INGRESS_WEBSOCKET_MAXMESSAGESIZE)));
+      factory.getPolicy().setMaxBinaryMessageSize((int) Long.parseLong(this.properties.getProperty(Configuration.INGRESS_WEBSOCKET_MAXMESSAGESIZE)));
     }
 
     super.configure(factory);
