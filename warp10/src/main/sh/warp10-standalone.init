@@ -22,6 +22,11 @@ OS=$(uname -s)
 #JAVA_HOME=/opt/java8
 #WARP10_HOME=/opt/warp10-@VERSION@
 
+if [ -z "$JAVA_HOME" ]; then
+  echo "JAVA_HOME not set";
+  exit 1
+fi
+
 # If WARP10_HOME is not defined, set it to the parent directory
 if [ -z "${WARP10_HOME}" ]; then
   if [ "Darwin" = "${OS}" ]
@@ -55,6 +60,7 @@ IS_JAVA7=false
 
 WARP10_REVISION=@VERSION@
 WARP10_USER=warp10
+WARP10_GROUP=warp10
 WARP10_CONFIG=${WARP10_HOME}/etc/conf-standalone.conf
 WARP10_JAR=${WARP10_HOME}/bin/warp10-${WARP10_REVISION}.jar
 WARP10_CLASS=io.warp10.standalone.Warp
@@ -85,7 +91,7 @@ initConfig() {
   echo "Fix ownership.."
   echo "WARP10_HOME: ${WARP10_HOME}"
 
-  chown -R ${WARP10_USER} ${WARP10_HOME}
+  chown -R ${WARP10_USER}:${WARP10_GROUP} ${WARP10_HOME}
 
   # Fix permissions
   echo "Fix permissions.."
@@ -130,8 +136,17 @@ initConfig() {
     fi
 
     # force ownerships / permissions
-    chown ${WARP10_USER} ${WARP10_DATA_DIR}
+    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}
     chmod 750 ${WARP10_DATA_DIR}
+
+    #
+    # Test access to WARP10_DATA_DIR and its parent directories
+    #
+    su ${WARP10_USER} -c "ls ${WARP10_DATA_DIR} 2>&1"
+    if [ $? != 0 ]; then
+      echo "ERROR: Cannot access to ${WARP10_DATA_DIR}"
+      exit 1
+    fi
 
     # Move logs dir to ${WARP10_DATA_DIR}
     if [ -e ${WARP10_DATA_DIR}/logs ]; then
@@ -144,6 +159,8 @@ initConfig() {
       exit 1
     fi
     ln -s ${WARP10_DATA_DIR}/logs ${WARP10_HOME}/logs
+    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/logs
+    chmod 755 ${WARP10_DATA_DIR}/logs
 
     # Move etc dir to ${WARP10_DATA_DIR}
     if [ -e ${WARP10_DATA_DIR}/etc ]; then
@@ -156,6 +173,8 @@ initConfig() {
       exit 1
     fi
     ln -s ${WARP10_DATA_DIR}/etc ${WARP10_HOME}/etc
+    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/etc
+    chmod 755 ${WARP10_DATA_DIR}/etc
 
     # Move leveldb dir to ${WARP10_DATA_DIR}
     if [ -e ${WARP10_DATA_DIR}/leveldb ]; then
@@ -168,6 +187,8 @@ initConfig() {
       exit 1
     fi
     ln -s ${WARP10_DATA_DIR}/leveldb ${WARP10_HOME}/leveldb
+    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/leveldb
+    chmod 755 ${WARP10_DATA_DIR}/leveldb
 
     # Move datalog dir to ${WARP10_DATA_DIR}
     if [ -e ${WARP10_DATA_DIR}/datalog ]; then
@@ -180,6 +201,8 @@ initConfig() {
       exit 1
     fi
     ln -s ${WARP10_DATA_DIR}/datalog ${WARP10_HOME}/datalog
+    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/datalog
+    chmod 755 ${WARP10_DATA_DIR}/datalog
 
     # Move datalog_done dir to ${WARP10_DATA_DIR}
     if [ -e ${WARP10_DATA_DIR}/datalog_done ]; then
@@ -192,6 +215,8 @@ initConfig() {
       exit 1
     fi
     ln -s ${WARP10_DATA_DIR}/datalog_done ${WARP10_HOME}/datalog_done
+    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/datalog_done
+    chmod 755 ${WARP10_DATA_DIR}/datalog_done
 
     # Move macros dir to ${WARP10_DATA_DIR}
     if [ -e ${WARP10_DATA_DIR}/macros ]; then
@@ -204,6 +229,8 @@ initConfig() {
       exit 1
     fi
     ln -s ${WARP10_DATA_DIR}/macros ${WARP10_HOME}/macros
+    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/macros
+    chmod 755 ${WARP10_DATA_DIR}/macros
 
     # Move jars dir to ${WARP10_DATA_DIR}
     if [ -e ${WARP10_DATA_DIR}/jars ]; then
@@ -216,6 +243,8 @@ initConfig() {
       exit 1
     fi
     ln -s ${WARP10_DATA_DIR}/jars ${WARP10_HOME}/jars
+    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/jars
+    chmod 755 ${WARP10_DATA_DIR}/jars
 
     # Move lib to ${WARP10_DATA_DIR}
     if [ -e ${WARP10_DATA_DIR}/lib ]; then
@@ -228,6 +257,8 @@ initConfig() {
       exit 1
     fi
     ln -s ${WARP10_DATA_DIR}/lib ${WARP10_HOME}/lib
+    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/lib
+    chmod 755 ${WARP10_DATA_DIR}/lib
 
     # Move warpscripts dir to ${WARP10_DATA_DIR}
     if [ -e ${WARP10_DATA_DIR}/warpscripts ]; then
@@ -240,6 +271,8 @@ initConfig() {
       exit 1
     fi
     ln -s ${WARP10_DATA_DIR}/warpscripts ${WARP10_HOME}/warpscripts
+    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/warpscripts
+    chmod 755 ${WARP10_DATA_DIR}/warpscripts
   fi
 
   sed -i -e "s_^standalone\.home.*_standalone\.home = ${WARP10_HOME}_" ${WARP10_HOME}/templates/conf-standalone.template
@@ -266,11 +299,6 @@ initConfig() {
 }
 
 start() {
-  if [ -z "$JAVA_HOME" ]; then
-    echo "JAVA_HOME not set";
-    exit 1
-  fi
-
   CHECK_JAVA7="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -version 2>&1 | head -n 1 | grep '.*\\"1.7.*'"`"
   if [ "$CHECK_JAVA7" != "" ]; then
     IS_JAVA7=true
