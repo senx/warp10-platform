@@ -5,9 +5,9 @@
 Standalone binary is available via bintray: https://bintray.com/cityzendata/generic/warp10/
 
 ~~~
-wget https://bintray.com/artifact/download/cityzendata/generic/warp10-1.0.1.tar.gz
-tar xf warp10-1.0.1.tar.gz
-cd warp10-1.0.1
+wget https://bintray.com/artifact/download/cityzendata/generic/warp10-X.Y.Z.tar.gz
+tar xf warp10-X.Y.Z.tar.gz
+cd warp10-X.Y.Z
 ~~~
 
 ## Start Warp 10 Standalone
