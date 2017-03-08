@@ -531,7 +531,7 @@ project(':warp10') {
         from {
             configurations.compile.collect {
                 it.isDirectory() ? it : zipTree(it).matching {
-                    exclude { it.toString().contains('servlet-api') }
+                    //exclude { it.toString().contains('servlet-api') }
                     exclude { it.toString().contains('jmh') }
                     exclude { it.toString().contains('junit') }
                     exclude { it.toString().contains('parquet') }
