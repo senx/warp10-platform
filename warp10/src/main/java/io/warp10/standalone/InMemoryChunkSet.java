@@ -448,7 +448,9 @@ try {
             ticks[idx++] = ts;
           }
           
-          Arrays.sort(ticks, 0, idx);
+          if (idx > 1) {
+            Arrays.sort(ticks, 0, idx);
+          }
         
           chunkDecoder = dupdecoder;
           
