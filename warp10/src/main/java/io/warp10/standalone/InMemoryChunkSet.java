@@ -471,13 +471,16 @@ try {
             // The intermediary decoder has less than nvalues whose ts is <= now, transfer everything
             chunkDecoder = dupdecoder;
             
-            while(chunkDecoder.next()) {
+            int valid = idx;
+            
+            while(valid > 0 && chunkDecoder.next()) {
               long ts = chunkDecoder.getTimestamp();
               if (ts > now) {
                 continue;
               }
               encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
               nvalues--;
+              valid--;
             }                                              
           }
         }
