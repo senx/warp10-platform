@@ -215,6 +215,8 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
         // Schedule macro        
         //
         synchronized(macros) {
+          // Remove current scheduled execution for this session
+          scheduledRuns.remove(session);
           macros.put(session, macro);
           deadlines.put(session, System.currentTimeMillis());
           contexts.put(session, null);
