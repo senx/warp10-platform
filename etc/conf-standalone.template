@@ -329,12 +329,12 @@ standalone.max.encoder.size = 100000
 //
 // Path to a file to use for triggering compaction suspension to take snapshots
 //
-standalone.snapshot.trigger = ${standalone.home}/leveldb/snapshot.trigger
+standalone.snapshot.trigger = ${leveldb.home}/snapshot.trigger
 
 //
 // Path to a file to use for signaling that compactions are suspended
 //
-standalone.snapshot.signal = ${standalone.home}/leveldb/snapshot.signal
+standalone.snapshot.signal = ${leveldb.home}/snapshot.signal
 
 //
 // Configuration parameter to modify the datalog header. DO NOT MODIFY
