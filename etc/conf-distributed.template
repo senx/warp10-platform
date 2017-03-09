@@ -124,8 +124,7 @@ warp.aes.metasets = hex:hhhhhhhh....
 warpscript.def.unshadow = false
 
 //
-// Jar Repository
-// 
+// Jar Repository - for Warp10 UDF only
 //
 
 // The path to a directory containing jar files from which UDFs can be loaded
