@@ -344,7 +344,7 @@ public class EgressExecHandler extends AbstractHandler {
       StackUtils.toJSON(resp.getWriter(), stack);
     } catch (Exception e) {
       t = e;      
-      
+
       if (t instanceof EmptyStackException) {
         t = new WarpScriptException("Empty stack", t);
       }
@@ -401,12 +401,19 @@ public class EgressExecHandler extends AbstractHandler {
         resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         PrintWriter pw = resp.getWriter();
         
-        try { stack.push("ERROR line #" + lineno + ": " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : "")); if (debugDepth < Integer.MAX_VALUE) { debugDepth++; } } catch (WarpScriptException ee) {}
+        try {
+          // Set max stack depth to max int value - 1 so we can push our error message
+          stack.setAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH, Integer.MAX_VALUE - 1);
+          stack.push("ERROR line #" + lineno + ": " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : "")); if (debugDepth < Integer.MAX_VALUE) { debugDepth++; }
+        } catch (WarpScriptException ee) {
+        }
 
         try { StackUtils.toJSON(pw, stack, debugDepth); } catch (WarpScriptException ee) {}
 
       } else {
-        throw new IOException("ERROR line #" + lineno + ": " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : ""));
+        String msg = "ERROR line #" + lineno + ": " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : "");
+        resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
+        //throw new IOException(msg);
       }
     } finally {
       // Clear this metric in case there was an exception
