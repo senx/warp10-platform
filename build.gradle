@@ -377,8 +377,6 @@ project(':warp10') {
     }
 
     dependencies {
-        provided group: 'javax.servlet', name: 'servlet-api', version: '2.5'
-
         //
         // io.warp10 dependencies
         //
@@ -444,10 +442,14 @@ project(':warp10') {
         compile group: 'org.fusesource.jansi', name: 'jansi', version: '1.6'
         //compile group: 'org.mvel', name: 'mvel2', version: '2.1.5.Final'
         compile group: 'com.esotericsoftware.kryo', name: 'kryo', version: '2.21'
-        compile group: 'org.eclipse.jetty', name: 'jetty-server', version: '9.0.5.v20130815'
-        compile group: 'org.eclipse.jetty', name: 'jetty-servlets', version: '9.0.5.v20130815'
-        compile group: 'org.eclipse.jetty.websocket', name: 'websocket-server', version: '9.0.5.v20130815'
-        compile group: 'org.eclipse.jetty.websocket', name: 'websocket-client', version: '9.0.5.v20130815'
+        //compile group: 'org.eclipse.jetty', name: 'jetty-server', version: '9.0.5.v20130815'
+        //compile group: 'org.eclipse.jetty', name: 'jetty-servlets', version: '9.0.5.v20130815'
+        //compile group: 'org.eclipse.jetty.websocket', name: 'websocket-server', version: '9.0.5.v20130815'
+        //compile group: 'org.eclipse.jetty.websocket', name: 'websocket-client', version: '9.0.5.v20130815'
+        compile group: 'org.eclipse.jetty', name: 'jetty-server', version: '9.4.2.v20170220'
+        compile group: 'org.eclipse.jetty', name: 'jetty-servlets', version: '9.4.2.v20170220'
+        compile group: 'org.eclipse.jetty.websocket', name: 'websocket-server', version: '9.4.2.v20170220'
+        compile group: 'org.eclipse.jetty.websocket', name: 'websocket-client', version: '9.4.2.v20170220'
         compile group: 'com.netflix.curator', name: 'curator-x-discovery', version: '1.3.3'
         //compile group: 'com.google.code.gson', name: 'gson', version: '2.2.4'
         compile group: 'io.fastjson', name: 'boon', version: '0.14'
@@ -527,7 +529,7 @@ project(':warp10') {
         from {
             configurations.compile.collect {
                 it.isDirectory() ? it : zipTree(it).matching {
-                    exclude { it.toString().contains('servlet-api') }
+                    exclude { it.toString().contains('/servlet-api') }
                     exclude { it.toString().contains('jmh') }
                     exclude { it.toString().contains('junit') }
                     exclude { it.toString().contains('parquet') }

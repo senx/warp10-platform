@@ -54,7 +54,7 @@ import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.HandlerList;
-import org.eclipse.jetty.servlets.gzip.GzipHandler;
+import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 import org.fusesource.leveldbjni.JniDBFactory;
 import org.iq80.leveldb.CompressionType;
 import org.iq80.leveldb.DB;
@@ -346,44 +346,36 @@ public class Warp extends WarpDist implements Runnable {
     GzipHandler gzip = new GzipHandler();
     EgressExecHandler egressExecHandler = new EgressExecHandler(keystore, properties, sdc, geodir.getClient(), scc); 
     gzip.setHandler(egressExecHandler);
-    gzip.setBufferSize(65536);
     gzip.setMinGzipSize(0);
     handlers.addHandler(gzip);
     setEgress(true);
 
     gzip = new GzipHandler();
     gzip.setHandler(new StandaloneIngressHandler(keystore, sdc, scc));
-    gzip.setBufferSize(65536);
     gzip.setMinGzipSize(0);
     handlers.addHandler(gzip);
 
     gzip = new GzipHandler();
     gzip.setHandler(new EgressFetchHandler(keystore, properties, sdc, scc));
-    gzip.setBufferSize(65536);
     gzip.setMinGzipSize(0);
     handlers.addHandler(gzip);
 
     gzip = new GzipHandler();
     gzip.setHandler(new EgressFindHandler(keystore, sdc));
-    gzip.setBufferSize(65536);
     gzip.setMinGzipSize(0);
     handlers.addHandler(gzip);
 
     gzip = new GzipHandler();
     gzip.setHandler(new StandaloneDeleteHandler(keystore, sdc, scc));
-    gzip.setBufferSize(65536);
     gzip.setMinGzipSize(0);
     handlers.addHandler(gzip);
     
     handlers.addHandler(geodir);    
 
-    //ContextHandler context = new ContextHandler();
     StandalonePlasmaHandler plasmaHandler = new StandalonePlasmaHandler(keystore, properties, sdc);
     scc.addPlasmaHandler(plasmaHandler);  
     scc.addPlasmaHandler(geodir);
     
-    //context.setHandler(plasmaHandler);
-    //handlers.addHandler(context);
     handlers.addHandler(plasmaHandler);
     
     StandaloneStreamUpdateHandler streamUpdateHandler = new StandaloneStreamUpdateHandler(keystore, properties, sdc, scc);

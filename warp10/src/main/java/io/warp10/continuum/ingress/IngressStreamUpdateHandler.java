@@ -51,6 +51,8 @@ import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import org.eclipse.jetty.websocket.server.WebSocketHandler;
+import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
+import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 
@@ -64,7 +66,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
     
   private final Ingress ingress;
   
-  @WebSocket(maxMessageSize=1024 * 1024)
+  @WebSocket(maxTextMessageSize=1024 * 1024, maxBinaryMessageSize=1024 * 1024)
   public static class StandaloneStreamUpdateWebSocket {
     
     private IngressStreamUpdateHandler handler;
@@ -342,10 +344,8 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
     super(StandaloneStreamUpdateWebSocket.class);
 
     this.ingress = ingress;
-
-    configure(super.getWebSocketFactory());    
-  }
-        
+  }      
+    
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
     if (Constants.API_ENDPOINT_PLASMA_UPDATE.equals(target)) {
@@ -364,7 +364,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
     WebSocketCreator creator = new WebSocketCreator() {
             
       @Override
-      public Object createWebSocket(UpgradeRequest req, UpgradeResponse resp) {
+      public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp) {
         StandaloneStreamUpdateWebSocket ws = (StandaloneStreamUpdateWebSocket) oldcreator.createWebSocket(req, resp);
         ws.setHandler(self);
         return ws;
@@ -377,7 +377,8 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
     // Update the maxMessageSize if need be
     //
     if (this.ingress.properties.containsKey(Configuration.INGRESS_WEBSOCKET_MAXMESSAGESIZE)) {
-      factory.getPolicy().setMaxMessageSize(Long.parseLong(this.ingress.properties.getProperty(Configuration.INGRESS_WEBSOCKET_MAXMESSAGESIZE)));
+      factory.getPolicy().setMaxTextMessageSize((int) Long.parseLong(this.ingress.properties.getProperty(Configuration.INGRESS_WEBSOCKET_MAXMESSAGESIZE)));
+      factory.getPolicy().setMaxBinaryMessageSize((int) Long.parseLong(this.ingress.properties.getProperty(Configuration.INGRESS_WEBSOCKET_MAXMESSAGESIZE)));
     }
     super.configure(factory);
   }    
