@@ -1522,7 +1522,29 @@ public class Configuration {
    * Defaults to 16. 
    */
   public static final String EGRESS_HBASE_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS = "egress.hbase.parallelscanners.max.parallel.scanners";
+
+  /**
+   * Number of threads to use for scheduling parallel scanners in the standalone version. Use 0 to disable parallel scanners
+   */
+  public static final String STANDALONE_PARALLELSCANNERS_POOLSIZE = "standalone.parallelscanners.poolsize";
+
+  /**
+   * Maximum number of parallel scanners per fetch request in the standalone version. Use 0 to disable parallel scanners.
+   */
+  public static final String STANDALONE_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST = "standalone.parallelscanners.maxinflightperrequest";
+
+  /**
+   * Minimum number of GTS to assign to a parallel scanner in the standalone version. If the number of GTS to fetch is below this limit, no
+   * parallel scanners will be spawned. Defaults to 4.
+   */
+  public static final String STANDALONE_PARALLELSCANNERS_MIN_GTS_PERSCANNER = "standalone.parallelscanners.min.gts.perscanner";
   
+  /**
+   * Maximum number of parallel scanners to use when fetching datapoints for a batch of GTS (see EGRESS_FETCH_BATCHSIZE) in the standalone version.
+   * Defaults to 16. 
+   */
+  public static final String STANDALONE_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS = "standalone.parallelscanners.max.parallel.scanners";
+
   /**
    * Geo Time Series count threshold above which block caching will be disabled for HBase scanners.
    * The goal is to limit the cache pollution when scanning large chunks of data.

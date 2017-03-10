@@ -144,6 +144,8 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       
       private GTSDecoder decoder = null;
       
+      private CapacityExtractorOutputStream extractor = new CapacityExtractorOutputStream();
+      
       @Override
       public void close() throws Exception {}
       
@@ -164,6 +166,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
           return true;
         }
         
+        // 128 bits
         byte[] bytes = new byte[16];
         
         while(true) {
@@ -202,7 +205,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
               InMemoryChunkSet chunkset = series.get(clslbls);
               
               try {
-                GTSDecoder dec = chunkset.fetch(now, timespan);
+                GTSDecoder dec = chunkset.fetch(now, timespan, extractor);
 
                 if (0 == dec.getCount()) {
                   idx++;
@@ -275,10 +278,6 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     //
     
     InMemoryChunkSet chunkset = null;
-    
-    //
-    // WARNING(hbs): the following 2 synchronized blocks MUST stay sequential (cf run())
-    //
     
     synchronized (this.series) {
       chunkset = this.series.get(clslbls);
@@ -402,7 +401,10 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
         // If count is zero check in a safe manner if this is
         // still the case and if it is, remove the chunkset for
         // this GTS.
-        // Note that it does not remove the GTS from the directory.
+        // Note that it does not remove the GTS from the directory
+        // as we do not hold a lock opening a critical section
+        // where we can guarantee that no GTS is added to the
+        // directory.
         //
        
         if (0 == count) {

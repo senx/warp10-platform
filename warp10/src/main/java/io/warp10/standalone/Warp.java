@@ -30,6 +30,7 @@ import io.warp10.continuum.egress.EgressMobiusHandler;
 import io.warp10.continuum.ingress.DatalogForwarder;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.ParallelGTSDecoderIteratorWrapper;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
@@ -308,6 +309,10 @@ public class Warp extends WarpDist implements Runnable {
       scc = new StandaloneStoreClient(db, keystore, properties);
     }
         
+    if (ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
+      scc = new StandaloneParallelStoreClientWrapper(scc);
+    }
+
     StandaloneGeoDirectory geodir = new StandaloneGeoDirectory(keystore.clone(), scc, sdc, properties);
     
     if (properties.containsKey(Configuration.RUNNER_ROOT)) {

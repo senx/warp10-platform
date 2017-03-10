@@ -32,8 +32,11 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.sensision.Sensision;
 
 public class InMemoryChunkSet {
-  // Keep track whether or not a GTSEncoder has all its timestamps in chronological order, speeds up fetching
-  // 
+  /**
+   * Maximum number of wasted bytes per encoder returned by fetch. Any waste above this limit
+   * will trigger a resize of the encoder.
+   */
+  private static final int ENCODER_MAX_WASTED = 1024;
   
   private final GTSEncoder[] chunks;
   
@@ -114,17 +117,19 @@ public class InMemoryChunkSet {
             this.chunkends[chunkid] = end;          
           }
           
-          chunkEncoder = this.chunks[chunkid];
-          
-          if (timestamp < this.lasttimestamp[chunkid]) {
-            this.chronological.set(chunkid, false);
-          }
-          this.lasttimestamp[chunkid] = timestamp;
+          chunkEncoder = this.chunks[chunkid];          
         }
         
         lastchunk = chunkid;
       }
 
+      synchronized(this.chunks[chunkid]) {
+        if (timestamp < this.lasttimestamp[chunkid]) {
+          this.chronological.set(chunkid, false);
+        }
+        this.lasttimestamp[chunkid] = timestamp;
+      }
+      
       chunkEncoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());      
     }
   }
@@ -173,8 +178,27 @@ public class InMemoryChunkSet {
    * @param timespan The timespan or value count to consider.
    * @return
    */
+  public GTSDecoder fetch(long now, long timespan, CapacityExtractorOutputStream extractor) throws IOException {
+    GTSEncoder encoder = fetchEncoder(now, timespan);
+
+    //
+    // Resize the encoder so we don't waste too much memory
+    //
+    
+    if (null != extractor) {      
+      encoder.writeTo(extractor);
+      int capacity = extractor.getCapacity();
+
+      if (capacity - encoder.size() > ENCODER_MAX_WASTED) {
+        encoder.resize(encoder.size());        
+      }
+    }
+
+    return encoder.getUnsafeDecoder(false);
+  }
+
   public GTSDecoder fetch(long now, long timespan) throws IOException {
-    return fetchEncoder(now, timespan).getUnsafeDecoder(false);
+    return fetch(now, timespan, null);
   }
   
   public List<GTSDecoder> getDecoders() {
@@ -194,9 +218,6 @@ public class InMemoryChunkSet {
   
   public GTSEncoder fetchEncoder(long now, long timespan) throws IOException {
 
-    // Clean up first
-    clean(TimeSource.getTime());
-    
     if (timespan < 0) {
       return fetchCountEncoder(now, -timespan);
     }
@@ -252,9 +273,9 @@ public class InMemoryChunkSet {
   private GTSDecoder fetchCount(long now, long count) throws IOException {
     return fetchCountEncoder(now, count).getUnsafeDecoder(false);
   }
-  
-  private GTSEncoder fetchCountEncoder(long now, long count) throws IOException {
 
+  private GTSEncoder fetchCountEncoder(long now, long count) throws IOException {
+try {
     //
     // Determine the chunk id of 'now'
     // We offset it by chunkcount so we can safely decrement and
@@ -262,13 +283,27 @@ public class InMemoryChunkSet {
     //
     int nowchunk = chunk(now) + this.chunkcount;
     
-    GTSEncoder encoder = new GTSEncoder();
+    //
+    // Create a target encoder with a hint based on the average size of datapoints
+    //
+    
+    long oursize = this.getSize();
+    long ourcount = this.getCount();
+    int avgsize = (int) Math.ceil((double) oursize / (double) ourcount);
+    int hint = (int) Math.min((int) (count * avgsize), this.getSize());
+    GTSEncoder encoder = new GTSEncoder(0L, null, hint);
     
     // Initialize the number of datapoints to fetch
     long nvalues = count;
     
     // Loop over the chunks
     for (int i = 0; i < this.chunkcount; i++) {
+      
+      // Are we done fetching datapoints?
+      if (nvalues <= 0) {
+        break;
+      }
+            
       int chunk = (nowchunk - i) % this.chunkcount;
       
       GTSDecoder chunkDecoder = null;
@@ -297,20 +332,22 @@ public class InMemoryChunkSet {
       // it is in chronological order or not
       
       if (inorder) {
-        //
-        // If the end timestamp of the chunk is before 'now' and the
-        // chunk contains less than the remaining values we need to fetch
-        // we can add everything.
-        //
         
         if (chunkEnd <= now && chunkDecoder.getCount() <= nvalues) {
+          //
+          // If the end timestamp of the chunk is before 'now' and the
+          // chunk contains less than the remaining values we need to fetch
+          // we can add everything.
+          //
           while(chunkDecoder.next()) {
             encoder.addValue(chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
             nvalues--;
           }
         } else if (chunkDecoder.getCount() <= nvalues) {
+          //
           // We have a chunk with chunkEnd > 'now' but which contains less than nvalues,
           // so we add all the values whose timestamp is <= 'now'
+          //
           while(chunkDecoder.next()) {
             long ts = chunkDecoder.getTimestamp();
             if (ts > now) {
@@ -337,44 +374,53 @@ public class InMemoryChunkSet {
               encoder.addValue(chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
               nvalues--;
             }          
-          } else {
-            // We will transfer the datapoints whose timestamp is <= now in a an intermediate encoder
-            GTSEncoder intenc = new GTSEncoder();
+          } else {            
+            // Duplicate the decoder so we can scan it again later
+            GTSDecoder dupdecoder = chunkDecoder.duplicate();
+            // We will count the number of datapoints whose timestamp is <= now
+            long valid = 0;
             while(chunkDecoder.next()) {
               long ts = chunkDecoder.getTimestamp();
               if (ts > now) {
                 // we can break because we know the encoder is in chronological order.
                 break;
               }
-              intenc.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
-              nvalues--;
+              valid++;
             }
-            // Then transfer the intermediate encoder to the result
-            chunkDecoder = intenc.getUnsafeDecoder(false);
-            long skip = chunkDecoder.getCount() - nvalues;
+            
+            chunkDecoder = dupdecoder;
+            long skip = valid - nvalues;
             while(skip > 0 && chunkDecoder.next()) {
               skip--;
+              valid--;
             }
-            while(chunkDecoder.next()) {
+            while(valid > 0 && chunkDecoder.next()) {
               encoder.addValue(chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
               nvalues--;
+              valid--;
             }                      
           }
         }
       } else {
         // The chunk decoder is not in chronological order...
         
-        // If the chunk decoder end is <= 'now' and the decoder contains less values than
-        // what is still needed, add everything.
-        
+        // Create a duplicate of the buffer in case we need it later
+        GTSDecoder dupdecoder = chunkDecoder.duplicate();
+                
         if (chunkEnd <= now && chunkDecoder.getCount() <= nvalues) {
+          //
+          // If the chunk decoder end is <= 'now' and the decoder contains less values than
+          // what is still needed, add everything.
+          //
           while(chunkDecoder.next()) {
             encoder.addValue(chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
             nvalues--;
           }          
         } else if(chunkDecoder.getCount() <= nvalues) {
+          //
           // We have a chunk with chunkEnd > 'now' but which contains less than nvalues,
           // so we add all the values whose timestamp is <= 'now'
+          //
           while(chunkDecoder.next()) {
             long ts = chunkDecoder.getTimestamp();
             if (ts > now) {
@@ -387,43 +433,65 @@ public class InMemoryChunkSet {
         } else {
           // We have a chunk which has more values than what we need and/or whose end
           // is after 'now'
-          // We will transfer the datapoints whose timestamp is <= now in a an intermediate encoder
-          GTSEncoder intenc = new GTSEncoder();
+          // We will transfer the datapoints whose timestamp is <= now in an array so we can sort them
+          
+          long[] ticks = new long[(int) chunkDecoder.getCount()];
+
+          int idx = 0;
+          
           while(chunkDecoder.next()) {
             long ts = chunkDecoder.getTimestamp();
             if (ts > now) {
               continue;
             }
-            intenc.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
+            
+            ticks[idx++] = ts;
           }
-          //
-          // Now we need to extract the ticks of the intermediary encoder
-          //
-          chunkDecoder = intenc.getUnsafeDecoder(false);
-          long[] ticks = new long[(int) chunkDecoder.getCount()];
-          int k = 0;
-          while(chunkDecoder.next()) {
-            ticks[k++] = chunkDecoder.getTimestamp();
-          }
-          // Now sort the ticks
-          Arrays.sort(ticks);
-          // We must skip values whose timestamp is <= ticks[ticks.length - nvalues]
-          long skipbelow = ticks[ticks.length - (int) nvalues];
           
-          // Then transfer the intermediate encoder to the result
-          chunkDecoder = intenc.getUnsafeDecoder(false);
-          while(chunkDecoder.next()) {
-            long ts = chunkDecoder.getTimestamp();
-            if (ts < skipbelow) {
-              continue;
-            }
-            encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
-            nvalues--;
-          }                      
+          if (idx > 1) {
+            Arrays.sort(ticks, 0, idx);
+          }
+        
+          chunkDecoder = dupdecoder;
+          
+          // We must skip values whose timestamp is <= ticks[idx - nvalues]
+          
+          if (idx > nvalues) {
+            long lowest = ticks[idx - (int) nvalues];
+            
+            while(chunkDecoder.next() && nvalues > 0) {
+              long ts = chunkDecoder.getTimestamp();
+              if (ts < lowest) {
+                continue;
+              }
+              encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
+              nvalues--;
+            }                                  
+          } else {
+            // The intermediary decoder has less than nvalues whose ts is <= now, transfer everything
+            chunkDecoder = dupdecoder;
+            
+            int valid = idx;
+            
+            while(valid > 0 && chunkDecoder.next()) {
+              long ts = chunkDecoder.getTimestamp();
+              if (ts > now) {
+                continue;
+              }
+              encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
+              nvalues--;
+              valid--;
+            }                                              
+          }
         }
       }      
     }
+        
     return encoder;
+} catch (Throwable t) {
+  t.printStackTrace();
+  throw t;
+}
   }
   
   /**
