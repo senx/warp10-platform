@@ -51,7 +51,7 @@ fi
 #
 # Quantum plugin - Plugin embeds Quantum
 #
-# To inhibit/activate Quantum use warp10.plugins attribute in the Warp 10 config
+# To inhibit/activate Quantum use 'warp10.plugins' attribute in the Warp 10 config
 QUANTUM_REVISION=@QUANTUM_VERSION@
 QUANTUM_PLUGIN_JAR=${WARP10_HOME}/bin/warp10-quantum-plugin-${QUANTUM_REVISION}.jar
 QUANTUM_PLUGIN_NAME=io.warp10.plugins.quantum.QuantumPlugin
@@ -64,7 +64,6 @@ IS_JAVA7=false
 #
 # Classpath
 #
-
 WARP10_REVISION=@VERSION@
 WARP10_USER=warp10
 WARP10_GROUP=warp10
@@ -73,7 +72,7 @@ WARP10_JAR=${WARP10_HOME}/bin/warp10-${WARP10_REVISION}.jar
 WARP10_CLASS=io.warp10.standalone.Warp
 WARP10_INIT=io.warp10.standalone.WarpInit
 #
-# The lib directory is dedicated to user libraries except of UDFs: extensions;..
+# The lib directory is dedicated to user libraries except of UDF(jars directory): extensions;..
 #
 WARP10_CP=etc:${WARP10_JAR}:${QUANTUM_PLUGIN_JAR}:lib/*
 WARP10_HEAP=1g
