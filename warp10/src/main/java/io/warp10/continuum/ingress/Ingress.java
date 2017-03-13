@@ -581,272 +581,279 @@ public class Ingress extends AbstractHandler implements Runnable {
       return;
     }
     
-    //
-    // CORS header
-    //
-    
-    response.setHeader("Access-Control-Allow-Origin", "*");
-
-    long nano = System.nanoTime();
-    
-    //
-    // TODO(hbs): Extract producer/owner from token
-    //
-    
-    if (null == token) {
-      token = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
-    }
-    
-    WriteToken writeToken;
-    
     try {
-      writeToken = Tokens.extractWriteToken(token);
-    } catch (WarpScriptException ee) {
-      throw new IOException(ee);
-    }
-    
-    String application = writeToken.getAppName();
-    String producer = Tokens.getUUID(writeToken.getProducerId());
-    String owner = Tokens.getUUID(writeToken.getOwnerId());
+      //
+      // CORS header
+      //
       
-    Map<String,String> sensisionLabels = new HashMap<String,String>();
-    sensisionLabels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
+      response.setHeader("Access-Control-Allow-Origin", "*");
 
-    long count = 0;
-    
-    try {
-      if (null == producer || null == owner) {
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_INVALIDTOKEN, Sensision.EMPTY_LABELS, 1);
-        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
-        return;
+      long nano = System.nanoTime();
+      
+      //
+      // TODO(hbs): Extract producer/owner from token
+      //
+      
+      if (null == token) {
+        token = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
       }
       
-      //
-      // Build extra labels
-      //
+      WriteToken writeToken;
       
-      Map<String,String> extraLabels = new HashMap<String,String>();
-      
-      // Add labels from the WriteToken if they exist
-      if (writeToken.getLabelsSize() > 0) {
-        extraLabels.putAll(writeToken.getLabels());
+      try {
+        writeToken = Tokens.extractWriteToken(token);
+      } catch (WarpScriptException ee) {
+        throw new IOException(ee);
       }
       
-      // Force internal labels
-      extraLabels.put(Constants.PRODUCER_LABEL, producer);
-      extraLabels.put(Constants.OWNER_LABEL, owner);
-
-      // FIXME(hbs): remove me
-      if (null != application) {
-        extraLabels.put(Constants.APPLICATION_LABEL, application);
-        sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
-      }
-
-      //
-      // Determine if content is gzipped
-      //
-
-      boolean gzipped = false;
-          
-      if (null != request.getHeader("Content-Type") && "application/gzip".equals(request.getHeader("Content-Type"))) {      
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_GZIPPED, sensisionLabels, 1);
-        gzipped = true;
-      }
-      
-      BufferedReader br = null;
-          
-      if (gzipped) {
-        GZIPInputStream is = new GZIPInputStream(request.getInputStream());
-        br = new BufferedReader(new InputStreamReader(is));
-      } else {    
-        br = request.getReader();
-      }
-      
-      Long now = TimeSource.getTime();
-
-      //
-      // Check the value of the 'now' header
-      //
-      // The following values are supported:
-      //
-      // A number, which will be interpreted as an absolute time reference,
-      // i.e. a number of time units since the Epoch.
-      //
-      // A number prefixed by '+' or '-' which will be interpreted as a
-      // delta from the present time.
-      //
-      // A '*' which will mean to not set 'now', and to recompute its value
-      // each time it's needed.
-      //
-      
-      String nowstr = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_NOW_HEADERX));
-      
-      if (null != nowstr) {
-        if ("*".equals(nowstr)) {
-          now = null;
-        } else if (nowstr.startsWith("+")) {
-          try {
-            long delta = Long.parseLong(nowstr.substring(1));
-            now = now + delta;
-          } catch (Exception e) {
-            throw new IOException("Invalid base timestamp.");
-          }                  
-        } else if (nowstr.startsWith("-")) {
-          try {
-            long delta = Long.parseLong(nowstr.substring(1));
-            now = now - delta;
-          } catch (Exception e) {
-            throw new IOException("Invalid base timestamp.");
-          }                            
-        } else {
-          try {
-            now = Long.parseLong(nowstr);
-          } catch (Exception e) {
-            throw new IOException("Invalid base timestamp.");
-          }                  
-        }
-      }
-
-      //
-      // Loop on all lines
-      //
-      
-      GTSEncoder lastencoder = null;
-      GTSEncoder encoder = null;
-      
-      byte[] bytes = new byte[16];
-      
-      int idx = 0;
-      
-      AtomicLong dms = this.dataMessagesSize.get();
-      
-      do {
-        String line = br.readLine();
+      String application = writeToken.getAppName();
+      String producer = Tokens.getUUID(writeToken.getProducerId());
+      String owner = Tokens.getUUID(writeToken.getOwnerId());
         
-        if (null == line) {
-          break;
-        }
+      Map<String,String> sensisionLabels = new HashMap<String,String>();
+      sensisionLabels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
+
+      long count = 0;
       
-        if ("".equals(line)) {
-          continue;
+      try {
+        if (null == producer || null == owner) {
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_INVALIDTOKEN, Sensision.EMPTY_LABELS, 1);
+          response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
+          return;
         }
         
-        // Skip lines which start with '#'
-        if ('#' == line.charAt(0)) {
-          continue;
+        //
+        // Build extra labels
+        //
+        
+        Map<String,String> extraLabels = new HashMap<String,String>();
+        
+        // Add labels from the WriteToken if they exist
+        if (writeToken.getLabelsSize() > 0) {
+          extraLabels.putAll(writeToken.getLabels());
         }
         
-        try {
-          encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, false);
-          count++;
-        } catch (ParseException pe) {
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_PARSEERRORS, sensisionLabels, 1);
-          throw new IOException("Parse error at '" + line + "'", pe);
+        // Force internal labels
+        extraLabels.put(Constants.PRODUCER_LABEL, producer);
+        extraLabels.put(Constants.OWNER_LABEL, owner);
+
+        // FIXME(hbs): remove me
+        if (null != application) {
+          extraLabels.put(Constants.APPLICATION_LABEL, application);
+          sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
         }
-                
-        if (encoder != lastencoder || dms.get() + 16 + lastencoder.size() > DATA_MESSAGES_THRESHOLD) {
-          //
-          // Determine if we should push the metadata or not
-          //
+
+        //
+        // Determine if content is gzipped
+        //
+
+        boolean gzipped = false;
+            
+        if (null != request.getHeader("Content-Type") && "application/gzip".equals(request.getHeader("Content-Type"))) {      
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_GZIPPED, sensisionLabels, 1);
+          gzipped = true;
+        }
+        
+        BufferedReader br = null;
+            
+        if (gzipped) {
+          GZIPInputStream is = new GZIPInputStream(request.getInputStream());
+          br = new BufferedReader(new InputStreamReader(is));
+        } else {    
+          br = request.getReader();
+        }
+        
+        Long now = TimeSource.getTime();
+
+        //
+        // Check the value of the 'now' header
+        //
+        // The following values are supported:
+        //
+        // A number, which will be interpreted as an absolute time reference,
+        // i.e. a number of time units since the Epoch.
+        //
+        // A number prefixed by '+' or '-' which will be interpreted as a
+        // delta from the present time.
+        //
+        // A '*' which will mean to not set 'now', and to recompute its value
+        // each time it's needed.
+        //
+        
+        String nowstr = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_NOW_HEADERX));
+        
+        if (null != nowstr) {
+          if ("*".equals(nowstr)) {
+            now = null;
+          } else if (nowstr.startsWith("+")) {
+            try {
+              long delta = Long.parseLong(nowstr.substring(1));
+              now = now + delta;
+            } catch (Exception e) {
+              throw new IOException("Invalid base timestamp.");
+            }                  
+          } else if (nowstr.startsWith("-")) {
+            try {
+              long delta = Long.parseLong(nowstr.substring(1));
+              now = now - delta;
+            } catch (Exception e) {
+              throw new IOException("Invalid base timestamp.");
+            }                            
+          } else {
+            try {
+              now = Long.parseLong(nowstr);
+            } catch (Exception e) {
+              throw new IOException("Invalid base timestamp.");
+            }                  
+          }
+        }
+
+        //
+        // Loop on all lines
+        //
+        
+        GTSEncoder lastencoder = null;
+        GTSEncoder encoder = null;
+        
+        byte[] bytes = new byte[16];
+        
+        int idx = 0;
+        
+        AtomicLong dms = this.dataMessagesSize.get();
+        
+        do {
+          String line = br.readLine();
           
-          encoder.setClassId(GTSHelper.classId(this.classKey, encoder.getMetadata().getName()));
-          encoder.setLabelsId(GTSHelper.labelsId(this.labelsKey, encoder.getMetadata().getLabels()));
-
-          GTSHelper.fillGTSIds(bytes, 0, encoder.getClassId(), encoder.getLabelsId());
-
-          BigInteger metadataCacheKey = new BigInteger(bytes);
-
-          //
-          // Check throttling
-          //
-          
-          if (null != lastencoder && lastencoder.size() > 0) {
-            ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-            ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
+          if (null == line) {
+            break;
+          }
+        
+          if ("".equals(line)) {
+            continue;
           }
           
-          if (!this.metadataCache.containsKey(metadataCacheKey)) {
-            // Build metadata object to push
-            Metadata metadata = new Metadata();
-            // Set source to indicate we
-            metadata.setSource(Configuration.INGRESS_METADATA_SOURCE);
-            metadata.setName(encoder.getMetadata().getName());
-            metadata.setLabels(encoder.getMetadata().getLabels());
-            TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-            try {
-              pushMetadataMessage(bytes, serializer.serialize(metadata));
-            } catch (TException te) {
-              throw new IOException("Unable to push metadata.");
+          // Skip lines which start with '#'
+          if ('#' == line.charAt(0)) {
+            continue;
+          }
+          
+          try {
+            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, false);
+            count++;
+          } catch (ParseException pe) {
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_PARSEERRORS, sensisionLabels, 1);
+            throw new IOException("Parse error at '" + line + "'", pe);
+          }
+                  
+          if (encoder != lastencoder || dms.get() + 16 + lastencoder.size() > DATA_MESSAGES_THRESHOLD) {
+            //
+            // Determine if we should push the metadata or not
+            //
+            
+            encoder.setClassId(GTSHelper.classId(this.classKey, encoder.getMetadata().getName()));
+            encoder.setLabelsId(GTSHelper.labelsId(this.labelsKey, encoder.getMetadata().getLabels()));
+
+            GTSHelper.fillGTSIds(bytes, 0, encoder.getClassId(), encoder.getLabelsId());
+
+            BigInteger metadataCacheKey = new BigInteger(bytes);
+
+            //
+            // Check throttling
+            //
+            
+            if (null != lastencoder && lastencoder.size() > 0) {
+              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
+              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
+            }
+            
+            if (!this.metadataCache.containsKey(metadataCacheKey)) {
+              // Build metadata object to push
+              Metadata metadata = new Metadata();
+              // Set source to indicate we
+              metadata.setSource(Configuration.INGRESS_METADATA_SOURCE);
+              metadata.setName(encoder.getMetadata().getName());
+              metadata.setLabels(encoder.getMetadata().getLabels());
+              TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+              try {
+                pushMetadataMessage(bytes, serializer.serialize(metadata));
+              } catch (TException te) {
+                throw new IOException("Unable to push metadata.");
+              }
+            }
+            
+            // Update metadataCache with the current key
+            synchronized(metadataCache) {
+              this.metadataCache.put(metadataCacheKey, null);
+            }
+
+            if (null != lastencoder) {
+              Map<String,String> labels = new HashMap<String, String>();
+              //labels.put(SensisionConstants.SENSISION_LABEL_OWNER, owner);
+              labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
+              //if (null != application) {
+              //  labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
+              //}
+
+              pushDataMessage(lastencoder);
+            }
+            
+            if (encoder != lastencoder) {
+              lastencoder = encoder;
+            } else {
+              //lastencoder = null;
+              //
+              // Allocate a new GTSEncoder and reuse Metadata so we can
+              // correctly handle a continuation line if this is what occurs next
+              //
+              Metadata metadata = lastencoder.getMetadata();
+              lastencoder = new GTSEncoder(0L);
+              lastencoder.setMetadata(metadata);
             }
           }
-          
-          // Update metadataCache with the current key
-          synchronized(metadataCache) {
-            this.metadataCache.put(metadataCacheKey, null);
-          }
 
-          if (null != lastencoder) {
-            Map<String,String> labels = new HashMap<String, String>();
-            //labels.put(SensisionConstants.SENSISION_LABEL_OWNER, owner);
-            labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
-            //if (null != application) {
-            //  labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
-            //}
-
-            pushDataMessage(lastencoder);
+          if (0 == count % 1000) {
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_DATAPOINTS_GLOBAL, Sensision.EMPTY_LABELS, count);
+            count = 0;
           }
-          
-          if (encoder != lastencoder) {
-            lastencoder = encoder;
-          } else {
-            //lastencoder = null;
-            //
-            // Allocate a new GTSEncoder and reuse Metadata so we can
-            // correctly handle a continuation line if this is what occurs next
-            //
-            Metadata metadata = lastencoder.getMetadata();
-            lastencoder = new GTSEncoder(0L);
-            lastencoder.setMetadata(metadata);
-          }
-        }
-
-        if (0 == count % 1000) {
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_DATAPOINTS_GLOBAL, Sensision.EMPTY_LABELS, count);
-          count = 0;
-        }
-      } while (true); 
-      
-      if (null != lastencoder && lastencoder.size() > 0) {
-        Map<String,String> labels = new HashMap<String, String>();
-        //labels.put(SensisionConstants.SENSISION_LABEL_OWNER, owner);
-        labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
-        //if (null != application) {
-        //  labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
-        //}
+        } while (true); 
         
-        ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-        ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
+        if (null != lastencoder && lastencoder.size() > 0) {
+          Map<String,String> labels = new HashMap<String, String>();
+          //labels.put(SensisionConstants.SENSISION_LABEL_OWNER, owner);
+          labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
+          //if (null != application) {
+          //  labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
+          //}
+          
+          ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
+          ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
 
-        pushDataMessage(lastencoder);
+          pushDataMessage(lastencoder);
+        }
+      } catch (WarpException we) {
+        throw new IOException(we);      
+      } finally {
+        //
+        // Flush message buffers into Kafka
+        //
+        
+        pushMetadataMessage(null, null);
+        pushDataMessage(null);
+
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_DATAPOINTS_GLOBAL, Sensision.EMPTY_LABELS, count);
+        
+        long micros = (System.nanoTime() - nano) / 1000L;
+        
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_TIME_US, sensisionLabels, micros);
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_TIME_US_GLOBAL, Sensision.EMPTY_LABELS, micros);      
+      }      
+    } catch (Exception e) {
+      if (!response.isCommitted()) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+        return;
       }
-    } catch (WarpException we) {
-      throw new IOException(we);      
-    } finally {
-      //
-      // Flush message buffers into Kafka
-      //
-      
-      pushMetadataMessage(null, null);
-      pushDataMessage(null);
-
-      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);
-      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_DATAPOINTS_GLOBAL, Sensision.EMPTY_LABELS, count);
-      
-      long micros = (System.nanoTime() - nano) / 1000L;
-      
-      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_TIME_US, sensisionLabels, micros);
-      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_TIME_US_GLOBAL, Sensision.EMPTY_LABELS, micros);      
     }
     
     response.setStatus(HttpServletResponse.SC_OK);
@@ -993,6 +1000,11 @@ public class Ingress extends AbstractHandler implements Runnable {
       }
 
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_META_RECORDS, sensisionLabels, count);
+    } catch (IOException ioe) {
+      if (!response.isCommitted()) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ioe.getMessage());
+        return;
+      }
     } finally {
       //
       // Flush message buffers into Kafka
@@ -1445,7 +1457,10 @@ public class Ingress extends AbstractHandler implements Runnable {
         String error = URLEncoder.encode(sw.toString(), "UTF-8");
         pw.println(Constants.INGRESS_DELETE_ERROR_PREFIX + error);
       }
-      throw new IOException(t);
+      if (!response.isCommitted()) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, t.getMessage());
+      }
+      return;
     } finally {
       // Flush delete messages
       if (!dryrun) {

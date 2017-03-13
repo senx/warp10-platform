@@ -413,7 +413,7 @@ public class EgressExecHandler extends AbstractHandler {
       } else {
         String msg = "ERROR line #" + lineno + ": " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : "");
         resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
-        //throw new IOException(msg);
+        return;
       }
     } finally {
       // Clear this metric in case there was an exception

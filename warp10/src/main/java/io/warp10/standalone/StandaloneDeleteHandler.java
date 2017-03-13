@@ -145,7 +145,6 @@ public class StandaloneDeleteHandler extends AbstractHandler {
   
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-    
     if (target.equals(Constants.API_ENDPOINT_DELETE)) {
       baseRequest.setHandled(true);
     } else {
@@ -178,7 +177,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       }
       
       if (null == bytes) {
-        throw new IOException("Invalid Datalog header.");
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Invalid Datalog header.");
+        return;
       }
         
       TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
@@ -187,7 +187,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         dr = new DatalogRequest();
         deser.deserialize(dr, bytes);
       } catch (TException te) {
-        throw new IOException();
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, te.getMessage());
+        return;
       }
       
       Map<String,String> labels = new HashMap<String,String>();
@@ -200,7 +201,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       //
       
       if (!request.getQueryString().equals(dr.getDeleteQueryString())) {
-        throw new IOException("Invalid DatalogRequest.");
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Invalid DatalogRequest.");
+        return;
       }
       
       forwarded = true;
@@ -211,13 +213,20 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     //
     
     String token = null != dr ? dr.getToken() : request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
-            
+
+    if (null == token) {
+      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Missing token.");
+      return;
+    }
+    
     WriteToken writeToken;
     
     try {
       writeToken = Tokens.extractWriteToken(token);
     } catch (WarpScriptException ee) {
-      throw new IOException(ee);
+      ee.printStackTrace();
+      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ee.getMessage());
+      return;
     }
     
     String application = writeToken.getAppName();
@@ -229,7 +238,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     //
     
     if (!producer.equals(owner)) {
-      throw new IOException("Invalid write token for deletion.");
+      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Invalid write token for deletion.");
+      return;
     }
     
     Map<String,String> sensisionLabels = new HashMap<String,String>();
@@ -257,7 +267,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     String minage = request.getParameter(Constants.HTTP_PARAM_MINAGE);
     
     if (null != minage) {
-      throw new IOException("Standalone version does not support the '" + Constants.HTTP_PARAM_MINAGE + "' parameter in delete requests.");
+      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Standalone version does not support the '" + Constants.HTTP_PARAM_MINAGE + "' parameter in delete requests.");
+      return;
     }
     
     boolean dryrun = null != request.getParameter(Constants.HTTP_PARAM_DRYRUN);
@@ -307,7 +318,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         try {
           encoded = ser.serialize(dr);
         } catch (TException te) {
-          throw new IOException(te);
+          response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, te.getMessage());
+          return;
         }
         
         if (null != this.datalogPSK) {
@@ -357,7 +369,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       
       if (null != startstr) {
         if (null == endstr) {
-          throw new IOException("Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
+          response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
+          return;
         }
         if (startstr.contains("T")) {
           start = fmt.parseDateTime(startstr).getMillis() * Constants.TIME_UNITS_PER_MS;
@@ -368,7 +381,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       
       if (null != endstr) {
         if (null == startstr) {
-          throw new IOException("Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
+          response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
+          return;
         }
         if (endstr.contains("T")) {
           end = fmt.parseDateTime(endstr).getMillis() * Constants.TIME_UNITS_PER_MS;          
@@ -378,7 +392,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       }
       
       if (Long.MIN_VALUE == start && Long.MAX_VALUE == end && null == request.getParameter(Constants.HTTP_PARAM_DELETEALL)) {
-        throw new IOException("Parameter " + Constants.HTTP_PARAM_DELETEALL + " should be set when deleting a full range.");
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Parameter " + Constants.HTTP_PARAM_DELETEALL + " should be set when deleting a full range.");
+        return;
       }
       
       if (Long.MIN_VALUE != start || Long.MAX_VALUE != end) {
@@ -386,7 +401,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       }
       
       if (start > end) {
-        throw new IOException("Invalid time range specification.");
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Invalid time range specification.");
+        return;
       }
       
       //
@@ -412,7 +428,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       try {
         labelsSelectors = GTSHelper.parseLabelsSelectors(labelsSelection);
       } catch (ParseException pe) {
-        throw new IOException(pe);
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, pe.getMessage());
+        return;
       }
       
       validated = true;

@@ -155,404 +155,578 @@ public class EgressFetchHandler extends AbstractHandler {
       return;
     }
 
-    // Labels for Sensision
-    Map<String,String> labels = new HashMap<String,String>();
+    try {
+      // Labels for Sensision
+      Map<String,String> labels = new HashMap<String,String>();
 
-    labels.put(SensisionConstants.SENSISION_LABEL_TYPE, target);
+      labels.put(SensisionConstants.SENSISION_LABEL_TYPE, target);
 
-    //
-    // Add CORS header
-    //
-    
-    resp.setHeader("Access-Control-Allow-Origin", "*");
-
-    String start = null;
-    String stop = null;
-    
-    long now = Long.MIN_VALUE;
-    long timespan = 0L;
-
-    String nowParam = null;
-    String timespanParam = null;
-    String dedupParam = null;
-    String showErrorsParam = null;
-    
-    if (splitFetch) {
-      nowParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_NOW_HEADERX));
-      timespanParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TIMESPAN_HEADERX));
-      showErrorsParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_SHOW_ERRORS_HEADERX));
-    } else {
-      start = req.getParameter(Constants.HTTP_PARAM_START);
-      stop = req.getParameter(Constants.HTTP_PARAM_STOP);
-      
-      nowParam = req.getParameter(Constants.HTTP_PARAM_NOW);
-      timespanParam = req.getParameter(Constants.HTTP_PARAM_TIMESPAN);
-      dedupParam = req.getParameter(Constants.HTTP_PARAM_DEDUP);      
-      showErrorsParam = req.getParameter(Constants.HTTP_PARAM_SHOW_ERRORS);
-    }
-        
-    String maxDecoderLenParam = req.getParameter(Constants.HTTP_PARAM_MAXSIZE);
-    int maxDecoderLen = null != maxDecoderLenParam ? Integer.parseInt(maxDecoderLenParam) : Constants.DEFAULT_PACKED_MAXSIZE;
-    
-    String suffix = req.getParameter(Constants.HTTP_PARAM_SUFFIX);
-    if (null == suffix) {
-      suffix = Constants.DEFAULT_PACKED_CLASS_SUFFIX;
-    }
-    
-    boolean unpack = null != req.getParameter(Constants.HTTP_PARAM_UNPACK);
- 
-    long chunksize = Long.MAX_VALUE;
-    
-    if (null != req.getParameter(Constants.HTTP_PARAM_CHUNKSIZE)) {
-      chunksize = Long.parseLong(req.getParameter(Constants.HTTP_PARAM_CHUNKSIZE));      
-    }
-    
-    if (chunksize <= 0) {
-      throw new IOException("Invalid chunksize.");
-    }    
-    
-    boolean showErrors = null != showErrorsParam;
-    boolean dedup = null != dedupParam && "true".equals(dedupParam);
-    
-    if (null != start && null != stop) {
-      long tsstart = fmt.parseDateTime(start).getMillis() * Constants.TIME_UNITS_PER_MS;
-      long tsstop = fmt.parseDateTime(stop).getMillis() * Constants.TIME_UNITS_PER_MS;
-      
-      if (tsstart < tsstop) {
-        now = tsstop;
-        timespan = tsstop - tsstart;
-      } else {
-        now = tsstart;
-        timespan = tsstart - tsstop;
-      }
-    } else if (null != nowParam && null != timespanParam) {
-      if ("now".equals(nowParam)) {
-        now = TimeSource.getTime();
-      } else {
-        try {
-          now = Long.parseLong(nowParam);
-        } catch (Exception e) {
-          now = fmt.parseDateTime(nowParam).getMillis() * Constants.TIME_UNITS_PER_MS;
-        }        
-      }
-      
-      timespan = Long.parseLong(timespanParam);
-    }
-    
-    if (Long.MIN_VALUE == now) {
-      resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing now/timespan or start/stop parameters.");
-      return;
-    }
-      
-    String selector = splitFetch ? null : req.getParameter(Constants.HTTP_PARAM_SELECTOR);
- 
-    //
-    // Extract token from header
-    //
-    
-    String token = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
-    
-    // If token was not found in header, extract it from the 'token' parameter
-    if (null == token && !splitFetch) {
-      token = req.getParameter(Constants.HTTP_PARAM_TOKEN);
-    }
-    
-    String fetchSig = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_FETCH_SIGNATURE));
-
-    //
-    // Check token signature if it was provided
-    //
-    
-    boolean signed = false;
-    
-    if (splitFetch) {
-      // Force showErrors
-      showErrors = true;
-      signed = true;
-    }
-    
-    if (null != fetchSig) {
-      if (null != fetchPSK) {
-        String[] subelts = fetchSig.split(":");
-        if (2 != subelts.length) {
-          throw new IOException("Invalid fetch signature.");
-        }
-        long nowts = System.currentTimeMillis();
-        long sigts = new BigInteger(subelts[0], 16).longValue();
-        long sighash = new BigInteger(subelts[1], 16).longValue();
-        
-        if (nowts - sigts > 10000L) {
-          throw new IOException("Fetch signature has expired.");
-        }
-        
-        // Recompute hash of ts:token
-        
-        String tstoken = Long.toString(sigts) + ":" + token;
-        
-        long checkedhash = SipHashInline.hash24(fetchPSK, tstoken.getBytes(Charsets.ISO_8859_1));
-        
-        if (checkedhash != sighash) {
-          throw new IOException("Corrupted fetch signature");
-        }
-    
-        signed = true;
-      } else {
-        throw new IOException("Fetch PreSharedKey is not set.");
-      }
-    }
-    
-    ReadToken rtoken = null;
-    
-    String format = splitFetch ? "wrapper" : req.getParameter(Constants.HTTP_PARAM_FORMAT);
-
-    if (!splitFetch) {
-      try {
-        rtoken = Tokens.extractReadToken(token);
-        
-        if (rtoken.getHooksSize() > 0) {
-          throw new IOException("Tokens with hooks cannot be used for fetching data.");        
-        }
-      } catch (WarpScriptException ee) {
-        throw new IOException(ee);
-      }
-            
-      if (null == rtoken) {
-        resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Missing token.");
-        return;
-      }      
-    }
-    
-    boolean showAttr = "true".equals(req.getParameter(Constants.HTTP_PARAM_SHOWATTR));
-    
-    //
-    // Extract the class and labels selectors
-    // The class selector and label selectors are supposed to have
-    // values which use percent encoding, i.e. explicit percent encoding which
-    // might have been re-encoded using percent encoding when passed as parameter
-    //
-    //
-    
-    Set<Metadata> metadatas = new HashSet<Metadata>();
-    List<Iterator<Metadata>> iterators = new ArrayList<Iterator<Metadata>>();
-    
-    if (!splitFetch) {      
-      
-      if (null == selector) {
-        throw new IOException("Missing '" + Constants.HTTP_PARAM_SELECTOR + "' parameter.");
-      }
-      
-      String[] selectors = selector.split("\\s+");
-      
-      for (String sel: selectors) {
-        Matcher m = SELECTOR_RE.matcher(sel);
-        
-        if (!m.matches()) {
-          resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
-          return;
-        }
-        
-        String classSelector = URLDecoder.decode(m.group(1), "UTF-8");
-        String labelsSelection = m.group(2);
-        
-        Map<String,String> labelsSelectors;
-
-        try {
-          labelsSelectors = GTSHelper.parseLabelsSelectors(labelsSelection);
-        } catch (ParseException pe) {
-          throw new IOException(pe);
-        }
-        
-        //
-        // Force 'producer'/'owner'/'app' from token
-        //
-        
-        labelsSelectors.remove(Constants.PRODUCER_LABEL);
-        labelsSelectors.remove(Constants.OWNER_LABEL);
-        labelsSelectors.remove(Constants.APPLICATION_LABEL);
-        
-        labelsSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
-
-        List<Metadata> metas = null;
-        
-        List<String> clsSels = new ArrayList<String>();
-        List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
-        
-        clsSels.add(classSelector);
-        lblsSels.add(labelsSelectors);
-        
-        try {
-          metas = directoryClient.find(clsSels, lblsSels);
-          metadatas.addAll(metas);
-        } catch (Exception e) {
-          //
-          // If metadatas is not empty, create an iterator for it, then clear it
-          //
-          if (!metadatas.isEmpty()) {
-            iterators.add(metadatas.iterator());
-            metadatas.clear();
-          }
-          iterators.add(directoryClient.iterator(clsSels, lblsSels));
-        }
-      }      
-    } else {
       //
-      // Add an iterator which reads splits from the request body
+      // Add CORS header
       //
       
-      boolean gzipped = false;
+      resp.setHeader("Access-Control-Allow-Origin", "*");
+
+      String start = null;
+      String stop = null;
       
-      if (null != req.getHeader("Content-Type") && "application/gzip".equals(req.getHeader("Content-Type"))) {
-        gzipped = true;
+      long now = Long.MIN_VALUE;
+      long timespan = 0L;
+
+      String nowParam = null;
+      String timespanParam = null;
+      String dedupParam = null;
+      String showErrorsParam = null;
+      
+      if (splitFetch) {
+        nowParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_NOW_HEADERX));
+        timespanParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TIMESPAN_HEADERX));
+        showErrorsParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_SHOW_ERRORS_HEADERX));
+      } else {
+        start = req.getParameter(Constants.HTTP_PARAM_START);
+        stop = req.getParameter(Constants.HTTP_PARAM_STOP);
+        
+        nowParam = req.getParameter(Constants.HTTP_PARAM_NOW);
+        timespanParam = req.getParameter(Constants.HTTP_PARAM_TIMESPAN);
+        dedupParam = req.getParameter(Constants.HTTP_PARAM_DEDUP);      
+        showErrorsParam = req.getParameter(Constants.HTTP_PARAM_SHOW_ERRORS);
       }
-      
-      BufferedReader br = null;
           
-      if (gzipped) {
-        GZIPInputStream is = new GZIPInputStream(req.getInputStream());
-        br = new BufferedReader(new InputStreamReader(is));
-      } else {    
-        br = req.getReader();
-      }
-
-      final BufferedReader fbr = br;
+      String maxDecoderLenParam = req.getParameter(Constants.HTTP_PARAM_MAXSIZE);
+      int maxDecoderLen = null != maxDecoderLenParam ? Integer.parseInt(maxDecoderLenParam) : Constants.DEFAULT_PACKED_MAXSIZE;
       
-
-      MetadataIterator iterator = new MetadataIterator() {
+      String suffix = req.getParameter(Constants.HTTP_PARAM_SUFFIX);
+      if (null == suffix) {
+        suffix = Constants.DEFAULT_PACKED_CLASS_SUFFIX;
+      }
+      
+      boolean unpack = null != req.getParameter(Constants.HTTP_PARAM_UNPACK);
+   
+      long chunksize = Long.MAX_VALUE;
+      
+      if (null != req.getParameter(Constants.HTTP_PARAM_CHUNKSIZE)) {
+        chunksize = Long.parseLong(req.getParameter(Constants.HTTP_PARAM_CHUNKSIZE));      
+      }
+      
+      if (chunksize <= 0) {
+        throw new IOException("Invalid chunksize.");
+      }    
+      
+      boolean showErrors = null != showErrorsParam;
+      boolean dedup = null != dedupParam && "true".equals(dedupParam);
+      
+      if (null != start && null != stop) {
+        long tsstart = fmt.parseDateTime(start).getMillis() * Constants.TIME_UNITS_PER_MS;
+        long tsstop = fmt.parseDateTime(stop).getMillis() * Constants.TIME_UNITS_PER_MS;
         
-        private List<Metadata> metadatas = new ArrayList<Metadata>();
-        
-        private boolean done = false;
-
-        private String lasttoken = "";
-        
-        @Override
-        public void close() throws Exception {
-          fbr.close();
+        if (tsstart < tsstop) {
+          now = tsstop;
+          timespan = tsstop - tsstart;
+        } else {
+          now = tsstart;
+          timespan = tsstart - tsstop;
+        }
+      } else if (null != nowParam && null != timespanParam) {
+        if ("now".equals(nowParam)) {
+          now = TimeSource.getTime();
+        } else {
+          try {
+            now = Long.parseLong(nowParam);
+          } catch (Exception e) {
+            now = fmt.parseDateTime(nowParam).getMillis() * Constants.TIME_UNITS_PER_MS;
+          }        
         }
         
-        @Override
-        public Metadata next() {
-          if (!metadatas.isEmpty()) {
-            Metadata meta = metadatas.get(metadatas.size() - 1);
-            metadatas.remove(metadatas.size() - 1);
-            return meta;
-          } else {
-            if (hasNext()) {
-              return next();
+        timespan = Long.parseLong(timespanParam);
+      }
+      
+      if (Long.MIN_VALUE == now) {
+        resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing now/timespan or start/stop parameters.");
+        return;
+      }
+        
+      String selector = splitFetch ? null : req.getParameter(Constants.HTTP_PARAM_SELECTOR);
+   
+      //
+      // Extract token from header
+      //
+      
+      String token = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
+      
+      // If token was not found in header, extract it from the 'token' parameter
+      if (null == token && !splitFetch) {
+        token = req.getParameter(Constants.HTTP_PARAM_TOKEN);
+      }
+      
+      String fetchSig = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_FETCH_SIGNATURE));
+
+      //
+      // Check token signature if it was provided
+      //
+      
+      boolean signed = false;
+      
+      if (splitFetch) {
+        // Force showErrors
+        showErrors = true;
+        signed = true;
+      }
+      
+      if (null != fetchSig) {
+        if (null != fetchPSK) {
+          String[] subelts = fetchSig.split(":");
+          if (2 != subelts.length) {
+            throw new IOException("Invalid fetch signature.");
+          }
+          long nowts = System.currentTimeMillis();
+          long sigts = new BigInteger(subelts[0], 16).longValue();
+          long sighash = new BigInteger(subelts[1], 16).longValue();
+          
+          if (nowts - sigts > 10000L) {
+            throw new IOException("Fetch signature has expired.");
+          }
+          
+          // Recompute hash of ts:token
+          
+          String tstoken = Long.toString(sigts) + ":" + token;
+          
+          long checkedhash = SipHashInline.hash24(fetchPSK, tstoken.getBytes(Charsets.ISO_8859_1));
+          
+          if (checkedhash != sighash) {
+            throw new IOException("Corrupted fetch signature");
+          }
+      
+          signed = true;
+        } else {
+          throw new IOException("Fetch PreSharedKey is not set.");
+        }
+      }
+      
+      ReadToken rtoken = null;
+      
+      String format = splitFetch ? "wrapper" : req.getParameter(Constants.HTTP_PARAM_FORMAT);
+
+      if (!splitFetch) {
+        try {
+          rtoken = Tokens.extractReadToken(token);
+          
+          if (rtoken.getHooksSize() > 0) {
+            throw new IOException("Tokens with hooks cannot be used for fetching data.");        
+          }
+        } catch (WarpScriptException ee) {
+          throw new IOException(ee);
+        }
+              
+        if (null == rtoken) {
+          resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Missing token.");
+          return;
+        }      
+      }
+      
+      boolean showAttr = "true".equals(req.getParameter(Constants.HTTP_PARAM_SHOWATTR));
+      
+      //
+      // Extract the class and labels selectors
+      // The class selector and label selectors are supposed to have
+      // values which use percent encoding, i.e. explicit percent encoding which
+      // might have been re-encoded using percent encoding when passed as parameter
+      //
+      //
+      
+      Set<Metadata> metadatas = new HashSet<Metadata>();
+      List<Iterator<Metadata>> iterators = new ArrayList<Iterator<Metadata>>();
+      
+      if (!splitFetch) {      
+        
+        if (null == selector) {
+          throw new IOException("Missing '" + Constants.HTTP_PARAM_SELECTOR + "' parameter.");
+        }
+        
+        String[] selectors = selector.split("\\s+");
+        
+        for (String sel: selectors) {
+          Matcher m = SELECTOR_RE.matcher(sel);
+          
+          if (!m.matches()) {
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
+            return;
+          }
+          
+          String classSelector = URLDecoder.decode(m.group(1), "UTF-8");
+          String labelsSelection = m.group(2);
+          
+          Map<String,String> labelsSelectors;
+
+          try {
+            labelsSelectors = GTSHelper.parseLabelsSelectors(labelsSelection);
+          } catch (ParseException pe) {
+            throw new IOException(pe);
+          }
+          
+          //
+          // Force 'producer'/'owner'/'app' from token
+          //
+          
+          labelsSelectors.remove(Constants.PRODUCER_LABEL);
+          labelsSelectors.remove(Constants.OWNER_LABEL);
+          labelsSelectors.remove(Constants.APPLICATION_LABEL);
+          
+          labelsSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
+
+          List<Metadata> metas = null;
+          
+          List<String> clsSels = new ArrayList<String>();
+          List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
+          
+          clsSels.add(classSelector);
+          lblsSels.add(labelsSelectors);
+          
+          try {
+            metas = directoryClient.find(clsSels, lblsSels);
+            metadatas.addAll(metas);
+          } catch (Exception e) {
+            //
+            // If metadatas is not empty, create an iterator for it, then clear it
+            //
+            if (!metadatas.isEmpty()) {
+              iterators.add(metadatas.iterator());
+              metadatas.clear();
+            }
+            iterators.add(directoryClient.iterator(clsSels, lblsSels));
+          }
+        }      
+      } else {
+        //
+        // Add an iterator which reads splits from the request body
+        //
+        
+        boolean gzipped = false;
+        
+        if (null != req.getHeader("Content-Type") && "application/gzip".equals(req.getHeader("Content-Type"))) {
+          gzipped = true;
+        }
+        
+        BufferedReader br = null;
+            
+        if (gzipped) {
+          GZIPInputStream is = new GZIPInputStream(req.getInputStream());
+          br = new BufferedReader(new InputStreamReader(is));
+        } else {    
+          br = req.getReader();
+        }
+
+        final BufferedReader fbr = br;
+        
+
+        MetadataIterator iterator = new MetadataIterator() {
+          
+          private List<Metadata> metadatas = new ArrayList<Metadata>();
+          
+          private boolean done = false;
+
+          private String lasttoken = "";
+          
+          @Override
+          public void close() throws Exception {
+            fbr.close();
+          }
+          
+          @Override
+          public Metadata next() {
+            if (!metadatas.isEmpty()) {
+              Metadata meta = metadatas.get(metadatas.size() - 1);
+              metadatas.remove(metadatas.size() - 1);
+              return meta;
             } else {
-              throw new NoSuchElementException();
+              if (hasNext()) {
+                return next();
+              } else {
+                throw new NoSuchElementException();
+              }
+            }
+          }
+          
+          @Override
+          public boolean hasNext() {
+            if (!metadatas.isEmpty()) {
+              return true;
+            }
+            
+            if (done) {
+              return false;            
+            }
+            
+            String line = null;
+            
+            try {
+              line = fbr.readLine();
+            } catch (IOException ioe) {
+              throw new RuntimeException(ioe);
+            }
+            
+            if (null == line) {
+              done = true;
+              return false;
+            }
+            
+            //
+            // Decode/Unwrap/Deserialize the split
+            //
+            
+            byte[] data = OrderPreservingBase64.decode(line.getBytes(Charsets.US_ASCII));
+            if (null != fetchAES) {
+              data = CryptoUtils.unwrap(fetchAES, data);
+            }
+            
+            if (null == data) {
+              throw new RuntimeException("Invalid wrapped content.");
+            }
+            
+            TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+            
+            GTSSplit split = new GTSSplit();
+            
+            try {
+              deserializer.deserialize(split, data);
+            } catch (TException te) {
+              throw new RuntimeException(te);
+            }
+            
+            //
+            // Check the expiry
+            //
+            
+            long instant = System.currentTimeMillis();
+            
+            if (instant - split.getTimestamp() > maxSplitAge || instant > split.getExpiry()) {
+              throw new RuntimeException("Split has expired.");
+            }
+                      
+            this.metadatas.addAll(split.getMetadatas());
+            
+            // We assume there was at least one metadata instance in the split!!!
+            return true;
+          }
+        };
+        
+        iterators.add(iterator);
+      }
+         
+      List<Metadata> metas = new ArrayList<Metadata>();
+      metas.addAll(metadatas);
+      
+      if (!metas.isEmpty()) {
+        iterators.add(metas.iterator());
+      }
+      
+      //
+      // Loop over the iterators, storing the read metadata to a temporary file encrypted on disk
+      // Data is encrypted using a onetime pad
+      //
+      
+      final byte[] onetimepad = new byte[(int) Math.min(65537, System.currentTimeMillis() % 100000)];
+      new Random().nextBytes(onetimepad);
+      
+      final File cache = File.createTempFile(Long.toHexString(System.currentTimeMillis()) + "-" + Long.toHexString(System.nanoTime()), ".dircache");
+      cache.deleteOnExit();
+      
+      FileWriter writer = new FileWriter(cache);
+
+      TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+      
+      int padidx = 0;
+      
+      for (Iterator<Metadata> itermeta: iterators){
+        try {
+          while(itermeta.hasNext()) {
+            Metadata metadata = itermeta.next();
+            
+            try {
+              byte[] bytes = serializer.serialize(metadata);
+              // Apply onetimepad
+              for (int i = 0; i < bytes.length; i++) {
+                bytes[i] = (byte) (bytes[i] ^ onetimepad[padidx++]);
+                if (padidx >= onetimepad.length) {
+                  padidx = 0;
+                }
+              }
+              OrderPreservingBase64.encodeToWriter(bytes, writer);
+              writer.write('\n');
+            } catch (TException te) {          
+            }         
+          }
+          
+          if (!itermeta.hasNext() && (itermeta instanceof MetadataIterator)) {
+            try {
+              ((MetadataIterator) itermeta).close();
+            } catch (Exception e) {          
+            }
+          }              
+        } catch (Throwable t) {
+          throw t;
+        } finally {
+          if (itermeta instanceof MetadataIterator) {
+            try {
+              ((MetadataIterator) itermeta).close();
+            } catch (Exception e) {        
             }
           }
         }
+      }
+      
+      writer.close();
+      
+      //
+      // Create an iterator based on the cache
+      //
+      
+      MetadataIterator cacheiterator = new MetadataIterator() {
+        
+        BufferedReader reader = new BufferedReader(new FileReader(cache));
+        
+        private Metadata current = null;
+        private boolean done = false;
+        
+        private TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+        
+        int padidx = 0;
         
         @Override
         public boolean hasNext() {
-          if (!metadatas.isEmpty()) {
-            return true;
-          }
-          
           if (done) {
-            return false;            
-          }
-          
-          String line = null;
-          
-          try {
-            line = fbr.readLine();
-          } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
-          }
-          
-          if (null == line) {
-            done = true;
             return false;
           }
           
-          //
-          // Decode/Unwrap/Deserialize the split
-          //
-          
-          byte[] data = OrderPreservingBase64.decode(line.getBytes(Charsets.US_ASCII));
-          if (null != fetchAES) {
-            data = CryptoUtils.unwrap(fetchAES, data);
+          if (null != current) {
+            return true;
           }
-          
-          if (null == data) {
-            throw new RuntimeException("Invalid wrapped content.");
-          }
-          
-          TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
-          
-          GTSSplit split = new GTSSplit();
           
           try {
-            deserializer.deserialize(split, data);
-          } catch (TException te) {
-            throw new RuntimeException(te);
-          }
-          
-          //
-          // Check the expiry
-          //
-          
-          long instant = System.currentTimeMillis();
-          
-          if (instant - split.getTimestamp() > maxSplitAge || instant > split.getExpiry()) {
-            throw new RuntimeException("Split has expired.");
-          }
-                    
-          this.metadatas.addAll(split.getMetadatas());
-          
-          // We assume there was at least one metadata instance in the split!!!
-          return true;
-        }
-      };
-      
-      iterators.add(iterator);
-    }
-       
-    List<Metadata> metas = new ArrayList<Metadata>();
-    metas.addAll(metadatas);
-    
-    if (!metas.isEmpty()) {
-      iterators.add(metas.iterator());
-    }
-    
-    //
-    // Loop over the iterators, storing the read metadata to a temporary file encrypted on disk
-    // Data is encrypted using a onetime pad
-    //
-    
-    final byte[] onetimepad = new byte[(int) Math.min(65537, System.currentTimeMillis() % 100000)];
-    new Random().nextBytes(onetimepad);
-    
-    final File cache = File.createTempFile(Long.toHexString(System.currentTimeMillis()) + "-" + Long.toHexString(System.nanoTime()), ".dircache");
-    cache.deleteOnExit();
-    
-    FileWriter writer = new FileWriter(cache);
-
-    TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-    
-    int padidx = 0;
-    
-    for (Iterator<Metadata> itermeta: iterators){
-      try {
-        while(itermeta.hasNext()) {
-          Metadata metadata = itermeta.next();
-          
-          try {
-            byte[] bytes = serializer.serialize(metadata);
-            // Apply onetimepad
-            for (int i = 0; i < bytes.length; i++) {
-              bytes[i] = (byte) (bytes[i] ^ onetimepad[padidx++]);
+            String line = reader.readLine();
+            if (null == line) {
+              done = true;
+              return false;
+            }
+            byte[] raw = OrderPreservingBase64.decode(line.getBytes(Charsets.US_ASCII));
+            // Apply one time pad
+            for (int i = 0; i < raw.length; i++) {
+              raw[i] = (byte) (raw[i] ^ onetimepad[padidx++]);
               if (padidx >= onetimepad.length) {
                 padidx = 0;
               }
             }
-            OrderPreservingBase64.encodeToWriter(bytes, writer);
-            writer.write('\n');
-          } catch (TException te) {          
-          }         
+            Metadata metadata = new Metadata();
+            try {
+              deserializer.deserialize(metadata, raw);
+              this.current = metadata;
+              return true;
+            } catch (TException te) {
+              LOG.error("", te);
+            }
+          } catch (IOException ioe) {
+            LOG.error("", ioe);
+          }
+          
+          return false;
+        }
+        
+        @Override
+        public Metadata next() {
+          if (null != this.current) {
+            Metadata metadata = this.current;
+            this.current = null;
+            return metadata;
+          } else {
+            throw new NoSuchElementException();
+          }
+        }
+        
+        @Override
+        public void close() throws Exception {
+          this.reader.close();
+          cache.delete();
+        }
+      };
+      
+      iterators.clear();
+      iterators.add(cacheiterator);
+          
+      metas = new ArrayList<Metadata>();
+
+      PrintWriter pw = resp.getWriter();
+      
+      AtomicReference<Metadata> lastMeta = new AtomicReference<Metadata>(null);
+      AtomicLong lastCount = new AtomicLong(0L);
+      
+      long fetchtimespan = timespan;
+      
+      for (Iterator<Metadata> itermeta: iterators) {
+        while(itermeta.hasNext()) {
+          metas.add(itermeta.next());
+          
+          //
+          // Access the data store every 'FETCH_BATCHSIZE' GTS or at the end of each iterator
+          //
+          
+          if (metas.size() > FETCH_BATCHSIZE || !itermeta.hasNext()) {
+            try(GTSDecoderIterator iterrsc = storeClient.fetch(rtoken, metas, now, fetchtimespan, fromArchive, writeTimestamp)) {
+              GTSDecoderIterator iter = iterrsc;
+                          
+              if (unpack) {
+                iter = new UnpackingGTSDecoderIterator(iter, suffix);
+                timespan = Long.MIN_VALUE + 1;
+              }
+              
+              if("text".equals(format)) {
+                textDump(pw, iter, now, timespan, false, dedup, signed, showAttr, lastMeta, lastCount);
+              } else if ("fulltext".equals(format)) {
+                textDump(pw, iter, now, timespan, true, dedup, signed, showAttr, lastMeta, lastCount);
+              } else if ("raw".equals(format)) {
+                rawDump(pw, iter, dedup, signed, timespan, lastMeta, lastCount);
+              } else if ("wrapper".equals(format)) {
+                wrapperDump(pw, iter, dedup, signed, fetchPSK, timespan, lastMeta, lastCount);
+              } else if ("json".equals(format)) {
+                jsonDump(pw, iter, now, timespan, dedup, signed, lastMeta, lastCount);
+              } else if ("tsv".equals(format)) {
+                tsvDump(pw, iter, now, timespan, false, dedup, signed, lastMeta, lastCount);
+              } else if ("fulltsv".equals(format)) {
+                tsvDump(pw, iter, now, timespan, true, dedup, signed, lastMeta, lastCount);
+              } else if ("pack".equals(format)) {
+                packedDump(pw, iter, now, timespan, dedup, signed, lastMeta, lastCount, maxDecoderLen, suffix, chunksize);
+              } else if ("null".equals(format)) {
+                nullDump(iter);
+              } else {
+                textDump(pw, iter, now, timespan, false, dedup, signed, showAttr, lastMeta, lastCount);
+              }
+            } catch (Throwable t) {
+              LOG.error("",t);
+              Sensision.update(SensisionConstants.CLASS_WARP_FETCH_ERRORS, Sensision.EMPTY_LABELS, 1);
+              if (showErrors) {
+                pw.println();
+                StringWriter sw = new StringWriter();
+                PrintWriter pw2 = new PrintWriter(sw);
+                t.printStackTrace(pw2);
+                pw2.close();
+                sw.flush();
+                String error = URLEncoder.encode(sw.toString(), "UTF-8");
+                pw.println(Constants.EGRESS_FETCH_ERROR_PREFIX + error);
+              }
+              throw new IOException(t);
+            } finally {      
+              if (!itermeta.hasNext() && (itermeta instanceof MetadataIterator)) {
+                try {
+                  ((MetadataIterator) itermeta).close();
+                } catch (Exception e) {          
+                }
+              }
+            }                  
+            
+            //
+            // Reset 'metas'
+            //
+            
+            metas.clear();
+          }        
         }
         
         if (!itermeta.hasNext() && (itermeta instanceof MetadataIterator)) {
@@ -560,183 +734,16 @@ public class EgressFetchHandler extends AbstractHandler {
             ((MetadataIterator) itermeta).close();
           } catch (Exception e) {          
           }
-        }              
-      } catch (Throwable t) {
-        throw t;
-      } finally {
-        if (itermeta instanceof MetadataIterator) {
-          try {
-            ((MetadataIterator) itermeta).close();
-          } catch (Exception e) {        
-          }
         }
+      }
+
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_REQUESTS, labels, 1);      
+    } catch (Exception e) {
+      if (!resp.isCommitted()) {
+        resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+        return;
       }
     }
-    
-    writer.close();
-    
-    //
-    // Create an iterator based on the cache
-    //
-    
-    MetadataIterator cacheiterator = new MetadataIterator() {
-      
-      BufferedReader reader = new BufferedReader(new FileReader(cache));
-      
-      private Metadata current = null;
-      private boolean done = false;
-      
-      private TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
-      
-      int padidx = 0;
-      
-      @Override
-      public boolean hasNext() {
-        if (done) {
-          return false;
-        }
-        
-        if (null != current) {
-          return true;
-        }
-        
-        try {
-          String line = reader.readLine();
-          if (null == line) {
-            done = true;
-            return false;
-          }
-          byte[] raw = OrderPreservingBase64.decode(line.getBytes(Charsets.US_ASCII));
-          // Apply one time pad
-          for (int i = 0; i < raw.length; i++) {
-            raw[i] = (byte) (raw[i] ^ onetimepad[padidx++]);
-            if (padidx >= onetimepad.length) {
-              padidx = 0;
-            }
-          }
-          Metadata metadata = new Metadata();
-          try {
-            deserializer.deserialize(metadata, raw);
-            this.current = metadata;
-            return true;
-          } catch (TException te) {
-            LOG.error("", te);
-          }
-        } catch (IOException ioe) {
-          LOG.error("", ioe);
-        }
-        
-        return false;
-      }
-      
-      @Override
-      public Metadata next() {
-        if (null != this.current) {
-          Metadata metadata = this.current;
-          this.current = null;
-          return metadata;
-        } else {
-          throw new NoSuchElementException();
-        }
-      }
-      
-      @Override
-      public void close() throws Exception {
-        this.reader.close();
-        cache.delete();
-      }
-    };
-    
-    iterators.clear();
-    iterators.add(cacheiterator);
-        
-    metas = new ArrayList<Metadata>();
-
-    PrintWriter pw = resp.getWriter();
-    
-    AtomicReference<Metadata> lastMeta = new AtomicReference<Metadata>(null);
-    AtomicLong lastCount = new AtomicLong(0L);
-    
-    long fetchtimespan = timespan;
-    
-    for (Iterator<Metadata> itermeta: iterators) {
-      while(itermeta.hasNext()) {
-        metas.add(itermeta.next());
-        
-        //
-        // Access the data store every 'FETCH_BATCHSIZE' GTS or at the end of each iterator
-        //
-        
-        if (metas.size() > FETCH_BATCHSIZE || !itermeta.hasNext()) {
-          try(GTSDecoderIterator iterrsc = storeClient.fetch(rtoken, metas, now, fetchtimespan, fromArchive, writeTimestamp)) {
-            GTSDecoderIterator iter = iterrsc;
-                        
-            if (unpack) {
-              iter = new UnpackingGTSDecoderIterator(iter, suffix);
-              timespan = Long.MIN_VALUE + 1;
-            }
-            
-            if("text".equals(format)) {
-              textDump(pw, iter, now, timespan, false, dedup, signed, showAttr, lastMeta, lastCount);
-            } else if ("fulltext".equals(format)) {
-              textDump(pw, iter, now, timespan, true, dedup, signed, showAttr, lastMeta, lastCount);
-            } else if ("raw".equals(format)) {
-              rawDump(pw, iter, dedup, signed, timespan, lastMeta, lastCount);
-            } else if ("wrapper".equals(format)) {
-              wrapperDump(pw, iter, dedup, signed, fetchPSK, timespan, lastMeta, lastCount);
-            } else if ("json".equals(format)) {
-              jsonDump(pw, iter, now, timespan, dedup, signed, lastMeta, lastCount);
-            } else if ("tsv".equals(format)) {
-              tsvDump(pw, iter, now, timespan, false, dedup, signed, lastMeta, lastCount);
-            } else if ("fulltsv".equals(format)) {
-              tsvDump(pw, iter, now, timespan, true, dedup, signed, lastMeta, lastCount);
-            } else if ("pack".equals(format)) {
-              packedDump(pw, iter, now, timespan, dedup, signed, lastMeta, lastCount, maxDecoderLen, suffix, chunksize);
-            } else if ("null".equals(format)) {
-              nullDump(iter);
-            } else {
-              textDump(pw, iter, now, timespan, false, dedup, signed, showAttr, lastMeta, lastCount);
-            }
-          } catch (Throwable t) {
-            LOG.error("",t);
-            Sensision.update(SensisionConstants.CLASS_WARP_FETCH_ERRORS, Sensision.EMPTY_LABELS, 1);
-            if (showErrors) {
-              pw.println();
-              StringWriter sw = new StringWriter();
-              PrintWriter pw2 = new PrintWriter(sw);
-              t.printStackTrace(pw2);
-              pw2.close();
-              sw.flush();
-              String error = URLEncoder.encode(sw.toString(), "UTF-8");
-              pw.println(Constants.EGRESS_FETCH_ERROR_PREFIX + error);
-            }
-            throw new IOException(t);
-          } finally {      
-            if (!itermeta.hasNext() && (itermeta instanceof MetadataIterator)) {
-              try {
-                ((MetadataIterator) itermeta).close();
-              } catch (Exception e) {          
-              }
-            }
-          }                  
-          
-          //
-          // Reset 'metas'
-          //
-          
-          metas.clear();
-        }        
-      }
-      
-      if (!itermeta.hasNext() && (itermeta instanceof MetadataIterator)) {
-        try {
-          ((MetadataIterator) itermeta).close();
-        } catch (Exception e) {          
-        }
-      }
-    }
-
-    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_REQUESTS, labels, 1);
   }
   
   private static void rawDump(PrintWriter pw, GTSDecoderIterator iter, boolean dedup, boolean signed, long timespan, AtomicReference<Metadata> lastMeta, AtomicLong lastCount) throws IOException {

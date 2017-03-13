@@ -97,134 +97,141 @@ public class EgressFindHandler extends AbstractHandler {
       return;
     }
     
-    String format = req.getParameter(Constants.HTTP_PARAM_FORMAT);
-    boolean json = "json".equals(format);
-    
-    boolean showErrors = null != req.getParameter(Constants.HTTP_PARAM_SHOW_ERRORS);    
-
-    boolean showUUID = "true".equals(req.getParameter(Constants.HTTP_PARAM_SHOWUUID));
-    
-    ReadToken rtoken;
-    
     try {
-      rtoken = Tokens.extractReadToken(token);
-    } catch (WarpScriptException ee) {
-      throw new IOException(ee);
-    }
+      String format = req.getParameter(Constants.HTTP_PARAM_FORMAT);
+      boolean json = "json".equals(format);
+      
+      boolean showErrors = null != req.getParameter(Constants.HTTP_PARAM_SHOW_ERRORS);    
 
-    if (null == rtoken) {
-      resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Missing token.");
-      return;
-    }
-    
-    String[] selectors = selector.split("\\s+");
-        
-    PrintWriter pw = resp.getWriter();
-
-    if (json) {
-      pw.println("[");
-    }
-    
-    StringBuilder sb = new StringBuilder();
-
-    AtomicInteger level = new AtomicInteger(0);
-    boolean first = true;
-    
-    try {
-      for (String sel: selectors) {
-        Object[] elts = null;
-        
-        try {
-          elts = PARSESELECTOR.parse(sel);
-        } catch (WarpScriptException ee) {
-          throw new IOException(ee);
-        }
-        
-        //
-        // Force app/owner/producer from token
-        //
-        
-        String classSelector = elts[0].toString();
-        Map<String,String> labelsSelector = (Map<String,String>) elts[1];
-        
-        labelsSelector.remove(Constants.PRODUCER_LABEL);
-        labelsSelector.remove(Constants.OWNER_LABEL);
-        labelsSelector.remove(Constants.APPLICATION_LABEL);
-        
-        labelsSelector.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
-        
-        List<String> clsSels = new ArrayList<String>();
-        List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
-        
-        clsSels.add(classSelector);
-        lblsSels.add(labelsSelector);
-
-        try (MetadataIterator iterator = directoryClient.iterator(clsSels, lblsSels)) {
-          while(iterator.hasNext()) {
-            Metadata metadata = iterator.next();
-
-            if (showUUID) {
-              UUID uuid = new UUID(metadata.getClassId(), metadata.getLabelsId());
-              if (null != metadata.getAttributes()) {
-                metadata.setAttributes(new HashMap<String,String>(metadata.getAttributes()));
-              }
-              metadata.putToAttributes(Constants.UUID_ATTRIBUTE, uuid.toString());
-            }
-
-            if (json) {
-              // Remove internal labels, need to copy the map as it is Immutable in Metadata
-              if (null != metadata.getLabels()) {
-                metadata.setLabels(new HashMap<String,String>(metadata.getLabels()));
-                metadata.getLabels().remove(Constants.OWNER_LABEL);
-                metadata.getLabels().remove(Constants.PRODUCER_LABEL);
-              }
-              if (!first) {
-                pw.println(",");
-              } else {
-                first = false;
-              }
-              StackUtils.objectToJSON(pw, metadata, level, true);
-              continue;
-            }
-            
-            sb.setLength(0);
-            
-            GTSHelper.encodeName(sb, metadata.getName());
-            
-            if (metadata.getLabelsSize() > 0) {
-              GTSHelper.labelsToString(sb, metadata.getLabels());
-            }
-            
-            if (metadata.getAttributesSize() > 0) {
-              GTSHelper.labelsToString(sb, metadata.getAttributes());
-            } else {
-              sb.append("{}");
-            }
-            
-            pw.println(sb.toString());
-          }      
-        } catch (Throwable t) {        
-          throw t;
-        }
+      boolean showUUID = "true".equals(req.getParameter(Constants.HTTP_PARAM_SHOWUUID));
+      
+      ReadToken rtoken;
+      
+      try {
+        rtoken = Tokens.extractReadToken(token);
+      } catch (WarpScriptException ee) {
+        throw new IOException(ee);
       }
+
+      if (null == rtoken) {
+        resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Missing token.");
+        return;
+      }
+      
+      String[] selectors = selector.split("\\s+");
+          
+      PrintWriter pw = resp.getWriter();
+
       if (json) {
-        pw.println();
-        pw.println("]");
-      }      
-    } catch (Throwable t) {
-      LOG.error("",t);
-      Sensision.update(SensisionConstants.CLASS_WARP_FIND_ERRORS, Sensision.EMPTY_LABELS, 1);
-      if (showErrors) {
-        pw.println();
-        StringWriter sw = new StringWriter();
-        PrintWriter pw2 = new PrintWriter(sw);
-        t.printStackTrace(pw2);
-        pw2.close();
-        sw.flush();
-        String error = URLEncoder.encode(sw.toString(), "UTF-8");
-        pw.println(Constants.EGRESS_FIND_ERROR_PREFIX + error);
+        pw.println("[");
       }
-      throw new IOException(t);
+      
+      StringBuilder sb = new StringBuilder();
+
+      AtomicInteger level = new AtomicInteger(0);
+      boolean first = true;
+      
+      try {
+        for (String sel: selectors) {
+          Object[] elts = null;
+          
+          try {
+            elts = PARSESELECTOR.parse(sel);
+          } catch (WarpScriptException ee) {
+            throw new IOException(ee);
+          }
+          
+          //
+          // Force app/owner/producer from token
+          //
+          
+          String classSelector = elts[0].toString();
+          Map<String,String> labelsSelector = (Map<String,String>) elts[1];
+          
+          labelsSelector.remove(Constants.PRODUCER_LABEL);
+          labelsSelector.remove(Constants.OWNER_LABEL);
+          labelsSelector.remove(Constants.APPLICATION_LABEL);
+          
+          labelsSelector.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
+          
+          List<String> clsSels = new ArrayList<String>();
+          List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
+          
+          clsSels.add(classSelector);
+          lblsSels.add(labelsSelector);
+
+          try (MetadataIterator iterator = directoryClient.iterator(clsSels, lblsSels)) {
+            while(iterator.hasNext()) {
+              Metadata metadata = iterator.next();
+
+              if (showUUID) {
+                UUID uuid = new UUID(metadata.getClassId(), metadata.getLabelsId());
+                if (null != metadata.getAttributes()) {
+                  metadata.setAttributes(new HashMap<String,String>(metadata.getAttributes()));
+                }
+                metadata.putToAttributes(Constants.UUID_ATTRIBUTE, uuid.toString());
+              }
+
+              if (json) {
+                // Remove internal labels, need to copy the map as it is Immutable in Metadata
+                if (null != metadata.getLabels()) {
+                  metadata.setLabels(new HashMap<String,String>(metadata.getLabels()));
+                  metadata.getLabels().remove(Constants.OWNER_LABEL);
+                  metadata.getLabels().remove(Constants.PRODUCER_LABEL);
+                }
+                if (!first) {
+                  pw.println(",");
+                } else {
+                  first = false;
+                }
+                StackUtils.objectToJSON(pw, metadata, level, true);
+                continue;
+              }
+              
+              sb.setLength(0);
+              
+              GTSHelper.encodeName(sb, metadata.getName());
+              
+              if (metadata.getLabelsSize() > 0) {
+                GTSHelper.labelsToString(sb, metadata.getLabels());
+              }
+              
+              if (metadata.getAttributesSize() > 0) {
+                GTSHelper.labelsToString(sb, metadata.getAttributes());
+              } else {
+                sb.append("{}");
+              }
+              
+              pw.println(sb.toString());
+            }      
+          } catch (Throwable t) {        
+            throw t;
+          }
+        }
+        if (json) {
+          pw.println();
+          pw.println("]");
+        }      
+      } catch (Throwable t) {
+        LOG.error("",t);
+        Sensision.update(SensisionConstants.CLASS_WARP_FIND_ERRORS, Sensision.EMPTY_LABELS, 1);
+        if (showErrors) {
+          pw.println();
+          StringWriter sw = new StringWriter();
+          PrintWriter pw2 = new PrintWriter(sw);
+          t.printStackTrace(pw2);
+          pw2.close();
+          sw.flush();
+          String error = URLEncoder.encode(sw.toString(), "UTF-8");
+          pw.println(Constants.EGRESS_FIND_ERROR_PREFIX + error);
+        }
+        throw new IOException(t);
+      }      
+    } catch (Exception e) {
+      if (!resp.isCommitted()) {
+        resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+        return;
+      }
     }
   }
 }
