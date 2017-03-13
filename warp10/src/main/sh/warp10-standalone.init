@@ -51,13 +51,19 @@ fi
 #
 # Quantum plugin - Plugin embeds Quantum
 #
+# To inhibit/activate Quantum use 'warp10.plugins' attribute in the Warp 10 config
 QUANTUM_REVISION=@QUANTUM_VERSION@
 QUANTUM_PLUGIN_JAR=${WARP10_HOME}/bin/warp10-quantum-plugin-${QUANTUM_REVISION}.jar
 QUANTUM_PLUGIN_NAME=io.warp10.plugins.quantum.QuantumPlugin
-QUANTUM_STARTED=true
+# Is Quantun has been started ?
+# Note: do not use this parameter to inhibit/activate Quantum (use Warp 10 config)
+IS_QUANTUM_STARTED=true
 
 IS_JAVA7=false
 
+#
+# Classpath
+#
 WARP10_REVISION=@VERSION@
 WARP10_USER=warp10
 WARP10_GROUP=warp10
@@ -65,6 +71,9 @@ WARP10_CONFIG=${WARP10_HOME}/etc/conf-standalone.conf
 WARP10_JAR=${WARP10_HOME}/bin/warp10-${WARP10_REVISION}.jar
 WARP10_CLASS=io.warp10.standalone.Warp
 WARP10_INIT=io.warp10.standalone.WarpInit
+#
+# The lib directory is dedicated to user libraries except of UDF(jars directory): extensions;..
+#
 WARP10_CP=etc:${WARP10_JAR}:${QUANTUM_PLUGIN_JAR}:lib/*
 WARP10_HEAP=1g
 WARP10_HEAP_MAX=1g
@@ -372,7 +381,7 @@ start() {
 
   if [ "$QUANTUM_PLUGIN" != "" ]; then
     if [ "$IS_JAVA7" = false ]; then
-      QUANTUM_STARTED=true
+      IS_QUANTUM_STARTED=true
       QUANTUM_LISTENSTO_HOST="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.host'" | grep 'quantum.host' | sed -e 's/^.*=//'`"
       QUANTUM_LISTENSTO_PORT="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.port'" | grep 'quantum.port' | sed -e 's/^.*=//'`"
       QUANTUM_LISTENSTO="${QUANTUM_LISTENSTO_HOST}:${QUANTUM_LISTENSTO_PORT}"
@@ -381,7 +390,7 @@ start() {
       exit 1
     fi
   else
-    QUANTUM_STARTED=false
+    IS_QUANTUM_STARTED=false
     # Delete Quantum from CP
     WARP10_CP=etc:${WARP10_JAR}
   fi
@@ -406,7 +415,7 @@ start() {
   echo "##"
   echo "## Warp 10 listens on ${WARP10_LISTENSTO}"
   echo "##"
-  if [ "$QUANTUM_STARTED" = true ]; then
+  if [ "$IS_QUANTUM_STARTED" = true ]; then
     echo "## Quantum listens on ${QUANTUM_LISTENSTO}"
     echo "##"
   fi
@@ -430,7 +439,7 @@ start() {
       echo "##"
       echo "##   curl http://${WARP10_LISTENSTO}/api/v0/exec --data-binary @path/to/WarpScriptFile"
       echo "##"
-      if [ "$QUANTUM_STARTED" = true ]; then
+      if [ "$IS_QUANTUM_STARTED" = true ]; then
         echo "## The alternative to command-line interaction is Quantum, a web application to interact with the platform in an user-friendly way:"
         echo "##"
         echo "##   http://${QUANTUM_LISTENSTO}"
