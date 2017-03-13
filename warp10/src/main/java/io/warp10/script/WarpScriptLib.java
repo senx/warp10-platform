@@ -574,6 +574,7 @@ public class WarpScriptLib {
     functions.put("SHA1HMAC", new HMAC("SHA1HMAC", SHA1Digest.class));
     functions.put("AESWRAP", new AESWRAP("AESWRAP"));
     functions.put("AESUNWRAP", new AESUNWRAP("AESUNWRAP"));
+    functions.put("RUNNERNONCE", new RUNNERNONCE("RUNNERNONCE"));
     functions.put("GZIP", new GZIP("GZIP"));
     functions.put("UNGZIP", new UNGZIP("UNGZIP"));
     functions.put("RSAGEN", new RSAGEN("RSAGEN"));

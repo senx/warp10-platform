@@ -113,6 +113,7 @@ public class Constants {
   public static final String RUNNER_PERIODICITY = "runner.periodicity";
   public static final String RUNNER_PATH = "runner.path";
   public static final String RUNNER_SCHEDULEDAT = "runner.scheduledat";
+  public static final String RUNNER_NONCE = "runner.nonce";
   
   private static final Map<String,String> HEADERS = new HashMap<String,String>();
   

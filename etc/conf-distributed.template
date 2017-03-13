@@ -1269,6 +1269,11 @@ runner.scanperiod = 60000
 runner.endpoint = http://127.0.0.1:8881/api/v0/exec/warpscript
 
 //
+// AES key for wrapping a runner nonce which can later be extracted using RUNNERNONCE
+//
+//runner.psk = hex:......
+
+//
 // Minimum period at which a script can be scheduled. Any script scheduled
 // more often than that won't be run
 //

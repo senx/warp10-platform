@@ -487,6 +487,11 @@ public class Warp extends WarpDist implements Runnable {
       Preconditions.checkArgument((16 == keystore.getKey(KeyStore.SIPHASH_FETCH_PSK).length), Configuration.CONFIG_FETCH_PSK + " MUST be 128 bits long.");            
     }
 
+    if (null != props.getProperty(Configuration.RUNNER_PSK)) {
+      byte[] key = keystore.decodeKey(props.getProperty(Configuration.RUNNER_PSK));
+      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.RUNNER_PSK + " MUST be 128, 192 or 256 bits long.");
+      keystore.setKey(KeyStore.AES_RUNNER_PSK, key);
+    }
   }  
 
   public static DB getDB() {

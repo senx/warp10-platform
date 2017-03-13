@@ -19,12 +19,14 @@ package io.warp10.script;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.KafkaProducerPool;
 import io.warp10.continuum.KafkaSynchronizedConsumerPool;
+import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.thrift.data.RunRequest;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.DummyKeyStore;
 import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.sensision.Sensision;
 import io.warp10.standalone.StandaloneScriptRunner;
@@ -65,8 +67,10 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 
+import com.geoxp.oss.CryptoHelper;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
+import com.google.common.primitives.Longs;
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.framework.recipes.leader.LeaderLatch;
@@ -155,6 +159,8 @@ public class ScriptRunner extends Thread {
   private final boolean isStandalone;
   private final KeyStore keystore;
   
+  private final byte[] runnerPSK;
+  
   public ScriptRunner(KeyStore keystore, Properties config) throws IOException {
       
     //
@@ -199,6 +205,8 @@ public class ScriptRunner extends Thread {
   
     this.keystore = keystore;
     
+    this.runnerPSK = keystore.getKey(KeyStore.AES_RUNNER_PSK);
+
     //
     // Check the required properties and configure the various roles
     //
@@ -473,6 +481,27 @@ public class ScriptRunner extends Thread {
             out.write(' ');
             out.write(WarpScriptLib.STORE.getBytes(Charsets.UTF_8));
             out.write('\n');
+
+            //
+            // Generate a nonce by wrapping the current time with random 64bits
+            //
+            
+            if (null != runnerPSK) {
+              byte[] now = Longs.toByteArray(TimeSource.getTime());
+              
+              byte[] nonce = CryptoHelper.wrapBlob(runnerPSK, now);
+
+              out.write('\'');
+              out.write(OrderPreservingBase64.encode(nonce));
+              out.write('\'');
+              out.write(' ');
+              out.write('\'');              
+              out.write(URLEncoder.encode(Constants.RUNNER_NONCE, "UTF-8").replaceAll("\\+","%20").getBytes(Charsets.US_ASCII));            
+              out.write('\'');
+              out.write(' ');
+              out.write(WarpScriptLib.STORE.getBytes(Charsets.UTF_8));
+              out.write('\n');
+            }
 
             while(true) {
               int len = in.read(buf);

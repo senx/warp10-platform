@@ -1181,6 +1181,11 @@ public class Configuration {
    */
   public static final String RUNNER_KAFKA_AES = "runner.kafka.aes";
 
+  /**
+   * PreShared key for identifying scripts executing from runner
+   */
+  public static final String RUNNER_PSK = "runner.psk";
+  
   //
   // S T A N D A L O N E
   //

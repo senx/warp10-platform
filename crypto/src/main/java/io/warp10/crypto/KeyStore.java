@@ -73,6 +73,11 @@ public interface KeyStore {
   public static final String AES_TOKEN = "warp.aes.token";
   
   /**
+   * PreShared key for Runner so scripts coming from runners can be identified
+   */
+  public static final String AES_RUNNER_PSK = "warp.aes.runner.psk";
+  
+  /**
    * Name of key for computing MAC for kafka runn requests
    */
   public static final String SIPHASH_KAFKA_RUNNER = "warp.siphash.kafka.runner";

@@ -18,12 +18,15 @@ package io.warp10.standalone;
 
 import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
+import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.geo.GeoDirectoryClient;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
+import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.MemoryWarpScriptStack;
@@ -39,9 +42,13 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 import java.util.concurrent.RejectedExecutionException;
 
+import com.geoxp.oss.CryptoHelper;
+import com.geoxp.oss.client.OSSClient;
 import com.google.common.base.Charsets;
+import com.google.common.primitives.Longs;
 
 public class StandaloneScriptRunner extends ScriptRunner {
   
@@ -50,6 +57,10 @@ public class StandaloneScriptRunner extends ScriptRunner {
   private final GeoDirectoryClient geoDirectoryClient;
   private final Properties props;
   private final BootstrapManager bootstrapManager;
+
+  private final Random prng = new Random();
+
+  private final byte[] runnerPSK;
   
   public StandaloneScriptRunner(Properties properties, KeyStore keystore, StoreClient storeClient, DirectoryClient directoryClient, GeoDirectoryClient geoDirectoryClient, Properties props) throws IOException {
     super(keystore, props);
@@ -63,8 +74,7 @@ public class StandaloneScriptRunner extends ScriptRunner {
     // Check if we have a 'bootstrap' property
     //
     
-    if (properties.containsKey(Configuration.CONFIG_WARPSCRIPT_RUNNER_BOOTSTRAP_PATH)) {
-      
+    if (properties.containsKey(Configuration.CONFIG_WARPSCRIPT_RUNNER_BOOTSTRAP_PATH)) {     
       final String path = properties.getProperty(Configuration.CONFIG_WARPSCRIPT_RUNNER_BOOTSTRAP_PATH);
       
       long period = properties.containsKey(Configuration.CONFIG_WARPSCRIPT_RUNNER_BOOTSTRAP_PERIOD) ?  Long.parseLong(properties.getProperty(Configuration.CONFIG_WARPSCRIPT_RUNNER_BOOTSTRAP_PERIOD)) : 0L ;
@@ -72,7 +82,8 @@ public class StandaloneScriptRunner extends ScriptRunner {
     } else {
       this.bootstrapManager = new BootstrapManager();
     }
-
+    
+    this.runnerPSK = keystore.getKey(KeyStore.AES_RUNNER_PSK);
   }
   
   @Override
@@ -141,6 +152,18 @@ public class StandaloneScriptRunner extends ScriptRunner {
             stack.store(Constants.RUNNER_PERIODICITY, periodicity);
             stack.store(Constants.RUNNER_PATH, path);
             stack.store(Constants.RUNNER_SCHEDULEDAT, System.currentTimeMillis());
+            
+            //
+            // Generate a nonce by wrapping the current time with random 64bits
+            //
+            
+            if (null != runnerPSK) {
+              byte[] now = Longs.toByteArray(TimeSource.getTime());
+              
+              byte[] nonce = CryptoHelper.wrapBlob(runnerPSK, now);
+              
+              stack.store(Constants.RUNNER_NONCE, new String(OrderPreservingBase64.encode(nonce), Charsets.US_ASCII));              
+            }
             
             stack.execMulti(new String(baos.toByteArray(), Charsets.UTF_8));
           } catch (Exception e) {                
