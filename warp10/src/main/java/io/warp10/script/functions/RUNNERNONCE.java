@@ -17,15 +17,12 @@
 package io.warp10.script.functions;
 
 import io.warp10.WarpDist;
-import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-
-import java.util.Arrays;
 
 import com.geoxp.oss.CryptoHelper;
 import com.google.common.base.Charsets;
@@ -50,7 +47,7 @@ public class RUNNERNONCE extends NamedWarpScriptFunction implements WarpScriptSt
       throw new WarpScriptException(getName() + " expects a String.");      
     }
     
-    synchronized(SECURE.class) {
+    synchronized(RUNNERNONCE.class) {
       if (null == runnerPSK) {
         try {
           runnerPSK = WarpDist.getKeyStore().getKey(KeyStore.AES_RUNNER_PSK);
