@@ -347,27 +347,32 @@ public class Warp extends WarpDist implements Runnable {
     EgressExecHandler egressExecHandler = new EgressExecHandler(keystore, properties, sdc, geodir.getClient(), scc); 
     gzip.setHandler(egressExecHandler);
     gzip.setMinGzipSize(0);
+    gzip.addIncludedMethods("POST");
     handlers.addHandler(gzip);
     setEgress(true);
 
     gzip = new GzipHandler();
     gzip.setHandler(new StandaloneIngressHandler(keystore, sdc, scc));
     gzip.setMinGzipSize(0);
+    gzip.addIncludedMethods("POST");
     handlers.addHandler(gzip);
 
     gzip = new GzipHandler();
     gzip.setHandler(new EgressFetchHandler(keystore, properties, sdc, scc));
     gzip.setMinGzipSize(0);
+    gzip.addIncludedMethods("POST");
     handlers.addHandler(gzip);
 
     gzip = new GzipHandler();
     gzip.setHandler(new EgressFindHandler(keystore, sdc));
     gzip.setMinGzipSize(0);
+    gzip.addIncludedMethods("POST");
     handlers.addHandler(gzip);
 
     gzip = new GzipHandler();
     gzip.setHandler(new StandaloneDeleteHandler(keystore, sdc, scc));
     gzip.setMinGzipSize(0);
+    gzip.addIncludedMethods("POST");
     handlers.addHandler(gzip);
     
     handlers.addHandler(geodir);    

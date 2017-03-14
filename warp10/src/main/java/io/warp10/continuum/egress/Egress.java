@@ -134,21 +134,25 @@ public class Egress {
       EgressExecHandler egressExecHandler = new EgressExecHandler(this.keystore, this.properties, directoryClient, geoDirectoryClient, storeClient);
       gzip.setHandler(egressExecHandler);
       gzip.setMinGzipSize(0);
+      gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
           
       gzip = new GzipHandler();    
       gzip.setHandler(new EgressFetchHandler(this.keystore, this.properties, directoryClient, storeClient));
       gzip.setMinGzipSize(0);
+      gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
       
       gzip = new GzipHandler();
       gzip.setHandler(new EgressFindHandler(this.keystore, directoryClient));
       gzip.setMinGzipSize(0);
+      gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
       
       gzip = new GzipHandler();
       gzip.setHandler(new EgressSplitsHandler(this.keystore, directoryClient, (HBaseStoreClient) storeClient));
       gzip.setMinGzipSize(0);
+      gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
 
       EgressMobiusHandler mobiusHandler = new EgressMobiusHandler(storeClient, directoryClient, this.properties);
@@ -157,6 +161,7 @@ public class Egress {
       GzipHandler gzip = new GzipHandler();
       gzip.setHandler(new EgressFetchHandler(this.keystore, this.properties, null, storeClient));
       gzip.setMinGzipSize(0);
+      gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);      
     }
 
