@@ -341,8 +341,8 @@ public class EgressExecHandler extends AbstractHandler {
         stack.push(exports);
       }
       
-      StackUtils.toJSON(resp.getWriter(), stack);
-    } catch (Exception e) {
+      StackUtils.toJSON(resp.getWriter(), stack);   
+    } catch (Throwable e) {
       t = e;      
 
       if (t instanceof EmptyStackException) {
@@ -436,7 +436,7 @@ public class EgressExecHandler extends AbstractHandler {
       }
       
       if (null != t) {
-        LogUtil.setLoggingEventStackTrace(null, LogUtil.STACK_TRACE, t);
+        event = LogUtil.setLoggingEventStackTrace(event, LogUtil.STACK_TRACE, t);
         Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_ERRORS, Sensision.EMPTY_LABELS, 1);
       }
       
