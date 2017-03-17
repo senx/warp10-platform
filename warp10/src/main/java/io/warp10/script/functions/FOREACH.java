@@ -25,6 +25,7 @@ import io.warp10.script.WarpScriptLoopContinueException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -53,8 +54,8 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
       throw new WarpScriptException(getName() + " expects a macro on top of the stack.");
     }
     
-    if (!(obj instanceof List) && !(obj instanceof Map)) {
-      throw new WarpScriptException(getName() + " operates on a list or map.");
+    if (!(obj instanceof List) && !(obj instanceof Map) && !(obj instanceof Iterator) && !(obj instanceof Iterable)) {
+      throw new WarpScriptException(getName() + " operates on a list, map, iterator or iterable.");
     }
     
     if (obj instanceof List) {
@@ -62,8 +63,7 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
         stack.push(o);
         //
         // Execute RUN-macro
-        //
-        
+        //        
         try {
           stack.exec((Macro) macro);
         } catch (WarpScriptLoopBreakException elbe) {
@@ -76,6 +76,20 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
       for (Entry<Object,Object> entry: ((Map<Object,Object>) obj).entrySet()) {
         stack.push(entry.getKey());
         stack.push(entry.getValue());
+        try {
+          stack.exec((Macro) macro);
+        } catch (WarpScriptLoopBreakException elbe) {
+          break;
+        } catch (WarpScriptLoopContinueException elbe) {
+          // Do nothing!
+        }
+      }
+    } else if (obj instanceof Iterator || obj instanceof Iterable) {
+      Iterator<Object> iter = obj instanceof Iterator ? (Iterator<Object>) obj : ((Iterable<Object>) obj).iterator();
+      while(iter.hasNext()) {
+        Object o = iter.next();
+        System.out.println("CLASS=" + o.getClass());
+        stack.push(o);
         try {
           stack.exec((Macro) macro);
         } catch (WarpScriptLoopBreakException elbe) {
