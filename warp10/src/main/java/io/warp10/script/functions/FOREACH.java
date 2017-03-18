@@ -88,7 +88,6 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
       Iterator<Object> iter = obj instanceof Iterator ? (Iterator<Object>) obj : ((Iterable<Object>) obj).iterator();
       while(iter.hasNext()) {
         Object o = iter.next();
-        System.out.println("CLASS=" + o.getClass());
         stack.push(o);
         try {
           stack.exec((Macro) macro);
