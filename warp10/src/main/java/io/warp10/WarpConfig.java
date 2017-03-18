@@ -36,9 +36,13 @@ public class WarpConfig {
   private static Properties properties = null;
   
   public static void safeSetProperties(String file) throws IOException {
+    if (null != properties) {
+      return;
+    }
+    
     if (null == file) {
       safeSetProperties((Reader) null);
-    } else {
+    } else {      
       safeSetProperties(new FileReader(file));
     }
   }
