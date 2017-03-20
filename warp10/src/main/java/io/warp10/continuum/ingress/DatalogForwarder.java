@@ -661,7 +661,7 @@ public class DatalogForwarder extends Thread {
 
         String hashkey = producer + "/" + application + "/" + owner;
         
-        int q = hashkey.hashCode() % queues.length;
+        int q = ((hashkey.hashCode() % queues.length) + queues.length) % queues.length;
         
         try {
           queues[q].put(action);
