@@ -74,7 +74,7 @@ WARP10_INIT=io.warp10.standalone.WarpInit
 #
 # The lib directory is dedicated to user libraries except of UDF(jars directory): extensions;..
 #
-WARP10_CP=etc:${WARP10_JAR}:${QUANTUM_PLUGIN_JAR}:lib/*
+WARP10_CP=${WARP10_HOME}/etc:${WARP10_JAR}:${WARP10_HOME}/lib/*
 WARP10_HEAP=1g
 WARP10_HEAP_MAX=1g
 INITCONFIG=false
@@ -382,6 +382,8 @@ start() {
   if [ "$QUANTUM_PLUGIN" != "" ]; then
     if [ "$IS_JAVA7" = false ]; then
       IS_QUANTUM_STARTED=true
+      # Add Quantum to WARP10_CP
+      WARP10_CP=${QUANTUM_PLUGIN_JAR}:${WARP10_CP}
       QUANTUM_LISTENSTO_HOST="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.host'" | grep 'quantum.host' | sed -e 's/^.*=//'`"
       QUANTUM_LISTENSTO_PORT="`su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.port'" | grep 'quantum.port' | sed -e 's/^.*=//'`"
       QUANTUM_LISTENSTO="${QUANTUM_LISTENSTO_HOST}:${QUANTUM_LISTENSTO_PORT}"
@@ -391,8 +393,7 @@ start() {
     fi
   else
     IS_QUANTUM_STARTED=false
-    # Delete Quantum from CP
-    WARP10_CP=etc:${WARP10_JAR}
+    # Do not add Quantum to WARP10_CP
   fi
 
   #

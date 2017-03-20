@@ -696,7 +696,7 @@ runner.roles = standalone
 //
 // AES key for wrapping a runner nonce which can later be extracted using RUNNERNONCE
 //
-//runner.psk = hex:......
+//runner.psk = @key:256:runner.psk@
 
 //
 // Root directory under which scripts to run reside.
