@@ -213,6 +213,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_MAXSIZE_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_URLFETCH_MAXSIZE_HARD, Long.toString(WarpScriptStack.DEFAULT_URLFETCH_MAXSIZE))));
 
       //
+      // Set top level section name
+      //
+      
+      setAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME, WarpScriptStack.TOP_LEVEL_SECTION);
+      
+      //
       // Initialize counters
       //
       
@@ -840,6 +846,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     boolean secure = Boolean.TRUE.equals(this.getAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO));
     
     //
+    // Save current section name
+    //
+    
+    String sectionname = (String) this.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME);
+    
+    //
     // If we are already in a secure macro, stay in this mode, otherwise an inner macro could lower the
     // secure level
     //
@@ -887,11 +899,14 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       if (macro.isSecure()) {
         throw ee;
       } else {
-        throw new WarpScriptException("Exception at statement '" + macro.get(i).toString() + "' (" + ee.getMessage() + ")");
+        String section = (String) this.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME);
+        throw new WarpScriptException("Exception at statement '" + macro.get(i).toString() + "' in section '" + section + "' (" + ee.getMessage() + ")");
       }
     } finally {
       this.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, secure);
       recurseOut();
+      // Restore section name
+      this.setAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME, sectionname);
     }
   }
   

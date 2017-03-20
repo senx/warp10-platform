@@ -475,6 +475,7 @@ public class WarpScriptLib {
     functions.put("NOOP", new NOOP("NOOP"));
     functions.put("DOC", new DOC("DOC"));
     functions.put("DOCMODE", new DOCMODE("DOCMODE"));
+    functions.put("SECTION", new SECTION("SECTION"));
     functions.put(SNAPSHOT, new SNAPSHOT(SNAPSHOT, false, false, true));
     functions.put(SNAPSHOTALL, new SNAPSHOT(SNAPSHOTALL, true, false, true));
     functions.put("SNAPSHOTTOMARK", new SNAPSHOT("SNAPSHOTTOMARK", false, true, true));

@@ -65,6 +65,13 @@ public interface WarpScriptStack {
   public static final String SECURE_SCRIPT_START = "<S";
   public static final String SECURE_SCRIPT_END = "S>";
   
+  public static final String TOP_LEVEL_SECTION = "[TOP]";
+  
+  /**
+   * Name of current code section, null is unnamed
+   */
+  public static final String ATTRIBUTE_SECTION_NAME = "section.name";
+  
   /**
    * Flag indicating whether or not the stack is currently in documentation mode
    */
