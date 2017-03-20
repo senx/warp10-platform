@@ -15,7 +15,7 @@ public class LOGMSG extends NamedWarpScriptFunction implements WarpScriptStackFu
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
     
-    System.out.println("[" + System.currentTimeMillis() + "] " + top.toString());
+    System.out.println("[" + System.currentTimeMillis() + "] " + ((null == top) ? "null" : top.toString()));
     
     return stack;
   }
