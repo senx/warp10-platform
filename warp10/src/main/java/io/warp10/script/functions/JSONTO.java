@@ -22,8 +22,12 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
+import org.boon.core.value.CharSequenceValue;
 import org.boon.json.JsonException;
 import org.boon.json.JsonParser;
 import org.boon.json.JsonParserFactory;
@@ -58,27 +62,33 @@ public class JSONTO extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException("Error parsing JSON");
     }
 
-    //
-    // Do a simple replacement of Integers by Longs if we have a list
-    //
-    // The list is an abstract one which cannot be modified, so we need to create a new list
+    stack.push(transform(json));
+
+    return stack;
+  }
+  
+  private static final Object transform(Object json) {    
     if (json instanceof List) {
-      List<Object> l = (List) json;
+      List<Object> l = (List<Object>) json;
       List<Object> target = new ArrayList<Object>();
       
       for (int i=0; i < l.size(); i++) {
-        if (l.get(i) instanceof Integer) {
-          target.add(((Integer) l.get(i)).longValue()); 
-        } else {
-          target.add(l.get(i));
-        }
+        target.add(transform(l.get(i)));
       }
-      
-      stack.push(target);
+      return target;
+    } else if (json instanceof Map) {
+      Map<Object,Object> map = (Map<Object,Object>) json;
+      Map<Object,Object> target = new HashMap<Object, Object>();
+      for (Entry<Object,Object> entry: map.entrySet()) {
+        target.put(transform(entry.getKey()),transform(entry.getValue()));
+      }
+      return target;
+    } else if (json instanceof Integer) {
+      return ((Integer) json).longValue();
+    } else if (json instanceof CharSequenceValue) {
+      return json.toString();
     } else {
-      stack.push(json);
-    }    
-
-    return stack;
+      return json;
+    }
   }
 }
