@@ -530,6 +530,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       event = LogUtil.setLoggingEventAttribute(event, LogUtil.DELETION_COUNT, Long.toString(count));
       event = LogUtil.setLoggingEventAttribute(event, LogUtil.DELETION_GTS, Long.toString(gts));
       
+      LogUtil.addHttpHeaders(event, request);
+      
       if (null != t) {
         LogUtil.setLoggingEventStackTrace(null, LogUtil.STACK_TRACE, t);
       }

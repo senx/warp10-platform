@@ -16,6 +16,15 @@
 
 package io.warp10.continuum;
 
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
@@ -36,7 +45,8 @@ public class LogUtil {
   public static final String WARPSCRIPT_SCRIPT = "warpscript.script";
   public static final String WARPSCRIPT_TIMES = "warpscript.times";
   public static final String STACK_TRACE = "stack.trace";
-    
+  public static final String HTTP_HEADERS = "http.headers";
+  
   public static final String DELETION_TOKEN = "deletion.token";
   public static final String DELETION_SELECTOR = "deletion.selector";
   public static final String DELETION_START = "deletion.start";
@@ -51,17 +61,18 @@ public class LogUtil {
   /**
    * Set the attribute of a logging event
    */
-  public static final LoggingEvent setLoggingEventAttribute(LoggingEvent event, String name, String value) {
+  public static final LoggingEvent setLoggingEventAttribute(LoggingEvent event, String name, Object value) {
 
     event = ensureLoggingEvent(event);
     
     if (null != name && null != value) {
-      event.putToAttributes(name, value);
+      JsonSerializer ser = new JsonSerializerFactory().create();    
+      event.putToAttributes(name, ser.serialize(value).toString());
     }
     
     return event;
   }
-  
+
   public static final String serializeLoggingEvent(KeyStore keystore, LoggingEvent event) {
     if (null == event) {
       return null;
@@ -156,5 +167,38 @@ public class LogUtil {
     } catch (Exception e) {
       return null;
     }
-  }  
+  }
+  
+  public static final LoggingEvent addHttpHeaders(LoggingEvent event, HttpServletRequest req) {
+    
+    event = ensureLoggingEvent(event);
+    
+    //
+    // Add request headers
+    //
+    
+    Map<String,Object> headerMap = new HashMap<String,Object>();
+    
+    Enumeration<String> headerNames = req.getHeaderNames();
+
+    while(headerNames.hasMoreElements()) {
+      String name = headerNames.nextElement();
+      Enumeration<String> values = req.getHeaders(name);
+      List<String> hdrs = new ArrayList<String>();
+      while(values.hasMoreElements()) {
+        hdrs.add(values.nextElement());
+      }
+      if (!hdrs.isEmpty()) {
+        headerMap.put(name, hdrs);
+      }
+    }
+    
+    if (!headerMap.isEmpty()) {
+      JsonSerializer ser = new JsonSerializerFactory().create();    
+
+      event.putToAttributes(LogUtil.HTTP_HEADERS, ser.serialize(headerMap).toString());
+    }
+    
+    return event;
+  }
 }

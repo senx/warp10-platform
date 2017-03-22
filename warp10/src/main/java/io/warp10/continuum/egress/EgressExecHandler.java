@@ -21,6 +21,7 @@ import io.warp10.continuum.Configuration;
 import io.warp10.continuum.LogUtil;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.geo.GeoDirectoryClient;
+import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
@@ -149,7 +150,7 @@ public class EgressExecHandler extends AbstractHandler {
     Throwable t = null;
 
     StringBuilder scriptSB = new StringBuilder();
-    StringBuilder timeSB = new StringBuilder();
+    List<Long> times = new ArrayList<Long>();
     
     int lineno = 0;
 
@@ -287,7 +288,7 @@ public class EgressExecHandler extends AbstractHandler {
           elapsed.add(end - now);
         }
         
-        timeSB.append(end - nano).append("\n");
+        times.add(end - nano);
       }
 
       //
@@ -429,7 +430,8 @@ public class EgressExecHandler extends AbstractHandler {
       Sensision.set(SensisionConstants.SENSISION_CLASS_EINSTEIN_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
       
       LoggingEvent event = LogUtil.setLoggingEventAttribute(null, LogUtil.WARPSCRIPT_SCRIPT, scriptSB.toString());
-      event = LogUtil.setLoggingEventAttribute(event, LogUtil.WARPSCRIPT_TIMES, timeSB.toString());
+      
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.WARPSCRIPT_TIMES, times);
       
       if (stack.isAuthenticated()) {
         event = LogUtil.setLoggingEventAttribute(event, WarpScriptStack.ATTRIBUTE_TOKEN, stack.getAttribute(WarpScriptStack.ATTRIBUTE_TOKEN).toString());        
@@ -440,6 +442,9 @@ public class EgressExecHandler extends AbstractHandler {
         Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_ERRORS, Sensision.EMPTY_LABELS, 1);
       }
       
+      LogUtil.addHttpHeaders(event, req);
+      
+      System.out.println(event);
       EVENTLOG.info(LogUtil.serializeLoggingEvent(this.keyStore, event));
     }
   }
