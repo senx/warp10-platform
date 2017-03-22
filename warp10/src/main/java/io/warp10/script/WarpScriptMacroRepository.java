@@ -35,11 +35,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.base.Charsets;
 
 /**
- * Class which manages file based Einstein macros from a directory
+ * Class which manages file based WarpScript macros from a directory
  */
 public class WarpScriptMacroRepository extends Thread {
   
@@ -57,28 +58,34 @@ public class WarpScriptMacroRepository extends Thread {
   /**
    * Directory where the '.mc2' files are
    */
-  private final String directory;
+  private static String directory;
   
   /**
    * How often to check for changes
    */
-  private final long delay;
+  private static long delay = DEFAULT_DELAY;
+  
+  /**
+   * Counter to avoid recursive calls to loadMacro
+   */
+  private static ThreadLocal<AtomicInteger> loading = new ThreadLocal<AtomicInteger>() {
+    @Override
+    protected AtomicInteger initialValue() {
+      return new AtomicInteger(0);
+    }
+  };
+  
+  /**
+   * Should we enable loading macros on demand
+   */
+  private static boolean ondemand = false;
   
   /**
    * Actual macros
    */
   private final static Map<String,Macro> macros = new HashMap<String,Macro>();
  
-  /**
-   * Fingerprints of the underlying files, will be checked to determine if macros should be updated or if we
-   * can reuse the previous one
-   */
-  private static Map<String,Long> fingerprints = new HashMap<String, Long>();
-  
-  public WarpScriptMacroRepository(String directory, long delay) {
-    this.directory = directory;
-    this.delay = delay;
-    
+  private WarpScriptMacroRepository() {
     this.setName("[Warp Macro Repository (" + directory + ")");
     this.setDaemon(true);
     this.start();
@@ -111,17 +118,14 @@ public class WarpScriptMacroRepository extends Thread {
       // Open directory
       //
       
-      List<File> files = getEinsteinFiles(this.directory);
+      List<File> files = getWarpScriptFiles(this.directory);
 
       //
       // Loop over the files, creating the macros
       //
       
       Map<String, Macro> newmacros = new HashMap<String,Macro>();
-      Map<String, Long> newfingerprints = new HashMap<String, Long>();
-      
-      byte[] buf = new byte[8192];
-      
+            
       boolean hasNew = false;
       
       for (File file: files) {
@@ -136,113 +140,14 @@ public class WarpScriptMacroRepository extends Thread {
           continue;
         }
         
-        //
-        // Read content
-        //
-        
-        StringBuilder sb = new StringBuilder();
-        
-        sb.append(" ");
-        
-        try {
-          FileInputStream in = new FileInputStream(file);
-          ByteArrayOutputStream out = new ByteArrayOutputStream((int) file.length());
-          
-          while(true) {
-            int len = in.read(buf);
-            
-            if (len < 0) {
-              break;
-            }
-            
-            out.write(buf, 0, len);
-          }
+        Macro macro = loadMacro(name, file);
 
-          in.close();
-
-          byte[] data = out.toByteArray();
-          
-          // Compute hash to check if the file changed or not
-          
-          long hash = SipHashInline.hash24_palindromic(SIP_KEYS[0], SIP_KEYS[1], data);
-          
-          if (fingerprints.containsKey(name) && hash == (long) fingerprints.get(name)) {
-            newmacros.put(name, macros.get(name));
-            newfingerprints.put(name, hash);
-            continue;
-          }
-      
-          hasNew = true;
-          
-          sb.append(new String(data, Charsets.UTF_8));
-          
-          sb.append("\n");
-          
-          MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
-          stack.maxLimits();
-
-          //
-          // Add 'INCLUDE', 'enabled' will disable 'INCLUDE' after we've used it when loading 
-          //
-
-          // Root is the current subdir
-          
-          //
-          // Create an instance of 'INCLUDE' for the current rootdir
-          //
-          
-          // 'enabled' will allow us to disable the INCLUDE after loading the macro
-          AtomicBoolean enabled = new AtomicBoolean(true);
-          final INCLUDE include = new INCLUDE("INCLUDE", new File(rootdir, name.replaceAll("/.*", "")), enabled);
-
-          stack.define("INCLUDE", new Macro() {
-            public boolean isSecure() { return true; }
-            public java.util.List<Object> statements() { return new ArrayList<Object>() {{ add(include); }}; }
-            }
-          );
-          
-          //
-          // Execute the code
-          //
-          stack.execMulti(sb.toString());
-          
-          //
-          // Disable 'INCLUDE'
-          //
-          
-          enabled.set(false);
-          
-          //
-          // Ensure the resulting stack is one level deep and has a macro on top
-          //
-          
-          if (1 != stack.depth()) {
-            throw new WarpScriptException("Stack depth was not 1 after the code execution.");
-          }
-          
-          if (!(stack.peek() instanceof Macro)) {
-            throw new WarpScriptException("No macro was found on top of the stack.");
-          }
-          
-          //
-          // Store resulting macro under 'name'
-          //
-          
-          Macro macro = (Macro) stack.pop();
-                    
-          // Make macro a secure one
-          macro.setSecure(true);
-          
+        if (null != macro) {
           newmacros.put(name, macro);
-          newfingerprints.put(name, hash);
-        } catch(Exception e) {
-          // Replace macro with a FAIL indicating the error message
-          Macro macro = new Macro();
-          macro.add("Error while loading macro '" + name + "': " + e.getMessage());
-          macro.add(MSGFAIL_FUNC);
-          newmacros.put(name, macro);
-          hasNew = true;
-        }
+          if (!macro.equals(macros.get(name))) {
+            hasNew = true;
+          }
+        }        
       }
       
       //
@@ -253,7 +158,6 @@ public class WarpScriptMacroRepository extends Thread {
         synchronized(macros) {
           macros.clear();
           macros.putAll(newmacros);
-          fingerprints = newfingerprints;
         }        
       }
       
@@ -275,13 +179,25 @@ public class WarpScriptMacroRepository extends Thread {
   }
   
   public static Macro find(String name) throws WarpScriptException {
+    Macro macro = null;
     synchronized(macros) {
-      Macro macro = (Macro) macros.get(name);
-      return macro;
-    }    
+      macro = (Macro) macros.get(name);
+    }
+    
+    if (null == macro && ondemand) {
+      macro = loadMacro(name, null);
+      if (null != macro) {
+        // Store the recently loaded macro in the map
+        synchronized(macros) {
+          macros.put(name, macro);
+        }
+      }
+    }
+      
+    return macro;
   }
   
-  public List<File> getEinsteinFiles(String rootdir) {
+  public List<File> getWarpScriptFiles(String rootdir) {
     File root = new File(rootdir);
     
     // List to hold the directories
@@ -348,17 +264,173 @@ public class WarpScriptMacroRepository extends Thread {
     // Extract refresh interval
     //
     
-    long delay = DEFAULT_DELAY;
+    long refreshDelay = DEFAULT_DELAY;
     
     String refresh = properties.getProperty(Configuration.REPOSITORY_REFRESH);
 
     if (null != refresh) {
       try {
-        delay = Long.parseLong(refresh.toString());
+        refreshDelay = Long.parseLong(refresh.toString());
       } catch (Exception e) {            
       }
     }
 
-    new WarpScriptMacroRepository(dir, delay);
+    directory = dir;
+    delay = refreshDelay;
+    
+    ondemand = "true".equals(properties.getProperty(Configuration.REPOSITORY_ONDEMAND));
+    new WarpScriptMacroRepository();
+  }
+  
+  /**
+   * Load a macro stored in a file
+   *
+   * @param name of macro
+   * @param file containing the macro
+   * @return
+   */
+  private static Macro loadMacro(String name, File file) {
+    
+    if (null == name && null == file) {
+      return null;
+    }
+    
+    // Name should contain "/" as macros should reside under a subdirectory
+    if (!name.contains("/")) {
+      return null;
+    }
+    
+    //
+    // Read content
+    //
+    
+    String rootdir = new File(directory).getAbsolutePath();
+    
+    if (null == file) {
+      file = new File(rootdir, name + ".mc2");
+      
+      // Macros should reside in the configured root directory
+      if (!file.getAbsolutePath().startsWith(rootdir)) {
+        return null;
+      }
+    }
+
+    if (null == name) {
+      name = file.getAbsolutePath().substring(rootdir.length() + 1).replaceAll("\\.mc2$", "");
+    }
+    
+    byte[] buf = new byte[8192];
+
+    StringBuilder sb = new StringBuilder();
+    
+    sb.append(" ");
+    
+    try {
+      
+      if (loading.get().get() > 0) {
+        throw new WarpScriptException("Invalid recursive macro loading.");
+      }
+      
+      loading.get().addAndGet(1);
+      
+      FileInputStream in = new FileInputStream(file);
+      ByteArrayOutputStream out = new ByteArrayOutputStream((int) file.length());
+      
+      while(true) {
+        int len = in.read(buf);
+        
+        if (len < 0) {
+          break;
+        }
+        
+        out.write(buf, 0, len);
+      }
+
+      in.close();
+
+      byte[] data = out.toByteArray();
+      
+      // Compute hash to check if the file changed or not
+      
+      long hash = SipHashInline.hash24_palindromic(SIP_KEYS[0], SIP_KEYS[1], data);
+
+      Macro old = macros.get(name);
+      
+      // Re-use the same macro if its fingerprint did not change
+      if (null != old && hash == old.getFingerprint()) {
+        return old;
+      }
+            
+      sb.append(new String(data, Charsets.UTF_8));
+      
+      sb.append("\n");
+      
+      MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
+      stack.maxLimits();
+
+      //
+      // Add 'INCLUDE', 'enabled' will disable 'INCLUDE' after we've used it when loading 
+      //
+
+      // Root is the current subdir
+      
+      //
+      // Create an instance of 'INCLUDE' for the current rootdir
+      //
+      
+      // 'enabled' will allow us to disable the INCLUDE after loading the macro
+      AtomicBoolean enabled = new AtomicBoolean(true);
+      final INCLUDE include = new INCLUDE("INCLUDE", new File(rootdir, name.replaceAll("/.*", "")), enabled);
+
+      stack.define("INCLUDE", new Macro() {
+        public boolean isSecure() { return true; }
+        public java.util.List<Object> statements() { return new ArrayList<Object>() {{ add(include); }}; }
+        }
+      );
+      
+      //
+      // Execute the code
+      //
+      stack.execMulti(sb.toString());
+      
+      //
+      // Disable 'INCLUDE'
+      //
+      
+      enabled.set(false);
+      
+      //
+      // Ensure the resulting stack is one level deep and has a macro on top
+      //
+      
+      if (1 != stack.depth()) {
+        throw new WarpScriptException("Stack depth was not 1 after the code execution.");
+      }
+      
+      if (!(stack.peek() instanceof Macro)) {
+        throw new WarpScriptException("No macro was found on top of the stack.");
+      }
+      
+      //
+      // Store resulting macro under 'name'
+      //
+      
+      Macro macro = (Macro) stack.pop();
+                
+      macro.setFingerprint(hash);
+      
+      // Make macro a secure one
+      macro.setSecure(true);
+      
+      return macro;
+    } catch(Exception e) {
+      // Replace macro with a FAIL indicating the error message
+      Macro macro = new Macro();
+      macro.add("Error while loading macro '" + name + "': " + e.getMessage());
+      macro.add(MSGFAIL_FUNC);
+      return macro;
+    } finally {
+      loading.get().addAndGet(-1);
+    }
   }
 }

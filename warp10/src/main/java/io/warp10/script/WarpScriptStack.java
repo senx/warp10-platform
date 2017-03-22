@@ -251,6 +251,8 @@ public interface WarpScriptStack {
      */
     private boolean secure = false;
     
+    private long fingerprint;
+    
     private ArrayList<Object> statements = new ArrayList<Object>();
     
     public String toString() {
@@ -302,6 +304,14 @@ public interface WarpScriptStack {
     
     public boolean isSecure() {
       return this.secure;
+    }
+    
+    public long getFingerprint() {
+      return this.fingerprint;
+    }
+    
+    public void setFingerprint(long fingerprint) {
+      this.fingerprint = fingerprint;
     }
   }
   
