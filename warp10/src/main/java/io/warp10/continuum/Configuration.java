@@ -1805,12 +1805,20 @@ public class Configuration {
    */
   public static final String WARPSCRIPT_CALL_MAXCAPACITY = "warpscript.call.maxcapacity";
       
-  //
-  // Macro Repository
-  //
-  
+  /**
+   * Macro Repository root directory
+   */  
   public static final String REPOSITORY_DIRECTORY = "warpscript.repository.directory";
+  
+  /**
+   * Macro repository refresh interval (in ms)
+   */
   public static final String REPOSITORY_REFRESH = "warpscript.repository.refresh";
+
+  /**
+   * Should new macros be loaded on demand?
+   */
+  public static final String REPOSITORY_ONDEMAND = "warpscript.repository.ondemand";
 
   /**
    * Header containing the request UUID when calling the endpoint
