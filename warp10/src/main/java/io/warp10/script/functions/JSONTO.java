@@ -86,7 +86,7 @@ public class JSONTO extends NamedWarpScriptFunction implements WarpScriptStackFu
     } else if (json instanceof Integer) {
       return ((Integer) json).longValue();
     } else if (json instanceof CharSequenceValue) {
-      return json.toString();
+      return ((CharSequenceValue)json).stringValue();      
     } else {
       return json;
     }
