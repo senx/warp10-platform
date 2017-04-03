@@ -161,6 +161,17 @@ public class EgressExecHandler extends AbstractHandler {
     
     try {
       //
+      // Replace the context with the bootstrap one
+      //
+      
+      StackContext context = this.bootstrapManager.getBootstrapContext();
+      
+      if (null != context) {
+        stack.push(context);
+        stack.restore();
+      }
+      
+      //
       // Expose the headers if instructed to do so
       //
       String expose = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_EXPOSE_HEADERS));
@@ -180,18 +191,7 @@ public class EgressExecHandler extends AbstractHandler {
         }
         stack.store(expose, headers);
       }
-      
-      //
-      // Replace the context with the bootstrap one
-      //
-      
-      StackContext context = this.bootstrapManager.getBootstrapContext();
-      
-      if (null != context) {
-        stack.push(context);
-        stack.restore();
-      }
-      
+            
       //
       // Execute the bootstrap code
       //
