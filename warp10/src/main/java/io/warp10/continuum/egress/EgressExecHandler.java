@@ -444,7 +444,13 @@ public class EgressExecHandler extends AbstractHandler {
       
       LogUtil.addHttpHeaders(event, req);
       
-      EVENTLOG.info(LogUtil.serializeLoggingEvent(this.keyStore, event));
+      String msg = LogUtil.serializeLoggingEvent(this.keyStore, event);
+      
+      if (null != t) {
+        EVENTLOG.error(msg);
+      } else {
+        EVENTLOG.info(msg);
+      }
     }
   }
 }
