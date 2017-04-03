@@ -163,7 +163,7 @@ public class META extends NamedWarpScriptFunction implements WarpScriptStackFunc
       conn.disconnect();
       conn = null;
     } catch (IOException ioe) { 
-      throw new WarpScriptException(getName() + " failed.");
+      throw new WarpScriptException(getName() + " failed.", ioe);
     } finally {
       if (null != conn) {
         conn.disconnect();
