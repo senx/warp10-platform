@@ -103,19 +103,52 @@ public class LogUtil {
     
     event = ensureLoggingEvent(event);
     
+    if (null == t) {
+      return event;
+    }
+    
     // Fill the stack trace
-    t.fillInStackTrace();
     
-    StackTraceElement[] ste = t.getStackTrace();
+    Object[][] stacktrace = null;
+    int offset = 0;
+    
+    while(null != t) {
+      if (null == t.getStackTrace()) {
+        t.fillInStackTrace();
+      }
+      
+      StackTraceElement[] ste = t.getStackTrace();
 
-    Object[][] stacktrace = new Object[ste.length][];
-    
-    for (int i = 0; i < ste.length; i++) {
-      stacktrace[i] = new Object[4];
-      stacktrace[i][0] = ste[i].getFileName();
-      stacktrace[i][1] = ste[i].getLineNumber();
-      stacktrace[i][2] = ste[i].getClassName();
-      stacktrace[i][3] = ste[i].getMethodName();
+      if (null == stacktrace) {
+        stacktrace = new Object[ste.length + 1][];
+      } else {
+        Object[][] oldtrace = stacktrace;
+        
+        // Resize stacktrace
+        stacktrace = new Object[stacktrace.length + ste.length + 1][];
+        
+        System.arraycopy(oldtrace, 0, stacktrace, 0, oldtrace.length);
+        
+        offset = oldtrace.length;
+      }
+      
+      // Fill message
+      stacktrace[offset] = new Object[4];
+      stacktrace[offset][0] = "";
+      stacktrace[offset][1] = 0;
+      stacktrace[offset][2] = t.getClass().getName();
+      stacktrace[offset][3] = null != t.getMessage() ? t.getMessage() : "";
+      offset++;        
+
+      for (int i = 0; i < ste.length; i++) {
+        stacktrace[offset+i] = new Object[4];
+        stacktrace[offset+i][0] = ste[i].getFileName();
+        stacktrace[offset+i][1] = ste[i].getLineNumber();
+        stacktrace[offset+i][2] = ste[i].getClassName();
+        stacktrace[offset+i][3] = ste[i].getMethodName();
+      }
+
+      t = t.getCause();
     }
     
     if (null == event) {
