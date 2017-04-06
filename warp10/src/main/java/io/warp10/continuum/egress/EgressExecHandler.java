@@ -377,7 +377,8 @@ public class EgressExecHandler extends AbstractHandler {
 
       resp.addHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX) + "," + Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX));
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX), Long.toString(lineno));
-      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX), t.getMessage());
+      String section = (String) stack.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME);
+      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX), "in section '" + section + "': " + t.getMessage());
       
       //
       // Output the exported symbols in a map
@@ -405,14 +406,14 @@ public class EgressExecHandler extends AbstractHandler {
         try {
           // Set max stack depth to max int value - 1 so we can push our error message
           stack.setAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH, Integer.MAX_VALUE - 1);
-          stack.push("ERROR line #" + lineno + ": " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : "")); if (debugDepth < Integer.MAX_VALUE) { debugDepth++; }
+          stack.push("ERROR line #" + lineno + " in section '" + section + "': " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : "")); if (debugDepth < Integer.MAX_VALUE) { debugDepth++; }
         } catch (WarpScriptException ee) {
         }
 
         try { StackUtils.toJSON(pw, stack, debugDepth); } catch (WarpScriptException ee) {}
 
       } else {
-        String msg = "ERROR line #" + lineno + ": " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : "");
+        String msg = "ERROR line #" + lineno + " in section '" + section + "': " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : "");
         resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
       }
