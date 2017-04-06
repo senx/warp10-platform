@@ -108,6 +108,20 @@ warp.aes.metasets = hex:hhhhhhhh....
 //
 #fetch.psk =
 
+//
+// Set to true to disable plasma
+//
+#warp.plasma.disable =
+
+//
+// Set to true to disable mobius
+//
+#warp.mobius.disable =
+
+//
+// Set to true to disable streaming updates
+//
+#warp.streamupdate.disable =
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //

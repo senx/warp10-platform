@@ -60,6 +60,21 @@ warp.aes.metasets = @key:256:warp.aes.metasets@
 #warp.plasma.maxsubs
 
 //
+// Set to true to disable plasma
+//
+#warp.plasma.disable =
+
+//
+// Set to true to disable mobius
+//
+#warp.mobius.disable =
+
+//
+// Set to true to disable streaming updates
+//
+#warp.streamupdate.disable =
+
+//
 // This configuration parameter determines if undefining a function (via NULL 'XXX' DEF)
 // will unshadow the original statement thus making it available again or if it will replace
 // it with a function that will fail with a message saying the function is undefined.

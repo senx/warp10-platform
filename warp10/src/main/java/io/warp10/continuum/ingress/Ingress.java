@@ -497,6 +497,8 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     int maxThreads = Integer.parseInt(props.getProperty(Configuration.INGRESS_JETTY_THREADPOOL));
     
+    boolean enableStreamUpdate = !("true".equals(props.getProperty(Configuration.WARP_STREAMUPDATE_DISABLE)));
+
     BlockingArrayQueue<Runnable> queue = null;
     
     if (props.containsKey(Configuration.INGRESS_JETTY_MAXQUEUESIZE)) {
@@ -520,8 +522,10 @@ public class Ingress extends AbstractHandler implements Runnable {
 
     handlers.addHandler(this);
     
-    IngressStreamUpdateHandler suHandler = new IngressStreamUpdateHandler(this);
-    handlers.addHandler(suHandler);
+    if (enableStreamUpdate) {
+      IngressStreamUpdateHandler suHandler = new IngressStreamUpdateHandler(this);
+      handlers.addHandler(suHandler);
+    }
     
     server.setHandler(handlers);
     

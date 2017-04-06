@@ -1361,6 +1361,21 @@ public class Configuration {
   public static final String DATALOG_FORWARDER_ENDPOINT_META = "datalog.forwarder.endpoint.meta";
   
   /**
+   * Set to 'true' to disable plasma
+   */
+  public static final String WARP_PLASMA_DISABLE = "warp.plasma.disable";
+
+  /**
+   * Set to 'true' to disable mobius
+   */
+  public static final String WARP_MOBIUS_DISABLE = "warp.mobius.disable";
+
+  /**
+   * Set to 'true' to disable stream updates
+   */
+  public static final String WARP_STREAMUPDATE_DISABLE = "warp.streamupdate.disable";
+
+  /**
    * Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.
    */
   public static final String IN_MEMORY = "in.memory";

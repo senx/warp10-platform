@@ -103,6 +103,8 @@ public class Egress {
     int selectors = Integer.valueOf(props.getProperty(Configuration.EGRESS_SELECTORS));
     long idleTimeout = Long.parseLong(props.getProperty(Configuration.EGRESS_IDLE_TIMEOUT));
     
+    boolean enableMobius = !("true".equals(props.getProperty(Configuration.WARP_MOBIUS_DISABLE)));
+
     extractKeys(props);
     
     //
@@ -155,8 +157,10 @@ public class Egress {
       gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
 
-      EgressMobiusHandler mobiusHandler = new EgressMobiusHandler(storeClient, directoryClient, this.properties);
-      handlers.addHandler(mobiusHandler);      
+      if (enableMobius) {
+        EgressMobiusHandler mobiusHandler = new EgressMobiusHandler(storeClient, directoryClient, this.properties);
+        handlers.addHandler(mobiusHandler);
+      }
     } else {
       GzipHandler gzip = new GzipHandler();
       gzip.setHandler(new EgressFetchHandler(this.keystore, this.properties, null, storeClient));

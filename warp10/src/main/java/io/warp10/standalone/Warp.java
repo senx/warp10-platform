@@ -113,13 +113,17 @@ public class Warp extends WarpDist implements Runnable {
 
     setProperties(args[0]);
     
-    boolean nullbackend = "true".equals(WarpConfig.getProperties().getProperty(NULL));
-    
-    boolean plasmabackend = "true".equals(WarpConfig.getProperties().getProperty(Configuration.PURE_PLASMA));
-    
-    boolean inmemory = "true".equals(WarpConfig.getProperties().getProperty(Configuration.IN_MEMORY));
-
     Properties properties = getProperties();
+    
+    boolean nullbackend = "true".equals(properties.getProperty(NULL));
+    
+    boolean plasmabackend = "true".equals(properties.getProperty(Configuration.PURE_PLASMA));
+    
+    boolean inmemory = "true".equals(properties.getProperty(Configuration.IN_MEMORY));
+
+    boolean enablePlasma = !("true".equals(properties.getProperty(Configuration.WARP_PLASMA_DISABLE)));
+    boolean enableMobius = !("true".equals(properties.getProperty(Configuration.WARP_MOBIUS_DISABLE)));
+    boolean enableStreamUpdate = !("true".equals(properties.getProperty(Configuration.WARP_STREAMUPDATE_DISABLE)));
     
     for (String property: REQUIRED_PROPERTIES) {
       // Don't check LEVELDB_HOME when in-memory
@@ -377,17 +381,23 @@ public class Warp extends WarpDist implements Runnable {
     
     handlers.addHandler(geodir);    
 
-    StandalonePlasmaHandler plasmaHandler = new StandalonePlasmaHandler(keystore, properties, sdc);
-    scc.addPlasmaHandler(plasmaHandler);  
+    if (enablePlasma) {
+      StandalonePlasmaHandler plasmaHandler = new StandalonePlasmaHandler(keystore, properties, sdc);
+      scc.addPlasmaHandler(plasmaHandler);     
+      handlers.addHandler(plasmaHandler);
+    }
+    
     scc.addPlasmaHandler(geodir);
-    
-    handlers.addHandler(plasmaHandler);
-    
-    StandaloneStreamUpdateHandler streamUpdateHandler = new StandaloneStreamUpdateHandler(keystore, properties, sdc, scc);
-    handlers.addHandler(streamUpdateHandler);
+        
+    if (enableStreamUpdate) {
+      StandaloneStreamUpdateHandler streamUpdateHandler = new StandaloneStreamUpdateHandler(keystore, properties, sdc, scc);
+      handlers.addHandler(streamUpdateHandler);
+    }
 
-    EgressMobiusHandler mobiusHandler = new EgressMobiusHandler(scc, sdc, properties);
-    handlers.addHandler(mobiusHandler);
+    if (enableMobius) {
+      EgressMobiusHandler mobiusHandler = new EgressMobiusHandler(scc, sdc, properties);
+      handlers.addHandler(mobiusHandler);
+    }
 
     server.setHandler(handlers);
         
