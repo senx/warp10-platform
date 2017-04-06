@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
@@ -48,6 +49,35 @@ public class WRAP  extends GTSStackFunction {
     this.opt = opt;
   }
 
+  @Override
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    if (!(stack.peek() instanceof GTSEncoder)) {
+      return super.apply(stack);      
+    }
+    
+    GTSEncoder encoder = (GTSEncoder) stack.pop();
+    
+    GTSWrapper wrapper;
+    
+    if (opt) {
+      wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true, 1.0);
+    } else {
+      wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true);
+    }
+    
+    TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+    
+    try {
+      byte[] bytes = serializer.serialize(wrapper);
+      
+      stack.push(new String(OrderPreservingBase64.encode(bytes), Charsets.US_ASCII));
+    } catch (TException te) {
+      throw new WarpScriptException(getName() + " failed to wrap GTS.");
+    }        
+
+    return stack;
+  }
+  
   @Override
   protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
     return null;

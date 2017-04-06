@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.GTSStackFunction;
@@ -40,6 +41,26 @@ public class RENAME extends GTSStackFunction  {
 
   public RENAME(String name) {
     super(name);
+  }
+  
+  @Override
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    if (!(stack.get(1) instanceof GTSEncoder)) {
+      return super.apply(stack);
+    }
+    
+    Map<String,Object> params = retrieveParameters(stack);
+    
+    GTSEncoder encoder = (GTSEncoder) stack.peek();
+    
+    GeoTimeSerie gts = new GeoTimeSerie();
+    gts.setMetadata(encoder.getMetadata());
+    
+    gts = (GeoTimeSerie) gtsOp(params, gts);
+    
+    encoder.setMetadata(gts.getMetadata());  
+    
+    return stack;
   }
   
   @Override

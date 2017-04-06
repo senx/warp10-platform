@@ -3927,10 +3927,26 @@ public class GTSHelper {
    * @param newlabels Map of label names to label values.
    */
   public static GeoTimeSerie relabel(GeoTimeSerie gts, Map<String,String> newlabels) {
+    Map<String,String> labels = relabel(gts.getMetadata(), newlabels);
+    
+    gts.getMetadata().setLabels(labels);
+    
+    return gts;
+  }
+
+  public static GTSEncoder relabel(GTSEncoder encoder, Map<String,String> newlabels) {
+    Map<String,String> labels = relabel(encoder.getMetadata(), newlabels);
+    
+    encoder.getMetadata().setLabels(labels);
+    
+    return encoder;
+  }
+
+  private static Map<String,String> relabel(Metadata metadata, Map<String,String> newlabels) {
     Map<String,String> labels = new HashMap<String,String>();
     
-    if (!newlabels.containsValue(null)) {
-      labels.putAll(gts.getLabels());
+    if (!newlabels.containsKey(null)) {
+      labels.putAll(metadata.getLabels());
     }
     
     for (String name: newlabels.keySet()) {
@@ -3945,9 +3961,7 @@ public class GTSHelper {
       }
     }
     
-    gts.setLabels(labels);
-    
-    return gts;
+    return labels;
   }
   
   /**

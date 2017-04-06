@@ -16,6 +16,8 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.continuum.gts.GTSDecoder;
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.GTSStackFunction;
@@ -36,6 +38,27 @@ public class TICKLIST  extends GTSStackFunction {
     super(name);
   }
 
+  @Override
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    if (!(stack.peek() instanceof GTSEncoder)) {
+      return super.apply(stack);
+    }
+    
+    GTSEncoder encoder = (GTSEncoder) stack.pop();
+    
+    List<Long> ticklist = new ArrayList<Long>((int) encoder.getCount());
+    
+    GTSDecoder decoder = encoder.getDecoder(true);
+    
+    while(decoder.next()) {
+      ticklist.add(decoder.getTimestamp());
+    }
+    
+    stack.push(ticklist);
+    
+    return stack;
+  }
+  
   @Override
   protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
     return null;

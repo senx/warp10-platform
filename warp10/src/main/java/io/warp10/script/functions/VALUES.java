@@ -16,6 +16,8 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.continuum.gts.GTSDecoder;
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.GTSStackFunction;
@@ -38,15 +40,39 @@ public class VALUES  extends GTSStackFunction {
   }
 
   @Override
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    if (!(stack.peek() instanceof GTSEncoder)) {
+      return super.apply(stack);
+    }
+
+    GTSEncoder encoder = (GTSEncoder) stack.pop();
+    
+    int n = (int) encoder.getCount();
+
+    List<Object> values = new ArrayList<Object>(n);
+    
+    GTSDecoder decoder = encoder.getDecoder(true);
+    
+    while(decoder.next()) {
+      values.add(decoder.getValue());
+    }
+    
+    stack.push(values);
+    
+    return stack;
+  }
+  
+  
+  @Override
   protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
     return null;
   }
 
   @Override
   protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
-    List<Object> values = new ArrayList<Object>();
-
     int nvalues = GTSHelper.nvalues(gts);
+
+    List<Object> values = new ArrayList<Object>(nvalues);
 
     for (int i = 0; i < nvalues; i++) {
       values.add(GTSHelper.valueAtIndex(gts, i));
