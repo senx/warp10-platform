@@ -39,6 +39,7 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.functions.MACROMAPPER;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -9014,5 +9015,82 @@ public class GTSHelper {
     GTSHelper.setValue(sampled, GTSHelper.tickAtIndex(gts,gts.values - 1), GTSHelper.locationAtIndex(gts, gts.values - 1), GTSHelper.elevationAtIndex(gts, gts.values - 1), GTSHelper.valueAtIndex(gts, gts.values - 1), false);
     
     return sampled;
+  }
+  
+  public static void dump(GTSEncoder encoder, PrintWriter pw) {
+    StringBuilder sb = new StringBuilder(" ");
+    Metadata meta = encoder.getMetadata();
+    
+    GTSHelper.encodeName(sb, meta.getName());
+    if (meta.getLabelsSize() > 0) {
+      sb.append("{");
+      boolean first = true;
+      for (Entry<String,String> entry: meta.getLabels().entrySet()) {
+        if (!first) {
+          sb.append(",");
+        }
+        GTSHelper.encodeName(sb, entry.getKey());
+        sb.append("=");
+        GTSHelper.encodeName(sb, entry.getValue());
+        first = false;
+      }
+      sb.append("}");      
+    } else {
+      sb.append("{}");
+    }
+    
+    if (meta.getAttributesSize() > 0) {
+      sb.append("{");
+      boolean first = true;    
+      for (Entry<String,String> entry: meta.getAttributes().entrySet()) {
+        if (!first) {
+          sb.append(",");
+        }
+        GTSHelper.encodeName(sb, entry.getKey());
+        sb.append("=");
+        GTSHelper.encodeName(sb, entry.getValue());
+        first = false;
+      }
+      sb.append("}");
+    } else {
+      sb.append("{}");
+    }
+    
+    sb.append(" ");
+    
+    String clslbs = sb.toString();
+    
+    GTSDecoder decoder = encoder.getUnsafeDecoder(false);
+    
+    boolean first = true;
+    while(decoder.next()) {      
+      if (!first) {
+        pw.print("=");
+      }
+      pw.print(decoder.getTimestamp());
+      pw.print("/");
+      long location = decoder.getLocation();
+      if (GeoTimeSerie.NO_LOCATION != location) {
+        double[] latlon = GeoXPLib.fromGeoXPPoint(location);
+        pw.print(latlon[0]);
+        pw.print(":");
+        pw.print(latlon[1]);
+      }
+      pw.print("/");
+      long elevation = decoder.getElevation();
+      if (GeoTimeSerie.NO_ELEVATION != elevation) {
+        pw.print(elevation);
+      }
+      if (first) {
+        pw.print(clslbs);
+      } else {
+        pw.print(" ");
+      }
+      sb.setLength(0);
+      GTSHelper.encodeValue(sb, decoder.getValue());
+      pw.print(sb.toString());
+      pw.print("\r\n");
+      first = false;
+    }    
   }
 }
