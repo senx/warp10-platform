@@ -268,7 +268,7 @@ public class CHUNKENCODER extends NamedWarpScriptFunction implements WarpScriptS
       try {
         enc.writeTo(extractor);
         if (extractor.getCapacity() > 1.1 * enc.size()) {
-          enc.resize(extractor.getCapacity());
+          enc.resize(enc.size());
         }
       } catch (IOException ioe) {
         throw new WarpScriptException("Encountered an error while optimizing chunks.", ioe);

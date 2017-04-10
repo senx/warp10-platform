@@ -658,7 +658,9 @@ public class WarpScriptLib {
     functions.put("NEWENCODER", new NEWENCODER("NEWENCODER"));
     functions.put("CHUNKENCODER", new CHUNKENCODER("CHUNKENCODER", true));
     functions.put("->ENCODER", new TOENCODER("->ENCODER"));
-    functions.put("ENCODER->", new ENCODERTO("ENCODER->"));    
+    functions.put("ENCODER->", new ENCODERTO("ENCODER->"));
+    functions.put("->GTS", new TOGTS("->GTS"));
+    functions.put("OPTIMIZE", new OPTIMIZE("OPTIMIZE"));
     functions.put(NEWGTS, new NEWGTS(NEWGTS));
     functions.put("MAKEGTS", new MAKEGTS("MAKEGTS"));
     functions.put("ADDVALUE", new ADDVALUE("ADDVALUE", false));

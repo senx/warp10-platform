@@ -5649,7 +5649,10 @@ public class GTSHelper {
    * @param gts GTS instance to shrink
    */
   public static void shrink(GeoTimeSerie gts) {
-    
+    shrink(gts, 1.0D);
+  }    
+  
+  public static void shrink(GeoTimeSerie gts, double ratio) {
     if (0 == gts.values) {
       gts.ticks = null;
       gts.locations = null;
@@ -5658,6 +5661,11 @@ public class GTSHelper {
       gts.doubleValues = null;
       gts.stringValues = null;
       gts.booleanValues = null;
+      return;
+    }
+  
+    // Do nothing if array size / value count is <= ratio
+    if ((double) gts.ticks.length / (double) gts.values <= ratio) {
       return;
     }
     
