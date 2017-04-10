@@ -19,6 +19,7 @@ package io.warp10.script.functions;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.WarpScriptStackFunction;
@@ -46,13 +47,14 @@ public class CLIP extends ATINDEX implements WarpScriptStackFunction {
     
     top = stack.pop();
     
-    if (!(top instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " operates on a Geo Time Series.");
+    if (!(top instanceof GeoTimeSerie) && !(top instanceof GTSEncoder)) {
+      throw new WarpScriptException(getName() + " operates on a Geo Time Series or encoder.");
     }
      
-    GeoTimeSerie gts = (GeoTimeSerie) top;
+    GeoTimeSerie gts = top instanceof GeoTimeSerie ? (GeoTimeSerie) top : null;
+    GTSEncoder encoder = top instanceof GTSEncoder ? (GTSEncoder) top: null;
 
-    List<GeoTimeSerie> clipped = new ArrayList<GeoTimeSerie>();
+    List<Object> clipped = new ArrayList<Object>();
     
     for (Object o: limits) {
       if (!(o instanceof List)) {
@@ -74,7 +76,11 @@ public class CLIP extends ATINDEX implements WarpScriptStackFunction {
         upper = tmp;
       }
       
-      clipped.add(GTSHelper.timeclip(gts, lower, upper));      
+      if (null != gts) {
+        clipped.add(GTSHelper.timeclip(gts, lower, upper));
+      } else {
+        clipped.add(GTSHelper.timeclip(encoder, lower, upper));
+      }
     }
     
     stack.push(clipped);

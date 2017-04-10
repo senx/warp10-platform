@@ -6535,6 +6535,33 @@ public class GTSHelper {
     
     return clipped;
   }
+
+  /**
+   * Clip a GTSEncoder
+   * 
+   * @param start lower timestamp to consider (inclusive)
+   * @param end upper timestamp to consider (inclusive)
+   * @return
+   */
+  public static GTSEncoder timeclip(GTSEncoder encoder, long start, long end) {
+    
+    GTSEncoder clipped = new GTSEncoder(0L);
+    clipped.setMetadata(encoder.getMetadata());
+    GTSDecoder decoder = encoder.getUnsafeDecoder(false);
+    while(decoder.next()) {
+      long timestamp = decoder.getTimestamp();
+      if (timestamp < start || timestamp > end) {
+        continue;
+      }
+      try {
+        clipped.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+      } catch (IOException ioe) {
+        throw new RuntimeException(ioe);
+      }
+    }
+    
+    return clipped;
+  }
   
   /**
    * 'Integrate' a GTS, considering the value at each tick is a rate of change per second.
