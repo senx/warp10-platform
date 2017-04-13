@@ -105,7 +105,7 @@ public class EgressFindHandler extends AbstractHandler {
 
       boolean showUUID = "true".equals(req.getParameter(Constants.HTTP_PARAM_SHOWUUID));
       
-      boolean showAttr = "true".equals(req.getParameter(Constants.HTTP_PARAM_SHOWATTR));
+      boolean showAttr = !("false".equals(req.getParameter(Constants.HTTP_PARAM_SHOWATTR)));
 
       ReadToken rtoken;
       
