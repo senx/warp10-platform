@@ -33,11 +33,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class Tokens {
   
@@ -253,6 +249,7 @@ public class Tokens {
     
     List<String> owners = new ArrayList<String>();
     List<String> producers = new ArrayList<String>();
+    Map<String, String> labels = new HashMap<String, String>();
     
     if (rtoken.getOwnersSize() > 0) {
       for (ByteBuffer bb: rtoken.getOwners()) {
@@ -286,7 +283,13 @@ public class Tokens {
         labelSelectors.put(Constants.APPLICATION_LABEL, sb.toString());        
       }
     }
-    
+
+
+    if (rtoken.getLabelsSize() > 0) {
+      labels = rtoken.getLabels();
+    }
+
+
     if (!owners.isEmpty()) {
       if (1 == owners.size()) {
         labelSelectors.put(Constants.OWNER_LABEL, "=" + owners.get(0));        
@@ -327,6 +330,10 @@ public class Tokens {
         
         labelSelectors.put(Constants.PRODUCER_LABEL, sb.toString());
       }
+    }
+
+    if (!labels.isEmpty()) {
+      labelSelectors.putAll(labels);
     }
 
     return labelSelectors;
