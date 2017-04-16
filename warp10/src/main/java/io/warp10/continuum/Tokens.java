@@ -33,7 +33,11 @@ import java.io.File;
 import java.io.FileReader;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public class Tokens {
   
@@ -250,7 +254,27 @@ public class Tokens {
     List<String> owners = new ArrayList<String>();
     List<String> producers = new ArrayList<String>();
     Map<String, String> labels = new HashMap<String, String>();
-    
+
+    if (rtoken.getLabelsSize() > 0) {
+      labels = rtoken.getLabels();
+      if (!labels.isEmpty()) {
+        for (Map.Entry<String, String> entry : labels.entrySet())
+        {
+          switch (entry.getKey())
+          {
+            case Constants.OWNER_LABEL:
+              continue;
+            case Constants.APPLICATION_LABEL:
+              continue;
+            case Constants.PRODUCER_LABEL:
+              continue;
+            default:
+              labelSelectors.put(entry.getKey(),entry.getValue());
+          }
+        }
+      }
+    }
+
     if (rtoken.getOwnersSize() > 0) {
       for (ByteBuffer bb: rtoken.getOwners()) {
         owners.add(Tokens.getUUID(bb));
@@ -284,10 +308,6 @@ public class Tokens {
       }
     }
 
-
-    if (rtoken.getLabelsSize() > 0) {
-      labels = rtoken.getLabels();
-    }
 
 
     if (!owners.isEmpty()) {
@@ -330,10 +350,6 @@ public class Tokens {
         
         labelSelectors.put(Constants.PRODUCER_LABEL, sb.toString());
       }
-    }
-
-    if (!labels.isEmpty()) {
-      labelSelectors.putAll(labels);
     }
 
     return labelSelectors;
