@@ -139,7 +139,7 @@ struct ReadToken {
     13:optional map<string,string> attributes,
 
     /**
-     * Token labels
+     * Token extra labels
      */
     14:optional map<string,string> labels,
 
