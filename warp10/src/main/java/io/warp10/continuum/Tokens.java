@@ -257,15 +257,14 @@ public class Tokens {
 
     if (rtoken.getLabelsSize() > 0) {
       labels = rtoken.getLabels();
-      if (!labels.isEmpty()) {
+      if (!labels.isEmpty())
+      {
         for (Map.Entry<String, String> entry : labels.entrySet())
         {
           switch (entry.getKey())
           {
             case Constants.OWNER_LABEL:
-              continue;
             case Constants.APPLICATION_LABEL:
-              continue;
             case Constants.PRODUCER_LABEL:
               continue;
             default:
