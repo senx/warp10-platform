@@ -270,10 +270,10 @@ public class ThrottlingManager {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_GTS, labels, 1);
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_GTS_GLOBAL, Sensision.EMPTY_LABELS, 1);
         throw new WarpException(sb.toString());
+      } else {
+        // Adjust limit so we account for the error of the estimator
+        oProducerLimit = (long) Math.ceil(oProducerLimit * toleranceRatio);
       }
-      
-      // Adjust limit so we account for the error of the estimator
-      oProducerLimit = (long) Math.ceil(oProducerLimit * toleranceRatio);
     }
 
     long producerLimit = oProducerLimit;
@@ -374,11 +374,15 @@ public class ThrottlingManager {
         // Ignore for now...
       }
     }
-    
+
+    // Skip if we dont have producerLimit
+    if (-1 == producerLimit) {
+      return;
+    }
+
     //
     // If we are already above the monthly limit, throw an exception
     //
-        
     try {
       
       long cardinality = producerHLLP.cardinality();
@@ -439,7 +443,7 @@ public class ThrottlingManager {
     // -1.0 as the default rate means do not enforce DDP limit
     if (null == producerLimiter && null == applicationLimiter && -1.0D == DEFAULT_RATE_PRODUCER) {      
       return;
-    } else if (null == producerLimiter) {
+    } else if (null == producerLimiter && null == applicationLimiter) {
       // Create a rate limiter with the default rate      
       producerLimiter = RateLimiter.create(Math.max(MINIMUM_RATE_LIMIT,DEFAULT_RATE_PRODUCER));
       producerRateLimiters.put(producer, producerLimiter);
@@ -467,24 +471,27 @@ public class ThrottlingManager {
         }
       }      
     }
-    
-    synchronized(producerLimiter) {
-      if (!producerLimiter.tryAcquire(count, producerMaxWait * count, TimeUnit.MILLISECONDS)) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Storing data for ");
-        if (null != metadata) {
-          GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
-        }
-        sb.append(" would incur a wait greater than ");
-        sb.append(producerMaxWait);
-        sb.append(" ms per datapoint due to your Daily Data Points limit being already exceeded. Current maximum rate is " + producerLimiter.getRate() + " datapoints/s.");
 
-        Map<String,String> labels = new HashMap<String, String>();
-        labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_RATE, labels, 1);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_RATE_GLOBAL, Sensision.EMPTY_LABELS, 1);
-        
-        throw new WarpException(sb.toString());      
+    // Check per application limiter
+    if (null != producerLimiter) {
+      synchronized(producerLimiter) {
+        if (!producerLimiter.tryAcquire(count, producerMaxWait * count, TimeUnit.MILLISECONDS)) {
+          StringBuilder sb = new StringBuilder();
+          sb.append("Storing data for ");
+          if (null != metadata) {
+            GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
+          }
+          sb.append(" would incur a wait greater than ");
+          sb.append(producerMaxWait);
+          sb.append(" ms per datapoint due to your Daily Data Points limit being already exceeded. Current maximum rate is " + producerLimiter.getRate() + " datapoints/s.");
+
+          Map<String,String> labels = new HashMap<String, String>();
+          labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_RATE, labels, 1);
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_RATE_GLOBAL, Sensision.EMPTY_LABELS, 1);
+
+          throw new WarpException(sb.toString());      
+        }
       }
     }
   }
