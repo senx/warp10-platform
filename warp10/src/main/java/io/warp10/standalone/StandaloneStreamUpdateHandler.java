@@ -387,6 +387,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
             }
 
             this.handler.storeClient.store(null);
+            this.handler.directoryClient.register(null);
+
             nano = System.nanoTime() - nano;
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);          
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_MESSAGES, sensisionLabels, 1);
