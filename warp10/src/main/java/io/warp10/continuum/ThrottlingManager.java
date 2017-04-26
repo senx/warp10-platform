@@ -248,7 +248,7 @@ public class ThrottlingManager {
     //
     
     Long oApplicationLimit = applicationMADSLimits.get(application);
-
+    
     // If there is no per producer limit, check the default one
     
     if (null == oProducerLimit) {      
@@ -256,6 +256,7 @@ public class ThrottlingManager {
       
       // -1 means don't check for MADS
       if (-1 == oProducerLimit && null == oApplicationLimit) {
+        // No per producer limit and no per application limit
         return;
       } else if (0 == oProducerLimit) {
         // 0 means we don't accept datastreams anymore for this producer
@@ -273,7 +274,9 @@ public class ThrottlingManager {
       }
       
       // Adjust limit so we account for the error of the estimator
-      oProducerLimit = (long) Math.ceil(oProducerLimit * toleranceRatio);
+      if (-1 != oProducerLimit) {
+        oProducerLimit = (long) Math.ceil(oProducerLimit * toleranceRatio);
+      }
     }
 
     long producerLimit = oProducerLimit;
@@ -283,21 +286,23 @@ public class ThrottlingManager {
     // was created in the previous 30 days period, allocate a new one
     //
     
-    HyperLogLogPlus producerHLLP;
+    HyperLogLogPlus producerHLLP = null;
     
-    synchronized(producerHLLPEstimators) {
-      producerHLLP = producerHLLPEstimators.get(producer);
-      // If the HyperLogLogPlus is older than 30 days or not yet created, generate a new one
-      if (null == producerHLLP || producerHLLP.hasExpired()) {
-        producerHLLP = new HyperLogLogPlus(DEFAULT_P, DEFAULT_PPRIME);
-        try {
-          producerHLLP.toNormal();
-        } catch (IOException ioe) {
-          throw new WarpException(ioe);
+    if (-1 != producerLimit) {
+      synchronized(producerHLLPEstimators) {
+        producerHLLP = producerHLLPEstimators.get(producer);
+        // If the HyperLogLogPlus is older than 30 days or not yet created, generate a new one
+        if (null == producerHLLP || producerHLLP.hasExpired()) {
+          producerHLLP = new HyperLogLogPlus(DEFAULT_P, DEFAULT_PPRIME);
+          try {
+            producerHLLP.toNormal();
+          } catch (IOException ioe) {
+            throw new WarpException(ioe);
+          }
+          producerHLLP.setKey(producer);
+          producerHLLPEstimators.put(producer, producerHLLP);
         }
-        producerHLLP.setKey(producer);
-        producerHLLPEstimators.put(producer, producerHLLP);
-      }
+      }      
     }
     
     //
@@ -310,7 +315,7 @@ public class ThrottlingManager {
     // Check if hash would impact per producer cardinality, if not, return immediately if there is no per app limit
     //
     
-    boolean newForProducer = producerHLLP.isNew(hash);
+    boolean newForProducer = null == producerHLLP ? false : producerHLLP.isNew(hash);
     
     if (!newForProducer && null == oApplicationLimit) {
       return;
@@ -359,7 +364,7 @@ public class ThrottlingManager {
           StringBuilder sb = new StringBuilder();
           sb.append("Geo Time Series ");
           GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
-          sb.append(" would exceed your Monthly Active Data Streams limit for application '" + application + "' (");
+          sb.append(" would exceed the Monthly Active Data Streams limit for application '" + application + "' (");
           sb.append((long) Math.floor(applicationLimit / toleranceRatio));
           sb.append(").");
           Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_GTS_PER_APP, labels, 1);
@@ -373,6 +378,10 @@ public class ThrottlingManager {
       } catch (IOException ioe){
         // Ignore for now...
       }
+    }
+    
+    if (-1 == producerLimit) {
+      return;
     }
     
     //
@@ -439,7 +448,7 @@ public class ThrottlingManager {
     // -1.0 as the default rate means do not enforce DDP limit
     if (null == producerLimiter && null == applicationLimiter && -1.0D == DEFAULT_RATE_PRODUCER) {      
       return;
-    } else if (null == producerLimiter) {
+    } else if (null == producerLimiter && -1.0D != DEFAULT_RATE_PRODUCER) {
       // Create a rate limiter with the default rate      
       producerLimiter = RateLimiter.create(Math.max(MINIMUM_RATE_LIMIT,DEFAULT_RATE_PRODUCER));
       producerRateLimiters.put(producer, producerLimiter);
@@ -466,6 +475,10 @@ public class ThrottlingManager {
           throw new WarpException(sb.toString());      
         }
       }      
+    }
+    
+    if (null == producerLimiter) {
+      return;
     }
     
     synchronized(producerLimiter) {
