@@ -460,6 +460,7 @@ public class WarpScriptLib {
     functions.put("NDEBUGON", new NDEBUGON("NDEBUGON"));
     functions.put("DEBUGOFF", new DEBUGOFF("DEBUGOFF"));
     functions.put("LMAP", new LMAP("LMAP"));
+    functions.put("NONNULL", new NONNULL("NONNULL"));
     functions.put("LFLATMAP", new LFLATMAP("LFLATMAP"));
     functions.put("[]", new EMPTYLIST("[]"));
     functions.put(LIST_START, new MARK(LIST_START));
