@@ -257,12 +257,9 @@ public class Tokens {
 
     if (rtoken.getLabelsSize() > 0) {
       labels = rtoken.getLabels();
-      if (!labels.isEmpty())
-      {
-        for (Map.Entry<String, String> entry : labels.entrySet())
-        {
-          switch (entry.getKey())
-          {
+      if (!labels.isEmpty()) {
+        for (Map.Entry<String, String> entry : labels.entrySet()) {
+          switch (entry.getKey()) {
             case Constants.OWNER_LABEL:
             case Constants.APPLICATION_LABEL:
             case Constants.PRODUCER_LABEL:
@@ -306,8 +303,6 @@ public class Tokens {
         labelSelectors.put(Constants.APPLICATION_LABEL, sb.toString());        
       }
     }
-
-
 
     if (!owners.isEmpty()) {
       if (1 == owners.size()) {
