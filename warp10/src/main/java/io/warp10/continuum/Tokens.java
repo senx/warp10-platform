@@ -253,7 +253,24 @@ public class Tokens {
     
     List<String> owners = new ArrayList<String>();
     List<String> producers = new ArrayList<String>();
-    
+    Map<String, String> labels = new HashMap<String, String>();
+
+    if (rtoken.getLabelsSize() > 0) {
+      labels = rtoken.getLabels();
+      if (!labels.isEmpty()) {
+        for (Map.Entry<String, String> entry : labels.entrySet()) {
+          switch (entry.getKey()) {
+            case Constants.OWNER_LABEL:
+            case Constants.APPLICATION_LABEL:
+            case Constants.PRODUCER_LABEL:
+              continue;
+            default:
+              labelSelectors.put(entry.getKey(),entry.getValue());
+          }
+        }
+      }
+    }
+
     if (rtoken.getOwnersSize() > 0) {
       for (ByteBuffer bb: rtoken.getOwners()) {
         owners.add(Tokens.getUUID(bb));
@@ -286,7 +303,7 @@ public class Tokens {
         labelSelectors.put(Constants.APPLICATION_LABEL, sb.toString());        
       }
     }
-    
+
     if (!owners.isEmpty()) {
       if (1 == owners.size()) {
         labelSelectors.put(Constants.OWNER_LABEL, "=" + owners.get(0));        
