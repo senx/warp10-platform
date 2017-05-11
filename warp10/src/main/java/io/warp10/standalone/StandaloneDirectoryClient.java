@@ -108,7 +108,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   private final Map<Long,String> classNames = new MapMaker().concurrencyLevel(64).makeMap();
 
   private String splitLabel = Constants.OWNER_LABEL;
-  private final Map<String,Set<String>> splitClasses = new MapMaker().concurrencyLevel(64).makeMap();
+  private final Map<String,Map<String,Map<Long, Metadata>>> splitMetadatas = new MapMaker().concurrencyLevel(64).makeMap();
   private final Map<String,String> sensisionSplitLabels = new HashMap<String,String>();
 
   public StandaloneDirectoryClient(DB db, final KeyStore keystore) {
@@ -248,24 +248,30 @@ public class StandaloneDirectoryClient implements DirectoryClient {
               }
 
               //
-              // Store per label class name. We use the name since it has been internalized,
+              // Store per label class metadatas. We use the name since it has been internalized,
               // therefore we only consume the HashNode and the HashSet overhead
               //
 
               String label = metadata.getLabels().get(splitLabel);
               if (null != label) {
-                synchronized(splitClasses) {
-                  Set<String> classes = splitClasses.get(label);
+                synchronized(splitMetadatas) {
+                  Map<String,Map<Long, Metadata>> classes = splitMetadatas.get(label);
 
                   if (null == classes) {
-                    classes = new ConcurrentSkipListSet<String>();
-                    splitClasses.put(label, classes);
+                    classes = (Map) new MapMaker().concurrencyLevel(64).makeMap();
+                    splitMetadatas.put(label, classes);
                   }
 
-                  classes.add(metadata.getName());
+                  Map<Long, Metadata> classe = classes.get(metadata.getName());
+                  if (null == classe) {
+                    classe = (Map) new MapMaker().concurrencyLevel(64).makeMap();
+                    classes.put(metadata.getName(), classe);
+                  }
+
+                  classe.put(labelsId, metadata);
                 }
 
-                Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_SPLITS, sensisionSplitLabels, splitClasses.size());
+                Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_SPLITS, sensisionSplitLabels, splitMetadatas.size());
               }
 
               synchronized(metadatas.get(metadata.getName())) {
@@ -407,6 +413,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
 
       // Copy the class names as 'this.classNames' might be updated while in the for loop
       Collection<String> classNames = new ArrayList<String>();
+      Map<String,Map<Long, Metadata>> metaSplit = null;
 
       if (null != exactClassName) {
         if (!this.metadatas.containsKey(exactClassName)) {
@@ -420,8 +427,13 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         if (null != labelsExpr.get(i)) {
           String labelsel = labelsExpr.get(i).get(splitLabel);
 
-          if (null != labelsel && labelsel.startsWith("=")) {
-            classNames = splitClasses.get(labelsel.substring(1));
+          if (null != labelsel && !labelsel.startsWith("~")) {
+            metaSplit = splitMetadatas.get(labelsel.startsWith("=") ? labelsel.substring(1) : labelsel);
+            if (null != metaSplit) {
+              classNames = metaSplit.keySet();
+            } else {
+              continue;
+            }
           } else {
             classNames = this.classNames.values();
           }
@@ -480,7 +492,14 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         //
 
         if (classSmartPattern.matches(className)) {
-          for (Metadata metadata: this.metadatas.get(className).values()) {
+          Collection<Metadata> metaList = null;
+          if (null != metaSplit) {
+            metaList = metaSplit.get(className).values();
+          } else {
+            metaList = this.metadatas.get(className).values();
+          }
+
+          for (Metadata metadata: metaList) {
             boolean exclude = false;
 
             int idx = 0;
@@ -626,6 +645,30 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     if (metadatas.get(metadata.getName()).isEmpty()) {
       metadatas.remove(metadata.getName());
       classNames.remove(metadata.getClassId());
+    }
+
+    String label = metadata.getLabels().get(splitLabel);
+    if (null != label) {
+      synchronized(splitMetadatas) {
+        Map<String,Map<Long, Metadata>> classes = splitMetadatas.get(label);
+
+        if (null != classes) {
+          Map<Long, Metadata> classe = classes.get(metadata.getName());
+          if (null != classe) {
+            classe.remove(labelsId);
+
+            if (classe.isEmpty()) {
+              classes.remove(metadata.getName());
+            }
+
+            if (classes.isEmpty()) {
+              splitMetadatas.remove(label);
+            }
+          }
+        }
+      }
+
+      Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_SPLITS, sensisionSplitLabels, splitMetadatas.size());
     }
 
     // 128BITS
@@ -782,23 +825,29 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       }
 
       //
-      // Store per label class name. We use the name since it has been internalized,
+      // Store per label metadatas. We use the name since it has been internalized,
       // therefore we only consume the HashNode and the HashSet overhead
       //
       String label = metadata.getLabels().get(splitLabel);
       if (null != label) {
-        synchronized(splitClasses) {
-          Set<String> classes = splitClasses.get(label);
+        synchronized(splitMetadatas) {
+          Map<String,Map<Long, Metadata>> classes = splitMetadatas.get(label);
 
           if (null == classes) {
-            classes = new ConcurrentSkipListSet<String>();
-            splitClasses.put(label, classes);
+            classes = (Map) new MapMaker().concurrencyLevel(64).makeMap();
+            splitMetadatas.put(label, classes);
           }
 
-          classes.add(metadata.getName());
+          Map<Long, Metadata> classe = classes.get(metadata.getName());
+          if (null == classe) {
+            classe = (Map) new MapMaker().concurrencyLevel(64).makeMap();
+            classes.put(metadata.getName(), classe);
+          }
+
+          classe.put(labelsId, metadata);
         }
 
-        Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_SPLITS, sensisionSplitLabels, splitClasses.size());
+        Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_SPLITS, sensisionSplitLabels, splitMetadatas.size());
       }
 
       //
