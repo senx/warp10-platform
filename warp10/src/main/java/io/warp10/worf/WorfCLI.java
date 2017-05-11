@@ -314,6 +314,7 @@ public class WorfCLI {
         producerUID = Worf.getDefault(defaultProperties, out, producerUID, P_UUID);
         ownerUID = Worf.getDefault(defaultProperties, out, ownerUID, O_UUID);
         String writeToken = null;
+        String readToken = null;
 
         // save default
         if (defaultProperties == null) {
@@ -321,10 +322,12 @@ public class WorfCLI {
         }
 
         // deliver token
-        String readToken = keyMaster.deliverReadToken(appName, producerUID, ownerUID, ttl);
+
         if (labelMap) {
+           readToken = keyMaster.deliverReadToken(appName, producerUID, ownerUID, labels, ttl);
            writeToken = keyMaster.deliverWriteToken(appName, producerUID, ownerUID, labels, ttl);
         } else {
+           readToken = keyMaster.deliverReadToken(appName, producerUID, ownerUID, ttl);
            writeToken = keyMaster.deliverWriteToken(appName, producerUID, ownerUID,  ttl);
         }
 
