@@ -3446,6 +3446,9 @@ public class GTSHelper {
     labels.putAll(gts.getLabels());
     labels.put(labelname, Integer.toString(gtsid));
     serie.setLabels(labels);
+    if (gts.getMetadata().getAttributesSize() > 0) {
+      serie.getMetadata().setAttributes(new HashMap<String,String>(gts.getMetadata().getAttributes()));
+    }
     
     while (idx < gts.values) {
       //
@@ -3466,6 +3469,9 @@ public class GTSHelper {
         gtsid++;
         labels.put(labelname, Integer.toString(gtsid));
         serie.setLabels(labels);
+        if (gts.getMetadata().getAttributesSize() > 0) {
+          serie.getMetadata().setAttributes(new HashMap<String,String>(gts.getMetadata().getAttributes()));
+        }
       }
 
       Object value = GTSHelper.valueAtIndex(gts, idx);      
