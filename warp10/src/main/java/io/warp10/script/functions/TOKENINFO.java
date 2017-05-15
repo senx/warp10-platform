@@ -79,9 +79,6 @@ public class TOKENINFO extends NamedWarpScriptFunction implements WarpScriptStac
         if (wtoken.getLabelsSize() > 0) {
           tokenParams.put("labels", wtoken.getLabels());
         }
-        if (wtoken.getLabelsSize() > 0) {
-          tokenParams.put("labels", wtoken.getLabels());
-        }
         Map<String,Object> limits = ThrottlingManager.getLimits(Tokens.getUUID(wtoken.getProducerId()), wtoken.getAppName());
         
         error = false;
