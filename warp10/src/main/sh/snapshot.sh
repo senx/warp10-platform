@@ -12,7 +12,7 @@ if [ "$#" -eq 1 ]; then
   SNAPSHOT=$1
   # default
   WARP10_HOME=/opt/warp10-@VERSION@
-  LEVELDB_HOME=${WARP10_HOME}/data
+  LEVELDB_HOME=${WARP10_HOME}/leveldb
 elif [ "$#" -eq 3 ]; then
   # Name of snapshot
   SNAPSHOT=$1
