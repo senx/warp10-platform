@@ -1,11 +1,19 @@
 #!/bin/sh
 
-#
-# Warp 10 - Standalone
-#
-# chkconfig: 2345 90 30
-# description: Manage Standalone instance of Warp 10
-#
+### BEGIN INIT INFO
+# Provides:          Warp 10 - Standalone
+# Required-Start:    
+# Required-Stop:     
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Warp data platform
+# Description:       Warp stores sensor data
+### END INIT INFO
+
+# Source function library.
+if [ -e /lib/lsb/init-functions ]; then
+  . /lib/lsb/init-functions
+fi
 
 OS=$(uname -s)
 
@@ -145,7 +153,6 @@ bootstrap() {
   chmod 755 ${WARP10_HOME}/etc/bootstrap
   chmod 644 ${WARP10_HOME}/etc/bootstrap/*.mc2
   chmod 755 ${WARP10_HOME}/bin/*.sh
-  chmod 755 ${WARP10_HOME}/bin/*.init
   chmod 644 ${WARP10_HOME}/bin/warp10-@VERSION@.jar
   chmod -R 755 ${WARP10_HOME}/datalog
   chmod -R 755 ${WARP10_HOME}/datalog_done
