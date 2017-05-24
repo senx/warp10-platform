@@ -34,14 +34,9 @@ fi
 
 if [ "$1" = "bootstrap" ]; then
   ${WARP10_HOME}/bin/warp10-standalone.sh bootstrap
-elif [ "$1" = "snapshot" ]; then
-  if [ $# -ne 2 ]; then
-    echo $"Usage: $0 {snapshot 'snapshot_name'}"
-    exit 2
-  fi
-  su ${WARP10_USER} -c "${WARP10_HOME}/bin/warp10-standalone.sh snapshot $2"
 else
-  su ${WARP10_USER} -c "${WARP10_HOME}/bin/warp10-standalone.sh $@"
+  args="$@"
+  su ${WARP10_USER} -c "${WARP10_HOME}/bin/warp10-standalone.sh $args"
 fi
 
 exit $?

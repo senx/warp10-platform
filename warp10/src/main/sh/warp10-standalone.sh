@@ -522,6 +522,10 @@ status() {
 }
 
 snapshot() {
+  if [ $# -ne 2 ]; then
+    echo $"Usage: $0 {snapshot 'snapshot_name'}"
+    exit 2
+  fi
   # Name of snapshot
   SNAPSHOT=$2
   ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT} "${WARP10_HOME}" "${LEVELDB_HOME}" 
