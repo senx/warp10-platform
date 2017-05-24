@@ -523,7 +523,7 @@ status() {
 
 snapshot() {
   # Name of snapshot
-  SNAPSHOT=$1
+  SNAPSHOT=$2
   ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT} "${WARP10_HOME}" "${LEVELDB_HOME}" 
 }
 
@@ -569,7 +569,7 @@ case "$1" in
   worf "$@"
   ;;
   snapshot)
-  snapshot "$2"
+  snapshot "$@"
   ;;
   *)
   echo $"Usage: $0 {bootstrap|start|stop|status|worf appName ttl(ms)|snapshot 'snapshot_name'}"
