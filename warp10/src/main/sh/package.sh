@@ -50,7 +50,7 @@ if [ $? -ne 0 ]; then
 fi
 
 cd ${ARCHIVE}
-# Copy init and startup scripts
+# Copy startup scripts
 sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/snapshot.sh >> ${WARP10_HOME}/bin/snapshot.sh
 sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10-standalone.sh >> ${WARP10_HOME}/bin/warp10-standalone.sh
 sed -i -e "s/@QUANTUM_VERSION@/${QUANTUM_VERSION}/g" ${WARP10_HOME}/bin/warp10-standalone.sh
@@ -93,7 +93,6 @@ chmod -R 755 ${WARP10_HOME}/leveldb
 chmod -R 755 ${WARP10_HOME}/datalog
 chmod -R 755 ${WARP10_HOME}/datalog_done
 chmod 755 ${WARP10_HOME}/bin/*.sh
-chmod 755 ${WARP10_HOME}/bin/*.init
 chmod 644 ${WARP10_HOME}/bin/warp10-${VERSION}.jar
 chmod 755 ${WARP10_HOME}/geodir
 
