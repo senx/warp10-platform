@@ -1,5 +1,12 @@
 #!/bin/sh
 
+#
+# Warp 10 - Standalone
+#
+# chkconfig: 2345 90 30
+# description: Manage Standalone instance of Warp 10
+#
+
 WARP10_USER=warp10
 #WARP10_HOME=/opt/warp10-@VERSION@
 
@@ -263,6 +270,5 @@ case "$1" in
   echo $"Usage: $0 {start|stop|status|worfcli|worf appName ttl(ms)|snapshot 'snapshot_name'}"
   exit 2
 esac
->>>>>>> c20043b5e1c434a11e9e1666ecdb83090802114e
 
 exit $?
