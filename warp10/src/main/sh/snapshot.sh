@@ -8,6 +8,16 @@
 WARP10_USER=warp10
 WARP10_CLASS=io.warp10.standalone.Warp
 
+#
+# Make sure the caller is warp10
+#
+
+if [ "`whoami`" != "${WARP10_USER}" ]
+then
+  echo "You must be ${WARP10_USER} to run this script."
+  exit 1
+fi
+
 if [ "$#" -eq 1 ]; then
   # Name of snapshot
   SNAPSHOT=$1
@@ -33,16 +43,6 @@ SNAPSHOT_DIR=${LEVELDB_HOME}/snapshots
 TRIGGER_PATH=${LEVELDB_HOME}/snapshot.trigger
 # Path to the 'signal' file
 SIGNAL_PATH=${LEVELDB_HOME}/snapshot.signal
-
-#
-# Make sure the caller is warp10
-#
-
-if [ "`whoami`" != "${WARP10_USER}" ]
-then
-  echo "You must be ${WARP10_USER} to run this script."
-  exit 1
-fi
 
 if [ "" = "${SNAPSHOT}" ]
 then
