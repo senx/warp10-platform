@@ -1,0 +1,32 @@
+#!/bin/sh
+
+WARP10_USER=warp10
+#WARP10_HOME=/opt/warp10-@VERSION@
+
+#
+# Make sure the caller is root
+#
+
+if [ "`whoami`" != "root" ]
+then
+  echo "You must be root to run 'bootstrap' command."
+  exit 1
+fi
+
+# If WARP10_HOME is not defined, set it to the parent directory
+if [ -z "${WARP10_HOME}" ]; then
+  if [ "Darwin" = "${OS}" ]
+  then
+    pushd $(dirname $0)/.. > /dev/null 2>&1
+    WARP10_HOME=`pwd`
+    popd > /dev/null 2>&1
+  else
+    WARP10_HOME=$(dirname $(readlink -f $0))/..
+  fi
+fi
+
+if [ "$1" = "bootstrap" ]; then
+	${WARP10_HOME}/bin/warp10-standalone.sh bootstrap
+else
+	su ${WARP10_USER} -c "${WARP10_HOME}/bin/warp10-standalone.sh \"$@\""
+fi
