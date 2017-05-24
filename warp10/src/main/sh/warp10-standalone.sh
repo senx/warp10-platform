@@ -532,7 +532,7 @@ snapshot() {
 }
 
 worfcli() {
-  su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -i"
+  ${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -i
 }
 
 worf() {
