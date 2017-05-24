@@ -527,6 +527,10 @@ snapshot() {
   ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT} "${WARP10_HOME}" "${LEVELDB_HOME}" 
 }
 
+worfcli() {
+  su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -i"
+}
+
 worf() {
   
   #
@@ -565,6 +569,9 @@ case "$1" in
   sleep 2
   start
   ;;
+  worfcli)
+  worfcli
+  ;;
   worf)
   worf "$@"
   ;;
@@ -572,7 +579,7 @@ case "$1" in
   snapshot "$@"
   ;;
   *)
-  echo $"Usage: $0 {bootstrap|start|stop|status|worf appName ttl(ms)|snapshot 'snapshot_name'}"
+  echo $"Usage: $0 {bootstrap|start|stop|status|worfcli|worf appName ttl(ms)|snapshot 'snapshot_name'}"
   exit 2
 esac
 
