@@ -5374,16 +5374,27 @@ public class GTSHelper {
         result = new GeoTimeSerie();
       }
 
-      result.setName("");
       result.setLabels(partitionLabels);
-      
+
+      String name = null;
+
       //
       // Sort all series in the partition so we can scan their ticks in order
+      // Checking if classname is identical between GTS. If so, using it
       //
         
       for (GeoTimeSerie gts: partitionSeries) {
         sort(gts, false);
+
+        if (null == name){
+          name = gts.getName();
+        } else if (!gts.getName().equals(name) && name.length() != 0) {
+          name = "";
+        }
       }
+
+      result.setName(name);
+
       
       Map<String,GeoTimeSerie> multipleResults = new TreeMap<String,GeoTimeSerie>();
       
