@@ -5759,7 +5759,22 @@ public class GTSHelper {
       }
       
       //
-      // Record the end of the range is preserveRanges is true
+      // If we preserve ranges and we reached clone.values - 1 and the last value/location/elevation is identical,
+      // continue the loop as the last value will be the end of the range
+      //
+
+      boolean last = false;
+      
+      if (preserveRanges && idx + 1 + offset == clone.values - 1
+          && locationAtIndex(clone, clone.values - 1) == locationAtIndex(clone, idx)
+          && elevationAtIndex(clone, clone.values - 1) == elevationAtIndex(clone, idx)
+          && valueAtIndex(clone, clone.values - 1).equals(valueAtIndex(clone, idx))) {        
+        offset++;
+        last = true;
+      }
+      
+      //
+      // Record the end of the range if preserveRanges is true
       //
       
       if (preserveRanges && offset > 0) {
@@ -5784,33 +5799,37 @@ public class GTSHelper {
             clone.stringValues[compactIdx] = clone.stringValues[idx + offset];
             break;
         }
-        compactIdx++;
+        if (!last) {
+          compactIdx++;
+        }
       }
 
       //
-      // Record the new value
+      // Record the new value if idx + offset + 1 < clone.values
       //
       
-      clone.ticks[compactIdx] = clone.ticks[idx + offset + 1];
-      if (null != clone.locations) {
-        clone.locations[compactIdx] = clone.locations[idx + offset + 1];
-      }
-      if (null != clone.elevations) {
-        clone.elevations[compactIdx] = clone.elevations[idx + offset + 1];
-      }
-      switch (clone.type) {
-        case LONG:
-          clone.longValues[compactIdx] = clone.longValues[idx + offset + 1];
-          break;
-        case DOUBLE:
-          clone.doubleValues[compactIdx] = clone.doubleValues[idx + offset + 1];
-          break;
-        case BOOLEAN:
-          clone.booleanValues.set(compactIdx, clone.booleanValues.get(idx + offset + 1));
-          break;
-        case STRING:
-          clone.stringValues[compactIdx] = clone.stringValues[idx + offset + 1];
-          break;
+      if (idx + offset + 1 < clone.values) {
+        clone.ticks[compactIdx] = clone.ticks[idx + offset + 1];
+        if (null != clone.locations) {
+          clone.locations[compactIdx] = clone.locations[idx + offset + 1];
+        }
+        if (null != clone.elevations) {
+          clone.elevations[compactIdx] = clone.elevations[idx + offset + 1];
+        }
+        switch (clone.type) {
+          case LONG:
+            clone.longValues[compactIdx] = clone.longValues[idx + offset + 1];
+            break;
+          case DOUBLE:
+            clone.doubleValues[compactIdx] = clone.doubleValues[idx + offset + 1];
+            break;
+          case BOOLEAN:
+            clone.booleanValues.set(compactIdx, clone.booleanValues.get(idx + offset + 1));
+            break;
+          case STRING:
+            clone.stringValues[compactIdx] = clone.stringValues[idx + offset + 1];
+            break;
+        }        
       }
         
       //
