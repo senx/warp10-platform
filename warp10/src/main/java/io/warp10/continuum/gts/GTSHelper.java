@@ -5381,9 +5381,18 @@ public class GTSHelper {
       // Sort all series in the partition so we can scan their ticks in order
       //
         
+      String resultName = null;
+      
       for (GeoTimeSerie gts: partitionSeries) {
         sort(gts, false);
+        if (null == resultName) {
+          resultName = gts.getName();
+        } else if (!resultName.equals(gts.getName())) {
+          resultName = "";
+        }
       }
+      
+      result.setName(resultName);
       
       Map<String,GeoTimeSerie> multipleResults = new TreeMap<String,GeoTimeSerie>();
       
