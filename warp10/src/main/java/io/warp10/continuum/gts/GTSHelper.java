@@ -3935,7 +3935,7 @@ public class GTSHelper {
   public static GeoTimeSerie relabel(GeoTimeSerie gts, Map<String,String> newlabels) {
     Map<String,String> labels = new HashMap<String,String>();
     
-    if (!newlabels.containsValue(null)) {
+    if (!newlabels.containsKey(null)) {
       labels.putAll(gts.getLabels());
     }
     
