@@ -1,0 +1,110 @@
+//
+//   Copyright 2017  Cityzen Data
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
+package io.warp10.script.functions;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TException;
+import org.apache.thrift.protocol.TCompactProtocol;
+
+import com.google.common.base.Charsets;
+
+import io.warp10.continuum.gts.GTSDecoder;
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GTSWrapperHelper;
+import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.continuum.store.thrift.data.GTSWrapper;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
+
+/**
+ * Converts an encoder into a map of gts, one per type
+ */
+public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+  
+  public TOGTS(String name) {
+    super(name);
+  }  
+
+  @Override
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    Object top = stack.pop();
+    
+    if (!(top instanceof String) && !(top instanceof byte[]) && !(top instanceof GTSEncoder)) {
+      throw new WarpScriptException(getName() + " operates on a string, byte array or encoder.");
+    }
+    
+    Map<String,GeoTimeSerie> series = new HashMap<String,GeoTimeSerie>();
+    
+    GTSDecoder decoder;
+    
+    if (top instanceof GTSEncoder) {
+      decoder = ((GTSEncoder) top).getUnsafeDecoder(false);
+    } else {
+      try {
+        byte[] bytes = top instanceof String ? OrderPreservingBase64.decode(top.toString().getBytes(Charsets.US_ASCII)) : (byte[]) top;
+        
+        TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+        
+        GTSWrapper wrapper = new GTSWrapper();
+        
+        deser.deserialize(wrapper, bytes);
+
+        decoder = GTSWrapperHelper.fromGTSWrapperToGTSDecoder(wrapper);        
+      } catch (TException te) {
+        throw new WarpScriptException(getName() + " failed to unwrap encoder.", te);
+      }            
+    }
+
+    GeoTimeSerie gts;
+    
+    while(decoder.next()) {
+      Object value = decoder.getValue();
+      
+      String type = "DOUBLE";
+      
+      if (value instanceof String) {
+        type = "STRING";
+      } else if (value instanceof Boolean) {
+        type = "BOOLEAN";
+      } else if (value instanceof Long) {
+        type = "LONG";
+      } else {
+        type = "DOUBLE";
+      }
+      
+      gts = series.get(type);
+      if (null == gts) {
+        gts = new GeoTimeSerie();
+        gts.setMetadata(decoder.getMetadata());
+        series.put(type, gts);
+      }
+
+      GTSHelper.setValue(gts, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), value, false);
+    }
+    
+    stack.push(series);
+
+    return stack;
+  }  
+}

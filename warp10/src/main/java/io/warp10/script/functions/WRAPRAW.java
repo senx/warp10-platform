@@ -16,9 +16,11 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
+import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.GTSStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -28,6 +30,8 @@ import java.util.Map;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
+
+import com.google.common.base.Charsets;
 
 /**
  * Wrap a GTS into a GTSWrapper without base64 encoding the result
@@ -43,6 +47,35 @@ public class WRAPRAW  extends GTSStackFunction {
   public WRAPRAW(String name, boolean opt) {
     super(name);
     this.opt = opt;
+  }
+
+  @Override
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    if (!(stack.peek() instanceof GTSEncoder)) {
+      return super.apply(stack);      
+    }
+    
+    GTSEncoder encoder = (GTSEncoder) stack.pop();
+    
+    GTSWrapper wrapper;
+    
+    if (opt) {
+      wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true, 1.0);
+    } else {
+      wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true);
+    }
+    
+    TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+    
+    try {
+      byte[] bytes = serializer.serialize(wrapper);
+      
+      stack.push(bytes);
+    } catch (TException te) {
+      throw new WarpScriptException(getName() + " failed to wrap GTS.");
+    }        
+
+    return stack;
   }
 
   @Override
