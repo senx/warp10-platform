@@ -456,6 +456,11 @@ project(':warp10') {
         compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.5'
 
         //
+        // TensorFlow
+        //
+        compile group: 'org.tensorflow', name: 'proto', version: '1.2.0'
+
+        //
         // FFT
         //
         compile group: 'com.github.rwl', name: 'jtransforms', version: '2.4.0'
