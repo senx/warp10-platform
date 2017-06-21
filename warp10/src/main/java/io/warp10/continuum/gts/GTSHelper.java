@@ -39,6 +39,7 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.functions.MACROMAPPER;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -3933,10 +3934,26 @@ public class GTSHelper {
    * @param newlabels Map of label names to label values.
    */
   public static GeoTimeSerie relabel(GeoTimeSerie gts, Map<String,String> newlabels) {
+    Map<String,String> labels = relabel(gts.getMetadata(), newlabels);
+    
+    gts.getMetadata().setLabels(labels);
+    
+    return gts;
+  }
+
+  public static GTSEncoder relabel(GTSEncoder encoder, Map<String,String> newlabels) {
+    Map<String,String> labels = relabel(encoder.getMetadata(), newlabels);
+    
+    encoder.getMetadata().setLabels(labels);
+    
+    return encoder;
+  }
+
+  private static Map<String,String> relabel(Metadata metadata, Map<String,String> newlabels) {
     Map<String,String> labels = new HashMap<String,String>();
     
     if (!newlabels.containsKey(null)) {
-      labels.putAll(gts.getLabels());
+      labels.putAll(metadata.getLabels());
     }
     
     for (String name: newlabels.keySet()) {
@@ -3951,9 +3968,7 @@ public class GTSHelper {
       }
     }
     
-    gts.setLabels(labels);
-    
-    return gts;
+    return labels;
   }
   
   /**
@@ -5649,7 +5664,10 @@ public class GTSHelper {
    * @param gts GTS instance to shrink
    */
   public static void shrink(GeoTimeSerie gts) {
-    
+    shrink(gts, 1.0D);
+  }    
+  
+  public static void shrink(GeoTimeSerie gts, double ratio) {
     if (0 == gts.values) {
       gts.ticks = null;
       gts.locations = null;
@@ -5658,6 +5676,11 @@ public class GTSHelper {
       gts.doubleValues = null;
       gts.stringValues = null;
       gts.booleanValues = null;
+      return;
+    }
+  
+    // Do nothing if array size / value count is <= ratio
+    if ((double) gts.ticks.length / (double) gts.values <= ratio) {
       return;
     }
     
@@ -6550,6 +6573,33 @@ public class GTSHelper {
       }
       
       GTSHelper.setValue(clipped, ts, GTSHelper.locationAtIndex(gts, idx), GTSHelper.elevationAtIndex(gts, idx), GTSHelper.valueAtIndex(gts, idx), false);
+    }
+    
+    return clipped;
+  }
+
+  /**
+   * Clip a GTSEncoder
+   * 
+   * @param start lower timestamp to consider (inclusive)
+   * @param end upper timestamp to consider (inclusive)
+   * @return
+   */
+  public static GTSEncoder timeclip(GTSEncoder encoder, long start, long end) {
+    
+    GTSEncoder clipped = new GTSEncoder(0L);
+    clipped.setMetadata(encoder.getMetadata());
+    GTSDecoder decoder = encoder.getUnsafeDecoder(false);
+    while(decoder.next()) {
+      long timestamp = decoder.getTimestamp();
+      if (timestamp < start || timestamp > end) {
+        continue;
+      }
+      try {
+        clipped.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+      } catch (IOException ioe) {
+        throw new RuntimeException(ioe);
+      }
     }
     
     return clipped;
@@ -9034,5 +9084,82 @@ public class GTSHelper {
     GTSHelper.setValue(sampled, GTSHelper.tickAtIndex(gts,gts.values - 1), GTSHelper.locationAtIndex(gts, gts.values - 1), GTSHelper.elevationAtIndex(gts, gts.values - 1), GTSHelper.valueAtIndex(gts, gts.values - 1), false);
     
     return sampled;
+  }
+  
+  public static void dump(GTSEncoder encoder, PrintWriter pw) {
+    StringBuilder sb = new StringBuilder(" ");
+    Metadata meta = encoder.getMetadata();
+    
+    GTSHelper.encodeName(sb, meta.getName());
+    if (meta.getLabelsSize() > 0) {
+      sb.append("{");
+      boolean first = true;
+      for (Entry<String,String> entry: meta.getLabels().entrySet()) {
+        if (!first) {
+          sb.append(",");
+        }
+        GTSHelper.encodeName(sb, entry.getKey());
+        sb.append("=");
+        GTSHelper.encodeName(sb, entry.getValue());
+        first = false;
+      }
+      sb.append("}");      
+    } else {
+      sb.append("{}");
+    }
+    
+    if (meta.getAttributesSize() > 0) {
+      sb.append("{");
+      boolean first = true;    
+      for (Entry<String,String> entry: meta.getAttributes().entrySet()) {
+        if (!first) {
+          sb.append(",");
+        }
+        GTSHelper.encodeName(sb, entry.getKey());
+        sb.append("=");
+        GTSHelper.encodeName(sb, entry.getValue());
+        first = false;
+      }
+      sb.append("}");
+    } else {
+      sb.append("{}");
+    }
+    
+    sb.append(" ");
+    
+    String clslbs = sb.toString();
+    
+    GTSDecoder decoder = encoder.getUnsafeDecoder(false);
+    
+    boolean first = true;
+    while(decoder.next()) {      
+      if (!first) {
+        pw.print("=");
+      }
+      pw.print(decoder.getTimestamp());
+      pw.print("/");
+      long location = decoder.getLocation();
+      if (GeoTimeSerie.NO_LOCATION != location) {
+        double[] latlon = GeoXPLib.fromGeoXPPoint(location);
+        pw.print(latlon[0]);
+        pw.print(":");
+        pw.print(latlon[1]);
+      }
+      pw.print("/");
+      long elevation = decoder.getElevation();
+      if (GeoTimeSerie.NO_ELEVATION != elevation) {
+        pw.print(elevation);
+      }
+      if (first) {
+        pw.print(clslbs);
+      } else {
+        pw.print(" ");
+      }
+      sb.setLength(0);
+      GTSHelper.encodeValue(sb, decoder.getValue());
+      pw.print(sb.toString());
+      pw.print("\r\n");
+      first = false;
+    }    
   }
 }

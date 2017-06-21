@@ -17,6 +17,7 @@
 package io.warp10.script.functions;
 
 import io.warp10.WarpURLEncoder;
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.MemoryWarpScriptStack;
@@ -174,7 +175,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         } else {
           sb.append("false ");
         }
-      } else if (o instanceof GeoTimeSerie) {
+      } else if (o instanceof GeoTimeSerie || o instanceof GTSEncoder) {
         sb.append("'");
         
         //
@@ -190,7 +191,11 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         
         sb.append(stack.pop());
         sb.append("' ");
-        sb.append(WarpScriptLib.UNWRAP);
+        if (o instanceof GeoTimeSerie) {
+          sb.append(WarpScriptLib.UNWRAP);
+        } else {
+          sb.append(WarpScriptLib.UNWRAPENCODER);
+        }
         sb.append(" ");
       } else if (o instanceof Vector) {
         sb.append(WarpScriptLib.LIST_START);

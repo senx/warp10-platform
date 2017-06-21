@@ -16,8 +16,10 @@
 
 package io.warp10.script.functions;
 
+import java.io.IOException;
 import java.util.List;
 
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -112,15 +114,27 @@ public class ADDVALUE extends NamedWarpScriptFunction implements WarpScriptStack
     
     o = stack.pop();
     
-    if (!(o instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " operates on a single Geo Time Series.");
+    if (!(o instanceof GeoTimeSerie) && !(o instanceof GTSEncoder)) {
+      throw new WarpScriptException(getName() + " operates on a single Geo Time Series or GTS Encoder.");
     }
     
-    GeoTimeSerie gts = (GeoTimeSerie) o;
+    if (o instanceof GeoTimeSerie) {
+      GeoTimeSerie gts = (GeoTimeSerie) o;
     
-    GTSHelper.setValue(gts, timestamp, location, elevation, value, this.overwrite);
+      GTSHelper.setValue(gts, timestamp, location, elevation, value, this.overwrite);
     
-    stack.push(gts);
+      stack.push(gts);
+    } else {
+      GTSEncoder encoder = (GTSEncoder) o;
+      
+      try {
+        encoder.addValue(timestamp, location, elevation, value);
+      } catch (IOException ioe) {
+        throw new WarpScriptException(getName() + " error adding datapoint to encoder.", ioe);
+      }
+      
+      stack.push(encoder);
+    }
     
     return stack;
   }

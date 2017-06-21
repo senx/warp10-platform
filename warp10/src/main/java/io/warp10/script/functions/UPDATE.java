@@ -18,6 +18,7 @@ package io.warp10.script.functions;
 
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.store.Constants;
@@ -88,6 +89,7 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
     }
     
     List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
+    List<GTSEncoder> encoders = new ArrayList<GTSEncoder>();
     
     Object o = stack.pop();
     
@@ -95,25 +97,33 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
       if (GTSHelper.nvalues((GeoTimeSerie) o) > 0) {
         series.add((GeoTimeSerie) o);
       }
+    } else if (o instanceof GTSEncoder) {
+      if (((GTSEncoder) o).getCount() > 0) {
+        encoders.add((GTSEncoder) o);
+      }
     } else if (o instanceof List) {
       for (Object oo: (List<Object>) o) {
         if (oo instanceof GeoTimeSerie) {
           if (GTSHelper.nvalues((GeoTimeSerie) oo) > 0) {
             series.add((GeoTimeSerie) oo);
           }
+        } else if (oo instanceof GTSEncoder) {
+          if (((GTSEncoder) oo).getCount() > 0) {
+            encoders.add((GTSEncoder) oo);
+          }          
         } else {
-          throw new WarpScriptException(getName() + " can only operate on Geo Time Series or a list thereof.");
+          throw new WarpScriptException(getName() + " can only operate on Geo Time Series, encoders or a list thereof.");
         }
       }
     } else {
-      throw new WarpScriptException(getName() + " can only operate on Geo Time Series or a list thereof.");
+      throw new WarpScriptException(getName() + " can only operate on Geo Time Series, encoders or a list thereof.");
     }
     
     //
     // Return immediately if 'series' is empty
     //
     
-    if (0 == series.size()) {
+    if (0 == series.size() && 0 == encoders.size()) {
       return stack;
     }
     
@@ -127,6 +137,12 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
       }
       if (!gts.isRenamed()) {
         throw new WarpScriptException(getName() + " can only update Geo Time Series which have been renamed.");
+      }
+    }
+    
+    for (GTSEncoder encoder: encoders) {
+      if (null == encoder.getName() || "".equals(encoder.getName())) {
+        throw new WarpScriptException(getName() + " can only update encoders which have a non empty name.");
       }
     }
     
@@ -171,18 +187,17 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
       for (GeoTimeSerie gts: series) {
         gts.dump(pw);
       }
+    
+      for (GTSEncoder encoder: encoders) {
+        GTSHelper.dump(encoder, pw);
+      }
       
       pw.close();
-      
-      //
-      // Update was successful, delete all batchfiles
-      //
       
       if (200 != conn.getResponseCode()) {
         throw new WarpScriptException(getName() + " failed to complete successfully (" + conn.getResponseMessage() + ")");
       }
       
-      //is.close();
       conn.disconnect();
       conn = null;
     } catch (IOException ioe) { 

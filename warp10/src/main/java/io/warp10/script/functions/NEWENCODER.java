@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2017  Cityzen Data
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,35 +17,30 @@
 package io.warp10.script.functions;
 
 import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
- * Extract the name of the GTS on top of the stack
+ * Push onto the stack an empty GTS
  */
-public class NAME extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class NEWENCODER extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public NAME(String name) {
+  public NEWENCODER(String name) {
     super(name);
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object o = stack.pop();
     
-    if (!(o instanceof GeoTimeSerie) && !(o instanceof GTSEncoder)) {
-      throw new WarpScriptException(getName() + " expects a Geo Time Series or encoder instance on top of the stack.");
-    }
+    GTSEncoder encoder = new GTSEncoder(0L);
     
-    if (o instanceof GeoTimeSerie) {
-      stack.push(((GeoTimeSerie) o).getName());
-    } else {
-      stack.push(((GTSEncoder) o).getName());
-    }
-
+    // Set empty name
+    encoder.setName("");
+    
+    stack.push(encoder);
+    
     return stack;
   }
 }
