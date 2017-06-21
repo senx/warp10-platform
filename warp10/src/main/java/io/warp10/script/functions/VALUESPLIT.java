@@ -76,7 +76,7 @@ public class VALUESPLIT  extends GTSStackFunction {
       long elevation = GTSHelper.elevationAtIndex(gts, i);
       Object value = GTSHelper.valueAtIndex(gts, i);
       
-      if (value != lastvalue) {
+      if (!value.equals(lastvalue)) {
         split = gts.cloneEmpty();
         split.getMetadata().putToLabels(label, value.toString());
         series.add(split);

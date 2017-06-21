@@ -217,7 +217,9 @@ public class CORRELATE extends NamedWarpScriptFunction {
           idxB++;
         }
         
-        if (count > 0) {
+        if (count > 1) {
+          GTSHelper.setValue(crosscorrelation, offset, sum / (double) (count - 1));
+        } else if (count > 0) {
           GTSHelper.setValue(crosscorrelation, offset, sum / (double) count);
         } else {
           GTSHelper.setValue(crosscorrelation, offset, 0.0D);

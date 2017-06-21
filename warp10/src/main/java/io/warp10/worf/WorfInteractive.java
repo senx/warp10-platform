@@ -401,7 +401,7 @@ public class WorfInteractive {
         defaultValue = getUUID(null, null, WorfCLI.O_UUID, encodeTokenCommand.producer);
       } else if (encodeTokenCommand.ttl == 0L) {
         sb.append("/token ttl (ms) ");
-      } else if (encodeTokenCommand.labels == null && TokenType.WRITE.equals(encodeTokenCommand.tokenType)) {
+      } else if (encodeTokenCommand.labels == null) {
         sb.append("/OPTIONAL fixed labels (key1=value1,key2=value2) ");
       } else {
         sb.append("(generate | cancel)");
@@ -418,7 +418,6 @@ public class WorfInteractive {
       } else {
         sb.append("(decode | cancel)");
       }
-
     }
 
     // ads default value to the prompt

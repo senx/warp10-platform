@@ -74,7 +74,7 @@ public class WorfCLI {
     options.addOptionGroup(groupOwnerUID);
 
     options.addOption(new Option(APPNAME, "app-name", true, "token application name. Used by token option or @warp:writeToken@ template"));
-    options.addOption(new Option(LABELS, "labels", true, "enclosed label list for write token (following ingress input format : xbeeId=XBee_40670F0D,moteId=53)"));
+    options.addOption(new Option(LABELS, "labels", true, "enclosed label list for read/write tokens (following ingress input format : xbeeId=XBee_40670F0D,moteId=53)"));
     options.addOption(new Option(TTL, "ttl", true, "token time to live (ms). Used by token option or @warp:writeToken@ template"));
 
 
@@ -314,6 +314,7 @@ public class WorfCLI {
         producerUID = Worf.getDefault(defaultProperties, out, producerUID, P_UUID);
         ownerUID = Worf.getDefault(defaultProperties, out, ownerUID, O_UUID);
         String writeToken = null;
+        String readToken = null;
 
         // save default
         if (defaultProperties == null) {
@@ -321,10 +322,12 @@ public class WorfCLI {
         }
 
         // deliver token
-        String readToken = keyMaster.deliverReadToken(appName, producerUID, ownerUID, ttl);
+
         if (labelMap) {
+           readToken = keyMaster.deliverReadToken(appName, producerUID, ownerUID, labels, ttl);
            writeToken = keyMaster.deliverWriteToken(appName, producerUID, ownerUID, labels, ttl);
         } else {
+           readToken = keyMaster.deliverReadToken(appName, producerUID, ownerUID, ttl);
            writeToken = keyMaster.deliverWriteToken(appName, producerUID, ownerUID,  ttl);
         }
 

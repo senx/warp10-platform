@@ -1,0 +1,12 @@
+[Unit]
+Description=Warp 10 Standalone
+
+[Service]
+Type=oneshot
+User=warp10
+ExecStart=/opt/warp10-@VERSION@/bin/warp10-standalone.sh start
+ExecStop=/opt/warp10-@VERSION@/bin/warp10-standalone.sh stop
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

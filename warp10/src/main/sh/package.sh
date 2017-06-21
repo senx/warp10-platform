@@ -50,10 +50,12 @@ if [ $? -ne 0 ]; then
 fi
 
 cd ${ARCHIVE}
-# Copy init and startup scripts
-sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/snapshot.sh >> ${WARP10_HOME}/bin/snapshot.sh
+# Copy startup scripts
+sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10.service >> ${WARP10_HOME}/bin/warp10.service
 sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10-standalone.init >> ${WARP10_HOME}/bin/warp10-standalone.init
-sed -i -e "s/@QUANTUM_VERSION@/${QUANTUM_VERSION}/g" ${WARP10_HOME}/bin/warp10-standalone.init
+sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/snapshot.sh >> ${WARP10_HOME}/bin/snapshot.sh
+sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10-standalone.sh >> ${WARP10_HOME}/bin/warp10-standalone.sh
+sed -i -e "s/@QUANTUM_VERSION@/${QUANTUM_VERSION}/g" ${WARP10_HOME}/bin/warp10-standalone.sh
 
 # Copy log4j README, config, runner, bootstrap...
 cp ../../etc/bootstrap/*.mc2 ${WARP10_HOME}/etc/bootstrap
@@ -93,7 +95,8 @@ chmod -R 755 ${WARP10_HOME}/leveldb
 chmod -R 755 ${WARP10_HOME}/datalog
 chmod -R 755 ${WARP10_HOME}/datalog_done
 chmod 755 ${WARP10_HOME}/bin/*.sh
-chmod 755 ${WARP10_HOME}/bin/*.init
+chmod 755 ${WARP10_HOME}/bin/warp10-standalone.init
+chmod 644 ${WARP10_HOME}/bin/warp10.service
 chmod 644 ${WARP10_HOME}/bin/warp10-${VERSION}.jar
 chmod 755 ${WARP10_HOME}/geodir
 

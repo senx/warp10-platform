@@ -28,6 +28,7 @@ import io.warp10.crypto.SipHashInline;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.Proxy;
 import java.net.URL;
@@ -159,14 +160,20 @@ public class StreamingMetadataIterator extends MetadataIterator {
       
       String qs = Constants.HTTP_PARAM_SELECTOR + "=" + new String(OrderPreservingBase64.encode(selector.toString().getBytes(Charsets.UTF_8)), Charsets.US_ASCII);
 
-      URL url = new URL(urls.get(urlidx) + "?" + qs);
+      //URL url = new URL(urls.get(urlidx) + "?" + qs);
+      URL url = urls.get(urlidx);
       
       conn = (HttpURLConnection) (this.noProxy ? url.openConnection(Proxy.NO_PROXY) : url.openConnection());
       
+      conn.setRequestMethod("POST");      
       conn.setChunkedStreamingMode(8192);
       conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE), signature);
       conn.setDoInput(true);
       conn.setDoOutput(true);
+      
+      OutputStream out = conn.getOutputStream();
+      out.write(qs.getBytes(Charsets.US_ASCII));
+      out.flush();
       
       reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));          
     }

@@ -629,6 +629,9 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
     
     Configuration conf = new Configuration();
         
+    conf.set("fs.hdfs.impl", org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
+    conf.set("fs.file.impl", org.apache.hadoop.fs.LocalFileSystem.class.getName());
+
     BytesWritable key = new BytesWritable();
     BytesWritable value = new BytesWritable();
     
@@ -717,6 +720,9 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
     
     Configuration conf = new Configuration();
         
+    conf.set("fs.hdfs.impl", org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
+    conf.set("fs.file.impl", org.apache.hadoop.fs.LocalFileSystem.class.getName());
+
     BytesWritable key = new BytesWritable();
     BytesWritable value = new BytesWritable();
     

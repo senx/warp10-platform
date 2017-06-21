@@ -5,7 +5,7 @@ import java.util.Map;
 
 import io.warp10.warp.sdk.WarpScriptExtension;
 
-public class LogginWarpScriptExtension extends WarpScriptExtension {
+public class LoggingWarpScriptExtension extends WarpScriptExtension {
   private static final Map<String,Object> functions;
   
   static {

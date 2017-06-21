@@ -99,13 +99,16 @@ public class SETATTRIBUTES extends GTSStackFunction  {
       if (null == entry.getKey()) {
         continue;
       }
+      if (!(entry.getKey() instanceof String) || !(entry.getValue() instanceof String)) {
+        throw new WarpScriptException(getName() + " attribute key and value MUST be of type String.");
+      }
       if (null == entry.getValue() || "".equals(entry.getValue())) {
         attr.remove(entry.getKey());
       } else {
         attr.put(entry.getKey(), entry.getValue());
       }
     }
-
+    
     gts.getMetadata().setAttributes(attr);
     
     return gts;

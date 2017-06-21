@@ -149,6 +149,8 @@ public class WEBCALL extends NamedWarpScriptFunction implements WarpScriptStackF
     } else {
       if (!KafkaWebCallService.offer(request)) {
         throw new WarpScriptException("Unable to forward WebCall request.");        
+      } else {
+        stack.push(request.getWebCallUUID());
       }
     }
     

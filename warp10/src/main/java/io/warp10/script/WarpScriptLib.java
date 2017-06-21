@@ -272,6 +272,7 @@ import io.warp10.warp.sdk.WarpScriptExtension;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -325,6 +326,7 @@ public class WarpScriptLib {
   public static final String PARSESELECTOR = "PARSESELECTOR";
   
   public static final String GEO_WKT = "GEO.WKT";
+  public static final String GEO_JSON = "GEO.JSON";
   public static final String GEO_INTERSECTION = "GEO.INTERSECTION";
   public static final String GEO_DIFFERENCE = "GEO.DIFFERENCE";
   public static final String GEO_UNION = "GEO.UNION";
@@ -347,6 +349,8 @@ public class WarpScriptLib {
   
   public static final String RSAPUBLIC = "RSAPUBLIC";
   public static final String RSAPRIVATE = "RSAPRIVATE";
+  
+  public static final String MSGFAIL = "MSGFAIL";
   
   static {
     
@@ -453,7 +457,7 @@ public class WarpScriptLib {
     functions.put("TYPEOF", new TYPEOF("TYPEOF"));      
     functions.put("ASSERT", new ASSERT("ASSERT"));
     functions.put("FAIL", new FAIL("FAIL"));
-    functions.put("MSGFAIL", new MSGFAIL("MSGFAIL"));
+    functions.put(MSGFAIL, new MSGFAIL(MSGFAIL));
     functions.put("STOP", new STOP("STOP"));
     functions.put("JSONSTRICT", new JSONSTRICT("JSONSTRICT"));
     functions.put("JSONLOOSE", new JSONLOOSE("JSONLOOSE"));
@@ -461,6 +465,7 @@ public class WarpScriptLib {
     functions.put("NDEBUGON", new NDEBUGON("NDEBUGON"));
     functions.put("DEBUGOFF", new DEBUGOFF("DEBUGOFF"));
     functions.put("LMAP", new LMAP("LMAP"));
+    functions.put("NONNULL", new NONNULL("NONNULL"));
     functions.put("LFLATMAP", new LFLATMAP("LFLATMAP"));
     functions.put("[]", new EMPTYLIST("[]"));
     functions.put(LIST_START, new MARK(LIST_START));
@@ -934,6 +939,7 @@ public class WarpScriptLib {
     functions.put("HHCODE->", new HHCODETO("HHCODE->"));
     functions.put("GEO.REGEXP", new GEOREGEXP("GEO.REGEXP"));
     functions.put(GEO_WKT, new GeoWKT(GEO_WKT));
+    functions.put(GEO_JSON, new GeoJSON(GEO_JSON));
     functions.put(GEO_INTERSECTION, new GeoIntersection(GEO_INTERSECTION));
     functions.put(GEO_UNION, new GeoUnion(GEO_UNION));
     functions.put(GEO_DIFFERENCE, new GeoSubtraction(GEO_DIFFERENCE));
@@ -1393,75 +1399,95 @@ public class WarpScriptLib {
   public static void registerExtensions() { 
     Properties props = WarpConfig.getProperties();
     
-    if (null != props && props.containsKey(Configuration.CONFIG_WARPSCRIPT_EXTENSIONS)) {
+    if (null == props) {
+      return;
+    }
+    
+    //
+    // Extract the list of extensions
+    //
+    
+    Set<String> ext = new LinkedHashSet<String>();
+    
+    if (props.containsKey(Configuration.CONFIG_WARPSCRIPT_EXTENSIONS)) {
       String[] extensions = props.getProperty(Configuration.CONFIG_WARPSCRIPT_EXTENSIONS).split(",");
-      Set<String> ext = new HashSet<String>();
       
       for (String extension: extensions) {
         ext.add(extension.trim());
       }
-      
-      boolean failedExt = false;
-      
-      //
-      // Determine the possible jar from which WarpScriptLib was loaded
-      //
-      
-      String wsljar = null;
-      URL wslurl = WarpScriptLib.class.getResource('/' + WarpScriptLib.class.getCanonicalName().replace('.',  '/') + ".class");
-      if (null != wslurl && "jar".equals(wslurl.getProtocol())) {
-        wsljar = wslurl.toString().replaceAll("!/.*", "").replaceAll("jar:file:", "");
+    }
+    
+    for (Object key: props.keySet()) {
+      if (!key.toString().startsWith(Configuration.CONFIG_WARPSCRIPT_EXTENSION_PREFIX)) {
+        continue;
       }
       
-      for (String extension: ext) {
-        try {
-          //
-          // Locate the class using the current class loader
-          //
-          
-          URL url = WarpScriptLib.class.getResource('/' + extension.replace('.', '/') + ".class");
-          
-          if (null == url) {
-            LOG.error("Unable to load extension '" + extension + "', make sure it is in the class path.");
-            failedExt = true;
-            continue;
-          }
-          
-          Class cls = null;
-
-          //
-          // If the class was located in a jar, load it using a specific class loader
-          // so we can have fat jars with specific deps, unless the jar is the same as
-          // the one from which WarpScriptLib was loaded, in which case we use the same
-          // class loader.
-          //
-          
-          if ("jar".equals(url.getProtocol())) {
-            String jarfile = url.toString().replaceAll("!/.*", "").replaceAll("jar:file:", "");
-
-            ClassLoader cl = WarpScriptLib.class.getClassLoader();
-            
-            // If the jar differs from that from which WarpScriptLib was loaded, create a dedicated class loader
-            if (!jarfile.equals(wsljar)) {
-              cl = new WarpClassLoader(jarfile, WarpScriptLib.class.getClassLoader());
-            }
-          
-            cls = Class.forName(extension, true, cl);
-          } else {
-            cls = Class.forName(extension, true, WarpScriptLib.class.getClassLoader());
-          }
-
-          //Class cls = Class.forName(extension);
-          WarpScriptExtension wse = (WarpScriptExtension) cls.newInstance();          
-          wse.register();
-        } catch (Exception e) {
-          throw new RuntimeException(e);
+      ext.add(props.get(key).toString().trim());
+    }
+    
+    
+    boolean failedExt = false;
+      
+    //
+    // Determine the possible jar from which WarpScriptLib was loaded
+    //
+      
+    String wsljar = null;
+    URL wslurl = WarpScriptLib.class.getResource('/' + WarpScriptLib.class.getCanonicalName().replace('.',  '/') + ".class");
+    if (null != wslurl && "jar".equals(wslurl.getProtocol())) {
+      wsljar = wslurl.toString().replaceAll("!/.*", "").replaceAll("jar:file:", "");
+    }
+      
+    for (String extension: ext) {
+      try {
+        //
+        // Locate the class using the current class loader
+        //
+        
+        URL url = WarpScriptLib.class.getResource('/' + extension.replace('.', '/') + ".class");
+        
+        if (null == url) {
+          LOG.error("Unable to load extension '" + extension + "', make sure it is in the class path.");
+          failedExt = true;
+          continue;
         }
+        
+        Class cls = null;
+
+        //
+        // If the class was located in a jar, load it using a specific class loader
+        // so we can have fat jars with specific deps, unless the jar is the same as
+        // the one from which WarpScriptLib was loaded, in which case we use the same
+        // class loader.
+        //
+        
+        if ("jar".equals(url.getProtocol())) {
+          String jarfile = url.toString().replaceAll("!/.*", "").replaceAll("jar:file:", "");
+
+          ClassLoader cl = WarpScriptLib.class.getClassLoader();
+          
+          // If the jar differs from that from which WarpScriptLib was loaded, create a dedicated class loader
+          if (!jarfile.equals(wsljar)) {
+            cl = new WarpClassLoader(jarfile, WarpScriptLib.class.getClassLoader());
+          }
+        
+          cls = Class.forName(extension, true, cl);
+        } else {
+          cls = Class.forName(extension, true, WarpScriptLib.class.getClassLoader());
+        }
+
+        //Class cls = Class.forName(extension);
+        WarpScriptExtension wse = (WarpScriptExtension) cls.newInstance();          
+        wse.register();
+        
+        System.out.println("LOADED extension '" + extension  + "'");
+      } catch (Exception e) {
+        throw new RuntimeException(e);
       }
-      
-      if (failedExt) {
-        throw new RuntimeException("Some WarpScript extensions could not be loaded, aborting.");
-      }
+    }
+    
+    if (failedExt) {
+      throw new RuntimeException("Some WarpScript extensions could not be loaded, aborting.");
     }
   }
   

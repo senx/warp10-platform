@@ -139,6 +139,11 @@ struct ReadToken {
     13:optional map<string,string> attributes,
 
     /**
+     * Token extra labels
+     */
+    14:optional map<string,string> labels,
+
+    /**
      * The read token is used for data visualisation, default false
      */
     100:optional bool dataviz,

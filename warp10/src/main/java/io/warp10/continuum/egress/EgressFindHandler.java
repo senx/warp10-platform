@@ -105,6 +105,8 @@ public class EgressFindHandler extends AbstractHandler {
 
       boolean showUUID = "true".equals(req.getParameter(Constants.HTTP_PARAM_SHOWUUID));
       
+      boolean showAttr = !("false".equals(req.getParameter(Constants.HTTP_PARAM_SHOWATTR)));
+
       ReadToken rtoken;
       
       try {
@@ -196,10 +198,12 @@ public class EgressFindHandler extends AbstractHandler {
                 GTSHelper.labelsToString(sb, metadata.getLabels());
               }
               
-              if (metadata.getAttributesSize() > 0) {
-                GTSHelper.labelsToString(sb, metadata.getAttributes());
-              } else {
-                sb.append("{}");
+              if (showAttr) {
+                if (metadata.getAttributesSize() > 0) {
+                  GTSHelper.labelsToString(sb, metadata.getAttributes());
+                } else {
+                  sb.append("{}");
+                }
               }
               
               pw.println(sb.toString());

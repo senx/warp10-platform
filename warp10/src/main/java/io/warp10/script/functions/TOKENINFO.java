@@ -60,6 +60,9 @@ public class TOKENINFO extends NamedWarpScriptFunction implements WarpScriptStac
       if (rtoken.getAppsSize() > 0) {
         tokenParams.put("apps", rtoken.getApps());
       }
+      if (rtoken.getLabelsSize() > 0) {
+        tokenParams.put("labels", rtoken.getLabels());
+      }
       error = false;
     } catch (WarpScriptException ee) {
       tokenParams.put("ReadTokenDecodeError", ee.getMessage());
@@ -76,7 +79,6 @@ public class TOKENINFO extends NamedWarpScriptFunction implements WarpScriptStac
         if (wtoken.getLabelsSize() > 0) {
           tokenParams.put("labels", wtoken.getLabels());
         }
-        
         Map<String,Object> limits = ThrottlingManager.getLimits(Tokens.getUUID(wtoken.getProducerId()), wtoken.getAppName());
         
         error = false;
