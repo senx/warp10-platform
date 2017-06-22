@@ -573,6 +573,12 @@ public class DatalogForwarder extends Thread {
         
         action.file = p.toFile();
         
+        // Delete and skip empty files
+        if (0 == action.file.length()) {
+          action.file.delete();
+          continue;
+        }
+        
         //
         // Read DatalogRequest
         //
@@ -587,7 +593,7 @@ public class DatalogForwarder extends Thread {
           LOG.error("Error while reading Datalog Request", ioe);
           break;
         }
-                
+                       
         byte[] data = OrderPreservingBase64.decode(encoded.getBytes(Charsets.US_ASCII));
         
         if (null != this.datalogPSK) {
