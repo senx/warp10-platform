@@ -17,14 +17,13 @@
 package io.warp10.standalone;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
+import io.warp10.CapacityExtractorOutputStream;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;

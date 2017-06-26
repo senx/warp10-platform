@@ -25,7 +25,7 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.standalone.CapacityExtractorOutputStream;
+import io.warp10.CapacityExtractorOutputStream;
 
 /**
  * Optimize storage of GeoTimeSerie or encoder instances

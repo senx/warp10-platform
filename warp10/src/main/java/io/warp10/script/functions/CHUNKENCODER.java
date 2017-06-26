@@ -23,16 +23,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.Map.Entry;
 
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.standalone.CapacityExtractorOutputStream;
+import io.warp10.CapacityExtractorOutputStream;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 

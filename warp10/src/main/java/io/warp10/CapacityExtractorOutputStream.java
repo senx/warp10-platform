@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-package io.warp10.standalone;
+package io.warp10;
 
 import java.io.IOException;
 import java.io.OutputStream;

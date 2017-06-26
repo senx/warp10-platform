@@ -691,6 +691,7 @@ project(':warpscript') {
         include 'io/warp10/SortedPathIterator$*'
         include 'io/warp10/WarpClassLoader.class'
         include 'io/warp10/script/**'
+        include 'io/warp10/CapacityExtractorOutputStream.class'
         include 'io/warp10/udf/**'
         include 'io/warp10/thrift/**'
         include 'io/warp10/WarpConfig.class'

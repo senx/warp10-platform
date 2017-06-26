@@ -16,6 +16,7 @@
 
 package io.warp10.standalone;
 
+import io.warp10.CapacityExtractorOutputStream;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
