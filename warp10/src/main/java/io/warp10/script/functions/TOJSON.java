@@ -138,6 +138,8 @@ public class TOJSON extends NamedWarpScriptFunction implements WarpScriptStackFu
             return false;
           }
         }
+      } else {
+        return false;
       }
     }
     
