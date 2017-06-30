@@ -270,9 +270,11 @@ import io.warp10.script.unary.UNIT;
 import io.warp10.warp.sdk.WarpScriptExtension;
 
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -1425,6 +1427,9 @@ public class WarpScriptLib {
       ext.add(props.get(key).toString().trim());
     }
     
+    // Sort the extensions
+    List<String> sortedext = new ArrayList<String>(ext);
+    sortedext.sort(null);
     
     boolean failedExt = false;
       
@@ -1438,7 +1443,14 @@ public class WarpScriptLib {
       wsljar = wslurl.toString().replaceAll("!/.*", "").replaceAll("jar:file:", "");
     }
       
-    for (String extension: ext) {
+    for (String extension: sortedext) {
+      
+      // If the extension name contains '#', remove everything up to the last '#', this was used as a sorting prefix
+            
+      if (extension.contains("#")) {
+        extension = extension.replaceAll("^.*#", "");
+      }
+      
       try {
         //
         // Locate the class using the current class loader
