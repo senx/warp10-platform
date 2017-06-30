@@ -984,6 +984,8 @@ public class WarpScriptLib {
     functions.put("MINLONG", new MINLONG("MINLONG"));
     functions.put("MAXLONG", new MAXLONG("MAXLONG"));
     functions.put("RAND", new RAND("RAND"));
+    functions.put("PRNG", new PRNG("PRNG"));
+    functions.put("SRAND", new SRAND("SRAND"));
 
     functions.put("NPDF", new NPDF.Builder("NPDF"));
     functions.put("MUSIGMA", new MUSIGMA("MUSIGMA"));
