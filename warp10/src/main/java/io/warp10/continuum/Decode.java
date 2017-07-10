@@ -62,13 +62,14 @@ public class Decode {
       GTSEncoder encoder = GTSHelper.parse(null, sb.toString());
       
       GTSDecoder decoder = encoder.getDecoder(true);
-            
+
       while(decoder.next()) {
         long ts = decoder.getTimestamp();
         String value = decoder.getValue().toString();
         
         byte[] bytes = OrderPreservingBase64.decode(value.getBytes(Charsets.UTF_8));
         decoder = new GTSDecoder(ts, ByteBuffer.wrap(bytes));
+        decoder.setMetadata(encoder.getMetadata());
 
         decoder.dump(pw);
         
