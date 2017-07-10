@@ -62,7 +62,7 @@ public class Decode {
       GTSEncoder encoder = GTSHelper.parse(null, sb.toString());
       
       GTSDecoder decoder = encoder.getDecoder(true);
-
+      
       while(decoder.next()) {
         long ts = decoder.getTimestamp();
         String value = decoder.getValue().toString();
