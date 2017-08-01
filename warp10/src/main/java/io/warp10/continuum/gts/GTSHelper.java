@@ -6102,7 +6102,11 @@ public class GTSHelper {
     }
 
     double sd = Math.sqrt(variance);
-    
+
+    return standardize(gts, mean, sd);
+  }
+  
+  public static GeoTimeSerie standardize(GeoTimeSerie gts, double mean, double sd) {
     GeoTimeSerie standardized = new GeoTimeSerie(gts.lastbucket, gts.bucketcount, gts.bucketspan, gts.values);
     standardized.setMetadata(new Metadata(gts.getMetadata()));
 
