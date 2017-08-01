@@ -433,6 +433,7 @@ public class WarpScriptLib {
     functions.put("MAXOPS", new MAXOPS("MAXOPS"));
     functions.put("MAXLOOP", new MAXLOOP("MAXLOOP"));
     functions.put("MAXBUCKETS", new MAXBUCKETS("MAXBUCKETS"));
+    functions.put("MAXGEOCELLS", new MAXGEOCELLS("MAXGEOCELLS"));
     functions.put("MAXPIXELS", new MAXPIXELS("MAXPIXELS"));
     functions.put("OPS", new OPS("OPS"));
     functions.put("MAXSYMBOLS", new MAXSYMBOLS("MAXSYMBOLS"));
@@ -940,7 +941,7 @@ public class WarpScriptLib {
     functions.put("->HHCODELONG", new TOHHCODE("->HHCODELONG", false));
     functions.put("HHCODE->", new HHCODETO("HHCODE->"));
     functions.put("GEO.REGEXP", new GEOREGEXP("GEO.REGEXP"));
-    functions.put(GEO_WKT, new GeoWKT(GEO_WKT));
+    functions.put(GEO_WKT, new GeoWKT(GEO_WKT, false));
     functions.put(GEO_JSON, new GeoJSON(GEO_JSON));
     functions.put(GEO_INTERSECTION, new GeoIntersection(GEO_INTERSECTION));
     functions.put(GEO_UNION, new GeoUnion(GEO_UNION));

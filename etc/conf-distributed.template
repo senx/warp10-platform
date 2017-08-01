@@ -177,6 +177,13 @@ warpscript.maxbuckets = 1000000
 warpscript.maxbuckets.hard = 100000
 
 //
+// Maximum number of cells in geographic shapes
+// Can be modified by MAXGEOCELLS up to the hard limit below
+//
+warpscript.maxgeocells = 10000
+warpscript.maxgeocells.hard = 100000
+
+//
 // Maximum depth of the stack
 // Can be modified by MAXDEPTH up to the hard limit below
 //
