@@ -88,6 +88,7 @@ public class Configuration {
   
   public static final String WARPSCRIPT_MAX_OPS = "warpscript.maxops";
   public static final String WARPSCRIPT_MAX_BUCKETS = "warpscript.maxbuckets";
+  public static final String WARPSCRIPT_MAX_GEOCELLS = "warpscript.geocells";
   public static final String WARPSCRIPT_MAX_DEPTH = "warpscript.maxdepth";
   public static final String WARPSCRIPT_MAX_FETCH = "warpscript.maxfetch";
   public static final String WARPSCRIPT_MAX_GTS = "warpscript.maxgts";
@@ -102,6 +103,7 @@ public class Configuration {
   // Hard limits for the above limits which can be changed via a function call
   public static final String WARPSCRIPT_MAX_OPS_HARD = "warpscript.maxops.hard";
   public static final String WARPSCRIPT_MAX_BUCKETS_HARD = "warpscript.maxbuckets.hard";
+  public static final String WARPSCRIPT_MAX_GEOCELLS_HARD = "warpscript.maxgeocells.hard";
   public static final String WARPSCRIPT_MAX_DEPTH_HARD = "warpscript.maxdepth.hard";
   public static final String WARPSCRIPT_MAX_FETCH_HARD = "warpscript.maxfetch.hard";
   public static final String WARPSCRIPT_MAX_GTS_HARD = "warpscript.maxgts.hard";
