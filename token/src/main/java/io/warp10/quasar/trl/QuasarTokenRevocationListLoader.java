@@ -127,6 +127,11 @@ public class QuasarTokenRevocationListLoader {
               }
               line = line.trim();
 
+              // Skip comments
+              if (line.startsWith("#")) {
+                continue;
+              }
+
               // application
               if (line.startsWith(QuasarConfiguration.WARP_APPLICATION_PREFIX)) {
                 // compute the sip hash with the app name
