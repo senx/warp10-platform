@@ -732,8 +732,10 @@ public class WarpScriptLib {
     functions.put("PATTERNDETECTION", new PATTERNDETECTION("PATTERNDETECTION", true));
     functions.put("ZPATTERNS", new PATTERNS("ZPATTERNS", false));
     functions.put("ZPATTERNDETECTION", new PATTERNDETECTION("ZPATTERNDETECTION", false));
-    functions.put("DTW", new DTW("DTW"));
+    functions.put("DTW", new DTW("DTW", true, false));
     functions.put("OPTDTW", new OPTDTW("OPTDTW"));
+    functions.put("ZDTW", new DTW("ZDTW", true, true));
+    functions.put("RAWDTW", new DTW("RAWDTW", false, false));
     functions.put("VALUEHISTOGRAM", new VALUEHISTOGRAM("VALUEHISTORGRAM"));
     functions.put("PROBABILITY", new PROBABILITY.Builder("PROBABILITY"));
     functions.put("PROB", new PROB("PROB"));

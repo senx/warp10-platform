@@ -16,18 +16,18 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
-
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
 import java.util.PriorityQueue;
 
 import org.apache.commons.math3.util.Pair;
+
+import io.warp10.DoubleUtils;
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Perform Dynamic Time Warping distance computation
@@ -36,7 +36,7 @@ import org.apache.commons.math3.util.Pair;
  */
 public class OPTDTW extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  private DTW dtw = new DTW("");
+  private final DTW dtw = new DTW("", false, false);
 
   public OPTDTW(String name) {
     super(name);
@@ -64,10 +64,16 @@ public class OPTDTW extends NamedWarpScriptFunction implements WarpScriptStackFu
       query[i++] = ((Number) oo).doubleValue();
     }
     
+    // Z-Normalize query
+    double[] musigma = DoubleUtils.musigma(query, true);
+    for (i = 0; i < query.length; i++) {
+      query[i] = (query[i] - musigma[0]) / musigma[1];
+    }
+    
     o = stack.pop();
     
     if (!(o instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a numeric list as the sequence in which to find best mataches below the 'query' list.");
+      throw new WarpScriptException(getName() + " expects a numeric list as the sequence in which to find best matches below the 'query' list.");
     }
 
     double[] sequence = new double[((List) o).size()];
@@ -89,8 +95,16 @@ public class OPTDTW extends NamedWarpScriptFunction implements WarpScriptStackFu
       }
     });
     
+    double[] subsequence = new double[query.length];
+    
     for (i = 0; i <= sequence.length - query.length; i++) {
-      double dist = dtw.compute(query, 0, query.length, sequence, i, query.length, mindist);
+      System.arraycopy(sequence, i, subsequence, 0, query.length);
+      // Z-Normalize the subsequence
+      musigma = DoubleUtils.musigma(subsequence, true);
+      for (int j = 0; j < subsequence.length; j++) {
+        subsequence[j] = (subsequence[j] - musigma[0]) / musigma[1];
+      }
+      double dist = dtw.compute(query, 0, query.length, subsequence, 0, query.length, mindist);
       
       if (dist < 0) {
         continue;

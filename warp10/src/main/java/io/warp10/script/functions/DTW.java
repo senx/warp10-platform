@@ -16,6 +16,9 @@
 
 package io.warp10.script.functions;
 
+import java.math.BigDecimal;
+
+import io.warp10.DoubleUtils;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
@@ -31,8 +34,20 @@ import io.warp10.script.WarpScriptStack;
  */
 public class DTW extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public DTW(String name) {
+  /**
+   * Should we normalize?
+   */
+  private final boolean normalize;
+  
+  /**
+   * Should we do Z-Normalization or 0-1 normalization?
+   */
+  private final boolean znormalize;
+  
+  public DTW(String name, boolean normalize, boolean znormalize) {
     super(name);
+    this.normalize = normalize;
+    this.znormalize = znormalize;
   }
   
   @Override
@@ -76,7 +91,7 @@ public class DTW extends NamedWarpScriptFunction implements WarpScriptStackFunct
    * 
    * @throws WarpScriptException If an error occurs
    */
-  private final double compute(GeoTimeSerie gts1, GeoTimeSerie gts2, double threshold) throws WarpScriptException {
+  public final double compute(GeoTimeSerie gts1, GeoTimeSerie gts2, double threshold) throws WarpScriptException {
         
     //
     // Check that the type of the GTS is numerical
@@ -101,58 +116,80 @@ public class DTW extends NamedWarpScriptFunction implements WarpScriptStackFunct
     // Extract values, compute min/max and quantize values (x - max/(max - min))
     //
     
-    double[] values1 = GTSHelper.getValuesAsDouble(gts1);
-    
-    double min = Double.POSITIVE_INFINITY;
-    double max = Double.NEGATIVE_INFINITY;
-    
-    for (int i = 0; i < values1.length; i++) {
-      if (values1[i] < min) {
-        min = values1[i];
-      }
-      if (values1[i] > max) {
-        max = values1[i];
-      }
-    }
-    
-    if (min == max) {
-      throw new WarpScriptException(getName() + " cannot (yet) operate on constant GTS.");
-    }
-    
-    double range = max - min;
-    
-    for (int i = 0; i < values1.length; i++) {
-      values1[i] = (values1[i] - max) / range;
-    }
-    
+    double[] values1 = GTSHelper.getValuesAsDouble(gts1);        
     double[] values2 = GTSHelper.getValuesAsDouble(gts2);
 
-    min = Double.POSITIVE_INFINITY;
-    max = Double.NEGATIVE_INFINITY;
+    if (this.normalize) {
+      if (this.znormalize) {
+        //
+        // Perform Z-Normalization of values1 and values2
+        //
+        
+        double[] musigma = DoubleUtils.musigma(values1, true);
+        
+        for (int i = 0; i < values1.length; i++) {
+          values1[i] = (values1[i] - musigma[0]) / musigma[1];
+        }
+        
+        musigma = DoubleUtils.muvar(values2);
+        for (int i = 0; i < values2.length; i++) {
+          values2[i] = (values2[i] - musigma[0]) / musigma[1];
+        }
+      } else {
+        double min = Double.POSITIVE_INFINITY;
+        double max = Double.NEGATIVE_INFINITY;
+        
+        for (int i = 0; i < values1.length; i++) {
+          if (values1[i] < min) {
+            min = values1[i];
+          }
+          if (values1[i] > max) {
+            max = values1[i];
+          }
+        }
+        
+        if (min == max) {
+          throw new WarpScriptException(getName() + " cannot (yet) operate on constant GTS.");
+        }
+        
+        double range = max - min;
+        
+        for (int i = 0; i < values1.length; i++) {
+          values1[i] = (values1[i] - max) / range;
+        }
 
-    for (int i = 0; i < values2.length; i++) {
-      if (values2[i] < min) {
-        min = values2[i];
-      }
-      if (values2[i] > max) {
-        max = values2[i];
-      }
-    }
-    
-    if (min == max) {
-      throw new WarpScriptException(getName() + " cannot (yet) operate on constant GTS.");
-    }
-    
-    range = max - min;
-    
-    for (int i = 0; i < values2.length; i++) {
-      values2[i] = (values2[i] - max) / range;
+        min = Double.POSITIVE_INFINITY;
+        max = Double.NEGATIVE_INFINITY;
+
+        for (int i = 0; i < values2.length; i++) {
+          if (values2[i] < min) {
+            min = values2[i];
+          }
+          if (values2[i] > max) {
+            max = values2[i];
+          }
+        }
+        
+        if (min == max) {
+          throw new WarpScriptException(getName() + " cannot (yet) operate on constant GTS.");
+        }
+        
+        range = max - min;
+        
+        for (int i = 0; i < values2.length; i++) {
+          values2[i] = (values2[i] - max) / range;
+        }      
+      }      
     }
 
     return compute(values1, 0, values1.length, values2, 0, values2.length, threshold);
   }
   
   public double compute(double[] values1, int offset1, int len1, double[] values2, int offset2, int len2, double threshold) {
+    return compute(values1, offset1, len1, values2, offset2, len2, threshold, true);
+  }
+  
+  public double compute(double[] values1, int offset1, int len1, double[] values2, int offset2, int len2, double threshold, boolean manhattan) {
     //
     // Make sure value1 is the shortest array
     //
@@ -194,7 +231,7 @@ public class DTW extends NamedWarpScriptFunction implements WarpScriptStackFunct
         // DTW simply considers the delta in values, not the delta in indices
         //
         
-        double d = Math.abs(values1[offset1 + j] - values2[offset2 + i]);
+        double d = manhattan ? Math.abs(values1[offset1 + j] - values2[offset2 + i]) : Math.pow(values1[offset1 + j] - values2[offset2 + i], 2.0D);
         
         //
         // Extract surrounding values
@@ -233,6 +270,10 @@ public class DTW extends NamedWarpScriptFunction implements WarpScriptStackFunct
       if (a[i] < dtwDist) {
         dtwDist = a[i];
       }
+    }
+    
+    if (!manhattan) {
+      dtwDist = Math.sqrt(dtwDist);
     }
     
     return dtwDist;
