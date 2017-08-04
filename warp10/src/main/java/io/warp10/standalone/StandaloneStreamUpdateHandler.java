@@ -95,6 +95,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
   private final byte[] datalogPSK;
   private final File loggingDir;
   
+  private final boolean updateActivity;
+  
   private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
 
   @WebSocket(maxTextMessageSize=1024 * 1024, maxBinaryMessageSize=1024 * 1024)
@@ -323,6 +325,11 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                 
                 if (encoder != lastencoder) {
                   Metadata metadata = new Metadata(encoder.getMetadata());
+                  
+                  if (this.handler.updateActivity) {
+                    metadata.setLastActivity(System.currentTimeMillis());
+                  }
+                  
                   metadata.setSource(Configuration.INGRESS_METADATA_SOURCE);
                   this.handler.directoryClient.register(metadata);
                 }
@@ -479,7 +486,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
     this.properties = properties;
-    
+    this.updateActivity = "true".equals(properties.getProperty(Configuration.INGRESS_ACTIVITY_UPDATE));
+
     if (properties.containsKey(Configuration.DATALOG_DIR)) {
       File dir = new File(properties.getProperty(Configuration.DATALOG_DIR));
       

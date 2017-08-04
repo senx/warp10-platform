@@ -134,6 +134,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
           int count = 0;
           
           long now = TimeSource.getTime();
+          long nowms = System.currentTimeMillis();
           
           try {
             GTSEncoder lastencoder = null;
@@ -202,12 +203,28 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
                   GTSHelper.fillGTSIds(bytes, 0, encoder.getClassId(), encoder.getLabelsId());
                   BigInteger metadataCacheKey = new BigInteger(bytes);
 
+                  boolean pushMeta = false;
                   if (!this.handler.ingress.metadataCache.containsKey(metadataCacheKey)) {
+                    pushMeta = true;
+                  } else if (this.handler.ingress.activityTracking && this.handler.ingress.updateActivity) {
+                    Long lastActivity = this.handler.ingress.metadataCache.get(metadataCacheKey);
+                      
+                    if (null == lastActivity) {
+                      pushMeta = true;
+                    } else if (nowms - lastActivity > this.handler.ingress.activityWindow) {
+                      pushMeta = true;
+                    }
+                  }
+                  
+                  if (pushMeta) {
                     Metadata metadata = new Metadata(encoder.getMetadata());
                     metadata.setSource(Configuration.INGRESS_METADATA_SOURCE);
+                    if (this.handler.ingress.activityTracking && this.handler.ingress.updateActivity) {
+                      metadata.setLastActivity(nowms);
+                    }
                     this.handler.ingress.pushMetadataMessage(metadata);
                     synchronized(this.handler.ingress.metadataCache) {
-                      this.handler.ingress.metadataCache.put(metadataCacheKey, null);
+                      this.handler.ingress.metadataCache.put(metadataCacheKey, (this.handler.ingress.activityTracking && this.handler.ingress.updateActivity) ? nowms : null);
                     }
                   }
                 }

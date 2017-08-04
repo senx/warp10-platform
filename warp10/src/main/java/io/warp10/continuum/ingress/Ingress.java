@@ -36,6 +36,7 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
 import io.warp10.continuum.store.thrift.data.KafkaDataMessageType;
 import io.warp10.continuum.store.thrift.data.Metadata;
@@ -238,9 +239,9 @@ public class Ingress extends AbstractHandler implements Runnable {
    * Cache used to determine if we should push metadata into Kafka or if it was previously seen.
    * Key is a BigInteger constructed from a byte array of classId+labelsId (we cannot use byte[] as map key)
    */
-  final Map<BigInteger, Object> metadataCache = new LinkedHashMap<BigInteger, Object>(100, 0.75F, true) {
+  final Map<BigInteger, Long> metadataCache = new LinkedHashMap<BigInteger, Long>(100, 0.75F, true) {
     @Override
-    protected boolean removeEldestEntry(java.util.Map.Entry<BigInteger, Object> eldest) {
+    protected boolean removeEldestEntry(java.util.Map.Entry<BigInteger, Long> eldest) {
       return this.size() > METADATA_CACHE_SIZE;
     }
   };
@@ -267,6 +268,11 @@ public class Ingress extends AbstractHandler implements Runnable {
    * Flag indicating whether or not we reject delete requests
    */
   private final boolean rejectDelete;
+  
+  final boolean activityTracking;
+  final boolean updateActivity;
+  private final boolean metaActivity;
+  final long activityWindow;
   
   public Ingress(KeyStore keystore, Properties props) {
 
@@ -295,6 +301,11 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     this.rejectDelete = "true".equals(props.getProperty(Configuration.INGRESS_DELETE_REJECT));
         
+    this.activityWindow = Long.parseLong(properties.getProperty(Configuration.INGRESS_ACTIVITY_WINDOW, "0"));
+    this.activityTracking = this.activityWindow > 0;
+    this.updateActivity = "true".equals(props.getProperty(Configuration.INGRESS_ACTIVITY_UPDATE));
+    this.metaActivity = "true".equals(props.getProperty(Configuration.INGRESS_ACTIVITY_META));
+
     if (props.containsKey(Configuration.INGRESS_CACHE_DUMP_PATH)) {
       this.cacheDumpPath = props.getProperty(Configuration.INGRESS_CACHE_DUMP_PATH);
     } else {
@@ -585,6 +596,8 @@ public class Ingress extends AbstractHandler implements Runnable {
       return;
     }
     
+    long nowms = System.currentTimeMillis();
+    
     try {
       //
       // CORS header
@@ -770,13 +783,32 @@ public class Ingress extends AbstractHandler implements Runnable {
               ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
             }
             
+            boolean pushMeta = false;
+            
             if (!this.metadataCache.containsKey(metadataCacheKey)) {
+              pushMeta = true;
+            } else if (activityTracking && updateActivity) {
+              Long lastActivity = this.metadataCache.get(metadataCacheKey);
+              
+              if (null == lastActivity) {
+                pushMeta = true;
+              } else if (nowms - lastActivity > activityWindow) {
+                pushMeta = true;
+              }
+            }
+            
+            if (pushMeta) {
               // Build metadata object to push
               Metadata metadata = new Metadata();
               // Set source to indicate we
               metadata.setSource(Configuration.INGRESS_METADATA_SOURCE);
               metadata.setName(encoder.getMetadata().getName());
               metadata.setLabels(encoder.getMetadata().getLabels());
+              
+              if (this.activityTracking && updateActivity) {
+                metadata.setLastActivity(nowms);
+              }
+              
               TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
               try {
                 pushMetadataMessage(bytes, serializer.serialize(metadata));
@@ -787,7 +819,7 @@ public class Ingress extends AbstractHandler implements Runnable {
             
             // Update metadataCache with the current key
             synchronized(metadataCache) {
-              this.metadataCache.put(metadataCacheKey, null);
+              this.metadataCache.put(metadataCacheKey, (activityTracking && updateActivity) ? nowms : null);
             }
 
             if (null != lastencoder) {
@@ -943,6 +975,8 @@ public class Ingress extends AbstractHandler implements Runnable {
         br = request.getReader();
       }
       
+      long nowms = System.currentTimeMillis();
+      
       //
       // Loop on all lines
       //
@@ -997,6 +1031,11 @@ public class Ingress extends AbstractHandler implements Runnable {
         metadata.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
         
         try {
+          // We do not take into consideration this activity timestamp in the cache
+          // this way we do not allocate BigIntegers
+          if (activityTracking && metaActivity) {
+            metadata.setLastActivity(nowms);
+          }
           pushMetadataMessage(metadata);
         } catch (Exception e) {
           throw new IOException("Unable to push metadata");
@@ -1226,7 +1265,11 @@ public class Ingress extends AbstractHandler implements Runnable {
 
         TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
         
-        try (MetadataIterator iterator = directoryClient.iterator(clsSels, lblsSels)) {
+        DirectoryRequest drequest = new DirectoryRequest();
+        drequest.setClassSelectors(clsSels);
+        drequest.setLabelsSelectors(lblsSels);
+        
+        try (MetadataIterator iterator = directoryClient.iterator(drequest)) {
           while(iterator.hasNext()) {
             Metadata metadata = iterator.next();
           
@@ -1407,7 +1450,12 @@ public class Ingress extends AbstractHandler implements Runnable {
           try { shufflediterator.close(); } catch (Exception e) {}
         }
       } else {
-        try (MetadataIterator iterator = directoryClient.iterator(clsSels, lblsSels)) {
+        
+        DirectoryRequest drequest = new DirectoryRequest();
+        drequest.setClassSelectors(clsSels);
+        drequest.setLabelsSelectors(lblsSels);
+
+        try (MetadataIterator iterator = directoryClient.iterator(drequest)) {
           while(iterator.hasNext()) {
             Metadata metadata = iterator.next();
             
@@ -1539,7 +1587,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     //
     // Compute class/labels Id
     //
-    
+    // 128bits
     metadata.setClassId(GTSHelper.classId(this.classKey, metadata.getName()));
     metadata.setLabelsId(GTSHelper.labelsId(this.labelsKey, metadata.getLabels()));
     

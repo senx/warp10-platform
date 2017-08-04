@@ -30,6 +30,7 @@ import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.GTSDecoderIterator;
 import io.warp10.continuum.store.StoreClient;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
@@ -474,7 +475,11 @@ public class StandaloneGeoDirectory extends AbstractHandler implements Standalon
     clsSels.add(classSelector);
     lblsSels.add(labelsSelectors);
       
-    metas = directoryClient.find(clsSels, lblsSels);
+    DirectoryRequest drequest = new DirectoryRequest();
+    drequest.setClassSelectors(clsSels);
+    drequest.setLabelsSelectors(lblsSels);
+    
+    metas = directoryClient.find(drequest);
 
     //
     // Now retrieve the associated data
@@ -704,7 +709,10 @@ public class StandaloneGeoDirectory extends AbstractHandler implements Standalon
         List<Metadata> metadatas = null;
         
         try {
-          metadatas = directoryClient.find(classSel, labelsSel);
+          DirectoryRequest drequest = new DirectoryRequest();
+          drequest.setClassSelectors(classSel);
+          drequest.setLabelsSelectors(labelsSel);
+          metadatas = directoryClient.find(drequest);
         } catch (IOException ioe) {
           // Ignore error
           continue;

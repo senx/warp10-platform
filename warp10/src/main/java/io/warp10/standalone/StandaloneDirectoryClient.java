@@ -24,6 +24,7 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
@@ -99,6 +100,8 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   // 128BITS
   private static final Map<String,Map<Long,Metadata>> metadatas = new MapMaker().concurrencyLevel(64).makeMap();
   private static final Map<BigInteger,Metadata> metadatasById = new MapMaker().concurrencyLevel(64).makeMap();
+
+  private long activityWindow = 0L;
   
   public StandaloneDirectoryClient(DB db, final KeyStore keystore) {
     
@@ -322,7 +325,17 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     }
   }
   
-  public List<Metadata> find(List<String> classExpr, List<Map<String,String>> labelsExpr) {
+  @Override
+  public List<Metadata> find(DirectoryRequest request) {
+    
+    List<String> classExpr = request.getClassSelectors();
+    List<Map<String,String>> labelsExpr = request.getLabelsSelectors();
+    
+    boolean hasActiveAfter = request.isSetActiveAfter();
+    long activeAfter = request.getActiveAfter();
+    
+    boolean hasQuietAfter = request.isSetQuietAfter();
+    long quietAfter = request.getQuietAfter();
     
     //
     // Build patterns from expressions
@@ -429,6 +442,20 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         
         if (classSmartPattern.matches(className)) {
           for (Metadata metadata: this.metadatas.get(className).values()) {
+            
+            //
+            // Check activity
+            //
+            
+            if (hasActiveAfter && metadata.getLastActivity() < activeAfter) {
+              continue;
+            }
+            
+            if (hasQuietAfter && metadata.getLastActivity() >= quietAfter) {
+              continue;
+            }
+            
+            
             boolean exclude = false;
             
             int idx = 0;
@@ -514,7 +541,6 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   };
   
   public void register(Metadata metadata) throws IOException {
-    
     //
     // Special case of null means flush leveldb
     //
@@ -536,10 +562,27 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       long labelsId = GTSHelper.labelsId(this.labelsLongs, metadata.getLabels());
       
       if (!metadatas.get(metadata.getName()).containsKey(labelsId)) {
+        // Metadata is unknown so we know the Metadata should be stored
         store(metadata);
-      } else if (!metadatas.get(metadata.getName()).get(labelsId).getLabels().equals(metadata.getLabels())) {
-        LOG.warn("LabelsId collision under class '" + metadata.getName() + "' " + metadata.getLabels() + " and " + metadatas.get(metadata.getName()).get(labelsId).getLabels());
-        Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_LABELS_COLLISIONS, Sensision.EMPTY_LABELS, 1);
+      } else {
+        // Check that we do not have a collision
+        if (!metadatas.get(metadata.getName()).get(labelsId).getLabels().equals(metadata.getLabels())) {
+          LOG.warn("LabelsId collision under class '" + metadata.getName() + "' " + metadata.getLabels() + " and " + metadatas.get(metadata.getName()).get(labelsId).getLabels());
+          Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_LABELS_COLLISIONS, Sensision.EMPTY_LABELS, 1);
+        }
+        
+        //
+        // Check activity of the GTS, storing it if the activity window has passed
+        if (activityWindow > 0) {
+          //
+          // If the currently stored lastactivity is more than 'activityWindow' before the one in 'metadata',
+          // store the metadata
+          //
+          long currentLastActivity = metadatas.get(metadata.getName()).get(labelsId).getLastActivity();
+          if (metadata.getLastActivity() - currentLastActivity >= activityWindow) {
+            store(metadata);
+          }
+        }
       }
     } else if (!Configuration.INGRESS_METADATA_SOURCE.equals(metadata.getSource())) {
       //
@@ -552,6 +595,12 @@ public class StandaloneDirectoryClient implements DirectoryClient {
           // 128BITS
           long labelsId = GTSHelper.labelsId(this.labelsLongs, metadata.getLabels());
           if (metadatas.get(metadata.getName()).containsKey(labelsId)) {
+            // Check the activity so we only increase it
+            // 128 bits
+            long currentLastActivity = metadatas.get(metadata.getName()).get(labelsId).getLastActivity();
+            if (metadata.getLastActivity() < currentLastActivity) {
+              metadata.setLastActivity(currentLastActivity);
+            }
             store(metadata);
           }
         }
@@ -745,13 +794,13 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   }
   
   @Override
-  public Map<String,Object> stats(List<String> classSelector, List<Map<String, String>> labelsSelectors) throws IOException {
+  public Map<String,Object> stats(DirectoryRequest request) throws IOException {
     throw new IOException("stats is not available in standalone mode.");
   }
   
   @Override
-  public MetadataIterator iterator(List<String> classSelector, List<Map<String, String>> labelsSelectors) throws IOException {
-    List<Metadata> metadatas = find(classSelector, labelsSelectors);
+  public MetadataIterator iterator(DirectoryRequest request) throws IOException {
+    List<Metadata> metadatas = find(request);
 
     final Iterator<Metadata> iter = metadatas.iterator();
 
@@ -765,5 +814,9 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       @Override
       public Metadata next() { return iter.next(); }
     };
+  }
+  
+  public void setActivityWindow(long activityWindow) {
+    this.activityWindow = activityWindow;
   }
 }

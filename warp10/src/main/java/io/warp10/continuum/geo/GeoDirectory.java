@@ -33,6 +33,7 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
 import io.warp10.continuum.store.thrift.data.KafkaDataMessageType;
@@ -1267,8 +1268,12 @@ public class GeoDirectory extends AbstractHandler implements Runnable, GeoDirect
         
         Iterator<Metadata> iter = null;
 
+        DirectoryRequest request = new DirectoryRequest();
+        request.setClassSelectors(classSel);
+        request.setLabelsSelectors(labelsSel);
+        
         try {
-          iter = directoryClient.iterator(classSel, labelsSel);
+          iter = directoryClient.iterator(request);
           
           //
           // Compute the GTS Id for each GTS

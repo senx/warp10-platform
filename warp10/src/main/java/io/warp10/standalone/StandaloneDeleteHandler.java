@@ -28,6 +28,7 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.DatalogRequest;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.CryptoUtils;
@@ -190,7 +191,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, te.getMessage());
         return;
       }
-      
+    
       Map<String,String> labels = new HashMap<String,String>();
       labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
       labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
@@ -447,7 +448,11 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       clsSels.add(classSelector);
       lblsSels.add(labelsSelectors);
       
-      metadatas = directoryClient.find(clsSels, lblsSels);
+      DirectoryRequest drequest = new DirectoryRequest();
+      drequest.setClassSelectors(clsSels);
+      drequest.setLabelsSelectors(lblsSels);
+      
+      metadatas = directoryClient.find(drequest);
 
       response.setStatus(HttpServletResponse.SC_OK);
       response.setContentType("text/plain");

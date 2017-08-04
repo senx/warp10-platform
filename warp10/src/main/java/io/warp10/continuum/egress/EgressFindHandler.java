@@ -23,6 +23,7 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
 import io.warp10.quasar.token.thrift.data.ReadToken;
@@ -107,6 +108,9 @@ public class EgressFindHandler extends AbstractHandler {
       
       boolean showAttr = !("false".equals(req.getParameter(Constants.HTTP_PARAM_SHOWATTR)));
 
+      Long activeAfter = null == req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
+      Long quietAfter = null == req.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
+
       ReadToken rtoken;
       
       try {
@@ -162,7 +166,18 @@ public class EgressFindHandler extends AbstractHandler {
           clsSels.add(classSelector);
           lblsSels.add(labelsSelector);
 
-          try (MetadataIterator iterator = directoryClient.iterator(clsSels, lblsSels)) {
+          DirectoryRequest request = new DirectoryRequest();
+          request.setClassSelectors(clsSels);
+          request.setLabelsSelectors(lblsSels);
+
+          if (null != activeAfter) {
+            request.setActiveAfter(activeAfter);
+          }
+          if (null != quietAfter) {
+            request.setQuietAfter(quietAfter);
+          }
+
+          try (MetadataIterator iterator = directoryClient.iterator(request)) {
             while(iterator.hasNext()) {
               Metadata metadata = iterator.next();
 

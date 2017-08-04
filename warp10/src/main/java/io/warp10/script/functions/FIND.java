@@ -23,6 +23,7 @@ import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.MetaSet;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
@@ -47,6 +48,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -95,12 +97,11 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
 
     this.elements = false;
-    this.metaset = metaset;    
+    this.metaset = metaset;
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-
     if (this.metaset && null == this.METASETS_KEY) {
       synchronized(FIND.class) {
         this.METASETS_KEY = WarpDist.getKeyStore().getKey(KeyStore.AES_METASETS);      
@@ -118,6 +119,8 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     Object top = stack.peek();
   
     boolean hasUUIDFlag = false;
+    
+    boolean mapparams = false;
     
     if (top instanceof List) {
       
@@ -148,88 +151,136 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
         listTo.apply(stack);
         Object n = stack.pop();        
       }
+    } else if (top instanceof Map) {
+      if (this.metaset) {
+        throw new WarpScriptException(getName() + " expects a list of parameters on top of the stack.");
+      }
+      mapparams = true;
+    } else {
+      if (this.metaset) {
+        throw new WarpScriptException(getName() + " expects a list of parameters.");
+      } else {
+        throw new WarpScriptException(getName() + " expects a list or map of parameters.");
+      }
     }
     
     MetaSet set = null;
     
-    if (this.metaset) {
-      
-      set = new MetaSet();
-      
-      top = stack.pop();
-      
-      if (!(top instanceof Long)) {
-        throw new WarpScriptException(getName() + " expects and expiration timestamp on top of the stack.");
-      }
-      
-      set.setExpiry(System.currentTimeMillis() + (((long) top) / Constants.TIME_UNITS_PER_MS));
-      
-      top = stack.pop();
-      
-      if (!(top instanceof Long) && !(top instanceof Double && Double.isNaN((double) top))) {
-        throw new WarpScriptException(getName() + " expects a maximum duration or NaN below the expiration.");      
-      }
-      
-      if (top instanceof Long) {
-        set.setMaxduration((long) top);
-      }
-      
-      top = stack.pop();
-      
-      if (!(top instanceof Long) && !(top instanceof Double && Double.isNaN((double) top))) {
-        throw new WarpScriptException(getName() + " expects a 'notafter' parameter below the maximum duration.");      
-      }
-      
-      if (top instanceof Long) {
-        set.setNotafter((long) top);
-      }
-      
-      top = stack.pop();
-      
-      if (!(top instanceof Long) && !(top instanceof Double && Double.isNaN((double) top))) {
-        throw new WarpScriptException(getName() + " expects a 'notbefore' parameter below 'notafter'.");      
-      }
-      
-      if (top instanceof Long) {
-        set.setNotafter((long) top);
-      }
-    }
+    Map<String,String> labelSelectors = null;
+    String classSelector = null;
     
-    //
-    // Extract labels selector
-    //
+    String token = null;
     
-    Object oLabelsSelector = stack.pop();
+    Long activeAfter = null;
+    Long quietAfter = null;
     
-    if (!(oLabelsSelector instanceof Map)) {
-      throw new WarpScriptException("Label selectors must be a map.");
-    }
+    DirectoryRequest drequest = null;
     
-    Map<String,String> labelSelectors = (Map<String,String>) oLabelsSelector;
+    if (mapparams) {
+      top = stack.pop();
+      Map<String,Object> params = paramsFromMap((Map) top);
+            
+      if (params.containsKey(FETCH.PARAM_SELECTOR_PAIRS)) {
+        List<Pair<Object, Object>> selectors = (List<Pair<Object, Object>>) params.get(FETCH.PARAM_SELECTOR_PAIRS);
+        for (int i = 0; i < selectors.size(); i++) {
+          String csel = (String) selectors.get(i).getLeft();
+          Map<String,String> lsel = (Map<String,String>) selectors.get(i).getRight();
+          
+          drequest = new DirectoryRequest();
+          drequest.addToClassSelectors(csel);
+          drequest.addToLabelsSelectors(lsel);
+        }
+      } else if (params.containsKey(FETCH.PARAM_CLASS) && params.containsKey(FETCH.PARAM_LABELS)) {
+        classSelector = (String) params.get(FETCH.PARAM_CLASS);
+        labelSelectors = (Map<String,String>) params.get(FETCH.PARAM_LABELS);        
+      } else {
+        throw new WarpScriptException(getName() + " missing parameters '" + FETCH.PARAM_CLASS + "', '" + FETCH.PARAM_LABELS + "', '" + FETCH.PARAM_SELECTOR + "' or '" + FETCH.PARAM_SELECTORS + "'.");
+      }
+      
+      token = (String) params.get(FETCH.PARAM_TOKEN);
+            
+      activeAfter = (Long) params.get(FETCH.PARAM_ACTIVE_AFTER);
+      quietAfter = (Long) params.get(FETCH.PARAM_QUIET_AFTER);
+    } else {
+      if (this.metaset) {
+        
+        set = new MetaSet();
+        
+        top = stack.pop();
+        
+        if (!(top instanceof Long)) {
+          throw new WarpScriptException(getName() + " expects and expiration timestamp on top of the stack.");
+        }
+        
+        set.setExpiry(System.currentTimeMillis() + (((long) top) / Constants.TIME_UNITS_PER_MS));
+        
+        top = stack.pop();
+        
+        if (!(top instanceof Long) && !(top instanceof Double && Double.isNaN((double) top))) {
+          throw new WarpScriptException(getName() + " expects a maximum duration or NaN below the expiration.");      
+        }
+        
+        if (top instanceof Long) {
+          set.setMaxduration((long) top);
+        }
+        
+        top = stack.pop();
+        
+        if (!(top instanceof Long) && !(top instanceof Double && Double.isNaN((double) top))) {
+          throw new WarpScriptException(getName() + " expects a 'notafter' parameter below the maximum duration.");      
+        }
+        
+        if (top instanceof Long) {
+          set.setNotafter((long) top);
+        }
+        
+        top = stack.pop();
+        
+        if (!(top instanceof Long) && !(top instanceof Double && Double.isNaN((double) top))) {
+          throw new WarpScriptException(getName() + " expects a 'notbefore' parameter below 'notafter'.");      
+        }
+        
+        if (top instanceof Long) {
+          set.setNotafter((long) top);
+        }
+      }
+      
+      //
+      // Extract labels selector
+      //
+      
+      Object oLabelsSelector = stack.pop();
+      
+      if (!(oLabelsSelector instanceof Map)) {
+        throw new WarpScriptException("Label selectors must be a map.");
+      }
+      
+      labelSelectors = (Map<String,String>) oLabelsSelector;
 
-    //
-    // Extract class selector
-    //
-    
-    Object oClassSelector = stack.pop();
+      //
+      // Extract class selector
+      //
+      
+      Object oClassSelector = stack.pop();
 
-    if (!(oClassSelector instanceof String)) {
-      throw new WarpScriptException("Class selector must be a string.");
-    }
-    
-    String classSelector = (String) oClassSelector;
+      if (!(oClassSelector instanceof String)) {
+        throw new WarpScriptException("Class selector must be a string.");
+      }
+      
+      classSelector = (String) oClassSelector;
 
-    //
-    // Extract token
-    //
-    
-    Object oToken = stack.pop();
-    
-    if (!(oToken instanceof String)) {
-      throw new WarpScriptException("Token must be a string.");
+      //
+      // Extract token
+      //
+      
+      Object oToken = stack.pop();
+      
+      if (!(oToken instanceof String)) {
+        throw new WarpScriptException("Token must be a string.");
+      }
+      
+      token = (String) oToken;      
     }
-    
-    String token = (String) oToken;
     
     DirectoryClient directoryClient = stack.getDirectoryClient();
     
@@ -265,7 +316,30 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
 //}
 //    }
     try {
-      iter = directoryClient.iterator(clsSels, lblsSels);
+      
+      if (null == drequest) {
+        drequest = new DirectoryRequest();
+        drequest.setClassSelectors(clsSels);
+        drequest.setLabelsSelectors(lblsSels);
+      } else {
+        // Fix labels
+        
+        if (drequest.isSetLabelsSelectors()) {
+          for (Map<String,String> sel: drequest.getLabelsSelectors()) {
+            sel.remove(Constants.PRODUCER_LABEL);
+            sel.remove(Constants.OWNER_LABEL);
+            sel.remove(Constants.APPLICATION_LABEL);
+            sel.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
+          }          
+        }
+      }
+      if (null != activeAfter) {
+        drequest.setActiveAfter(activeAfter);
+      }
+      if (null != quietAfter) {
+        drequest.setQuietAfter(quietAfter);
+      }        
+      iter = directoryClient.iterator(drequest);
     } catch (Exception e) {
       throw new WarpScriptException(e);
     }
@@ -424,5 +498,53 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
     
     return stack;
-  }  
+  }
+  
+  private Map<String,Object> paramsFromMap(Map<String,Object> map) throws WarpScriptException {
+    Map<String,Object> params = new HashMap<String, Object>();
+            
+    if (!map.containsKey(FETCH.PARAM_TOKEN)) {
+      throw new WarpScriptException(getName() + " Missing '" + FETCH.PARAM_TOKEN + "' parameter");
+    }
+      
+    params.put(FETCH.PARAM_TOKEN, map.get(FETCH.PARAM_TOKEN));      
+
+    if (map.containsKey(FETCH.PARAM_SELECTORS)) {
+      Object sels = map.get(FETCH.PARAM_SELECTORS);
+      if (!(sels instanceof List)) {
+        throw new WarpScriptException(getName() + " Invalid parameter '" + FETCH.PARAM_SELECTORS + "'");
+      }
+      List<Pair<Object, Object>> selectors = new ArrayList<Pair<Object,Object>>();
+      
+      for (Object sel: (List) sels) {
+        Object[] clslbls = PARSESELECTOR.parse(sel.toString());
+        selectors.add(Pair.of(clslbls[0], clslbls[1]));
+      }
+      params.put(FETCH.PARAM_SELECTOR_PAIRS, selectors);
+    } else if (map.containsKey(FETCH.PARAM_SELECTOR)) {
+      Object[] clslbls = PARSESELECTOR.parse(map.get(FETCH.PARAM_SELECTOR).toString());
+      params.put(FETCH.PARAM_CLASS, clslbls[0]);
+      params.put(FETCH.PARAM_LABELS, clslbls[1]);
+    } else if (map.containsKey(FETCH.PARAM_CLASS) && map.containsKey(FETCH.PARAM_LABELS)) {
+      params.put(FETCH.PARAM_CLASS, map.get(FETCH.PARAM_CLASS));
+      params.put(FETCH.PARAM_LABELS, map.get(FETCH.PARAM_LABELS));
+    }
+        
+    if (map.containsKey(FETCH.PARAM_ACTIVE_AFTER)) {
+      if (!(map.get(FETCH.PARAM_ACTIVE_AFTER) instanceof Long)) {
+        throw new WarpScriptException(getName() + " Invalid type for parameter '" + FETCH.PARAM_ACTIVE_AFTER + "'.");
+      }
+      params.put(FETCH.PARAM_ACTIVE_AFTER, ((long) map.get(FETCH.PARAM_ACTIVE_AFTER)) / Constants.TIME_UNITS_PER_MS);
+    }
+
+    if (map.containsKey(FETCH.PARAM_QUIET_AFTER)) {
+      if (!(map.get(FETCH.PARAM_QUIET_AFTER) instanceof Long)) {
+        throw new WarpScriptException(getName() + " Invalid type for parameter '" + FETCH.PARAM_QUIET_AFTER + "'.");
+      }
+      params.put(FETCH.PARAM_QUIET_AFTER, ((long) map.get(FETCH.PARAM_QUIET_AFTER)) / Constants.TIME_UNITS_PER_MS);
+    }
+
+    return params;
+    
+  }
 }
