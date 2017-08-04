@@ -116,6 +116,7 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.sort.SortConfig;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
+import com.google.common.primitives.Longs;
 
 // FIXME(hbs): handle archive
 
@@ -1932,6 +1933,17 @@ public class Ingress extends AbstractHandler implements Runnable {
           }
           
           out.write(raw);
+          
+          if (this.activityTracking) {
+            Long lastActivity = this.metadataCache.get(bi);
+            byte[] bytes;
+            if (null != lastActivity) {
+              bytes = Longs.toByteArray(lastActivity);
+            } else {
+              bytes = new byte[8];
+            }
+            out.write(bytes);
+          }
           count++;
         } catch (ConcurrentModificationException cme) {          
         }
@@ -1965,6 +1977,8 @@ public class Ingress extends AbstractHandler implements Runnable {
       
       int offset = 0;
       
+      // 128 bits
+      int reclen = this.activityTracking ? 24 : 16;
       byte[] raw = new byte[16];
       
       while(true) {
@@ -1974,14 +1988,25 @@ public class Ingress extends AbstractHandler implements Runnable {
 
         int idx = 0;
         
-        while(idx < offset && offset - idx >= 16) {
+        while(idx < offset && offset - idx >= reclen) {
           System.arraycopy(buf, idx, raw, 0, 16);
           BigInteger id = new BigInteger(raw);
           synchronized(this.metadataCache) {
-            this.metadataCache.put(id, null);
+            if (this.activityTracking) {
+              long lastActivity = 0L;
+              
+              for (int i = 0; i < 8; i++) {
+                lastActivity <<= 8;
+                lastActivity |= ((long) buf[idx + 16 + i]) & 0xFFL;
+              }
+              
+              this.metadataCache.put(id, lastActivity);
+            } else {
+              this.metadataCache.put(id, null);
+            }
           }
           count++;
-          idx += 16;
+          idx += reclen;
         }
         
         if (idx < offset) {
