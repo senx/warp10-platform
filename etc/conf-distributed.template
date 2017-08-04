@@ -403,6 +403,12 @@ webcall.kafka.commitperiod = 60000
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
+// Activity period (in ms) to consider when flushing Metadata to HBase
+// Should match ingress.activity.window unless you know what you are doing...
+//
+#directory.activity.window = 3600000
+
+//
 // Comma separated list of Directory related HBase configuration keys. Each key will
 // be set in the HBase configuration by assigning the value defined in the Warp 10 config
 // under the key 'directory.<HBASE_CONFIGURATION_KEY>'. Each listed HBase configuration key
@@ -645,6 +651,23 @@ directory.hbase.filter = false
 // I N G R E S S
 //
 /////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// Period between updates of last activity timestamps for Geo Time Series
+// The value of this parameter is in ms and determines how often the directory
+// will be updated when activity is being tracked.
+//
+#ingress.activity.window = 3600000
+
+//
+// Set to true to consider updates when tracking activity of GTS
+//
+#ingress.activity.update = true
+
+//
+// Set to true to consider attributes updates (calls to /meta) when tracking activity of GTS
+//
+#ingress.activity.meta = true
 
 //
 // Should we shuffle the Geo Time Series prior to sending the delete messages?
