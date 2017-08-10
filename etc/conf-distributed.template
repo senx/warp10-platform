@@ -1046,6 +1046,11 @@ store.hbase.hconnection.threads.core = 4
 #store.kafka.data.consumer.clientid = 
 
 //
+// A prefix prepended to the Kafka ConsumerId
+//
+#store.kafka.data.consumerid.prefix =
+
+//
 // Custom value of 'hbase.client.ipc.pool.size' for the Store HBase pool
 //
 #store.hbase.client.ipc.pool.size = 

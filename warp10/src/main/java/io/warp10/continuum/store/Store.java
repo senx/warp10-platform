@@ -28,6 +28,8 @@ import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.sensision.Sensision;
 
+import java.net.InetAddress;
+import java.util.UUID;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -318,7 +320,7 @@ public class Store extends Thread {
     }
     
     maxPendingPutsSize = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_MAXPENDINGPUTSSIZE));
-    
+
     final String groupid = properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_GROUPID);
 
     final KafkaOffsetCounters counters = new KafkaOffsetCounters(topic, groupid, commitPeriod * 2);
@@ -359,6 +361,16 @@ public class Store extends Thread {
             props.setProperty("group.id", groupid);
             if (null != properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_CLIENTID)) {
               props.setProperty("client.id", properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_CLIENTID));
+            }
+            if (null != properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMERID_PREFIX)) {
+              // If a consumerId prefix is provided, the consumerId is built the same way than inside the Kafka ConsumerConnector with the prefix part prepended to the hostname
+              UUID uuid = UUID.randomUUID();
+              String consumerUuid = String.format("%s_%s_%d-%s",
+                      properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMERID_PREFIX),
+                      InetAddress.getLocalHost().getHostName(),
+                      System.currentTimeMillis(),
+                      Long.toHexString(uuid.getMostSignificantBits()).substring(0,8));
+              props.setProperty("consumer.id", consumerUuid);
             }
             if (null != properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY)) {
               props.setProperty("partition.assignment.strategy", properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY));
