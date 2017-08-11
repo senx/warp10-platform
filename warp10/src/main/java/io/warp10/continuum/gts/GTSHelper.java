@@ -8974,23 +8974,54 @@ public class GTSHelper {
     if (gts.values <= threshold - 2) {
       return gts;
     }
-    
-    // Exclude the left and right datapoints, they will be retained.
-    threshold = threshold - 2;
-    
-    if (threshold <= 0) {
+        
+    if (threshold < 3) {
       throw new WarpScriptException("Threshold MUST be >= 3.");
     }
     
-    int bucketsize = (int) Math.ceil((double) gts.values / (double) threshold);
+    double bucketsize = (double) gts.values / (double) (threshold - 1);
     
     // Sort GTS
     GTSHelper.sort(gts);
 
-    long timebucket = (long) Math.ceil((gts.ticks[gts.values - 1] - gts.ticks[0]) / (double) threshold); 
+    long timebucket = (long) Math.ceil((gts.ticks[gts.values - 1] - gts.ticks[0] - 2) / (double) (threshold - 2)); 
     long firsttick = gts.ticks[0];
     
-    GeoTimeSerie sampled = gts.cloneEmpty(threshold  + 2);
+    List<Integer> buckets = null;
+    
+    //
+    // If timebased, determine the valid buckets
+    //
+    
+    if (timebased) {
+      // Allocate a list to keep track of buckets boundaries
+      buckets = new ArrayList<Integer>();
+      
+      long lowerts = firsttick + 1;
+     
+      buckets.add(0); // Start of first bucket
+      
+      long lastbucket = 0;
+      
+      for (int i = 1; i < gts.values - 1; i++) {
+        long bucket = 1 + (gts.ticks[i] - lowerts) / timebucket;
+        
+        if (bucket != lastbucket) {
+          buckets.add(i - 1); // End of previous bucket
+          buckets.add(i); // Start of current bucket
+          lastbucket = bucket;
+        }
+      }
+      
+      buckets.add(gts.values - 2);
+      buckets.add(gts.values - 1);
+      buckets.add(gts.values - 1);
+      
+      // Adjust number of buckets
+      threshold = buckets.size() / 2;
+    }
+    
+    GeoTimeSerie sampled = gts.cloneEmpty(threshold);
 
     // Add first datapoint
     GTSHelper.setValue(sampled, GTSHelper.tickAtIndex(gts,0), GTSHelper.locationAtIndex(gts, 0), GTSHelper.elevationAtIndex(gts, 0), GTSHelper.valueAtIndex(gts, 0), false);
@@ -9000,47 +9031,33 @@ public class GTSHelper {
     int firstinrange = 1;
     int lastinrange = -1;
     
-    for (int i = 0; i < threshold; i++) {
-      
-      if (lastinrange >= gts.values - 1) {
-        break;
-      }
+    //
+    // Loop over the number of requested values - 2 (as we retain both ends)
+    //
+    
+    for (int i = 0; i < threshold - 2; i++) {
       
       //
       // Determine the ticks to consider when computing the next datapoint
       //
       
       if (timebased) {
-        long lowerts = firsttick + i * timebucket;
-        long upperts = lowerts + timebucket - 1;
-        lastinrange++;
-        boolean empty = true;
-        for (int j = lastinrange; j < gts.values - 1; j++) {
-          if (firstinrange < lastinrange && gts.ticks[j] >= lowerts) {
-            firstinrange = j;
-          }
-          if (gts.ticks[j] <= upperts) {
-            lastinrange = j;
-            empty = false;
-          } else {
-            break;
-          }
-        }
-        if (empty) {
-          lastinrange--;
-          continue;
-        }
-        if (firstinrange > lastinrange) {
-          continue;
-        }
+        firstinrange = buckets.get(2 * (i + 2));
+        lastinrange = buckets.get(2 * (i + 2) + 1) + 1; // Add '1' as we use a strict comparison when scanning
       } else {
-        firstinrange = ++lastinrange;
-        lastinrange = firstinrange + bucketsize - 1;
-        if (lastinrange >= gts.values) {
-          lastinrange = gts.values - 2;
+        //
+        // Determine the index range of the bucket following the current one
+        //
+        
+        firstinrange = 1 + (int) Math.floor((i + 1) * bucketsize);
+        lastinrange = 1 + (int) Math.floor((i + 2) * bucketsize);
+        
+        if (firstinrange >= gts.values) {
+          firstinrange = gts.values - 1;
         }
-        if (firstinrange > lastinrange) {
-          continue;
+        
+        if (lastinrange >= gts.values) {
+          lastinrange = gts.values - 1;
         }
       }
       
@@ -9051,7 +9068,7 @@ public class GTSHelper {
       double ticksum = 0.0D;
       double valuesum = 0.0D;
       
-      for (int j = firstinrange; j <= lastinrange; j++) {
+      for (int j = firstinrange; j < lastinrange; j++) {
         ticksum += gts.ticks[j];
         valuesum += ((Number) GTSHelper.valueAtIndex(gts, j)).doubleValue();
       }
@@ -9060,7 +9077,7 @@ public class GTSHelper {
       double valueavg = valuesum / (lastinrange - firstinrange + 1);
       
       //
-      // Now compute the triangle area and retain the point in the range which maximizes it
+      // Now compute the triangle area and retain the point in the current bucket which maximizes it
       //
       
       double maxarea = -1.0D;
@@ -9069,8 +9086,25 @@ public class GTSHelper {
       double reftick = gts.ticks[refidx];
       
       int nextref = -1;
+
+      if (timebased) {
+        firstinrange = buckets.get(2 * (i + 1));
+        lastinrange = buckets.get(2 * (i + 1) + 1) + 1; // Add '1' as we use a strict comparison when scanning
+      } else {
+        //
+        // Compute the index range of the current bucket
+        //
+        firstinrange = 1 + (int) Math.floor(i * bucketsize);
+        lastinrange = 1 + (int) Math.floor((i + 1) * bucketsize);
+        if (firstinrange >= gts.values - 1) {
+          firstinrange = gts.values - 2;
+        }
+        if (lastinrange >= gts.values - 1) {
+          lastinrange = gts.values - 1;
+        }        
+      }
       
-      for (int j = firstinrange; j <= lastinrange; j++) {
+      for (int j = firstinrange; j < lastinrange; j++) {
         double tick = gts.ticks[j];
         double value = ((Number) GTSHelper.valueAtIndex(gts, j)).doubleValue();
         double area = 0.5D * Math.abs(((reftick - tickavg) * (value - refvalue)) - (reftick - tick) * (valueavg - refvalue)); 
