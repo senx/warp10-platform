@@ -328,6 +328,8 @@ public class WarpScriptLib {
   public static final String PARSESELECTOR = "PARSESELECTOR";
   
   public static final String GEO_WKT = "GEO.WKT";
+  public static final String GEO_WKT_UNIFORM = "GEO.WKT.UNIFORM";
+  
   public static final String GEO_JSON = "GEO.JSON";
   public static final String GEO_INTERSECTION = "GEO.INTERSECTION";
   public static final String GEO_DIFFERENCE = "GEO.DIFFERENCE";
@@ -944,6 +946,7 @@ public class WarpScriptLib {
     functions.put("HHCODE->", new HHCODETO("HHCODE->"));
     functions.put("GEO.REGEXP", new GEOREGEXP("GEO.REGEXP"));
     functions.put(GEO_WKT, new GeoWKT(GEO_WKT, false));
+    functions.put(GEO_WKT_UNIFORM, new GeoWKT(GEO_WKT, true));
     functions.put(GEO_JSON, new GeoJSON(GEO_JSON));
     functions.put(GEO_INTERSECTION, new GeoIntersection(GEO_INTERSECTION));
     functions.put(GEO_UNION, new GeoUnion(GEO_UNION));
