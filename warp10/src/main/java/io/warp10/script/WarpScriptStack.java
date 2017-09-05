@@ -248,6 +248,11 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_HEADERS = "response.headers";
   
   /**
+   * Last error encountered in a TRY block
+   */
+  public static final String ATTRIBUTE_LAST_ERROR = "last.error";
+  
+  /**
    * Index of RETURN_DEPTH counter
    */
   public static final int COUNTER_RETURN_DEPTH = 0;

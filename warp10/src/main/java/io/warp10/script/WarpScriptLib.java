@@ -464,6 +464,9 @@ public class WarpScriptLib {
     functions.put("FAIL", new FAIL("FAIL"));
     functions.put(MSGFAIL, new MSGFAIL(MSGFAIL));
     functions.put("STOP", new STOP("STOP"));
+    functions.put("TRY", new TRY("TRY"));
+    functions.put("RETHROW", new RETHROW("RETHROW"));
+    functions.put("ERROR", new ERROR("ERROR"));
     functions.put("JSONSTRICT", new JSONSTRICT("JSONSTRICT"));
     functions.put("JSONLOOSE", new JSONLOOSE("JSONLOOSE"));
     functions.put("DEBUGON", new DEBUGON("DEBUGON"));
