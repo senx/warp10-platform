@@ -296,14 +296,14 @@ public class WarpScriptLib {
   
   private static final Logger LOG = LoggerFactory.getLogger(WarpScriptLib.class);
   
-  private static Map<String,Object> functions = new HashMap<String, Object>();
+  private static Map<String,Object> functions = new HashMap<String, Object>();  
   
   /**
    * Static definition of name so it can be reused outside of WarpScriptLib
    */
   
   public static final String NULL = "NULL";
-  
+
   public static final String EVAL = "EVAL";
   public static final String EVALSECURE = "EVALSECURE";
   public static final String SNAPSHOT = "SNAPSHOT";
@@ -450,6 +450,8 @@ public class WarpScriptLib {
     functions.put(LOAD, new LOAD(LOAD));
     functions.put(RUN, new RUN(RUN));
     functions.put("DEF", new DEF("DEF"));
+    functions.put("BINDEARLY", new BINDEARLY("BINDEARLY"));
+    functions.put("BINDLATE", new BINDLATE("BINDLATE"));
     functions.put("UDF", new UDF("UDF", false));
     functions.put("CUDF", new UDF("CUDF", true));
     functions.put("CALL", new CALL("CALL"));

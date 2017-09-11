@@ -24,6 +24,7 @@ import io.warp10.continuum.gts.UnsafeString;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
+import io.warp10.script.functions.EVALFUNC;
 import io.warp10.script.functions.SECURE;
 import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.WarpScriptJavaFunction;
@@ -52,6 +53,8 @@ import org.apache.hadoop.util.Progressable;
 
 public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
+  private static final Object EFUNC = new EVALFUNC("EVALFUNC");
+  
   private AtomicLong[] counters;
   
   /**
@@ -807,7 +810,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           long nano = System.nanoTime();
           
           try {
-            if (func instanceof WarpScriptStackFunction && macros.isEmpty()) {
+            if (func instanceof WarpScriptStackFunction && (func instanceof WarpScriptAnnotation || macros.isEmpty())) {
               //
               // Function is an EinsteinStackFunction, call it on this stack
               //
@@ -822,7 +825,14 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               if (macros.isEmpty()) {
                 push(func);
               } else {
-                macros.get(0).add(func);
+                Object binding = getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_BINDING, WarpScriptStack.DEFAULT_MACRO_BINDING);
+                                
+                if (WarpScriptStack.MACRO_BINDING_EARLY.equals(binding)) {
+                  macros.get(0).add(func);
+                } else {
+                  macros.get(0).add(stmt);
+                  macros.get(0).add(EFUNC);
+                }
               }
             }          
           } finally {
@@ -1134,13 +1144,31 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   
   @Override
   public Object getAttribute(String key) {
+    return getAttribute(key, null);
+  }
+  
+  @Override
+  public Object getAttribute(String key, Object defaultValue) {
     // Manage the number of ops in a special way
     if (WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO.equals(key)) {
       return this.inSecureMacro;
     } else if (WarpScriptStack.ATTRIBUTE_OPS.equals(key)) {
       return this.currentops;
     } else {
-      return this.attributes.get(key);
+      Object value = this.attributes.get(key);
+      
+      if (null != value || null == defaultValue) {
+        return value;
+      } else {
+        // We have a null value with a non null default
+        if (this.attributes.containsKey(key)) {
+          // We might have stored 'null' intentionally
+          // We only call 'containsKey' in this case as it might be costly
+          return value;
+        } else {
+          return defaultValue;
+        }
+      }
     }
   }
   
