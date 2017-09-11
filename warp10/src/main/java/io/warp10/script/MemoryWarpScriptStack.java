@@ -24,7 +24,6 @@ import io.warp10.continuum.gts.UnsafeString;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
-import io.warp10.script.functions.EVALFUNC;
 import io.warp10.script.functions.SECURE;
 import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.WarpScriptJavaFunction;
@@ -53,7 +52,7 @@ import org.apache.hadoop.util.Progressable;
 
 public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
-  private static final Object EFUNC = new EVALFUNC("EVALFUNC");
+  private static final Object EVALFUNC = WarpScriptLib.getFunction(WarpScriptLib.EVALFUNC);
   
   private AtomicLong[] counters;
   
@@ -831,7 +830,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
                   macros.get(0).add(func);
                 } else {
                   macros.get(0).add(stmt);
-                  macros.get(0).add(EFUNC);
+                  macros.get(0).add(EVALFUNC);
                 }
               }
             }          

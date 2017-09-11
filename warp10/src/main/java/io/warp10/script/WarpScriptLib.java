@@ -305,6 +305,7 @@ public class WarpScriptLib {
   public static final String NULL = "NULL";
 
   public static final String EVAL = "EVAL";
+  public static final String EVALFUNC = "EVALFUNC";
   public static final String EVALSECURE = "EVALSECURE";
   public static final String SNAPSHOT = "SNAPSHOT";
   public static final String SNAPSHOTALL = "SNAPSHOTALL";
@@ -452,6 +453,7 @@ public class WarpScriptLib {
     functions.put("DEF", new DEF("DEF"));
     functions.put("BINDEARLY", new BINDEARLY("BINDEARLY"));
     functions.put("BINDLATE", new BINDLATE("BINDLATE"));
+    functions.put(EVALFUNC, new EVALFUNC("EVALFUNC"));
     functions.put("UDF", new UDF("UDF", false));
     functions.put("CUDF", new UDF("CUDF", true));
     functions.put("CALL", new CALL("CALL"));
