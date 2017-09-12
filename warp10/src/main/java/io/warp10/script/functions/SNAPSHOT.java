@@ -257,11 +257,11 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
       } else if (o instanceof Mark) {
         sb.append(WarpScriptLib.MARK);
         sb.append(" ");
-      } else if (o instanceof Macro) {
-        sb.append(o.toString());
-        sb.append(" ");
       } else if (o instanceof Snapshotable) {
         sb.append(((Snapshotable) o).snapshot());
+        sb.append(" ");
+      } else if (o instanceof Macro) {
+        sb.append(o.toString());
         sb.append(" ");
       } else if (o instanceof RSAPublicKey) {
         sb.append("{ 'algorithm' 'RSA' 'exponent' '");
