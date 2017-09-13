@@ -816,6 +816,11 @@ public class Configuration {
   public static final String STORE_KAFKA_DATA_GROUPID = "store.kafka.data.groupid";
 
   /**
+   * A prefix prepended to the Kafka ConsumerId
+   */
+  public static final String STORE_KAFKA_DATA_CONSUMERID_PREFIX = "store.kafka.data.consumerid.prefix";
+
+  /**
    * Client id to use to consume the data topic
    */
   public static final String STORE_KAFKA_DATA_CONSUMER_CLIENTID = "store.kafka.data.consumer.clientid";

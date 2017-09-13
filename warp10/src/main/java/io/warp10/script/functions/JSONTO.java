@@ -59,7 +59,7 @@ public class JSONTO extends NamedWarpScriptFunction implements WarpScriptStackFu
       json = parser.parse(o.toString());
     } catch(JsonException je) {      
       // We don't include the original message as it can be very long
-      throw new WarpScriptException("Error parsing JSON");
+      throw new WarpScriptException("Error parsing JSON", je);
     }
 
     stack.push(transform(json));

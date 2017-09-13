@@ -902,7 +902,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
         throw ee;
       } else {
         String section = (String) this.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME);
-        throw new WarpScriptException("Exception at statement '" + macro.get(i).toString() + "' in section '" + section + "' (" + ee.getMessage() + ")");
+        throw new WarpScriptException("Exception at statement '" + macro.get(i).toString() + "' in section '" + section + "' (" + ee.getMessage() + ")", ee);
       }
     } finally {
       this.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, secure);

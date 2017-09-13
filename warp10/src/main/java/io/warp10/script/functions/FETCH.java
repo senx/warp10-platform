@@ -235,8 +235,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         throw new WarpScriptException("Label selectors must be a map.");
       }
       
-      Map<String,String> labelSelectors = (Map<String,String>) oLabelsSelector;
-
+      Map<String,String> labelSelectors = new HashMap<String,String>((Map<String,String>) oLabelsSelector);
+      
       params.put(PARAM_LABELS, labelSelectors);
       
       //

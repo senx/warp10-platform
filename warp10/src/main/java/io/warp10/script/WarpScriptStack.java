@@ -19,6 +19,8 @@ package io.warp10.script;
 import io.warp10.continuum.geo.GeoDirectoryClient;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
+import io.warp10.script.functions.SNAPSHOT;
+import io.warp10.script.functions.SNAPSHOT.Snapshotable;
 import io.warp10.warp.sdk.WarpScriptJavaFunction;
 
 import java.util.ArrayList;
@@ -248,6 +250,11 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_HEADERS = "response.headers";
   
   /**
+   * Last error encountered in a TRY block
+   */
+  public static final String ATTRIBUTE_LAST_ERROR = "last.error";
+  
+  /**
    * Index of RETURN_DEPTH counter
    */
   public static final int COUNTER_RETURN_DEPTH = 0;
@@ -256,7 +263,7 @@ public interface WarpScriptStack {
   
   public static class Mark {}
   
-  public static class Macro {
+  public static class Macro implements Snapshotable {
     
     /**
      * Flag indicating whether a macro is secure (its content cannot be displayed) or not
@@ -324,6 +331,36 @@ public interface WarpScriptStack {
     
     public void setFingerprint(long fingerprint) {
       this.fingerprint = fingerprint;
+    }
+    
+    @Override
+    public String snapshot() {
+      StringBuilder sb = new StringBuilder();
+      
+      sb.append(MACRO_START);
+      sb.append(" ");
+
+      if (!secure) {
+        for (Object o: this.statements()) {
+          try {
+            SNAPSHOT.addElement(sb, o);
+          } catch (WarpScriptException wse) {
+            sb.append(WarpScriptStack.COMMENT_START);
+            sb.append(" Error while snapshoting element of type '" + o.getClass() + "' ");
+            sb.append(WarpScriptStack.COMMENT_END);
+          }
+          sb.append(" ");        
+        }
+      } else {
+        sb.append(WarpScriptStack.COMMENT_START);
+        sb.append(" Secure Macro ");
+        sb.append(WarpScriptStack.COMMENT_END);
+        sb.append(" ");
+      }
+      
+      sb.append(MACRO_END);
+      
+      return sb.toString();
     }
   }
   

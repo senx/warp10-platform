@@ -192,7 +192,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
         }
       } else if (params.containsKey(FETCH.PARAM_CLASS) && params.containsKey(FETCH.PARAM_LABELS)) {
         classSelector = (String) params.get(FETCH.PARAM_CLASS);
-        labelSelectors = (Map<String,String>) params.get(FETCH.PARAM_LABELS);        
+        labelSelectors = new HashMap<String,String>((Map<String,String>) params.get(FETCH.PARAM_LABELS));        
       } else {
         throw new WarpScriptException(getName() + " missing parameters '" + FETCH.PARAM_CLASS + "', '" + FETCH.PARAM_LABELS + "', '" + FETCH.PARAM_SELECTOR + "' or '" + FETCH.PARAM_SELECTORS + "'.");
       }
@@ -255,7 +255,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
         throw new WarpScriptException("Label selectors must be a map.");
       }
       
-      labelSelectors = (Map<String,String>) oLabelsSelector;
+      labelSelectors = new HashMap<String,String>((Map<String,String>) oLabelsSelector);
 
       //
       // Extract class selector

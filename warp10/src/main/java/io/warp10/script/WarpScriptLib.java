@@ -328,6 +328,8 @@ public class WarpScriptLib {
   public static final String PARSESELECTOR = "PARSESELECTOR";
   
   public static final String GEO_WKT = "GEO.WKT";
+  public static final String GEO_WKT_UNIFORM = "GEO.WKT.UNIFORM";
+  
   public static final String GEO_JSON = "GEO.JSON";
   public static final String GEO_INTERSECTION = "GEO.INTERSECTION";
   public static final String GEO_DIFFERENCE = "GEO.DIFFERENCE";
@@ -374,6 +376,7 @@ public class WarpScriptLib {
     functions.put("CLEARTOMARK", new CLEARTOMARK("CLEARTOMARK"));
     functions.put("COUNTTOMARK", new COUNTTOMARK("COUNTTOMARK"));
     functions.put("AUTHENTICATE", new AUTHENTICATE("AUTHENTICATE"));
+    functions.put("ISAUTHENTICATED", new ISAUTHENTICATED("ISAUTHENTICATED"));
     functions.put("STACKATTRIBUTE", new STACKATTRIBUTE("STACKATTRIBUTE")); // NOT TO BE DOCUMENTED
     functions.put("EXPORT", new EXPORT("EXPORT"));
     functions.put("TIMINGS", new TIMINGS("TIMINGS")); // NOT TO BE DOCUMENTED (YET)
@@ -462,6 +465,9 @@ public class WarpScriptLib {
     functions.put("FAIL", new FAIL("FAIL"));
     functions.put(MSGFAIL, new MSGFAIL(MSGFAIL));
     functions.put("STOP", new STOP("STOP"));
+    functions.put("TRY", new TRY("TRY"));
+    functions.put("RETHROW", new RETHROW("RETHROW"));
+    functions.put("ERROR", new ERROR("ERROR"));
     functions.put("JSONSTRICT", new JSONSTRICT("JSONSTRICT"));
     functions.put("JSONLOOSE", new JSONLOOSE("JSONLOOSE"));
     functions.put("DEBUGON", new DEBUGON("DEBUGON"));
@@ -944,6 +950,7 @@ public class WarpScriptLib {
     functions.put("HHCODE->", new HHCODETO("HHCODE->"));
     functions.put("GEO.REGEXP", new GEOREGEXP("GEO.REGEXP"));
     functions.put(GEO_WKT, new GeoWKT(GEO_WKT, false));
+    functions.put(GEO_WKT_UNIFORM, new GeoWKT(GEO_WKT, true));
     functions.put(GEO_JSON, new GeoJSON(GEO_JSON));
     functions.put(GEO_INTERSECTION, new GeoIntersection(GEO_INTERSECTION));
     functions.put(GEO_UNION, new GeoUnion(GEO_UNION));
