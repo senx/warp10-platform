@@ -231,8 +231,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         throw new WarpScriptException("Label selectors must be a map.");
       }
       
-      Map<String,String> labelSelectors = (Map<String,String>) oLabelsSelector;
-
+      Map<String,String> labelSelectors = new HashMap<String,String>((Map<String,String>) oLabelsSelector);
+      
       params.put(PARAM_LABELS, labelSelectors);
       
       //
@@ -711,7 +711,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       params.put(PARAM_LABELS, clslbls[1]);
     } else if (map.containsKey(PARAM_CLASS) && map.containsKey(PARAM_LABELS)) {
       params.put(PARAM_CLASS, map.get(PARAM_CLASS));
-      params.put(PARAM_LABELS, map.get(PARAM_LABELS));
+      params.put(PARAM_LABELS, new HashMap<String,String>((Map<String,String>) map.get(PARAM_LABELS)));
     } else if (!params.containsKey(PARAM_METASET)) {
       throw new WarpScriptException(getName() + " Missing '" + PARAM_SELECTOR + "', '" + PARAM_SELECTORS + "' or '" + PARAM_CLASS + "' and '" + PARAM_LABELS + "' parameters.");
     }

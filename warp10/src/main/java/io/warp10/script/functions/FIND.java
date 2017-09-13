@@ -205,7 +205,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
       throw new WarpScriptException("Label selectors must be a map.");
     }
     
-    Map<String,String> labelSelectors = (Map<String,String>) oLabelsSelector;
+    Map<String,String> labelSelectors = new HashMap<String,String>((Map<String,String>) oLabelsSelector);
 
     //
     // Extract class selector
