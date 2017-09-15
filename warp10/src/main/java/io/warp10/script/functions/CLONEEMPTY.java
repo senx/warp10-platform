@@ -16,15 +16,14 @@
 
 package io.warp10.script.functions;
 
+import java.util.Map;
+
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.script.GTSStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Produce an empty clone of the parameter GTS instances 
@@ -35,6 +34,19 @@ public class CLONEEMPTY extends GTSStackFunction {
 
   public CLONEEMPTY(String name) {
     super(name);
+  }
+
+  @Override
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    if (!(stack.peek() instanceof GTSEncoder)) {
+      return super.apply(stack);      
+    }
+    
+    GTSEncoder encoder = (GTSEncoder) stack.pop();
+    
+    stack.push(encoder.cloneEmpty());
+    
+    return stack;
   }
 
   @Override
