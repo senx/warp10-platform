@@ -11,7 +11,7 @@ Geo Time Series® extend the notion of Time Series by merging the sequence of se
 The Warp 10 Platform provides a rich set of features to simplify your work around sensor data.
 
 * Continuum, our collection and storage layer
-* WarpScript, a language dedicated to sensor data analysis with more than 600 functions and extension capabilities
+* WarpScript, a language dedicated to sensor data analysis with more than 800 functions and extension capabilities
 * Plasma and Mobius, streaming engines allowing to cascade the Warp 10 Platform with Complex Event Processing solutions and to build dynamic dashboards
 * Quasar, a fine grain access control and authorization mechanism
 * [Quantum](https://github.com/cityzendata/warp10-quantum), a set of Web Components for visualizing the result of your analysis
@@ -19,6 +19,7 @@ The Warp 10 Platform provides a rich set of features to simplify your work aroun
 * [Sensision](https://github.com/cityzendata/sensision), a framework for exposing metrics and pushing them into Warp 10
 * Standalone version running on a Raspberry Pi as well as on a beefy server, with no external dependencies
 * Distributed version based on Hadoop HBase for the most demanding environments
+* Integration with [Pig](https://github.com/cityzendata/warp10-pig), [Spark](https://github.com/cityzendata/warp10-spark), [Flink](https://github.com/cityzendata/warp10-flink) (yet to be released) and [Storm](https://github.com/cityzendata/warp10-storm) for batch and streaming analysis.
 
 ## Getting Help
 
