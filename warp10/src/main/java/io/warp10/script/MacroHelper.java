@@ -42,7 +42,11 @@ public class MacroHelper {
     
     @Override
     public String snapshot() {
-      return this.toString();
+      if (macro instanceof Snapshotable) {
+        return macro.snapshot();
+      } else {
+        return this.toString();
+      }
     }
   }
   
