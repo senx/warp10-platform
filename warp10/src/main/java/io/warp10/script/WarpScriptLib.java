@@ -485,6 +485,7 @@ public class WarpScriptLib {
     functions.put(MAP_START, new MARK(MAP_START));
     functions.put(MAP_END, new ENDMAP(MAP_END));
     functions.put("SECUREKEY", new SECUREKEY("SECUREKEY"));
+    functions.put("SECURE", new SECURE("SECURE"));
     functions.put("UNSECURE", new UNSECURE("UNSECURE", true));
     functions.put(EVALSECURE, new EVALSECURE(EVALSECURE));
     functions.put("NOOP", new NOOP("NOOP"));
