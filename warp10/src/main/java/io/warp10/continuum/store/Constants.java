@@ -346,6 +346,7 @@ public class Constants {
   public static final String HTTP_PARAM_MINAGE = "minage";
   public static final String HTTP_PARAM_SHOWUUID = "showuuid";
   public static final String HTTP_PARAM_SHOWATTR = "showattr";
+  public static final String HTTP_PARAM_SORTMETA = "sortmeta";
   public static final String HTTP_PARAM_MINSPLITS = "minsplits";
   public static final String HTTP_PARAM_MAXSPLITS = "maxsplits";
   public static final String HTTP_PARAM_MAXSIZE = "maxsize";
