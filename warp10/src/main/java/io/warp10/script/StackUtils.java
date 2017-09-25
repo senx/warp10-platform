@@ -26,6 +26,7 @@ import io.warp10.continuum.gts.UnsafeString;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.functions.SNAPSHOT.Snapshotable;
 import io.warp10.warp.sdk.WarpScriptJavaFunctionGTS;
 
 import java.io.BufferedReader;
@@ -677,6 +678,8 @@ public class StackUtils {
       sb.append(Boolean.toString((boolean) o));
     } else if (o instanceof WarpScriptStackFunction) {
       sb.append(o.toString());
+    } else if (o instanceof Snapshotable) {
+      ((Snapshotable) o).snapshot();
     } else if (o instanceof Macro) {
       sb.append(o.toString());
     } else if (o instanceof NamedWarpScriptFunction){
