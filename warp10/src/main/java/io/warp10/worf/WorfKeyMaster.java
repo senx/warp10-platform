@@ -33,10 +33,7 @@ import org.apache.thrift.TException;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 public class WorfKeyMaster {
   Properties config;
@@ -64,13 +61,13 @@ public class WorfKeyMaster {
     return (keyStore != null);
   }
 
-  public String deliverReadToken(String application, String producer, String owner, long ttl) throws WorfException {
-    return deliverReadToken(application, producer, owner, null, ttl);
+  public String deliverReadToken(String application, List<String> applications, String producer, List<String> owners, long ttl) throws WorfException {
+    return deliverReadToken(application, applications, producer, owners, null, ttl);
   }
 
-  public String deliverReadToken(String application, String producer, String owner, Map<String,String> labels, long ttl) throws WorfException {
+  public String deliverReadToken(String application, List<String> applications, String producer, List<String> owners, Map<String,String> labels, long ttl) throws WorfException {
     try {
-      return encoder.deliverReadToken(application, producer, owner, Arrays.asList(application), labels, ttl, keyStore);
+      return encoder.deliverReadToken(application, producer, owners, applications, labels, ttl, keyStore);
     } catch (TException e) {
      throw new WorfException("Unable to deliver read token cause=" + e.getMessage());
     }
