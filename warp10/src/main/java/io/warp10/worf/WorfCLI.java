@@ -48,7 +48,6 @@ public class WorfCLI {
 
   public static String P_UUID = "puid";
   public static String O_UUID = "ouid";
-  public static String OWNERS = "ouids";
 
   public static String APPNAME = "a";
   public static String LABELS = "l";
@@ -118,6 +117,7 @@ public class WorfCLI {
       WorfTokenType tokenType = null;
 
       List<String> authorizedOwnersUID = null;
+      List<String> authorizedProducersUID = null;
       List<String> authorizedApplications = null;
 
       String lbs = null;
@@ -165,8 +165,28 @@ public class WorfCLI {
           producerUID = UUID.randomUUID().toString();
         } else if (cmd.hasOption(P_UUID)) {
           producerUID = cmd.getOptionValue(P_UUID);
-          UUID.fromString(producerUID);
+
+          // test if the UUID have a pattern x{y}
+          Matcher matcher = tokenPattern.matcher(ownerUID);
+
+          // extract uuid with the pattern owner{owner1,owner2}
+          if (matcher.matches()) {
+            authorizedProducersUID = new ArrayList<>();
+            String[] uuids = matcher.group(2).split(",");
+
+            // adds uuid to the list, fail otherwise
+            for (String uuid : uuids) {
+              UUID.fromString(uuid);
+              authorizedProducersUID.add(uuid);
+            }
+
+            // save the token owner
+            producerUID = matcher.group(1);
+          }
         }
+
+        // check the producer UUID validity
+        UUID.fromString(producerUID);
 
         // OWNER UUID OPTION (mandatory)
         // --------------------------------------------------------------------
@@ -202,8 +222,7 @@ public class WorfCLI {
 
         // owners empty ? add current owner to the authorized owners ()
         if (null == authorizedOwnersUID || authorizedOwnersUID.isEmpty()) {
-          authorizedOwnersUID = new ArrayList<String>();
-          authorizedOwnersUID.add(ownerUID);
+          authorizedOwnersUID = Arrays.asList(ownerUID);
         }
 
         if (cmd.hasOption(APPNAME)) {
@@ -227,10 +246,6 @@ public class WorfCLI {
 
           if (null == authorizedApplications || authorizedApplications.isEmpty()) {
             authorizedApplications = Arrays.asList(appName);
-          }
-          // a token always belongs to an application
-          if (!authorizedApplications.contains(appName)) {
-            authorizedApplications.add(appName);
           }
         }
 
@@ -411,13 +426,13 @@ public class WorfCLI {
         // deliver token
         switch(tokenType) {
           case READ:
-            readToken = keyMaster.deliverReadToken(appName, authorizedApplications, producerUID, authorizedOwnersUID, labels, ttl);
+            readToken = keyMaster.deliverReadToken(appName, authorizedApplications, producerUID, authorizedProducersUID, authorizedOwnersUID, labels, ttl);
             break;
           case WRITE:
             writeToken = keyMaster.deliverWriteToken(appName, producerUID, ownerUID, labels, ttl);
             break;
           case READ_WRITE:
-            readToken = keyMaster.deliverReadToken(appName, authorizedApplications, producerUID, authorizedOwnersUID, labels, ttl);
+            readToken = keyMaster.deliverReadToken(appName, authorizedApplications, producerUID, authorizedProducersUID, authorizedOwnersUID, labels, ttl);
             writeToken = keyMaster.deliverWriteToken(appName, producerUID, ownerUID, labels, ttl);
             break;
         }
@@ -433,6 +448,7 @@ public class WorfCLI {
           jsonToken.put("applications", authorizedApplications);
           jsonToken.put("owners", authorizedOwnersUID);
           jsonToken.put("producer", producerUID);
+          jsonToken.put("producers", authorizedProducersUID);
           if (labelMap) {
             jsonToken.put("labels", labels.toString());
           }

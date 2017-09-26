@@ -36,6 +36,7 @@ public class EncodeTokenCommand extends TokenCommand {
   public String owner = null;
   public List<String> owners = null;
   public String producer = null;
+  public List<String> producers = null;
   public long ttl = 0L;
   public Map<String,String> labels = null;
 
@@ -56,7 +57,7 @@ public class EncodeTokenCommand extends TokenCommand {
         String token = null;
         switch (tokenType) {
           case READ:
-            token = worfKeyMaster.deliverReadToken(application, applications, producer, owners, ttl);
+            token = worfKeyMaster.deliverReadToken(application, applications, producer, producers, owners, labels, ttl);
             break;
           case WRITE:
             token = worfKeyMaster.deliverWriteToken(application, producer, owner, labels, ttl);
@@ -72,6 +73,7 @@ public class EncodeTokenCommand extends TokenCommand {
           case READ:
             out.println("authorizations (applications)=" + applications);
             out.println("authorizations (owners)=" + owners);
+            out.println("authorizations (producers)=" + producers);
             break;
 
           case WRITE:

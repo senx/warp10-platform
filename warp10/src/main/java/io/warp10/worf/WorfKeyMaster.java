@@ -62,12 +62,16 @@ public class WorfKeyMaster {
   }
 
   public String deliverReadToken(String application, List<String> applications, String producer, List<String> owners, long ttl) throws WorfException {
-    return deliverReadToken(application, applications, producer, owners, null, ttl);
+    return deliverReadToken(application, applications, producer, null, owners, null, ttl);
   }
 
   public String deliverReadToken(String application, List<String> applications, String producer, List<String> owners, Map<String,String> labels, long ttl) throws WorfException {
+    return deliverReadToken(application, applications, producer, null, owners, labels, ttl);
+  }
+
+  public String deliverReadToken(String application, List<String> applications, String producer, List<String> producers, List<String> owners, Map<String,String> labels, long ttl) throws WorfException {
     try {
-      return encoder.deliverReadToken(application, producer, owners, applications, labels, ttl, keyStore);
+      return encoder.deliverReadToken(application, producer, owners, producers, applications, labels, null, ttl, keyStore);
     } catch (TException e) {
      throw new WorfException("Unable to deliver read token cause=" + e.getMessage());
     }
