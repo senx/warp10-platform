@@ -309,7 +309,7 @@ leveldb.home = ${standalone.home}/leveldb
 //
 // Cache size for leveldb (in bytes)
 //
-leveldb.cache.size = 1000000000
+leveldb.cache.size = 100000000
 
 //
 // Compression type to use for leveldb (SNAPPY/NONE)
