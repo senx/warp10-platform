@@ -349,33 +349,35 @@ public class WorfInteractive {
       case "encodeToken":
         EncodeTokenCommand encodeTokenCommand = (EncodeTokenCommand) command;
 
-        if (encodeTokenCommand.tokenType == null) {
+        if (null == encodeTokenCommand.tokenType) {
           encodeTokenCommand.tokenType = getTokenType(input, out);
-        } else if (encodeTokenCommand.application == null) {
+        } else if (null == encodeTokenCommand.application) {
           encodeTokenCommand.application = getApplicationName(input, out);
-        } else if (encodeTokenCommand.applications == null && TokenType.READ.equals(encodeTokenCommand.tokenType)) {
+        } else if (null == encodeTokenCommand.applications && TokenType.READ.equals(encodeTokenCommand.tokenType)) {
           encodeTokenCommand.applications = getApplicationsName(input, out);
           if (encodeTokenCommand.applications == null || encodeTokenCommand.applications.isEmpty()) {
             encodeTokenCommand.applications = Arrays.asList(encodeTokenCommand.application);
           }
-        } else if (encodeTokenCommand.producer == null) {
+        } else if (null == encodeTokenCommand.producer) {
           encodeTokenCommand.producer = getUUID(input, out, WorfCLI.P_UUID, null);
-        } else if (Strings.isNullOrEmpty(encodeTokenCommand.owner) && (encodeTokenCommand.owners == null || encodeTokenCommand.owners.isEmpty())) {
+        } else if (null == encodeTokenCommand.producers && TokenType.READ.equals(encodeTokenCommand.tokenType)) {
+          encodeTokenCommand.producers = getUUIDs(input, out, true, null);
+        } else if (Strings.isNullOrEmpty(encodeTokenCommand.owner) && (null == encodeTokenCommand.owners || encodeTokenCommand.owners.isEmpty())) {
           if (TokenType.READ.equals(encodeTokenCommand.tokenType)) {
-            encodeTokenCommand.owners = getUUIDs(input, out, WorfCLI.O_UUID, encodeTokenCommand.producer);
+            encodeTokenCommand.owners = getUUIDs(input, out, false, encodeTokenCommand.producer);
           } else {
             encodeTokenCommand.owner = getUUID(input, out, WorfCLI.O_UUID, encodeTokenCommand.producer);
           }
         } else if (encodeTokenCommand.ttl == 0L) {
           encodeTokenCommand.ttl = getTTL(input, out);
-        } else if (encodeTokenCommand.labels == null) {
+        } else if (null == encodeTokenCommand.labels) {
           encodeTokenCommand.labels = getLabels(input, out);
         }
         break;
 
       case "decodeToken":
         DecodeTokenCommand decodeTokenCommand = (DecodeTokenCommand) command;
-        if (decodeTokenCommand.token == null) {
+        if (null == decodeTokenCommand.token) {
           decodeTokenCommand.token = getString(input, out);
         }
         break;
@@ -396,27 +398,30 @@ public class WorfInteractive {
       EncodeTokenCommand encodeTokenCommand = (EncodeTokenCommand) command;
 
       // updates prompt
-      if (encodeTokenCommand.tokenType == null) {
+      if (null == encodeTokenCommand.tokenType) {
         sb.append("/token type (read|write)");
-      } else if (encodeTokenCommand.application == null) {
+      } else if (null == encodeTokenCommand.application) {
         sb.append("/application name");
         defaultValue = getApplicationName(null, null);
-      } else if (encodeTokenCommand.applications == null && TokenType.READ.equals(encodeTokenCommand.tokenType)) {
+      } else if (null == encodeTokenCommand.applications && TokenType.READ.equals(encodeTokenCommand.tokenType)) {
         sb.append("/application names - optional (app1,app2)");
         defaultValue = null;
-      } else if (encodeTokenCommand.producer == null) {
+      } else if (null == encodeTokenCommand.producer) {
         sb.append("/data producer UUID");
         defaultValue = getUUID(null, null, WorfCLI.P_UUID, null);
-      } else if (Strings.isNullOrEmpty(encodeTokenCommand.owner) && (encodeTokenCommand.owners == null || encodeTokenCommand.owners.isEmpty())) {
+      } else if (null == encodeTokenCommand.producers && TokenType.READ.equals(encodeTokenCommand.tokenType)) {
+        sb.append("/data producers - optional (UUID1,UUID2)");
+        defaultValue = null;
+      } else if (Strings.isNullOrEmpty(encodeTokenCommand.owner) && (null == encodeTokenCommand.owners || encodeTokenCommand.owners.isEmpty())) {
         if (TokenType.READ.equals(encodeTokenCommand.tokenType)) {
           sb.append("/data owners UUID");
         } else {
           sb.append("/data owner UUID");
         }
         defaultValue = getUUID(null, null, WorfCLI.O_UUID, encodeTokenCommand.producer);
-      } else if (encodeTokenCommand.ttl == 0L) {
+      } else if (0L == encodeTokenCommand.ttl) {
         sb.append("/token ttl (ms) ");
-      } else if (encodeTokenCommand.labels == null) {
+      } else if (null == encodeTokenCommand.labels) {
         sb.append("/OPTIONAL fixed labels (key1=value1,key2=value2) ");
       } else {
         sb.append("(generate | cancel)");
@@ -553,9 +558,12 @@ public class WorfInteractive {
     }
   }
 
-  private List<String> getUUIDs(String line, PrintWriter out, String worfDefault, String uuidDefault) {
+  private List<String> getUUIDs(String line, PrintWriter out, boolean optional, String uuidDefault) {
     try {
       if (Strings.isNullOrEmpty(line) && Strings.isNullOrEmpty(uuidDefault)) {
+        if (optional) {
+          return new ArrayList<>();
+        }
         return null;
       }
 

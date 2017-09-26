@@ -57,6 +57,11 @@ public class QuasarTokenEncoder {
     return cypherToken(token, keystore);
   }
 
+  public String deliverReadToken(String appName, String producerUID, java.util.List<java.lang.String> owners, java.util.List<java.lang.String> producers, java.util.List<java.lang.String> apps,  Map<String, String> labels, java.util.Map<java.lang.String, java.lang.String> hooks, long ttl, KeyStore keystore) throws TException {
+    ReadToken token = getReadToken(appName, producerUID, owners, producers, apps, labels, hooks, ttl);
+    return cypherToken(token, keystore);
+  }
+
   /**
    * @param appName     this token belongs to this application
    * @param producerUID this token belongs to this producer
