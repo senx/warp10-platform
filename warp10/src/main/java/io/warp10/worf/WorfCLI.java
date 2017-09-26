@@ -48,7 +48,6 @@ public class WorfCLI {
 
   public static String P_UUID = "puid";
   public static String O_UUID = "ouid";
-  public static String OWNERS = "ouids";
 
   public static String APPNAME = "a";
   public static String LABELS = "l";
@@ -202,8 +201,7 @@ public class WorfCLI {
 
         // owners empty ? add current owner to the authorized owners ()
         if (null == authorizedOwnersUID || authorizedOwnersUID.isEmpty()) {
-          authorizedOwnersUID = new ArrayList<String>();
-          authorizedOwnersUID.add(ownerUID);
+          authorizedOwnersUID = Arrays.asList(ownerUID);
         }
 
         if (cmd.hasOption(APPNAME)) {
@@ -227,10 +225,6 @@ public class WorfCLI {
 
           if (null == authorizedApplications || authorizedApplications.isEmpty()) {
             authorizedApplications = Arrays.asList(appName);
-          }
-          // a token always belongs to an application
-          if (!authorizedApplications.contains(appName)) {
-            authorizedApplications.add(appName);
           }
         }
 

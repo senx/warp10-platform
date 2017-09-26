@@ -395,8 +395,6 @@ public class WorfInteractive {
     if (command instanceof EncodeTokenCommand) {
       EncodeTokenCommand encodeTokenCommand = (EncodeTokenCommand) command;
 
-      System.out.println(encodeTokenCommand.toString());
-
       // updates prompt
       if (encodeTokenCommand.tokenType == null) {
         sb.append("/token type (read|write)");
