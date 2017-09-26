@@ -201,7 +201,7 @@ public class WorfCLI {
         }
 
         // owners empty ? add current owner to the authorized owners ()
-        if (authorizedOwnersUID== null || authorizedOwnersUID.isEmpty()) {
+        if (null == authorizedOwnersUID || authorizedOwnersUID.isEmpty()) {
           authorizedOwnersUID = new ArrayList<String>();
           authorizedOwnersUID.add(ownerUID);
         }
@@ -218,14 +218,14 @@ public class WorfCLI {
             String[] apps = matcher.group(2).split(",");
 
             // adds uuid to the list, fail otherwise
-            for (String app:apps){
+            for (String app: apps){
               authorizedApplications.add(URLDecoder.decode(app, "UTF-8"));
             }
 
             appName = URLDecoder.decode(matcher.group(1), "UTF-8");
           }
 
-          if (authorizedApplications==null || authorizedApplications.isEmpty()) {
+          if (null == authorizedApplications || authorizedApplications.isEmpty()) {
             authorizedApplications = Arrays.asList(appName);
           }
           // a token always belongs to an application
@@ -261,7 +261,7 @@ public class WorfCLI {
               break;
 
             default:
-              throw new WorfException("Invalid token type : " + tt);
+              throw new WorfException("Invalid token type: " + tt);
           }
         } else {
           tokenType = WorfTokenType.READ_WRITE;
@@ -342,7 +342,7 @@ public class WorfCLI {
           if (!token) {
             throw new WorfException("Unable to generate template tokens missing -t option");
           }
-          if (templateKeyMaster == null) {
+          if (null == templateKeyMaster) {
             throw new WorfException("Unable to generate template tokens missing -ks option");
           }
 
@@ -404,7 +404,7 @@ public class WorfCLI {
         String readToken = null;
 
         // save default
-        if (defaultProperties == null) {
+        if (null == defaultProperties) {
           Worf.saveDefault(inputFile, appName, producerUID, ownerUID);
         }
 
@@ -475,7 +475,7 @@ public class WorfCLI {
     consolePrintln("Reading warp10 configuration " + warp10Configuration, out);
     Properties config = Worf.readConfig(warp10Configuration, out);
 
-    if (config == null) {
+    if (null == config) {
       consolePrintln("Unable to read warp10 configuration.", out);
       return -1;
     }

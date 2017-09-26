@@ -70,8 +70,8 @@ public class EncodeTokenCommand extends TokenCommand {
 
         switch (tokenType) {
           case READ:
-            out.println("authorizations: applications" + applications);
-            out.println("authorizations: owners" + owners);
+            out.println("authorizations (applications)=" + applications);
+            out.println("authorizations (owners)=" + owners);
             break;
 
           case WRITE:

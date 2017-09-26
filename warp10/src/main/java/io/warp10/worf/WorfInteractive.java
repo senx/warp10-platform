@@ -25,7 +25,6 @@ import jline.console.completer.Completer;
 import jline.console.completer.StringsCompleter;
 import org.apache.commons.lang.math.NumberUtils;
 import org.apache.commons.math3.util.Pair;
-import org.boon.core.Sys;
 
 import java.io.File;
 import java.io.IOException;
@@ -584,8 +583,8 @@ public class WorfInteractive {
         output.add(strUuid);
       }
       return output;
-    } catch( Exception exp) {
-      if (out!=null) {
+    } catch(Exception exp) {
+      if (null != out) {
         out.println("UUID not valid cause=" + exp.getMessage());
       }
       return null;
