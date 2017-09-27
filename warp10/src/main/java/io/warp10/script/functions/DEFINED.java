@@ -38,7 +38,7 @@ public class DEFINED extends NamedWarpScriptFunction implements WarpScriptStackF
       throw new WarpScriptException(getName() + " expects a string on top of the stack.");
     }
     
-    stack.push(null != stack.load(o.toString()));
+    stack.push(stack.getSymbolTable().containsKey(o.toString()));
 
     return stack;
   }
