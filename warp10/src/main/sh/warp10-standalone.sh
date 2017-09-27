@@ -376,7 +376,7 @@ start() {
     mv ${JAVA_HEAP_DUMP} ${JAVA_HEAP_DUMP}-`date +%s`
   fi
 
-  if [ "`${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '`" != "" ]; then
+  if [ -e ${PID_FILE} ] && [ "`${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" != "" ]; then
     echo "Start failed! - A Warp 10 instance is currently running"
     exit 1
   fi
@@ -443,7 +443,7 @@ start() {
 
   echo $! > ${PID_FILE}
 
-  if [ "`${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '`" = "" ]; then
+  if [ ! -e ${PID_FILE} ] || [ "`${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" = "" ]; then
     echo "Start failed! - See warp10.log for more details"
     exit 1
   fi
