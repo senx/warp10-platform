@@ -180,7 +180,7 @@ public class WorfTemplate {
         token = templateKeyMaster.deliverWriteToken(name, producer, owner, ttl);
 
       } else if ("ReadToken".equals(templateValues[1])) {
-        token = templateKeyMaster.deliverReadToken(name, producer, owner, ttl);
+        token = templateKeyMaster.deliverReadToken(name, Arrays.asList(name), producer, Arrays.asList(owner), ttl);
       }
 
       tokenIdent =  templateKeyMaster.getTokenIdent(token);

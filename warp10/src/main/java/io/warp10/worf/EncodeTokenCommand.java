@@ -21,6 +21,7 @@ import com.google.common.base.Strings;
 import io.warp10.quasar.token.thrift.data.TokenType;
 
 import java.io.PrintWriter;
+import java.util.List;
 import java.util.Map;
 
 public class EncodeTokenCommand extends TokenCommand {
@@ -31,14 +32,21 @@ public class EncodeTokenCommand extends TokenCommand {
 
   public TokenType tokenType = null;
   public String application = null;
+  public List<String> applications = null;
   public String owner = null;
+  public List<String> owners = null;
   public String producer = null;
+  public List<String> producers = null;
   public long ttl = 0L;
   public Map<String,String> labels = null;
 
+  public String toString() {
+    return "type=" + tokenType + " application=" + application + " applications=" + applications + " owner=" + owner + " owners=" + owners + " producer=" + producer + " ttl=" + ttl + " labels=" + labels;
+  }
+
   @Override
   public boolean isReady() {
-    return !Strings.isNullOrEmpty(application) && !Strings.isNullOrEmpty(owner) && !Strings.isNullOrEmpty(producer) && ttl != 0 && tokenType != null;
+    return !Strings.isNullOrEmpty(application) && (!Strings.isNullOrEmpty(owner) || owners!=null ) && !Strings.isNullOrEmpty(producer) && ttl != 0 && tokenType != null;
   }
 
   @Override
@@ -49,7 +57,7 @@ public class EncodeTokenCommand extends TokenCommand {
         String token = null;
         switch (tokenType) {
           case READ:
-            token = worfKeyMaster.deliverReadToken(application, producer, owner, ttl);
+            token = worfKeyMaster.deliverReadToken(application, applications, producer, producers, owners, labels, ttl);
             break;
           case WRITE:
             token = worfKeyMaster.deliverWriteToken(application, producer, owner, labels, ttl);
@@ -59,7 +67,20 @@ public class EncodeTokenCommand extends TokenCommand {
         out.println("token=" + token);
         out.println("tokenIdent=" + worfKeyMaster.getTokenIdent(token));
         out.println("application name=" + application);
-        out.println("producer & owner=" + producer + " & " + owner);
+        out.println("producer=" + producer);
+
+        switch (tokenType) {
+          case READ:
+            out.println("authorizations (applications)=" + applications);
+            out.println("authorizations (owners)=" + owners);
+            out.println("authorizations (producers)=" + producers);
+            break;
+
+          case WRITE:
+            out.println("owner=" + owner);
+            break;
+        }
+
         if (null != labels && labels.size() > 0) {
           out.println("labels=" + labels.toString());
         }
