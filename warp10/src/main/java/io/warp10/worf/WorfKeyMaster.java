@@ -138,10 +138,7 @@ public class WorfKeyMaster {
   }
 
   public String getTokenIdent(String token) {
-    byte[] tokenSipHashkey = keyStore.getKey(KeyStore.SIPHASH_TOKEN);
-    long ident = SipHashInline.hash24_palindromic(tokenSipHashkey, token.getBytes());
-
-    return Long.toHexString(ident);
+    return encoder.getTokenIdent(token, keyStore);
   }
 
   private KeyStore readKeyStore(Properties properties) throws OSSException {
