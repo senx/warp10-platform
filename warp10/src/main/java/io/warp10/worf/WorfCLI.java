@@ -167,7 +167,7 @@ public class WorfCLI {
           producerUID = cmd.getOptionValue(P_UUID);
 
           // test if the UUID have a pattern x{y}
-          Matcher matcher = tokenPattern.matcher(ownerUID);
+          Matcher matcher = tokenPattern.matcher(producerUID);
 
           // extract uuid with the pattern owner{owner1,owner2}
           if (matcher.matches()) {
