@@ -80,6 +80,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
    */
   private long currentops = 0L;
   
+  private String sectionName = null;
+  
   /**
    * Are we currently in a secure macro?
    */
@@ -627,6 +629,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
         }
         
         incOps();
+        checkOps();
 
         if (WarpScriptStack.SECURE_SCRIPT_END.equals(stmt)) {
           if (null == secureScript) {
@@ -849,32 +852,36 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     // for each statement of the macro inside the loop
     incOps();
 
-    boolean secure = Boolean.TRUE.equals(this.getAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO));
+    boolean secure = this.inSecureMacro; //Boolean.TRUE.equals(this.getAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO));
     
     //
     // Save current section name
     //
     
-    String sectionname = (String) this.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME);
+    String sectionname = this.sectionName; //(String) this.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME);
     
     //
     // If we are already in a secure macro, stay in this mode, otherwise an inner macro could lower the
     // secure level
     //
     
-    this.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, !secure ? macro.isSecure() : secure);
+    //this.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, !secure ? macro.isSecure() : secure);
+    this.inSecureMacro = !secure ? macro.isSecure() : secure;
     
     int i = 0;
+    
+    List<Object> stmts = macro.statements();
+    int n = macro.size();
     
     try {
       
       recurseIn();
       
-      for (i = 0; i < macro.size(); i++) {
+      for (i = 0; i < n; i++) {
         // Notify progress
         progress();
         
-        Object stmt = macro.get(i);
+        Object stmt = stmts.get(i);
         
         incOps();
         
@@ -894,7 +901,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
         } else {
           push(stmt);
         }
-      }     
+      }
+      
+      checkOps();
     } catch (WarpScriptReturnException ere) {
       if (this.getCounter(WarpScriptStack.COUNTER_RETURN_DEPTH).decrementAndGet() > 0) {
         throw ere;
@@ -909,10 +918,14 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
         throw new WarpScriptException("Exception at statement '" + macro.get(i).toString() + "' in section '" + section + "' (" + ee.getMessage() + ")", ee);
       }
     } finally {
-      this.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, secure);
+      //this.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, secure);
+      this.inSecureMacro = secure;
       recurseOut();
       // Restore section name
-      this.setAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME, sectionname);
+      this.sectionName = sectionname;
+      //if (sectionname != this.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME)) {
+      //  this.setAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME, sectionname);
+      //}
     }
   }
   
@@ -1127,6 +1140,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       this.maxsymbols = ((Number) value).intValue();
     } else if (WarpScriptStack.ATTRIBUTE_OPS.equals(key)) {
       this.currentops = ((Number) value).longValue();
+    } else if (WarpScriptStack.ATTRIBUTE_SECTION_NAME.equals(key)) {
+      this.sectionName = value.toString();
     } else if (WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE.equals(key)) {
       if (null != value) {
         this.progressable = (Progressable) value;
@@ -1143,6 +1158,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       return this.inSecureMacro;
     } else if (WarpScriptStack.ATTRIBUTE_OPS.equals(key)) {
       return this.currentops;
+    } else if (WarpScriptStack.ATTRIBUTE_SECTION_NAME.equals(key)) {
+      return this.sectionName;
     } else {
       return this.attributes.get(key);
     }
@@ -1156,8 +1173,10 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
    * @throws WarpScriptException
    */
   public void incOps() throws WarpScriptException {
-    this.currentops++;
-    
+    this.currentops++;    
+  }
+  
+  public void checkOps() throws WarpScriptException {
     if (this.currentops > this.maxops) {
       Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_OPSCOUNT_EXCEEDED, Sensision.EMPTY_LABELS, 1);
       throw new WarpScriptException("Operation count (" + this.currentops + ") exceeded maximum of " + this.maxops);
@@ -1293,15 +1312,26 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       this.defined.putAll(context.defined);
     }
   }  
-  
+
+  private long reclevel = 0;
   protected void recurseIn() throws WarpScriptException {
-    if (this.recursionLevel.addAndGet(1) > this.maxrecurse) {
-      throw new WarpScriptException("Maximum recursion level reached (" + this.recursionLevel.get() + ")");
+    if (++this.reclevel > this.maxrecurse) {
+      throw new WarpScriptException("Maximum recursion level reached (" + this.reclevel + ")");
     }
   }
   
+  //protected void recurseIn() throws WarpScriptException {
+  //  if (this.recursionLevel.addAndGet(1) > this.maxrecurse) {
+  //    throw new WarpScriptException("Maximum recursion level reached (" + this.recursionLevel.get() + ")");
+  //  }
+  //}
+  
+  //protected void recurseOut() {
+  //  this.recursionLevel.addAndGet(-1);
+  //}
+  
   protected void recurseOut() {
-    this.recursionLevel.addAndGet(-1);
+    this.reclevel--;
   }
   
   /**
@@ -1322,7 +1352,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       public void incOps() throws WarpScriptException {
         parentStack.incOps();
       }
-      
+
+      @Override
+      public void checkOps() throws WarpScriptException {
+        parentStack.checkOps();
+      }
+
       @Override
       public Object getAttribute(String key) {
         //
