@@ -501,7 +501,13 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       }
     } catch (Exception e) {
       t = e;
-      throw e;
+      // If we have not yet written anything on the output stream, call sendError
+      if (0 == gts) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+        return;
+      } else {
+        throw e;
+      }
     } finally {
       if (null != loggingWriter) {
         Map<String,String> labels = new HashMap<String,String>();
