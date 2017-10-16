@@ -47,6 +47,16 @@ if [ -z "${WARP10_DATA_DIR}" ]; then
 fi
 
 #
+# PID File
+#
+PID_FILE=${WARP10_HOME}/logs/warp10.pid
+
+#
+# File to indicate this is the first init of Warp 10 (bootstrap)
+#
+FIRSTINIT_FILE=${WARP10_HOME}/logs/.firstinit
+
+#
 # Quantum plugin - Plugin embeds Quantum
 #
 # To inhibit/activate Quantum use 'warp10.plugins' attribute in the Warp 10 config
@@ -88,7 +98,9 @@ export SENSISIONID=warp10
 
 LOG4J_CONF=${WARP10_HOME}/etc/log4j.properties
 JAVA_HEAP_DUMP=${WARP10_HOME}/logs/java.heapdump
-JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC"
+# you can specialize your metrics for this instance of Warp10
+#SENSISION_DEFAULT_LABELS=-Dsensision.default.labels=instance=warp10-test,env=dev
+JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC"
 export MALLOC_ARENA_MAX=1
 
 bootstrap() {
@@ -330,16 +342,9 @@ bootstrap() {
   # Generate read/write tokens valid for a period of 100 years. We use 'io.warp10.bootstrap' as application name.
   su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf -q -a io.warp10.bootstrap -puidg -t -ttl 3153600000000 ${WARP10_HOME}/templates/conf-standalone.template -o ${WARP10_CONFIG}" >> ${WARP10_HOME}/etc/initial.tokens
 
-  echo "Warp10 config has been generated here: ${WARP10_CONFIG}"
+  echo "Warp 10 config has been generated here: ${WARP10_CONFIG}"
 
-  #
-  # Output the generated tokens
-  #
-
-  READ_TOKEN=`tail -n 1 ${WARP10_HOME}/etc/initial.tokens | sed -e 's/{"read":{"token":"//' -e 's/".*//'`
-  WRITE_TOKEN=`tail -n 1 ${WARP10_HOME}/etc/initial.tokens | sed -e 's/.*,"write":{"token":"//' -e 's/".*//'`
-
-  INITCONFIG=true
+  touch ${FIRSTINIT_FILE}
 
 }
 
@@ -371,7 +376,7 @@ start() {
     mv ${JAVA_HEAP_DUMP} ${JAVA_HEAP_DUMP}-`date +%s`
   fi
 
-  if [ "`${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '`" != "" ]; then
+  if [ -e ${PID_FILE} ] && [ "`${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" != "" ]; then
     echo "Start failed! - A Warp 10 instance is currently running"
     exit 1
   fi
@@ -423,7 +428,7 @@ start() {
       QUANTUM_LISTENSTO_PORT="`${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.port' | grep 'quantum.port' | sed -e 's/^.*=//'`"
       QUANTUM_LISTENSTO="${QUANTUM_LISTENSTO_HOST}:${QUANTUM_LISTENSTO_PORT}"
     else
-      echo "Start failed! - Quantum is only Java 1.8+ compliant - To start Warp10 with Java7 comment out Quantum plugin in the Warp config file"
+      echo "Start failed! - Quantum is only Java 1.8+ compliant - To start Warp 10 with Java7 comment out Quantum plugin in the Warp config file"
       exit 1
     fi
   else
@@ -436,7 +441,9 @@ start() {
   #
   ${JAVA_HOME}/bin/java ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${WARP10_CONFIG} >> ${WARP10_HOME}/logs/warp10.log 2>&1 &
 
-  if [ "`${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '`" = "" ]; then
+  echo $! > ${PID_FILE}
+
+  if [ ! -e ${PID_FILE} ] || [ "`${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" = "" ]; then
     echo "Start failed! - See warp10.log for more details"
     exit 1
   fi
@@ -456,31 +463,40 @@ start() {
     echo "##"
   fi
 
-  if [ "$INITCONFIG" = true ]; then
+  if [ -e ${FIRSTINIT_FILE} ]; then
+
+    #
+    # Output the generated tokens
+    #
+
+    READ_TOKEN=`tail -n 1 ${WARP10_HOME}/etc/initial.tokens | sed -e 's/{"read":{"token":"//' -e 's/".*//'`
+    WRITE_TOKEN=`tail -n 1 ${WARP10_HOME}/etc/initial.tokens | sed -e 's/.*,"write":{"token":"//' -e 's/".*//'`
+
+    echo "##"
+    echo "## An initial set of tokens was generated for you so you can immediately use Warp 10:"
+    echo "##"
+    echo "## Write Token: ${WRITE_TOKEN}"
+    echo "## Read Token: ${READ_TOKEN}"
+    echo "##"
+    echo "## Push some test data using:"
+    echo "##"
+    echo "##   curl -H 'X-Warp10-Token: ${WRITE_TOKEN}' http://${WARP10_LISTENSTO}/api/v0/update --data-binary '// test{} 42'"
+    echo "##"
+    echo "## And read it back using:"
+    echo "##"
+    echo "##   curl 'http://${WARP10_LISTENSTO}/api/v0/fetch?token=${READ_TOKEN}&selector=~.*\{\}&now=now&timespan=-1'"
+    echo "##"
+    echo "## You can submit WarpScript for execution via:"
+    echo "##"
+    echo "##   curl http://${WARP10_LISTENSTO}/api/v0/exec --data-binary @path/to/WarpScriptFile"
+    echo "##"
+    if [ "$IS_QUANTUM_STARTED" = true ]; then
+      echo "## The alternative to command-line interaction is Quantum, a web application to interact with the platform in an user-friendly way:"
       echo "##"
-      echo "## An initial set of tokens was generated for you so you can immediately use Warp 10:"
+      echo "##   http://${QUANTUM_LISTENSTO}"
       echo "##"
-      echo "## Write Token: ${WRITE_TOKEN}"
-      echo "## Read Token: ${READ_TOKEN}"
-      echo "##"
-      echo "## Push some test data using:"
-      echo "##"
-      echo "##   curl -H 'X-Warp10-Token: ${WRITE_TOKEN}' http://${WARP10_LISTENSTO}/api/v0/update --data-binary '// test{} 42'"
-      echo "##"
-      echo "## And read it back using:"
-      echo "##"
-      echo "##   curl 'http://${WARP10_LISTENSTO}/api/v0/fetch?token=${READ_TOKEN}&selector=~.*\{\}&now=now&timespan=-1'"
-      echo "##"
-      echo "## You can submit WarpScript for execution via:"
-      echo "##"
-      echo "##   curl http://${WARP10_LISTENSTO}/api/v0/exec --data-binary @path/to/WarpScriptFile"
-      echo "##"
-      if [ "$IS_QUANTUM_STARTED" = true ]; then
-        echo "## The alternative to command-line interaction is Quantum, a web application to interact with the platform in an user-friendly way:"
-        echo "##"
-        echo "##   http://${QUANTUM_LISTENSTO}"
-        echo "##"
-      fi
+    fi
+    rm -f ${FIRSTINIT_FILE}
 
   fi
 }
@@ -497,10 +513,11 @@ stop() {
     exit 1
   fi
 
-  echo "Stop Warp10..."
-  if [ "`${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '`" != "" ]
+  echo "Stop Warp 10..."
+  if [ -e ${PID_FILE} ] && [ "`${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" != "" ]
   then
-    kill `${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '`
+    kill `${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`
+    rm -f ${PID_FILE}
   else
     echo "No instance of Warp 10 is currently running"
   fi
@@ -517,8 +534,10 @@ status() {
     echo "You must be ${WARP10_USER} to run this script."
     exit 1
   fi
-
-  ${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}
+  if [ -e ${PID_FILE} ]
+  then
+    ${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})
+  fi
 }
 
 snapshot() {
@@ -528,7 +547,7 @@ snapshot() {
   fi
   # Name of snapshot
   SNAPSHOT=$2
-  ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT} "${WARP10_HOME}" "${LEVELDB_HOME}" 
+  ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT} "${WARP10_HOME}" "${LEVELDB_HOME}" "${PID_FILE}"
 }
 
 worfcli() {

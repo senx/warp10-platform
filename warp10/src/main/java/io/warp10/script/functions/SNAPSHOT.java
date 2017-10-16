@@ -278,7 +278,10 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(((RSAPrivateKey) o).getModulus());
         sb.append("' } ");
         sb.append(WarpScriptLib.RSAPRIVATE);
-        sb.append(" ");        
+        sb.append(" ");
+      } else if (o instanceof NamedWarpScriptFunction) {
+        sb.append(o.toString());
+        sb.append(" ");
       } else {
         // Some types are not supported
         // functions, PImage...

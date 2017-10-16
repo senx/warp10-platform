@@ -1260,4 +1260,13 @@ public class GTSEncoder {
   public void writeTo(OutputStream out) throws IOException {
     this.stream.writeTo(out);    
   }
+
+  public GTSEncoder cloneEmpty() {
+    GTSEncoder encoder = new GTSEncoder(this.baseTimestamp);
+    if (null != this.wrappingKey) {
+      encoder.setWrappingKey(Arrays.copyOf(this.wrappingKey, this.wrappingKey.length));
+    }
+    
+    return encoder;
+  }
 }

@@ -742,7 +742,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             Object o = load(stmt.substring(1));
             
             if (null == o) {
-              throw new WarpScriptException("Unknown symbol '" + stmt.substring(1) + "'");
+              if (!getSymbolTable().containsKey(stmt.substring(1))) {
+                throw new WarpScriptException("Unknown symbol '" + stmt.substring(1) + "'");
+              }
             }
             
             push(o);
@@ -757,7 +759,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           Object o = load(stmt.substring(2));
           
           if (null == o) {
-            throw new WarpScriptException("Unknown symbol '" + stmt.substring(2) + "'");
+            if (!getSymbolTable().containsKey(stmt.substring(2))) {
+              throw new WarpScriptException("Unknown symbol '" + stmt.substring(2) + "'");
+            }
           }
 
           if (macros.isEmpty()) {
@@ -1060,7 +1064,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   public Object load(String symbol) {
     return this.symbolTable.get(symbol);
   }
-  
+    
   @Override
   public void store(String symbol, Object value) throws WarpScriptException {
     

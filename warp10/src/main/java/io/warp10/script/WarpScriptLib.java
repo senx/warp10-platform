@@ -485,6 +485,7 @@ public class WarpScriptLib {
     functions.put(MAP_START, new MARK(MAP_START));
     functions.put(MAP_END, new ENDMAP(MAP_END));
     functions.put("SECUREKEY", new SECUREKEY("SECUREKEY"));
+    functions.put("SECURE", new SECURE("SECURE"));
     functions.put("UNSECURE", new UNSECURE("UNSECURE", true));
     functions.put(EVALSECURE, new EVALSECURE(EVALSECURE));
     functions.put("NOOP", new NOOP("NOOP"));
@@ -888,6 +889,11 @@ public class WarpScriptLib {
     functions.put("mapper.add", new MapperAdd.Builder("mapper.add"));
     functions.put("mapper.mul", new MapperMul.Builder("mapper.mul"));
     functions.put("mapper.pow", new MapperPow.Builder("mapper.pow"));
+    try {
+      functions.put("mapper.sqrt", new MapperPow("mapper.sqrt", 0.5D));
+    } catch (WarpScriptException wse) {
+      throw new RuntimeException(wse);
+    }
     functions.put("mapper.exp", new MapperExp.Builder("mapper.exp"));
     functions.put("mapper.log", new MapperLog.Builder("mapper.log"));
     functions.put("mapper.min.x", new MapperMinX.Builder("mapper.min.x"));          

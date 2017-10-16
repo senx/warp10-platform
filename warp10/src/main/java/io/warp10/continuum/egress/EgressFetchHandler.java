@@ -65,6 +65,7 @@ import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
@@ -328,6 +329,7 @@ public class EgressFetchHandler extends AbstractHandler {
       
       Long activeAfter = null == req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
       Long quietAfter = null == req.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
+      boolean sortMeta = "true".equals(req.getParameter(Constants.HTTP_PARAM_SORTMETA));
       
       //
       // Extract the class and labels selectors
@@ -693,25 +695,25 @@ public class EgressFetchHandler extends AbstractHandler {
               }
               
               if("text".equals(format)) {
-                textDump(pw, iter, now, timespan, false, dedup, signed, showAttr, lastMeta, lastCount);
+                textDump(pw, iter, now, timespan, false, dedup, signed, showAttr, lastMeta, lastCount, sortMeta);
               } else if ("fulltext".equals(format)) {
-                textDump(pw, iter, now, timespan, true, dedup, signed, showAttr, lastMeta, lastCount);
+                textDump(pw, iter, now, timespan, true, dedup, signed, showAttr, lastMeta, lastCount, sortMeta);
               } else if ("raw".equals(format)) {
-                rawDump(pw, iter, dedup, signed, timespan, lastMeta, lastCount);
+                rawDump(pw, iter, dedup, signed, timespan, lastMeta, lastCount, sortMeta);
               } else if ("wrapper".equals(format)) {
                 wrapperDump(pw, iter, dedup, signed, fetchPSK, timespan, lastMeta, lastCount);
               } else if ("json".equals(format)) {
                 jsonDump(pw, iter, now, timespan, dedup, signed, lastMeta, lastCount);
               } else if ("tsv".equals(format)) {
-                tsvDump(pw, iter, now, timespan, false, dedup, signed, lastMeta, lastCount);
+                tsvDump(pw, iter, now, timespan, false, dedup, signed, lastMeta, lastCount, sortMeta);
               } else if ("fulltsv".equals(format)) {
-                tsvDump(pw, iter, now, timespan, true, dedup, signed, lastMeta, lastCount);
+                tsvDump(pw, iter, now, timespan, true, dedup, signed, lastMeta, lastCount, sortMeta);
               } else if ("pack".equals(format)) {
-                packedDump(pw, iter, now, timespan, dedup, signed, lastMeta, lastCount, maxDecoderLen, suffix, chunksize);
+                packedDump(pw, iter, now, timespan, dedup, signed, lastMeta, lastCount, maxDecoderLen, suffix, chunksize, sortMeta);
               } else if ("null".equals(format)) {
                 nullDump(iter);
               } else {
-                textDump(pw, iter, now, timespan, false, dedup, signed, showAttr, lastMeta, lastCount);
+                textDump(pw, iter, now, timespan, false, dedup, signed, showAttr, lastMeta, lastCount, sortMeta);
               }
             } catch (Throwable t) {
               LOG.error("",t);
@@ -761,7 +763,7 @@ public class EgressFetchHandler extends AbstractHandler {
     }
   }
   
-  private static void rawDump(PrintWriter pw, GTSDecoderIterator iter, boolean dedup, boolean signed, long timespan, AtomicReference<Metadata> lastMeta, AtomicLong lastCount) throws IOException {
+  private static void rawDump(PrintWriter pw, GTSDecoderIterator iter, boolean dedup, boolean signed, long timespan, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean sortMeta) throws IOException {
     
     String name = null;
     Map<String,String> labels = null;
@@ -811,6 +813,10 @@ public class EgressFetchHandler extends AbstractHandler {
       GTSHelper.encodeName(sb, name);
       sb.append("{");
       boolean first = true;
+      
+      if (sortMeta) {
+        lbls = new TreeMap<String,String>(lbls);
+      }
       
       for (Entry<String, String> entry: lbls.entrySet()) {
         //
@@ -1010,7 +1016,7 @@ public class EgressFetchHandler extends AbstractHandler {
    * Output a text version of fetched data. Deduplication is done on the fly so we don't decode twice.
    * 
    */
-  private static void textDump(PrintWriter pw, GTSDecoderIterator iter, long now, long timespan, boolean raw, boolean dedup, boolean signed, boolean showAttributes, AtomicReference<Metadata> lastMeta, AtomicLong lastCount) throws IOException {
+  private static void textDump(PrintWriter pw, GTSDecoderIterator iter, long now, long timespan, boolean raw, boolean dedup, boolean signed, boolean showAttributes, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean sortMeta) throws IOException {
     
     String name = null;
     Map<String,String> labels = null;
@@ -1058,6 +1064,10 @@ public class EgressFetchHandler extends AbstractHandler {
         GTSHelper.encodeName(sb, name);
         sb.append("{");
         boolean first = true;
+
+        if (sortMeta) {
+          lbls = new TreeMap<String, String>(lbls);
+        }
         
         for (Entry<String, String> entry: lbls.entrySet()) {
           //
@@ -1085,6 +1095,11 @@ public class EgressFetchHandler extends AbstractHandler {
         if (showAttributes) {
           Metadata meta = decoder.getMetadata();
           if (meta.getAttributesSize() > 0) {
+            
+            if (sortMeta) {
+              meta.setAttributes(new TreeMap<String,String>(meta.getAttributes()));
+            }
+            
             GTSHelper.labelsToString(sb, meta.getAttributes());
           } else {
             sb.append("{}");
@@ -1426,7 +1441,7 @@ public class EgressFetchHandler extends AbstractHandler {
    * Output a tab separated version of fetched data. Deduplication is done on the fly so we don't decode twice.
    * 
    */
-  private static void tsvDump(PrintWriter pw, GTSDecoderIterator iter, long now, long timespan, boolean raw, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount) throws IOException {
+  private static void tsvDump(PrintWriter pw, GTSDecoderIterator iter, long now, long timespan, boolean raw, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean sortMeta) throws IOException {
     
     String name = null;
     Map<String,String> labels = null;
@@ -1479,6 +1494,9 @@ public class EgressFetchHandler extends AbstractHandler {
         attributesSB.setLength(0);
         boolean first = true;
         
+        if (sortMeta) {
+          lbls = new TreeMap<String,String>(lbls);
+        }
         for (Entry<String, String> entry: lbls.entrySet()) {
           //
           // Skip owner/producer labels and any other 'private' labels
@@ -1503,6 +1521,11 @@ public class EgressFetchHandler extends AbstractHandler {
 
         first = true;
         if (decoder.getMetadata().getAttributesSize() > 0) {
+          
+          if (sortMeta) {
+            decoder.getMetadata().setAttributes(new TreeMap<String,String>(decoder.getMetadata().getAttributes()));
+          }
+          
           for (Entry<String, String> entry: decoder.getMetadata().getAttributes().entrySet()) {
             if (!first) {
               attributesSB.append(",");
@@ -1738,7 +1761,7 @@ public class EgressFetchHandler extends AbstractHandler {
     }
   }
   
-  private void packedDump(PrintWriter pw, GTSDecoderIterator iter, long now, long timespan, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, int maxDecoderLen, String classSuffix, long chunksize) throws IOException {
+  private void packedDump(PrintWriter pw, GTSDecoderIterator iter, long now, long timespan, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, int maxDecoderLen, String classSuffix, long chunksize, boolean sortMeta) throws IOException {
     
     String name = null;
     Map<String,String> labels = null;
@@ -1790,6 +1813,10 @@ public class EgressFetchHandler extends AbstractHandler {
       GTSHelper.encodeName(sb, name + classSuffix);
       sb.append("{");
       boolean first = true;
+      
+      if (sortMeta) {
+        lbls = new TreeMap<String,String>(lbls);
+      }
       
       for (Entry<String, String> entry: lbls.entrySet()) {
         //

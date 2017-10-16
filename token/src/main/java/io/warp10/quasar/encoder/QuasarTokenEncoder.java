@@ -16,6 +16,7 @@
 
 package io.warp10.quasar.encoder;
 
+import org.apache.commons.codec.binary.Hex;
 import org.apache.thrift.TBase;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -54,6 +55,11 @@ public class QuasarTokenEncoder {
 
   public String deliverReadToken(String appName, String producerUID, java.util.List<java.lang.String> owners, java.util.List<java.lang.String> apps,  Map<String, String> labels, java.util.Map<java.lang.String, java.lang.String> hooks, long ttl, KeyStore keystore) throws TException {
     ReadToken token = getReadToken(appName, producerUID, owners, null, apps, labels, hooks, ttl);
+    return cypherToken(token, keystore);
+  }
+
+  public String deliverReadToken(String appName, String producerUID, java.util.List<java.lang.String> owners, java.util.List<java.lang.String> producers, java.util.List<java.lang.String> apps,  Map<String, String> labels, java.util.Map<java.lang.String, java.lang.String> hooks, long ttl, KeyStore keystore) throws TException {
+    ReadToken token = getReadToken(appName, producerUID, owners, producers, apps, labels, hooks, ttl);
     return cypherToken(token, keystore);
   }
 
@@ -186,6 +192,20 @@ public class QuasarTokenEncoder {
     String accessToken = new String(OrderPreservingBase64.encode(wrappedData));
 
     return accessToken;
+  }
+
+  public String getTokenIdent(String token, KeyStore keystore) {
+    byte[] tokenSipHashkey = keystore.getKey(KeyStore.SIPHASH_TOKEN);
+    return getTokenIdent(token, tokenSipHashkey);
+  }
+
+  public String getTokenIdent(String token, byte[] tokenSipHashkey) {
+    long ident = SipHashInline.hash24_palindromic(tokenSipHashkey, token.getBytes());
+
+    ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+    buffer.order(ByteOrder.BIG_ENDIAN);
+    buffer.putLong(ident);
+    return Hex.encodeHexString(buffer.array());
   }
 
   private ByteBuffer toByteBuffer(String strUUID) {

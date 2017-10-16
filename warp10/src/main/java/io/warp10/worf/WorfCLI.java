@@ -23,13 +23,20 @@ import org.codehaus.jettison.json.JSONObject;
 
 import java.io.File;
 import java.io.PrintWriter;
+import java.net.URLDecoder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Map;
-import java.util.Properties;
-import java.util.UUID;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class WorfCLI {
+  public enum WorfTokenType {
+    READ,
+    WRITE,
+    READ_WRITE
+  }
+
   public static boolean verbose = false;
   public static boolean quiet = false;
 
@@ -52,13 +59,16 @@ public class WorfCLI {
   private static String OUTPUT = "o";
   private static String QUIET = "q";
   private static String TOKEN = "t";
+  private static String TOKEN_TYPE = "tt";
   private static String TTL = "ttl";
   private static String KEYSTORE = "ks";
 
+  private static Pattern tokenPattern = Pattern.compile("([^\\{\\}]+)\\{([^\\{\\}]+)\\}");
   public WorfCLI() {
     options.addOption(new Option(KEYSTORE, "keystore", true, "configuration file for generating tokens inside templates"));
     options.addOption(new Option(OUTPUT, "output", true, "output configuration destination file"));
     options.addOption(new Option(TOKEN, "tokens", false, "generate read/write tokens"));
+    options.addOption(new Option(TOKEN_TYPE, true, "token types generated r|w|rw (default rw)"));
     options.addOption(new Option("f", "format", false, "output tokens format. (default JSON)"));
     options.addOption(new Option(QUIET, "quiet", false, "Only tokens or error are written on the console"));
 
@@ -76,7 +86,6 @@ public class WorfCLI {
     options.addOption(new Option(APPNAME, "app-name", true, "token application name. Used by token option or @warp:writeToken@ template"));
     options.addOption(new Option(LABELS, "labels", true, "enclosed label list for read/write tokens (following ingress input format : xbeeId=XBee_40670F0D,moteId=53)"));
     options.addOption(new Option(TTL, "ttl", true, "token time to live (ms). Used by token option or @warp:writeToken@ template"));
-
 
     options.addOption(HELP, "help", false, "show help.");
     options.addOption(VERBOSE, "verbose", false, "Verbose mode");
@@ -105,6 +114,12 @@ public class WorfCLI {
       String producerUID = null;
       String ownerUID = null;
       String appName = null;
+      WorfTokenType tokenType = null;
+
+      List<String> authorizedOwnersUID = null;
+      List<String> authorizedProducersUID = null;
+      List<String> authorizedApplications = null;
+
       String lbs = null;
       Map<String, String> labels = null;
       boolean labelMap = false;
@@ -150,8 +165,28 @@ public class WorfCLI {
           producerUID = UUID.randomUUID().toString();
         } else if (cmd.hasOption(P_UUID)) {
           producerUID = cmd.getOptionValue(P_UUID);
-          UUID.fromString(producerUID);
+
+          // test if the UUID have a pattern x{y}
+          Matcher matcher = tokenPattern.matcher(producerUID);
+
+          // extract uuid with the pattern owner{owner1,owner2}
+          if (matcher.matches()) {
+            authorizedProducersUID = new ArrayList<>();
+            String[] uuids = matcher.group(2).split(",");
+
+            // adds uuid to the list, fail otherwise
+            for (String uuid : uuids) {
+              UUID.fromString(uuid);
+              authorizedProducersUID.add(uuid);
+            }
+
+            // save the token owner
+            producerUID = matcher.group(1);
+          }
         }
+
+        // check the producer UUID validity
+        UUID.fromString(producerUID);
 
         // OWNER UUID OPTION (mandatory)
         // --------------------------------------------------------------------
@@ -159,13 +194,59 @@ public class WorfCLI {
           ownerUID = UUID.randomUUID().toString();
         } else if (cmd.hasOption(O_UUID)) {
           ownerUID = cmd.getOptionValue(O_UUID);
+
+          // test if the UUID have a pattern x{y}
+          Matcher matcher = tokenPattern.matcher(ownerUID);
+
+          // extract uuid with the pattern owner{owner1,owner2}
+          if (matcher.matches()) {
+            authorizedOwnersUID = new ArrayList<>();
+            String[] uuids = matcher.group(2).split(",");
+
+            // adds uuid to the list, fail otherwise
+            for (String uuid:uuids){
+              UUID.fromString(uuid);
+              authorizedOwnersUID.add(uuid);
+            }
+
+            // save the token owner
+            ownerUID = matcher.group(1);
+          }
+
+          // test the validity of the owner uuid
           UUID.fromString(ownerUID);
+
         } else {
           ownerUID = producerUID;
         }
 
+        // owners empty ? add current owner to the authorized owners ()
+        if (null == authorizedOwnersUID || authorizedOwnersUID.isEmpty()) {
+          authorizedOwnersUID = Arrays.asList(ownerUID);
+        }
+
         if (cmd.hasOption(APPNAME)) {
           appName = cmd.getOptionValue(APPNAME);
+
+          // test if the appname have a pattern x{y}
+          Matcher matcher = tokenPattern.matcher(appName);
+
+          // extract app names of pattern app{app,app1,app2}
+          if (matcher.matches()) {
+            authorizedApplications = new ArrayList<>();
+            String[] apps = matcher.group(2).split(",");
+
+            // adds uuid to the list, fail otherwise
+            for (String app: apps){
+              authorizedApplications.add(URLDecoder.decode(app, "UTF-8"));
+            }
+
+            appName = URLDecoder.decode(matcher.group(1), "UTF-8");
+          }
+
+          if (null == authorizedApplications || authorizedApplications.isEmpty()) {
+            authorizedApplications = Arrays.asList(appName);
+          }
         }
 
         if (cmd.hasOption(LABELS)) {
@@ -179,6 +260,27 @@ public class WorfCLI {
           }
         }
 
+        if (cmd.hasOption(TOKEN_TYPE)) {
+          String tt = cmd.getOptionValue(TOKEN_TYPE);
+          switch (tt) {
+            case "r":
+              tokenType = WorfTokenType.READ;
+              break;
+
+            case "w":
+              tokenType = WorfTokenType.WRITE;
+              break;
+
+            case "rw":
+              tokenType = WorfTokenType.READ_WRITE;
+              break;
+
+            default:
+              throw new WorfException("Invalid token type: " + tt);
+          }
+        } else {
+          tokenType = WorfTokenType.READ_WRITE;
+        }
 
         if (cmd.hasOption(TTL)) {
           ttl = Long.parseLong(cmd.getOptionValue(TTL));
@@ -255,7 +357,7 @@ public class WorfCLI {
           if (!token) {
             throw new WorfException("Unable to generate template tokens missing -t option");
           }
-          if (templateKeyMaster == null) {
+          if (null == templateKeyMaster) {
             throw new WorfException("Unable to generate template tokens missing -ks option");
           }
 
@@ -317,44 +419,55 @@ public class WorfCLI {
         String readToken = null;
 
         // save default
-        if (defaultProperties == null) {
+        if (null == defaultProperties) {
           Worf.saveDefault(inputFile, appName, producerUID, ownerUID);
         }
 
         // deliver token
-
-        if (labelMap) {
-           readToken = keyMaster.deliverReadToken(appName, producerUID, ownerUID, labels, ttl);
-           writeToken = keyMaster.deliverWriteToken(appName, producerUID, ownerUID, labels, ttl);
-        } else {
-           readToken = keyMaster.deliverReadToken(appName, producerUID, ownerUID, ttl);
-           writeToken = keyMaster.deliverWriteToken(appName, producerUID, ownerUID,  ttl);
+        switch(tokenType) {
+          case READ:
+            readToken = keyMaster.deliverReadToken(appName, authorizedApplications, producerUID, authorizedProducersUID, authorizedOwnersUID, labels, ttl);
+            break;
+          case WRITE:
+            writeToken = keyMaster.deliverWriteToken(appName, producerUID, ownerUID, labels, ttl);
+            break;
+          case READ_WRITE:
+            readToken = keyMaster.deliverReadToken(appName, authorizedApplications, producerUID, authorizedProducersUID, authorizedOwnersUID, labels, ttl);
+            writeToken = keyMaster.deliverWriteToken(appName, producerUID, ownerUID, labels, ttl);
+            break;
         }
 
         // write outputformat
         JSONObject jsonOutput = new JSONObject();
-        JSONObject jsonToken = new JSONObject();
-        jsonToken.put("token", readToken);
-        jsonToken.put("tokenIdent", keyMaster.getTokenIdent(readToken));
-        jsonToken.put("ttl", ttl);
-        jsonToken.put("application", appName);
-        jsonToken.put("owner", ownerUID);
-        jsonToken.put("producer", producerUID);
-
-        jsonOutput.put("read", jsonToken);
-
-        jsonToken = new JSONObject();
-        jsonToken.put("token", writeToken);
-        jsonToken.put("tokenIdent", keyMaster.getTokenIdent(writeToken));
-        jsonToken.put("ttl", ttl);
-        jsonToken.put("application", appName);
-        jsonToken.put("owner", ownerUID);
-        jsonToken.put("producer", producerUID);
-        if (labelMap) {
-          jsonToken.put("labels", labels.toString());
+        if (!Strings.isNullOrEmpty(readToken)) {
+          JSONObject jsonToken = new JSONObject();
+          jsonToken.put("token", readToken);
+          jsonToken.put("tokenIdent", keyMaster.getTokenIdent(readToken));
+          jsonToken.put("ttl", ttl);
+          jsonToken.put("application", appName);
+          jsonToken.put("applications", authorizedApplications);
+          jsonToken.put("owners", authorizedOwnersUID);
+          jsonToken.put("producer", producerUID);
+          jsonToken.put("producers", authorizedProducersUID);
+          if (labelMap) {
+            jsonToken.put("labels", labels.toString());
+          }
+          jsonOutput.put("read", jsonToken);
         }
-        jsonOutput.put("write", jsonToken);
 
+        if (!Strings.isNullOrEmpty(writeToken)) {
+          JSONObject jsonToken = new JSONObject();
+          jsonToken.put("token", writeToken);
+          jsonToken.put("tokenIdent", keyMaster.getTokenIdent(writeToken));
+          jsonToken.put("ttl", ttl);
+          jsonToken.put("application", appName);
+          jsonToken.put("owner", ownerUID);
+          jsonToken.put("producer", producerUID);
+          if (labelMap) {
+            jsonToken.put("labels", labels.toString());
+          }
+          jsonOutput.put("write", jsonToken);
+        }
         System.out.println(jsonOutput.toString());
       }
 
@@ -378,7 +491,7 @@ public class WorfCLI {
     consolePrintln("Reading warp10 configuration " + warp10Configuration, out);
     Properties config = Worf.readConfig(warp10Configuration, out);
 
-    if (config == null) {
+    if (null == config) {
       consolePrintln("Unable to read warp10 configuration.", out);
       return -1;
     }
@@ -401,7 +514,7 @@ public class WorfCLI {
     HelpFormatter formatter = new HelpFormatter();
 
     String header = "DESCRIPTION";
-    String footer = " \n \nCOPYRIGHT\nCopyright © 2016 Cityzen Data.\n Licensed under the Apache License, Version 2.0 (the \"License\")\n" +
+    String footer = " \n \nCOPYRIGHT\nCopyright © 2017 Cityzen Data.\n Licensed under the Apache License, Version 2.0 (the \"License\")\n" +
         "you may not use this file except in compliance with the License.\n" +
         "You may obtain a copy of the License at\n" +
         "http://www.apache.org/licenses/LICENSE-2.0";

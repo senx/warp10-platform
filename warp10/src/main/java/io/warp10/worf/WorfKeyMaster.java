@@ -33,10 +33,7 @@ import org.apache.thrift.TException;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 public class WorfKeyMaster {
   Properties config;
@@ -64,13 +61,17 @@ public class WorfKeyMaster {
     return (keyStore != null);
   }
 
-  public String deliverReadToken(String application, String producer, String owner, long ttl) throws WorfException {
-    return deliverReadToken(application, producer, owner, null, ttl);
+  public String deliverReadToken(String application, List<String> applications, String producer, List<String> owners, long ttl) throws WorfException {
+    return deliverReadToken(application, applications, producer, null, owners, null, ttl);
   }
 
-  public String deliverReadToken(String application, String producer, String owner, Map<String,String> labels, long ttl) throws WorfException {
+  public String deliverReadToken(String application, List<String> applications, String producer, List<String> owners, Map<String,String> labels, long ttl) throws WorfException {
+    return deliverReadToken(application, applications, producer, null, owners, labels, ttl);
+  }
+
+  public String deliverReadToken(String application, List<String> applications, String producer, List<String> producers, List<String> owners, Map<String,String> labels, long ttl) throws WorfException {
     try {
-      return encoder.deliverReadToken(application, producer, owner, Arrays.asList(application), labels, ttl, keyStore);
+      return encoder.deliverReadToken(application, producer, owners, producers, applications, labels, null, ttl, keyStore);
     } catch (TException e) {
      throw new WorfException("Unable to deliver read token cause=" + e.getMessage());
     }
@@ -137,10 +138,7 @@ public class WorfKeyMaster {
   }
 
   public String getTokenIdent(String token) {
-    byte[] tokenSipHashkey = keyStore.getKey(KeyStore.SIPHASH_TOKEN);
-    long ident = SipHashInline.hash24_palindromic(tokenSipHashkey, token.getBytes());
-
-    return Long.toHexString(ident);
+    return encoder.getTokenIdent(token, keyStore);
   }
 
   private KeyStore readKeyStore(Properties properties) throws OSSException {

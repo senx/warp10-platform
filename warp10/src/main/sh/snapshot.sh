@@ -6,7 +6,6 @@
 
 #JAVA_HOME=/opt/java8
 WARP10_USER=warp10
-WARP10_CLASS=io.warp10.standalone.Warp
 
 #
 # Make sure the caller is warp10
@@ -24,14 +23,16 @@ if [ "$#" -eq 1 ]; then
   # default
   WARP10_HOME=/opt/warp10-@VERSION@
   LEVELDB_HOME=${WARP10_HOME}/leveldb
-elif [ "$#" -eq 3 ]; then
+  PID_FILE=${WARP10_HOME}/logs/warp10.pid
+elif [ "$#" -eq 4 ]; then
   # Name of snapshot
   SNAPSHOT=$1
   # default
   WARP10_HOME=$2
   LEVELDB_HOME=$3
+  PID_FILE=$4
 else
-  echo "Usage: $0 'snapshot-name' ['{WARP10_HOME}' '{LEVELDB_HOME}']"
+  echo "Usage: $0 'snapshot-name' ['{WARP10_HOME}' '{LEVELDB_HOME}' '{PID_FILE}']"
   exit 1
 fi
 
@@ -59,7 +60,7 @@ fi
 # Check if Warp instance is currently running
 #
 
-if [ "`${JAVA_HOME}/bin/jps -lm|grep ${WARP10_CLASS}|cut -f 1 -d' '`" = "" ]
+if [ ! -e ${PID_FILE} ] || [ "`${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" = "" ]
 then
   echo "No Warp 10 instance is currently running !"
   exit 1
