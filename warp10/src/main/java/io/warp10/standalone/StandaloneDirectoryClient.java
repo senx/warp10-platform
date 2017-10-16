@@ -751,7 +751,18 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     metadata.setLabelsId(labelsId);
     
     if (null == metadata.getAttributes()) {
+      Metadata oldmeta = null;
+      // Copy the attributes if the Metadata is already known, which can happen when
+      // tracking the activity
+      synchronized(metadatas) {
+        if (metadatas.containsKey(metadata.getName())) {
+          oldmeta = metadatas.get(metadata.getName()).get(labelsId);        
+        }        
+      }
       metadata.setAttributes(new HashMap<String,String>());
+      if (null != oldmeta && oldmeta.getAttributesSize() > 0) {
+        metadata.getAttributes().putAll(oldmeta.getAttributes());
+      }
     }
     
     TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
@@ -767,6 +778,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         //this.db.put(bytes, serialized);
         store(bytes, serialized);
       }
+      
       synchronized (metadatas) {
         if (!metadatas.containsKey(metadata.getName())) {
           metadatas.put(metadata.getName(), (Map) new MapMaker().concurrencyLevel(64).makeMap());
