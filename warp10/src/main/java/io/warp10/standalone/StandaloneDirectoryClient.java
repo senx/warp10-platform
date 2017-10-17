@@ -750,18 +750,23 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     metadata.setClassId(classId);
     metadata.setLabelsId(labelsId);
     
-    if (null == metadata.getAttributes()) {
-      Metadata oldmeta = null;
-      // Copy the attributes if the Metadata is already known, which can happen when
-      // tracking the activity
-      synchronized(metadatas) {
-        if (metadatas.containsKey(metadata.getName())) {
-          oldmeta = metadatas.get(metadata.getName()).get(labelsId);        
-        }        
-      }
+    if (null == metadata.getAttributes() || !Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
       metadata.setAttributes(new HashMap<String,String>());
-      if (null != oldmeta && oldmeta.getAttributesSize() > 0) {
-        metadata.getAttributes().putAll(oldmeta.getAttributes());
+      
+      // If we are not updating the attributes, copy the attributes from the directory as we are probably
+      // registering the GTS due to its recent activity.
+      if (!Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
+        Metadata oldmeta = null;
+        // Copy the attributes if the Metadata is already known, which can happen when
+        // tracking the activity
+        synchronized(metadatas) {
+          if (metadatas.containsKey(metadata.getName())) {
+            oldmeta = metadatas.get(metadata.getName()).get(labelsId);        
+          }        
+        }
+        if (null != oldmeta && oldmeta.getAttributesSize() > 0) {
+          metadata.getAttributes().putAll(oldmeta.getAttributes());
+        }        
       }
     }
     
