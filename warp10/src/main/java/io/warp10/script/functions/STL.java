@@ -144,11 +144,6 @@ public class STL extends GTSStackFunction {
         }
       }        
     }
-
-    // If ROBUST_PARAM is not set, consider it false
-    if (null == params.get(ROBUST_PARAM)) {
-      params.put(ROBUST_PARAM, false);
-    }
     
     // Handle multinomial fields if any (ie BANDWITDTH, DEGREE and SPEED without suffixes are set to every lowess call)
     for (int u = 0; u < 3; u++) {
@@ -189,6 +184,11 @@ public class STL extends GTSStackFunction {
     
     // only buckets_per_period is mandatory
     int buckets_per_period = (int) params.get(PERIOD_PARAM);
+
+    // If ROBUST_PARAM is not set, consider it false
+    if (null == params.get(ROBUST_PARAM)) {
+      params.put(ROBUST_PARAM, false);
+    }
 
     // number of inner and outer loop: 1 and 15 if robust, 2 and 0 otherwise.
     int inner = (boolean) params.get(ROBUST_PARAM) ? 1 : 2;
