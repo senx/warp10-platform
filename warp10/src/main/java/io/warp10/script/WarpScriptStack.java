@@ -55,6 +55,9 @@ public interface WarpScriptStack {
   public static final long DEFAULT_MAX_PIXELS = 1000000L;
   public static final long DEFAULT_URLFETCH_LIMIT = 64;
   public static final long DEFAULT_URLFETCH_MAXSIZE = 1000000L;
+  public static final String MACRO_BINDING_EARLY = "early";
+  public static final String MACRO_BINDING_LATE = "late";
+  public static final String DEFAULT_MACRO_BINDING = MACRO_BINDING_EARLY;
   
   public static final String MACRO_START = "<%";
   public static final String MACRO_END = "%>";
@@ -69,6 +72,11 @@ public interface WarpScriptStack {
   public static final String SECURE_SCRIPT_END = "S>";
   
   public static final String TOP_LEVEL_SECTION = "[TOP]";
+  
+  /**
+   * Current binding for macros
+   */
+  public static final String ATTRIBUTE_MACRO_BINDING = "macro.binding";
   
   /**
    * Prefix for traceing push/pop
@@ -659,10 +667,20 @@ public interface WarpScriptStack {
    * 
    * @param key Name of the attribute to retrieve.
    * 
-   * @return The value store unded 'key' or null
+   * @return The value store under 'key' or null
    */
   public Object getAttribute(String key);
-  
+
+  /**
+   * Return the value of an attribute or a default value if attribute is unset.
+   * 
+   * @param key Name of the attribute to retrieve.
+   * @param defaultValue Default value to return
+   * 
+   * @return The value store under 'key' or 'defaultValue'
+   */
+  public Object getAttribute(String key, Object defaultValue);
+
   /**
    * Return the ith counter associated with the stack
    * @param i
