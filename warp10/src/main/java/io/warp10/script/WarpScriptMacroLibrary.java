@@ -209,12 +209,19 @@ public class WarpScriptMacroLibrary {
           URLConnection conn = url.openConnection();
           
           if (conn instanceof JarURLConnection) {
+            //
+            // This case is when the requested macro is in a jar
+            //
             final JarURLConnection connection = (JarURLConnection) url.openConnection();
             final URL fileurl = connection.getJarFileURL();
             File f = new File(fileurl.toURI());
             addJar(f.getAbsolutePath(), rsc);
             macro = (Macro) macros.get(name);
           } else if (conn instanceof FileURLConnection) {
+            //
+            // This case is when the requested macro is in the classpath but not in a jar.
+            // In this case we do not cache the parsed macro, allowing for dynamic modification.
+            //
             String urlstr = url.toString();
             File root = new File(urlstr.substring(0, urlstr.length() - name.length()  - WarpScriptMacroRepository.WARPSCRIPT_FILE_EXTENSION.length()));
             macro = loadMacro(root, conn.getInputStream());
