@@ -104,7 +104,8 @@ public class Egress {
     long idleTimeout = Long.parseLong(props.getProperty(Configuration.EGRESS_IDLE_TIMEOUT));
     
     boolean enableMobius = !("true".equals(props.getProperty(Configuration.WARP_MOBIUS_DISABLE)));
-
+    boolean enableREL = !("true".equals(properties.getProperty(Configuration.WARP_INTERACTIVE_DISABLE)));
+    
     extractKeys(props);
     
     //
@@ -161,6 +162,11 @@ public class Egress {
         EgressMobiusHandler mobiusHandler = new EgressMobiusHandler(storeClient, directoryClient, this.properties);
         handlers.addHandler(mobiusHandler);
       }
+      
+      if (enableREL) {
+        EgressInteractiveHandler erel = new EgressInteractiveHandler(keystore, properties, directoryClient, geoDirectoryClient, storeClient);
+        handlers.addHandler(erel);
+      }           
     } else {
       GzipHandler gzip = new GzipHandler();
       gzip.setHandler(new EgressFetchHandler(this.keystore, this.properties, null, storeClient));

@@ -129,6 +129,17 @@ warp.aes.metasets = hex:hhhhhhhh....
 //
 /////////////////////////////////////////////////////////////////////////////////////////
 
+// Path of the 'bootstrap' WarpScript code for the interactive mode
+#warpscript.interactive.bootstrap.path =
+// How often to reload the bootstrap code (in ms) for the interactive mode
+#warpscript.interactive.bootstrap.period = 
+// Maximum number of parallel interactive sessions (defaults to 1).
+#warpscript.interactive.capacity = 
+// Port on which the TCP endpoint of the interactive mode will listen. If undefined, no TCP endpoint will be available.
+#warpscript.interactive.tcp.port = 
+// Set to 'true' to disable the interactive mode completely
+#warp.interactive.disable = true
+
 //
 // This configuration parameter determines if undefining a function (via NULL 'XXX' DEF)
 // will unshadow the original statement thus making it available again or if it will replace

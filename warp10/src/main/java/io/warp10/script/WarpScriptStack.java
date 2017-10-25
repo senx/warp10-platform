@@ -76,6 +76,21 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_TRACE_PREFIX = "trace.prefix";
   
   /**
+   * PrintWriter instance for the REL (Read Execute Loop)
+   */
+  public static final String ATTRIBUTE_INTERACTIVE_WRITER = "interactive.writer";
+  
+  /**
+   * Should the REL display the stack levels as JSON?
+   */
+  public static final String ATTRIBUTE_INTERACTIVE_JSON = "interactive.json";
+  
+  /**
+   * Should the interactive mode display the top of the stack after each command?
+   */
+  public static final String ATTRIBUTE_INTERACTIVE_ECHO = "interactive.echo";
+  
+  /**
    * Name of current code section, null is unnamed
    */
   public static final String ATTRIBUTE_SECTION_NAME = "section.name";

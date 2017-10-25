@@ -503,6 +503,15 @@ public class WarpScriptLib {
     functions.put("SNAPSHOTCOPYALLTOMARK", new SNAPSHOT("SNAPSHOTCOPYALLTOMARK", true, true, false));
     functions.put("HEADER", new HEADER("HEADER"));
     
+    functions.put("ECHOON", new ECHOON("ECHOON"));
+    functions.put("ECHOOFF", new ECHOOFF("ECHOOFF"));
+    functions.put("JSONSTACK", new JSONSTACK("JSONSTACK"));
+    functions.put("WSSTACK", new WSSTACK("WSSTACK"));
+    functions.put("PEEK", new PEEK("PEEK"));
+    functions.put("PEEKN", new PEEKN("PEEKN"));
+    functions.put("NPEEK", new NPEEK("NPEEK"));
+    functions.put("PSTACK", new PSTACK("PSTACK"));
+    
     functions.put("MACROMAPPER", new MACROMAPPER("MACROMAPPER"));
     functions.put("MACROREDUCER", new MACROMAPPER("MACROREDUCER"));
     functions.put("MACROBUCKETIZER", new MACROMAPPER("MACROBUCKETIZER"));
