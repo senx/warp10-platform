@@ -104,6 +104,11 @@ warp.aes.metasets = hex:hhhhhhhh....
 #warp.token.file = 
 
 //
+// Root directory where trl files are stored
+//
+#warp.trl.dir =
+
+//
 // Pre-Shared key for signing fetch requests. Signed fetch request expose owner/producer
 //
 #fetch.psk =
