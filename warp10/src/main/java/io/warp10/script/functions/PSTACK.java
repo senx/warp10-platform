@@ -57,21 +57,17 @@ public class PSTACK extends NamedWarpScriptFunction implements WarpScriptStackFu
   }
   
   public static void print(PrintWriter out, int level, Object o, boolean json) throws WarpScriptException {
-    out.print("/* ");
-    out.print(level);
-    out.print(" */ ");
-
     if (json) {
       AtomicInteger recursionLevel = new AtomicInteger();
       StringWriter sw = new StringWriter();
       PrintWriter pw = new PrintWriter(sw);
       StackUtils.objectToJSON(pw, o, recursionLevel, false);
       pw.close();
-      out.println(sw.toString());
+      out.println("/* " + level + " */ " + sw.toString());
     } else {
       StringBuilder sb = new StringBuilder();
       SNAPSHOT.addElement(sb, o);
-      out.println(sb.toString());      
+      out.println("/* " + level + " */ " + sb.toString());      
     }
   }
 }
