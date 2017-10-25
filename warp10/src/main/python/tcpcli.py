@@ -41,6 +41,15 @@ def readUntilPrompt(s):
       else:
         idx = data.index('\nWS')
     except ValueError:
+      try:
+        idx = data.rindex('\n')
+        sys.stdout.write(data[0:idx])
+        sys.stdout.flush()
+        data = data[idx:]
+        sio = StringIO.StringIO()
+        sio.write(data)
+      except ValueError:
+        continue
       continue
 
     # Check if we have the end of the prompt in the buffer
