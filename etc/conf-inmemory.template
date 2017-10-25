@@ -143,3 +143,5 @@ throttling.manager.mads.default = -1
 # 0 will block any producer for which specific values are not defined
 throttling.manager.rate.default = -1.0
 
+# Root directory where trl files are stored
+#warp.trl.dir =
