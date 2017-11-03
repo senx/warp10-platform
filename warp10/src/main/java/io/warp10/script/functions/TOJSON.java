@@ -16,7 +16,6 @@
 
 package io.warp10.script.functions;
 
-import groovy.lang.Reference;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
