@@ -2722,8 +2722,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             
             if (null == data) {
               data = serializer.serialize(metadata);
-              // cache content
-              serializedMetadataCache.put(MetadataUtils.id(metadata),data);
+              synchronized(serializedMetadataCache) {
+                // cache content
+                serializedMetadataCache.put(MetadataUtils.id(metadata),data);                
+              }
             } else {
               hits++;
             }
@@ -2921,10 +2923,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               
               byte[] data = serializedMetadataCache.get(id);
               
-              if (null == data) {
+              if (null == data) {                
                 data = serializer.serialize(metadata);
-                // cache content
-                serializedMetadataCache.put(MetadataUtils.id(metadata),data);
+                synchronized(serializedMetadataCache) {
+                  // cache content
+                  serializedMetadataCache.put(MetadataUtils.id(metadata),data);                  
+                }
               } else {
                 hits++;
               }
