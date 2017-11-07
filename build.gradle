@@ -68,7 +68,7 @@ subprojects {
         warp10Version['crypto'] = commonVersion
         warp10Version['token'] = commonVersion
 
-        quantumVersion = '2.6.6'
+        quantumVersion = '2.6.7'
 
         stagingUser = project.hasProperty('stagingUser') ? project.property('stagingUser') : System.getenv('STAGING_USER')
         stagingURL = project.hasProperty('stagingURL') ? project.property('stagingURL') : System.getenv('STAGING_URL')
@@ -489,7 +489,7 @@ project(':warp10') {
         //
         // Geo
         //
-        compile group: 'com.geoxp', name: 'geoxplib', version: '1.0.0-rc8'
+        compile group: 'com.geoxp', name: 'geoxplib', version: '1.0.0-rc9'
         compile("org.wololo:jts2geojson:0.10.0") {
       		exclude group: 'com.vividsolutions', module: 'jts' 
       		exclude group: 'com.vividsolutions', module: 'jts-core' 

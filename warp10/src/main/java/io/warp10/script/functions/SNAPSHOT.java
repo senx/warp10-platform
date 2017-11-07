@@ -76,25 +76,37 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
   
   private final boolean toMark;
   
+  private final boolean countbased;
+  
   /**
    * Should we pop the elements out of the stack when building the snapshot
    */
   private final boolean pop;
   
-  public SNAPSHOT(String name, boolean snapshotSymbols, boolean toMark, boolean pop) {
+  public SNAPSHOT(String name, boolean snapshotSymbols, boolean toMark, boolean pop, boolean countbased) {
     super(name);
     this.snapshotSymbols = snapshotSymbols;
     this.toMark = toMark;
     this.pop = pop;
+    this.countbased = countbased;
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    StringBuilder sb = new StringBuilder();
-
+    
     int lastidx = 0;
     
-    if (!this.toMark) {
+    StringBuilder sb = new StringBuilder();
+
+    if (this.countbased) {
+      Object top = stack.pop();
+      
+      lastidx = ((Number) top).intValue() - 1;
+
+      if (lastidx > stack.depth() - 1) {
+        lastidx = stack.depth() - 1;
+      }      
+    } else if (!this.toMark) {
       lastidx = stack.depth() - 1;
     } else {      
       int i = 0;

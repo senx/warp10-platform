@@ -20,6 +20,8 @@ then
   exit 1
 fi
 
+OS=$(uname -s)
+
 # If WARP10_HOME is not defined, set it to the parent directory
 if [ -z "${WARP10_HOME}" ]; then
   if [ "Darwin" = "${OS}" ]
@@ -31,6 +33,7 @@ if [ -z "${WARP10_HOME}" ]; then
     WARP10_HOME=$(dirname $(readlink -f $0))/..
   fi
 fi
+export WARP10_HOME
 
 if [ "$1" = "bootstrap" ]; then
   ${WARP10_HOME}/bin/warp10-standalone.sh bootstrap

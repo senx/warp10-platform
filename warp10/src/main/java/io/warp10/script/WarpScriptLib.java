@@ -438,6 +438,7 @@ public class WarpScriptLib {
     functions.put("MAXBUCKETS", new MAXBUCKETS("MAXBUCKETS"));
     functions.put("MAXGEOCELLS", new MAXGEOCELLS("MAXGEOCELLS"));
     functions.put("MAXPIXELS", new MAXPIXELS("MAXPIXELS"));
+    functions.put("MAXRECURSION", new MAXRECURSION("MAXRECURSION"));
     functions.put("OPS", new OPS("OPS"));
     functions.put("MAXSYMBOLS", new MAXSYMBOLS("MAXSYMBOLS"));
     functions.put(EVAL, new EVAL(EVAL));
@@ -493,14 +494,16 @@ public class WarpScriptLib {
     functions.put("DOCMODE", new DOCMODE("DOCMODE"));
     functions.put("SECTION", new SECTION("SECTION"));
     functions.put("GETSECTION", new GETSECTION("GETSECTION"));
-    functions.put(SNAPSHOT, new SNAPSHOT(SNAPSHOT, false, false, true));
-    functions.put(SNAPSHOTALL, new SNAPSHOT(SNAPSHOTALL, true, false, true));
-    functions.put("SNAPSHOTTOMARK", new SNAPSHOT("SNAPSHOTTOMARK", false, true, true));
-    functions.put("SNAPSHOTALLTOMARK", new SNAPSHOT("SNAPSHOTALLTOMARK", true, true, true));
-    functions.put("SNAPSHOTCOPY", new SNAPSHOT("SNAPSHOTCOPY", false, false, false));
-    functions.put("SNAPSHOTCOPYALL", new SNAPSHOT("SNAPSHOTCOPYALL", true, false, false));
-    functions.put("SNAPSHOTCOPYTOMARK", new SNAPSHOT("SNAPSHOTCOPYTOMARK", false, true, false));
-    functions.put("SNAPSHOTCOPYALLTOMARK", new SNAPSHOT("SNAPSHOTCOPYALLTOMARK", true, true, false));
+    functions.put(SNAPSHOT, new SNAPSHOT(SNAPSHOT, false, false, true, false));
+    functions.put(SNAPSHOTALL, new SNAPSHOT(SNAPSHOTALL, true, false, true, false));
+    functions.put("SNAPSHOTTOMARK", new SNAPSHOT("SNAPSHOTTOMARK", false, true, true, false));
+    functions.put("SNAPSHOTALLTOMARK", new SNAPSHOT("SNAPSHOTALLTOMARK", true, true, true, false));
+    functions.put("SNAPSHOTCOPY", new SNAPSHOT("SNAPSHOTCOPY", false, false, false, false));
+    functions.put("SNAPSHOTCOPYALL", new SNAPSHOT("SNAPSHOTCOPYALL", true, false, false, false));
+    functions.put("SNAPSHOTCOPYTOMARK", new SNAPSHOT("SNAPSHOTCOPYTOMARK", false, true, false, false));
+    functions.put("SNAPSHOTCOPYALLTOMARK", new SNAPSHOT("SNAPSHOTCOPYALLTOMARK", true, true, false, false));
+    functions.put("SNAPSHOTN", new SNAPSHOT("SNAPSHOTN", false, false, true, true));
+    functions.put("SNAPSHOTCOPYN", new SNAPSHOT("SNAPSHOTCOPYN", false, false, false, true));
     functions.put("HEADER", new HEADER("HEADER"));
     
     functions.put("MACROMAPPER", new MACROMAPPER("MACROMAPPER"));
