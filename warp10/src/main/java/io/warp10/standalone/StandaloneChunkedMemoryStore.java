@@ -496,6 +496,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     
     long nano = System.nanoTime();
     int gts = 0;
+    long chunks = 0;
     long bytes = 0L;
     
     Configuration conf = new Configuration();
@@ -519,7 +520,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     
     try {
       for (Entry<BigInteger,InMemoryChunkSet> entry: this.series.entrySet()) {
-        gts++;
+        gts++;        
         Metadata metadata = this.directoryClient.getMetadataById(entry.getKey());
 
         List<GTSDecoder> decoders = entry.getValue().getDecoders();
@@ -527,6 +528,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
         //GTSEncoder encoder = entry.getValue().fetchEncoder(now, this.chunkcount * this.chunkspan);
 
         for (GTSDecoder decoder: decoders) {
+          chunks++;
           GTSWrapper wrapper = new GTSWrapper(metadata);        
 
           wrapper.setBase(decoder.getBaseTimestamp());
@@ -539,7 +541,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
           
           ByteBuffer rwbb = ByteBuffer.allocate(bb.remaining());
           rwbb.put(bb);
-          
+          rwbb.rewind();
           value.set(rwbb.array(), rwbb.arrayOffset(), rwbb.remaining());
 
           bytes += key.getLength() + value.getLength();
@@ -559,7 +561,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
     nano = System.nanoTime() - nano;
     
-    System.out.println("Dumped " + gts + " GTS (" + bytes + " bytes) in " + (nano / 1000000.0D) + " ms.");
+    System.out.println("Dumped " + gts + " GTS (" + chunks + " chunks, " + bytes + " bytes) in " + (nano / 1000000.0D) + " ms.");
   }
   
   public void load() {
@@ -579,7 +581,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
   private void load(String path) throws IOException {
     
     long nano = System.nanoTime();
-    int gts = 0;
+    long chunks = 0;
     long bytes = 0L;
     
     Configuration conf = new Configuration();
@@ -602,10 +604,10 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       System.out.println("Loading '" + path + "' back in memory.");
 
       while(reader.next(key, value)) {
-        gts++;
+        chunks++;
         GTSWrapper wrapper = new GTSWrapper();
         deserializer.deserialize(wrapper, key.copyBytes());
-        GTSEncoder encoder = new GTSEncoder(0L, null, value.copyBytes());
+        GTSEncoder encoder = new GTSEncoder(wrapper.getBase(), null, value.copyBytes());
         encoder.setCount(wrapper.getCount());
         
         bytes += value.getLength() + key.getLength();
@@ -628,7 +630,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     
     nano = System.nanoTime() - nano;
     
-    System.out.println("Loaded " + gts + " GTS (" + bytes + " bytes) in " + (nano / 1000000.0D) + " ms.");
+    System.out.println("Loaded " + chunks + " chunks (" + bytes + " bytes) in " + (nano / 1000000.0D) + " ms.");
   }
   
   public void setDirectoryClient(StandaloneDirectoryClient directoryClient) {
