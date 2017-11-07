@@ -537,7 +537,10 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
           
           ByteBuffer bb = decoder.getBuffer();
           
-          value.set(bb.array(), bb.arrayOffset(), bb.remaining());
+          ByteBuffer rwbb = ByteBuffer.allocate(bb.remaining());
+          rwbb.put(bb);
+          
+          value.set(rwbb.array(), rwbb.arrayOffset(), rwbb.remaining());
 
           bytes += key.getLength() + value.getLength();
           
