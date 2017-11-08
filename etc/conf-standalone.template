@@ -443,6 +443,11 @@ in.memory = false
 #in.memory.load =
   
 //
+// Set to true to tolerate errors while loading a dumped state. Setting this to true can lead to partial data being loaded.
+//
+#in.memory.load.failsafe = true
+
+//
 // Path to a dump file in which the current state of an in-memory Warp 10 will be persisted.
 //
 #in.memory.dump =
