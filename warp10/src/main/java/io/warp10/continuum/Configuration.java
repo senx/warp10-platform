@@ -1439,6 +1439,11 @@ public class Configuration {
   public static final String STANDALONE_MEMORY_STORE_DUMP = "in.memory.dump";
   
   /**
+   * Set to true to tolerate errors while loading a dumped state. Setting this to true can lead to partial data being loaded.
+   */
+  public static final String STANDALONE_MEMORY_STORE_LOAD_FAILSAFE = "in.memory.load.failsafe";
+  
+  /**
    * How often (in ms) to perform a gc of the in-memory store.
    */
   public static final String STANDALONE_MEMORY_GC_PERIOD = "in.memory.gcperiod";
