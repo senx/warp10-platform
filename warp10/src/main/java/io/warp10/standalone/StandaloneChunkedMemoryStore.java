@@ -498,6 +498,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     int gts = 0;
     long chunks = 0;
     long bytes = 0L;
+    long datapoints = 0;
     
     Configuration conf = new Configuration();
         
@@ -533,6 +534,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
           wrapper.setBase(decoder.getBaseTimestamp());
           wrapper.setCount(decoder.getCount());
+          datapoints += wrapper.getCount();
           
           byte[] data = serializer.serialize(wrapper);
           key.set(data, 0, data.length);
@@ -561,7 +563,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
     nano = System.nanoTime() - nano;
     
-    System.out.println("Dumped " + gts + " GTS (" + chunks + " chunks, " + bytes + " bytes) in " + (nano / 1000000.0D) + " ms.");
+    System.out.println("Dumped " + gts + " GTS (" + chunks + " chunks, " + datapoints + " datapoints, " + bytes + " bytes) in " + (nano / 1000000.0D) + " ms.");
   }
   
   public void load() {
@@ -582,6 +584,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     
     long nano = System.nanoTime();
     long chunks = 0;
+    long datapoints = 0;
     long bytes = 0L;
     
     Configuration conf = new Configuration();
@@ -609,7 +612,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
         deserializer.deserialize(wrapper, key.copyBytes());
         GTSEncoder encoder = new GTSEncoder(wrapper.getBase(), null, value.copyBytes());
         encoder.setCount(wrapper.getCount());
-        
+        datapoints += wrapper.getCount();
         bytes += value.getLength() + key.getLength();
         encoder.safeSetMetadata(wrapper.getMetadata());
         store(encoder);
@@ -630,7 +633,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     
     nano = System.nanoTime() - nano;
     
-    System.out.println("Loaded " + chunks + " chunks (" + bytes + " bytes) in " + (nano / 1000000.0D) + " ms.");
+    System.out.println("Loaded " + chunks + " chunks (" + datapoints + " datapoints, " + bytes + " bytes) in " + (nano / 1000000.0D) + " ms.");
   }
   
   public void setDirectoryClient(StandaloneDirectoryClient directoryClient) {
