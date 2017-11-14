@@ -20,6 +20,7 @@ import io.warp10.SmartPattern;
 import io.warp10.continuum.DirectoryUtil;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.KafkaOffsetCounters;
+import io.warp10.continuum.LogUtil;
 import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.MetadataUtils.MetadataID;
 import io.warp10.continuum.gts.GTSHelper;
@@ -32,6 +33,7 @@ import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.continuum.store.thrift.service.DirectoryService;
+import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
@@ -2661,6 +2663,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       return;
     }
     
+    long now = System.currentTimeMillis();
+    
     long nano = System.nanoTime();
     
     baseRequest.setHandled(true);
@@ -3040,7 +3044,20 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         }
       }    
       
-      LOG.info("Search returned " + count + " results in " + ((System.nanoTime() - nano) / 1000000.0D) + " ms, inspected " + metadataInspected + " metadatas in " + classesInspected + " classes (" + classesMatched + " matched) and performed " + labelsComparisons + " comparisons.");
+      long nownano = System.nanoTime();
+      
+      LoggingEvent event = LogUtil.setLoggingEventAttribute(null, LogUtil.DIRECTORY_SELECTOR, selector);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_REQUEST_TIMESTAMP, now);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_RESULTS, count);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_NANOS, nownano - nano);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_METADATA_INSPECTED, metadataInspected);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_CLASSES_INSPECTED, classesInspected);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_CLASSES_MATCHED, classesMatched);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_LABELS_COMPARISONS, labelsComparisons);
+      
+      String eventstr = LogUtil.serializeLoggingEvent(this.keystore, event);
+      
+      LOG.info("Search returned " + count + " results in " + ((nownano - nano) / 1000000.0D) + " ms, inspected " + metadataInspected + " metadatas in " + classesInspected + " classes (" + classesMatched + " matched) and performed " + labelsComparisons + " comparisons. EVENT=" + eventstr);
     }
     
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_REQUESTS, Sensision.EMPTY_LABELS, 1);
