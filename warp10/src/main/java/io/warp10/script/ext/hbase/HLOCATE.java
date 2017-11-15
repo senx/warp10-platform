@@ -101,6 +101,11 @@ public class HLOCATE extends NamedWarpScriptFunction implements WarpScriptStackF
     
     List<List<String>> locations = new ArrayList<List<String>>();
     
+    if (0 == lgts.size()) {
+      stack.push(locations);
+      return stack;
+    }
+    
     byte[] startrow = regions.get(regionidx).getRegionInfo().getStartKey();
     byte[] endrow = regions.get(regionidx).getRegionInfo().getEndKey();
     byte[] rowprefix = MetadataUtils.HBaseRowKeyPrefix(lgts.get(gtsidx).getMetadata());
@@ -144,8 +149,10 @@ public class HLOCATE extends NamedWarpScriptFunction implements WarpScriptStackF
         if (Bytes.compareTo(rowprefix, 0, rowprefix.length, endrow, 0, rowprefix.length) < 0) {
           gtsidx++;
           
-          rowprefix = MetadataUtils.HBaseRowKeyPrefix(lgts.get(gtsidx).getMetadata());
-          selector = GTSHelper.buildSelector(lgts.get(gtsidx));
+          if (gtsidx < lgts.size()) {
+            rowprefix = MetadataUtils.HBaseRowKeyPrefix(lgts.get(gtsidx).getMetadata());
+            selector = GTSHelper.buildSelector(lgts.get(gtsidx));            
+          }
           continue;
         }
         
@@ -166,8 +173,10 @@ public class HLOCATE extends NamedWarpScriptFunction implements WarpScriptStackF
 
         gtsidx++;
         
-        rowprefix = MetadataUtils.HBaseRowKeyPrefix(lgts.get(gtsidx).getMetadata());
-        selector = GTSHelper.buildSelector(lgts.get(gtsidx));
+        if (gtsidx < lgts.size()) {
+          rowprefix = MetadataUtils.HBaseRowKeyPrefix(lgts.get(gtsidx).getMetadata());
+          selector = GTSHelper.buildSelector(lgts.get(gtsidx));          
+        }
         continue;
       }      
     }
