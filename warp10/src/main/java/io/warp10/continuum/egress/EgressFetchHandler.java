@@ -1344,6 +1344,9 @@ public class EgressFetchHandler extends AbstractHandler {
           sb.append("}");
           sb.append(",\"i\":\"");
           sb.append(decoder.getLabelsId() & mask);
+          sb.append(",\"la\":");
+          sb.append(decoder.getMetadata().getLastActivity());
+
           sb.append("\",\"v\":[");
         }
         
