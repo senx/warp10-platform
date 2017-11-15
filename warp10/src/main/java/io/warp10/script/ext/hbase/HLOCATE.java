@@ -108,40 +108,68 @@ public class HLOCATE extends NamedWarpScriptFunction implements WarpScriptStackF
     
     while (gtsidx < lgts.size()) {
       
-      // if rowprefix is before the current region it means there is a problem, so increase gtsidx as it is not
-      // in a region!
+      //
+      // Advance region index while rowprefix is after the current region end
+      //
+            
+      while(regionidx < regions.size() && Bytes.compareTo(rowprefix, 0, rowprefix.length, endrow, 0, rowprefix.length) > 0) {
+        regionidx++;
+        if (regionidx < regions.size()) {
+          startrow = regions.get(regionidx).getRegionInfo().getStartKey();
+          endrow = regions.get(regionidx).getRegionInfo().getEndKey();
+        }
+      }
       
-      if (Bytes.compareTo(rowprefix, 0, rowprefix.length, startrow, 0, rowprefix.length) < 0) {
+      // We're done scanning regions
+      if (regions.size() == regionidx) {
+        break;
+      }
+
+      //
+      // If the current GTS is within the current region, output its location,
+      // otherwise advance the GTS index as the current GTS cannot be located
+      //
+      
+      if (Bytes.compareTo(rowprefix, 0, rowprefix.length, startrow, 0, rowprefix.length) >= 0) {
+        List<String> location = new ArrayList<String>();
+        
+        location.add(selector);
+        location.add(regions.get(regionidx).getHostnamePort().toString());
+        location.add(regions.get(regionidx).getRegionInfo().getEncodedName());
+        
+        locations.add(location);
+        
+        // If the current end of region prefix is > rowprefix, advance GTS index as the GTS does not span regions
+        
+        if (Bytes.compareTo(rowprefix, 0, rowprefix.length, endrow, 0, rowprefix.length) < 0) {
+          gtsidx++;
+          
+          rowprefix = MetadataUtils.HBaseRowKeyPrefix(lgts.get(gtsidx).getMetadata());
+          selector = GTSHelper.buildSelector(lgts.get(gtsidx));
+          continue;
+        }
+        
+        //
+        // The GTS spans regions, increase regionidx
+        //
+        
+        
+        regionidx++;
+        if (regionidx < regions.size()) {
+          startrow = regions.get(regionidx).getRegionInfo().getStartKey();
+          endrow = regions.get(regionidx).getRegionInfo().getEndKey();          
+        }
+        continue;
+      } else {
+        // rowprefix is <= the end of the region but not within the region, advance gtsidx, there is no location info
+        // for the current GTS
+
         gtsidx++;
+        
         rowprefix = MetadataUtils.HBaseRowKeyPrefix(lgts.get(gtsidx).getMetadata());
         selector = GTSHelper.buildSelector(lgts.get(gtsidx));
         continue;
-      }
-      
-      // rowprefix is after the current region, so increase region idx
-      if (Bytes.compareTo(rowprefix, 0, rowprefix.length, endrow, 0, rowprefix.length) > 0) {
-        if (regionidx == regions.size() - 1) {
-          continue;
-        }
-        regionidx++;
-        startrow = regions.get(regionidx).getRegionInfo().getStartKey();
-        endrow = regions.get(regionidx).getRegionInfo().getEndKey();
-        continue;
-      }
-      
-      //
-      // The current rowprefix is in the current region, add a location info
-      //
-      
-      List<String> location = new ArrayList<String>();
-      
-      location.add(selector);
-      location.add(regions.get(regionidx).getHostnamePort().toString());
-      location.add(regions.get(regionidx).getRegionInfo().getEncodedName());
-      
-      locations.add(location);
-      
-      gtsidx++;
+      }      
     }
     
     stack.push(locations);
