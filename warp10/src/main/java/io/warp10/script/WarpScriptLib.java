@@ -730,6 +730,7 @@ public class WarpScriptLib {
     functions.put("FFT", new FFT.Builder("FFT", true));
     functions.put("FFTAP", new FFT.Builder("FFT", false));
     functions.put("IFFT", new IFFT.Builder("IFFT"));
+    functions.put("FFTWINDOW", new FFTWINDOW("FFTWINDOW"));
     functions.put("FDWT", new FDWT("FDWT"));
     functions.put("IDWT", new IDWT("IDWT"));
     functions.put("DWTSPLIT", new DWTSPLIT("DWTSPLIT"));
