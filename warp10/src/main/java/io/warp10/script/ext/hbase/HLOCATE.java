@@ -140,6 +140,8 @@ public class HLOCATE extends NamedWarpScriptFunction implements WarpScriptStackF
       location.add(regions.get(regionidx).getRegionInfo().getEncodedName());
       
       locations.add(location);
+      
+      gtsidx++;
     }
     
     stack.push(locations);
