@@ -1993,17 +1993,18 @@ public class Ingress extends AbstractHandler implements Runnable {
         while(idx < offset && offset - idx >= reclen) {
           System.arraycopy(buf, idx, raw, 0, 16);
           BigInteger id = new BigInteger(raw);
-          synchronized(this.metadataCache) {
-            if (this.activityTracking) {
-              long lastActivity = 0L;
+          if (this.activityTracking) {
+            long lastActivity = 0L;
               
-              for (int i = 0; i < 8; i++) {
-                lastActivity <<= 8;
-                lastActivity |= ((long) buf[idx + 16 + i]) & 0xFFL;
-              }
-              
+            for (int i = 0; i < 8; i++) {
+              lastActivity <<= 8;
+              lastActivity |= ((long) buf[idx + 16 + i]) & 0xFFL;
+            }
+            synchronized(this.metadataCache) {  
               this.metadataCache.put(id, lastActivity);
-            } else {
+            }
+          } else {
+            synchronized(this.metadataCache) {  
               this.metadataCache.put(id, null);
             }
           }
