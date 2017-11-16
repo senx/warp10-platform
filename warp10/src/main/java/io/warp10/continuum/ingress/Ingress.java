@@ -786,10 +786,12 @@ public class Ingress extends AbstractHandler implements Runnable {
             
             boolean pushMeta = false;
             
-            if (!this.metadataCache.containsKey(metadataCacheKey)) {
+            Long val = this.metadataCache.getOrDefault(metadataCacheKey, Long.MIN_VALUE);
+            
+            if (Long.MIN_VALUE == val) {
               pushMeta = true;
             } else if (activityTracking && updateActivity) {
-              Long lastActivity = this.metadataCache.get(metadataCacheKey);
+              Long lastActivity = val;
               
               if (null == lastActivity) {
                 pushMeta = true;
