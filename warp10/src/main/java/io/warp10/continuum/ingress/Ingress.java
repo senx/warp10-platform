@@ -127,6 +127,8 @@ public class Ingress extends AbstractHandler implements Runnable {
 
   private static final Logger LOG = LoggerFactory.getLogger(Ingress.class);
   
+  private static final Long NO_LAST_ACTIVITY = Long.MIN_VALUE;
+  
   /**
    * Set of required parameters, those MUST be set
    */
@@ -787,8 +789,8 @@ public class Ingress extends AbstractHandler implements Runnable {
             boolean pushMeta = false;
             
             Long val = this.metadataCache.getOrDefault(metadataCacheKey, Long.MIN_VALUE);
-            
-            if (Long.MIN_VALUE == val) {
+
+            if (NO_LAST_ACTIVITY.equals(val)) {
               pushMeta = true;
             } else if (activityTracking && updateActivity) {
               Long lastActivity = val;
