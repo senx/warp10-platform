@@ -16,6 +16,72 @@
 
 package io.warp10.continuum.ingress;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.math.BigInteger;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.security.KeyStore;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.ConcurrentModificationException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Properties;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
+import java.util.regex.Matcher;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.hadoop.util.ShutdownHookManager;
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TCompactProtocol;
+import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.Handler;
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.eclipse.jetty.server.handler.HandlerList;
+import org.eclipse.jetty.util.BlockingArrayQueue;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
+import org.jruby.util.SipHashInline;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.sort.SortConfig;
+import com.google.common.base.Charsets;
+import com.google.common.base.Preconditions;
+import com.google.common.primitives.Longs;
+
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.KafkaProducerPool;
@@ -41,82 +107,13 @@ import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
 import io.warp10.continuum.store.thrift.data.KafkaDataMessageType;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.math.BigInteger;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.ConcurrentModificationException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Properties;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.LockSupport;
-import java.util.regex.Matcher;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
 import kafka.producer.ProducerConfig;
-
-import org.apache.hadoop.util.ShutdownHookManager;
-import org.apache.thrift.TDeserializer;
-import org.apache.thrift.TException;
-import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
-import org.bouncycastle.util.encoders.Hex;
-import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.handler.AbstractHandler;
-import org.eclipse.jetty.server.handler.HandlerList;
-import org.eclipse.jetty.util.BlockingArrayQueue;
-import org.eclipse.jetty.util.thread.QueuedThreadPool;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.fasterxml.sort.SortConfig;
-import com.google.common.base.Charsets;
-import com.google.common.base.Preconditions;
-import com.google.common.primitives.Longs;
 
 // FIXME(hbs): handle archive
 
@@ -788,7 +785,7 @@ public class Ingress extends AbstractHandler implements Runnable {
             
             boolean pushMeta = false;
             
-            Long val = this.metadataCache.getOrDefault(metadataCacheKey, Long.MIN_VALUE);
+            Long val = this.metadataCache.getOrDefault(metadataCacheKey, NO_LAST_ACTIVITY);
 
             if (NO_LAST_ACTIVITY.equals(val)) {
               pushMeta = true;
@@ -817,16 +814,16 @@ public class Ingress extends AbstractHandler implements Runnable {
               TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
               try {
                 pushMetadataMessage(bytes, serializer.serialize(metadata));
+                
+                // Update metadataCache with the current key
+                synchronized(metadataCache) {
+                  this.metadataCache.put(metadataCacheKey, (activityTracking && updateActivity) ? nowms : null);
+                }
               } catch (TException te) {
                 throw new IOException("Unable to push metadata.");
               }
             }
             
-            // Update metadataCache with the current key
-            synchronized(metadataCache) {
-              this.metadataCache.put(metadataCacheKey, (activityTracking && updateActivity) ? nowms : null);
-            }
-
             if (null != lastencoder) {
               Map<String,String> labels = new HashMap<String, String>();
               //labels.put(SensisionConstants.SENSISION_LABEL_OWNER, owner);
