@@ -1942,16 +1942,16 @@ public class GTSHelper {
     
     String valuestr = str.substring(idx);
     
-    if (valuestr.length() > maxValueSize) {
-      throw new ParseException("Value too large at for GTS " + (null != encoder ? GTSHelper.buildSelector(encoder.getMetadata()) : ""), 0);
-    }
-    
     Object value = parseValue(valuestr);
 
     if (null == value) {
       throw new ParseException("Unable to parse value '" + valuestr + "'", 0);
     }
 
+    if (value instanceof String  && value.toString().length() > maxValueSize) {
+      throw new ParseException("Value too large at for GTS " + (null != encoder ? GTSHelper.buildSelector(encoder.getMetadata()) : ""), 0);
+    }
+    
     // Allocate a new Encoder if need be, with a base timestamp of 0L.
     if (null == encoder || !name.equals(encoder.getName()) || !labels.equals(encoder.getMetadata().getLabels())) {
       encoder = new GTSEncoder(0L);
