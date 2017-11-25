@@ -34,7 +34,7 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 /**
- * Wraps a GTS Encoder in a GTS Wrapper
+ * Unwraps a GTSWrapper into an encoder
  */
 public class UNWRAPENCODER extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
