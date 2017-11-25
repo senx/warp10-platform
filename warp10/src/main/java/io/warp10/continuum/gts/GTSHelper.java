@@ -1941,17 +1941,17 @@ public class GTSHelper {
     //
     
     String valuestr = str.substring(idx);
-
+    
     if (valuestr.length() > maxValueSize) {
       throw new ParseException("Value too large at for GTS " + (null != encoder ? GTSHelper.buildSelector(encoder.getMetadata()) : ""), 0);
     }
     
     Object value = parseValue(valuestr);
-      
+
     if (null == value) {
       throw new ParseException("Unable to parse value '" + valuestr + "'", 0);
     }
-    
+
     // Allocate a new Encoder if need be, with a base timestamp of 0L.
     if (null == encoder || !name.equals(encoder.getName()) || !labels.equals(encoder.getMetadata().getLabels())) {
       encoder = new GTSEncoder(0L);
@@ -9199,5 +9199,69 @@ public class GTSHelper {
       pw.print("\r\n");
       first = false;
     }    
+  }
+  
+  public static double standardizedMoment(int moment, GeoTimeSerie gts, boolean bessel) throws WarpScriptException {
+    double sum = 0.0D;
+    double sumsq = 0.0D;
+    
+    int n = gts.values;
+
+    if (TYPE.LONG == gts.type) {
+      for (int i = 0; i < n; i++) {
+        sum = sum + gts.longValues[i];
+        sumsq = sumsq + (gts.longValues[i] * gts.longValues[i]);
+      }
+    } else if (TYPE.DOUBLE == gts.type) {
+      for (int i = 0; i < n; i++) {
+        sum = sum + gts.doubleValues[i];
+        sumsq = sumsq + (gts.doubleValues[i] * gts.doubleValues[i]);
+      }      
+    } else {
+      throw new WarpScriptException("Non numeric Geo Time Series.");
+    }
+        
+    //
+    // Compute mean and standard deviation
+    //
+    
+    double mean = sum / (double) n;
+    
+    double variance = (sumsq / (double) n) - (sum * sum) / ((double) n * (double) n);
+    
+    //
+    // Apply Bessel's correction
+    // @see http://en.wikipedia.org/wiki/Bessel's_correction
+    //
+    
+    if (n > 1 && bessel) {
+      variance = variance * ((double) n) / (n - 1.0D);
+    }
+
+    double sd = Math.sqrt(variance);
+    
+    double momentValue = 0.0D;
+    
+    if (TYPE.LONG == gts.type) {
+      for (int i = 0; i < n; i++) {
+        momentValue += Math.pow((gts.longValues[i] - mean) / sd, moment);
+      }      
+    } else {
+      for (int i = 0; i < n; i++) {
+        momentValue += Math.pow((gts.doubleValues[i] - mean) / sd, moment);
+      }      
+    }
+    
+    momentValue = momentValue / n;
+    
+    return momentValue;
+  }
+  
+  public static double kurtosis(GeoTimeSerie gts, boolean bessel) throws WarpScriptException {
+    return standardizedMoment(4, gts, bessel);
+  }
+  
+  public static double skewness(GeoTimeSerie gts, boolean bessel) throws WarpScriptException {
+    return standardizedMoment(3, gts, bessel);
   }
 }
