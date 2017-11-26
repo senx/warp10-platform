@@ -1009,6 +1009,8 @@ public class WarpScriptLib {
 
     functions.put("NPDF", new NPDF.Builder("NPDF"));
     functions.put("MUSIGMA", new MUSIGMA("MUSIGMA"));
+    functions.put("KURTOSIS", new KURTOSIS("KURTOSIS"));
+    functions.put("SKEWNESS", new SKEWNESS("SKEWNESS"));
     functions.put("NSUMSUMSQ", new NSUMSUMSQ("NSUMSUMSQ"));
     functions.put("LR", new LR("LR"));
     functions.put("MODE", new MODE("MODE"));
