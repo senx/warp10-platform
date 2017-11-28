@@ -13,6 +13,10 @@ import base64
 print 10
 
 #
+# An example of Warpscript to trigger this script: NOW ISO8601 ->PICKLE ->B64URL 'testcall.py' CALL
+#
+
+#
 # Loop, reading stdin, doing our stuff and outputing to stdout
 #
 
