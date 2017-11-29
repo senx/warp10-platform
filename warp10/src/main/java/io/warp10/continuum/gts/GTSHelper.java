@@ -603,7 +603,10 @@ public class GTSHelper {
   public static List<Long> tickList(GeoTimeSerie gts) {
     List<Long> ticks = new ArrayList<Long>(gts.values);
 
-    ticks.addAll(Arrays.asList(ArrayUtils.toObject(Arrays.copyOf(gts.ticks, gts.values))));
+    if (gts.values > 0) {
+      ticks.addAll(Arrays.asList(ArrayUtils.toObject(Arrays.copyOf(gts.ticks, gts.values))));
+    }
+    
     return ticks;
   }
   
