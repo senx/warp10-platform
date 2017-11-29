@@ -27,8 +27,8 @@ while True:
     line = line.strip()
     line = urllib.unquote(line.decode('utf-8'))
     # Remove Base64 encoding
-    str = base64.b64decode(line)
-    args = cPickle.loads(str)
+    mystr = base64.b64decode(line)
+    args = cPickle.loads(mystr)
 
     #
     # Do out stuff
