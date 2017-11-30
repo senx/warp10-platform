@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-import time
-import random
-
 from ws4py.client.threadedclient import WebSocketClient
 
 class MobiusClient(WebSocketClient):
