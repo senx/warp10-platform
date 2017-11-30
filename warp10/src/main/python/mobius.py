@@ -35,7 +35,6 @@ if __name__ == '__main__':
       continue
 
     ws.sendValue("<% 'context' DEFINED <% ! %> <% 0 'context' STORE %> IFT $context 1 + 'context' STORE 'hello i%27m Mobius - #' $context TOSTRING + %> 5000 EVERY")
-    #ws.sendValue("NOW")
     ws.run_forever()
   except KeyboardInterrupt:
     ws.close()
