@@ -25,6 +25,9 @@ class MobiusClient(WebSocketClient):
   def isOpen(self):
     return self._open
 
+#
+# Usage: python mobius.py
+#
 if __name__ == '__main__':
   try:
     HOST = '127.0.0.1:8080'

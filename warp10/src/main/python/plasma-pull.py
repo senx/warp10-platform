@@ -42,6 +42,9 @@ class PlasmaPullClient(WebSocketClient):
         now = time.time()
 
 
+#
+# Usage: python plasma-pull.py -u 'ws://127.0.0.1:8080/api/v0/plasma' -t 'READ' -s '~rgb.*{}'
+#
 def main():
   try:
     opts, args = getopt.getopt(sys.argv[1:], "t:u:s:r:S:", ['token=','url=','subscription=', 'refresh=', 'sample='])
