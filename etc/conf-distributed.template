@@ -663,6 +663,14 @@ ingress.delete.shuffle = true
 //
 ingress.delete.reject = false
 
+
+//
+// Accept attributes via update endpoint with the "class{labels}{attributes} value" form.
+// It's a convenient way to update some meta without having to call /meta.
+// Note that cache entries have to expire to update a metadata so this method has to be considered as "best effort"
+//
+ingress.update.accept.attributes = false
+
 //
 // Path where the metadata cache should be dumped
 //

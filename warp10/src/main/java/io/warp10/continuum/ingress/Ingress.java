@@ -146,6 +146,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     Configuration.INGRESS_KAFKA_METADATA_MAXSIZE,
     Configuration.INGRESS_VALUE_MAXSIZE,
     Configuration.INGRESS_DELETE_SHUFFLE,
+    Configuration.INGRESS_UPDATE_ACCEPT_ATTRIBUTES,
     Configuration.DIRECTORY_PSK,
   };
   
@@ -267,7 +268,10 @@ public class Ingress extends AbstractHandler implements Runnable {
    * Flag indicating whether or not we reject delete requests
    */
   private final boolean rejectDelete;
-  
+
+
+  private final boolean acceptAttributes;
+
   public Ingress(KeyStore keystore, Properties props) {
 
     //
@@ -292,8 +296,10 @@ public class Ingress extends AbstractHandler implements Runnable {
     //
     
     this.doShuffle = "true".equals(props.getProperty(Configuration.INGRESS_DELETE_SHUFFLE));
-    
+
     this.rejectDelete = "true".equals(props.getProperty(Configuration.INGRESS_DELETE_REJECT));
+
+    this.acceptAttributes = "true".equals(props.getProperty(Configuration.INGRESS_UPDATE_ACCEPT_ATTRIBUTES));
         
     if (props.containsKey(Configuration.INGRESS_CACHE_DUMP_PATH)) {
       this.cacheDumpPath = props.getProperty(Configuration.INGRESS_CACHE_DUMP_PATH);
@@ -742,7 +748,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           }
           
           try {
-            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, false);
+            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, this.acceptAttributes);
             count++;
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_PARSEERRORS, sensisionLabels, 1);
@@ -777,6 +783,9 @@ public class Ingress extends AbstractHandler implements Runnable {
               metadata.setSource(Configuration.INGRESS_METADATA_SOURCE);
               metadata.setName(encoder.getMetadata().getName());
               metadata.setLabels(encoder.getMetadata().getLabels());
+              if (this.acceptAttributes) {
+                metadata.setAttributes(encoder.getMetadata().getAttributes());
+              }
               TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
               try {
                 pushMetadataMessage(bytes, serializer.serialize(metadata));

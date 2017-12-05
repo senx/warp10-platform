@@ -496,7 +496,12 @@ public class Configuration {
    * to have ingress endpoints which only honor meta and update.
    */
   public static final String INGRESS_DELETE_REJECT = "ingress.delete.reject";
-  
+
+  /**
+   * Accept attributes via update endpoint
+   */
+  public static final String INGRESS_UPDATE_ACCEPT_ATTRIBUTES = "ingress.update.accept.attributes";
+
   /**
    * Path where the metadata cache should be dumped
    */
@@ -541,7 +546,7 @@ public class Configuration {
    * Size of metadata cache in number of entries
    */
   public static final String INGRESS_METADATA_CACHE_SIZE = "ingress.metadata.cache.size";
-  
+
   /**
    * Number of acceptors
    */
