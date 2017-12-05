@@ -1047,7 +1047,6 @@ public class WarpScriptLib {
       functions.put("TANH", new MATH("TANH", "tanh"));
       functions.put("ATAN", new MATH("ATAN", "atan"));
 
-
       functions.put("SIGNUM", new MATH("SIGNUM", "signum"));
       functions.put("FLOOR", new MATH("FLOOR", "floor"));
       functions.put("CEIL", new MATH("CEIL", "ceil"));
@@ -1075,7 +1074,8 @@ public class WarpScriptLib {
       functions.put("HYPOT", new MATH2("HYPOT", "hypot"));
       functions.put("IEEEREMAINDER", new MATH2("IEEEREMAINDER", "IEEEremainder"));
       functions.put("NEXTAFTER", new MATH2("NEXTAFTER", "nextAfter"));
-
+      functions.put("ATAN2", new MATH2("ATAN2", "atan2"));
+      
     } catch (WarpScriptException ee) {
       throw new RuntimeException(ee);
     }
