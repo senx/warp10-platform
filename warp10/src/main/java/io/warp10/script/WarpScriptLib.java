@@ -356,6 +356,9 @@ public class WarpScriptLib {
   
   public static final String MSGFAIL = "MSGFAIL";
   
+  public static final String INPLACEADD = "+!";
+  public static final String PUT = "PUT";
+  
   static {
     
     functions.put("REV", new REV("REV"));
@@ -402,7 +405,7 @@ public class WarpScriptLib {
     functions.put("PICKLE->", new PICKLETO("PICKLE->"));
     functions.put("GET", new GET("GET"));
     functions.put("SET", new SET("SET"));
-    functions.put("PUT", new PUT("PUT"));
+    functions.put(PUT, new PUT(PUT));
     functions.put("SUBMAP", new SUBMAP("SUBMAP"));
     functions.put("SUBLIST", new SUBLIST("SUBLIST"));
     functions.put("KEYLIST", new KEYLIST("KEYLIST"));
@@ -523,7 +526,7 @@ public class WarpScriptLib {
     
     // Binary ops
     functions.put("+", new ADD("+"));
-    functions.put("+!", new INPLACEADD("+!"));
+    functions.put(INPLACEADD, new INPLACEADD(INPLACEADD));
     functions.put("-", new SUB("-"));
     functions.put("/", new DIV("/"));
     functions.put("*", new MUL("*"));
