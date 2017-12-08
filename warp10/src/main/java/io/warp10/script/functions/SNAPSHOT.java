@@ -16,19 +16,6 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.WarpURLEncoder;
-import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.script.MemoryWarpScriptStack;
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptLib;
-import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStack.Macro;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.WarpScriptStack.Mark;
-
 import java.io.UnsupportedEncodingException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -44,6 +31,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.geoxp.GeoXPLib.GeoXPShape;
 import com.google.common.base.Charsets;
+
+import io.warp10.WarpURLEncoder;
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.script.MemoryWarpScriptStack;
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptLib;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStack.Mark;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Replaces the stack so far with a WarpScript snippet which will regenerate
@@ -79,16 +79,27 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
   private final boolean countbased;
   
   /**
+   * Should we compress wrappers when snapshotting GTS/Encoders?
+   */
+  private final boolean compresswrappers;
+  
+  /**
    * Should we pop the elements out of the stack when building the snapshot
    */
   private final boolean pop;
   
   public SNAPSHOT(String name, boolean snapshotSymbols, boolean toMark, boolean pop, boolean countbased) {
+    this(name, snapshotSymbols, toMark, pop, countbased, true);
+  }
+  
+  public SNAPSHOT(String name, boolean snapshotSymbols, boolean toMark, boolean pop, boolean countbased, boolean compresswrappers) {
     super(name);
     this.snapshotSymbols = snapshotSymbols;
     this.toMark = toMark;
     this.pop = pop;
+
     this.countbased = countbased;
+    this.compresswrappers = compresswrappers;
   }
   
   @Override
@@ -122,7 +133,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
     for (int i = lastidx; i >= 0; i--) {
       Object o = stack.get(i);
       
-      addElement(sb, o);
+      addElement(this, sb, o);
     }      
 
     //
@@ -131,8 +142,8 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
     
     if (this.snapshotSymbols) {
       for (Entry<String,Object> entry: stack.getSymbolTable().entrySet()) {
-        addElement(sb, entry.getValue());
-        addElement(sb, entry.getKey());
+        addElement(this, sb, entry.getValue());
+        addElement(this, sb, entry.getKey());
         sb.append(WarpScriptLib.STORE);
         sb.append(" ");
       }      
@@ -155,8 +166,12 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
     
     return stack;
   }
-  
+
   public static void addElement(StringBuilder sb, Object o) throws WarpScriptException {
+    addElement(null, sb, o);
+  }
+  
+  public static void addElement(SNAPSHOT snapshot, StringBuilder sb, Object o) throws WarpScriptException {
     
     AtomicInteger depth = null;
         
@@ -189,7 +204,6 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         }
       } else if (o instanceof GeoTimeSerie || o instanceof GTSEncoder) {
         sb.append("'");
-        
         //
         // Create a stack so we can call WRAP
         //
@@ -198,10 +212,11 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         stack.maxLimits();
         
         stack.push(o);
-        WRAP w = new WRAP("");        
+        WRAP w = new WRAP("", false, snapshot.compresswrappers);        
         w.apply(stack);
         
-        sb.append(stack.pop());
+        sb.append(stack.pop());          
+
         sb.append("' ");
         if (o instanceof GeoTimeSerie) {
           sb.append(WarpScriptLib.UNWRAP);
@@ -211,41 +226,46 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(" ");
       } else if (o instanceof Vector) {
         sb.append(WarpScriptLib.LIST_START);
-        sb.append(" ");
-        for (Object oo: (List) o) {
-          addElement(sb, oo);
-        }
         sb.append(WarpScriptLib.LIST_END);
         sb.append(" ");
+        for (Object oo: (List) o) {
+          addElement(snapshot, sb, oo);
+          sb.append(WarpScriptLib.INPLACEADD);
+          sb.append(" ");          
+        }
         sb.append(WarpScriptLib.TO_VECTOR);
         sb.append(" ");
       } else if (o instanceof List) {
         sb.append(WarpScriptLib.LIST_START);
-        sb.append(" ");
-        for (Object oo: (List) o) {
-          addElement(sb, oo);
-        }
         sb.append(WarpScriptLib.LIST_END);
         sb.append(" ");
+        for (Object oo: (List) o) {
+          addElement(snapshot, sb, oo);
+          sb.append(WarpScriptLib.INPLACEADD);
+          sb.append(" ");
+        }
       } else if (o instanceof Set) {
         sb.append(WarpScriptLib.LIST_START);
+        sb.append(WarpScriptLib.LIST_END);
         sb.append(" ");
         for (Object oo: (List) o) {
-          addElement(sb, oo);
+          addElement(snapshot, sb, oo);
+          sb.append(WarpScriptLib.INPLACEADD);
+          sb.append(" ");          
         }
-        sb.append(WarpScriptLib.LIST_END);
         sb.append(" ");
         sb.append(WarpScriptLib.TO_SET);
         sb.append(" ");
       } else if (o instanceof Map) {
         sb.append(WarpScriptLib.MAP_START);
-        sb.append(" ");
-        for (Entry<Object, Object> entry: ((Map<Object,Object>) o).entrySet()) {
-          addElement(sb, entry.getKey());
-          addElement(sb, entry.getValue());
-        }
         sb.append(WarpScriptLib.MAP_END);
         sb.append(" ");
+        for (Entry<Object, Object> entry: ((Map<Object,Object>) o).entrySet()) {
+          addElement(snapshot, sb, entry.getValue());
+          addElement(snapshot, sb, entry.getKey());
+          sb.append(WarpScriptLib.PUT);
+          sb.append(" ");
+        }
       } else if (o instanceof BitSet) {
         sb.append("'");
         sb.append(new String(OrderPreservingBase64.encode(((BitSet) o).toByteArray()), Charsets.UTF_8));
