@@ -39,6 +39,7 @@ import com.google.common.base.Charsets;
 public class WRAP  extends GTSStackFunction {
   
   private final boolean opt;
+  private final boolean compress;
   
   public WRAP(String name) {
     this(name, false);
@@ -47,8 +48,19 @@ public class WRAP  extends GTSStackFunction {
   public WRAP(String name, boolean opt) {
     super(name);
     this.opt = opt;
+    this.compress = true;
   }
 
+  public WRAP(String name, boolean opt, boolean compress) {
+    super(name);
+    this.opt = opt;
+    this.compress = compress;
+    
+    if (this.opt && !this.compress) {
+      throw new RuntimeException("Invalid combination of opt and compress.");
+    }
+  }
+  
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     if (!(stack.peek() instanceof GTSEncoder)) {
@@ -60,9 +72,9 @@ public class WRAP  extends GTSStackFunction {
     GTSWrapper wrapper;
     
     if (opt) {
-      wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true, 1.0);
+      wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, this.compress, 1.0);
     } else {
-      wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true);
+      wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, this.compress);
     }
     
     TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
@@ -89,9 +101,9 @@ public class WRAP  extends GTSStackFunction {
     GTSWrapper wrapper;
     
     if (opt) {
-      wrapper = GTSWrapperHelper.fromGTSToGTSWrapper(gts, true, 1.0, true);
+      wrapper = GTSWrapperHelper.fromGTSToGTSWrapper(gts, this.compress, 1.0, true);
     } else {
-      wrapper = GTSWrapperHelper.fromGTSToGTSWrapper(gts, true);
+      wrapper = GTSWrapperHelper.fromGTSToGTSWrapper(gts, this.compress);
     }
     
     TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
