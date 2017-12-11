@@ -799,6 +799,7 @@ public class WarpScriptLib {
     functions.put("NAME", new NAME("NAME"));
     functions.put("LABELS", new LABELS("LABELS"));
     functions.put("ATTRIBUTES", new ATTRIBUTES("ATTRIBUTES"));
+    functions.put("LASTACTIVITY", new LASTACTIVITY("LASTACTIVITY"));
     functions.put("TICKS", new TICKS("TICKS"));
     functions.put("LOCATIONS", new LOCATIONS("LOCATIONS"));
     functions.put("LOCSTRINGS", new LOCSTRINGS("LOCSTRINGS"));
