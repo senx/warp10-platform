@@ -395,6 +395,7 @@ public class WarpScriptLib {
     functions.put("UNION", new UNION("UNION"));
     functions.put("INTERSECTION", new INTERSECTION("INTERSECTION"));
     functions.put("DIFFERENCE", new DIFFERENCE("DIFFERENCE"));
+    functions.put("SUBTRACTION", new SUBTRACTION("SUBTRACTION"));
     functions.put("->MAP", new TOMAP("->MAP"));
     functions.put("MAP->", new MAPTO("MAP->"));
     functions.put("UNMAP", new UNMAP("UNMAP"));
