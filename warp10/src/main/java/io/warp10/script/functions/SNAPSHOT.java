@@ -228,7 +228,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(WarpScriptLib.LIST_START);
         sb.append(WarpScriptLib.LIST_END);
         sb.append(" ");
-        for (Object oo: (List) o) {
+        for (Object oo: (Vector) o) {
           addElement(snapshot, sb, oo);
           sb.append(WarpScriptLib.INPLACEADD);
           sb.append(" ");          
@@ -248,7 +248,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(WarpScriptLib.LIST_START);
         sb.append(WarpScriptLib.LIST_END);
         sb.append(" ");
-        for (Object oo: (List) o) {
+        for (Object oo: (Set) o) {
           addElement(snapshot, sb, oo);
           sb.append(WarpScriptLib.INPLACEADD);
           sb.append(" ");          
