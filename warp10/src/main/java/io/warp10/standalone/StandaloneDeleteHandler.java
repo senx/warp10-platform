@@ -55,6 +55,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.output.FileWriterWithEncoding;
+import org.apache.commons.lang3.JavaVersion;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -377,7 +379,11 @@ public class StandaloneDeleteHandler extends AbstractHandler {
           return;
         }
         if (startstr.contains("T")) {
-          start = fmt.parseDateTime(startstr).getMillis() * Constants.TIME_UNITS_PER_MS;
+          if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
+            start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(startstr);
+          } else {
+            start = fmt.parseDateTime(startstr).getMillis() * Constants.TIME_UNITS_PER_MS;
+          }
         } else {
           start = Long.valueOf(startstr);
         }
@@ -389,7 +395,11 @@ public class StandaloneDeleteHandler extends AbstractHandler {
           return;
         }
         if (endstr.contains("T")) {
-          end = fmt.parseDateTime(endstr).getMillis() * Constants.TIME_UNITS_PER_MS;          
+          if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
+            end = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(endstr);
+          } else {
+            end = fmt.parseDateTime(endstr).getMillis() * Constants.TIME_UNITS_PER_MS;
+          }
         } else {
           end = Long.valueOf(endstr);
         }
@@ -519,7 +529,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
         return;
       } else {
-        throw e;
+        throw new IOException(e);
       }
     } finally {
       if (null != loggingWriter) {
