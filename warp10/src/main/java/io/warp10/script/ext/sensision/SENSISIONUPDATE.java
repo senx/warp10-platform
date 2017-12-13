@@ -39,7 +39,7 @@ public class SENSISIONUPDATE extends NamedWarpScriptFunction implements WarpScri
       ttl = ((Number) args.get(3)).longValue();
     }
     
-    if (null != ttl) {
+    if (null == ttl) {
       Sensision.update(cls, labels, delta);
     } else {
       Sensision.update(cls, labels, ttl, delta);      
