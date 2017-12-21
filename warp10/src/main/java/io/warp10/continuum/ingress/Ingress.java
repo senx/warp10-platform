@@ -787,7 +787,7 @@ public class Ingress extends AbstractHandler implements Runnable {
               }
             }
             
-            // Update metadataCache with the current key
+            // Update metadataCache with the current key so the key is considered used recently
             synchronized(metadataCache) {
               this.metadataCache.put(metadataCacheKey, null);
             }
