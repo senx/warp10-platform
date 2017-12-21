@@ -16,7 +16,6 @@
 
 package io.warp10.script.functions;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,7 +38,7 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 /**
- * Wraps a GTS Encoder in a GTS Wrapper
+ * Decodes an encoder into an array of [ ts lat lon elev value ] arrays.
  */
 public class ENCODERTO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   

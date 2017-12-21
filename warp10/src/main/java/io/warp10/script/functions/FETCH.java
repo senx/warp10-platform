@@ -59,6 +59,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.apache.commons.lang3.JavaVersion;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -200,8 +202,20 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       long timespan;
       
       if (oStart instanceof String && oStop instanceof String) {
-        long start = fmt.parseDateTime((String) oStart).getMillis() * Constants.TIME_UNITS_PER_MS;
-        long stop = fmt.parseDateTime((String) oStop).getMillis() * Constants.TIME_UNITS_PER_MS;
+        long start;
+        long stop;
+        
+        if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
+          start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(oStart.toString());
+        } else {
+          start = fmt.parseDateTime((String) oStart).getMillis() * Constants.TIME_UNITS_PER_MS;
+        }
+        
+        if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
+          stop = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(oStop.toString());
+        } else {
+          stop = fmt.parseDateTime((String) oStop).getMillis() * Constants.TIME_UNITS_PER_MS;
+        }
         
         if (start < stop) {
           endts = stop;
@@ -790,7 +804,11 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     if (map.get(PARAM_END) instanceof Long) {
       params.put(PARAM_END, map.get(PARAM_END));      
     } else if (map.get(PARAM_END) instanceof String) {
-      params.put(PARAM_END, fmt.parseDateTime(map.get(PARAM_END).toString()).getMillis() * Constants.TIME_UNITS_PER_MS);      
+      if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
+        params.put(PARAM_END, io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(map.get(PARAM_END).toString()));      
+      } else {
+        params.put(PARAM_END, fmt.parseDateTime(map.get(PARAM_END).toString()).getMillis() * Constants.TIME_UNITS_PER_MS);      
+      }
     } else {
       throw new WarpScriptException(getName() + " Invalid format for parameter '" + PARAM_END + "'.");
     }
@@ -806,7 +824,11 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       if (map.get(PARAM_START) instanceof Long) {
         start = (long) map.get(PARAM_START);
       } else {
-        start = fmt.parseDateTime(map.get(PARAM_END).toString()).getMillis() * Constants.TIME_UNITS_PER_MS;
+        if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
+          start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(map.get(PARAM_END).toString());      
+        } else {
+          start = fmt.parseDateTime(map.get(PARAM_END).toString()).getMillis() * Constants.TIME_UNITS_PER_MS;
+        }
       }
       
       long timespan;

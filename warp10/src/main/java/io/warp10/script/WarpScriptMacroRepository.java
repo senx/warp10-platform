@@ -184,6 +184,11 @@ public class WarpScriptMacroRepository extends Thread {
       macro = (Macro) macros.get(name);
     }
     
+    // Check if macro has expired when ondemand loading is activated
+    if (ondemand && null != macro && macro.isExpired()) {
+      macro = null;
+    }
+    
     if (null == macro && ondemand) {
       macro = loadMacro(name, null);
       if (null != macro) {
@@ -356,8 +361,8 @@ public class WarpScriptMacroRepository extends Thread {
 
       Macro old = macros.get(name);
       
-      // Re-use the same macro if its fingerprint did not change
-      if (null != old && hash == old.getFingerprint()) {
+      // Re-use the same macro if its fingerprint did not change and it has not expired
+      if (null != old && hash == old.getFingerprint() && (ondemand && !old.isExpired())) {
         return old;
       }
             
@@ -417,6 +422,11 @@ public class WarpScriptMacroRepository extends Thread {
       
       Macro macro = (Macro) stack.pop();
                 
+      // Set expiration if ondemand is set and an expiration date was set
+      if (ondemand && null != stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_EXPIRY)) {
+        macro.setExpiry((long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_EXPIRY));
+      }
+      
       macro.setFingerprint(hash);
       
       // Make macro a secure one

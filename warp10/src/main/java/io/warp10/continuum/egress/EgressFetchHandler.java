@@ -77,6 +77,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.lang3.JavaVersion;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -218,8 +220,20 @@ public class EgressFetchHandler extends AbstractHandler {
       boolean dedup = null != dedupParam && "true".equals(dedupParam);
       
       if (null != start && null != stop) {
-        long tsstart = fmt.parseDateTime(start).getMillis() * Constants.TIME_UNITS_PER_MS;
-        long tsstop = fmt.parseDateTime(stop).getMillis() * Constants.TIME_UNITS_PER_MS;
+        long tsstart;
+        long tsstop;
+        
+        if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
+          tsstart = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(start);
+        } else {
+          tsstart = fmt.parseDateTime(start).getMillis() * Constants.TIME_UNITS_PER_MS;
+        }
+        
+        if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
+          tsstop = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(stop);
+        } else {
+          tsstop = fmt.parseDateTime(stop).getMillis() * Constants.TIME_UNITS_PER_MS;
+        }
         
         if (tsstart < tsstop) {
           now = tsstop;
@@ -235,7 +249,11 @@ public class EgressFetchHandler extends AbstractHandler {
           try {
             now = Long.parseLong(nowParam);
           } catch (Exception e) {
-            now = fmt.parseDateTime(nowParam).getMillis() * Constants.TIME_UNITS_PER_MS;
+            if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
+              now = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(nowParam);
+            } else {
+              now = fmt.parseDateTime(nowParam).getMillis() * Constants.TIME_UNITS_PER_MS;
+            }
           }        
         }
         

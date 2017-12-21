@@ -356,6 +356,9 @@ public class WarpScriptLib {
   
   public static final String MSGFAIL = "MSGFAIL";
   
+  public static final String INPLACEADD = "+!";
+  public static final String PUT = "PUT";
+  
   static {
     
     functions.put("REV", new REV("REV"));
@@ -392,6 +395,7 @@ public class WarpScriptLib {
     functions.put("UNION", new UNION("UNION"));
     functions.put("INTERSECTION", new INTERSECTION("INTERSECTION"));
     functions.put("DIFFERENCE", new DIFFERENCE("DIFFERENCE"));
+    functions.put("SUBTRACTION", new SUBTRACTION("SUBTRACTION"));
     functions.put("->MAP", new TOMAP("->MAP"));
     functions.put("MAP->", new MAPTO("MAP->"));
     functions.put("UNMAP", new UNMAP("UNMAP"));
@@ -402,7 +406,7 @@ public class WarpScriptLib {
     functions.put("PICKLE->", new PICKLETO("PICKLE->"));
     functions.put("GET", new GET("GET"));
     functions.put("SET", new SET("SET"));
-    functions.put("PUT", new PUT("PUT"));
+    functions.put(PUT, new PUT(PUT));
     functions.put("SUBMAP", new SUBMAP("SUBMAP"));
     functions.put("SUBLIST", new SUBLIST("SUBLIST"));
     functions.put("KEYLIST", new KEYLIST("KEYLIST"));
@@ -506,6 +510,7 @@ public class WarpScriptLib {
     functions.put("SNAPSHOTCOPYN", new SNAPSHOT("SNAPSHOTCOPYN", false, false, false, true));
     functions.put("HEADER", new HEADER("HEADER"));
     
+    functions.put("MACROTTL", new MACROTTL("MACROTTL"));
     functions.put("MACROMAPPER", new MACROMAPPER("MACROMAPPER"));
     functions.put("MACROREDUCER", new MACROMAPPER("MACROREDUCER"));
     functions.put("MACROBUCKETIZER", new MACROMAPPER("MACROBUCKETIZER"));
@@ -522,7 +527,7 @@ public class WarpScriptLib {
     
     // Binary ops
     functions.put("+", new ADD("+"));
-    functions.put("+!", new INPLACEADD("+!"));
+    functions.put(INPLACEADD, new INPLACEADD(INPLACEADD));
     functions.put("-", new SUB("-"));
     functions.put("/", new DIV("/"));
     functions.put("*", new MUL("*"));
@@ -1010,6 +1015,8 @@ public class WarpScriptLib {
 
     functions.put("NPDF", new NPDF.Builder("NPDF"));
     functions.put("MUSIGMA", new MUSIGMA("MUSIGMA"));
+    functions.put("KURTOSIS", new KURTOSIS("KURTOSIS"));
+    functions.put("SKEWNESS", new SKEWNESS("SKEWNESS"));
     functions.put("NSUMSUMSQ", new NSUMSUMSQ("NSUMSUMSQ"));
     functions.put("LR", new LR("LR"));
     functions.put("MODE", new MODE("MODE"));
@@ -1046,7 +1053,6 @@ public class WarpScriptLib {
       functions.put("TANH", new MATH("TANH", "tanh"));
       functions.put("ATAN", new MATH("ATAN", "atan"));
 
-
       functions.put("SIGNUM", new MATH("SIGNUM", "signum"));
       functions.put("FLOOR", new MATH("FLOOR", "floor"));
       functions.put("CEIL", new MATH("CEIL", "ceil"));
@@ -1074,7 +1080,8 @@ public class WarpScriptLib {
       functions.put("HYPOT", new MATH2("HYPOT", "hypot"));
       functions.put("IEEEREMAINDER", new MATH2("IEEEREMAINDER", "IEEEremainder"));
       functions.put("NEXTAFTER", new MATH2("NEXTAFTER", "nextAfter"));
-
+      functions.put("ATAN2", new MATH2("ATAN2", "atan2"));
+      
     } catch (WarpScriptException ee) {
       throw new RuntimeException(ee);
     }

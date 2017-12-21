@@ -56,6 +56,12 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import kafka.javaapi.producer.Producer;
+import kafka.producer.KeyedMessage;
+import kafka.producer.ProducerConfig;
+
+import org.apache.commons.lang3.JavaVersion;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -1170,7 +1176,11 @@ public class Ingress extends AbstractHandler implements Runnable {
           throw new IOException("Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
         }
         if (startstr.contains("T")) {
-          start = fmt.parseDateTime(startstr).getMillis() * Constants.TIME_UNITS_PER_MS;
+          if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
+            start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(startstr);
+          } else {
+            start = fmt.parseDateTime(startstr).getMillis() * Constants.TIME_UNITS_PER_MS;
+          }
         } else {
           start = Long.valueOf(startstr);
         }
@@ -1181,7 +1191,11 @@ public class Ingress extends AbstractHandler implements Runnable {
           throw new IOException("Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
         }
         if (endstr.contains("T")) {
-          end = fmt.parseDateTime(endstr).getMillis() * Constants.TIME_UNITS_PER_MS;          
+          if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
+            end = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(endstr);
+          } else {
+            end = fmt.parseDateTime(endstr).getMillis() * Constants.TIME_UNITS_PER_MS;
+          }
         } else {
           end = Long.valueOf(endstr);
         }
