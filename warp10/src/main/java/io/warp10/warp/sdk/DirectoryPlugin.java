@@ -29,22 +29,39 @@ import java.util.UUID;
 
 public abstract class DirectoryPlugin {
   
+  public static final int VERSION = 2;
+  
   public static class GTS {
 
     // 128bits
-    private final UUID uuid;
+    private final String id;
+    private UUID uuid;
     private final String name;
     private final Map<String,String> labels;
     private final Map<String,String> attributes;
     private String representation = null;
 
+    public GTS(String id, String name, Map<String,String> labels, Map<String,String> attributes) {
+      this.id = id;
+      this.name = name;
+      this.labels = new HashMap<String,String>(labels);
+      this.attributes = new HashMap<String,String>(attributes);      
+    }
+    
+    @Deprecated
     public GTS(UUID uuid, String name, Map<String,String> labels, Map<String,String> attributes) {
       this.uuid = uuid;
+      this.id = uuid.toString();
       this.name = name;
       this.labels = new HashMap<String,String>(labels);
       this.attributes = new HashMap<String,String>(attributes);
     }
     
+    public String getId() {
+      return this.id;
+    }    
+    
+    @Deprecated
     public UUID getUuid() {
       return this.uuid;
     }    
@@ -62,7 +79,7 @@ public abstract class DirectoryPlugin {
         StringBuilder sb = new StringBuilder();
         
         sb.append("[");
-        sb.append(this.uuid.toString());
+        sb.append(this.id.toString());
         sb.append("] ");
         
         encode(sb, this.name);
