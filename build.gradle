@@ -27,7 +27,7 @@ buildscript {
 }
 
 plugins {
-    id "com.jfrog.bintray" version "1.4"
+    id "com.jfrog.bintray" version "1.7.3"
     id "com.selesse.git.changelog" version "0.2.0"
 }
 
@@ -242,6 +242,7 @@ subprojects {
         dryRun = false
 
         publications = ['crypto', 'token']
+        publish = true
 
         pkg {
             repo = 'maven'
@@ -577,6 +578,7 @@ project(':warp10') {
         key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
 
         publications = [ 'warp10' ]
+        publish = true
 
         pkg {
             repo = 'generic'
@@ -778,6 +780,7 @@ project(':warpscript') {
         key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
 
         publications = [ 'warpscript' ]
+        publish = true
 
         pkg {
             repo = 'maven'
@@ -942,6 +945,7 @@ project(':hbaseFilters') {
         key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
 
         publications = [ 'hbaseFilters' ]
+        publish = true
 
         pkg {
             repo = 'generic'
