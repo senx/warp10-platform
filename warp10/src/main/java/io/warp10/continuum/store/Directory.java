@@ -485,19 +485,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     
     if (this.properties.containsKey(io.warp10.continuum.Configuration.DIRECTORY_PLUGIN_CLASS)) {
       try {
-        // Create new classloader with filtering so caller cannot access the warp10 classes, except those needed
-        ClassLoader filteringCL = new ClassLoader(this.getClass().getClassLoader()) {
-          @Override
-          protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {                
-            if (name.startsWith("io.warp10") && !name.startsWith("io.warp10.warp.sdk.")) {
-              throw new ClassNotFoundException();
-            } else {
-              return this.getParent().loadClass(name);
-            }
-          }
-        };
+        ClassLoader pluginCL = this.getClass().getClassLoader();
 
-        Class pluginClass = Class.forName((String)properties.get(io.warp10.continuum.Configuration.DIRECTORY_PLUGIN_CLASS), true, filteringCL);
+        Class pluginClass = Class.forName((String)properties.get(io.warp10.continuum.Configuration.DIRECTORY_PLUGIN_CLASS), true, pluginCL);
         this.plugin = (DirectoryPlugin) pluginClass.newInstance();
         
         //
@@ -1451,6 +1441,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             // Recompute labelsid and classid
             //
             
+            // 128bits
             long classId = GTSHelper.classId(directory.SIPHASH_CLASS_LONGS, metadata.getName());
             long labelsId = GTSHelper.labelsId(directory.SIPHASH_LABELS_LONGS, metadata.getLabels());
 
@@ -1489,6 +1480,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 
                 try {
                   GTS gts = new GTS(
+                      // 128bits
                       new UUID(metadata.getClassId(), metadata.getLabelsId()),
                       metadata.getName(),
                       metadata.getLabels(),
@@ -1577,7 +1569,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               }
               
               continue;
-            }                        
+            } // if (io.warp10.continuum.Configuration.INGRESS_METADATA_DELETE_SOURCE.equals(metadata.getSource())                   
 
             //
             // Call external plugin
@@ -1588,13 +1580,14 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               
               try {
                 GTS gts = new GTS(
+                    // 128bits
                     new UUID(metadata.getClassId(), metadata.getLabelsId()),
                     metadata.getName(),
                     metadata.getLabels(),
                     metadata.getAttributes());
 
                 //
-                // If we are doing a metadata update and the GTS is not known, skip writing to HBase.
+                // If we are doing a metadata update and the GTS is not known, skip calling the plugin
                 //
                 
                 if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource()) && !directory.plugin.known(gts)) {

@@ -1961,11 +1961,13 @@ public class GTSHelper {
       encoder.setName(name);
       //encoder.setLabels(labels);
       encoder.getMetadata().setLabels(labels);
-      if (null != attributes) {
-        encoder.getMetadata().setAttributes(attributes);
-      }
     }
-    
+
+    // Update the attributes if some were parsed
+    if (null != attributes) {
+      encoder.getMetadata().setAttributes(attributes);
+    }
+
     encoder.addValue(timestamp, location, elevation, value);
     
     return encoder;
