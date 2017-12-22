@@ -1696,23 +1696,25 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               // Update the last activity
               //
               
-              Metadata meta = directory.metadatas.get(metadata.getName()).get(labelsId);
-              
-              boolean hasChanged = false;
-              
-              if (!metadata.isSetLastActivity() && meta.isSetLastActivity()) {
-                metadata.setLastActivity(meta.getLastActivity());
-                hasChanged = true;
-              } else if (metadata.isSetLastActivity() && meta.isSetLastActivity() && meta.getLastActivity() > metadata.getLastActivity()) {
-                // Take the most recent last activity timestamp
-                metadata.setLastActivity(meta.getLastActivity());
-                hasChanged = true;
-              }
-              
-              if (hasChanged) {
-                // We re-serialize metadata
-                TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-                metadataBytes = serializer.serialize(meta);
+              if (null == directory.plugin) {                
+                Metadata meta = directory.metadatas.get(metadata.getName()).get(labelsId);
+                
+                boolean hasChanged = false;
+                
+                if (!metadata.isSetLastActivity() && meta.isSetLastActivity()) {
+                  metadata.setLastActivity(meta.getLastActivity());
+                  hasChanged = true;
+                } else if (metadata.isSetLastActivity() && meta.isSetLastActivity() && meta.getLastActivity() > metadata.getLastActivity()) {
+                  // Take the most recent last activity timestamp
+                  metadata.setLastActivity(meta.getLastActivity());
+                  hasChanged = true;
+                }
+                
+                if (hasChanged) {
+                  // We re-serialize metadata
+                  TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+                  metadataBytes = serializer.serialize(meta);
+                }                
               }
             }
                         
