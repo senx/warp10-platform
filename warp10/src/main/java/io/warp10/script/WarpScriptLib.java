@@ -298,6 +298,8 @@ public class WarpScriptLib {
   
   private static Map<String,Object> functions = new HashMap<String, Object>();
   
+  private static Set<String> extloaded = new HashSet<String>();
+  
   /**
    * Static definition of name so it can be reused outside of WarpScriptLib
    */
@@ -466,7 +468,9 @@ public class WarpScriptLib {
     functions.put("NaN", new NaN("NaN"));
     functions.put("ISNaN", new ISNaN("ISNaN"));
     functions.put("TYPEOF", new TYPEOF("TYPEOF"));      
+    functions.put("EXTLOADED", new EXTLOADED("EXTLOADED"));
     functions.put("ASSERT", new ASSERT("ASSERT"));
+    functions.put("ASSERTMSG", new ASSERTMSG("ASSERTMSG"));
     functions.put("FAIL", new FAIL("FAIL"));
     functions.put(MSGFAIL, new MSGFAIL(MSGFAIL));
     functions.put("STOP", new STOP("STOP"));
@@ -1533,6 +1537,9 @@ public class WarpScriptLib {
   }
   
   public static void register(WarpScriptExtension extension) {
+    
+    extloaded.add(extension.getClass().getCanonicalName());
+    
     Map<String,Object> extfuncs = extension.getFunctions();
     
     if (null == extfuncs) {
@@ -1546,6 +1553,10 @@ public class WarpScriptLib {
         functions.put(entry.getKey(), entry.getValue());
       }
     }          
+  }
+  
+  public static boolean extloaded(String name) {
+    return extloaded.contains(name);
   }
   
   /**
