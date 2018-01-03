@@ -778,7 +778,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   try {
                     resultQ.put(result);
                     count++;
-                    if (0 == count % 1000) {
+                    if (0 == count % 1000 && null == plugin) {
+                      // We do not update this metric when using a Directory plugin
                       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, count);
                     }
                   } catch (InterruptedException ie) {
@@ -792,7 +793,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               LOG.error("Caught exception in scanning loop, will attempt to continue where we stopped", e);
             } finally {
               if (null != htable) { try { htable.close(); } catch (Exception e) {} }
-              Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, count);
+              if (null == plugin) {
+                // We do not update this metric when using a Directory plugin
+                Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, count);
+              }
             }                    
           }
           
