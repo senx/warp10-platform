@@ -788,14 +788,16 @@ public class ThrottlingManager {
                       labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, entity);
                       Sensision.clear(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels);
                       Sensision.event(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels, 0);
+                      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_ESTIMATOR_RESETS, labels, 1);
                     }
                   } else {
                     synchronized(applicationHLLPEstimators) {
                       applicationHLLPEstimators.remove(entity);
                       Map<String,String> labels = new HashMap<String, String>();
                       labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, entity);
-                      Sensision.clear(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels);
-                      Sensision.event(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels, 0);              
+                      Sensision.clear(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT_PER_APP, labels);
+                      Sensision.event(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT_PER_APP, labels, 0);
+                      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_ESTIMATOR_RESETS_PER_APP, labels, 1);
                     }
                   }
                 } else if (!"".equals(estimator)) {                  
