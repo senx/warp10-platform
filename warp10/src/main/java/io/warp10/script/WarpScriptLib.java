@@ -16,6 +16,25 @@
 
 package io.warp10.script;
 
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
+
+import org.apache.commons.lang3.JavaVersion;
+import org.apache.commons.lang3.SystemUtils;
+import org.bouncycastle.crypto.digests.MD5Digest;
+import org.bouncycastle.crypto.digests.SHA1Digest;
+import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.warp10.WarpClassLoader;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
@@ -269,25 +288,6 @@ import io.warp10.script.unary.TOTIMESTAMP;
 import io.warp10.script.unary.UNIT;
 import io.warp10.warp.sdk.WarpScriptExtension;
 
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
-
-import org.apache.commons.lang3.JavaVersion;
-import org.apache.commons.lang3.SystemUtils;
-import org.bouncycastle.crypto.digests.MD5Digest;
-import org.bouncycastle.crypto.digests.SHA1Digest;
-import org.bouncycastle.crypto.digests.SHA256Digest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Library of functions used to manipulate Geo Time Series
  * and more generally interact with a WarpScriptStack
@@ -320,6 +320,12 @@ public class WarpScriptLib {
   public static final String LIST_START = "[";
   public static final String LIST_END = "]";
 
+  public static final String SET_START = "(";
+  public static final String SET_END = ")";
+  
+  public static final String VECTOR_START = "[[";
+  public static final String VECTOR_END = "]]";
+  
   public static final String TO_VECTOR = "->V";
   public static final String TO_SET = "->SET";
   
@@ -489,6 +495,12 @@ public class WarpScriptLib {
     functions.put(LIST_START, new MARK(LIST_START));
     functions.put(LIST_END, new ENDLIST(LIST_END));
     functions.put("STACKTOLIST", new STACKTOLIST("STACKTOLIST"));
+    functions.put(SET_START, new MARK(SET_START));
+    functions.put(SET_END, new ENDSET(SET_END));
+    functions.put("()", new EMPTYSET("()"));
+    functions.put(VECTOR_START, new MARK(VECTOR_START));
+    functions.put(VECTOR_END, new ENDVECTOR(VECTOR_END));
+    functions.put("[[]]", new EMPTYVECTOR("[[]]"));
     functions.put("{}", new EMPTYMAP("{}"));
     functions.put("IMMUTABLE", new IMMUTABLE("IMMUTABLE"));
     functions.put(MAP_START, new MARK(MAP_START));
@@ -525,6 +537,7 @@ public class WarpScriptLib {
     functions.put(PARSESELECTOR, new PARSESELECTOR(PARSESELECTOR));
     functions.put("TOSELECTOR", new TOSELECTOR("TOSELECTOR"));
     functions.put("PARSE", new PARSE("PARSE"));
+    functions.put("SMARTPARSE", new SMARTPARSE("SMARTPARSE"));
         
     // We do not expose DUMP, it might allocate too much memory
     //functions.put("DUMP", new DUMP("DUMP"));
