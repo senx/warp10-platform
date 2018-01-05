@@ -63,11 +63,11 @@ public class PSTACK extends NamedWarpScriptFunction implements WarpScriptStackFu
       PrintWriter pw = new PrintWriter(sw);
       StackUtils.objectToJSON(pw, o, recursionLevel, false);
       pw.close();
-      out.println("/* " + level + " */ " + sw.toString());
+      out.println("/* " + (level + 1) + " */ " + sw.toString());
     } else {
       StringBuilder sb = new StringBuilder();
       SNAPSHOT.addElement(sb, o);
-      out.println("/* " + level + " */ " + sb.toString());      
+      out.println("/* " + (level + 1) + " */ " + sb.toString());      
     }
   }
 }
