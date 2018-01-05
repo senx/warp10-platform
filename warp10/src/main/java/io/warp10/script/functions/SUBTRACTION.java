@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2017  Cityzen Data
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,50 +14,41 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.ext.sensision;
+package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.sensision.Sensision;
 
-import java.util.List;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
- * Sets a Sensision metric
+ * Computes the difference of two sets - This is a corrected version of 'DIFFERENCE' which had its arguments swapped
  */
-public class SENSISIONSET extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class SUBTRACTION extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public SENSISIONSET(String name) {
+  public SUBTRACTION(String name) {
     super(name);
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    Object b = stack.pop();
+    Object a = stack.pop();
     
-    Object top = stack.pop();
-
-    if (!(top instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a list on top of the stack.");
+    if (!(a instanceof Set) || !(b instanceof Set)) {
+      throw new WarpScriptException(getName() + " can only operate on sets.");
     }
     
-    List<Object> args = (List<Object>) top;
-        
-    String cls = args.get(0).toString();
-    Map<String,String> labels = (Map<String,String>) args.get(1);
-    Object value = args.get(2);
+    Set<Object> difference = new HashSet<Object>();
+       
+    difference.addAll((Set<Object>) a);
+    difference.removeAll((Set<Object>) b);
     
-    Long ttl = null;
+    stack.push(difference);
     
-    if (args.size() > 3) {
-      ttl = ((Number) args.get(3)).longValue();
-    }
-    
-    Sensision.set(cls, labels, value, ttl);
-
     return stack;
   }
-  
 }

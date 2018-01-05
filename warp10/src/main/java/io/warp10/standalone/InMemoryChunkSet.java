@@ -204,7 +204,7 @@ public class InMemoryChunkSet {
     List<GTSDecoder> decoders = new ArrayList<GTSDecoder>();
     
     synchronized (this.chunks) {
-      for (int i = 0; i < 0; i++) {
+      for (int i = 0; i < this.chunks.length; i++) {
         if (null == this.chunks[i]) {
           continue;
         }

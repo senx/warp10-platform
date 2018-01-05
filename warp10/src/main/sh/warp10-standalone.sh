@@ -37,6 +37,9 @@ if [ -z "${WARP10_HOME}" ]; then
   fi
 fi
 
+export JAVA_HOME
+export WARP10_HOME
+
 #
 # Data directory that contains logs, leveldb, config defined ?
 #

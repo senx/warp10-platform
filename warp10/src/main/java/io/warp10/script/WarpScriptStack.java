@@ -254,6 +254,11 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_IN_SECURE_MACRO = "in.secure.macro";
   
   /**
+   * Expiration date (in ms since the epoch) of a macro
+   */
+  public static final String ATTRIBUTE_MACRO_EXPIRY = "macro.expiry";
+  
+  /**
    * List of symbols to export upon script termination as a map of symbol name
    * to symbol value pushed onto the stack.
    */
@@ -287,7 +292,16 @@ public interface WarpScriptStack {
     
     private long fingerprint;
     
+    /**
+     * Timestamp at which the macro expired, or LONG.MIN_VALUE if no expiry date was set
+     */
+    private long expiry = Long.MIN_VALUE;
+    
     private ArrayList<Object> statements = new ArrayList<Object>();
+    
+    public boolean isExpired() {
+      return (Long.MIN_VALUE != this.expiry) && (this.expiry < System.currentTimeMillis());
+    }
     
     public String toString() {
       StringBuilder sb = new StringBuilder();
@@ -346,6 +360,10 @@ public interface WarpScriptStack {
     
     public void setFingerprint(long fingerprint) {
       this.fingerprint = fingerprint;
+    }
+    
+    public void setExpiry(long expiry) {
+      this.expiry = expiry;
     }
     
     @Override

@@ -537,7 +537,10 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
           
           ByteBuffer bb = decoder.getBuffer();
           
-          value.set(bb.array(), bb.arrayOffset(), bb.remaining());
+          ByteBuffer rwbb = ByteBuffer.allocate(bb.remaining());
+          rwbb.put(bb);
+          rwbb.rewind();
+          value.set(rwbb.array(), rwbb.arrayOffset(), rwbb.remaining());
 
           bytes += key.getLength() + value.getLength();
           
@@ -593,6 +596,8 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     
     SequenceFile.Reader reader = null;
     
+    boolean failsafe = "true".equals(properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_STORE_LOAD_FAILSAFE));
+    
     try {
       reader = new SequenceFile.Reader(conf, optPath);
 
@@ -616,9 +621,17 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       System.err.println("File '" + path + "' was not found, skipping.");
       return;
     } catch (IOException ioe) {
-      throw ioe;
+      if (!failsafe) {
+        throw ioe;
+      } else {
+        System.err.println("Ignoring exception " + ioe.getMessage() + ".");
+      }
     } catch (Exception e) {
-      throw new IOException(e);
+      if (!failsafe) {
+        throw new IOException(e);
+      } else {
+        System.err.println("Ignoring exception " + e.getMessage() + ".");
+      }
     }
     
     reader.close();    

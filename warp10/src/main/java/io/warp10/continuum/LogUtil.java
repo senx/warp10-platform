@@ -58,6 +58,15 @@ public class LogUtil {
   public static final String DELETION_GTS = "deletion.gts";
   public static final String DELETION_COUNT = "deletion.count";
   
+  public static final String DIRECTORY_SELECTOR = "directory.selector";
+  public static final String DIRECTORY_REQUEST_TIMESTAMP = "directory.request.timestamp";
+  public static final String DIRECTORY_RESULTS = "directory.results";
+  public static final String DIRECTORY_NANOS = "directory.nanos";
+  public static final String DIRECTORY_METADATA_INSPECTED = "directory.metadata.inspected";
+  public static final String DIRECTORY_CLASSES_INSPECTED = "directory.classes.inspected";
+  public static final String DIRECTORY_CLASSES_MATCHED = "directory.classes.matched";
+  public static final String DIRECTORY_LABELS_COMPARISONS = "directory.labels.comparisons";
+  
   private static boolean checkedAESKey = false;
   private static byte[] loggingAESKey = null;
   

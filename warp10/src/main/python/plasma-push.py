@@ -23,10 +23,13 @@ class PlasmaPushClient(WebSocketClient):
   def sendValue(self, m):
     self.send(m)
 
+#
+# Usage: python plasma-push.py
+#
 if __name__ == '__main__':
-  WRITE_TOKEN = 'XXXX'
+  WRITE_TOKEN = 'WRITE'
   try:
-    ws = PlasmaPushClient('ws://HOST/api/v0/streamupdate', protocols=['http-only', 'chat'], token=WRITE_TOKEN)
+    ws = PlasmaPushClient('ws://127.0.0.1:8080/api/v0/streamupdate', protocols=['http-only', 'chat'], token=WRITE_TOKEN)
     ws.connect()
     while True:
       time.sleep(2)

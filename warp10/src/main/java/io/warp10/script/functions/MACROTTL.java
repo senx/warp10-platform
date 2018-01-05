@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2017  Cityzen Data
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,50 +14,37 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.ext.sensision;
+package io.warp10.script.functions;
 
+import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.sensision.Sensision;
-
-import java.util.List;
-import java.util.Map;
 
 /**
- * Sets a Sensision metric
+ * Sets the TTL for a macro which is loaded from disk
  */
-public class SENSISIONSET extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class MACROTTL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public SENSISIONSET(String name) {
+  public MACROTTL(String name) {
     super(name);
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
     Object top = stack.pop();
-
-    if (!(top instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a list on top of the stack.");
+    
+    if (!(top instanceof Long)) {
+      throw new WarpScriptException(getName() + " expects a ttl on top of the stack.");
     }
     
-    List<Object> args = (List<Object>) top;
-        
-    String cls = args.get(0).toString();
-    Map<String,String> labels = (Map<String,String>) args.get(1);
-    Object value = args.get(2);
+    long ttl = ((long) top) / Constants.TIME_UNITS_PER_MS;
+    long expiry = System.currentTimeMillis() + ttl;
     
-    Long ttl = null;
+    stack.setAttribute(WarpScriptStack.ATTRIBUTE_MACRO_EXPIRY, expiry);
     
-    if (args.size() > 3) {
-      ttl = ((Number) args.get(3)).longValue();
-    }
-    
-    Sensision.set(cls, labels, value, ttl);
-
     return stack;
   }
-  
+
 }

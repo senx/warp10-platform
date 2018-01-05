@@ -676,7 +676,7 @@ project(':warp10') {
 project(':warpscript') {
     archivesBaseName = 'warpscript'
     group = 'io.warp10'
-    version = getVersionName(warp10Version[archivesBaseName])
+    version = updateRevision(getVersionName(warp10Version[archivesBaseName]))
 
     jar {
       zip64 = true

@@ -20,6 +20,7 @@ import io.warp10.SmartPattern;
 import io.warp10.continuum.DirectoryUtil;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.KafkaOffsetCounters;
+import io.warp10.continuum.LogUtil;
 import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.MetadataUtils.MetadataID;
 import io.warp10.continuum.gts.GTSHelper;
@@ -32,6 +33,7 @@ import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.continuum.store.thrift.service.DirectoryService;
+import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
@@ -483,19 +485,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     
     if (this.properties.containsKey(io.warp10.continuum.Configuration.DIRECTORY_PLUGIN_CLASS)) {
       try {
-        // Create new classloader with filtering so caller cannot access the warp10 classes, except those needed
-        ClassLoader filteringCL = new ClassLoader(this.getClass().getClassLoader()) {
-          @Override
-          protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {                
-            if (name.startsWith("io.warp10") && !name.startsWith("io.warp10.warp.sdk.")) {
-              throw new ClassNotFoundException();
-            } else {
-              return this.getParent().loadClass(name);
-            }
-          }
-        };
+        ClassLoader pluginCL = this.getClass().getClassLoader();
 
-        Class pluginClass = Class.forName((String)properties.get(io.warp10.continuum.Configuration.DIRECTORY_PLUGIN_CLASS), true, filteringCL);
+        Class pluginClass = Class.forName((String)properties.get(io.warp10.continuum.Configuration.DIRECTORY_PLUGIN_CLASS), true, pluginCL);
         this.plugin = (DirectoryPlugin) pluginClass.newInstance();
         
         //
@@ -786,7 +778,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   try {
                     resultQ.put(result);
                     count++;
-                    if (0 == count % 1000) {
+                    if (0 == count % 1000 && null == plugin) {
+                      // We do not update this metric when using a Directory plugin
                       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, count);
                     }
                   } catch (InterruptedException ie) {
@@ -800,7 +793,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               LOG.error("Caught exception in scanning loop, will attempt to continue where we stopped", e);
             } finally {
               if (null != htable) { try { htable.close(); } catch (Exception e) {} }
-              Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, count);
+              if (null == plugin) {
+                // We do not update this metric when using a Directory plugin
+                Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, count);
+              }
             }                    
           }
           
@@ -1449,6 +1445,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             // Recompute labelsid and classid
             //
             
+            // 128bits
             long classId = GTSHelper.classId(directory.SIPHASH_CLASS_LONGS, metadata.getName());
             long labelsId = GTSHelper.labelsId(directory.SIPHASH_LABELS_LONGS, metadata.getLabels());
 
@@ -1487,6 +1484,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 
                 try {
                   GTS gts = new GTS(
+                      // 128bits
                       new UUID(metadata.getClassId(), metadata.getLabelsId()),
                       metadata.getName(),
                       metadata.getLabels(),
@@ -1575,7 +1573,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               }
               
               continue;
-            }                        
+            } // if (io.warp10.continuum.Configuration.INGRESS_METADATA_DELETE_SOURCE.equals(metadata.getSource())                   
 
             //
             // Call external plugin
@@ -1586,13 +1584,14 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               
               try {
                 GTS gts = new GTS(
+                    // 128bits
                     new UUID(metadata.getClassId(), metadata.getLabelsId()),
                     metadata.getName(),
                     metadata.getLabels(),
                     metadata.getAttributes());
 
                 //
-                // If we are doing a metadata update and the GTS is not known, skip writing to HBase.
+                // If we are doing a metadata update and the GTS is not known, skip calling the plugin
                 //
                 
                 if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource()) && !directory.plugin.known(gts)) {
@@ -2582,6 +2581,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       return;
     }
     
+    long now = System.currentTimeMillis();
+    
     long nano = System.nanoTime();
     
     baseRequest.setHandled(true);
@@ -2722,8 +2723,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             
             if (null == data) {
               data = serializer.serialize(metadata);
-              // cache content
-              serializedMetadataCache.put(MetadataUtils.id(metadata),data);
+              synchronized(serializedMetadataCache) {
+                // cache content
+                serializedMetadataCache.put(MetadataUtils.id(metadata),data);                
+              }
             } else {
               hits++;
             }
@@ -2921,10 +2924,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               
               byte[] data = serializedMetadataCache.get(id);
               
-              if (null == data) {
+              if (null == data) {                
                 data = serializer.serialize(metadata);
-                // cache content
-                serializedMetadataCache.put(MetadataUtils.id(metadata),data);
+                synchronized(serializedMetadataCache) {
+                  // cache content
+                  serializedMetadataCache.put(MetadataUtils.id(metadata),data);                  
+                }
               } else {
                 hits++;
               }
@@ -2940,7 +2945,20 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         }
       }    
       
-      LOG.info("Search returned " + count + " results in " + ((System.nanoTime() - nano) / 1000000.0D) + " ms, inspected " + metadataInspected + " metadatas in " + classesInspected + " classes (" + classesMatched + " matched) and performed " + labelsComparisons + " comparisons.");
+      long nownano = System.nanoTime();
+      
+      LoggingEvent event = LogUtil.setLoggingEventAttribute(null, LogUtil.DIRECTORY_SELECTOR, selector);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_REQUEST_TIMESTAMP, now);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_RESULTS, count);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_NANOS, nownano - nano);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_METADATA_INSPECTED, metadataInspected);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_CLASSES_INSPECTED, classesInspected);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_CLASSES_MATCHED, classesMatched);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_LABELS_COMPARISONS, labelsComparisons);
+      
+      String eventstr = LogUtil.serializeLoggingEvent(this.keystore, event);
+      
+      LOG.info("Search returned " + count + " results in " + ((nownano - nano) / 1000000.0D) + " ms, inspected " + metadataInspected + " metadatas in " + classesInspected + " classes (" + classesMatched + " matched) and performed " + labelsComparisons + " comparisons. EVENT=" + eventstr);
     }
     
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_REQUESTS, Sensision.EMPTY_LABELS, 1);

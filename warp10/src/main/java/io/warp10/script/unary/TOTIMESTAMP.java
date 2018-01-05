@@ -47,16 +47,21 @@ public class TOTIMESTAMP extends NamedWarpScriptFunction implements WarpScriptSt
       long ts = ((java.util.Date) top).getTime() * Constants.TIME_UNITS_PER_MS;
       stack.push(ts);
     } else if (top instanceof String) {      
-      try {
-        ZonedDateTime zdt = ZonedDateTime.parse(top.toString());
-                
-        long ts = zdt.getLong(ChronoField.INSTANT_SECONDS) * Constants.TIME_UNITS_PER_S + zdt.getLong(ChronoField.NANO_OF_SECOND) / (1000000L / Constants.TIME_UNITS_PER_MS);
-        stack.push(ts);
-      } catch (DateTimeParseException dtpe) {
-        throw new WarpScriptException(getName() + " expects an ISO8601 timestamp (YYYY-MM-DDThh:mm:ss.sssssssss) with a specified time zone.", dtpe);
-      }
+      long ts = parseTimestamp(top.toString());
+      stack.push(ts);
     }
 
     return stack;
+  }
+  
+  public static long parseTimestamp(String timestamp) throws WarpScriptException {
+    try {
+      ZonedDateTime zdt = ZonedDateTime.parse(timestamp);
+              
+      long ts = zdt.getLong(ChronoField.INSTANT_SECONDS) * Constants.TIME_UNITS_PER_S + zdt.getLong(ChronoField.NANO_OF_SECOND) / (1000000L / Constants.TIME_UNITS_PER_MS);
+      return ts;
+    } catch (DateTimeParseException dtpe) {
+      throw new WarpScriptException("Can only parse an ISO8601 timestamp (YYYY-MM-DDThh:mm:ss.sssssssss) with a specified time zone.", dtpe);
+    }
   }
 }

@@ -1026,6 +1026,16 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_ESTIMATORS_CACHED_PER_APP = "warp.estimators.cached.perapp";
 
   /**
+   * Number of times an estimator was reset
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_ESTIMATOR_RESETS = "warp.estimator.resets";
+
+  /**
+   * Number of times an estimator was reset per app
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_ESTIMATOR_RESETS_PER_APP = "warp.estimator.resets.perapp";
+
+  /**
    * Number of invalid hashes detected when 
    */
   public static final String SENSISION_CLASS_PLASMA_BACKEND_SUBSCRIPTIONS_INVALID_HASHES = "warp.plasma.backend.subscriptions.invalid.hashes";

@@ -16,6 +16,25 @@
 
 package io.warp10.script;
 
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
+
+import org.apache.commons.lang3.JavaVersion;
+import org.apache.commons.lang3.SystemUtils;
+import org.bouncycastle.crypto.digests.MD5Digest;
+import org.bouncycastle.crypto.digests.SHA1Digest;
+import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.warp10.WarpClassLoader;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
@@ -269,25 +288,6 @@ import io.warp10.script.unary.TOTIMESTAMP;
 import io.warp10.script.unary.UNIT;
 import io.warp10.warp.sdk.WarpScriptExtension;
 
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
-
-import org.apache.commons.lang3.JavaVersion;
-import org.apache.commons.lang3.SystemUtils;
-import org.bouncycastle.crypto.digests.MD5Digest;
-import org.bouncycastle.crypto.digests.SHA1Digest;
-import org.bouncycastle.crypto.digests.SHA256Digest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Library of functions used to manipulate Geo Time Series
  * and more generally interact with a WarpScriptStack
@@ -297,6 +297,8 @@ public class WarpScriptLib {
   private static final Logger LOG = LoggerFactory.getLogger(WarpScriptLib.class);
   
   private static Map<String,Object> functions = new HashMap<String, Object>();
+  
+  private static Set<String> extloaded = new HashSet<String>();
   
   /**
    * Static definition of name so it can be reused outside of WarpScriptLib
@@ -318,6 +320,12 @@ public class WarpScriptLib {
   public static final String LIST_START = "[";
   public static final String LIST_END = "]";
 
+  public static final String SET_START = "(";
+  public static final String SET_END = ")";
+  
+  public static final String VECTOR_START = "[[";
+  public static final String VECTOR_END = "]]";
+  
   public static final String TO_VECTOR = "->V";
   public static final String TO_SET = "->SET";
   
@@ -356,6 +364,9 @@ public class WarpScriptLib {
   
   public static final String MSGFAIL = "MSGFAIL";
   
+  public static final String INPLACEADD = "+!";
+  public static final String PUT = "PUT";
+  
   static {
     
     functions.put("REV", new REV("REV"));
@@ -392,6 +403,7 @@ public class WarpScriptLib {
     functions.put("UNION", new UNION("UNION"));
     functions.put("INTERSECTION", new INTERSECTION("INTERSECTION"));
     functions.put("DIFFERENCE", new DIFFERENCE("DIFFERENCE"));
+    functions.put("SUBTRACTION", new SUBTRACTION("SUBTRACTION"));
     functions.put("->MAP", new TOMAP("->MAP"));
     functions.put("MAP->", new MAPTO("MAP->"));
     functions.put("UNMAP", new UNMAP("UNMAP"));
@@ -402,7 +414,7 @@ public class WarpScriptLib {
     functions.put("PICKLE->", new PICKLETO("PICKLE->"));
     functions.put("GET", new GET("GET"));
     functions.put("SET", new SET("SET"));
-    functions.put("PUT", new PUT("PUT"));
+    functions.put(PUT, new PUT(PUT));
     functions.put("SUBMAP", new SUBMAP("SUBMAP"));
     functions.put("SUBLIST", new SUBLIST("SUBLIST"));
     functions.put("KEYLIST", new KEYLIST("KEYLIST"));
@@ -438,6 +450,7 @@ public class WarpScriptLib {
     functions.put("MAXBUCKETS", new MAXBUCKETS("MAXBUCKETS"));
     functions.put("MAXGEOCELLS", new MAXGEOCELLS("MAXGEOCELLS"));
     functions.put("MAXPIXELS", new MAXPIXELS("MAXPIXELS"));
+    functions.put("MAXRECURSION", new MAXRECURSION("MAXRECURSION"));
     functions.put("OPS", new OPS("OPS"));
     functions.put("MAXSYMBOLS", new MAXSYMBOLS("MAXSYMBOLS"));
     functions.put(EVAL, new EVAL(EVAL));
@@ -461,7 +474,9 @@ public class WarpScriptLib {
     functions.put("NaN", new NaN("NaN"));
     functions.put("ISNaN", new ISNaN("ISNaN"));
     functions.put("TYPEOF", new TYPEOF("TYPEOF"));      
+    functions.put("EXTLOADED", new EXTLOADED("EXTLOADED"));
     functions.put("ASSERT", new ASSERT("ASSERT"));
+    functions.put("ASSERTMSG", new ASSERTMSG("ASSERTMSG"));
     functions.put("FAIL", new FAIL("FAIL"));
     functions.put(MSGFAIL, new MSGFAIL(MSGFAIL));
     functions.put("STOP", new STOP("STOP"));
@@ -480,6 +495,12 @@ public class WarpScriptLib {
     functions.put(LIST_START, new MARK(LIST_START));
     functions.put(LIST_END, new ENDLIST(LIST_END));
     functions.put("STACKTOLIST", new STACKTOLIST("STACKTOLIST"));
+    functions.put(SET_START, new MARK(SET_START));
+    functions.put(SET_END, new ENDSET(SET_END));
+    functions.put("()", new EMPTYSET("()"));
+    functions.put(VECTOR_START, new MARK(VECTOR_START));
+    functions.put(VECTOR_END, new ENDVECTOR(VECTOR_END));
+    functions.put("[[]]", new EMPTYVECTOR("[[]]"));
     functions.put("{}", new EMPTYMAP("{}"));
     functions.put("IMMUTABLE", new IMMUTABLE("IMMUTABLE"));
     functions.put(MAP_START, new MARK(MAP_START));
@@ -493,14 +514,16 @@ public class WarpScriptLib {
     functions.put("DOCMODE", new DOCMODE("DOCMODE"));
     functions.put("SECTION", new SECTION("SECTION"));
     functions.put("GETSECTION", new GETSECTION("GETSECTION"));
-    functions.put(SNAPSHOT, new SNAPSHOT(SNAPSHOT, false, false, true));
-    functions.put(SNAPSHOTALL, new SNAPSHOT(SNAPSHOTALL, true, false, true));
-    functions.put("SNAPSHOTTOMARK", new SNAPSHOT("SNAPSHOTTOMARK", false, true, true));
-    functions.put("SNAPSHOTALLTOMARK", new SNAPSHOT("SNAPSHOTALLTOMARK", true, true, true));
-    functions.put("SNAPSHOTCOPY", new SNAPSHOT("SNAPSHOTCOPY", false, false, false));
-    functions.put("SNAPSHOTCOPYALL", new SNAPSHOT("SNAPSHOTCOPYALL", true, false, false));
-    functions.put("SNAPSHOTCOPYTOMARK", new SNAPSHOT("SNAPSHOTCOPYTOMARK", false, true, false));
-    functions.put("SNAPSHOTCOPYALLTOMARK", new SNAPSHOT("SNAPSHOTCOPYALLTOMARK", true, true, false));
+    functions.put(SNAPSHOT, new SNAPSHOT(SNAPSHOT, false, false, true, false));
+    functions.put(SNAPSHOTALL, new SNAPSHOT(SNAPSHOTALL, true, false, true, false));
+    functions.put("SNAPSHOTTOMARK", new SNAPSHOT("SNAPSHOTTOMARK", false, true, true, false));
+    functions.put("SNAPSHOTALLTOMARK", new SNAPSHOT("SNAPSHOTALLTOMARK", true, true, true, false));
+    functions.put("SNAPSHOTCOPY", new SNAPSHOT("SNAPSHOTCOPY", false, false, false, false));
+    functions.put("SNAPSHOTCOPYALL", new SNAPSHOT("SNAPSHOTCOPYALL", true, false, false, false));
+    functions.put("SNAPSHOTCOPYTOMARK", new SNAPSHOT("SNAPSHOTCOPYTOMARK", false, true, false, false));
+    functions.put("SNAPSHOTCOPYALLTOMARK", new SNAPSHOT("SNAPSHOTCOPYALLTOMARK", true, true, false, false));
+    functions.put("SNAPSHOTN", new SNAPSHOT("SNAPSHOTN", false, false, true, true));
+    functions.put("SNAPSHOTCOPYN", new SNAPSHOT("SNAPSHOTCOPYN", false, false, false, true));
     functions.put("HEADER", new HEADER("HEADER"));
     
     functions.put("ECHOON", new ECHOON("ECHOON"));
@@ -511,7 +534,8 @@ public class WarpScriptLib {
     functions.put("PEEKN", new PEEKN("PEEKN"));
     functions.put("NPEEK", new NPEEK("NPEEK"));
     functions.put("PSTACK", new PSTACK("PSTACK"));
-    
+
+    functions.put("MACROTTL", new MACROTTL("MACROTTL"));
     functions.put("MACROMAPPER", new MACROMAPPER("MACROMAPPER"));
     functions.put("MACROREDUCER", new MACROMAPPER("MACROREDUCER"));
     functions.put("MACROBUCKETIZER", new MACROMAPPER("MACROBUCKETIZER"));
@@ -522,13 +546,14 @@ public class WarpScriptLib {
     functions.put(PARSESELECTOR, new PARSESELECTOR(PARSESELECTOR));
     functions.put("TOSELECTOR", new TOSELECTOR("TOSELECTOR"));
     functions.put("PARSE", new PARSE("PARSE"));
+    functions.put("SMARTPARSE", new SMARTPARSE("SMARTPARSE"));
         
     // We do not expose DUMP, it might allocate too much memory
     //functions.put("DUMP", new DUMP("DUMP"));
     
     // Binary ops
     functions.put("+", new ADD("+"));
-    functions.put("+!", new INPLACEADD("+!"));
+    functions.put(INPLACEADD, new INPLACEADD(INPLACEADD));
     functions.put("-", new SUB("-"));
     functions.put("/", new DIV("/"));
     functions.put("*", new MUL("*"));
@@ -736,6 +761,7 @@ public class WarpScriptLib {
     functions.put("FFT", new FFT.Builder("FFT", true));
     functions.put("FFTAP", new FFT.Builder("FFT", false));
     functions.put("IFFT", new IFFT.Builder("IFFT"));
+    functions.put("FFTWINDOW", new FFTWINDOW("FFTWINDOW"));
     functions.put("FDWT", new FDWT("FDWT"));
     functions.put("IDWT", new IDWT("IDWT"));
     functions.put("DWTSPLIT", new DWTSPLIT("DWTSPLIT"));
@@ -1014,6 +1040,8 @@ public class WarpScriptLib {
 
     functions.put("NPDF", new NPDF.Builder("NPDF"));
     functions.put("MUSIGMA", new MUSIGMA("MUSIGMA"));
+    functions.put("KURTOSIS", new KURTOSIS("KURTOSIS"));
+    functions.put("SKEWNESS", new SKEWNESS("SKEWNESS"));
     functions.put("NSUMSUMSQ", new NSUMSUMSQ("NSUMSUMSQ"));
     functions.put("LR", new LR("LR"));
     functions.put("MODE", new MODE("MODE"));
@@ -1050,7 +1078,6 @@ public class WarpScriptLib {
       functions.put("TANH", new MATH("TANH", "tanh"));
       functions.put("ATAN", new MATH("ATAN", "atan"));
 
-
       functions.put("SIGNUM", new MATH("SIGNUM", "signum"));
       functions.put("FLOOR", new MATH("FLOOR", "floor"));
       functions.put("CEIL", new MATH("CEIL", "ceil"));
@@ -1078,7 +1105,8 @@ public class WarpScriptLib {
       functions.put("HYPOT", new MATH2("HYPOT", "hypot"));
       functions.put("IEEEREMAINDER", new MATH2("IEEEREMAINDER", "IEEEremainder"));
       functions.put("NEXTAFTER", new MATH2("NEXTAFTER", "nextAfter"));
-
+      functions.put("ATAN2", new MATH2("ATAN2", "atan2"));
+      
     } catch (WarpScriptException ee) {
       throw new RuntimeException(ee);
     }
@@ -1531,6 +1559,9 @@ public class WarpScriptLib {
   }
   
   public static void register(WarpScriptExtension extension) {
+    
+    extloaded.add(extension.getClass().getCanonicalName());
+    
     Map<String,Object> extfuncs = extension.getFunctions();
     
     if (null == extfuncs) {
@@ -1544,6 +1575,10 @@ public class WarpScriptLib {
         functions.put(entry.getKey(), entry.getValue());
       }
     }          
+  }
+  
+  public static boolean extloaded(String name) {
+    return extloaded.contains(name);
   }
   
   /**

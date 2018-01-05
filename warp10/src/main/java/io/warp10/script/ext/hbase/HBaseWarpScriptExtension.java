@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2017  Cityzen Data
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.ext.sensision;
+package io.warp10.script.ext.hbase;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,20 +22,17 @@ import java.util.Map;
 import io.warp10.warp.sdk.WarpScriptExtension;
 
 /**
- * WarpScript Extension which exposes functions to
- * set/update/clear/get Sensision metrics
+ * Extension which defines functions around concurrent execution
+ * of WarpScript code.
  */
-public class SensisionWarpScriptExtension extends WarpScriptExtension {
+public class HBaseWarpScriptExtension extends WarpScriptExtension {
   
-  private static final Map<String, Object> functions;
+  private static final Map<String,Object> functions;
   
   static {
     functions = new HashMap<String, Object>();
-    
-    functions.put("SENSISION.EVENT", new SENSISIONEVENT("SENSISION.EVENT"));
-    functions.put("SENSISION.UPDATE", new SENSISIONUPDATE("SENSISION.UPDATE"));
-    functions.put("SENSISION.SET", new SENSISIONSET("SENSISION.SET"));
-    functions.put("SENSISION.GET", new SENSISIONGET("SENSISION.GET"));
+
+    functions.put("HLOCATE", new HLOCATE("HLOCATE"));
   }
   
   @Override

@@ -5,9 +5,8 @@ import io.warp10.crypto.SipHashInline;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Comparator;
-
-import org.python.jline.internal.InputStreamReader;
 
 import com.fasterxml.sort.DataReader;
 import com.fasterxml.sort.DataReaderFactory;
