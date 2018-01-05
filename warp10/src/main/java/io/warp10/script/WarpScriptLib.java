@@ -534,6 +534,8 @@ public class WarpScriptLib {
     functions.put("PEEKN", new PEEKN("PEEKN"));
     functions.put("NPEEK", new NPEEK("NPEEK"));
     functions.put("PSTACK", new PSTACK("PSTACK"));
+    functions.put("TIMEON",  new TIMEON("TIMEON"));
+    functions.put("TIMEOFF",  new TIMEOFF("TIMEOFF"));
 
     functions.put("MACROTTL", new MACROTTL("MACROTTL"));
     functions.put("MACROMAPPER", new MACROMAPPER("MACROMAPPER"));

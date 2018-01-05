@@ -497,9 +497,12 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
           Throwable t = null;
           
           long nano = System.nanoTime();
+          long time = 0L;
           
           try {
             stack.exec(line);
+            
+            time = System.nanoTime() - nano;
             
             if (stack.depth() > 0 && null != stack.getAttribute(WarpScriptStack.ATTRIBUTE_INTERACTIVE_ECHO)) {
               WarpScriptStackFunction npeek = (WarpScriptStackFunction) WarpScriptLib.getFunction("NPEEK");
@@ -507,7 +510,7 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
               out.println(" ");
               npeek.apply(stack);
               out.println(" ");
-            }
+            }            
           } catch (WarpScriptStopException ese) {
             continue;
           } catch (Throwable te) {
@@ -537,6 +540,11 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
               EVENTLOG.error(msg);
             } else {
               EVENTLOG.info(msg);
+            }
+            
+            if (Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_INTERACTIVE_TIME))) {
+              out.print("// TIME ");
+              out.println(time + " ns");
             }
           }
         }        

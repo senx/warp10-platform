@@ -91,6 +91,11 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_INTERACTIVE_ECHO = "interactive.echo";
   
   /**
+   * Flag indicating whether or not to display timing information after each command.
+   */
+  public static final String ATTRIBUTE_INTERACTIVE_TIME = "interactive.time";
+  
+  /**
    * Name of current code section, null is unnamed
    */
   public static final String ATTRIBUTE_SECTION_NAME = "section.name";
