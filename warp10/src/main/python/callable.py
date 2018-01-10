@@ -20,7 +20,7 @@
 #
 # Calling this script from WarpScript is done via
 #
-# ... ->PICKLE ->B64 'path/to/callable.py' CALL
+# ... ->PICKLE ->B64 'path/to/callable.py' CALL B64-> PICKLE->
 #
 
 import cPickle
@@ -59,9 +59,12 @@ while True:
     output = 'output'
 
     #
-    # Output result (URL encoded UTF-8).
+    # Output result
     #
-    print urllib.quote(output.encode('utf-8'))
+    # (URL encoded UTF-8).
+    #print urllib.quote(output.encode('utf-8'))
+    # Base64 pickled data
+    print base64.b64encode(cPickle.dumps(output))
   except Exception as err:
     #
     # If returning a content starting with ' ' (not URL encoded), then
