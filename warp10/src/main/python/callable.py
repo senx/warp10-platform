@@ -1,4 +1,27 @@
 #!/usr/bin/env python -u 
+#
+# If using a virtual python environment (set up via virtualenv), use the
+# following shell wrapper:
+#
+# ---8<------8<------8<------8<------8<------8<------8<------8<------8<---
+# #!/bin/sh
+#
+# VIRTUAL_ROOT=/path/to/virtual/environment
+# CALLABLE_PATH=${VIRTUAL_ROOT}/bin/callable.py
+#
+# # Load the environment variables for virtual python environment
+# # source ${VIRTUAL_ROOT}/bin/activate
+#
+# cd ${VIRTUAL_ROOT}
+#
+# exec python -u ${CALLABLE_PATH}
+# ---8<------8<------8<------8<------8<------8<------8<------8<------8<---
+#
+#
+# Calling this script from WarpScript is done via
+#
+# ... ->PICKLE ->B64 'path/to/callable.py' CALL
+#
 
 import cPickle
 import sys
