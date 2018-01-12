@@ -64,7 +64,7 @@ while True:
     # (URL encoded UTF-8).
     #print urllib.quote(output.encode('utf-8'))
     # Base64 pickled data
-    print base64.b64encode(cPickle.dumps(output))
+    print urllib.quote(base64.b64encode(cPickle.dumps(output)).encode('utf-8'))
   except Exception as err:
     #
     # If returning a content starting with ' ' (not URL encoded), then
