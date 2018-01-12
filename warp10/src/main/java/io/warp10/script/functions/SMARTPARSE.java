@@ -38,9 +38,12 @@ import io.warp10.script.WarpScriptStack;
  */
 public class SMARTPARSE  extends GTSStackFunction {
   
+  // Groups containing values
   private static final String VGROUPS = "vgroups";
+  // Groups containing labels
   private static final String LGROUPS = "lgroups";
-  private static final String TGROUPS = "tgroups";
+  // Groups containing timestamps
+  private static final String TGROUPS = "tgroups";  
   private static final String MATCHER = "matcher";
   private static final String LAT = "lat";
   private static final String LON = "lon";
@@ -196,8 +199,22 @@ public class SMARTPARSE  extends GTSStackFunction {
       if (null != elev) {
         String elevval = matcher.group(elev);
         
-        if (null != elevval) {
-          elevation = Long.parseLong(elevval);
+        if (null != elevval) {          
+          elevation = (long) Math.round(Double.parseDouble(elevval));
+        }
+        
+        if (elev.equals("elevm")) {
+          elevation = elevation * 1000L;
+        } else if (elev.equals("elevft")) {
+          elevation = elevation * (254L*12L);
+        } else if (elev.equals("elevkm")) {
+          elevation = elevation * 1000000L;
+        } else if (elev.equals("elevmi")) {
+          elevation = elevation * 1609340L;
+        } else if (elev.equals("elevnm")) {
+          elevation = elevation * 1852000L;
+        } else if (elev.equals("elevcm")) {
+          elevation = elevation * 10L;
         }
       }
       
@@ -214,16 +231,16 @@ public class SMARTPARSE  extends GTSStackFunction {
         
         Double ts = null;
         
-        if (group.equals("Ts")) {            
+        if (group.startsWith("Ts")) {            
           ts = Double.parseDouble(groupval) * Constants.TIME_UNITS_PER_S;
-        } else if (group.equals("Tms")) {
+        } else if (group.startsWith("Tms")) {
           ts = Double.parseDouble(groupval) * Constants.TIME_UNITS_PER_MS;
-        } else if (group.equals("Tus")) {            
+        } else if (group.startsWith("Tus")) {            
           ts = Double.parseDouble(groupval);
-          ts = ts / (1000000 / Constants.TIME_UNITS_PER_S);
-        } else if (group.equals("Tns")) {
+          ts = ts / (1000000.0D / Constants.TIME_UNITS_PER_S);
+        } else if (group.startsWith("Tns")) {
           ts = Double.parseDouble(groupval);
-          ts = ts / (1000000000 / Constants.TIME_UNITS_PER_S);
+          ts = ts / (1000000000.0D / Constants.TIME_UNITS_PER_S);
         }
 
         if (null != ts) {
