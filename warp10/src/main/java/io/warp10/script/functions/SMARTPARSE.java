@@ -97,7 +97,7 @@ public class SMARTPARSE  extends GTSStackFunction {
     // Extract the named fields
     //
     
-    Pattern namedgrouppattern = Pattern.compile("\\(\\?<([A-Za-z0-9]+)>");
+    Pattern namedgrouppattern = Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*)>");
     
     Matcher namedgroup = namedgrouppattern.matcher(regexp);
     
