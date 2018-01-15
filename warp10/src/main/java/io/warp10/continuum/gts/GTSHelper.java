@@ -1791,8 +1791,13 @@ public class GTSHelper {
       //idx2 = latlon.indexOf(":");
       idx2 = UnsafeString.indexOf(latlon, ':');
             
-      //location = GeoXPLib.toGeoXPPoint(Double.valueOf(latlon.substring(0, idx2)), Double.valueOf(latlon.substring(idx2 + 1)));
-      location = GeoXPLib.toGeoXPPoint(Double.parseDouble(latlon.substring(0, idx2)), Double.parseDouble(latlon.substring(idx2 + 1)));
+      if (-1 != idx2) {
+        //location = GeoXPLib.toGeoXPPoint(Double.valueOf(latlon.substring(0, idx2)), Double.valueOf(latlon.substring(idx2 + 1)));
+        location = GeoXPLib.toGeoXPPoint(Double.parseDouble(latlon.substring(0, idx2)), Double.parseDouble(latlon.substring(idx2 + 1)));
+      } else {
+        // Parse the location value as a Long
+        location = Long.parseLong(latlon);        
+      }
     } else {
       // Advance past the second '/'    
       idx = idx2 + 1;

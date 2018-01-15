@@ -253,7 +253,6 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.INPLACEADD);
           sb.append(" ");          
         }
-        sb.append(" ");
         sb.append(WarpScriptLib.TO_SET);
         sb.append(" ");
       } else if (o instanceof Map) {
