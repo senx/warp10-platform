@@ -269,8 +269,7 @@ public class Ingress extends AbstractHandler implements Runnable {
    */
   private final boolean rejectDelete;
 
-
-  private final boolean acceptAttributes;
+  final boolean acceptAttributes;
 
   public Ingress(KeyStore keystore, Properties props) {
 

@@ -65,7 +65,7 @@ import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
     
   private final Ingress ingress;
-  
+
   @WebSocket(maxTextMessageSize=1024 * 1024, maxBinaryMessageSize=1024 * 1024)
   public static class StandaloneStreamUpdateWebSocket {
     
@@ -163,7 +163,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
               }
 
               try {
-                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.handler.ingress.maxValueSize, false);
+                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.handler.ingress.maxValueSize, this.handler.ingress.acceptAttributes);
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
                 throw new IOException("Parse error at '" + line + "'", pe);
@@ -344,7 +344,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
     super(StandaloneStreamUpdateWebSocket.class);
 
     this.ingress = ingress;
-  }      
+  }
     
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
