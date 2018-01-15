@@ -94,7 +94,9 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
   private final String datalogId;
   private final byte[] datalogPSK;
   private final File loggingDir;
-  
+
+  private final boolean acceptAttributes;
+
   private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
 
   @WebSocket(maxTextMessageSize=1024 * 1024, maxBinaryMessageSize=1024 * 1024)
@@ -111,7 +113,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     private WriteToken wtoken;
 
     private String encodedToken;
-    
+
+
     /**
      * Cache used to determine if we should push metadata into Kafka or if it was previously seen.
      * Key is a BigInteger constructed from a byte array of classId+labelsId (we cannot use byte[] as map key)
@@ -290,7 +293,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               }
 
               try {
-                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now);
+                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, Long.MAX_VALUE, handler.acceptAttributes);
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
                 throw new IOException("Parse error at '" + line + "'", pe);
@@ -479,7 +482,9 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
     this.properties = properties;
-    
+
+    this.acceptAttributes = "true".equals(properties.getProperty(Configuration.INGRESS_UPDATE_ACCEPT_ATTRIBUTES));
+
     if (properties.containsKey(Configuration.DATALOG_DIR)) {
       File dir = new File(properties.getProperty(Configuration.DATALOG_DIR));
       
