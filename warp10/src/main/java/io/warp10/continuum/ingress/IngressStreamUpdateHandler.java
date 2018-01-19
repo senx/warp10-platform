@@ -37,11 +37,15 @@ import java.text.ParseException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.UpgradeRequest;
@@ -135,13 +139,24 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
           
           long now = TimeSource.getTime();
           
+          // Atomic boolean to track if attributes were parsed
+          AtomicBoolean hadAttributes = this.handler.ingress.parseAttributes ? new AtomicBoolean(false) : null;
+
           try {
             GTSEncoder lastencoder = null;
             GTSEncoder encoder = null;
 
             BufferedReader br = new BufferedReader(new StringReader(message));
             
+            boolean lastHadAttributes = false;
+            
             do {
+              
+              if (this.handler.ingress.parseAttributes) {
+                lastHadAttributes = lastHadAttributes || hadAttributes.get();
+                hadAttributes.set(false);
+              }
+              
               String line = br.readLine();
               
               if (null == line) {
@@ -163,7 +178,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
               }
 
               try {
-                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.handler.ingress.maxValueSize, false);
+                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.handler.ingress.maxValueSize, hadAttributes);
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
                 throw new IOException("Parse error at '" + line + "'", pe);
@@ -209,7 +224,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
                     synchronized(this.handler.ingress.metadataCache) {
                       this.handler.ingress.metadataCache.put(metadataCacheKey, null);
                     }
-                  }
+                  }                  
                 }
 
                 if (null != lastencoder) {
@@ -217,11 +232,26 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
                   lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.ingress.labelsKey, lastencoder.getLabels()));
                   this.handler.ingress.pushDataMessage(lastencoder);
                   count += lastencoder.getCount();
+                  
+                  if (this.handler.ingress.parseAttributes && lastHadAttributes) {
+                    // We need to push lastencoder's metadata update as they were updated since the last
+                    // metadata update message sent
+                    Metadata meta = new Metadata(lastencoder.getMetadata());
+                    meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                    this.handler.ingress.pushMetadataMessage(meta);
+                    lastHadAttributes = false;
+                  }
                 }
                 
                 if (encoder != lastencoder) {
-                  lastencoder = encoder;
+                  // This is the case when we just parsed either the first input line or one for a different
+                  // GTS than the previous one.
+
+                  lastencoder = encoder;                  
                 } else {
+                  // This is the case when lastencoder and encoder are identical, but lastencoder was too big and needed
+                  // to be flushed
+
                   //lastencoder = null
                   //
                   // Allocate a new GTSEncoder and reuse Metadata so we can
@@ -253,6 +283,15 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
               lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.ingress.labelsKey, lastencoder.getLabels()));
               this.handler.ingress.pushDataMessage(lastencoder);
               count += lastencoder.getCount();
+              
+              if (this.handler.ingress.parseAttributes && lastHadAttributes) {
+                // Push a metadata UPDATE message so attributes are stored
+                // Build metadata object to push
+                Metadata meta = new Metadata(lastencoder.getMetadata());
+                // Set source to indicate we
+                meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                this.handler.ingress.pushMetadataMessage(meta);
+              }
             }                  
           } finally {
             this.handler.ingress.pushMetadataMessage(null);

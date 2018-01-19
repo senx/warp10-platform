@@ -30,6 +30,7 @@ import java.io.StringReader;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Parse a string matching the format fed into the update endpoint
@@ -64,7 +65,9 @@ public class PARSE extends NamedWarpScriptFunction implements WarpScriptStackFun
           break;
         }
         
-        encoder = GTSHelper.parse(lastencoder, line, null, null, Long.MAX_VALUE, true);
+        AtomicBoolean hadAttributes = new AtomicBoolean(false);
+        
+        encoder = GTSHelper.parse(lastencoder, line, null, null, Long.MAX_VALUE, hadAttributes);
 
         if (null != lastencoder && lastencoder != encoder) {
           series.add(lastencoder.getDecoder(true).decode());

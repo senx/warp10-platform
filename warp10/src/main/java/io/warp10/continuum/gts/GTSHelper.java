@@ -65,6 +65,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -1727,14 +1728,14 @@ public class GTSHelper {
   }
   
   public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now) throws ParseException, IOException {
-    return parse(encoder, str, extraLabels, now, Long.MAX_VALUE, false);
+    return parse(encoder, str, extraLabels, now, Long.MAX_VALUE, null);
   }
   
   public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize) throws ParseException, IOException {
-    return parse(encoder, str, extraLabels, now, maxValueSize, false);    
+    return parse(encoder, str, extraLabels, now, maxValueSize, null);    
   }
   
-  public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, boolean parseAttributes) throws ParseException, IOException {
+  public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes) throws ParseException, IOException {
 
     int idx = 0;
     
@@ -1895,11 +1896,13 @@ public class GTSHelper {
         while(idx < str.length() && str.charAt(idx) != '}') {
           idx++;
         }
-        if (parseAttributes) {
+        if (null != parsedAttributes) {
           if (idx >= str.length()) {
             throw new ParseException("Missing attributes.", idx2);
           }
           attributes = parseLabels(str.substring(attrstart, idx));
+          // Set the atomic boolean to true to indicate that attributes were parsed
+          parsedAttributes.set(true);
         }
         idx++;
       }
