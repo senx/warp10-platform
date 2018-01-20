@@ -671,7 +671,14 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           //
           
           try {
-            String str = URLDecoder.decode(stmt.substring(1, stmt.length() - 1), "UTF-8");
+            String str = stmt.substring(1, stmt.length() - 1);
+            
+            if (-1 != UnsafeString.indexOf(str, '%')) {
+              // replace occurrences of '+' with '%2B'
+              str = str.replaceAll("\\+", "%2B");
+              str = URLDecoder.decode(str, "UTF-8");
+            }
+            
             if (macros.isEmpty()) {
               push(str);
             } else {
