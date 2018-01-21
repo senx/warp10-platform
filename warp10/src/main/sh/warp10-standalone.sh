@@ -576,6 +576,27 @@ worf() {
   ${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -puidg -t -a $2 -ttl $3
 }
 
+repair() {
+
+  #
+  # Make sure the caller is warp10
+  #
+
+  if [ "`whoami`" != "${WARP10_USER}" ]
+  then
+    echo "You must be ${WARP10_USER} to run this script."
+    exit 1
+  fi
+
+  echo "Repair Leveldb..."
+  if [ -e ${PID_FILE} ] && [ "`${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" != "" ]; then
+    echo "Repair has been cancelled! - Warp 10 instance must be stopped for repair"
+    exit 1
+  else
+    ${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.standalone.WarpRepair ${LEVELDB_HOME}
+  fi
+}
+
 # See how we were called.
 case "$1" in
   bootstrap)
@@ -604,8 +625,11 @@ case "$1" in
   snapshot)
   snapshot "$@"
   ;;
+  repair)
+  repair
+  ;;
   *)
-  echo $"Usage: $0 {bootstrap|start|stop|status|worfcli|worf appName ttl(ms)|snapshot 'snapshot_name'}"
+  echo $"Usage: $0 {bootstrap|start|stop|status|worfcli|worf appName ttl(ms)|snapshot 'snapshot_name'|repair}"
   exit 2
 esac
 
