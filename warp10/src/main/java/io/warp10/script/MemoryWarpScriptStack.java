@@ -651,6 +651,10 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           } else {
             Macro lastmacro = macros.remove(0);
             
+            boolean secure = Boolean.TRUE.equals(this.getAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO));
+
+            lastmacro.setSecure(secure);
+            
             if (macros.isEmpty()) {
               this.push(lastmacro);
             } else {
