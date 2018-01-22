@@ -93,7 +93,7 @@ public class Configuration {
   
   public static final String WARPSCRIPT_MAX_OPS = "warpscript.maxops";
   public static final String WARPSCRIPT_MAX_BUCKETS = "warpscript.maxbuckets";
-  public static final String WARPSCRIPT_MAX_GEOCELLS = "warpscript.geocells";
+  public static final String WARPSCRIPT_MAX_GEOCELLS = "warpscript.maxgeocells";
   public static final String WARPSCRIPT_MAX_DEPTH = "warpscript.maxdepth";
   public static final String WARPSCRIPT_MAX_FETCH = "warpscript.maxfetch";
   public static final String WARPSCRIPT_MAX_GTS = "warpscript.maxgts";
