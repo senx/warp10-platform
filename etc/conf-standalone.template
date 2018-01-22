@@ -5,6 +5,12 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
+// Comma separated list of headers to return in Access-Control-Allow-Headers on top of the token header
+// This applies to all HTTP endpoints.
+//
+#cors.headers =
+
+//
 // 128 bits key for verifying class names, format is hex:hhhhh...hhhh
 //
 warp.hash.class = @key:128:warp.hash.class@

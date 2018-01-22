@@ -40,6 +40,11 @@ public class Configuration {
   public static final String WARP10_QUIET = "warp10.quiet";
   
   /**
+   * Comma separated list of headers to return in the Access-Allow-Control-Headers response header to preflight requests.
+   */
+  public static final String CORS_HEADERS = "cors.headers";
+  
+  /**
    * List of Warp 10 plugins to initialize
    */
   public static final String WARP10_PLUGINS = "warp10.plugins";
