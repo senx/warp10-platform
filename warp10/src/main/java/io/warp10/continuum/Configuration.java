@@ -1245,6 +1245,12 @@ public class Configuration {
   public static final String LEVELDB_COMPRESSION_TYPE = "leveldb.compression.type";
   
   /**
+   * Set to true to enable splits generation on the standalone instance. This MUST be set
+   * to true for Warp10InputFormat to work against a standalone Warp 10 instance.
+   */
+  public static final String STANDALONE_ENABLE_SPLITS = "standalone.enable.splits";
+  
+  /**
    * IP to bind to for listening to incoming connections. Use 0.0.0.0 to listen to all interfaces
    */
   public static final String STANDALONE_HOST = "standalone.host";
