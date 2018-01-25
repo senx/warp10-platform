@@ -145,7 +145,7 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     
     List<String> fallbacks = new ArrayList<>();
     
-    boolean fallbacksonly = Boolean.TRUE.equals(getProperty(context, PROPERTY_WARP10_FETCHER_FALLBACKSONLY));
+    boolean fallbacksonly = "true".equals(getProperty(context, PROPERTY_WARP10_FETCHER_FALLBACKSONLY));
     
     if (null != getProperty(context, PROPERTY_WARP10_FETCHER_FALLBACKS)) {
       String[] servers = getProperty(context, PROPERTY_WARP10_FETCHER_FALLBACKS).split(",");
