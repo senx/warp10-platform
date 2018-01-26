@@ -481,7 +481,7 @@ in.memory = false
 //
 // Set to true to enable splits generation to allow access to the standalone instance using Warp10InputFormat
 //
-#standalone.enable.splits = true
+#standalone.splits.enable = true
 
 //
 // Key to use for encrypting GTSSplit instances

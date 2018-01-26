@@ -372,7 +372,7 @@ public class Warp extends WarpDist implements Runnable {
     gzip.addIncludedMethods("POST");
     handlers.addHandler(gzip);
 
-    if ("true".equals(properties.getProperty(Configuration.STANDALONE_ENABLE_SPLITS))) {
+    if ("true".equals(properties.getProperty(Configuration.STANDALONE_SPLITS_ENABLE))) {
       gzip = new GzipHandler();
       gzip.setHandler(new StandaloneSplitsHandler(keystore, sdc));
       gzip.setMinGzipSize(0);
