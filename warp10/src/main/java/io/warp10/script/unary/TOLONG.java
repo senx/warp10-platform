@@ -43,7 +43,7 @@ public class TOLONG extends NamedWarpScriptFunction implements WarpScriptStackFu
         stack.push(0L);
       }
     } else if (op instanceof String) {
-      stack.push(Long.decode(op.toString()));
+      stack.push(Long.decode(op.toString().trim()));
     } else {
       throw new WarpScriptException(getName() + " can only operate on numeric, boolean or string values.");
     }
