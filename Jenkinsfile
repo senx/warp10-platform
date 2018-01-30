@@ -14,7 +14,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 git credentialsId: 'github', url: 'git@github.com:Giwi/warp10-platform.git'
-                echo("Building $version")
+                echo "Building ${version}"
             }
         }
 
@@ -40,11 +40,7 @@ pipeline {
     }
 
     post {
-        success {
-            //      this.notifyBuild(currentBuild.result)
-        }
-        failure {
-            currentBuild.result = "FAILED"
+        always {
             //      this.notifyBuild(currentBuild.result)
         }
     }
