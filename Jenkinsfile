@@ -33,7 +33,8 @@ pipeline {
 
         stage('Pack') {
             steps {
-                sh './gradlew warp10:pack '
+                sh './gradlew jar pack -x test'
+                archiveArtifacts allowEmptyArchive: true, artifacts: '**/build/libs/*.jar', fingerprint: true
             }
         }
     }
