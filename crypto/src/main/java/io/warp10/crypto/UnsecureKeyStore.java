@@ -27,23 +27,25 @@ import java.util.Arrays;
 
 /**
  * Class used as a repository of keys in memory.
- * 
+ * <p>
  * Keys can be set after being retrieved from an outside source.
- * 
+ * <p>
  * This KeyStore is dubbed 'Unsecure' because it does not rely on OSS for
  * retrieving a master secret with which all other secrets are encrypted.
- * 
  */
 public class UnsecureKeyStore implements KeyStore {
-  
+
   private final Map<String, byte[]> keys = new HashMap<String, byte[]>();
-  
+
+  /**
+   * Instantiates a new Unsecure key store.
+   */
   public UnsecureKeyStore() {
   }
-  
+
   /**
    * Retrieve a key given its name.
-   * 
+   *
    * @param name Name of key to retrieve.
    * @return The byte array corresponding to this key or null if key is unknown.
    */
@@ -51,10 +53,10 @@ public class UnsecureKeyStore implements KeyStore {
   public byte[] getKey(String name) {
     return keys.get(name);
   }
-  
+
   /**
    * Store a key under a name.
-   * 
+   *
    * @param name Name of key.
    * @param bits Byte array containing the key bits.
    */
@@ -62,7 +64,7 @@ public class UnsecureKeyStore implements KeyStore {
   public void setKey(String name, byte[] bits) {
     keys.put(name, bits);
   }
-  
+
   @Override
   public byte[] decodeKey(String encoded) {
     if (null == encoded) {
@@ -71,7 +73,7 @@ public class UnsecureKeyStore implements KeyStore {
     if (encoded.startsWith("hex:")) {
       return Hex.decode(encoded.substring(4));
     } else if (encoded.startsWith("base64:")) {
-      return Base64.decode(encoded.substring(7));              
+      return Base64.decode(encoded.substring(7));
     } else {
       return null;
     }
@@ -80,14 +82,15 @@ public class UnsecureKeyStore implements KeyStore {
   @Override
   public KeyStore clone() {
     UnsecureKeyStore uks = new UnsecureKeyStore();
-    
-    for (Entry<String,byte[]> entry: keys.entrySet()) {
+
+    for (Entry<String, byte[]> entry : keys.entrySet()) {
       uks.setKey(entry.getKey().intern(), Arrays.copyOf(entry.getValue(), entry.getValue().length));
     }
-    
+
     return uks;
   }
-  
+
   @Override
-  public void forget() {}
+  public void forget() {
+  }
 }

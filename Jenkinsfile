@@ -1,42 +1,43 @@
 #!/usr/bin/env groovy
 import hudson.model.*
 
-node {
-    def version = ''
-    try {
-        this.notifyBuild('STARTED')
+pipeline {
+    environment {
+        THRIFT_HOME = '/opt/thrift-0.9.1'
+    }
+    stages {
+
+        //   this.notifyBuild('STARTED')
 
         stage('Checkout') {
             git credentialsId: 'github', url: 'git@github.com:Giwi/warp10-platform.git'
-            sh 'git pull'
             version = this.version()
             echo("Building $version")
         }
 
         stage("Build $version") {
-            sh 'export THRIFT_HOME=/opt/thrift-0.9.1 '
             sh './gradlew clean crypto:install token:install build -x test'
         }
 
         stage("Test $version") {
-            sh 'export THRIFT_HOME=/opt/thrift-0.9.1 '
             sh './gradlew test'
+            junit allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/reports/**/*.xml'
         }
 
 
         stage("Pack $version") {
-            sh 'export THRIFT_HOME=/opt/thrift-0.9.1 '
             sh './gradlew warp10:pack '
         }
 
-
-    } catch (e) {
-        // If there was an exception thrown, the build failed
-        currentBuild.result = "FAILED"
-        throw e
-    } finally {
-        // Success or failure, always send notifications
-        this.notifyBuild(currentBuild.result)
+        post {
+            success {
+                //      this.notifyBuild(currentBuild.result)
+            }
+            failure {
+                currentBuild.result = "FAILED"
+                //      this.notifyBuild(currentBuild.result)
+            }
+        }
     }
 }
 
@@ -74,11 +75,5 @@ def notifySlack(color, message, buildStatus) {
 
 
 def version() {
-    def v = sh(returnStdout: true, script: 'git describe --abbrev=0 --tags').trim().tokenize('.').toArray()
-    def gitVersion = [
-            major: v[0].toInteger(),
-            minor: v[1].toInteger(),
-            patch: v[2].toInteger()
-    ]
-    return gitVersion.values().join('.')
+    return sh(returnStdout: true, script: 'git describe --abbrev=0 --tags').trim()
 }
