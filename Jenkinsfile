@@ -10,23 +10,31 @@ pipeline {
         //   this.notifyBuild('STARTED')
 
         stage('Checkout') {
-            git credentialsId: 'github', url: 'git@github.com:Giwi/warp10-platform.git'
-            version = this.version()
-            echo("Building $version")
+            steps {
+                git credentialsId: 'github', url: 'git@github.com:Giwi/warp10-platform.git'
+                version = this.version()
+                echo("Building $version")
+            }
         }
 
         stage("Build $version") {
-            sh './gradlew clean crypto:install token:install build -x test'
+            steps {
+                sh './gradlew clean crypto:install token:install build -x test'
+            }
         }
 
         stage("Test $version") {
-            sh './gradlew test'
-            junit allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/reports/**/*.xml'
+            steps {
+                sh './gradlew test'
+                junit allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/reports/**/*.xml'
+            }
         }
 
 
         stage("Pack $version") {
-            sh './gradlew warp10:pack '
+            steps {
+                sh './gradlew warp10:pack '
+            }
         }
 
         post {
