@@ -4,9 +4,9 @@ import hudson.model.*
 pipeline {
     environment {
         THRIFT_HOME = '/opt/thrift-0.9.1'
+        version = sh(returnStdout: true, script: 'git describe --abbrev=0 --tags').trim()
     }
     stages {
-        def version = this.version()
 
         //   this.notifyBuild('STARTED')
 
@@ -17,13 +17,13 @@ pipeline {
             }
         }
 
-        stage('Build ' + version) {
+        stage('Build') {
             steps {
                 sh './gradlew clean crypto:install token:install build -x test'
             }
         }
 
-        stage('Test ' + version) {
+        stage('Test') {
             steps {
                 sh './gradlew test'
                 junit allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/reports/**/*.xml'
@@ -31,7 +31,7 @@ pipeline {
         }
 
 
-        stage('Pack ' + version) {
+        stage('Pack') {
             steps {
                 sh './gradlew warp10:pack '
             }
@@ -79,9 +79,4 @@ def notifySlack(color, message, buildStatus) {
     def cmd = "curl -X POST -H 'Content-type: application/json' --data '${payload}' ${slackURL}"
     print cmd
     sh cmd
-}
-
-
-def version() {
-    return sh(returnStdout: true, script: 'git describe --abbrev=0 --tags').trim()
 }
