@@ -7,7 +7,7 @@ node {
         this.notifyBuild('STARTED')
 
         stage('Checkout') {
-            git credentialsId: 'github', url: 'git@github.com:cityzendata/warp10-platform.git'
+            git credentialsId: 'github', url: 'git@github.com:Giwi/warp10-platform.git'
             sh 'git pull'
             version = this.version()
             echo("Building $version")
@@ -22,6 +22,13 @@ node {
             sh 'export THRIFT_HOME=/opt/thrift-0.9.1 '
             sh './gradlew test'
         }
+
+
+        stage("Pack $version") {
+            sh 'export THRIFT_HOME=/opt/thrift-0.9.1 '
+            sh './gradlew warp10:pack '
+        }
+
 
     } catch (e) {
         // If there was an exception thrown, the build failed
