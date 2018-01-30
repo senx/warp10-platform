@@ -6,24 +6,24 @@ pipeline {
         THRIFT_HOME = '/opt/thrift-0.9.1'
     }
     stages {
+        def version = this.version()
 
         //   this.notifyBuild('STARTED')
 
         stage('Checkout') {
             steps {
                 git credentialsId: 'github', url: 'git@github.com:Giwi/warp10-platform.git'
-                version = this.version()
                 echo("Building $version")
             }
         }
 
-        stage("Build $version") {
+        stage('Build ' + version) {
             steps {
                 sh './gradlew clean crypto:install token:install build -x test'
             }
         }
 
-        stage("Test $version") {
+        stage('Test ' + version) {
             steps {
                 sh './gradlew test'
                 junit allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/reports/**/*.xml'
@@ -31,7 +31,7 @@ pipeline {
         }
 
 
-        stage("Pack $version") {
+        stage('Pack ' + version) {
             steps {
                 sh './gradlew warp10:pack '
             }
