@@ -1,5 +1,6 @@
 .gradle/
-build/
+build
+build-eclipse
 bin/
 out/
 *.iml

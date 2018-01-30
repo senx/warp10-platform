@@ -31,6 +31,7 @@ plugins {
     id "com.selesse.git.changelog" version "0.2.0"
 }
 
+
 allprojects {
     // List of dependencies for Warpscript
     ext.mc2DepsList = []
@@ -42,16 +43,19 @@ allprojects {
     ext.requiredLibsMc2 = [ 'warpscript', 'libthrift', 'bcprov-jdk16', 'boon', 'commons-io', 'commons-codec', 'commons-lang', 'commons-lang3', 'commons-math3', 'commons-math4', 'compiler', 'core', 'curator-x-discovery', 'geoxplib', 'guava', \
      'hadoop-common', 'hadoop-mapreduce-client-core', 'java-merge-sort', 'jetty-servlets', 'joda-time', 'jruby-complete', 'jtransforms', 'jts', 'junit', 'jython', 'kafka_2.11', \
      'luaj-jse', 'oss-client', 'renjin-script-engine', 'sensision', 'slf4j-api', 'trove4j' ]
+
 }
 
 subprojects {
-    apply plugin: 'java';
-    apply plugin: 'groovy';
-    apply plugin: 'eclipse';
-    apply plugin: 'idea';
-    apply plugin: 'maven';
-    apply plugin: 'maven-publish';
+    apply plugin: 'java'
+    apply plugin: 'groovy'
+    apply plugin: 'eclipse'
+    apply plugin: 'idea'
+    apply plugin: 'maven'
+    apply plugin: 'maven-publish'
     apply plugin: 'com.jfrog.bintray'
+    apply plugin: 'com.selesse.git.changelog'
+
 
     group = 'io.warp10'
 
@@ -88,7 +92,7 @@ subprojects {
 
         gradle.taskGraph.whenReady { graph ->
             println "building warp10 version=$version"
-            if (graph.hasTask(uploadArchives) || graph.hasTask(bintrayUpload)) {
+            if (graph.hasTask(uploadArchives) || graph.hasTask('bintrayUpload')) {
                 //if (!(version ==~ /\d+\.\d+\.\d+\-\d+\-\w+/)) {
                 //    throw new GradleException("Cannot upload archive: version ${version} is not correct (X.X.X-X-X)")
                 //}
@@ -164,7 +168,7 @@ subprojects {
         //UPLOAD ARTIFACTS THROUGH SSH
         deployerJars 'org.apache.maven.wagon:wagon-ssh-external:2.8'
     }
-   
+
     // COMPILE OPTIONS
     compileJava {
       if (null != System.getProperty("nojvmDebug")) {
@@ -198,12 +202,12 @@ subprojects {
         downloadJavadoc = false
       }
     }
-    
+
     // global tasks
     //
     // MUST appear before task dependencies can be defined
     //
-    task generateThrift << {
+    task('generateThrift').doLast({
         // Delete the thrift dir if exists
         if (thriftOutputDir.exists()) {
             thriftOutputDir.deleteDir()
@@ -218,7 +222,7 @@ subprojects {
                 args = ['--gen', 'java:hashcode,private-members', '-o', thriftOutputDir, ext.file]
             }
         }
-    }
+    })
 
     // DEPLOY ON MAVEN REPO WITH SCP
     uploadArchives {
@@ -228,7 +232,7 @@ subprojects {
                 uniqueVersion = false
 
                 repository(url: "scpexe://${stagingURL}") {
-                    authentication(userName: "${stagingUser}")
+                    authentication userName: stagingUser
                 }
             }
         }
@@ -339,625 +343,17 @@ def addChildsToWarpscriptDeps (def pResolvedDependency) {
     }
 
     // Add the dependency and its children if it has not been seen before and if this dependency is required by Warpscript
-    def depName = pResolvedDependency.getModuleName()
+    String depName = pResolvedDependency.getModuleName()
     if(!mc2DepsIndex.contains(depName) && isDepRequired(depName)) {
         mc2DepsIndex << depName
         mc2DepsList << pResolvedDependency
     }
 }
 
-def boolean isDepRequired(String currentDep ) {
-    return requiredLibsMc2.any { currentDep.equalsIgnoreCase(it) }
+boolean isDepRequired(String currentDep ) {
+    return ext.requiredLibsMc2.any { currentDep.equalsIgnoreCase(it as String) }
 }
 
-// ------------------------------------------------------------------
-// ----------------------------- WARP 10 ----------------------------
-// ------------------------------------------------------------------
-project(':warp10') {
-    archivesBaseName = 'warp10'
-    version = updateRevision(getVersionName(warp10Version[archivesBaseName]))
-
-    //
-    // Configurations
-    //
-    configurations {
-        provided
-    }
-
-    // ---------------- Constants ----------------
-    ext.thriftOutputDir = new File('warp10/src/generated/thrift');
-
-    sourceSets {
-        main {
-            compileClasspath += configurations.provided
-            java {
-                srcDirs 'src/generated/thrift/gen-java'
-            }
-        }
-    }
-
-    dependencies {
-        //
-        // io.warp10 dependencies
-        //
-        compile group: 'io.warp10', name: 'crypto', version: warp10Version['crypto']
-        compile group: 'io.warp10', name: 'token', version: warp10Version['token']
-        compile group: 'io.warp10', name: 'sensision', version: '1.0.11'
-
-        //compile group: 'org.xerial.snappy', name: 'snappy-java', version: '1.0.4.1'
-        compile group: 'joda-time', name: 'joda-time', version: '2.2'
-        compile group: 'junit', name: 'junit', version: '4.4'
-        compile group: 'com.google.inject', name: 'guice', version: '3.0'
-        compile group: 'com.google.inject.extensions', name: 'guice-servlet', version: '3.0'
-        compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.6'
-        compile group: 'org.apache.commons', name: 'commons-math3', version: '3.3'
-        compile group: 'org.apache.commons', name: 'commons-math4', version: '4.0-SNAPSHOT'
-
-
-        compile group: 'org.bouncycastle', name: 'bcprov-jdk16', version: '1.46'
-
-        //
-        // Processing
-        //
-        compile group: 'org.processing', name: 'core', version: '3.0'
-
-        //
-        // Reinjin
-        //
-        compile group: 'org.renjin', name: 'renjin-script-engine', version: '0.7.1548'
-
-        //
-        // Lua
-        //
-        compile group: 'org.luaj', name: 'luaj-jse', version: '3.0.1'
-
-        //
-        // Ruby
-        //
-        compile group: 'org.jruby', name: 'jruby-complete', version: '9.0.0.0.rc2'
-
-        //
-        // Python
-        //
-        compile group: 'org.python', name: 'jython', version: '2.7.0'
-
-        //
-        // Lz4, pure Java implementation
-        //
-        //compile group: 'net.jpountz.lz4', name: 'lz4', version: '1.2.0'
-
-        //
-        // Commons CLI
-        //
-        compile group: 'commons-cli', name: 'commons-cli', version: '1.3.1'
-
-        //
-        // HBase 1.0.0
-        //
-        compile group: 'org.apache.hbase', name: 'hbase-client', version: '1.0.0'
-        compile group: 'org.apache.hbase', name: 'hbase-examples', version: '1.0.0'
-        compile group: 'org.apache.hbase', name: 'hbase-common', version: '1.0.0'
-        compile group: 'org.apache.hbase', name: 'hbase-protocol', version: '1.0.0'
-
-        // Consider using -indy version of groovy-all
-        compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.1.6'
-        compile group: 'org.fusesource.jansi', name: 'jansi', version: '1.6'
-        //compile group: 'org.mvel', name: 'mvel2', version: '2.1.5.Final'
-        compile group: 'com.esotericsoftware.kryo', name: 'kryo', version: '2.21'
-        //compile group: 'org.eclipse.jetty', name: 'jetty-server', version: '9.0.5.v20130815'
-        //compile group: 'org.eclipse.jetty', name: 'jetty-servlets', version: '9.0.5.v20130815'
-        //compile group: 'org.eclipse.jetty.websocket', name: 'websocket-server', version: '9.0.5.v20130815'
-        //compile group: 'org.eclipse.jetty.websocket', name: 'websocket-client', version: '9.0.5.v20130815'
-        compile group: 'org.eclipse.jetty', name: 'jetty-server', version: '9.4.2.v20170220'
-        compile group: 'org.eclipse.jetty', name: 'jetty-servlets', version: '9.4.2.v20170220'
-        compile group: 'org.eclipse.jetty.websocket', name: 'websocket-server', version: '9.4.2.v20170220'
-        compile group: 'org.eclipse.jetty.websocket', name: 'websocket-client', version: '9.4.2.v20170220'
-        compile group: 'com.netflix.curator', name: 'curator-x-discovery', version: '1.3.3'
-        //compile group: 'com.google.code.gson', name: 'gson', version: '2.2.4'
-        compile group: 'io.fastjson', name: 'boon', version: '0.14'
-        compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.5'
-
-        //
-        // FFT
-        //
-        compile group: 'com.github.rwl', name: 'jtransforms', version: '2.4.0'
-
-        //
-        // Pyrolite
-        //
-        compile group: 'net.razorvine', name: 'pyrolite', version: '4.10'
-
-        //
-        // LevelDB
-        //
-        //compile group: 'leveldb', name: 'leveldb', version: '0.7-SNAPSHOT-uber'
-        compile group: 'org.fusesource.leveldbjni', name: 'leveldbjni-all', version: '1.7'
-        compile group: 'org.iq80.leveldb', name: 'leveldb', version: '0.6'
-        compile group: 'org.xerial.snappy', name: 'snappy-java', version: '1.0.5'
-        compile group: 'org.iq80.snappy', name: 'snappy', version: '0.3'
-
-        //
-        // Worf
-        //
-        compile group: 'jline', name: 'jline', version: '2.13'
-
-        //
-        // Mustache
-        //
-        compile group: 'com.github.spullara.mustache.java', name: 'compiler', version: '0.9.1'
-
-        //
-        // Geo
-        //
-        compile group: 'com.geoxp', name: 'geoxplib', version: '1.0.0-rc9'
-        compile("org.wololo:jts2geojson:0.10.0") {
-      		exclude group: 'com.vividsolutions', module: 'jts' 
-      		exclude group: 'com.vividsolutions', module: 'jts-core' 
-    	}
-
-        //
-        // Java Merge Sort
-        //
-        compile group: 'com.fasterxml.util', name: 'java-merge-sort', version: '1.0.0'
-
-        // @see http://www.mail-archive.com/dev@kafka.apache.org/msg03829.html
-        //compile("org.apache.kafka:kafka_2.9.2:0.8.1.1") {
-        compile("org.apache.kafka:kafka_2.11:0.8.2.2") {
-            exclude module: 'jms'
-            exclude module: 'jmxtools'
-            exclude module: 'jmxri'
-        }
-    }
-
-    jar {
-        zip64 = true
-
-        manifest {
-            attributes(
-                    "Implementation-Title": "Warp10",
-                    "Implementation-Vendor": "Warp 10",
-                    "Implementation-Version": version)
-        }
-    }
-
-    task pack(type: Jar) {
-        zip64 = true
-        ext.warpSuffixName = null != System.getProperty('warp') ? System.getProperty('warp') : ""
-        appendix = "${warpSuffixName}"
-
-        manifest {
-            attributes("Main-Class": "io.warp10.standalone.Warp")
-            attributes("Implementation-Title": "Warp 10")
-            attributes("Implementation-Version": version)
-        }
-
-        from files(sourceSets.main.output.classesDir)
-        from {
-            configurations.compile.collect {
-                it.isDirectory() ? it : zipTree(it).matching {
-                    exclude { it.toString().contains('/servlet-api') }
-                    exclude { it.toString().contains('jmh') }
-                    exclude { it.toString().contains('junit') }
-                    exclude { it.toString().contains('parquet') }
-                }
-            }
-        } {
-            exclude 'META-INF/*.DSA'
-            exclude 'META-INF/*.RSA'
-            exclude 'about.html'
-            exclude 'about_files/**'
-            exclude 'plugin.properties'
-            exclude 'jetty-dir.css'
-        }
-        with jar
-    }
-
-    task createTarArchive(type: Exec, dependsOn: pack) {
-        workingDir = '.'
-        commandLine = [ "${workingDir}/src/main/sh/package.sh", getVersionName(warp10Version['warp10']), "${buildDir}/..", "${quantumVersion}"]
-    }
-
-    publishing {
-        publications {
-            warp10(MavenPublication) {
-                artifact("${buildDir}/libs/warp10-" + getVersionName(warp10Version['warp10']) + ".tar.gz"){
-                    extension = 'tar.gz'
-                }
-                groupId 'io.warp10'
-                artifactId archivesBaseName
-                version version
-            }
-        }
-    }
-
-    bintray {
-        dryRun = false
-
-        user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
-        key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
-
-        publications = [ 'warp10' ]
-
-        pkg {
-            repo = 'generic'
-            name = 'warp10'
-            licenses = ['Apache-2.0']
-            vcsUrl = 'https://github.com/cityzendata/warp10-platform.git'
-            version {
-                name = getVersionName(warp10Version['warp10'])
-                released  = new Date()
-                vcsTag = getVersionName(warp10Version['warp10'])
-            }
-        }
-    }
-
-    changelog {
-        // The title appears at the top of the changelog.
-        // Default value: the name of the project.
-        title = "${project.name} - Changelog"
-
-        // The output directory where the report is generated.
-        // Default value: main resource directory, or the "build" directory
-        outputDirectory = file("$projectDir")
-
-        // The name of the report to generate.
-        // Default value: CHANGELOG.md
-        fileName = "changelog.txt"
-
-        // The range of commits the changelog should be composed of.
-        // Default value: 'beginning' (i.e. full changelog)
-        // Possible values: 'beginning', 'last_tag', 'xxx'
-        //
-        // 'last_tag' will use all the commits since the last tag,
-        // 'beginning' will use all commits since the initial commit (default)
-        // 'xxx' will use all the tags since the 'xxx' Git reference (i.e. `since = 1.2.0` will display the changelog
-        //       since the 1.2.0 tag, excluding 1.2.0)
-        since = 'beginning'
-
-        // The output formats that should be generated.
-        // Default value: ['markdown']
-        // Possible values: 'html', 'markdown'.
-        formats = ['html', 'markdown']
-
-
-        // The Git "pretty" changelog commit format.
-        // Default value: %ad%x09%s (%an), which produces:
-        // Thu May 7 20:10:33 2015 -0400    Initial commit (Alex Selesse)
-        commitFormat = '%ad%x09%s'
-
-        // Specifies a commit format for Markdown.
-        // Default value: '* %s (%an)', which produces:
-        // * Initial commit (Alex Selesse)
-        markdown {
-            commitFormat = '* %s'
-        }
-
-        // Specifies a commit format for the HTML template.
-        // Default value: see commitFormat
-        html {
-            commitFormat = '%s'
-
-            // The Groovy HTML template used to generate the HTML changelog.
-            // See http://docs.groovy-lang.org/latest/html/documentation/template-engines.html
-        //    template = file("$projectDir/htmlTemplate").text
-        }
-
-        // A closure that returns 'true' if the line should be included in the changelog.
-        // Default value: accept everything, { true }
-        includeLines = {
-            !it.contains("Merge")
-        }
-
-        // A closure that transforms a changelog String.
-        // Default value: the identity closure, { it }
-        //
-        // For example, to remove '[ci skip]' from the changelog messages:
-        //processLines = {
-        //    String input = it as String
-        //    if (input.contains('[ci skip] ')) {
-        //        input = input.minus('[ci skip] ')
-        //    }
-        //    input
-        //}
-    }
-
-    //
-    // Tasks dependencies
-    //
-    compileJava.dependsOn generateThrift
-    pack.dependsOn generateChangelog
-    uploadArchives.dependsOn pack
-    bintrayUpload.dependsOn createTarArchive
-}
-
-// ------------------------------------------------------------------
-// ------------------------- WARPSCRIPT -----------------------------
-// ------------------------------------------------------------------
-project(':warpscript') {
-    archivesBaseName = 'warpscript'
-    group = 'io.warp10'
-    version = updateRevision(getVersionName(warp10Version[archivesBaseName]))
-
-    jar {
-      zip64 = true
-
-      manifest {
-        attributes(
-            "Implementation-Title": "WarpScript",
-            "Implementation-Vendor": "Warp 10",
-            "Implementation-Version": version)
-      }
-
-      from project(":warp10").sourceSets.main.output
-        include 'io/warp10/SortedPathIterator.class'
-        include 'io/warp10/SortedPathIterator$*'
-        include 'io/warp10/WarpClassLoader.class'
-        include 'io/warp10/script/**'
-        include 'io/warp10/CapacityExtractorOutputStream.class'
-        include 'io/warp10/udf/**'
-        include 'io/warp10/thrift/**'
-        include 'io/warp10/WarpConfig.class'
-        include 'io/warp10/WarpURLEncoder.class'
-        include 'io/warp10/DoubleUtils.class'
-        include 'io/warp10/FloatUtils.class'
-        include 'io/warp10/Revision.class'
-        include 'io/warp10/continuum/MetadataUtils.class'
-        include 'io/warp10/continuum/MetadataUtils$*'
-        include 'io/warp10/continuum/index/**'
-        include 'io/warp10/continuum/thrift/data/**'
-        include 'io/warp10/continuum/Configuration.class'
-        include 'io/warp10/continuum/TimeSource.class'
-        include 'io/warp10/continuum/TimeSource$*'
-        include 'io/warp10/continuum/TextFileShuffler.class'
-        include 'io/warp10/continuum/TextFileShuffler$*'
-        include 'io/warp10/continuum/SortUtil.class'
-        include 'io/warp10/continuum/SortUtil$*'
-        include 'io/warp10/continuum/Tokens.class'
-        include 'io/warp10/continuum/Tokens$*'
-        include 'io/warp10/continuum/gts/**'
-        include 'io/warp10/continuum/store/Constants.class'
-        include 'io/warp10/continuum/store/DirectoryClient.class'
-        include 'io/warp10/continuum/store/GTSDecoderIterator.class'
-        include 'io/warp10/continuum/store/thrift/data/**'
-        include 'io/warp10/continuum/egress/ThriftDirectoryClient.class'
-        include 'io/warp10/continuum/egress/ThriftDirectoryClient$*'
-        include 'io/warp10/warp/sdk/**'
-        include 'io/warp10/continuum/geo/GeoDirectoryClient.class'
-        include 'io/warp10/continuum/geo/GeoDirectoryThriftClient.class'
-        include 'io/warp10/continuum/geo/GeoDirectoryThriftClient$*'
-        include 'io/warp10/continuum/store/StoreClient.class'
-        include 'io/warp10/hadoop/**'
-
-        from project(":token").sourceSets.main.output
-        include 'io/warp10/quasar/token/thrift/data/**'
-        include 'io/warp10/quasar/filter/QuasarTokenFilter.class'
-        include 'io/warp10/quasar/filter/exception/QuasarTokenException.class'
-
-        from project(":crypto").sourceSets.main.output
-        include 'io/warp10/crypto/**'
-
-    }
-
-  model {
-    tasks.generatePomFileForWarpscriptPublication {
-      destination = file("$buildDir/generated-pom.xml")
-    }
-  }
-
-    publishing {
-      publications {
-        warpscript(MavenPublication) {
-          from components.java
-          groupId 'io.warp10'
-          artifactId archivesBaseName
-          version version
-          genPomForWarpscript(pom)
-        }
-      }
-    }
-
-    // DEPLOY ON MAVEN REPO WITH SCP
-    uploadArchives {
-        repositories {
-          repositories.mavenDeployer {
-            configuration = configurations.deployerJars
-              uniqueVersion = false
-
-              repository(url: "scpexe://${warpScriptPublishURL}") {
-                  authentication(userName: "${warpScriptPublishUser}")
-              }
-              genPomForWarpscript(pom)
-          }
-        }
-    }
-
-    bintray {
-        dryRun = false
-
-        user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
-        key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
-
-        publications = [ 'warpscript' ]
-
-        pkg {
-            repo = 'maven'
-            name = 'warpscript'
-            licenses = ['Apache-2.0']
-            vcsUrl = 'https://github.com/cityzendata/warp10-platform.git'
-            version {
-                name = getVersionName(warp10Version['warpscript'])
-                released  = new Date()
-                vcsTag = getVersionName(warp10Version['warpscript'])
-            }
-        }
-    }
-
-    //
-    // Tasks dependencies
-    //
-    uploadArchives.dependsOn jar
-    bintrayUpload.dependsOn jar
-
-}
-
-// ------------------------------------------------------------------
-// --------------------- CRYPTO UTILS OF WARP10 ---------------------
-// ------------------------------------------------------------------
-project(':crypto') {
-    archivesBaseName = 'crypto'
-    version = getVersionName(warp10Version[archivesBaseName])
-    //
-    // Project dependencies
-    //
-    dependencies {
-        testCompile group: 'junit', name: 'junit', version: '4.6'
-
-        // UTILS
-        compile group: 'com.google.guava', name: 'guava', version: '15.0'
-
-        // CRYPTO JAVA PROVIDER
-        compile group: 'org.bouncycastle', name: 'bcprov-jdk16', version: '1.46'
-
-        // OSS
-        compile group: 'com.geoxp.oss', name: 'oss-client', version: '1.0.0'
-    }
-
-    jar {
-        zip64 = true
-        manifest {
-            attributes(
-                    "Implementation-Title": "Warp10-crypto",
-                    "Implementation-Vendor": "Warp 10",
-                    "Implementation-Version": version)
-        }
-    }
-
-    publishing {
-        publications {
-            crypto(MavenPublication) {
-                from components.java
-                groupId 'io.warp10'
-                artifactId archivesBaseName
-                version version
-            }
-        }
-    }
-}
-
-// ------------------------------------------------------------------
-// --------------------- TOKEN UTILS OF WARP10 ---------------------
-// ------------------------------------------------------------------
-project(':token') {
-    archivesBaseName = 'token'
-    version = getVersionName(warp10Version[archivesBaseName])
-
-    // ---------------- Constants ----------------
-    ext.thriftOutputDir = new File('token/src/generated/thrift');
-
-    sourceSets {
-        main {
-            java {
-                srcDirs 'src/generated/thrift/gen-java'
-            }
-        }
-    }
-
-    dependencies {
-        // GROOVY DEPENDENCIES IN TEST ONLY
-        testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.1'
-        testCompile group: 'junit', name: 'junit', version: '4.6'
-        testCompile group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.21'
-
-        // WARP10 DEPENDENCIES
-        compile group: 'io.warp10', name: 'crypto', version: warp10Version['crypto']
-        compile group: 'io.warp10', name: 'sensision', version: '1.0.11'
-
-        compile group: 'org.apache.thrift', name: 'libthrift', version: '0.9.1'
-    }
-
-    jar {
-        zip64 = true
-        manifest {
-            attributes(
-                    "Implementation-Title": "Warp10-token",
-                    "Implementation-Vendor": "Warp 10",
-                    "Implementation-Version": version)
-        }
-    }
-
-    publishing {
-        publications {
-            token(MavenPublication) {
-                from components.java
-                groupId 'io.warp10'
-                artifactId archivesBaseName
-                version version
-            }
-        }
-    }
-
-    //
-    // Compile task dependency
-    //
-    compileJava.dependsOn generateThrift;
-}
-
-// ------------------------------------------------------------------
-// ------------------------- Hbase Filter----------------------------
-// ------------------------------------------------------------------
-project(':hbaseFilters') {
-    archivesBaseName = 'hbaseFilters'
-    group = 'io.warp10'
-    version = getVersionName(warp10Version[archivesBaseName])
-
-    jar {
-        zip64 = true
-
-        manifest {
-            attributes(
-                "Implementation-Title": "HBase Filters",
-                "Implementation-Vendor": "Warp 10",
-                "Implementation-Version": version)
-        }
-
-        from project(":warp10").sourceSets.main.output
-        include 'org/apache/hadoop/hbase/filter/**'
-    }
-
-    publishing {
-        publications {
-            hbaseFilters(MavenPublication) {
-                artifact file("${buildDir}/libs/hbaseFilters-" + getVersionName(warp10Version['warp10']) + ".jar")
-                groupId 'io.warp10'
-                artifactId archivesBaseName
-                version version
-            }
-        }
-    }
-
-    bintray {
-        dryRun = false
-
-        user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
-        key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
-
-        publications = [ 'hbaseFilters' ]
-
-        pkg {
-            repo = 'generic'
-            name = 'hbaseFilters'
-            licenses = ['Apache-2.0']
-            vcsUrl = 'https://github.com/cityzendata/warp10-platform.git'
-            version {
-                name = getVersionName(warp10Version['hbaseFilters'])
-                released  = new Date()
-                vcsTag = getVersionName(warp10Version['hbaseFilters'])
-            }
-        }
-    }
-
-    //
-    // Tasks dependencies
-    //
-    bintrayUpload.dependsOn jar
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.5' //version required
 }
