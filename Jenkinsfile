@@ -5,14 +5,13 @@ pipeline {
     agent any
     environment {
         THRIFT_HOME = '/opt/thrift-0.9.1'
-        version = sh(returnStdout: true, script: 'git describe --abbrev=0 --tags').trim()
+        version = this.getVersion()
     }
     stages {
 
-        //   this.notifyBuild('STARTED')
-
         stage('Checkout') {
             steps {
+                this.notifyBuild('STARTED', version)
                 git credentialsId: 'github', url: 'git@github.com:Giwi/warp10-platform.git'
                 echo "Building ${version}"
             }
@@ -40,17 +39,25 @@ pipeline {
     }
 
     post {
-        always {
-            echo 'Done'
-            //      this.notifyBuild(currentBuild.result)
+        success {
+            this.notifyBuild('SUCCESSFUL', version)
+        }
+        failure {
+            this.notifyBuild('FAILURE', version)
+        }
+        aborted {
+            this.notifyBuild('ABORTED', version)
+        }
+        unstable {
+            this.notifyBuild('UNSTABLE', version)
         }
     }
 }
 
-def notifyBuild(String buildStatus = 'STARTED') {
+void notifyBuild(String buildStatus, String version) {
     // build status of null means successful
     buildStatus = buildStatus ?: 'SUCCESSFUL'
-    String subject = "${buildStatus}: Job ${env.JOB_NAME} [${env.BUILD_NUMBER}]"
+    String subject = "${buildStatus}: Job ${env.JOB_NAME} [${env.BUILD_NUMBER}] | ${version}"
     String summary = "${subject} (${env.BUILD_URL})"
     // Override default values based on build status
     if (buildStatus == 'STARTED') {
@@ -77,4 +84,8 @@ def notifySlack(color, message, buildStatus) {
     def cmd = "curl -X POST -H 'Content-type: application/json' --data '${payload}' ${slackURL}"
     print cmd
     sh cmd
+}
+
+String getVersion() {
+    return sh(returnStdout: true, script: 'git describe --abbrev=0 --tags').trim()
 }
