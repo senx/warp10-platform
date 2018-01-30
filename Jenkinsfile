@@ -26,7 +26,7 @@ pipeline {
         stage('Test') {
             steps {
                 sh './gradlew test'
-                junit allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/reports/**/*.xml'
+                junit allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/test-results/**/*.xml'
             }
         }
 
