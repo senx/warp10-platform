@@ -41,6 +41,7 @@ pipeline {
 
     post {
         always {
+            echo 'Done'
             //      this.notifyBuild(currentBuild.result)
         }
     }
