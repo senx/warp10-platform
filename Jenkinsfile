@@ -2,6 +2,7 @@
 import hudson.model.*
 
 pipeline {
+    agent any
     environment {
         THRIFT_HOME = '/opt/thrift-0.9.1'
         version = sh(returnStdout: true, script: 'git describe --abbrev=0 --tags').trim()
@@ -36,15 +37,15 @@ pipeline {
                 sh './gradlew warp10:pack '
             }
         }
+    }
 
-        post {
-            success {
-                //      this.notifyBuild(currentBuild.result)
-            }
-            failure {
-                currentBuild.result = "FAILED"
-                //      this.notifyBuild(currentBuild.result)
-            }
+    post {
+        success {
+            //      this.notifyBuild(currentBuild.result)
+        }
+        failure {
+            currentBuild.result = "FAILED"
+            //      this.notifyBuild(currentBuild.result)
         }
     }
 }
