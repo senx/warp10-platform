@@ -7,8 +7,6 @@ node {
         this.notifyBuild('STARTED')
 
         stage('Checkout') {
-            git credentialsId: 'github', url: 'git@github.com:Giwi/warp10-platform.git'
-            sh 'git pull'
             version = this.version()
             echo("Building $version")
         }
