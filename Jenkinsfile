@@ -3,6 +3,9 @@ import hudson.model.*
 
 pipeline {
     agent any
+    options {
+        disableConcurrentBuilds()
+    }
     environment {
         THRIFT_HOME = '/opt/thrift-0.9.1'
         version = this.getVersion()
@@ -44,8 +47,11 @@ pipeline {
         }
 
         stage('Deploy') {
+            options {
+                timeout(time: 2, unit: 'HOURS')
+            }
             input {
-                message "Should we deploy to Bintray?"
+                message 'Should we deploy to Bintray?'
             }
             steps {
                 sh './gradlew crypto:clean crypto:bintrayUpload -x test'
