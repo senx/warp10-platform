@@ -40,6 +40,11 @@ public class Configuration {
   public static final String WARP10_QUIET = "warp10.quiet";
   
   /**
+   * Comma separated list of headers to return in the Access-Allow-Control-Headers response header to preflight requests.
+   */
+  public static final String CORS_HEADERS = "cors.headers";
+  
+  /**
    * List of Warp 10 plugins to initialize
    */
   public static final String WARP10_PLUGINS = "warp10.plugins";
@@ -88,7 +93,7 @@ public class Configuration {
   
   public static final String WARPSCRIPT_MAX_OPS = "warpscript.maxops";
   public static final String WARPSCRIPT_MAX_BUCKETS = "warpscript.maxbuckets";
-  public static final String WARPSCRIPT_MAX_GEOCELLS = "warpscript.geocells";
+  public static final String WARPSCRIPT_MAX_GEOCELLS = "warpscript.maxgeocells";
   public static final String WARPSCRIPT_MAX_DEPTH = "warpscript.maxdepth";
   public static final String WARPSCRIPT_MAX_FETCH = "warpscript.maxfetch";
   public static final String WARPSCRIPT_MAX_GTS = "warpscript.maxgts";
@@ -1259,6 +1264,12 @@ public class Configuration {
    * Compression type to use for leveldb (SNAPPY/NONE)
    */
   public static final String LEVELDB_COMPRESSION_TYPE = "leveldb.compression.type";
+  
+  /**
+   * Set to true to enable splits generation on the standalone instance. This MUST be set
+   * to true for Warp10InputFormat to work against a standalone Warp 10 instance.
+   */
+  public static final String STANDALONE_SPLITS_ENABLE = "standalone.splits.enable";
   
   /**
    * IP to bind to for listening to incoming connections. Use 0.0.0.0 to listen to all interfaces

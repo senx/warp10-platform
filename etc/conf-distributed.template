@@ -24,6 +24,11 @@ warp.timeunits = us
 //
 //warp10.plugins = 
 
+//
+// Comma separated list of headers to return in Access-Control-Allow-Headers on top of the token header.
+// This applies to all HTTP endpoints.
+//
+#cors.headers =
 
 //
 // Maximum size for encoders exchanged within Warp 10.

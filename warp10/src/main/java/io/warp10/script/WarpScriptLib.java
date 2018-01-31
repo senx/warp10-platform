@@ -339,6 +339,7 @@ public class WarpScriptLib {
   public static final String GEO_WKT_UNIFORM = "GEO.WKT.UNIFORM";
   
   public static final String GEO_JSON = "GEO.JSON";
+  public static final String GEO_JSON_UNIFORM = "GEO.JSON.UNIFORM";
   public static final String GEO_INTERSECTION = "GEO.INTERSECTION";
   public static final String GEO_DIFFERENCE = "GEO.DIFFERENCE";
   public static final String GEO_UNION = "GEO.UNION";
@@ -984,12 +985,14 @@ public class WarpScriptLib {
     functions.put("GEO.REGEXP", new GEOREGEXP("GEO.REGEXP"));
     functions.put(GEO_WKT, new GeoWKT(GEO_WKT, false));
     functions.put(GEO_WKT_UNIFORM, new GeoWKT(GEO_WKT, true));
-    functions.put(GEO_JSON, new GeoJSON(GEO_JSON));
+    functions.put(GEO_JSON, new GeoJSON(GEO_JSON, false));
+    functions.put(GEO_JSON_UNIFORM, new GeoJSON(GEO_JSON, true));
+    functions.put("GEO.OPTIMIZE", new GEOOPTIMIZE("GEO.OPTIMIZE"));
     functions.put(GEO_INTERSECTION, new GeoIntersection(GEO_INTERSECTION));
     functions.put(GEO_UNION, new GeoUnion(GEO_UNION));
     functions.put(GEO_DIFFERENCE, new GeoSubtraction(GEO_DIFFERENCE));
     functions.put("GEO.WITHIN", new GEOWITHIN("GEO.WITHIN"));
-    functions.put("GEO.INTERSECTS", new GEOINTERSECTS("GEO.WINTERSECTS"));
+    functions.put("GEO.INTERSECTS", new GEOINTERSECTS("GEO.INTERSECTS"));
     functions.put("HAVERSINE", new HAVERSINE("HAVERSINE"));
     functions.put(GEOPACK, new GEOPACK(GEOPACK));
     functions.put(GEOUNPACK, new GEOUNPACK(GEOUNPACK));

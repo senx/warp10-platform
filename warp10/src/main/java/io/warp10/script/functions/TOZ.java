@@ -65,7 +65,7 @@ public class TOZ extends NamedWarpScriptFunction implements WarpScriptStackFunct
     
     int nbits = bitwidth * longs.length;
     int nbytes = (nbits / 8) + (0 == (nbits % 8) ? 0 : 1);
-    int bitcount = nbits % 8;
+    int bitcount = nbytes * 8 - nbits;
 
     byte[] encoded = new byte[nbytes];
     

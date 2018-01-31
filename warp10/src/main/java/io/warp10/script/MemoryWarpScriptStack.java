@@ -212,6 +212,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       setAttribute(WarpScriptStack.ATTRIBUTE_GTS_LIMIT_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_GTS_HARD, Long.toString(WarpScriptStack.DEFAULT_GTS_LIMIT))));
       setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_LIMIT_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_URLFETCH_LIMIT_HARD, Long.toString(WarpScriptStack.DEFAULT_URLFETCH_LIMIT))));
       setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_MAXSIZE_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_URLFETCH_MAXSIZE_HARD, Long.toString(WarpScriptStack.DEFAULT_URLFETCH_MAXSIZE))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_MAX_GEOCELLS_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_GEOCELLS_HARD, Integer.toString(WarpScriptStack.DEFAULT_MAX_GEOCELLS))));
 
       //
       // Set top level section name
@@ -651,6 +652,10 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           } else {
             Macro lastmacro = macros.remove(0);
             
+            boolean secure = Boolean.TRUE.equals(this.getAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO));
+
+            lastmacro.setSecure(secure);
+            
             if (macros.isEmpty()) {
               this.push(lastmacro);
             } else {
@@ -671,7 +676,14 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           //
           
           try {
-            String str = URLDecoder.decode(stmt.substring(1, stmt.length() - 1), "UTF-8");
+            String str = stmt.substring(1, stmt.length() - 1);
+            
+            if (-1 != UnsafeString.indexOf(str, '%')) {
+              // replace occurrences of '+' with '%2B'
+              str = str.replaceAll("\\+", "%2B");
+              str = URLDecoder.decode(str, "UTF-8");
+            }
+            
             if (macros.isEmpty()) {
               push(str);
             } else {
