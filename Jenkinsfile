@@ -96,8 +96,7 @@ void notifyBuild(String buildStatus, String version) {
 def notifySlack(color, message, buildStatus) {
     String slackURL = 'https://hooks.slack.com/services/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'
     String payload = "{\"username\": \"${env.JOB_NAME}\",\"attachments\":[{\"title\": \"${env.JOB_NAME} ${buildStatus}\",\"color\": \"${color}\",\"text\": \"${message}\"}]}"
-    def cmd = "curl -X POST -H 'Content-type: application/json' --data '${payload}' ${slackURL}"
-    //   sh cmd
+    sh "curl -X POST -H 'Content-type: application/json' --data '${payload}' ${slackURL}"
 }
 
 String getParam(key) {
