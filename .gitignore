@@ -16,3 +16,4 @@ out/
 generated/
 warp10/src/main/java/io/warp10/Revision.java
 gradle.properties
+archive
