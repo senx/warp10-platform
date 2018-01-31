@@ -34,10 +34,12 @@ pipeline {
         }
 
 
-        stage('Pack') {
+        stage('Pack and Tar') {
             steps {
                 sh './gradlew jar pack -x test'
                 archiveArtifacts allowEmptyArchive: true, artifacts: '**/build/libs/*.jar', fingerprint: true
+                sh './gradlew createTarArchive -x test'
+                archiveArtifacts allowEmptyArchive: true, artifacts: '**/build/libs/*.tar.gz', fingerprint: true
             }
         }
 

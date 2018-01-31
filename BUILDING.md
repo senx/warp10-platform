@@ -3,14 +3,14 @@
 ## Install Thrift on MAC OS
 The current version of thrift used by Warp10 is thrift 0.9.1. Download the tar.gz on the official Apache Thrift page (http://archive.apache.org/dist/thrift/0.9.1/). Then execute the following commands: 
 
-	./configure --without-python --prefix=/opt/thrift-0.9.1 CPPFLAGS='-I/usr/local/opt/openssl/include'
-	make
+    ./configure --without-python --prefix=/opt/thrift-0.9.1 CPPFLAGS='-I/usr/local/opt/openssl/include'
+    make
 
 Make may raise Errors and warning, do not care about it and exec: 
 
-	sudo make install
+    sudo make install
   
-Then add "/opt/thrift-0.9.1/bin" to your path.
+Then add "/opt/thrift-0.9.1/bin" to your path and add `export THRIFT_HOME=/opt/thrift-0.9.1`
 
 ## IDE Setup
 
@@ -20,8 +20,8 @@ In order to avoid conflicts between gradle & Eclipse, please configure Eclipse d
 ### Execute Gradle tasks
 Generate Thrift source code with the tasks
 
-    gradle warp10:generateThrift
-    gradle token:generateThrift
+    ./gradlew warp10:generateThrift
+    ./gradlew token:generateThrift
 
 ### Import the project with Eclipse
 Import the project in Eclipse as Gradle project.
@@ -41,11 +41,11 @@ Activate MavenLocal() repository (uncomment it in the global repositories defini
 
 #### 1. install crypto on your local repo
 
-    gradle crypto:install
-
+    ./gradlew crypto:install
+   
 #### 2. install token on  your local repo
 
-    gradle token:install
+    ./gradlew token:install
     
 #### 3. updates Eclipse External Dependencies
 Warp10 Context Menu / Gradle / Refresh Gradle Project  
@@ -68,6 +68,6 @@ WARNING don't forget to push the TAG `git push origin 0.0.2-rc1`
 ### Build Warp10
 Build Warp10 in the order bellow
 
-    gradle crypto:clean crypto:bintrayUpload   (if updated)
-    gradle token:clean  token:bintrayUpload    (if updated)
-    gradle warp10:clean warp10:bintrayUpload
+    ./gradlew crypto:clean crypto:bintrayUpload   (if updated)
+    ./gradlew token:clean  token:bintrayUpload    (if updated)
+    ./gradlew warp10:clean warp10:bintrayUpload
