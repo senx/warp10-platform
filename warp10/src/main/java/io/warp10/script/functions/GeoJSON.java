@@ -29,8 +29,11 @@ import io.warp10.script.WarpScriptStackFunction;
  */
 public class GeoJSON extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public GeoJSON(String name) {
+  private final boolean uniform;
+  
+  public GeoJSON(String name, boolean uniform) {
     super(name);
+    this.uniform = uniform;
   }
   
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
@@ -38,8 +41,8 @@ public class GeoJSON extends NamedWarpScriptFunction implements WarpScriptStackF
     Object pcterror = stack.pop();
     Object geoJson = stack.pop();
     
-    if (!(geoJson instanceof String) || !(inside instanceof Boolean) || !(pcterror instanceof Double)) {
-      throw new WarpScriptException(getName() + " expects a GeoJSON String, an error percentage and a boolean as the top 3 elements of the stack.");
+    if (!(geoJson instanceof String) || !(inside instanceof Boolean) || (!(pcterror instanceof Double) && !(pcterror instanceof Long))) { 
+      throw new WarpScriptException(getName() + " expects a GeoJSON string, an error percentage or resolution (even number between 2 and 30) and a boolean as the top 3 elements of the stack.");
     }
     
     //
@@ -59,7 +62,21 @@ public class GeoJSON extends NamedWarpScriptFunction implements WarpScriptStackF
     // Convert Geometry to a GeoXPShape
     //
 
-    stack.push(GeoXPLib.toGeoXPShape(geometry, ((Number) pcterror).doubleValue(), Boolean.TRUE.equals(inside)));
+    int maxcells = ((Number) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MAX_GEOCELLS)).intValue();
+    
+    if (!this.uniform) {
+      if (pcterror instanceof Double) {
+        stack.push(GeoXPLib.toGeoXPShape(geometry, ((Number) pcterror).doubleValue(), Boolean.TRUE.equals(inside)));
+      } else {
+        stack.push(GeoXPLib.toGeoXPShape(geometry, ((Number) pcterror).intValue(), Boolean.TRUE.equals(inside)));
+      }
+    } else {
+      if (pcterror instanceof Double) {
+        stack.push(GeoXPLib.toUniformGeoXPShape(geometry, ((Number) pcterror).doubleValue(), Boolean.TRUE.equals(inside), maxcells));
+      } else {
+        stack.push(GeoXPLib.toUniformGeoXPShape(geometry, ((Number) pcterror).intValue(), Boolean.TRUE.equals(inside), maxcells));
+      }
+    }
 
     return stack;
   }

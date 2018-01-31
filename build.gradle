@@ -92,7 +92,7 @@ subprojects {
 
         gradle.taskGraph.whenReady { graph ->
             println "building warp10 version=$version"
-            if (graph.hasTask(uploadArchives) || graph.hasTask('bintrayUpload')) {
+            if (graph.hasTask(uploadArchives) || graph.hasTask(bintrayUpload)) {
                 //if (!(version ==~ /\d+\.\d+\.\d+\-\d+\-\w+/)) {
                 //    throw new GradleException("Cannot upload archive: version ${version} is not correct (X.X.X-X-X)")
                 //}
@@ -352,8 +352,4 @@ def addChildsToWarpscriptDeps (def pResolvedDependency) {
 
 boolean isDepRequired(String currentDep ) {
     return ext.requiredLibsMc2.any { currentDep.equalsIgnoreCase(it as String) }
-}
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '4.5' //version required
 }
