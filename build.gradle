@@ -1,3 +1,5 @@
+import java.text.SimpleDateFormat
+
 //
 //   Copyright 2016  Cityzen Data
 //
@@ -244,6 +246,7 @@ subprojects {
         key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
 
         dryRun = false
+        publish = true
 
         publications = ['crypto', 'token']
 
@@ -253,7 +256,9 @@ subprojects {
             licenses = ['Apache-2.0']
             vcsUrl = 'https://github.com/cityzendata/warp10-platform.git'
             version {
-                released  = new Date()
+                name = getVersionName('')
+                released  = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZZ").format(new Date())
+                vcsTag = getVersionName('')
             }
         }
     }
