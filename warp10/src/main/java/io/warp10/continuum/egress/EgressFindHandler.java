@@ -48,6 +48,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.boon.json.JsonSerializer;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.slf4j.Logger;
@@ -164,6 +165,12 @@ public class EgressFindHandler extends AbstractHandler {
           clsSels.add(classSelector);
           lblsSels.add(labelsSelector);
 
+          JsonSerializer serializer = null;
+          
+          if (json) {
+            serializer = StackUtils.getSerializer();
+          }
+          
           try (MetadataIterator iterator = directoryClient.iterator(clsSels, lblsSels)) {
             while(iterator.hasNext()) {
               Metadata metadata = iterator.next();
@@ -188,7 +195,7 @@ public class EgressFindHandler extends AbstractHandler {
                 } else {
                   first = false;
                 }
-                StackUtils.objectToJSON(pw, metadata, level, true);
+                StackUtils.objectToJSON(serializer, pw, metadata, level, true);
                 continue;
               }
               
