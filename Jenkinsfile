@@ -13,6 +13,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
+                echo env
                 this.notifyBuild('STARTED', version)
                 git credentialsId: 'github', url: 'git@github.com:Giwi/warp10-platform.git'
                 echo "Building ${version}"
@@ -29,6 +30,7 @@ pipeline {
             steps {
                 sh './gradlew test'
                 junit allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/test-results/**/*.xml'
+                step([$class: 'JUnitResultArchiver', allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/test-results/**/*.xml'])
             }
         }
 
@@ -96,12 +98,11 @@ def notifySlack(color, message, buildStatus) {
     String slackURL = 'https://hooks.slack.com/services/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'
     String payload = "{\"username\": \"Warp10\",\"attachments\":[{\"title\": \"${env.JOB_NAME} ${buildStatus}\",\"color\": \"${color}\",\"text\": \"${message}\"}]}"
     def cmd = "curl -X POST -H 'Content-type: application/json' --data '${payload}' ${slackURL}"
-    print cmd
-    sh cmd
+ //   sh cmd
 }
 
 String getParam(key) {
-    return param[key]
+    return params[key]
 }
 
 String getVersion() {
