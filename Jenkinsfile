@@ -13,7 +13,6 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                echo env
                 this.notifyBuild('STARTED', version)
                 git credentialsId: 'github', url: 'git@github.com:Giwi/warp10-platform.git'
                 echo "Building ${version}"
@@ -73,7 +72,7 @@ pipeline {
 void notifyBuild(String buildStatus, String version) {
     // build status of null means successful
     buildStatus = buildStatus ?: 'SUCCESSFUL'
-    String subject = "${buildStatus}: Job ${env.JOB_NAME} [${env.BUILD_NUMBER}] | ${version}"
+    String subject = "${buildStatus}: Job ${env.JOB_NAME} [${env.BUILD_DISPLAY_NAME}] | ${version}"
     String summary = "${subject} (${env.BUILD_URL})"
     // Override default values based on build status
     if (buildStatus == 'STARTED') {
@@ -96,13 +95,13 @@ void notifyBuild(String buildStatus, String version) {
 
 def notifySlack(color, message, buildStatus) {
     String slackURL = 'https://hooks.slack.com/services/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'
-    String payload = "{\"username\": \"Warp10\",\"attachments\":[{\"title\": \"${env.JOB_NAME} ${buildStatus}\",\"color\": \"${color}\",\"text\": \"${message}\"}]}"
+    String payload = "{\"username\": \"${env.JOB_NAME}\",\"attachments\":[{\"title\": \"${env.JOB_NAME} ${buildStatus}\",\"color\": \"${color}\",\"text\": \"${message}\"}]}"
     def cmd = "curl -X POST -H 'Content-type: application/json' --data '${payload}' ${slackURL}"
- //   sh cmd
+    //   sh cmd
 }
 
 String getParam(key) {
-    return params[key]
+    return params.get(key)
 }
 
 String getVersion() {
