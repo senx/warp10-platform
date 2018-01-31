@@ -6,6 +6,8 @@ pipeline {
     environment {
         THRIFT_HOME = '/opt/thrift-0.9.1'
         version = this.getVersion()
+        BINTRAY_USER = params.BINTRAY_USER
+        BINTRAY_API_KEY = params.BINTRAY_API_KEY
     }
     stages {
 
@@ -35,6 +37,17 @@ pipeline {
             steps {
                 sh './gradlew jar pack -x test'
                 archiveArtifacts allowEmptyArchive: true, artifacts: '**/build/libs/*.jar', fingerprint: true
+            }
+        }
+
+        stage('Deploy') {
+            input {
+                message "Should we deploy to Bintray?"
+            }
+            steps {
+                sh './gradlew crypto:clean crypto:bintrayUpload -x test'
+                sh './gradlew token:clean  token:bintrayUpload -x test'
+                sh './gradlew warp10:clean warp10:bintrayUpload -x test'
             }
         }
     }
