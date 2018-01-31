@@ -6,8 +6,8 @@ pipeline {
     environment {
         THRIFT_HOME = '/opt/thrift-0.9.1'
         version = this.getVersion()
-        BINTRAY_USER = params.BINTRAY_USER
-        BINTRAY_API_KEY = params.BINTRAY_API_KEY
+        BINTRAY_USER = getParam('BINTRAY_USER')
+        BINTRAY_API_KEY = getParam('BINTRAY_API_KEY')
     }
     stages {
 
@@ -98,6 +98,10 @@ def notifySlack(color, message, buildStatus) {
     def cmd = "curl -X POST -H 'Content-type: application/json' --data '${payload}' ${slackURL}"
     print cmd
     sh cmd
+}
+
+String getParam(key) {
+    return param[key]
 }
 
 String getVersion() {
