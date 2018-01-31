@@ -41,7 +41,7 @@ public class OSSKeyStore implements KeyStore {
   private final Map<String, byte[]> keys;
 
   private OSSKeyStore() {
-    this.keys = new HashMap<>();
+    this.keys = new HashMap<String, byte[]>();
   }
 
   /**
@@ -51,7 +51,7 @@ public class OSSKeyStore implements KeyStore {
    * @throws OSSException the oss exception
    */
   public OSSKeyStore(String masterKeySpec) throws OSSException {
-    this.keys = new HashMap<>();
+    this.keys = new HashMap<String, byte[]>();
 
     //
     // Determine if masterKey is a name or a valid key
