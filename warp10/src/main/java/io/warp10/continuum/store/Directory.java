@@ -911,7 +911,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             for (final KafkaStream<byte[],byte[]> stream : streams) {
               executor.submit(new DirectoryConsumer(self, stream, counters));
             }      
-            
+
             while(!abort.get() && !Thread.currentThread().isInterrupted()) {
               try {
                 if (streams.size() == barrier.getNumberWaiting()) {
@@ -931,8 +931,16 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   //
 
                   // Commit offsets
-                  connector.commitOffsets(true);
-                  counters.commit();
+                  try {
+                    connector.commitOffsets(true);
+                  } catch (Throwable t) {
+                    throw t;
+                  } finally {
+                    // We instruct the counters that we committed the offsets, in the worst case
+                    // we will experience a backward leap which is not fatal, whereas missing
+                    // a commit will lead to a forward leap which will make the Directory fail
+                    counters.commit();
+                  }
                                    
                   counters.sensisionPublish();
                   
@@ -1219,136 +1227,143 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         Thread synchronizer = new Thread(new Runnable() {
           @Override
           public void run() {
-            long lastsync = System.currentTimeMillis();
-            long lastflush = lastsync;
-            
-            //
-            // Check for how long we've been storing readings, if we've reached the commitperiod,
-            // flush any pending commits and synchronize with the other threads so offsets can be committed
-            //
-
-            while(!localabort.get() && !Thread.currentThread().isInterrupted()) { 
-              long now = System.currentTimeMillis();
+            try {
+              long lastsync = System.currentTimeMillis();
+              long lastflush = lastsync;
               
-              if (now - lastsync > directory.commitPeriod) {
-                //
-                // We synchronize on 'puts' so the main Thread does not add Puts to it
-                //
-                
-                //synchronized (puts) {
-                try {
-                  actionsLock.lockInterruptibly();
-                  
-                  //
-                  // Attempt to flush
-                  //
-                  
-                  try {
-                    Object[] results = new Object[actions.size()];
-                    
-                    if (directory.store||directory.delete) {
-                      ht.batch(actions, results);
+              //
+              // Check for how long we've been storing readings, if we've reached the commitperiod,
+              // flush any pending commits and synchronize with the other threads so offsets can be committed
+              //
 
-                      // Check results for nulls
-                      for (Object o: results) {
-                        if (null == o) {
-                          throw new IOException("At least one action (Put/Delete) failed.");
-                        }
-                      }
-                      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
-                    }
-                    
-                    actions.clear();
-                    actionsSize.set(0L);
-                    // Reset lastPut to 0
-                    lastAction.set(0L);                    
-                  } catch (IOException ioe) {
-                    // Clear list of Puts
-                    actions.clear();
-                    actionsSize.set(0L);
-                    // If an exception is thrown, abort
-                    directory.abort.set(true);
-                    return;
-                  } catch (InterruptedException ie) {
-                    // Clear list of Puts
-                    actions.clear();
-                    actionsSize.set(0L);
-                    // If an exception is thrown, abort
-                    directory.abort.set(true);
-                    return;                    
-                  }
+              while(!localabort.get() && !Thread.currentThread().isInterrupted()) { 
+                long now = System.currentTimeMillis();
+                
+                if (now - lastsync > directory.commitPeriod) {
                   //
-                  // Now join the cyclic barrier which will trigger the
-                  // commit of offsets
+                  // We synchronize on 'puts' so the main Thread does not add Puts to it
                   //
+                  
+                  //synchronized (puts) {
                   try {
-                    directory.barrier.await();
-                    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_BARRIER_SYNCS, Sensision.EMPTY_LABELS, 1);
-                  } catch (Exception e) {
+                    actionsLock.lockInterruptibly();
+                    
+                    //
+                    // Attempt to flush
+                    //
+                    
+                    try {
+                      Object[] results = new Object[actions.size()];
+                      
+                      if (directory.store||directory.delete) {
+                        ht.batch(actions, results);
+
+                        // Check results for nulls
+                        for (Object o: results) {
+                          if (null == o) {
+                            throw new IOException("At least one action (Put/Delete) failed.");
+                          }
+                        }
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
+                      }
+                      
+                      actions.clear();
+                      actionsSize.set(0L);
+                      // Reset lastPut to 0
+                      lastAction.set(0L);                    
+                    } catch (IOException ioe) {
+                      // Clear list of Puts
+                      actions.clear();
+                      actionsSize.set(0L);
+                      // If an exception is thrown, abort
+                      directory.abort.set(true);
+                      return;
+                    } catch (InterruptedException ie) {
+                      // Clear list of Puts
+                      actions.clear();
+                      actionsSize.set(0L);
+                      // If an exception is thrown, abort
+                      directory.abort.set(true);
+                      return;                    
+                    }
+                    //
+                    // Now join the cyclic barrier which will trigger the
+                    // commit of offsets
+                    //
+                    try {
+                      directory.barrier.await();
+                      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_BARRIER_SYNCS, Sensision.EMPTY_LABELS, 1);
+                    } catch (Exception e) {
+                      directory.abort.set(true);
+                      return;
+                    } finally {
+                      lastsync = System.currentTimeMillis();
+                    }
+                  } catch (InterruptedException ie) {
                     directory.abort.set(true);
                     return;
                   } finally {
-                    lastsync = System.currentTimeMillis();
+                    if (actionsLock.isHeldByCurrentThread()) {
+                      actionsLock.unlock();
+                    }                  
                   }
-                } catch (InterruptedException ie) {
-                  directory.abort.set(true);
-                  return;
-                } finally {
-                  if (actionsLock.isHeldByCurrentThread()) {
-                    actionsLock.unlock();
-                  }                  
-                }
-              } else if (0 != lastAction.get() && (now - lastAction.get() > 500) || actionsSize.get() > directory.maxPendingPutsSize) {
-                //
-                // If the last Put was added to 'ht' more than 500ms ago, force a flush
-                //
-                
-                try {
-                  //synchronized(puts) {
-                  actionsLock.lockInterruptibly();
+                } else if (0 != lastAction.get() && (now - lastAction.get() > 500) || actionsSize.get() > directory.maxPendingPutsSize) {
+                  //
+                  // If the last Put was added to 'ht' more than 500ms ago, force a flush
+                  //
+                  
                   try {
-                    Object[] results = new Object[actions.size()];
-                    
-                    if (directory.store||directory.delete) {
-                      ht.batch(actions, results);
+                    //synchronized(puts) {
+                    actionsLock.lockInterruptibly();
+                    try {
+                      Object[] results = new Object[actions.size()];
                       
-                      // Check results for nulls
-                      for (Object o: results) {
-                        if (null == o) {
-                          throw new IOException("At least one Put failed.");
+                      if (directory.store||directory.delete) {
+                        ht.batch(actions, results);
+                        
+                        // Check results for nulls
+                        for (Object o: results) {
+                          if (null == o) {
+                            throw new IOException("At least one Put failed.");
+                          }
                         }
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
                       }
-                      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
-                    }
-                    
-                    actions.clear();
-                    actionsSize.set(0L);
-                    // Reset lastPut to 0
-                    lastAction.set(0L);
-                  } catch (IOException ioe) {
-                    // Clear list of Puts
-                    actions.clear();
-                    actionsSize.set(0L);
+                      
+                      actions.clear();
+                      actionsSize.set(0L);
+                      // Reset lastPut to 0
+                      lastAction.set(0L);
+                    } catch (IOException ioe) {
+                      // Clear list of Puts
+                      actions.clear();
+                      actionsSize.set(0L);
+                      directory.abort.set(true);
+                      return;
+                    } catch(InterruptedException ie) {                  
+                      // Clear list of Puts
+                      actions.clear();
+                      actionsSize.set(0L);
+                      directory.abort.set(true);
+                      return;
+                    }                  
+                  } catch (InterruptedException ie) {
                     directory.abort.set(true);
                     return;
-                  } catch(InterruptedException ie) {                  
-                    // Clear list of Puts
-                    actions.clear();
-                    actionsSize.set(0L);
-                    directory.abort.set(true);
-                    return;
-                  }                  
-                } catch (InterruptedException ie) {
-                  directory.abort.set(true);
-                  return;
-                } finally {
-                  if (actionsLock.isHeldByCurrentThread()) {
-                    actionsLock.unlock();
-                  }                  
+                  } finally {
+                    if (actionsLock.isHeldByCurrentThread()) {
+                      actionsLock.unlock();
+                    }                  
+                  }
                 }
-              }
- 
-              LockSupport.parkNanos(1000000L);
+   
+                LockSupport.parkNanos(1000000L);
+              }              
+            } catch (Throwable t) {
+              LOG.error("Caught exception in synchronizer", t);
+              throw t;
+            } finally {
+              directory.abort.set(true);
             }
           }
         });
