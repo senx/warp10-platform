@@ -16,31 +16,21 @@
 
 package io.warp10.script.binary;
 
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
-
 /**
- * Conditional AND of the two operands on top of the stack
+ * Conditional AND taking either:
+ * - two operands on top of the stack.
+ * - a list of booleans or boolean-returning-macros.
+ * This class implements short-circuit evaluation (https://en.wikipedia.org/wiki/Short-circuit_evaluation).
  */
-public class CondAND extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class CondAND extends CondShortCircuit {
 
   public CondAND(String name) {
-    super(name);
+    super(name, false);
   }
-  
+
   @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object op2 = stack.pop();
-    Object op1 = stack.pop();
-    
-    if (op2 instanceof Boolean && op1 instanceof Boolean) {
-      stack.push(((Boolean) op1).booleanValue() && ((Boolean) op2).booleanValue());
-    } else {
-      throw new WarpScriptException(getName() + " can only operate on boolean values.");
-    }
-    
-    return stack;
+  public boolean operator(boolean bool1, boolean bool2) {
+    return bool1 && bool2;
   }
+
 }
