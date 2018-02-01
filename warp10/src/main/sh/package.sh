@@ -60,7 +60,7 @@ sed -i -e "s/@QUANTUM_VERSION@/${QUANTUM_VERSION}/g" ${WARP10_HOME}/bin/warp10-s
 # Copy log4j README, config, runner, bootstrap...
 cp ../../etc/bootstrap/*.mc2 ${WARP10_HOME}/etc/bootstrap
 cp ../../etc/install/README.md ${WARP10_HOME}
-cp ${WARP_ROOT_PATH}/changelog.* ${WARP10_HOME}
+cp ${WARP_ROOT_PATH}/build/changelog.* ${WARP10_HOME}
 cp ../../etc/warpscripts/*.mc2* ${WARP10_HOME}/warpscripts/test/60000
 cp ../../etc/calls/*.sh ${WARP10_HOME}/calls
 cp ../../etc/calls/*.py ${WARP10_HOME}/calls

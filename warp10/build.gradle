@@ -202,7 +202,7 @@ task createTarArchive(type: Exec, dependsOn: pack) {
 publishing {
     publications {
         warp10(MavenPublication) {
-            artifact("${buildDir}/libs/warp10-" + getVersionName(warp10Version['warp10']) + ".tar.gz") {
+            artifact("${buildDir}/libs/warp10-${getVersionName(warp10Version['warp10'])}.tar.gz") {
                 extension = 'tar.gz'
             }
             groupId 'io.warp10'
@@ -240,7 +240,7 @@ changelog {
 
     // The output directory where the report is generated.
     // Default value: main resource directory, or the "build" directory
-    outputDirectory = file("$projectDir")
+    outputDirectory = file("${project.buildDir}")
 
     // The name of the report to generate.
     // Default value: CHANGELOG.md
