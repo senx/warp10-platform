@@ -5,10 +5,11 @@ pipeline {
     agent any
     options {
         disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '3'))
     }
     environment {
         THRIFT_HOME = '/opt/thrift-0.9.1'
-        version = this.getVersion()
+        version = "${getVersion()}"
         BINTRAY_USER = getParam('BINTRAY_USER')
         BINTRAY_API_KEY = getParam('BINTRAY_API_KEY')
     }
