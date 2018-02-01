@@ -17,7 +17,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 this.notifyBuild('STARTED', version)
-                git credentialsId: 'github', url: 'git@github.com:cityzendata/warp10-platform.git'
+                git credentialsId: 'github', poll: false, url: 'git@github.com:cityzendata/warp10-platform.git'
                 echo "Building ${version}"
             }
         }
