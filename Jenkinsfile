@@ -63,6 +63,7 @@ pipeline {
                         sh './gradlew crypto:clean crypto:bintrayUpload -x test'
                         sh './gradlew token:clean  token:bintrayUpload -x test'
                         sh './gradlew warp10:clean warp10:bintrayUpload -x test'
+                        sh './gradlew warp10:clean warpscript:bintrayUpload -x test'
                         this.notifyBuild('PUBLISHED', version)
                     }
                 }
