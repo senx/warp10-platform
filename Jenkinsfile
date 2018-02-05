@@ -30,7 +30,6 @@ pipeline {
         }
 
         stage('Test') {
-            options { retry(3) }
             steps {
                 sh './gradlew test'
                 junit allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/test-results/**/*.xml'
