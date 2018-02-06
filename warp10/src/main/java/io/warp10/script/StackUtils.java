@@ -75,9 +75,8 @@ public class StackUtils {
       }
       first = false;
       
-      stack.push(i);
       try {
-        Object o = stack.peekn();
+        Object o = stack.get(i);
         
         objectToJSON(serializer, out, o, recursionLevel, strictJSON);
       } catch (WarpScriptException ee) {
