@@ -353,6 +353,7 @@ public class Constants {
   public static final String HTTP_PARAM_SUFFIX = "suffix";
   public static final String HTTP_PARAM_UNPACK = "unpack";
   public static final String HTTP_PARAM_CHUNKSIZE = "chunksize";
+  public static final String HTTP_PARAM_LIMIT = "limit";
   
   public static final String DEFAULT_PACKED_CLASS_SUFFIX = ":packed";
   public static final int DEFAULT_PACKED_MAXSIZE = 65536;
