@@ -1245,6 +1245,11 @@ public class Configuration {
   public static final String LEVELDB_COMPRESSION_TYPE = "leveldb.compression.type";
   
   /**
+   * Set to true to disable the delete endpoint in the standalone version of Warp 10.
+   */
+  public static final String STANDALONE_DELETE_DISABLE = "standalone.delete.disable";
+  
+  /**
    * Set to true to enable splits generation on the standalone instance. This MUST be set
    * to true for Warp10InputFormat to work against a standalone Warp 10 instance.
    */

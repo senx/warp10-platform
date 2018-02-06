@@ -368,6 +368,11 @@ standalone.snapshot.trigger = ${leveldb.home}/snapshot.trigger
 standalone.snapshot.signal = ${leveldb.home}/snapshot.signal
 
 //
+// Set to true to disable the delete endpoint.
+//
+standalone.delete.disable = false
+
+//
 // Configuration parameter to modify the datalog header. DO NOT MODIFY
 //
 #http.header.datalog =
