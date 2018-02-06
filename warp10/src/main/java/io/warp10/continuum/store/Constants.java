@@ -66,11 +66,6 @@ public class Constants {
       "                           /_/                        \n"; 
 
   /**
-   * Row key time boundary in time units
-   */
-  public static final long DEFAULT_MODULUS = 1L;
-  
-  /**
    * Number of elevation units per meter.
    */
   public static final long ELEVATION_UNITS_PER_M = 1000L;

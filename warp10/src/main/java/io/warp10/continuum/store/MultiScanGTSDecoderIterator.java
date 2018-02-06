@@ -147,8 +147,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     bb.put(Store.HBASE_RAW_DATA_KEY_PREFIX);
     bb.putLong(metadata.getClassId());
     bb.putLong(metadata.getLabelsId());
-    // FIXME(hbs): modulus should be extracted from metadata as it depends on GTS and auth
-    long modulus = now - (now % Constants.DEFAULT_MODULUS);
+    long modulus = now;
     
     bb.putLong(Long.MAX_VALUE - modulus);
     
@@ -162,7 +161,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     
     if (timespan >= 0) {
       modulus = (now - timespan);
-      modulus = (modulus - (modulus % Constants.DEFAULT_MODULUS)) - Constants.DEFAULT_MODULUS;
+      modulus = modulus - 1;
     
       bb.putLong(Long.MAX_VALUE - modulus);
     } else {
@@ -272,32 +271,18 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
 
           long basets = Long.MAX_VALUE;
           
-          if (1 == Constants.DEFAULT_MODULUS) {
-            byte[] data = cell.getRowArray();
-            int offset = cell.getRowOffset();
-            offset += Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8; // Add 'prefix' + 'classId' + 'labelsId' to row key offset
-            long delta = data[offset] & 0xFF;
-            delta <<= 8; delta |= (data[offset + 1] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 2] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 3] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 4] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 5] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 6] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 7] & 0xFFL);
-            basets -= delta;              
-          } else {
-            byte[] data = cell.getQualifierArray();
-            int offset = cell.getQualifierOffset();
-            long delta = data[offset] & 0xFFL;
-            delta <<= 8; delta |= (data[offset + 1] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 2] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 3] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 4] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 5] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 6] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 7] & 0xFFL);
-            basets -= delta;                            
-          }
+          byte[] data = cell.getRowArray();
+          int offset = cell.getRowOffset();
+          offset += Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8; // Add 'prefix' + 'classId' + 'labelsId' to row key offset
+          long delta = data[offset] & 0xFF;
+          delta <<= 8; delta |= (data[offset + 1] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 2] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 3] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 4] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 5] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 6] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 7] & 0xFFL);
+          basets -= delta;              
           
           byte[] value = cell.getValueArray();
           int valueOffset = cell.getValueOffset();

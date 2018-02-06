@@ -103,17 +103,7 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
     // FIXME(hbs): different key for archival
     this.hbaseAESKey = keystore.getKey(KeyStore.AES_HBASE_DATA);
     this.writeTimestamp = writeTimestamp;
-    
-    //
-    // Check that if 'timespan' is < 0 then 'now' is either Long.MAX_VALUE or congruent to 0 modulo DEFAULT_MODULUS
-    //
-    
-    if (timespan < 0) {
-      if (Long.MAX_VALUE != now && 0 != (now % Constants.DEFAULT_MODULUS)) {
-        throw new RuntimeException("Incompatible 'timespan' (" + timespan + ") and 'now' (" + now + ")");
-      }
-    }
-    
+        
     //
     // Create a SlicedRowFilter for the prefix, class id, labels id and ts
     // We include the prefix so we exit the filter early when the last
@@ -194,12 +184,10 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
     // Set lower/upper timestamps
     //
     
-    long modulus = Constants.DEFAULT_MODULUS;
-  
     if (Long.MAX_VALUE == now) {
       System.arraycopy(ZERO_BYTES, 0, lower, prefix.length + 16, 8);
     } else {
-      System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - (now - (now % modulus))), 0, lower, prefix.length + 16, 8);        
+      System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - now), 0, lower, prefix.length + 16, 8);        
     }
     
     if (timespan < 0) {
@@ -207,7 +195,7 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
     } else {
       // Last timestamp does not need to be offset by modulus as it is the case when using a scanner, because
       // SlicedRowFilter upper bound is included, not excluded.
-      System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - ((now - timespan) - ((now - timespan) % modulus))), 0, upper, prefix.length + 16, 8);        
+      System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - (now - timespan)), 0, upper, prefix.length + 16, 8);        
     }
 
     byte[][] keys = new byte[2][];
@@ -285,33 +273,19 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
 
           long basets = Long.MAX_VALUE;
           
-          if (1 == Constants.DEFAULT_MODULUS) {
-            // 128BITS
-            byte[] data = cell.getRowArray();
-            int offset = cell.getRowOffset();
-            offset += Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8; // Add 'prefix' + 'classId' + 'labelsId' to row key offset
-            long delta = data[offset] & 0xFF;
-            delta <<= 8; delta |= (data[offset + 1] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 2] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 3] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 4] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 5] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 6] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 7] & 0xFFL);
-            basets -= delta;              
-          } else {
-            byte[] data = cell.getQualifierArray();
-            int offset = cell.getQualifierOffset();
-            long delta = data[offset] & 0xFFL;
-            delta <<= 8; delta |= (data[offset + 1] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 2] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 3] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 4] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 5] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 6] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 7] & 0xFFL);
-            basets -= delta;                            
-          }
+          // 128BITS
+          byte[] data = cell.getRowArray();
+          int offset = cell.getRowOffset();
+          offset += Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8; // Add 'prefix' + 'classId' + 'labelsId' to row key offset
+          long delta = data[offset] & 0xFF;
+          delta <<= 8; delta |= (data[offset + 1] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 2] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 3] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 4] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 5] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 6] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 7] & 0xFFL);
+          basets -= delta;              
           
           byte[] value = cell.getValueArray();
           int valueOffset = cell.getValueOffset();

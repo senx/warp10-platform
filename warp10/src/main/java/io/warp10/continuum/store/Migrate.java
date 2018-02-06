@@ -321,32 +321,18 @@ public class Migrate {
 
           long basets = Long.MAX_VALUE;
           
-          if (1 == Constants.DEFAULT_MODULUS) {
-            byte[] data = cell.getRowArray();
-            int offset = cell.getRowOffset();
-            offset += Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8; // Add 'prefix' + 'classId' + 'labelsId' to row key offset
-            long delta = data[offset] & 0xFF;
-            delta <<= 8; delta |= (data[offset + 1] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 2] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 3] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 4] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 5] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 6] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 7] & 0xFFL);
-            basets -= delta;              
-          } else {
-            byte[] data = cell.getQualifierArray();
-            int offset = cell.getQualifierOffset();
-            long delta = data[offset] & 0xFFL;
-            delta <<= 8; delta |= (data[offset + 1] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 2] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 3] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 4] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 5] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 6] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 7] & 0xFFL);
-            basets -= delta;                            
-          }
+          byte[] data = cell.getRowArray();
+          int offset = cell.getRowOffset();
+          offset += Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8; // Add 'prefix' + 'classId' + 'labelsId' to row key offset
+          long delta = data[offset] & 0xFF;
+          delta <<= 8; delta |= (data[offset + 1] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 2] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 3] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 4] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 5] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 6] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 7] & 0xFFL);
+          basets -= delta;              
                     
           ByteBuffer bb = ByteBuffer.wrap(value,valueOffset,valueLength).order(ByteOrder.BIG_ENDIAN);
 

@@ -1225,28 +1225,12 @@ public class Store extends Thread {
 
         byte[] bytes = encoder.getBytes();
         
-        if (1 == Constants.DEFAULT_MODULUS) {
-          System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - basets), 0, rowkey, HBASE_RAW_DATA_KEY_PREFIX.length + 16, 8);
-          put = new Put(rowkey);
-          //
-          // If the modulus is 1, we don't use a column qualifier
-          //
-          put.addColumn(store.colfam, null, bytes);
-        } else {
-          System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - (basets - (basets % Constants.DEFAULT_MODULUS))), 0, rowkey, HBASE_RAW_DATA_KEY_PREFIX.length + 16, 8);
-          put = new Put(rowkey);
-          //
-          // We use the reversed base timestamp as the column qualifier. This introduces some redundancy but it
-          // ensures that we have columns in reverse chronological order and can accomodate any modulus. Switching to
-          // a 32 bit representation of the offset from basets would restrict the modulus we could use as we might hit
-          // an overflow.
-          // By using DATA_BLOCK_ENCODING=FASTDIFF, we should mitigate the redundancy in the qualifiers and attain a
-          // storage size similar to the one we could have attained by simply storing a delta from basets in the qualifier,
-          // but with the added benefit of having a slightly faster decoding process since we don't have to read the row basets
-          // AND the qualifier, the qualifier is sufficient.
-          //
-          put.addColumn(store.colfam, Longs.toByteArray(Long.MAX_VALUE - basets), bytes);
-        }
+        System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - basets), 0, rowkey, HBASE_RAW_DATA_KEY_PREFIX.length + 16, 8);
+        put = new Put(rowkey);
+        //
+        // If the modulus is 1, we don't use a column qualifier
+        //
+        put.addColumn(store.colfam, null, bytes);
                 
         try {
           putslock.lockInterruptibly();
@@ -1290,10 +1274,6 @@ public class Store extends Thread {
         return;
       }
       
-      if (1 != Constants.DEFAULT_MODULUS) {
-        throw new IOException("Delete not implemented for modulus != 1");
-      }
-
       //
       // We need to wait for the current data to be flushed to HBase, otherwise we might have data to delete which
       // is not yet committed (depending on the commit period).

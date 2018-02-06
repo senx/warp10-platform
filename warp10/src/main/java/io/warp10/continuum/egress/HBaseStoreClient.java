@@ -185,28 +185,10 @@ public class HBaseStoreClient implements StoreClient {
 
     // TODO(hbs): convert metadatas into a list of Get/Scan ops with potential filters, those ops will be
     // applied in order and the results returned by calls to 'next'.
-
-    //
-    // DON'T use SlicedRowFilterGTSDecoterIterator when using a value count based approach with a value of 'now'
-    // which is not congruent to 0 modulo DEFAULT_MODULUS, because we may then have datapoints after 'now' and would then
-    // need to do a full scan of every classId/labelsId in metadatas as the SlicedRowFilter does not interpret the read data
-    // and is thus unable to read the timestamp
-    //
-    // Only use SlicedRowFilter when not having a value count approach or when 'now' is congruent to 0 modulo DEFAULT_MODULUS
-    // or equal to Long.MAX_VALUE (EPOCHEND)
-    //
     
     boolean optimized = false;
     
-    if (useHBaseFilter && metadatas.size() > this.hbaseFilterThreshold
-        && (timespan >= 0
-            || (timespan < 0
-                && ((0 == (now % Constants.DEFAULT_MODULUS))
-                    || Long.MAX_VALUE == now)
-               )
-            )
-        ) {
-
+    if (useHBaseFilter && metadatas.size() > this.hbaseFilterThreshold) {
       optimized = true;
     }
 
