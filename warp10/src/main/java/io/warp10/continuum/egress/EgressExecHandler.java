@@ -154,9 +154,6 @@ public class EgressExecHandler extends AbstractHandler {
     
     int lineno = 0;
 
-    // Labels for Sensision
-    Map<String,String> labels = new HashMap<String,String>();
-
     long now = System.nanoTime();
     
     try {
@@ -249,8 +246,6 @@ public class EgressExecHandler extends AbstractHandler {
         br = req.getReader();
       }
                   
-      labels.put(SensisionConstants.SENSISION_LABEL_THREAD, Long.toHexString(Thread.currentThread().getId()));
-      
       List<Long> elapsed = (List<Long>) stack.getAttribute(WarpScriptStack.ATTRIBUTE_ELAPSED);
       
       elapsed.add(TimeSource.getNanoTime());
@@ -271,7 +266,6 @@ public class EgressExecHandler extends AbstractHandler {
 
         long nano = System.nanoTime();
         
-        Sensision.set(SensisionConstants.SENSISION_CLASS_EINSTEIN_CURRENTEXEC_TIMESTAMP, labels, System.currentTimeMillis());
         try {
           stack.exec(line);
         } catch (WarpScriptStopException ese) {
@@ -279,8 +273,6 @@ public class EgressExecHandler extends AbstractHandler {
           terminate = true;
         }
         
-        Sensision.clear(SensisionConstants.SENSISION_CLASS_EINSTEIN_CURRENTEXEC_TIMESTAMP, labels);
-      
         long end = System.nanoTime();
 
         // Record elapsed time
@@ -419,7 +411,6 @@ public class EgressExecHandler extends AbstractHandler {
       }
     } finally {
       // Clear this metric in case there was an exception
-      Sensision.clear(SensisionConstants.SENSISION_CLASS_EINSTEIN_CURRENTEXEC_TIMESTAMP, labels);
       Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_REQUESTS, Sensision.EMPTY_LABELS, 1);
       Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_TIME_US, Sensision.EMPTY_LABELS, (long) ((System.nanoTime() - now) / 1000));
       Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_OPS, Sensision.EMPTY_LABELS, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS));

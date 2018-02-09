@@ -921,11 +921,6 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_EINSTEIN_FUNCTION_TIME_US = "warp.script.function.time.us";
 
   /**
-   * Timestamp at which the current einstein statement execution started (in ms since the Epoch). This is used to detect runaway statements.
-   */
-  public static final String SENSISION_CLASS_EINSTEIN_CURRENTEXEC_TIMESTAMP = "warp.script.lastexec.timestamp";
-
-  /**
    * Number of times a script has been run
    */
   public static final String SENSISION_CLASS_EINSTEIN_RUN_COUNT = "warp.script.run.count";
