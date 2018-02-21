@@ -513,6 +513,8 @@ public class WarpScriptLib {
     functions.put("NOOP", new NOOP("NOOP"));
     functions.put("DOC", new DOC("DOC"));
     functions.put("DOCMODE", new DOCMODE("DOCMODE"));
+    functions.put("INFO", new INFO("INFO"));
+    functions.put("INFOMODE", new INFOMODE("INFOMODE"));
     functions.put("SECTION", new SECTION("SECTION"));
     functions.put("GETSECTION", new GETSECTION("GETSECTION"));
     functions.put(SNAPSHOT, new SNAPSHOT(SNAPSHOT, false, false, true, false));

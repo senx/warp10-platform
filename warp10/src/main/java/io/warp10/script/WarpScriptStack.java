@@ -86,9 +86,9 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_DOCMODE = "docmode";
   
   /**
-   * Flag indicating whether or not the stack is currently in signature mode
+   * Flag indicating whether or not the stack is currently in info mode
    */
-  public static final String ATTRIBUTE_SIGMODE = "sigmode";
+  public static final String ATTRIBUTE_INFOMODE = "infomode";
   
   /**
    * Debug depth of the stack. This is the number
