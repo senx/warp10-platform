@@ -50,6 +50,11 @@ public class Configuration {
   public static final String WARP10_PLUGINS = "warp10.plugins";
   
   /**
+   * Prefix for plugin declaration
+   */
+  public static final String WARP10_PLUGIN_PREFIX = "warp10.plugin.";
+  
+  /**
    * Maximum number of subscriptions per plasma connection
    */
   public static final String WARP_PLASMA_MAXSUBS = "warp.plasma.maxsubs";
