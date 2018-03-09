@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.gts;
 
+import io.warp10.DoubleUtils;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
@@ -37,6 +38,7 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.functions.MACROMAPPER;
+import io.warp10.script.functions.TOQUATERNION;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -2015,6 +2017,33 @@ public class GTSHelper {
         double lon = Double.parseDouble(valuestr.substring(colon + 1));
         
         value = GeoXPLib.toGeoXPPoint(lat, lon);
+      } else if ('Q' == valuestr.charAt(0) && valuestr.startsWith("Q:")) {
+        
+        double[] q = new double[4];
+        
+        int idx = 2;
+        int qidx = 0;
+        
+        while (qidx < q.length) {
+          int colon = valuestr.indexOf(':', idx);
+          
+          if (-1 == colon) {
+            throw new ParseException("Invalid value for Quaternion, expected Q:w:x:y:z", 0);
+          }
+
+          q[qidx++] = Double.parseDouble(valuestr.substring(idx, colon));
+          idx = colon + 1;
+          
+          if (3 == qidx) {
+            q[qidx++] = Double.parseDouble(valuestr.substring(idx));
+          }
+        }
+        
+        if (!DoubleUtils.isFinite(q[0]) || !DoubleUtils.isFinite(q[1]) || !DoubleUtils.isFinite(q[2]) || !DoubleUtils.isFinite(q[3])) {
+          throw new ParseException("Quaternion values require finite elements.", 0);
+        }
+        
+        value = TOQUATERNION.toQuaternion(q[0], q[1], q[2], q[3]);
       } else {
         boolean likelydouble = UnsafeString.isDouble(valuestr);
         
