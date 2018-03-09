@@ -761,6 +761,10 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_COMMITS = "warp.directory.kafka.commits";
 
   /**
+   * Number of times the Kafka connector was shutdown due to errors in the consuming threads
+   */
+  public static final String SENSISION_CLASS_WARP_DIRECTORY_KAFKA_SHUTDOWNS = "warp.directory.kafka.shutdowns";
+  /**
    * Total number of 'find' requests
    */
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_FIND_REQUESTS = "warp.directory.find.requests";
