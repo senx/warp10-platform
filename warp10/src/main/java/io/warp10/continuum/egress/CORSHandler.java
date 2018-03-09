@@ -16,10 +16,12 @@
 
 package io.warp10.continuum.egress;
 
+import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.store.Constants;
 
 import java.io.IOException;
+import java.util.Properties;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -29,6 +31,28 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
 public class CORSHandler extends AbstractHandler {
+  
+  private static final String headers;
+  static {
+    Properties props = WarpConfig.getProperties();
+    
+    StringBuilder sb = new StringBuilder();
+    
+    sb.append(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
+        
+    if (props.containsKey(Configuration.CORS_HEADERS)) {
+      String[] hdrs = props.getProperty(Configuration.CORS_HEADERS).split(",");
+      
+      for (String hdr: hdrs) {
+        sb.append(",");
+        sb.append(hdr.trim());
+      }
+    }
+      
+    headers = sb.toString();
+      
+  }
+  
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
     if ("OPTIONS".equals(baseRequest.getMethod())) {
@@ -43,7 +67,7 @@ public class CORSHandler extends AbstractHandler {
     
     response.setHeader("Access-Control-Allow-Origin", "*");
     response.setHeader("Access-Control-Allow-Methods", "OPTIONS,POST,GET");
-    response.setHeader("Access-Control-Allow-Headers", Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
+    response.setHeader("Access-Control-Allow-Headers", headers);
     // Allow to cache preflight response for 30 days
     response.setHeader("Access-Control-Max-Age", "" + 24 * 3600 * 30);
     

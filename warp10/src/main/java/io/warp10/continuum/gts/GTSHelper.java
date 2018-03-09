@@ -2009,6 +2009,15 @@ public class GTSHelper {
       //
       // FIXME(hbs): add support for quaternions, for hex values???
       //
+      } else if ('H' == valuestr.charAt(0) && valuestr.startsWith("HH:")) {
+        int colon = valuestr.indexOf(':',3);
+        if (-1 == colon) {
+          throw new ParseException("Invalid value for lat,lon conversion to HHCode.", 0);
+        }
+        double lat = Double.parseDouble(valuestr.substring(3, colon));
+        double lon = Double.parseDouble(valuestr.substring(colon + 1));
+        
+        value = GeoXPLib.toGeoXPPoint(lat, lon);
       } else {
         boolean likelydouble = UnsafeString.isDouble(valuestr);
         

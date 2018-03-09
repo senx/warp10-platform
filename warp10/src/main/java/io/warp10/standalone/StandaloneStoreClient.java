@@ -190,7 +190,7 @@ public class StandaloneStoreClient implements StoreClient {
         
         Map<String,String> metadataLabels = metadatas.get(idx).getLabels();
         
-        String billedCustomerId = Tokens.getUUID(token.getBilledId());
+        String billedCustomerId = null != token ? Tokens.getUUID(token.getBilledId()) : null;
 
         if (null != billedCustomerId) {
           labels.put(SensisionConstants.SENSISION_LABEL_CONSUMERID, billedCustomerId);
@@ -204,7 +204,7 @@ public class StandaloneStoreClient implements StoreClient {
           labels.put(SensisionConstants.SENSISION_LABEL_OWNER, metadataLabels.get(Constants.OWNER_LABEL));
         }
         
-        if (null != token.getAppName()) {
+        if (null != token && null != token.getAppName()) {
           labels.put(SensisionConstants.SENSISION_LABEL_CONSUMERAPP, token.getAppName());
         }
         

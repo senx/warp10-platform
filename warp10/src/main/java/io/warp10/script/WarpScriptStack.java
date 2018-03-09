@@ -86,9 +86,9 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_DOCMODE = "docmode";
   
   /**
-   * Flag indicating whether or not the stack is currently in signature mode
+   * Flag indicating whether or not the stack is currently in info mode
    */
-  public static final String ATTRIBUTE_SIGMODE = "sigmode";
+  public static final String ATTRIBUTE_INFOMODE = "infomode";
   
   /**
    * Debug depth of the stack. This is the number
@@ -590,7 +590,7 @@ public interface WarpScriptStack {
   public void exec(Macro macro) throws WarpScriptException;
 
   /**
-   * Execute an EinsteinJavaFunction against the stack
+   * Execute a WarpScriptJavaFunction against the stack
    * 
    * @param function
    * @throws WarpScriptException

@@ -102,6 +102,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
   
   private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
 
+  private final boolean disabled;
+  
   public StandaloneDeleteHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
     this.keyStore = keystore;
     this.storeClient = storeClient;
@@ -145,6 +147,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     }
         
     this.logforwarded = "true".equals(props.getProperty(Configuration.DATALOG_LOGFORWARDED));
+    
+    this.disabled = "true".equals(props.getProperty(Configuration.STANDALONE_DELETE_DISABLE));
   }
   
   @Override
@@ -154,6 +158,11 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     } else {
       return;
     }    
+    
+    if (disabled) {
+      response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Delete endpoint is disabled by configuration.");
+      return;
+    }
     
     //
     // CORS header

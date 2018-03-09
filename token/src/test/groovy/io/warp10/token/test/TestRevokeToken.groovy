@@ -19,36 +19,36 @@ import io.warp10.quasar.encoder.QuasarTokenEncoder
 import io.warp10.quasar.filter.QuasarTokenFilter
 import io.warp10.quasar.filter.exception.QuasarTokenRevoked
 import io.warp10.quasar.trl.QuasarTRL
+import org.junit.Test
 
 class TestRevokeToken extends TokenTestCase {
-  private QuasarTokenEncoder tokenEncoder = new QuasarTokenEncoder()
+    private QuasarTokenEncoder tokenEncoder = new QuasarTokenEncoder()
 
-  public void testRevokeToken() {
-    // Generate 2 tokens
-    String producer = UUID.randomUUID().toString()
-    String app = "warp10.test"
-    long ttl = 32468
+    @Test
+    void testRevokeToken() {
+        // Generate 2 tokens
+        String producer = UUID.randomUUID().toString()
+        String app = "warp10.test"
+        long ttl = 32468
 
-    String readTokenValid = tokenEncoder.deliverReadToken(app, producer, producer, [app], ttl, getKeyStore())
-    String readTokenRevoked = tokenEncoder.deliverReadToken(app, producer, producer, [app], ttl, getKeyStore())
+        String readTokenValid = tokenEncoder.deliverReadToken(app, producer, producer, [app], ttl, getKeyStore())
+        String readTokenRevoked = tokenEncoder.deliverReadToken(app, producer, producer, [app], ttl, getKeyStore())
 
-    //instanciate a token filter
-    QuasarTokenFilter tokenFilter = new QuasarTokenFilter(getConfig(), getKeyStore())
+        //instanciate a token filter
+        QuasarTokenFilter tokenFilter = new QuasarTokenFilter(getConfig(), getKeyStore())
+        // should work
+        tokenFilter.getReadToken(readTokenValid)
 
-    // get the token ident
-    Long tokenIdent = tokenFilter.getTokenSipHash(readTokenRevoked.getBytes())
-    // revoke it manually
-    QuasarTRL trl = new QuasarTRL()
-    trl.revokeToken(tokenIdent)
-    tokenFilter.quasarTokenRevoked.onQuasarTRL(trl)
+        // get the token ident
+        Long tokenIdent = tokenFilter.getTokenSipHash(readTokenRevoked.getBytes())
+        // revoke it manually
+        QuasarTRL trl = new QuasarTRL()
+        trl.revokeToken(tokenIdent)
+        tokenFilter.quasarTokenRevoked.onQuasarTRL(trl)
 
-    // should work
-    tokenFilter.getReadToken(readTokenValid)
-    // should fail
-    shouldFail(QuasarTokenRevoked.class) {
-      tokenFilter.getReadToken(readTokenRevoked)
+        // should fail
+        shouldFail(QuasarTokenRevoked.class) {
+            tokenFilter.getReadToken(readTokenRevoked)
+        }
     }
-  }
-
-
 }

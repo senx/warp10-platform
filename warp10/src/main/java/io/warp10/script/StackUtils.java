@@ -66,6 +66,8 @@ public class StackUtils {
     
     boolean first = true;
     
+    JsonSerializer serializer = getSerializer();
+    
     for (int i = 0; i < depth; i++) {
       
       if (!first) {
@@ -73,11 +75,10 @@ public class StackUtils {
       }
       first = false;
       
-      stack.push(i);
       try {
-        Object o = stack.peekn();
+        Object o = stack.get(i);
         
-        objectToJSON(out, o, recursionLevel, strictJSON);
+        objectToJSON(serializer, out, o, recursionLevel, strictJSON);
       } catch (WarpScriptException ee) {
       }
     }
@@ -89,7 +90,7 @@ public class StackUtils {
     toJSON(out, stack, Integer.MAX_VALUE);
   }
   
-  public static void objectToJSON(PrintWriter out, Object o, AtomicInteger recursionLevel, boolean strictJSON) {
+  public static void objectToJSON(JsonSerializer serializer, PrintWriter out, Object o, AtomicInteger recursionLevel, boolean strictJSON) {
     
     if (recursionLevel.addAndGet(1) > WarpScriptStack.DEFAULT_MAX_RECURSION_LEVEL && ((o instanceof Map) || (o instanceof List) || (o instanceof Macro))) {
       out.write(" ...NESTED_CONTENT_REMOVED... ");
@@ -98,7 +99,9 @@ public class StackUtils {
     }
     
     //Gson gson = GSON_BUILDER.create();
-    JsonSerializer serializer = BOON_FACTORY.create();
+    if (null == serializer) {
+      serializer = getSerializer();
+    }
 
     if (strictJSON && (o instanceof Double && (Double.isNaN((double) o) || Double.isInfinite((double) o)))) {
       out.print("null");
@@ -121,7 +124,7 @@ public class StackUtils {
           out.print("null");
         }
         out.print(":");
-        objectToJSON(out, ((Map) o).get(key), recursionLevel, strictJSON);
+        objectToJSON(serializer, out, ((Map) o).get(key), recursionLevel, strictJSON);
         first = false;
       }
       out.print("}");
@@ -132,7 +135,7 @@ public class StackUtils {
         if (!first) {
           out.print(",");
         }
-        objectToJSON(out, elt, recursionLevel, strictJSON);
+        objectToJSON(serializer, out, elt, recursionLevel, strictJSON);
         first = false;
       }
       out.print("]");    
@@ -146,9 +149,9 @@ public class StackUtils {
       }
       out.print(serializer.serialize(name));
       out.print(",\"l\":");
-      objectToJSON(out, ((GeoTimeSerie) o).getMetadata().getLabels(), recursionLevel, strictJSON);
+      objectToJSON(serializer, out, ((GeoTimeSerie) o).getMetadata().getLabels(), recursionLevel, strictJSON);
       out.print(",\"a\":");
-      objectToJSON(out, ((GeoTimeSerie) o).getMetadata().getAttributes(), recursionLevel, strictJSON);
+      objectToJSON(serializer, out, ((GeoTimeSerie) o).getMetadata().getAttributes(), recursionLevel, strictJSON);
       out.print(",\"v\":[");
       boolean first = true;
       for (int i = 0; i < ((GeoTimeSerie) o).size(); i++) {
@@ -194,9 +197,9 @@ public class StackUtils {
       }
       out.print(serializer.serialize(name));
       out.print(",\"l\":");
-      objectToJSON(out, ((GTSEncoder) o).getMetadata().getLabels(), recursionLevel, strictJSON);
+      objectToJSON(serializer, out, ((GTSEncoder) o).getMetadata().getLabels(), recursionLevel, strictJSON);
       out.print(",\"a\":");
-      objectToJSON(out, ((GTSEncoder) o).getMetadata().getAttributes(), recursionLevel, strictJSON);
+      objectToJSON(serializer, out, ((GTSEncoder) o).getMetadata().getAttributes(), recursionLevel, strictJSON);
       out.print(",\"v\":[");
       boolean first = true;
       GTSDecoder decoder = ((GTSEncoder) o).getUnsafeDecoder(false);
@@ -239,9 +242,9 @@ public class StackUtils {
       out.print("\"c\":");
       out.print(serializer.serialize(((Metadata) o).getName()));
       out.print(",\"l\":");
-      objectToJSON(out, ((Metadata) o).getLabels(), recursionLevel, strictJSON);
+      objectToJSON(serializer, out, ((Metadata) o).getLabels(), recursionLevel, strictJSON);
       out.print(",\"a\":");
-      objectToJSON(out, ((Metadata) o).getAttributes(), recursionLevel, strictJSON);
+      objectToJSON(serializer, out, ((Metadata) o).getAttributes(), recursionLevel, strictJSON);
       out.print("}");
     //} else if (o instanceof JsonArray || o instanceof JsonElement || o instanceof JsonBuilder) {
     //  out.print(o.toString());
@@ -686,5 +689,9 @@ public class StackUtils {
       sb.append(o.toString());
     }
     return sb.toString();
+  }
+  
+  public static JsonSerializer getSerializer() {
+    return BOON_FACTORY.create();
   }
 }

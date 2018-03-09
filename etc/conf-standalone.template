@@ -5,6 +5,12 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
+// Comma separated list of headers to return in Access-Control-Allow-Headers on top of the token header
+// This applies to all HTTP endpoints.
+//
+#cors.headers =
+
+//
 // 128 bits key for verifying class names, format is hex:hhhhh...hhhh
 //
 warp.hash.class = @key:128:warp.hash.class@
@@ -362,6 +368,11 @@ standalone.snapshot.trigger = ${leveldb.home}/snapshot.trigger
 standalone.snapshot.signal = ${leveldb.home}/snapshot.signal
 
 //
+// Set to true to disable the delete endpoint.
+//
+standalone.delete.disable = false
+
+//
 // Configuration parameter to modify the datalog header. DO NOT MODIFY
 //
 #http.header.datalog =
@@ -471,6 +482,21 @@ in.memory = false
 // Defaults to 16.
 //
 #standalone.parallelscanners.max.parallel.scanners =
+
+//
+// Set to true to enable splits generation to allow access to the standalone instance using Warp10InputFormat
+//
+#standalone.splits.enable = true
+
+//
+// Key to use for encrypting GTSSplit instances
+//
+#egress.fetcher.aes = 
+
+//
+// Maximum age of a valid GTSSplit (in ms)
+//
+#egress.fetcher.maxsplitage = 
 
 //
 // Q U A N T U M

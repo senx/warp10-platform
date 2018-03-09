@@ -16,72 +16,75 @@
 
 package io.warp10.crypto;
 
+/**
+ * The interface Key store.
+ */
 public interface KeyStore {
   /**
    * Name of key for hashing class names
    */
   public static final String SIPHASH_CLASS = "warp.siphash.class";
-  
+
   /**
    * Name of key for hash labels
    */
   public static final String SIPHASH_LABELS = "warp.siphash.labels";
-  
+
   /**
-   * Name of secondary key for class name hashing 
+   * Name of secondary key for class name hashing
    */
   public static final String SIPHASH_CLASS_SECONDARY = "warp.siphash.class.secondary";
-  
+
   /**
    * Name of secondary key for labels hashing
    */
   public static final String SIPHASH_LABELS_SECONDARY = "warp.siphash.labels.secondary";
-  
+
   /**
    * Name of key for index Ids
    */
   public static final String SIPHASH_INDEX = "warp.siphash.index";
-  
+
   /**
    * Name of key for application Ids
    */
   public static final String SIPHASH_APPID = "warp.siphash.appid";
-  
+
   /**
    * Name of key for token Ids.
    */
   public static final String SIPHASH_TOKEN = "warp.siphash.token";
-  
+
   /**
    * Name of key for wrapping metadata
    */
   public static final String AES_HBASE_METADATA = "warp.aes.hbase.metadata";
-  
+
   /**
    * Name of key for wrapping data (readings)
    */
   public static final String AES_HBASE_DATA = "warp.aes.hbase.data";
-  
+
   /**
    * Name of key for wrapping index specs
    */
   public static final String AES_HBASE_INDEX = "warp.aes.hbase.index";
-  
+
   /**
    * Name of key for wrapping Tokens
    */
   public static final String AES_TOKEN = "warp.aes.token";
-  
+
   /**
    * PreShared key for Runner so scripts coming from runners can be identified
    */
   public static final String AES_RUNNER_PSK = "warp.aes.runner.psk";
-  
+
   /**
    * Name of key for computing MAC for kafka runn requests
    */
   public static final String SIPHASH_KAFKA_RUNNER = "warp.siphash.kafka.runner";
-  
+
   /**
    * Name of key for computing MAC for kafka data messages
    */
@@ -121,22 +124,22 @@ public interface KeyStore {
    * Name of key for computing MAC for WebCall requests in Kafka
    */
   public static final String SIPHASH_KAFKA_WEBCALL = "warp.siphash.kafka.webcall";
-  
+
   /**
    * Name of key for computing MAC for DirectoryFindRequest instances
    */
   public static final String SIPHASH_DIRECTORY_PSK = "warp.siphash.directory.psk";
-  
+
   /**
    * Name of key for computing MAC for fetch requests
    */
   public static final String SIPHASH_FETCH_PSK = "warp.siphash.fetch.psk";
-  
+
   /**
    * Name of key for wrapping kafka run requests
    */
   public static final String AES_KAFKA_RUNNER = "warp.aes.kafka.runner";
-  
+
   /**
    * Name of key for wrapping kafka data messages
    */
@@ -176,22 +179,22 @@ public interface KeyStore {
    * Name of key for wrapping WebCall requests in Kafka
    */
   public static final String AES_KAFKA_WEBCALL = "warp.aes.kafka.webcall";
-  
+
   /**
    * AES key to use for wrapping sensitive logging messages
    */
   public static final String AES_LOGGING = "warp.aes.logging";
-  
+
   /**
    * Name of key for wrapping metadata
    */
   public static final String AES_LEVELDB_METADATA = "warp.aes.leveldb.metadata";
-  
+
   /**
    * Name of key for wrapping data (readings)
    */
   public static final String AES_LEVELDB_DATA = "warp.aes.leveldb.data";
-  
+
   /**
    * Name of key for wrapping index specs
    */
@@ -201,20 +204,45 @@ public interface KeyStore {
    * Key for wrapping secure scripts
    */
   public static final String AES_SECURESCRIPTS = "warp.aes.securescripts";
-  
+
   /**
    * Key for wrapping MetaSets
    */
   public static final String AES_METASETS = "warp.aes.metasets";
-  
+
   /**
    * Key for wrapping GTSSplit instances
    */
   public static final String AES_FETCHER = "warp.aes.fetcher";
-  
+
+  /**
+   * Get key byte [ ].
+   *
+   * @param name the name
+   * @return the byte [ ]
+   */
   public byte[] getKey(String name);
+
+  /**
+   * Sets key.
+   *
+   * @param name the name
+   * @param key  the key
+   */
   public void setKey(String name, byte[] key);
+
+  /**
+   * Decode key byte [ ].
+   *
+   * @param encoded the encoded
+   * @return the byte [ ]
+   */
   public byte[] decodeKey(String encoded);
+
   public KeyStore clone();
+
+  /**
+   * Forget.
+   */
   public void forget();
 }
