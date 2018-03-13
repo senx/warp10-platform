@@ -71,6 +71,11 @@ public interface WarpScriptStack {
   public static final String TOP_LEVEL_SECTION = "[TOP]";
   
   /**
+   * Flag indicating whether or not to set section with the current line number
+   */
+  public static final String ATTRIBUTE_LINENO = "lineno";
+  
+  /**
    * Prefix for traceing push/pop
    */
   public static final String ATTRIBUTE_TRACE_PREFIX = "trace.prefix";
