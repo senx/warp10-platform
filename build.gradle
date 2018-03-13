@@ -168,7 +168,7 @@ subprojects {
     // GLOBAL DEPENDENCIES
     dependencies {
         //UPLOAD ARTIFACTS THROUGH SSH
-        deployerJars 'org.apache.maven.wagon:wagon-ssh-external:2.8'
+        deployerJars 'org.apache.maven.wagon:wagon-ssh-external:3.0.0'
     }
 
     // COMPILE OPTIONS

@@ -595,7 +595,7 @@ public interface WarpScriptStack {
   public void exec(Macro macro) throws WarpScriptException;
 
   /**
-   * Execute an EinsteinJavaFunction against the stack
+   * Execute a WarpScriptJavaFunction against the stack
    * 
    * @param function
    * @throws WarpScriptException
