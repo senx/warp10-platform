@@ -136,7 +136,7 @@ public class WarpScriptMacroRepository extends Thread {
         // Ignore '.mc2' files not in a subdir
         //
         
-        if (!name.contains("/")) {
+        if (!name.contains(File.separator)) {
           continue;
         }
         
@@ -301,7 +301,7 @@ public class WarpScriptMacroRepository extends Thread {
     }
     
     // Name should contain "/" as macros should reside under a subdirectory
-    if (!name.contains("/")) {
+    if (!name.contains(File.separator)) {
       return null;
     }
     
