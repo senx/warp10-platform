@@ -318,9 +318,10 @@ public class WarpScriptMacroRepository extends Thread {
     if (null == file) {
       // Replace '/' with the platform separator
       if (!"/".equals(File.separator)) {
-        name = name.replaceAll("/", File.separator);
+        file = new File(rootdir, name.replaceAll("/", File.separator) + ".mc2");
+      } else {
+        file = new File(rootdir, name + ".mc2");
       }
-      file = new File(rootdir, name + ".mc2");
       
       // Macros should reside in the configured root directory
       if (!file.getAbsolutePath().startsWith(rootdir)) {
@@ -330,6 +331,7 @@ public class WarpScriptMacroRepository extends Thread {
 
     if (null == name) {
       name = file.getAbsolutePath().substring(rootdir.length() + 1).replaceAll("\\.mc2$", "");
+      name = name.replaceAll(Pattern.quote(File.separator), "/");
     }
     
     byte[] buf = new byte[8192];
