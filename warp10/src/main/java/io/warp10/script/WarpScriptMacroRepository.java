@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 
 import com.google.common.base.Charsets;
 
@@ -140,6 +141,9 @@ public class WarpScriptMacroRepository extends Thread {
           continue;
         }
         
+        // Replace file separator with '/'
+        name = name.replaceAll(Pattern.quote(File.separator), "/");
+
         Macro macro = loadMacro(name, file);
 
         if (null != macro) {
