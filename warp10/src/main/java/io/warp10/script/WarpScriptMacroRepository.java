@@ -305,7 +305,7 @@ public class WarpScriptMacroRepository extends Thread {
     }
     
     // Name should contain "/" as macros should reside under a subdirectory
-    if (!name.contains(File.separator)) {
+    if (!name.contains("/")) {
       return null;
     }
     
