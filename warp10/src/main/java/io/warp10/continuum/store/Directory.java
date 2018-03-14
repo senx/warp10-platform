@@ -968,11 +968,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             //
             
             executor.shutdownNow();
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARP_DIRECTORY_KAFKA_SHUTDOWNS, Sensision.EMPTY_LABELS, 1);
             connector.shutdown();
-            abort.set(false);
           } catch (Throwable t) {
-            LOG.error("", t);
+            LOG.error("Caught throwable in spawner.", t);
           } finally {
+            abort.set(false);
             LockSupport.parkNanos(1000000000L);
           }
         }          

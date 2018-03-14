@@ -312,6 +312,10 @@ public class WarpScriptMacroRepository extends Thread {
     String rootdir = new File(directory).getAbsolutePath();
     
     if (null == file) {
+      // Replace '/' with the platform separator
+      if (!"/".equals(File.separator)) {
+        name = name.replaceAll("/", File.separator);
+      }
       file = new File(rootdir, name + ".mc2");
       
       // Macros should reside in the configured root directory
