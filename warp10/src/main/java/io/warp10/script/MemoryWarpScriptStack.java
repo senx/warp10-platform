@@ -1316,6 +1316,10 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     this.recursionLevel.addAndGet(-1);
   }
   
+  public boolean inMultiline() {
+    return this.inMultiline.get();
+  }
+  
   /**
    * Create a 'sub' stack of the current one.
    * A substack will share a certain number of elements with its parent stack.

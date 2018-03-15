@@ -346,6 +346,7 @@ public class WarpScriptLib {
   public static final String GEOPACK = "GEOPACK";
   public static final String GEOUNPACK = "GEOUNPACK";
   
+  public static final String SECTION = "SECTION";
   public static final String UNWRAP = "UNWRAP";
   public static final String UNWRAPENCODER = "UNWRAPENCODER";
   public static final String OPB64TO = "OPB64->";
@@ -489,6 +490,8 @@ public class WarpScriptLib {
     functions.put("DEBUGON", new DEBUGON("DEBUGON"));
     functions.put("NDEBUGON", new NDEBUGON("NDEBUGON"));
     functions.put("DEBUGOFF", new DEBUGOFF("DEBUGOFF"));
+    functions.put("LINEON", new LINEON("LINEON"));
+    functions.put("LINEOFF", new LINEOFF("LINEOFF"));
     functions.put("LMAP", new LMAP("LMAP"));
     functions.put("NONNULL", new NONNULL("NONNULL"));
     functions.put("LFLATMAP", new LFLATMAP("LFLATMAP"));
@@ -515,7 +518,7 @@ public class WarpScriptLib {
     functions.put("DOCMODE", new DOCMODE("DOCMODE"));
     functions.put("INFO", new INFO("INFO"));
     functions.put("INFOMODE", new INFOMODE("INFOMODE"));
-    functions.put("SECTION", new SECTION("SECTION"));
+    functions.put(SECTION, new SECTION(SECTION));
     functions.put("GETSECTION", new GETSECTION("GETSECTION"));
     functions.put(SNAPSHOT, new SNAPSHOT(SNAPSHOT, false, false, true, false));
     functions.put(SNAPSHOTALL, new SNAPSHOT(SNAPSHOTALL, true, false, true, false));
