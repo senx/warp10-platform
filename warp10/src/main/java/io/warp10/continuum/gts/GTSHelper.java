@@ -38,6 +38,7 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.functions.MACROMAPPER;
+import io.warp10.script.functions.METASORT;
 import io.warp10.script.functions.TOQUATERNION;
 
 import java.io.IOException;
@@ -4724,8 +4725,14 @@ public class GTSHelper {
       //
       
       List<GeoTimeSerie>[] subseries = new List[series.length];
-      
       for (int i = 0; i < series.length; i++) {
+        
+        //
+        // Sort the 'series' so we can perform a binary search instead of using 'contains'
+        //
+        
+        series[i].sort(METASORT.META_COMPARATOR);
+        
         subseries[i] = new ArrayList<GeoTimeSerie>();
        
         //
@@ -4738,13 +4745,12 @@ public class GTSHelper {
         } else {
           // The series appear in the order they are in the original list due to 'partition' using a List
           for (GeoTimeSerie serie: partition.get(partitionlabels)) {
-            if (series[i].contains(serie)) {
+            if (Collections.binarySearch(series[i], serie, METASORT.META_COMPARATOR) >= 0) {
               subseries[i].add(serie);
             }
           }          
         }
       }
-      
       //
       // Call the function
       //
