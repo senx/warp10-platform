@@ -1484,6 +1484,13 @@ public class Configuration {
   //
   
   /**
+   * Flag (true/false) indicating whether or not the Directory and Store clients should be exposed by Egress.
+   * If set to true then Warp 10 plugins might access the exposed clients via the getExposedDirectoryClient and
+   * getExposedStoreClient static methods of EgressExecHandler.
+   */
+  public static final String EGRESS_CLIENTS_EXPOSE = "egress.clients.expose";
+  
+  /**
    * Comma separated list of Egress related HBase configuration keys to extract from the Warp 10 configuration.
    * The listed keys will be extracted from 'egress.' prefixed configuration keys.
    */

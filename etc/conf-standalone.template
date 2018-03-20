@@ -499,6 +499,11 @@ in.memory = false
 #egress.fetcher.maxsplitage = 
 
 //
+// Should the egress exec handler expose its store/directory clients?
+//
+egress.clients.expose = false
+
+//
 // Q U A N T U M
 //
 /////////////////////////////////////////////////////////////////////////////////////////
