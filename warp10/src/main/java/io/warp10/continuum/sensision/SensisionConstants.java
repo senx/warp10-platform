@@ -33,7 +33,7 @@ public class SensisionConstants {
   /**
    * Number of datalog requests which were forwarded successfully
    */
-  public static final String CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FORWARDED = "warp.datalog,forwarder.requests.forwarded";
+  public static final String CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FORWARDED = "warp.datalog.forwarder.requests.forwarded";
 
   /**
    * Number of datalog requests which failed to be forwarded

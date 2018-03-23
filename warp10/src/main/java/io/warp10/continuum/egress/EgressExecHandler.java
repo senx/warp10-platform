@@ -74,6 +74,9 @@ public class EgressExecHandler extends AbstractHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(EgressExecHandler.class);
   private static final Logger EVENTLOG = LoggerFactory.getLogger("warpscript.events");
+ 
+  private static StoreClient exposedStoreClient = null;
+  private static DirectoryClient exposedDirectoryClient = null;
   
   private final KeyStore keyStore;
   private final StoreClient storeClient;
@@ -101,8 +104,12 @@ public class EgressExecHandler extends AbstractHandler {
     } else {
       this.bootstrapManager = new BootstrapManager();
     }
-  }
-  
+    
+    if ("true".equals(properties.getProperty(Configuration.EGRESS_CLIENTS_EXPOSE))) {
+      exposedStoreClient = storeClient;
+      exposedDirectoryClient = directoryClient;
+    }
+  }    
   
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
@@ -449,5 +456,13 @@ public class EgressExecHandler extends AbstractHandler {
         EVENTLOG.info(msg);
       }
     }
+  }
+  
+  public static final StoreClient getExposedStoreClient() {
+    return exposedStoreClient;
+  }
+  
+  public static final DirectoryClient getExposedDirectoryClient() {
+    return exposedDirectoryClient;
   }
 }
