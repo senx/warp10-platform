@@ -131,6 +131,12 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
     }
     
     for (int i = lastidx; i >= 0; i--) {
+      
+      // Do not include the MARK
+      if (this.toMark && lastidx == i) {
+        continue;
+      }
+      
       Object o = stack.get(i);
       
       addElement(this, sb, o);
