@@ -114,7 +114,7 @@ public class DWTSPLIT extends GTSStackFunction {
       levelgts.setMetadata(gts.getMetadata());
       
       // Add level label
-      levelgts.getMetadata().putToLabels(levellabel, Integer.toString(level + 1));
+      levelgts.getMetadata().putToLabels(levellabel, Integer.toString(levels - level));
       
       result.add(levelgts);
       

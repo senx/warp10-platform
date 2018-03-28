@@ -101,6 +101,11 @@ public class UnsafeString {
   public final static char[] getChars(String s) {
     return (char[]) unsafe.getObject(s, valueOffset);
   }
+  
+  public final static char charAt(String s, int idx) {
+    char[] chars = (char[]) unsafe.getObject(s, valueOffset);
+    return chars[idx];
+  }
 
   public final static int getOffset(String s) {
     if (-1L == offsetOffset) {

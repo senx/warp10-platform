@@ -34,24 +34,26 @@ import org.joda.time.DateTimeZone;
  * Pushes on the stack the various elements of a timestamp for a given timezone
  */
 public class TSELEMENTS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   private static final int MAX_TZ_CACHE_ENTRIES = 64;
-  
-  private final Map<String,DateTimeZone> tzones = new LinkedHashMap<String, DateTimeZone>() {
-    protected boolean removeEldestEntry(java.util.Map.Entry<String, DateTimeZone> eldest) { return size() > MAX_TZ_CACHE_ENTRIES; };
+
+  private final Map<String, DateTimeZone> tzones = new LinkedHashMap<String, DateTimeZone>() {
+    protected boolean removeEldestEntry(java.util.Map.Entry<String, DateTimeZone> eldest) {
+      return size() > MAX_TZ_CACHE_ENTRIES;
+    }
   };
-  
+
   public TSELEMENTS(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object obj = stack.peek();
-    
+
     String tz = null;
-    
+
     if (obj instanceof String) {
       tz = (String) obj;
       stack.pop();
@@ -60,43 +62,48 @@ public class TSELEMENTS extends NamedWarpScriptFunction implements WarpScriptSta
     }
 
     DateTimeZone dtz = this.tzones.get(tz);
-    
+
     if (null == dtz) {
       dtz = DateTimeZone.forID(null == tz ? "UTC" : tz);
       this.tzones.put(tz, dtz);
     }
-    
+
     obj = stack.pop();
-        
+
     if (!(obj instanceof Long)) {
       throw new WarpScriptException(getName() + " operates on a timestamp or a timestamp + timezone.");
     }
-    
+
     long ts = (long) obj;
-        
+
     // Convert ts to milliseconds
-    
+
     long tsms = ts / Constants.TIME_UNITS_PER_MS;
-    
+
+    // We want the floor, not truncate: update millis if needed.
+    if (0 > ts && 0 != ts % Constants.TIME_UNITS_PER_MS) {
+      tsms--;
+    }
+
     DateTime dt = new DateTime(tsms, dtz);
 
     // Extract components into an array
-    
+
     List<Long> elements = new ArrayList<Long>();
-    
+
     elements.add((long) dt.getYear());
     elements.add((long) dt.getMonthOfYear());
     elements.add((long) dt.getDayOfMonth());
     elements.add((long) dt.getHourOfDay());
     elements.add((long) dt.getMinuteOfHour());
     elements.add((long) dt.getSecondOfMinute());
-    elements.add(ts % Constants.TIME_UNITS_PER_S);
+    elements.add((long) dt.getMillisOfSecond()* Constants.TIME_UNITS_PER_MS + Math.abs(ts - tsms * Constants.TIME_UNITS_PER_MS));
     elements.add((long) dt.getDayOfYear());
     elements.add((long) dt.getDayOfWeek());
     elements.add((long) dt.getWeekOfWeekyear());
-    
+
     stack.push(elements);
-    
+
     return stack;
   }
 }
