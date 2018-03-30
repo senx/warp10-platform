@@ -1006,6 +1006,16 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
     Server server = new Server(new QueuedThreadPool(streamingMaxThreads,8, (int) idleTimeout, queue));
     
+    //
+    // Iterate over the properties to find those starting with DIRECTORY_STREAMING_JETTY_ATTRIBUTE and set
+    // the Jetty attributes accordingly
+    //
+    
+    for (Entry<Object,Object> entry: props.entrySet()) {
+      if (entry.getKey().toString().startsWith(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_JETTY_ATTRIBUTE_PREFIX)) {
+        server.setAttribute(entry.getKey().toString().substring(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_JETTY_ATTRIBUTE_PREFIX.length()), entry.getValue().toString());
+      }
+    }
     
     //ServerConnector connector = new ServerConnector(server, this.streamingacceptors, this.streamingselectors);
     HttpConfiguration config = new HttpConfiguration();
