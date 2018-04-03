@@ -47,7 +47,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String TYPE_REDUCER = "REDUCER";
   public static final String TYPE_GTS = "GTS";
   public static final String TYPE_BYTES = "BYTES";
-  public static final String TYPE_PGRAPHICSIMAGE = "PGRAPHICS2DIMAGE";
+  public static final String TYPE_PGRAPHICSIMAGE = "PGRAPHICS";
 
   public TYPEOF(String name) {
     super(name);
