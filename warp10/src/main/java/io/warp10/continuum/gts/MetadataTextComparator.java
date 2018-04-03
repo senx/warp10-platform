@@ -67,6 +67,10 @@ public class MetadataTextComparator implements Comparator<Metadata> {
       return comp;
     }
    
+    if (0 == o1.getLabelsSize() && 0 == o2.getLabelsSize()) {
+      return 0;
+    }
+    
     if (0 == o1.getLabelsSize()) {
       return -1;
     }
