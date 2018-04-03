@@ -46,15 +46,17 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String TYPE_MAPPER = "MAPPER";
   public static final String TYPE_REDUCER = "REDUCER";
   public static final String TYPE_GTS = "GTS";
-  
+  public static final String TYPE_BYTES = "BYTES";
+  public static final String TYPE_PGRAPHICSIMAGE = "PGRAPHICS";
+
   public TYPEOF(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
-    
+
     if (null == o) {
       stack.push(TYPE_NULL);
     } else if (o instanceof String) {
@@ -77,10 +79,14 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
       stack.push(TYPE_REDUCER);
     } else if (o instanceof GeoTimeSerie) {
       stack.push(TYPE_GTS);
+    } else if (o instanceof byte[] ) {
+      stack.push(TYPE_BYTES);
+    } else if (o instanceof processing.awt.PGraphicsJava2D) {
+      stack.push(TYPE_PGRAPHICSIMAGE);
     } else {
       stack.push(o.getClass().getCanonicalName());
     }
-    
+
     return stack;
   }
 }
