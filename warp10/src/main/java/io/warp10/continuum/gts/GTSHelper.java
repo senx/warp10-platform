@@ -6704,7 +6704,7 @@ public class GTSHelper {
    * @return
    */
   public static GeoTimeSerie shrinkTo(GeoTimeSerie gts, int newsize) throws WarpScriptException {
-    if (newsize > 0 && newsize < gts.values) {
+    if (newsize >= 0 && newsize < gts.values) {
       gts.values = newsize;
     }
     
