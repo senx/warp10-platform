@@ -52,6 +52,8 @@ public class Tokens {
   
   private static QuasarTokenFilter tokenFilter;
   
+  private static List<AuthenticationPlugin> plugins = new ArrayList<>();
+  
   private static QuasarTokenFilter getTokenFilter() {
     if (null != tokenFilter) {
       return tokenFilter;
@@ -187,6 +189,16 @@ public class Tokens {
   }
   
   public static WriteToken extractWriteToken(String token) throws WarpScriptException {
+    
+    if (!plugins.isEmpty()) {
+      for (AuthenticationPlugin plugin: plugins) {
+        WriteToken wtoken = plugin.extractWriteToken(token);
+        if (null != wtoken) {
+          return wtoken;
+        }
+      }  
+    }
+
     WriteToken wtoken = Tokens.getWriteToken(token);
     
     if (null != wtoken) {
@@ -214,6 +226,15 @@ public class Tokens {
   
   public static ReadToken extractReadToken(String token) throws WarpScriptException {
     
+    if (!plugins.isEmpty()) {
+      for (AuthenticationPlugin plugin: plugins) {
+        ReadToken rtoken = plugin.extractReadToken(token);
+        if (null != rtoken) {
+          return rtoken;
+        }
+      }  
+    }
+
     ReadToken rtoken = Tokens.getReadToken(token);
     
     if (null != rtoken) {
@@ -508,5 +529,9 @@ public class Tokens {
     t.setName("[Token Manager]");
     t.setDaemon(true);
     t.start();
+  }
+  
+  public static final void register(AuthenticationPlugin plugin) {
+    plugins.add(plugin);
   }
 }
