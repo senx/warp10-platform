@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import com.geoxp.GeoXPLib;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptMapperFunction;
@@ -29,6 +30,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.BitSet;
 
 /**
  * Push on the stack the type of the object on top of the stack
@@ -48,6 +51,9 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String TYPE_GTS = "GTS";
   public static final String TYPE_BYTES = "BYTES";
   public static final String TYPE_PGRAPHICSIMAGE = "PGRAPHICS";
+  public static final String TYPE_GEOSHAPE = "GEOSHAPE";
+  public static final String TYPE_SET = "SET";
+  public static final String TYPE_BITSET = "BITSET";
 
   public TYPEOF(String name) {
     super(name);
@@ -83,6 +89,12 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
       stack.push(TYPE_BYTES);
     } else if (o instanceof processing.awt.PGraphicsJava2D) {
       stack.push(TYPE_PGRAPHICSIMAGE);
+    } else if (o instanceof GeoXPLib.GeoXPShape) {
+      stack.push(TYPE_GEOSHAPE);
+    } else if (o instanceof Set) {
+      stack.push(TYPE_SET);
+    } else if (o instanceof BitSet) {
+      stack.push(TYPE_BITSET);
     } else {
       stack.push(o.getClass().getCanonicalName());
     }
