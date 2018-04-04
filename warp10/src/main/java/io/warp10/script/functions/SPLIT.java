@@ -50,7 +50,12 @@ public class SPLIT extends NamedWarpScriptFunction implements WarpScriptStackFun
     char delimiter = o.toString().charAt(0);
     
     o = stack.pop();
-    
+
+    if (!(o instanceof String)) {
+      throw new WarpScriptException(getName() + " operates on a String.");
+    }
+
+
     String[] tokens = UnsafeString.split(o.toString(), delimiter);
     
     List<String> ltokens = new ArrayList<String>();
