@@ -168,9 +168,18 @@ public class StandalonePlasmaClientHandler extends AbstractHandler {
     
     String token = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
         
+    WriteToken writeToken;
     
-    String producer = Tokens.UUIDByIngressToken.get(token);
-    String owner = Tokens.OwnerByToken.get(token);
+    try {
+      writeToken = Tokens.extractWriteToken(token);
+    } catch (WarpScriptException ee) {
+      throw new IOException(ee);
+    }
+        
+    String producer = Tokens.getUUID(writeToken.getProducerId());
+    String owner = Tokens.getUUID(writeToken.getOwnerId());
+    //String producer = Tokens.UUIDByIngressToken.get(token);
+    //String owner = Tokens.OwnerByToken.get(token);
     
     if (null == producer || null == owner) {
       response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
