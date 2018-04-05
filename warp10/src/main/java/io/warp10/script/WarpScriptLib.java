@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.Collections;
 
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
@@ -1417,7 +1418,8 @@ public class WarpScriptLib {
     
     functions.put("mapper.distinct", new FAIL("mapper.distinct")); // Counts the number of distinct values in a window, using HyperLogLog???
     functions.put("TICKSHIFT", new FAIL("TICKSHIFT")); // Shifts the ticks of a GTS by this many positions
-    
+    functions.put("WARP10FUNCTIONS", new WARP10FUNCTIONS("WARP10FUNCTIONS"));
+
     Properties props = WarpConfig.getProperties();
       
     if (null != props && props.containsKey(Configuration.CONFIG_WARPSCRIPT_LANGUAGES)) {
@@ -1593,5 +1595,17 @@ public class WarpScriptLib {
     }
     
     return o instanceof Macro;
+  }
+
+  public static ArrayList getListOfRegisteredFunctions(){
+
+    List<Object> list = new ArrayList<Object>();
+
+    for (Entry<String, Object> entry: functions.entrySet()) {
+      list.add(entry.getKey());
+    }
+    Collections.sort((List)list);
+    return (ArrayList)list;
+
   }
 }
