@@ -566,6 +566,13 @@ directory.streaming.threadpool = 200
 directory.streaming.maxqueuesize = 400
 
 //
+// Jetty attributes for the streaming directory
+//
+#directory.streaming.jetty.attribute.XXX = value
+// Example to modify the maximum size of acceptable form request, to support large selector regexps for example
+#directory.streaming.jetty.attribute.org.eclipse.jetty.server.Request.maxFormContentSize = 10000000
+
+//
 // Address on which the DirectoryService will listen
 //
 directory.host = 127.0.0.1

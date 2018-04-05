@@ -807,6 +807,7 @@ public class WarpScriptLib {
     functions.put("MATCHER", new MATCHER("MATCHER"));
     functions.put("REPLACE", new REPLACE("REPLACE", false));
     functions.put("REPLACEALL", new REPLACE("REPLACEALL", true));
+    functions.put("REOPTALT", new REOPTALT("REOPTALT"));
     
     if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
       functions.put("TEMPLATE", new TEMPLATE("TEMPLATE"));

@@ -435,6 +435,11 @@ public class Configuration {
   public static final String DIRECTORY_STREAMING_MAXQUEUESIZE = "directory.streaming.maxqueuesize";
 
   /**
+   * Prefix used for setting Jetty attributes
+   */
+  public static final String DIRECTORY_STREAMING_JETTY_ATTRIBUTE_PREFIX = "directory.streaming.jetty.attribute.";
+  
+  /**
    * Address on which the DirectoryService will listen
    */
   public static final String DIRECTORY_HOST = "directory.host";
