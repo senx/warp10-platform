@@ -1596,7 +1596,7 @@ public class WarpScriptLib {
     return o instanceof Macro;
   }
 
-  public static ArrayList getFunctionNames(){
+  public static ArrayList getFunctionNames() {
 
     List<Object> list = new ArrayList<Object>();
 
