@@ -1,5 +1,5 @@
 //
-//   Copyright 2017  Cityzen Data
+//   Copyright 2018  Cityzen Data
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,19 +22,28 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * need to set configuration
+ * warpscript.extension.inventory=io.warp10.script.ext.inventory.InventoryWarpScriptExtension
+ *
+ * Created to list all registered functions in Warp 10.
+ *
+ */
+
+/**
  * Functions declared by this WarpScript extension must be present in the functions field.
  */
 public class InventoryWarpScriptExtension extends WarpScriptExtension {
 
-  private final Map<String, Object> functions;
+  private static final Map<String, Object> functions;
 
-  public InventoryWarpScriptExtension() {
-    this.functions = new HashMap<String, Object>();
-
-    functions.put("WARP10FUNCTIONS", new WARP10FUNCTIONS("HELLOWARP10"));
+  static {
+    functions = new HashMap<String, Object>();
+    functions.put("FUNCTIONS", new FUNCTIONS("FUNCTIONS"));
   }
-  
+
   @Override
-  public Map<String, Object> getFunctions() { return functions; }
+  public Map<String, Object> getFunctions() {
+    return functions;
+  }
 
 }
