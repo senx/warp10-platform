@@ -23,9 +23,10 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Set;
+import java.util.Properties;
+import java.util.Map.Entry;
+
 
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
@@ -1593,5 +1594,15 @@ public class WarpScriptLib {
     }
     
     return o instanceof Macro;
+  }
+
+  public static ArrayList getFunctionNames() {
+
+    List<Object> list = new ArrayList<Object>();
+
+    list.addAll(functions.keySet());
+
+    return (ArrayList)list;
+
   }
 }
