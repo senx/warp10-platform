@@ -17,16 +17,10 @@
 package io.warp10.script;
 
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
 
+import io.warp10.script.functions.UUID;
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
 import org.bouncycastle.crypto.digests.MD5Digest;
@@ -1593,5 +1587,17 @@ public class WarpScriptLib {
     }
     
     return o instanceof Macro;
+  }
+
+  public static ArrayList getListOfRegisteredFunctions(){
+
+    List<Object> list = new ArrayList<Object>();
+
+    for (Entry<String, Object> entry: functions.entrySet()) {
+      list.add(entry.getKey());
+    }
+    Collections.sort((List)list);
+    return (ArrayList)list;
+
   }
 }
