@@ -205,6 +205,7 @@ public class CEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
       if (aborted.get()) {
         try { 
           executor.shutdownNow();
+          executor = null;
         } catch (Throwable t) {          
         }
       }
