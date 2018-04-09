@@ -23,9 +23,10 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Set;
+import java.util.Properties;
+import java.util.Map.Entry;
+
 
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
@@ -405,7 +406,6 @@ public class WarpScriptLib {
     functions.put("UNION", new UNION("UNION"));
     functions.put("INTERSECTION", new INTERSECTION("INTERSECTION"));
     functions.put("DIFFERENCE", new DIFFERENCE("DIFFERENCE"));
-    functions.put("SUBTRACTION", new SUBTRACTION("SUBTRACTION"));
     functions.put("->MAP", new TOMAP("->MAP"));
     functions.put("MAP->", new MAPTO("MAP->"));
     functions.put("UNMAP", new UNMAP("UNMAP"));
@@ -1593,5 +1593,15 @@ public class WarpScriptLib {
     }
     
     return o instanceof Macro;
+  }
+
+  public static ArrayList getFunctionNames() {
+
+    List<Object> list = new ArrayList<Object>();
+
+    list.addAll(functions.keySet());
+
+    return (ArrayList)list;
+
   }
 }

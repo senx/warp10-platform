@@ -1,5 +1,5 @@
 //
-//   Copyright 2017  Cityzen Data
+//   Copyright 2018  Cityzen Data
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,41 +14,33 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.functions;
+package io.warp10.script.ext.inventory;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptLib;
+import io.warp10.script.WarpScriptStackFunction;
 
-import java.util.HashSet;
-import java.util.Set;
 
-/**
- * Computes the difference of two sets - This is a corrected version of 'DIFFERENCE' which had its arguments swapped
- */
-public class SUBTRACTION extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
-  public SUBTRACTION(String name) {
+public class FUNCTIONS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  public FUNCTIONS(String name) {
     super(name);
   }
-  
-  @Override
+
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object b = stack.pop();
-    Object a = stack.pop();
-    
-    if (!(a instanceof Set) || !(b instanceof Set)) {
-      throw new WarpScriptException(getName() + " can only operate on sets.");
-    }
-    
-    Set<Object> difference = new HashSet<Object>();
-       
-    difference.addAll((Set<Object>) a);
-    difference.removeAll((Set<Object>) b);
-    
-    stack.push(difference);
-    
+
+    //
+    // Apply function and push its outputs onto the stack or raise an exception
+    //
+
+    stack.push(WarpScriptLib.getFunctionNames());
+
+    //
+    // Return the new state of the stack
+    //
+
     return stack;
   }
 }
