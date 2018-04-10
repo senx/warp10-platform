@@ -1219,6 +1219,16 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
+   * Flag to disable the use of the native LevelDB implementation
+   */
+  public static final String LEVELDB_NATIVE_DISABLE = "leveldb.native.disable";
+  
+  /**
+   * Flag to disable the use of the pure java LevelDB implementation
+   */
+  public static final String LEVELDB_JAVA_DISABLE = "leveldb.java.disable";
+  
+  /**
    * Directory where the leveldb files should be created
    */
   public static final String LEVELDB_HOME = "leveldb.home";
