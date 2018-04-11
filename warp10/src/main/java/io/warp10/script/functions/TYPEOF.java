@@ -57,7 +57,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String TYPE_GEOSHAPE = "GEOSHAPE";
   public static final String TYPE_SET = "SET";
   public static final String TYPE_BITSET = "BITSET";
-  public static final String TYPE_PIGVECTOR = "DATABAG";
+  public static final String TYPE_VECTOR = "VLIST";
   public static final String TYPE_REALVECTOR = "VECTOR";
   public static final String TYPE_REALMATRIX = "MATRIX";
 
@@ -80,7 +80,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
     } else if (o instanceof Boolean) {
       stack.push(TYPE_BOOLEAN);
     } else if (o instanceof Vector) {  // place before List. Vector implements List.
-      stack.push(TYPE_PIGVECTOR);
+      stack.push(TYPE_VECTOR);
     } else if (o instanceof List) {
       stack.push(TYPE_LIST);
     } else if (o instanceof Map) {
