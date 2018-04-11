@@ -206,6 +206,7 @@ import io.warp10.script.processing.image.Ppixels;
 import io.warp10.script.processing.image.Pset;
 import io.warp10.script.processing.image.Ptint;
 import io.warp10.script.processing.image.PupdatePixels;
+import io.warp10.script.processing.image.Pfilter;
 import io.warp10.script.processing.math.Pconstrain;
 import io.warp10.script.processing.math.Pdist;
 import io.warp10.script.processing.math.Plerp;
@@ -1220,7 +1221,8 @@ public class WarpScriptLib {
     functions.put("Pcopy", new Pcopy("Pcopy"));
     functions.put("Pget", new Pget("Pget"));
     functions.put("Pset", new Pset("Pset"));
-    
+    functions.put("Pfilter", new Pfilter("Pfilter"));
+
     // Rendering
     
     functions.put("PblendMode", new PblendMode("PblendMode"));
