@@ -544,13 +544,18 @@ status() {
 }
 
 snapshot() {
-  if [ $# -ne 2 ]; then
-    echo $"Usage: $0 {snapshot 'snapshot_name'}"
+  if [ $# -ne 2 -a $# -ne 3 ]; then
+    echo $"Usage: $0 {snapshot 'snapshot_name' ['base_snapshot_name']}"
     exit 2
   fi
   # Name of snapshot
   SNAPSHOT=$2
-  ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT} "${WARP10_HOME}" "${LEVELDB_HOME}" "${PID_FILE}"
+  if [ $# -eq 2 ]; then
+    ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT} "${WARP10_HOME}" "${LEVELDB_HOME}" "${PID_FILE}"
+  else
+    BASE_SNAPSHOT=$2
+    ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT} ${BASE_SNAPSHOT} "${WARP10_HOME}" "${LEVELDB_HOME}" "${PID_FILE}"
+  fi
 }
 
 worfcli() {
