@@ -297,6 +297,20 @@ warpscript.call.directory = ${standalone.home}/calls
 leveldb.home = ${standalone.home}/leveldb
 
 //
+// Flag to disable the native LevelDB implementation
+// This flag is false by default if the configuration is missing 
+// When running WarpInit or WarpRepair, use a system property with the same name
+//
+leveldb.native.disable = false
+
+//
+// Flag to disable the use of the pure Java LevelDB implementation
+// This flag is false by default if the configuration is missing 
+// When running WarpInit or WarpRepair, use a system property with the same name
+//
+leveldb.java.disable = false
+
+//
 // AES key to use for wrapping metadata prior to storage in leveldb
 //
 #leveldb.metadata.aes = 

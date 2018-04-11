@@ -66,9 +66,10 @@ public class QuasarTokenEncoder {
   /**
    * @param appName     this token belongs to this application
    * @param producerUID this token belongs to this producer
-   * @param owners      this tokens can access time series belongs to these owners
-   * @param producers   this tokens can access time series pushed by these producers
-   * @param apps        this tokens can access time series store in these applications
+   * @param owners      this token can access time series owned to these owners
+   * @param producers   this token can access time series pushed by these producers
+   * @param apps        this token can access time series stored in these applications
+   * @param labels      this token can access time series with the given labels
    * @param hooks       tokens Warpscript hooks
    * @param ttl         Time to live (ms)
    * @return ReadToken thrift structure
