@@ -7,6 +7,8 @@ import org.fusesource.leveldbjni.JniDBFactory;
 import org.iq80.leveldb.Options;
 import org.iq80.leveldb.impl.Iq80DBFactory;
 
+import io.warp10.continuum.Configuration;
+
 public class WarpRepair {
   public static void main(String[] args) throws IOException {
     String path = args[0];
@@ -16,10 +18,23 @@ public class WarpRepair {
     options.maxOpenFiles(200);
     options.verifyChecksums(true);
     options.paranoidChecks(true);
+    
+    boolean nativedisabled = "true".equals(System.getProperty(Configuration.LEVELDB_NATIVE_DISABLE));
+    boolean javadisabled = "true".equals(System.getProperty(Configuration.LEVELDB_JAVA_DISABLE));
+    
     try {
-      JniDBFactory.factory.repair(new File(path), options);
+      if (!nativedisabled) {
+        JniDBFactory.factory.repair(new File(path), options);
+      } else {
+        throw new UnsatisfiedLinkError("Native LevelDB implementation disabled.");
+      }
     } catch (UnsatisfiedLinkError ule) {
-      Iq80DBFactory.factory.repair(new File(path), options);
+      ule.printStackTrace();
+      if (!javadisabled) {
+        Iq80DBFactory.factory.repair(new File(path), options);
+      } else {
+        throw new RuntimeException("No usable LevelDB implementation, aborting.");
+      }
     }      
   }
 }
