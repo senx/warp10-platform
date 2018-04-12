@@ -357,9 +357,10 @@ public class Constants {
   
   public static final String DEFAULT_PACKED_CLASS_SUFFIX = ":packed";
   public static final int DEFAULT_PACKED_MAXSIZE = 65536;
-  
+
   public static final String WARP10_DOC_URL = "http://www.warp10.io/";
-  
+  public static final String WARP10_FUNCTION_DOC_URL = "http://www.warp10.io/doc/";
+
   public static final int WARP_PLASMA_MAXSUBS_DEFAULT = 256000;
   
   public static final String KEY_MODULUS = "modulus";
