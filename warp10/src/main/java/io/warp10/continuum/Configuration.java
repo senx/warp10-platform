@@ -89,6 +89,11 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_EXTENSION_PREFIX = "warpscript.extension.";
   
   /**
+   * Prefix for properties which define WarpScript extension namespaces.
+   */
+  public static final String CONFIG_WARPSCRIPT_NAMESPACE_PREFIX = "warpscript.namespace.";
+  
+  /**
    * This configuration parameter determines if undefining a function (via NULL 'XXX' DEF)
    * will unshadow the original statement thus making it available again or if it will replace
    * it with a function that will fail with a message saying the function is undefined.
