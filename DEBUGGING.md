@@ -3,11 +3,13 @@
 ## How to debug in an existing WARP 10 instance ? (IntelliJ)
 
 You already have a standalone instance of WARP 10 on your computer, and you want to debug with your datas.
+
 You already have a JDK.
 
-In the following tutorial, running instance is in `~/WARP10/warp10`. Local source directory is `~/warp10_src/warp10-platform`
+In the following howto, running instance is in `~/WARP10/warp10`. Local source directory is `~/warp10_src/warp10-platform`
 Make sure your user has group permissions to access all files into your running instance.
-Stop your running instance `./bin/warp10-standalone.sh stop`
+
++ Stop your running instance `./bin/warp10-standalone.sh stop`
 
 
 ```bash
@@ -89,7 +91,9 @@ public class WarpTest {
 Go to project settings, Libraries. Add A new one for each plugin jar you need. 
 For example, add `~/WARP10/warp10/bin/warp10-quantum-plugin-3.0.3.jar`. When asked by IntelliJ, select all modules.
 
-You can now run or debug the WarpTest class !
+You can now run or debug the WarpTest class.
+
+## How to use my own build ?
 
 When you're done, you can build a fat jar and replace the warp10 jar in your `~/WARP10/warp10/bin/` directory.
 In a separate terminal : 
@@ -98,5 +102,7 @@ In a separate terminal :
 ~/warp10_src/warp10-platform/gradlew token:install
 ~/warp10_src/warp10-platform/gradlew pack
 ```
-Copy the jar from `~/warp10_src/warp10-platform/warp10/build/libs/` to your `~/WARP10/warp10/bin/` (backup the existing one)
+Copy the jar from `~/warp10_src/warp10-platform/warp10/build/libs/` to your `~/WARP10/warp10/bin/`, keeping the jar file name.
+
+
 
