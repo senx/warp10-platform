@@ -16,12 +16,12 @@
 
 package io.warp10.script.functions;
 
+import java.util.Collection;
+
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import java.util.List;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Checks if a list contains an element
@@ -35,13 +35,13 @@ public class CONTAINS extends NamedWarpScriptFunction implements WarpScriptStack
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object elt = stack.pop();    
-    Object list = stack.peek();
+    Object coll = stack.peek();
 
-    if (!(list instanceof List)) {
-      throw new WarpScriptException(getName() + " operates on a list.");
+    if (!(coll instanceof Collection)) {
+      throw new WarpScriptException(getName() + " operates on a list or set.");
     }
     
-    stack.push(((List) list).contains(elt));
+    stack.push(((Collection) coll).contains(elt));
 
     return stack;
   }

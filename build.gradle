@@ -24,7 +24,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath "gradle.plugin.com.selesse:gradle-git-changelog:0.2.0"
+        classpath "gradle.plugin.com.selesse:gradle-git-changelog:0.3.0"
     }
 }
 
@@ -74,7 +74,7 @@ subprojects {
         warp10Version['crypto'] = commonVersion
         warp10Version['token'] = commonVersion
 
-        quantumVersion = '2.6.7'
+        quantumVersion = '3.0.3'
 
         stagingUser = project.hasProperty('stagingUser') ? project.property('stagingUser') : System.getenv('STAGING_USER')
         stagingURL = project.hasProperty('stagingURL') ? project.property('stagingURL') : System.getenv('STAGING_URL')
@@ -168,7 +168,7 @@ subprojects {
     // GLOBAL DEPENDENCIES
     dependencies {
         //UPLOAD ARTIFACTS THROUGH SSH
-        deployerJars 'org.apache.maven.wagon:wagon-ssh-external:2.8'
+        deployerJars 'org.apache.maven.wagon:wagon-ssh-external:3.0.0'
     }
 
     // COMPILE OPTIONS

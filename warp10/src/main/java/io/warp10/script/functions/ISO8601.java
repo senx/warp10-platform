@@ -30,76 +30,83 @@ import org.joda.time.format.ISODateTimeFormat;
  * Replaces the timestamp on the stack with a string representation of its instant.
  */
 public class ISO8601 extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   private final DateTimeFormatter dtf = ISODateTimeFormat.dateTime();
-  
+
   public ISO8601(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object obj = stack.peek();
-    
+
     String tz = null;
-    
+
     if (obj instanceof String) {
       tz = (String) obj;
       stack.pop();
     } else if (!(obj instanceof Long)) {
       throw new WarpScriptException(getName() + " operates on a timestamp or a timestamp + timezone.");
     }
-    
+
     obj = stack.pop();
-        
+
     if (!(obj instanceof Long)) {
       throw new WarpScriptException(getName() + " operates on a timestamp or a timestamp + timezone.");
     }
-    
+
     long ts = (long) obj;
-    
-    
+
+
     DateTimeFormatter dtf;
-    
+
     //
     // Set the timezone
     //
-    
+
     if (null == tz) {
       dtf = this.dtf.withZoneUTC();
     } else {
       dtf = this.dtf.withZone(DateTimeZone.forID(tz));
     }
-    
+
     long millis = ts / Constants.TIME_UNITS_PER_MS;
-    
-    String dt = dtf.print(millis);
-    
+
     if (Constants.TIME_UNITS_PER_MS > 1) {
+      // We want the floor, not truncate: update millis if needed.
+      if (0 > ts && 0 != ts % Constants.TIME_UNITS_PER_MS) {
+        millis--;
+      }
+
+      String dt = dtf.print(millis);
       //
       // Add sub millisecond string
       //
-      
+
       StringBuilder sb = new StringBuilder();
-      
-      sb.append(dt, 0, 23);
-      
-      long subms = Constants.TIME_UNITS_PER_MS;
-      
-      subms += ts % Constants.TIME_UNITS_PER_MS;
-      
+
+      int millisIndex = dt.indexOf('.') + 4; // 1 for the dot + 3 for the millis digits
+
+      sb.append(dt, 0, millisIndex);
+
+      long subms = Constants.TIME_UNITS_PER_MS; // Make subms begin by 1 (removed after) so as to pad with zeros.
+
+      subms += Math.abs(ts - millis * Constants.TIME_UNITS_PER_MS); // Apply abs to avoid any complication with signs
+
       String str = Long.toString(subms);
-      
-      sb.append(str, 1, str.length());
-      
-      sb.append(dt, 23, dt.length());
-      
+
+      sb.append(str, 1, str.length()); // Start at 1 to remove leading 1 thus achieving 0 padding
+
+      sb.append(dt, millisIndex, dt.length());
+
       stack.push(sb.toString());
     } else {
-      stack.push(dt);      
+      String dt = dtf.print(millis);
+      stack.push(dt);
     }
-    
+
     return stack;
   }
 }

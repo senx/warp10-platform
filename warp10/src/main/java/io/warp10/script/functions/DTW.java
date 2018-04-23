@@ -155,7 +155,7 @@ public class DTW extends NamedWarpScriptFunction implements WarpScriptStackFunct
         double range = max - min;
         
         for (int i = 0; i < values1.length; i++) {
-          values1[i] = (values1[i] - max) / range;
+          values1[i] = (values1[i] - min) / range;
         }
 
         min = Double.POSITIVE_INFINITY;
@@ -177,7 +177,7 @@ public class DTW extends NamedWarpScriptFunction implements WarpScriptStackFunct
         range = max - min;
         
         for (int i = 0; i < values2.length; i++) {
-          values2[i] = (values2[i] - max) / range;
+          values2[i] = (values2[i] - min) / range;
         }      
       }      
     }

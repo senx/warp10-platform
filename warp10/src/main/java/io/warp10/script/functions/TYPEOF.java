@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import com.geoxp.GeoXPLib;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptMapperFunction;
@@ -24,11 +25,16 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
+import org.apache.commons.math3.linear.ArrayRealVector;
+import org.apache.commons.math3.linear.RealMatrix;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.BitSet;
+import java.util.Vector;
 
 /**
  * Push on the stack the type of the object on top of the stack
@@ -46,15 +52,23 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String TYPE_MAPPER = "MAPPER";
   public static final String TYPE_REDUCER = "REDUCER";
   public static final String TYPE_GTS = "GTS";
-  
+  public static final String TYPE_BYTES = "BYTES";
+  public static final String TYPE_PGRAPHICSIMAGE = "PGRAPHICS";
+  public static final String TYPE_GEOSHAPE = "GEOSHAPE";
+  public static final String TYPE_SET = "SET";
+  public static final String TYPE_BITSET = "BITSET";
+  public static final String TYPE_VECTOR = "VLIST";
+  public static final String TYPE_REALVECTOR = "VECTOR";
+  public static final String TYPE_REALMATRIX = "MATRIX";
+
   public TYPEOF(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
-    
+
     if (null == o) {
       stack.push(TYPE_NULL);
     } else if (o instanceof String) {
@@ -65,6 +79,8 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
       stack.push(TYPE_DOUBLE);
     } else if (o instanceof Boolean) {
       stack.push(TYPE_BOOLEAN);
+    } else if (o instanceof Vector) {  // place before List. Vector implements List.
+      stack.push(TYPE_VECTOR);
     } else if (o instanceof List) {
       stack.push(TYPE_LIST);
     } else if (o instanceof Map) {
@@ -77,10 +93,24 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
       stack.push(TYPE_REDUCER);
     } else if (o instanceof GeoTimeSerie) {
       stack.push(TYPE_GTS);
+    } else if (o instanceof byte[] ) {
+      stack.push(TYPE_BYTES);
+    } else if (o instanceof processing.awt.PGraphicsJava2D) {
+      stack.push(TYPE_PGRAPHICSIMAGE);
+    } else if (o instanceof GeoXPLib.GeoXPShape) {
+      stack.push(TYPE_GEOSHAPE);
+    } else if (o instanceof Set) {
+      stack.push(TYPE_SET);
+    } else if (o instanceof BitSet) {
+      stack.push(TYPE_BITSET);
+    } else if (o instanceof ArrayRealVector) {
+      stack.push(TYPE_REALVECTOR);
+    } else if (o instanceof RealMatrix) {
+      stack.push(TYPE_REALMATRIX);
     } else {
       stack.push(o.getClass().getCanonicalName());
     }
-    
+
     return stack;
   }
 }

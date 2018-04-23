@@ -91,6 +91,12 @@ public class EgressFindHandler extends AbstractHandler {
     
     String token = req.getParameter(Constants.HTTP_PARAM_TOKEN);
     
+    long limit = Long.MAX_VALUE;
+    
+    if (null != req.getParameter(Constants.HTTP_PARAM_LIMIT)) {
+      limit = Long.parseLong(req.getParameter(Constants.HTTP_PARAM_LIMIT));
+    }
+    
     if (null == token) {
       token = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
     }
@@ -188,6 +194,10 @@ public class EgressFindHandler extends AbstractHandler {
           
           try (MetadataIterator iterator = directoryClient.iterator(request)) {
             while(iterator.hasNext()) {
+              if (limit <= 0) {
+                break;
+              }
+
               Metadata metadata = iterator.next();
 
               if (showUUID) {
@@ -239,9 +249,15 @@ public class EgressFindHandler extends AbstractHandler {
               }
               
               pw.println(sb.toString());
+              
+              limit--;              
             }      
           } catch (Throwable t) {        
             throw t;
+          }
+          
+          if (limit <= 0) {
+            break;
           }
         }
         if (json) {

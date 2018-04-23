@@ -95,8 +95,9 @@ public class CEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
     // Limit parallelism to number of macros to run
     //
     
-    if (parallelism > ((List) top).size()) {
-      parallelism = ((List) top).size();
+    int nmacros = ((List) top).size();
+    if (parallelism > nmacros) {
+      parallelism = nmacros;
     }
     
     ExecutorService executor = null;
@@ -111,7 +112,7 @@ public class CEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
       stack.setAttribute(CONCURRENT_EXECUTION_ATTRIBUTE, true);
       stack.setAttribute(CONCURRENT_LOCK_ATTRIBUTE, lock);
       
-      BlockingQueue<Runnable> queue = new LinkedBlockingDeque<Runnable>(parallelism);    
+      BlockingQueue<Runnable> queue = new LinkedBlockingDeque<Runnable>(nmacros);    
       executor = new ThreadPoolExecutor(parallelism, parallelism, 30, TimeUnit.SECONDS, queue);
 
       //
@@ -183,7 +184,8 @@ public class CEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
         };
         
         pending.addAndGet(1);
-        futures.add(executor.submit(task));      
+        Future<List<Object>> future = executor.submit(task);
+        futures.add(future);      
       }
             
       List<Object> results = new ArrayList<Object>();
@@ -195,6 +197,17 @@ public class CEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
       
       while(!aborted.get() && pending.get() > 0) {
         LockSupport.parkNanos(100000000L);
+      }
+      
+      //
+      // Abort the executor abruptly if one of the jobs has failed
+      //
+      if (aborted.get()) {
+        try { 
+          executor.shutdownNow();
+          executor = null;
+        } catch (Throwable t) {          
+        }
       }
       
       for (Future<List<Object>> future: futures) {

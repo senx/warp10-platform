@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 
 import com.google.common.base.Charsets;
 
@@ -136,10 +137,13 @@ public class WarpScriptMacroRepository extends Thread {
         // Ignore '.mc2' files not in a subdir
         //
         
-        if (!name.contains("/")) {
+        if (!name.contains(File.separator)) {
           continue;
         }
         
+        // Replace file separator with '/'
+        name = name.replaceAll(Pattern.quote(File.separator), "/");
+
         Macro macro = loadMacro(name, file);
 
         if (null != macro) {
@@ -312,7 +316,12 @@ public class WarpScriptMacroRepository extends Thread {
     String rootdir = new File(directory).getAbsolutePath();
     
     if (null == file) {
-      file = new File(rootdir, name + ".mc2");
+      // Replace '/' with the platform separator
+      if (!"/".equals(File.separator)) {
+        file = new File(rootdir, name.replaceAll("/", File.separator) + ".mc2");
+      } else {
+        file = new File(rootdir, name + ".mc2");
+      }
       
       // Macros should reside in the configured root directory
       if (!file.getAbsolutePath().startsWith(rootdir)) {
@@ -322,6 +331,7 @@ public class WarpScriptMacroRepository extends Thread {
 
     if (null == name) {
       name = file.getAbsolutePath().substring(rootdir.length() + 1).replaceAll("\\.mc2$", "");
+      name = name.replaceAll(Pattern.quote(File.separator), "/");
     }
     
     byte[] buf = new byte[8192];

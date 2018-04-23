@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.gts;
 
+import io.warp10.DoubleUtils;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
@@ -37,6 +38,8 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.functions.MACROMAPPER;
+import io.warp10.script.functions.METASORT;
+import io.warp10.script.functions.TOQUATERNION;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -2006,6 +2009,42 @@ public class GTSHelper {
       //
       // FIXME(hbs): add support for quaternions, for hex values???
       //
+      } else if ('H' == valuestr.charAt(0) && valuestr.startsWith("HH:")) {
+        int colon = valuestr.indexOf(':',3);
+        if (-1 == colon) {
+          throw new ParseException("Invalid value for lat,lon conversion to HHCode.", 0);
+        }
+        double lat = Double.parseDouble(valuestr.substring(3, colon));
+        double lon = Double.parseDouble(valuestr.substring(colon + 1));
+        
+        value = GeoXPLib.toGeoXPPoint(lat, lon);
+      } else if ('Q' == valuestr.charAt(0) && valuestr.startsWith("Q:")) {
+        
+        double[] q = new double[4];
+        
+        int idx = 2;
+        int qidx = 0;
+        
+        while (qidx < q.length) {
+          int colon = valuestr.indexOf(':', idx);
+          
+          if (-1 == colon) {
+            throw new ParseException("Invalid value for Quaternion, expected Q:w:x:y:z", 0);
+          }
+
+          q[qidx++] = Double.parseDouble(valuestr.substring(idx, colon));
+          idx = colon + 1;
+          
+          if (3 == qidx) {
+            q[qidx++] = Double.parseDouble(valuestr.substring(idx));
+          }
+        }
+        
+        if (!DoubleUtils.isFinite(q[0]) || !DoubleUtils.isFinite(q[1]) || !DoubleUtils.isFinite(q[2]) || !DoubleUtils.isFinite(q[3])) {
+          throw new ParseException("Quaternion values require finite elements.", 0);
+        }
+        
+        value = TOQUATERNION.toQuaternion(q[0], q[1], q[2], q[3]);
       } else {
         boolean likelydouble = UnsafeString.isDouble(valuestr);
         
@@ -4686,8 +4725,14 @@ public class GTSHelper {
       //
       
       List<GeoTimeSerie>[] subseries = new List[series.length];
-      
       for (int i = 0; i < series.length; i++) {
+        
+        //
+        // Sort the 'series' so we can perform a binary search instead of using 'contains'
+        //
+        
+        series[i].sort(METASORT.META_COMPARATOR);
+        
         subseries[i] = new ArrayList<GeoTimeSerie>();
        
         //
@@ -4700,13 +4745,12 @@ public class GTSHelper {
         } else {
           // The series appear in the order they are in the original list due to 'partition' using a List
           for (GeoTimeSerie serie: partition.get(partitionlabels)) {
-            if (series[i].contains(serie)) {
+            if (Collections.binarySearch(series[i], serie, METASORT.META_COMPARATOR) >= 0) {
               subseries[i].add(serie);
             }
           }          
         }
       }
-      
       //
       // Call the function
       //
@@ -6660,7 +6704,7 @@ public class GTSHelper {
    * @return
    */
   public static GeoTimeSerie shrinkTo(GeoTimeSerie gts, int newsize) throws WarpScriptException {
-    if (newsize > 0 && newsize < gts.values) {
+    if (newsize >= 0 && newsize < gts.values) {
       gts.values = newsize;
     }
     

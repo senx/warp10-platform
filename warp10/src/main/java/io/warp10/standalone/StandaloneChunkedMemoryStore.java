@@ -519,6 +519,8 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
     TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
     
+    System.out.println("Dumping memory to '" + path + "'.");
+    
     try {
       for (Entry<BigInteger,InMemoryChunkSet> entry: this.series.entrySet()) {
         gts++;        

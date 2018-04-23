@@ -209,9 +209,23 @@ webcall.host.patterns = !.*
 //warpscript.call.maxcapacity = 1
 
 //
-// Comma separated list of WarpScriptExtension classes to instantiate to modify the defined WarpScript functions
+// Comma separated list of WarpScriptExtension classes to instantiate to modify the defined WarpScript functions.
+// Extension classes can be prefixed with SORTKEY# to force the order in which the extensions will be loaded.
+// The SORTKEY# prefix will be used only for sorting.
 //
 //warpscript.extensions = 
+
+//
+// Specific extension loading
+// Extension classes can be prefixed with SORTKEY# to force the order in which the extensions will be loaded.
+// The SORTKEY# prefix will be used only for sorting.
+//
+//warpscript.extension.xxx = package.class
+
+//
+// Specific namespace under which to load an extension. The specified namespace will be used as a prefix for all functions of the extension.
+//
+//warpscript.namespace.package.class = namespace.
 
 //
 // Comma separated list of additional languages to support within WarpScript. This MUST be set as a system property
@@ -297,6 +311,20 @@ warpscript.call.directory = ${standalone.home}/calls
 leveldb.home = ${standalone.home}/leveldb
 
 //
+// Flag to disable the native LevelDB implementation
+// This flag is false by default if the configuration is missing 
+// When running WarpInit or WarpRepair, use a system property with the same name
+//
+leveldb.native.disable = false
+
+//
+// Flag to disable the use of the pure Java LevelDB implementation
+// This flag is false by default if the configuration is missing 
+// When running WarpInit or WarpRepair, use a system property with the same name
+//
+leveldb.java.disable = false
+
+//
 // AES key to use for wrapping metadata prior to storage in leveldb
 //
 #leveldb.metadata.aes = 
@@ -366,6 +394,11 @@ standalone.snapshot.trigger = ${leveldb.home}/snapshot.trigger
 // Path to a file to use for signaling that compactions are suspended
 //
 standalone.snapshot.signal = ${leveldb.home}/snapshot.signal
+
+//
+// Set to true to disable the delete endpoint.
+//
+standalone.delete.disable = false
 
 //
 // Configuration parameter to modify the datalog header. DO NOT MODIFY
@@ -509,6 +542,11 @@ in.memory = false
 // Maximum age of a valid GTSSplit (in ms)
 //
 #egress.fetcher.maxsplitage = 
+
+//
+// Should the egress exec handler expose its store/directory clients?
+//
+egress.clients.expose = false
 
 //
 // Q U A N T U M

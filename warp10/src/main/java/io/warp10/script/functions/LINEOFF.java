@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  Cityzen Data
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,34 +21,19 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
-import java.util.HashSet;
-import java.util.Set;
-
 /**
- * Computes the difference of two sets
+ * Turn on line number sectioning
  */
-public class DIFFERENCE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class LINEOFF extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public DIFFERENCE(String name) {
+  public LINEOFF(String name) {
     super(name);
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object b = stack.pop();
-    Object a = stack.pop();
-    
-    if (!(a instanceof Set) || !(b instanceof Set)) {
-      throw new WarpScriptException(getName() + " can only operate on sets.");
-    }
-    
-    Set<Object> difference = new HashSet<Object>();
-       
-    difference.addAll((Set<Object>) a);
-    difference.removeAll((Set<Object>) b);
-    
-    stack.push(difference);
-    
+    stack.setAttribute(WarpScriptStack.ATTRIBUTE_LINENO, null);
     return stack;
   }
+
 }

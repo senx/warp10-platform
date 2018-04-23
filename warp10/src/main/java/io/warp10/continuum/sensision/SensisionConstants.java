@@ -33,7 +33,7 @@ public class SensisionConstants {
   /**
    * Number of datalog requests which were forwarded successfully
    */
-  public static final String CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FORWARDED = "warp.datalog,forwarder.requests.forwarded";
+  public static final String CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FORWARDED = "warp.datalog.forwarder.requests.forwarded";
 
   /**
    * Number of datalog requests which failed to be forwarded
@@ -761,6 +761,10 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_COMMITS = "warp.directory.kafka.commits";
 
   /**
+   * Number of times the Kafka connector was shutdown due to errors in the consuming threads
+   */
+  public static final String SENSISION_CLASS_WARP_DIRECTORY_KAFKA_SHUTDOWNS = "warp.directory.kafka.shutdowns";
+  /**
    * Total number of 'find' requests
    */
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_FIND_REQUESTS = "warp.directory.find.requests";
@@ -919,11 +923,6 @@ public class SensisionConstants {
    * Total time in nanoseconds spent in Einstein functions
    */
   public static final String SENSISION_CLASS_EINSTEIN_FUNCTION_TIME_US = "warp.script.function.time.us";
-
-  /**
-   * Timestamp at which the current einstein statement execution started (in ms since the Epoch). This is used to detect runaway statements.
-   */
-  public static final String SENSISION_CLASS_EINSTEIN_CURRENTEXEC_TIMESTAMP = "warp.script.lastexec.timestamp";
 
   /**
    * Number of times a script has been run

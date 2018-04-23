@@ -17,15 +17,17 @@
 package io.warp10.script;
 
 import java.net.URL;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Set;
+import java.util.Properties;
+import java.util.Map.Entry;
+
 
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
@@ -205,6 +207,7 @@ import io.warp10.script.processing.image.Ppixels;
 import io.warp10.script.processing.image.Pset;
 import io.warp10.script.processing.image.Ptint;
 import io.warp10.script.processing.image.PupdatePixels;
+import io.warp10.script.processing.image.Pfilter;
 import io.warp10.script.processing.math.Pconstrain;
 import io.warp10.script.processing.math.Pdist;
 import io.warp10.script.processing.math.Plerp;
@@ -346,6 +349,7 @@ public class WarpScriptLib {
   public static final String GEOPACK = "GEOPACK";
   public static final String GEOUNPACK = "GEOUNPACK";
   
+  public static final String SECTION = "SECTION";
   public static final String UNWRAP = "UNWRAP";
   public static final String UNWRAPENCODER = "UNWRAPENCODER";
   public static final String OPB64TO = "OPB64->";
@@ -404,7 +408,6 @@ public class WarpScriptLib {
     functions.put("UNION", new UNION("UNION"));
     functions.put("INTERSECTION", new INTERSECTION("INTERSECTION"));
     functions.put("DIFFERENCE", new DIFFERENCE("DIFFERENCE"));
-    functions.put("SUBTRACTION", new SUBTRACTION("SUBTRACTION"));
     functions.put("->MAP", new TOMAP("->MAP"));
     functions.put("MAP->", new MAPTO("MAP->"));
     functions.put("UNMAP", new UNMAP("UNMAP"));
@@ -489,6 +492,8 @@ public class WarpScriptLib {
     functions.put("DEBUGON", new DEBUGON("DEBUGON"));
     functions.put("NDEBUGON", new NDEBUGON("NDEBUGON"));
     functions.put("DEBUGOFF", new DEBUGOFF("DEBUGOFF"));
+    functions.put("LINEON", new LINEON("LINEON"));
+    functions.put("LINEOFF", new LINEOFF("LINEOFF"));
     functions.put("LMAP", new LMAP("LMAP"));
     functions.put("NONNULL", new NONNULL("NONNULL"));
     functions.put("LFLATMAP", new LFLATMAP("LFLATMAP"));
@@ -513,7 +518,9 @@ public class WarpScriptLib {
     functions.put("NOOP", new NOOP("NOOP"));
     functions.put("DOC", new DOC("DOC"));
     functions.put("DOCMODE", new DOCMODE("DOCMODE"));
-    functions.put("SECTION", new SECTION("SECTION"));
+    functions.put("INFO", new INFO("INFO"));
+    functions.put("INFOMODE", new INFOMODE("INFOMODE"));
+    functions.put(SECTION, new SECTION(SECTION));
     functions.put("GETSECTION", new GETSECTION("GETSECTION"));
     functions.put(SNAPSHOT, new SNAPSHOT(SNAPSHOT, false, false, true, false));
     functions.put(SNAPSHOTALL, new SNAPSHOT(SNAPSHOTALL, true, false, true, false));
@@ -802,6 +809,7 @@ public class WarpScriptLib {
     functions.put("MATCHER", new MATCHER("MATCHER"));
     functions.put("REPLACE", new REPLACE("REPLACE", false));
     functions.put("REPLACEALL", new REPLACE("REPLACEALL", true));
+    functions.put("REOPTALT", new REOPTALT("REOPTALT"));
     
     if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
       functions.put("TEMPLATE", new TEMPLATE("TEMPLATE"));
@@ -1215,7 +1223,8 @@ public class WarpScriptLib {
     functions.put("Pcopy", new Pcopy("Pcopy"));
     functions.put("Pget", new Pget("Pget"));
     functions.put("Pset", new Pset("Pset"));
-    
+    functions.put("Pfilter", new Pfilter("Pfilter"));
+
     // Rendering
     
     functions.put("PblendMode", new PblendMode("PblendMode"));
@@ -1542,7 +1551,17 @@ public class WarpScriptLib {
         WarpScriptExtension wse = (WarpScriptExtension) cls.newInstance();          
         wse.register();
         
-        System.out.println("LOADED extension '" + extension  + "'");
+        System.out.print("LOADED extension '" + extension  + "'");
+        
+        String namespace = props.getProperty(Configuration.CONFIG_WARPSCRIPT_NAMESPACE_PREFIX + wse.getClass().getName(), "").trim(); 
+        if (null != namespace && !"".equals(namespace)) {
+          if (namespace.contains("%")) {
+            namespace = URLDecoder.decode(namespace, "UTF-8");
+          }
+          System.out.println(" under namespace '" + namespace + "'.");
+        } else {
+          System.out.println();
+        }
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
@@ -1554,6 +1573,26 @@ public class WarpScriptLib {
   }
   
   public static void register(WarpScriptExtension extension) {
+    Properties props = WarpConfig.getProperties();
+    
+    if (null == props) {
+      return;
+    }
+
+    String namespace = props.getProperty(Configuration.CONFIG_WARPSCRIPT_NAMESPACE_PREFIX + extension.getClass().getName(), "").trim();
+        
+    if (namespace.contains("%")) {
+      try {
+        namespace = URLDecoder.decode(namespace, "UTF-8");
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    register(namespace, extension);
+  }
+  
+  public static void register(String namespace, WarpScriptExtension extension) {
     
     extloaded.add(extension.getClass().getCanonicalName());
     
@@ -1565,9 +1604,9 @@ public class WarpScriptLib {
     
     for (Entry<String,Object> entry: extfuncs.entrySet()) {
       if (null == entry.getValue()) {
-        functions.remove(entry.getKey());
+        functions.remove(namespace + entry.getKey());
       } else {
-        functions.put(entry.getKey(), entry.getValue());
+        functions.put(namespace + entry.getKey(), entry.getValue());
       }
     }          
   }
@@ -1588,5 +1627,15 @@ public class WarpScriptLib {
     }
     
     return o instanceof Macro;
+  }
+
+  public static ArrayList getFunctionNames() {
+
+    List<Object> list = new ArrayList<Object>();
+
+    list.addAll(functions.keySet());
+
+    return (ArrayList)list;
+
   }
 }

@@ -164,7 +164,7 @@ public class KafkaSynchronizedConsumerPool {
           //
           // Enter an endless loop which will spawn 'nthreads' threads
           // each time the Kafka consumer is shut down (which will happen if an error
-          // happens while talking to HBase, to get a chance to re-read data from the
+          // happens while talking to HBase for example, to get a chance to re-read data from the
           // previous snapshot).
           //
           

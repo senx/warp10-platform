@@ -3,9 +3,13 @@ import hudson.model.*
 
 pipeline {
     agent any
+    options {
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '3'))
+    }
     environment {
         THRIFT_HOME = '/opt/thrift-0.9.1'
-        version = this.getVersion()
+        version = "${getVersion()}"
         BINTRAY_USER = getParam('BINTRAY_USER')
         BINTRAY_API_KEY = getParam('BINTRAY_API_KEY')
     }
@@ -14,7 +18,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 this.notifyBuild('STARTED', version)
-                git credentialsId: 'github', url: 'git@github.com:cityzendata/warp10-platform.git'
+                git credentialsId: 'github', poll: false, url: 'git@github.com:cityzendata/warp10-platform.git'
                 echo "Building ${version}"
             }
         }
@@ -26,6 +30,7 @@ pipeline {
         }
 
         stage('Test') {
+            options { retry(3) }
             steps {
                 sh './gradlew test'
                 junit allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/test-results/**/*.xml'
@@ -34,21 +39,42 @@ pipeline {
         }
 
 
-        stage('Pack') {
+        stage('Pack and Tar') {
             steps {
                 sh './gradlew jar pack -x test'
                 archiveArtifacts allowEmptyArchive: true, artifacts: '**/build/libs/*.jar', fingerprint: true
+                sh './gradlew createTarArchive -x test'
+                archiveArtifacts allowEmptyArchive: true, artifacts: '**/build/libs/*.tar.gz', fingerprint: true
+            }
+        }
+
+        stage('Publish') {
+            steps {
+                sh './gradlew warp10:uploadArchives'
+                sh './gradlew warpscript:uploadArchives'
             }
         }
 
         stage('Deploy') {
-            input {
-                message "Should we deploy to Bintray?"
+            when {
+                expression { return isItATagCommit() }
             }
-            steps {
-                sh './gradlew crypto:clean crypto:bintrayUpload -x test'
-                sh './gradlew token:clean  token:bintrayUpload -x test'
-                sh './gradlew warp10:clean warp10:bintrayUpload -x test'
+            parallel {
+                stage('Deploy to Bintray') {
+                    options {
+                        timeout(time: 2, unit: 'HOURS')
+                    }
+                    input {
+                        message 'Should we deploy to Bintray?'
+                    }
+                    steps {
+                        sh './gradlew crypto:clean crypto:bintrayUpload -x test'
+                        sh './gradlew token:clean  token:bintrayUpload -x test'
+                        sh './gradlew warp10:clean warp10:bintrayUpload -x test'
+                        sh './gradlew warp10:clean warpscript:bintrayUpload -x test'
+                        this.notifyBuild('PUBLISHED', version)
+                    }
+                }
             }
         }
     }
@@ -93,7 +119,7 @@ void notifyBuild(String buildStatus, String version) {
     this.notifySlack(colorCode, summary, buildStatus)
 }
 
-def notifySlack(color, message, buildStatus) {
+void notifySlack(color, message, buildStatus) {
     String slackURL = getParam('slackUrl')
     String payload = "{\"username\": \"${env.JOB_NAME}\",\"attachments\":[{\"title\": \"${env.JOB_NAME} ${buildStatus}\",\"color\": \"${color}\",\"text\": \"${message}\"}]}"
     sh "curl -X POST -H 'Content-type: application/json' --data '${payload}' ${slackURL}"
@@ -105,4 +131,10 @@ String getParam(key) {
 
 String getVersion() {
     return sh(returnStdout: true, script: 'git describe --abbrev=0 --tags').trim()
+}
+
+boolean isItATagCommit() {
+    String lastCommit = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+    String tag = sh(returnStdout: true, script: "git show-ref --tags -d | grep ^${lastCommit} | sed -e 's,.* refs/tags/,,' -e 's/\\^{}//'").trim()
+    return tag != ''
 }

@@ -50,6 +50,11 @@ public class Configuration {
   public static final String WARP10_PLUGINS = "warp10.plugins";
   
   /**
+   * Prefix for plugin declaration
+   */
+  public static final String WARP10_PLUGIN_PREFIX = "warp10.plugin.";
+  
+  /**
    * Maximum number of subscriptions per plasma connection
    */
   public static final String WARP_PLASMA_MAXSUBS = "warp.plasma.maxsubs";
@@ -79,9 +84,14 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_EXTENSIONS = "warpscript.extensions";
   
   /**
-   * Prefix for properties which defined WarpScript extensions
+   * Prefix for properties which define WarpScript extensions
    */
   public static final String CONFIG_WARPSCRIPT_EXTENSION_PREFIX = "warpscript.extension.";
+  
+  /**
+   * Prefix for properties which define WarpScript extension namespaces.
+   */
+  public static final String CONFIG_WARPSCRIPT_NAMESPACE_PREFIX = "warpscript.namespace.";
   
   /**
    * This configuration parameter determines if undefining a function (via NULL 'XXX' DEF)
@@ -429,6 +439,11 @@ public class Configuration {
    */
   public static final String DIRECTORY_STREAMING_MAXQUEUESIZE = "directory.streaming.maxqueuesize";
 
+  /**
+   * Prefix used for setting Jetty attributes
+   */
+  public static final String DIRECTORY_STREAMING_JETTY_ATTRIBUTE_PREFIX = "directory.streaming.jetty.attribute.";
+  
   /**
    * Address on which the DirectoryService will listen
    */
@@ -1230,6 +1245,16 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
+   * Flag to disable the use of the native LevelDB implementation
+   */
+  public static final String LEVELDB_NATIVE_DISABLE = "leveldb.native.disable";
+  
+  /**
+   * Flag to disable the use of the pure java LevelDB implementation
+   */
+  public static final String LEVELDB_JAVA_DISABLE = "leveldb.java.disable";
+  
+  /**
    * Directory where the leveldb files should be created
    */
   public static final String LEVELDB_HOME = "leveldb.home";
@@ -1264,6 +1289,11 @@ public class Configuration {
    * Compression type to use for leveldb (SNAPPY/NONE)
    */
   public static final String LEVELDB_COMPRESSION_TYPE = "leveldb.compression.type";
+  
+  /**
+   * Set to true to disable the delete endpoint in the standalone version of Warp 10.
+   */
+  public static final String STANDALONE_DELETE_DISABLE = "standalone.delete.disable";
   
   /**
    * Set to true to enable splits generation on the standalone instance. This MUST be set
@@ -1493,6 +1523,13 @@ public class Configuration {
   //
   // E G R E S S
   //
+  
+  /**
+   * Flag (true/false) indicating whether or not the Directory and Store clients should be exposed by Egress.
+   * If set to true then Warp 10 plugins might access the exposed clients via the getExposedDirectoryClient and
+   * getExposedStoreClient static methods of EgressExecHandler.
+   */
+  public static final String EGRESS_CLIENTS_EXPOSE = "egress.clients.expose";
   
   /**
    * Comma separated list of Egress related HBase configuration keys to extract from the Warp 10 configuration.

@@ -178,6 +178,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     
     if (mapparams) {
       top = stack.pop();
+<<<<<<< HEAD
       Map<String,Object> params = paramsFromMap((Map) top);
             
       if (params.containsKey(FETCH.PARAM_SELECTOR_PAIRS)) {

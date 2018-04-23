@@ -16,15 +16,15 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
-
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Create from a map a new map which contains only the keys in the argument list
@@ -49,7 +49,7 @@ public class SUBMAP extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException(getName() + " expects a list of map keys on top of the stack.");
     }
 
-    Map<Object,Object> submap = new HashMap<Object, Object>();
+    Map<Object,Object> submap = new LinkedHashMap<Object, Object>();
     
     for (Entry<Object,Object> entry: ((Map<Object,Object>) map).entrySet()) {
       if (((List) keys).contains(entry.getKey())) {
