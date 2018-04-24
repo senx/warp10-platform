@@ -61,7 +61,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String TYPE_VECTOR = "VLIST";
   public static final String TYPE_REALVECTOR = "VECTOR";
   public static final String TYPE_REALMATRIX = "MATRIX";
-  public static final String TYPE_PGRAPHICSRAWIMAGE = "PIMAGE";
+  public static final String TYPE_PIMAGE = "PIMAGE";
 
   public TYPEOF(String name) {
     super(name);
@@ -100,7 +100,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
     } else if (o instanceof PGraphics) {
       stack.push(TYPE_PGRAPHICSIMAGE);
     } else if (o instanceof PImage) {
-      stack.push(TYPE_PGRAPHICSRAWIMAGE);
+      stack.push(TYPE_PIMAGE);
     } else if (o instanceof GeoXPLib.GeoXPShape) {
       stack.push(TYPE_GEOSHAPE);
     } else if (o instanceof Set) {
