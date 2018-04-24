@@ -17,6 +17,7 @@
 package io.warp10.script;
 
 import java.net.URL;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -113,8 +114,6 @@ import io.warp10.script.filter.FilterLastLT;
 import io.warp10.script.filter.FilterLastNE;
 import io.warp10.script.filter.LatencyFilter;
 import io.warp10.script.functions.*;
-import io.warp10.script.lora.LORAENC;
-import io.warp10.script.lora.LORAMIC;
 import io.warp10.script.mapper.MapperAbs;
 import io.warp10.script.mapper.MapperAdd;
 import io.warp10.script.mapper.MapperCeil;
@@ -206,6 +205,7 @@ import io.warp10.script.processing.image.Ppixels;
 import io.warp10.script.processing.image.Pset;
 import io.warp10.script.processing.image.Ptint;
 import io.warp10.script.processing.image.PupdatePixels;
+import io.warp10.script.processing.image.Pfilter;
 import io.warp10.script.processing.math.Pconstrain;
 import io.warp10.script.processing.math.Pdist;
 import io.warp10.script.processing.math.Plerp;
@@ -1018,13 +1018,6 @@ public class WarpScriptLib {
     functions.put("COUNTERDELTA", new COUNTERDELTA("COUNTERDELTA"));
     
     //
-    // LoRaWAN
-    //
-    
-    functions.put("LORAMIC", new LORAMIC("LORAMIC"));
-    functions.put("LORAENC", new LORAENC("LORAENC"));
-    
-    //
     // Math functions
     //
     
@@ -1220,7 +1213,8 @@ public class WarpScriptLib {
     functions.put("Pcopy", new Pcopy("Pcopy"));
     functions.put("Pget", new Pget("Pget"));
     functions.put("Pset", new Pset("Pset"));
-    
+    functions.put("Pfilter", new Pfilter("Pfilter"));
+
     // Rendering
     
     functions.put("PblendMode", new PblendMode("PblendMode"));
@@ -1547,7 +1541,17 @@ public class WarpScriptLib {
         WarpScriptExtension wse = (WarpScriptExtension) cls.newInstance();          
         wse.register();
         
-        System.out.println("LOADED extension '" + extension  + "'");
+        System.out.print("LOADED extension '" + extension  + "'");
+        
+        String namespace = props.getProperty(Configuration.CONFIG_WARPSCRIPT_NAMESPACE_PREFIX + wse.getClass().getName(), "").trim(); 
+        if (null != namespace && !"".equals(namespace)) {
+          if (namespace.contains("%")) {
+            namespace = URLDecoder.decode(namespace, "UTF-8");
+          }
+          System.out.println(" under namespace '" + namespace + "'.");
+        } else {
+          System.out.println();
+        }
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
@@ -1559,6 +1563,26 @@ public class WarpScriptLib {
   }
   
   public static void register(WarpScriptExtension extension) {
+    Properties props = WarpConfig.getProperties();
+    
+    if (null == props) {
+      return;
+    }
+
+    String namespace = props.getProperty(Configuration.CONFIG_WARPSCRIPT_NAMESPACE_PREFIX + extension.getClass().getName(), "").trim();
+        
+    if (namespace.contains("%")) {
+      try {
+        namespace = URLDecoder.decode(namespace, "UTF-8");
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    register(namespace, extension);
+  }
+  
+  public static void register(String namespace, WarpScriptExtension extension) {
     
     extloaded.add(extension.getClass().getCanonicalName());
     
@@ -1570,9 +1594,9 @@ public class WarpScriptLib {
     
     for (Entry<String,Object> entry: extfuncs.entrySet()) {
       if (null == entry.getValue()) {
-        functions.remove(entry.getKey());
+        functions.remove(namespace + entry.getKey());
       } else {
-        functions.put(entry.getKey(), entry.getValue());
+        functions.put(namespace + entry.getKey(), entry.getValue());
       }
     }          
   }

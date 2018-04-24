@@ -758,9 +758,9 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         start = (long) map.get(PARAM_START);
       } else {
         if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-          start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(map.get(PARAM_END).toString());      
+          start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(map.get(PARAM_START).toString());      
         } else {
-          start = fmt.parseDateTime(map.get(PARAM_END).toString()).getMillis() * Constants.TIME_UNITS_PER_MS;
+          start = fmt.parseDateTime(map.get(PARAM_START).toString()).getMillis() * Constants.TIME_UNITS_PER_MS;
         }
       }
       
