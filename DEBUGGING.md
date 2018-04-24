@@ -97,7 +97,7 @@ You can now run or debug the WarpTest class.
 
 ## How to use my own Warp 10 build?
 
-When you're done, you can build a fat jar and replace the warp10 jar in your `~/WARP10/warp10/bin/` directory.
+When you're done, you can build a fat jar and replace the the warp10-*.jar jar in your `~/WARP10/warp10/bin/` directory.
 In a separate terminal : 
 ```bash
 ~/warp10_src/warp10-platform/gradlew crypto:install
