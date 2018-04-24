@@ -97,12 +97,6 @@ import io.warp10.script.binary.POW;
 import io.warp10.script.binary.SHIFTLEFT;
 import io.warp10.script.binary.SHIFTRIGHT;
 import io.warp10.script.binary.SUB;
-import io.warp10.script.ext.groovy.GroovyWarpScriptExtension;
-import io.warp10.script.ext.js.JSWarpScriptExtension;
-import io.warp10.script.ext.lua.LUAWarpScriptExtension;
-import io.warp10.script.ext.python.PythonWarpScriptExtension;
-import io.warp10.script.ext.r.RWarpScriptExtension;
-import io.warp10.script.ext.ruby.RubyWarpScriptExtension;
 import io.warp10.script.filter.FilterByClass;
 import io.warp10.script.filter.FilterByLabels;
 import io.warp10.script.filter.FilterByMetadata;
@@ -114,8 +108,6 @@ import io.warp10.script.filter.FilterLastLT;
 import io.warp10.script.filter.FilterLastNE;
 import io.warp10.script.filter.LatencyFilter;
 import io.warp10.script.functions.*;
-import io.warp10.script.lora.LORAENC;
-import io.warp10.script.lora.LORAMIC;
 import io.warp10.script.mapper.MapperAbs;
 import io.warp10.script.mapper.MapperAdd;
 import io.warp10.script.mapper.MapperCeil;
@@ -1412,37 +1404,7 @@ public class WarpScriptLib {
     //
     
     functions.put("mapper.distinct", new FAIL("mapper.distinct")); // Counts the number of distinct values in a window, using HyperLogLog???
-    functions.put("TICKSHIFT", new FAIL("TICKSHIFT")); // Shifts the ticks of a GTS by this many positions
-    
-    Properties props = WarpConfig.getProperties();
-      
-    if (null != props && props.containsKey(Configuration.CONFIG_WARPSCRIPT_LANGUAGES)) {
-      String[] languages = props.getProperty(Configuration.CONFIG_WARPSCRIPT_LANGUAGES).split(",");
-      Set<String> lang = new HashSet<String>();
-      
-      for (String language: languages) {
-        lang.add(language.toUpperCase());
-      }
-      
-      if (lang.contains("R")) {
-        register(new RWarpScriptExtension());
-      }      
-      if (lang.contains("JS")) {
-        register(new JSWarpScriptExtension());
-      }      
-      if (lang.contains("GROOVY")) {
-        register(new GroovyWarpScriptExtension());
-      }      
-      if (lang.contains("LUA")) {
-        register(new LUAWarpScriptExtension());
-      }      
-      if (lang.contains("RUBY")) {
-        register(new RubyWarpScriptExtension());
-      }
-      if (lang.contains("PYTHON")) {
-        register(new PythonWarpScriptExtension());
-      }
-    }    
+    functions.put("TICKSHIFT", new FAIL("TICKSHIFT")); // Shifts the ticks of a GTS by this many positions    
   }
   
   public static Object getFunction(String name) {

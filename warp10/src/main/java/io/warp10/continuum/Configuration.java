@@ -72,12 +72,6 @@ public class Configuration {
   public static final String WARP_HBASE_REGIONKEYS_UPDATEPERIOD = "warp.hbase.regionkeys.updateperiod";
   
   /**
-   * Comma separated list of additional languages to support within WarpScript
-   * This MUST be set as a system property
-   */
-  public static final String CONFIG_WARPSCRIPT_LANGUAGES = "warpscript.languages";
-  
-  /**
    * Comma separated list of WarpScriptExtension classes to instantiate to modify
    * the defined WarpScript functions.
    */

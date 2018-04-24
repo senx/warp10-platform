@@ -43,26 +43,6 @@ dependencies {
     compile 'org.processing:core:3.0'
 
     //
-    // Reinjin
-    //
-    compile 'org.renjin:renjin-script-engine:0.7.1548'
-
-    //
-    // Lua
-    //
-    compile 'org.luaj:luaj-jse:3.0.1'
-
-    //
-    // Ruby
-    //
-    compile 'org.jruby:jruby-complete:9.0.0.0.rc2'
-
-    //
-    // Python
-    //
-    compile 'org.python:jython:2.7.0'
-
-    //
     // Lz4, pure Java implementation
     //
     //compile 'net.jpountz.lz4:lz4:1.2.0'
@@ -80,8 +60,6 @@ dependencies {
     compile 'org.apache.hbase:hbase-common:1.0.0'
     compile 'org.apache.hbase:hbase-protocol:1.0.0'
 
-    // Consider using -indy version of groovy-all
-    compile 'org.codehaus.groovy:groovy-all:2.1.6'
     compile 'org.fusesource.jansi:jansi:1.6'
     //compile 'org.mvel:mvel2:2.1.5.Final'
     compile 'com.esotericsoftware.kryo:kryo:2.21'
