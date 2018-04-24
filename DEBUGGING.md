@@ -1,12 +1,12 @@
-# WARP 10 IDE Setup for debugging
+# Warp 10 IDE Setup for debugging
 
-## How to debug in an existing WARP 10 instance ? (IntelliJ)
+## How to debug in an existing Warp 10 instance? (IntelliJ)
 
-You already have a standalone instance of WARP 10 on your computer, and you want to debug with your datas.
+You already have a standalone instance of Warp 10 on your computer, and you want to debug with your datas.
 
 You already have a JDK.
 
-You already have thrift in version 0.9.1
+You already have thrift in version 0.9.1.
 
 In the following howto, running instance is in `~/WARP10/warp10`. Local source directory is `~/warp10_src/warp10-platform`
 Make sure your user has group permissions to access all files into your running instance.
@@ -95,7 +95,7 @@ For example, add `~/WARP10/warp10/bin/warp10-quantum-plugin-3.0.3.jar`. When ask
 
 You can now run or debug the WarpTest class.
 
-## How to use my own build ?
+## How to use my own build?
 
 When you're done, you can build a fat jar and replace the warp10 jar in your `~/WARP10/warp10/bin/` directory.
 In a separate terminal : 
