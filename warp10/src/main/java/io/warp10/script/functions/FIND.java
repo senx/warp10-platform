@@ -159,7 +159,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
       top = stack.pop();
       
       if (!(top instanceof Long)) {
-        throw new WarpScriptException(getName() + " expects an expiration timestamp on top of the stack.");
+        throw new WarpScriptException(getName() + " expects a metaset TTL (in time units) on top of the stack.");
       }
       
       set.setExpiry(System.currentTimeMillis() + (((long) top) / Constants.TIME_UNITS_PER_MS));
