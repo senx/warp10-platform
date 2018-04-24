@@ -327,12 +327,10 @@ public class Warp extends WarpDist implements Runnable {
       scc = new StandaloneParallelStoreClientWrapper(scc);
     }
 
-    StandaloneGeoDirectory geodir = new StandaloneGeoDirectory(keystore.clone(), scc, sdc, properties);
-    
     if (properties.containsKey(Configuration.RUNNER_ROOT)) {
       if (!properties.containsKey(Configuration.RUNNER_ENDPOINT)) {
         properties.setProperty(Configuration.RUNNER_ENDPOINT, "");
-        StandaloneScriptRunner runner = new StandaloneScriptRunner(properties, keystore.clone(), scc, sdc,  geodir, properties);
+        StandaloneScriptRunner runner = new StandaloneScriptRunner(properties, keystore.clone(), scc, sdc, properties);
       } else {
         //
         // Allocate a normal runner
@@ -358,7 +356,7 @@ public class Warp extends WarpDist implements Runnable {
     QuasarTokenFilter tf = new QuasarTokenFilter(properties, keystore);
     
     GzipHandler gzip = new GzipHandler();
-    EgressExecHandler egressExecHandler = new EgressExecHandler(keystore, properties, sdc, geodir.getClient(), scc); 
+    EgressExecHandler egressExecHandler = new EgressExecHandler(keystore, properties, sdc, scc); 
     gzip.setHandler(egressExecHandler);
     gzip.setMinGzipSize(0);
     gzip.addIncludedMethods("POST");
@@ -397,16 +395,12 @@ public class Warp extends WarpDist implements Runnable {
     gzip.addIncludedMethods("POST");
     handlers.addHandler(gzip);
     
-    handlers.addHandler(geodir);    
-
     if (enablePlasma) {
       StandalonePlasmaHandler plasmaHandler = new StandalonePlasmaHandler(keystore, properties, sdc);
       scc.addPlasmaHandler(plasmaHandler);     
       handlers.addHandler(plasmaHandler);
     }
     
-    scc.addPlasmaHandler(geodir);
-        
     if (enableStreamUpdate) {
       StandaloneStreamUpdateHandler streamUpdateHandler = new StandaloneStreamUpdateHandler(keystore, properties, sdc, scc);
       handlers.addHandler(streamUpdateHandler);

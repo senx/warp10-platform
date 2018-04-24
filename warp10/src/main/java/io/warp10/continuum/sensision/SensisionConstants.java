@@ -1269,37 +1269,6 @@ public class SensisionConstants {
    */
   public static final String SENSISION_CLASS_WEBCALL_BARRIER_SYNCS = "warp.webcall.barrier.syncs";
 
-  public static final String SENSISION_CLASS_GEODIR_SUBS_ABORTS = "warp.geodir.subscriptions.aborts";
-  public static final String SENSISION_CLASS_GEODIR_SUBS_KAFKA_COMMITS = "warp.geodir.subscriptions.kafka.commits";
-  public static final String SENSISION_CLASS_GEODIR_SUBS_SYNCS = "warp.geodir.subscriptions.syncs";
-  public static final String SENSISION_CLASS_GEODIR_DATA_ABORTS = "warp.geodir.data.aborts";
-  public static final String SENSISION_CLASS_GEODIR_DATA_KAFKA_COMMITS = "warp.geodir.data.kafka.commits";
-  public static final String SENSISION_CLASS_GEODIR_DATA_SYNCS = "warp.geodir.data.syncs";
-  public static final String SENSISION_CLASS_GEODIR_INDEXED_PERCONSUMER = "warp.geodir.indexed.perconsumer";
-  public static final String SENSISION_CLASS_GEODIR_INDEXED = "warp.geodir.indexed";
-  public static final String SENSISION_CLASS_GEODIR_SUBS_KAFKA_MESSAGES = "warp.geodir.subscriptions.kafka.messages";
-  public static final String SENSISION_CLASS_GEODIR_SUBS_KAFKA_BYTES = "warp.geodir.subscriptions.kafka.bytes";
-  public static final String SENSISION_CLASS_GEODIR_SUBS_KAFKA_INVALIDMACS = "warp.geodir.subscriptions.kafka.invalidmacs";
-  public static final String SENSISION_CLASS_GEODIR_SUBS_KAFKA_INVALIDCIPHERS = "warp.geodir.subscriptions.kafka.invalidciphers";
-  public static final String SENSISION_CLASS_GEODIR_SUBS_INVALIDKTOKENS = "warp.geodir.subscriptions.invalidtokens";
-  public static final String SENSISION_CLASS_GEODIR_DATA_KAFKA_MESSAGES = "warp.geodir.data.kafka.messages";
-  public static final String SENSISION_CLASS_GEODIR_DATA_KAFKA_BYTES = "warp.geodir.data.kafka.bytes";
-  public static final String SENSISION_CLASS_GEODIR_DATA_KAFKA_INVALIDMACS = "warp.geodir.data.kafka.invalidmacs";
-  public static final String SENSISION_CLASS_GEODIR_DATA_KAFKA_INVALIDCIPHERS = "warp.geodir.data.kafka.invalidciphers";
-  public static final String SENSISION_CLASS_GEODIR_FILTERED = "warp.geodir.filtered";
-  public static final String SENSISION_CLASS_GEODIR_UNFILTERED = "warp.geodir.unfiltered";
-  public static final String SENSISION_CLASS_GEODIR_REQUESTS = "warp.geodir.requests";
-  public static final String SENSISION_CLASS_GEODIR_CELLS = "warp.geodir.cells";
-  public static final String SENSISION_CLASS_GEODIR_TIME_US = "warp.geodir.time.us";
-  public static final String SENSISION_CLASS_GEODIR_CLIENT_ERRORS = "warp.geodir.client.errors";
-  public static final String SENSISION_CLASS_GEODIR_FETCH_INVALIDMACS = "warp.geodir.fetch.invalidmacs";
-  public static final String SENSISION_CLASS_GEODIR_FETCH_INVALIDCIPHERS = "warp.geodir.fetch.invalidciphers";
-  public static final String SENSISION_CLASS_GEODIR_FETCH_INVALIDBASE = "warp.geodir.fetch.invalidbase";
-  public static final String SENSISION_CLASS_GEODIR_DATA_KAFKA_OUT_SENT = "warp.geodir.data.kafka.out.sent";
-  public static final String SENSISION_CLASS_GEODIR_DATA_KAFKA_OUT_MESSAGES = "warp.geodir.data.kafka.out.messages";
-  public static final String SENSISION_CLASS_GEODIR_DATA_KAFKA_OUT_BYTES = "warp.geodir.data.kafka.out.bytes";
-  public static final String SENSISION_CLASS_GEODIR_FETCH_FAILEDDESER = "warp.geodir.fetch.faileddeser";
-  
   /**
    * Kafka Consumer Offset
    */

@@ -18,8 +18,6 @@ package io.warp10.continuum.egress;
 
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
-import io.warp10.continuum.geo.GeoDirectoryClient;
-import io.warp10.continuum.geo.GeoDirectoryThriftClient;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.crypto.KeyStore;
@@ -130,10 +128,9 @@ public class Egress {
     
     if (!fetcher) {
       DirectoryClient directoryClient = new ThriftDirectoryClient(this.keystore, this.properties);
-      GeoDirectoryClient geoDirectoryClient = new GeoDirectoryThriftClient(keystore, this.properties);
 
       GzipHandler gzip = new GzipHandler();
-      EgressExecHandler egressExecHandler = new EgressExecHandler(this.keystore, this.properties, directoryClient, geoDirectoryClient, storeClient);
+      EgressExecHandler egressExecHandler = new EgressExecHandler(this.keystore, this.properties, directoryClient, storeClient);
       gzip.setHandler(egressExecHandler);
       gzip.setMinGzipSize(0);
       gzip.addIncludedMethods("POST");

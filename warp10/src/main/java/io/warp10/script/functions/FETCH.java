@@ -20,7 +20,6 @@ import io.warp10.WarpDist;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.egress.EgressFetchHandler;
-import io.warp10.continuum.geo.GeoDirectoryClient;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
@@ -89,7 +88,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
   private static final String PARAM_CLASS = "class";
   
   /**
-   * Extra classes to retrieve after Directory/GeoDirectory have been called
+   * Extra classes to retrieve after Directory have been called
    */
   private static final String PARAM_EXTRA = "extra";
   private static final String PARAM_LABELS = "labels";
@@ -102,11 +101,6 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
   private static final String PARAM_COUNT = "count";
   private static final String PARAM_TIMESPAN = "timespan";
   private static final String PARAM_TYPE = "type";
-  private static final String PARAM_GEO = "geo";
-  private static final String PARAM_GEODIR = "geodir";
-  private static final String PARAM_GEOOP = "geoop";
-  private static final String PARAM_GEOOP_IN = "in";
-  private static final String PARAM_GEOOP_OUT = "out";
   private static final String PARAM_WRITE_TIMESTAMP = "wtimestamp";
   private static final String PARAM_SHOWUUID = "showuuid";
   private static final String PARAM_TYPEATTR = "typeattr";
@@ -356,32 +350,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         if (metadatas.size() < EgressFetchHandler.FETCH_BATCHSIZE && iter.hasNext()) {
           continue;
         }
-        
-        //
-        // Filter the retrieved Metadata according to geo
-        //
-        
-        if (params.containsKey(PARAM_GEO)) {
-          GeoDirectoryClient geoclient = stack.getGeoDirectoryClient();
-          long end = (long) params.get(PARAM_END);
-          long start = Long.MIN_VALUE;
-          if (params.containsKey(PARAM_TIMESPAN)) {
-            start = end - (long) params.get(PARAM_TIMESPAN);
-          }
-          
-          boolean inside = false;
-          
-          if (PARAM_GEOOP_IN.equals(params.get(PARAM_GEOOP))) {
-            inside = true;
-          }
-          
-          try {
-            metadatas = geoclient.filter((String) params.get(PARAM_GEODIR), metadatas, (GeoXPShape) params.get(PARAM_GEO), inside, start, end);
-          } catch (IOException ioe) {
-            throw new WarpScriptException(ioe);
-          }
-        }
-        
+                
         //
         // Generate extra Metadata if PARAM_EXTRA is set
         //
@@ -832,35 +801,6 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       if (metaset.isSetNotafter() && end >= metaset.getNotafter()) {
         end = metaset.getNotafter();
         params.put(PARAM_END, end);
-      }
-    }
-
-    if (map.containsKey(PARAM_GEO)) {      
-      if (!(map.get(PARAM_GEO) instanceof GeoXPShape)) {
-        throw new WarpScriptException(getName() + " Invalid '" + PARAM_GEO + "' type.");
-      }
-      
-      if (!map.containsKey(PARAM_GEODIR)) {
-        throw new WarpScriptException(getName() + " Missing '" + PARAM_GEODIR + "' parameter.");
-      }
-      
-      if (!stack.getGeoDirectoryClient().knowsDirectory(map.get(PARAM_GEODIR).toString())) {
-        throw new WarpScriptException(getName() + " Unknwon directory '" + map.get(PARAM_GEODIR) + "' for parameter '" + PARAM_GEODIR + "'.");        
-      }
-      
-      params.put(PARAM_GEODIR, map.get(PARAM_GEODIR));
-      params.put(PARAM_GEO, map.get(PARAM_GEO));
-      
-      if (map.containsKey(PARAM_GEOOP)) {
-        if (PARAM_GEOOP_IN.equals(map.get(PARAM_GEOOP))) {
-          params.put(PARAM_GEOOP, PARAM_GEOOP_IN);
-        } else if (PARAM_GEOOP_OUT.equals(map.get(PARAM_GEOOP))) {
-          params.put(PARAM_GEOOP, PARAM_GEOOP_OUT);
-        } else {
-          throw new WarpScriptException(getName() + " Invalid value for parameter '" + PARAM_GEOOP + "'");
-        }
-      } else {
-        params.put(PARAM_GEOOP, PARAM_GEOOP_IN);
       }
     }
     

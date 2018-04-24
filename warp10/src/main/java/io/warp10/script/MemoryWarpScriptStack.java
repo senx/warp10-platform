@@ -19,7 +19,6 @@ package io.warp10.script;
 import io.warp10.WarpConfig;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.Configuration;
-import io.warp10.continuum.geo.GeoDirectoryClient;
 import io.warp10.continuum.gts.UnsafeString;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.DirectoryClient;
@@ -99,8 +98,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   
   private DirectoryClient directoryClient;
   
-  private GeoDirectoryClient geoDirectoryClient;
-  
   private final AtomicInteger recursionLevel = new AtomicInteger(0);
   
   private final String uuid = UUID.randomUUID().toString();
@@ -148,30 +145,17 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     return this.directoryClient;
   }
   
-  public GeoDirectoryClient getGeoDirectoryClient() {
-    return this.geoDirectoryClient;
-  }
-  
   public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient) {
     this(storeClient, directoryClient, WarpConfig.getProperties());
   }
 
-  public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient, GeoDirectoryClient geoDirectoryClient) {
-    this(storeClient, directoryClient, geoDirectoryClient, WarpConfig.getProperties());
-  }
-
   public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient, Properties properties) {
-    this(storeClient, directoryClient, null, properties);
+    this(storeClient, directoryClient, properties, true);
   }
   
-  public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient, GeoDirectoryClient geoDirectoryClient, Properties properties) {
-    this(storeClient, directoryClient, geoDirectoryClient, properties, true);
-  }
-  
-  public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient, GeoDirectoryClient geoDirectoryClient, Properties properties, boolean init) {
+  public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient, Properties properties, boolean init) {
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
-    this.geoDirectoryClient = geoDirectoryClient;
   
     this.unshadow = "true".equals(properties.getProperty(Configuration.WARPSCRIPT_DEF_UNSHADOW));
     
@@ -1365,7 +1349,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     
     final MemoryWarpScriptStack parentStack = this;
     
-    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(getStoreClient(), getDirectoryClient(), getGeoDirectoryClient(), properties, false) {
+    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(getStoreClient(), getDirectoryClient(), properties, false) {
       
       private final Map<String,Object> attributes = new HashMap<String, Object>();
                

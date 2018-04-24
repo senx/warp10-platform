@@ -16,7 +16,6 @@
 
 package io.warp10.script;
 
-import io.warp10.continuum.geo.GeoDirectoryClient;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.script.functions.SNAPSHOT;
@@ -398,12 +397,6 @@ public interface WarpScriptStack {
    * @return
    */
   public DirectoryClient getDirectoryClient();
-  
-  /**
-   * Retrieve the GeoDirectoryClient instance associated with this stack
-   * @return
-   */
-  public GeoDirectoryClient getGeoDirectoryClient();
   
   /**
    * Push an object onto the stack
