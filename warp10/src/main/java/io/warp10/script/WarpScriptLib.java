@@ -904,7 +904,7 @@ public class WarpScriptLib {
     functions.put("FILTER", new FILTER("FILTER", true));
     functions.put("APPLY", new APPLY("APPLY", true));
     functions.put("PFILTER", new FILTER("FILTER", false));
-    functions.put("PAPPLY", new APPLY("APPLY", false));
+    functions.put("PAPPLY", new APPLY("PAPPLY", false));
     functions.put("REDUCE", new REDUCE("REDUCE", true));
     functions.put("PREDUCE", new REDUCE("PREDUCE", false));
     
