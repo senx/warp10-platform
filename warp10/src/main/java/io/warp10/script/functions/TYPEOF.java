@@ -27,7 +27,8 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealMatrix;
-
+import processing.core.PGraphics;
+import processing.core.PImage;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
@@ -60,6 +61,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String TYPE_VECTOR = "VLIST";
   public static final String TYPE_REALVECTOR = "VECTOR";
   public static final String TYPE_REALMATRIX = "MATRIX";
+  public static final String TYPE_PIMAGE = "PIMAGE";
 
   public TYPEOF(String name) {
     super(name);
@@ -95,8 +97,10 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
       stack.push(TYPE_GTS);
     } else if (o instanceof byte[] ) {
       stack.push(TYPE_BYTES);
-    } else if (o instanceof processing.awt.PGraphicsJava2D) {
+    } else if (o instanceof PGraphics) {
       stack.push(TYPE_PGRAPHICSIMAGE);
+    } else if (o instanceof PImage) {
+      stack.push(TYPE_PIMAGE);
     } else if (o instanceof GeoXPLib.GeoXPShape) {
       stack.push(TYPE_GEOSHAPE);
     } else if (o instanceof Set) {
