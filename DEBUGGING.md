@@ -6,6 +6,8 @@ You already have a standalone instance of WARP 10 on your computer, and you want
 
 You already have a JDK.
 
+You already have thrift in version 0.9.1
+
 In the following howto, running instance is in `~/WARP10/warp10`. Local source directory is `~/warp10_src/warp10-platform`
 Make sure your user has group permissions to access all files into your running instance.
 
