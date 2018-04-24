@@ -95,7 +95,7 @@ For example, add `~/WARP10/warp10/bin/warp10-quantum-plugin-3.0.3.jar`. When ask
 
 You can now run or debug the WarpTest class.
 
-## How to use my own build?
+## How to use my own Warp 10 build?
 
 When you're done, you can build a fat jar and replace the warp10 jar in your `~/WARP10/warp10/bin/` directory.
 In a separate terminal : 
