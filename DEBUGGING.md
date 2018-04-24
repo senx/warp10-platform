@@ -60,14 +60,23 @@ warpscript/
 + Open in a new window
 + Wait for gradle to complete
 + In a separate terminal, prepare remaining gradle tasks, as described in BUILDING.md
+
+```bash
 ~/warp10_src/warp10-platform/gradlew warp10:generateThrift
 ~/warp10_src/warp10-platform/gradlew token:generateThrift
 ~/warp10_src/warp10-platform/gradlew crypto:install
 ~/warp10_src/warp10-platform/gradlew token:install
+```
+
 + Display gradle tool window : View, Tool windows, Gradle. Press refresh all gradle project button.
 + Create a test class called WarpTest in warp10-platform/warp10/src/test/java/io.warp10
 
 ```java
+package io.warp10;
+
+import org.junit.Test;
+import io.warp10.standalone.Warp;
+import java.io.File;
 
 public class WarpTest {
 
