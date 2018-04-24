@@ -1020,13 +1020,6 @@ public class WarpScriptLib {
     functions.put("COUNTERDELTA", new COUNTERDELTA("COUNTERDELTA"));
     
     //
-    // LoRaWAN
-    //
-    
-    functions.put("LORAMIC", new LORAMIC("LORAMIC"));
-    functions.put("LORAENC", new LORAENC("LORAENC"));
-    
-    //
     // Math functions
     //
     
