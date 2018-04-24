@@ -38,7 +38,8 @@ dependencies {
     compile "io.warp10:crypto:${warp10Version['crypto']}"
     compile 'io.warp10:sensision:1.0.11'
 
-    compile 'org.apache.thrift:libthrift:0.9.1'
+    compile 'org.apache.thrift:libthrift:0.11.0'
+    compile 'org.apache.commons:commons-lang3:3.7'
 }
 
 jar {
