@@ -17,11 +17,9 @@
 package io.warp10.script.binary;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import java.math.BigDecimal;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Checks the two operands on top of the stack for inequality
@@ -31,22 +29,18 @@ public class NE extends NamedWarpScriptFunction implements WarpScriptStackFuncti
   public NE(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object op2 = stack.pop();
     Object op1 = stack.pop();
-    
+
     if (op2 instanceof Number && op1 instanceof Number) {
       stack.push(0 != EQ.compare((Number) op1, (Number) op2));
-    } else if (op2 instanceof String && op1 instanceof String) {
-      stack.push(!op1.toString().equals(op2.toString()));
-    } else if (op2 instanceof Boolean && op2 instanceof Boolean) {
-      stack.push(!op1.equals(op2));
     } else {
-      throw new WarpScriptException(getName() + " can only operate on homogeneous numeric, string or boolean types.");
+      stack.push(!op1.equals(op2));
     }
-    
+
     return stack;
   }
 }
