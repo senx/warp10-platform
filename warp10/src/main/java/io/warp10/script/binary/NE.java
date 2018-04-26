@@ -35,7 +35,19 @@ public class NE extends NamedWarpScriptFunction implements WarpScriptStackFuncti
     Object op2 = stack.pop();
     Object op1 = stack.pop();
 
-    if (op2 instanceof Number && op1 instanceof Number) {
+    if (op2 instanceof Double && op1 instanceof Double) {
+      // Special case if the 2 parameters are NaN value : we want 'NaN NaN !=' to be true
+      // NaN is not convertible to BigDecimal, so we cannot use the compare method
+      if (Double.isNaN((Double) op1) || Double.isNaN((Double) op2)) {
+        stack.push(!(Double.isNaN((Double) op1) && Double.isNaN((Double) op2)));
+      } else {
+        stack.push(0 != EQ.compare((Number) op1, (Number) op2));
+      }
+    } else if (op1 instanceof Double && Double.isNaN((Double) op1)) { // Do we have only one NaN ?
+      stack.push(true);
+    } else if (op2 instanceof Double && Double.isNaN((Double) op2)) { // Do we have only one NaN ?
+      stack.push(true);
+    } else if (op2 instanceof Number && op1 instanceof Number) {
       stack.push(0 != EQ.compare((Number) op1, (Number) op2));
     } else {
       stack.push(!op1.equals(op2));

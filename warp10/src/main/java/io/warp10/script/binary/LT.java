@@ -17,11 +17,9 @@
 package io.warp10.script.binary;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import java.math.BigDecimal;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Checks the two operands on top of the stack for less than
@@ -31,20 +29,24 @@ public class LT extends NamedWarpScriptFunction implements WarpScriptStackFuncti
   public LT(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object op2 = stack.pop();
     Object op1 = stack.pop();
-    
-    if (op2 instanceof Number && op1 instanceof Number) {
+
+    if (op1 instanceof Double && Double.isNaN((Double) op1)) { // Do we have only one NaN ?
+      stack.push(false);
+    } else if (op2 instanceof Double && Double.isNaN((Double) op2)) { // Do we have only one NaN ?
+      stack.push(false);
+    } else if (op2 instanceof Number && op1 instanceof Number) {
       stack.push(EQ.compare((Number) op1, (Number) op2) < 0);
     } else if (op2 instanceof String && op1 instanceof String) {
       stack.push(op1.toString().compareTo(op2.toString()) < 0);
     } else {
       throw new WarpScriptException(getName() + " can only operate on homogeneous numeric or string types.");
     }
-    
+
     return stack;
   }
 }
