@@ -20,6 +20,8 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
 
 import java.math.BigDecimal;
 
@@ -51,9 +53,13 @@ public class EQ extends NamedWarpScriptFunction implements WarpScriptStackFuncti
     } else if (op2 instanceof Double && Double.isNaN((Double) op2)) { // Do we have only one NaN ?
       stack.push(false);
     } else if (op2 instanceof Number && op1 instanceof Number) {
-      stack.push(0 == EQ.compare((Number) op1, (Number) op2));
-    } else {
+      stack.push(0 == compare((Number) op1, (Number) op2));
+    } else if (op1 instanceof Boolean || op1 instanceof String
+        || op1 instanceof RealVector || op1 instanceof RealMatrix) {
       stack.push(op1.equals(op2));
+    } else {
+      throw new WarpScriptException(getName()
+          + " can only operate on homogeneous numeric, string, boolean, vector or matrix types.");
     }
 
     return stack;

@@ -20,6 +20,8 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
 
 /**
  * Checks the two operands on top of the stack for inequality
@@ -49,8 +51,12 @@ public class NE extends NamedWarpScriptFunction implements WarpScriptStackFuncti
       stack.push(true);
     } else if (op2 instanceof Number && op1 instanceof Number) {
       stack.push(0 != EQ.compare((Number) op1, (Number) op2));
-    } else {
+    } else if (op1 instanceof Boolean || op1 instanceof String
+        || op1 instanceof RealVector || op1 instanceof RealMatrix) {
       stack.push(!op1.equals(op2));
+    } else {
+      throw new WarpScriptException(getName()
+          + " can only operate on homogeneous numeric, string, boolean, vector or matrix types.");
     }
 
     return stack;
