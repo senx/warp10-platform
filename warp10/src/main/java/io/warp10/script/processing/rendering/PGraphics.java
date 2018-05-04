@@ -95,7 +95,7 @@ public class PGraphics extends NamedWarpScriptFunction implements WarpScriptStac
     pg.beginDraw();
  
     pg.loadPixels();
-    pg.colorMode(pg.ARGB, 255, 255, 255, 255);
+    pg.colorMode(pg.RGB, 255, 255, 255, 255);
 
     stack.push(pg);
     
