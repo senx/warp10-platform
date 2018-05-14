@@ -905,7 +905,7 @@ public class WarpScriptLib {
     functions.put("FILTER", new FILTER("FILTER", true));
     functions.put("APPLY", new APPLY("APPLY", true));
     functions.put("PFILTER", new FILTER("FILTER", false));
-    functions.put("PAPPLY", new APPLY("APPLY", false));
+    functions.put("PAPPLY", new APPLY("PAPPLY", false));
     functions.put("REDUCE", new REDUCE("REDUCE", true));
     functions.put("PREDUCE", new REDUCE("PREDUCE", false));
     
@@ -1406,13 +1406,7 @@ public class WarpScriptLib {
 
     /////////////////////////
     
-    //
-    // TBD
-    //
-    
-    functions.put("mapper.distinct", new FAIL("mapper.distinct")); // Counts the number of distinct values in a window, using HyperLogLog???
-    functions.put("TICKSHIFT", new FAIL("TICKSHIFT")); // Shifts the ticks of a GTS by this many positions
-    
+
     Properties props = WarpConfig.getProperties();
       
     if (null != props && props.containsKey(Configuration.CONFIG_WARPSCRIPT_LANGUAGES)) {
