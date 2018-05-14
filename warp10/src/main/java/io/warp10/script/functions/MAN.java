@@ -61,7 +61,7 @@ public class MAN extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
     if (null == functionname) {
       stack.push(Constants.WARP10_DOC_URL);
-    } else if ("" == functionname) {
+    } else if ("".equals(functionname)) {
       stack.push("Unknown function name, please check " + Constants.WARP10_DOC_URL);
     } else {
       String docname = functionname;
