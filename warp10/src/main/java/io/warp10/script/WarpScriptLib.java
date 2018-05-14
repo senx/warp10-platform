@@ -375,9 +375,10 @@ public class WarpScriptLib {
     functions.put("REV", new REV("REV"));
     
     functions.put(BOOTSTRAP, new NOOP(BOOTSTRAP));
-    
+
     functions.put("RTFM", new RTFM("RTFM"));
-    
+    functions.put("MAN", new MAN("MAN"));
+
     functions.put("REXEC", new REXEC("REXEC"));
     functions.put("REXECZ", new REXEC("REXECZ", true));
     
