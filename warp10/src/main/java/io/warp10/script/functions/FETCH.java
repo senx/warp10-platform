@@ -427,6 +427,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         
         boolean showUUID = Boolean.TRUE.equals(params.get(PARAM_SHOWUUID));
         
+        TYPE lastType = TYPE.UNDEFINED;
         
         try (GTSDecoderIterator gtsiter = gtsStore.fetch(rtoken, metadatas, (long) params.get(PARAM_END), timespan, fromArchive, writeTimestamp)) {
           while(gtsiter.hasNext()) {
@@ -438,6 +439,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               lastMetadata = decoder.getMetadata();
               identical = false;
               lastCount = 0;
+              lastType = TYPE.UNDEFINED;
             }
                          
             GeoTimeSerie gts;
@@ -521,7 +523,17 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
             if (null != type) {
               gts = decoder.decode(type);
             } else {
-              gts = decoder.decode();
+              //
+              // We need to decode using the same type as the previous decoder for the same GTS
+              // Otherwise, if it happens that the current decoder starts with a value of another
+              // type then the merge will not take into account this decoder as the decoded GTS
+              // will be of a different type.
+              if (identical && lastType != TYPE.UNDEFINED) {
+                gts = decoder.decode(lastType);
+              } else {
+                gts = decoder.decode();
+              }
+              lastType = gts.getType();
             }
         
             if (identical && timespan < 0 && lastCount + GTSHelper.nvalues(gts) > -timespan) {
