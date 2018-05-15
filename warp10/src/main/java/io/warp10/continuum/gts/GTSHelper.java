@@ -2988,6 +2988,8 @@ public class GTSHelper {
       
       base.values = base.values + gts.values;
       
+    } else {
+      throw new RuntimeException("Merge cannot proceed with incompatible GTS types.");
     }
 
     base.sorted = false;
