@@ -119,7 +119,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
       lastidx = ((Number) top).intValue() - 1;
 
       if (lastidx > stack.depth() - 1) {
-        throw new WarpScriptException(getName() + " expects a number of stack levels within the stack size.");
+        lastidx = stack.depth() - 1;
       }
     } else if (!this.toMark) {
       lastidx = stack.depth() - 1;
