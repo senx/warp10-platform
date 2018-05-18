@@ -216,7 +216,6 @@ import io.warp10.script.processing.rendering.PGraphics;
 import io.warp10.script.processing.rendering.PblendMode;
 import io.warp10.script.processing.rendering.Pclip;
 import io.warp10.script.processing.rendering.PnoClip;
-import io.warp10.script.processing.rendering.Psmooth;
 import io.warp10.script.processing.shape.Parc;
 import io.warp10.script.processing.shape.PbeginContour;
 import io.warp10.script.processing.shape.PbeginShape;
