@@ -65,18 +65,6 @@ public class SUBLIST extends NamedWarpScriptFunction implements WarpScriptStackF
       
       int la = ((Long) a).intValue();
       int lb = ((Long) b).intValue();
-      
-      if (la >= elements.size()) {
-        la = elements.size() - 1;
-      } else if (la < -1 * elements.size()) {
-        la = -1 * elements.size();
-      }
-
-      if (lb >= elements.size()) {
-        lb = elements.size() - 1;
-      } else if (lb < -1 * elements.size()) {
-        lb = -1 * elements.size();
-      }
 
       if (la < 0) {
         la = elements.size() + la;
@@ -85,14 +73,47 @@ public class SUBLIST extends NamedWarpScriptFunction implements WarpScriptStackF
         lb = elements.size() + lb;
       }
 
-      if (la < lb) {
-        for (int i = la; i <= lb; i++) {
-          sublist.add(elements.get(i));
-        }                  
+      if (la < 0 && lb < 0) {
+        la = elements.size();
+        lb = elements.size();
       } else {
-        for (int i = lb; i <= la; i++) {
-          sublist.add(elements.get(i));
-        }                            
+        la = Math.max(0, la);
+        lb = Math.max(0, lb);
+      }
+      
+      //
+      // If at least one of the bounds is included in the list indices,
+      // fix the other one
+      //
+      
+      if (la < elements.size() || lb < elements.size()) {
+        if (la >= elements.size()) {
+          la = elements.size() - 1;
+        } else if (la < -1 * elements.size()) {
+          la = -1 * elements.size();
+        }
+
+        if (lb >= elements.size()) {
+          lb = elements.size() - 1;
+        } else if (lb < -1 * elements.size()) {
+          lb = -1 * elements.size();
+        }        
+      }
+
+      if (la < lb) {
+        if (la < elements.size()) {
+          lb = Math.min(elements.size() - 1, lb);
+          for (int i = la; i <= lb; i++) {
+            sublist.add(elements.get(i));
+          }                  
+        }
+      } else {
+        if (lb < elements.size()) {
+          la = Math.min(elements.size() - 1, la);
+          for (int i = lb; i <= la; i++) {
+            sublist.add(elements.get(i));
+          }                            
+        }
       }
     } else {
       for (Object index: lindices) {
