@@ -426,7 +426,7 @@ public class GTSDecoder {
             int scale = buffer.get();
             long unscaled = Varint.decodeSignedLong(buffer);
             previousLastBDValue = lastBDValue;
-            lastBDValue = new BigDecimal(new BigInteger(Long.toString(unscaled)), scale);
+            lastBDValue = new BigDecimal(BigInteger.valueOf(unscaled), scale);
           }
         } else {
           previousLastDoubleValue = lastDoubleValue;

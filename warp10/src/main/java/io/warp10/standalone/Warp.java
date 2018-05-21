@@ -16,8 +16,28 @@
 
 package io.warp10.standalone;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+
+import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.Handler;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.handler.HandlerList;
+import org.eclipse.jetty.server.handler.gzip.GzipHandler;
+import org.fusesource.leveldbjni.JniDBFactory;
+import org.iq80.leveldb.CompressionType;
+import org.iq80.leveldb.DB;
+import org.iq80.leveldb.Options;
+import org.iq80.leveldb.impl.Iq80DBFactory;
+
+import com.google.common.base.Preconditions;
+
 import io.warp10.Revision;
-import io.warp10.WarpConfig;
 import io.warp10.WarpDist;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
@@ -41,27 +61,6 @@ import io.warp10.script.ScriptRunner;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.AbstractWarp10Plugin;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-
-import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.handler.HandlerList;
-import org.eclipse.jetty.server.handler.gzip.GzipHandler;
-import org.fusesource.leveldbjni.JniDBFactory;
-import org.iq80.leveldb.CompressionType;
-import org.iq80.leveldb.DB;
-import org.iq80.leveldb.Options;
-import org.iq80.leveldb.impl.Iq80DBFactory;
-
-import com.google.common.base.Preconditions;
 
 public class Warp extends WarpDist implements Runnable {
     
@@ -212,11 +211,22 @@ public class Warp extends WarpDist implements Runnable {
     //
     
     if (!inmemory && !nullbackend && !plasmabackend) {
+      boolean nativedisabled = "true".equals(properties.getProperty(Configuration.LEVELDB_NATIVE_DISABLE));
+      boolean javadisabled = "true".equals(properties.getProperty(Configuration.LEVELDB_JAVA_DISABLE));
       try {
-        db = JniDBFactory.factory.open(new File(properties.getProperty(Configuration.LEVELDB_HOME)), options);
+        if (!nativedisabled) {
+          db = JniDBFactory.factory.open(new File(properties.getProperty(Configuration.LEVELDB_HOME)), options);
+        } else {
+          throw new UnsatisfiedLinkError("Native LevelDB implementation disabled.");
+        }
       } catch (UnsatisfiedLinkError ule) {
-        System.out.println("WARNING: falling back to pure java implementation of LevelDB.");
-        db = Iq80DBFactory.factory.open(new File(properties.getProperty(Configuration.LEVELDB_HOME)), options);
+        ule.printStackTrace();
+        if (!javadisabled) {
+          System.out.println("WARNING: falling back to pure java implementation of LevelDB.");
+          db = Iq80DBFactory.factory.open(new File(properties.getProperty(Configuration.LEVELDB_HOME)), options);
+        } else {
+          throw new RuntimeException("No usable LevelDB implementation, aborting.");
+        }
       }      
     }
 
@@ -372,6 +382,14 @@ public class Warp extends WarpDist implements Runnable {
     gzip.setMinGzipSize(0);
     gzip.addIncludedMethods("POST");
     handlers.addHandler(gzip);
+
+    if ("true".equals(properties.getProperty(Configuration.STANDALONE_SPLITS_ENABLE))) {
+      gzip = new GzipHandler();
+      gzip.setHandler(new StandaloneSplitsHandler(keystore, sdc));
+      gzip.setMinGzipSize(0);
+      gzip.addIncludedMethods("POST");
+      handlers.addHandler(gzip);      
+    }
 
     gzip = new GzipHandler();
     gzip.setHandler(new StandaloneDeleteHandler(keystore, sdc, scc));

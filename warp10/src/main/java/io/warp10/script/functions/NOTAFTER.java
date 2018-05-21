@@ -23,6 +23,8 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
+import org.apache.commons.lang3.JavaVersion;
+import org.apache.commons.lang3.SystemUtils;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
@@ -43,7 +45,11 @@ public class NOTAFTER extends NamedWarpScriptFunction implements WarpScriptStack
     long instant;
     
     if (top instanceof String) {
-      instant = fmt.parseDateTime((String) top).getMillis() * Constants.TIME_UNITS_PER_MS;
+      if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
+        instant = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(top.toString());
+      } else {
+        instant = fmt.parseDateTime((String) top).getMillis() * Constants.TIME_UNITS_PER_MS;
+      }
     } else if (!(top instanceof Long)) {
       throw new WarpScriptException(getName() + " expects a timestamp or ISO8601 datetime string on top of the stack.");
     } else {

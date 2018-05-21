@@ -35,8 +35,8 @@ public class DIFFERENCE extends NamedWarpScriptFunction implements WarpScriptSta
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object a = stack.pop();
     Object b = stack.pop();
+    Object a = stack.pop();
     
     if (!(a instanceof Set) || !(b instanceof Set)) {
       throw new WarpScriptException(getName() + " can only operate on sets.");

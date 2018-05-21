@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 
 import com.google.common.base.Charsets;
 
@@ -136,10 +137,13 @@ public class WarpScriptMacroRepository extends Thread {
         // Ignore '.mc2' files not in a subdir
         //
         
-        if (!name.contains("/")) {
+        if (!name.contains(File.separator)) {
           continue;
         }
         
+        // Replace file separator with '/'
+        name = name.replaceAll(Pattern.quote(File.separator), "/");
+
         Macro macro = loadMacro(name, file);
 
         if (null != macro) {
@@ -182,6 +186,11 @@ public class WarpScriptMacroRepository extends Thread {
     Macro macro = null;
     synchronized(macros) {
       macro = (Macro) macros.get(name);
+    }
+    
+    // Check if macro has expired when ondemand loading is activated
+    if (ondemand && null != macro && macro.isExpired()) {
+      macro = null;
     }
     
     if (null == macro && ondemand) {
@@ -307,7 +316,12 @@ public class WarpScriptMacroRepository extends Thread {
     String rootdir = new File(directory).getAbsolutePath();
     
     if (null == file) {
-      file = new File(rootdir, name + ".mc2");
+      // Replace '/' with the platform separator
+      if (!"/".equals(File.separator)) {
+        file = new File(rootdir, name.replaceAll("/", File.separator) + ".mc2");
+      } else {
+        file = new File(rootdir, name + ".mc2");
+      }
       
       // Macros should reside in the configured root directory
       if (!file.getAbsolutePath().startsWith(rootdir)) {
@@ -317,6 +331,7 @@ public class WarpScriptMacroRepository extends Thread {
 
     if (null == name) {
       name = file.getAbsolutePath().substring(rootdir.length() + 1).replaceAll("\\.mc2$", "");
+      name = name.replaceAll(Pattern.quote(File.separator), "/");
     }
     
     byte[] buf = new byte[8192];
@@ -356,8 +371,8 @@ public class WarpScriptMacroRepository extends Thread {
 
       Macro old = macros.get(name);
       
-      // Re-use the same macro if its fingerprint did not change
-      if (null != old && hash == old.getFingerprint()) {
+      // Re-use the same macro if its fingerprint did not change and it has not expired
+      if (null != old && hash == old.getFingerprint() && (ondemand && !old.isExpired())) {
         return old;
       }
             
@@ -417,6 +432,11 @@ public class WarpScriptMacroRepository extends Thread {
       
       Macro macro = (Macro) stack.pop();
                 
+      // Set expiration if ondemand is set and an expiration date was set
+      if (ondemand && null != stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_EXPIRY)) {
+        macro.setExpiry((long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_EXPIRY));
+      }
+      
       macro.setFingerprint(hash);
       
       // Make macro a secure one
@@ -426,8 +446,13 @@ public class WarpScriptMacroRepository extends Thread {
     } catch(Exception e) {
       // Replace macro with a FAIL indicating the error message
       Macro macro = new Macro();
-      macro.add("Error while loading macro '" + name + "': " + e.getMessage());
+      macro.add("[" + System.currentTimeMillis() + "] Error while loading macro '" + name + "': " + e.getMessage());      
       macro.add(MSGFAIL_FUNC);
+      // Set the expiry to half the refresh interval if ondemand is true so we get a chance to load a newly provided file
+      if (ondemand) {
+        macro.setExpiry(System.currentTimeMillis() + Math.max(delay / 2, 10000));
+      }
+      macro.setFingerprint(0L);
       return macro;
     } finally {
       loading.get().addAndGet(-1);

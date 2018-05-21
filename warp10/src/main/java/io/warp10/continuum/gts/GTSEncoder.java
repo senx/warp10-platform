@@ -1166,6 +1166,13 @@ public class GTSEncoder {
     return this.metadata;
   }
   
+  /**
+   * Return the untouched Metadata associated with this encoder
+   */
+  public Metadata getRawMetadata() {
+    return this.metadata;
+  }
+  
   public long getLastTimestamp() {
     return this.lastTimestamp;
   }

@@ -504,7 +504,7 @@ C------------------------------------------------------------------
    * @param levels Number of levels to consider for the alphabet (2**levels elements)
    *        levels can be in the range 1 to SAX_MAX_LEVEL
    * 
-   * @return a binary representation of a SAX word (array of symbols).
+   * @return a binary representation of a SAX word (array of symbols), right padded with 0s
    */
   
   public static byte[] bSAX(int levels, int[] symbols) {

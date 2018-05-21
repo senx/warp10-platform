@@ -1,4 +1,27 @@
 #!/usr/bin/env python -u 
+#
+# If using a virtual python environment (set up via virtualenv), use the
+# following shell wrapper:
+#
+# ---8<------8<------8<------8<------8<------8<------8<------8<------8<---
+# #!/bin/sh
+#
+# VIRTUAL_ROOT=/path/to/virtual/environment
+# CALLABLE_PATH=${VIRTUAL_ROOT}/bin/callable.py
+#
+# # Load the environment variables for virtual python environment
+# # source ${VIRTUAL_ROOT}/bin/activate
+#
+# cd ${VIRTUAL_ROOT}
+#
+# exec python -u ${CALLABLE_PATH}
+# ---8<------8<------8<------8<------8<------8<------8<------8<------8<---
+#
+#
+# Calling this script from WarpScript is done via
+#
+# ... ->PICKLE ->B64 'path/to/callable.py' CALL B64-> PICKLE->
+#
 
 import cPickle
 import sys
@@ -27,8 +50,8 @@ while True:
     line = line.strip()
     line = urllib.unquote(line.decode('utf-8'))
     # Remove Base64 encoding
-    str = base64.b64decode(line)
-    args = cPickle.loads(str)
+    mystr = base64.b64decode(line)
+    args = cPickle.loads(mystr)
 
     #
     # Do out stuff
@@ -36,9 +59,12 @@ while True:
     output = 'output'
 
     #
-    # Output result (URL encoded UTF-8).
+    # Output result
     #
-    print urllib.quote(output.encode('utf-8'))
+    # (URL encoded UTF-8).
+    #print urllib.quote(output.encode('utf-8'))
+    # Base64 pickled data
+    print urllib.quote(base64.b64encode(cPickle.dumps(output)).encode('utf-8'))
   except Exception as err:
     #
     # If returning a content starting with ' ' (not URL encoded), then

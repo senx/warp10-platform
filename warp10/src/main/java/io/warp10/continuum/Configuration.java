@@ -40,9 +40,19 @@ public class Configuration {
   public static final String WARP10_QUIET = "warp10.quiet";
   
   /**
+   * Comma separated list of headers to return in the Access-Allow-Control-Headers response header to preflight requests.
+   */
+  public static final String CORS_HEADERS = "cors.headers";
+  
+  /**
    * List of Warp 10 plugins to initialize
    */
   public static final String WARP10_PLUGINS = "warp10.plugins";
+  
+  /**
+   * Prefix for plugin declaration
+   */
+  public static final String WARP10_PLUGIN_PREFIX = "warp10.plugin.";
   
   /**
    * Maximum number of subscriptions per plasma connection
@@ -74,9 +84,14 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_EXTENSIONS = "warpscript.extensions";
   
   /**
-   * Prefix for properties which defined WarpScript extensions
+   * Prefix for properties which define WarpScript extensions
    */
   public static final String CONFIG_WARPSCRIPT_EXTENSION_PREFIX = "warpscript.extension.";
+  
+  /**
+   * Prefix for properties which define WarpScript extension namespaces.
+   */
+  public static final String CONFIG_WARPSCRIPT_NAMESPACE_PREFIX = "warpscript.namespace.";
   
   /**
    * This configuration parameter determines if undefining a function (via NULL 'XXX' DEF)
@@ -88,7 +103,7 @@ public class Configuration {
   
   public static final String WARPSCRIPT_MAX_OPS = "warpscript.maxops";
   public static final String WARPSCRIPT_MAX_BUCKETS = "warpscript.maxbuckets";
-  public static final String WARPSCRIPT_MAX_GEOCELLS = "warpscript.geocells";
+  public static final String WARPSCRIPT_MAX_GEOCELLS = "warpscript.maxgeocells";
   public static final String WARPSCRIPT_MAX_DEPTH = "warpscript.maxdepth";
   public static final String WARPSCRIPT_MAX_FETCH = "warpscript.maxfetch";
   public static final String WARPSCRIPT_MAX_GTS = "warpscript.maxgts";
@@ -424,6 +439,11 @@ public class Configuration {
    */
   public static final String DIRECTORY_STREAMING_MAXQUEUESIZE = "directory.streaming.maxqueuesize";
 
+  /**
+   * Prefix used for setting Jetty attributes
+   */
+  public static final String DIRECTORY_STREAMING_JETTY_ATTRIBUTE_PREFIX = "directory.streaming.jetty.attribute.";
+  
   /**
    * Address on which the DirectoryService will listen
    */
@@ -1204,6 +1224,16 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
+   * Flag to disable the use of the native LevelDB implementation
+   */
+  public static final String LEVELDB_NATIVE_DISABLE = "leveldb.native.disable";
+  
+  /**
+   * Flag to disable the use of the pure java LevelDB implementation
+   */
+  public static final String LEVELDB_JAVA_DISABLE = "leveldb.java.disable";
+  
+  /**
    * Directory where the leveldb files should be created
    */
   public static final String LEVELDB_HOME = "leveldb.home";
@@ -1238,6 +1268,17 @@ public class Configuration {
    * Compression type to use for leveldb (SNAPPY/NONE)
    */
   public static final String LEVELDB_COMPRESSION_TYPE = "leveldb.compression.type";
+  
+  /**
+   * Set to true to disable the delete endpoint in the standalone version of Warp 10.
+   */
+  public static final String STANDALONE_DELETE_DISABLE = "standalone.delete.disable";
+  
+  /**
+   * Set to true to enable splits generation on the standalone instance. This MUST be set
+   * to true for Warp10InputFormat to work against a standalone Warp 10 instance.
+   */
+  public static final String STANDALONE_SPLITS_ENABLE = "standalone.splits.enable";
   
   /**
    * IP to bind to for listening to incoming connections. Use 0.0.0.0 to listen to all interfaces
@@ -1439,6 +1480,11 @@ public class Configuration {
   public static final String STANDALONE_MEMORY_STORE_DUMP = "in.memory.dump";
   
   /**
+   * Set to true to tolerate errors while loading a dumped state. Setting this to true can lead to partial data being loaded.
+   */
+  public static final String STANDALONE_MEMORY_STORE_LOAD_FAILSAFE = "in.memory.load.failsafe";
+  
+  /**
    * How often (in ms) to perform a gc of the in-memory store.
    */
   public static final String STANDALONE_MEMORY_GC_PERIOD = "in.memory.gcperiod";
@@ -1456,6 +1502,13 @@ public class Configuration {
   //
   // E G R E S S
   //
+  
+  /**
+   * Flag (true/false) indicating whether or not the Directory and Store clients should be exposed by Egress.
+   * If set to true then Warp 10 plugins might access the exposed clients via the getExposedDirectoryClient and
+   * getExposedStoreClient static methods of EgressExecHandler.
+   */
+  public static final String EGRESS_CLIENTS_EXPOSE = "egress.clients.expose";
   
   /**
    * Comma separated list of Egress related HBase configuration keys to extract from the Warp 10 configuration.

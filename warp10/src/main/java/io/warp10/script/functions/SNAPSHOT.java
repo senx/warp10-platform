@@ -16,6 +16,9 @@
 
 package io.warp10.script.functions;
 
+import com.geoxp.GeoXPLib.GeoXPShape;
+import com.google.common.base.Charsets;
+
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GeoTimeSerie;
@@ -26,8 +29,8 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptStack.Mark;
+import io.warp10.script.WarpScriptStackFunction;
 
 import java.io.UnsupportedEncodingException;
 import java.security.interfaces.RSAPrivateKey;
@@ -42,13 +45,10 @@ import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.geoxp.GeoXPLib.GeoXPShape;
-import com.google.common.base.Charsets;
-
 /**
  * Replaces the stack so far with a WarpScript snippet which will regenerate
  * the same stack content.
- * 
+ *
  * Some elements may fail to be converted correctly (i.e. macros)
  *
  */
@@ -58,102 +58,138 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
     @Override
     protected AtomicInteger initialValue() {
       return new AtomicInteger();
-    }    
+    }
   };
-  
+
   public static interface Snapshotable {
     public String snapshot();
   }
-  
+
   /**
    * Maximum level of data structure nesting
    */
   private static final int MAX_RECURSION_LEVEL = 16;
-  
+
   private static final String uuid = UUID.randomUUID().toString();
 
   private final boolean snapshotSymbols;
-  
+
   private final boolean toMark;
-  
+
+  private final boolean countbased;
+
+  /**
+   * Should we compress wrappers when snapshotting GTS/Encoders?
+   */
+  private final boolean compresswrappers;
+
   /**
    * Should we pop the elements out of the stack when building the snapshot
    */
   private final boolean pop;
-  
-  public SNAPSHOT(String name, boolean snapshotSymbols, boolean toMark, boolean pop) {
+
+  public SNAPSHOT(String name, boolean snapshotSymbols, boolean toMark, boolean pop, boolean countbased) {
+    this(name, snapshotSymbols, toMark, pop, countbased, true);
+  }
+
+  public SNAPSHOT(String name, boolean snapshotSymbols, boolean toMark, boolean pop, boolean countbased, boolean compresswrappers) {
     super(name);
     this.snapshotSymbols = snapshotSymbols;
     this.toMark = toMark;
     this.pop = pop;
+
+    this.countbased = countbased;
+    this.compresswrappers = compresswrappers;
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    StringBuilder sb = new StringBuilder();
 
     int lastidx = 0;
-    
-    if (!this.toMark) {
+
+    StringBuilder sb = new StringBuilder();
+
+    if (this.countbased) {
+      Object top = stack.pop();
+
+      if (!(top instanceof Long)) {
+        throw new WarpScriptException(getName() + " expects a number of stack levels to snapshot.");
+      }
+
+      lastidx = ((Number) top).intValue() - 1;
+
+      if (lastidx > stack.depth() - 1) {
+        lastidx = stack.depth() - 1;
+      }
+    } else if (!this.toMark) {
       lastidx = stack.depth() - 1;
-    } else {      
+    } else {
       int i = 0;
-      while(i < stack.depth() && !(stack.get(i) instanceof Mark)) {
+      while (i < stack.depth() && !(stack.get(i) instanceof Mark)) {
         i++;
       }
       lastidx = i;
       if (lastidx >= stack.depth()) {
-        lastidx = stack.depth() - 1;
+        throw new WarpScriptException(getName() + " expects a MARK on the stack.");
       }
     }
-    
+
     for (int i = lastidx; i >= 0; i--) {
+
+      // Do not include the MARK
+      if (this.toMark && lastidx == i) {
+        continue;
+      }
+
       Object o = stack.get(i);
-      
-      addElement(sb, o);
-    }      
+
+      addElement(this, sb, o);
+    }
 
     //
     // Add the defined symbols if requested to do so
     //
-    
     if (this.snapshotSymbols) {
-      for (Entry<String,Object> entry: stack.getSymbolTable().entrySet()) {
-        addElement(sb, entry.getValue());
-        addElement(sb, entry.getKey());
+      for (Entry<String, Object> entry : stack.getSymbolTable().entrySet()) {
+        addElement(this, sb, entry.getValue());
+        addElement(this, sb, entry.getKey());
         sb.append(WarpScriptLib.STORE);
         sb.append(" ");
-      }      
+      }
     }
-    
+
     // Clear the stack
     if (pop) {
       if (stack.depth() - 1 == lastidx) {
         stack.clear();
       } else {
-        while(lastidx >= 0) {
+        while (lastidx >= 0) {
           stack.pop();
           lastidx--;
         }
-      }      
+      }
     }
-    
+
     // Push the snapshot onto the stack
     stack.push(sb.toString());
-    
+
     return stack;
   }
-  
+
   public static void addElement(StringBuilder sb, Object o) throws WarpScriptException {
-    
+    addElement(null, sb, o);
+  }
+
+  public static void addElement(SNAPSHOT snapshot, StringBuilder sb, Object o) throws WarpScriptException {
+
     AtomicInteger depth = null;
-        
+
     try {
       depth = recursionDepth.get();
-      
+
       if (depth.addAndGet(1) > MAX_RECURSION_LEVEL) {
         throw new WarpScriptException("Recursive data structures exceeded " + MAX_RECURSION_LEVEL + " levels.");
-      }      
+      }
 
       if (null == o) {
         sb.append(WarpScriptLib.NULL);
@@ -177,19 +213,19 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         }
       } else if (o instanceof GeoTimeSerie || o instanceof GTSEncoder) {
         sb.append("'");
-        
         //
         // Create a stack so we can call WRAP
         //
-        
+
         MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, new Properties());
         stack.maxLimits();
-        
+
         stack.push(o);
-        WRAP w = new WRAP("");        
+        WRAP w = new WRAP("", false, snapshot.compresswrappers);
         w.apply(stack);
-        
+
         sb.append(stack.pop());
+
         sb.append("' ");
         if (o instanceof GeoTimeSerie) {
           sb.append(WarpScriptLib.UNWRAP);
@@ -199,41 +235,45 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(" ");
       } else if (o instanceof Vector) {
         sb.append(WarpScriptLib.LIST_START);
-        sb.append(" ");
-        for (Object oo: (List) o) {
-          addElement(sb, oo);
-        }
         sb.append(WarpScriptLib.LIST_END);
         sb.append(" ");
+        for (Object oo : (Vector) o) {
+          addElement(snapshot, sb, oo);
+          sb.append(WarpScriptLib.INPLACEADD);
+          sb.append(" ");
+        }
         sb.append(WarpScriptLib.TO_VECTOR);
         sb.append(" ");
       } else if (o instanceof List) {
         sb.append(WarpScriptLib.LIST_START);
-        sb.append(" ");
-        for (Object oo: (List) o) {
-          addElement(sb, oo);
-        }
         sb.append(WarpScriptLib.LIST_END);
         sb.append(" ");
+        for (Object oo : (List) o) {
+          addElement(snapshot, sb, oo);
+          sb.append(WarpScriptLib.INPLACEADD);
+          sb.append(" ");
+        }
       } else if (o instanceof Set) {
         sb.append(WarpScriptLib.LIST_START);
-        sb.append(" ");
-        for (Object oo: (List) o) {
-          addElement(sb, oo);
-        }
         sb.append(WarpScriptLib.LIST_END);
         sb.append(" ");
+        for (Object oo : (Set) o) {
+          addElement(snapshot, sb, oo);
+          sb.append(WarpScriptLib.INPLACEADD);
+          sb.append(" ");
+        }
         sb.append(WarpScriptLib.TO_SET);
         sb.append(" ");
       } else if (o instanceof Map) {
         sb.append(WarpScriptLib.MAP_START);
-        sb.append(" ");
-        for (Entry<Object, Object> entry: ((Map<Object,Object>) o).entrySet()) {
-          addElement(sb, entry.getKey());
-          addElement(sb, entry.getValue());
-        }
         sb.append(WarpScriptLib.MAP_END);
         sb.append(" ");
+        for (Entry<Object, Object> entry : ((Map<Object, Object>) o).entrySet()) {
+          addElement(snapshot, sb, entry.getValue());
+          addElement(snapshot, sb, entry.getKey());
+          sb.append(WarpScriptLib.PUT);
+          sb.append(" ");
+        }
       } else if (o instanceof BitSet) {
         sb.append("'");
         sb.append(new String(OrderPreservingBase64.encode(((BitSet) o).toByteArray()), Charsets.UTF_8));
@@ -291,12 +331,12 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append("'UNSUPPORTED:" + WarpURLEncoder.encode(o.getClass().toString(), "UTF-8") + "' ");
         } catch (UnsupportedEncodingException uee) {
           throw new WarpScriptException(uee);
-        }        
-      }          
+        }
+      }
     } finally {
       if (null != depth && 0 == depth.addAndGet(-1)) {
         recursionDepth.remove();
       }
-    }    
+    }
   }
 }

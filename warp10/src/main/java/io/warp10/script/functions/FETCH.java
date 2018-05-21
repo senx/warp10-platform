@@ -58,6 +58,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.apache.commons.lang3.JavaVersion;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -196,8 +198,20 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       long timespan;
       
       if (oStart instanceof String && oStop instanceof String) {
-        long start = fmt.parseDateTime((String) oStart).getMillis() * Constants.TIME_UNITS_PER_MS;
-        long stop = fmt.parseDateTime((String) oStop).getMillis() * Constants.TIME_UNITS_PER_MS;
+        long start;
+        long stop;
+        
+        if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
+          start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(oStart.toString());
+        } else {
+          start = fmt.parseDateTime((String) oStart).getMillis() * Constants.TIME_UNITS_PER_MS;
+        }
+        
+        if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
+          stop = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(oStop.toString());
+        } else {
+          stop = fmt.parseDateTime((String) oStop).getMillis() * Constants.TIME_UNITS_PER_MS;
+        }
         
         if (start < stop) {
           endts = stop;
@@ -413,6 +427,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         
         boolean showUUID = Boolean.TRUE.equals(params.get(PARAM_SHOWUUID));
         
+        TYPE lastType = TYPE.UNDEFINED;
         
         try (GTSDecoderIterator gtsiter = gtsStore.fetch(rtoken, metadatas, (long) params.get(PARAM_END), timespan, fromArchive, writeTimestamp)) {
           while(gtsiter.hasNext()) {
@@ -424,6 +439,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               lastMetadata = decoder.getMetadata();
               identical = false;
               lastCount = 0;
+              lastType = TYPE.UNDEFINED;
             }
                          
             GeoTimeSerie gts;
@@ -507,7 +523,17 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
             if (null != type) {
               gts = decoder.decode(type);
             } else {
-              gts = decoder.decode();
+              //
+              // We need to decode using the same type as the previous decoder for the same GTS
+              // Otherwise, if it happens that the current decoder starts with a value of another
+              // type then the merge will not take into account this decoder as the decoded GTS
+              // will be of a different type.
+              if (identical && lastType != TYPE.UNDEFINED) {
+                gts = decoder.decode(lastType);
+              } else {
+                gts = decoder.decode();
+              }
+              lastType = gts.getType();
             }
         
             if (identical && timespan < 0 && lastCount + GTSHelper.nvalues(gts) > -timespan) {
@@ -723,7 +749,11 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     if (map.get(PARAM_END) instanceof Long) {
       params.put(PARAM_END, map.get(PARAM_END));      
     } else if (map.get(PARAM_END) instanceof String) {
-      params.put(PARAM_END, fmt.parseDateTime(map.get(PARAM_END).toString()).getMillis() * Constants.TIME_UNITS_PER_MS);      
+      if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
+        params.put(PARAM_END, io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(map.get(PARAM_END).toString()));      
+      } else {
+        params.put(PARAM_END, fmt.parseDateTime(map.get(PARAM_END).toString()).getMillis() * Constants.TIME_UNITS_PER_MS);      
+      }
     } else {
       throw new WarpScriptException(getName() + " Invalid format for parameter '" + PARAM_END + "'.");
     }
@@ -739,7 +769,11 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       if (map.get(PARAM_START) instanceof Long) {
         start = (long) map.get(PARAM_START);
       } else {
-        start = fmt.parseDateTime(map.get(PARAM_END).toString()).getMillis() * Constants.TIME_UNITS_PER_MS;
+        if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
+          start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(map.get(PARAM_START).toString());      
+        } else {
+          start = fmt.parseDateTime(map.get(PARAM_START).toString()).getMillis() * Constants.TIME_UNITS_PER_MS;
+        }
       }
       
       long timespan;

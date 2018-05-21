@@ -48,6 +48,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.boon.json.JsonSerializer;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.slf4j.Logger;
@@ -88,6 +89,12 @@ public class EgressFindHandler extends AbstractHandler {
     String selector = req.getParameter(Constants.HTTP_PARAM_SELECTOR);
     
     String token = req.getParameter(Constants.HTTP_PARAM_TOKEN);
+    
+    long limit = Long.MAX_VALUE;
+    
+    if (null != req.getParameter(Constants.HTTP_PARAM_LIMIT)) {
+      limit = Long.parseLong(req.getParameter(Constants.HTTP_PARAM_LIMIT));
+    }
     
     if (null == token) {
       token = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
@@ -164,8 +171,18 @@ public class EgressFindHandler extends AbstractHandler {
           clsSels.add(classSelector);
           lblsSels.add(labelsSelector);
 
+          JsonSerializer serializer = null;
+          
+          if (json) {
+            serializer = StackUtils.getSerializer();
+          }
+          
           try (MetadataIterator iterator = directoryClient.iterator(clsSels, lblsSels)) {
             while(iterator.hasNext()) {
+              if (limit <= 0) {
+                break;
+              }
+
               Metadata metadata = iterator.next();
 
               if (showUUID) {
@@ -188,7 +205,7 @@ public class EgressFindHandler extends AbstractHandler {
                 } else {
                   first = false;
                 }
-                StackUtils.objectToJSON(pw, metadata, level, true);
+                StackUtils.objectToJSON(serializer, pw, metadata, level, true);
                 continue;
               }
               
@@ -217,9 +234,15 @@ public class EgressFindHandler extends AbstractHandler {
               }
               
               pw.println(sb.toString());
+              
+              limit--;              
             }      
           } catch (Throwable t) {        
             throw t;
+          }
+          
+          if (limit <= 0) {
+            break;
           }
         }
         if (json) {

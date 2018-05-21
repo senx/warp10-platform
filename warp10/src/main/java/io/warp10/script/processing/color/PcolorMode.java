@@ -49,7 +49,7 @@ public class PcolorMode extends NamedWarpScriptFunction implements WarpScriptSta
       throw new WarpScriptException(getName() + ": invalid mode, should be one of 'RGB' or 'HSB'");      
     }
     
-    int mode = "RGB".equals(modestr) ? PGraphics.ARGB : PGraphics.HSB;
+    int mode = "RGB".equals(modestr) ? PGraphics.RGB : PGraphics.HSB;
     
     if (2 == params.size()) {
       pg.colorMode(mode);

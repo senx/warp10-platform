@@ -19,6 +19,7 @@ package io.warp10.continuum;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.UnsafeString;
 import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.Store;
 import io.warp10.continuum.store.thrift.data.Metadata;
 
 import java.io.UnsupportedEncodingException;
@@ -30,6 +31,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Charsets;
+import com.google.common.primitives.Longs;
 
 public class MetadataUtils {
   
@@ -182,5 +184,74 @@ public class MetadataUtils {
     id.labelsId = meta.getLabelsId();
     
     return id;
+  }
+  
+  /**
+   * Compare Metadata according to class/labels Ids
+   */
+  public static int compare(Metadata m1, Metadata m2) {
+    // 128bits
+    
+    //
+    // Extract ids by shifting them to the right so all numbers are > 0
+    //
+    
+    long c1 = m1.getClassId() >>> 1;    
+    long c2 = m2.getClassId() >>> 1;
+    
+    if (c1 < c2) {
+      return -1;
+    }
+    
+    if (c1 > c2) {
+      return 1;
+    }
+        
+    // Check lower bit
+        
+    if ((m1.getClassId() & 0x1L) < (m2.getClassId() & 0x1L)) {
+      return -1;
+    }
+    
+    if ((m1.getClassId() & 0x1L) > (m2.getClassId() & 0x1L)) {
+      return 1;
+    }
+    
+    //
+    // Classes are equal, check labels ids
+    //
+    
+    long l1 = m1.getLabelsId() >>> 1;    
+    long l2 = m2.getLabelsId() >>> 1;
+    
+    if (l1 < l2) {
+      return -1;
+    }
+    
+    if (l1 > l2) {
+      return 1;
+    }
+
+    if ((m1.getLabelsId() & 0x1L) < (m2.getLabelsId() & 0x1L)) {
+      return -1;
+    }
+    
+    if ((m1.getLabelsId() & 0x1L) > (m2.getLabelsId() & 0x1L)) {
+      return 1;
+    }
+
+    return 0;
+  }
+  
+  public static byte[] HBaseRowKeyPrefix(Metadata meta) {
+    // 128bits
+    byte[] rowkey = new byte[Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
+
+    System.arraycopy(Store.HBASE_RAW_DATA_KEY_PREFIX, 0, rowkey, 0, Store.HBASE_RAW_DATA_KEY_PREFIX.length);
+    // Copy classId/labelsId
+    System.arraycopy(Longs.toByteArray(meta.getClassId()), 0, rowkey, Store.HBASE_RAW_DATA_KEY_PREFIX.length, 8);
+    System.arraycopy(Longs.toByteArray(meta.getLabelsId()), 0, rowkey, Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8, 8);
+    
+    return rowkey;
   }
 }

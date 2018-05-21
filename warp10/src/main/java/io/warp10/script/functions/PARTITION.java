@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 /**
- * Partition a set of GTS instances
+ * Partitions a set of GTS instances
  */
 public class PARTITION extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
@@ -92,7 +92,9 @@ public class PARTITION extends NamedWarpScriptFunction implements WarpScriptStac
         Map<String,String> key = entry.getKey();
         Map<String,String> newkey = new HashMap<String,String>();
         for (String label: bylabels) {
-          newkey.put(label, key.get(label));
+          if (null != key.get(label)) {
+            newkey.put(label, key.get(label));
+          }
         }
         stricteqclasses.put(newkey, entry.getValue());
       }

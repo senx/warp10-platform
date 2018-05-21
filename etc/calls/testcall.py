@@ -13,6 +13,10 @@ import base64
 print 10
 
 #
+# An example of Warpscript to trigger this script: NOW ISO8601 ->PICKLE ->B64URL 'testcall.py' CALL
+#
+
+#
 # Loop, reading stdin, doing our stuff and outputing to stdout
 #
 
@@ -27,8 +31,8 @@ while True:
     line = line.strip()
     line = urllib.unquote(line.decode('utf-8'))
     # Remove Base64 encoding
-    str = base64.b64decode(line)
-    args = cPickle.loads(str)
+    mystr = base64.b64decode(line)
+    args = cPickle.loads(mystr)
 
     #
     # Do our stuff

@@ -37,6 +37,9 @@ if [ -z "${WARP10_HOME}" ]; then
   fi
 fi
 
+export JAVA_HOME
+export WARP10_HOME
+
 #
 # Data directory that contains logs, leveldb, config defined ?
 #
@@ -541,13 +544,18 @@ status() {
 }
 
 snapshot() {
-  if [ $# -ne 2 ]; then
-    echo $"Usage: $0 {snapshot 'snapshot_name'}"
+  if [ $# -ne 2 -a $# -ne 3 ]; then
+    echo $"Usage: $0 {snapshot 'snapshot_name' ['base_snapshot_name']}"
     exit 2
   fi
   # Name of snapshot
   SNAPSHOT=$2
-  ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT} "${WARP10_HOME}" "${LEVELDB_HOME}" "${PID_FILE}"
+  if [ $# -eq 2 ]; then
+    ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT} "${WARP10_HOME}" "${LEVELDB_HOME}" "${PID_FILE}"
+  else
+    BASE_SNAPSHOT=$2
+    ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT} ${BASE_SNAPSHOT} "${WARP10_HOME}" "${LEVELDB_HOME}" "${PID_FILE}"
+  fi
 }
 
 worfcli() {
@@ -571,6 +579,27 @@ worf() {
     exit 1
   fi
   ${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -puidg -t -a $2 -ttl $3
+}
+
+repair() {
+
+  #
+  # Make sure the caller is warp10
+  #
+
+  if [ "`whoami`" != "${WARP10_USER}" ]
+  then
+    echo "You must be ${WARP10_USER} to run this script."
+    exit 1
+  fi
+
+  echo "Repair Leveldb..."
+  if [ -e ${PID_FILE} ] && [ "`${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" != "" ]; then
+    echo "Repair has been cancelled! - Warp 10 instance must be stopped for repair"
+    exit 1
+  else
+    ${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.standalone.WarpRepair ${LEVELDB_HOME}
+  fi
 }
 
 # See how we were called.
@@ -601,8 +630,11 @@ case "$1" in
   snapshot)
   snapshot "$@"
   ;;
+  repair)
+  repair
+  ;;
   *)
-  echo $"Usage: $0 {bootstrap|start|stop|status|worfcli|worf appName ttl(ms)|snapshot 'snapshot_name'}"
+  echo $"Usage: $0 {bootstrap|start|stop|status|worfcli|worf appName ttl(ms)|snapshot 'snapshot_name'|repair}"
   exit 2
 esac
 

@@ -31,6 +31,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.LockSupport;
@@ -107,7 +108,7 @@ public class DatalogForwarder extends Thread {
   /**
    * Set of files currently processed
    */
-  private final Set<String> processing = new HashSet<String>();
+  private final Set<String> processing = ConcurrentHashMap.newKeySet();
 
   /**
    * Flag to indicate whether or not to delete forwarded requests
@@ -524,6 +525,16 @@ public class DatalogForwarder extends Thread {
   @Override
   public void run() {
     while (true) {
+      
+      //
+      // Copy the list of files currently being processed so we don't risk
+      // attempting to process a file that was still present when we scanned the
+      // directory but which has been processed since. This can happen when there
+      // are lots of files.
+      //
+      
+      Set<String> ongoingProcessing = new HashSet<String>(this.processing);
+      
       //
       // Scan the datalog directory
       //
@@ -560,7 +571,7 @@ public class DatalogForwarder extends Thread {
         // Skip file if it is currently being processed
         //
         
-        if (this.processing.contains(filename)) {
+        if (ongoingProcessing.contains(filename)) {
           continue;
         }
         

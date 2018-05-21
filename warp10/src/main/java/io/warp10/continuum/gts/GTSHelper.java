@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.gts;
 
+import io.warp10.DoubleUtils;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
@@ -37,6 +38,8 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.functions.MACROMAPPER;
+import io.warp10.script.functions.METASORT;
+import io.warp10.script.functions.TOQUATERNION;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -603,7 +606,10 @@ public class GTSHelper {
   public static List<Long> tickList(GeoTimeSerie gts) {
     List<Long> ticks = new ArrayList<Long>(gts.values);
 
-    ticks.addAll(Arrays.asList(ArrayUtils.toObject(Arrays.copyOf(gts.ticks, gts.values))));
+    if (gts.values > 0) {
+      ticks.addAll(Arrays.asList(ArrayUtils.toObject(Arrays.copyOf(gts.ticks, gts.values))));
+    }
+    
     return ticks;
   }
   
@@ -1788,8 +1794,13 @@ public class GTSHelper {
       //idx2 = latlon.indexOf(":");
       idx2 = UnsafeString.indexOf(latlon, ':');
             
-      //location = GeoXPLib.toGeoXPPoint(Double.valueOf(latlon.substring(0, idx2)), Double.valueOf(latlon.substring(idx2 + 1)));
-      location = GeoXPLib.toGeoXPPoint(Double.parseDouble(latlon.substring(0, idx2)), Double.parseDouble(latlon.substring(idx2 + 1)));
+      if (-1 != idx2) {
+        //location = GeoXPLib.toGeoXPPoint(Double.valueOf(latlon.substring(0, idx2)), Double.valueOf(latlon.substring(idx2 + 1)));
+        location = GeoXPLib.toGeoXPPoint(Double.parseDouble(latlon.substring(0, idx2)), Double.parseDouble(latlon.substring(idx2 + 1)));
+      } else {
+        // Parse the location value as a Long
+        location = Long.parseLong(latlon);        
+      }
     } else {
       // Advance past the second '/'    
       idx = idx2 + 1;
@@ -1941,15 +1952,15 @@ public class GTSHelper {
     //
     
     String valuestr = str.substring(idx);
-
-    if (valuestr.length() > maxValueSize) {
-      throw new ParseException("Value too large at for GTS " + (null != encoder ? GTSHelper.buildSelector(encoder.getMetadata()) : ""), 0);
-    }
     
     Object value = parseValue(valuestr);
-      
+
     if (null == value) {
       throw new ParseException("Unable to parse value '" + valuestr + "'", 0);
+    }
+
+    if (value instanceof String  && value.toString().length() > maxValueSize) {
+      throw new ParseException("Value too large at for GTS " + (null != encoder ? GTSHelper.buildSelector(encoder.getMetadata()) : ""), 0);
     }
     
     // Allocate a new Encoder if need be, with a base timestamp of 0L.
@@ -1958,11 +1969,13 @@ public class GTSHelper {
       encoder.setName(name);
       //encoder.setLabels(labels);
       encoder.getMetadata().setLabels(labels);
-      if (null != attributes) {
-        encoder.getMetadata().setAttributes(attributes);
-      }
     }
-    
+
+    // Update the attributes if some were parsed
+    if (null != attributes) {
+      encoder.getMetadata().setAttributes(attributes);
+    }
+
     encoder.addValue(timestamp, location, elevation, value);
     
     return encoder;
@@ -1996,6 +2009,42 @@ public class GTSHelper {
       //
       // FIXME(hbs): add support for quaternions, for hex values???
       //
+      } else if ('H' == valuestr.charAt(0) && valuestr.startsWith("HH:")) {
+        int colon = valuestr.indexOf(':',3);
+        if (-1 == colon) {
+          throw new ParseException("Invalid value for lat,lon conversion to HHCode.", 0);
+        }
+        double lat = Double.parseDouble(valuestr.substring(3, colon));
+        double lon = Double.parseDouble(valuestr.substring(colon + 1));
+        
+        value = GeoXPLib.toGeoXPPoint(lat, lon);
+      } else if ('Q' == valuestr.charAt(0) && valuestr.startsWith("Q:")) {
+        
+        double[] q = new double[4];
+        
+        int idx = 2;
+        int qidx = 0;
+        
+        while (qidx < q.length) {
+          int colon = valuestr.indexOf(':', idx);
+          
+          if (-1 == colon) {
+            throw new ParseException("Invalid value for Quaternion, expected Q:w:x:y:z", 0);
+          }
+
+          q[qidx++] = Double.parseDouble(valuestr.substring(idx, colon));
+          idx = colon + 1;
+          
+          if (3 == qidx) {
+            q[qidx++] = Double.parseDouble(valuestr.substring(idx));
+          }
+        }
+        
+        if (!DoubleUtils.isFinite(q[0]) || !DoubleUtils.isFinite(q[1]) || !DoubleUtils.isFinite(q[2]) || !DoubleUtils.isFinite(q[3])) {
+          throw new ParseException("Quaternion values require finite elements.", 0);
+        }
+        
+        value = TOQUATERNION.toQuaternion(q[0], q[1], q[2], q[3]);
       } else {
         boolean likelydouble = UnsafeString.isDouble(valuestr);
         
@@ -2939,6 +2988,8 @@ public class GTSHelper {
       
       base.values = base.values + gts.values;
       
+    } else {
+      throw new RuntimeException("Merge cannot proceed with incompatible GTS types.");
     }
 
     base.sorted = false;
@@ -4676,8 +4727,14 @@ public class GTSHelper {
       //
       
       List<GeoTimeSerie>[] subseries = new List[series.length];
-      
       for (int i = 0; i < series.length; i++) {
+        
+        //
+        // Sort the 'series' so we can perform a binary search instead of using 'contains'
+        //
+        
+        series[i].sort(METASORT.META_COMPARATOR);
+        
         subseries[i] = new ArrayList<GeoTimeSerie>();
        
         //
@@ -4690,13 +4747,12 @@ public class GTSHelper {
         } else {
           // The series appear in the order they are in the original list due to 'partition' using a List
           for (GeoTimeSerie serie: partition.get(partitionlabels)) {
-            if (series[i].contains(serie)) {
+            if (Collections.binarySearch(series[i], serie, METASORT.META_COMPARATOR) >= 0) {
               subseries[i].add(serie);
             }
           }          
         }
       }
-      
       //
       // Call the function
       //
@@ -6650,7 +6706,7 @@ public class GTSHelper {
    * @return
    */
   public static GeoTimeSerie shrinkTo(GeoTimeSerie gts, int newsize) throws WarpScriptException {
-    if (newsize > 0 && newsize < gts.values) {
+    if (newsize >= 0 && newsize < gts.values) {
       gts.values = newsize;
     }
     
@@ -9199,5 +9255,69 @@ public class GTSHelper {
       pw.print("\r\n");
       first = false;
     }    
+  }
+  
+  public static double standardizedMoment(int moment, GeoTimeSerie gts, boolean bessel) throws WarpScriptException {
+    double sum = 0.0D;
+    double sumsq = 0.0D;
+    
+    int n = gts.values;
+
+    if (TYPE.LONG == gts.type) {
+      for (int i = 0; i < n; i++) {
+        sum = sum + gts.longValues[i];
+        sumsq = sumsq + (gts.longValues[i] * gts.longValues[i]);
+      }
+    } else if (TYPE.DOUBLE == gts.type) {
+      for (int i = 0; i < n; i++) {
+        sum = sum + gts.doubleValues[i];
+        sumsq = sumsq + (gts.doubleValues[i] * gts.doubleValues[i]);
+      }      
+    } else {
+      throw new WarpScriptException("Non numeric Geo Time Series.");
+    }
+        
+    //
+    // Compute mean and standard deviation
+    //
+    
+    double mean = sum / (double) n;
+    
+    double variance = (sumsq / (double) n) - (sum * sum) / ((double) n * (double) n);
+    
+    //
+    // Apply Bessel's correction
+    // @see http://en.wikipedia.org/wiki/Bessel's_correction
+    //
+    
+    if (n > 1 && bessel) {
+      variance = variance * ((double) n) / (n - 1.0D);
+    }
+
+    double sd = Math.sqrt(variance);
+    
+    double momentValue = 0.0D;
+    
+    if (TYPE.LONG == gts.type) {
+      for (int i = 0; i < n; i++) {
+        momentValue += Math.pow((gts.longValues[i] - mean) / sd, moment);
+      }      
+    } else {
+      for (int i = 0; i < n; i++) {
+        momentValue += Math.pow((gts.doubleValues[i] - mean) / sd, moment);
+      }      
+    }
+    
+    momentValue = momentValue / n;
+    
+    return momentValue;
+  }
+  
+  public static double kurtosis(GeoTimeSerie gts, boolean bessel) throws WarpScriptException {
+    return standardizedMoment(4, gts, bessel);
+  }
+  
+  public static double skewness(GeoTimeSerie gts, boolean bessel) throws WarpScriptException {
+    return standardizedMoment(3, gts, bessel);
   }
 }

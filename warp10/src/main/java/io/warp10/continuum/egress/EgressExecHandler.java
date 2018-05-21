@@ -74,6 +74,9 @@ public class EgressExecHandler extends AbstractHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(EgressExecHandler.class);
   private static final Logger EVENTLOG = LoggerFactory.getLogger("warpscript.events");
+ 
+  private static StoreClient exposedStoreClient = null;
+  private static DirectoryClient exposedDirectoryClient = null;
   
   private final KeyStore keyStore;
   private final StoreClient storeClient;
@@ -101,8 +104,12 @@ public class EgressExecHandler extends AbstractHandler {
     } else {
       this.bootstrapManager = new BootstrapManager();
     }
-  }
-  
+    
+    if ("true".equals(properties.getProperty(Configuration.EGRESS_CLIENTS_EXPOSE))) {
+      exposedStoreClient = storeClient;
+      exposedDirectoryClient = directoryClient;
+    }
+  }    
   
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
@@ -153,9 +160,6 @@ public class EgressExecHandler extends AbstractHandler {
     List<Long> times = new ArrayList<Long>();
     
     int lineno = 0;
-
-    // Labels for Sensision
-    Map<String,String> labels = new HashMap<String,String>();
 
     long now = System.nanoTime();
     
@@ -249,8 +253,6 @@ public class EgressExecHandler extends AbstractHandler {
         br = req.getReader();
       }
                   
-      labels.put(SensisionConstants.SENSISION_LABEL_THREAD, Long.toHexString(Thread.currentThread().getId()));
-      
       List<Long> elapsed = (List<Long>) stack.getAttribute(WarpScriptStack.ATTRIBUTE_ELAPSED);
       
       elapsed.add(TimeSource.getNanoTime());
@@ -271,16 +273,18 @@ public class EgressExecHandler extends AbstractHandler {
 
         long nano = System.nanoTime();
         
-        Sensision.set(SensisionConstants.SENSISION_CLASS_EINSTEIN_CURRENTEXEC_TIMESTAMP, labels, System.currentTimeMillis());
         try {
+          if (Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_LINENO)) && !((MemoryWarpScriptStack) stack).inMultiline()) {
+            // We call 'exec' so statements are correctly put in macros if we are currently building one
+            stack.exec("'[Line #" + Long.toString(lineno) + "]'");
+            stack.exec(WarpScriptLib.SECTION);
+          }
           stack.exec(line);
         } catch (WarpScriptStopException ese) {
           // Do nothing, this is simply an early termination which should not generate errors
           terminate = true;
         }
         
-        Sensision.clear(SensisionConstants.SENSISION_CLASS_EINSTEIN_CURRENTEXEC_TIMESTAMP, labels);
-      
         long end = System.nanoTime();
 
         // Record elapsed time
@@ -419,7 +423,6 @@ public class EgressExecHandler extends AbstractHandler {
       }
     } finally {
       // Clear this metric in case there was an exception
-      Sensision.clear(SensisionConstants.SENSISION_CLASS_EINSTEIN_CURRENTEXEC_TIMESTAMP, labels);
       Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_REQUESTS, Sensision.EMPTY_LABELS, 1);
       Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_TIME_US, Sensision.EMPTY_LABELS, (long) ((System.nanoTime() - now) / 1000));
       Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_OPS, Sensision.EMPTY_LABELS, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS));
@@ -453,5 +456,13 @@ public class EgressExecHandler extends AbstractHandler {
         EVENTLOG.info(msg);
       }
     }
+  }
+  
+  public static final StoreClient getExposedStoreClient() {
+    return exposedStoreClient;
+  }
+  
+  public static final DirectoryClient getExposedDirectoryClient() {
+    return exposedDirectoryClient;
   }
 }

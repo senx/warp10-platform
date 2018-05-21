@@ -16,6 +16,27 @@
 
 package io.warp10.script;
 
+import java.net.URL;
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Properties;
+import java.util.Map.Entry;
+
+
+import org.apache.commons.lang3.JavaVersion;
+import org.apache.commons.lang3.SystemUtils;
+import org.bouncycastle.crypto.digests.MD5Digest;
+import org.bouncycastle.crypto.digests.SHA1Digest;
+import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.warp10.WarpClassLoader;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
@@ -93,8 +114,6 @@ import io.warp10.script.filter.FilterLastLT;
 import io.warp10.script.filter.FilterLastNE;
 import io.warp10.script.filter.LatencyFilter;
 import io.warp10.script.functions.*;
-import io.warp10.script.lora.LORAENC;
-import io.warp10.script.lora.LORAMIC;
 import io.warp10.script.mapper.MapperAbs;
 import io.warp10.script.mapper.MapperAdd;
 import io.warp10.script.mapper.MapperCeil;
@@ -186,6 +205,7 @@ import io.warp10.script.processing.image.Ppixels;
 import io.warp10.script.processing.image.Pset;
 import io.warp10.script.processing.image.Ptint;
 import io.warp10.script.processing.image.PupdatePixels;
+import io.warp10.script.processing.image.Pfilter;
 import io.warp10.script.processing.math.Pconstrain;
 import io.warp10.script.processing.math.Pdist;
 import io.warp10.script.processing.math.Plerp;
@@ -216,11 +236,14 @@ import io.warp10.script.processing.shape.PellipseMode;
 import io.warp10.script.processing.shape.PendContour;
 import io.warp10.script.processing.shape.PendShape;
 import io.warp10.script.processing.shape.Pline;
+import io.warp10.script.processing.shape.PloadShape;
 import io.warp10.script.processing.shape.Ppoint;
 import io.warp10.script.processing.shape.Pquad;
 import io.warp10.script.processing.shape.PquadraticVertex;
 import io.warp10.script.processing.shape.Prect;
 import io.warp10.script.processing.shape.PrectMode;
+import io.warp10.script.processing.shape.Pshape;
+import io.warp10.script.processing.shape.PshapeMode;
 import io.warp10.script.processing.shape.Psphere;
 import io.warp10.script.processing.shape.PsphereDetail;
 import io.warp10.script.processing.shape.PstrokeCap;
@@ -269,25 +292,6 @@ import io.warp10.script.unary.TOTIMESTAMP;
 import io.warp10.script.unary.UNIT;
 import io.warp10.warp.sdk.WarpScriptExtension;
 
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
-
-import org.apache.commons.lang3.JavaVersion;
-import org.apache.commons.lang3.SystemUtils;
-import org.bouncycastle.crypto.digests.MD5Digest;
-import org.bouncycastle.crypto.digests.SHA1Digest;
-import org.bouncycastle.crypto.digests.SHA256Digest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Library of functions used to manipulate Geo Time Series
  * and more generally interact with a WarpScriptStack
@@ -297,6 +301,8 @@ public class WarpScriptLib {
   private static final Logger LOG = LoggerFactory.getLogger(WarpScriptLib.class);
   
   private static Map<String,Object> functions = new HashMap<String, Object>();
+  
+  private static Set<String> extloaded = new HashSet<String>();
   
   /**
    * Static definition of name so it can be reused outside of WarpScriptLib
@@ -318,6 +324,12 @@ public class WarpScriptLib {
   public static final String LIST_START = "[";
   public static final String LIST_END = "]";
 
+  public static final String SET_START = "(";
+  public static final String SET_END = ")";
+  
+  public static final String VECTOR_START = "[[";
+  public static final String VECTOR_END = "]]";
+  
   public static final String TO_VECTOR = "->V";
   public static final String TO_SET = "->SET";
   
@@ -331,12 +343,14 @@ public class WarpScriptLib {
   public static final String GEO_WKT_UNIFORM = "GEO.WKT.UNIFORM";
   
   public static final String GEO_JSON = "GEO.JSON";
+  public static final String GEO_JSON_UNIFORM = "GEO.JSON.UNIFORM";
   public static final String GEO_INTERSECTION = "GEO.INTERSECTION";
   public static final String GEO_DIFFERENCE = "GEO.DIFFERENCE";
   public static final String GEO_UNION = "GEO.UNION";
   public static final String GEOPACK = "GEOPACK";
   public static final String GEOUNPACK = "GEOUNPACK";
   
+  public static final String SECTION = "SECTION";
   public static final String UNWRAP = "UNWRAP";
   public static final String UNWRAPENCODER = "UNWRAPENCODER";
   public static final String OPB64TO = "OPB64->";
@@ -356,14 +370,18 @@ public class WarpScriptLib {
   
   public static final String MSGFAIL = "MSGFAIL";
   
+  public static final String INPLACEADD = "+!";
+  public static final String PUT = "PUT";
+  
   static {
     
     functions.put("REV", new REV("REV"));
     
     functions.put(BOOTSTRAP, new NOOP(BOOTSTRAP));
-    
+
     functions.put("RTFM", new RTFM("RTFM"));
-    
+    functions.put("MAN", new MAN("MAN"));
+
     functions.put("REXEC", new REXEC("REXEC"));
     functions.put("REXECZ", new REXEC("REXECZ", true));
     
@@ -402,7 +420,7 @@ public class WarpScriptLib {
     functions.put("PICKLE->", new PICKLETO("PICKLE->"));
     functions.put("GET", new GET("GET"));
     functions.put("SET", new SET("SET"));
-    functions.put("PUT", new PUT("PUT"));
+    functions.put(PUT, new PUT(PUT));
     functions.put("SUBMAP", new SUBMAP("SUBMAP"));
     functions.put("SUBLIST", new SUBLIST("SUBLIST"));
     functions.put("KEYLIST", new KEYLIST("KEYLIST"));
@@ -438,6 +456,7 @@ public class WarpScriptLib {
     functions.put("MAXBUCKETS", new MAXBUCKETS("MAXBUCKETS"));
     functions.put("MAXGEOCELLS", new MAXGEOCELLS("MAXGEOCELLS"));
     functions.put("MAXPIXELS", new MAXPIXELS("MAXPIXELS"));
+    functions.put("MAXRECURSION", new MAXRECURSION("MAXRECURSION"));
     functions.put("OPS", new OPS("OPS"));
     functions.put("MAXSYMBOLS", new MAXSYMBOLS("MAXSYMBOLS"));
     functions.put(EVAL, new EVAL(EVAL));
@@ -461,7 +480,9 @@ public class WarpScriptLib {
     functions.put("NaN", new NaN("NaN"));
     functions.put("ISNaN", new ISNaN("ISNaN"));
     functions.put("TYPEOF", new TYPEOF("TYPEOF"));      
+    functions.put("EXTLOADED", new EXTLOADED("EXTLOADED"));
     functions.put("ASSERT", new ASSERT("ASSERT"));
+    functions.put("ASSERTMSG", new ASSERTMSG("ASSERTMSG"));
     functions.put("FAIL", new FAIL("FAIL"));
     functions.put(MSGFAIL, new MSGFAIL(MSGFAIL));
     functions.put("STOP", new STOP("STOP"));
@@ -473,6 +494,8 @@ public class WarpScriptLib {
     functions.put("DEBUGON", new DEBUGON("DEBUGON"));
     functions.put("NDEBUGON", new NDEBUGON("NDEBUGON"));
     functions.put("DEBUGOFF", new DEBUGOFF("DEBUGOFF"));
+    functions.put("LINEON", new LINEON("LINEON"));
+    functions.put("LINEOFF", new LINEOFF("LINEOFF"));
     functions.put("LMAP", new LMAP("LMAP"));
     functions.put("NONNULL", new NONNULL("NONNULL"));
     functions.put("LFLATMAP", new LFLATMAP("LFLATMAP"));
@@ -480,6 +503,12 @@ public class WarpScriptLib {
     functions.put(LIST_START, new MARK(LIST_START));
     functions.put(LIST_END, new ENDLIST(LIST_END));
     functions.put("STACKTOLIST", new STACKTOLIST("STACKTOLIST"));
+    functions.put(SET_START, new MARK(SET_START));
+    functions.put(SET_END, new ENDSET(SET_END));
+    functions.put("()", new EMPTYSET("()"));
+    functions.put(VECTOR_START, new MARK(VECTOR_START));
+    functions.put(VECTOR_END, new ENDVECTOR(VECTOR_END));
+    functions.put("[[]]", new EMPTYVECTOR("[[]]"));
     functions.put("{}", new EMPTYMAP("{}"));
     functions.put("IMMUTABLE", new IMMUTABLE("IMMUTABLE"));
     functions.put(MAP_START, new MARK(MAP_START));
@@ -491,18 +520,23 @@ public class WarpScriptLib {
     functions.put("NOOP", new NOOP("NOOP"));
     functions.put("DOC", new DOC("DOC"));
     functions.put("DOCMODE", new DOCMODE("DOCMODE"));
-    functions.put("SECTION", new SECTION("SECTION"));
+    functions.put("INFO", new INFO("INFO"));
+    functions.put("INFOMODE", new INFOMODE("INFOMODE"));
+    functions.put(SECTION, new SECTION(SECTION));
     functions.put("GETSECTION", new GETSECTION("GETSECTION"));
-    functions.put(SNAPSHOT, new SNAPSHOT(SNAPSHOT, false, false, true));
-    functions.put(SNAPSHOTALL, new SNAPSHOT(SNAPSHOTALL, true, false, true));
-    functions.put("SNAPSHOTTOMARK", new SNAPSHOT("SNAPSHOTTOMARK", false, true, true));
-    functions.put("SNAPSHOTALLTOMARK", new SNAPSHOT("SNAPSHOTALLTOMARK", true, true, true));
-    functions.put("SNAPSHOTCOPY", new SNAPSHOT("SNAPSHOTCOPY", false, false, false));
-    functions.put("SNAPSHOTCOPYALL", new SNAPSHOT("SNAPSHOTCOPYALL", true, false, false));
-    functions.put("SNAPSHOTCOPYTOMARK", new SNAPSHOT("SNAPSHOTCOPYTOMARK", false, true, false));
-    functions.put("SNAPSHOTCOPYALLTOMARK", new SNAPSHOT("SNAPSHOTCOPYALLTOMARK", true, true, false));
+    functions.put(SNAPSHOT, new SNAPSHOT(SNAPSHOT, false, false, true, false));
+    functions.put(SNAPSHOTALL, new SNAPSHOT(SNAPSHOTALL, true, false, true, false));
+    functions.put("SNAPSHOTTOMARK", new SNAPSHOT("SNAPSHOTTOMARK", false, true, true, false));
+    functions.put("SNAPSHOTALLTOMARK", new SNAPSHOT("SNAPSHOTALLTOMARK", true, true, true, false));
+    functions.put("SNAPSHOTCOPY", new SNAPSHOT("SNAPSHOTCOPY", false, false, false, false));
+    functions.put("SNAPSHOTCOPYALL", new SNAPSHOT("SNAPSHOTCOPYALL", true, false, false, false));
+    functions.put("SNAPSHOTCOPYTOMARK", new SNAPSHOT("SNAPSHOTCOPYTOMARK", false, true, false, false));
+    functions.put("SNAPSHOTCOPYALLTOMARK", new SNAPSHOT("SNAPSHOTCOPYALLTOMARK", true, true, false, false));
+    functions.put("SNAPSHOTN", new SNAPSHOT("SNAPSHOTN", false, false, true, true));
+    functions.put("SNAPSHOTCOPYN", new SNAPSHOT("SNAPSHOTCOPYN", false, false, false, true));
     functions.put("HEADER", new HEADER("HEADER"));
     
+    functions.put("MACROTTL", new MACROTTL("MACROTTL"));
     functions.put("MACROMAPPER", new MACROMAPPER("MACROMAPPER"));
     functions.put("MACROREDUCER", new MACROMAPPER("MACROREDUCER"));
     functions.put("MACROBUCKETIZER", new MACROMAPPER("MACROBUCKETIZER"));
@@ -513,13 +547,14 @@ public class WarpScriptLib {
     functions.put(PARSESELECTOR, new PARSESELECTOR(PARSESELECTOR));
     functions.put("TOSELECTOR", new TOSELECTOR("TOSELECTOR"));
     functions.put("PARSE", new PARSE("PARSE"));
+    functions.put("SMARTPARSE", new SMARTPARSE("SMARTPARSE"));
         
     // We do not expose DUMP, it might allocate too much memory
     //functions.put("DUMP", new DUMP("DUMP"));
     
     // Binary ops
     functions.put("+", new ADD("+"));
-    functions.put("+!", new INPLACEADD("+!"));
+    functions.put(INPLACEADD, new INPLACEADD(INPLACEADD));
     functions.put("-", new SUB("-"));
     functions.put("/", new DIV("/"));
     functions.put("*", new MUL("*"));
@@ -727,6 +762,7 @@ public class WarpScriptLib {
     functions.put("FFT", new FFT.Builder("FFT", true));
     functions.put("FFTAP", new FFT.Builder("FFT", false));
     functions.put("IFFT", new IFFT.Builder("IFFT"));
+    functions.put("FFTWINDOW", new FFTWINDOW("FFTWINDOW"));
     functions.put("FDWT", new FDWT("FDWT"));
     functions.put("IDWT", new IDWT("IDWT"));
     functions.put("DWTSPLIT", new DWTSPLIT("DWTSPLIT"));
@@ -775,6 +811,7 @@ public class WarpScriptLib {
     functions.put("MATCHER", new MATCHER("MATCHER"));
     functions.put("REPLACE", new REPLACE("REPLACE", false));
     functions.put("REPLACEALL", new REPLACE("REPLACEALL", true));
+    functions.put("REOPTALT", new REOPTALT("REOPTALT"));
     
     if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
       functions.put("TEMPLATE", new TEMPLATE("TEMPLATE"));
@@ -871,7 +908,7 @@ public class WarpScriptLib {
     functions.put("FILTER", new FILTER("FILTER", true));
     functions.put("APPLY", new APPLY("APPLY", true));
     functions.put("PFILTER", new FILTER("FILTER", false));
-    functions.put("PAPPLY", new APPLY("APPLY", false));
+    functions.put("PAPPLY", new APPLY("PAPPLY", false));
     functions.put("REDUCE", new REDUCE("REDUCE", true));
     functions.put("PREDUCE", new REDUCE("PREDUCE", false));
     
@@ -889,6 +926,11 @@ public class WarpScriptLib {
     functions.put("mapper.add", new MapperAdd.Builder("mapper.add"));
     functions.put("mapper.mul", new MapperMul.Builder("mapper.mul"));
     functions.put("mapper.pow", new MapperPow.Builder("mapper.pow"));
+    try {
+      functions.put("mapper.sqrt", new MapperPow("mapper.sqrt", 0.5D));
+    } catch (WarpScriptException wse) {
+      throw new RuntimeException(wse);
+    }
     functions.put("mapper.exp", new MapperExp.Builder("mapper.exp"));
     functions.put("mapper.log", new MapperLog.Builder("mapper.log"));
     functions.put("mapper.min.x", new MapperMinX.Builder("mapper.min.x"));          
@@ -952,12 +994,14 @@ public class WarpScriptLib {
     functions.put("GEO.REGEXP", new GEOREGEXP("GEO.REGEXP"));
     functions.put(GEO_WKT, new GeoWKT(GEO_WKT, false));
     functions.put(GEO_WKT_UNIFORM, new GeoWKT(GEO_WKT, true));
-    functions.put(GEO_JSON, new GeoJSON(GEO_JSON));
+    functions.put(GEO_JSON, new GeoJSON(GEO_JSON, false));
+    functions.put(GEO_JSON_UNIFORM, new GeoJSON(GEO_JSON, true));
+    functions.put("GEO.OPTIMIZE", new GEOOPTIMIZE("GEO.OPTIMIZE"));
     functions.put(GEO_INTERSECTION, new GeoIntersection(GEO_INTERSECTION));
     functions.put(GEO_UNION, new GeoUnion(GEO_UNION));
     functions.put(GEO_DIFFERENCE, new GeoSubtraction(GEO_DIFFERENCE));
     functions.put("GEO.WITHIN", new GEOWITHIN("GEO.WITHIN"));
-    functions.put("GEO.INTERSECTS", new GEOINTERSECTS("GEO.WINTERSECTS"));
+    functions.put("GEO.INTERSECTS", new GEOINTERSECTS("GEO.INTERSECTS"));
     functions.put("HAVERSINE", new HAVERSINE("HAVERSINE"));
     functions.put(GEOPACK, new GEOPACK(GEOPACK));
     functions.put(GEOUNPACK, new GEOUNPACK(GEOUNPACK));
@@ -978,13 +1022,6 @@ public class WarpScriptLib {
     functions.put("COUNTERDELTA", new COUNTERDELTA("COUNTERDELTA"));
     
     //
-    // LoRaWAN
-    //
-    
-    functions.put("LORAMIC", new LORAMIC("LORAMIC"));
-    functions.put("LORAENC", new LORAENC("LORAENC"));
-    
-    //
     // Math functions
     //
     
@@ -1000,6 +1037,8 @@ public class WarpScriptLib {
 
     functions.put("NPDF", new NPDF.Builder("NPDF"));
     functions.put("MUSIGMA", new MUSIGMA("MUSIGMA"));
+    functions.put("KURTOSIS", new KURTOSIS("KURTOSIS"));
+    functions.put("SKEWNESS", new SKEWNESS("SKEWNESS"));
     functions.put("NSUMSUMSQ", new NSUMSUMSQ("NSUMSUMSQ"));
     functions.put("LR", new LR("LR"));
     functions.put("MODE", new MODE("MODE"));
@@ -1036,7 +1075,6 @@ public class WarpScriptLib {
       functions.put("TANH", new MATH("TANH", "tanh"));
       functions.put("ATAN", new MATH("ATAN", "atan"));
 
-
       functions.put("SIGNUM", new MATH("SIGNUM", "signum"));
       functions.put("FLOOR", new MATH("FLOOR", "floor"));
       functions.put("CEIL", new MATH("CEIL", "ceil"));
@@ -1064,7 +1102,8 @@ public class WarpScriptLib {
       functions.put("HYPOT", new MATH2("HYPOT", "hypot"));
       functions.put("IEEEREMAINDER", new MATH2("IEEEREMAINDER", "IEEEremainder"));
       functions.put("NEXTAFTER", new MATH2("NEXTAFTER", "nextAfter"));
-
+      functions.put("ATAN2", new MATH2("ATAN2", "atan2"));
+      
     } catch (WarpScriptException ee) {
       throw new RuntimeException(ee);
     }
@@ -1118,6 +1157,7 @@ public class WarpScriptLib {
     
     functions.put("PbeginShape", new PbeginShape("PbeginShape"));
     functions.put("PendShape", new PendShape("PendShape"));
+    functions.put("PloadShape", new PloadShape("PloadShape"));
     functions.put("PbeginContour", new PbeginContour("PbeginContour"));
     functions.put("PendContour", new PendContour("PendContour"));
     functions.put("Pvertex", new Pvertex("Pvertex"));
@@ -1126,7 +1166,8 @@ public class WarpScriptLib {
     functions.put("PquadraticVertex", new PquadraticVertex("PquadraticVertex"));
     
     // TODO(hbs): support PShape (need to support PbeginShape etc applied to PShape instances)
-    //functions.put("PshapeMode", new PshapeMode("PshapeMode"));
+    functions.put("PshapeMode", new PshapeMode("PshapeMode"));
+    functions.put("Pshape", new Pshape("Pshape"));
     
     // Transform
     
@@ -1178,7 +1219,8 @@ public class WarpScriptLib {
     functions.put("Pcopy", new Pcopy("Pcopy"));
     functions.put("Pget", new Pget("Pget"));
     functions.put("Pset", new Pset("Pset"));
-    
+    functions.put("Pfilter", new Pfilter("Pfilter"));
+
     // Rendering
     
     functions.put("PblendMode", new PblendMode("PblendMode"));
@@ -1369,13 +1411,7 @@ public class WarpScriptLib {
 
     /////////////////////////
     
-    //
-    // TBD
-    //
-    
-    functions.put("mapper.distinct", new FAIL("mapper.distinct")); // Counts the number of distinct values in a window, using HyperLogLog???
-    functions.put("TICKSHIFT", new FAIL("TICKSHIFT")); // Shifts the ticks of a GTS by this many positions
-    
+
     Properties props = WarpConfig.getProperties();
       
     if (null != props && props.containsKey(Configuration.CONFIG_WARPSCRIPT_LANGUAGES)) {
@@ -1505,7 +1541,17 @@ public class WarpScriptLib {
         WarpScriptExtension wse = (WarpScriptExtension) cls.newInstance();          
         wse.register();
         
-        System.out.println("LOADED extension '" + extension  + "'");
+        System.out.print("LOADED extension '" + extension  + "'");
+        
+        String namespace = props.getProperty(Configuration.CONFIG_WARPSCRIPT_NAMESPACE_PREFIX + wse.getClass().getName(), "").trim(); 
+        if (null != namespace && !"".equals(namespace)) {
+          if (namespace.contains("%")) {
+            namespace = URLDecoder.decode(namespace, "UTF-8");
+          }
+          System.out.println(" under namespace '" + namespace + "'.");
+        } else {
+          System.out.println();
+        }
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
@@ -1517,6 +1563,29 @@ public class WarpScriptLib {
   }
   
   public static void register(WarpScriptExtension extension) {
+    Properties props = WarpConfig.getProperties();
+    
+    if (null == props) {
+      return;
+    }
+
+    String namespace = props.getProperty(Configuration.CONFIG_WARPSCRIPT_NAMESPACE_PREFIX + extension.getClass().getName(), "").trim();
+        
+    if (namespace.contains("%")) {
+      try {
+        namespace = URLDecoder.decode(namespace, "UTF-8");
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    register(namespace, extension);
+  }
+  
+  public static void register(String namespace, WarpScriptExtension extension) {
+    
+    extloaded.add(extension.getClass().getCanonicalName());
+    
     Map<String,Object> extfuncs = extension.getFunctions();
     
     if (null == extfuncs) {
@@ -1525,11 +1594,15 @@ public class WarpScriptLib {
     
     for (Entry<String,Object> entry: extfuncs.entrySet()) {
       if (null == entry.getValue()) {
-        functions.remove(entry.getKey());
+        functions.remove(namespace + entry.getKey());
       } else {
-        functions.put(entry.getKey(), entry.getValue());
+        functions.put(namespace + entry.getKey(), entry.getValue());
       }
     }          
+  }
+  
+  public static boolean extloaded(String name) {
+    return extloaded.contains(name);
   }
   
   /**
@@ -1544,5 +1617,15 @@ public class WarpScriptLib {
     }
     
     return o instanceof Macro;
+  }
+
+  public static ArrayList getFunctionNames() {
+
+    List<Object> list = new ArrayList<Object>();
+
+    list.addAll(functions.keySet());
+
+    return (ArrayList)list;
+
   }
 }

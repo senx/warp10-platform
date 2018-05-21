@@ -17,11 +17,11 @@
 package io.warp10.script.binary;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import java.math.BigDecimal;
+import io.warp10.script.WarpScriptStackFunction;
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
 
 /**
  * Checks the two operands on top of the stack for inequality
@@ -31,22 +31,34 @@ public class NE extends NamedWarpScriptFunction implements WarpScriptStackFuncti
   public NE(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object op2 = stack.pop();
     Object op1 = stack.pop();
-    
-    if (op2 instanceof Number && op1 instanceof Number) {
+
+    if (op2 instanceof Double && op1 instanceof Double) {
+      // Special case if the 2 parameters are NaN value : we want 'NaN NaN !=' to be true
+      // NaN is not convertible to BigDecimal, so we cannot use the compare method
+      if (Double.isNaN((Double) op1) || Double.isNaN((Double) op2)) {
+        stack.push(!(Double.isNaN((Double) op1) && Double.isNaN((Double) op2)));
+      } else {
+        stack.push(0 != EQ.compare((Number) op1, (Number) op2));
+      }
+    } else if (op1 instanceof Double && Double.isNaN((Double) op1)) { // Do we have only one NaN ?
+      stack.push(true);
+    } else if (op2 instanceof Double && Double.isNaN((Double) op2)) { // Do we have only one NaN ?
+      stack.push(true);
+    } else if (op2 instanceof Number && op1 instanceof Number) {
       stack.push(0 != EQ.compare((Number) op1, (Number) op2));
-    } else if (op2 instanceof String && op1 instanceof String) {
-      stack.push(!op1.toString().equals(op2.toString()));
-    } else if (op2 instanceof Boolean && op2 instanceof Boolean) {
+    } else if (op1 instanceof Boolean || op1 instanceof String
+        || op1 instanceof RealVector || op1 instanceof RealMatrix) {
       stack.push(!op1.equals(op2));
     } else {
-      throw new WarpScriptException(getName() + " can only operate on homogeneous numeric, string or boolean types.");
+      throw new WarpScriptException(getName()
+          + " can only operate on homogeneous numeric, string, boolean, vector or matrix types.");
     }
-    
+
     return stack;
   }
 }

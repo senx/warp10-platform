@@ -24,23 +24,25 @@ import org.bouncycastle.util.encoders.Hex;
 
 /**
  * Class used as a repository of keys in memory.
- * 
+ * <p>
  * Keys can be set after being retrieved from an outside source (i.e. OSS).
- * 
  */
 public class DummyKeyStore implements KeyStore {
-  
+
   private final Map<String, byte[]> keys = new HashMap<String, byte[]>();
-  
+
+  /**
+   * Instantiates a new Dummy key store.
+   */
   public DummyKeyStore() {
     //
     // Initialize key store
     //
-    
+
     setKey(KeyStore.AES_HBASE_METADATA, new byte[32]);
     setKey(KeyStore.AES_TOKEN, new byte[32]);
     setKey(KeyStore.SIPHASH_CLASS, new byte[16]);
-    setKey(KeyStore.SIPHASH_LABELS, new byte[16]);   
+    setKey(KeyStore.SIPHASH_LABELS, new byte[16]);
     //setKey(KeyStore.AES_KAFKA_DATA, new byte[32]);
     //setKey(KeyStore.AES_KAFKA_METADATA, new byte[32]);
     setKey(KeyStore.SIPHASH_KAFKA_DATA, new byte[16]);
@@ -48,10 +50,10 @@ public class DummyKeyStore implements KeyStore {
     setKey(KeyStore.SIPHASH_APPID, new byte[16]);
     //setKey(KeyStore.SIPHASH_KAFKA_METADATA, new byte[16]);
   }
-  
+
   /**
    * Retrieve a key given its name.
-   * 
+   *
    * @param name Name of key to retrieve.
    * @return The byte array corresponding to this key or null if key is unknown.
    */
@@ -59,10 +61,10 @@ public class DummyKeyStore implements KeyStore {
   public byte[] getKey(String name) {
     return keys.get(name);
   }
-  
+
   /**
    * Store a key under a name.
-   * 
+   *
    * @param name Name of key.
    * @param bits Byte array containing the key bits.
    */
@@ -70,7 +72,7 @@ public class DummyKeyStore implements KeyStore {
   public void setKey(String name, byte[] bits) {
     keys.put(name, bits);
   }
-  
+
   @Override
   public byte[] decodeKey(String encoded) {
     if (null == encoded) {
@@ -79,7 +81,7 @@ public class DummyKeyStore implements KeyStore {
     if (encoded.startsWith("hex:")) {
       return Hex.decode(encoded.substring(4));
     } else if (encoded.startsWith("base64:")) {
-      return Base64.decode(encoded.substring(7));              
+      return Base64.decode(encoded.substring(7));
     } else {
       return null;
     }
@@ -89,7 +91,8 @@ public class DummyKeyStore implements KeyStore {
   public KeyStore clone() {
     return this;
   }
-  
+
   @Override
-  public void forget() {}
+  public void forget() {
+  }
 }

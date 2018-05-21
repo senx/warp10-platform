@@ -20,6 +20,7 @@ import io.warp10.SmartPattern;
 import io.warp10.continuum.DirectoryUtil;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.KafkaOffsetCounters;
+import io.warp10.continuum.LogUtil;
 import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.MetadataUtils.MetadataID;
 import io.warp10.continuum.gts.GTSHelper;
@@ -32,6 +33,7 @@ import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.continuum.store.thrift.service.DirectoryService;
+import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
@@ -483,19 +485,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     
     if (this.properties.containsKey(io.warp10.continuum.Configuration.DIRECTORY_PLUGIN_CLASS)) {
       try {
-        // Create new classloader with filtering so caller cannot access the warp10 classes, except those needed
-        ClassLoader filteringCL = new ClassLoader(this.getClass().getClassLoader()) {
-          @Override
-          protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {                
-            if (name.startsWith("io.warp10") && !name.startsWith("io.warp10.warp.sdk.")) {
-              throw new ClassNotFoundException();
-            } else {
-              return this.getParent().loadClass(name);
-            }
-          }
-        };
+        ClassLoader pluginCL = this.getClass().getClassLoader();
 
-        Class pluginClass = Class.forName((String)properties.get(io.warp10.continuum.Configuration.DIRECTORY_PLUGIN_CLASS), true, filteringCL);
+        Class pluginClass = Class.forName((String)properties.get(io.warp10.continuum.Configuration.DIRECTORY_PLUGIN_CLASS), true, pluginCL);
         this.plugin = (DirectoryPlugin) pluginClass.newInstance();
         
         //
@@ -786,7 +778,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   try {
                     resultQ.put(result);
                     count++;
-                    if (0 == count % 1000) {
+                    if (0 == count % 1000 && null == plugin) {
+                      // We do not update this metric when using a Directory plugin
                       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, count);
                     }
                   } catch (InterruptedException ie) {
@@ -800,7 +793,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               LOG.error("Caught exception in scanning loop, will attempt to continue where we stopped", e);
             } finally {
               if (null != htable) { try { htable.close(); } catch (Exception e) {} }
-              Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, count);
+              if (null == plugin) {
+                // We do not update this metric when using a Directory plugin
+                Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, count);
+              }
             }                    
           }
           
@@ -915,7 +911,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             for (final KafkaStream<byte[],byte[]> stream : streams) {
               executor.submit(new DirectoryConsumer(self, stream, counters));
             }      
-            
+
             while(!abort.get() && !Thread.currentThread().isInterrupted()) {
               try {
                 if (streams.size() == barrier.getNumberWaiting()) {
@@ -935,8 +931,16 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   //
 
                   // Commit offsets
-                  connector.commitOffsets(true);
-                  counters.commit();
+                  try {
+                    connector.commitOffsets(true);
+                  } catch (Throwable t) {
+                    throw t;
+                  } finally {
+                    // We instruct the counters that we committed the offsets, in the worst case
+                    // we will experience a backward leap which is not fatal, whereas missing
+                    // a commit will lead to a forward leap which will make the Directory fail
+                    counters.commit();
+                  }
                                    
                   counters.sensisionPublish();
                   
@@ -964,11 +968,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             //
             
             executor.shutdownNow();
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARP_DIRECTORY_KAFKA_SHUTDOWNS, Sensision.EMPTY_LABELS, 1);
             connector.shutdown();
-            abort.set(false);
           } catch (Throwable t) {
-            LOG.error("", t);
+            LOG.error("Caught throwable in spawner.", t);
           } finally {
+            abort.set(false);
             LockSupport.parkNanos(1000000000L);
           }
         }          
@@ -1001,6 +1006,16 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
     Server server = new Server(new QueuedThreadPool(streamingMaxThreads,8, (int) idleTimeout, queue));
     
+    //
+    // Iterate over the properties to find those starting with DIRECTORY_STREAMING_JETTY_ATTRIBUTE and set
+    // the Jetty attributes accordingly
+    //
+    
+    for (Entry<Object,Object> entry: props.entrySet()) {
+      if (entry.getKey().toString().startsWith(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_JETTY_ATTRIBUTE_PREFIX)) {
+        server.setAttribute(entry.getKey().toString().substring(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_JETTY_ATTRIBUTE_PREFIX.length()), entry.getValue().toString());
+      }
+    }
     
     //ServerConnector connector = new ServerConnector(server, this.streamingacceptors, this.streamingselectors);
     HttpConfiguration config = new HttpConfiguration();
@@ -1223,136 +1238,143 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         Thread synchronizer = new Thread(new Runnable() {
           @Override
           public void run() {
-            long lastsync = System.currentTimeMillis();
-            long lastflush = lastsync;
-            
-            //
-            // Check for how long we've been storing readings, if we've reached the commitperiod,
-            // flush any pending commits and synchronize with the other threads so offsets can be committed
-            //
-
-            while(!localabort.get() && !Thread.currentThread().isInterrupted()) { 
-              long now = System.currentTimeMillis();
+            try {
+              long lastsync = System.currentTimeMillis();
+              long lastflush = lastsync;
               
-              if (now - lastsync > directory.commitPeriod) {
-                //
-                // We synchronize on 'puts' so the main Thread does not add Puts to it
-                //
-                
-                //synchronized (puts) {
-                try {
-                  actionsLock.lockInterruptibly();
-                  
-                  //
-                  // Attempt to flush
-                  //
-                  
-                  try {
-                    Object[] results = new Object[actions.size()];
-                    
-                    if (directory.store||directory.delete) {
-                      ht.batch(actions, results);
+              //
+              // Check for how long we've been storing readings, if we've reached the commitperiod,
+              // flush any pending commits and synchronize with the other threads so offsets can be committed
+              //
 
-                      // Check results for nulls
-                      for (Object o: results) {
-                        if (null == o) {
-                          throw new IOException("At least one action (Put/Delete) failed.");
-                        }
-                      }
-                      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
-                    }
-                    
-                    actions.clear();
-                    actionsSize.set(0L);
-                    // Reset lastPut to 0
-                    lastAction.set(0L);                    
-                  } catch (IOException ioe) {
-                    // Clear list of Puts
-                    actions.clear();
-                    actionsSize.set(0L);
-                    // If an exception is thrown, abort
-                    directory.abort.set(true);
-                    return;
-                  } catch (InterruptedException ie) {
-                    // Clear list of Puts
-                    actions.clear();
-                    actionsSize.set(0L);
-                    // If an exception is thrown, abort
-                    directory.abort.set(true);
-                    return;                    
-                  }
+              while(!localabort.get() && !Thread.currentThread().isInterrupted()) { 
+                long now = System.currentTimeMillis();
+                
+                if (now - lastsync > directory.commitPeriod) {
                   //
-                  // Now join the cyclic barrier which will trigger the
-                  // commit of offsets
+                  // We synchronize on 'puts' so the main Thread does not add Puts to it
                   //
+                  
+                  //synchronized (puts) {
                   try {
-                    directory.barrier.await();
-                    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_BARRIER_SYNCS, Sensision.EMPTY_LABELS, 1);
-                  } catch (Exception e) {
+                    actionsLock.lockInterruptibly();
+                    
+                    //
+                    // Attempt to flush
+                    //
+                    
+                    try {
+                      Object[] results = new Object[actions.size()];
+                      
+                      if (directory.store||directory.delete) {
+                        ht.batch(actions, results);
+
+                        // Check results for nulls
+                        for (Object o: results) {
+                          if (null == o) {
+                            throw new IOException("At least one action (Put/Delete) failed.");
+                          }
+                        }
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
+                      }
+                      
+                      actions.clear();
+                      actionsSize.set(0L);
+                      // Reset lastPut to 0
+                      lastAction.set(0L);                    
+                    } catch (IOException ioe) {
+                      // Clear list of Puts
+                      actions.clear();
+                      actionsSize.set(0L);
+                      // If an exception is thrown, abort
+                      directory.abort.set(true);
+                      return;
+                    } catch (InterruptedException ie) {
+                      // Clear list of Puts
+                      actions.clear();
+                      actionsSize.set(0L);
+                      // If an exception is thrown, abort
+                      directory.abort.set(true);
+                      return;                    
+                    }
+                    //
+                    // Now join the cyclic barrier which will trigger the
+                    // commit of offsets
+                    //
+                    try {
+                      directory.barrier.await();
+                      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_BARRIER_SYNCS, Sensision.EMPTY_LABELS, 1);
+                    } catch (Exception e) {
+                      directory.abort.set(true);
+                      return;
+                    } finally {
+                      lastsync = System.currentTimeMillis();
+                    }
+                  } catch (InterruptedException ie) {
                     directory.abort.set(true);
                     return;
                   } finally {
-                    lastsync = System.currentTimeMillis();
+                    if (actionsLock.isHeldByCurrentThread()) {
+                      actionsLock.unlock();
+                    }                  
                   }
-                } catch (InterruptedException ie) {
-                  directory.abort.set(true);
-                  return;
-                } finally {
-                  if (actionsLock.isHeldByCurrentThread()) {
-                    actionsLock.unlock();
-                  }                  
-                }
-              } else if (0 != lastAction.get() && (now - lastAction.get() > 500) || actionsSize.get() > directory.maxPendingPutsSize) {
-                //
-                // If the last Put was added to 'ht' more than 500ms ago, force a flush
-                //
-                
-                try {
-                  //synchronized(puts) {
-                  actionsLock.lockInterruptibly();
+                } else if (0 != lastAction.get() && (now - lastAction.get() > 500) || actionsSize.get() > directory.maxPendingPutsSize) {
+                  //
+                  // If the last Put was added to 'ht' more than 500ms ago, force a flush
+                  //
+                  
                   try {
-                    Object[] results = new Object[actions.size()];
-                    
-                    if (directory.store||directory.delete) {
-                      ht.batch(actions, results);
+                    //synchronized(puts) {
+                    actionsLock.lockInterruptibly();
+                    try {
+                      Object[] results = new Object[actions.size()];
                       
-                      // Check results for nulls
-                      for (Object o: results) {
-                        if (null == o) {
-                          throw new IOException("At least one Put failed.");
+                      if (directory.store||directory.delete) {
+                        ht.batch(actions, results);
+                        
+                        // Check results for nulls
+                        for (Object o: results) {
+                          if (null == o) {
+                            throw new IOException("At least one Put failed.");
+                          }
                         }
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
                       }
-                      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
-                    }
-                    
-                    actions.clear();
-                    actionsSize.set(0L);
-                    // Reset lastPut to 0
-                    lastAction.set(0L);
-                  } catch (IOException ioe) {
-                    // Clear list of Puts
-                    actions.clear();
-                    actionsSize.set(0L);
+                      
+                      actions.clear();
+                      actionsSize.set(0L);
+                      // Reset lastPut to 0
+                      lastAction.set(0L);
+                    } catch (IOException ioe) {
+                      // Clear list of Puts
+                      actions.clear();
+                      actionsSize.set(0L);
+                      directory.abort.set(true);
+                      return;
+                    } catch(InterruptedException ie) {                  
+                      // Clear list of Puts
+                      actions.clear();
+                      actionsSize.set(0L);
+                      directory.abort.set(true);
+                      return;
+                    }                  
+                  } catch (InterruptedException ie) {
                     directory.abort.set(true);
                     return;
-                  } catch(InterruptedException ie) {                  
-                    // Clear list of Puts
-                    actions.clear();
-                    actionsSize.set(0L);
-                    directory.abort.set(true);
-                    return;
-                  }                  
-                } catch (InterruptedException ie) {
-                  directory.abort.set(true);
-                  return;
-                } finally {
-                  if (actionsLock.isHeldByCurrentThread()) {
-                    actionsLock.unlock();
-                  }                  
+                  } finally {
+                    if (actionsLock.isHeldByCurrentThread()) {
+                      actionsLock.unlock();
+                    }                  
+                  }
                 }
-              }
- 
-              LockSupport.parkNanos(1000000L);
+   
+                LockSupport.parkNanos(1000000L);
+              }              
+            } catch (Throwable t) {
+              LOG.error("Caught exception in synchronizer", t);
+              throw t;
+            } finally {
+              directory.abort.set(true);
             }
           }
         });
@@ -1449,6 +1471,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             // Recompute labelsid and classid
             //
             
+            // 128bits
             long classId = GTSHelper.classId(directory.SIPHASH_CLASS_LONGS, metadata.getName());
             long labelsId = GTSHelper.labelsId(directory.SIPHASH_LABELS_LONGS, metadata.getLabels());
 
@@ -1487,6 +1510,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 
                 try {
                   GTS gts = new GTS(
+                      // 128bits
                       new UUID(metadata.getClassId(), metadata.getLabelsId()),
                       metadata.getName(),
                       metadata.getLabels(),
@@ -1575,7 +1599,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               }
               
               continue;
-            }                        
+            } // if (io.warp10.continuum.Configuration.INGRESS_METADATA_DELETE_SOURCE.equals(metadata.getSource())                   
 
             //
             // Call external plugin
@@ -1586,13 +1610,14 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               
               try {
                 GTS gts = new GTS(
+                    // 128bits
                     new UUID(metadata.getClassId(), metadata.getLabelsId()),
                     metadata.getName(),
                     metadata.getLabels(),
                     metadata.getAttributes());
 
                 //
-                // If we are doing a metadata update and the GTS is not known, skip writing to HBase.
+                // If we are doing a metadata update and the GTS is not known, skip calling the plugin
                 //
                 
                 if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource()) && !directory.plugin.known(gts)) {
@@ -2582,6 +2607,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       return;
     }
     
+    long now = System.currentTimeMillis();
+    
     long nano = System.nanoTime();
     
     baseRequest.setHandled(true);
@@ -2722,8 +2749,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             
             if (null == data) {
               data = serializer.serialize(metadata);
-              // cache content
-              serializedMetadataCache.put(MetadataUtils.id(metadata),data);
+              synchronized(serializedMetadataCache) {
+                // cache content
+                serializedMetadataCache.put(MetadataUtils.id(metadata),data);                
+              }
             } else {
               hits++;
             }
@@ -2921,10 +2950,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               
               byte[] data = serializedMetadataCache.get(id);
               
-              if (null == data) {
+              if (null == data) {                
                 data = serializer.serialize(metadata);
-                // cache content
-                serializedMetadataCache.put(MetadataUtils.id(metadata),data);
+                synchronized(serializedMetadataCache) {
+                  // cache content
+                  serializedMetadataCache.put(MetadataUtils.id(metadata),data);                  
+                }
               } else {
                 hits++;
               }
@@ -2940,7 +2971,20 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         }
       }    
       
-      LOG.info("Search returned " + count + " results in " + ((System.nanoTime() - nano) / 1000000.0D) + " ms, inspected " + metadataInspected + " metadatas in " + classesInspected + " classes (" + classesMatched + " matched) and performed " + labelsComparisons + " comparisons.");
+      long nownano = System.nanoTime();
+      
+      LoggingEvent event = LogUtil.setLoggingEventAttribute(null, LogUtil.DIRECTORY_SELECTOR, selector);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_REQUEST_TIMESTAMP, now);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_RESULTS, count);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_NANOS, nownano - nano);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_METADATA_INSPECTED, metadataInspected);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_CLASSES_INSPECTED, classesInspected);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_CLASSES_MATCHED, classesMatched);
+      event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_LABELS_COMPARISONS, labelsComparisons);
+      
+      String eventstr = LogUtil.serializeLoggingEvent(this.keystore, event);
+      
+      LOG.info("Search returned " + count + " results in " + ((nownano - nano) / 1000000.0D) + " ms, inspected " + metadataInspected + " metadatas in " + classesInspected + " classes (" + classesMatched + " matched) and performed " + labelsComparisons + " comparisons. EVENT=" + eventstr);
     }
     
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_REQUESTS, Sensision.EMPTY_LABELS, 1);

@@ -24,6 +24,11 @@ warp.timeunits = us
 //
 //warp10.plugins = 
 
+//
+// Comma separated list of headers to return in Access-Control-Allow-Headers on top of the token header.
+// This applies to all HTTP endpoints.
+//
+#cors.headers =
 
 //
 // Maximum size for encoders exchanged within Warp 10.
@@ -102,6 +107,11 @@ warp.aes.metasets = hex:hhhhhhhh....
 // Token file
 //
 #warp.token.file = 
+
+//
+// Root directory where trl files are stored
+//
+#warp.trl.dir =
 
 //
 // Pre-Shared key for signing fetch requests. Signed fetch request expose owner/producer
@@ -267,9 +277,23 @@ warpscript.delete.endpoint = http://127.0.0.1:8080/api/v0/delete
 //warpscript.call.maxcapacity = 1
 
 //
-// Comma separated list of WarpScriptExtension classes to instantiate to modify the defined WarpScript functions
+// Comma separated list of WarpScriptExtension classes to instantiate to modify the defined WarpScript functions.
+// Extension classes can be prefixed with SORTKEY# to force the order in which the extensions will be loaded.
+// The SORTKEY# prefix will be used only for sorting.
 //
-//warpscript.extensions = 
+//warpscript.extensions =
+
+//
+// Specific extension loading
+// Extension classes can be prefixed with SORTKEY# to force the order in which the extensions will be loaded.
+// The SORTKEY# prefix will be used only for sorting.
+//
+//warpscript.extension.xxx = package.class
+
+//
+// Specific namespace under which to load an extension. The specified namespace will be used as a prefix for all functions of the extension.
+//
+//warpscript.namespace.package.class = namespace.
 
 //
 // Comma separated list of additional languages to support within WarpScript. This MUST be set as a system property
@@ -554,6 +578,13 @@ directory.streaming.threadpool = 200
 // Maximum size of Jetty ThreadPool queue size (unbounded by default)
 //
 directory.streaming.maxqueuesize = 400
+
+//
+// Jetty attributes for the streaming directory
+//
+#directory.streaming.jetty.attribute.XXX = value
+// Example to modify the maximum size of acceptable form request, to support large selector regexps for example
+#directory.streaming.jetty.attribute.org.eclipse.jetty.server.Request.maxFormContentSize = 10000000
 
 //
 // Address on which the DirectoryService will listen
@@ -1373,6 +1404,11 @@ runner.kafka.mac = hex:hhhhhh...
 // E G R E S S
 //
 /////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// Should the egress exec handler expose its store/directory clients?
+//
+egress.clients.expose = false
 
 //
 // Comma separated list of Egress related HBase configuration keys. Each key will
