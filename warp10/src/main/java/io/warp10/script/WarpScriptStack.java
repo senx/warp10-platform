@@ -24,6 +24,7 @@ import io.warp10.script.functions.SNAPSHOT.Snapshotable;
 import io.warp10.warp.sdk.WarpScriptJavaFunction;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EmptyStackException;
 import java.util.List;
 import java.util.Map;
@@ -287,7 +288,8 @@ public interface WarpScriptStack {
      */
     private long expiry = Long.MIN_VALUE;
     
-    private ArrayList<Object> statements = new ArrayList<Object>();
+    private int size = 0;
+    private Object[] statements = new Object[16];
     
     public boolean isExpired() {
       return (Long.MIN_VALUE != this.expiry) && (this.expiry < System.currentTimeMillis());
@@ -317,23 +319,29 @@ public interface WarpScriptStack {
     }
     
     public void add(Object o) {
-      this.statements().add(o);
+      ensureCapacity(1);
+      statements[size++] = o;
     }
     
     public Object get(int idx) {
-      return this.statements().get(idx);
+      return statements[idx];
     }
     
     public int size() {
-      return this.statements().size();
+      return size;
     }
     
     public List<Object> statements() {
-      return this.statements;
+      return Arrays.asList(this.statements);
     }
     
     public void addAll(Macro macro) {
-      this.statements().addAll(macro.statements());
+      int n = macro.size;
+      
+      ensureCapacity(n);
+      
+      System.arraycopy(macro.statements, 0, this.statements, size, n);
+      size += n;
     }
     
     public void setSecure(boolean secure) {
@@ -384,6 +392,15 @@ public interface WarpScriptStack {
       sb.append(MACRO_END);
       
       return sb.toString();
+    }
+    
+    private void ensureCapacity(int n) {
+      if (size + n < this.statements.length) {
+        return;
+      }
+      
+      int newlen = n + this.statements.length + (this.statements.length >> 1);
+      this.statements = Arrays.copyOf(this.statements, newlen);
     }
   }
   

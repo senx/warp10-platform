@@ -85,7 +85,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
    */
   private boolean inSecureMacro = false;
   
-  private final List<Object> list = new ArrayList<Object>(32);
+  private int size = 0;
+  
+  private Object[] elements = new Object[32];
 
   private final Map<String,Object> symbolTable = new HashMap<String,Object>();
   
@@ -253,7 +255,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   
   @Override
   public int depth() {
-    return list.size();
+    return size;
   }
   
   @Override
@@ -263,19 +265,19 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     // We remove the last element to prevent having to shift remaining elements
     //
     
-    while (list.size() > depth) {
-      list.remove(list.size() - 1);
+    while (size > depth) {
+      size--;
     }
   }
   
   @Override
   public void clear() {
-    list.clear();
+    size = 0;
   }
   
   @Override
   public void drop() throws EmptyStackException {
-    if (list.isEmpty()) {
+    if (0 == size) {
       throw new EmptyStackException() {
         @Override
         public String getMessage() {
@@ -284,26 +286,26 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       };
     }
     
-    list.remove(list.size() - 1);
+    size--;
   }
 
   @Override
   public void dropn() throws EmptyStackException, IndexOutOfBoundsException {
     int n = getn();
     
-    if (list.size() < n || n < 0) {
+    if (size < n || n < 0) {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
 
     while (n > 0) {
-      list.remove(list.size() - 1);
+      size--;
       n--;
     }
   }
   
   @Override
   public void dup() throws EmptyStackException {
-    if (list.isEmpty()) {
+    if (0 == size) {
       throw new EmptyStackException() {
         @Override
         public String getMessage() {
@@ -312,29 +314,31 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       };
     }
     
-    Object element = list.get(list.size() - 1);
-    list.add(element);
+    Object element = elements[size - 1];
+    ensureCapacity(1);
+    elements[size++] = element;
   }
 
   @Override
   public void dupn() throws EmptyStackException, IndexOutOfBoundsException {
     int n = getn();
     
-    if (list.size() < n || n < 0) {
+    if (size < n || n < 0) {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
     
     int count = n;
+    ensureCapacity(n);
     while (count > 0) {
-      Object o = list.get(list.size() - 1 - (n - 1));
-      list.add(o);
+      Object o = elements[size - 1 - (n - 1)];
+      elements[size++] = o;
       count--;
     }
   }
   
   @Override
   public Object pop() throws EmptyStackException {
-    if (list.isEmpty()) {
+    if (0 == size) {
       throw new EmptyStackException() {
         @Override
         public String getMessage() {
@@ -343,7 +347,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       };
     }
 
-    Object element = list.remove(list.size() - 1);
+    Object element = elements[size - 1];
+    size--;
     
     return element;    
   }
@@ -352,7 +357,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   public Object[] popn() throws EmptyStackException, IndexOutOfBoundsException {
     int n = getn();
     
-    if (list.size() < n || n < 0) {
+    if (size < n || n < 0) {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
     
@@ -364,7 +369,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     //
     
     for (int i = n - 1; i >= 0; i--) {
-      objects[i] = list.remove(list.size() - 1);
+      objects[i] = elements[size - 1];
+      size--;
     }
     
     return objects;
@@ -373,17 +379,18 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   @Override
   public void push(Object o) throws WarpScriptException {
     
-    if (list.size() > this.maxdepth) {
+    if (size > this.maxdepth) {
       Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_STACKDEPTH_EXCEEDED, Sensision.EMPTY_LABELS, 1);
       throw new WarpScriptException("Stack depth would exceed set limit of " + this.maxdepth);
     }
     
-    list.add(o);
+    ensureCapacity(1);
+    elements[size++] = o;
   }
   
   @Override
   public void swap() throws WarpScriptException, EmptyStackException, IndexOutOfBoundsException {
-    if (list.isEmpty()) {
+    if (0 == size) {
       throw new EmptyStackException() {
         @Override
         public String getMessage() {
@@ -392,19 +399,19 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       };
     }
     
-    if (list.size() < 2) {
+    if (size < 2) {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
-    
-    Object top = pop();
-    Object top2 = pop();
-    push(top);
-    push(top2);
+        
+    Object top = elements[size - 1];
+    Object top2 = elements[size - 2];
+    elements[size - 1] = top2;
+    elements[size - 2] = top;
   }
   
   @Override
   public Object peek() throws EmptyStackException {
-    if (list.isEmpty()) {
+    if (0 == size) {
       throw new EmptyStackException() {
         @Override
         public String getMessage() {
@@ -413,13 +420,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       };
     }
 
-    return list.get(list.size() - 1);
+    return elements[size - 1];
   }
   
   @Override
   public void rot() throws EmptyStackException, IndexOutOfBoundsException {
     
-    if (list.isEmpty()) {
+    if (0 == size) {
       throw new EmptyStackException() {
         @Override
         public String getMessage() {
@@ -428,44 +435,54 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       };
     }
     
-    if (list.size() < 3) {
+    if (size < 3) {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
     
-    Object element = list.remove(list.size() - 1 - 2);
-    list.add(element);
+    Object tmp = elements[size - 1 - 2];
+    
+    for (int i = 0; i < 2; i++) {
+      elements[size - 1 - 2 + i] = elements[size - 1 - 2 + i + 1];
+    }
+    
+    elements[size - 1] = tmp;
   }
   
   @Override
   public void roll() throws EmptyStackException, IndexOutOfBoundsException {    
     int n = getn();
     
-    if (list.size() < n || n < 0) {
+    if (size < n || n < 0) {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
     
-    Object element = list.remove(list.size() - 1 - (n - 1));
-    list.add(element);
+    Object tmp = elements[size - 1 - (n - 1)];
+    
+    for (int i = 0; i < n - 1; i++) {
+      elements[size - 1 - (n - 1) + i] = elements[size - 1 - (n - 1) + i + 1];
+    }
+    
+    elements[size - 1] = tmp;
   }
   
   @Override
   public Object peekn() throws EmptyStackException, IndexOutOfBoundsException {
     int n = getn();
     
-    if (list.size() < n - 1 || n < 0) {
+    if (size < n - 1 || n < 0) {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
     
-    return list.get(list.size() - 1 - n);
+    return elements[size - 1 - n];
   }
   
   @Override
   public Object get(int n) throws WarpScriptException {
-    if (list.size() < n - 1 || n < 0) {
+    if (size < n - 1 || n < 0) {
       throw new WarpScriptException("Invalid level.");
     }
     
-    return list.get(list.size() - 1 - n);
+    return elements[size - 1 - n];
   }
   
   /**
@@ -478,7 +495,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
    * @throws IndexOutOfBoundsException if the stack is empty or its top is not a number. 
    */
   private int getn() throws EmptyStackException, IndexOutOfBoundsException {
-    if (list.isEmpty()) {
+    if (0 == size) {
       throw new EmptyStackException() {
         @Override
         public String getMessage() {
@@ -985,7 +1002,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     
     int levels = function.argDepth();
     
-    if (this.list.size() < levels) {
+    if (this.size < levels) {
       throw new WarpScriptException("Stack does not contain sufficient elements.");
     }
     
@@ -1062,15 +1079,15 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   public String dump(int n) {
     StringBuilder sb = new StringBuilder();
     
-    if (n > this.list.size()) {
-      n = this.list.size();
+    if (n > this.size) {
+      n = this.size;
     }
     
     for (int i = n - 1; i >= 0; i--) {
-      if (i < this.list.size()) {
+      if (i < this.size) {
         sb.append(i + 1);
         sb.append(": ");
-        Object elt = this.list.get(list.size() - 1 - i);
+        Object elt = this.elements[this.size - 1 - i];
         
         if (elt instanceof Object[]) {
           sb.append(Arrays.toString((Object[]) elt));
@@ -1089,23 +1106,28 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   public void pick() throws EmptyStackException, IndexOutOfBoundsException {
     int n = getn();
     
-    if (list.size() < n || n < 0) {
+    if (size < n || n < 0) {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
       
-    list.add(list.get(list.size() - 1 - (n - 1)));
+    ensureCapacity(1);
+    Object o = elements[size - 1 - (n - 1)];
+    elements[size++] = o;
   }
   
   @Override
   public void rolld() throws EmptyStackException, IndexOutOfBoundsException {
     int n = getn();
     
-    if (list.size() < n || n < 0) {
+    if (size < n || n < 0) {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
       
-    Object element = list.remove(list.size() - 1);
-    list.add(list.size() - (n - 1), element);
+    Object tmp = elements[size - 1];
+    for (int i = 0; i < n - 1; i++) {
+      elements[size - 1 - i] = elements[size - 1 - (i + 1)];
+    }
+    elements[size - 1 - (n - 1)] = tmp;
   }
   
   @Override
@@ -1429,5 +1451,14 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     stack.maxrecurse = this.maxrecurse;
     stack.maxsymbols = this.maxsymbols;
     return stack;
+  }
+  
+  private void ensureCapacity(int n) {
+    if (size + n < elements.length) {
+      return;
+    }
+    
+    int newCapacity = elements.length + (elements.length >> 1) + n;
+    elements = Arrays.copyOf(elements, newCapacity);
   }
 }
