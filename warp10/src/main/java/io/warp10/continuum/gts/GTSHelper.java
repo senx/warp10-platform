@@ -3412,12 +3412,12 @@ public class GTSHelper {
     for (int i = 1; i < filled.values; i++) {
       if (TYPE.LONG == type) {
         long value = filled.longValues[i];
-        if (!resethigher) {
+        if (!resethigher) { // A reset is when we go from a value to a lower value
           if (value < lastl) {
             offsetl += lastl;
           }
           lastl = value;
-        } else {
+        } else { // A reset is when we go from a value to a higher value
           if (value > lastl) {
             offsetl += lastl;
           }
@@ -3426,12 +3426,12 @@ public class GTSHelper {
         filled.longValues[i] = value + offsetl;
       } else {
         double value = filled.doubleValues[i];
-        if (!resethigher) {
+        if (!resethigher) { // A reset is when we go from a value to a lower value
           if (value < lastd) {
             offsetd += lastd; 
           }          
           lastd = value;
-        } else {
+        } else { // A reset is when we go from a value to a higher value
           if (value > lastd) {
             offsetd += lastd; 
           }
