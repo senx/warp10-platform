@@ -332,7 +332,7 @@ public interface WarpScriptStack {
     }
     
     public List<Object> statements() {
-      return Arrays.asList(this.statements);
+      return Arrays.asList(this.statements).subList(0, size);
     }
     
     public void addAll(Macro macro) {
