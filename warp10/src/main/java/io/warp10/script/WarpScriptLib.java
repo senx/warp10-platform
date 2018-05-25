@@ -236,11 +236,14 @@ import io.warp10.script.processing.shape.PellipseMode;
 import io.warp10.script.processing.shape.PendContour;
 import io.warp10.script.processing.shape.PendShape;
 import io.warp10.script.processing.shape.Pline;
+import io.warp10.script.processing.shape.PloadShape;
 import io.warp10.script.processing.shape.Ppoint;
 import io.warp10.script.processing.shape.Pquad;
 import io.warp10.script.processing.shape.PquadraticVertex;
 import io.warp10.script.processing.shape.Prect;
 import io.warp10.script.processing.shape.PrectMode;
+import io.warp10.script.processing.shape.Pshape;
+import io.warp10.script.processing.shape.PshapeMode;
 import io.warp10.script.processing.shape.Psphere;
 import io.warp10.script.processing.shape.PsphereDetail;
 import io.warp10.script.processing.shape.PstrokeCap;
@@ -375,9 +378,10 @@ public class WarpScriptLib {
     functions.put("REV", new REV("REV"));
     
     functions.put(BOOTSTRAP, new NOOP(BOOTSTRAP));
-    
+
     functions.put("RTFM", new RTFM("RTFM"));
-    
+    functions.put("MAN", new MAN("MAN"));
+
     functions.put("REXEC", new REXEC("REXEC"));
     functions.put("REXECZ", new REXEC("REXECZ", true));
     
@@ -1153,6 +1157,7 @@ public class WarpScriptLib {
     
     functions.put("PbeginShape", new PbeginShape("PbeginShape"));
     functions.put("PendShape", new PendShape("PendShape"));
+    functions.put("PloadShape", new PloadShape("PloadShape"));
     functions.put("PbeginContour", new PbeginContour("PbeginContour"));
     functions.put("PendContour", new PendContour("PendContour"));
     functions.put("Pvertex", new Pvertex("Pvertex"));
@@ -1161,7 +1166,8 @@ public class WarpScriptLib {
     functions.put("PquadraticVertex", new PquadraticVertex("PquadraticVertex"));
     
     // TODO(hbs): support PShape (need to support PbeginShape etc applied to PShape instances)
-    //functions.put("PshapeMode", new PshapeMode("PshapeMode"));
+    functions.put("PshapeMode", new PshapeMode("PshapeMode"));
+    functions.put("Pshape", new Pshape("Pshape"));
     
     // Transform
     

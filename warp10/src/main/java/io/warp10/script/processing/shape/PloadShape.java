@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  Cityzen Data
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,45 +16,39 @@
 
 package io.warp10.script.processing.shape;
 
+import java.io.Reader;
+import java.io.StringReader;
+
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.processing.ProcessingUtil;
-
-import java.util.List;
-
-import processing.core.PGraphics;
+import io.warp10.script.WarpScriptStackFunction;
+import processing.awt.PShapeJava2D;
+import processing.data.XML;
 
 /**
- * Call endShape
- */ 
-public class PendShape extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+ * 'Loads' an SVG shape from a String
+ */
+public class PloadShape extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public PendShape(String name) {
+  public PloadShape(String name) {
     super(name);
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
-    List<Object> params = ProcessingUtil.parseParams(stack, 0, 1);
-        
-    PGraphics pg = (PGraphics) params.get(0);
-
-    if (1 == params.size()) {
-      pg.endShape();
-    } else if (2 == params.size()) {
-      String mode = params.get(1).toString();
-      if ("OPEN".equals(mode)) {
-        pg.endShape(PGraphics.OPEN);
-      } else if ("CLOSE".equals(mode)) {
-        pg.endShape(PGraphics.CLOSE);
-      } else {
-        throw new WarpScriptException(getName() + ": invalid mode, should be 'OPEN' or 'CLOSE'.");
-      }
+    String xml = String.valueOf(stack.pop());
+    
+    Reader reader = new StringReader(xml);
+    
+    try {
+      PShapeJava2D shape = new PShapeJava2D(new XML(reader, null));
+    
+      stack.push(shape);
+    } catch (Exception e) {
+      throw new WarpScriptException(getName() + " caught an exception while loading SVG.", e);
     }
-    stack.push(pg);
         
     return stack;
   }

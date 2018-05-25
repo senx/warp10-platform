@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  Cityzen Data
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -25,35 +25,41 @@ import io.warp10.script.processing.ProcessingUtil;
 import java.util.List;
 
 import processing.core.PGraphics;
+import processing.core.PShape;
 
 /**
- * Call endShape
- */ 
-public class PendShape extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+ * Draw a shape in a PGraphics instance
+ */
+public class Pshape extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public PendShape(String name) {
+  public Pshape(String name) {
     super(name);
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
-    List<Object> params = ProcessingUtil.parseParams(stack, 0, 1);
+    List<Object> params = ProcessingUtil.parseParams(stack, 1, 3, 5);
         
     PGraphics pg = (PGraphics) params.get(0);
-
-    if (1 == params.size()) {
-      pg.endShape();
-    } else if (2 == params.size()) {
-      String mode = params.get(1).toString();
-      if ("OPEN".equals(mode)) {
-        pg.endShape(PGraphics.OPEN);
-      } else if ("CLOSE".equals(mode)) {
-        pg.endShape(PGraphics.CLOSE);
-      } else {
-        throw new WarpScriptException(getName() + ": invalid mode, should be 'OPEN' or 'CLOSE'.");
-      }
+    PShape shape = (PShape) params.get(1);
+    
+    if (2 == params.size()) {
+      pg.shape(shape);
+    } else if (4 == params.size()) {
+      pg.shape(shape,
+          ((Number) params.get(2)).floatValue(),
+          ((Number) params.get(3)).floatValue()
+      );
+    } else if (6 == params.size()) {
+      pg.shape(shape,
+          ((Number) params.get(2)).floatValue(),
+          ((Number) params.get(3)).floatValue(),
+          ((Number) params.get(4)).floatValue(),
+          ((Number) params.get(5)).floatValue()
+      );      
     }
+    
     stack.push(pg);
         
     return stack;

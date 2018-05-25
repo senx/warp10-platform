@@ -185,12 +185,22 @@ public class GTSOutliersHelper {
     List<Long> anomalous_ticks = new ArrayList<Long>();
    
     for (int i = 0; i < gts.values; i++) {
-      double temp = gts.doubleValues[i];
-      if (abs) {
-        temp = Math.abs(temp);
-      }
-      if (temp >= threshold) {
-        anomalous_ticks.add(gts.ticks[i]);
+      if (TYPE.DOUBLE == gts.type) {
+        double temp = gts.doubleValues[i];
+        if (abs) {
+          temp = Math.abs(temp);
+        }
+        if (temp >= threshold) {
+          anomalous_ticks.add(gts.ticks[i]);
+        }        
+      } else if (TYPE.LONG == gts.type) {
+        long temp = gts.longValues[i];
+        if (abs) {
+          temp = Math.abs(temp);
+        }
+        if (temp >= threshold) {
+          anomalous_ticks.add(gts.ticks[i]);
+        }
       }
     }
     

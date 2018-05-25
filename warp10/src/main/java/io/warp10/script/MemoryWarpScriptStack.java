@@ -494,7 +494,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     Object o = pop();
     
     if (! (o instanceof Number)) {
-      throw new IndexOutOfBoundsException("Index out of bound.");
+      throw new IndexOutOfBoundsException("Unexpected type, expecting a numerical value.");
     }
     
     int n = ((Number) o).intValue();
