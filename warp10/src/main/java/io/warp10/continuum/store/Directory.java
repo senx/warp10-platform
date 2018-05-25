@@ -2824,6 +2824,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           
           if (null != ownersel && ownersel.startsWith("=")) {
             classNames = classesPerOwner.get(ownersel.substring(1));
+            if (null == classNames) {
+              classNames = new ArrayList<String>();
+            }
           } else {        
             classNames = this.classNames.values();
           }
