@@ -407,7 +407,7 @@ public class WorfInteractive {
         sb.append("/application names - optional (app1,app2)");
         defaultValue = null;
       } else if (null == encodeTokenCommand.producer) {
-        sb.append("/data producer UUID");
+        sb.append("/data producer UUID (you can create a new one by typing 'uuidgen') ");
         defaultValue = getUUID(null, null, WorfCLI.P_UUID, null);
       } else if (null == encodeTokenCommand.producers && TokenType.READ.equals(encodeTokenCommand.tokenType)) {
         sb.append("/data producers - optional (UUID1,UUID2)");
@@ -416,11 +416,11 @@ public class WorfInteractive {
         if (TokenType.READ.equals(encodeTokenCommand.tokenType)) {
           sb.append("/data owners UUID");
         } else {
-          sb.append("/data owner UUID");
+          sb.append("/data owner UUID (you can create a new one by typing 'uuidgen') ");
         }
         defaultValue = getUUID(null, null, WorfCLI.O_UUID, encodeTokenCommand.producer);
       } else if (0L == encodeTokenCommand.ttl) {
-        sb.append("/token ttl (ms) ");
+        sb.append("/token time to live (TTL) in ms ");
       } else if (null == encodeTokenCommand.labels) {
         sb.append("/OPTIONAL fixed labels (key1=value1,key2=value2) ");
       } else {
