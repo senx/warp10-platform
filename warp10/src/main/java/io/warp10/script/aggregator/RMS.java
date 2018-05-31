@@ -25,7 +25,6 @@ import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.WarpScriptException;
 
-
 /**
  * returns the root mean square of an interval
  * returns elevation and location from the latest measure.
@@ -42,6 +41,7 @@ public class RMS extends NamedWarpScriptFunction implements WarpScriptAggregator
 
   @Override
   public Object apply(Object[] args) throws WarpScriptException {
+    long tick = (long) args[0];
     long[] ticks = (long[]) args[3];
     long[] locations = (long[]) args[4];
     long[] elevations = (long[]) args[5];
@@ -54,7 +54,6 @@ public class RMS extends NamedWarpScriptFunction implements WarpScriptAggregator
     TYPE sumType = TYPE.UNDEFINED;
     double sqsumd = 0.0D;
     double rms = 0.0D;
-    long ticksum = 0L;
     long location = GeoTimeSerie.NO_LOCATION;
     long elevation = GeoTimeSerie.NO_ELEVATION;
     long timestamp = Long.MIN_VALUE;
@@ -73,10 +72,6 @@ public class RMS extends NamedWarpScriptFunction implements WarpScriptAggregator
         nulls++;
         continue;
       } else {
-
-        ticksum += ticks[i] - ticks[0];
-
-
         if (TYPE.UNDEFINED == sumType) {
           if (value instanceof Long) {
             sumType = TYPE.LONG;
@@ -89,13 +84,12 @@ public class RMS extends NamedWarpScriptFunction implements WarpScriptAggregator
             return new Object[]{Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null};
           }
         }
-
+        //
         //Math.pow(x,2) optimized to x*x at runtime
+        //
         sqsumd += Math.pow(((Number) value).doubleValue(), 2);
-
       }
     }
-
 
     Object meanvalue = null;
 
@@ -107,7 +101,7 @@ public class RMS extends NamedWarpScriptFunction implements WarpScriptAggregator
       return new Object[]{Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null};
     }
 
-    // If all values were null, avoid / 0
+    // If all values were null, avoid divide by 0
     if (values.length == nulls) {
       return new Object[]{Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null};
     }
@@ -120,7 +114,7 @@ public class RMS extends NamedWarpScriptFunction implements WarpScriptAggregator
       meanvalue = rms;
     }
 
-    return new Object[]{ticks[0] + (ticksum / ticks.length), location, elevation, meanvalue};
+    return new Object[]{tick, location, elevation, meanvalue};
   }
 
 }
