@@ -70,6 +70,7 @@ import io.warp10.script.aggregator.Min;
 import io.warp10.script.aggregator.Or;
 import io.warp10.script.aggregator.Percentile;
 import io.warp10.script.aggregator.Rate;
+import io.warp10.script.aggregator.RMS;
 import io.warp10.script.aggregator.ShannonEntropy;
 import io.warp10.script.aggregator.StandardDeviation;
 import io.warp10.script.aggregator.Sum;
@@ -1286,6 +1287,8 @@ public class WarpScriptLib {
     functions.put("bucketizer.count.nonnull", new Count("bucketizer.count.nonnull", true));
     functions.put("bucketizer.mean.circular", new CircularMean.Builder("bucketizer.mean.circular", true));
     functions.put("bucketizer.mean.circular.exclude-nulls", new CircularMean.Builder("bucketizer.mean.circular.exclude-nulls", false));
+    functions.put("bucketizer.rms", new RMS("bucketizer.rms", false));
+    functions.put("bucketizer.rms.exclude-nulls", new RMS("bucketizer.rms.exclude-nulls", true));
     //
     // Mappers
     //
