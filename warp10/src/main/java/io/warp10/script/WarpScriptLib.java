@@ -315,6 +315,8 @@ public class WarpScriptLib {
   public static final String SNAPSHOT = "SNAPSHOT";
   public static final String SNAPSHOTALL = "SNAPSHOTALL";
   public static final String LOAD = "LOAD";
+  public static final String POPR = "POPR";
+  public static final String CLEARREGS = "CLEARREGS";
   public static final String RUN = "RUN";
   public static final String BOOTSTRAP = "BOOTSTRAP";
   
@@ -1414,6 +1416,17 @@ public class WarpScriptLib {
 
     Properties props = WarpConfig.getProperties();
       
+    if (null != props) {
+      int nregs = Integer.parseInt(props.getProperty(Configuration.CONFIG_WARPSCRIPT_REGISTERS, String.valueOf(WarpScriptStack.DEFAULT_REGISTERS)));
+            
+      functions.put(CLEARREGS, new CLEARREGS(CLEARREGS));
+      
+      for (int i = 0; i < nregs; i++) {
+        functions.put(POPR + i, new POPR(POPR + i, i));
+        functions.put("PUSHR" + i, new PUSHR("PUSHR" + i, i));
+      }      
+    }
+    
     if (null != props && props.containsKey(Configuration.CONFIG_WARPSCRIPT_LANGUAGES)) {
       String[] languages = props.getProperty(Configuration.CONFIG_WARPSCRIPT_LANGUAGES).split(",");
       Set<String> lang = new HashSet<String>();
