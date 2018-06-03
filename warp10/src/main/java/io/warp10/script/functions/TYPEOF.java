@@ -65,7 +65,6 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String TYPE_PIMAGE = "PIMAGE";
   public static final String TYPE_PFONT = "PFONT";
 
-
   public TYPEOF(String name) {
     super(name);
   }
