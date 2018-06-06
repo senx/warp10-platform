@@ -42,7 +42,7 @@ public class PcurveTightness extends NamedWarpScriptFunction implements WarpScri
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.curveTightness(((Number) params.get(1)).intValue());
+    pg.curveTightness(((Number) params.get(1)).floatValue());
     
     stack.push(pg);
         
