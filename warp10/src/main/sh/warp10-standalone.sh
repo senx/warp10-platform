@@ -20,15 +20,37 @@ OS=$(uname -s)
 #JAVA_HOME=/opt/java8
 #WARP10_HOME=/opt/warp10-@VERSION@
 
-if [ -z "$JAVA_HOME" ]; then
-  echo "JAVA_HOME not set";
-  JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:\(/jre\)\{0,1\}/bin/java::")
-  if [ "$JAVA_HOME" ]; then
-    echo "Guessing JAVA_HOME should be ${JAVA_HOME}, using that value."
-  else
-    exit 1
-  fi
+
+# Strongly inspired by gradlew
+# Determine the Java command to use to start the JVM.
+if [ -n "$JAVA_HOME" ] ; then
+    if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
+        # IBM's JDK on AIX uses strange locations for the executables
+        JAVACMD="$JAVA_HOME/jre/sh/java"
+        JPSCMD="$JAVA_HOME/jre/sh/jps"
+    else
+        JAVACMD="$JAVA_HOME/bin/java"
+        JPSCMD="$JAVA_HOME/bin/jps"
+    fi
+    if [ ! -x "$JAVACMD" ] ; then
+        echo "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
+Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."
+        exit 1
+    fi
+    if [ ! -x "$JPSCMD" ] ; then
+        echo "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
+Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."
+        exit 1
+    fi
+else
+    JAVACMD="java"
+    which java >/dev/null 2>&1 || (echo "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
+Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."; exit 1)
+    JPSCMD="jps"
+    which jps >/dev/null 2>&1 || (echo "ERROR: JAVA_HOME is not set and no 'jps' command could be found in your PATH.
+Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."; exit 1)
 fi
+
 
 # If WARP10_HOME is not defined, set it to the parent directory
 if [ -z "${WARP10_HOME}" ]; then
@@ -42,7 +64,6 @@ if [ -z "${WARP10_HOME}" ]; then
   fi
 fi
 
-export JAVA_HOME
 export WARP10_HOME
 
 #
@@ -348,7 +369,7 @@ bootstrap() {
 
   # Generate the configuration file with Worf
   # Generate read/write tokens valid for a period of 100 years. We use 'io.warp10.bootstrap' as application name.
-  su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf -q -a io.warp10.bootstrap -puidg -t -ttl 3153600000000 ${WARP10_HOME}/templates/conf-standalone.template -o ${WARP10_CONFIG}" >> ${WARP10_HOME}/etc/initial.tokens
+  su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf -q -a io.warp10.bootstrap -puidg -t -ttl 3153600000000 ${WARP10_HOME}/templates/conf-standalone.template -o ${WARP10_CONFIG}" >> ${WARP10_HOME}/etc/initial.tokens
 
   echo "Warp 10 config has been generated here: ${WARP10_CONFIG}"
 
@@ -368,7 +389,7 @@ start() {
     exit 1
   fi
 
-  CHECK_JAVA7="`${JAVA_HOME}/bin/java -version 2>&1 | head -n 1 | grep '.*\\"1.7.*'`"
+  CHECK_JAVA7="`${JAVACMD} -version 2>&1 | head -n 1 | grep '.*\\"1.7.*'`"
   if [ "$CHECK_JAVA7" != "" ]; then
     IS_JAVA7=true
   fi
@@ -384,7 +405,7 @@ start() {
     mv ${JAVA_HEAP_DUMP} ${JAVA_HEAP_DUMP}-`date +%s`
   fi
 
-  if [ -e ${PID_FILE} ] && [ "`${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" != "" ]; then
+  if [ -e ${PID_FILE} ] && [ "`${JPSCMD} -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" != "" ]; then
     echo "Start failed! - A Warp 10 instance is currently running"
     exit 1
   fi
@@ -397,7 +418,7 @@ start() {
     exit 1
   fi
 
-  LEVELDB_HOME="`${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'leveldb.home' | grep 'leveldb.home' | sed -e 's/^.*=//'`"
+  LEVELDB_HOME="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'leveldb.home' | grep 'leveldb.home' | sed -e 's/^.*=//'`"
 
   #
   # Leveldb exists ?
@@ -415,25 +436,25 @@ start() {
     echo "Init leveldb"
     # Create leveldb database
     echo \"Init leveldb database...\" >> ${WARP10_HOME}/logs/warp10.log
-    ${JAVA_HOME}/bin/java ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${LEVELDB_HOME} >> ${WARP10_HOME}/logs/warp10.log 2>&1
+    ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${LEVELDB_HOME} >> ${WARP10_HOME}/logs/warp10.log 2>&1
   fi
 
-  WARP10_LISTENSTO_HOST="`${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'standalone.host' | grep 'standalone.host' | sed -e 's/^.*=//'`"
-  WARP10_LISTENSTO_PORT="`${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'standalone.port' | grep 'standalone.port' | sed -e 's/^.*=//'`"
+  WARP10_LISTENSTO_HOST="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'standalone.host' | grep 'standalone.host' | sed -e 's/^.*=//'`"
+  WARP10_LISTENSTO_PORT="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'standalone.port' | grep 'standalone.port' | sed -e 's/^.*=//'`"
   WARP10_LISTENSTO="${WARP10_LISTENSTO_HOST}:${WARP10_LISTENSTO_PORT}"
 
   #
   # Check if Warp10 Quantum plugin is defined
   #
-  QUANTUM_PLUGIN="`${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'warp10.plugins' | grep ${QUANTUM_PLUGIN_NAME}`"
+  QUANTUM_PLUGIN="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'warp10.plugins' | grep ${QUANTUM_PLUGIN_NAME}`"
 
   if [ "$QUANTUM_PLUGIN" != "" ]; then
     if [ "$IS_JAVA7" = false ]; then
       IS_QUANTUM_STARTED=true
       # Add Quantum to WARP10_CP
       WARP10_CP=${QUANTUM_PLUGIN_JAR}:${WARP10_CP}
-      QUANTUM_LISTENSTO_HOST="`${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.host' | grep 'quantum.host' | sed -e 's/^.*=//'`"
-      QUANTUM_LISTENSTO_PORT="`${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.port' | grep 'quantum.port' | sed -e 's/^.*=//'`"
+      QUANTUM_LISTENSTO_HOST="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.host' | grep 'quantum.host' | sed -e 's/^.*=//'`"
+      QUANTUM_LISTENSTO_PORT="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.port' | grep 'quantum.port' | sed -e 's/^.*=//'`"
       QUANTUM_LISTENSTO="${QUANTUM_LISTENSTO_HOST}:${QUANTUM_LISTENSTO_PORT}"
     else
       echo "Start failed! - Quantum is only Java 1.8+ compliant - To start Warp 10 with Java7 comment out Quantum plugin in the Warp config file"
@@ -447,11 +468,11 @@ start() {
   #
   # Start Warp10 instance..
   #
-  ${JAVA_HOME}/bin/java ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${WARP10_CONFIG} >> ${WARP10_HOME}/logs/warp10.log 2>&1 &
+  ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${WARP10_CONFIG} >> ${WARP10_HOME}/logs/warp10.log 2>&1 &
 
   echo $! > ${PID_FILE}
 
-  if [ ! -e ${PID_FILE} ] || [ "`${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" = "" ]; then
+  if [ ! -e ${PID_FILE} ] || [ "`${JPSCMD} -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" = "" ]; then
     echo "Start failed! - See warp10.log for more details"
     exit 1
   fi
@@ -522,9 +543,9 @@ stop() {
   fi
 
   echo "Stop Warp 10..."
-  if [ -e ${PID_FILE} ] && [ "`${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" != "" ]
+  if [ -e ${PID_FILE} ] && [ "`${JPSCMD} -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" != "" ]
   then
-    kill `${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`
+    kill `${JPSCMD} -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`
     rm -f ${PID_FILE}
   else
     echo "No instance of Warp 10 is currently running"
@@ -544,7 +565,7 @@ status() {
   fi
   if [ -e ${PID_FILE} ]
   then
-    ${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})
+    ${JPSCMD} -lm|grep -wE $(cat ${PID_FILE})
   fi
 }
 
@@ -564,7 +585,8 @@ snapshot() {
 }
 
 worfcli() {
-  ${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -i
+echo ${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -i
+  ${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -i
 }
 
 worf() {
@@ -583,7 +605,7 @@ worf() {
     echo "Usage: $0 $1 appName ttl(ms)"
     exit 1
   fi
-  ${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -puidg -t -a $2 -ttl $3
+  ${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -puidg -t -a $2 -ttl $3
 }
 
 repair() {
@@ -599,11 +621,11 @@ repair() {
   fi
 
   echo "Repair Leveldb..."
-  if [ -e ${PID_FILE} ] && [ "`${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" != "" ]; then
+  if [ -e ${PID_FILE} ] && [ "`${JPSCMD} -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" != "" ]; then
     echo "Repair has been cancelled! - Warp 10 instance must be stopped for repair"
     exit 1
   else
-    ${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.standalone.WarpRepair ${LEVELDB_HOME}
+    ${JAVACMD} -cp ${WARP10_JAR} io.warp10.standalone.WarpRepair ${LEVELDB_HOME}
   fi
 }
 
