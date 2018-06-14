@@ -22,7 +22,12 @@ OS=$(uname -s)
 
 if [ -z "$JAVA_HOME" ]; then
   echo "JAVA_HOME not set";
-  exit 1
+  JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:\(/jre\)\{0,1\}/bin/java::")
+  if [ "$JAVA_HOME" ]; then
+    echo "Guessing JAVA_HOME should be ${JAVA_HOME}, using that value."
+  else
+    exit 1
+  fi
 fi
 
 # If WARP10_HOME is not defined, set it to the parent directory
