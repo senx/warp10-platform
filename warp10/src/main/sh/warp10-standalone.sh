@@ -33,7 +33,7 @@ if [ -z "${WARP10_HOME}" ]; then
     WARP10_HOME=`pwd`
     popd > /dev/null 2>&1
   else
-    WARP10_HOME=$(dirname $(readlink -f $0))/..
+    WARP10_HOME=$(readlink -f $(dirname $0)/..)
   fi
 fi
 
