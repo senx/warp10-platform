@@ -335,11 +335,20 @@ bootstrap() {
     chmod 755 ${WARP10_DATA_DIR}/warpscripts
   fi
 
-  sed -i -e "s_^standalone\.home.*_standalone\.home = ${WARP10_HOME}_" ${WARP10_HOME}/templates/conf-standalone.template
-  sed -i -e "s_^LEVELDB\_HOME=.*_LEVELDB\_HOME=${LEVELDB_HOME}_" ${WARP10_HOME}/bin/snapshot.sh
+  WARP10_HOME_ESCAPED=$(echo ${WARP10_HOME} | sed 's/\\/\\\\/g' )           # Escape \
+  WARP10_HOME_ESCAPED=$(echo ${WARP10_HOME_ESCAPED} | sed 's/\&/\\&/g' )    # Escape &
+  WARP10_HOME_ESCAPED=$(echo ${WARP10_HOME_ESCAPED} | sed 's/|/\\|/g' )     # Escape | (separator for sed)
 
-  sed -i -e "s_warpLog\.File=.*_warpLog\.File=${WARP10_HOME}/logs/warp10.log_" ${WARP10_HOME}/etc/log4j.properties
-  sed -i -e "s_warpscriptLog\.File=.*_warpscriptLog\.File=${WARP10_HOME}/logs/warpscript.out_" ${WARP10_HOME}/etc/log4j.properties
+  LEVELDB_HOME_ESCAPED=$(echo ${LEVELDB_HOME} | sed 's/\\/\\\\/g' )           # Escape \
+  LEVELDB_HOME_ESCAPED=$(echo ${LEVELDB_HOME_ESCAPED} | sed 's/\&/\\&/g' )    # Escape &
+  LEVELDB_HOME_ESCAPED=$(echo ${LEVELDB_HOME_ESCAPED} | sed 's/|/\\|/g' )     # Escape | (separator for sed)
+
+  sed -i -e 's|^standalone\.home.*|standalone.home = '${WARP10_HOME_ESCAPED}'|' ${WARP10_HOME}/templates/conf-standalone.template
+  sed -i -e 's|^\(\s\{0,100\}\)WARP10_HOME=/opt/warp10-.*|\1WARP10_HOME='${WARP10_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
+  sed -i -e 's|^\(\s\{0,100\}\)LEVELDB_HOME=${WARP10_HOME}/leveldb|\1LEVELDB_HOME='${LEVELDB_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
+
+  sed -i -e 's|warpLog\.File=.*|warpLog.File='${WARP10_HOME_ESCAPED}'/logs/warp10.log|' ${WARP10_HOME}/etc/log4j.properties
+  sed -i -e 's|warpscriptLog\.File=.*|warpscriptLog.File='${WARP10_HOME_ESCAPED}'/logs/warpscript.out|' ${WARP10_HOME}/etc/log4j.properties
 
   # Generate the configuration file with Worf
   # Generate read/write tokens valid for a period of 100 years. We use 'io.warp10.bootstrap' as application name.
