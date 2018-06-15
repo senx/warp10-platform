@@ -27,14 +27,7 @@ fi
 
 # If WARP10_HOME is not defined, set it to the parent directory
 if [ -z "${WARP10_HOME}" ]; then
-  if [ "Darwin" = "${OS}" ]
-  then
-    pushd $(dirname $0)/.. > /dev/null 2>&1
-    WARP10_HOME=`pwd`
-    popd > /dev/null 2>&1
-  else
-    WARP10_HOME=$(readlink -f $(dirname $0)/..)
-  fi
+  WARP10_HOME=`cd ..; pwd -P`
 fi
 
 export JAVA_HOME
