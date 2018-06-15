@@ -1342,8 +1342,8 @@ public class WarpScriptLib {
     functions.put("mapper.mean.circular", new CircularMean.Builder("mapper.mean.circular", true));
     functions.put("mapper.mean.circular.exclude-nulls", new CircularMean.Builder("mapper.mean.circular.exclude-nulls", false));
     functions.put("mapper.mod", new MapperMod.Builder("mapper.mod"));
-    functions.put("mapper.rms", new RMS("bucketizer.rms", false));
-    functions.put("mappen.rms.exclude-nulls", new RMS("bucketizer.rms.exclude-nulls", true));
+    functions.put("mapper.rms", new RMS("mapper.rms", false));
+    functions.put("mapper.rms.exclude-nulls", new RMS("mapper.rms.exclude-nulls", true));
 
     //
     // Reducers
@@ -1386,8 +1386,8 @@ public class WarpScriptLib {
     functions.put("reducer.percentile", new Percentile.Builder("reducer.percentile"));
     functions.put("reducer.mean.circular", new CircularMean.Builder("reducer.mean.circular", true));
     functions.put("reducer.mean.circular.exclude-nulls", new CircularMean.Builder("reducer.mean.circular.exclude-nulls", false));
-    functions.put("reducer.rms", new RMS("bucketizer.rms", false));
-    functions.put("reducer.rms.exclude-nulls", new RMS("bucketizer.rms.exclude-nulls", true));
+    functions.put("reducer.rms", new RMS("reducer.rms", false));
+    functions.put("reducer.rms.exclude-nulls", new RMS("reducer.rms.exclude-nulls", true));
 
     //
     // Filters
