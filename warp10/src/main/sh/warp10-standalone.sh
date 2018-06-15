@@ -27,7 +27,7 @@ fi
 
 # If WARP10_HOME is not defined, set it to the parent directory
 if [ -z "${WARP10_HOME}" ]; then
-  WARP10_HOME=`cd ..; pwd -P`
+  WARP10_HOME=`cd $(dirname $0); cd $(pwd -P)/..; pwd -P`
 fi
 
 export JAVA_HOME
