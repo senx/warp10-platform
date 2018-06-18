@@ -51,8 +51,8 @@ public class MATH2 extends NamedWarpScriptFunction implements WarpScriptStackFun
     }
 
     // No method suitable, throw
-    if (null == warpExceptionLong && null == warpExceptionDouble) {
-      throw warpExceptionDouble;
+    if (null != warpExceptionLong && null != warpExceptionDouble) {
+      throw new WarpScriptException("Could not find a method "+methodName+" in Math accepting (Long, Long) or (Double, Double).");
     }
   }
 
