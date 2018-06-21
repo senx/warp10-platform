@@ -44,7 +44,8 @@ public class Pcopy extends NamedWarpScriptFunction implements WarpScriptStackFun
     PGraphics pg = (PGraphics) params.get(0);
     
     if (1 == params.size()) {
-      pg.copy();
+      stack.push(pg);
+      stack.push(pg.copy());
     } else if (9 == params.size()) {
       pg.copy(
         ((Number) params.get(1)).intValue(),
@@ -56,6 +57,7 @@ public class Pcopy extends NamedWarpScriptFunction implements WarpScriptStackFun
         ((Number) params.get(7)).intValue(),
         ((Number) params.get(8)).intValue()
       );
+      stack.push(pg);
     } else if (10 == params.size()) {
       pg.copy(        
         (PImage) params.get(1),
@@ -67,10 +69,9 @@ public class Pcopy extends NamedWarpScriptFunction implements WarpScriptStackFun
         ((Number) params.get(7)).intValue(),
         ((Number) params.get(8)).intValue(),
         ((Number) params.get(9)).intValue()
-      );          
+      );
+      stack.push(pg);
     }
-    
-    stack.push(pg);
         
     return stack;
   }
