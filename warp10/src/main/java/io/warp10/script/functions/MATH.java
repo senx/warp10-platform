@@ -24,6 +24,8 @@ import io.warp10.script.WarpScriptStack;
 import java.lang.reflect.Method;
 
 public class MATH extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  //TODO(tce): LambdaMetafactory could be used to make calls a bit faster, but it is only available on Java 8. See https://stackoverflow.com/q/19557829
   
   private Method method;
   
