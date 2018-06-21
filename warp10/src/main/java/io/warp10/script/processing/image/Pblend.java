@@ -42,7 +42,48 @@ public class Pblend extends NamedWarpScriptFunction implements WarpScriptStackFu
     List<Object> params = ProcessingUtil.parseParams(stack, 9, 10);
         
     PGraphics pg = (PGraphics) params.get(0);
-    
+
+    String mode = "";
+    int imode = 0;
+    if (10 == params.size()) {
+      mode = params.get(9).toString();
+    } else if (11 == params.size()) {
+      mode = params.get(10).toString();
+    }
+
+    if ("BLEND".equals(mode)) {
+      imode = PGraphics.BLEND;
+    } else if ("ADD".equals(mode)) {
+      imode = PGraphics.ADD;
+    } else if ("SUBTRACT".equals(mode)) {
+      imode = PGraphics.SUBTRACT;
+    } else if ("DARKEST".equals(mode)) {
+      imode = PGraphics.DARKEST;
+    } else if ("LIGHTEST".equals(mode)) {
+      imode = PGraphics.LIGHTEST;
+    } else if ("DIFFERENCE".equals(mode)) {
+      imode = PGraphics.DIFFERENCE;
+    } else if ("EXCLUSION".equals(mode)) {
+      imode = PGraphics.EXCLUSION;
+    } else if ("MULTIPLY".equals(mode)) {
+      imode = PGraphics.MULTIPLY;
+    } else if ("SCREEN".equals(mode)) {
+      imode = PGraphics.SCREEN;
+    } else if ("OVERLAY".equals(mode)) {
+      imode = PGraphics.OVERLAY;
+    } else if ("HARD_LIGHT".equals(mode)) {
+      imode = PGraphics.HARD_LIGHT;
+    } else if ("SOFT_LIGHT".equals(mode)) {
+      imode = PGraphics.SOFT_LIGHT;
+    } else if ("DODGE".equals(mode)) {
+      imode = PGraphics.DODGE;
+    } else if ("BURN".equals(mode)) {
+      imode = PGraphics.BURN;
+    } else {
+      throw new WarpScriptException(getName() + ": invalid mode, should be 'BLEND', 'ADD', 'SUBTRACT', 'LIGHTEST', 'DARKEST', 'DIFFERENCE', 'EXCLUSION', 'MULTIPLY', 'SCREEN', 'OVERLAY', 'HARD_LIGHT', 'SOFT_LIGHT', 'DODGE', 'BURN'.");
+    }
+
+
     if (10 == params.size()) {
       pg.blend(
         ((Number) params.get(1)).intValue(),
@@ -53,7 +94,7 @@ public class Pblend extends NamedWarpScriptFunction implements WarpScriptStackFu
         ((Number) params.get(6)).intValue(),
         ((Number) params.get(7)).intValue(),
         ((Number) params.get(8)).intValue(),
-        ((Number) params.get(9)).intValue()
+        imode
       );
     } else if (11 == params.size()) {
       pg.blend(        
@@ -66,7 +107,7 @@ public class Pblend extends NamedWarpScriptFunction implements WarpScriptStackFu
         ((Number) params.get(7)).intValue(),
         ((Number) params.get(8)).intValue(),
         ((Number) params.get(9)).intValue(),
-        ((Number) params.get(10)).intValue()
+        imode
       );          
     }
     
