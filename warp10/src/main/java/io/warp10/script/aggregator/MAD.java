@@ -135,7 +135,7 @@ public class MAD extends NamedWarpScriptFunction implements WarpScriptAggregator
       //fast if there is no null values (mapper or bucketizer use)
       if (null == values[i]) {
         //if one null is detected, rebuild an array without nulls and breaks.
-        List nonnullvalues = new ArrayList<Object>();
+        List nonnullvalues = new ArrayList<Object>(values.length - 1);
         for (int n = 0; n < values.length; n++) {
           if (null != values[n]) {
             nonnullvalues.add(values[n]);
