@@ -86,7 +86,18 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       GeoTimeSerie gts1 = (GeoTimeSerie) op1;
       GeoTimeSerie gts2 = (GeoTimeSerie) op2;
 
-      // The result will be of type DOUBLE
+      TYPE type = TYPE.UNDEFINED;
+      
+      if (TYPE.BOOLEAN == gts1.getType() || TYPE.BOOLEAN == gts2.getType()) {
+        throw new WarpScriptException(getName() + " cannot operate on BOOLEAN Geo Time Series™.");
+      } else if (TYPE.STRING == gts1.getType() || TYPE.STRING == gts2.getType()) {
+        type = TYPE.STRING;
+      } else if (TYPE.DOUBLE == gts1.getType() || TYPE.DOUBLE == gts2.getType()) {
+        type = TYPE.DOUBLE;
+      } else if (TYPE.LONG == gts1.getType() && TYPE.LONG == gts2.getType()) {
+        type = TYPE.LONG;
+      }
+      
       GeoTimeSerie result = new GeoTimeSerie(Math.max(GTSHelper.nvalues(gts1), GTSHelper.nvalues(gts2)));
       
       if (GTSHelper.isBucketized(gts1) && GTSHelper.isBucketized(gts2)) {
@@ -104,7 +115,7 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
           }
         }
       }
-      result.setType(TYPE.DOUBLE);
+      result.setType(type);
       
       // Sort GTS
       GTSHelper.sort(gts1);
@@ -138,7 +149,19 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
           // We have values at the current index for both GTS
           if (tsa == tsb) {
             // Both indices indicate the same timestamp
-            GTSHelper.setValue(result, tsa, ((Number) GTSHelper.valueAtIndex(gts1, idxa)).doubleValue() + ((Number) GTSHelper.valueAtIndex(gts2, idxb)).doubleValue());
+            switch (type) {
+              case STRING:
+                GTSHelper.setValue(result, tsa, GTSHelper.valueAtIndex(gts1, idxa).toString() + GTSHelper.valueAtIndex(gts2, idxb).toString());
+                break;
+              case LONG:
+                GTSHelper.setValue(result, tsa, ((Number) GTSHelper.valueAtIndex(gts1, idxa)).longValue() + ((Number) GTSHelper.valueAtIndex(gts2, idxb)).longValue());
+                break;
+              case DOUBLE:
+                GTSHelper.setValue(result, tsa, ((Number) GTSHelper.valueAtIndex(gts1, idxa)).doubleValue() + ((Number) GTSHelper.valueAtIndex(gts2, idxb)).doubleValue());
+                break;
+              default:
+                throw new WarpScriptException(getName() + " Invalid Geo Time Series™ type.");
+            }
             // Advance both indices
             idxa++;
             idxb++;
@@ -168,6 +191,8 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
       stack.push(result);
     } else if (op1 instanceof GeoTimeSerie || op2 instanceof GeoTimeSerie) {
+      TYPE type = TYPE.UNDEFINED;
+      
       boolean op1gts = op1 instanceof GeoTimeSerie;
       
       int n = op1gts ? GTSHelper.nvalues((GeoTimeSerie) op1) : GTSHelper.nvalues((GeoTimeSerie) op2);
@@ -175,10 +200,61 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       GeoTimeSerie result = op1gts ? ((GeoTimeSerie) op1).cloneEmpty(n) : ((GeoTimeSerie) op2).cloneEmpty();
       GeoTimeSerie gts = op1gts ? (GeoTimeSerie) op1 : (GeoTimeSerie) op2;
       
-      double op = op1gts ? ((Number) op2).doubleValue() : ((Number) op1).doubleValue();
+      Object op = op1gts ? op2 : op1;
+      
+      if (op instanceof String) {
+        type = TYPE.STRING;
+      } else if (op instanceof Double) {
+        if (TYPE.DOUBLE == gts.getType() || TYPE.LONG == gts.getType()) {
+          type = TYPE.DOUBLE;
+        } else if (TYPE.BOOLEAN == gts.getType()) {
+          throw new WarpScriptException(getName() + " cannot operate on BOOLEAN Geo Time Series™.");
+        } else {
+          type = TYPE.STRING;
+        }
+      } else if (op instanceof Long) {
+        if (TYPE.DOUBLE == gts.getType()) {
+          type = TYPE.DOUBLE;
+        } else if (TYPE.LONG == gts.getType()) {
+          type = TYPE.LONG;
+        } else if (TYPE.BOOLEAN == gts.getType()) {
+          throw new WarpScriptException(getName() + " cannot operate on BOOLEAN Geo Time Series™.");
+        } else {
+          type = TYPE.STRING;
+        }
+      }
       
       for (int i = 0; i < n; i++) {
-        double value = ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue() + op;
+        Object value;
+        if (op1gts) {
+          switch (type) {
+            case STRING:
+              value = GTSHelper.valueAtIndex(gts, i).toString() + op.toString();
+              break;
+            case DOUBLE:
+              value = ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue() + ((Number) op).doubleValue();
+              break;
+            case LONG:
+              value = ((Number) GTSHelper.valueAtIndex(gts, i)).longValue() + ((Number) op).longValue();
+              break;
+            default:
+              throw new WarpScriptException(getName() + " Invalid Geo Time Series™ type.");
+          }          
+        } else {
+          switch (type) {
+            case STRING:
+              value = op.toString() + GTSHelper.valueAtIndex(gts, i).toString();
+              break;
+            case DOUBLE:
+              value = ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue() + ((Number) op).doubleValue();
+              break;
+            case LONG:
+              value = ((Number) GTSHelper.valueAtIndex(gts, i)).longValue() + ((Number) op).longValue();
+              break;
+            default:
+              throw new WarpScriptException(getName() + " Invalid Geo Time Series™ type.");
+          }                    
+        }
         GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value, false);
       }      
 
