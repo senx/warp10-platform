@@ -30,7 +30,7 @@ import org.apache.commons.math3.linear.RealMatrix;
 import processing.core.PFont;
 import processing.core.PGraphics;
 import processing.core.PImage;
-import processing.core.PShapeSVG;
+import processing.core.PShape;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -66,7 +66,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String TYPE_REALMATRIX = "MATRIX";
   public static final String TYPE_PIMAGE = "PIMAGE";
   public static final String TYPE_PFONT = "PFONT";
-  public static final String TYPE_PSHAPESVG = "PSHAPESVG";
+  public static final String TYPE_PSHAPE = "PSHAPE";
 
 
   public TYPEOF(String name) {
@@ -109,8 +109,8 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
       stack.push(TYPE_PIMAGE);
     } else if (o instanceof PFont) {
       stack.push(TYPE_PFONT);
-    } else if (o instanceof PShapeSVG) {
-      stack.push(TYPE_PSHAPESVG);
+    } else if (o instanceof PShape) {
+      stack.push(TYPE_PSHAPE);
     } else if (o instanceof GeoXPLib.GeoXPShape) {
       stack.push(TYPE_GEOSHAPE);
     } else if (o instanceof Set) {
