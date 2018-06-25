@@ -2,8 +2,8 @@
 
 ### BEGIN INIT INFO
 # Provides:          warp10
-# Required-Start:    
-# Required-Stop:     
+# Required-Start:
+# Required-Stop:
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: Warp data platform
@@ -66,7 +66,7 @@ FIRSTINIT_FILE=${WARP10_HOME}/logs/.firstinit
 QUANTUM_REVISION=@QUANTUM_VERSION@
 QUANTUM_PLUGIN_JAR=${WARP10_HOME}/bin/warp10-quantum-plugin-${QUANTUM_REVISION}.jar
 QUANTUM_PLUGIN_NAME=io.warp10.plugins.quantum.QuantumPlugin
-# Is Quantun has been started ?
+# Is Quantum has been started ?
 # Note: do not use this parameter to inhibit/activate Quantum (use Warp 10 config)
 IS_QUANTUM_STARTED=true
 
@@ -106,6 +106,23 @@ JAVA_HEAP_DUMP=${WARP10_HOME}/logs/java.heapdump
 JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC"
 export MALLOC_ARENA_MAX=1
 
+
+moveDir() {
+  dir=$1
+  if [ -e ${WARP10_DATA_DIR}/${dir} ]; then
+      echo "Error: ${WARP10_DATA_DIR}/${dir} already exists"
+      exit 1
+  fi
+  su ${WARP10_USER} -c "mv ${WARP10_HOME}/${dir} ${WARP10_DATA_DIR}/ 2>&1"
+  if [ $? != 0 ]; then
+    echo "ERROR: move ${WARP10_HOME}/${dir} to ${WARP10_DATA_DIR}"
+    exit 1
+  fi
+  ln -s ${WARP10_DATA_DIR}/${dir} ${WARP10_HOME}/${dir}
+  chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/${dir}
+  chmod 755 ${WARP10_DATA_DIR}/${dir}
+}
+
 bootstrap() {
   echo "Bootstrap.."
 
@@ -139,7 +156,7 @@ bootstrap() {
   fi
 
   #
-  # If config file already exists then.. exit 
+  # If config file already exists then.. exit
   #
   if [ -e ${WARP10_CONFIG} ]; then
     echo "Config file already exists - Abort bootstrap..."
@@ -208,131 +225,17 @@ bootstrap() {
       exit 1
     fi
 
-    # Move logs dir to ${WARP10_DATA_DIR}
-    if [ -e ${WARP10_DATA_DIR}/logs ]; then
-      echo "Error: ${WARP10_DATA_DIR}/logs already exists"
-      exit 1
-    fi
-    su ${WARP10_USER} -c "mv ${WARP10_HOME}/logs ${WARP10_DATA_DIR}/ 2>&1"
-    if [ $? != 0 ]; then
-      echo "ERROR: move ${WARP10_HOME}/logs to ${WARP10_DATA_DIR}"
-      exit 1
-    fi
-    ln -s ${WARP10_DATA_DIR}/logs ${WARP10_HOME}/logs
-    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/logs
-    chmod 755 ${WARP10_DATA_DIR}/logs
+    # Move directories to ${WARP10_DATA_DIR}
+    moveDir logs
+    moveDir etc
+    moveDir leveldb
+    moveDir datalog
+    moveDir datalog_done
+    moveDir macros
+    moveDir jars
+    moveDir lib
+    moveDir warpscripts
 
-    # Move etc dir to ${WARP10_DATA_DIR}
-    if [ -e ${WARP10_DATA_DIR}/etc ]; then
-      echo "Error: ${WARP10_DATA_DIR}/etc already exists"
-      exit 1
-    fi
-    su ${WARP10_USER} -c "mv ${WARP10_HOME}/etc ${WARP10_DATA_DIR}/ 2>&1"
-    if [ $? != 0 ]; then
-      echo "ERROR: move ${WARP10_HOME}/etc to ${WARP10_DATA_DIR}"
-      exit 1
-    fi
-    ln -s ${WARP10_DATA_DIR}/etc ${WARP10_HOME}/etc
-    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/etc
-    chmod 755 ${WARP10_DATA_DIR}/etc
-
-    # Move leveldb dir to ${WARP10_DATA_DIR}
-    if [ -e ${WARP10_DATA_DIR}/leveldb ]; then
-      echo "Error: ${WARP10_DATA_DIR}/leveldb already exists"
-      exit 1
-    fi
-    su ${WARP10_USER} -c "mv ${WARP10_HOME}/leveldb ${WARP10_DATA_DIR}/ 2>&1"
-    if [ $? != 0 ]; then
-      echo "ERROR: move ${WARP10_HOME}/leveldb to ${WARP10_DATA_DIR}"
-      exit 1
-    fi
-    ln -s ${WARP10_DATA_DIR}/leveldb ${WARP10_HOME}/leveldb
-    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/leveldb
-    chmod 755 ${WARP10_DATA_DIR}/leveldb
-
-    # Move datalog dir to ${WARP10_DATA_DIR}
-    if [ -e ${WARP10_DATA_DIR}/datalog ]; then
-      echo "Error: ${WARP10_DATA_DIR}/datalog already exists"
-      exit 1
-    fi
-    su ${WARP10_USER} -c "mv ${WARP10_HOME}/datalog ${WARP10_DATA_DIR}/ 2>&1"
-    if [ $? != 0 ]; then
-      echo "ERROR: move ${WARP10_HOME}/datalog to ${WARP10_DATA_DIR}"
-      exit 1
-    fi
-    ln -s ${WARP10_DATA_DIR}/datalog ${WARP10_HOME}/datalog
-    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/datalog
-    chmod 755 ${WARP10_DATA_DIR}/datalog
-
-    # Move datalog_done dir to ${WARP10_DATA_DIR}
-    if [ -e ${WARP10_DATA_DIR}/datalog_done ]; then
-      echo "Error: ${WARP10_DATA_DIR}/datalog_done already exists"
-      exit 1
-    fi
-    su ${WARP10_USER} -c "mv ${WARP10_HOME}/datalog_done ${WARP10_DATA_DIR}/ 2>&1"
-    if [ $? != 0 ]; then
-      echo "ERROR: move ${WARP10_HOME}/datalog_done to ${WARP10_DATA_DIR}"
-      exit 1
-    fi
-    ln -s ${WARP10_DATA_DIR}/datalog_done ${WARP10_HOME}/datalog_done
-    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/datalog_done
-    chmod 755 ${WARP10_DATA_DIR}/datalog_done
-
-    # Move macros dir to ${WARP10_DATA_DIR}
-    if [ -e ${WARP10_DATA_DIR}/macros ]; then
-      echo "Error: ${WARP10_DATA_DIR}/macros already exists"
-      exit 1
-    fi
-    su ${WARP10_USER} -c "mv ${WARP10_HOME}/macros ${WARP10_DATA_DIR}/ 2>&1"
-    if [ $? != 0 ]; then
-      echo "ERROR: move ${WARP10_HOME}/macros to ${WARP10_DATA_DIR}"
-      exit 1
-    fi
-    ln -s ${WARP10_DATA_DIR}/macros ${WARP10_HOME}/macros
-    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/macros
-    chmod 755 ${WARP10_DATA_DIR}/macros
-
-    # Move jars dir to ${WARP10_DATA_DIR}
-    if [ -e ${WARP10_DATA_DIR}/jars ]; then
-      echo "Error: ${WARP10_DATA_DIR}/jars already exists"
-      exit 1
-    fi
-    su ${WARP10_USER} -c "mv ${WARP10_HOME}/jars ${WARP10_DATA_DIR}/ 2>&1"
-    if [ $? != 0 ]; then
-      echo "ERROR: move ${WARP10_HOME}/jars to ${WARP10_DATA_DIR}"
-      exit 1
-    fi
-    ln -s ${WARP10_DATA_DIR}/jars ${WARP10_HOME}/jars
-    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/jars
-    chmod 755 ${WARP10_DATA_DIR}/jars
-
-    # Move lib to ${WARP10_DATA_DIR}
-    if [ -e ${WARP10_DATA_DIR}/lib ]; then
-      echo "Error: ${WARP10_DATA_DIR}/lib already exists"
-      exit 1
-    fi
-    su ${WARP10_USER} -c "mv ${WARP10_HOME}/lib ${WARP10_DATA_DIR}/ 2>&1"
-    if [ $? != 0 ]; then
-      echo "ERROR: move ${WARP10_HOME}/lib to ${WARP10_DATA_DIR}"
-      exit 1
-    fi
-    ln -s ${WARP10_DATA_DIR}/lib ${WARP10_HOME}/lib
-    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/lib
-    chmod 755 ${WARP10_DATA_DIR}/lib
-
-    # Move warpscripts dir to ${WARP10_DATA_DIR}
-    if [ -e ${WARP10_DATA_DIR}/warpscripts ]; then
-      echo "Error: ${WARP10_DATA_DIR}/warpscripts already exists"
-      exit 1
-    fi
-    su ${WARP10_USER} -c "mv ${WARP10_HOME}/warpscripts ${WARP10_DATA_DIR}/ 2>&1"
-    if [ $? != 0 ]; then
-      echo "ERROR: move ${WARP10_HOME}/warpscripts to ${WARP10_DATA_DIR}"
-      exit 1
-    fi
-    ln -s ${WARP10_DATA_DIR}/warpscripts ${WARP10_HOME}/warpscripts
-    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/warpscripts
-    chmod 755 ${WARP10_DATA_DIR}/warpscripts
   fi
 
   sed -i -e "s_^standalone\.home.*_standalone\.home = ${WARP10_HOME}_" ${WARP10_HOME}/templates/conf-standalone.template
@@ -527,7 +430,7 @@ stop() {
 }
 
 status() {
-  
+
   #
   # Make sure the caller is warp10
   #
@@ -563,7 +466,7 @@ worfcli() {
 }
 
 worf() {
-  
+
   #
   # Make sure the caller is warp10
   #
