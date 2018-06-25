@@ -66,7 +66,7 @@ FIRSTINIT_FILE=${WARP10_HOME}/logs/.firstinit
 QUANTUM_REVISION=@QUANTUM_VERSION@
 QUANTUM_PLUGIN_JAR=${WARP10_HOME}/bin/warp10-quantum-plugin-${QUANTUM_REVISION}.jar
 QUANTUM_PLUGIN_NAME=io.warp10.plugins.quantum.QuantumPlugin
-# Is Quantun has been started ?
+# Is Quantum has been started ?
 # Note: do not use this parameter to inhibit/activate Quantum (use Warp 10 config)
 IS_QUANTUM_STARTED=true
 
@@ -225,32 +225,17 @@ bootstrap() {
       exit 1
     fi
 
-    # Move logs dir to ${WARP10_DATA_DIR}
+    # Move directories to ${WARP10_DATA_DIR}
     moveDir logs
-
-    # Move etc dir to ${WARP10_DATA_DIR}
     moveDir etc
-
-    # Move leveldb dir to ${WARP10_DATA_DIR}
     moveDir leveldb
-
-    # Move datalog dir to ${WARP10_DATA_DIR}
     moveDir datalog
-
-    # Move datalog_done dir to ${WARP10_DATA_DIR}
     moveDir datalog_done
-
-    # Move macros dir to ${WARP10_DATA_DIR}
     moveDir macros
-
-    # Move jars dir to ${WARP10_DATA_DIR}
     moveDir jars
-
-    # Move lib to ${WARP10_DATA_DIR}
     moveDir lib
-
-    # Move warpscripts dir to ${WARP10_DATA_DIR}
     moveDir warpscripts
+
   fi
 
   sed -i -e "s_^standalone\.home.*_standalone\.home = ${WARP10_HOME}_" ${WARP10_HOME}/templates/conf-standalone.template
