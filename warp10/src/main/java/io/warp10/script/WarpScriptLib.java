@@ -716,6 +716,7 @@ public class WarpScriptLib {
     functions.put("MAKEGTS", new MAKEGTS("MAKEGTS"));
     functions.put("ADDVALUE", new ADDVALUE("ADDVALUE", false));
     functions.put("SETVALUE", new ADDVALUE("SETVALUE", true));
+    functions.put("REMOVETICK", new REMOVETICK("REMOVETICK"));
     functions.put("FETCH", new FETCH("FETCH", false, null));
     functions.put("FETCHLONG", new FETCH("FETCHLONG", false, TYPE.LONG));
     functions.put("FETCHDOUBLE", new FETCH("FETCHDOUBLE", false, TYPE.DOUBLE));
