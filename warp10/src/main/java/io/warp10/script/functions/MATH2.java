@@ -22,18 +22,37 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 
 public class MATH2 extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private Method method;
+  //TODO(tce): LambdaMetafactory could be used to make calls a bit faster, but it is only available on Java 8. See https://stackoverflow.com/q/19557829
+
+  private Method methodLong;
+  private Method methodDouble;
 
   public MATH2(String name, String methodName) throws WarpScriptException {
     super(name);
 
+    WarpScriptException warpExceptionLong = null;
+
     try {
-      this.method = Math.class.getMethod(methodName, double.class, double.class);
+      this.methodLong = Math.class.getMethod(methodName, long.class, long.class);
     } catch (Exception e) {
-      throw new WarpScriptException(e);
+      warpExceptionLong = new WarpScriptException(e);
+    }
+
+    WarpScriptException warpExceptionDouble = null;
+
+    try {
+      this.methodDouble = Math.class.getMethod(methodName, double.class, double.class);
+    } catch (Exception e) {
+      warpExceptionDouble = new WarpScriptException(e);
+    }
+
+    // No method suitable, throw
+    if (null != warpExceptionLong && null != warpExceptionDouble) {
+      throw new WarpScriptException("Could not find a method "+methodName+" in Math accepting (Long, Long) or (Double, Double).");
     }
   }
 
@@ -47,7 +66,22 @@ public class MATH2 extends NamedWarpScriptFunction implements WarpScriptStackFun
     }
 
     try {
-      stack.push(this.method.invoke(null, ((Number) op1).doubleValue(), ((Number) op2).doubleValue()));
+      // If any argument is double/float/bigdecimal
+      if (op1 instanceof Double || op1 instanceof Float || op1 instanceof BigDecimal || op2 instanceof Double || op2 instanceof Float || op2 instanceof BigDecimal) {
+        // Check method accepting doubles first
+        if (null != this.methodDouble) {
+          stack.push(this.methodDouble.invoke(null, ((Number) op1).doubleValue(), ((Number) op2).doubleValue()));
+        } else {
+          stack.push(this.methodLong.invoke(null, ((Number) op1).longValue(), ((Number) op2).longValue()));
+        }
+      } else { // If all arguments are ints/longs
+        // Check method accepting longs first
+        if (null != this.methodLong) {
+          stack.push(this.methodLong.invoke(null, ((Number) op1).longValue(), ((Number) op2).longValue()));
+        } else {
+          stack.push(this.methodDouble.invoke(null, ((Number) op1).doubleValue(), ((Number) op2).doubleValue()));
+        }
+      }
     } catch (Exception e) {
       throw new WarpScriptException(e);
     }
