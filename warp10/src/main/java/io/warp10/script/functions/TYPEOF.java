@@ -68,51 +68,20 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String TYPE_PFONT = "PFONT";
   public static final String TYPE_PSHAPE = "PSHAPE";
 
-  private boolean recursivetypeof;
 
-  public TYPEOF(String name, boolean recursivetypeof) {
+  public TYPEOF(String name) {
     super(name);
-    this.recursivetypeof = recursivetypeof;
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
-    if (this.recursivetypeof) {
-      stack.push(this.rtypeof(o, 0, stack.DEFAULT_MAX_RECURSION_LEVEL));
-    } else {
-      stack.push(this.typeof(o));
-    }
+    stack.push(this.typeof(o));
     return stack;
   }
 
-  private String rtypeof(Object o, int recursionlevel, int maxrecursionlevel) {
-    if (recursionlevel > maxrecursionlevel) {
-      return "... (recursion limit reached)";
-    } else {
-      if (o instanceof List) {
-        if (0 == ((List) o).size()) {
-          return "empty LIST ";
-        } else {
-          //type of the first element in the list
-          return "LIST of " + this.rtypeof(((List) o).get(0), recursionlevel + 1, maxrecursionlevel);
-        }
-      } else if (o instanceof Map) {
-        if (0 == ((Map) o).size()) {
-          return "empty MAP";
-        } else {
-          Object onekey = ((Map) o).keySet().toArray()[0]; //typeof the first available key/value
-          return "MAP (key:" + this.rtypeof(onekey, recursionlevel + 1, maxrecursionlevel) +
-                  ", value:" + this.rtypeof(((Map) o).get(onekey), recursionlevel + 1, maxrecursionlevel) +
-                  ")";
-        }
-      } else {
-        return this.typeof(o);
-      }
-    }
-  }
 
-  private String typeof(Object o) {
+  public String typeof(Object o) {
     if (null == o) {
       return (TYPE_NULL);
     } else if (o instanceof String) {
