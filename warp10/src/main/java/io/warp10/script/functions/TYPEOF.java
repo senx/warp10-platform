@@ -44,7 +44,7 @@ import java.util.Vector;
  * Push on the stack the type of the object on top of the stack
  */
 public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public static final String TYPE_NULL = "NULL";
   public static final String TYPE_STRING = "STRING";
   public static final String TYPE_LONG = "LONG";
@@ -79,7 +79,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
     if (this.recursivetypeof) {
-      stack.push(this.rtypeof(o,0,stack.DEFAULT_MAX_RECURSION_LEVEL));
+      stack.push(this.rtypeof(o, 0, stack.DEFAULT_MAX_RECURSION_LEVEL));
     } else {
       stack.push(this.typeof(o));
     }
@@ -87,24 +87,22 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   }
 
   private String rtypeof(Object o, int recursionlevel, int maxrecursionlevel) {
-    if (recursionlevel > maxrecursionlevel){
+    if (recursionlevel > maxrecursionlevel) {
       return "... (recursion limit reached)";
-    }
-    else
-    {
+    } else {
       if (o instanceof List) {
-         if (0 == ((List) o).size()) {
-           return "empty LIST ";
-         } else {
-           //type of the first element in the list
-           return  "LIST of " + this.rtypeof(((List) o).get(0), recursionlevel + 1, maxrecursionlevel);
-         }
-      } else if (o instanceof Map){
+        if (0 == ((List) o).size()) {
+          return "empty LIST ";
+        } else {
+          //type of the first element in the list
+          return "LIST of " + this.rtypeof(((List) o).get(0), recursionlevel + 1, maxrecursionlevel);
+        }
+      } else if (o instanceof Map) {
         if (0 == ((Map) o).size()) {
           return "empty MAP";
         } else {
           Object onekey = ((Map) o).keySet().toArray()[0]; //typeof the first available key/value
-          return  "MAP (key:" + this.rtypeof(onekey, recursionlevel + 1, maxrecursionlevel) +
+          return "MAP (key:" + this.rtypeof(onekey, recursionlevel + 1, maxrecursionlevel) +
                   ", value:" + this.rtypeof(((Map) o).get(onekey), recursionlevel + 1, maxrecursionlevel) +
                   ")";
         }
@@ -116,51 +114,51 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
 
   private String typeof(Object o) {
     if (null == o) {
-      return(TYPE_NULL);
+      return (TYPE_NULL);
     } else if (o instanceof String) {
-      return(TYPE_STRING);
+      return (TYPE_STRING);
     } else if (o instanceof Long || o instanceof Integer || o instanceof Short || o instanceof Byte || o instanceof BigInteger) {
-      return(TYPE_LONG);
+      return (TYPE_LONG);
     } else if (o instanceof Double || o instanceof Float || o instanceof BigDecimal) {
-      return(TYPE_DOUBLE);
+      return (TYPE_DOUBLE);
     } else if (o instanceof Boolean) {
-      return(TYPE_BOOLEAN);
+      return (TYPE_BOOLEAN);
     } else if (o instanceof Vector) {  // place before List. Vector implements List.
-      return(TYPE_VECTOR);
+      return (TYPE_VECTOR);
     } else if (o instanceof List) {
-      return(TYPE_LIST);
+      return (TYPE_LIST);
     } else if (o instanceof Map) {
-      return(TYPE_MAP);
+      return (TYPE_MAP);
     } else if (o instanceof Macro) {
-      return(TYPE_MACRO);
+      return (TYPE_MACRO);
     } else if (o instanceof WarpScriptMapperFunction) {
-      return(TYPE_MAPPER);
+      return (TYPE_MAPPER);
     } else if (o instanceof WarpScriptReducerFunction) {
-      return(TYPE_REDUCER);
+      return (TYPE_REDUCER);
     } else if (o instanceof GeoTimeSerie) {
-      return(TYPE_GTS);
-    } else if (o instanceof byte[] ) {
-      return(TYPE_BYTES);
+      return (TYPE_GTS);
+    } else if (o instanceof byte[]) {
+      return (TYPE_BYTES);
     } else if (o instanceof PGraphics) {
-      return(TYPE_PGRAPHICSIMAGE);
+      return (TYPE_PGRAPHICSIMAGE);
     } else if (o instanceof PImage) {
-      return(TYPE_PIMAGE);
+      return (TYPE_PIMAGE);
     } else if (o instanceof PFont) {
-      return(TYPE_PFONT);
+      return (TYPE_PFONT);
     } else if (o instanceof PShape) {
-      return(TYPE_PSHAPE);
+      return (TYPE_PSHAPE);
     } else if (o instanceof GeoXPLib.GeoXPShape) {
-      return(TYPE_GEOSHAPE);
+      return (TYPE_GEOSHAPE);
     } else if (o instanceof Set) {
-      return(TYPE_SET);
+      return (TYPE_SET);
     } else if (o instanceof BitSet) {
-      return(TYPE_BITSET);
+      return (TYPE_BITSET);
     } else if (o instanceof ArrayRealVector) {
-      return(TYPE_REALVECTOR);
+      return (TYPE_REALVECTOR);
     } else if (o instanceof RealMatrix) {
-      return(TYPE_REALMATRIX);
+      return (TYPE_REALMATRIX);
     } else {
-      return(o.getClass().getCanonicalName());
+      return (o.getClass().getCanonicalName());
     }
   }
 
