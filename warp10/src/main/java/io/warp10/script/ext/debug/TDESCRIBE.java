@@ -44,14 +44,14 @@ public class TDESCRIBE extends TYPEOF {
     } else {
       if (o instanceof List) {
         if (0 == ((List) o).size()) {
-          return "empty LIST ";
+          return "LIST []";
         } else {
           //type of the first element in the list
           return "LIST [ " + this.rtypeof(((List) o).get(0), recursionlevel + 1, maxrecursionlevel) + " ]";
         }
       } else if (o instanceof Map) {
         if (0 == ((Map) o).size()) {
-          return "empty MAP";
+          return "MAP {}";
         } else {
           //typeof the first available key/value
           Object key = null;
