@@ -480,7 +480,7 @@ public class WarpScriptLib {
     functions.put("DEFINEDMACRO", new DEFINEDMACRO("DEFINEDMACRO"));
     functions.put("NaN", new NaN("NaN"));
     functions.put("ISNaN", new ISNaN("ISNaN"));
-    functions.put("TYPEOF", new TYPEOF("TYPEOF"));      
+    functions.put("TYPEOF", new TYPEOF("TYPEOF"));
     functions.put("EXTLOADED", new EXTLOADED("EXTLOADED"));
     functions.put("ASSERT", new ASSERT("ASSERT"));
     functions.put("ASSERTMSG", new ASSERTMSG("ASSERTMSG"));
