@@ -16,7 +16,8 @@ public class ConcurrentWarpScriptExtension extends WarpScriptExtension {
   static {
     functions = new HashMap<String, Object>();
 
-    functions.put("CEVAL", new CEVAL("CEVAL"));
+    functions.put("CEVAL", new CEVAL("CEVAL",false));
+    functions.put("CFOREACH", new CEVAL("FOREACH",true));
     functions.put("SYNC", new SYNC("SYNC"));
   }
   
