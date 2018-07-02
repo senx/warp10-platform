@@ -1202,16 +1202,37 @@ public class GTSHelper {
       if (lastidx >= gts.values) {
         lastidx = gts.values - 1;
       }
+    } else {
+      // We found the stop timestamp, we now must find the last occurrence of
+      // it in case there are duplicates
+      int lastlastidx = lastidx + 1;
+      while(lastlastidx < gts.ticks.length && stoptimestamp == gts.ticks[lastlastidx]) {
+        lastlastidx++;
+      }
+      
+      lastidx = lastlastidx - 1;      
     }
     
     int firstidx = Arrays.binarySearch(gts.ticks, 0, lastidx + 1, starttimestamp);
     
     if (firstidx < 0) {
       firstidx = -firstidx - 1;
+    } else if (firstidx > 0) {
+      // We found the start timestamp, we now must find the first occurrence of it
+      // in case there are duplicates
+      int firstfirstidx = firstidx - 1;
+      
+      while(firstfirstidx >= 0 && starttimestamp == gts.ticks[firstfirstidx]) {
+        firstfirstidx--;
+      }
+      
+      firstidx = firstfirstidx + 1;
     }
+    
     if (firstidx >= gts.values) {
       return subgts;
     }
+        
     
     //
     // Extract values/locations/elevations that lie in the requested interval
