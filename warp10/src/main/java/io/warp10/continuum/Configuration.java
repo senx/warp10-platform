@@ -1106,6 +1106,12 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
+   * Boolean indicating whether the first run of each script should be at startup (the default behavior) or
+   * at the next round scheduling period.
+   */
+  public static final String RUNNER_RUNATSTARTUP = "runner.runatstartup";
+  
+  /**
    * ZooKeeper connect string for the leader election among schedulers
    */
   public static final String RUNNER_ZK_QUORUM = "runner.zk.quorum";
