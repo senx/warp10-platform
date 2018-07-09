@@ -116,7 +116,13 @@ public class WarpDist {
     
     System.setProperty("java.awt.headless", "true");
     
-    setProperties(args[0]);
+    if (args.length > 0) {
+      setProperties(args[0]);
+    } else if (null != System.getenv(WarpConfig.WARP10_CONFIG_ENV)) {
+      setProperties(System.getenv(WarpConfig.WARP10_CONFIG_ENV));
+    } else if (null != System.getProperty(WarpConfig.WARP10_CONFIG)) {
+      setProperties(System.getProperty(WarpConfig.WARP10_CONFIG));
+    }
         
     //
     // Extract components to spawn
