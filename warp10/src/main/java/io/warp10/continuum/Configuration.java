@@ -1230,6 +1230,20 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
+   * Rate of synchronous writes for the datapoints (update/deletes).
+   * This is a double between 0.0 (all writes asynchronous) and 1.0 (all writes synchronous).
+   * The default value is 1.0 (all writes are synchronous)
+   */
+  public static final String LEVELDB_DATA_SYNCRATE = "leveldb.data.syncrate";
+
+  /**
+   * Rate of synchronous writes for the directory writes.
+   * This is a double between 0.0 (all writes asynchronous) and 1.0 (all writes synchronous)
+   * The default value is 1.0 (all writes are synchronous)
+   */
+  public static final String LEVELDB_DIRECTORY_SYNCRATE = "leveldb.directory.syncrate";
+
+  /**
    * Flag to disable the use of the native LevelDB implementation
    */
   public static final String LEVELDB_NATIVE_DISABLE = "leveldb.native.disable";
@@ -1315,6 +1329,11 @@ public class Configuration {
    * Maximum encoder size (in bytes) for internal data transfers. Use values from 64k to 512k
    */
   public static final String STANDALONE_MAX_ENCODER_SIZE = "standalone.max.encoder.size";
+  
+  /**
+   * Maximum number of keys to batch when deleting data
+   */
+  public static final String STANDALONE_MAX_DELETE_BATCHSIZE = "standalone.max.delete.batchsize";
   
   /**
    * Maximum size in bytes of a value
