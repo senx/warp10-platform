@@ -478,17 +478,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       PrintWriter pw = response.getWriter();
       StringBuilder sb = new StringBuilder();
       
-      for (Metadata metadata: metadatas) {        
-        //
-        // Remove from DB
-        //
-       
-        if (!hasRange) {
-          if (!dryrun) {
-            this.directoryClient.unregister(metadata);
-          }
-        }
-        
+      for (Metadata metadata: metadatas) {                
         //
         // Remove data
         //
@@ -497,6 +487,16 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         
         if (!dryrun) {
           localCount = this.storeClient.delete(writeToken, metadata, start, end);
+        }
+
+        //
+        // Remove metadata from DB and Directory
+        //
+
+        if (!hasRange) {
+          if (!dryrun) {
+            this.directoryClient.unregister(metadata);
+          }
         }
 
         count += localCount;
