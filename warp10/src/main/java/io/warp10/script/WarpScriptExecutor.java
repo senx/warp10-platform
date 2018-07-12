@@ -91,7 +91,13 @@ public class WarpScriptExecutor implements Serializable {
     //
   
     try {
-      WarpConfig.safeSetProperties((String) System.getProperty(WarpConfig.WARP10_CONFIG));
+      String config = System.getProperty(WarpConfig.WARP10_CONFIG);
+      
+      if (null == config) {
+        config = System.getenv(WarpConfig.WARP10_CONFIG_ENV);
+      }
+      
+      WarpConfig.safeSetProperties((String) config);
       properties = WarpConfig.getProperties();
       WarpScriptLib.registerExtensions();
     } catch (Exception e) {
