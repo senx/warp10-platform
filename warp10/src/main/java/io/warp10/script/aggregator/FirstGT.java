@@ -94,6 +94,11 @@ public class FirstGT extends NamedWarpScriptFunction implements WarpScriptAggreg
             }
             break;
         }        
+      } else if (values[i] instanceof String && TYPE.STRING == type) {
+        if (sthreshold.compareTo(values[i].toString()) < 0) {
+          idx = i;
+          tick = ticks[i];
+        }
       }
     }
     

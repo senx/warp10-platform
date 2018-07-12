@@ -94,8 +94,13 @@ public class FirstGE extends NamedWarpScriptFunction implements WarpScriptAggreg
             }
             break;
          }        
+      } else if (values[i] instanceof String && TYPE.STRING == type) {
+        if (sthreshold.compareTo(values[i].toString()) <= 0) {
+          idx = i;
+          tick = ticks[i];
+        }
       }
-    }
+    }    
     
     if (-1 != idx) {
       return new Object[] { ticks[idx], locations[idx], elevations[idx], values[idx] };
