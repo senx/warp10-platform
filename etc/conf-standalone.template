@@ -325,6 +325,20 @@ leveldb.native.disable = false
 leveldb.java.disable = false
 
 //
+// Rate of synchronous writes for the datapoints (update/deletes).
+// This is a double between 0.0 (all writes asynchronous) and 1.0 (all writes synchronous).
+// The default value is 1.0 (all writes are synchronous)
+//
+leveldb.data.syncrate = 1.0
+
+//
+// Rate of synchronous writes for the directory writes.
+// This is a double between 0.0 (all writes asynchronous) and 1.0 (all writes synchronous)
+// The default value is 1.0 (all writes are synchronous)
+//
+leveldb.directory.syncrate = 1.0
+
+//
 // AES key to use for wrapping metadata prior to storage in leveldb
 //
 #leveldb.metadata.aes = 
@@ -399,6 +413,11 @@ standalone.snapshot.signal = ${leveldb.home}/snapshot.signal
 // Set to true to disable the delete endpoint.
 //
 standalone.delete.disable = false
+
+//
+// Set the size of delete batches in number of records (defaults to 100000)
+//
+#standalone.max.delete.batchsize =
 
 //
 // Configuration parameter to modify the datalog header. DO NOT MODIFY
