@@ -2009,10 +2009,12 @@ public class GTSHelper {
   public static Object parseValue(String valuestr) throws ParseException {
     
     Object value;
-    
+        
     try {
-      if (('\'' == valuestr.charAt(0) && valuestr.endsWith("'"))
-          || ('"' == valuestr.charAt(0) && valuestr.endsWith("\""))) {
+      char firstChar = valuestr.charAt(0);
+
+      if (('\'' == firstChar && valuestr.endsWith("'"))
+          || ('"' == firstChar && valuestr.endsWith("\""))) {
         value = valuestr.substring(1, valuestr.length() - 1);
         if (((String)value).contains("%")) {
           try {
@@ -2021,16 +2023,14 @@ public class GTSHelper {
             // Can't happen, we're using UTF-8
           }
         }        
-      } else if ("t".equalsIgnoreCase(valuestr)
-                 || "true".equalsIgnoreCase(valuestr)) {
+      } else if (('t' == firstChar || 'T' == firstChar) && (1 == valuestr.length() || "true".equalsIgnoreCase(valuestr))) {
         value = Boolean.TRUE;
-      } else if ("f".equalsIgnoreCase(valuestr)
-                 || "false".equalsIgnoreCase(valuestr)) {
+      } else if (('f' == firstChar || 'F' == firstChar) && (1 == valuestr.length() || "false".equalsIgnoreCase(valuestr))) {
         value = Boolean.FALSE;
       //
       // FIXME(hbs): add support for quaternions, for hex values???
       //
-      } else if ('H' == valuestr.charAt(0) && valuestr.startsWith("HH:")) {
+      } else if ('H' == firstChar && valuestr.startsWith("HH:")) {
         int colon = valuestr.indexOf(':',3);
         if (-1 == colon) {
           throw new ParseException("Invalid value for lat,lon conversion to HHCode.", 0);
@@ -2039,7 +2039,7 @@ public class GTSHelper {
         double lon = Double.parseDouble(valuestr.substring(colon + 1));
         
         value = GeoXPLib.toGeoXPPoint(lat, lon);
-      } else if ('Q' == valuestr.charAt(0) && valuestr.startsWith("Q:")) {
+      } else if ('Q' == firstChar && valuestr.startsWith("Q:")) {
         
         double[] q = new double[4];
         
