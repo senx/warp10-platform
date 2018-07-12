@@ -1287,6 +1287,12 @@ plasma.backend.subscriptions.znode = /zk/warp/localhost/plasma
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
+// Set to true to run each script a first time at startup, to false to schedule the
+// first run at the next timestamp which is congruent to 0 modulo the period of the
+// script
+runner.runatstartup = true
+
+//
 // ZooKeeper connect string for the leader election among schedulers
 //
 runner.zk.quorum = 127.0.0.1:2181
