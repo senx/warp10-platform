@@ -248,76 +248,88 @@ public class GTSHelper {
       return;
     }
     
-    int i = low, j = high;
-    // Get the pivot element from the middle of the list
-    long pivot = gts.ticks[low + (high-low)/2];
-
-    // Divide into two lists
-    while (i <= j) {
-      // If the current value from the left list is smaller
-      // (or greater if reversed is true) than the pivot
-      // element then get the next element from the left list
-      while ((!reversed && gts.ticks[i] < pivot) || (reversed && gts.ticks[i] > pivot)) {
-        i++;
-      }
-      // If the current value from the right list is larger (or lower if reversed is true)
-      // than the pivot element then get the next element from the right list
-      while ((!reversed && gts.ticks[j] > pivot) || (reversed && gts.ticks[j] < pivot)) {
-        j--;
-      }
-
-      // If we have found a values in the left list which is larger then
-      // the pivot element and if we have found a value in the right list
-      // which is smaller then the pivot element then we exchange the
-      // values.
-      // As we are done we can increase i and j
-      if (i <= j) {
-        long tmplong = gts.ticks[i];
-        gts.ticks[i] = gts.ticks[j];
-        gts.ticks[j] = tmplong;
-        
-        if (null != gts.locations) {
-          tmplong = gts.locations[i];
-          gts.locations[i] = gts.locations[j];
-          gts.locations[j] = tmplong;          
-        }
-        
-        if (null != gts.elevations) {
-          tmplong = gts.elevations[i];
-          gts.elevations[i] = gts.elevations[j];
-          gts.elevations[j] = tmplong;          
-        }
-        
-        if (TYPE.LONG == gts.type) {
-          tmplong = gts.longValues[i];
-          gts.longValues[i] = gts.longValues[j];
-          gts.longValues[j] = tmplong;          
-        } else if (TYPE.DOUBLE == gts.type) {
-          double tmpdouble = gts.doubleValues[i];
-          gts.doubleValues[i] = gts.doubleValues[j];
-          gts.doubleValues[j] = tmpdouble;
-        } else if (TYPE.STRING == gts.type) {
-          String tmpstring = gts.stringValues[i];
-          gts.stringValues[i] = gts.stringValues[j];
-          gts.stringValues[j] = tmpstring;
-        } else if (TYPE.BOOLEAN == gts.type) {
-          boolean tmpboolean = gts.booleanValues.get(i);
-          gts.booleanValues.set(i, gts.booleanValues.get(j));
-          gts.booleanValues.set(j, tmpboolean);
-        }
-
-        i++;
-        j--;
-      }
-    }
+    List<int[]> ranges = new ArrayList<int[]>();
     
-    // Recursion
-    if (low < j) {
-      quicksort(gts, low, j, reversed);
-    }
-    if (i < high) {   
-      quicksort(gts, i, high, reversed);
-    }
+    ranges.add(new int[] { low, high });
+    
+    while(!ranges.isEmpty()) {
+      int[] range = ranges.remove(0);
+      low = range[0];
+      high = range[1];
+      
+      int i = low, j = high;
+      // Get the pivot element from the middle of the list
+      long pivot = gts.ticks[low + (high-low)/2];
+
+      // Divide into two lists
+      while (i <= j) {
+        // If the current value from the left list is smaller
+        // (or greater if reversed is true) than the pivot
+        // element then get the next element from the left list
+        while ((!reversed && gts.ticks[i] < pivot) || (reversed && gts.ticks[i] > pivot)) {
+          i++;
+        }
+        // If the current value from the right list is larger (or lower if reversed is true)
+        // than the pivot element then get the next element from the right list
+        while ((!reversed && gts.ticks[j] > pivot) || (reversed && gts.ticks[j] < pivot)) {
+          j--;
+        }
+
+        // If we have found a values in the left list which is larger then
+        // the pivot element and if we have found a value in the right list
+        // which is smaller then the pivot element then we exchange the
+        // values.
+        // As we are done we can increase i and j
+        if (i <= j) {
+          long tmplong = gts.ticks[i];
+          gts.ticks[i] = gts.ticks[j];
+          gts.ticks[j] = tmplong;
+          
+          if (null != gts.locations) {
+            tmplong = gts.locations[i];
+            gts.locations[i] = gts.locations[j];
+            gts.locations[j] = tmplong;          
+          }
+          
+          if (null != gts.elevations) {
+            tmplong = gts.elevations[i];
+            gts.elevations[i] = gts.elevations[j];
+            gts.elevations[j] = tmplong;          
+          }
+          
+          if (TYPE.LONG == gts.type) {
+            tmplong = gts.longValues[i];
+            gts.longValues[i] = gts.longValues[j];
+            gts.longValues[j] = tmplong;          
+          } else if (TYPE.DOUBLE == gts.type) {
+            double tmpdouble = gts.doubleValues[i];
+            gts.doubleValues[i] = gts.doubleValues[j];
+            gts.doubleValues[j] = tmpdouble;
+          } else if (TYPE.STRING == gts.type) {
+            String tmpstring = gts.stringValues[i];
+            gts.stringValues[i] = gts.stringValues[j];
+            gts.stringValues[j] = tmpstring;
+          } else if (TYPE.BOOLEAN == gts.type) {
+            boolean tmpboolean = gts.booleanValues.get(i);
+            gts.booleanValues.set(i, gts.booleanValues.get(j));
+            gts.booleanValues.set(j, tmpboolean);
+          }
+
+          i++;
+          j--;
+        }
+      }
+      
+      // Recursion
+      if (low < j) {
+        //quicksort(gts, low, j, reversed);
+        ranges.add(new int[] { low, j });
+      }
+      if (i < high) {   
+        //quicksort(gts, i, high, reversed);
+        ranges.add(new int[] { i, high });
+      }      
+    }    
   }
 
   private static final void quicksortByValue(GeoTimeSerie gts, int low, int high, boolean reversed) { 
@@ -326,148 +338,160 @@ public class GTSHelper {
       return;
     }
     
-    int i = low, j = high;
-    // Get the pivot element from the middle of the list
-    long lpivot = 0L;
-    double dpivot = 0.0D;
-    String spivot = null;
+    List<int[]> ranges = new ArrayList<int[]>();
     
-    TYPE type = gts.getType();
+    ranges.add(new int[] { low, high });
     
-    if (TYPE.LONG == type) {
-      lpivot = gts.longValues[low + (high-low)/2];
-    } else if (TYPE.DOUBLE == type) {
-      dpivot = gts.doubleValues[low + (high-low)/2];
-    } else if (TYPE.STRING == type) {
-      spivot = gts.stringValues[low + (high-low)/2];       
-    } else if (TYPE.BOOLEAN == type) {
-      // Do nothing for booleans
-      return;
-    }
-    
-    long pivotTick = gts.ticks[low + (high-low) / 2];
-    
-    // Divide into two lists
-    while (i <= j) {
+    while(!ranges.isEmpty()) {
+      int[] range = ranges.remove(0);
+      low = range[0];
+      high = range[1];
+      
+      int i = low, j = high;
+      // Get the pivot element from the middle of the list
+      long lpivot = 0L;
+      double dpivot = 0.0D;
+      String spivot = null;
+      
+      TYPE type = gts.getType();
       
       if (TYPE.LONG == type) {
-        
-        
-        if (!reversed) {
-          // If the current value from the left list is smaller
-          // (or greater if reversed is true) than the pivot
-          // element then get the next element from the left list        
-          while(gts.longValues[i] < lpivot || (gts.longValues[i] == lpivot && gts.ticks[i] < pivotTick)) {
-            i++;
-          }
-          // If the current value from the right list is larger (or lower if reversed is true)
-          // than the pivot element then get the next element from the right list
-          while(gts.longValues[j] > lpivot || (gts.longValues[j] == lpivot && gts.ticks[j] > pivotTick)) {
-            j--;
-          }
-        } else {
-          while(gts.longValues[i] > lpivot || (gts.longValues[i] == lpivot && gts.ticks[i] > pivotTick)) {
-            i++;
-          }
-          while(gts.longValues[j] < lpivot || (gts.longValues[j] == lpivot && gts.ticks[j] < pivotTick)) {
-            j--;
-          }
-        }
-      } else if (TYPE.DOUBLE == type) {        
-        if (!reversed) {
-          // If the current value from the left list is smaller
-          // (or greater if reversed is true) than the pivot
-          // element then get the next element from the left list        
-          while(gts.doubleValues[i] < dpivot || (gts.doubleValues[i] == dpivot && gts.ticks[i] < pivotTick)) {
-            i++;
-          }
-          // If the current value from the right list is larger (or lower if reversed is true)
-          // than the pivot element then get the next element from the right list
-          while(gts.doubleValues[j] > dpivot || (gts.doubleValues[j] == dpivot && gts.ticks[j] > pivotTick)) {
-            j--;
-          }
-        } else {
-          while(gts.doubleValues[i] > dpivot || (gts.doubleValues[i] == dpivot && gts.ticks[i] > pivotTick)) {
-            i++;
-          }
-          while(gts.doubleValues[j] < dpivot || (gts.doubleValues[j] == dpivot && gts.ticks[j] < pivotTick)) {
-            j--;
-          }
-        }
+        lpivot = gts.longValues[low + (high-low)/2];
+      } else if (TYPE.DOUBLE == type) {
+        dpivot = gts.doubleValues[low + (high-low)/2];
       } else if (TYPE.STRING == type) {
-        if (!reversed) {
-          // If the current value from the left list is smaller
-          // (or greater if reversed is true) than the pivot
-          // element then get the next element from the left list        
-          while(gts.stringValues[i].compareTo(spivot) < 0 || (0 == gts.stringValues[i].compareTo(spivot) && gts.ticks[i] < pivotTick)) {
-            i++;
-          }
-          // If the current value from the right list is larger (or lower if reversed is true)
-          // than the pivot element then get the next element from the right list
-          while(gts.stringValues[j].compareTo(spivot) > 0 || (0 == gts.stringValues[j].compareTo(spivot) && gts.ticks[j] > pivotTick)) {
-            j--;
-          }
-        } else {
-          while(gts.stringValues[i].compareTo(spivot) > 0 || (0 == gts.stringValues[i].compareTo(spivot) && gts.ticks[i] > pivotTick)) {
-            i++;
-          }
-          while(gts.stringValues[j].compareTo(spivot) < 0 || (0 == gts.stringValues[j].compareTo(spivot) && gts.ticks[j] < pivotTick)) {
-            j--;
-          }
-        }
+        spivot = gts.stringValues[low + (high-low)/2];       
+      } else if (TYPE.BOOLEAN == type) {
+        // Do nothing for booleans
+        return;
       }
-
-      // If we have found a values in the left list which is larger then
-      // the pivot element and if we have found a value in the right list
-      // which is smaller then the pivot element then we exchange the
-      // values.
-      // As we are done we can increase i and j
-      if (i <= j) {
-        if (TYPE.LONG == gts.type) {
-          long tmplong = gts.longValues[i];
-          gts.longValues[i] = gts.longValues[j];
-          gts.longValues[j] = tmplong;          
-        } else if (TYPE.DOUBLE == gts.type) {
-          double tmpdouble = gts.doubleValues[i];
-          gts.doubleValues[i] = gts.doubleValues[j];
-          gts.doubleValues[j] = tmpdouble;            
-        } else if (TYPE.STRING == gts.type) { 
-          String tmpstring = gts.stringValues[i];
-          gts.stringValues[i] = gts.stringValues[j];
-          gts.stringValues[j] = tmpstring;            
-        } else if (TYPE.BOOLEAN == gts.type) {
-          boolean tmpboolean = gts.booleanValues.get(i);
-          gts.booleanValues.set(i, gts.booleanValues.get(j));
-          gts.booleanValues.set(j, tmpboolean);
-        }
-
-        long tmplong = gts.ticks[i];
-        gts.ticks[i] = gts.ticks[j];
-        gts.ticks[j] = tmplong;
-          
-        if (null != gts.locations) {
-          tmplong = gts.locations[i];
-          gts.locations[i] = gts.locations[j];
-          gts.locations[j] = tmplong;          
-        }
-          
-        if (null != gts.elevations) {
-          tmplong = gts.elevations[i];
-          gts.elevations[i] = gts.elevations[j];
-          gts.elevations[j] = tmplong;          
-        }
+      
+      long pivotTick = gts.ticks[low + (high-low) / 2];
+      
+      // Divide into two lists
+      while (i <= j) {
         
-        i++;
-        j--;
+        if (TYPE.LONG == type) {
+          
+          
+          if (!reversed) {
+            // If the current value from the left list is smaller
+            // (or greater if reversed is true) than the pivot
+            // element then get the next element from the left list        
+            while(gts.longValues[i] < lpivot || (gts.longValues[i] == lpivot && gts.ticks[i] < pivotTick)) {
+              i++;
+            }
+            // If the current value from the right list is larger (or lower if reversed is true)
+            // than the pivot element then get the next element from the right list
+            while(gts.longValues[j] > lpivot || (gts.longValues[j] == lpivot && gts.ticks[j] > pivotTick)) {
+              j--;
+            }
+          } else {
+            while(gts.longValues[i] > lpivot || (gts.longValues[i] == lpivot && gts.ticks[i] > pivotTick)) {
+              i++;
+            }
+            while(gts.longValues[j] < lpivot || (gts.longValues[j] == lpivot && gts.ticks[j] < pivotTick)) {
+              j--;
+            }
+          }
+        } else if (TYPE.DOUBLE == type) {        
+          if (!reversed) {
+            // If the current value from the left list is smaller
+            // (or greater if reversed is true) than the pivot
+            // element then get the next element from the left list        
+            while(gts.doubleValues[i] < dpivot || (gts.doubleValues[i] == dpivot && gts.ticks[i] < pivotTick)) {
+              i++;
+            }
+            // If the current value from the right list is larger (or lower if reversed is true)
+            // than the pivot element then get the next element from the right list
+            while(gts.doubleValues[j] > dpivot || (gts.doubleValues[j] == dpivot && gts.ticks[j] > pivotTick)) {
+              j--;
+            }
+          } else {
+            while(gts.doubleValues[i] > dpivot || (gts.doubleValues[i] == dpivot && gts.ticks[i] > pivotTick)) {
+              i++;
+            }
+            while(gts.doubleValues[j] < dpivot || (gts.doubleValues[j] == dpivot && gts.ticks[j] < pivotTick)) {
+              j--;
+            }
+          }
+        } else if (TYPE.STRING == type) {
+          if (!reversed) {
+            // If the current value from the left list is smaller
+            // (or greater if reversed is true) than the pivot
+            // element then get the next element from the left list        
+            while(gts.stringValues[i].compareTo(spivot) < 0 || (0 == gts.stringValues[i].compareTo(spivot) && gts.ticks[i] < pivotTick)) {
+              i++;
+            }
+            // If the current value from the right list is larger (or lower if reversed is true)
+            // than the pivot element then get the next element from the right list
+            while(gts.stringValues[j].compareTo(spivot) > 0 || (0 == gts.stringValues[j].compareTo(spivot) && gts.ticks[j] > pivotTick)) {
+              j--;
+            }
+          } else {
+            while(gts.stringValues[i].compareTo(spivot) > 0 || (0 == gts.stringValues[i].compareTo(spivot) && gts.ticks[i] > pivotTick)) {
+              i++;
+            }
+            while(gts.stringValues[j].compareTo(spivot) < 0 || (0 == gts.stringValues[j].compareTo(spivot) && gts.ticks[j] < pivotTick)) {
+              j--;
+            }
+          }
+        }
+
+        // If we have found a values in the left list which is larger then
+        // the pivot element and if we have found a value in the right list
+        // which is smaller then the pivot element then we exchange the
+        // values.
+        // As we are done we can increase i and j
+        if (i <= j) {
+          if (TYPE.LONG == gts.type) {
+            long tmplong = gts.longValues[i];
+            gts.longValues[i] = gts.longValues[j];
+            gts.longValues[j] = tmplong;          
+          } else if (TYPE.DOUBLE == gts.type) {
+            double tmpdouble = gts.doubleValues[i];
+            gts.doubleValues[i] = gts.doubleValues[j];
+            gts.doubleValues[j] = tmpdouble;            
+          } else if (TYPE.STRING == gts.type) { 
+            String tmpstring = gts.stringValues[i];
+            gts.stringValues[i] = gts.stringValues[j];
+            gts.stringValues[j] = tmpstring;            
+          } else if (TYPE.BOOLEAN == gts.type) {
+            boolean tmpboolean = gts.booleanValues.get(i);
+            gts.booleanValues.set(i, gts.booleanValues.get(j));
+            gts.booleanValues.set(j, tmpboolean);
+          }
+
+          long tmplong = gts.ticks[i];
+          gts.ticks[i] = gts.ticks[j];
+          gts.ticks[j] = tmplong;
+            
+          if (null != gts.locations) {
+            tmplong = gts.locations[i];
+            gts.locations[i] = gts.locations[j];
+            gts.locations[j] = tmplong;          
+          }
+            
+          if (null != gts.elevations) {
+            tmplong = gts.elevations[i];
+            gts.elevations[i] = gts.elevations[j];
+            gts.elevations[j] = tmplong;          
+          }
+          
+          i++;
+          j--;
+        }
       }
-    }
-    
-    // Recursion
-    if (low < j) {
-      quicksortByValue(gts, low, j, reversed);
-    }
-    if (i < high) {   
-      quicksortByValue(gts, i, high, reversed);
+      
+      // Recursion
+      if (low < j) {
+        //quicksortByValue(gts, low, j, reversed);
+        ranges.add(new int[] { low, j });
+      }
+      if (i < high) {   
+        //quicksortByValue(gts, i, high, reversed);
+        ranges.add(new int[] { i, high });
+      }
     }
   }
 
@@ -491,90 +515,102 @@ public class GTSHelper {
       return;
     }
         
-    int i = low, j = high;
-    // Get the pivot element from the middle of the list
-    long pivot = 0L;
+    List<int[]> ranges = new ArrayList<int[]>();
+    
+    ranges.add(new int[] { low, high });
+    
+    while(!ranges.isEmpty()) {
+      int[] range = ranges.remove(0);
+      low = range[0];
+      high = range[1];
 
-    pivot = gts.locations[low + (high-low)/2];
-    
-    long pivotTick = gts.ticks[low + (high-low) / 2];
-    
-    // Divide into two lists
-    while (i <= j) {
+      int i = low, j = high;
+      // Get the pivot element from the middle of the list
+      long pivot = 0L;
+
+      pivot = gts.locations[low + (high-low)/2];
       
-      if (!reversed) {
-        // If the current value from the left list is smaller
-        // (or greater if reversed is true) than the pivot
-        // element then get the next element from the left list        
-        while(gts.locations[i] < pivot || (gts.locations[i] == pivot && gts.ticks[i] < pivotTick)) {
-          i++;
-        }
+      long pivotTick = gts.ticks[low + (high-low) / 2];
+      
+      // Divide into two lists
+      while (i <= j) {
         
-        // If the current value from the right list is larger (or lower if reversed is true)
-        // than the pivot element then get the next element from the right list
-        while(gts.locations[j] > pivot || (gts.locations[j] == pivot && gts.ticks[j] > pivotTick)) {
-          j--;
-        }
-      } else {
-        while(gts.locations[i] > pivot || (gts.locations[i] == pivot && gts.ticks[i] > pivotTick)) {
-          i++;
-        }
-        while(gts.locations[j] < pivot || (gts.locations[j] == pivot && gts.ticks[j] < pivotTick)) {
-          j--;
-        }
-      }
-  
-      // If we have found a values in the left list which is larger then
-      // the pivot element and if we have found a value in the right list
-      // which is smaller then the pivot element then we exchange the
-      // values.
-      // As we are done we can increase i and j
-      if (i <= j) {
-        if (TYPE.LONG == gts.type) {
-          long tmplong = gts.longValues[i];
-          gts.longValues[i] = gts.longValues[j];
-          gts.longValues[j] = tmplong;          
-        } else if (TYPE.DOUBLE == gts.type) {
-          double tmpdouble = gts.doubleValues[i];
-          gts.doubleValues[i] = gts.doubleValues[j];
-          gts.doubleValues[j] = tmpdouble;            
-        } else if (TYPE.STRING == gts.type) { 
-          String tmpstring = gts.stringValues[i];
-          gts.stringValues[i] = gts.stringValues[j];
-          gts.stringValues[j] = tmpstring;            
-        } else if (TYPE.BOOLEAN == gts.type) {
-          boolean tmpboolean = gts.booleanValues.get(i);
-          gts.booleanValues.set(i, gts.booleanValues.get(j));
-          gts.booleanValues.set(j, tmpboolean);
-        }
-
-        long tmplong = gts.ticks[i];
-        gts.ticks[i] = gts.ticks[j];
-        gts.ticks[j] = tmplong;
+        if (!reversed) {
+          // If the current value from the left list is smaller
+          // (or greater if reversed is true) than the pivot
+          // element then get the next element from the left list        
+          while(gts.locations[i] < pivot || (gts.locations[i] == pivot && gts.ticks[i] < pivotTick)) {
+            i++;
+          }
           
-        if (null != gts.locations) {
-          tmplong = gts.locations[i];
-          gts.locations[i] = gts.locations[j];
-          gts.locations[j] = tmplong;          
+          // If the current value from the right list is larger (or lower if reversed is true)
+          // than the pivot element then get the next element from the right list
+          while(gts.locations[j] > pivot || (gts.locations[j] == pivot && gts.ticks[j] > pivotTick)) {
+            j--;
+          }
+        } else {
+          while(gts.locations[i] > pivot || (gts.locations[i] == pivot && gts.ticks[i] > pivotTick)) {
+            i++;
+          }
+          while(gts.locations[j] < pivot || (gts.locations[j] == pivot && gts.ticks[j] < pivotTick)) {
+            j--;
+          }
         }
-          
-        if (null != gts.elevations) {
-          tmplong = gts.elevations[i];
-          gts.elevations[i] = gts.elevations[j];
-          gts.elevations[j] = tmplong;          
-        }
-        
-        i++;
-        j--;
-      }
-    }
     
-    // Recursion
-    if (low < j) {
-      quicksortByLocation(gts, low, j, reversed);
-    }
-    if (i < high) {   
-      quicksortByLocation(gts, i, high, reversed);
+        // If we have found a values in the left list which is larger then
+        // the pivot element and if we have found a value in the right list
+        // which is smaller then the pivot element then we exchange the
+        // values.
+        // As we are done we can increase i and j
+        if (i <= j) {
+          if (TYPE.LONG == gts.type) {
+            long tmplong = gts.longValues[i];
+            gts.longValues[i] = gts.longValues[j];
+            gts.longValues[j] = tmplong;          
+          } else if (TYPE.DOUBLE == gts.type) {
+            double tmpdouble = gts.doubleValues[i];
+            gts.doubleValues[i] = gts.doubleValues[j];
+            gts.doubleValues[j] = tmpdouble;            
+          } else if (TYPE.STRING == gts.type) { 
+            String tmpstring = gts.stringValues[i];
+            gts.stringValues[i] = gts.stringValues[j];
+            gts.stringValues[j] = tmpstring;            
+          } else if (TYPE.BOOLEAN == gts.type) {
+            boolean tmpboolean = gts.booleanValues.get(i);
+            gts.booleanValues.set(i, gts.booleanValues.get(j));
+            gts.booleanValues.set(j, tmpboolean);
+          }
+
+          long tmplong = gts.ticks[i];
+          gts.ticks[i] = gts.ticks[j];
+          gts.ticks[j] = tmplong;
+            
+          if (null != gts.locations) {
+            tmplong = gts.locations[i];
+            gts.locations[i] = gts.locations[j];
+            gts.locations[j] = tmplong;          
+          }
+            
+          if (null != gts.elevations) {
+            tmplong = gts.elevations[i];
+            gts.elevations[i] = gts.elevations[j];
+            gts.elevations[j] = tmplong;          
+          }
+          
+          i++;
+          j--;
+        }
+      }
+      
+      // Recursion
+      if (low < j) {
+        //quicksortByLocation(gts, low, j, reversed);
+        ranges.add(new int[] { low, j });
+      }
+      if (i < high) {   
+        //quicksortByLocation(gts, i, high, reversed);
+        ranges.add(new int[] { i, high });
+      }      
     }
   }
 
