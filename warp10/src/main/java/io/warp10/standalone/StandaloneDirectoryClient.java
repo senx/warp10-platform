@@ -43,6 +43,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -63,6 +64,7 @@ import org.bouncycastle.crypto.params.KeyParameter;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBIterator;
 import org.iq80.leveldb.WriteBatch;
+import org.iq80.leveldb.WriteOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,6 +94,9 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   private final byte[] aesKey;
   
   private final int initNThreads;
+
+  private final boolean syncwrites;
+  private final double syncrate;
   
   /**
    * Maps of class name to labelsId to metadata
@@ -102,7 +107,9 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   
   public StandaloneDirectoryClient(DB db, final KeyStore keystore) {
     
-    this.initNThreads = Integer.parseInt(WarpConfig.getProperties().getProperty(Configuration.DIRECTORY_INIT_NTHREADS, DIRECTORY_INIT_NTHREADS_DEFAULT));
+    Properties props = WarpConfig.getProperties();
+    
+    this.initNThreads = Integer.parseInt(props.getProperty(Configuration.DIRECTORY_INIT_NTHREADS, DIRECTORY_INIT_NTHREADS_DEFAULT));
 
     this.db = db;
     this.keystore = keystore;
@@ -114,6 +121,9 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     this.labelsKey = this.keystore.getKey(KeyStore.SIPHASH_LABELS);
     this.labelsLongs = SipHashInline.getKey(this.labelsKey);
     
+    syncrate = Math.min(1.0D, Math.max(0.0D, Double.parseDouble(props.getProperty(Configuration.LEVELDB_DIRECTORY_SYNCRATE, "1.0"))));
+    syncwrites = 0.0 < syncrate && syncrate < 1.0;
+
     //
     // Read metadata from DB
     //
@@ -645,6 +655,8 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     
     boolean written = false;
     
+    WriteOptions options = new WriteOptions().sync(1.0 == syncrate);
+    
     try {
       if (null != key && null != value) {
         batch.put(key, value);
@@ -652,7 +664,12 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       }
       
       if (null == key || null == value || size.get() > MAX_BATCH_SIZE) {
-        this.db.write(batch);
+        
+        if (syncwrites) {
+          options = new WriteOptions().sync(Math.random() < syncrate);
+        }
+        
+        this.db.write(batch, options);
         size.set(0L);
         perThreadWriteBatch.remove();
         written = true;
