@@ -170,8 +170,8 @@ warpscript.def.unshadow = false
 // How often (in ms) should the above directory be rescanned
 #warpscript.repository.refresh = 60000
 
-// Set to true to enable on demand loading of macros not yet loaded.
-#warpscript.repository.ondemand = true
+// Set to false to disable on demand loading of macros not yet loaded.
+#warpscript.repository.ondemand = false
 
 //
 // Default maximum number of operations a single WarpScript execution can do

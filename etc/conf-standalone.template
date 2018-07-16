@@ -155,8 +155,8 @@ warpscript.jars.fromclasspath = true
 warpscript.repository.directory = ${standalone.home}/macros
 warpscript.repository.refresh = 60000
 
-// Set to true to enable on demand loading of macros not yet loaded.
-#warpscript.repository.ondemand = true
+// Set to false to disable on demand loading of macros not yet loaded.
+#warpscript.repository.ondemand = false
 
 //
 // Maximum levels of recursion in macro calls
