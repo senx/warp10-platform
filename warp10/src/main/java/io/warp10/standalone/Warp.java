@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.eclipse.jetty.server.Connector;
@@ -142,6 +143,22 @@ public class Warp extends WarpDist implements Runnable {
       keystore = new OSSKeyStore(properties.getProperty(Configuration.OSS_MASTER_KEY));
     } else {
       keystore = new UnsecureKeyStore();
+    }
+
+    //
+    // Decode generic keys
+    // We do that first so those keys do not have precedence over the specific
+    // keys.
+    //
+    
+    for (Entry<Object,Object> entry: properties.entrySet()) {
+      if (entry.getKey().toString().startsWith(Configuration.WARP_KEY_PREFIX)) {
+        byte[] key = keystore.decodeKey(entry.getValue().toString());
+        if (null == key) {
+          throw new RuntimeException("Unable to decode key '" + entry.getKey() + "'.");
+        }
+        keystore.setKey(entry.getKey().toString().substring(Configuration.WARP_KEY_PREFIX.length()), key);
+      }
     }
 
     extractKeys(keystore, properties);
@@ -490,7 +507,7 @@ public class Warp extends WarpDist implements Runnable {
    * 
    * @param props Properties from which to extract the key specs
    */
-  private static void extractKeys(KeyStore keystore, Properties props) {
+  public static void extractKeys(KeyStore keystore, Properties props) {
     String keyspec = props.getProperty(Configuration.LEVELDB_METADATA_AES);
     
     if (null != keyspec) {
