@@ -34,7 +34,7 @@ pipeline {
         stage('Test') {
             options { retry(3) }
             steps {
-                sh './gradlew test'
+                sh './gradlew -Djava.security.egd=file:/dev/urandom test'
                 junit allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/test-results/**/*.xml'
                 step([$class: 'JUnitResultArchiver', allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/test-results/**/*.xml'])
             }
