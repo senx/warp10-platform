@@ -171,24 +171,26 @@ public class QuasarTokenEncoder {
   }
 
   public String cypherToken(TBase<?, ?> token, KeyStore keyStore) throws TException {
-    byte[] tokenAesKey = keyStore.getKey(KeyStore.AES_TOKEN);
-    byte[] tokenSipHashkey = keyStore.getKey(KeyStore.SIPHASH_TOKEN);
-
+    return encryptToken(token, keyStore.getKey(KeyStore.AES_TOKEN), keyStore.getKey(KeyStore.SIPHASH_TOKEN));
+  }
+  
+  public String encryptToken(TBase<?, ?> token, byte[] tokenAESKey, byte[] tokenSipHashKey) throws TException {
     // Serialize the  thrift token into byte array
     byte[] serialized = serializer.serialize(token);
 
     // Calculate the SIP
-    long sip = SipHashInline.hash24_palindromic(tokenSipHashkey, serialized);
+    long sip = SipHashInline.hash24_palindromic(tokenSipHashKey, serialized);
 
     //Create the token byte buffer
     ByteBuffer buffer = ByteBuffer.allocate(8 + serialized.length);
+    buffer.order(ByteOrder.BIG_ENDIAN);
     // adds the sip
     buffer.putLong(sip);
     // adds the thrift token
     buffer.put(serialized);
 
     // Wrap the TOKEN
-    byte[] wrappedData = CryptoUtils.wrap(tokenAesKey, buffer.array());
+    byte[] wrappedData = CryptoUtils.wrap(tokenAESKey, buffer.array());
 
     String accessToken = new String(OrderPreservingBase64.encode(wrappedData));
 
@@ -209,7 +211,7 @@ public class QuasarTokenEncoder {
     return Hex.encodeHexString(buffer.array());
   }
 
-  private ByteBuffer toByteBuffer(String strUUID) {
+  public ByteBuffer toByteBuffer(String strUUID) {
     ByteBuffer buffer = ByteBuffer.allocate(16);
     buffer.order(ByteOrder.BIG_ENDIAN);
 
