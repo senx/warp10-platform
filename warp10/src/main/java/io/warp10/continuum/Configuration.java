@@ -35,6 +35,15 @@ public class Configuration {
   public static final String WARP_AES_LOGGING = "warp.aes.logging";
   public static final String WARP_DEFAULT_AES_LOGGING = "hex:3cf5cee9eadddba796f2cce0762f308ad9df36f4883841e167dab2889bcf215b";
   
+  /**
+   * Prefix used for identifying keys in the configuration.
+   * At startup time, any property with name warp.key.FOO will
+   * be interpreted as a key, Warp will attempt to decipher the
+   * key and will populate the keystore with the result under
+   * name "FOO".
+   */
+  public static final String WARP_KEY_PREFIX = "warp.key.";
+  
   public static final String WARP_IDENT = "warp.ident";
   
   public static final String WARP10_QUIET = "warp10.quiet";
