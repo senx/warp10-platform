@@ -5,6 +5,10 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
+// Set to true to only run the Warp 10™ Analytics Engine
+//
+#analytics.engine.only = true
+//
 // Comma separated list of headers to return in Access-Control-Allow-Headers on top of the token header
 // This applies to all HTTP endpoints.
 //

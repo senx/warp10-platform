@@ -36,6 +36,11 @@ public class Configuration {
   public static final String WARP_DEFAULT_AES_LOGGING = "hex:3cf5cee9eadddba796f2cce0762f308ad9df36f4883841e167dab2889bcf215b";
   
   /**
+   * Set to 'true' to only run the analytics engine, i.e. not backend database
+   */
+  public static final String ANALYTICS_ENGINE_ONLY = "analytics.engine.only";
+  
+  /**
    * Prefix used for identifying keys in the configuration.
    * At startup time, any property with name warp.key.FOO will
    * be interpreted as a key, Warp will attempt to decipher the

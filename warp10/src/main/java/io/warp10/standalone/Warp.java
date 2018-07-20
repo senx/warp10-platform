@@ -76,7 +76,6 @@ public class Warp extends WarpDist implements Runnable {
   private static String host;
   
   private static final String[] REQUIRED_PROPERTIES = {
-    Configuration.LEVELDB_HOME,
     Configuration.STANDALONE_PORT,
     Configuration.STANDALONE_ACCEPTORS,
     Configuration.STANDALONE_SELECTORS,
@@ -115,7 +114,8 @@ public class Warp extends WarpDist implements Runnable {
     
     Properties properties = getProperties();
     
-    boolean nullbackend = "true".equals(properties.getProperty(NULL));
+    boolean analyticsEngineOnly = "true".equals(properties.getProperty(Configuration.ANALYTICS_ENGINE_ONLY));
+    boolean nullbackend = "true".equals(properties.getProperty(NULL)) || analyticsEngineOnly;
     
     boolean plasmabackend = "true".equals(properties.getProperty(Configuration.PURE_PLASMA));
     
@@ -362,15 +362,17 @@ public class Warp extends WarpDist implements Runnable {
     // Start the Datalog Forwarder
     //
     
-    if (properties.containsKey(Configuration.DATALOG_FORWARDER_SRCDIR) && properties.containsKey(Configuration.DATALOG_FORWARDER_DSTDIR)) {
+    if (!analyticsEngineOnly && properties.containsKey(Configuration.DATALOG_FORWARDER_SRCDIR) && properties.containsKey(Configuration.DATALOG_FORWARDER_DSTDIR)) {
       DatalogForwarder forwarder = new DatalogForwarder(keystore, properties);
     }
     
     //
     // Enable the ThrottlingManager (not 
     //
-    
-    ThrottlingManager.enable();
+
+    if (!analyticsEngineOnly) {
+      ThrottlingManager.enable();
+    }
     
     QuasarTokenFilter tf = new QuasarTokenFilter(properties, keystore);
     
@@ -382,51 +384,53 @@ public class Warp extends WarpDist implements Runnable {
     handlers.addHandler(gzip);
     setEgress(true);
 
-    gzip = new GzipHandler();
-    gzip.setHandler(new StandaloneIngressHandler(keystore, sdc, scc));
-    gzip.setMinGzipSize(0);
-    gzip.addIncludedMethods("POST");
-    handlers.addHandler(gzip);
-
-    gzip = new GzipHandler();
-    gzip.setHandler(new EgressFetchHandler(keystore, properties, sdc, scc));
-    gzip.setMinGzipSize(0);
-    gzip.addIncludedMethods("POST");
-    handlers.addHandler(gzip);
-
-    gzip = new GzipHandler();
-    gzip.setHandler(new EgressFindHandler(keystore, sdc));
-    gzip.setMinGzipSize(0);
-    gzip.addIncludedMethods("POST");
-    handlers.addHandler(gzip);
-
-    if ("true".equals(properties.getProperty(Configuration.STANDALONE_SPLITS_ENABLE))) {
+    if (!analyticsEngineOnly) {
       gzip = new GzipHandler();
-      gzip.setHandler(new StandaloneSplitsHandler(keystore, sdc));
+      gzip.setHandler(new StandaloneIngressHandler(keystore, sdc, scc));
       gzip.setMinGzipSize(0);
       gzip.addIncludedMethods("POST");
-      handlers.addHandler(gzip);      
-    }
+      handlers.addHandler(gzip);
 
-    gzip = new GzipHandler();
-    gzip.setHandler(new StandaloneDeleteHandler(keystore, sdc, scc));
-    gzip.setMinGzipSize(0);
-    gzip.addIncludedMethods("POST");
-    handlers.addHandler(gzip);
-    
-    handlers.addHandler(geodir);    
+      gzip = new GzipHandler();
+      gzip.setHandler(new EgressFindHandler(keystore, sdc));
+      gzip.setMinGzipSize(0);
+      gzip.addIncludedMethods("POST");
+      handlers.addHandler(gzip);
 
-    if (enablePlasma) {
-      StandalonePlasmaHandler plasmaHandler = new StandalonePlasmaHandler(keystore, properties, sdc);
-      scc.addPlasmaHandler(plasmaHandler);     
-      handlers.addHandler(plasmaHandler);
-    }
-    
-    scc.addPlasmaHandler(geodir);
-        
-    if (enableStreamUpdate) {
-      StandaloneStreamUpdateHandler streamUpdateHandler = new StandaloneStreamUpdateHandler(keystore, properties, sdc, scc);
-      handlers.addHandler(streamUpdateHandler);
+      if ("true".equals(properties.getProperty(Configuration.STANDALONE_SPLITS_ENABLE))) {
+        gzip = new GzipHandler();
+        gzip.setHandler(new StandaloneSplitsHandler(keystore, sdc));
+        gzip.setMinGzipSize(0);
+        gzip.addIncludedMethods("POST");
+        handlers.addHandler(gzip);      
+      }
+
+      gzip = new GzipHandler();
+      gzip.setHandler(new StandaloneDeleteHandler(keystore, sdc, scc));
+      gzip.setMinGzipSize(0);
+      gzip.addIncludedMethods("POST");
+      handlers.addHandler(gzip);
+      
+      handlers.addHandler(geodir);    
+
+      if (enablePlasma) {
+        StandalonePlasmaHandler plasmaHandler = new StandalonePlasmaHandler(keystore, properties, sdc);
+        scc.addPlasmaHandler(plasmaHandler);     
+        handlers.addHandler(plasmaHandler);
+      }
+      
+      scc.addPlasmaHandler(geodir);
+          
+      if (enableStreamUpdate) {
+        StandaloneStreamUpdateHandler streamUpdateHandler = new StandaloneStreamUpdateHandler(keystore, properties, sdc, scc);
+        handlers.addHandler(streamUpdateHandler);
+      }
+      
+      gzip = new GzipHandler();
+      gzip.setHandler(new EgressFetchHandler(keystore, properties, sdc, scc));
+      gzip.setMinGzipSize(0);
+      gzip.addIncludedMethods("POST");
+      handlers.addHandler(gzip);
     }
 
     if (enableMobius) {
