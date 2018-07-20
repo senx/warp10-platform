@@ -1299,6 +1299,11 @@ public class Configuration {
   public static final String LEVELDB_CACHE_SIZE = "leveldb.cache.size";
   
   /**
+   * LevelDB block size to use when compacting ranges
+   */
+  public static final String LEVELDB_BLOCK_SIZE = "leveldb.block.size";
+  
+  /**
    * Compression type to use for leveldb (SNAPPY/NONE)
    */
   public static final String LEVELDB_COMPRESSION_TYPE = "leveldb.compression.type";
