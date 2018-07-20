@@ -26,7 +26,9 @@ import io.warp10.quasar.filter.exception.QuasarTokenException;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.quasar.token.thrift.data.TokenType;
 import io.warp10.quasar.token.thrift.data.WriteToken;
+import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.ext.token.TOKENGEN;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -37,9 +39,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.locks.LockSupport;
+
+import org.apache.thrift.TBase;
+import org.python.jline.internal.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Tokens {
+
+  private static final Logger LOG = LoggerFactory.getLogger(Tokens.class);
   
   private static final Map<String,Object> fileTokens = new HashMap<String,Object>();
   
@@ -387,6 +398,28 @@ public class Tokens {
           continue;
         }
         
+        if (line.startsWith("token.spec")) {
+          // Extract the actual token spec
+          String spec = line.replaceAll("^token.spec\\s*=\\s*", "");
+          
+          MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, new Properties());
+          try {
+            stack.exec(spec);
+            Object top = stack.pop();
+            if (top instanceof Map) {
+              Map<Object,Object> params = (Map<Object,Object>) top;
+              if (!(params.containsKey(TOKENGEN.KEY_ID))) {
+                throw new WarpScriptException("Missing '" + TOKENGEN.KEY_ID + "' field in token spec.");
+              }
+              TBase token = new TOKENGEN("TOKENGEN", Long.MAX_VALUE >> 4).tokenFromMap(params);
+              tokens.put(params.get(TOKENGEN.KEY_ID).toString(), token);
+            }
+          } catch (WarpScriptException wse) {
+            LOG.error("Error parsing token spec '" + line + "'.", wse);
+          }
+          continue;
+        }
+        
         //
         // Extract token id
         //
@@ -500,7 +533,7 @@ public class Tokens {
             Tokens.loadTokens(file);
             lastLoad = now;
           }
-          try { Thread.sleep(60000L); } catch (InterruptedException ie) {}
+          LockSupport.parkNanos(60 * 1000000000L);
         }
       };
     };
