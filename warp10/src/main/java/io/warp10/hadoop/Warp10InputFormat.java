@@ -59,6 +59,11 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
   private static final Logger LOG = LoggerFactory.getLogger(Warp10InputFormat.class);
 
   /**
+   * Suffix as set via the configuration
+   */
+  public static final String PROPERTY_WARP10_INPUTFORMAT_SUFFIX = "warp10.inputformat.suffix";
+  
+  /**
    * URL of split endpoint
    */
   public static final String PROPERTY_WARP10_SPLITS_ENDPOINT = "warp10.splits.endpoint";
@@ -146,7 +151,7 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
   /**
    * Suffix for the properties
    */
-  private final String suffix;
+  private String suffix = "";
   
   public Warp10InputFormat(String suffix) {
     if (null != suffix) {
@@ -162,6 +167,15 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
 
   @Override
   public List<InputSplit> getSplits(JobContext context) throws IOException {
+    
+    String sfx = getProperty(context, PROPERTY_WARP10_INPUTFORMAT_SUFFIX);
+    if (null != sfx) {
+      if (!"".equals(sfx)) {
+        this.suffix = "." + sfx;
+      } else {
+        this.suffix = "";
+      }
+    }
     
     List<String> fallbacks = new ArrayList<>();
     
