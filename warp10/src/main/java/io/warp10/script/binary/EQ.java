@@ -70,8 +70,45 @@ public class EQ extends NamedWarpScriptFunction implements WarpScriptStackFuncti
       return 0;
     }
 
-    // If the equals function fails, we test again with BigDecimal comparison for type abstraction
-    // We want '10 10.0 ==' or '10 10.0 >=' to be true
-    return new BigDecimal(a.toString()).compareTo(new BigDecimal(b.toString()));
+    if ((a instanceof Long || a instanceof Integer || a instanceof Short || a instanceof Byte)
+        && (b instanceof Long || b instanceof Integer || b instanceof Short || b instanceof Byte)) {
+      if (a.longValue() < b.longValue()) {
+        return -1;
+      } else if (a.longValue() > b.longValue()) {
+        return 1;
+      } else {
+        return 0;
+      }
+    } else if (a instanceof Double && b instanceof Double) {
+      return ((Double) a).compareTo((Double) b);
+    } else {    
+      // If the equals function fails and the types do not permit direct number comparison,
+      // we test again with BigDecimal comparison for type abstraction
+      // We want '10 10.0 ==' or '10 10.0 >=' to be true
+      BigDecimal bda;
+      BigDecimal bdb;
+      
+      if (a instanceof Double) {
+        bda = new BigDecimal(((Number) a).doubleValue());
+      } else if (a instanceof Float) {
+        bda = new BigDecimal(((Number) a).floatValue());
+      } else if (a instanceof Long || a instanceof Integer || a instanceof Short || a instanceof Byte) {
+        bda = new BigDecimal(((Number) a).longValue());
+      } else {
+        bda = new BigDecimal(a.toString());
+      }
+      
+      if (b instanceof Double) {
+        bdb = new BigDecimal(((Number) b).doubleValue());
+      } else if (a instanceof Float) {
+        bdb = new BigDecimal(((Number) b).floatValue());
+      } else if (b instanceof Long || b instanceof Integer || b instanceof Short || b instanceof Byte) {
+        bdb = new BigDecimal(((Number) b).longValue());
+      } else {
+        bdb = new BigDecimal(b.toString());
+      }
+
+      return bda.compareTo(bdb);
+    }
   }
 }
