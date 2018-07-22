@@ -7,7 +7,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
@@ -28,6 +33,12 @@ import io.warp10.script.WarpScriptExecutor.StackSemantics;
  * which returns K/V processed by some WarpScript™ code.
  */
 public class WarpScriptInputFormat extends InputFormat<Writable, Writable> {
+
+  /**
+   * Name of symbol under which the Hadoop Configuration will be made available
+   * to the executing script.
+   */
+  private static final String CONFIG_SYMBOL = ".conf";
   
   /**
    * Suffix to use for the configuration
@@ -89,11 +100,8 @@ public class WarpScriptInputFormat extends InputFormat<Writable, Writable> {
   /**
    * Return the actual WarpScript code executor given the script
    * which was passed as parameter.
-   * 
-   * This method can be overriden if custom loading is needed. In Spark for
-   * example SparkFiles#get could be called.
    */
-  public static WarpScriptExecutor getWarpScriptExecutor(String code) throws IOException,WarpScriptException {
+  public static WarpScriptExecutor getWarpScriptExecutor(Configuration conf, String code) throws IOException,WarpScriptException {
     if (code.startsWith("@") || code.startsWith("%")) {
 
       //
@@ -102,11 +110,26 @@ public class WarpScriptInputFormat extends InputFormat<Writable, Writable> {
 
       String originalfilePath = code.substring(1);
 
-      String filepath = Paths.get(originalfilePath).toString();
-
-      String mc2 = parseWarpScript(filepath);
+      String mc2 = parseWarpScript(originalfilePath);
       
-      WarpScriptExecutor executor = new WarpScriptExecutor(StackSemantics.PERTHREAD, mc2, null, null, code.startsWith("@"));
+      Map<String,Object> symbols = new HashMap<String,Object>();
+      Map<String, List<String>> config = new HashMap<String,List<String>>();
+      
+      Iterator<Entry<String,String>> iter = conf.iterator();
+      
+      while(iter.hasNext()) {
+        Entry<String,String> entry = iter.next();
+        List<String> target = config.get(entry.getKey());
+        if (null == target) {
+          target = new ArrayList<String>();
+          config.put(entry.getKey(), target);
+        }
+        target.add(entry.getValue());
+      }
+      
+      symbols.put(CONFIG_SYMBOL, config);
+      
+      WarpScriptExecutor executor = new WarpScriptExecutor(StackSemantics.PERTHREAD, mc2, symbols, null, code.startsWith("@"));
       return executor;
     } else {
 
@@ -133,15 +156,7 @@ public class WarpScriptInputFormat extends InputFormat<Writable, Writable> {
     InputStream fis = null;
     BufferedReader br = null;
     try {      
-      fis = WarpScriptInputFormat.class.getClassLoader().getResourceAsStream(filepath);
-
-      if (null == fis) {
-        fis = new FileInputStream(filepath);
-      }
-      
-      if (null == fis) {
-        throw new IOException("WarpScript file '" + filepath + "' could not be found.");
-      }
+      fis = getWarpScriptInputStream(filepath);
       
       br = new BufferedReader(new InputStreamReader(fis, Charsets.UTF_8));
 
@@ -160,5 +175,27 @@ public class WarpScriptInputFormat extends InputFormat<Writable, Writable> {
     }
 
     return scriptSB.toString();
+  }
+  
+  /**
+   * Create an InputStream from a file path.
+   * 
+   * This method can be overriden if custom loading is needed. In Spark for
+   * example SparkFiles#get could be called.
+   */
+  public static InputStream getWarpScriptInputStream(String originalFilePath) throws IOException {
+    String filepath = Paths.get(originalFilePath).toString();
+
+    InputStream fis = WarpScriptInputFormat.class.getClassLoader().getResourceAsStream(filepath);
+
+    if (null == fis) {
+      fis = new FileInputStream(filepath);
+    }
+    
+    if (null == fis) {
+      throw new IOException("WarpScript file '" + filepath + "' could not be found.");
+    }
+    
+    return fis;
   }
 }

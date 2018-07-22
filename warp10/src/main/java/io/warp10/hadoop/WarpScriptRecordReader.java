@@ -66,7 +66,7 @@ public class WarpScriptRecordReader extends RecordReader<Writable, Writable> {
     // Initialize WarpScriptExecutor
     
     try {
-      this.executor = WarpScriptInputFormat.getWarpScriptExecutor(code);
+      this.executor = WarpScriptInputFormat.getWarpScriptExecutor(context.getConfiguration(), code);
     } catch (WarpScriptException wse) {
       throw new IOException("Error while instatiating WarpScript executor", wse);
     }
