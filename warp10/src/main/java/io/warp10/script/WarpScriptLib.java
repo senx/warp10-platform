@@ -1486,7 +1486,7 @@ public class WarpScriptLib {
     List<String> sortedext = new ArrayList<String>(ext);
     sortedext.sort(null);
     
-    boolean failedExt = false;
+    List<String> failedExt = new ArrayList<String>();
       
     //
     // Determine the possible jar from which WarpScriptLib was loaded
@@ -1515,7 +1515,7 @@ public class WarpScriptLib {
         
         if (null == url) {
           LOG.error("Unable to load extension '" + extension + "', make sure it is in the class path.");
-          failedExt = true;
+          failedExt.add(extension);
           continue;
         }
         
@@ -1563,8 +1563,15 @@ public class WarpScriptLib {
       }
     }
     
-    if (failedExt) {
-      throw new RuntimeException("Some WarpScript extensions could not be loaded, aborting.");
+    if (!failedExt.isEmpty()) {
+      StringBuilder sb = new StringBuilder();
+      sb.append("The following WarpScript extensions could not be loaded, aborting:");
+      for (String extension: failedExt) {
+        sb.append(" '");
+        sb.append(extension);
+        sb.append("'");
+      }
+      throw new RuntimeException(sb.toString());
     }
   }
   
