@@ -34,9 +34,12 @@ public class WarpScriptRecordReader extends RecordReader<Writable, Writable> {
   
   private boolean done;
   
-  public WarpScriptRecordReader(String suffix, RecordReader reader) {
-    this.suffix = suffix;
-    this.reader = reader;
+  private final WarpScriptInputFormat inputFormat;
+
+  public WarpScriptRecordReader(WarpScriptInputFormat inputFormat) {
+    this.inputFormat = inputFormat;
+    this.suffix = inputFormat.getSuffix();
+    this.reader = inputFormat.getWrappedRecordReader();
   }
   
   @Override
@@ -66,7 +69,7 @@ public class WarpScriptRecordReader extends RecordReader<Writable, Writable> {
     // Initialize WarpScriptExecutor
     
     try {
-      this.executor = WarpScriptInputFormat.getWarpScriptExecutor(context.getConfiguration(), code);
+      this.executor = inputFormat.getWarpScriptExecutor(context.getConfiguration(), code);
     } catch (WarpScriptException wse) {
       throw new IOException("Error while instatiating WarpScript executor", wse);
     }

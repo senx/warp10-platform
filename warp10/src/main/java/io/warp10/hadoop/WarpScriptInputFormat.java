@@ -94,14 +94,14 @@ public class WarpScriptInputFormat extends InputFormat<Writable, Writable> {
       this.wrappedRecordReader = this.wrappedInputFormat.createRecordReader(split, context);
     }
 
-    return new WarpScriptRecordReader(this.suffix, this.wrappedRecordReader);
+    return new WarpScriptRecordReader(this);
   }
   
   /**
    * Return the actual WarpScript code executor given the script
    * which was passed as parameter.
    */
-  public static WarpScriptExecutor getWarpScriptExecutor(Configuration conf, String code) throws IOException,WarpScriptException {
+  public WarpScriptExecutor getWarpScriptExecutor(Configuration conf, String code) throws IOException,WarpScriptException {
     if (code.startsWith("@") || code.startsWith("%")) {
 
       //
@@ -147,7 +147,7 @@ public class WarpScriptInputFormat extends InputFormat<Writable, Writable> {
 
   }
   
-  public static String parseWarpScript(String filepath) throws IOException {
+  public String parseWarpScript(String filepath) throws IOException {
     //
     // Load the WarpsScript file
     // Warning: provide target directory when file has been copied on each node
@@ -183,7 +183,7 @@ public class WarpScriptInputFormat extends InputFormat<Writable, Writable> {
    * This method can be overriden if custom loading is needed. In Spark for
    * example SparkFiles#get could be called.
    */
-  public static InputStream getWarpScriptInputStream(String originalFilePath) throws IOException {
+  public InputStream getWarpScriptInputStream(String originalFilePath) throws IOException {
     String filepath = Paths.get(originalFilePath).toString();
 
     InputStream fis = WarpScriptInputFormat.class.getClassLoader().getResourceAsStream(filepath);
@@ -197,5 +197,13 @@ public class WarpScriptInputFormat extends InputFormat<Writable, Writable> {
     }
     
     return fis;
+  }
+  
+  public String getSuffix() {
+    return this.suffix;
+  }
+  
+  public RecordReader getWrappedRecordReader() {
+    return this.wrappedRecordReader;
   }
 }
