@@ -1,11 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 
 #
 # Script to create a snapshot of the leveldb (standalone) version of Warp.
 #
 
 #JAVA_HOME=/opt/java8
-WARP10_USER=warp10
+WARP10_USER=${WARP10_USER:=warp10}
 
 #
 # Make sure the caller is warp10
@@ -71,7 +71,7 @@ then
     echo "Base snapshot ${BASE_SNAPSHOT} does not exist."
     exit 1
   fi
-  
+
   # List the '.sst' files of the base snapshot
   find -L "${SNAPSHOT_DIR}/${BASE_SNAPSHOT}" -maxdepth 1 -name '*.sst' | sed -e 's,.*/,,' | sort -u > ${SNAPSHOT_DIR}/${BASE_SNAPSHOT}/sst.files
 fi
@@ -172,7 +172,7 @@ fi
 if [ ${STATUS} != 0 ]
 then
   echo "Hard link creation failed - Cancel Snapshot !"
-  rm -rf ${SNAPSHOT_DIR}/${SNAPSHOT}
+  rm -rf ${SNAPSHOT_DIR:?}/${SNAPSHOT}
   exit 1
 fi
 
@@ -206,7 +206,7 @@ then
   if [ ${STATUS} != 0 ]
   then
     echo "Hard link creation failed - Snapshot aborted."
-    rm -rf ${SNAPSHOT_DIR}/${SNAPSHOT}
+    rm -rf ${SNAPSHOT_DIR:?}/${SNAPSHOT}
     exit 1
   fi
 fi

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 #
 # Warp 10 - Standalone
@@ -7,7 +7,7 @@
 # description: Manage Standalone instance of Warp 10
 #
 
-WARP10_USER=warp10
+export WARP10_USER=warp10
 #WARP10_HOME=/opt/warp10-@VERSION@
 
 #
