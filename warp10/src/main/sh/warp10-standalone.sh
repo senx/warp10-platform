@@ -15,8 +15,6 @@ if [ -e /lib/lsb/init-functions ]; then
   . /lib/lsb/init-functions
 fi
 
-OS=$(uname -s)
-
 #JAVA_HOME=/opt/java8
 #WARP10_HOME=/opt/warp10-@VERSION@
 
