@@ -27,17 +27,12 @@ if [ -n "$JAVA_HOME" ] ; then
     if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
         # IBM's JDK on AIX uses strange locations for the executables
         JAVACMD="$JAVA_HOME/jre/sh/java"
-        JPSCMD="$JAVA_HOME/jre/sh/jps"
-    else
+    elif [ -x "$JAVA_HOME/bin/java" ] ; then
         JAVACMD="$JAVA_HOME/bin/java"
-        JPSCMD="$JAVA_HOME/bin/jps"
+    else
+        JAVACMD="$JAVA_HOME/jre/bin/java"
     fi
     if [ ! -x "$JAVACMD" ] ; then
-        echo "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
-Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."
-        exit 1
-    fi
-    if [ ! -x "$JPSCMD" ] ; then
         echo "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
 Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."
         exit 1
@@ -45,9 +40,6 @@ Please set the JAVA_HOME variable in your environment or in $0 to match the loca
 else
     JAVACMD="java"
     which java >/dev/null 2>&1 || (echo "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
-Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."; exit 1)
-    JPSCMD="jps"
-    which jps >/dev/null 2>&1 || (echo "ERROR: JAVA_HOME is not set and no 'jps' command could be found in your PATH.
 Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."; exit 1)
 fi
 
@@ -139,24 +131,20 @@ bootstrap() {
   # Make sure the caller is root
   #
 
-  if [ "`whoami`" != "root" ]
-  then
+  if [ "`whoami`" != "root" ]; then
     echo "You must be root to run 'bootstrap' command."
     exit 1
   fi
 
   # warp10 user ?
-  if ! id -u "${WARP10_USER}" >/dev/null 2>&1;
-  then
+  if ! id -u "${WARP10_USER}" >/dev/null 2>&1; then
     echo "User '${WARP10_USER}'' does not exist - Creating it.."
     # Create user warp10
-    if [ "`which useradd`" = "" ]
-    then
-      if [ "`which adduser`" != "" ]
-      then
+    if [ "`which useradd`" = "" ]; then
+      if [ "`which adduser`" != "" ]; then
         adduser -D -s -H -h ${WARP10_HOME} -s /bin/bash ${WARP10_USER}
       else
-        echo "Hmmm that's embarassing but I do not know how to create the ${WARP10_USER} user with home directory ${WARP10_HOME}, could you do it for me and run the script again?"
+        echo "Cannot create the ${WARP10_USER} user with home directory ${WARP10_HOME}. Create it manually then run the script again."
         exit 1
       fi
     else
@@ -383,8 +371,7 @@ start() {
   # Make sure the caller is warp10
   #
 
-  if [ "`whoami`" != "${WARP10_USER}" ]
-  then
+  if [ "`whoami`" != "${WARP10_USER}" ]; then
     echo "You must be ${WARP10_USER} to run this script."
     exit 1
   fi
@@ -395,8 +382,7 @@ start() {
   fi
 
   # warp10 user ?
-  if ! id -u "${WARP10_USER}" >/dev/null 2>&1;
-  then
+  if ! id -u "${WARP10_USER}" >/dev/null 2>&1; then
     echo "User '${WARP10_USER}'' does not exist - Use 'bootstrap' command (it must be run as root)"
     exit 1
   fi
@@ -405,7 +391,7 @@ start() {
     mv ${JAVA_HEAP_DUMP} ${JAVA_HEAP_DUMP}-`date +%s`
   fi
 
-  if [ -e ${PID_FILE} ] && [ "`${JPSCMD} -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" != "" ]; then
+  if [ -e ${PID_FILE} ] && ps -p $(cat ${PID_FILE}) > /dev/null; then
     echo "Start failed! - A Warp 10 instance is currently running"
     exit 1
   fi
@@ -472,7 +458,7 @@ start() {
 
   echo $! > ${PID_FILE}
 
-  if [ ! -e ${PID_FILE} ] || [ "`${JPSCMD} -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" = "" ]; then
+  if [ ! -e ${PID_FILE} ] || ! ps -p $(cat ${PID_FILE}) > /dev/null; then
     echo "Start failed! - See warp10.log for more details"
     exit 1
   fi
@@ -536,16 +522,14 @@ stop() {
   # Make sure the caller is warp10
   #
 
-  if [ "`whoami`" != "${WARP10_USER}" ]
-  then
+  if [ "`whoami`" != "${WARP10_USER}" ]; then
     echo "You must be ${WARP10_USER} to run this script."
     exit 1
   fi
 
   echo "Stop Warp 10..."
-  if [ -e ${PID_FILE} ] && [ "`${JPSCMD} -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" != "" ]
-  then
-    kill `${JPSCMD} -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`
+  if [ -e ${PID_FILE} ] && ps -p $(cat ${PID_FILE}) > /dev/null; then
+    kill $(cat ${PID_FILE})
     rm -f ${PID_FILE}
   else
     echo "No instance of Warp 10 is currently running"
@@ -558,14 +542,12 @@ status() {
   # Make sure the caller is warp10
   #
 
-  if [ "`whoami`" != "${WARP10_USER}" ]
-  then
+  if [ "`whoami`" != "${WARP10_USER}" ]; then
     echo "You must be ${WARP10_USER} to run this script."
     exit 1
   fi
-  if [ -e ${PID_FILE} ]
-  then
-    ${JPSCMD} -lm|grep -wE $(cat ${PID_FILE})
+  if [ -e ${PID_FILE} ]; then
+    ps -p $(cat ${PID_FILE}) -o pid,etime,args | tail -n 1
   fi
 }
 
@@ -595,8 +577,8 @@ worf() {
   # Make sure the caller is warp10
   #
 
-  if [ "`whoami`" != "${WARP10_USER}" ]
-  then
+  if [ "`whoami`" != "${WARP10_USER}" ]; then
+
     echo "You must be ${WARP10_USER} to run this script."
     exit 1
   fi
@@ -614,14 +596,13 @@ repair() {
   # Make sure the caller is warp10
   #
 
-  if [ "`whoami`" != "${WARP10_USER}" ]
-  then
+  if [ "`whoami`" != "${WARP10_USER}" ]; then
     echo "You must be ${WARP10_USER} to run this script."
     exit 1
   fi
 
   echo "Repair Leveldb..."
-  if [ -e ${PID_FILE} ] && [ "`${JPSCMD} -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" != "" ]; then
+  if [ -e ${PID_FILE} ] && ps -p $(cat ${PID_FILE}) > /dev/null; then
     echo "Repair has been cancelled! - Warp 10 instance must be stopped for repair"
     exit 1
   else
