@@ -114,45 +114,47 @@ public class WarpScriptJarRepository extends Thread {
       
       byte[] buf = new byte[8192];
       
-      try {
-        MessageDigest md = MessageDigest.getInstance("SHA-1");
+      if (null != files) {
+        try {
+          MessageDigest md = MessageDigest.getInstance("SHA-1");
 
-        for (File file: files) {
-          
-          //
-          // Compute hash of content
-          //
-          
-          FileInputStream in = new FileInputStream(file);
-           
-          while(true) {
-            int len = in.read(buf);
+          for (File file: files) {
             
-            if (len < 0) {
-              break;
-            }
+            //
+            // Compute hash of content
+            //
             
-            md.update(buf, 0, len);
-          }
-
-          in.close();
-          
-          String hash = new String(Hex.encode(md.digest()), Charsets.US_ASCII);
-            
-          if (classLoadersFingerprints.containsValue(hash) && !newClassLoadersFingerprints.containsValue(hash)) {
-            // Reuse existing class loader, so we keep the created objets
-            for (Entry<ClassLoader,String> entry: classLoadersFingerprints.entrySet()) {
-              if (entry.getValue().equals(hash)) {
-                newClassLoadersFingerprints.put(entry.getKey(), entry.getValue());
+            FileInputStream in = new FileInputStream(file);
+             
+            while(true) {
+              int len = in.read(buf);
+              
+              if (len < 0) {
+                break;
               }
+              
+              md.update(buf, 0, len);
             }
-          } else if (!newClassLoadersFingerprints.containsKey(hash)){
-            ClassLoader parentCL = this.getClass().getClassLoader();
-            newClassLoadersFingerprints.put(new WarpClassLoader(file.getCanonicalPath(), parentCL), hash);
-          }
-        }  
-      } catch (NoSuchAlgorithmException nsae) {
-      } catch (IOException ioe) {        
+
+            in.close();
+            
+            String hash = new String(Hex.encode(md.digest()), Charsets.US_ASCII);
+              
+            if (classLoadersFingerprints.containsValue(hash) && !newClassLoadersFingerprints.containsValue(hash)) {
+              // Reuse existing class loader, so we keep the created objets
+              for (Entry<ClassLoader,String> entry: classLoadersFingerprints.entrySet()) {
+                if (entry.getValue().equals(hash)) {
+                  newClassLoadersFingerprints.put(entry.getKey(), entry.getValue());
+                }
+              }
+            } else if (!newClassLoadersFingerprints.containsKey(hash)){
+              ClassLoader parentCL = this.getClass().getClassLoader();
+              newClassLoadersFingerprints.put(new WarpClassLoader(file.getCanonicalPath(), parentCL), hash);
+            }
+          }  
+        } catch (NoSuchAlgorithmException nsae) {
+        } catch (IOException ioe) {        
+        }        
       }
       
       //
