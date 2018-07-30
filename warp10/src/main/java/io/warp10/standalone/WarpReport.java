@@ -18,103 +18,147 @@ package io.warp10.standalone;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.commons.codec.binary.Hex;
-import org.apache.hadoop.hbase.zookeeper.DeletionListener;
-import org.fusesource.leveldbjni.JniDBFactory;
-import org.iq80.leveldb.DB;
-import org.iq80.leveldb.Options;
-import org.iq80.leveldb.impl.DbImpl;
 import org.iq80.leveldb.impl.FileMetaData;
-import org.iq80.leveldb.impl.Filename;
-import org.iq80.leveldb.impl.InternalKey;
-import org.iq80.leveldb.impl.Iq80DBFactory;
 import org.iq80.leveldb.impl.LogReader;
-import org.iq80.leveldb.impl.LogWriter;
-import org.iq80.leveldb.impl.Logs;
-import org.iq80.leveldb.impl.ValueType;
 import org.iq80.leveldb.impl.VersionEdit;
 import org.iq80.leveldb.util.Slice;
-import org.iq80.leveldb.util.SliceOutput;
-import org.iq80.leveldb.util.Slices;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
-
-import io.warp10.continuum.Configuration;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.functions.SNAPSHOT;
 
 /**
  * Reads a MANIFEST file and outputs a report about each .sst file
  */
 public class WarpReport {
-  public static void main(String[] args) throws IOException {
+  
+  public static final String MAXLEVEL_KEY = "maxlevel";
+  public static final String SST_KEY = "sst";
+  public static final String MANIFEST = "manifest";
+  
+  public static boolean debug = false;
+      
+  public static Map<String,Object> report(String manifest) throws IOException {
+    
+    FileChannel channel = null;
+    FileInputStream is = null;
+    
+    File path = new File(manifest);
+    
+    try {
+      is = new FileInputStream(path);
+      channel = is.getChannel();
+   
+      LogReader reader = new LogReader(channel, null, true, 0);
+      
+      Map<Long, FileMetaData> files = new HashMap<Long,FileMetaData>();
+      Map<Long, Integer> levels = new HashMap<Long,Integer>();
+      
+      while(true) {
+        Slice slice = reader.readRecord();
+        
+        if (null == slice) {
+          break;
+        }
+        
+        VersionEdit edit = new VersionEdit(slice);
+        
+        if (debug) {
+          System.out.println(edit);
+        }
+        
+        // Ignore compaction pointers and deleted files
+
+        for (Entry<Integer,Long> entry: edit.getDeletedFiles().entries()) {
+          files.remove(entry.getValue());
+          levels.remove(entry.getValue());
+        }
+        
+        // Report current files
+        for (Entry<Integer, FileMetaData> entry : edit.getNewFiles().entries()) {
+          Integer level = entry.getKey();
+          
+          files.put(entry.getValue().getNumber(), entry.getValue());
+          levels.put(entry.getValue().getNumber(), level);
+        }
+      }
+      
+      int maxlevel = 0;
+      
+      List<Object> sstentries = new ArrayList<Object>();
+      
+      for (Entry<Long,FileMetaData> entry: files.entrySet()) {
+        
+        int level = levels.get(entry.getKey());
+        
+        if (level > maxlevel) {
+          maxlevel = level;
+        }
+        FileMetaData fileMetaData = entry.getValue();
+        int allowedSeeks = (int) (fileMetaData.getFileSize() / 16384);
+        if (allowedSeeks < 100) {
+            allowedSeeks = 100;
+        }
+        fileMetaData.setAllowedSeeks(allowedSeeks);
+
+        String smallest = Hex.encodeHexString(fileMetaData.getSmallest().getUserKey().getBytes());
+        String largest = Hex.encodeHexString(fileMetaData.getLargest().getUserKey().getBytes());
+        
+        List<Object> sstentry = new ArrayList<Object>();
+        
+        sstentry.add((long) level);
+        sstentry.add(fileMetaData.getNumber());
+        sstentry.add(smallest);
+        sstentry.add(largest);
+        
+        sstentries.add(sstentry);
+      }
+      
+      Map<String,Object> result = new HashMap<String,Object>();
+      
+      result.put(WarpReport.MAXLEVEL_KEY, (long) maxlevel);
+      result.put(WarpReport.SST_KEY, sstentries);
+      result.put(WarpReport.MANIFEST, path.getName());
+      
+      return result;
+    } catch (FileNotFoundException fnfe) {
+      throw new IOException("MANIFEST file was not found.");
+    } finally {
+      if (null != is) {
+        is.close();
+      }
+      if (null != channel) {
+        channel.close();
+      }
+    }    
+  }
+  
+  public static void main(String[] args) throws IOException,WarpScriptException {
+    
+    debug = null != System.getProperty("debug");
     
     if (args.length != 1) {
       System.err.println("Usage: WarpReport /path/to/leveldb/MANIFEST");
       System.exit(-1);
     }
     
-    String path = args[0];
+    Map<String,Object> report = report(args[0]);
     
-    FileChannel channel = new FileInputStream(path).getChannel();
-   
-    LogReader reader = new LogReader(channel, null, true, 0);
-        
-    Map<Long, FileMetaData> files = new HashMap<Long,FileMetaData>();
-    Map<Long, Integer> levels = new HashMap<Long,Integer>();
+    StringBuilder sb = new StringBuilder();
     
-    while(true) {
-      Slice slice = reader.readRecord();
-      
-      if (null == slice) {
-        break;
-      }
-      
-      VersionEdit edit = new VersionEdit(slice);
-      
-      // Ignore compaction pointers and deleted files
+    SNAPSHOT.addElement(sb, report);
+    
+    System.out.println(sb);
 
-      for (Entry<Integer,Long> entry: edit.getDeletedFiles().entries()) {
-        files.remove(entry.getValue());
-        levels.remove(entry.getValue());
-      }
-      
-      // Report current files
-      for (Entry<Integer, FileMetaData> entry : edit.getNewFiles().entries()) {
-        Integer level = entry.getKey();
-        
-        files.put(entry.getValue().getNumber(), entry.getValue());
-        levels.put(entry.getValue().getNumber(), level);
-      }
-    }
-    
-    int maxlevel = 0;
-    
-    System.out.println("[]");
-    
-    for (Entry<Long,FileMetaData> entry: files.entrySet()) {
-      
-      int level = levels.get(entry.getKey());
-      
-      if (level > maxlevel) {
-        maxlevel = level;
-      }
-      FileMetaData fileMetaData = entry.getValue();
-      int allowedSeeks = (int) (fileMetaData.getFileSize() / 16384);
-      if (allowedSeeks < 100) {
-          allowedSeeks = 100;
-      }
-      fileMetaData.setAllowedSeeks(allowedSeeks);
-
-      String smallest = Hex.encodeHexString(fileMetaData.getSmallest().getUserKey().getBytes());
-      String largest = Hex.encodeHexString(fileMetaData.getLargest().getUserKey().getBytes());
-      System.out.println("[ " + level + " " + fileMetaData.getNumber() + " '" + smallest + "' '" + largest + "' ] +!");
-    }      
 //          long smallestSeqno = fileMetaData.getSmallest().getSequenceNumber();
 //          long largestSeqno = fileMetaData.getLargest().getSequenceNumber();
 //          // Create 'empty' sst file with an empty record for the first and last keys
@@ -161,8 +205,5 @@ public class WarpReport {
 //          }
 //          
 //          writer.close();      
-    
-    System.out.println(maxlevel + " // max level");
-    channel.close();
   }
 }
