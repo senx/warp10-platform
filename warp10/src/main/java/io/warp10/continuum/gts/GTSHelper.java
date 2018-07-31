@@ -50,7 +50,9 @@ import java.math.BigInteger;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.CharBuffer;
 import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -2264,17 +2266,10 @@ public class GTSHelper {
   }
   
   public static final long classId(long k0, long k1, String name) {
-    CharsetEncoder ce = Charsets.UTF_8.newEncoder();
+    
+    byte[] ba = name.getBytes(Charsets.UTF_8);
 
-    ce.onMalformedInput(CodingErrorAction.REPLACE)
-    .onUnmappableCharacter(CodingErrorAction.REPLACE)
-    .reset();
-
-    byte[] ba = new byte[(int) ((double) ce.maxBytesPerChar() * name.length())];
-
-    int blen = ((ArrayEncoder)ce).encode(UnsafeString.getChars(name), UnsafeString.getOffset(name), name.length(), ba);
-
-    return SipHashInline.hash24_palindromic(k0, k1, ba, 0, blen);
+    return SipHashInline.hash24_palindromic(k0, k1, ba, 0, ba.length);
   }
   
   /**
@@ -2364,7 +2359,7 @@ public class GTSHelper {
     //
     
     CharsetEncoder ce = Charsets.UTF_8.newEncoder();
-    
+
     //
     // Allocate arrays large enough for most cases
     //
@@ -2386,17 +2381,21 @@ public class GTSHelper {
     
     int idx = 0;
     
+    CharBuffer cb = CharBuffer.allocate(calen);
+    ByteBuffer bb = ByteBuffer.allocate((int) ((double) ce.maxBytesPerChar() * calen));
+    
     for (Entry<String, String> entry: labels.entrySet()) {
       String ekey = entry.getKey();
       String eval = entry.getValue();
       
       int klen = ekey.length();
       int vlen = eval.length();
-      
+
       if (klen > calen || vlen > calen) {
         //ca = new char[Math.max(klen,vlen)];
         calen = Math.max(klen, vlen);
-        ba = new byte[(int) ((double) ce.maxBytesPerChar() * calen)];
+        cb = CharBuffer.allocate(calen);
+        bb = ByteBuffer.allocate((int) ((double) ce.maxBytesPerChar() * calen));
       }
       
       //ekey.getChars(0, klen, ca, 0);
@@ -2404,20 +2403,29 @@ public class GTSHelper {
       .onUnmappableCharacter(CodingErrorAction.REPLACE)
       .reset();
 
-      //int blen = ((ArrayEncoder)ce).encode(ca, 0, klen, ba);
-      int blen = ((ArrayEncoder)ce).encode(UnsafeString.getChars(ekey), UnsafeString.getOffset(ekey), klen, ba);
-
-      hashes[idx] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, ba, 0, blen);
+      cb.clear();
+      cb.put(ekey);
+      cb.flip();
+      bb.clear();
       
-      //eval.getChars(0, vlen, ca, 0);
+      CoderResult res = ce.encode(cb, bb, true);
+      bb.flip();
+
+      hashes[idx] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, bb.array(), 0, bb.limit());
+      
       ce.onMalformedInput(CodingErrorAction.REPLACE)
       .onUnmappableCharacter(CodingErrorAction.REPLACE)
       .reset();
 
-      //blen = ((ArrayEncoder)ce).encode(ca, 0, vlen, ba);
-      blen = ((ArrayEncoder)ce).encode(UnsafeString.getChars(eval), UnsafeString.getOffset(eval), vlen, ba);
+      cb.clear();
+      cb.put(eval);
+      cb.flip();
+      bb.clear();
+
+      res = ce.encode(cb, bb, true);
+      bb.flip();
       
-      hashes[idx+1] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, ba, 0, blen);
+      hashes[idx+1] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, bb.array(), 0, bb.limit());
       idx+=2;
     }
     
@@ -2472,7 +2480,9 @@ public class GTSHelper {
     }
     
     //return SipHashInline.hash24(sipkey[0], sipkey[1], buf, 0, buf.length);
-    return SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, buf.length);
+    long id = SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, buf.length);
+    return id;
+    //return SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, buf.length);
   }
 
   public static final long labelsId_slow(byte[] key, Map<String,String> labels) {
