@@ -526,6 +526,13 @@ public class Tokens {
       
       @Override
       public void run() {
+        //
+        // Wait until Warp is initialized so we can use WarpScriptLib
+        //
+        while(!WarpDist.isInitialized()) {
+          LockSupport.parkNanos(1000000L);
+        }
+
         Tokens.loadTokens(file);
         while(true) {
           long now = System.currentTimeMillis();
