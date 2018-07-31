@@ -1808,7 +1808,7 @@ public class GTSHelper {
     }
     
     //idx = str.indexOf("/");
-    idx = UnsafeString.indexOf(str, '/');
+    idx = str.indexOf('/');
 
     if (-1 == idx){
       throw new ParseException("Missing timestamp separator.", idx);
@@ -1835,7 +1835,7 @@ public class GTSHelper {
     idx++;
     
     //int idx2 = str.indexOf("/", idx);
-    int idx2 = UnsafeString.indexOf(str, '/', idx);
+    int idx2 = str.indexOf('/', idx);
     
     if (-1 == idx2){
       throw new ParseException("Missing location/elevation separator.", idx);
@@ -1849,7 +1849,7 @@ public class GTSHelper {
       // Advance past the second '/'    
       idx = idx2 + 1;
       //idx2 = latlon.indexOf(":");
-      idx2 = UnsafeString.indexOf(latlon, ':');
+      idx2 = latlon.indexOf(':');
             
       if (-1 != idx2) {
         //location = GeoXPLib.toGeoXPPoint(Double.valueOf(latlon.substring(0, idx2)), Double.valueOf(latlon.substring(idx2 + 1)));
@@ -1864,7 +1864,7 @@ public class GTSHelper {
     }
     
     //idx2 = str.indexOf(" ", idx);
-    idx2 = UnsafeString.indexOf(str, ' ', idx);
+    idx2 = str.indexOf(' ', idx);
     
     if (-1 == idx2){
       throw new ParseException(str, idx);
@@ -1890,7 +1890,7 @@ public class GTSHelper {
       idx2 = -1;
     } else {
       //idx2 = str.indexOf("{", idx);
-      idx2 = UnsafeString.indexOf(str, '{', idx);      
+      idx2 = str.indexOf('{', idx);      
     }
 
     String name = null;
@@ -1916,7 +1916,7 @@ public class GTSHelper {
       name = str.substring(idx, idx2);
       
       //if (name.contains("%")) {
-      if (-1 != UnsafeString.indexOf(name, '%')) {
+      if (-1 != name.indexOf('%')) {
         try {      
           name = URLDecoder.decode(name, "UTF-8");
         } catch (UnsupportedEncodingException uee) {
@@ -1928,7 +1928,7 @@ public class GTSHelper {
       idx = idx2 + 1;
       
       //idx2 = str.indexOf("}", idx);
-      idx2 = UnsafeString.indexOf(str, '}', idx);
+      idx2 = str.indexOf('}', idx);
       
       if (-1 == idx2){
         throw new ParseException(str, idx);

@@ -556,7 +556,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             
       line = UnsafeString.sanitizeStrings(line);
       
-      if (-1 != UnsafeString.indexOf(line, ' ') && !inMultiline.get()) {
+      if (-1 != line.indexOf(' ') && !inMultiline.get()) {
         //statements = line.split(" +");
         statements = UnsafeString.split(line, ' ');
       } else {
@@ -714,7 +714,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           try {
             String str = stmt.substring(1, stmt.length() - 1);
             
-            if (-1 != UnsafeString.indexOf(str, '%')) {
+            if (-1 != str.indexOf('%')) {
               // replace occurrences of '+' with '%2B'
               str = str.replaceAll("\\+", "%2B");
               str = URLDecoder.decode(str, "UTF-8");

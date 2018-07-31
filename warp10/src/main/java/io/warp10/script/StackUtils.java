@@ -309,7 +309,7 @@ public class StackUtils {
         
         line = UnsafeString.sanitizeStrings(line);
         
-        if (-1 != UnsafeString.indexOf(line, ' ')) {
+        if (-1 != line.indexOf(' ')) {
           //statements = line.split(" +");
           statements = UnsafeString.split(line, ' ');
         } else {
