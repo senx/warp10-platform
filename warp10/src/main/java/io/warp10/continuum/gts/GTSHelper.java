@@ -2589,11 +2589,10 @@ public class GTSHelper {
       return bytes;
     }
     
-    char[] c = UnsafeString.getChars(s);
-
     for (int i = 0; i < 8; i++) {
-      bytes[i * 2] = (byte) ((c[i] >> 8) & 0xFF);
-      bytes[1 + i * 2] = (byte) (c[i] & 0xFF);
+      char c = s.charAt(i);
+      bytes[i * 2] = (byte) ((c >> 8) & 0xFF);
+      bytes[1 + i * 2] = (byte) (c & 0xFF);
     }
     
     return bytes;
@@ -2602,12 +2601,11 @@ public class GTSHelper {
   public static long[] unpackGTSIdLongs(String s) {
     long[] clslbls = new long[2];
 
-    char[] c = UnsafeString.getChars(s);
     for (int i = 0; i < 4; i++) {
       clslbls[0] <<= 16;
-      clslbls[0] |= (c[i] & 0xFFFFL) & 0xFFFFL;
+      clslbls[0] |= (s.charAt(i) & 0xFFFFL) & 0xFFFFL;
       clslbls[1] <<= 16;
-      clslbls[1] |= (c[i + 4] & 0xFFFFL) & 0xFFFFL;
+      clslbls[1] |= (s.charAt(i + 4) & 0xFFFFL) & 0xFFFFL;
     }
 
 
@@ -2619,10 +2617,7 @@ public class GTSHelper {
   }
   
   public static String gtsIdToString(long classId, long labelsId, boolean intern) {
-    String s = new String("01234567");
-    
-    // This way we don't create a char array twice...
-    char[] c = UnsafeString.getChars(s);
+    char[] c = new char[8];
     
     long x = classId;
     long y = labelsId;
@@ -2633,25 +2628,25 @@ public class GTSHelper {
       x >>>= 16;
       y >>>= 16;
     }
+
+    String s = new String(c);
     
     if (intern) {
-      return s.intern();
-    } else {
-      return s;
+      s = s.intern();
     }
+    
+    return s;
   }
   
   public static long[] stringToGTSId(String s) {    
-    char[] c = s.toCharArray();
-    
     long x = 0L;
     long y = 0L;
     
     for (int i = 0; i < 4; i++) {
       x <<= 16;
-      x |= (c[i] & 0xffffL);
+      x |= (s.charAt(i) & 0xffffL);
       y <<= 16;
-      y |= (c[i + 4] & 0xffffL);
+      y |= (s.charAt(i + 4) & 0xffffL);
     }
     
     long[] clslbls = new long[2];
