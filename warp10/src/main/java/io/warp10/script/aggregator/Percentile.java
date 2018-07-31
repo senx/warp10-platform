@@ -112,7 +112,7 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptAgg
         }
       });      
     } catch (RuntimeException re) {
-      throw new WarpScriptException(re.getMessage());
+      throw new WarpScriptException(re);
     }
     
     //

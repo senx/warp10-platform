@@ -8057,7 +8057,7 @@ public class GTSHelper {
         try {
           smoothed.reset(Arrays.copyOf(gts.ticks,sizehint), hasLocations ? Arrays.copyOf(gts.locations,sizehint) : null, hasElevations ? Arrays.copyOf(gts.elevations,sizehint) : null, transient_smoothed, size);
         } catch (IOException ioe) {
-          throw new WarpScriptException("IOException in reset method: " + ioe.getMessage());
+          throw new WarpScriptException("IOException in reset method.", ioe);
         }
         
         return smoothed;
@@ -8163,7 +8163,7 @@ public class GTSHelper {
         try {
           smoothed.reset(ticks, locations, elevations, transient_smoothed, size);
         } catch (IOException ioe) {
-          throw new WarpScriptException("IOException in reset method: " + ioe.getMessage());
+          throw new WarpScriptException("IOException in reset method.", ioe);
         }
         
         return smoothed;
@@ -8362,7 +8362,7 @@ public class GTSHelper {
     try {
       seasonal.reset(Arrays.copyOf(gts.ticks,sizehint), null, null, new double[sizehint], nonnull);
     } catch (IOException ioe) {
-      throw new WarpScriptException("IOException in reset method: " + ioe.getMessage());
+      throw new WarpScriptException("IOException in reset method.", ioe);
     }
     
     
@@ -8370,7 +8370,7 @@ public class GTSHelper {
     try {
       trend.reset(Arrays.copyOf(gts.ticks,sizehint), null, null, new double[sizehint], nonnull);
     } catch (IOException ioe) {
-      throw new WarpScriptException("IOException in reset method: " + ioe.getMessage());
+      throw new WarpScriptException("IOException in reset method.", ioe);
     }
     
     // lowpassed will borrow the body of trend in step 3

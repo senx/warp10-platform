@@ -257,7 +257,7 @@ public class WarpScriptExecutor implements Serializable {
     try {
       this.sem.acquire();
     } catch (InterruptedException ie) {
-      throw new WarpScriptException("Got interrupted while attempting to acquire semaphore.");
+      throw new WarpScriptException("Got interrupted while attempting to acquire semaphore.", ie);
     }
     
     WarpScriptStack stack = this.stack;
