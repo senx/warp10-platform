@@ -55,8 +55,8 @@ public class RANGE extends NamedWarpScriptFunction implements WarpScriptStackFun
       throw new WarpScriptException(getName() + " expects a list of 1 to 3 longs on top of the stack.");
     }
     
-    long start = 0;
-    long step = 1;
+    long start = 0L;
+    long step = 1L;
     long stop = start;
     
     switch (n) {
@@ -74,7 +74,7 @@ public class RANGE extends NamedWarpScriptFunction implements WarpScriptStackFun
         break;
     }
     
-    if (step <= 0) {
+    if (step <= 0L) {
       throw new WarpScriptException(getName() + " step MUST be > 0.");
     }
     
