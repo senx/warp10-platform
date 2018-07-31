@@ -161,23 +161,6 @@ public class UnsafeString {
     //return tokens.toArray(new String[0]);
     return tokens;
   }
-
-  public final static String substring(String s, int start, int end) {
-    return buildUnsafe(getChars(s), start, (end - start));
-  }
-  
-  private final static String buildUnsafe(char[] chars, int offset, int count) {    
-    if (-1 != countOffset) {
-      // This is JDK7+
-      String mutable = new String();// an empty string to hack
-      unsafe.putObject(mutable, valueOffset, chars);
-      unsafe.putInt(mutable, countOffset, count);
-      unsafe.putIntVolatile(mutable, offsetOffset, offset);
-      return mutable;
-    } else {
-      return new String(chars, offset, count);
-    }
-  }
   
   public static boolean isLong(String s) {
     //
@@ -414,10 +397,9 @@ public class UnsafeString {
    * @return
    */
   public static boolean mayBeDecimalDouble(String s) {
-    char[] c = getChars(s);
-    
-    for (int i = 0; i < c.length; i++) {
-      if ((c[i] < '0' || c[i] > '9') && '.' != c[i] && '+' != c[i] && '-' != c[i]) {
+    for (int i = 0; i < s.length(); i++) {
+      char c = s.charAt(i);
+      if ((c < '0' || c > '9') && '.' != c && '+' != c && '-' != c) {
         return false;
       }
     }
