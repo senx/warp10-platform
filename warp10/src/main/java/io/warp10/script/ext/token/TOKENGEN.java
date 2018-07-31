@@ -162,6 +162,9 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
         for (Object uuid: (List) params.get(KEY_OWNERS)) {
           rtoken.addToOwners(encoder.toByteBuffer(uuid.toString()));
         }
+        if (0 == rtoken.getOwnersSize()) {
+          rtoken.setOwners(new ArrayList<ByteBuffer>());
+        }
       } else {
         rtoken.setOwners(new ArrayList<ByteBuffer>());
       }
@@ -173,6 +176,9 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
         for (Object uuid: (List) params.get(KEY_PRODUCERS)) {
           rtoken.addToProducers(encoder.toByteBuffer(uuid.toString()));
         }        
+        if (0 == rtoken.getProducersSize()) {
+          rtoken.setProducers(new ArrayList<ByteBuffer>());          
+        }
       } else {
         rtoken.setProducers(new ArrayList<ByteBuffer>());
       }
@@ -183,6 +189,9 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
         }
         for (Object app: (List) params.get(KEY_APPLICATIONS)) {
           rtoken.addToApps(app.toString());
+        }
+        if (0 == rtoken.getAppsSize()) {
+          rtoken.setApps(new ArrayList<String>());          
         }
       } else {
         rtoken.setApps(new ArrayList<String>());
