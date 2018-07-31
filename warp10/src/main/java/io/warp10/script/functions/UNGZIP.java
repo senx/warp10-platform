@@ -65,7 +65,7 @@ public class UNGZIP extends NamedWarpScriptFunction implements WarpScriptStackFu
       
       in.close();
     } catch (IOException ioe) {
-      throw new WarpScriptException(getName() + " encountered an error while decompressing.");
+      throw new WarpScriptException(getName() + " encountered an error while decompressing.", ioe);
     }
     
     stack.push(decompressed.toByteArray());

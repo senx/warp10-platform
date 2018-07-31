@@ -54,7 +54,7 @@ public class TOBYTES extends NamedWarpScriptFunction implements WarpScriptStackF
       byte[] bytes = str.getBytes(charset);
       stack.push(bytes);
     } catch (UnsupportedEncodingException uee) {
-      throw new WarpScriptException(getName() + " unsupported encoding '" + charset + "'");
+      throw new WarpScriptException(getName() + " unsupported encoding '" + charset + "'", uee);
     }
     
     return stack;
