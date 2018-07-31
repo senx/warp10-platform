@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ### BEGIN INIT INFO
 # Provides:          warp10
@@ -76,8 +76,8 @@ IS_JAVA7=false
 # Classpath
 #
 WARP10_REVISION=@VERSION@
-WARP10_USER=warp10
-WARP10_GROUP=warp10
+export WARP10_USER=${WARP10_USER:=warp10}
+WARP10_GROUP=${WARP10_GROUP:=warp10}
 WARP10_CONFIG=${WARP10_HOME}/etc/conf-standalone.conf
 WARP10_JAR=${WARP10_HOME}/bin/warp10-${WARP10_REVISION}.jar
 WARP10_CLASS=io.warp10.standalone.Warp
@@ -465,7 +465,7 @@ snapshot() {
   if [ $# -eq 2 ]; then
     ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT} "${WARP10_HOME}" "${LEVELDB_HOME}" "${PID_FILE}"
   else
-    BASE_SNAPSHOT=$2
+    BASE_SNAPSHOT=$3
     ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT} ${BASE_SNAPSHOT} "${WARP10_HOME}" "${LEVELDB_HOME}" "${PID_FILE}"
   fi
 }
