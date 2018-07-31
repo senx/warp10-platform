@@ -2,6 +2,7 @@ package io.warp10.worf;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.Map.Entry;
@@ -25,7 +26,7 @@ public class TokenGen {
   public static void main(String[] args) throws Exception {
     
     if (args.length < 2) {
-      System.err.println("Usage: TokenGen config file.mc2 ...");
+      System.err.println("Usage: TokenGen config in out");
       System.exit(-1);
     }
     
@@ -102,41 +103,46 @@ public class TokenGen {
     
     PrintWriter pw = new PrintWriter(System.out);
     
-    for (int i = 1; i < args.length; i++) {
-      MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, WarpConfig.getProperties());
-      stack.maxLimits();
-      
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      
-      byte[] buf = new byte[8192];
-      
-      InputStream in = null;
-      
-      if ("-".equals(args[i])) {
-        in = System.in;
-      } else {
-        in = new FileInputStream(args[i]);
+    if (args.length > 2) {
+      if (!"-".equals(args[2])) {
+        pw = new PrintWriter(new FileWriter(args[2]));
       }
-      
-      while(true) {
-        int len = in.read(buf);
-        
-        if (len <= 0) {
-          break;
-        }
-        
-        baos.write(buf, 0, len);
-      }
-      
-      in.close();
-      
-      String script = new String(baos.toByteArray(), "UTF-8");
-      
-      stack.execMulti(script);
-      
-      StackUtils.toJSON(pw, stack);
     }
     
+    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, WarpConfig.getProperties());
+    stack.maxLimits();
+      
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      
+    byte[] buf = new byte[8192];
+      
+    InputStream in = null;
+      
+    if ("-".equals(args[1])) {
+      in = System.in;
+    } else {
+      in = new FileInputStream(args[1]);
+    }
+      
+    while(true) {
+      int len = in.read(buf);
+        
+      if (len <= 0) {
+        break;
+      }
+        
+      baos.write(buf, 0, len);
+    }
+      
+    in.close();
+      
+    String script = new String(baos.toByteArray(), "UTF-8");
+      
+    stack.execMulti(script);
+      
+    StackUtils.toJSON(pw, stack);
+    
     pw.flush();
+    pw.close();
   }
 }
