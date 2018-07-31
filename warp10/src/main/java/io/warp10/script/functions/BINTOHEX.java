@@ -45,12 +45,10 @@ public class BINTOHEX extends NamedWarpScriptFunction implements WarpScriptStack
       bin = "0000000".substring(7 - (bin.length() % 8)) + bin;
     }
 
-    char[] chars = UnsafeString.getChars(bin);
-
     StringBuilder sb = new StringBuilder();
 
     for (int i = 0; i < bin.length(); i += 4) {
-      String nibble = new String(chars, i, 4);
+      String nibble = bin.substring(i, i + 4);
 
       if ("0000".equals(nibble)) {
         sb.append("0");

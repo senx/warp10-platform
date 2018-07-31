@@ -46,10 +46,10 @@ public class HEXTOBIN extends NamedWarpScriptFunction implements WarpScriptStack
     
     StringBuilder sb = new StringBuilder();
     
-    char[] c = UnsafeString.getChars(o.toString());
+    String s = o.toString();
     
-    for (int i = 0; i < c.length; i++) {
-      switch(c[i]) {
+    for (int i = 0; i < s.length(); i++) {
+      switch(s.charAt(i)) {
         case '0':
           sb.append("0000");
           break;

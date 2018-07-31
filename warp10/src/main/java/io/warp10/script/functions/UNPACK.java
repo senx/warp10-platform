@@ -64,7 +64,7 @@ public class UNPACK extends NamedWarpScriptFunction implements WarpScriptStackFu
     
     while(idx < fmt.length()) {
       
-      String type = new String(UnsafeString.substring(fmt, idx, idx + 2));
+      String type = fmt.substring(idx, idx + 2);
       
       char prefix = fmt.charAt(idx++);
       

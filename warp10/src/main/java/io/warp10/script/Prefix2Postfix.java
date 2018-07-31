@@ -57,18 +57,18 @@ public class Prefix2Postfix {
       
       List<String> tokens = new ArrayList<String>();
       
-      char[] c = UnsafeString.getChars(line);
-      
       int lastidx = 0;
       int idx = 0;
       
-      while (idx < c.length) {
-        while(c[idx] != '(' && c[idx] != ')' && c[idx] != ',') {
+      while (idx < line.length()) {
+        char ch = line.charAt(idx);
+        while(ch != '(' && ch != ')' && ch != ',') {
           idx++;
+          ch = line.charAt(idx);
         }
         
         if (idx != lastidx) {
-          tokens.add(new String(c, lastidx, idx - lastidx));
+          tokens.add(line.substring(lastidx, idx));
         }
         
         idx++;
@@ -113,22 +113,22 @@ public class Prefix2Postfix {
       
       List<String> tokens = new ArrayList<String>();
       
-      char[] c = UnsafeString.getChars(line);
-      
       int lastidx = 0;
       int idx = 0;
       
-      while (idx < c.length) {
-        while(c[idx] != '(' && c[idx] != ')' && c[idx] != ',') {
+      while (idx < line.length()) {
+        char ch = line.charAt(idx);
+        while(ch != '(' && ch != ')' && ch != ',') {
           idx++;
+          ch = line.charAt(idx);
         }
              
         if (idx != lastidx) {
-          tokens.add(new String(c, lastidx, idx - lastidx));
+          tokens.add(line.substring(lastidx, idx));
         }
      
-        if (',' != c[idx]) {
-          tokens.add(new String(c, idx, 1));
+        if (',' != ch) {
+          tokens.add(line.substring(idx, idx + 1));
         }
 
         idx++;
