@@ -9088,6 +9088,14 @@ public class GTSHelper {
       return gts;
     }
         
+    //
+    // Ditto if the GTS is a STRING or BOOLEAN one
+    //
+    
+    if (TYPE.STRING == gts.type || TYPE.BOOLEAN == gts.type) {
+      return gts;
+    }
+    
     if (threshold < 3) {
       throw new WarpScriptException("Threshold MUST be >= 3.");
     }
