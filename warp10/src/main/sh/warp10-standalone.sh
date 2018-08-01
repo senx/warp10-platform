@@ -15,8 +15,6 @@ if [ -e /lib/lsb/init-functions ]; then
   . /lib/lsb/init-functions
 fi
 
-OS=$(uname -s)
-
 #JAVA_HOME=/opt/java8
 #WARP10_HOME=/opt/warp10-@VERSION@
 
@@ -27,14 +25,7 @@ fi
 
 # If WARP10_HOME is not defined, set it to the parent directory
 if [ -z "${WARP10_HOME}" ]; then
-  if [ "Darwin" = "${OS}" ]
-  then
-    pushd $(dirname $0)/.. > /dev/null 2>&1
-    WARP10_HOME=`pwd`
-    popd > /dev/null 2>&1
-  else
-    WARP10_HOME=$(dirname $(readlink -f $0))/..
-  fi
+  WARP10_HOME=`cd $(dirname $0); cd $(pwd -P)/..; pwd -P`
 fi
 
 export JAVA_HOME
