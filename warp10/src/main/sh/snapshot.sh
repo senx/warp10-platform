@@ -76,16 +76,43 @@ then
   find -L "${SNAPSHOT_DIR}/${BASE_SNAPSHOT}" -maxdepth 1 -name '*.sst' | sed -e 's,.*/,,' | sort -u > ${SNAPSHOT_DIR}/${BASE_SNAPSHOT}/sst.files
 fi
 
-if [ -z "$JAVA_HOME" ]; then
-  echo "JAVA_HOME not set";
-  exit 1
+
+# Strongly inspired by gradlew
+# Determine the Java command to use to start the JVM.
+if [ -n "$JAVA_HOME" ] ; then
+    if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
+        # IBM's JDK on AIX uses strange locations for the executables
+        JAVACMD="$JAVA_HOME/jre/sh/java"
+        JPSCMD="$JAVA_HOME/jre/sh/jps"
+    else
+        JAVACMD="$JAVA_HOME/bin/java"
+        JPSCMD="$JAVA_HOME/bin/jps"
+    fi
+    if [ ! -x "$JAVACMD" ] ; then
+        echo "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
+Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."
+        exit 1
+    fi
+    if [ ! -x "$JPSCMD" ] ; then
+        echo "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
+Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."
+        exit 1
+    fi
+else
+    JAVACMD="java"
+    which java >/dev/null 2>&1 || (echo "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
+Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."; exit 1)
+    JPSCMD="jps"
+    which jps >/dev/null 2>&1 || (echo "ERROR: JAVA_HOME is not set and no 'jps' command could be found in your PATH.
+Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."; exit 1)
 fi
+
 
 #
 # Check if Warp instance is currently running
 #
 
-if [ ! -e ${PID_FILE} ] || [ "`${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" = "" ]
+if [ ! -e ${PID_FILE} ] || [ "`${JPSCMD} -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" = "" ]
 then
   echo "No Warp 10 instance is currently running !"
   exit 1
