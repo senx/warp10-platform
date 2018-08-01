@@ -805,6 +805,8 @@ public class WarpScriptLib {
     functions.put("RVALUESORT", new RVALUESORT("RVALUESORT"));
     functions.put("LSORT", new LSORT("LSORT"));
     functions.put("MSORT", new MSORT("MSORT"));
+    functions.put("GROUPBY", new GROUPBY("GROUPBY"));
+    functions.put("FILTERBY", new FILTERBY("FILTERBY"));
     functions.put("UPDATE", new UPDATE("UPDATE"));
     functions.put("META", new META("META"));
     functions.put("DELETE", new DELETE("DELETE"));
