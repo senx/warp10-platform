@@ -112,7 +112,7 @@ fi
 # Check if Warp 10 instance is currently running
 #
 # Don't use 'ps -p' for docker compatibility
-if [ ! -e ${PID_FILE} ] || ! ps -eo pid | grep "^\s*$(cat ${PID_FILE})$" > /dev/null; then
+if [ ! -e ${PID_FILE} ] || ! ps -Ao pid | grep "^\s*$(cat ${PID_FILE})$" > /dev/null; then
   echo "No Warp 10 instance is currently running !"
   exit 1
 fi

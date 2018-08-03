@@ -147,7 +147,7 @@ isUser() {
 #
 isStarted() {
   # Don't use 'ps -p' for docker compatibility
-  if [ -e ${PID_FILE} ] && ps -eo pid |  grep "^\s*$(cat ${PID_FILE})$" > /dev/null; then
+  if [ -e ${PID_FILE} ] && ps -Ao pid | grep "^\s*$(cat ${PID_FILE})$" > /dev/null; then
     return 0
   fi
   return 1
@@ -451,7 +451,7 @@ status() {
   isUser ${WARP10_USER}
 
   if isStarted; then
-    ps -eo pid,etime,args  | grep "^\s*$(cat ${PID_FILE})\s"
+    ps -Ao pid,etime,args | grep "^\s*$(cat ${PID_FILE})\s"
   else
     echo "No instance of Warp 10 is currently running"
   fi
