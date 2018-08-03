@@ -54,7 +54,7 @@ public class BYTESTO extends NamedWarpScriptFunction implements WarpScriptStackF
       String str = new String(bytes, charset);
       stack.push(str);
     } catch (UnsupportedEncodingException uee) {
-      throw new WarpScriptException(getName() + " unsupported encoding '" + charset + "'");
+      throw new WarpScriptException(getName() + " unsupported encoding '" + charset + "'", uee);
     }
     
     return stack;
