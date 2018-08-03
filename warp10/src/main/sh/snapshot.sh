@@ -109,11 +109,10 @@ fi
 
 
 #
-# Check if Warp instance is currently running
+# Check if Warp 10 instance is currently running
 #
-
-if [ ! -e ${PID_FILE} ] || [ "`${JPSCMD} -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" = "" ]
-then
+# Don't use 'ps -p' for docker compatibility
+if [ ! -e ${PID_FILE} ] || ! ps -eo pid | grep "^\s*$(cat ${PID_FILE})$" > /dev/null; then
   echo "No Warp 10 instance is currently running !"
   exit 1
 fi
