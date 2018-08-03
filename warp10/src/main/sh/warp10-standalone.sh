@@ -132,17 +132,34 @@ moveDir() {
   chmod 755 ${WARP10_DATA_DIR}/${dir}
 }
 
+#
+# Exit this script if user doesn't match
+#
+isUser() {
+  if [ "`whoami`" != "${1}" ]; then
+    echo "You must be '${1}' to run this script."
+    exit 1
+  fi
+}
+
+#
+# Return 0 if a Warp 10 instance is started
+#
+isStarted() {
+  # Don't use 'ps -p' for docker compatibility
+  if [ -e ${PID_FILE} ] && ps -eo pid |  grep "^\s*$(cat ${PID_FILE})$" > /dev/null; then
+    return 0
+  fi
+  return 1
+}
+
 bootstrap() {
   echo "Bootstrap.."
 
   #
   # Make sure the caller is root
   #
-
-  if [ "`whoami`" != "root" ]; then
-    echo "You must be root to run 'bootstrap' command."
-    exit 1
-  fi
+  isUser root
 
   # warp10 user ?
   if ! id -u "${WARP10_USER}" >/dev/null 2>&1; then
@@ -271,30 +288,20 @@ bootstrap() {
 start() {
 
   #
-  # Make sure the caller is warp10
+  # Make sure the caller is WARP10_USER
   #
-
-  if [ "`whoami`" != "${WARP10_USER}" ]; then
-    echo "You must be ${WARP10_USER} to run this script."
-    exit 1
-  fi
+  isUser ${WARP10_USER}
 
   CHECK_JAVA7="`${JAVACMD} -version 2>&1 | head -n 1 | grep '.*\\"1.7.*'`"
   if [ "$CHECK_JAVA7" != "" ]; then
     IS_JAVA7=true
   fi
 
-  # warp10 user ?
-  if ! id -u "${WARP10_USER}" >/dev/null 2>&1; then
-    echo "User '${WARP10_USER}'' does not exist - Use 'bootstrap' command (it must be run as root)"
-    exit 1
-  fi
-
   if [ -f ${JAVA_HEAP_DUMP} ]; then
     mv ${JAVA_HEAP_DUMP} ${JAVA_HEAP_DUMP}-`date +%s`
   fi
 
-  if [ -e ${PID_FILE} ] && ps -p $(cat ${PID_FILE}) > /dev/null; then
+  if isStarted; then
     echo "Start failed! - A Warp 10 instance is currently running"
     exit 1
   fi
@@ -361,7 +368,8 @@ start() {
 
   echo $! > ${PID_FILE}
 
-  if [ ! -e ${PID_FILE} ] || ! ps -p $(cat ${PID_FILE}) > /dev/null; then
+  isStarted
+  if [ $? -eq 1 ]; then
     echo "Start failed! - See warp10.log for more details"
     exit 1
   fi
@@ -422,16 +430,12 @@ start() {
 stop() {
 
   #
-  # Make sure the caller is warp10
+  # Make sure the caller is WARP10_USER
   #
+  isUser ${WARP10_USER}
 
-  if [ "`whoami`" != "${WARP10_USER}" ]; then
-    echo "You must be ${WARP10_USER} to run this script."
-    exit 1
-  fi
-
-  echo "Stop Warp 10..."
-  if [ -e ${PID_FILE} ] && ps -p $(cat ${PID_FILE}) > /dev/null; then
+  if isStarted; then
+    echo "Stop Warp 10..."
     kill $(cat ${PID_FILE})
     rm -f ${PID_FILE}
   else
@@ -442,15 +446,14 @@ stop() {
 status() {
 
   #
-  # Make sure the caller is warp10
+  # Make sure the caller is WARP10_USER
   #
+  isUser ${WARP10_USER}
 
-  if [ "`whoami`" != "${WARP10_USER}" ]; then
-    echo "You must be ${WARP10_USER} to run this script."
-    exit 1
-  fi
-  if [ -e ${PID_FILE} ]; then
-    ps -p $(cat ${PID_FILE}) -o pid,etime,args | tail -n 1
+  if isStarted; then
+    ps -eo pid,etime,args  | grep "^\s*$(cat ${PID_FILE})\s"
+  else
+    echo "No instance of Warp 10 is currently running"
   fi
 }
 
@@ -470,21 +473,16 @@ snapshot() {
 }
 
 worfcli() {
-echo ${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -i
+  echo ${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -i
   ${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -i
 }
 
 worf() {
 
   #
-  # Make sure the caller is warp10
+  # Make sure the caller is WARP10_USER
   #
-
-  if [ "`whoami`" != "${WARP10_USER}" ]; then
-
-    echo "You must be ${WARP10_USER} to run this script."
-    exit 1
-  fi
+  isUser ${WARP10_USER}
 
   if [ "$#" -ne 3 ]; then
     echo "Usage: $0 $1 appName ttl(ms)"
@@ -496,19 +494,15 @@ worf() {
 repair() {
 
   #
-  # Make sure the caller is warp10
+  # Make sure the caller is WARP10_USER
   #
+  isUser ${WARP10_USER}
 
-  if [ "`whoami`" != "${WARP10_USER}" ]; then
-    echo "You must be ${WARP10_USER} to run this script."
-    exit 1
-  fi
-
-  echo "Repair Leveldb..."
-  if [ -e ${PID_FILE} ] && ps -p $(cat ${PID_FILE}) > /dev/null; then
+  if isStarted; then
     echo "Repair has been cancelled! - Warp 10 instance must be stopped for repair"
     exit 1
   else
+    echo "Repair Leveldb..."
     ${JAVACMD} -cp ${WARP10_JAR} io.warp10.standalone.WarpRepair ${LEVELDB_HOME}
   fi
 }
