@@ -4,13 +4,11 @@
 # Script to create a snapshot of the leveldb (standalone) version of Warp.
 #
 
-#JAVA_HOME=/opt/java8
 WARP10_USER=${WARP10_USER:=warp10}
 
 #
 # Make sure the caller is warp10
 #
-
 if [ "`whoami`" != "${WARP10_USER}" ]
 then
   echo "You must be ${WARP10_USER} to run this script."
@@ -75,38 +73,6 @@ then
   # List the '.sst' files of the base snapshot
   find -L "${SNAPSHOT_DIR}/${BASE_SNAPSHOT}" -maxdepth 1 -name '*.sst' | sed -e 's,.*/,,' | sort -u > ${SNAPSHOT_DIR}/${BASE_SNAPSHOT}/sst.files
 fi
-
-
-# Strongly inspired by gradlew
-# Determine the Java command to use to start the JVM.
-if [ -n "$JAVA_HOME" ] ; then
-    if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
-        # IBM's JDK on AIX uses strange locations for the executables
-        JAVACMD="$JAVA_HOME/jre/sh/java"
-        JPSCMD="$JAVA_HOME/jre/sh/jps"
-    else
-        JAVACMD="$JAVA_HOME/bin/java"
-        JPSCMD="$JAVA_HOME/bin/jps"
-    fi
-    if [ ! -x "$JAVACMD" ] ; then
-        echo "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
-Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."
-        exit 1
-    fi
-    if [ ! -x "$JPSCMD" ] ; then
-        echo "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
-Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."
-        exit 1
-    fi
-else
-    JAVACMD="java"
-    which java >/dev/null 2>&1 || (echo "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
-Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."; exit 1)
-    JPSCMD="jps"
-    which jps >/dev/null 2>&1 || (echo "ERROR: JAVA_HOME is not set and no 'jps' command could be found in your PATH.
-Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."; exit 1)
-fi
-
 
 #
 # Check if Warp 10 instance is currently running
