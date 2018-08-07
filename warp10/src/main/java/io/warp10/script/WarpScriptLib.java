@@ -1027,7 +1027,8 @@ public class WarpScriptLib {
     functions.put("COUNTER", new COUNTER("COUNTER"));
     functions.put("COUNTERVALUE", new COUNTERVALUE("COUNTERVALUE"));
     functions.put("COUNTERDELTA", new COUNTERDELTA("COUNTERDELTA"));
-    
+    functions.put("COUNTERSET", new COUNTERSET("COUNTERSET"));
+
     //
     // Math functions
     //
