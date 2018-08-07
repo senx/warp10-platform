@@ -373,6 +373,9 @@ public class WarpScriptLib {
   
   public static final String INPLACEADD = "+!";
   public static final String PUT = "PUT";
+
+  public static final String SAVE = "SAVE";
+  public static final String RESTORE = "RESTORE";
   
   static {
     
@@ -439,8 +442,8 @@ public class WarpScriptLib {
     functions.put("DUPN", new DUPN("DUPN"));
     functions.put(SWAP, new SWAP(SWAP));
     functions.put("DROP", new DROP("DROP"));
-    functions.put("SAVE", new SAVE("SAVE"));
-    functions.put("RESTORE", new RESTORE("RESTORE"));
+    functions.put(SAVE, new SAVE(SAVE));
+    functions.put(RESTORE, new RESTORE(RESTORE));
     functions.put("CLEAR", new CLEAR("CLEAR"));
     functions.put("CLEARDEFS", new CLEARDEFS("CLEARDEFS"));
     functions.put("CLEARSYMBOLS", new CLEARSYMBOLS("CLEARSYMBOLS"));
