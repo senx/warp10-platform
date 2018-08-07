@@ -72,7 +72,7 @@ public class WRAPRAW  extends GTSStackFunction {
       
       stack.push(bytes);
     } catch (TException te) {
-      throw new WarpScriptException(getName() + " failed to wrap GTS.");
+      throw new WarpScriptException(getName() + " failed to wrap GTS.", te);
     }        
 
     return stack;
@@ -101,7 +101,7 @@ public class WRAPRAW  extends GTSStackFunction {
       
       return bytes;
     } catch (TException te) {
-      throw new WarpScriptException(getName() + " failed to wrap GTS.");
+      throw new WarpScriptException(getName() + " failed to wrap GTS.", te);
     }        
   }
 }

@@ -287,7 +287,7 @@ public class WarpScriptMacroRepository extends Thread {
     directory = dir;
     delay = refreshDelay;
     
-    ondemand = "true".equals(properties.getProperty(Configuration.REPOSITORY_ONDEMAND));
+    ondemand = !"false".equals(properties.getProperty(Configuration.REPOSITORY_ONDEMAND));
     new WarpScriptMacroRepository();
   }
   

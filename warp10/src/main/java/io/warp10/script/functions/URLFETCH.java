@@ -69,7 +69,7 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
         }      
       }      
     } catch (MalformedURLException mue) {
-      throw new WarpScriptException(getName() + " encountered an invalid URL.");
+      throw new WarpScriptException(getName() + " encountered an invalid URL.", mue);
     }
     
     //
@@ -156,7 +156,7 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
 
         results.add(res);
       } catch (IOException ioe) {
-        throw new WarpScriptException(getName() + " encountered an error while fetching '" + url + "'");
+        throw new WarpScriptException(getName() + " encountered an error while fetching '" + url + "'", ioe);
       } finally {
         if (null != conn) {
           conn.disconnect();

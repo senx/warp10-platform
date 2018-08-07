@@ -382,7 +382,7 @@ public class EgressExecHandler extends AbstractHandler {
       resp.addHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX) + "," + Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX));
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX), Long.toString(lineno));
       String section = (String) stack.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME);
-      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX), "in section '" + section + "': " + t.getMessage());
+      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX), "in section '" + section + "': " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : ""));
       
       //
       // Output the exported symbols in a map

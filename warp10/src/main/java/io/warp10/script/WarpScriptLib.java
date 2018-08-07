@@ -34,6 +34,7 @@ import org.apache.commons.lang3.SystemUtils;
 import org.bouncycastle.crypto.digests.MD5Digest;
 import org.bouncycastle.crypto.digests.SHA1Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.jruby.ext.ffi.jffi.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,6 +71,7 @@ import io.warp10.script.aggregator.Min;
 import io.warp10.script.aggregator.Or;
 import io.warp10.script.aggregator.Percentile;
 import io.warp10.script.aggregator.Rate;
+import io.warp10.script.aggregator.RMS;
 import io.warp10.script.aggregator.ShannonEntropy;
 import io.warp10.script.aggregator.StandardDeviation;
 import io.warp10.script.aggregator.Sum;
@@ -309,6 +311,11 @@ public class WarpScriptLib {
    */
   
   public static final String NULL = "NULL";
+
+  public static final String REF = "REF";
+  public static final String COMPILE = "COMPILE";
+  public static final String SAFECOMPILE = "SAFECOMPILE";
+  public static final String COMPILED = "COMPILED";
   
   public static final String EVAL = "EVAL";
   public static final String EVALSECURE = "EVALSECURE";
@@ -374,6 +381,9 @@ public class WarpScriptLib {
   
   public static final String INPLACEADD = "+!";
   public static final String PUT = "PUT";
+
+  public static final String SAVE = "SAVE";
+  public static final String RESTORE = "RESTORE";
   
   static {
     
@@ -440,8 +450,8 @@ public class WarpScriptLib {
     functions.put("DUPN", new DUPN("DUPN"));
     functions.put(SWAP, new SWAP(SWAP));
     functions.put("DROP", new DROP("DROP"));
-    functions.put("SAVE", new SAVE("SAVE"));
-    functions.put("RESTORE", new RESTORE("RESTORE"));
+    functions.put(SAVE, new SAVE(SAVE));
+    functions.put(RESTORE, new RESTORE(RESTORE));
     functions.put("CLEAR", new CLEAR("CLEAR"));
     functions.put("CLEARDEFS", new CLEARDEFS("CLEARDEFS"));
     functions.put("CLEARSYMBOLS", new CLEARSYMBOLS("CLEARSYMBOLS"));
@@ -481,7 +491,7 @@ public class WarpScriptLib {
     functions.put("DEFINEDMACRO", new DEFINEDMACRO("DEFINEDMACRO"));
     functions.put("NaN", new NaN("NaN"));
     functions.put("ISNaN", new ISNaN("ISNaN"));
-    functions.put("TYPEOF", new TYPEOF("TYPEOF"));      
+    functions.put("TYPEOF", new TYPEOF("TYPEOF"));
     functions.put("EXTLOADED", new EXTLOADED("EXTLOADED"));
     functions.put("ASSERT", new ASSERT("ASSERT"));
     functions.put("ASSERTMSG", new ASSERTMSG("ASSERTMSG"));
@@ -538,6 +548,14 @@ public class WarpScriptLib {
     functions.put("SNAPSHOTCOPYN", new SNAPSHOT("SNAPSHOTCOPYN", false, false, false, true));
     functions.put("HEADER", new HEADER("HEADER"));
     
+    //
+    // Compilation related dummy functions
+    //
+    functions.put(COMPILE, new FAIL(COMPILE));
+    functions.put(SAFECOMPILE, new NOOP(SAFECOMPILE));
+    functions.put(COMPILED, new FAIL(COMPILED));
+    functions.put(REF, new REF(REF));
+
     functions.put("MACROTTL", new MACROTTL("MACROTTL"));
     functions.put("MACROMAPPER", new MACROMAPPER("MACROMAPPER"));
     functions.put("MACROREDUCER", new MACROMAPPER("MACROREDUCER"));
@@ -717,6 +735,7 @@ public class WarpScriptLib {
     functions.put("MAKEGTS", new MAKEGTS("MAKEGTS"));
     functions.put("ADDVALUE", new ADDVALUE("ADDVALUE", false));
     functions.put("SETVALUE", new ADDVALUE("SETVALUE", true));
+    functions.put("REMOVETICK", new REMOVETICK("REMOVETICK"));
     functions.put("FETCH", new FETCH("FETCH", false, null));
     functions.put("FETCHLONG", new FETCH("FETCHLONG", false, TYPE.LONG));
     functions.put("FETCHDOUBLE", new FETCH("FETCHDOUBLE", false, TYPE.DOUBLE));
@@ -805,6 +824,8 @@ public class WarpScriptLib {
     functions.put("RVALUESORT", new RVALUESORT("RVALUESORT"));
     functions.put("LSORT", new LSORT("LSORT"));
     functions.put("MSORT", new MSORT("MSORT"));
+    functions.put("GROUPBY", new GROUPBY("GROUPBY"));
+    functions.put("FILTERBY", new FILTERBY("FILTERBY"));
     functions.put("UPDATE", new UPDATE("UPDATE"));
     functions.put("META", new META("META"));
     functions.put("DELETE", new DELETE("DELETE"));
@@ -1022,7 +1043,8 @@ public class WarpScriptLib {
     functions.put("COUNTER", new COUNTER("COUNTER"));
     functions.put("COUNTERVALUE", new COUNTERVALUE("COUNTERVALUE"));
     functions.put("COUNTERDELTA", new COUNTERDELTA("COUNTERDELTA"));
-    
+    functions.put("COUNTERSET", new COUNTERSET("COUNTERSET"));
+
     //
     // Math functions
     //
@@ -1288,6 +1310,7 @@ public class WarpScriptLib {
     functions.put("bucketizer.count.nonnull", new Count("bucketizer.count.nonnull", true));
     functions.put("bucketizer.mean.circular", new CircularMean.Builder("bucketizer.mean.circular", true));
     functions.put("bucketizer.mean.circular.exclude-nulls", new CircularMean.Builder("bucketizer.mean.circular.exclude-nulls", false));
+    functions.put("bucketizer.rms", new RMS("bucketizer.rms", false));
     //
     // Mappers
     //
@@ -1341,7 +1364,8 @@ public class WarpScriptLib {
     functions.put("mapper.mean.circular", new CircularMean.Builder("mapper.mean.circular", true));
     functions.put("mapper.mean.circular.exclude-nulls", new CircularMean.Builder("mapper.mean.circular.exclude-nulls", false));
     functions.put("mapper.mod", new MapperMod.Builder("mapper.mod"));
-    
+    functions.put("mapper.rms", new RMS("mapper.rms", false));
+
     //
     // Reducers
     //
@@ -1383,7 +1407,9 @@ public class WarpScriptLib {
     functions.put("reducer.percentile", new Percentile.Builder("reducer.percentile"));
     functions.put("reducer.mean.circular", new CircularMean.Builder("reducer.mean.circular", true));
     functions.put("reducer.mean.circular.exclude-nulls", new CircularMean.Builder("reducer.mean.circular.exclude-nulls", false));
-    
+    functions.put("reducer.rms", new RMS("reducer.rms", false));
+    functions.put("reducer.rms.exclude-nulls", new RMS("reducer.rms.exclude-nulls", true));
+
     //
     // Filters
     //
@@ -1493,7 +1519,7 @@ public class WarpScriptLib {
     List<String> sortedext = new ArrayList<String>(ext);
     sortedext.sort(null);
     
-    boolean failedExt = false;
+    List<String> failedExt = new ArrayList<String>();
       
     //
     // Determine the possible jar from which WarpScriptLib was loaded
@@ -1522,7 +1548,7 @@ public class WarpScriptLib {
         
         if (null == url) {
           LOG.error("Unable to load extension '" + extension + "', make sure it is in the class path.");
-          failedExt = true;
+          failedExt.add(extension);
           continue;
         }
         
@@ -1570,8 +1596,15 @@ public class WarpScriptLib {
       }
     }
     
-    if (failedExt) {
-      throw new RuntimeException("Some WarpScript extensions could not be loaded, aborting.");
+    if (!failedExt.isEmpty()) {
+      StringBuilder sb = new StringBuilder();
+      sb.append("The following WarpScript extensions could not be loaded, aborting:");
+      for (String extension: failedExt) {
+        sb.append(" '");
+        sb.append(extension);
+        sb.append("'");
+      }
+      throw new RuntimeException(sb.toString());
     }
   }
   

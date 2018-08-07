@@ -29,6 +29,11 @@ public class WarpConfig {
   public static final String WARP10_CONFIG = "warp10.config";
   
   /**
+   * Name of environment variable used in various submodules to locate the Warp 10 configuration file
+   */
+  public static final String WARP10_CONFIG_ENV = "WARP10_CONFIG";
+  
+  /**
    * Name of property used at various places to define BOOTSTRAP code.
    */
   public static final String WARPSCRIPT_BOOTSTRAP = "warpscript.bootstrap";

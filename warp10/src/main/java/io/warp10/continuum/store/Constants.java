@@ -58,6 +58,10 @@ public class Constants {
    */
   public static final long NS_PER_TIME_UNIT;
   
+  /**
+   * Banner, based on Figlet
+   * @see http://patorjk.com/software/taag/#p=display&f=Speed&t=Warp%2010
+   */  
   public static final String WARP10_BANNER = "  ___       __                           ____________ \n" + 
       "  __ |     / /_____ _______________      __<  /_  __ \\\n" + 
       "  __ | /| / /_  __ `/_  ___/__  __ \\     __  /_  / / /\n" + 

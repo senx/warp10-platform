@@ -69,7 +69,7 @@ public class TIMESPLIT extends GTSStackFunction {
     top = stack.pop();
 
     if (!(top instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects a quiet period under the minumum number of labels.");
+      throw new WarpScriptException(getName() + " expects a quiet period under the minimum number of values.");
     }
 
     params.put(QUIETPERIOD, (long) top);

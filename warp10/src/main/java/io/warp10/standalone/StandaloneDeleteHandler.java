@@ -23,6 +23,7 @@ import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.egress.EgressFetchHandler;
 import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.MetadataIdComparator;
 import io.warp10.continuum.ingress.DatalogForwarder;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
@@ -44,6 +45,7 @@ import java.io.PrintWriter;
 import java.net.URLDecoder;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -478,17 +480,13 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       PrintWriter pw = response.getWriter();
       StringBuilder sb = new StringBuilder();
       
-      for (Metadata metadata: metadatas) {        
-        //
-        // Remove from DB
-        //
-       
-        if (!hasRange) {
-          if (!dryrun) {
-            this.directoryClient.unregister(metadata);
-          }
-        }
-        
+      //
+      // Sort Metadata by classid/labels id so deletion is more efficient
+      //
+      
+      metadatas.sort(MetadataIdComparator.COMPARATOR);
+      
+      for (Metadata metadata: metadatas) {                
         //
         // Remove data
         //
@@ -497,6 +495,16 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         
         if (!dryrun) {
           localCount = this.storeClient.delete(writeToken, metadata, start, end);
+        }
+
+        //
+        // Remove metadata from DB and Directory
+        //
+
+        if (!hasRange) {
+          if (!dryrun) {
+            this.directoryClient.unregister(metadata);
+          }
         }
 
         count += localCount;

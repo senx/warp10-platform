@@ -56,8 +56,7 @@ public class APPEND extends NamedWarpScriptFunction implements WarpScriptStackFu
       ((Map) undertop).putAll((Map) top);
       stack.push(undertop);
     } else {
-      stack.push(undertop);
-      stack.push(top);
+      throw new WarpScriptException(getName() + " can only operate on 2 lists or 2 maps.");
     }
 
     return stack;
