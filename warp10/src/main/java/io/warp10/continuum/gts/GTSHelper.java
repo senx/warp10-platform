@@ -953,13 +953,13 @@ public class GTSHelper {
     
     if (value instanceof Boolean) {
       if (TYPE.LONG == gts.type) {
-        gts.longValues[idx] = (boolean) value ? 1L : 0L;
+        gts.longValues[idx] = ((Boolean) value).booleanValue() ? 1L : 0L;
       } else if (TYPE.DOUBLE == gts.type) {
-        gts.doubleValues[idx] = (boolean) value ? 1.0D : 0.0D;
+        gts.doubleValues[idx] = ((Boolean) value).booleanValue() ? 1.0D : 0.0D;
       } else if (TYPE.STRING == gts.type) {
-        gts.stringValues[idx] = (boolean) value ? "T" : "F";
+        gts.stringValues[idx] = ((Boolean) value).booleanValue() ? "T" : "F";
       } else if (TYPE.BOOLEAN == gts.type) {
-        gts.booleanValues.set(idx, (boolean) value);
+        gts.booleanValues.set(idx, ((Boolean) value).booleanValue());
       }      
     } else if (value instanceof Long || value instanceof Integer || value instanceof Short || value instanceof Byte || value instanceof BigInteger) {
       if (TYPE.LONG == gts.type) {
@@ -1378,8 +1378,7 @@ public class GTSHelper {
     if (0 == bucketspan) {
       if(0 == bucketcount) {
         throw new WarpScriptException("One of bucketspan or bucketcount must be different from zero.");
-      }
-      else {
+      } else {
         if (lastbucket >= firsttick) {
           long delta = lastbucket - firsttick + 1;
           bucketspan = delta / bucketcount;
@@ -2817,7 +2816,7 @@ public class GTSHelper {
         sb.append(".0");
       }
     } else if (value instanceof Boolean) {
-      sb.append((boolean) value ? "T" : "F");
+      sb.append(((Boolean) value).equals(Boolean.TRUE) ? "T" : "F");
     } else if (value instanceof String) {
       sb.append("'");
       try {
@@ -3477,7 +3476,8 @@ public class GTSHelper {
     
     GeoTimeSerie serie = new GeoTimeSerie(gts.lastbucket, gts.bucketcount, gts.bucketspan, 4);
     serie.setName(gts.getName());
-    Map<String,String> labels = new HashMap<String,String>(gts.getLabels());
+    Map<String,String> labels = new HashMap<String,String>();
+    labels.putAll(gts.getLabels());
     labels.put(labelname, Integer.toString(gtsid));
     serie.setLabels(labels);
     if (gts.getMetadata().getAttributesSize() > 0) {
@@ -3498,7 +3498,8 @@ public class GTSHelper {
         }
         serie = new GeoTimeSerie(gts.lastbucket, gts.bucketcount, gts.bucketspan, 4);
         serie.setName(gts.getName());
-        labels = new HashMap<String,String>(gts.getLabels());
+        labels = new HashMap<String,String>();
+        labels.putAll(gts.getLabels());
         gtsid++;
         labels.put(labelname, Integer.toString(gtsid));
         serie.setLabels(labels);
@@ -4803,7 +4804,7 @@ public class GTSHelper {
     
     boolean done = false;
     
-    for (List<GeoTimeSerie> subserie : subseries) {
+    for (List<GeoTimeSerie> subserie: subseries) {
       for (GeoTimeSerie serie: subserie) {
         // If we encountered a non bucketized GTS instance after
         // encountering a bucketized one, result won't be bucketized
@@ -5718,11 +5719,11 @@ public class GTSHelper {
     }
   
     // Do nothing if array size / value count is <= ratio
-    if (null == gts.ticks || (double) gts.ticks.length / (double) gts.values <= ratio) {
+    if ((double) gts.ticks.length / (double) gts.values <= ratio) {
       return;
     }
     
-    if (gts.ticks.length > gts.values) {
+    if (gts.ticks.length > gts.values) { // When 0 < gts.values we're sure null != gts.ticks
       gts.ticks = Arrays.copyOf(gts.ticks, gts.values);
     }
     if (null != gts.locations && gts.locations.length > gts.values) {
@@ -6659,7 +6660,8 @@ public class GTSHelper {
   }
   
   /**
-   * Reduce the number of values in a GTS.
+   * Reduce the number of values in a GTS. The underlying arrays are not shrunk.
+   * If the new size is far lower than the old size and should stay that way, consider applying GTSHelper.shrink to avoid wasting memory.
    * 
    * @param gts Geo Time Series to reduce
    * @param newsize New number of values
@@ -6668,14 +6670,6 @@ public class GTSHelper {
   public static GeoTimeSerie shrinkTo(GeoTimeSerie gts, int newsize) {
     if (newsize >= 0 && newsize < gts.values) {
       gts.values = newsize;
-    }
-
-    //
-    // Shrink the GTS if the underlying storage is unused for more than 10% of the capacity
-    //
-
-    if (gts.ticks.length - gts.values > gts.values * 0.1) {
-      GTSHelper.shrink(gts);
     }
     
     return gts;
@@ -7009,7 +7003,7 @@ public class GTSHelper {
 
       int size = 0;
 
-      for (GeoTimeSerie chunk : chunks) {
+      for (GeoTimeSerie chunk: chunks) {
         // Set the type of the result from the type of the first chunk with
         // a defined type.
         if (null == type) {
@@ -7034,7 +7028,7 @@ public class GTSHelper {
       long bucketspan = 0L;
       long firstbucket = Long.MAX_VALUE;
 
-      for (GeoTimeSerie chunk : chunks) {
+      for (GeoTimeSerie chunk: chunks) {
         // If one chunk is not bucketized, exit
         if (!isBucketized(chunk)) {
           bucketspan = 0L;
@@ -7083,7 +7077,7 @@ public class GTSHelper {
       boolean hasClass = false;
       Map<String, String> labels = null;
 
-      for (GeoTimeSerie chunk : chunks) {
+      for (GeoTimeSerie chunk: chunks) {
 
         if (null == classname) {
           classname = chunk.getMetadata().getName();
@@ -7095,10 +7089,11 @@ public class GTSHelper {
         Map<String, String> chunklabels = chunk.getMetadata().getLabels();
 
         if (null == labels) {
-          labels = new HashMap<String, String>(chunklabels);
+          labels = new HashMap<String, String>();
+          labels.putAll(chunklabels);
         } else {
           // Determine the common labels of chunks
-          for (Entry<String, String> entry : chunklabels.entrySet()) {
+          for (Entry<String, String> entry: chunklabels.entrySet()) {
             if (!entry.getValue().equals(labels.get(entry.getKey()))) {
               labels.remove(entry.getKey());
             }
@@ -7219,7 +7214,7 @@ public class GTSHelper {
     // Check that each bucket is with 'pcterror' of the mean
     //
     
-    for (int count : counts) {
+    for (int count: counts) {
       if (Math.abs(1.0D - (count / mean)) > pcterror) {
         return false;
       }
@@ -8711,7 +8706,7 @@ public class GTSHelper {
     // Build resulting GTS
     List<GeoTimeSerie> result = new ArrayList<GeoTimeSerie>();
     
-    for (GeoTimeSerie gts : series) {
+    for (GeoTimeSerie gts: series) {
       result.add(gts.cloneEmpty(gts.values / 2));
     }
     
