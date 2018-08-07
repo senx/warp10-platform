@@ -323,9 +323,11 @@ public class WarpScriptLib {
   public static final String SNAPSHOTALL = "SNAPSHOTALL";
   public static final String LOAD = "LOAD";
   public static final String POPR = "POPR";
+  public static final String PUSHR = "PUSHR";
   public static final String CLEARREGS = "CLEARREGS";
   public static final String RUN = "RUN";
   public static final String BOOTSTRAP = "BOOTSTRAP";
+  public static final String NOOP = "NOOP";
   
   public static final String MAP_START = "{";
   public static final String MAP_END = "}";
@@ -1449,7 +1451,7 @@ public class WarpScriptLib {
       functions.put("ASREGS", new ASREGS("ASREGS"));
       for (int i = 0; i < nregs; i++) {
         functions.put(POPR + i, new POPR(POPR + i, i));
-        functions.put("PUSHR" + i, new PUSHR("PUSHR" + i, i));
+        functions.put(PUSHR + i, new PUSHR(PUSHR + i, i));
       }      
     }
     
