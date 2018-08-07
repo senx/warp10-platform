@@ -16,21 +16,6 @@
 
 package io.warp10.script;
 
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.KafkaProducerPool;
-import io.warp10.continuum.KafkaSynchronizedConsumerPool;
-import io.warp10.continuum.TimeSource;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.thrift.data.RunRequest;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.DummyKeyStore;
-import io.warp10.crypto.KeyStore;
-import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.crypto.SipHashInline;
-import io.warp10.sensision.Sensision;
-import io.warp10.standalone.StandaloneScriptRunner;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -59,10 +44,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 import java.util.zip.GZIPOutputStream;
 
-import kafka.javaapi.producer.Producer;
-import kafka.producer.KeyedMessage;
-import kafka.producer.ProducerConfig;
-
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -75,6 +56,23 @@ import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.framework.recipes.leader.LeaderLatch;
 import com.netflix.curator.retry.RetryNTimes;
+
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.KafkaProducerPool;
+import io.warp10.continuum.KafkaSynchronizedConsumerPool;
+import io.warp10.continuum.TimeSource;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.thrift.data.RunRequest;
+import io.warp10.crypto.CryptoUtils;
+import io.warp10.crypto.DummyKeyStore;
+import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.crypto.SipHashInline;
+import io.warp10.sensision.Sensision;
+import kafka.javaapi.producer.Producer;
+import kafka.producer.KeyedMessage;
+import kafka.producer.ProducerConfig;
 
 /**
  * Periodically submit WarpScript scripts residing in subdirectories of the given root.
@@ -161,6 +159,8 @@ public class ScriptRunner extends Thread {
   
   private final byte[] runnerPSK;
   
+  private final boolean runAtStartup;
+  
   public ScriptRunner(KeyStore keystore, Properties config) throws IOException {
       
     //
@@ -197,6 +197,12 @@ public class ScriptRunner extends Thread {
       isWorker = true;
     } else {
       isWorker = false;
+    }
+  
+    if (isStandalone || isScheduler) {      
+      this.runAtStartup = "true".equals(config.getProperty(Configuration.RUNNER_RUNATSTARTUP, "true"));
+    } else {
+      this.runAtStartup = true;
     }
     
     if (isStandalone && (isWorker || isScheduler)) {
@@ -380,7 +386,20 @@ public class ScriptRunner extends Thread {
         
         Long schedule = nextrun.remove(script);
         
-        if (null == schedule || schedule <= now) {
+        if (null == schedule) {
+          if (runAtStartup) {
+            runnables.add(script);
+          } else {
+            long period = scripts.get(script);
+            long schedat = System.currentTimeMillis();
+            
+            if (0 != schedat % period) {
+              schedat = schedat - (schedat % period) + period;
+            }
+
+            nextrun.put(script, schedat);
+          }
+        } else if (schedule <= now) {
           runnables.add(script);
         } else if (null != schedule) {
           nextrun.put(script, schedule);

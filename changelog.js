@@ -7,7 +7,7 @@ let md =
 
 `;
 
-let tagList = execSync('git tag -l | sort -V -r | head -n 5').toString().split('\n');
+let tagList = execSync('git tag --sort -version:refname | head -n 10').toString().split('\n');
 let lastTag = tagList[0];
 tagList = tagList.slice(1, -1);
 tagList.forEach(tag => {

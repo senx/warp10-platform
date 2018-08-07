@@ -16,22 +16,24 @@
 
 package io.warp10.script.mapper;
 
-import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.continuum.store.GTSStore;
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptMapperFunction;
-import io.warp10.script.WarpScriptException;
-
 import com.geoxp.GeoXPLib;
+
+import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.StackUtils;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptMapperFunction;
 
 public class MapperKernelSmoother extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
 
   private final long step;
+  private final long width;
   private final double[] weights;
   
-  public MapperKernelSmoother(String name, long step, double[] weights) {
+  public MapperKernelSmoother(String name, long step, long width, double[] weights) {
     super(name);
     this.step = step;
+    this.width = width;
     this.weights = weights;
   }
   
@@ -95,5 +97,17 @@ public class MapperKernelSmoother extends NamedWarpScriptFunction implements War
     }
     
     return new Object[] { tick, location, elevation, value };
+  }
+  
+  
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(StackUtils.toString(step));
+    sb.append(" ");
+    sb.append(StackUtils.toString(width));
+    sb.append(" ");
+    sb.append(this.getName());
+    return sb.toString();
   }
 }

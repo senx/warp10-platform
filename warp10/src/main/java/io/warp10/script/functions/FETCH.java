@@ -683,7 +683,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
           
           ms = out.toByteArray();          
         } catch (IOException e) {
-          throw new WarpScriptException(getName() + " encountered an invalid MetaSet.");
+          throw new WarpScriptException(getName() + " encountered an invalid MetaSet.", e);
         }                
       }
       
@@ -693,7 +693,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       try {
         deser.deserialize(metaset, (byte[]) ms);
       } catch (TException te) {
-        throw new WarpScriptException(getName() + " was unable to decode the provided MetaSet.");
+        throw new WarpScriptException(getName() + " was unable to decode the provided MetaSet.", te);
       }
 
       //

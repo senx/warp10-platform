@@ -118,7 +118,7 @@ public class SECURE extends NamedWarpScriptFunction implements WarpScriptStackFu
       
       return encoded;
     } catch (TException te) {
-      throw new WarpScriptException("Unable to secure script.");
+      throw new WarpScriptException("Unable to secure script.", te);
     }
 
   }

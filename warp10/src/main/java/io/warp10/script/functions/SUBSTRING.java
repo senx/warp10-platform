@@ -16,6 +16,8 @@
 
 package io.warp10.script.functions;
 
+import org.python.bouncycastle.util.Arrays;
+
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -42,9 +44,11 @@ public class SUBSTRING extends NamedWarpScriptFunction implements WarpScriptStac
     if (top instanceof String) {
       stack.push(top.toString().substring(n));
       return stack;
+    } else if (top instanceof byte[]) {
+      stack.push(Arrays.copyOfRange((byte[]) top, n, ((byte[]) top).length));
+      return stack;
     }
-    
-    
+        
     if (!(top instanceof Long)) {
       throw new WarpScriptException(getName() + " expects a numeric (0 based) start index below the length.");
     }
@@ -53,12 +57,14 @@ public class SUBSTRING extends NamedWarpScriptFunction implements WarpScriptStac
     
     top = stack.pop();
     
-    if (!(top instanceof String)) {
-      throw new WarpScriptException(getName() + " can only operate on strings.");
+    if (top instanceof String) {
+      stack.push(top.toString().substring(idx, Math.min(n + idx, top.toString().length())));      
+    } else if (top instanceof byte[]) {
+      stack.push(Arrays.copyOfRange((byte[]) top, idx, Math.min(n + idx, ((byte[]) top).length)));
+    } else {
+      throw new WarpScriptException(getName() + " can only operate on strings or byte arrays.");
     }
-    
-    stack.push(top.toString().substring(idx, n + idx));
-    
+        
     return stack;
   }
 }

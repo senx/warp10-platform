@@ -106,12 +106,26 @@ public class WarpClassLoader extends ClassLoader {
     //
     
     try {
-      Class c = defineClass(name, data, 0, data.length);
+      Class c = null;
+      
+      // Synchronize on the interned class name so we tolerate parallel executions but prevent
+      // the same class from being loaded multiple times.
+      synchronized(name.intern()) {
+        // Check again if the class is known now that we
+        // are in the critical section
+        knownClass = this.knownClasses.get(name);
+        
+        if (null != knownClass) {
+          return knownClass;
+        }
+
+        c = defineClass(name, data, 0, data.length);
+        //
+        // Store the class in the cache
+        //      
+        this.knownClasses.put(name, c);
+      }
     
-      //
-      // Store the class in the cache
-      //      
-      this.knownClasses.put(name, c);
       
       return c;
     } catch (Throwable t) {
