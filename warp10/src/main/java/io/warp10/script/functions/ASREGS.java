@@ -34,7 +34,7 @@ import io.warp10.script.WarpScriptStack.Macro;
  */
 public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  private static final NOOP NOOP = new NOOP("");
+  private static final NOOP NOOP = new NOOP(WarpScriptLib.NOOP);
   
   public ASREGS(String name) {
     super(name);
@@ -76,8 +76,8 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
     WarpScriptStackFunction[] regfuncs = new WarpScriptStackFunction[regidx * 2];
     
     for (int i = 0; i < regidx; i++) {
-      regfuncs[i] = new PUSHR("", i); // LOAD
-      regfuncs[regidx + i] = new POPR("", i); // STORE
+      regfuncs[i] = new PUSHR(WarpScriptLib.PUSHR + i, i); // LOAD
+      regfuncs[regidx + i] = new POPR(WarpScriptLib.POPR + i, i); // STORE
     }
     
     top = stack.pop();
@@ -91,43 +91,56 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
     // of the assigned register
     //
     
-    List<Object> statements = new ArrayList<Object>(((Macro) top).statements());
+    List<Macro> allmacros = new ArrayList<Macro>();
+    allmacros.add((Macro) top);
     
     boolean abort = false;
-        
-    for (int i = 1; i < statements.size(); i++) {
-      if (statements.get(i) instanceof LOAD) {
-        Object symbol = statements.get(i - 1);
-        if (!(symbol instanceof String)) {
-          abort = true;
-          break;
+
+    while(!abort && !allmacros.isEmpty()) {
+      Macro m = allmacros.remove(0);
+      
+      List<Object> statements = new ArrayList<Object>(m.statements());
+                
+      for (int i = 0; i < statements.size(); i++) {
+        if (statements.get(i) instanceof Macro) {
+          allmacros.add((Macro) statements.get(i));
+          continue;
+        } else if (statements.get(i) instanceof LOAD) {
+          Object symbol = statements.get(i - 1);
+          if (!(symbol instanceof String)) {
+            abort = true;
+            break;
+          }
+          Integer regno = varregs.get(symbol.toString());
+          if (null != regno) {
+            statements.set(i - 1, NOOP);
+            statements.set(i, regfuncs[regno]);
+          }
+        } else if (statements.get(i) instanceof STORE) {
+          Object symbol = statements.get(i - 1);
+          if (!(symbol instanceof String)) {
+            abort = true;
+            break;
+          }
+          Integer regno = varregs.get(symbol.toString());
+          if (null != regno) {
+            statements.set(i - 1, NOOP);
+            statements.set(i, regfuncs[regno+regidx]);
+          }        
         }
-        Integer regno = varregs.get(symbol.toString());
-        if (null != regno) {
-          statements.set(i - 1, NOOP);
-          statements.set(i, regfuncs[regno]);
+      }      
+      
+      if (!abort) {
+        List<Object> macstmt = m.statements();
+        for (int i = 0; i < statements.size(); i++) {
+          macstmt.set(i, statements.get(i));
         }
-      } else if (statements.get(i) instanceof STORE) {
-        Object symbol = statements.get(i - 1);
-        if (!(symbol instanceof String)) {
-          abort = true;
-          break;
-        }
-        Integer regno = varregs.get(symbol.toString());
-        if (null != regno) {
-          statements.set(i - 1, NOOP);
-          statements.set(i, regfuncs[regno+regidx]);
-        }        
       }
     }
     
-    if (!abort) {
-      List<Object> macstmt = ((Macro) top).statements();
-      for (int i = 0; i < statements.size(); i++) {
-        macstmt.set(i, statements.get(i));
-      }
+    if (abort) {
+      throw new WarpScriptException(getName() + " was unable to convert variables to registers.");
     }
-
     stack.push(top);
     
     return stack;
