@@ -34,6 +34,7 @@ import org.apache.commons.lang3.SystemUtils;
 import org.bouncycastle.crypto.digests.MD5Digest;
 import org.bouncycastle.crypto.digests.SHA1Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.jruby.ext.ffi.jffi.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -310,6 +311,11 @@ public class WarpScriptLib {
    */
   
   public static final String NULL = "NULL";
+
+  public static final String REF = "REF";
+  public static final String COMPILE = "COMPILE";
+  public static final String SAFECOMPILE = "SAFECOMPILE";
+  public static final String COMPILED = "COMPILED";
   
   public static final String EVAL = "EVAL";
   public static final String EVALSECURE = "EVALSECURE";
@@ -540,6 +546,14 @@ public class WarpScriptLib {
     functions.put("SNAPSHOTCOPYN", new SNAPSHOT("SNAPSHOTCOPYN", false, false, false, true));
     functions.put("HEADER", new HEADER("HEADER"));
     
+    //
+    // Compilation related dummy functions
+    //
+    functions.put(COMPILE, new FAIL(COMPILE));
+    functions.put(SAFECOMPILE, new NOOP(SAFECOMPILE));
+    functions.put(COMPILED, new FAIL(COMPILED));
+    functions.put(REF, new REF(REF));
+
     functions.put("MACROTTL", new MACROTTL("MACROTTL"));
     functions.put("MACROMAPPER", new MACROMAPPER("MACROMAPPER"));
     functions.put("MACROREDUCER", new MACROMAPPER("MACROREDUCER"));
