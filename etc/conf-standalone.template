@@ -5,6 +5,16 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
+// Maximum number of classes for which to report detailed stats in 'FINDSTATS'
+// 
+directory.stats.class.maxcardinality = 100
+
+//
+// Maximum number of labels for which to report detailed stats in 'FINDSTATS'
+// 
+directory.stats.labels.maxcardinality = 100
+
+//
 // Set to true to only run the Warp 10™ Analytics Engine
 //
 #analytics.engine.only = true
