@@ -24,15 +24,25 @@ import io.warp10.script.WarpScriptStack;
 public class POPR extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
   private final int regno;
+  private final boolean conditional;
   
   public POPR(String name, int regno) {
+    this(name, regno, false);
+  }
+
+  public POPR(String name, int regno, boolean conditional) {
     super(name);
     this.regno = regno;
+    this.conditional = conditional;
   }
-  
+
   @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {    
-    stack.store(this.regno, stack.pop());
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    Object top = stack.pop();
+    
+    if (!conditional || null == stack.load(this.regno)) {
+      stack.store(this.regno, top);
+    }
     
     return stack;
   }
