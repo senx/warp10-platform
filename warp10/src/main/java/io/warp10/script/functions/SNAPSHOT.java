@@ -44,6 +44,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Replaces the stack so far with a WarpScript snippet which will regenerate
@@ -194,6 +195,15 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
       if (null == o) {
         sb.append(WarpScriptLib.NULL);
         sb.append(" ");
+      } else if (o instanceof AtomicLong) {
+        sb.append(WarpScriptLib.COUNTER);
+        sb.append(" ");
+        if (0 != ((AtomicLong) o).get()) {
+          sb.append(((AtomicLong) o).get());
+          sb.append(" ");
+          sb.append(WarpScriptLib.COUNTERSET);
+          sb.append(" ");
+        }
       } else if (o instanceof Number) {
         sb.append(o);
         sb.append(" ");

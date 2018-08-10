@@ -312,6 +312,10 @@ public class WarpScriptLib {
   
   public static final String NULL = "NULL";
 
+  public static final String COUNTER = "COUNTER";
+  public static final String COUNTERSET = "COUNTERSET";
+  
+  
   public static final String REF = "REF";
   public static final String COMPILE = "COMPILE";
   public static final String SAFECOMPILE = "SAFECOMPILE";
@@ -1038,10 +1042,10 @@ public class WarpScriptLib {
     // Counters
     //
     
-    functions.put("COUNTER", new COUNTER("COUNTER"));
+    functions.put(COUNTER, new COUNTER(COUNTER));
     functions.put("COUNTERVALUE", new COUNTERVALUE("COUNTERVALUE"));
     functions.put("COUNTERDELTA", new COUNTERDELTA("COUNTERDELTA"));
-    functions.put("COUNTERSET", new COUNTERSET("COUNTERSET"));
+    functions.put(COUNTERSET, new COUNTERSET(COUNTERSET));
 
     //
     // Math functions
