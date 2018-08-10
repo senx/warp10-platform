@@ -1449,6 +1449,7 @@ public class WarpScriptLib {
       int nregs = Integer.parseInt(props.getProperty(Configuration.CONFIG_WARPSCRIPT_REGISTERS, String.valueOf(WarpScriptStack.DEFAULT_REGISTERS)));
             
       functions.put(CLEARREGS, new CLEARREGS(CLEARREGS));
+      functions.put("VARS", new VARS("VARS"));
       functions.put("ASREGS", new ASREGS("ASREGS"));
       for (int i = 0; i < nregs; i++) {
         functions.put(POPR + i, new POPR(POPR + i, i));
