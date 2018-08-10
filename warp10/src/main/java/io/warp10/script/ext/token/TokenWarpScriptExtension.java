@@ -27,10 +27,12 @@ public class TokenWarpScriptExtension extends WarpScriptExtension {
     
   public TokenWarpScriptExtension() {
     functions.put("TOKENGEN", new TOKENGEN("TOKENGEN"));
+    functions.put("TOKENDUMP", new TOKENDUMP("TOKENDUMP"));
   }
   
   public TokenWarpScriptExtension(KeyStore keystore) {
     functions.put("TOKENGEN", new TOKENGEN("TOKENGEN", keystore));
+    functions.put("TOKENDUMP", new TOKENDUMP("TOKENDUMP", keystore));
   }
   
   @Override

@@ -25,11 +25,16 @@ import io.warp10.standalone.Warp;
 public class TokenGen {
   public static void main(String[] args) throws Exception {
     
-    if (args.length < 2) {
-      System.err.println("Usage: TokenGen config in out");
-      System.exit(-1);
-    }
+    TokenGen instance = new TokenGen();
     
+    instance.usage(args);
+
+    instance.parse(args);
+    
+    instance.process(args);
+  }
+  
+  public void parse(String[] args) throws Exception {
     String config = args[0];
     
     WarpConfig.setProperties(config);
@@ -100,7 +105,16 @@ public class TokenGen {
     TokenWarpScriptExtension ext = new TokenWarpScriptExtension(keystore);
         
     WarpScriptLib.register(ext);
-    
+  }
+  
+  public void usage(String[] args) {
+    if (args.length < 2) {
+      System.err.println("Usage: TokenGen config in out");
+      System.exit(-1);
+    }
+  }
+  
+  public void process(String[] args) throws Exception {
     PrintWriter pw = new PrintWriter(System.out);
     
     if (args.length > 2) {
@@ -143,6 +157,6 @@ public class TokenGen {
     StackUtils.toJSON(pw, stack);
     
     pw.flush();
-    pw.close();
+    pw.close();    
   }
 }
