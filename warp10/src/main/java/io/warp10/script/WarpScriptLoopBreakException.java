@@ -20,4 +20,9 @@ public class WarpScriptLoopBreakException extends WarpScriptATCException {
   public WarpScriptLoopBreakException(String message) {
     super(message);
   }
+  
+  @Override
+  public synchronized Throwable fillInStackTrace() {
+    return this;
+  }
 }
