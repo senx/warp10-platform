@@ -73,11 +73,12 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
       }
     }
     
-    WarpScriptStackFunction[] regfuncs = new WarpScriptStackFunction[regidx * 2];
+    WarpScriptStackFunction[] regfuncs = new WarpScriptStackFunction[regidx * 3];
     
     for (int i = 0; i < regidx; i++) {
       regfuncs[i] = new PUSHR(WarpScriptLib.PUSHR + i, i); // LOAD
       regfuncs[regidx + i] = new POPR(WarpScriptLib.POPR + i, i); // STORE
+      regfuncs[regidx + regidx + i] = new POPR(WarpScriptLib.POPR + i, i, true); // CSTORE
     }
     
     top = stack.pop();
@@ -127,6 +128,17 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             statements.set(i - 1, NOOP);
             statements.set(i, regfuncs[regno+regidx]);
           }        
+        } else if (statements.get(i) instanceof CSTORE) {
+          Object symbol = statements.get(i - 1);
+          if (!(symbol instanceof String)) {
+            abort = true;
+            break;
+          }
+          Integer regno = varregs.get(symbol.toString());
+          if (null != regno) {
+            statements.set(i - 1, NOOP);
+            statements.set(i, regfuncs[regno+regidx+regidx]);
+          }                  
         }
       }      
       
