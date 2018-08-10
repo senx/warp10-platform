@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.BitSet;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Push on the stack the type of the object on top of the stack
@@ -67,6 +68,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String TYPE_PIMAGE = "PIMAGE";
   public static final String TYPE_PFONT = "PFONT";
   public static final String TYPE_PSHAPE = "PSHAPE";
+  public static final String TYPE_COUNTER = "COUNTER";
 
 
   public TYPEOF(String name) {
@@ -126,6 +128,8 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
       return (TYPE_REALVECTOR);
     } else if (o instanceof RealMatrix) {
       return (TYPE_REALMATRIX);
+    } else if (o instanceof AtomicLong) {
+      return (TYPE_COUNTER);
     } else {
       return (o.getClass().getCanonicalName());
     }
