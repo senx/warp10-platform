@@ -144,9 +144,16 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
       
       if (!abort) {
         List<Object> macstmt = m.statements();
+        // Ignore the NOOPs
+        int noops = 0;
         for (int i = 0; i < statements.size(); i++) {
-          macstmt.set(i, statements.get(i));
+          if (statements.get(i) instanceof NOOP) {
+            noops++;
+            continue;
+          }
+          macstmt.set(i - noops, statements.get(i));
         }
+        m.setSize(statements.size() - noops);
       }
     }
     
