@@ -331,6 +331,12 @@ public interface WarpScriptStack {
       return size;
     }
     
+    public void setSize(int size) {
+      if (size < this.size && size >= 0) {
+        this.size = size;
+      }
+    }
+    
     public List<Object> statements() {
       return Arrays.asList(this.statements).subList(0, size);
     }
