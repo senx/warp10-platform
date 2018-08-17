@@ -328,6 +328,18 @@ public interface WarpScriptStack {
       return this.statements().size();
     }
     
+    public void setSize(int size) {
+      if (size < this.statements.size() && size > 0) {
+        int delta = this.statements.size() - size;
+        while(delta > 0) {
+          this.statements.remove(this.statements.size() - 1);
+          delta--;
+        }
+      } else if (0 == size) {
+        this.statements.clear();
+      }
+    }
+
     public List<Object> statements() {
       return this.statements;
     }
