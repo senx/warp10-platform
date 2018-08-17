@@ -553,9 +553,9 @@ public class WarpScriptLib {
     //
     // Compilation related dummy functions
     //
-    functions.put(COMPILE, new FAIL(COMPILE));
+    functions.put(COMPILE, new FAIL(COMPILE, "Not supported"));
     functions.put(SAFECOMPILE, new NOOP(SAFECOMPILE));
-    functions.put(COMPILED, new FAIL(COMPILED));
+    functions.put(COMPILED, new FAIL(COMPILED, "Not supported"));
     functions.put(REF, new REF(REF));
 
     functions.put("MACROTTL", new MACROTTL("MACROTTL"));
