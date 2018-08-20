@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -32,7 +33,7 @@ import io.warp10.script.WarpScriptStack;
 /**
  * Clone (deep copy) the GTS on top of the stack or performs a shallow copy of collections
  */
-public class CLONE extends ATINDEX implements WarpScriptStackFunction {
+public class CLONE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
   public CLONE(String name) {
     super(name);
