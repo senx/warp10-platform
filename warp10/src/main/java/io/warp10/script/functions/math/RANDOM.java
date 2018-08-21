@@ -21,8 +21,6 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
-import java.math.BigDecimal;
-
 /**
  * Check https://docs.oracle.com/javase/8/docs/api/java/lang/Math.html for the documentation of this function.
  * Last java parameter is on top of the stack.
@@ -36,7 +34,6 @@ public class RANDOM extends NamedWarpScriptFunction implements WarpScriptStackFu
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     stack.push(Math.random());
-    
 
     return stack;
   }

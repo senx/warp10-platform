@@ -21,8 +21,6 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
-import java.math.BigDecimal;
-
 /**
  * Check https://docs.oracle.com/javase/8/docs/api/java/lang/Math.html for the documentation of this function.
  * Last java parameter is on top of the stack.
@@ -50,11 +48,8 @@ public class MIN extends NamedWarpScriptFunction implements WarpScriptStackFunct
     if ((op1 instanceof Long || op1 instanceof Integer)
         && (op0 instanceof Long || op0 instanceof Integer)) {
       stack.push(Math.min(((Number) op1).longValue(), ((Number) op0).longValue()));
-    } else if ((op1 instanceof Double || op1 instanceof Long || op1 instanceof Float || op1 instanceof Integer || op1 instanceof BigDecimal)
-        && (op0 instanceof Double || op0 instanceof Long || op0 instanceof Float || op0 instanceof Integer || op0 instanceof BigDecimal)) {
-      stack.push(Math.min(((Number) op1).doubleValue(), ((Number) op0).doubleValue()));
     } else {
-      throw new WarpScriptException(getName() + " is given values of incorrect type. Expecting [ TOP:long, 2:long ] or [ TOP:double, 2:double ].");
+      stack.push(Math.min(((Number) op1).doubleValue(), ((Number) op0).doubleValue()));
     }
 
     return stack;
