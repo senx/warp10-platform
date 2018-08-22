@@ -40,7 +40,11 @@ public class TOINTEXACT extends NamedWarpScriptFunction implements WarpScriptSta
     }
 
     if ((op0 instanceof Long || op0 instanceof Integer)) {
-      stack.push(Math.toIntExact(((Number) op0).longValue()));
+      try {
+        stack.push(Math.toIntExact(((Number) op0).longValue()));
+      } catch (ArithmeticException e) {
+        throw new WarpScriptException(e);
+      }
     } else {
       throw new WarpScriptException(getName() + " is given a value of incorrect type. Expecting [ TOP:long ].");
     }

@@ -40,7 +40,11 @@ public class INCREMENTEXACT extends NamedWarpScriptFunction implements WarpScrip
     }
 
     if ((op0 instanceof Long || op0 instanceof Integer)) {
-      stack.push(Math.incrementExact(((Number) op0).longValue()));
+      try {
+        stack.push(Math.incrementExact(((Number) op0).longValue()));
+      } catch (ArithmeticException e) {
+        throw new WarpScriptException(e);
+      }
     } else {
       throw new WarpScriptException(getName() + " is given a value of incorrect type. Expecting [ TOP:long ].");
     }

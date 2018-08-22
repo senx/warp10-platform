@@ -47,7 +47,11 @@ public class SUBTRACTEXACT extends NamedWarpScriptFunction implements WarpScript
 
     if ((op1 instanceof Long || op1 instanceof Integer)
         && (op0 instanceof Long || op0 instanceof Integer)) {
-      stack.push(Math.subtractExact(((Number) op1).longValue(), ((Number) op0).longValue()));
+      try {
+        stack.push(Math.subtractExact(((Number) op1).longValue(), ((Number) op0).longValue()));
+      } catch (ArithmeticException e) {
+        throw new WarpScriptException(e);
+      }
     } else {
       throw new WarpScriptException(getName() + " is given values of incorrect type. Expecting [ TOP:long, 2:long ].");
     }

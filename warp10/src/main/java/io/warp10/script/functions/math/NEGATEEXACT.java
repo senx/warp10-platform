@@ -40,7 +40,11 @@ public class NEGATEEXACT extends NamedWarpScriptFunction implements WarpScriptSt
     }
 
     if ((op0 instanceof Long || op0 instanceof Integer)) {
-      stack.push(Math.negateExact(((Number) op0).longValue()));
+      try {
+        stack.push(Math.negateExact(((Number) op0).longValue()));
+      } catch (ArithmeticException e) {
+        throw new WarpScriptException(e);
+      }
     } else {
       throw new WarpScriptException(getName() + " is given a value of incorrect type. Expecting [ TOP:long ].");
     }
