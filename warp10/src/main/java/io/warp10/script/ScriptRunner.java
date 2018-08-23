@@ -81,6 +81,15 @@ import java.util.zip.GZIPOutputStream;
  */
 public class ScriptRunner extends Thread {
 
+  private class NamedThreadFactory implements ThreadFactory {
+    private AtomicLong threadNumber = new AtomicLong();
+
+    @Override
+    public Thread newThread(Runnable r) {
+      return new Thread(r, "[Warp ScriptRunner Executor #" + threadNumber.getAndIncrement() + "]");
+    }
+  }
+
   protected static final byte[] CLEAR = "\nCLEAR\n".getBytes(Charsets.UTF_8);
 
   protected ExecutorService executor;
@@ -209,14 +218,7 @@ public class ScriptRunner extends Thread {
       this.minperiod = Long.parseLong(config.getProperty(Configuration.RUNNER_MINPERIOD));
       this.endpoint = config.getProperty(Configuration.RUNNER_ENDPOINT);
 
-      ThreadPoolExecutor runnersExecutor = new ThreadPoolExecutor(nthreads, nthreads, 30000L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(nthreads * 256), new ThreadFactory() {
-        private AtomicLong threadNumber = new AtomicLong();
-
-        @Override
-        public Thread newThread(Runnable r) {
-          return new Thread(r, "[Warp ScriptRunner Executor #" + threadNumber.getAndIncrement() + "]");
-        }
-      });
+      ThreadPoolExecutor runnersExecutor = new ThreadPoolExecutor(nthreads, nthreads, 30000L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(nthreads * 256), new NamedThreadFactory());
       runnersExecutor.allowCoreThreadTimeOut(true);
 
       this.executor = runnersExecutor;
@@ -252,7 +254,11 @@ public class ScriptRunner extends Thread {
       String strategy = config.getProperty(Configuration.RUNNER_KAFKA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY);
       int nthreads = Integer.parseInt(config.getProperty(Configuration.RUNNER_KAFKA_NTHREADS));
       long commitPeriod = Long.parseLong(config.getProperty(Configuration.RUNNER_KAFKA_COMMITPERIOD));
-      this.executor = new ThreadPoolExecutor(1, nthreads, 30000L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(nthreads * 256));
+
+      ThreadPoolExecutor runnersExecutor = new ThreadPoolExecutor(nthreads, nthreads, 30000L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(nthreads * 256), new NamedThreadFactory());
+      runnersExecutor.allowCoreThreadTimeOut(true);
+
+      this.executor = runnersExecutor;
 
       new KafkaSynchronizedConsumerPool(zkconnect, topic, clientid, groupid, strategy, nthreads, commitPeriod, new ScriptRunnerConsumerFactory(this));
     }
