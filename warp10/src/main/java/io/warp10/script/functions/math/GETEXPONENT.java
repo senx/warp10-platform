@@ -39,7 +39,7 @@ public class GETEXPONENT extends NamedWarpScriptFunction implements WarpScriptSt
       throw new WarpScriptException(getName() + " can only operate on numerical values.");
     }
 
-    stack.push(Math.getExponent(((Number) op0).doubleValue()));
+    stack.push((long) Math.getExponent(((Number) op0).doubleValue()));
 
     return stack;
   }

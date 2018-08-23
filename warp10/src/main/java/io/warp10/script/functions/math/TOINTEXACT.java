@@ -41,7 +41,7 @@ public class TOINTEXACT extends NamedWarpScriptFunction implements WarpScriptSta
 
     if ((op0 instanceof Long || op0 instanceof Integer)) {
       try {
-        stack.push(Math.toIntExact(((Number) op0).longValue()));
+        stack.push((long) Math.toIntExact(((Number) op0).longValue()));
       } catch (ArithmeticException e) {
         throw new WarpScriptException(e);
       }
