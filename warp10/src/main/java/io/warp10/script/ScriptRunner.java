@@ -71,7 +71,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 import java.util.zip.GZIPOutputStream;
 
@@ -81,12 +81,25 @@ import java.util.zip.GZIPOutputStream;
  */
 public class ScriptRunner extends Thread {
 
-  private class NamedThreadFactory implements ThreadFactory {
-    private AtomicLong threadNumber = new AtomicLong();
+  static class NamedThreadFactory implements ThreadFactory {
+    final ThreadGroup group;
+    final AtomicInteger threadNumber = new AtomicInteger(1);
 
-    @Override
+    NamedThreadFactory() {
+      SecurityManager s = System.getSecurityManager();
+      group = (s != null) ? s.getThreadGroup() :
+          Thread.currentThread().getThreadGroup();
+    }
+
     public Thread newThread(Runnable r) {
-      return new Thread(r, "[Warp ScriptRunner Executor #" + threadNumber.getAndIncrement() + "]");
+      Thread t = new Thread(group, r,
+          "[Warp ScriptRunner Thread #" + threadNumber.getAndIncrement() + "]",
+          0);
+      if (t.isDaemon())
+        t.setDaemon(false);
+      if (t.getPriority() != Thread.NORM_PRIORITY)
+        t.setPriority(Thread.NORM_PRIORITY);
+      return t;
     }
   }
 
