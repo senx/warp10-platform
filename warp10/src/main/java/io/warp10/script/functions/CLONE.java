@@ -49,14 +49,14 @@ public class CLONE extends NamedWarpScriptFunction implements WarpScriptStackFun
       GeoTimeSerie clone = gts.clone();
           
       stack.push(clone);      
+    } else if (o instanceof Vector) {
+      stack.push(new Vector<Object>((Vector<Object>) o));
     } else if (o instanceof List) {
       stack.push(new ArrayList<Object>((List<Object>) o));
     } else if (o instanceof Map) {
       stack.push(new HashMap<Object,Object>((Map<Object,Object>) o));
     } else if (o instanceof Set) {
       stack.push(new HashSet<Object>((Set<Object>) o));
-    } else if (o instanceof Vector) {
-      stack.push(new Vector<Object>((Vector<Object>) o));      
     } else {
       throw new WarpScriptException(getName() + " operates on List, Map, Set, Vector or Geo Time Series.");      
     }
