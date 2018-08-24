@@ -41,7 +41,7 @@ public class ELAPSED extends NamedWarpScriptFunction implements WarpScriptStackF
     if (null == elapsed) {
       stack.push(new ArrayList<Long>());
     } else {
-      stack.push(Collections.unmodifiableList(elapsed));
+      stack.push(new ArrayList<Long>(elapsed));
     }
     
     return stack;
