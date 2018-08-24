@@ -106,7 +106,8 @@ public class GTSDecoder {
    * Last String retrieved from decoder (post call to 'next')
    */
   private String lastStringValue = null;
-
+  private boolean lastStringBinary = false;
+  
   private long previousLastTimestamp = lastTimestamp;
   private long previousLastGeoXPPoint = lastGeoXPPoint;
   private long previousLastElevation = lastElevation;
@@ -446,13 +447,16 @@ public class GTSDecoder {
             throw new RuntimeException("Invalid string length.");
           }
           
-          byte[] utf8 = new byte[(int) len];
-          // Read String UTF8 representation
-          buffer.get(utf8);
+          byte[] bytes = new byte[(int) len];
+          // Read String bytes
+          buffer.get(bytes);
           previousLastStringValue = lastStringValue;
-          lastStringValue = new String(utf8, Charsets.UTF_8);
+          boolean binary = GTSEncoder.FLAGS_STRING_BINARY == (tsTypeFlag & GTSEncoder.FLAGS_STRING_BINARY);
+          lastStringValue = new String(bytes, binary ? Charsets.ISO_8859_1 : Charsets.UTF_8);
+          lastStringBinary = binary;
         } else {
-          previousLastStringValue = lastStringValue;          
+          previousLastStringValue = lastStringValue;
+          lastStringBinary = GTSEncoder.FLAGS_STRING_BINARY == (tsTypeFlag & GTSEncoder.FLAGS_STRING_BINARY);
         }
         break;
         
@@ -505,6 +509,19 @@ public class GTSDecoder {
         return lastStringValue;
       default:
         return null;
+    }
+  }
+  
+  public boolean isBinary() {
+    return TYPE.STRING.equals(lastType) && lastStringBinary;
+  }
+  
+  public Object getBinaryValue() {
+    Object val = getValue();
+    if (val instanceof String && lastStringBinary) {
+      return ((String) val).getBytes(Charsets.ISO_8859_1);
+    } else {
+      return val;
     }
   }
   
@@ -891,7 +908,7 @@ public class GTSDecoder {
         pw.print(" ");
       }
       sb.setLength(0);
-      GTSHelper.encodeValue(sb, getValue());
+      GTSHelper.encodeValue(sb, getBinaryValue());
       pw.print(sb.toString());
       pw.print("\r\n");
     }

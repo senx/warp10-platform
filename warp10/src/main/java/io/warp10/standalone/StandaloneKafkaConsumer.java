@@ -212,7 +212,7 @@ public class StandaloneKafkaConsumer {
       encoder.setLabelsId(msg.getLabelsId());
       
       while(decoder.next()) {
-        encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());                            
+        encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());                            
         datapoints++;
       }
       

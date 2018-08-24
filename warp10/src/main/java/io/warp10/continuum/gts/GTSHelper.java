@@ -70,6 +70,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.fitting.PolynomialCurveFitter;
 import org.apache.commons.math3.fitting.WeightedObservedPoint;
@@ -903,6 +905,10 @@ public class GTSHelper {
       return gts.values;
     }
       
+    if (value instanceof byte[]) {
+      value = new String((byte[]) value, Charsets.ISO_8859_1);
+    }
+    
     //
     // If 'overwrite' is true, check if 'timestamp' is already in 'ticks'
     // If so, record new value there.
@@ -1977,7 +1983,7 @@ public class GTSHelper {
       throw new ParseException("Unable to parse value '" + valuestr + "'", 0);
     }
 
-    if (value instanceof String  && value.toString().length() > maxValueSize) {
+    if ((value instanceof String  && value.toString().length() > maxValueSize) || (value instanceof byte[] && ((byte[]) value).length > maxValueSize)) {
       throw new ParseException("Value too large at for GTS " + (null != encoder ? GTSHelper.buildSelector(encoder.getMetadata()) : ""), 0);
     }
     
@@ -2062,6 +2068,10 @@ public class GTSHelper {
         }
         
         value = TOQUATERNION.toQuaternion(q[0], q[1], q[2], q[3]);
+      } else if ('b' == firstChar && valuestr.startsWith("b64:")) {
+        value = Base64.decodeBase64(valuestr.substring(4));
+      } else if ('h' == firstChar && valuestr.startsWith("hex:")) {
+        value = Hex.decodeHex(valuestr.substring(4).toCharArray());
       } else {
         boolean likelydouble = UnsafeString.isDouble(valuestr);
         
@@ -2826,6 +2836,9 @@ public class GTSHelper {
         // Won't happen
       }
       sb.append("'");
+    } else if (value instanceof byte[]) {
+      sb.append("b64:");
+      sb.append(Base64.encodeBase64URLSafeString((byte[]) value));
     }
   }
   
@@ -9226,7 +9239,7 @@ public class GTSHelper {
         pw.print(" ");
       }
       sb.setLength(0);
-      GTSHelper.encodeValue(sb, decoder.getValue());
+      GTSHelper.encodeValue(sb, decoder.getBinaryValue());
       pw.print(sb.toString());
       pw.print("\r\n");
       first = false;

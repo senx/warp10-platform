@@ -207,7 +207,7 @@ public class CHUNKENCODER extends NamedWarpScriptFunction implements WarpScriptS
           chunks.put(chunkid, chunkencoder);
         }
         
-        chunkencoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+        chunkencoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
         
         // Add datapoint to adjacent chunk if overlap is > 0
         
@@ -221,7 +221,7 @@ public class CHUNKENCODER extends NamedWarpScriptFunction implements WarpScriptS
               chunkencoder.getMetadata().putToLabels(chunklabel, Long.toString(chunkid + chunkwidth));          
               chunks.put(chunkid + chunkwidth, chunkencoder);
             }
-            chunkencoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());          
+            chunkencoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());          
           }
           
           // Check previous chunk
@@ -233,7 +233,7 @@ public class CHUNKENCODER extends NamedWarpScriptFunction implements WarpScriptS
               chunkencoder.getMetadata().putToLabels(chunklabel, Long.toString(chunkid - chunkwidth));          
               chunks.put(chunkid - chunkwidth, chunkencoder);
             }
-            chunkencoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());                    
+            chunkencoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());                    
           }
         }
       }      

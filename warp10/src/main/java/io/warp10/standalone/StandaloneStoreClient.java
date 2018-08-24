@@ -183,7 +183,7 @@ public class StandaloneStoreClient implements StoreClient {
             GTSDecoder decoder = new GTSDecoder(basets, keystore.getKey(KeyStore.AES_LEVELDB_DATA), ByteBuffer.wrap(kv.getValue()));
             decoder.next();
             try {
-              encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+              encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
             } catch (IOException ioe) {
               throw new RuntimeException(ioe);
             }            
@@ -416,7 +416,7 @@ public class StandaloneStoreClient implements StoreClient {
       
       GTSEncoder enc = new GTSEncoder(decoder.getTimestamp(), this.keystore.getKey(KeyStore.AES_LEVELDB_DATA));
       
-      enc.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+      enc.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
       
       byte[] value = enc.getBytes();
     

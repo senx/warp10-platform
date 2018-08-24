@@ -1207,7 +1207,7 @@ public class Store extends Thread {
         // FIXME(hbs): allow for encrypting readings
         long basets = decoder.getTimestamp();
         GTSEncoder encoder = new GTSEncoder(basets, hbaseAESKey);
-        encoder.addValue(basets, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+        encoder.addValue(basets, decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
         
         // Prefix + classId + labelsId + timestamp
         // 128 bits

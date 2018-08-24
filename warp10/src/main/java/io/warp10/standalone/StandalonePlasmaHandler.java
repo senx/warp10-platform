@@ -727,7 +727,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
                   sb.append(metasb);
                   sb.append(" ");
                 }
-                GTSHelper.encodeValue(sb, decoder.getValue());
+                GTSHelper.encodeValue(sb, decoder.getBinaryValue());
                 sb.append("\n");
                 first = false;
               }

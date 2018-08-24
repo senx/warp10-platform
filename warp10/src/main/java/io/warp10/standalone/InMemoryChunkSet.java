@@ -129,7 +129,7 @@ public class InMemoryChunkSet {
         this.lasttimestamp[chunkid] = timestamp;
       }
       
-      chunkEncoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());      
+      chunkEncoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());      
     }
   }
   

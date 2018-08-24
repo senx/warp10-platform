@@ -95,7 +95,7 @@ public class ENCODERTO extends NamedWarpScriptFunction implements WarpScriptStac
       } else {
         element.add(elevation);
       }
-      element.add(decoder.getValue());
+      element.add(decoder.getBinaryValue());
       elements.add(element);
     }
     
