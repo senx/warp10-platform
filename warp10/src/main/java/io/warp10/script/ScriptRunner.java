@@ -127,6 +127,8 @@ public class ScriptRunner extends Thread {
 
   protected long[] KAFKA_MAC = null;
 
+  private KafkaSynchronizedConsumerPool consumerPool = null;
+
   //## Add LeaderLatch configuration
   //## Add Kafka configuration for outgoing RunRequests + MAC + AES
 
@@ -173,6 +175,7 @@ public class ScriptRunner extends Thread {
 
   private final boolean isScheduler;
   private final boolean isStandalone;
+  private final boolean isWorker;
   private final KeyStore keystore;
 
   private final byte[] runnerPSK;
@@ -200,7 +203,7 @@ public class ScriptRunner extends Thread {
 
     isScheduler = configuredRoles.contains("scheduler");
 
-    boolean isWorker = configuredRoles.contains("worker");
+    isWorker = configuredRoles.contains("worker");
 
     if (isStandalone || isScheduler) {
       this.runAtStartup = "true".equals(config.getProperty(Configuration.RUNNER_RUNATSTARTUP, "true"));
@@ -273,7 +276,7 @@ public class ScriptRunner extends Thread {
 
       this.executor = runnersExecutor;
 
-      new KafkaSynchronizedConsumerPool(zkconnect, topic, clientid, groupid, strategy, nthreads, commitPeriod, new ScriptRunnerConsumerFactory(this));
+      this.consumerPool = new KafkaSynchronizedConsumerPool(zkconnect, topic, clientid, groupid, strategy, nthreads, commitPeriod, new ScriptRunnerConsumerFactory(this));
     }
 
     if (isScheduler) {
