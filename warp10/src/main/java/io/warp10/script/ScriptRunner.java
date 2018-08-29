@@ -87,18 +87,24 @@ public class ScriptRunner extends Thread {
 
     NamedThreadFactory() {
       SecurityManager s = System.getSecurityManager();
-      group = (s != null) ? s.getThreadGroup() :
-          Thread.currentThread().getThreadGroup();
+      if (null == s) {
+        group = Thread.currentThread().getThreadGroup();
+      } else {
+        group = s.getThreadGroup();
+      }
     }
 
     public Thread newThread(Runnable r) {
-      Thread t = new Thread(group, r,
-          "[Warp ScriptRunner Thread #" + threadNumber.getAndIncrement() + "]",
-          0);
-      if (t.isDaemon())
+      Thread t = new Thread(group, r, "[Warp ScriptRunner Thread #" + threadNumber.getAndIncrement() + "]", 0);
+
+      if (t.isDaemon()) {
         t.setDaemon(false);
-      if (t.getPriority() != Thread.NORM_PRIORITY)
+      }
+
+      if (Thread.NORM_PRIORITY != t.getPriority()) {
         t.setPriority(Thread.NORM_PRIORITY);
+      }
+
       return t;
     }
   }
