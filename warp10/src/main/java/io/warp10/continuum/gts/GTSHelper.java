@@ -2968,14 +2968,27 @@ public class GTSHelper {
           break;
       }
       
-      base.values = base.values + gts.values;
-      
     } else {
       throw new RuntimeException("Merge cannot proceed with incompatible GTS types.");
     }
 
-    base.sorted = false;
-    
+    // Try to keep sorted and reversed information on the base GTS
+    if (0 == base.values) {
+      base.sorted = gts.sorted;
+      base.reversed = gts.reversed;
+    } else if (base.sorted && gts.sorted && base.reversed == gts.reversed) {
+      // We're already sure 0 != gts.values (checked at the beginning of the function) and 0 != base.values (checked above)
+      if (base.reversed) {
+        base.sorted = base.ticks[base.values - 1] >= gts.ticks[0];
+      } else {
+        base.sorted = base.ticks[base.values - 1] <= gts.ticks[0];
+      }
+    } else {
+      base.sorted = false;
+    }
+
+    base.values = base.values + gts.values;
+
     return base;
   }
 
