@@ -16,6 +16,8 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -33,12 +35,12 @@ public class APPEND extends NamedWarpScriptFunction implements WarpScriptStackFu
   public APPEND(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
     Object undertop = stack.pop();
-    
+
     if (top instanceof List && undertop instanceof List) {
       try {
         ((List) undertop).addAll((List) top);
@@ -55,8 +57,10 @@ public class APPEND extends NamedWarpScriptFunction implements WarpScriptStackFu
     } else if (top instanceof Map && undertop instanceof Map) {
       ((Map) undertop).putAll((Map) top);
       stack.push(undertop);
+    } else if (top instanceof GeoTimeSerie && undertop instanceof GeoTimeSerie) {
+      stack.push(GTSHelper.merge((GeoTimeSerie)undertop, (GeoTimeSerie)top));
     } else {
-      throw new WarpScriptException(getName() + " can only operate on 2 lists or 2 maps.");
+      throw new WarpScriptException(getName() + " can only operate on 2 lists, 2 maps or 2 GTSs.");
     }
 
     return stack;
