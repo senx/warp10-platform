@@ -384,6 +384,7 @@ import io.warp10.script.functions.RESTORE;
 import io.warp10.script.functions.RETHROW;
 import io.warp10.script.functions.RETURN;
 import io.warp10.script.functions.REV;
+import io.warp10.script.functions.REVATLEAST;
 import io.warp10.script.functions.REVERSE;
 import io.warp10.script.functions.REXEC;
 import io.warp10.script.functions.RLOWESS;
@@ -841,9 +842,10 @@ public class WarpScriptLib {
   public static final String RESTORE = "RESTORE";
   
   static {
-    
+
     functions.put("REV", new REV("REV"));
-    
+    functions.put("REVATLEAST", new REVATLEAST("REVATLEAST"));
+
     functions.put(BOOTSTRAP, new NOOP(BOOTSTRAP));
 
     functions.put("RTFM", new RTFM("RTFM"));
