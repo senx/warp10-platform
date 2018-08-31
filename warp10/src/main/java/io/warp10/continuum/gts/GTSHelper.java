@@ -924,8 +924,21 @@ public class GTSHelper {
     //
     
     if (gts.values == idx) {
-      // Reset 'sorted' flag as we add a value
-      gts.sorted = false;
+      // Try to keep 'sorted' flag if possible
+      if (0 == gts.values) {
+        gts.sorted = true;
+        gts.reversed = false;
+      } else if (1 == gts.values) {
+        gts.sorted = true;
+        gts.reversed = gts.ticks[0] > timestamp;
+      } else if (gts.sorted) { // Easy check, if all values are equal we could keep checking
+        if (gts.reversed) {
+          gts.sorted = gts.ticks[gts.values - 1] >= timestamp;
+        } else {
+          gts.sorted = gts.ticks[gts.values - 1] <= timestamp;
+        }
+      }
+
       if (TYPE.UNDEFINED == gts.type || null == gts.ticks || gts.values >= gts.ticks.length || (null == gts.locations && GeoTimeSerie.NO_LOCATION != geoxppoint) || (null == gts.elevations && GeoTimeSerie.NO_ELEVATION != elevation)) {
         provision(gts, value, geoxppoint, elevation);
       }
