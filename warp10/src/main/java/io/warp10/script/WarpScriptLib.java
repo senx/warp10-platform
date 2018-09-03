@@ -312,6 +312,7 @@ import io.warp10.script.functions.MERGE;
 import io.warp10.script.functions.META;
 import io.warp10.script.functions.METASORT;
 import io.warp10.script.functions.MINLONG;
+import io.warp10.script.functions.MINREV;
 import io.warp10.script.functions.MODE;
 import io.warp10.script.functions.MONOTONIC;
 import io.warp10.script.functions.MSGFAIL;
@@ -384,7 +385,6 @@ import io.warp10.script.functions.RESTORE;
 import io.warp10.script.functions.RETHROW;
 import io.warp10.script.functions.RETURN;
 import io.warp10.script.functions.REV;
-import io.warp10.script.functions.REVATLEAST;
 import io.warp10.script.functions.REVERSE;
 import io.warp10.script.functions.REXEC;
 import io.warp10.script.functions.RLOWESS;
@@ -844,7 +844,7 @@ public class WarpScriptLib {
   static {
 
     functions.put("REV", new REV("REV"));
-    functions.put("REVATLEAST", new REVATLEAST("REVATLEAST"));
+    functions.put("MINREV", new MINREV("MINREV"));
 
     functions.put(BOOTSTRAP, new NOOP(BOOTSTRAP));
 

@@ -25,20 +25,21 @@ import io.warp10.script.WarpScriptStackFunction;
 /**
  * Return true if the current revision tag is newer or equal to the given revision tag.
  */
-public class REVATLEAST extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class MINREV extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public REVATLEAST(String name) {
+  public MINREV(String name) {
     super(name);
   }
 
   /**
    * Parse strings of the format \d+(\.\d+)*-.* and returns an array of integers corresponding to the revision.
-   * @param revision The revision string to be parsed.
+   *
+   * @param revision     The revision string to be parsed.
    * @param errorMessage The error message to be included in the WarpScriptException in case a problem arises.
    * @return An array or integers corresponding to each part of the revision numbering.
    * @throws WarpScriptException In case the input string is malformed.
    */
-  private static Integer[] SplitRev(String revision, String errorMessage) throws WarpScriptException {
+  private static int[] SplitRev(String revision, String errorMessage) throws WarpScriptException {
 
     if (null == revision || "".equals(revision)) {
       throw new WarpScriptException(errorMessage);
@@ -57,7 +58,7 @@ public class REVATLEAST extends NamedWarpScriptFunction implements WarpScriptSta
       throw new WarpScriptException(errorMessage);
     }
 
-    Integer[] revIntSplit = new Integer[revSplit.length];
+    int[] revIntSplit = new int[revSplit.length];
 
     for (int revIndex = 0; revIndex < revSplit.length; revIndex++) {
       try {
@@ -79,15 +80,14 @@ public class REVATLEAST extends NamedWarpScriptFunction implements WarpScriptSta
     }
 
     // Split revision from "1.2.3-42-abcd" to [1, 2, 3]
-    Integer[] givenRev = SplitRev((String) o, getName() + " expects the given revision to be of the form 'X', 'X.Y' or 'X.Y.Z'. X, Y and Z are integers.");
-    Integer[] currentRev = SplitRev(Revision.REVISION, getName() + " expects the revision to be set on the platform to a string of the form 'X.Y.Z'. X, Y and Z are integers.");
+    int[] givenRev = SplitRev((String) o, getName() + " expects the given revision to be of the form 'X', 'X.Y' or 'X.Y.Z'. X, Y and Z are integers.");
+    int[] currentRev = SplitRev(Revision.REVISION, getName() + " expects the revision to be set on the platform to a string of the form 'X.Y.Z'. X, Y and Z are integers.");
 
     int revComp = 0;
-
-
+    
     // Compare corresponding elements on both arrays
     for (int revIndex = 0; revIndex < Math.min(givenRev.length, currentRev.length); revIndex++) {
-      revComp = currentRev[revIndex].compareTo(givenRev[revIndex]);
+      revComp = Integer.compare(currentRev[revIndex], givenRev[revIndex]);
       if (0 != revComp) {
         break; // If not equal, stop the comparison here.
       }
