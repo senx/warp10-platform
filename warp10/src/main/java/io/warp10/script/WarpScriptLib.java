@@ -312,6 +312,7 @@ import io.warp10.script.functions.MERGE;
 import io.warp10.script.functions.META;
 import io.warp10.script.functions.METASORT;
 import io.warp10.script.functions.MINLONG;
+import io.warp10.script.functions.MINREV;
 import io.warp10.script.functions.MODE;
 import io.warp10.script.functions.MONOTONIC;
 import io.warp10.script.functions.MSGFAIL;
@@ -841,9 +842,10 @@ public class WarpScriptLib {
   public static final String RESTORE = "RESTORE";
   
   static {
-    
+
     functions.put("REV", new REV("REV"));
-    
+    functions.put("MINREV", new MINREV("MINREV"));
+
     functions.put(BOOTSTRAP, new NOOP(BOOTSTRAP));
 
     functions.put("RTFM", new RTFM("RTFM"));
