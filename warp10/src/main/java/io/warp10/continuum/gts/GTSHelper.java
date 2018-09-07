@@ -3034,6 +3034,7 @@ public class GTSHelper {
    * @param base The GTS used as a reference
    * @param gts  The GTS whose data is to be merged with that of base.
    * @return A new instance of GTS, sorted and without duplicates if base and gts are without duplicates.
+   * @throws RuntimeException when GTSs are not of the same type and base is not empty.
    */
   public static GeoTimeSerie sortedMerge(GeoTimeSerie base, GeoTimeSerie gts) {
     // No values to merge, return clone of base
@@ -8720,7 +8721,7 @@ public class GTSHelper {
       } else if (GeoTimeSerie.TYPE.STRING == dest.type) {
         dest.stringValues = Arrays.copyOf(dest.stringValues, destMinLength);
       }
-      // else TYPE.BOOLEAN == combined.type and BitSet grow automatically
+      // else TYPE.BOOLEAN == combined.type nothing to do because BitSet grows automatically
     }
 
     if (null != dest.locations || null != src.locations) {
@@ -8774,7 +8775,7 @@ public class GTSHelper {
       System.arraycopy(src.doubleValues, srcPos, dest.doubleValues, destPos, length);
     } else if (GeoTimeSerie.TYPE.STRING == dest.type) {
       System.arraycopy(src.stringValues, srcPos, dest.stringValues, destPos, length);
-    } else { // TYPE.BOOLEAN == combined.type
+    } else { // TYPE.BOOLEAN == dest.type
       for(int i = 0; i < length; i++) {
         dest.booleanValues.set(destPos + i, src.booleanValues.get(srcPos + i));
       }
