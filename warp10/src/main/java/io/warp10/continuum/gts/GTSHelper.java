@@ -135,6 +135,14 @@ public class GTSHelper {
     return sort(gts, false);
   }
 
+  /**
+   * Option for the binarySearchTick function.
+   * In case of duplicate ticks in a GTS, specify which index to return.
+   *
+   * ARBITRARY: binarySearchTick will return an arbitrary index corresponding to a matching tick.
+   * FIRST:     binarySearchTick will return the lowest index corresponding to a matching tick.
+   * LAST:      binarySearchTick will return the highest index corresponding to a matching tick.
+   */
   public enum BinarySearchTickChoice {
     ARBITRARY, FIRST, LAST
   }
