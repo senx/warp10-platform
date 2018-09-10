@@ -18,49 +18,47 @@ package io.warp10.script.functions;
 
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.script.GTSStackFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Extract the value/location/elevation at 'tick' of the GTS on top of the stack
  */
-public class ATTICK extends ATINDEX implements WarpScriptStackFunction {
-  
+public class ATTICK extends GTSStackFunction {
+
+  private static final String TICK = "TICK";
+
   public ATTICK(String name) {
     super(name);
   }
-  
+
   @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+  protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
+    int idx = GTSHelper.indexAtTick(gts, (Long)params.get(TICK));
+
+    return ATINDEX.getTupleAtIndex(gts, idx);
+  }
+
+  @Override
+  protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
+    Map<String, Object> params = new HashMap<String, Object>();
+
     Object o = stack.pop();
-    
+
     if (!(o instanceof Number)) {
       throw new WarpScriptException(getName() + " expects a tick on top of the stack.");
     }
-    
+
     long tick = ((Number) o).longValue();
-    
-    o = stack.pop();
-    
-    if (!(o instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " expects a Geo Time Series instance on top of the stack.");
-    }
-     
-    GeoTimeSerie gts = (GeoTimeSerie) o;
-    
-    //
-    // Retrieve the index of the tick
-    //
-    
-    int idx = GTSHelper.indexAtTick(gts, tick);
 
-    List<Object> result = getTupleAtIndex(gts, idx);
-    
-    stack.push(result);
+    params.put(TICK, tick);
 
-    return stack;
+    return params;
   }
 }
