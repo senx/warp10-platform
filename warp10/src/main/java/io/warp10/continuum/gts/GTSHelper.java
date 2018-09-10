@@ -134,6 +134,79 @@ public class GTSHelper {
   public static final GeoTimeSerie sort(GeoTimeSerie gts) {
     return sort(gts, false);
   }
+
+  /**
+   * Option for the binarySearchTick function.
+   * In case of duplicate ticks in a GTS, specify which index to return.
+   *
+   * ARBITRARY: binarySearchTick will return an arbitrary index corresponding to a matching tick.
+   * FIRST:     binarySearchTick will return the lowest index corresponding to a matching tick.
+   * LAST:      binarySearchTick will return the highest index corresponding to a matching tick.
+   */
+  public enum BinarySearchTickChoice {
+    ARBITRARY, FIRST, LAST
+  }
+
+  public static final int binarySearchTick(GeoTimeSerie gts, long timestamp, BinarySearchTickChoice tickChoice) {
+    return binarySearchTick(gts, 0, gts.values, timestamp, tickChoice);
+  }
+
+  /**
+   * Gives the index of the first/last/arbitrary instance of the given timestamp in a sorted GTS.
+   * Similar in principle to Arrays.binarySearch
+   *
+   * @param gts       The GTS in which the timestamp is searched
+   * @param timestamp The searched timestamp
+   * @return the index of the last instance of the given timestamp in a sorted GTS or (-(insertion point) - 1).
+   */
+  public static final int binarySearchTick(GeoTimeSerie gts, int fromIndex, int toIndex, long timestamp, BinarySearchTickChoice tickChoice) {
+
+    // If no ticks
+    if (null == gts.ticks) {
+      return -1;
+    }
+
+    // Make sure the GTS is sorted
+    sort(gts, gts.reversed);
+
+    int low = fromIndex;
+    int high = toIndex - 1;
+    int resIndex = -1;
+    int compFactor = gts.reversed ? -1 : 1;
+
+    while (low <= high) {
+      int mid = (low + high) >>> 1;
+      long midVal = gts.ticks[mid];
+
+      int comp = Long.compare(midVal, timestamp) * compFactor;
+
+      if (0 > comp) {
+        low = mid + 1;
+      } else if (0 < comp) {
+        high = mid - 1;
+      } else {
+        if (BinarySearchTickChoice.ARBITRARY == tickChoice) {
+          return mid;
+        }
+        resIndex = mid;
+        if (BinarySearchTickChoice.FIRST == tickChoice) {
+          high = mid - 1;
+        } else { // BinarySearchTickChoice.LAST == tickChoice
+          low = mid + 1;
+        }
+      }
+    }
+
+    if (0 <= resIndex) { // Key found
+      return resIndex;
+    } else { // Key not found, return insertion point: -(insertion_point + 1)
+      if (gts.reversed) {
+        return -(high + 1);
+      } else {
+        return -(low + 1);
+      }
+    }
+  }
   
   public static final GeoTimeSerie valueSort(GeoTimeSerie gts, boolean reversed) {
     quicksortByValue(gts, 0, gts.values - 1, reversed);
@@ -911,10 +984,19 @@ public class GTSHelper {
     int idx = gts.values;
     
     if (overwrite) {
-      for (int i = 0; i < gts.values; i++) {
-        if (timestamp == gts.ticks[i]) {
-          idx = i;
-          break;
+      // Use binary search if possible
+      if (gts.sorted) {
+        int possibleIndex = binarySearchTick(gts, timestamp, BinarySearchTickChoice.FIRST);
+        // If the tick is found, change idx
+        if (0 <= possibleIndex) {
+          idx = possibleIndex;
+        }
+      } else { // GTS is not sorted, scan the ticks
+        for (int i = 0; i < gts.values; i++) {
+          if (timestamp == gts.ticks[i]) {
+            idx = i;
+            break;
+          }
         }
       }
     }
@@ -922,10 +1004,25 @@ public class GTSHelper {
     //
     // Provision memory allocation for the new value.
     //
-    
+
     if (gts.values == idx) {
-      // Reset 'sorted' flag as we add a value
-      gts.sorted = false;
+      // Try to keep 'sorted' flag if possible
+      if (2 > gts.values) { // Optimization to only make one check on most cases
+        if (0 == gts.values) {
+          gts.sorted = true;
+          gts.reversed = false;
+        } else { // 1 == gts.values
+          gts.sorted = true;
+          gts.reversed = gts.ticks[0] > timestamp;
+        }
+      } else if (gts.sorted) { // Simple check, if all values are equal we could keep checking
+        if (gts.reversed) {
+          gts.sorted = gts.ticks[gts.values - 1] >= timestamp;
+        } else {
+          gts.sorted = gts.ticks[gts.values - 1] <= timestamp;
+        }
+      }
+
       if (TYPE.UNDEFINED == gts.type || null == gts.ticks || gts.values >= gts.ticks.length || (null == gts.locations && GeoTimeSerie.NO_LOCATION != geoxppoint) || (null == gts.elevations && GeoTimeSerie.NO_ELEVATION != elevation)) {
         provision(gts, value, geoxppoint, elevation);
       }
