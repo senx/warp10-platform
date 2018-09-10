@@ -3023,6 +3023,134 @@ public class GTSHelper {
     //return encoder.getUnsafeDecoder(false).decode();
     return encoder.getDecoder(true).decode();
   }
+
+  /**
+   * Merge 2 GTSs into one sorted GTS, with values from gts overwriting values from base.
+   * If both GTSs are without duplicate, the result is also without duplicate.
+   * If there are some duplicates in base or gts, the result will contain some duplicates so it's best to avoid this situation.
+   *
+   * The returned GTS has the same classname, labels and attributes as the base GTS.
+   *
+   * @param base The GTS used as a reference
+   * @param gts  The GTS whose data is to be merged with that of base.
+   * @return A new instance of GTS, sorted and without duplicates if base and gts are without duplicates.
+   * @throws RuntimeException when GTSs are not of the same type and base is not empty.
+   */
+  public static GeoTimeSerie sortedMerge(GeoTimeSerie base, GeoTimeSerie gts) {
+    // No values to merge, return clone of base
+    if (0 == gts.values) {
+      return base.clone();
+    }
+
+    GeoTimeSerie.TYPE baseType = base.getType();
+    GeoTimeSerie.TYPE gtsType = gts.getType();
+
+    if (!GeoTimeSerie.TYPE.UNDEFINED.equals(baseType) && !baseType.equals(gtsType)) {
+      throw new RuntimeException("merge cannot proceed with incompatible GTS types.");
+    }
+
+    GeoTimeSerie merged = base.cloneEmpty();
+    merged.type = gtsType; // Make sure the type is set in case the base is UNDEFINED
+
+
+    // GTSs must be sorted
+    sort(base);
+    sort(gts);
+
+    //
+    // Initialize arrays
+    //
+
+    merged.ticks = new long[base.values + gts.values]; // If there are dups it may be more than enough but it's cheaper that way
+
+    if (null != base.locations || null != gts.locations) {
+      merged.locations = new long[merged.ticks.length];
+    }
+
+    if (null != base.elevations || null != gts.elevations) {
+      merged.elevations = new long[merged.ticks.length];
+    }
+
+    if (GeoTimeSerie.TYPE.LONG == merged.type) {
+      merged.longValues = new long[base.values + gts.values];
+    } else if (GeoTimeSerie.TYPE.DOUBLE == merged.type) {
+      merged.doubleValues = new double[base.values + gts.values];
+    } else if (GeoTimeSerie.TYPE.STRING == merged.type) {
+      merged.stringValues = new String[base.values + gts.values];
+    } else { // TYPE.BOOLEAN == merged.type
+      merged.booleanValues = new BitSet();
+    }
+
+    int baseIndex = 0;
+    int gtsIndex = 0;
+    int mergedIndex = 0;
+
+    while (base.values > baseIndex && gts.values > gtsIndex) {
+
+      if (base.ticks[baseIndex] < gts.ticks[gtsIndex]) {
+        merged.ticks[mergedIndex] = base.ticks[baseIndex];
+        if (null != merged.locations) {
+          merged.locations[mergedIndex] = null == base.locations ? GeoTimeSerie.NO_LOCATION : base.locations[baseIndex];
+        }
+        if (null != merged.locations) {
+          merged.locations[mergedIndex] = null == base.locations ? GeoTimeSerie.NO_LOCATION : base.locations[baseIndex];
+        }
+        if (GeoTimeSerie.TYPE.LONG == merged.type) {
+          merged.longValues[mergedIndex] = base.longValues[baseIndex];
+        } else if (GeoTimeSerie.TYPE.DOUBLE == merged.type) {
+          merged.doubleValues[mergedIndex] = base.doubleValues[baseIndex];
+        } else if (GeoTimeSerie.TYPE.STRING == merged.type) {
+          merged.stringValues[mergedIndex] = base.stringValues[baseIndex];
+        } else { // TYPE.BOOLEAN == merged.type
+          merged.booleanValues.set(mergedIndex, base.booleanValues.get(baseIndex));
+        }
+
+        baseIndex++;
+      } else {
+        if (base.ticks[baseIndex] == gts.ticks[gtsIndex]) {
+          baseIndex++;
+        }
+
+        merged.ticks[mergedIndex] = gts.ticks[gtsIndex];
+        if (null != merged.locations) {
+          merged.locations[mergedIndex] = null == gts.locations ? GeoTimeSerie.NO_LOCATION : gts.locations[gtsIndex];
+        }
+        if (null != merged.locations) {
+          merged.locations[mergedIndex] = null == gts.locations ? GeoTimeSerie.NO_LOCATION : gts.locations[gtsIndex];
+        }
+        if (GeoTimeSerie.TYPE.LONG == merged.type) {
+          merged.longValues[mergedIndex] = gts.longValues[gtsIndex];
+        } else if (GeoTimeSerie.TYPE.DOUBLE == merged.type) {
+          merged.doubleValues[mergedIndex] = gts.doubleValues[gtsIndex];
+        } else if (GeoTimeSerie.TYPE.STRING == merged.type) {
+          merged.stringValues[mergedIndex] = gts.stringValues[gtsIndex];
+        } else { // TYPE.BOOLEAN == merged.type
+          merged.booleanValues.set(mergedIndex, gts.booleanValues.get(gtsIndex));
+        }
+
+        gtsIndex++;
+      }
+
+      mergedIndex++;
+    }
+
+    if (base.values > baseIndex) {
+      int length = base.values - baseIndex;
+      // Safe to use copy0 because all checks have been done on array existence and size
+      copy0(base, baseIndex, merged, mergedIndex, length);
+      mergedIndex += length;
+    } else if (gts.values > gtsIndex) {
+      int length = gts.values - gtsIndex;
+      // Safe to use copy0 because all checks have been done on array existence and size
+      copy0(gts, gtsIndex, merged, mergedIndex, length);
+      mergedIndex += length;
+    }
+
+    merged.values = mergedIndex;
+    merged.sorted = true;
+
+    return merged;
+  }
   
   /**
    * Fill missing values/locations/elevations in a bucketized GTS with the previously
@@ -8566,6 +8694,111 @@ public class GTSHelper {
     output.add(trend);
     
     return output;
+  }
+
+  /**
+   * Copy the specified part of a GTS to an other specified part of GTS.
+   *
+   * @param src The source GTS
+   * @param srcPos The starting index in src
+   * @param dest The destination GTS
+   * @param destPos The starting index in dest
+   * @param length The number of points to copy
+   */
+  public static void copy(GeoTimeSerie src, int srcPos, GeoTimeSerie dest, int destPos, int length) {
+    if (!GeoTimeSerie.TYPE.UNDEFINED.equals(dest.type) && !dest.type.equals(src.type)) {
+      throw new RuntimeException("Combine cannot proceed with incompatible GTS types.");
+    }
+
+    // Make sure dest is not UNDEFINED
+    dest.type = src.type;
+
+    // Make sure all receiving arrays are initialized and big enough
+    int destMinLength = destPos + length;
+
+    if(null == dest.ticks){ // dest is empty
+      dest.ticks = new long[destMinLength];
+
+      if (GeoTimeSerie.TYPE.LONG == dest.type) {
+        dest.longValues = new long[destMinLength];
+      } else if (GeoTimeSerie.TYPE.DOUBLE == dest.type) {
+        dest.doubleValues = new double[destMinLength];
+      } else if (GeoTimeSerie.TYPE.STRING == dest.type) {
+        dest.stringValues = new String[destMinLength];
+      } else { // TYPE.BOOLEAN == combined.type
+        dest.booleanValues = new BitSet();
+      }
+    } else if(dest.ticks.length < destMinLength){ // dest is too small to contain new data
+      dest.ticks = Arrays.copyOf(dest.ticks, destMinLength);
+
+      if (GeoTimeSerie.TYPE.LONG == dest.type) {
+        dest.longValues = Arrays.copyOf(dest.ticks, destMinLength);
+      } else if (GeoTimeSerie.TYPE.DOUBLE == dest.type) {
+        dest.doubleValues = Arrays.copyOf(dest.doubleValues, destMinLength);
+      } else if (GeoTimeSerie.TYPE.STRING == dest.type) {
+        dest.stringValues = Arrays.copyOf(dest.stringValues, destMinLength);
+      }
+      // else TYPE.BOOLEAN == combined.type // nothing to do because BitSet grows automatically
+    }
+
+    // If any of dest or src have location info
+    if (null != dest.locations || null != src.locations) {
+      if(null == dest.locations){
+        dest.locations = new long[destMinLength];
+        Arrays.fill(dest.locations, GeoTimeSerie.NO_LOCATION);
+      } else if(dest.locations.length < destMinLength){
+        dest.locations = Arrays.copyOf(dest.locations, destMinLength);
+        Arrays.fill(dest.locations, dest.values, dest.values + destMinLength, GeoTimeSerie.NO_LOCATION);
+      }
+    }
+
+    // If any of dest or src have elevation info
+    if (null != dest.elevations || null != src.elevations) {
+      if(null == dest.elevations){
+        dest.elevations = new long[destMinLength];
+        Arrays.fill(dest.elevations, GeoTimeSerie.NO_ELEVATION);
+      } else if(dest.elevations.length < destMinLength){
+        dest.elevations = Arrays.copyOf(dest.elevations, destMinLength);
+        Arrays.fill(dest.elevations, dest.values, dest.values + destMinLength, GeoTimeSerie.NO_ELEVATION);
+      }
+    }
+
+    // Actual copy
+    copy0(src, srcPos, dest, destPos, length);
+
+    dest.values = Math.max(dest.values, destMinLength);
+  }
+
+  /**
+   * CAREFUL, no check done in this method.
+   * Copy the specified part of a GTS to an other specified part of GTS.
+   * Very similar to System.arraycopy.
+   *
+   * @param src The source GTS
+   * @param srcPos The starting index in src
+   * @param dest The destination GTS
+   * @param destPos The starting index in dest
+   * @param length The number of points to copy
+   */
+  private static void copy0(GeoTimeSerie src, int srcPos, GeoTimeSerie dest, int destPos, int length){
+    System.arraycopy(src.ticks, srcPos, dest.ticks, destPos, length);
+    if (null != src.locations) {
+      System.arraycopy(src.locations, srcPos, dest.locations, destPos, length);
+    }
+    if (null != src.elevations) {
+      System.arraycopy(src.elevations, srcPos, dest.elevations, destPos, length);
+    }
+    if (GeoTimeSerie.TYPE.LONG == dest.type) {
+      System.arraycopy(src.longValues, srcPos, dest.longValues, destPos, length);
+    } else if (GeoTimeSerie.TYPE.DOUBLE == dest.type) {
+      System.arraycopy(src.doubleValues, srcPos, dest.doubleValues, destPos, length);
+    } else if (GeoTimeSerie.TYPE.STRING == dest.type) {
+      System.arraycopy(src.stringValues, srcPos, dest.stringValues, destPos, length);
+    } else { // TYPE.BOOLEAN == dest.type
+      for(int i = 0; i < length; i++) {
+        dest.booleanValues.set(destPos + i, src.booleanValues.get(srcPos + i));
+      }
+    }
   }
   
   /**
