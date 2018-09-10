@@ -3136,10 +3136,12 @@ public class GTSHelper {
 
     if (base.values > baseIndex) {
       int length = base.values - baseIndex;
+      // Safe to use copy0 because all checks have been done on array existence and size
       copy0(base, baseIndex, merged, mergedIndex, length);
       mergedIndex += length;
     } else if (gts.values > gtsIndex) {
       int length = gts.values - gtsIndex;
+      // Safe to use copy0 because all checks have been done on array existence and size
       copy0(gts, gtsIndex, merged, mergedIndex, length);
       mergedIndex += length;
     }
@@ -8708,10 +8710,25 @@ public class GTSHelper {
       throw new RuntimeException("Combine cannot proceed with incompatible GTS types.");
     }
 
+    // Make sure dest is not UNDEFINED
+    dest.type = src.type;
+
     // Make sure all receiving arrays are initialized and big enough
     int destMinLength = destPos + length;
 
-    if(dest.ticks.length < destMinLength){
+    if(null == dest.ticks){ // dest is empty
+      dest.ticks = new long[destMinLength];
+
+      if (GeoTimeSerie.TYPE.LONG == dest.type) {
+        dest.longValues = new long[destMinLength];
+      } else if (GeoTimeSerie.TYPE.DOUBLE == dest.type) {
+        dest.doubleValues = new double[destMinLength];
+      } else if (GeoTimeSerie.TYPE.STRING == dest.type) {
+        dest.stringValues = new String[destMinLength];
+      } else { // TYPE.BOOLEAN == combined.type
+        dest.booleanValues = new BitSet();
+      }
+    } else if(dest.ticks.length < destMinLength){ // dest is too small to contain new data
       dest.ticks = Arrays.copyOf(dest.ticks, destMinLength);
 
       if (GeoTimeSerie.TYPE.LONG == dest.type) {
@@ -8721,26 +8738,28 @@ public class GTSHelper {
       } else if (GeoTimeSerie.TYPE.STRING == dest.type) {
         dest.stringValues = Arrays.copyOf(dest.stringValues, destMinLength);
       }
-      // else TYPE.BOOLEAN == combined.type nothing to do because BitSet grows automatically
+      // else TYPE.BOOLEAN == combined.type // nothing to do because BitSet grows automatically
     }
 
+    // If any of dest or src have location info
     if (null != dest.locations || null != src.locations) {
       if(null == dest.locations){
         dest.locations = new long[destMinLength];
         Arrays.fill(dest.locations, GeoTimeSerie.NO_LOCATION);
       } else if(dest.locations.length < destMinLength){
         dest.locations = Arrays.copyOf(dest.locations, destMinLength);
-        Arrays.fill(dest.locations, dest.values, destMinLength, GeoTimeSerie.NO_LOCATION);
+        Arrays.fill(dest.locations, dest.values, dest.values + destMinLength, GeoTimeSerie.NO_LOCATION);
       }
     }
 
+    // If any of dest or src have elevation info
     if (null != dest.elevations || null != src.elevations) {
       if(null == dest.elevations){
         dest.elevations = new long[destMinLength];
         Arrays.fill(dest.elevations, GeoTimeSerie.NO_ELEVATION);
       } else if(dest.elevations.length < destMinLength){
         dest.elevations = Arrays.copyOf(dest.elevations, destMinLength);
-        Arrays.fill(dest.elevations, dest.values, destMinLength, GeoTimeSerie.NO_ELEVATION);
+        Arrays.fill(dest.elevations, dest.values, dest.values + destMinLength, GeoTimeSerie.NO_ELEVATION);
       }
     }
 
