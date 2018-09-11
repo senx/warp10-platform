@@ -369,6 +369,15 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       //
       
       Map<String,String> extraLabels = new HashMap<String,String>();
+      
+      // Add extra labels, remove producer,owner,app
+      if (writeToken.getLabelsSize() > 0) {
+        extraLabels.putAll(writeToken.getLabels());
+        extraLabels.remove(Constants.PRODUCER_LABEL);
+        extraLabels.remove(Constants.OWNER_LABEL);
+        extraLabels.remove(Constants.APPLICATION_LABEL);
+      }
+
       //
       // Only set owner and potentially app, producer may vary
       //      
