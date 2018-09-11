@@ -44,7 +44,7 @@ public class SIZE extends NamedWarpScriptFunction implements WarpScriptStackFunc
     } else if (obj instanceof Collection) {
       stack.push((long) ((Collection) obj).size());
     } else if (obj instanceof GeoTimeSerie) {
-      // Return the number of values, not nticks whichi would return the number of buckets
+      // Return the number of values, not nticks which would return the number of buckets
       stack.push((long) GTSHelper.nvalues((GeoTimeSerie) obj));
     } else if (obj instanceof String) {
       stack.push((long) obj.toString().length());

@@ -19,52 +19,53 @@ package io.warp10.script.functions;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
-import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.GTSStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStackFunction;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Compute Skewness of a numerical GTS
  */
-public class SKEWNESS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+public class SKEWNESS extends GTSStackFunction {
+
+  private static final String APPLYBESSEL = "applyBessel";
+
   public SKEWNESS(String name) {
     super(name);
   }
-  
+
   @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
-    Object o = stack.pop();
-    
-    if (!(o instanceof Boolean)) {
-      throw new WarpScriptException(getName() + " expects a boolean on top of the stack to determine if Bessel's correction should be applied or not.");
-    }
-    
-    boolean applyBessel = Boolean.TRUE.equals(o);
-    
-    o = stack.pop();
-    
-    if (!(o instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " expects a Geo Time Series instance below the top of the stack.");
-    }
-    
-    GeoTimeSerie gts = (GeoTimeSerie) o;
-    
+  protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
     int n = GTSHelper.nvalues(gts);
-    
+
     if (0 == n) {
-      throw new WarpScriptException(getName() + " can only skewness for non empty series.");
+      throw new WarpScriptException(getName() + " can only compute skewness for non empty series.");
     }
-    
+
     if (TYPE.DOUBLE != gts.getType() && TYPE.LONG != gts.getType()) {
       throw new WarpScriptException(getName() + " can only compute skewness for numerical series.");
     }
-    
-    double skewness = GTSHelper.skewness(gts, applyBessel);
-    stack.push(skewness);
-    
-    return stack;
+
+    return GTSHelper.skewness(gts, (Boolean) params.get(APPLYBESSEL));
+  }
+
+  @Override
+  protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
+    Map<String, Object> params = new HashMap<String, Object>();
+
+    Object o = stack.pop();
+
+    if (!(o instanceof Boolean)) {
+      throw new WarpScriptException(getName() + " expects a boolean on top of the stack to determine if Bessel's correction should be applied or not.");
+    }
+
+    boolean applyBessel = Boolean.TRUE.equals(o);
+
+    params.put(APPLYBESSEL, applyBessel);
+
+    return params;
   }
 }
