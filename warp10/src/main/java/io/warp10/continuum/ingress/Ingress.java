@@ -1092,11 +1092,19 @@ public class Ingress extends AbstractHandler implements Runnable {
       //
       
       Map<String,String> extraLabels = new HashMap<String,String>();
+
+      // Add extra labels, remove producer,owner,app
+      if (writeToken.getLabelsSize() > 0) {
+        extraLabels.putAll(writeToken.getLabels());
+        extraLabels.remove(Constants.PRODUCER_LABEL);
+        extraLabels.remove(Constants.OWNER_LABEL);
+        extraLabels.remove(Constants.APPLICATION_LABEL);
+      }
+
       //
       // Only set owner and potentially app, producer may vary
       //      
       extraLabels.put(Constants.OWNER_LABEL, owner);
-      // FIXME(hbs): remove me
       if (null != application) {
         extraLabels.put(Constants.APPLICATION_LABEL, application);
         sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
