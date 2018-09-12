@@ -287,7 +287,7 @@ public class WarpScriptMacroRepository extends Thread {
     directory = dir;
     delay = refreshDelay;
     
-    ondemand = "true".equals(properties.getProperty(Configuration.REPOSITORY_ONDEMAND));
+    ondemand = !"false".equals(properties.getProperty(Configuration.REPOSITORY_ONDEMAND));
     new WarpScriptMacroRepository();
   }
   
@@ -446,8 +446,13 @@ public class WarpScriptMacroRepository extends Thread {
     } catch(Exception e) {
       // Replace macro with a FAIL indicating the error message
       Macro macro = new Macro();
-      macro.add("Error while loading macro '" + name + "': " + e.getMessage());
+      macro.add("[" + System.currentTimeMillis() + "] Error while loading macro '" + name + "': " + e.getMessage());      
       macro.add(MSGFAIL_FUNC);
+      // Set the expiry to half the refresh interval if ondemand is true so we get a chance to load a newly provided file
+      if (ondemand) {
+        macro.setExpiry(System.currentTimeMillis() + Math.max(delay / 2, 10000));
+      }
+      macro.setFingerprint(0L);
       return macro;
     } finally {
       loading.get().addAndGet(-1);

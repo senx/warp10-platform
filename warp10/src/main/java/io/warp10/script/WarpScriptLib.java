@@ -16,27 +16,6 @@
 
 package io.warp10.script;
 
-import java.net.URL;
-import java.net.URLDecoder;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Properties;
-import java.util.Map.Entry;
-
-
-import org.apache.commons.lang3.JavaVersion;
-import org.apache.commons.lang3.SystemUtils;
-import org.bouncycastle.crypto.digests.MD5Digest;
-import org.bouncycastle.crypto.digests.SHA1Digest;
-import org.bouncycastle.crypto.digests.SHA256Digest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.warp10.WarpClassLoader;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
@@ -69,6 +48,7 @@ import io.warp10.script.aggregator.Median;
 import io.warp10.script.aggregator.Min;
 import io.warp10.script.aggregator.Or;
 import io.warp10.script.aggregator.Percentile;
+import io.warp10.script.aggregator.RMS;
 import io.warp10.script.aggregator.Rate;
 import io.warp10.script.aggregator.ShannonEntropy;
 import io.warp10.script.aggregator.StandardDeviation;
@@ -113,9 +93,464 @@ import io.warp10.script.filter.FilterLastLE;
 import io.warp10.script.filter.FilterLastLT;
 import io.warp10.script.filter.FilterLastNE;
 import io.warp10.script.filter.LatencyFilter;
-import io.warp10.script.functions.*;
-import io.warp10.script.lora.LORAENC;
-import io.warp10.script.lora.LORAMIC;
+import io.warp10.script.functions.ADDDAYS;
+import io.warp10.script.functions.ADDMONTHS;
+import io.warp10.script.functions.ADDVALUE;
+import io.warp10.script.functions.ADDYEARS;
+import io.warp10.script.functions.AESUNWRAP;
+import io.warp10.script.functions.AESWRAP;
+import io.warp10.script.functions.AGO;
+import io.warp10.script.functions.ALMOSTEQ;
+import io.warp10.script.functions.APPEND;
+import io.warp10.script.functions.APPLY;
+import io.warp10.script.functions.ASSERT;
+import io.warp10.script.functions.ASSERTMSG;
+import io.warp10.script.functions.ATBUCKET;
+import io.warp10.script.functions.ATINDEX;
+import io.warp10.script.functions.ATTICK;
+import io.warp10.script.functions.ATTRIBUTES;
+import io.warp10.script.functions.AUTHENTICATE;
+import io.warp10.script.functions.B64TO;
+import io.warp10.script.functions.B64TOHEX;
+import io.warp10.script.functions.B64URLTO;
+import io.warp10.script.functions.BBOX;
+import io.warp10.script.functions.BINTO;
+import io.warp10.script.functions.BINTOHEX;
+import io.warp10.script.functions.BITCOUNT;
+import io.warp10.script.functions.BITGET;
+import io.warp10.script.functions.BITSTOBYTES;
+import io.warp10.script.functions.BREAK;
+import io.warp10.script.functions.BUCKETCOUNT;
+import io.warp10.script.functions.BUCKETIZE;
+import io.warp10.script.functions.BUCKETSPAN;
+import io.warp10.script.functions.BYTESTO;
+import io.warp10.script.functions.BYTESTOBITS;
+import io.warp10.script.functions.CALL;
+import io.warp10.script.functions.CHUNK;
+import io.warp10.script.functions.CHUNKENCODER;
+import io.warp10.script.functions.CLEAR;
+import io.warp10.script.functions.CLEARDEFS;
+import io.warp10.script.functions.CLEARSYMBOLS;
+import io.warp10.script.functions.CLEARTOMARK;
+import io.warp10.script.functions.CLIP;
+import io.warp10.script.functions.CLONE;
+import io.warp10.script.functions.CLONEEMPTY;
+import io.warp10.script.functions.COMMONTICKS;
+import io.warp10.script.functions.COMPACT;
+import io.warp10.script.functions.CONTAINS;
+import io.warp10.script.functions.CONTAINSKEY;
+import io.warp10.script.functions.CONTAINSVALUE;
+import io.warp10.script.functions.CONTINUE;
+import io.warp10.script.functions.COPYGEO;
+import io.warp10.script.functions.COUNTER;
+import io.warp10.script.functions.COUNTERDELTA;
+import io.warp10.script.functions.COUNTERSET;
+import io.warp10.script.functions.COUNTERVALUE;
+import io.warp10.script.functions.COUNTTOMARK;
+import io.warp10.script.functions.CPROB;
+import io.warp10.script.functions.CROP;
+import io.warp10.script.functions.CSTORE;
+import io.warp10.script.functions.DEBUGOFF;
+import io.warp10.script.functions.DEBUGON;
+import io.warp10.script.functions.DEDUP;
+import io.warp10.script.functions.DEF;
+import io.warp10.script.functions.DEFINED;
+import io.warp10.script.functions.DEFINEDMACRO;
+import io.warp10.script.functions.DELETE;
+import io.warp10.script.functions.DEPTH;
+import io.warp10.script.functions.DET;
+import io.warp10.script.functions.DIFFERENCE;
+import io.warp10.script.functions.DIGEST;
+import io.warp10.script.functions.DOC;
+import io.warp10.script.functions.DOCMODE;
+import io.warp10.script.functions.DOUBLEEXPONENTIALSMOOTHING;
+import io.warp10.script.functions.DROP;
+import io.warp10.script.functions.DROPN;
+import io.warp10.script.functions.DTW;
+import io.warp10.script.functions.DUP;
+import io.warp10.script.functions.DUPN;
+import io.warp10.script.functions.DURATION;
+import io.warp10.script.functions.DWTSPLIT;
+import io.warp10.script.functions.E;
+import io.warp10.script.functions.ELAPSED;
+import io.warp10.script.functions.ELEVATIONS;
+import io.warp10.script.functions.EMPTY;
+import io.warp10.script.functions.EMPTYLIST;
+import io.warp10.script.functions.EMPTYMAP;
+import io.warp10.script.functions.EMPTYSET;
+import io.warp10.script.functions.EMPTYVECTOR;
+import io.warp10.script.functions.ENCODERTO;
+import io.warp10.script.functions.ENDLIST;
+import io.warp10.script.functions.ENDMAP;
+import io.warp10.script.functions.ENDSET;
+import io.warp10.script.functions.ENDVECTOR;
+import io.warp10.script.functions.ERROR;
+import io.warp10.script.functions.ESDTEST;
+import io.warp10.script.functions.EVAL;
+import io.warp10.script.functions.EVALSECURE;
+import io.warp10.script.functions.EVERY;
+import io.warp10.script.functions.EXPORT;
+import io.warp10.script.functions.EXTLOADED;
+import io.warp10.script.functions.FAIL;
+import io.warp10.script.functions.FDWT;
+import io.warp10.script.functions.FETCH;
+import io.warp10.script.functions.FFTWINDOW;
+import io.warp10.script.functions.FILLNEXT;
+import io.warp10.script.functions.FILLPREVIOUS;
+import io.warp10.script.functions.FILLTICKS;
+import io.warp10.script.functions.FILLVALUE;
+import io.warp10.script.functions.FILTER;
+import io.warp10.script.functions.FILTERBY;
+import io.warp10.script.functions.FIND;
+import io.warp10.script.functions.FINDSTATS;
+import io.warp10.script.functions.FIRSTTICK;
+import io.warp10.script.functions.FLATTEN;
+import io.warp10.script.functions.FOR;
+import io.warp10.script.functions.FOREACH;
+import io.warp10.script.functions.FORGET;
+import io.warp10.script.functions.FORSTEP;
+import io.warp10.script.functions.FROMTSELEMENTS;
+import io.warp10.script.functions.FUSE;
+import io.warp10.script.functions.GEOHASHTO;
+import io.warp10.script.functions.GEOINTERSECTS;
+import io.warp10.script.functions.GEOOPTIMIZE;
+import io.warp10.script.functions.GEOPACK;
+import io.warp10.script.functions.GEOREGEXP;
+import io.warp10.script.functions.GEOUNPACK;
+import io.warp10.script.functions.GEOWITHIN;
+import io.warp10.script.functions.GET;
+import io.warp10.script.functions.GETHOOK;
+import io.warp10.script.functions.GETSECTION;
+import io.warp10.script.functions.GROUPBY;
+import io.warp10.script.functions.GRUBBSTEST;
+import io.warp10.script.functions.GZIP;
+import io.warp10.script.functions.GeoIntersection;
+import io.warp10.script.functions.GeoJSON;
+import io.warp10.script.functions.GeoSubtraction;
+import io.warp10.script.functions.GeoUnion;
+import io.warp10.script.functions.GeoWKT;
+import io.warp10.script.functions.HASH;
+import io.warp10.script.functions.HAVERSINE;
+import io.warp10.script.functions.HEADER;
+import io.warp10.script.functions.HEXTO;
+import io.warp10.script.functions.HEXTOB64;
+import io.warp10.script.functions.HEXTOBIN;
+import io.warp10.script.functions.HHCODETO;
+import io.warp10.script.functions.HMAC;
+import io.warp10.script.functions.HUMANDURATION;
+import io.warp10.script.functions.HYBRIDTEST;
+import io.warp10.script.functions.HYBRIDTEST2;
+import io.warp10.script.functions.IDENT;
+import io.warp10.script.functions.IDWT;
+import io.warp10.script.functions.IFT;
+import io.warp10.script.functions.IFTE;
+import io.warp10.script.functions.IMMUTABLE;
+import io.warp10.script.functions.INFO;
+import io.warp10.script.functions.INFOMODE;
+import io.warp10.script.functions.INTEGRATE;
+import io.warp10.script.functions.INTERSECTION;
+import io.warp10.script.functions.INV;
+import io.warp10.script.functions.ISAUTHENTICATED;
+import io.warp10.script.functions.ISNULL;
+import io.warp10.script.functions.ISNaN;
+import io.warp10.script.functions.ISO8601;
+import io.warp10.script.functions.ISODURATION;
+import io.warp10.script.functions.ISONORMALIZE;
+import io.warp10.script.functions.JOIN;
+import io.warp10.script.functions.JSONLOOSE;
+import io.warp10.script.functions.JSONSTRICT;
+import io.warp10.script.functions.JSONTO;
+import io.warp10.script.functions.KEYLIST;
+import io.warp10.script.functions.KURTOSIS;
+import io.warp10.script.functions.LABELS;
+import io.warp10.script.functions.LASTBUCKET;
+import io.warp10.script.functions.LASTSORT;
+import io.warp10.script.functions.LASTTICK;
+import io.warp10.script.functions.LBOUNDS;
+import io.warp10.script.functions.LFLATMAP;
+import io.warp10.script.functions.LIMIT;
+import io.warp10.script.functions.LINEOFF;
+import io.warp10.script.functions.LINEON;
+import io.warp10.script.functions.LISTTO;
+import io.warp10.script.functions.LMAP;
+import io.warp10.script.functions.LOAD;
+import io.warp10.script.functions.LOCATIONS;
+import io.warp10.script.functions.LOCSTRINGS;
+import io.warp10.script.functions.LOWESS;
+import io.warp10.script.functions.LR;
+import io.warp10.script.functions.LSORT;
+import io.warp10.script.functions.LTTB;
+import io.warp10.script.functions.MACROFILTER;
+import io.warp10.script.functions.MACROMAPPER;
+import io.warp10.script.functions.MACROTTL;
+import io.warp10.script.functions.MAKEGTS;
+import io.warp10.script.functions.MAN;
+import io.warp10.script.functions.MAP;
+import io.warp10.script.functions.MAPID;
+import io.warp10.script.functions.MAPPEREQ;
+import io.warp10.script.functions.MAPPERGE;
+import io.warp10.script.functions.MAPPERGT;
+import io.warp10.script.functions.MAPPERLE;
+import io.warp10.script.functions.MAPPERLT;
+import io.warp10.script.functions.MAPPERNE;
+import io.warp10.script.functions.MAPTO;
+import io.warp10.script.functions.MARK;
+import io.warp10.script.functions.MATCH;
+import io.warp10.script.functions.MATCHER;
+import io.warp10.script.functions.MATTO;
+import io.warp10.script.functions.MAXBUCKETS;
+import io.warp10.script.functions.MAXDEPTH;
+import io.warp10.script.functions.MAXGEOCELLS;
+import io.warp10.script.functions.MAXGTS;
+import io.warp10.script.functions.MAXLONG;
+import io.warp10.script.functions.MAXLOOP;
+import io.warp10.script.functions.MAXOPS;
+import io.warp10.script.functions.MAXPIXELS;
+import io.warp10.script.functions.MAXRECURSION;
+import io.warp10.script.functions.MAXSYMBOLS;
+import io.warp10.script.functions.MERGE;
+import io.warp10.script.functions.META;
+import io.warp10.script.functions.METASORT;
+import io.warp10.script.functions.MINLONG;
+import io.warp10.script.functions.MINREV;
+import io.warp10.script.functions.MODE;
+import io.warp10.script.functions.MONOTONIC;
+import io.warp10.script.functions.MSGFAIL;
+import io.warp10.script.functions.MSORT;
+import io.warp10.script.functions.MSTU;
+import io.warp10.script.functions.MUSIGMA;
+import io.warp10.script.functions.MaxTickSlidingWindow;
+import io.warp10.script.functions.MaxTimeSlidingWindow;
+import io.warp10.script.functions.NAME;
+import io.warp10.script.functions.NBOUNDS;
+import io.warp10.script.functions.NDEBUGON;
+import io.warp10.script.functions.NEWENCODER;
+import io.warp10.script.functions.NEWGTS;
+import io.warp10.script.functions.NONEMPTY;
+import io.warp10.script.functions.NONNULL;
+import io.warp10.script.functions.NOOP;
+import io.warp10.script.functions.NORMALIZE;
+import io.warp10.script.functions.NOTAFTER;
+import io.warp10.script.functions.NOTBEFORE;
+import io.warp10.script.functions.NOTIMINGS;
+import io.warp10.script.functions.NOW;
+import io.warp10.script.functions.NPDF;
+import io.warp10.script.functions.NRETURN;
+import io.warp10.script.functions.NSUMSUMSQ;
+import io.warp10.script.functions.NULL;
+import io.warp10.script.functions.NaN;
+import io.warp10.script.functions.ONLYBUCKETS;
+import io.warp10.script.functions.OPB64TO;
+import io.warp10.script.functions.OPB64TOHEX;
+import io.warp10.script.functions.OPS;
+import io.warp10.script.functions.OPTDTW;
+import io.warp10.script.functions.OPTIMIZE;
+import io.warp10.script.functions.PACK;
+import io.warp10.script.functions.PARSE;
+import io.warp10.script.functions.PARSESELECTOR;
+import io.warp10.script.functions.PARTITION;
+import io.warp10.script.functions.PATTERNDETECTION;
+import io.warp10.script.functions.PATTERNS;
+import io.warp10.script.functions.PICK;
+import io.warp10.script.functions.PICKLETO;
+import io.warp10.script.functions.PIGSCHEMA;
+import io.warp10.script.functions.PRNG;
+import io.warp10.script.functions.PROB;
+import io.warp10.script.functions.PROBABILITY;
+import io.warp10.script.functions.PUT;
+import io.warp10.script.functions.Pi;
+import io.warp10.script.functions.QCONJUGATE;
+import io.warp10.script.functions.QDIVIDE;
+import io.warp10.script.functions.QMULTIPLY;
+import io.warp10.script.functions.QROTATE;
+import io.warp10.script.functions.QROTATION;
+import io.warp10.script.functions.QUANTIZE;
+import io.warp10.script.functions.QUATERNIONTO;
+import io.warp10.script.functions.RAND;
+import io.warp10.script.functions.RANDPDF;
+import io.warp10.script.functions.RANGE;
+import io.warp10.script.functions.RANGECOMPACT;
+import io.warp10.script.functions.REDEFS;
+import io.warp10.script.functions.REDUCE;
+import io.warp10.script.functions.REF;
+import io.warp10.script.functions.RELABEL;
+import io.warp10.script.functions.REMOVE;
+import io.warp10.script.functions.REMOVETICK;
+import io.warp10.script.functions.RENAME;
+import io.warp10.script.functions.REOPTALT;
+import io.warp10.script.functions.REPLACE;
+import io.warp10.script.functions.RESET;
+import io.warp10.script.functions.RESETS;
+import io.warp10.script.functions.RESTORE;
+import io.warp10.script.functions.RETHROW;
+import io.warp10.script.functions.RETURN;
+import io.warp10.script.functions.REV;
+import io.warp10.script.functions.REVERSE;
+import io.warp10.script.functions.REXEC;
+import io.warp10.script.functions.RLOWESS;
+import io.warp10.script.functions.ROLL;
+import io.warp10.script.functions.ROLLD;
+import io.warp10.script.functions.ROT;
+import io.warp10.script.functions.ROTATIONQ;
+import io.warp10.script.functions.RSADECRYPT;
+import io.warp10.script.functions.RSAENCRYPT;
+import io.warp10.script.functions.RSAGEN;
+import io.warp10.script.functions.RSAPRIVATE;
+import io.warp10.script.functions.RSAPUBLIC;
+import io.warp10.script.functions.RSASIGN;
+import io.warp10.script.functions.RSAVERIFY;
+import io.warp10.script.functions.RSORT;
+import io.warp10.script.functions.RTFM;
+import io.warp10.script.functions.RUN;
+import io.warp10.script.functions.RUNNERNONCE;
+import io.warp10.script.functions.RVALUESORT;
+import io.warp10.script.functions.SAVE;
+import io.warp10.script.functions.SECTION;
+import io.warp10.script.functions.SECURE;
+import io.warp10.script.functions.SECUREKEY;
+import io.warp10.script.functions.SET;
+import io.warp10.script.functions.SETATTRIBUTES;
+import io.warp10.script.functions.SETTO;
+import io.warp10.script.functions.SHRINK;
+import io.warp10.script.functions.SINGLEEXPONENTIALSMOOTHING;
+import io.warp10.script.functions.SIZE;
+import io.warp10.script.functions.SKEWNESS;
+import io.warp10.script.functions.SMARTPARSE;
+import io.warp10.script.functions.SNAPSHOT;
+import io.warp10.script.functions.SORT;
+import io.warp10.script.functions.SORTBY;
+import io.warp10.script.functions.SPLIT;
+import io.warp10.script.functions.SRAND;
+import io.warp10.script.functions.STACKATTRIBUTE;
+import io.warp10.script.functions.STACKTOLIST;
+import io.warp10.script.functions.STANDARDIZE;
+import io.warp10.script.functions.STL;
+import io.warp10.script.functions.STLESDTEST;
+import io.warp10.script.functions.STOP;
+import io.warp10.script.functions.STORE;
+import io.warp10.script.functions.STRICTREDUCER;
+import io.warp10.script.functions.STU;
+import io.warp10.script.functions.SUBLIST;
+import io.warp10.script.functions.SUBMAP;
+import io.warp10.script.functions.SUBSTRING;
+import io.warp10.script.functions.SWAP;
+import io.warp10.script.functions.SWITCH;
+import io.warp10.script.functions.TEMPLATE;
+import io.warp10.script.functions.THRESHOLDTEST;
+import io.warp10.script.functions.TICKINDEX;
+import io.warp10.script.functions.TICKLIST;
+import io.warp10.script.functions.TICKS;
+import io.warp10.script.functions.TIMECLIP;
+import io.warp10.script.functions.TIMEMODULO;
+import io.warp10.script.functions.TIMESCALE;
+import io.warp10.script.functions.TIMESHIFT;
+import io.warp10.script.functions.TIMESPLIT;
+import io.warp10.script.functions.TIMINGS;
+import io.warp10.script.functions.TOB64;
+import io.warp10.script.functions.TOB64URL;
+import io.warp10.script.functions.TOBYTES;
+import io.warp10.script.functions.TOENCODER;
+import io.warp10.script.functions.TOGEOHASH;
+import io.warp10.script.functions.TOGTS;
+import io.warp10.script.functions.TOHHCODE;
+import io.warp10.script.functions.TOJSON;
+import io.warp10.script.functions.TOKENINFO;
+import io.warp10.script.functions.TOLIST;
+import io.warp10.script.functions.TOLOWER;
+import io.warp10.script.functions.TOMAP;
+import io.warp10.script.functions.TOMAT;
+import io.warp10.script.functions.TOOPB64;
+import io.warp10.script.functions.TOPICKLE;
+import io.warp10.script.functions.TOQUATERNION;
+import io.warp10.script.functions.TOSELECTOR;
+import io.warp10.script.functions.TOSET;
+import io.warp10.script.functions.TOUPPER;
+import io.warp10.script.functions.TOVEC;
+import io.warp10.script.functions.TOVECTOR;
+import io.warp10.script.functions.TOZ;
+import io.warp10.script.functions.TR;
+import io.warp10.script.functions.TRANSPOSE;
+import io.warp10.script.functions.TRIM;
+import io.warp10.script.functions.TRY;
+import io.warp10.script.functions.TSELEMENTS;
+import io.warp10.script.functions.TYPEOF;
+import io.warp10.script.functions.UDF;
+import io.warp10.script.functions.UNBUCKETIZE;
+import io.warp10.script.functions.UNGZIP;
+import io.warp10.script.functions.UNION;
+import io.warp10.script.functions.UNIQUE;
+import io.warp10.script.functions.UNLIST;
+import io.warp10.script.functions.UNMAP;
+import io.warp10.script.functions.UNPACK;
+import io.warp10.script.functions.UNSECURE;
+import io.warp10.script.functions.UNTIL;
+import io.warp10.script.functions.UNWRAP;
+import io.warp10.script.functions.UNWRAPENCODER;
+import io.warp10.script.functions.UNWRAPSIZE;
+import io.warp10.script.functions.UPDATE;
+import io.warp10.script.functions.URLDECODE;
+import io.warp10.script.functions.URLENCODE;
+import io.warp10.script.functions.UUID;
+import io.warp10.script.functions.VALUEDEDUP;
+import io.warp10.script.functions.VALUEHISTOGRAM;
+import io.warp10.script.functions.VALUELIST;
+import io.warp10.script.functions.VALUES;
+import io.warp10.script.functions.VALUESORT;
+import io.warp10.script.functions.VALUESPLIT;
+import io.warp10.script.functions.VECTO;
+import io.warp10.script.functions.VECTORTO;
+import io.warp10.script.functions.WEBCALL;
+import io.warp10.script.functions.WHILE;
+import io.warp10.script.functions.WRAP;
+import io.warp10.script.functions.WRAPRAW;
+import io.warp10.script.functions.ZSCORE;
+import io.warp10.script.functions.ZSCORETEST;
+import io.warp10.script.functions.ZTO;
+import io.warp10.script.functions.math.ACOS;
+import io.warp10.script.functions.math.ADDEXACT;
+import io.warp10.script.functions.math.ASIN;
+import io.warp10.script.functions.math.ATAN;
+import io.warp10.script.functions.math.ATAN2;
+import io.warp10.script.functions.math.CBRT;
+import io.warp10.script.functions.math.CEIL;
+import io.warp10.script.functions.math.COPYSIGN;
+import io.warp10.script.functions.math.COS;
+import io.warp10.script.functions.math.COSH;
+import io.warp10.script.functions.math.DECREMENTEXACT;
+import io.warp10.script.functions.math.EXP;
+import io.warp10.script.functions.math.EXPM1;
+import io.warp10.script.functions.math.FLOOR;
+import io.warp10.script.functions.math.FLOORDIV;
+import io.warp10.script.functions.math.FLOORMOD;
+import io.warp10.script.functions.math.GETEXPONENT;
+import io.warp10.script.functions.math.HYPOT;
+import io.warp10.script.functions.math.IEEEREMAINDER;
+import io.warp10.script.functions.math.INCREMENTEXACT;
+import io.warp10.script.functions.math.LOG;
+import io.warp10.script.functions.math.LOG10;
+import io.warp10.script.functions.math.LOG1P;
+import io.warp10.script.functions.math.MAX;
+import io.warp10.script.functions.math.MIN;
+import io.warp10.script.functions.math.MULTIPLYEXACT;
+import io.warp10.script.functions.math.NEGATEEXACT;
+import io.warp10.script.functions.math.NEXTAFTER;
+import io.warp10.script.functions.math.NEXTDOWN;
+import io.warp10.script.functions.math.NEXTUP;
+import io.warp10.script.functions.math.RANDOM;
+import io.warp10.script.functions.math.RINT;
+import io.warp10.script.functions.math.ROUND;
+import io.warp10.script.functions.math.SCALB;
+import io.warp10.script.functions.math.SIGNUM;
+import io.warp10.script.functions.math.SIN;
+import io.warp10.script.functions.math.SINH;
+import io.warp10.script.functions.math.SQRT;
+import io.warp10.script.functions.math.SUBTRACTEXACT;
+import io.warp10.script.functions.math.TAN;
+import io.warp10.script.functions.math.TANH;
+import io.warp10.script.functions.math.TODEGREES;
+import io.warp10.script.functions.math.TOINTEXACT;
+import io.warp10.script.functions.math.TORADIANS;
+import io.warp10.script.functions.math.ULP;
 import io.warp10.script.mapper.MapperAbs;
 import io.warp10.script.mapper.MapperAdd;
 import io.warp10.script.mapper.MapperCeil;
@@ -199,6 +634,7 @@ import io.warp10.script.processing.color.Pstroke;
 import io.warp10.script.processing.image.Pblend;
 import io.warp10.script.processing.image.Pcopy;
 import io.warp10.script.processing.image.Pdecode;
+import io.warp10.script.processing.image.Pfilter;
 import io.warp10.script.processing.image.Pget;
 import io.warp10.script.processing.image.Pimage;
 import io.warp10.script.processing.image.PimageMode;
@@ -207,7 +643,6 @@ import io.warp10.script.processing.image.Ppixels;
 import io.warp10.script.processing.image.Pset;
 import io.warp10.script.processing.image.Ptint;
 import io.warp10.script.processing.image.PupdatePixels;
-import io.warp10.script.processing.image.Pfilter;
 import io.warp10.script.processing.math.Pconstrain;
 import io.warp10.script.processing.math.Pdist;
 import io.warp10.script.processing.math.Plerp;
@@ -238,11 +673,14 @@ import io.warp10.script.processing.shape.PellipseMode;
 import io.warp10.script.processing.shape.PendContour;
 import io.warp10.script.processing.shape.PendShape;
 import io.warp10.script.processing.shape.Pline;
+import io.warp10.script.processing.shape.PloadShape;
 import io.warp10.script.processing.shape.Ppoint;
 import io.warp10.script.processing.shape.Pquad;
 import io.warp10.script.processing.shape.PquadraticVertex;
 import io.warp10.script.processing.shape.Prect;
 import io.warp10.script.processing.shape.PrectMode;
+import io.warp10.script.processing.shape.Pshape;
+import io.warp10.script.processing.shape.PshapeMode;
 import io.warp10.script.processing.shape.Psphere;
 import io.warp10.script.processing.shape.PsphereDetail;
 import io.warp10.script.processing.shape.PstrokeCap;
@@ -290,6 +728,25 @@ import io.warp10.script.unary.TOSTRING;
 import io.warp10.script.unary.TOTIMESTAMP;
 import io.warp10.script.unary.UNIT;
 import io.warp10.warp.sdk.WarpScriptExtension;
+import org.apache.commons.lang3.JavaVersion;
+import org.apache.commons.lang3.SystemUtils;
+import org.bouncycastle.crypto.digests.MD5Digest;
+import org.bouncycastle.crypto.digests.SHA1Digest;
+import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.URL;
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
 
 /**
  * Library of functions used to manipulate Geo Time Series
@@ -308,6 +765,15 @@ public class WarpScriptLib {
    */
   
   public static final String NULL = "NULL";
+
+  public static final String COUNTER = "COUNTER";
+  public static final String COUNTERSET = "COUNTERSET";
+  
+  
+  public static final String REF = "REF";
+  public static final String COMPILE = "COMPILE";
+  public static final String SAFECOMPILE = "SAFECOMPILE";
+  public static final String COMPILED = "COMPILED";
   
   public static final String EVAL = "EVAL";
   public static final String EVALSECURE = "EVALSECURE";
@@ -371,15 +837,20 @@ public class WarpScriptLib {
   
   public static final String INPLACEADD = "+!";
   public static final String PUT = "PUT";
+
+  public static final String SAVE = "SAVE";
+  public static final String RESTORE = "RESTORE";
   
   static {
-    
+
     functions.put("REV", new REV("REV"));
-    
+    functions.put("MINREV", new MINREV("MINREV"));
+
     functions.put(BOOTSTRAP, new NOOP(BOOTSTRAP));
-    
+
     functions.put("RTFM", new RTFM("RTFM"));
-    
+    functions.put("MAN", new MAN("MAN"));
+
     functions.put("REXEC", new REXEC("REXEC"));
     functions.put("REXECZ", new REXEC("REXECZ", true));
     
@@ -436,8 +907,8 @@ public class WarpScriptLib {
     functions.put("DUPN", new DUPN("DUPN"));
     functions.put(SWAP, new SWAP(SWAP));
     functions.put("DROP", new DROP("DROP"));
-    functions.put("SAVE", new SAVE("SAVE"));
-    functions.put("RESTORE", new RESTORE("RESTORE"));
+    functions.put(SAVE, new SAVE(SAVE));
+    functions.put(RESTORE, new RESTORE(RESTORE));
     functions.put("CLEAR", new CLEAR("CLEAR"));
     functions.put("CLEARDEFS", new CLEARDEFS("CLEARDEFS"));
     functions.put("CLEARSYMBOLS", new CLEARSYMBOLS("CLEARSYMBOLS"));
@@ -477,7 +948,7 @@ public class WarpScriptLib {
     functions.put("DEFINEDMACRO", new DEFINEDMACRO("DEFINEDMACRO"));
     functions.put("NaN", new NaN("NaN"));
     functions.put("ISNaN", new ISNaN("ISNaN"));
-    functions.put("TYPEOF", new TYPEOF("TYPEOF"));      
+    functions.put("TYPEOF", new TYPEOF("TYPEOF"));
     functions.put("EXTLOADED", new EXTLOADED("EXTLOADED"));
     functions.put("ASSERT", new ASSERT("ASSERT"));
     functions.put("ASSERTMSG", new ASSERTMSG("ASSERTMSG"));
@@ -534,6 +1005,14 @@ public class WarpScriptLib {
     functions.put("SNAPSHOTCOPYN", new SNAPSHOT("SNAPSHOTCOPYN", false, false, false, true));
     functions.put("HEADER", new HEADER("HEADER"));
     
+    //
+    // Compilation related dummy functions
+    //
+    functions.put(COMPILE, new FAIL(COMPILE, "Not supported"));
+    functions.put(SAFECOMPILE, new NOOP(SAFECOMPILE));
+    functions.put(COMPILED, new FAIL(COMPILED, "Not supported"));
+    functions.put(REF, new REF(REF));
+
     functions.put("MACROTTL", new MACROTTL("MACROTTL"));
     functions.put("MACROMAPPER", new MACROMAPPER("MACROMAPPER"));
     functions.put("MACROREDUCER", new MACROMAPPER("MACROREDUCER"));
@@ -713,6 +1192,7 @@ public class WarpScriptLib {
     functions.put("MAKEGTS", new MAKEGTS("MAKEGTS"));
     functions.put("ADDVALUE", new ADDVALUE("ADDVALUE", false));
     functions.put("SETVALUE", new ADDVALUE("SETVALUE", true));
+    functions.put("REMOVETICK", new REMOVETICK("REMOVETICK"));
     functions.put("FETCH", new FETCH("FETCH", false, null));
     functions.put("FETCHLONG", new FETCH("FETCHLONG", false, TYPE.LONG));
     functions.put("FETCHDOUBLE", new FETCH("FETCHDOUBLE", false, TYPE.DOUBLE));
@@ -801,6 +1281,8 @@ public class WarpScriptLib {
     functions.put("RVALUESORT", new RVALUESORT("RVALUESORT"));
     functions.put("LSORT", new LSORT("LSORT"));
     functions.put("MSORT", new MSORT("MSORT"));
+    functions.put("GROUPBY", new GROUPBY("GROUPBY"));
+    functions.put("FILTERBY", new FILTERBY("FILTERBY"));
     functions.put("UPDATE", new UPDATE("UPDATE"));
     functions.put("META", new META("META"));
     functions.put("DELETE", new DELETE("DELETE"));
@@ -907,7 +1389,7 @@ public class WarpScriptLib {
     functions.put("FILTER", new FILTER("FILTER", true));
     functions.put("APPLY", new APPLY("APPLY", true));
     functions.put("PFILTER", new FILTER("FILTER", false));
-    functions.put("PAPPLY", new APPLY("APPLY", false));
+    functions.put("PAPPLY", new APPLY("PAPPLY", false));
     functions.put("REDUCE", new REDUCE("REDUCE", true));
     functions.put("PREDUCE", new REDUCE("PREDUCE", false));
     
@@ -1016,17 +1498,11 @@ public class WarpScriptLib {
     // Counters
     //
     
-    functions.put("COUNTER", new COUNTER("COUNTER"));
+    functions.put(COUNTER, new COUNTER(COUNTER));
     functions.put("COUNTERVALUE", new COUNTERVALUE("COUNTERVALUE"));
     functions.put("COUNTERDELTA", new COUNTERDELTA("COUNTERDELTA"));
-    
-    //
-    // LoRaWAN
-    //
-    
-    functions.put("LORAMIC", new LORAMIC("LORAMIC"));
-    functions.put("LORAENC", new LORAENC("LORAENC"));
-    
+    functions.put(COUNTERSET, new COUNTERSET(COUNTERSET));
+
     //
     // Math functions
     //
@@ -1066,53 +1542,63 @@ public class WarpScriptLib {
     functions.put("INV", new INV("INV"));
     functions.put("->VEC", new TOVEC("->VEC"));
     functions.put("VEC->", new VECTO("VEC->"));
-    
-    try {
 
-      functions.put("COS", new MATH("COS", "cos"));
-      functions.put("COSH", new MATH("COSH", "cosh"));
-      functions.put("ACOS", new MATH("ACOS", "acos"));
-      
-      functions.put("SIN", new MATH("SIN", "sin"));
-      functions.put("SINH", new MATH("SINH", "sinh"));
-      functions.put("ASIN", new MATH("ASIN", "asin"));
+    functions.put("COS", new COS("COS"));
+    functions.put("COSH", new COSH("COSH"));
+    functions.put("ACOS", new ACOS("ACOS"));
 
-      functions.put("TAN", new MATH("TAN", "tan"));
-      functions.put("TANH", new MATH("TANH", "tanh"));
-      functions.put("ATAN", new MATH("ATAN", "atan"));
+    functions.put("SIN", new SIN("SIN"));
+    functions.put("SINH", new SINH("SINH"));
+    functions.put("ASIN", new ASIN("ASIN"));
 
-      functions.put("SIGNUM", new MATH("SIGNUM", "signum"));
-      functions.put("FLOOR", new MATH("FLOOR", "floor"));
-      functions.put("CEIL", new MATH("CEIL", "ceil"));
-      functions.put("ROUND", new MATH("ROUND", "round"));
+    functions.put("TAN", new TAN("TAN"));
+    functions.put("TANH", new TANH("TANH"));
+    functions.put("ATAN", new ATAN("ATAN"));
 
-      functions.put("RINT", new MATH("RINT", "rint"));
-      functions.put("NEXTUP", new MATH("NEXTUP", "nextUp"));
-      functions.put("ULP", new MATH("ULP", "ulp"));
+    functions.put("SIGNUM", new SIGNUM("SIGNUM"));
+    functions.put("FLOOR", new FLOOR("FLOOR"));
+    functions.put("CEIL", new CEIL("CEIL"));
+    functions.put("ROUND", new ROUND("ROUND"));
 
-      functions.put("SQRT", new MATH("SQRT", "sqrt"));
-      functions.put("CBRT", new MATH("CBRT", "cbrt"));
-      functions.put("EXP", new MATH("EXP", "exp"));
-      functions.put("EXPM1", new MATH("EXPM1", "expm1"));
-      functions.put("LOG", new MATH("LOG", "log"));
-      functions.put("LOG10", new MATH("LOG10", "log10"));
-      functions.put("LOG1P", new MATH("LOG1P", "log1p"));
+    functions.put("RINT", new RINT("RINT"));
+    functions.put("NEXTUP", new NEXTUP("NEXTUP"));
+    functions.put("ULP", new ULP("ULP"));
 
-      functions.put("TORADIANS", new MATH("TORADIANS", "toRadians"));
-      functions.put("TODEGREES", new MATH("TODEGREES", "toDegrees"));
+    functions.put("SQRT", new SQRT("SQRT"));
+    functions.put("CBRT", new CBRT("CBRT"));
+    functions.put("EXP", new EXP("EXP"));
+    functions.put("EXPM1", new EXPM1("EXPM1"));
+    functions.put("LOG", new LOG("LOG"));
+    functions.put("LOG10", new LOG10("LOG10"));
+    functions.put("LOG1P", new LOG1P("LOG1P"));
 
-      functions.put("MAX", new MATH2("MAX", "max"));
-      functions.put("MIN", new MATH2("MIN", "min"));
+    functions.put("TORADIANS", new TORADIANS("TORADIANS"));
+    functions.put("TODEGREES", new TODEGREES("TODEGREES"));
 
-      functions.put("COPYSIGN", new MATH2("COPYSIGN", "copySign"));
-      functions.put("HYPOT", new MATH2("HYPOT", "hypot"));
-      functions.put("IEEEREMAINDER", new MATH2("IEEEREMAINDER", "IEEEremainder"));
-      functions.put("NEXTAFTER", new MATH2("NEXTAFTER", "nextAfter"));
-      functions.put("ATAN2", new MATH2("ATAN2", "atan2"));
-      
-    } catch (WarpScriptException ee) {
-      throw new RuntimeException(ee);
-    }
+    functions.put("MAX", new MAX("MAX"));
+    functions.put("MIN", new MIN("MIN"));
+
+    functions.put("COPYSIGN", new COPYSIGN("COPYSIGN"));
+    functions.put("HYPOT", new HYPOT("HYPOT"));
+    functions.put("IEEEREMAINDER", new IEEEREMAINDER("IEEEREMAINDER"));
+    functions.put("NEXTAFTER", new NEXTAFTER("NEXTAFTER"));
+    functions.put("ATAN2", new ATAN2("ATAN2"));
+
+    functions.put("FLOORDIV", new FLOORDIV("FLOORDIV"));
+    functions.put("FLOORMOD", new FLOORMOD("FLOORMOD"));
+
+    functions.put("ADDEXACT", new ADDEXACT("ADDEXACT"));
+    functions.put("SUBTRACTEXACT", new SUBTRACTEXACT("SUBTRACTEXACT"));
+    functions.put("MULTIPLYEXACT", new MULTIPLYEXACT("MULTIPLYEXACT"));
+    functions.put("INCREMENTEXACT", new INCREMENTEXACT("INCREMENTEXACT"));
+    functions.put("DECREMENTEXACT", new DECREMENTEXACT("DECREMENTEXACT"));
+    functions.put("NEGATEEXACT", new NEGATEEXACT("NEGATEEXACT"));
+    functions.put("TOINTEXACT", new TOINTEXACT("TOINTEXACT"));
+
+    functions.put("SCALB", new SCALB("SCALB"));
+    functions.put("RANDOM", new RANDOM("RANDOM"));
+    functions.put("NEXTDOWN", new NEXTDOWN("NEXTDOWN"));
+    functions.put("GETEXPONENT", new GETEXPONENT("GETEXPONENT"));
     
     functions.put("IDENT", new IDENT("IDENT"));
     
@@ -1163,6 +1649,7 @@ public class WarpScriptLib {
     
     functions.put("PbeginShape", new PbeginShape("PbeginShape"));
     functions.put("PendShape", new PendShape("PendShape"));
+    functions.put("PloadShape", new PloadShape("PloadShape"));
     functions.put("PbeginContour", new PbeginContour("PbeginContour"));
     functions.put("PendContour", new PendContour("PendContour"));
     functions.put("Pvertex", new Pvertex("Pvertex"));
@@ -1171,7 +1658,8 @@ public class WarpScriptLib {
     functions.put("PquadraticVertex", new PquadraticVertex("PquadraticVertex"));
     
     // TODO(hbs): support PShape (need to support PbeginShape etc applied to PShape instances)
-    //functions.put("PshapeMode", new PshapeMode("PshapeMode"));
+    functions.put("PshapeMode", new PshapeMode("PshapeMode"));
+    functions.put("Pshape", new Pshape("Pshape"));
     
     // Transform
     
@@ -1290,6 +1778,7 @@ public class WarpScriptLib {
     functions.put("bucketizer.count.nonnull", new Count("bucketizer.count.nonnull", true));
     functions.put("bucketizer.mean.circular", new CircularMean.Builder("bucketizer.mean.circular", true));
     functions.put("bucketizer.mean.circular.exclude-nulls", new CircularMean.Builder("bucketizer.mean.circular.exclude-nulls", false));
+    functions.put("bucketizer.rms", new RMS("bucketizer.rms", false));
     //
     // Mappers
     //
@@ -1343,7 +1832,8 @@ public class WarpScriptLib {
     functions.put("mapper.mean.circular", new CircularMean.Builder("mapper.mean.circular", true));
     functions.put("mapper.mean.circular.exclude-nulls", new CircularMean.Builder("mapper.mean.circular.exclude-nulls", false));
     functions.put("mapper.mod", new MapperMod.Builder("mapper.mod"));
-    
+    functions.put("mapper.rms", new RMS("mapper.rms", false));
+
     //
     // Reducers
     //
@@ -1385,7 +1875,9 @@ public class WarpScriptLib {
     functions.put("reducer.percentile", new Percentile.Builder("reducer.percentile"));
     functions.put("reducer.mean.circular", new CircularMean.Builder("reducer.mean.circular", true));
     functions.put("reducer.mean.circular.exclude-nulls", new CircularMean.Builder("reducer.mean.circular.exclude-nulls", false));
-    
+    functions.put("reducer.rms", new RMS("reducer.rms", false));
+    functions.put("reducer.rms.exclude-nulls", new RMS("reducer.rms.exclude-nulls", true));
+
     //
     // Filters
     //
@@ -1415,13 +1907,7 @@ public class WarpScriptLib {
 
     /////////////////////////
     
-    //
-    // TBD
-    //
-    
-    functions.put("mapper.distinct", new FAIL("mapper.distinct")); // Counts the number of distinct values in a window, using HyperLogLog???
-    functions.put("TICKSHIFT", new FAIL("TICKSHIFT")); // Shifts the ticks of a GTS by this many positions
-    
+
     Properties props = WarpConfig.getProperties();
       
     if (null != props && props.containsKey(Configuration.CONFIG_WARPSCRIPT_LANGUAGES)) {
@@ -1490,7 +1976,7 @@ public class WarpScriptLib {
     List<String> sortedext = new ArrayList<String>(ext);
     sortedext.sort(null);
     
-    boolean failedExt = false;
+    List<String> failedExt = new ArrayList<String>();
       
     //
     // Determine the possible jar from which WarpScriptLib was loaded
@@ -1519,7 +2005,7 @@ public class WarpScriptLib {
         
         if (null == url) {
           LOG.error("Unable to load extension '" + extension + "', make sure it is in the class path.");
-          failedExt = true;
+          failedExt.add(extension);
           continue;
         }
         
@@ -1567,8 +2053,15 @@ public class WarpScriptLib {
       }
     }
     
-    if (failedExt) {
-      throw new RuntimeException("Some WarpScript extensions could not be loaded, aborting.");
+    if (!failedExt.isEmpty()) {
+      StringBuilder sb = new StringBuilder();
+      sb.append("The following WarpScript extensions could not be loaded, aborting:");
+      for (String extension: failedExt) {
+        sb.append(" '");
+        sb.append(extension);
+        sb.append("'");
+      }
+      throw new RuntimeException(sb.toString());
     }
   }
   

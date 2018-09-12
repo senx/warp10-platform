@@ -127,6 +127,11 @@ public class QuasarTokenRevocationListLoader {
               }
               line = line.trim();
 
+              // Skip empty lines
+              if ("".equals(line)) {
+                continue;
+              }
+              
               // Skip comments
               if (line.startsWith("#")) {
                 continue;
@@ -146,7 +151,7 @@ public class QuasarTokenRevocationListLoader {
               }
             }
 
-            // mark as readed
+            // mark as read
             read.put(entry.getKey(), entry.getValue());
 
           } catch (Exception exp) {

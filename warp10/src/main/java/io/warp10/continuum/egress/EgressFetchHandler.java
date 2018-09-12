@@ -59,6 +59,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
@@ -87,8 +88,14 @@ import org.boon.json.JsonSerializer;
 import org.boon.json.JsonSerializerFactory;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.joda.time.Duration;
+import org.joda.time.Instant;
+import org.joda.time.MutablePeriod;
+import org.joda.time.Period;
+import org.joda.time.ReadWritablePeriod;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
+import org.joda.time.format.ISOPeriodFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -257,7 +264,25 @@ public class EgressFetchHandler extends AbstractHandler {
           }        
         }
         
-        timespan = Long.parseLong(timespanParam);
+        if (timespanParam.trim().startsWith("P")) {
+          ReadWritablePeriod period = new MutablePeriod();
+          
+          ISOPeriodFormat.standard().getParser().parseInto(period, timespanParam, 0, Locale.US);
+
+          System.out.println(period);
+          
+          Period p = period.toPeriod();
+          
+          if (p.getMonths() != 0 || p.getYears() != 0) {
+            throw new IOException("No support for ambiguous durations containing years or months, please convert those to days.");
+          }
+
+          Duration duration = p.toDurationFrom(new Instant());
+
+          timespan = duration.getMillis() * Constants.TIME_UNITS_PER_MS;    
+        } else {
+          timespan = Long.parseLong(timespanParam);
+        }
       }
       
       if (Long.MIN_VALUE == now) {

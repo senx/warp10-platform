@@ -3,8 +3,11 @@ package io.warp10.warp.sdk;
 import io.warp10.WarpClassLoader;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
+import io.warp10.continuum.store.DirectoryClient;
+import io.warp10.continuum.store.StoreClient;
 import io.warp10.script.WarpScriptLib;
 
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.HashSet;
 import java.util.Properties;
@@ -121,5 +124,38 @@ public abstract class AbstractWarp10Plugin {
       throw new RuntimeException("Some WarpScript plugins could not be loaded, aborting.");
     }
   }
-
+  
+  /**
+   * Retrieve the exposed StoreClient. We use introspection to avoid having to
+   * include EgressExecHandler in the WarpScript lib jar.
+   * 
+   * @return The exposed StoreClient or null
+   */
+  public static final StoreClient getExposedStoreClient() {
+    try {
+      Class egress = Class.forName("io.warp10.continuum.egress.EgressExecHandler");
+      Method m = egress.getDeclaredMethod("getExposedStoreClient", new Class[0]);
+      return (StoreClient) m.invoke(null, new Object[0]);
+    } catch (Throwable t) {
+      t.printStackTrace();
+    }
+    return null;
+  }
+  
+  /**
+   * Retrieve the exposed DirectoryClient. We use introspection to avoid having to
+   * include EgressExecHandler in the WarpScript lib jar.
+   * 
+   * @return The exposed DirectoryClient or null
+   */
+  public static final DirectoryClient getExposedDirectoryClient() {
+    try {
+      Class egress = Class.forName("io.warp10.continuum.egress.EgressExecHandler");
+      Method m = egress.getDeclaredMethod("getExposedDirectoryClient", new Class[0]);
+      return (DirectoryClient) m.invoke(null, new Object[0]);
+    } catch (Throwable t) {
+      t.printStackTrace();
+    }
+    return null;
+  }
 }

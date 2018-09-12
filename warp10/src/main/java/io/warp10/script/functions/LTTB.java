@@ -52,7 +52,7 @@ public class LTTB extends GTSStackFunction {
     Object top = stack.pop();
     
     if (!(top instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects a threshold on top of the stac.");
+      throw new WarpScriptException(getName() + " expects a threshold on top of the stack.");
     }
     
     int threshold = ((Number) top).intValue();

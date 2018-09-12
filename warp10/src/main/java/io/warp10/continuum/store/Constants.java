@@ -58,6 +58,10 @@ public class Constants {
    */
   public static final long NS_PER_TIME_UNIT;
   
+  /**
+   * Banner, based on Figlet
+   * @see http://patorjk.com/software/taag/#p=display&f=Speed&t=Warp%2010
+   */  
   public static final String WARP10_BANNER = "  ___       __                           ____________ \n" + 
       "  __ |     / /_____ _______________      __<  /_  __ \\\n" + 
       "  __ | /| / /_  __ `/_  ___/__  __ \\     __  /_  / / /\n" + 
@@ -361,7 +365,8 @@ public class Constants {
   public static final int DEFAULT_PACKED_MAXSIZE = 65536;
   
   public static final String WARP10_DOC_URL = "http://www.warp10.io/";
-  
+  public static final String WARP10_FUNCTION_DOC_URL = "http://www.warp10.io/doc/";
+
   public static final int WARP_PLASMA_MAXSUBS_DEFAULT = 256000;
   
   public static final String KEY_MODULUS = "modulus";

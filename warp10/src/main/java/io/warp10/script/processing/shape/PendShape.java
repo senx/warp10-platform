@@ -38,20 +38,22 @@ public class PendShape extends NamedWarpScriptFunction implements WarpScriptStac
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
-    List<Object> params = ProcessingUtil.parseParams(stack, 1);
+    List<Object> params = ProcessingUtil.parseParams(stack, 0, 1);
         
     PGraphics pg = (PGraphics) params.get(0);
-    
-    String mode = params.get(1).toString();
-    
-    if ("OPEN".equals(mode)) {
-      pg.endShape(PGraphics.OPEN);      
-    } else if ("CLOSE".equals(mode)) {
-      pg.endShape(PGraphics.CLOSE);
-    } else {
-      throw new WarpScriptException(getName() + ": invalid mode, should be 'OPEN' or 'CLOSE'.");
+
+    if (1 == params.size()) {
+      pg.endShape();
+    } else if (2 == params.size()) {
+      String mode = params.get(1).toString();
+      if ("OPEN".equals(mode)) {
+        pg.endShape(PGraphics.OPEN);
+      } else if ("CLOSE".equals(mode)) {
+        pg.endShape(PGraphics.CLOSE);
+      } else {
+        throw new WarpScriptException(getName() + ": invalid mode, should be 'OPEN' or 'CLOSE'.");
+      }
     }
-    
     stack.push(pg);
         
     return stack;

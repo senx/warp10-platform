@@ -855,7 +855,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
 
           loggingWriter.close();
           loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
-        }      
+        }
+        this.directoryClient.register(null);
       }
       
       response.setStatus(HttpServletResponse.SC_OK);      

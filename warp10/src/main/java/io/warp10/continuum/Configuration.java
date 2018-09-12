@@ -35,6 +35,20 @@ public class Configuration {
   public static final String WARP_AES_LOGGING = "warp.aes.logging";
   public static final String WARP_DEFAULT_AES_LOGGING = "hex:3cf5cee9eadddba796f2cce0762f308ad9df36f4883841e167dab2889bcf215b";
   
+  /**
+   * Set to 'true' to only run the analytics engine, i.e. not backend database
+   */
+  public static final String ANALYTICS_ENGINE_ONLY = "analytics.engine.only";
+  
+  /**
+   * Prefix used for identifying keys in the configuration.
+   * At startup time, any property with name warp.key.FOO will
+   * be interpreted as a key, Warp will attempt to decipher the
+   * key and will populate the keystore with the result under
+   * name "FOO".
+   */
+  public static final String WARP_KEY_PREFIX = "warp.key.";
+  
   public static final String WARP_IDENT = "warp.ident";
   
   public static final String WARP10_QUIET = "warp10.quiet";
@@ -1127,6 +1141,12 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
+   * Boolean indicating whether the first run of each script should be at startup (the default behavior) or
+   * at the next round scheduling period.
+   */
+  public static final String RUNNER_RUNATSTARTUP = "runner.runatstartup";
+  
+  /**
    * ZooKeeper connect string for the leader election among schedulers
    */
   public static final String RUNNER_ZK_QUORUM = "runner.zk.quorum";
@@ -1245,6 +1265,20 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
+   * Rate of synchronous writes for the datapoints (update/deletes).
+   * This is a double between 0.0 (all writes asynchronous) and 1.0 (all writes synchronous).
+   * The default value is 1.0 (all writes are synchronous)
+   */
+  public static final String LEVELDB_DATA_SYNCRATE = "leveldb.data.syncrate";
+
+  /**
+   * Rate of synchronous writes for the directory writes.
+   * This is a double between 0.0 (all writes asynchronous) and 1.0 (all writes synchronous)
+   * The default value is 1.0 (all writes are synchronous)
+   */
+  public static final String LEVELDB_DIRECTORY_SYNCRATE = "leveldb.directory.syncrate";
+
+  /**
    * Flag to disable the use of the native LevelDB implementation
    */
   public static final String LEVELDB_NATIVE_DISABLE = "leveldb.native.disable";
@@ -1284,6 +1318,11 @@ public class Configuration {
    * Cache size for leveldb (in bytes)
    */
   public static final String LEVELDB_CACHE_SIZE = "leveldb.cache.size";
+  
+  /**
+   * LevelDB block size to use when compacting ranges
+   */
+  public static final String LEVELDB_BLOCK_SIZE = "leveldb.block.size";
   
   /**
    * Compression type to use for leveldb (SNAPPY/NONE)
@@ -1330,6 +1369,11 @@ public class Configuration {
    * Maximum encoder size (in bytes) for internal data transfers. Use values from 64k to 512k
    */
   public static final String STANDALONE_MAX_ENCODER_SIZE = "standalone.max.encoder.size";
+  
+  /**
+   * Maximum number of keys to batch when deleting data
+   */
+  public static final String STANDALONE_MAX_DELETE_BATCHSIZE = "standalone.max.delete.batchsize";
   
   /**
    * Maximum size in bytes of a value

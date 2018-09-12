@@ -86,7 +86,11 @@ public class MapperMaxX extends NamedWarpScriptFunction implements WarpScriptMap
     long elevation = elevations[0];
         
     if (values[0] instanceof Long) {
-      value = TYPE.LONG.equals(this.type) ? Math.max(lvalue, ((Number) values[0]).longValue()) : Math.max(dvalue, ((Number) values[0]).doubleValue());
+      if (TYPE.LONG.equals(this.type)) {
+        value = Math.max(lvalue, ((Number) values[0]).longValue());
+      } else {
+        value = Math.max(dvalue, ((Number) values[0]).doubleValue());
+      }
     } else if (values[0] instanceof Double) {
       value = Math.max(dvalue, ((Number) values[0]).doubleValue());
     } else {
@@ -99,7 +103,11 @@ public class MapperMaxX extends NamedWarpScriptFunction implements WarpScriptMap
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append(StackUtils.toString(TYPE.LONG == this.type ? lvalue : dvalue));
+    if (TYPE.LONG == this.type) {
+      sb.append(StackUtils.toString(lvalue));      
+    } else {
+      sb.append(StackUtils.toString(dvalue));
+    }
     sb.append(" ");
     sb.append(this.getName());
     return sb.toString();

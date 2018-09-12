@@ -764,7 +764,7 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
     return mergeStatsResponses(responses);
   }
   
-  private Map<String,Object> mergeStatsResponses(Iterable<Future<DirectoryStatsResponse>> responses) throws IOException {
+  public static Map<String,Object> mergeStatsResponses(Iterable<Future<DirectoryStatsResponse>> responses) throws IOException {
     //
     // Consolidate the results
     //

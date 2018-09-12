@@ -19,6 +19,7 @@ package io.warp10.script.aggregator;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptMapperFunction;
@@ -94,13 +95,37 @@ public class FirstLE extends NamedWarpScriptFunction implements WarpScriptAggreg
             }
             break;
         }        
+      } else if (values[i] instanceof String && TYPE.STRING == type) {
+        if (sthreshold.compareTo(values[i].toString()) >= 0) {
+          idx = i;
+          tick = ticks[i];
+        }
       }
-    }
+    }    
     
     if (-1 != idx) {
       return new Object[] { ticks[idx], locations[idx], elevations[idx], values[idx] };
     } else {
       return new Object[] { args[0], GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null };      
     }
+  }
+  
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    switch (type) {
+      case LONG:
+        sb.append(StackUtils.toString(lthreshold));
+        break;
+      case DOUBLE:
+        sb.append(StackUtils.toString(dthreshold));
+        break;
+      case STRING:
+        sb.append(StackUtils.toString(sthreshold));
+        break;        
+    }
+    sb.append(" ");
+    sb.append(this.getName());
+    return sb.toString();      
   }
 }
