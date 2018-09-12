@@ -555,6 +555,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
               meta.setLabelsId(GTSHelper.labelsId(labelsKey, meta.getLabels()));
             }
             
+            meta.setLastActivity(metadata.getLastActivity());
             metadatas.add(meta);
           }
         }
@@ -846,13 +847,13 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   public Metadata getMetadataById(BigInteger id) {
     return this.metadatasById.get(id);
   }
-  
+    
   @Override
-  public Map<String,Object> stats(List<String> classSelector, List<Map<String, String>> labelsSelectors) throws IOException {
+  public Map<String,Object> stats(DirectoryRequest dr) throws IOException {
     final DirectoryStatsRequest request = new DirectoryStatsRequest();
     request.setTimestamp(System.currentTimeMillis());
-    request.setClassSelector(classSelector);
-    request.setLabelsSelectors(labelsSelectors);
+    request.setClassSelector(dr.getClassSelectors());
+    request.setLabelsSelectors(dr.getLabelsSelectors());
     
     try {
       final DirectoryStatsResponse response = stats(request);
