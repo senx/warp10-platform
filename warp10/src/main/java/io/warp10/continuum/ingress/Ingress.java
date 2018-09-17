@@ -1055,6 +1055,10 @@ public class Ingress extends AbstractHandler implements Runnable {
       throw new IOException(ee);
     }
     
+    if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NODELETE)) {
+      throw new IOException("Token cannot be used for deletions.");
+    }
+    
     String application = writeToken.getAppName();
     String producer = Tokens.getUUID(writeToken.getProducerId());
     String owner = Tokens.getUUID(writeToken.getOwnerId());
