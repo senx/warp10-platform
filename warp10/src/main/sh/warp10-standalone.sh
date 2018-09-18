@@ -215,6 +215,15 @@ bootstrap() {
   chmod -R 755 ${WARP10_HOME}/leveldb
 
   #
+  # Test access to WARP10_HOME for WARP10_USER
+  #
+  su ${WARP10_USER} -c "ls ${WARP10_HOME} >/dev/null 2>&1"
+  if [ $? != 0 ]; then
+    echo "ERROR: ${WARP10_USER} user cannot access to ${WARP10_HOME}"
+    exit 1
+  fi
+
+  #
   # ${WARP10_HOME} != ${WARP10_DATA_DIR}
   # A dedicated data directory has been provided
   # Move data to ${WARP10_DATA_DIR}/etc, ${WARP10_DATA_DIR}/logs, ${WARP10_DATA_DIR}/leveldb..
@@ -241,7 +250,7 @@ bootstrap() {
     #
     # Test access to WARP10_DATA_DIR and its parent directories
     #
-    su ${WARP10_USER} -c "ls ${WARP10_DATA_DIR} 2>&1"
+    su ${WARP10_USER} -c "ls ${WARP10_DATA_DIR} >/dev/null 2>&1"
     if [ $? != 0 ]; then
       echo "ERROR: Cannot access to ${WARP10_DATA_DIR}"
       exit 1
