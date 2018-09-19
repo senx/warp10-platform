@@ -17,7 +17,7 @@
 package io.warp10.script.functions;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -54,7 +54,7 @@ public class CLONE extends NamedWarpScriptFunction implements WarpScriptStackFun
     } else if (o instanceof List) {
       stack.push(new ArrayList<Object>((List<Object>) o));
     } else if (o instanceof Map) {
-      stack.push(new HashMap<Object,Object>((Map<Object,Object>) o));
+      stack.push(new LinkedHashMap<Object,Object>((Map<Object,Object>) o));
     } else if (o instanceof Set) {
       stack.push(new HashSet<Object>((Set<Object>) o));
     } else {
