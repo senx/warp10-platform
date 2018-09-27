@@ -977,6 +977,11 @@ public class Ingress extends AbstractHandler implements Runnable {
           return;
         }
         
+        // Add labels from the WriteToken if they exist
+        if (writeToken.getLabelsSize() > 0) {
+          metadata.getLabels().putAll(writeToken.getLabels());
+        }
+
         //
         // Force owner/producer
         //
