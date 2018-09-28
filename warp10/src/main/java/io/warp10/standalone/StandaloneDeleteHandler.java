@@ -244,6 +244,10 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       return;
     }
     
+    if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NODELETE)) {
+      throw new IOException("Token cannot be used for deletions.");
+    }
+
     String application = writeToken.getAppName();
     String producer = Tokens.getUUID(writeToken.getProducerId());
     String owner = Tokens.getUUID(writeToken.getOwnerId());
@@ -369,6 +373,15 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       //
       
       Map<String,String> extraLabels = new HashMap<String,String>();
+      
+      // Add extra labels, remove producer,owner,app
+      if (writeToken.getLabelsSize() > 0) {
+        extraLabels.putAll(writeToken.getLabels());
+        extraLabels.remove(Constants.PRODUCER_LABEL);
+        extraLabels.remove(Constants.OWNER_LABEL);
+        extraLabels.remove(Constants.APPLICATION_LABEL);
+      }
+
       //
       // Only set owner and potentially app, producer may vary
       //      

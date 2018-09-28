@@ -435,12 +435,12 @@ webcall.kafka.commitperiod = 60000
 #directory.hbase.config =
 
 //
-// Maximum number of classes for which to report detailed stats in 'stats'
+// Maximum number of classes for which to report detailed stats in 'FINDSTATS'
 //
 directory.stats.class.maxcardinality = 100
 
 //
-// Maximum number of labels for which to report detailed stats in 'stats'
+// Maximum number of labels for which to report detailed stats in 'FINDSTATS'
 //
 directory.stats.labels.maxcardinality = 100
 

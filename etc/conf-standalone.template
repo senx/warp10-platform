@@ -5,6 +5,16 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
+// Maximum number of classes for which to report detailed stats in 'FINDSTATS'
+// 
+directory.stats.class.maxcardinality = 100
+
+//
+// Maximum number of labels for which to report detailed stats in 'FINDSTATS'
+// 
+directory.stats.labels.maxcardinality = 100
+
+//
 // Set to true to only run the Warp 10™ Analytics Engine
 //
 #analytics.engine.only = true
@@ -175,17 +185,23 @@ warpscript.maxsymbols = 64
 warpscript.maxsymbols.hard = 256
 
 //
-// Maximum number of pixels per image
+// PGraphics Maximum number of pixels per image
 //
 warpscript.maxpixels = 1000000
 warpscript.maxpixels.hard = 1000000
 
+//
+// WEBCALL limit per WarpScript
+//
 warpscript.maxwebcalls = 4
 
+//
+// WEBCALL user agent
+//
 webcall.user.agent = Warp10-WebCall
 
 //
-// List of patterns to include/exclude for hosts in WebCall calls
+// List of patterns to include/exclude for hosts in WEBCALL calls
 //
 // Typical value is .*,!^127.0.0.1$,!^localhost$,!^192.168.*,!^10.*,!^172.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|39|31)\..*
 // 
@@ -195,7 +211,12 @@ webcall.host.patterns = !.*
 //
 // CALL root directory property
 //
-#warpscript.call.directory =
+warpscript.call.directory = ${standalone.home}/calls
+
+//
+// Maximum number of subprogram instances which can be spawned by CALL
+//
+//warpscript.call.maxcapacity = 1
 
 //   
 // Path of the 'bootstrap' WarpScript code    
@@ -206,11 +227,6 @@ webcall.host.patterns = !.*
 // How often to reload the bootstrap code (in ms)
 //
 //warpscript.bootstrap.period = 120000
-
-//
-// Maximum number of subprogram instances which can be spawned
-//
-//warpscript.call.maxcapacity = 1
 
 //
 // Comma separated list of WarpScriptExtension classes to instantiate to modify the defined WarpScript functions.
@@ -303,11 +319,6 @@ warpscript.meta.endpoint = http://${standalone.host}:${standalone.port}/api/v0/m
 // URL for the 'delete' endpoint
 //
 warpscript.delete.endpoint = http://${standalone.host}:${standalone.port}/api/v0/delete
-
-//
-// CALL root directory property
-//
-warpscript.call.directory = ${standalone.home}/calls
 
 //
 // Directory where the leveldb files should be created
