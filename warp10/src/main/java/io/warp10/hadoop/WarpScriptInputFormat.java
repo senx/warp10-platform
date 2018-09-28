@@ -43,6 +43,11 @@ public class WarpScriptInputFormat extends InputFormat<Writable, Writable> {
   private static final String CONFIG_SYMBOL = ".conf";
   
   /**
+   * Configuration key we will set to the current path if the split if a FileSplit
+   */
+  public static final String PATH_CONFIG_KEY = ".path";
+  
+  /**
    * Suffix to use for the configuration
    */
   public static final String WARPSCRIPT_INPUTFORMAT_SUFFIX = "warpscript.inputformat.suffix";

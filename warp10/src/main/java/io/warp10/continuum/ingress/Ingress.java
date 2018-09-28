@@ -1017,6 +1017,11 @@ public class Ingress extends AbstractHandler implements Runnable {
           return;
         }
         
+        // Add labels from the WriteToken if they exist
+        if (writeToken.getLabelsSize() > 0) {
+          metadata.getLabels().putAll(writeToken.getLabels());
+        }
+
         //
         // Force owner/producer
         //
@@ -1098,6 +1103,10 @@ public class Ingress extends AbstractHandler implements Runnable {
       writeToken = Tokens.extractWriteToken(token);
     } catch (WarpScriptException ee) {
       throw new IOException(ee);
+    }
+    
+    if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NODELETE)) {
+      throw new IOException("Token cannot be used for deletions.");
     }
     
     String application = writeToken.getAppName();

@@ -234,6 +234,10 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       params.put(PARAM_END, endts);
       
       if (timespan < 0) {
+        // Make sure negation will be positive
+        if(Long.MIN_VALUE == timespan){
+          timespan++; // It's ok to modify a bit the count of points as it is impossible to return Long.MAX_VALUE points
+        }
         params.put(PARAM_COUNT, -timespan);
       } else {
         params.put(PARAM_TIMESPAN, timespan);
