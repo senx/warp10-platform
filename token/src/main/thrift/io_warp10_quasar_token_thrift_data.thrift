@@ -52,12 +52,14 @@ struct WriteToken {
     8:optional list<i64> indices,
 
     /**
-     * default labels
+     * Default labels. Those labels will be added to the Geo Time Series™ labels whenever
+     * this token is used for pushing data.
      */
     9:optional map<string,string> labels,
     
     /**
-     * Token attributes, placeholder to store K/V
+     * Token attributes, placeholder to store K/V.
+     * Attributes can be used to limit/augment the use of the token.
      */
     10: optional map<string,string> attributes,
 }
@@ -88,11 +90,13 @@ struct ReadToken {
     4:optional bool lookup,
 
     /**
+     * DEPRECATED.
      * Groovy scripting enabled, default false
      */
     5:optional bool groovy,
 
     /**
+     * DEPRECATED
      * Max fetch size in bytes of each read request, default 16Mb
      */
     6:optional i64 maxFetchSize,
@@ -139,7 +143,8 @@ struct ReadToken {
     13:optional map<string,string> attributes,
 
     /**
-     * Token extra labels
+     * Token extra labels. These are label selectors which will be added to
+     * the query parameters to restrain the set of returned Geo Time Series™.
      */
     14:optional map<string,string> labels,
 

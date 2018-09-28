@@ -14,6 +14,8 @@ public class DebugWarpScriptExtension extends WarpScriptExtension {
     functions.put("LOGMSG", new LOGMSG("LOGMSG"));
     functions.put("STDOUT", new STDOUT("STDOUT"));
     functions.put("STDERR", new STDERR("STDERR"));
+    functions.put("NOLOG", new NOLOG("NOLOG"));
+    functions.put("TDESCRIBE", new TDESCRIBE("TDESCRIBE"));
   }
   
   @Override

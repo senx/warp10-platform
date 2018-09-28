@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  Cityzen Data
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,37 +21,19 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
-import java.lang.reflect.Method;
-
-public class MATH2 extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-
-  private Method method;
-
-  public MATH2(String name, String methodName) throws WarpScriptException {
+/**
+ * Turn on line number sectioning
+ */
+public class LINEON extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+  
+  public LINEON(String name) {
     super(name);
-
-    try {
-      this.method = Math.class.getMethod(methodName, double.class, double.class);
-    } catch (Exception e) {
-      throw new WarpScriptException(e);
-    }
   }
-
+  
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object op2 = stack.pop();
-    Object op1 = stack.pop();
-
-    if (!(op1 instanceof Number) || !(op2 instanceof Number)) {
-      throw new WarpScriptException(getName() + " operates on two numeric arguments.");
-    }
-
-    try {
-      stack.push(this.method.invoke(null, ((Number) op1).doubleValue(), ((Number) op2).doubleValue()));
-    } catch (Exception e) {
-      throw new WarpScriptException(e);
-    }
-
+    stack.setAttribute(WarpScriptStack.ATTRIBUTE_LINENO, Boolean.TRUE);
     return stack;
   }
+
 }

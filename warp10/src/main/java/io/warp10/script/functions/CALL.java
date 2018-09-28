@@ -119,6 +119,7 @@ public class CALL extends NamedWarpScriptFunction implements WarpScriptStackFunc
               return proc;
             } else {
               this.readers.remove(proc);
+              proc = null;
             }
           }
         }

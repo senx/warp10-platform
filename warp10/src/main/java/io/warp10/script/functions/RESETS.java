@@ -48,11 +48,16 @@ public class RESETS extends NamedWarpScriptFunction implements WarpScriptStackFu
     
     Object top = stack.pop();
 
-    if (!(top instanceof List)) {
-      throw new WarpScriptException(getName() + " operates on a list of Geo Time Series.");
+    if (!(top instanceof List) && !(top instanceof GeoTimeSerie)) {
+      throw new WarpScriptException(getName() + " operates on a Geo Time Series™ or list thereof.");
     }
     
-    List<Object> params = (List<Object>) top;
+    List<Object> params = top instanceof List ? (List<Object>) top : new ArrayList<Object>();
+    
+    // If top is a GTS, add it to the newly created empty list
+    if (top instanceof GeoTimeSerie) {
+      params.add(top);
+    }
     
     List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
 
@@ -75,7 +80,12 @@ public class RESETS extends NamedWarpScriptFunction implements WarpScriptStackFu
       result.add(GTSHelper.compensateResets(gts, decreasing));
     }
     
-    stack.push(result);
+    if (top instanceof GeoTimeSerie) {
+      stack.push(result.get(0));
+    } else {
+      stack.push(result);
+    }
+    
     return stack;
   }
 }

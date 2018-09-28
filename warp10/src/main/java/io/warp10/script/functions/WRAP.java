@@ -84,7 +84,7 @@ public class WRAP  extends GTSStackFunction {
       
       stack.push(new String(OrderPreservingBase64.encode(bytes), Charsets.US_ASCII));
     } catch (TException te) {
-      throw new WarpScriptException(getName() + " failed to wrap GTS.");
+      throw new WarpScriptException(getName() + " failed to wrap GTS.", te);
     }        
 
     return stack;
@@ -113,7 +113,7 @@ public class WRAP  extends GTSStackFunction {
       
       return new String(OrderPreservingBase64.encode(bytes), Charsets.US_ASCII);
     } catch (TException te) {
-      throw new WarpScriptException(getName() + " failed to wrap GTS.");
+      throw new WarpScriptException(getName() + " failed to wrap GTS.", te);
     }        
   }
 }

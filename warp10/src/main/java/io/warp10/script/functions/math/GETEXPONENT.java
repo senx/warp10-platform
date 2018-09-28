@@ -1,5 +1,5 @@
 //
-//   Copyright 2017  Cityzen Data
+//   Copyright 2018  Cityzen Data
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,41 +14,33 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.functions;
+package io.warp10.script.functions.math;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import java.util.HashSet;
-import java.util.Set;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
- * Computes the difference of two sets - This is a corrected version of 'DIFFERENCE' which had its arguments swapped
+ * Check https://docs.oracle.com/javase/8/docs/api/java/lang/Math.html for the documentation of this function.
+ * Last java parameter is on top of the stack.
  */
-public class SUBTRACTION extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
-  public SUBTRACTION(String name) {
+public class GETEXPONENT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  public GETEXPONENT(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object b = stack.pop();
-    Object a = stack.pop();
-    
-    if (!(a instanceof Set) || !(b instanceof Set)) {
-      throw new WarpScriptException(getName() + " can only operate on sets.");
+    Object op0 = stack.pop();
+
+    if (!(op0 instanceof Number)) {
+      throw new WarpScriptException(getName() + " can only operate on numerical values.");
     }
-    
-    Set<Object> difference = new HashSet<Object>();
-       
-    difference.addAll((Set<Object>) a);
-    difference.removeAll((Set<Object>) b);
-    
-    stack.push(difference);
-    
+
+    stack.push((long) Math.getExponent(((Number) op0).doubleValue()));
+
     return stack;
   }
 }

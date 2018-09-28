@@ -47,12 +47,6 @@ public class LOCATIONS extends NamedWarpScriptFunction implements WarpScriptStac
       throw new WarpScriptException(getName() + " expects a geo time series on top of the stack.");
     }
 
-    //
-    // Sort GTS
-    //
-    
-    GTSHelper.sort((GeoTimeSerie) o);
-
     List<Object> latitudes = new ArrayList<Object>();
     List<Object> longitudes = new ArrayList<Object>();
     
@@ -70,7 +64,8 @@ public class LOCATIONS extends NamedWarpScriptFunction implements WarpScriptStac
         longitudes.add(latlon[1]);
       }
     }
-    
+
+    // TODO(tce): should return a list of 2 lists to be able to extend this class from GTSStackFunction. Or a zip of these lists.
     stack.push(latitudes);
     stack.push(longitudes);
     

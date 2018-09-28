@@ -74,6 +74,9 @@ public class EgressExecHandler extends AbstractHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(EgressExecHandler.class);
   private static final Logger EVENTLOG = LoggerFactory.getLogger("warpscript.events");
+ 
+  private static StoreClient exposedStoreClient = null;
+  private static DirectoryClient exposedDirectoryClient = null;
   
   private final KeyStore keyStore;
   private final StoreClient storeClient;
@@ -101,8 +104,12 @@ public class EgressExecHandler extends AbstractHandler {
     } else {
       this.bootstrapManager = new BootstrapManager();
     }
-  }
-  
+    
+    if ("true".equals(properties.getProperty(Configuration.EGRESS_CLIENTS_EXPOSE))) {
+      exposedStoreClient = storeClient;
+      exposedDirectoryClient = directoryClient;
+    }
+  }    
   
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
@@ -267,6 +274,11 @@ public class EgressExecHandler extends AbstractHandler {
         long nano = System.nanoTime();
         
         try {
+          if (Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_LINENO)) && !((MemoryWarpScriptStack) stack).inMultiline()) {
+            // We call 'exec' so statements are correctly put in macros if we are currently building one
+            stack.exec("'[Line #" + Long.toString(lineno) + "]'");
+            stack.exec(WarpScriptLib.SECTION);
+          }
           stack.exec(line);
         } catch (WarpScriptStopException ese) {
           // Do nothing, this is simply an early termination which should not generate errors
@@ -370,7 +382,7 @@ public class EgressExecHandler extends AbstractHandler {
       resp.addHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX) + "," + Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX));
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX), Long.toString(lineno));
       String section = (String) stack.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME);
-      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX), "in section '" + section + "': " + t.getMessage());
+      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX), "in section '" + section + "': " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : ""));
       
       //
       // Output the exported symbols in a map
@@ -444,5 +456,13 @@ public class EgressExecHandler extends AbstractHandler {
         EVENTLOG.info(msg);
       }
     }
+  }
+  
+  public static final StoreClient getExposedStoreClient() {
+    return exposedStoreClient;
+  }
+  
+  public static final DirectoryClient getExposedDirectoryClient() {
+    return exposedDirectoryClient;
   }
 }

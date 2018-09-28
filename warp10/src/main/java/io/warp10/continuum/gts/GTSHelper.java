@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.gts;
 
+import io.warp10.DoubleUtils;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
@@ -28,6 +29,7 @@ import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptBinaryOp;
 import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptFillerFunction;
 import io.warp10.script.WarpScriptFilterFunction;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptMapperFunction;
@@ -35,13 +37,13 @@ import io.warp10.script.WarpScriptNAryFunction;
 import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.functions.MACROMAPPER;
+import io.warp10.script.functions.METASORT;
+import io.warp10.script.functions.TOQUATERNION;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URLDecoder;
@@ -82,7 +84,6 @@ import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.reflect.TypeToken;
 
 
 /**
@@ -90,17 +91,6 @@ import com.google.common.reflect.TypeToken;
  * 
  */
 public class GTSHelper {
-
-  /**
-   * Maximum number of buckets we accept when bucketizing GTS instances.
-   * 10M is a little less than 20 years at 1 minute resolution
-   */
-  private static final int MAX_BUCKETS = 10000000;
-  
-  /**
-   * Maximum number of values for a GTS instance.
-   */
-  private static final int MAX_VALUES = 10000000;
     
   /**
    * Sort the values (and associated locations/elevations) by order of their ticks
@@ -146,6 +136,79 @@ public class GTSHelper {
   public static final GeoTimeSerie sort(GeoTimeSerie gts) {
     return sort(gts, false);
   }
+
+  /**
+   * Option for the binarySearchTick function.
+   * In case of duplicate ticks in a GTS, specify which index to return.
+   *
+   * ARBITRARY: binarySearchTick will return an arbitrary index corresponding to a matching tick.
+   * FIRST:     binarySearchTick will return the lowest index corresponding to a matching tick.
+   * LAST:      binarySearchTick will return the highest index corresponding to a matching tick.
+   */
+  public enum BinarySearchTickChoice {
+    ARBITRARY, FIRST, LAST
+  }
+
+  public static final int binarySearchTick(GeoTimeSerie gts, long timestamp, BinarySearchTickChoice tickChoice) {
+    return binarySearchTick(gts, 0, gts.values, timestamp, tickChoice);
+  }
+
+  /**
+   * Gives the index of the first/last/arbitrary instance of the given timestamp in a sorted GTS.
+   * Similar in principle to Arrays.binarySearch
+   *
+   * @param gts       The GTS in which the timestamp is searched
+   * @param timestamp The searched timestamp
+   * @return the index of the last instance of the given timestamp in a sorted GTS or (-(insertion point) - 1).
+   */
+  public static final int binarySearchTick(GeoTimeSerie gts, int fromIndex, int toIndex, long timestamp, BinarySearchTickChoice tickChoice) {
+
+    // If no ticks
+    if (null == gts.ticks) {
+      return -1;
+    }
+
+    // Make sure the GTS is sorted
+    sort(gts, gts.reversed);
+
+    int low = fromIndex;
+    int high = toIndex - 1;
+    int resIndex = -1;
+    int compFactor = gts.reversed ? -1 : 1;
+
+    while (low <= high) {
+      int mid = (low + high) >>> 1;
+      long midVal = gts.ticks[mid];
+
+      int comp = Long.compare(midVal, timestamp) * compFactor;
+
+      if (0 > comp) {
+        low = mid + 1;
+      } else if (0 < comp) {
+        high = mid - 1;
+      } else {
+        if (BinarySearchTickChoice.ARBITRARY == tickChoice) {
+          return mid;
+        }
+        resIndex = mid;
+        if (BinarySearchTickChoice.FIRST == tickChoice) {
+          high = mid - 1;
+        } else { // BinarySearchTickChoice.LAST == tickChoice
+          low = mid + 1;
+        }
+      }
+    }
+
+    if (0 <= resIndex) { // Key found
+      return resIndex;
+    } else { // Key not found, return insertion point: -(insertion_point + 1)
+      if (gts.reversed) {
+        return -(high + 1);
+      } else {
+        return -(low + 1);
+      }
+    }
+  }
   
   public static final GeoTimeSerie valueSort(GeoTimeSerie gts, boolean reversed) {
     quicksortByValue(gts, 0, gts.values - 1, reversed);
@@ -168,7 +231,7 @@ public class GTSHelper {
    * 
    * @param gts GeoTimeSerie instance for which to return an iterator
    * @param reversed If true, ticks will be returned from most recent to oldest
-   * @return
+   * @return an iterator on the GeoTimeSerie ticks.
    */
   public static final Iterator<Long> tickIterator(GeoTimeSerie gts, final boolean reversed) {
     final GeoTimeSerie itergts = gts;
@@ -246,76 +309,88 @@ public class GTSHelper {
       return;
     }
     
-    int i = low, j = high;
-    // Get the pivot element from the middle of the list
-    long pivot = gts.ticks[low + (high-low)/2];
-
-    // Divide into two lists
-    while (i <= j) {
-      // If the current value from the left list is smaller
-      // (or greater if reversed is true) than the pivot
-      // element then get the next element from the left list
-      while ((!reversed && gts.ticks[i] < pivot) || (reversed && gts.ticks[i] > pivot)) {
-        i++;
-      }
-      // If the current value from the right list is larger (or lower if reversed is true)
-      // than the pivot element then get the next element from the right list
-      while ((!reversed && gts.ticks[j] > pivot) || (reversed && gts.ticks[j] < pivot)) {
-        j--;
-      }
-
-      // If we have found a values in the left list which is larger then
-      // the pivot element and if we have found a value in the right list
-      // which is smaller then the pivot element then we exchange the
-      // values.
-      // As we are done we can increase i and j
-      if (i <= j) {
-        long tmplong = gts.ticks[i];
-        gts.ticks[i] = gts.ticks[j];
-        gts.ticks[j] = tmplong;
-        
-        if (null != gts.locations) {
-          tmplong = gts.locations[i];
-          gts.locations[i] = gts.locations[j];
-          gts.locations[j] = tmplong;          
-        }
-        
-        if (null != gts.elevations) {
-          tmplong = gts.elevations[i];
-          gts.elevations[i] = gts.elevations[j];
-          gts.elevations[j] = tmplong;          
-        }
-        
-        if (TYPE.LONG == gts.type) {
-          tmplong = gts.longValues[i];
-          gts.longValues[i] = gts.longValues[j];
-          gts.longValues[j] = tmplong;          
-        } else if (TYPE.DOUBLE == gts.type) {
-          double tmpdouble = gts.doubleValues[i];
-          gts.doubleValues[i] = gts.doubleValues[j];
-          gts.doubleValues[j] = tmpdouble;
-        } else if (TYPE.STRING == gts.type) {
-          String tmpstring = gts.stringValues[i];
-          gts.stringValues[i] = gts.stringValues[j];
-          gts.stringValues[j] = tmpstring;
-        } else if (TYPE.BOOLEAN == gts.type) {
-          boolean tmpboolean = gts.booleanValues.get(i);
-          gts.booleanValues.set(i, gts.booleanValues.get(j));
-          gts.booleanValues.set(j, tmpboolean);
-        }
-
-        i++;
-        j--;
-      }
-    }
+    List<int[]> ranges = new ArrayList<int[]>();
     
-    // Recursion
-    if (low < j) {
-      quicksort(gts, low, j, reversed);
-    }
-    if (i < high) {   
-      quicksort(gts, i, high, reversed);
-    }
+    ranges.add(new int[] { low, high });
+    
+    while(!ranges.isEmpty()) {
+      int[] range = ranges.remove(0);
+      low = range[0];
+      high = range[1];
+      
+      int i = low, j = high;
+      // Get the pivot element from the middle of the list
+      long pivot = gts.ticks[low + (high-low)/2];
+
+      // Divide into two lists
+      while (i <= j) {
+        // If the current value from the left list is smaller
+        // (or greater if reversed is true) than the pivot
+        // element then get the next element from the left list
+        while ((!reversed && gts.ticks[i] < pivot) || (reversed && gts.ticks[i] > pivot)) {
+          i++;
+        }
+        // If the current value from the right list is larger (or lower if reversed is true)
+        // than the pivot element then get the next element from the right list
+        while ((!reversed && gts.ticks[j] > pivot) || (reversed && gts.ticks[j] < pivot)) {
+          j--;
+        }
+
+        // If we have found a values in the left list which is larger then
+        // the pivot element and if we have found a value in the right list
+        // which is smaller then the pivot element then we exchange the
+        // values.
+        // As we are done we can increase i and j
+        if (i <= j) {
+          long tmplong = gts.ticks[i];
+          gts.ticks[i] = gts.ticks[j];
+          gts.ticks[j] = tmplong;
+          
+          if (null != gts.locations) {
+            tmplong = gts.locations[i];
+            gts.locations[i] = gts.locations[j];
+            gts.locations[j] = tmplong;          
+          }
+          
+          if (null != gts.elevations) {
+            tmplong = gts.elevations[i];
+            gts.elevations[i] = gts.elevations[j];
+            gts.elevations[j] = tmplong;          
+          }
+          
+          if (TYPE.LONG == gts.type) {
+            tmplong = gts.longValues[i];
+            gts.longValues[i] = gts.longValues[j];
+            gts.longValues[j] = tmplong;          
+          } else if (TYPE.DOUBLE == gts.type) {
+            double tmpdouble = gts.doubleValues[i];
+            gts.doubleValues[i] = gts.doubleValues[j];
+            gts.doubleValues[j] = tmpdouble;
+          } else if (TYPE.STRING == gts.type) {
+            String tmpstring = gts.stringValues[i];
+            gts.stringValues[i] = gts.stringValues[j];
+            gts.stringValues[j] = tmpstring;
+          } else if (TYPE.BOOLEAN == gts.type) {
+            boolean tmpboolean = gts.booleanValues.get(i);
+            gts.booleanValues.set(i, gts.booleanValues.get(j));
+            gts.booleanValues.set(j, tmpboolean);
+          }
+
+          i++;
+          j--;
+        }
+      }
+      
+      // Recursion
+      if (low < j) {
+        //quicksort(gts, low, j, reversed);
+        ranges.add(new int[] { low, j });
+      }
+      if (i < high) {   
+        //quicksort(gts, i, high, reversed);
+        ranges.add(new int[] { i, high });
+      }      
+    }    
   }
 
   private static final void quicksortByValue(GeoTimeSerie gts, int low, int high, boolean reversed) { 
@@ -324,160 +399,172 @@ public class GTSHelper {
       return;
     }
     
-    int i = low, j = high;
-    // Get the pivot element from the middle of the list
-    long lpivot = 0L;
-    double dpivot = 0.0D;
-    String spivot = null;
+    List<int[]> ranges = new ArrayList<int[]>();
     
-    TYPE type = gts.getType();
+    ranges.add(new int[] { low, high });
     
-    if (TYPE.LONG == type) {
-      lpivot = gts.longValues[low + (high-low)/2];
-    } else if (TYPE.DOUBLE == type) {
-      dpivot = gts.doubleValues[low + (high-low)/2];
-    } else if (TYPE.STRING == type) {
-      spivot = gts.stringValues[low + (high-low)/2];       
-    } else if (TYPE.BOOLEAN == type) {
-      // Do nothing for booleans
-      return;
-    }
-    
-    long pivotTick = gts.ticks[low + (high-low) / 2];
-    
-    // Divide into two lists
-    while (i <= j) {
+    while(!ranges.isEmpty()) {
+      int[] range = ranges.remove(0);
+      low = range[0];
+      high = range[1];
+      
+      int i = low, j = high;
+      // Get the pivot element from the middle of the list
+      long lpivot = 0L;
+      double dpivot = 0.0D;
+      String spivot = null;
+      
+      TYPE type = gts.getType();
       
       if (TYPE.LONG == type) {
-        
-        
-        if (!reversed) {
-          // If the current value from the left list is smaller
-          // (or greater if reversed is true) than the pivot
-          // element then get the next element from the left list        
-          while(gts.longValues[i] < lpivot || (gts.longValues[i] == lpivot && gts.ticks[i] < pivotTick)) {
-            i++;
-          }
-          // If the current value from the right list is larger (or lower if reversed is true)
-          // than the pivot element then get the next element from the right list
-          while(gts.longValues[j] > lpivot || (gts.longValues[j] == lpivot && gts.ticks[j] > pivotTick)) {
-            j--;
-          }
-        } else {
-          while(gts.longValues[i] > lpivot || (gts.longValues[i] == lpivot && gts.ticks[i] > pivotTick)) {
-            i++;
-          }
-          while(gts.longValues[j] < lpivot || (gts.longValues[j] == lpivot && gts.ticks[j] < pivotTick)) {
-            j--;
-          }
-        }
-      } else if (TYPE.DOUBLE == type) {        
-        if (!reversed) {
-          // If the current value from the left list is smaller
-          // (or greater if reversed is true) than the pivot
-          // element then get the next element from the left list        
-          while(gts.doubleValues[i] < dpivot || (gts.doubleValues[i] == dpivot && gts.ticks[i] < pivotTick)) {
-            i++;
-          }
-          // If the current value from the right list is larger (or lower if reversed is true)
-          // than the pivot element then get the next element from the right list
-          while(gts.doubleValues[j] > dpivot || (gts.doubleValues[j] == dpivot && gts.ticks[j] > pivotTick)) {
-            j--;
-          }
-        } else {
-          while(gts.doubleValues[i] > dpivot || (gts.doubleValues[i] == dpivot && gts.ticks[i] > pivotTick)) {
-            i++;
-          }
-          while(gts.doubleValues[j] < dpivot || (gts.doubleValues[j] == dpivot && gts.ticks[j] < pivotTick)) {
-            j--;
-          }
-        }
+        lpivot = gts.longValues[low + (high-low)/2];
+      } else if (TYPE.DOUBLE == type) {
+        dpivot = gts.doubleValues[low + (high-low)/2];
       } else if (TYPE.STRING == type) {
-        if (!reversed) {
-          // If the current value from the left list is smaller
-          // (or greater if reversed is true) than the pivot
-          // element then get the next element from the left list        
-          while(gts.stringValues[i].compareTo(spivot) < 0 || (0 == gts.stringValues[i].compareTo(spivot) && gts.ticks[i] < pivotTick)) {
-            i++;
-          }
-          // If the current value from the right list is larger (or lower if reversed is true)
-          // than the pivot element then get the next element from the right list
-          while(gts.stringValues[j].compareTo(spivot) > 0 || (0 == gts.stringValues[j].compareTo(spivot) && gts.ticks[j] > pivotTick)) {
-            j--;
-          }
-        } else {
-          while(gts.stringValues[i].compareTo(spivot) > 0 || (0 == gts.stringValues[i].compareTo(spivot) && gts.ticks[i] > pivotTick)) {
-            i++;
-          }
-          while(gts.stringValues[j].compareTo(spivot) < 0 || (0 == gts.stringValues[j].compareTo(spivot) && gts.ticks[j] < pivotTick)) {
-            j--;
-          }
-        }
+        spivot = gts.stringValues[low + (high-low)/2];       
+      } else if (TYPE.BOOLEAN == type) {
+        // Do nothing for booleans
+        return;
       }
-
-      // If we have found a values in the left list which is larger then
-      // the pivot element and if we have found a value in the right list
-      // which is smaller then the pivot element then we exchange the
-      // values.
-      // As we are done we can increase i and j
-      if (i <= j) {
-        if (TYPE.LONG == gts.type) {
-          long tmplong = gts.longValues[i];
-          gts.longValues[i] = gts.longValues[j];
-          gts.longValues[j] = tmplong;          
-        } else if (TYPE.DOUBLE == gts.type) {
-          double tmpdouble = gts.doubleValues[i];
-          gts.doubleValues[i] = gts.doubleValues[j];
-          gts.doubleValues[j] = tmpdouble;            
-        } else if (TYPE.STRING == gts.type) { 
-          String tmpstring = gts.stringValues[i];
-          gts.stringValues[i] = gts.stringValues[j];
-          gts.stringValues[j] = tmpstring;            
-        } else if (TYPE.BOOLEAN == gts.type) {
-          boolean tmpboolean = gts.booleanValues.get(i);
-          gts.booleanValues.set(i, gts.booleanValues.get(j));
-          gts.booleanValues.set(j, tmpboolean);
-        }
-
-        long tmplong = gts.ticks[i];
-        gts.ticks[i] = gts.ticks[j];
-        gts.ticks[j] = tmplong;
-          
-        if (null != gts.locations) {
-          tmplong = gts.locations[i];
-          gts.locations[i] = gts.locations[j];
-          gts.locations[j] = tmplong;          
-        }
-          
-        if (null != gts.elevations) {
-          tmplong = gts.elevations[i];
-          gts.elevations[i] = gts.elevations[j];
-          gts.elevations[j] = tmplong;          
-        }
+      
+      long pivotTick = gts.ticks[low + (high-low) / 2];
+      
+      // Divide into two lists
+      while (i <= j) {
         
-        i++;
-        j--;
+        if (TYPE.LONG == type) {
+          
+          
+          if (!reversed) {
+            // If the current value from the left list is smaller
+            // (or greater if reversed is true) than the pivot
+            // element then get the next element from the left list        
+            while(gts.longValues[i] < lpivot || (gts.longValues[i] == lpivot && gts.ticks[i] < pivotTick)) {
+              i++;
+            }
+            // If the current value from the right list is larger (or lower if reversed is true)
+            // than the pivot element then get the next element from the right list
+            while(gts.longValues[j] > lpivot || (gts.longValues[j] == lpivot && gts.ticks[j] > pivotTick)) {
+              j--;
+            }
+          } else {
+            while(gts.longValues[i] > lpivot || (gts.longValues[i] == lpivot && gts.ticks[i] > pivotTick)) {
+              i++;
+            }
+            while(gts.longValues[j] < lpivot || (gts.longValues[j] == lpivot && gts.ticks[j] < pivotTick)) {
+              j--;
+            }
+          }
+        } else if (TYPE.DOUBLE == type) {        
+          if (!reversed) {
+            // If the current value from the left list is smaller
+            // (or greater if reversed is true) than the pivot
+            // element then get the next element from the left list        
+            while(gts.doubleValues[i] < dpivot || (gts.doubleValues[i] == dpivot && gts.ticks[i] < pivotTick)) {
+              i++;
+            }
+            // If the current value from the right list is larger (or lower if reversed is true)
+            // than the pivot element then get the next element from the right list
+            while(gts.doubleValues[j] > dpivot || (gts.doubleValues[j] == dpivot && gts.ticks[j] > pivotTick)) {
+              j--;
+            }
+          } else {
+            while(gts.doubleValues[i] > dpivot || (gts.doubleValues[i] == dpivot && gts.ticks[i] > pivotTick)) {
+              i++;
+            }
+            while(gts.doubleValues[j] < dpivot || (gts.doubleValues[j] == dpivot && gts.ticks[j] < pivotTick)) {
+              j--;
+            }
+          }
+        } else if (TYPE.STRING == type) {
+          if (!reversed) {
+            // If the current value from the left list is smaller
+            // (or greater if reversed is true) than the pivot
+            // element then get the next element from the left list        
+            while(gts.stringValues[i].compareTo(spivot) < 0 || (0 == gts.stringValues[i].compareTo(spivot) && gts.ticks[i] < pivotTick)) {
+              i++;
+            }
+            // If the current value from the right list is larger (or lower if reversed is true)
+            // than the pivot element then get the next element from the right list
+            while(gts.stringValues[j].compareTo(spivot) > 0 || (0 == gts.stringValues[j].compareTo(spivot) && gts.ticks[j] > pivotTick)) {
+              j--;
+            }
+          } else {
+            while(gts.stringValues[i].compareTo(spivot) > 0 || (0 == gts.stringValues[i].compareTo(spivot) && gts.ticks[i] > pivotTick)) {
+              i++;
+            }
+            while(gts.stringValues[j].compareTo(spivot) < 0 || (0 == gts.stringValues[j].compareTo(spivot) && gts.ticks[j] < pivotTick)) {
+              j--;
+            }
+          }
+        }
+
+        // If we have found a values in the left list which is larger then
+        // the pivot element and if we have found a value in the right list
+        // which is smaller then the pivot element then we exchange the
+        // values.
+        // As we are done we can increase i and j
+        if (i <= j) {
+          if (TYPE.LONG == gts.type) {
+            long tmplong = gts.longValues[i];
+            gts.longValues[i] = gts.longValues[j];
+            gts.longValues[j] = tmplong;          
+          } else if (TYPE.DOUBLE == gts.type) {
+            double tmpdouble = gts.doubleValues[i];
+            gts.doubleValues[i] = gts.doubleValues[j];
+            gts.doubleValues[j] = tmpdouble;            
+          } else if (TYPE.STRING == gts.type) { 
+            String tmpstring = gts.stringValues[i];
+            gts.stringValues[i] = gts.stringValues[j];
+            gts.stringValues[j] = tmpstring;            
+          } else if (TYPE.BOOLEAN == gts.type) {
+            boolean tmpboolean = gts.booleanValues.get(i);
+            gts.booleanValues.set(i, gts.booleanValues.get(j));
+            gts.booleanValues.set(j, tmpboolean);
+          }
+
+          long tmplong = gts.ticks[i];
+          gts.ticks[i] = gts.ticks[j];
+          gts.ticks[j] = tmplong;
+            
+          if (null != gts.locations) {
+            tmplong = gts.locations[i];
+            gts.locations[i] = gts.locations[j];
+            gts.locations[j] = tmplong;          
+          }
+            
+          if (null != gts.elevations) {
+            tmplong = gts.elevations[i];
+            gts.elevations[i] = gts.elevations[j];
+            gts.elevations[j] = tmplong;          
+          }
+          
+          i++;
+          j--;
+        }
       }
-    }
-    
-    // Recursion
-    if (low < j) {
-      quicksortByValue(gts, low, j, reversed);
-    }
-    if (i < high) {   
-      quicksortByValue(gts, i, high, reversed);
+      
+      // Recursion
+      if (low < j) {
+        //quicksortByValue(gts, low, j, reversed);
+        ranges.add(new int[] { low, j });
+      }
+      if (i < high) {   
+        //quicksortByValue(gts, i, high, reversed);
+        ranges.add(new int[] { i, high });
+      }
     }
   }
 
   /**
-   * Sort GTS according to location.
+   * Sort GTS according to location, using HHCodes, between two indexes.
    * The ticks with no locations are clustered somewhere in-between those with locations since the
    * marker for NO_LOCATION is a valid location (!)
    * 
-   * @param gts
-   * @param low 
-   * @param high
-   * @param reversed
+   * @param gts GeoTimeSerie instance to sort.
+   * @param low Lower index, only indexes higher or equal to this value will be sorted.
+   * @param high Higher index, only indexes lower or equal to this value will be sorted.
+   * @param reversed Whether to reverse the order of the resulting GTS or not.
    */
   private static final void quicksortByLocation(GeoTimeSerie gts, int low, int high, boolean reversed) { 
     
@@ -489,90 +576,102 @@ public class GTSHelper {
       return;
     }
         
-    int i = low, j = high;
-    // Get the pivot element from the middle of the list
-    long pivot = 0L;
+    List<int[]> ranges = new ArrayList<int[]>();
+    
+    ranges.add(new int[] { low, high });
+    
+    while(!ranges.isEmpty()) {
+      int[] range = ranges.remove(0);
+      low = range[0];
+      high = range[1];
 
-    pivot = gts.locations[low + (high-low)/2];
-    
-    long pivotTick = gts.ticks[low + (high-low) / 2];
-    
-    // Divide into two lists
-    while (i <= j) {
+      int i = low, j = high;
+      // Get the pivot element from the middle of the list
+      long pivot = 0L;
+
+      pivot = gts.locations[low + (high-low)/2];
       
-      if (!reversed) {
-        // If the current value from the left list is smaller
-        // (or greater if reversed is true) than the pivot
-        // element then get the next element from the left list        
-        while(gts.locations[i] < pivot || (gts.locations[i] == pivot && gts.ticks[i] < pivotTick)) {
-          i++;
-        }
+      long pivotTick = gts.ticks[low + (high-low) / 2];
+      
+      // Divide into two lists
+      while (i <= j) {
         
-        // If the current value from the right list is larger (or lower if reversed is true)
-        // than the pivot element then get the next element from the right list
-        while(gts.locations[j] > pivot || (gts.locations[j] == pivot && gts.ticks[j] > pivotTick)) {
-          j--;
-        }
-      } else {
-        while(gts.locations[i] > pivot || (gts.locations[i] == pivot && gts.ticks[i] > pivotTick)) {
-          i++;
-        }
-        while(gts.locations[j] < pivot || (gts.locations[j] == pivot && gts.ticks[j] < pivotTick)) {
-          j--;
-        }
-      }
-  
-      // If we have found a values in the left list which is larger then
-      // the pivot element and if we have found a value in the right list
-      // which is smaller then the pivot element then we exchange the
-      // values.
-      // As we are done we can increase i and j
-      if (i <= j) {
-        if (TYPE.LONG == gts.type) {
-          long tmplong = gts.longValues[i];
-          gts.longValues[i] = gts.longValues[j];
-          gts.longValues[j] = tmplong;          
-        } else if (TYPE.DOUBLE == gts.type) {
-          double tmpdouble = gts.doubleValues[i];
-          gts.doubleValues[i] = gts.doubleValues[j];
-          gts.doubleValues[j] = tmpdouble;            
-        } else if (TYPE.STRING == gts.type) { 
-          String tmpstring = gts.stringValues[i];
-          gts.stringValues[i] = gts.stringValues[j];
-          gts.stringValues[j] = tmpstring;            
-        } else if (TYPE.BOOLEAN == gts.type) {
-          boolean tmpboolean = gts.booleanValues.get(i);
-          gts.booleanValues.set(i, gts.booleanValues.get(j));
-          gts.booleanValues.set(j, tmpboolean);
-        }
-
-        long tmplong = gts.ticks[i];
-        gts.ticks[i] = gts.ticks[j];
-        gts.ticks[j] = tmplong;
+        if (!reversed) {
+          // If the current value from the left list is smaller
+          // (or greater if reversed is true) than the pivot
+          // element then get the next element from the left list        
+          while(gts.locations[i] < pivot || (gts.locations[i] == pivot && gts.ticks[i] < pivotTick)) {
+            i++;
+          }
           
-        if (null != gts.locations) {
-          tmplong = gts.locations[i];
-          gts.locations[i] = gts.locations[j];
-          gts.locations[j] = tmplong;          
+          // If the current value from the right list is larger (or lower if reversed is true)
+          // than the pivot element then get the next element from the right list
+          while(gts.locations[j] > pivot || (gts.locations[j] == pivot && gts.ticks[j] > pivotTick)) {
+            j--;
+          }
+        } else {
+          while(gts.locations[i] > pivot || (gts.locations[i] == pivot && gts.ticks[i] > pivotTick)) {
+            i++;
+          }
+          while(gts.locations[j] < pivot || (gts.locations[j] == pivot && gts.ticks[j] < pivotTick)) {
+            j--;
+          }
         }
-          
-        if (null != gts.elevations) {
-          tmplong = gts.elevations[i];
-          gts.elevations[i] = gts.elevations[j];
-          gts.elevations[j] = tmplong;          
-        }
-        
-        i++;
-        j--;
-      }
-    }
     
-    // Recursion
-    if (low < j) {
-      quicksortByLocation(gts, low, j, reversed);
-    }
-    if (i < high) {   
-      quicksortByLocation(gts, i, high, reversed);
+        // If we have found a values in the left list which is larger then
+        // the pivot element and if we have found a value in the right list
+        // which is smaller then the pivot element then we exchange the
+        // values.
+        // As we are done we can increase i and j
+        if (i <= j) {
+          if (TYPE.LONG == gts.type) {
+            long tmplong = gts.longValues[i];
+            gts.longValues[i] = gts.longValues[j];
+            gts.longValues[j] = tmplong;          
+          } else if (TYPE.DOUBLE == gts.type) {
+            double tmpdouble = gts.doubleValues[i];
+            gts.doubleValues[i] = gts.doubleValues[j];
+            gts.doubleValues[j] = tmpdouble;            
+          } else if (TYPE.STRING == gts.type) { 
+            String tmpstring = gts.stringValues[i];
+            gts.stringValues[i] = gts.stringValues[j];
+            gts.stringValues[j] = tmpstring;            
+          } else if (TYPE.BOOLEAN == gts.type) {
+            boolean tmpboolean = gts.booleanValues.get(i);
+            gts.booleanValues.set(i, gts.booleanValues.get(j));
+            gts.booleanValues.set(j, tmpboolean);
+          }
+
+          long tmplong = gts.ticks[i];
+          gts.ticks[i] = gts.ticks[j];
+          gts.ticks[j] = tmplong;
+            
+          if (null != gts.locations) {
+            tmplong = gts.locations[i];
+            gts.locations[i] = gts.locations[j];
+            gts.locations[j] = tmplong;          
+          }
+            
+          if (null != gts.elevations) {
+            tmplong = gts.elevations[i];
+            gts.elevations[i] = gts.elevations[j];
+            gts.elevations[j] = tmplong;          
+          }
+          
+          i++;
+          j--;
+        }
+      }
+      
+      // Recursion
+      if (low < j) {
+        //quicksortByLocation(gts, low, j, reversed);
+        ranges.add(new int[] { low, j });
+      }
+      if (i < high) {   
+        //quicksortByLocation(gts, i, high, reversed);
+        ranges.add(new int[] { i, high });
+      }      
     }
   }
 
@@ -582,14 +681,14 @@ public class GTSHelper {
   }
     
   /**
-   * Return the tick at a given index in a Geo Time Serie.
+   * Return the tick at a given index in a GeoTimeSerie.
    * 
-   * @param gts
-   * @param idx
-   * @return
+   * @param gts GeoTimeSerie instance to get the tick from.
+   * @param idx Index of the tick.
+   * @return the tick value or Long.MIN_VALUE if no tick at that index.
    */
   public static long tickAtIndex(GeoTimeSerie gts, int idx) {
-    if (idx >= gts.values) {
+    if (0 > idx || idx >= gts.values) {
       return Long.MIN_VALUE;
     } else {
       return gts.ticks[idx];
@@ -597,9 +696,9 @@ public class GTSHelper {
   }
 
   /**
-   * Return a list with the ticks in a Geo Time Serie.
+   * Return a list with the ticks in a GeoTimeSerie.
    *
-   * @return                                                                           ]
+   * @return a list with the ticks in a GeoTimeSerie.
    */
   public static List<Long> tickList(GeoTimeSerie gts) {
     List<Long> ticks = new ArrayList<Long>(gts.values);
@@ -610,7 +709,7 @@ public class GTSHelper {
     
     return ticks;
   }
-  
+
   public static int indexAtTick(GeoTimeSerie gts, long tick) {
     
     if (0 == gts.values) {
@@ -680,9 +779,9 @@ public class GTSHelper {
    * Return the value in a GTS instance at a given index.
    * Return null if no value exists for the given index.
    * 
-   * @param gts
-   * @param idx
-   * @return
+   * @param gts GeoTimeSerie instance from which to extract the value.
+   * @param idx Index at which to read the value.
+   * @return The value at the given tick.
    */
   public static Object valueAtIndex(GeoTimeSerie gts, int idx) {
     if (idx >= gts.values) {
@@ -728,14 +827,14 @@ public class GTSHelper {
   }
 
   /**
-   * Return the location in a GeoTimeSerie at a given index
+   * Return the location in a GeoTimeSerie at a given index.
    * 
-   * @param gts
-   * @param idx
-   * @return
+   * @param gts GeoTimeSerie instance from which to extract the location.
+   * @param idx Index at which to read the location.
+   * @return The location in a GeoTimeSerie at a given index.
    */
   public static long locationAtIndex(GeoTimeSerie gts, int idx) {
-    if (null == gts.locations || idx >= gts.values) {
+    if (null == gts.locations || 0 > idx || idx >= gts.values) {
       return GeoTimeSerie.NO_LOCATION;
     } else {
       return gts.locations[idx];
@@ -745,9 +844,9 @@ public class GTSHelper {
   /**
    * Set the location at a specific index in the GTS
    * 
-   * @param gts
-   * @param idx
-   * @param location
+   * @param gts GeoTimeSerie instance to be modified.
+   * @param idx Index at which to write the location.
+   * @param location Location as HHCode to write.
    */
   public static void setLocationAtIndex(GeoTimeSerie gts, int idx, long location) {
     if (idx >= gts.values) {
@@ -793,9 +892,9 @@ public class GTSHelper {
   /**
    * Set the elevation at a specific index in the GTS
    * 
-   * @param gts
-   * @param idx
-   * @param location
+   * @param gts GeoTimeSerie instance to be modified.
+   * @param idx Index at which to write the elevation.
+   * @param elevation Elevation to write.
    */
   public static void setElevationAtIndex(GeoTimeSerie gts, int idx, long elevation) {
     if (idx >= gts.values) {
@@ -816,12 +915,12 @@ public class GTSHelper {
   /**
    * Return the elevation in a GeoTimeSerie at a given index
    * 
-   * @param gts
-   * @param idx
-   * @return
+   * @param gts GeoTimeSerie instance from which to extract elevation.
+   * @param idx Index at which to read the elevation
+   * @return The elevation in the GeoTimeSerie at a given index (NO_ELEVATION if none set).
    */
   public static long elevationAtIndex(GeoTimeSerie gts, int idx) {
-    if (null == gts.elevations || idx >= gts.values) {
+    if (null == gts.elevations || 0 > idx || idx >= gts.values) {
       return GeoTimeSerie.NO_ELEVATION;
     } else {
       return gts.elevations[idx];
@@ -887,10 +986,19 @@ public class GTSHelper {
     int idx = gts.values;
     
     if (overwrite) {
-      for (int i = 0; i < gts.values; i++) {
-        if (timestamp == gts.ticks[i]) {
-          idx = i;
-          break;
+      // Use binary search if possible
+      if (gts.sorted) {
+        int possibleIndex = binarySearchTick(gts, timestamp, BinarySearchTickChoice.FIRST);
+        // If the tick is found, change idx
+        if (0 <= possibleIndex) {
+          idx = possibleIndex;
+        }
+      } else { // GTS is not sorted, scan the ticks
+        for (int i = 0; i < gts.values; i++) {
+          if (timestamp == gts.ticks[i]) {
+            idx = i;
+            break;
+          }
         }
       }
     }
@@ -898,10 +1006,25 @@ public class GTSHelper {
     //
     // Provision memory allocation for the new value.
     //
-    
+
     if (gts.values == idx) {
-      // Reset 'sorted' flag as we add a value
-      gts.sorted = false;
+      // Try to keep 'sorted' flag if possible
+      if (2 > gts.values) { // Optimization to only make one check on most cases
+        if (0 == gts.values) {
+          gts.sorted = true;
+          gts.reversed = false;
+        } else { // 1 == gts.values
+          gts.sorted = true;
+          gts.reversed = gts.ticks[0] > timestamp;
+        }
+      } else if (gts.sorted) { // Simple check, if all values are equal we could keep checking
+        if (gts.reversed) {
+          gts.sorted = gts.ticks[gts.values - 1] >= timestamp;
+        } else {
+          gts.sorted = gts.ticks[gts.values - 1] <= timestamp;
+        }
+      }
+
       if (TYPE.UNDEFINED == gts.type || null == gts.ticks || gts.values >= gts.ticks.length || (null == gts.locations && GeoTimeSerie.NO_LOCATION != geoxppoint) || (null == gts.elevations && GeoTimeSerie.NO_ELEVATION != elevation)) {
         provision(gts, value, geoxppoint, elevation);
       }
@@ -929,11 +1052,11 @@ public class GTSHelper {
     
     if (value instanceof Boolean) {
       if (TYPE.LONG == gts.type) {
-        gts.longValues[idx] = ((Boolean) value).booleanValue() ? 1L : 0L; 
+        gts.longValues[idx] = ((Boolean) value).booleanValue() ? 1L : 0L;
       } else if (TYPE.DOUBLE == gts.type) {
-        gts.doubleValues[idx] = ((Boolean) value).booleanValue() ? 1.0D : 0.0D; 
+        gts.doubleValues[idx] = ((Boolean) value).booleanValue() ? 1.0D : 0.0D;
       } else if (TYPE.STRING == gts.type) {
-        gts.stringValues[idx] = ((Boolean) value).booleanValue() ? "T" : "F"; 
+        gts.stringValues[idx] = ((Boolean) value).booleanValue() ? "T" : "F";
       } else if (TYPE.BOOLEAN == gts.type) {
         gts.booleanValues.set(idx, ((Boolean) value).booleanValue());
       }      
@@ -960,7 +1083,6 @@ public class GTSHelper {
     } else if (value instanceof String) {
       if (TYPE.LONG == gts.type) {
         try {
-          //gts.longValues[idx] = Long.valueOf((String) value);
           gts.longValues[idx] = Long.parseLong((String) value);
         } catch (NumberFormatException nfe) {
           //
@@ -974,7 +1096,6 @@ public class GTSHelper {
         }
       } else if (TYPE.DOUBLE == gts.type) {
         try {
-          //gts.doubleValues[idx] = Double.valueOf((String) value);
           gts.doubleValues[idx] = Double.parseDouble((String) value);
         } catch (NumberFormatException nfe) {
           try {
@@ -987,7 +1108,7 @@ public class GTSHelper {
         // Using intern is really CPU intensive
         gts.stringValues[idx] = (String) value; //.toString().intern();
       } else if (TYPE.BOOLEAN == gts.type) {
-        gts.booleanValues.set(idx, null != value && !"".equals(value));
+        gts.booleanValues.set(idx, !"".equals(value));
       }      
     } else {
       //
@@ -1039,18 +1160,12 @@ public class GTSHelper {
         gts.elevations = new long[gts.ticks.length];
         Arrays.fill(gts.elevations, GeoTimeSerie.NO_ELEVATION);
       }
-      
-      return;
     } else if (TYPE.UNDEFINED != gts.type) {
       //
       // We need to grow 'ticks', 'locations', 'elevations' and associated value array.
       //
       
       int newlen = gts.ticks.length + (int) Math.min(GeoTimeSerie.MAX_ARRAY_GROWTH, Math.max(GeoTimeSerie.MIN_ARRAY_GROWTH, gts.ticks.length * GeoTimeSerie.ARRAY_GROWTH_FACTOR));
-      
-      //if (newlen > MAX_VALUES) {
-      //  throw new RuntimeException("Geo time serie would exceed maximum number of values set to " + MAX_VALUES);
-      //}
 
       if (newlen < gts.sizehint) {
         newlen = gts.sizehint;
@@ -1086,7 +1201,7 @@ public class GTSHelper {
       } else if (TYPE.STRING == gts.type) {
         gts.stringValues = Arrays.copyOf(gts.stringValues, gts.ticks.length);
       }
-    } else if (TYPE.UNDEFINED == gts.type) {
+    } else { // TYPE.UNDEFINED == gts.type
       if (null == gts.ticks) {
         gts.ticks = new long[gts.sizehint > 0 ? gts.sizehint : GeoTimeSerie.MIN_ARRAY_GROWTH];
       }
@@ -1200,16 +1315,37 @@ public class GTSHelper {
       if (lastidx >= gts.values) {
         lastidx = gts.values - 1;
       }
+    } else {
+      // We found the stop timestamp, we now must find the last occurrence of
+      // it in case there are duplicates
+      int lastlastidx = lastidx + 1;
+      while(lastlastidx < gts.ticks.length && stoptimestamp == gts.ticks[lastlastidx]) {
+        lastlastidx++;
+      }
+      
+      lastidx = lastlastidx - 1;      
     }
     
     int firstidx = Arrays.binarySearch(gts.ticks, 0, lastidx + 1, starttimestamp);
     
     if (firstidx < 0) {
       firstidx = -firstidx - 1;
+    } else if (firstidx > 0) {
+      // We found the start timestamp, we now must find the first occurrence of it
+      // in case there are duplicates
+      int firstfirstidx = firstidx - 1;
+      
+      while(firstfirstidx >= 0 && starttimestamp == gts.ticks[firstfirstidx]) {
+        firstfirstidx--;
+      }
+      
+      firstidx = firstfirstidx + 1;
     }
+    
     if (firstidx >= gts.values) {
       return subgts;
     }
+        
     
     //
     // Extract values/locations/elevations that lie in the requested interval
@@ -1292,7 +1428,7 @@ public class GTSHelper {
   }
   
   public static final GeoTimeSerie subCycleSerie(GeoTimeSerie gts, long lastbucket, int buckets_per_period, boolean overwrite) throws WarpScriptException {
-    return subCycleSerie(gts, lastbucket, buckets_per_period, true, null);
+    return subCycleSerie(gts, lastbucket, buckets_per_period, overwrite, null);
   }
   
   /**
@@ -1338,21 +1474,23 @@ public class GTSHelper {
     // cover the complete set of values from firsttick to lastbucket
     //
     
-    if (0 == bucketspan && 0 != bucketcount) {
-      if (lastbucket >= firsttick) {
-        long delta = lastbucket - firsttick + 1;
-        bucketspan = delta / bucketcount;
+    if (0 == bucketspan) {
+      if(0 == bucketcount) {
+        throw new WarpScriptException("One of bucketspan or bucketcount must be different from zero.");
+      } else {
+        if (lastbucket >= firsttick) {
+          long delta = lastbucket - firsttick + 1;
+          bucketspan = delta / bucketcount;
 
-        //
-        // Increase bucketspan by 1 so we cover the whole timespan
-        //
-        
-        if (0 == bucketspan || (delta % bucketspan) != 0) {
-          bucketspan++;
+          //
+          // Increase bucketspan by 1 so we cover the whole timespan
+          //
+
+          if (0 == bucketspan || (delta % bucketspan) != 0) {
+            bucketspan++;
+          }
         }
       }
-    } else if (0 == bucketspan && 0 == bucketcount) {
-      throw new WarpScriptException("One of bucketspan or bucketcount must be different from zero.");
     }
     
     //
@@ -1529,17 +1667,17 @@ public class GTSHelper {
     gts.bucketspan = 0L;
     gts.lastbucket = 0L;
   }
-  
+
+  private static final Pattern MEASUREMENT_RE = Pattern.compile("^([0-9]+)?/(([0-9.-]+):([0-9.-]+))?/([0-9-]+)? +([^ ]+)\\{([^\\}]*)\\} +(.+)$");
+
   /**
    * Parses a string representation of a measurement and return a single valued GTS
-   * 
+   *
    * @param str String representation to parse
    * @return The resulting data in a GTSEncoder. The resulting encoder will not have classId/labelsId set.
-   * 
-   * @throws InvalidFormatException if a parsing error occurred
+   *
+   * @throws ParseException if a parsing error occurred
    */
-  private static final Pattern MEASUREMENT_RE = Pattern.compile("^([0-9]+)?/(([0-9.-]+):([0-9.-]+))?/([0-9-]+)? +([^ ]+)\\{([^\\}]*)\\} +(.+)$");
-  
   public static GTSEncoder parse_regexp(GTSEncoder encoder, String str, Map<String,String> extraLabels) throws ParseException, IOException {
     Matcher matcher = MEASUREMENT_RE.matcher(str);
     
@@ -1586,7 +1724,6 @@ public class GTSHelper {
     try {
       
       if (null != matcher.group(1)) {
-        //timestamp = Long.valueOf(matcher.group(1));
         timestamp = Long.parseLong(matcher.group(1));
       } else {
         // No timestamp provided, use 'now'
@@ -1594,12 +1731,10 @@ public class GTSHelper {
       }
       
       if (null != matcher.group(2)) {
-        //location = GeoXPLib.toGeoXPPoint(Double.valueOf(matcher.group(3)), Double.valueOf(matcher.group(4)));
         location = GeoXPLib.toGeoXPPoint(Double.parseDouble(matcher.group(3)), Double.parseDouble(matcher.group(4)));
       }
       
       if (null != matcher.group(5)) {
-        //elevation = Long.valueOf(matcher.group(5));
         elevation = Long.parseLong(matcher.group(5));
       }      
     } catch (NumberFormatException nfe) {
@@ -1627,28 +1762,16 @@ public class GTSHelper {
     }
     
     encoder.addValue(timestamp, location, elevation, value);
-    
-    /*
-    GeoTimeSerie gts = new GeoTimeSerie(1);
-    
-    gts.setName(name);
-    gts.setLabels(labels);
-    GTSHelper.setValue(gts, timestamp, location, elevation, value, false);
-        
-    return gts;
-    */
+
     return encoder;
   }
 
-  private static final Type GSON_MAP_TYPE = new TypeToken<Map<String,Object>>() {}.getType();
-  
   private static JsonParserFactory jpf = new JsonParserFactory();
+
   public static GTSEncoder parseJSON(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now) throws IOException, ParseException {
     
     JsonParser parser = jpf.createFastParser();
-    
-    //Gson gson = new Gson();
-    //Map<String,Object> o = gson.fromJson(str, GSON_MAP_TYPE);
+
     Map<String,Object> o = (Map<String,Object>) parser.parse(str);
     
     String name = (String) o.get("c");
@@ -1764,10 +1887,8 @@ public class GTSHelper {
       if ('T' == str.charAt(tsoffset)) {
         // Support T-XXX to record timestamps which are relative to 'now', useful for
         // devices with no time reference but only relative timestamps
-        //timestamp = (null != now ? (long) now : TimeSource.getTime()) + Long.valueOf(str.substring(1 + tsoffset, idx));
-        timestamp = (null != now ? (long) now : TimeSource.getTime()) + Long.parseLong(str.substring(1 + tsoffset, idx));        
+        timestamp = (null != now ? (long) now : TimeSource.getTime()) + Long.parseLong(str.substring(1 + tsoffset, idx));
       } else {
-        //timestamp = Long.valueOf(str.substring(tsoffset,  idx));
         timestamp = Long.parseLong(str.substring(tsoffset,  idx));
       }
     }
@@ -1793,7 +1914,6 @@ public class GTSHelper {
       idx2 = UnsafeString.indexOf(latlon, ':');
             
       if (-1 != idx2) {
-        //location = GeoXPLib.toGeoXPPoint(Double.valueOf(latlon.substring(0, idx2)), Double.valueOf(latlon.substring(idx2 + 1)));
         location = GeoXPLib.toGeoXPPoint(Double.parseDouble(latlon.substring(0, idx2)), Double.parseDouble(latlon.substring(idx2 + 1)));
       } else {
         // Parse the location value as a Long
@@ -1815,7 +1935,6 @@ public class GTSHelper {
     
     if (idx != idx2) {
       // We have an elevation
-      //elevation = Long.valueOf(str.substring(idx, idx2));
       elevation = Long.parseLong(str.substring(idx, idx2));
     }
 
@@ -1967,7 +2086,6 @@ public class GTSHelper {
     if (null == encoder || !name.equals(encoder.getName()) || !labels.equals(encoder.getMetadata().getLabels())) {
       encoder = new GTSEncoder(0L);
       encoder.setName(name);
-      //encoder.setLabels(labels);
       encoder.getMetadata().setLabels(labels);
     }
 
@@ -1988,10 +2106,12 @@ public class GTSHelper {
   public static Object parseValue(String valuestr) throws ParseException {
     
     Object value;
-    
+        
     try {
-      if (('\'' == valuestr.charAt(0) && valuestr.endsWith("'"))
-          || ('"' == valuestr.charAt(0) && valuestr.endsWith("\""))) {
+      char firstChar = valuestr.charAt(0);
+
+      if (('\'' == firstChar && valuestr.endsWith("'"))
+          || ('"' == firstChar && valuestr.endsWith("\""))) {
         value = valuestr.substring(1, valuestr.length() - 1);
         if (((String)value).contains("%")) {
           try {
@@ -2000,16 +2120,14 @@ public class GTSHelper {
             // Can't happen, we're using UTF-8
           }
         }        
-      } else if ("t".equalsIgnoreCase(valuestr)
-                 || "true".equalsIgnoreCase(valuestr)) {
+      } else if (('t' == firstChar || 'T' == firstChar) && (1 == valuestr.length() || "true".equalsIgnoreCase(valuestr))) {
         value = Boolean.TRUE;
-      } else if ("f".equalsIgnoreCase(valuestr)
-                 || "false".equalsIgnoreCase(valuestr)) {
+      } else if (('f' == firstChar || 'F' == firstChar) && (1 == valuestr.length() || "false".equalsIgnoreCase(valuestr))) {
         value = Boolean.FALSE;
       //
       // FIXME(hbs): add support for quaternions, for hex values???
       //
-      } else if ('H' == valuestr.charAt(0) && valuestr.startsWith("HH:")) {
+      } else if ('H' == firstChar && valuestr.startsWith("HH:")) {
         int colon = valuestr.indexOf(':',3);
         if (-1 == colon) {
           throw new ParseException("Invalid value for lat,lon conversion to HHCode.", 0);
@@ -2018,12 +2136,38 @@ public class GTSHelper {
         double lon = Double.parseDouble(valuestr.substring(colon + 1));
         
         value = GeoXPLib.toGeoXPPoint(lat, lon);
+      } else if ('Q' == firstChar && valuestr.startsWith("Q:")) {
+        
+        double[] q = new double[4];
+        
+        int idx = 2;
+        int qidx = 0;
+        
+        while (qidx < q.length) {
+          int colon = valuestr.indexOf(':', idx);
+          
+          if (-1 == colon) {
+            throw new ParseException("Invalid value for Quaternion, expected Q:w:x:y:z", 0);
+          }
+
+          q[qidx++] = Double.parseDouble(valuestr.substring(idx, colon));
+          idx = colon + 1;
+          
+          if (3 == qidx) {
+            q[qidx++] = Double.parseDouble(valuestr.substring(idx));
+          }
+        }
+        
+        if (!DoubleUtils.isFinite(q[0]) || !DoubleUtils.isFinite(q[1]) || !DoubleUtils.isFinite(q[2]) || !DoubleUtils.isFinite(q[3])) {
+          throw new ParseException("Quaternion values require finite elements.", 0);
+        }
+        
+        value = TOQUATERNION.toQuaternion(q[0], q[1], q[2], q[3]);
       } else {
         boolean likelydouble = UnsafeString.isDouble(valuestr);
         
         if (!likelydouble) {
-          //value = Long.valueOf(valuestr);
-          value = Long.parseLong(valuestr);          
+          value = Long.parseLong(valuestr);
         } else {
           //
           // If the double does not contain an 'E' or an 'N' or an 'n' (scientific notation or NaN or Infinity)
@@ -2065,18 +2209,15 @@ public class GTSHelper {
       // create a BigDecimal or a Double. BigDecimal is only meaningful if its encoding
       // will be less than 8 bytes.
       
-      //value = Double.valueOf(valuestr);
       if (valuematcher.group(1).length() < 10 && valuematcher.group(2).length() < 10) {
         value = new BigDecimal(valuestr);
       } else {
-        //value = Double.valueOf(valuestr);
         value = Double.parseDouble(valuestr);
       }
     } else {
       valuematcher = LONG_VALUE_RE.matcher(valuestr);
       
       if (valuematcher.matches()) {
-        //value = Long.valueOf(valuestr);
         value = Long.parseLong(valuestr);
       } else {
         valuematcher = STRING_VALUE_RE.matcher(valuestr);
@@ -2108,7 +2249,7 @@ public class GTSHelper {
    * 
    * @param str
    * @return
-   * @throws InvalidFormatException if a label name is incorrect.
+   * @throws ParseException if a label name is incorrect.
    */
   public static Map<String,String> parseLabels(int initialCapacity, String str) throws ParseException {
     
@@ -2138,13 +2279,6 @@ public class GTSHelper {
   public static Map<String,String> parseLabels(String str) throws ParseException {
     return parseLabels(0, str);
   }
-      
-  /**
-   * Check that the metric name is conformant to its syntax.
-   * 
-   * @param name
-   * @return
-   */
   
   /**
    * Compute a class Id (metric name Id) using SipHash and the given key.
@@ -2310,27 +2444,22 @@ public class GTSHelper {
       int vlen = eval.length();
       
       if (klen > calen || vlen > calen) {
-        //ca = new char[Math.max(klen,vlen)];
         calen = Math.max(klen, vlen);
         ba = new byte[(int) ((double) ce.maxBytesPerChar() * calen)];
       }
       
-      //ekey.getChars(0, klen, ca, 0);
       ce.onMalformedInput(CodingErrorAction.REPLACE)
       .onUnmappableCharacter(CodingErrorAction.REPLACE)
       .reset();
 
-      //int blen = ((ArrayEncoder)ce).encode(ca, 0, klen, ba);
       int blen = ((ArrayEncoder)ce).encode(UnsafeString.getChars(ekey), UnsafeString.getOffset(ekey), klen, ba);
 
       hashes[idx] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, ba, 0, blen);
       
-      //eval.getChars(0, vlen, ca, 0);
       ce.onMalformedInput(CodingErrorAction.REPLACE)
       .onUnmappableCharacter(CodingErrorAction.REPLACE)
       .reset();
 
-      //blen = ((ArrayEncoder)ce).encode(ca, 0, vlen, ba);
       blen = ((ArrayEncoder)ce).encode(UnsafeString.getChars(eval), UnsafeString.getOffset(eval), vlen, ba);
       
       hashes[idx+1] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, ba, 0, blen);
@@ -2370,8 +2499,6 @@ public class GTSHelper {
     // 
     
     byte[] buf = new byte[hashes.length * 8];
-    //ByteBuffer bb = ByteBuffer.wrap(buf);
-    //bb.order(ByteOrder.BIG_ENDIAN);
 
     idx = 0;
     
@@ -2384,10 +2511,8 @@ public class GTSHelper {
       buf[idx++] = (byte) ((hash >> 16) & 0xff);
       buf[idx++] = (byte) ((hash >> 8) & 0xff);
       buf[idx++] = (byte) (hash & 0xff);
-      //bb.putLong(hash);
     }
     
-    //return SipHashInline.hash24(sipkey[0], sipkey[1], buf, 0, buf.length);
     return SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, buf.length);
   }
 
@@ -2452,16 +2577,15 @@ public class GTSHelper {
       bb.putLong(hash);
     }
     
-    //return SipHashInline.hash24(sipkey[0], sipkey[1], buf, 0, buf.length);
     return SipHashInline.hash24_palindromic(sipkey[0], sipkey[1], buf, 0, buf.length);
   }
   
   /**
-   * Compute the labels Id of a Geo Time Serie instance.
+   * Compute the labels Id of a GeoTimeSerie instance.
    * 
    * @param key 128 bits SipHash key to use
    * @param gts GeoTimeSerie instance for which to compute the labels Id
-   * @return
+   * @return Labels ID of a GeoTimeSerie instance
    */
   public static final long labelsId(byte[] key, GeoTimeSerie gts) {
     return labelsId(key, gts.getLabels());
@@ -2470,8 +2594,8 @@ public class GTSHelper {
   /**
    * Convert a GTS Id packed as a BigInteger into an array of bytes
    * containing classId/labelsId in big endian representation
-   * @param bi
-   * @return
+   * @param bi Packed GTS ID.
+   * @return array of bytes containing classId/labelsId in big endian representation
    */
   public static byte[] unpackGTSId(BigInteger bi) {
     byte[] bytes = bi.toByteArray();
@@ -2595,14 +2719,14 @@ public class GTSHelper {
   /**
    * Parse labels selectors and return a map of label name to selector.
    * 
-   * The syntaxt of the 'selectors' String is:
+   * The syntax of the 'selectors' String is:
    * 
-   * NAME<TYPE>VALUE,NAME<TYPE>VALUE,...
+   * NAME&lt;TYPE&gt;VALUE,NAME&lt;TYPE&gt;VALUE,...
    * 
-   * where <TYPE> is either '=' for exact matches or '~' for regular expression matches.
+   * where &lt;TYPE&gt; is either '=' for exact matches or '~' for regular expression matches.
    * NAME and VALUE are percent-encoded UTF-8 Strings.
    * 
-   * @param selectors 
+   * @param selectors Selectors following the syntax NAME&lt;TYPE&gt;VALUE,NAME&lt;TYPE&gt;VALUE,... to be parsed.
    * @return A map from label name to selector.
    */
   public static final Map<String,String> parseLabelsSelectors(String selectors) throws ParseException {
@@ -2612,8 +2736,6 @@ public class GTSHelper {
     
     //String[] tokens = selectors.split(",");
     String[] tokens = UnsafeString.split(selectors, ',');
-    
-    //Iterable<String> tokens = Splitter.on(",").split(selectors);
     
     //
     // Loop over the tokens
@@ -2635,30 +2757,18 @@ public class GTSHelper {
       
       boolean exact = true;
       
-      Iterable<String> stokens;
-      
       String[] subtokens;
       
       if (token.contains("=")) {
         exact = true;
-        //subtokens = token.split("=");
         subtokens = UnsafeString.split(token, '=');
-        
-        //stokens = Splitter.on("=").split(token);
       } else if (token.contains("~")){
         exact = false;
-        //subtokens = token.split("~");
         subtokens = UnsafeString.split(token, '~');
-        
-        //stokens = Splitter.on("~").split(token);
       } else {
         throw new ParseException(token,0);
       }
       
-      //Iterator<String> iter = stokens.iterator();
-      
-      //String name = iter.next();
-      //String value = iter.hasNext() ? iter.next() : "";
       String name = subtokens[0];
       String value = subtokens.length > 1 ? subtokens[1] : "";
       
@@ -2686,8 +2796,8 @@ public class GTSHelper {
    * The labels selectors are associated with the label name they're associated with
    * 
    * @param classLabelsSelectionString A string representation of a class/labels selector
-   * @return
-   * @throws ParseException
+   * @return Patterns for matching class and labels.
+   * @throws ParseException when classLabelsSelectionString is not representing a selector.
    */
   public static Map<String,Pattern> patternsFromSelectors(String classLabelsSelectionString) throws ParseException {
     String classSelector = classLabelsSelectionString.replaceAll("\\{.*$", "");
@@ -2760,7 +2870,7 @@ public class GTSHelper {
   /**
    * Return a string representation of a GTS measurement at 'tick'
    * 
-   * @return
+   * @return String representation of a GTS measurement at 'tick'.
    */
   public static String tickToString(StringBuilder clslbls, long timestamp, long location, long elevation, Object value) {
     try {
@@ -2959,12 +3069,27 @@ public class GTSHelper {
           break;
       }
       
-      base.values = base.values + gts.values;
-      
+    } else {
+      throw new RuntimeException("Merge cannot proceed with incompatible GTS types.");
     }
 
-    base.sorted = false;
-    
+    // Try to keep sorted and reversed information on the base GTS
+    if (0 == base.values) {
+      base.sorted = gts.sorted;
+      base.reversed = gts.reversed;
+    } else if (base.sorted && gts.sorted && base.reversed == gts.reversed) {
+      // We're already sure 0 != gts.values (checked at the beginning of the function) and 0 != base.values (checked above)
+      if (base.reversed) {
+        base.sorted = base.ticks[base.values - 1] >= gts.ticks[0];
+      } else {
+        base.sorted = base.ticks[base.values - 1] <= gts.ticks[0];
+      }
+    } else {
+      base.sorted = false;
+    }
+
+    base.values = base.values + gts.values;
+
     return base;
   }
 
@@ -2998,6 +3123,134 @@ public class GTSHelper {
     
     //return encoder.getUnsafeDecoder(false).decode();
     return encoder.getDecoder(true).decode();
+  }
+
+  /**
+   * Merge 2 GTSs into one sorted GTS, with values from gts overwriting values from base.
+   * If both GTSs are without duplicate, the result is also without duplicate.
+   * If there are some duplicates in base or gts, the result will contain some duplicates so it's best to avoid this situation.
+   *
+   * The returned GTS has the same classname, labels and attributes as the base GTS.
+   *
+   * @param base The GTS used as a reference
+   * @param gts  The GTS whose data is to be merged with that of base.
+   * @return A new instance of GTS, sorted and without duplicates if base and gts are without duplicates.
+   * @throws RuntimeException when GTSs are not of the same type and base is not empty.
+   */
+  public static GeoTimeSerie sortedMerge(GeoTimeSerie base, GeoTimeSerie gts) {
+    // No values to merge, return clone of base
+    if (0 == gts.values) {
+      return base.clone();
+    }
+
+    GeoTimeSerie.TYPE baseType = base.getType();
+    GeoTimeSerie.TYPE gtsType = gts.getType();
+
+    if (!GeoTimeSerie.TYPE.UNDEFINED.equals(baseType) && !baseType.equals(gtsType)) {
+      throw new RuntimeException("merge cannot proceed with incompatible GTS types.");
+    }
+
+    GeoTimeSerie merged = base.cloneEmpty();
+    merged.type = gtsType; // Make sure the type is set in case the base is UNDEFINED
+
+
+    // GTSs must be sorted
+    sort(base);
+    sort(gts);
+
+    //
+    // Initialize arrays
+    //
+
+    merged.ticks = new long[base.values + gts.values]; // If there are dups it may be more than enough but it's cheaper that way
+
+    if (null != base.locations || null != gts.locations) {
+      merged.locations = new long[merged.ticks.length];
+    }
+
+    if (null != base.elevations || null != gts.elevations) {
+      merged.elevations = new long[merged.ticks.length];
+    }
+
+    if (GeoTimeSerie.TYPE.LONG == merged.type) {
+      merged.longValues = new long[base.values + gts.values];
+    } else if (GeoTimeSerie.TYPE.DOUBLE == merged.type) {
+      merged.doubleValues = new double[base.values + gts.values];
+    } else if (GeoTimeSerie.TYPE.STRING == merged.type) {
+      merged.stringValues = new String[base.values + gts.values];
+    } else { // TYPE.BOOLEAN == merged.type
+      merged.booleanValues = new BitSet();
+    }
+
+    int baseIndex = 0;
+    int gtsIndex = 0;
+    int mergedIndex = 0;
+
+    while (base.values > baseIndex && gts.values > gtsIndex) {
+
+      if (base.ticks[baseIndex] < gts.ticks[gtsIndex]) {
+        merged.ticks[mergedIndex] = base.ticks[baseIndex];
+        if (null != merged.locations) {
+          merged.locations[mergedIndex] = null == base.locations ? GeoTimeSerie.NO_LOCATION : base.locations[baseIndex];
+        }
+        if (null != merged.locations) {
+          merged.locations[mergedIndex] = null == base.locations ? GeoTimeSerie.NO_LOCATION : base.locations[baseIndex];
+        }
+        if (GeoTimeSerie.TYPE.LONG == merged.type) {
+          merged.longValues[mergedIndex] = base.longValues[baseIndex];
+        } else if (GeoTimeSerie.TYPE.DOUBLE == merged.type) {
+          merged.doubleValues[mergedIndex] = base.doubleValues[baseIndex];
+        } else if (GeoTimeSerie.TYPE.STRING == merged.type) {
+          merged.stringValues[mergedIndex] = base.stringValues[baseIndex];
+        } else { // TYPE.BOOLEAN == merged.type
+          merged.booleanValues.set(mergedIndex, base.booleanValues.get(baseIndex));
+        }
+
+        baseIndex++;
+      } else {
+        if (base.ticks[baseIndex] == gts.ticks[gtsIndex]) {
+          baseIndex++;
+        }
+
+        merged.ticks[mergedIndex] = gts.ticks[gtsIndex];
+        if (null != merged.locations) {
+          merged.locations[mergedIndex] = null == gts.locations ? GeoTimeSerie.NO_LOCATION : gts.locations[gtsIndex];
+        }
+        if (null != merged.locations) {
+          merged.locations[mergedIndex] = null == gts.locations ? GeoTimeSerie.NO_LOCATION : gts.locations[gtsIndex];
+        }
+        if (GeoTimeSerie.TYPE.LONG == merged.type) {
+          merged.longValues[mergedIndex] = gts.longValues[gtsIndex];
+        } else if (GeoTimeSerie.TYPE.DOUBLE == merged.type) {
+          merged.doubleValues[mergedIndex] = gts.doubleValues[gtsIndex];
+        } else if (GeoTimeSerie.TYPE.STRING == merged.type) {
+          merged.stringValues[mergedIndex] = gts.stringValues[gtsIndex];
+        } else { // TYPE.BOOLEAN == merged.type
+          merged.booleanValues.set(mergedIndex, gts.booleanValues.get(gtsIndex));
+        }
+
+        gtsIndex++;
+      }
+
+      mergedIndex++;
+    }
+
+    if (base.values > baseIndex) {
+      int length = base.values - baseIndex;
+      // Safe to use copy0 because all checks have been done on array existence and size
+      copy0(base, baseIndex, merged, mergedIndex, length);
+      mergedIndex += length;
+    } else if (gts.values > gtsIndex) {
+      int length = gts.values - gtsIndex;
+      // Safe to use copy0 because all checks have been done on array existence and size
+      copy0(gts, gtsIndex, merged, mergedIndex, length);
+      mergedIndex += length;
+    }
+
+    merged.values = mergedIndex;
+    merged.sorted = true;
+
+    return merged;
   }
   
   /**
@@ -3274,12 +3527,12 @@ public class GTSHelper {
    * 
    * If the GTS is bucketized, do nothing.
    * 
-   * @param gts
-   * @param location
-   * @param elevation
-   * @param value
-   * @param ticks
-   * @return
+   * @param gts GeoTimeSerie instance to had its values filled.
+   * @param location Location data to use for the filling.
+   * @param elevation Elevation data to use for the filling.
+   * @param value Value data to use for the filling.
+   * @param ticks Ticks to be filled.
+   * @return A cloned and filled GTS or a cloned GTS if bucketized.
    */
   public static GeoTimeSerie fillticks(GeoTimeSerie gts, long location, long elevation, Object value, long[] ticks) {
     //
@@ -3335,6 +3588,237 @@ public class GTSHelper {
   }
 
   /**
+   * This function fills the gaps in two GTS so they end up with identical ticks
+   * 
+   * @param gtsa First GTS to fill
+   * @param gtsb Second GTS to fill
+   * @param filler Instance of filler to use for filling the gaps.
+   */
+  public static final List<GeoTimeSerie> fill(GeoTimeSerie gtsa, GeoTimeSerie gtsb, WarpScriptFillerFunction filler) throws WarpScriptException {
+    //
+    // Ensure the two original GTS are sorted
+    //
+    
+    sort(gtsa, false);
+    sort(gtsb, false);
+
+    //
+    // Clone the Geo Time Series, we will fill ga and gb
+    //
+    
+    GeoTimeSerie ga = gtsa.clone();
+    GeoTimeSerie gb = gtsb.clone();    
+    
+    int idxa = 0;
+    int idxb = 0;
+    
+    int previdxA = -1;
+    int previdxB = -1;
+    Long curTickA = null;
+    Long curTickB = null;
+    
+    String classA = ga.getName();
+    String classB = gb.getName();
+    
+    Map<String,String> labelsA = Collections.unmodifiableMap(ga.getLabels());
+    Map<String,String> labelsB = Collections.unmodifiableMap(gb.getLabels());
+    
+    //
+    // We use a sweeping line algorithm to go over all the ticks
+    //
+
+    int prewindow = filler.getPreWindow() >= 0 ? filler.getPreWindow() : 0;
+    int postwindow = filler.getPostWindow() >= 0 ? filler.getPostWindow() : 0;
+    
+    Object[] meta = new Object[4];
+    Object[][] prev = new Object[prewindow][];
+    for (int i = 0; i < prewindow; i++) {
+      prev[i] = new Object[4];
+    }
+    Object[][] next = new Object[postwindow][];
+    for (int i = 0; i < postwindow; i++) {
+      next[i] = new Object[4];
+    }
+    Object[] other = new Object[4];
+    Object[][] params = new Object[4][];
+    
+    while(idxa < gtsa.values || idxb < gtsb.values) {
+
+      curTickA = null;
+      curTickB = null;
+      
+      if (idxa < gtsa.values) {
+        curTickA = gtsa.ticks[idxa];
+      }
+      
+      if (idxb < gtsb.values) {
+        curTickB = gtsb.ticks[idxb];
+      }
+      
+      //
+      // If both ticks are identical, advance the indices until the next timestamp
+      //
+
+      if (curTickA == curTickB || (null != curTickA && curTickA.equals(curTickB)) || (null != curTickB && curTickB.equals(curTickA))) {
+        idxa++;
+        idxb++;
+        
+        if ((idxa < gtsa.values && curTickA == gtsa.ticks[idxa])
+            || (idxb < gtsb.values && curTickB == gtsb.ticks[idxb])) {
+          throw new WarpScriptException("Cannot fill Geo Time Series™ with duplicate timestamps.");
+        }
+        continue;
+      }
+
+      previdxA = idxa - 1;
+      previdxB = idxb - 1;      
+
+      //
+      // Determine if we should fill GTS A or GTS B
+      //
+
+      for (int i = 0; i < prewindow; i++) {
+        prev[i][0] = null;
+        prev[i][1] = null;
+        prev[i][2] = null;
+        prev[i][3] = null;
+      }
+
+      for (int i = 0; i < postwindow; i++) {
+        next[i][0] = null;
+        next[i][1] = null;
+        next[i][2] = null;
+        next[i][3] = null;
+      }
+
+      Object otherValue = null;
+      Long otherTick = null;
+      Long otherLocation = null;
+      Long otherElevation = null;
+      
+      String ourClass = null;
+      Map<String,String> ourLabels = null;
+      
+      String otherClass = null;
+      Map<String,String> otherLabels = null;
+      
+      GeoTimeSerie filled = null;
+      
+      if (curTickA == null || (null != curTickB && curTickA > curTickB)) {
+        // We should fill GTS A
+        
+        filled = ga;
+        
+        for (int i = prewindow - 1; i >= 0; i--) {
+          if (previdxA - i >= 0) {
+            prev[i][0] = gtsa.ticks[previdxA - i];
+            prev[i][1] = locationAtIndex(gtsa, previdxA - i);
+            prev[i][2] = elevationAtIndex(gtsa, previdxA - i);
+            prev[i][3] = valueAtIndex(gtsa, previdxA - i);
+          }
+        }
+
+        for (int i = 0; i < postwindow; i++) {
+          if (idxa + i < gtsa.values) {
+            next[i][0] = gtsa.ticks[idxa + i];
+            next[i][1] = locationAtIndex(gtsa, idxa + i);
+            next[i][2] = elevationAtIndex(gtsa, idxa + i);
+            next[i][3] = valueAtIndex(gtsa, idxa + i);
+          }
+        }
+      
+        otherValue = valueAtIndex(gtsb, idxb);
+        otherTick = gtsb.ticks[idxb];
+        otherLocation = locationAtIndex(gtsb, idxb);
+        otherElevation = elevationAtIndex(gtsb, idxb);
+        
+        ourClass = classA;
+        ourLabels = labelsA;
+        
+        otherClass = classB;
+        otherLabels = labelsB;
+        
+        idxb++;        
+      } else {
+        // We should fill GTS B
+      
+        filled = gb;
+        
+        for (int i = prewindow - 1; i >= 0; i--) {
+          if (previdxB - i >= 0) {
+            prev[i][0] = gtsb.ticks[previdxB - i];
+            prev[i][1] = locationAtIndex(gtsb, previdxB - i);
+            prev[i][2] = elevationAtIndex(gtsb, previdxB - i);
+            prev[i][3] = valueAtIndex(gtsb, previdxB - i);
+          }
+        }
+
+        for (int i = 0; i < postwindow; i++) {
+          if (idxb + i < gtsb.values) {
+            next[i][0] = gtsb.ticks[idxb + i];
+            next[i][1] = locationAtIndex(gtsb, idxb + i);
+            next[i][2] = elevationAtIndex(gtsb, idxb + i);
+            next[i][3] = valueAtIndex(gtsb, idxb + i);
+          }
+        }
+        
+        otherValue = valueAtIndex(gtsa, idxa);
+        otherTick = gtsa.ticks[idxa];
+        otherLocation = locationAtIndex(gtsa, idxa);
+        otherElevation = elevationAtIndex(gtsa, idxa);
+        
+        ourClass = classB;
+        ourLabels = labelsB;
+        
+        otherClass = classA;
+        otherLabels = labelsA;
+        
+        idxa++;
+      }
+      
+      other[0] = otherTick;
+      other[1] = otherLocation;
+      other[2] = otherElevation;
+      other[3] = otherValue;
+      
+      meta[0] = ourClass;
+      meta[1] = ourLabels;
+      meta[2] = otherClass;
+      meta[3] = otherLabels;
+            
+      params[0] = meta;
+      for (int i = 0; i < prewindow; i++) {
+        params[1 + i] = prev[i];
+      }
+      params[prewindow + 1] = other;
+      for (int i = 0; i < postwindow; i++) {
+        params[2 + prewindow + i] = next[i];
+      }
+
+      //
+      // Call the filler
+      //
+      
+      Object[] result = filler.apply(params);
+      
+      if (null != result[3]) {
+        long tick = ((Number) result[0]).longValue();
+        long location = ((Number) result[1]).longValue();
+        long elevation = ((Number) result[2]).longValue();
+        Object value = result[3];
+        
+        GTSHelper.setValue(filled, tick, location, elevation, value, false);        
+      }
+    }
+    
+    List<GeoTimeSerie> results = new ArrayList<GeoTimeSerie>();
+    results.add(ga);
+    results.add(gb);
+    
+    return results;
+  }
+  
+  /**
    * Compensate resets by computing an offset each time a value decreased between two ticks.
    * 
    * If we have the following TS (from most recent to most ancient) :
@@ -3343,13 +3827,13 @@ public class GTSHelper {
    * 
    * we detect 2 resets (one between values 9 and 1, another one between 7 and 3).
    * 
-   * The filled GTS will be
+   * The compensated GTS will be
    * 
    * 31 21 17 16 11 10 7 2 1
    * 
    * @param gts GTS instance to compensate resets for
-   * @param decreasing If true, indicates that resets will have higher values than counter value (i.e. counter decreases)
-   * @return
+   * @param resethigher If true, indicates that resets will have higher values than counter value (i.e. counter decreases)
+   * @return A cloned GTS with compensated resets.
    */
   public static GeoTimeSerie compensateResets(GeoTimeSerie gts, boolean resethigher) {
     //
@@ -3383,12 +3867,12 @@ public class GTSHelper {
     for (int i = 1; i < filled.values; i++) {
       if (TYPE.LONG == type) {
         long value = filled.longValues[i];
-        if (!resethigher) {
+        if (!resethigher) { // A reset is when we go from a value to a lower value
           if (value < lastl) {
             offsetl += lastl;
           }
           lastl = value;
-        } else {
+        } else { // A reset is when we go from a value to a higher value
           if (value > lastl) {
             offsetl += lastl;
           }
@@ -3397,12 +3881,12 @@ public class GTSHelper {
         filled.longValues[i] = value + offsetl;
       } else {
         double value = filled.doubleValues[i];
-        if (!resethigher) {
+        if (!resethigher) { // A reset is when we go from a value to a lower value
           if (value < lastd) {
             offsetd += lastd; 
           }          
           lastd = value;
-        } else {
+        } else { // A reset is when we go from a value to a higher value
           if (value > lastd) {
             offsetd += lastd; 
           }
@@ -3427,9 +3911,9 @@ public class GTSHelper {
    * the resulting list of GTS will only contain a clone of 'gts'.
    * 
    * @param gts GTS instance to split
-   * @param quietperiod Mininum number of microseconds without values to consider a split. The previous value must be at least 'quietperiod' us ago.
+   * @param quietperiod Minimum number of microseconds without values to consider a split. The previous value must be at least 'quietperiod' us ago.
    * @param minvalues Only produce GTS with more than 'minvalues' values, this is to ignore lone values
-   * @param label Name to use for a label containing the GTS sequence (oldes GTS is 1, next is 2, ....). 'label' MUST NOT exist among the labels of 'gts'.
+   * @param labelname Name to use for a label containing the GTS sequence (oldest GTS is 1, next is 2, ....). 'label' MUST NOT exist among the labels of 'gts'.
    * 
    * @return The list of resulting GTS.
    */
@@ -4388,8 +4872,8 @@ public class GTSHelper {
    * 
    * Only the last value found for a given timestamp will be kept.
    * 
-   * @param gts
-   * @return
+   * @param gts GeoTimeSerie instance from which to remove duplicates.
+   * @return A clone of the given GeoTimeSerie without duplicate ticks.
    */
   public static GeoTimeSerie dedup(GeoTimeSerie gts) {
     //
@@ -4468,7 +4952,6 @@ public class GTSHelper {
     // and decrement the duplicate count
     //
     
-    idx = 0;
     int offset = 0;
       
     while(idx + offset < clone.values) {
@@ -4515,10 +4998,10 @@ public class GTSHelper {
   }
   
   /**
-   * Removes non-bucket points of a buketized GTS
+   * Removes non-bucket points of a bucketized GTS
    * 
-   * @param gts
-   * @return
+   * @param gts GeoTimeSerie instance to clean.
+   * @return  A clone of the given GeoTimeSerie without non-bucket points or a clone if not bucketized.
    */
   public static GeoTimeSerie onlybuckets(GeoTimeSerie gts) {
    
@@ -4619,12 +5102,13 @@ public class GTSHelper {
    * 
    * 'labels' is the set of common labels in the partition.
    * 
-   * @param function The function to apply, either an WarpScriptFilterFunction or 
-   * @param bylabels Labels to use for partitioning the GTS instanes
+   * @param function The function to apply, either an WarpScriptFilterFunction or WarpScriptNAryFunction
+   * @param bylabels Labels to use for partitioning the GTS instances
    * @param series Set of GTS instances collections
-   * @return
-   * @throws WarpScriptException
+   * @return A list of GeoTimeSeries, result of the application of the function
+   * @throws WarpScriptException if the function is invalid.
    */
+  @SafeVarargs
   public static List<GeoTimeSerie> partitionAndApply(Object function, WarpScriptStack stack, Macro validator, Collection<String> bylabels, List<GeoTimeSerie>... series) throws WarpScriptException {
     Map<Map<String,String>,List<GeoTimeSerie>> unflattened = partitionAndApplyUnflattened(function, stack, validator, bylabels, series);
     
@@ -4640,12 +5124,13 @@ public class GTSHelper {
   /**
    * Apply a function or filter GTS and keep the results ventilated per equivalence class
 
-   * @param function
-   * @param bylabels
-   * @param series
-   * @return
-   * @throws WarpScriptException
+   * @param function The function to apply, either an WarpScriptFilterFunction or WarpScriptNAryFunction
+   * @param bylabels Labels to use for partitioning the GTS instances
+   * @param series Set of GTS instances collections
+   * @return A list of GeoTimeSeries, result of the application of the function
+   * @throws WarpScriptException if the function is invalid.
    */
+  @SafeVarargs
   public static Map<Map<String,String>,List<GeoTimeSerie>> partitionAndApplyUnflattened(Object function, WarpScriptStack stack, Macro validator, Collection<String> bylabels, List<GeoTimeSerie>... series) throws WarpScriptException {
 
     //
@@ -4655,7 +5140,6 @@ public class GTSHelper {
     //
     //
     
-    //Collection<GeoTimeSerie> allgts = new ArrayList<GeoTimeSerie>();
     Collection<GeoTimeSerie> allgts = new LinkedHashSet<GeoTimeSerie>();
 
     boolean hasNonSingleton = false;
@@ -4698,13 +5182,19 @@ public class GTSHelper {
       //
       
       List<GeoTimeSerie>[] subseries = new List[series.length];
-      
       for (int i = 0; i < series.length; i++) {
+        
+        //
+        // Sort the 'series' so we can perform a binary search instead of using 'contains'
+        //
+
+        Collections.sort(series[i], METASORT.META_COMPARATOR);
+
         subseries[i] = new ArrayList<GeoTimeSerie>();
        
         //
-        // Treat the case when the original serie had a cardinality of 1
-        // as a special case by adding the original serie unconditionnaly
+        // Treat the case when the original series had a cardinality of 1
+        // as a special case by adding the original series unconditionally
         //
         
         if (1 == series[i].size()) {
@@ -4712,13 +5202,12 @@ public class GTSHelper {
         } else {
           // The series appear in the order they are in the original list due to 'partition' using a List
           for (GeoTimeSerie serie: partition.get(partitionlabels)) {
-            if (series[i].contains(serie)) {
+            if (Collections.binarySearch(series[i], serie, METASORT.META_COMPARATOR) >= 0) {
               subseries[i].add(serie);
             }
           }          
         }
       }
-      
       //
       // Call the function
       //
@@ -4769,7 +5258,8 @@ public class GTSHelper {
     
     return results;
   }
-  
+
+  @SafeVarargs
   public static GeoTimeSerie applyNAryFunction(WarpScriptNAryFunction function, Map<String,String> commonlabels, List<GeoTimeSerie>... subseries) throws WarpScriptException {
     
     commonlabels = Collections.unmodifiableMap(commonlabels);
@@ -4787,8 +5277,8 @@ public class GTSHelper {
     
     boolean done = false;
     
-    for (int i = 0; i < subseries.length; i++) {
-      for (GeoTimeSerie serie: subseries[i]) {
+    for (List<GeoTimeSerie> subserie: subseries) {
+      for (GeoTimeSerie serie: subserie) {
         // If we encountered a non bucketized GTS instance after
         // encountering a bucketized one, result won't be bucketized
         if (!isBucketized(serie) && bucketspan > 0) {
@@ -5129,7 +5619,7 @@ public class GTSHelper {
    * @param labels Labels of resulting GTS
    * @param x First operand GTS
    * @param y Second operand GTS
-   * @return
+   * @return A new GeoTimeSerie containing the result of the binary op applied on the two GeoTimeSerie instances.
    */
   private static GeoTimeSerie applyBinOp(WarpScriptBinaryOp op, String name, Map<String,String> labels, GeoTimeSerie x, GeoTimeSerie y) {
     //
@@ -5237,12 +5727,14 @@ public class GTSHelper {
 
         Object[] result = (Object[]) op.apply(params);
 
-        Object value = result[3];
-        
-        if (null != value) {
-          long location = (long) result[1];
-          long elevation = (long) result[2];
-          GTSHelper.setValue(gts, tick, location, elevation, value, false);
+        if(null != result) {
+          Object value = result[3];
+
+          if (null != value) {
+            long location = (long) result[1];
+            long elevation = (long) result[2];
+            GTSHelper.setValue(gts, tick, location, elevation, value, false);
+          }
         }
         
         yidx++;
@@ -5254,10 +5746,10 @@ public class GTSHelper {
       
       xidx++;
       
-      while(xidx < x.values && ((yidx < y.values && x.ticks[xidx] < y.ticks[yidx]) || yidx >= y.values)) {
+      while(xidx < x.values && ((x.ticks[xidx] < y.ticks[yidx]) || yidx >= y.values)) {
 
         long tick = x.ticks[xidx];
-        Object xelt = x.ticks[xidx];
+        Object xelt = GTSHelper.valueAtIndex(x, xidx);
         // y has no elements since x tick is lagging behind y tick.
         Object yelt = null;
         
@@ -5288,13 +5780,15 @@ public class GTSHelper {
         
         Object[] result = (Object[]) op.apply(params);
 
-        Object value = result[3];
-        
-        if (null != value) {
-          long location = (long) result[1];
-          long elevation = (long) result[2];
+        if(null != result) {
+          Object value = result[3];
 
-          GTSHelper.setValue(gts, tick, location, elevation, value, false);
+          if (null != value) {
+            long location = (long) result[1];
+            long elevation = (long) result[2];
+
+            GTSHelper.setValue(gts, tick, location, elevation, value, false);
+          }
         }
         xidx++;
       }        
@@ -5500,9 +5994,7 @@ public class GTSHelper {
           if (idx[i] < gts.values && smallest == gts.ticks[idx[i]]) {
             ticks[i] = smallest;
             names[i] = gts.getName();
-            //if (null == lbls[i]) {
-            //  lbls[i] = gts.getLabels();
-            //}
+
             locations[i] = null != gts.locations ? gts.locations[idx[i]] : GeoTimeSerie.NO_LOCATION;
             elevations[i] = null != gts.elevations ? gts.elevations[idx[i]] : GeoTimeSerie.NO_ELEVATION;
             values[i] = GTSHelper.valueAtIndex(gts, idx[i]);
@@ -5511,9 +6003,7 @@ public class GTSHelper {
           } else {
             ticks[i] = Long.MIN_VALUE;
             names[i] = gts.getName();
-            //if (null == lbls[i]) {
-            //  lbls[i] = gts.getLabels();
-            //}
+
             locations[i] = GeoTimeSerie.NO_LOCATION;
             elevations[i] = GeoTimeSerie.NO_ELEVATION;
             values[i] = null;
@@ -5592,7 +6082,7 @@ public class GTSHelper {
    * 
    * @param gts GTS instance to extract value from.
    * 
-   * @return
+   * @return The value of the most recent tick in the given GeoTimeSerie instance.
    */
   public static Object getLastValue(GeoTimeSerie gts) {
     
@@ -5634,7 +6124,7 @@ public class GTSHelper {
    * @param values Values whose order must be checked
    * @param reversed If true, sort indices so 'values' is in descending order
    * 
-   * @return 
+   * @return An array of indices sorted in the order of the matching value in the 'values' array.
    */
   public static int[] sortIndices(final long[] values, final boolean reversed) {
     Integer[] indices = new Integer[values.length];
@@ -5646,7 +6136,7 @@ public class GTSHelper {
     Arrays.sort(indices, new Comparator<Integer>() {
       @Override
       public int compare(Integer o1, Integer o2) {
-        if (values[o1] - values[o1] < 0) {
+        if (values[o1] < values[o2]) {
           return reversed ? 1 : -1;
         } else if (values[o1] == values[o2]) {
           return 0;
@@ -5706,7 +6196,7 @@ public class GTSHelper {
       return;
     }
     
-    if (null != gts.ticks && gts.ticks.length > gts.values) {
+    if (gts.ticks.length > gts.values) { // When 0 < gts.values we're sure null != gts.ticks
       gts.ticks = Arrays.copyOf(gts.ticks, gts.values);
     }
     if (null != gts.locations && gts.locations.length > gts.values) {
@@ -5885,33 +6375,6 @@ public class GTSHelper {
       offset = 0;
     }
 
-    //
-    // Copy the last value
-    //
-    
-    if (offset > 0) {
-      clone.ticks[clone.values - offset - 1] = clone.ticks[clone.values - 1];
-      if (null != clone.locations) {
-        clone.locations[clone.values - offset - 1] = clone.locations[clone.values - 1];
-      }
-      if (null != clone.elevations) {
-        clone.elevations[clone.values - offset - 1] = clone.elevations[clone.values - 1];
-      }
-      switch (clone.type) {
-        case LONG:
-          clone.longValues[clone.values - offset - 1] = clone.longValues[clone.values - 1];
-          break;
-        case DOUBLE:
-          clone.doubleValues[clone.values - offset - 1] = clone.doubleValues[clone.values - 1];
-          break;
-        case BOOLEAN:
-          clone.booleanValues.set(clone.values - offset - 1, clone.booleanValues.get(clone.values - 1));
-          break;
-        case STRING:
-          clone.stringValues[clone.values - offset - 1] = clone.stringValues[clone.values - 1];
-          break;
-      }
-    }
     clone.values = compactIdx;
     
     GTSHelper.shrink(clone);
@@ -5921,8 +6384,8 @@ public class GTSHelper {
   
   /**
    * Normalize a GTS, replacing X by (X-MIN)/(MAX-MIN) or 1.0
-   * @param gts
-   * @return
+   * @param gts GeoTimeSerie instance to be normalized.
+   * @return A clone of the given GTS, normalized only if it contains numeric values.
    */
   public static GeoTimeSerie normalize(GeoTimeSerie gts) {
     //
@@ -5997,8 +6460,8 @@ public class GTSHelper {
 
   /**
    * Normalize a GTS, replacing X by (X-MEAN)/(MAX-MIN) or 1.0
-   * @param gts
-   * @return
+   * @param gts GeoTimeSerie instance to be isonormalized.
+   * @return A clone of the given GTS, isonormalized only if it contains numeric values.
    */
   public static GeoTimeSerie isonormalize(GeoTimeSerie gts) {
     //
@@ -6081,14 +6544,14 @@ public class GTSHelper {
 
   /**
    * Standardize a numeric GeoTimeSerie
-   * 
-   * @param gts
-   * @return
+   *
+   * @param gts GeoTimeSerie instance to be standardized.
+   * @return A clone of the given GTS, standardized only if it contains numeric values.
    */
   public static GeoTimeSerie standardize(GeoTimeSerie gts) {
-    /**
-     * Return immediately if GTS is not numeric or has no values
-     */
+    //
+    // Return immediately if GTS is not numeric or has no values
+    //
     if ((TYPE.DOUBLE != gts.getType() && TYPE.LONG != gts.getType()) || 0 == gts.values) {
       return gts.clone();
     }
@@ -6151,12 +6614,14 @@ public class GTSHelper {
    * 
    * It only works on numeric bucketized GTS instances.
    * 
-   * @param gts
-   * @param alphabetSize
-   * @param wordLen
-   * @param windowLen
-   * @param standardizePAA
-   * @return
+   * @param gts GeoTimeSerie instance on which to apply the bSAX algorithm, must be bucketized, filled and numeric.
+   * @param alphabetSize Size of the alphabet used by bSAX, must be a power of two.
+   * @param wordLen Size of the words to be generated by the bSAX algorithm.
+   * @param windowLen Window size which is the width of each interval on which the pattern extraction should be performed.
+   * @param standardizePAA Whether to standardize or not the piecewise aggregate approximation.
+   * @return A new GeoTimeSerie instance containing the bSAX result.
+   *
+   * @throws WarpScriptException if the GTS is not numeric, bucketized and filled or if parameters are incorrect.
    */
   public static GeoTimeSerie bSAX(GeoTimeSerie gts, int alphabetSize, int wordLen, int windowLen, boolean standardizePAA) throws WarpScriptException {
     
@@ -6229,8 +6694,6 @@ public class GTSHelper {
         double mean = paaSum[w] / paaLen;
         sum += mean;
         sumsq += mean * mean;
-        //sum += paaSum[w];
-        //sumsq += paaSum[w] * paaSum[w];        
       }
       
       //
@@ -6281,9 +6744,11 @@ public class GTSHelper {
   /**
    * Perform exponential smoothing on a numeric GTS.
    * 
-   * @param gts
+   * @param gts GeoTimeSerie instance on which to apply the exponential smoothing.
    * @param alpha Smoothing Factor (0 < alpha < 1)
-   * @return
+   * @return A clone of the given instance with single exponential smoothing applied.
+   *
+   * @throws WarpScriptException if the GTS is not numeric, has less than 2 values or alpha is not in ]0;1[.
    */
   public static GeoTimeSerie singleExponentialSmoothing(GeoTimeSerie gts, double alpha) throws WarpScriptException {
     
@@ -6332,12 +6797,13 @@ public class GTSHelper {
   
   /**
    * Perform a double exponential smoothing on the input GTS.
-   * 
-   * @param gts
-   * @param alpha
-   * @param beta
-   * @return
-   * @throws WarpScriptException
+   *
+   * @param gts GeoTimeSerie instance on which to apply the exponential smoothing.
+   * @param alpha Smoothing Factor (0 < alpha < 1)
+   * @param beta Trend smoothing Factor (0 < beta < 1)
+   * @return A clone of the given instance with double exponential smoothing applied.
+   *
+   * @throws WarpScriptException if the GTS is not numeric, has less than 2 values or alpha or beta is not in ]0;1[.
    */
   public static List<GeoTimeSerie> doubleExponentialSmoothing(GeoTimeSerie gts, double alpha, double beta) throws WarpScriptException {
     
@@ -6441,12 +6907,14 @@ public class GTSHelper {
    * Detect patterns in a Geo Time Serie instance. Return a modified version of the original
    * GTS instance where only the values which are part of one of the provided patterns are kept.
    * 
-   * @param gts
-   * @param alphabetSize
-   * @param wordLen
-   * @param windowLen
-   * @param standardizePAA
-   * @return
+   * @param gts GeoTimeSerie in which to detect patterns.
+   * @param alphabetSize Size of the alphabet used by bSAX, must be a power of two.
+   * @param wordLen Size of the words to be generated by the bSAX algorithm.
+   * @param windowLen Window size which is the width of each interval on which the pattern extraction should be performed.
+   * @param standardizePAA Whether to standardize or not the piecewise aggregate approximation.
+   * @return A new GeoTimeSerie instance where only the values which are part of one of the provided patterns are kept.
+   *
+   * @throws WarpScriptException if the GTS is not numeric, bucketized and filled or if bSAX parameters are incorrect.
    */
   public static GeoTimeSerie detect(GeoTimeSerie gts, int alphabetSize, int wordLen, int windowLen, Collection<String> patterns, boolean standardizePAA) throws WarpScriptException {
     //
@@ -6578,10 +7046,10 @@ public class GTSHelper {
    * Return a GTS which is a subset of the input GTS with only those ticks which
    * fall between start and end (both inclusive).
    * 
-   * @param gts
-   * @param start
-   * @param end
-   * @return
+   * @param gts GeoTimeSerie instance to clip.
+   * @param start Oldest tick (inclusive) to keep.
+   * @param end Youngest tick (inclusive) to keep.
+   * @return A new GeoTimeSerie instance which is a subset of the input GTS with only those ticks which fall between start and end (both inclusive).
    */
   public static GeoTimeSerie timeclip(GeoTimeSerie gts, long start, long end) {
     GeoTimeSerie clipped = gts.cloneEmpty();
@@ -6609,7 +7077,7 @@ public class GTSHelper {
    * 
    * @param start lower timestamp to consider (inclusive)
    * @param end upper timestamp to consider (inclusive)
-   * @return
+   * @return A new GTSEncoder instance which is a subset of the input GTSEncoder with only those ticks which fall between start and end (both inclusive).
    */
   public static GTSEncoder timeclip(GTSEncoder encoder, long start, long end) {
     
@@ -6634,9 +7102,9 @@ public class GTSHelper {
   /**
    * 'Integrate' a GTS, considering the value at each tick is a rate of change per second.
    * 
-   * @param gts
-   * @param initialValue
-   * @return
+   * @param gts GeoTimeSerie instance to integrate.
+   * @param initialValue Initial value of the resulting GTS.
+   * @return A new GeoTimeSerie instance which is the integration of the given GeoTimeSerie.
    */
   public static GeoTimeSerie integrate(GeoTimeSerie gts, double initialValue) {
     GeoTimeSerie integrated = gts.cloneEmpty();
@@ -6665,14 +7133,15 @@ public class GTSHelper {
   }
   
   /**
-   * Reduce the number of values in a GTS.
+   * Reduce the number of values in a GTS. The underlying arrays are not shrunk.
+   * If the new size is far lower than the old size and should stay that way, consider applying GTSHelper.shrink to avoid wasting memory.
    * 
    * @param gts Geo Time Series to reduce
    * @param newsize New number of values
-   * @return
+   * @return The given GeoTimeSerie instance with at more newsize values. If newsize>=0, return the GTS unmodified.
    */
-  public static GeoTimeSerie shrinkTo(GeoTimeSerie gts, int newsize) throws WarpScriptException {
-    if (newsize > 0 && newsize < gts.values) {
+  public static GeoTimeSerie shrinkTo(GeoTimeSerie gts, int newsize) {
+    if (newsize >= 0 && newsize < gts.values) {
       gts.values = newsize;
     }
     
@@ -6688,8 +7157,9 @@ public class GTSHelper {
    * @param chunkcount Number of chunks to generate. Use 0 to generate as many chunks as needed to cover the GTS
    * @param chunklabel Name of the label to use for storing the chunkid
    * @param keepempty Should we keed empty chunks
-   * @return
-   * @throws WarpScriptException
+   * @return a List of GeoTimeSerie, each GTS covering one chunk.
+   *
+   * @throws WarpScriptException if parameters are invalid.
    */
   public static List<GeoTimeSerie> chunk(GeoTimeSerie gts, long lastchunk, long chunkwidth, long chunkcount, String chunklabel, boolean keepempty) throws WarpScriptException {
     return chunk(gts, lastchunk, chunkwidth, chunkcount, chunklabel, keepempty, 0L);    
@@ -6794,9 +7264,6 @@ public class GTSHelper {
     }
     
     for (long i = 0; i < chunkcount; i++) {
-
-      //System.out.println("CHUNK=" + i + " HINT=" + hint);
-      
       // If we have no more values and were not specified a chunk count, exit the loop, we're done
       if (idx >= gts.values && zeroChunkCount) {
         break;
@@ -7009,7 +7476,7 @@ public class GTSHelper {
 
       int size = 0;
 
-      for (GeoTimeSerie chunk : chunks) {
+      for (GeoTimeSerie chunk: chunks) {
         // Set the type of the result from the type of the first chunk with
         // a defined type.
         if (null == type) {
@@ -7034,7 +7501,7 @@ public class GTSHelper {
       long bucketspan = 0L;
       long firstbucket = Long.MAX_VALUE;
 
-      for (GeoTimeSerie chunk : chunks) {
+      for (GeoTimeSerie chunk: chunks) {
         // If one chunk is not bucketized, exit
         if (!isBucketized(chunk)) {
           bucketspan = 0L;
@@ -7083,7 +7550,7 @@ public class GTSHelper {
       boolean hasClass = false;
       Map<String, String> labels = null;
 
-      for (GeoTimeSerie chunk : chunks) {
+      for (GeoTimeSerie chunk: chunks) {
 
         if (null == classname) {
           classname = chunk.getMetadata().getName();
@@ -7099,7 +7566,7 @@ public class GTSHelper {
           labels.putAll(chunklabels);
         } else {
           // Determine the common labels of chunks
-          for (Entry<String, String> entry : chunklabels.entrySet()) {
+          for (Entry<String, String> entry: chunklabels.entrySet()) {
             if (!entry.getValue().equals(labels.get(entry.getKey()))) {
               labels.remove(entry.getKey());
             }
@@ -7214,14 +7681,14 @@ public class GTSHelper {
     // Compute the mean bucket size
     //
     
-    double mean = gts.values / counts.length;
+    double mean = (double)gts.values / counts.length;
 
     //
     // Check that each bucket is with 'pcterror' of the mean
     //
     
-    for (int i = 0; i < counts.length; i++) {
-      if (Math.abs(1.0D - (counts[i] / mean)) > pcterror) {
+    for (int count: counts) {
+      if (Math.abs(1.0D - (count / mean)) > pcterror) {
         return false;
       }
     }
@@ -7305,8 +7772,8 @@ public class GTSHelper {
   /**
    * Return an array with a copy of the ticks of the given GTS.
    * 
-   * @param gts
-   * @return
+   * @param gts GeoTime Serie instance to get the ticks from.
+   * @return A copy of the array of ticks.
    */
   public static long[] getTicks(GeoTimeSerie gts) {
     return Arrays.copyOf(gts.ticks, gts.values);
@@ -7316,8 +7783,8 @@ public class GTSHelper {
    * Return an array with a copy of the locations of the given GTS.
    * Allocation a new array if no location was specified in the GTS.
    * 
-   * @param gts
-   * @return
+   * @param gts GeoTime Serie instance to get the locations from.
+   * @return A copy of the array of locations.
    */
   public static long[] getLocations(GeoTimeSerie gts) {
     if (null != gts.locations) {
@@ -7341,8 +7808,8 @@ public class GTSHelper {
    * Return an array with a copy of the locations of the given GTS.
    * Allocation a new array if no location was specified in the GTS.
    * 
-   * @param gts
-   * @return
+   * @param gts GeoTime Serie instance to get the elevations from.
+   * @return A copy of the array of elevations.
    */
   public static long[] getElevations(GeoTimeSerie gts) {
     if (null != gts.elevations) {
@@ -7357,9 +7824,9 @@ public class GTSHelper {
   /**
    * Return an array with a copy of the GTS values as doubles
    * 
-   * @param gts
-   * @return
-   * @throws WarpScriptException
+   * @param gts GeoTime Serie instance to get the doubles from.
+   * @return A copy of the array of doubles values.
+   * @throws WarpScriptException if the GeoTimeSerie instance does not contain doubles.
    */
   public static double[] getValuesAsDouble(GeoTimeSerie gts) throws WarpScriptException {
     if (TYPE.DOUBLE == gts.type) {
@@ -7378,7 +7845,7 @@ public class GTSHelper {
   /**
    * Transform a Metadata instance by 'intern'ing all of its strings.
    * 
-   * @param meta
+   * @param meta Metadata to be internalized.
    */
   public static void internalizeStrings(Metadata meta) {
     String name = meta.getName();
@@ -7389,12 +7856,12 @@ public class GTSHelper {
 
     //
     // The approach we take is to create a new instance of Map, filling
-    // it with the interned keys and values and replaceing labels/attributes.
+    // it with the interned keys and values and replacing labels/attributes.
     //
     // This approach is safe as we do not modify the map underlying the entrySet
     // we iterate over.
     // 
-    // Modifying the original map while itearating over it is prone to throwing ConcurrentModificationException
+    // Modifying the original map while iterating over it is prone to throwing ConcurrentModificationException
     // in the case when a bin contains multiple nodes since we MUST do a remove then a put to intern both
     // the key AND the value.
     //
@@ -7430,18 +7897,21 @@ public class GTSHelper {
    * @param idx      : considered as index of the first non-null neighbour at the right
    * @param tick     : tick at which lowess is achieved
    * @param q        : bandwitdth, i.e. number of nearest neighbours to consider
-   * @param d        : degree of polynomial fit
+   * @param p        : degree of polynomial fit
    * @param weights  : optional array that store the weights
    * @param rho      : optional array that store the robustness weights
    * @param beta     : optional array that store the regression parameters
    * @param reversed : should idx be considered to be at the left instead
+   * @return the local weighted regression at given tick.
+   *
+   * @throws WarpScriptException if array lengths are not coherent.
    */
   public static double pointwise_lowess(GeoTimeSerie gts, int idx, long tick, int q, int p, double[] weights, double[] rho, double[] beta, boolean reversed) throws WarpScriptException {
     
     if (null != weights && q > weights.length || (null != rho && gts.values > rho.length) || (null != beta && p + 1 > beta.length) ) {
       throw new WarpScriptException("Incoherent array lengths as input of pointwise_lowess");
     }
-    /**
+    /*
      * FIXME(JCV):
      * q = 3: 22 errors out of 100 points (at these points the value is almost equal to the value at q=2)
      * q = 4: 2 errors out of 100 points (at these points the value is almost equal to the value at q=3)
@@ -7641,7 +8111,7 @@ public class GTSHelper {
    * Compute fast and robust version of LOWESS on a Geo Time Series,
    * with a polynomial fit of degree p > 0.
    * 
-   * @see http://www.stat.washington.edu/courses/stat527/s14/readings/Cleveland_JASA_1979.pdf
+   * @see <a href="https://pdfs.semanticscholar.org/414e/5d1f5a75e2327d99b5bbb93f2e4e241c5acc.pdf">Robust Locally Weighted Regression and Smoothing Scatterplots</a>
    * 
    * @param gts Input GTS
    * @param q   Bandwith, i.e. number of nearest neighbours to consider when applying LOWESS
@@ -7656,7 +8126,7 @@ public class GTSHelper {
    * @param inplace  : should the gts returned be the same object than the input
    * 
    * @return a smoothed GTS
-   * @throws WarpScriptException 
+   * @throws WarpScriptException if parameters are incorrect.
    */
   public static GeoTimeSerie rlowess(GeoTimeSerie gts, int q, int r, long d, int p, double[] weights, double[] rho, boolean inplace) throws WarpScriptException {
     if (TYPE.DOUBLE != gts.type && TYPE.LONG != gts.type) {
@@ -7717,7 +8187,7 @@ public class GTSHelper {
     //
     
     int size = isBucketized(gts) ? gts.bucketcount : gts.values;
-    int sizehint = Math.max(gts.sizehint, (int) 1.1 * size);
+    int sizehint = Math.max(gts.sizehint, Math.round(1.1f * size));
     double[] transient_smoothed = new double[sizehint];
     
     int nvalues = q < size ? q : size;
@@ -7966,7 +8436,7 @@ public class GTSHelper {
         try {
           smoothed.reset(Arrays.copyOf(gts.ticks,sizehint), hasLocations ? Arrays.copyOf(gts.locations,sizehint) : null, hasElevations ? Arrays.copyOf(gts.elevations,sizehint) : null, transient_smoothed, size);
         } catch (IOException ioe) {
-          throw new WarpScriptException("IOException in reset method: " + ioe.getMessage());
+          throw new WarpScriptException("IOException in reset method.", ioe);
         }
         
         return smoothed;
@@ -7994,7 +8464,7 @@ public class GTSHelper {
           gts.ticks = Arrays.copyOf(gts.ticks, sizehint);
         }
         
-        // We try to allocate the lesser additionnal memory so we
+        // We try to allocate the lesser additional memory so we
         // fill locations and elevations backward with values upfront in the same array
         
         if (hasLocations || hasElevations) {
@@ -8072,7 +8542,7 @@ public class GTSHelper {
         try {
           smoothed.reset(ticks, locations, elevations, transient_smoothed, size);
         } catch (IOException ioe) {
-          throw new WarpScriptException("IOException in reset method: " + ioe.getMessage());
+          throw new WarpScriptException("IOException in reset method.", ioe);
         }
         
         return smoothed;
@@ -8180,26 +8650,31 @@ public class GTSHelper {
   }
   
   /**
-   * Compute STL i.e. Seasonal-Trend decompostition precedure based on LOWESS
-   * @see http://www.wessa.net/download/stl.pdf
+   * Compute STL i.e. Seasonal-Trend decomposition procedure based on LOWESS
+   * @see <a href="http://www.wessa.net/download/stl.pdf">STL: A Seasonal-Trend Decomposition Procedure Based on Loess</a>
    * 
    * Global parameters:
    * @param gts                : Input GTS, must be bucketized
    * @param buckets_per_period : number of buckets for one period of the seasonality
    * @param inner Precision    : number of inner loops (to make the decomposition)
-   * @param outer Robustness   : number of outer loops (to alleviate the impact of outliers upon the decompsition)
-   * @param ...
-   * 
+   * @param outer Robustness   : number of outer loops (to alleviate the impact of outliers upon the decomposition)
+   *
    * Optional sets of parameters shared by call of lowess of the same kind:
-   * @param neighbour_*        : Bandwith, i.e. number of nearest neighbours to consider when applying LOWESS
-   * @param degree_*           : Degree, i.e. degree of the polynomial fit
-   * @param jump_*             : Jump, i.e. number of bucket to skip to speed up comptutation. These buckets are interpolated afterward.
-   * 
-   * With:
-   * @param _* = _s            : lowess calls during seasonal extract step
-   * @param _* = _l            : lowess calls during low frequency filtering step
-   * @param _* = _t            : lowess calls during trend extract step
-   * @param _* = _p            : lowess calls during post seasonal smoothing step
+   * @param neighbour_s        : (for the seasonal extracting step) Bandwidth, i.e. number of nearest neighbours to consider when applying LOWESS
+   * @param degree_s           : (for the seasonal extracting step) Degree, i.e. degree of the polynomial fit
+   * @param jump_s             : (for the seasonal extracting step) Jump, i.e. number of bucket to skip to speed up computation. These buckets are interpolated afterward.
+   *
+   * @param neighbour_l        : (for the low frequency filtering step) Bandwidth, i.e. number of nearest neighbours to consider when applying LOWESS
+   * @param degree_l           : (for the low frequency filtering step) Degree, i.e. degree of the polynomial fit
+   * @param jump_l             : (for the low frequency filtering step) Jump, i.e. number of bucket to skip to speed up computation. These buckets are interpolated afterward.
+   *
+   * @param neighbour_t        : (for the trend extracting step) Bandwidth, i.e. number of nearest neighbours to consider when applying LOWESS
+   * @param degree_t           : (for the trend extracting step) Degree, i.e. degree of the polynomial fit
+   * @param jump_t             : (for the trend extracting step) Jump, i.e. number of bucket to skip to speed up computation. These buckets are interpolated afterward.
+   *
+   * @param neighbour_p        : (for the post seasonal smoothing step) Bandwidth, i.e. number of nearest neighbours to consider when applying LOWESS
+   * @param degree_p           : (for the post seasonal smoothing step) Degree, i.e. degree of the polynomial fit
+   * @param jump_p             : (for the post seasonal smoothing step) Jump, i.e. number of bucket to skip to speed up computation. These buckets are interpolated afterward.
    * 
    * @return a list of 2 GTS consisting of the seasonal and trend part of the decomposition.
    */
@@ -8271,7 +8746,7 @@ public class GTSHelper {
     try {
       seasonal.reset(Arrays.copyOf(gts.ticks,sizehint), null, null, new double[sizehint], nonnull);
     } catch (IOException ioe) {
-      throw new WarpScriptException("IOException in reset method: " + ioe.getMessage());
+      throw new WarpScriptException("IOException in reset method.", ioe);
     }
     
     
@@ -8279,7 +8754,7 @@ public class GTSHelper {
     try {
       trend.reset(Arrays.copyOf(gts.ticks,sizehint), null, null, new double[sizehint], nonnull);
     } catch (IOException ioe) {
-      throw new WarpScriptException("IOException in reset method: " + ioe.getMessage());
+      throw new WarpScriptException("IOException in reset method.", ioe);
     }
     
     // lowpassed will borrow the body of trend in step 3
@@ -8552,13 +9027,118 @@ public class GTSHelper {
     
     return output;
   }
+
+  /**
+   * Copy the specified part of a GTS to an other specified part of GTS.
+   *
+   * @param src The source GTS
+   * @param srcPos The starting index in src
+   * @param dest The destination GTS
+   * @param destPos The starting index in dest
+   * @param length The number of points to copy
+   */
+  public static void copy(GeoTimeSerie src, int srcPos, GeoTimeSerie dest, int destPos, int length) {
+    if (!GeoTimeSerie.TYPE.UNDEFINED.equals(dest.type) && !dest.type.equals(src.type)) {
+      throw new RuntimeException("Combine cannot proceed with incompatible GTS types.");
+    }
+
+    // Make sure dest is not UNDEFINED
+    dest.type = src.type;
+
+    // Make sure all receiving arrays are initialized and big enough
+    int destMinLength = destPos + length;
+
+    if(null == dest.ticks){ // dest is empty
+      dest.ticks = new long[destMinLength];
+
+      if (GeoTimeSerie.TYPE.LONG == dest.type) {
+        dest.longValues = new long[destMinLength];
+      } else if (GeoTimeSerie.TYPE.DOUBLE == dest.type) {
+        dest.doubleValues = new double[destMinLength];
+      } else if (GeoTimeSerie.TYPE.STRING == dest.type) {
+        dest.stringValues = new String[destMinLength];
+      } else { // TYPE.BOOLEAN == combined.type
+        dest.booleanValues = new BitSet();
+      }
+    } else if(dest.ticks.length < destMinLength){ // dest is too small to contain new data
+      dest.ticks = Arrays.copyOf(dest.ticks, destMinLength);
+
+      if (GeoTimeSerie.TYPE.LONG == dest.type) {
+        dest.longValues = Arrays.copyOf(dest.ticks, destMinLength);
+      } else if (GeoTimeSerie.TYPE.DOUBLE == dest.type) {
+        dest.doubleValues = Arrays.copyOf(dest.doubleValues, destMinLength);
+      } else if (GeoTimeSerie.TYPE.STRING == dest.type) {
+        dest.stringValues = Arrays.copyOf(dest.stringValues, destMinLength);
+      }
+      // else TYPE.BOOLEAN == combined.type // nothing to do because BitSet grows automatically
+    }
+
+    // If any of dest or src have location info
+    if (null != dest.locations || null != src.locations) {
+      if(null == dest.locations){
+        dest.locations = new long[destMinLength];
+        Arrays.fill(dest.locations, GeoTimeSerie.NO_LOCATION);
+      } else if(dest.locations.length < destMinLength){
+        dest.locations = Arrays.copyOf(dest.locations, destMinLength);
+        Arrays.fill(dest.locations, dest.values, dest.values + destMinLength, GeoTimeSerie.NO_LOCATION);
+      }
+    }
+
+    // If any of dest or src have elevation info
+    if (null != dest.elevations || null != src.elevations) {
+      if(null == dest.elevations){
+        dest.elevations = new long[destMinLength];
+        Arrays.fill(dest.elevations, GeoTimeSerie.NO_ELEVATION);
+      } else if(dest.elevations.length < destMinLength){
+        dest.elevations = Arrays.copyOf(dest.elevations, destMinLength);
+        Arrays.fill(dest.elevations, dest.values, dest.values + destMinLength, GeoTimeSerie.NO_ELEVATION);
+      }
+    }
+
+    // Actual copy
+    copy0(src, srcPos, dest, destPos, length);
+
+    dest.values = Math.max(dest.values, destMinLength);
+  }
+
+  /**
+   * CAREFUL, no check done in this method.
+   * Copy the specified part of a GTS to an other specified part of GTS.
+   * Very similar to System.arraycopy.
+   *
+   * @param src The source GTS
+   * @param srcPos The starting index in src
+   * @param dest The destination GTS
+   * @param destPos The starting index in dest
+   * @param length The number of points to copy
+   */
+  private static void copy0(GeoTimeSerie src, int srcPos, GeoTimeSerie dest, int destPos, int length){
+    System.arraycopy(src.ticks, srcPos, dest.ticks, destPos, length);
+    if (null != src.locations) {
+      System.arraycopy(src.locations, srcPos, dest.locations, destPos, length);
+    }
+    if (null != src.elevations) {
+      System.arraycopy(src.elevations, srcPos, dest.elevations, destPos, length);
+    }
+    if (GeoTimeSerie.TYPE.LONG == dest.type) {
+      System.arraycopy(src.longValues, srcPos, dest.longValues, destPos, length);
+    } else if (GeoTimeSerie.TYPE.DOUBLE == dest.type) {
+      System.arraycopy(src.doubleValues, srcPos, dest.doubleValues, destPos, length);
+    } else if (GeoTimeSerie.TYPE.STRING == dest.type) {
+      System.arraycopy(src.stringValues, srcPos, dest.stringValues, destPos, length);
+    } else { // TYPE.BOOLEAN == dest.type
+      for(int i = 0; i < length; i++) {
+        dest.booleanValues.set(destPos + i, src.booleanValues.get(srcPos + i));
+      }
+    }
+  }
   
   /**
    * Copy geo infos (location + elevation) from GTS 'from' into GTS 'to'
    * Only infos for matching ticks with values in 'to' will be copied
    * 
-   * @param from
-   * @param to
+   * @param from Source GeoTimeSerie instance from which geo infos will be copied.
+   * @param to Destination GeoTimeSerie instance to which geo infos will be copied.
    */
   public static void copyGeo(GeoTimeSerie from, GeoTimeSerie to) {
     // Sort both GTS
@@ -8659,8 +9239,8 @@ public class GTSHelper {
    * Return shrinked versions of the input GTS containing only the ticks which have
    * values in all input GTS.
    * 
-   * @param series
-   * @return
+   * @param series List of GeoTimeSerie instance to get values with common ticks from.
+   * @return A new List of cloned GeoTimeSerie containing ony common ticks.
    */  
   public static List<GeoTimeSerie> commonTicks(List<GeoTimeSerie> series) {
     
@@ -8704,8 +9284,8 @@ public class GTSHelper {
     // Build resulting GTS
     List<GeoTimeSerie> result = new ArrayList<GeoTimeSerie>();
     
-    for (int i = 0; i < series.size(); i++) {
-      result.add(series.get(i).cloneEmpty(series.get(i).values / 2));
+    for (GeoTimeSerie gts: series) {
+      result.add(gts.cloneEmpty(gts.values / 2));
     }
     
     //
@@ -8839,13 +9419,14 @@ public class GTSHelper {
  
   /**
    * Compute conditional probabilities given a GTS considering the values as the concatenation
-   * of given events plus the event for which we want to compute the probability, separated by 'separator'
+   * of given events plus the event for which we want to compute the probability, separated by 'separator'. i.e.
+   * given1&lt;SEP&gt;given2&lt;SEP&gt;....&lt;SEP&gt;event
    * 
-   * If 'sepearator' is null then we simply compute the probability of values instead of conditional probabilities
+   * If 'separator' is null then we simply compute the probability of values instead of conditional probabilities
    * 
-   * @param gts
-   * @param separator
-   * @return
+   * @param gts GeoTimeSerie instance representing the sequence of events.
+   * @param separator a String separator between events or null to simply compute the probability of values.
+   * @return a new GeoTimeSerie instance containing the probability P(X=event|A=given1,B=given2,...), the value of each random variable being those of the corresponding tick in the given GTS.
    */
   public static GeoTimeSerie cprob(GeoTimeSerie gts, String separator) throws WarpScriptException {
     
@@ -8965,11 +9546,10 @@ public class GTSHelper {
   }
   
   /**
-   * Convert a GTS into a GTS of the probability associated with the value present at each tick
-   * given the value histogram
+   * Convert a GTS into a GTS of the probability associated with the value present at each tick.
    * 
-   * @param gts
-   * @return
+   * @param gts GeoTimeSerie instance for which to get the value probabilities.
+   * @return a new GeoTimeSerie instance containing the probability P(X=event), the value 'event' being that of the corresponding tick in the given GTS.
    */
   public static GeoTimeSerie prob(GeoTimeSerie gts) {
     Map<Object, Long> histogram = valueHistogram(gts);
@@ -8997,6 +9577,14 @@ public class GTSHelper {
       return gts;
     }
         
+    //
+    // Ditto if the GTS is a STRING or BOOLEAN one
+    //
+    
+    if (TYPE.STRING == gts.type || TYPE.BOOLEAN == gts.type) {
+      return gts;
+    }
+    
     if (threshold < 3) {
       throw new WarpScriptException("Threshold MUST be >= 3.");
     }
