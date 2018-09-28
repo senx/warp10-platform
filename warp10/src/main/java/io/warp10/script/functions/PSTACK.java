@@ -61,7 +61,7 @@ public class PSTACK extends NamedWarpScriptFunction implements WarpScriptStackFu
       AtomicInteger recursionLevel = new AtomicInteger();
       StringWriter sw = new StringWriter();
       PrintWriter pw = new PrintWriter(sw);
-      StackUtils.objectToJSON(pw, o, recursionLevel, false);
+      StackUtils.objectToJSON(null, pw, o, recursionLevel, false);
       pw.close();
       out.println("/* " + (level + 1) + " */ " + sw.toString());
     } else {
