@@ -98,7 +98,7 @@ public class UNSECURE extends NamedWarpScriptFunction implements WarpScriptStack
     try {
       deserializer.deserialize(sscript, unwrapped);
     } catch (TException te) {
-      throw new WarpScriptException("Unable to unsecure script.");
+      throw new WarpScriptException("Unable to unsecure script.", te);
     }
     
     if (this.checkkey) {
@@ -129,7 +129,7 @@ public class UNSECURE extends NamedWarpScriptFunction implements WarpScriptStack
         sscript.setCompressed(false);
         sscript.setScript(baos.toByteArray());        
       } catch (IOException ioe) {
-        throw new WarpScriptException("Unable to unsecure script.");
+        throw new WarpScriptException("Unable to unsecure script.", ioe);
       }
     }
     

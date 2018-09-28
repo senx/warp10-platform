@@ -59,7 +59,7 @@ public class PARSESELECTOR extends NamedWarpScriptFunction implements WarpScript
       stack.push(result[0]);
       stack.push(result[1]);      
     } catch (WarpScriptException ee) {
-      throw new WarpScriptException(getName() + ee.getMessage());
+      throw new WarpScriptException(ee);
     }
         
     return stack;

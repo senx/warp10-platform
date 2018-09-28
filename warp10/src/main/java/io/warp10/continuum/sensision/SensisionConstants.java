@@ -712,6 +712,26 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS = "warp.standalone.client.scanners.parallel";
 
   /**
+   * Total number of nanoseconds spent waiting for a scanner to be scheduled in the standalone version
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS_WAITNANOS = "warp.standalone.client.scanners.parallel.waitnanos";
+
+  /**
+   * Total number of nanoseconds spent waiting for a scanner to be scheduled
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_WAITNANOS = "warp.hbase.client.scanners.parallel.waitnanos";
+
+  /**
+   * Number of rejections when attempting to schedule parallel scanners in the distributed version
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_REJECTIONS = "warp.hbase.client.scanners.parallel.rejections";
+
+  /**
+   * Number of rejections when attempting to schedule parallel scanners in the standalone version
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS_REJECTIONS = "warp.standalone.client.scanners.parallel.rejections";
+  
+  /**
    * Number of times a mutex was requested among parallel scanners. A Mutex is requested when consecutive GTSDecoders belong
    * to the same GTS, they must be pushed to the queue as a block. This can happen when the size of a GTSDecoder grows beyond
    * a limit or when a GTS spawns several regions.

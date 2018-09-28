@@ -33,8 +33,6 @@ public class MACROFILTER extends NamedWarpScriptFunction implements WarpScriptSt
 
   public static class MacroFilterWrapper extends NamedWarpScriptFunction implements WarpScriptFilterFunction {
 
-    private TOLIST tolist = new TOLIST("");
-    
     private final WarpScriptStack stack;
     private final Macro macro;
     
@@ -92,6 +90,10 @@ public class MACROFILTER extends NamedWarpScriptFunction implements WarpScriptSt
       }
       
       return (List<GeoTimeSerie>) result;
+    }
+    
+    public Macro getMacro() {
+      return macro;
     }
   }
   

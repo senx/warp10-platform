@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  Cityzen Data
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,43 +14,33 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.functions;
+package io.warp10.script.functions.math;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
-import java.lang.reflect.Method;
+/**
+ * Check https://docs.oracle.com/javase/8/docs/api/java/lang/Math.html for the documentation of this function.
+ * Last java parameter is on top of the stack.
+ */
+public class GETEXPONENT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-public class MATH extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
-  private Method method;
-  
-  public MATH(String name, String methodName) throws WarpScriptException {
+  public GETEXPONENT(String name) {
     super(name);
-    
-    try {
-      this.method = Math.class.getMethod(methodName, double.class);
-    } catch (Exception e) {
-      throw new WarpScriptException(e);
-    }
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object o = stack.pop();
+    Object op0 = stack.pop();
 
-    if (!(o instanceof Number)) {
-      throw new WarpScriptException(getName() + " operates on a numeric argument.");
+    if (!(op0 instanceof Number)) {
+      throw new WarpScriptException(getName() + " can only operate on numerical values.");
     }
-    
-    try {
-      stack.push(this.method.invoke(null, ((Number) o).doubleValue()));
-    } catch (Exception e) {
-      throw new WarpScriptException(e);
-    }
-    
+
+    stack.push((long) Math.getExponent(((Number) op0).doubleValue()));
+
     return stack;
   }
 }

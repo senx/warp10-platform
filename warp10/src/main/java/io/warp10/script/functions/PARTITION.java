@@ -55,7 +55,7 @@ public class PARTITION extends NamedWarpScriptFunction implements WarpScriptStac
     try {
       bylabels = (List<String>) top;
     } catch (ClassCastException cce) {
-      throw new WarpScriptException(getName() + " expects a list of labels or null on the top of the stack.");      
+      throw new WarpScriptException(getName() + " expects a list of labels or null on the top of the stack.", cce);
     }
     
     top = stack.pop();
@@ -65,7 +65,7 @@ public class PARTITION extends NamedWarpScriptFunction implements WarpScriptStac
     try {
       params = (List<Object>) top;
     } catch (ClassCastException cce) {
-      throw new WarpScriptException(getName() + " expects a list of geo time series instances under the top of the stack.");      
+      throw new WarpScriptException(getName() + " expects a list of geo time series instances under the top of the stack.", cce);
     }
 
     List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();

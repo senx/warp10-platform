@@ -396,7 +396,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
           // Encode it and push it on the stack
           stack.push(new String(OrderPreservingBase64.encode(wrapped), Charsets.UTF_8));
         } catch (TException | IOException e) {
-          throw new WarpScriptException(getName() + " unable to build MetaSet.");
+          throw new WarpScriptException(getName() + " unable to build MetaSet.", e);
         }
       }
     } else {
