@@ -26,12 +26,21 @@ import io.warp10.script.WarpScriptStack;
  */
 public class FAIL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
+  private static final String DEFAULT_MESSAGE = "failed";
+  private final String message;
+  
   public FAIL(String name) {
     super(name);
+    this.message = DEFAULT_MESSAGE;
+  }
+  
+  public FAIL(String name, String message) {
+    super(name);
+    this.message = message;
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    throw new WarpScriptException(getName() + " failed.");
+    throw new WarpScriptException(getName() + " " + this.message + ".");
   }
 }

@@ -36,6 +36,10 @@ public class MAPPERGT extends NamedWarpScriptFunction implements WarpScriptStack
       stack.push(new FirstGT(getName(), (long) o));
     } else if (o instanceof Double) {
       stack.push(new FirstGT(getName(), (double) o));
+    } else if (o instanceof String) {
+      stack.push(new FirstGT(getName(), (String) o));
+    } else {
+      throw new WarpScriptException(getName() + " expects a LONG, DOUBLE or STRING value on top of the stack.");
     }
     
     return stack;

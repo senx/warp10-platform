@@ -36,6 +36,10 @@ public class MAPPERLT extends NamedWarpScriptFunction implements WarpScriptStack
       stack.push(new FirstLT(getName(), (long) o));
     } else if (o instanceof Double) {
       stack.push(new FirstLT(getName(), (double) o));
+    } else if (o instanceof String) {
+      stack.push(new FirstLT(getName(), (String) o));
+    } else {
+      throw new WarpScriptException(getName() + " expects a LONG, DOUBLE or STRING value on top of the stack.");
     }
     
     return stack;

@@ -56,6 +56,7 @@ public class SENSISIONEVENT extends NamedWarpScriptFunction implements WarpScrip
       String cls = args.get(1).toString();
       Map<String,String> labels = (Map<String,String>) args.get(2);
       Object value = args.get(3);
+      Sensision.event(ts, null, null, null, cls, labels, value);
     } else {
       throw new WarpScriptException(getName() + " unsupported number of arguments.");
     }

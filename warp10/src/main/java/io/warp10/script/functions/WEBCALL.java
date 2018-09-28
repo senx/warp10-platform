@@ -99,7 +99,7 @@ public class WEBCALL extends NamedWarpScriptFunction implements WarpScriptStackF
         throw new WarpScriptException(getName() + " invalid host or scheme in URL.");
       }
     } catch (MalformedURLException mue) {
-      throw new WarpScriptException(getName() + " invalid URL.");
+      throw new WarpScriptException(getName() + " invalid URL.", mue);
     }
     
     request.setUrl(url.toString());

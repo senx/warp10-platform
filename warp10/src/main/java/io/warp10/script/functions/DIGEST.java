@@ -55,7 +55,7 @@ public class DIGEST extends NamedWarpScriptFunction implements WarpScriptStackFu
 
       return stack;
     } catch (Exception exp) {
-      throw new WarpScriptException(getName() + " unable to instantiate message digest");
+      throw new WarpScriptException(getName() + " unable to instantiate message digest.", exp);
     }
   }
 }

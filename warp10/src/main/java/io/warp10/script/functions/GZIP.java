@@ -59,7 +59,7 @@ public class GZIP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     
       out.close();
     } catch (IOException ioe) {
-      throw new WarpScriptException(getName() + " encountered an error while compressing.");
+      throw new WarpScriptException(getName() + " encountered an error while compressing.", ioe);
     }
     
     stack.push(baos.toByteArray());

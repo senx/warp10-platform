@@ -19,15 +19,21 @@ package io.warp10.standalone;
 import io.warp10.SmartPattern;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
+import io.warp10.continuum.DirectoryUtil;
+import io.warp10.continuum.egress.ThriftDirectoryClient;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.Directory;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
+import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.SipHashInline;
+import io.warp10.script.HyperLogLogPlus;
 import io.warp10.sensision.Sensision;
 
 import java.io.IOException;
@@ -43,9 +49,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
@@ -63,6 +73,7 @@ import org.bouncycastle.crypto.params.KeyParameter;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBIterator;
 import org.iq80.leveldb.WriteBatch;
+import org.iq80.leveldb.WriteOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,6 +103,12 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   private final byte[] aesKey;
   
   private final int initNThreads;
+
+  private final boolean syncwrites;
+  private final double syncrate;
+  
+  private long LIMIT_CLASS_CARDINALITY = 100;
+  private long LIMIT_LABELS_CARDINALITY = 100;
   
   /**
    * Maps of class name to labelsId to metadata
@@ -102,7 +119,17 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   
   public StandaloneDirectoryClient(DB db, final KeyStore keystore) {
     
-    this.initNThreads = Integer.parseInt(WarpConfig.getProperties().getProperty(Configuration.DIRECTORY_INIT_NTHREADS, DIRECTORY_INIT_NTHREADS_DEFAULT));
+    Properties props = WarpConfig.getProperties();
+    
+    if (props.containsKey(io.warp10.continuum.Configuration.DIRECTORY_STATS_CLASS_MAXCARDINALITY)) {
+      this.LIMIT_CLASS_CARDINALITY = Long.parseLong(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STATS_CLASS_MAXCARDINALITY));
+    }
+
+    if (props.containsKey(io.warp10.continuum.Configuration.DIRECTORY_STATS_LABELS_MAXCARDINALITY)) {
+      this.LIMIT_LABELS_CARDINALITY = Long.parseLong(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STATS_LABELS_MAXCARDINALITY));
+    }
+
+    this.initNThreads = Integer.parseInt(props.getProperty(Configuration.DIRECTORY_INIT_NTHREADS, DIRECTORY_INIT_NTHREADS_DEFAULT));
 
     this.db = db;
     this.keystore = keystore;
@@ -114,6 +141,9 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     this.labelsKey = this.keystore.getKey(KeyStore.SIPHASH_LABELS);
     this.labelsLongs = SipHashInline.getKey(this.labelsKey);
     
+    syncrate = Math.min(1.0D, Math.max(0.0D, Double.parseDouble(props.getProperty(Configuration.LEVELDB_DIRECTORY_SYNCRATE, "1.0"))));
+    syncwrites = 0.0 < syncrate && syncrate < 1.0;
+
     //
     // Read metadata from DB
     //
@@ -645,6 +675,8 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     
     boolean written = false;
     
+    WriteOptions options = new WriteOptions().sync(1.0 == syncrate);
+    
     try {
       if (null != key && null != value) {
         batch.put(key, value);
@@ -652,7 +684,12 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       }
       
       if (null == key || null == value || size.get() > MAX_BATCH_SIZE) {
-        this.db.write(batch);
+        
+        if (syncwrites) {
+          options = new WriteOptions().sync(Math.random() < syncrate);
+        }
+        
+        this.db.write(batch, options);
         size.set(0L);
         perThreadWriteBatch.remove();
         written = true;
@@ -746,7 +783,363 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   
   @Override
   public Map<String,Object> stats(List<String> classSelector, List<Map<String, String>> labelsSelectors) throws IOException {
-    throw new IOException("stats is not available in standalone mode.");
+    final DirectoryStatsRequest request = new DirectoryStatsRequest();
+    request.setTimestamp(System.currentTimeMillis());
+    request.setClassSelector(classSelector);
+    request.setLabelsSelectors(labelsSelectors);
+    
+    try {
+      final DirectoryStatsResponse response = stats(request);
+
+      List<Future<DirectoryStatsResponse>> responses = new ArrayList<Future<DirectoryStatsResponse>>();
+      Future<DirectoryStatsResponse> f = new Future<DirectoryStatsResponse>() {
+        @Override
+        public DirectoryStatsResponse get() throws InterruptedException, ExecutionException {
+          return response;
+        }
+        @Override
+        public DirectoryStatsResponse get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+          return response;
+        }
+        @Override
+        public boolean isDone() { return true; }
+        @Override
+        public boolean isCancelled() { return false; }
+        @Override
+        public boolean cancel(boolean mayInterruptIfRunning) { return false; }
+      };
+      
+      responses.add(f);
+
+      return ThriftDirectoryClient.mergeStatsResponses(responses);
+    } catch (TException te) {
+      throw new IOException(te);
+    }
+  }
+  
+  private DirectoryStatsResponse stats(DirectoryStatsRequest request) throws TException {
+    try {
+      DirectoryStatsResponse response = new DirectoryStatsResponse();
+      
+      //
+      // Build patterns from expressions
+      //
+      
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_STATS_REQUESTS, Sensision.EMPTY_LABELS, 1);
+
+      SmartPattern classSmartPattern;
+      
+      Collection<Metadata> metas;
+      
+      //
+      // Allocate a set if there is more than one class selector as we may have
+      // duplicate results
+      //
+      
+      if (request.getClassSelectorSize() > 1) {
+        metas = new HashSet<Metadata>();
+      } else {
+        metas = new ArrayList<Metadata>();
+      }
+            
+      HyperLogLogPlus gtsCount = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+      Map<String,HyperLogLogPlus> perClassCardinality = new HashMap<String,HyperLogLogPlus>();
+      Map<String,HyperLogLogPlus> perLabelValueCardinality = new HashMap<String,HyperLogLogPlus>();
+      HyperLogLogPlus labelNamesCardinality = null;
+      HyperLogLogPlus labelValuesCardinality = null;
+      HyperLogLogPlus classCardinality = null;
+      
+      for (int i = 0; i < request.getClassSelectorSize(); i++) {
+        String exactClassName = null;
+        
+        if (request.getClassSelector().get(i).startsWith("=") || !request.getClassSelector().get(i).startsWith("~")) {
+          exactClassName = request.getClassSelector().get(i).startsWith("=") ? request.getClassSelector().get(i).substring(1) : request.getClassSelector().get(i);
+          classSmartPattern = new SmartPattern(exactClassName);
+        } else {
+          classSmartPattern = new SmartPattern(Pattern.compile(request.getClassSelector().get(i).substring(1)));
+        }
+        
+        Map<String,SmartPattern> labelPatterns = new HashMap<String,SmartPattern>();
+        
+        if (null != request.getLabelsSelectors()) {
+          for (Entry<String,String> entry: request.getLabelsSelectors().get(i).entrySet()) {
+            String label = entry.getKey();
+            String expr = entry.getValue();
+            SmartPattern pattern;
+            
+            if (expr.startsWith("=") || !expr.startsWith("~")) {
+              //pattern = Pattern.compile(Pattern.quote(expr.startsWith("=") ? expr.substring(1) : expr));
+              pattern = new SmartPattern(expr.startsWith("=") ? expr.substring(1) : expr);
+            } else {
+              pattern = new SmartPattern(Pattern.compile(expr.substring(1)));
+            }
+            
+            //labelPatterns.put(label,  pattern.matcher(""));
+            labelPatterns.put(label,  pattern);
+          }      
+        }
+              
+        //
+        // Loop over the class names to find matches
+        //
+
+        Collection<String> classNames = new ArrayList<String>();
+        
+        if (null != exactClassName) {
+          // If the class name is an exact match, check if it is known, if not, skip to the next selector
+          if(!this.metadatas.containsKey(exactClassName)) {
+            continue;
+          }
+          classNames.add(exactClassName);
+        } else {
+//          //
+//          // Extract per owner classes if owner selector exists
+//          //
+//          
+//          if (request.getLabelsSelectors().get(i).size() > 0) {
+//            String ownersel = request.getLabelsSelectors().get(i).get(Constants.OWNER_LABEL);
+//            
+//            if (null != ownersel && ownersel.startsWith("=")) {
+//              classNames = classesPerOwner.get(ownersel.substring(1));
+//            } else {
+//              classNames = this.classNames.values();
+//            }
+//          } else {
+//            classNames = this.classNames.values();
+//          }
+          classNames.addAll(metadatas.keySet());
+        }
+        
+        List<String> labelNames = new ArrayList<String>(labelPatterns.size());
+        List<SmartPattern> labelSmartPatterns = new ArrayList<SmartPattern>(labelPatterns.size());
+        List<String> labelValues = new ArrayList<String>(labelPatterns.size());
+        
+        //
+        // Put producer/app/owner first
+        //
+        
+        if (labelPatterns.containsKey(Constants.PRODUCER_LABEL)) {
+          labelNames.add(Constants.PRODUCER_LABEL);
+          labelSmartPatterns.add(labelPatterns.get(Constants.PRODUCER_LABEL));
+          labelPatterns.remove(Constants.PRODUCER_LABEL);   
+          labelValues.add(null);
+        }
+        if (labelPatterns.containsKey(Constants.APPLICATION_LABEL)) {
+          labelNames.add(Constants.APPLICATION_LABEL);
+          labelSmartPatterns.add(labelPatterns.get(Constants.APPLICATION_LABEL));
+          labelPatterns.remove(Constants.APPLICATION_LABEL);
+          labelValues.add(null);
+        }
+        if (labelPatterns.containsKey(Constants.OWNER_LABEL)) {
+          labelNames.add(Constants.OWNER_LABEL);
+          labelSmartPatterns.add(labelPatterns.get(Constants.OWNER_LABEL));
+          labelPatterns.remove(Constants.OWNER_LABEL);
+          labelValues.add(null);
+        }
+        
+        //
+        // Now add the other labels
+        //
+        
+        for(Entry<String,SmartPattern> entry: labelPatterns.entrySet()) {
+          labelNames.add(entry.getKey());
+          labelSmartPatterns.add(entry.getValue());
+          labelValues.add(null);
+        }
+
+        for (String className: classNames) {
+          
+          //
+          // If class matches, check all labels for matches
+          //
+          
+          if (classSmartPattern.matches(className)) {
+            Map<Long,Metadata> classMetadatas = this.metadatas.get(className);
+            if (null == classMetadatas) {
+              continue;
+            }
+            for (Metadata metadata: classMetadatas.values()) {
+              
+              boolean exclude = false;
+              
+              int idx = 0;
+        
+              for (String labelName: labelNames) {
+                //
+                // Immediately exclude metadata which do not contain one of the
+                // labels for which we have patterns either in labels or in attributes
+                //
+
+                String labelValue = metadata.getLabels().get(labelName);
+                
+                if (null == labelValue) {
+                  labelValue = metadata.getAttributes().get(labelName);
+                  if (null == labelValue) {
+                    exclude = true;
+                    break;
+                  }
+                }
+                
+                labelValues.set(idx++, labelValue);
+              }
+              
+              // If we did not collect enough label/attribute values, exclude the GTS
+              if (idx < labelNames.size()) {
+                exclude = true;
+              }
+              
+              if (exclude) {
+                continue;
+              }
+              
+              //
+              // Check if the label value matches, if not, exclude the GTS
+              //
+              
+              for (int j = 0; j < labelNames.size(); j++) {
+                if (!labelSmartPatterns.get(j).matches(labelValues.get(j))) {
+                  exclude = true;
+                  break;
+                }
+              }
+              
+              if (exclude) {
+                continue;
+              }
+
+              //
+              // We have a match, update estimators
+              //
+
+              // Compute classId/labelsId
+              long classId = GTSHelper.classId(classLongs, metadata.getName());
+              long labelsId = GTSHelper.labelsId(labelsLongs, metadata.getLabels());
+              
+              // Compute gtsId, we use the GTS Id String from which we extract the 16 bytes
+              byte[] data = GTSHelper.gtsIdToString(classId, labelsId).getBytes(Charsets.UTF_16BE);
+              long gtsId = SipHashInline.hash24(classLongs[0], classLongs[1], data, 0, data.length);
+              
+              gtsCount.aggregate(gtsId);
+              
+              if (null != perClassCardinality) {              
+                HyperLogLogPlus count = perClassCardinality.get(metadata.getName());
+                if (null == count) {
+                  count = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+                  perClassCardinality.put(metadata.getName(), count);
+                }
+                                
+                count.aggregate(gtsId);
+                
+                // If we reached the limit in detailed number of classes, we fallback to a simple estimator
+                if (perClassCardinality.size() >= LIMIT_CLASS_CARDINALITY) {
+                  classCardinality = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+                  for (String cls: perClassCardinality.keySet()) {
+                    data = cls.getBytes(Charsets.UTF_8);
+                    classCardinality.aggregate(SipHashInline.hash24(classLongs[0], classLongs[1], data, 0, data.length, false));
+                    perClassCardinality = null;
+                  }
+                }
+              } else {
+                data = metadata.getName().getBytes(Charsets.UTF_8);
+                classCardinality.aggregate(SipHashInline.hash24(classLongs[0], classLongs[1], data, 0, data.length, false));
+              }
+              
+              if (null != perLabelValueCardinality) {
+                if (metadata.getLabelsSize() > 0) {
+                  for (Entry<String,String> entry: metadata.getLabels().entrySet()) {
+                    HyperLogLogPlus estimator = perLabelValueCardinality.get(entry.getKey());
+                    if (null == estimator) {
+                      estimator = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+                      perLabelValueCardinality.put(entry.getKey(), estimator);
+                    }
+                    data = entry.getValue().getBytes(Charsets.UTF_8);
+                    long siphash = SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false);
+                    estimator.aggregate(siphash);
+                  }
+                }
+
+                if (metadata.getAttributesSize() > 0) {
+                  for (Entry<String,String> entry: metadata.getAttributes().entrySet()) {
+                    HyperLogLogPlus estimator = perLabelValueCardinality.get(entry.getKey());
+                    if (null == estimator) {
+                      estimator = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+                      perLabelValueCardinality.put(entry.getKey(), estimator);
+                    }
+                    data = entry.getValue().getBytes(Charsets.UTF_8);
+                    estimator.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
+                  }
+                }
+
+                if (perLabelValueCardinality.size() >= LIMIT_LABELS_CARDINALITY) {
+                  labelNamesCardinality = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+                  labelValuesCardinality = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+                  for (Entry<String,HyperLogLogPlus> entry: perLabelValueCardinality.entrySet()) {
+                    data = entry.getKey().getBytes(Charsets.UTF_8);
+                    labelNamesCardinality.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
+                    labelValuesCardinality.fuse(entry.getValue());
+                  }
+                  perLabelValueCardinality = null;
+                }
+              } else {
+                if (metadata.getLabelsSize() > 0) {
+                  for (Entry<String,String> entry: metadata.getLabels().entrySet()) {
+                    data = entry.getKey().getBytes(Charsets.UTF_8);
+                    labelValuesCardinality.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
+                    data = entry.getValue().getBytes(Charsets.UTF_8);
+                    labelValuesCardinality.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
+                  }
+                }
+                if (metadata.getAttributesSize() > 0) {
+                  for (Entry<String,String> entry: metadata.getAttributes().entrySet()) {
+                    data = entry.getKey().getBytes(Charsets.UTF_8);
+                    labelValuesCardinality.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
+                    data = entry.getValue().getBytes(Charsets.UTF_8);
+                    labelValuesCardinality.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
+                  }
+                }
+              }            
+            }
+          }
+        }      
+      }
+
+      response.setGtsCount(gtsCount.toBytes());
+      
+      if (null != perClassCardinality) {
+        classCardinality = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+        for (Entry<String,HyperLogLogPlus> entry: perClassCardinality.entrySet()) {
+          response.putToPerClassCardinality(entry.getKey(), ByteBuffer.wrap(entry.getValue().toBytes()));
+          byte[] data = entry.getKey().getBytes(Charsets.UTF_8);
+          classCardinality.aggregate(SipHashInline.hash24(classLongs[0], classLongs[1], data, 0, data.length, false));        
+        }
+      }
+      
+      response.setClassCardinality(classCardinality.toBytes());
+      
+      if (null != perLabelValueCardinality) {
+        HyperLogLogPlus estimator = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+        HyperLogLogPlus nameEstimator = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+        for (Entry<String,HyperLogLogPlus> entry: perLabelValueCardinality.entrySet()) {
+          byte[] data = entry.getKey().getBytes(Charsets.UTF_8);
+          nameEstimator.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
+          estimator.fuse(entry.getValue());
+          response.putToPerLabelValueCardinality(entry.getKey(), ByteBuffer.wrap(entry.getValue().toBytes()));
+        }
+        response.setLabelNamesCardinality(nameEstimator.toBytes());
+        response.setLabelValuesCardinality(estimator.toBytes());
+      } else {
+        response.setLabelNamesCardinality(labelNamesCardinality.toBytes());
+        response.setLabelValuesCardinality(labelValuesCardinality.toBytes());
+      }
+      
+      return response;   
+    } catch (IOException ioe) {
+      ioe.printStackTrace();
+      throw new TException(ioe);
+    } catch (Exception e) {
+      e.printStackTrace();
+      throw new TException(e);
+    }
   }
   
   @Override

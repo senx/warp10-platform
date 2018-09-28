@@ -135,7 +135,7 @@ public abstract class AbstractWarp10Plugin {
     try {
       Class egress = Class.forName("io.warp10.continuum.egress.EgressExecHandler");
       Method m = egress.getDeclaredMethod("getExposedStoreClient", new Class[0]);
-      StoreClient client = (StoreClient) m.invoke(null, new Object[0]);
+      return (StoreClient) m.invoke(null, new Object[0]);
     } catch (Throwable t) {
       t.printStackTrace();
     }

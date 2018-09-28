@@ -1,9 +1,9 @@
-#!/bin/sh
+#!/bin/bash
 
 ### BEGIN INIT INFO
 # Provides:          warp10
-# Required-Start:    
-# Required-Stop:     
+# Required-Start:
+# Required-Stop:
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: Warp data platform
@@ -15,29 +15,38 @@ if [ -e /lib/lsb/init-functions ]; then
   . /lib/lsb/init-functions
 fi
 
-OS=$(uname -s)
-
 #JAVA_HOME=/opt/java8
 #WARP10_HOME=/opt/warp10-@VERSION@
 
-if [ -z "$JAVA_HOME" ]; then
-  echo "JAVA_HOME not set";
-  exit 1
+
+# Strongly inspired by gradlew
+# Determine the Java command to use to start the JVM.
+if [ -n "$JAVA_HOME" ] ; then
+    if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
+        # IBM's JDK on AIX uses strange locations for the executables
+        JAVACMD="$JAVA_HOME/jre/sh/java"
+    elif [ -x "$JAVA_HOME/bin/java" ] ; then
+        JAVACMD="$JAVA_HOME/bin/java"
+    else
+        JAVACMD="$JAVA_HOME/jre/bin/java"
+    fi
+    if [ ! -x "$JAVACMD" ] ; then
+        echo "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
+Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."
+        exit 1
+    fi
+else
+    JAVACMD="java"
+    which java >/dev/null 2>&1 || (echo "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
+Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."; exit 1)
 fi
+
 
 # If WARP10_HOME is not defined, set it to the parent directory
 if [ -z "${WARP10_HOME}" ]; then
-  if [ "Darwin" = "${OS}" ]
-  then
-    pushd $(dirname $0)/.. > /dev/null 2>&1
-    WARP10_HOME=`pwd`
-    popd > /dev/null 2>&1
-  else
-    WARP10_HOME=$(dirname $(readlink -f $0))/..
-  fi
+  WARP10_HOME=`cd $(dirname $0); cd $(pwd -P)/..; pwd -P`
 fi
 
-export JAVA_HOME
 export WARP10_HOME
 
 #
@@ -66,7 +75,7 @@ FIRSTINIT_FILE=${WARP10_HOME}/logs/.firstinit
 QUANTUM_REVISION=@QUANTUM_VERSION@
 QUANTUM_PLUGIN_JAR=${WARP10_HOME}/bin/warp10-quantum-plugin-${QUANTUM_REVISION}.jar
 QUANTUM_PLUGIN_NAME=io.warp10.plugins.quantum.QuantumPlugin
-# Is Quantun has been started ?
+# Is Quantum has been started ?
 # Note: do not use this parameter to inhibit/activate Quantum (use Warp 10 config)
 IS_QUANTUM_STARTED=true
 
@@ -76,8 +85,8 @@ IS_JAVA7=false
 # Classpath
 #
 WARP10_REVISION=@VERSION@
-WARP10_USER=warp10
-WARP10_GROUP=warp10
+export WARP10_USER=${WARP10_USER:=warp10}
+WARP10_GROUP=${WARP10_GROUP:=warp10}
 WARP10_CONFIG=${WARP10_HOME}/etc/conf-standalone.conf
 WARP10_JAR=${WARP10_HOME}/bin/warp10-${WARP10_REVISION}.jar
 WARP10_CLASS=io.warp10.standalone.Warp
@@ -106,31 +115,61 @@ JAVA_HEAP_DUMP=${WARP10_HOME}/logs/java.heapdump
 JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC"
 export MALLOC_ARENA_MAX=1
 
+
+moveDir() {
+  dir=$1
+  if [ -e ${WARP10_DATA_DIR}/${dir} ]; then
+      echo "Error: ${WARP10_DATA_DIR}/${dir} already exists"
+      exit 1
+  fi
+  su ${WARP10_USER} -c "mv ${WARP10_HOME}/${dir} ${WARP10_DATA_DIR}/ 2>&1"
+  if [ $? != 0 ]; then
+    echo "ERROR: move ${WARP10_HOME}/${dir} to ${WARP10_DATA_DIR}"
+    exit 1
+  fi
+  ln -s ${WARP10_DATA_DIR}/${dir} ${WARP10_HOME}/${dir}
+  chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/${dir}
+  chmod 755 ${WARP10_DATA_DIR}/${dir}
+}
+
+#
+# Exit this script if user doesn't match
+#
+isUser() {
+  if [ "`whoami`" != "${1}" ]; then
+    echo "You must be '${1}' to run this script."
+    exit 1
+  fi
+}
+
+#
+# Return 0 if a Warp 10 instance is started
+#
+isStarted() {
+  # Don't use 'ps -p' for docker compatibility
+  if [ -e ${PID_FILE} ] && ps -Ao pid | grep "^\s*$(cat ${PID_FILE})$" > /dev/null; then
+    return 0
+  fi
+  return 1
+}
+
 bootstrap() {
   echo "Bootstrap.."
 
   #
   # Make sure the caller is root
   #
-
-  if [ "`whoami`" != "root" ]
-  then
-    echo "You must be root to run 'bootstrap' command."
-    exit 1
-  fi
+  isUser root
 
   # warp10 user ?
-  if ! id -u "${WARP10_USER}" >/dev/null 2>&1;
-  then
+  if ! id -u "${WARP10_USER}" >/dev/null 2>&1; then
     echo "User '${WARP10_USER}'' does not exist - Creating it.."
     # Create user warp10
-    if [ "`which useradd`" = "" ]
-    then
-      if [ "`which adduser`" != "" ]
-      then
+    if [ "`which useradd`" = "" ]; then
+      if [ "`which adduser`" != "" ]; then
         adduser -D -s -H -h ${WARP10_HOME} -s /bin/bash ${WARP10_USER}
       else
-        echo "Hmmm that's embarassing but I do not know how to create the ${WARP10_USER} user with home directory ${WARP10_HOME}, could you do it for me and run the script again?"
+        echo "Cannot create the ${WARP10_USER} user with home directory ${WARP10_HOME}. Create it manually then run the script again."
         exit 1
       fi
     else
@@ -139,7 +178,7 @@ bootstrap() {
   fi
 
   #
-  # If config file already exists then.. exit 
+  # If config file already exists then.. exit
   #
   if [ -e ${WARP10_CONFIG} ]; then
     echo "Config file already exists - Abort bootstrap..."
@@ -176,6 +215,15 @@ bootstrap() {
   chmod -R 755 ${WARP10_HOME}/leveldb
 
   #
+  # Test access to WARP10_HOME for WARP10_USER
+  #
+  su ${WARP10_USER} -c "ls ${WARP10_HOME} >/dev/null 2>&1"
+  if [ $? != 0 ]; then
+    echo "ERROR: ${WARP10_USER} user cannot access to ${WARP10_HOME}"
+    exit 1
+  fi
+
+  #
   # ${WARP10_HOME} != ${WARP10_DATA_DIR}
   # A dedicated data directory has been provided
   # Move data to ${WARP10_DATA_DIR}/etc, ${WARP10_DATA_DIR}/logs, ${WARP10_DATA_DIR}/leveldb..
@@ -202,148 +250,43 @@ bootstrap() {
     #
     # Test access to WARP10_DATA_DIR and its parent directories
     #
-    su ${WARP10_USER} -c "ls ${WARP10_DATA_DIR} 2>&1"
+    su ${WARP10_USER} -c "ls ${WARP10_DATA_DIR} >/dev/null 2>&1"
     if [ $? != 0 ]; then
       echo "ERROR: Cannot access to ${WARP10_DATA_DIR}"
       exit 1
     fi
 
-    # Move logs dir to ${WARP10_DATA_DIR}
-    if [ -e ${WARP10_DATA_DIR}/logs ]; then
-      echo "Error: ${WARP10_DATA_DIR}/logs already exists"
-      exit 1
-    fi
-    su ${WARP10_USER} -c "mv ${WARP10_HOME}/logs ${WARP10_DATA_DIR}/ 2>&1"
-    if [ $? != 0 ]; then
-      echo "ERROR: move ${WARP10_HOME}/logs to ${WARP10_DATA_DIR}"
-      exit 1
-    fi
-    ln -s ${WARP10_DATA_DIR}/logs ${WARP10_HOME}/logs
-    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/logs
-    chmod 755 ${WARP10_DATA_DIR}/logs
+    # Move directories to ${WARP10_DATA_DIR}
+    moveDir logs
+    moveDir etc
+    moveDir leveldb
+    moveDir datalog
+    moveDir datalog_done
+    moveDir macros
+    moveDir jars
+    moveDir lib
+    moveDir warpscripts
 
-    # Move etc dir to ${WARP10_DATA_DIR}
-    if [ -e ${WARP10_DATA_DIR}/etc ]; then
-      echo "Error: ${WARP10_DATA_DIR}/etc already exists"
-      exit 1
-    fi
-    su ${WARP10_USER} -c "mv ${WARP10_HOME}/etc ${WARP10_DATA_DIR}/ 2>&1"
-    if [ $? != 0 ]; then
-      echo "ERROR: move ${WARP10_HOME}/etc to ${WARP10_DATA_DIR}"
-      exit 1
-    fi
-    ln -s ${WARP10_DATA_DIR}/etc ${WARP10_HOME}/etc
-    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/etc
-    chmod 755 ${WARP10_DATA_DIR}/etc
-
-    # Move leveldb dir to ${WARP10_DATA_DIR}
-    if [ -e ${WARP10_DATA_DIR}/leveldb ]; then
-      echo "Error: ${WARP10_DATA_DIR}/leveldb already exists"
-      exit 1
-    fi
-    su ${WARP10_USER} -c "mv ${WARP10_HOME}/leveldb ${WARP10_DATA_DIR}/ 2>&1"
-    if [ $? != 0 ]; then
-      echo "ERROR: move ${WARP10_HOME}/leveldb to ${WARP10_DATA_DIR}"
-      exit 1
-    fi
-    ln -s ${WARP10_DATA_DIR}/leveldb ${WARP10_HOME}/leveldb
-    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/leveldb
-    chmod 755 ${WARP10_DATA_DIR}/leveldb
-
-    # Move datalog dir to ${WARP10_DATA_DIR}
-    if [ -e ${WARP10_DATA_DIR}/datalog ]; then
-      echo "Error: ${WARP10_DATA_DIR}/datalog already exists"
-      exit 1
-    fi
-    su ${WARP10_USER} -c "mv ${WARP10_HOME}/datalog ${WARP10_DATA_DIR}/ 2>&1"
-    if [ $? != 0 ]; then
-      echo "ERROR: move ${WARP10_HOME}/datalog to ${WARP10_DATA_DIR}"
-      exit 1
-    fi
-    ln -s ${WARP10_DATA_DIR}/datalog ${WARP10_HOME}/datalog
-    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/datalog
-    chmod 755 ${WARP10_DATA_DIR}/datalog
-
-    # Move datalog_done dir to ${WARP10_DATA_DIR}
-    if [ -e ${WARP10_DATA_DIR}/datalog_done ]; then
-      echo "Error: ${WARP10_DATA_DIR}/datalog_done already exists"
-      exit 1
-    fi
-    su ${WARP10_USER} -c "mv ${WARP10_HOME}/datalog_done ${WARP10_DATA_DIR}/ 2>&1"
-    if [ $? != 0 ]; then
-      echo "ERROR: move ${WARP10_HOME}/datalog_done to ${WARP10_DATA_DIR}"
-      exit 1
-    fi
-    ln -s ${WARP10_DATA_DIR}/datalog_done ${WARP10_HOME}/datalog_done
-    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/datalog_done
-    chmod 755 ${WARP10_DATA_DIR}/datalog_done
-
-    # Move macros dir to ${WARP10_DATA_DIR}
-    if [ -e ${WARP10_DATA_DIR}/macros ]; then
-      echo "Error: ${WARP10_DATA_DIR}/macros already exists"
-      exit 1
-    fi
-    su ${WARP10_USER} -c "mv ${WARP10_HOME}/macros ${WARP10_DATA_DIR}/ 2>&1"
-    if [ $? != 0 ]; then
-      echo "ERROR: move ${WARP10_HOME}/macros to ${WARP10_DATA_DIR}"
-      exit 1
-    fi
-    ln -s ${WARP10_DATA_DIR}/macros ${WARP10_HOME}/macros
-    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/macros
-    chmod 755 ${WARP10_DATA_DIR}/macros
-
-    # Move jars dir to ${WARP10_DATA_DIR}
-    if [ -e ${WARP10_DATA_DIR}/jars ]; then
-      echo "Error: ${WARP10_DATA_DIR}/jars already exists"
-      exit 1
-    fi
-    su ${WARP10_USER} -c "mv ${WARP10_HOME}/jars ${WARP10_DATA_DIR}/ 2>&1"
-    if [ $? != 0 ]; then
-      echo "ERROR: move ${WARP10_HOME}/jars to ${WARP10_DATA_DIR}"
-      exit 1
-    fi
-    ln -s ${WARP10_DATA_DIR}/jars ${WARP10_HOME}/jars
-    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/jars
-    chmod 755 ${WARP10_DATA_DIR}/jars
-
-    # Move lib to ${WARP10_DATA_DIR}
-    if [ -e ${WARP10_DATA_DIR}/lib ]; then
-      echo "Error: ${WARP10_DATA_DIR}/lib already exists"
-      exit 1
-    fi
-    su ${WARP10_USER} -c "mv ${WARP10_HOME}/lib ${WARP10_DATA_DIR}/ 2>&1"
-    if [ $? != 0 ]; then
-      echo "ERROR: move ${WARP10_HOME}/lib to ${WARP10_DATA_DIR}"
-      exit 1
-    fi
-    ln -s ${WARP10_DATA_DIR}/lib ${WARP10_HOME}/lib
-    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/lib
-    chmod 755 ${WARP10_DATA_DIR}/lib
-
-    # Move warpscripts dir to ${WARP10_DATA_DIR}
-    if [ -e ${WARP10_DATA_DIR}/warpscripts ]; then
-      echo "Error: ${WARP10_DATA_DIR}/warpscripts already exists"
-      exit 1
-    fi
-    su ${WARP10_USER} -c "mv ${WARP10_HOME}/warpscripts ${WARP10_DATA_DIR}/ 2>&1"
-    if [ $? != 0 ]; then
-      echo "ERROR: move ${WARP10_HOME}/warpscripts to ${WARP10_DATA_DIR}"
-      exit 1
-    fi
-    ln -s ${WARP10_DATA_DIR}/warpscripts ${WARP10_HOME}/warpscripts
-    chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_DATA_DIR}/warpscripts
-    chmod 755 ${WARP10_DATA_DIR}/warpscripts
   fi
 
-  sed -i -e "s_^standalone\.home.*_standalone\.home = ${WARP10_HOME}_" ${WARP10_HOME}/templates/conf-standalone.template
-  sed -i -e "s_^LEVELDB\_HOME=.*_LEVELDB\_HOME=${LEVELDB_HOME}_" ${WARP10_HOME}/bin/snapshot.sh
+  WARP10_HOME_ESCAPED=$(echo ${WARP10_HOME} | sed 's/\\/\\\\/g' )           # Escape \
+  WARP10_HOME_ESCAPED=$(echo ${WARP10_HOME_ESCAPED} | sed 's/\&/\\&/g' )    # Escape &
+  WARP10_HOME_ESCAPED=$(echo ${WARP10_HOME_ESCAPED} | sed 's/|/\\|/g' )     # Escape | (separator for sed)
 
-  sed -i -e "s_warpLog\.File=.*_warpLog\.File=${WARP10_HOME}/logs/warp10.log_" ${WARP10_HOME}/etc/log4j.properties
-  sed -i -e "s_warpscriptLog\.File=.*_warpscriptLog\.File=${WARP10_HOME}/logs/warpscript.out_" ${WARP10_HOME}/etc/log4j.properties
+  LEVELDB_HOME_ESCAPED=$(echo ${LEVELDB_HOME} | sed 's/\\/\\\\/g' )           # Escape \
+  LEVELDB_HOME_ESCAPED=$(echo ${LEVELDB_HOME_ESCAPED} | sed 's/\&/\\&/g' )    # Escape &
+  LEVELDB_HOME_ESCAPED=$(echo ${LEVELDB_HOME_ESCAPED} | sed 's/|/\\|/g' )     # Escape | (separator for sed)
+
+  sed -i -e 's|^standalone\.home.*|standalone.home = '${WARP10_HOME_ESCAPED}'|' ${WARP10_HOME}/templates/conf-standalone.template
+  sed -i -e 's|^\(\s\{0,100\}\)WARP10_HOME=/opt/warp10-.*|\1WARP10_HOME='${WARP10_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
+  sed -i -e 's|^\(\s\{0,100\}\)LEVELDB_HOME=${WARP10_HOME}/leveldb|\1LEVELDB_HOME='${LEVELDB_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
+
+  sed -i -e 's|warpLog\.File=.*|warpLog.File='${WARP10_HOME_ESCAPED}'/logs/warp10.log|' ${WARP10_HOME}/etc/log4j.properties
+  sed -i -e 's|warpscriptLog\.File=.*|warpscriptLog.File='${WARP10_HOME_ESCAPED}'/logs/warpscript.out|' ${WARP10_HOME}/etc/log4j.properties
 
   # Generate the configuration file with Worf
   # Generate read/write tokens valid for a period of 100 years. We use 'io.warp10.bootstrap' as application name.
-  su ${WARP10_USER} -c "${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf -q -a io.warp10.bootstrap -puidg -t -ttl 3153600000000 ${WARP10_HOME}/templates/conf-standalone.template -o ${WARP10_CONFIG}" >> ${WARP10_HOME}/etc/initial.tokens
+  su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf -q -a io.warp10.bootstrap -puidg -t -ttl 3153600000000 ${WARP10_HOME}/templates/conf-standalone.template -o ${WARP10_CONFIG}" >> ${WARP10_HOME}/etc/initial.tokens
 
   echo "Warp 10 config has been generated here: ${WARP10_CONFIG}"
 
@@ -354,32 +297,20 @@ bootstrap() {
 start() {
 
   #
-  # Make sure the caller is warp10
+  # Make sure the caller is WARP10_USER
   #
+  isUser ${WARP10_USER}
 
-  if [ "`whoami`" != "${WARP10_USER}" ]
-  then
-    echo "You must be ${WARP10_USER} to run this script."
-    exit 1
-  fi
-
-  CHECK_JAVA7="`${JAVA_HOME}/bin/java -version 2>&1 | head -n 1 | grep '.*\\"1.7.*'`"
+  CHECK_JAVA7="`${JAVACMD} -version 2>&1 | head -n 1 | grep '.*\\"1.7.*'`"
   if [ "$CHECK_JAVA7" != "" ]; then
     IS_JAVA7=true
-  fi
-
-  # warp10 user ?
-  if ! id -u "${WARP10_USER}" >/dev/null 2>&1;
-  then
-    echo "User '${WARP10_USER}'' does not exist - Use 'bootstrap' command (it must be run as root)"
-    exit 1
   fi
 
   if [ -f ${JAVA_HEAP_DUMP} ]; then
     mv ${JAVA_HEAP_DUMP} ${JAVA_HEAP_DUMP}-`date +%s`
   fi
 
-  if [ -e ${PID_FILE} ] && [ "`${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" != "" ]; then
+  if isStarted; then
     echo "Start failed! - A Warp 10 instance is currently running"
     exit 1
   fi
@@ -392,7 +323,7 @@ start() {
     exit 1
   fi
 
-  LEVELDB_HOME="`${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'leveldb.home' | grep 'leveldb.home' | sed -e 's/^.*=//'`"
+  LEVELDB_HOME="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'leveldb.home' | grep 'leveldb.home' | sed -e 's/^.*=//'`"
 
   #
   # Leveldb exists ?
@@ -410,25 +341,25 @@ start() {
     echo "Init leveldb"
     # Create leveldb database
     echo \"Init leveldb database...\" >> ${WARP10_HOME}/logs/warp10.log
-    ${JAVA_HOME}/bin/java ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${LEVELDB_HOME} >> ${WARP10_HOME}/logs/warp10.log 2>&1
+    ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${LEVELDB_HOME} >> ${WARP10_HOME}/logs/warp10.log 2>&1
   fi
 
-  WARP10_LISTENSTO_HOST="`${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'standalone.host' | grep 'standalone.host' | sed -e 's/^.*=//'`"
-  WARP10_LISTENSTO_PORT="`${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'standalone.port' | grep 'standalone.port' | sed -e 's/^.*=//'`"
+  WARP10_LISTENSTO_HOST="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'standalone.host' | grep 'standalone.host' | sed -e 's/^.*=//'`"
+  WARP10_LISTENSTO_PORT="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'standalone.port' | grep 'standalone.port' | sed -e 's/^.*=//'`"
   WARP10_LISTENSTO="${WARP10_LISTENSTO_HOST}:${WARP10_LISTENSTO_PORT}"
 
   #
   # Check if Warp10 Quantum plugin is defined
   #
-  QUANTUM_PLUGIN="`${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'warp10.plugins' | grep ${QUANTUM_PLUGIN_NAME}`"
+  QUANTUM_PLUGIN="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'warp10.plugins' | grep ${QUANTUM_PLUGIN_NAME}`"
 
   if [ "$QUANTUM_PLUGIN" != "" ]; then
     if [ "$IS_JAVA7" = false ]; then
       IS_QUANTUM_STARTED=true
       # Add Quantum to WARP10_CP
       WARP10_CP=${QUANTUM_PLUGIN_JAR}:${WARP10_CP}
-      QUANTUM_LISTENSTO_HOST="`${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.host' | grep 'quantum.host' | sed -e 's/^.*=//'`"
-      QUANTUM_LISTENSTO_PORT="`${JAVA_HOME}/bin/java -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.port' | grep 'quantum.port' | sed -e 's/^.*=//'`"
+      QUANTUM_LISTENSTO_HOST="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.host' | grep 'quantum.host' | sed -e 's/^.*=//'`"
+      QUANTUM_LISTENSTO_PORT="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.port' | grep 'quantum.port' | sed -e 's/^.*=//'`"
       QUANTUM_LISTENSTO="${QUANTUM_LISTENSTO_HOST}:${QUANTUM_LISTENSTO_PORT}"
     else
       echo "Start failed! - Quantum is only Java 1.8+ compliant - To start Warp 10 with Java7 comment out Quantum plugin in the Warp config file"
@@ -442,11 +373,12 @@ start() {
   #
   # Start Warp10 instance..
   #
-  ${JAVA_HOME}/bin/java ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${WARP10_CONFIG} >> ${WARP10_HOME}/logs/warp10.log 2>&1 &
+  ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${WARP10_CONFIG} >> ${WARP10_HOME}/logs/warp10.log 2>&1 &
 
   echo $! > ${PID_FILE}
 
-  if [ ! -e ${PID_FILE} ] || [ "`${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" = "" ]; then
+  isStarted
+  if [ $? -eq 1 ]; then
     echo "Start failed! - See warp10.log for more details"
     exit 1
   fi
@@ -507,19 +439,13 @@ start() {
 stop() {
 
   #
-  # Make sure the caller is warp10
+  # Make sure the caller is WARP10_USER
   #
+  isUser ${WARP10_USER}
 
-  if [ "`whoami`" != "${WARP10_USER}" ]
-  then
-    echo "You must be ${WARP10_USER} to run this script."
-    exit 1
-  fi
-
-  echo "Stop Warp 10..."
-  if [ -e ${PID_FILE} ] && [ "`${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" != "" ]
-  then
-    kill `${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`
+  if isStarted; then
+    echo "Stop Warp 10..."
+    kill $(cat ${PID_FILE})
     rm -f ${PID_FILE}
   else
     echo "No instance of Warp 10 is currently running"
@@ -527,19 +453,16 @@ stop() {
 }
 
 status() {
-  
-  #
-  # Make sure the caller is warp10
-  #
 
-  if [ "`whoami`" != "${WARP10_USER}" ]
-  then
-    echo "You must be ${WARP10_USER} to run this script."
-    exit 1
-  fi
-  if [ -e ${PID_FILE} ]
-  then
-    ${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})
+  #
+  # Make sure the caller is WARP10_USER
+  #
+  isUser ${WARP10_USER}
+
+  if isStarted; then
+    ps -Ao pid,etime,args | grep "^\s*$(cat ${PID_FILE})\s"
+  else
+    echo "No instance of Warp 10 is currently running"
   fi
 }
 
@@ -553,52 +476,43 @@ snapshot() {
   if [ $# -eq 2 ]; then
     ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT} "${WARP10_HOME}" "${LEVELDB_HOME}" "${PID_FILE}"
   else
-    BASE_SNAPSHOT=$2
+    BASE_SNAPSHOT=$3
     ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT} ${BASE_SNAPSHOT} "${WARP10_HOME}" "${LEVELDB_HOME}" "${PID_FILE}"
   fi
 }
 
 worfcli() {
-  ${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -i
+  echo ${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -i
+  ${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -i
 }
 
 worf() {
-  
-  #
-  # Make sure the caller is warp10
-  #
 
-  if [ "`whoami`" != "${WARP10_USER}" ]
-  then
-    echo "You must be ${WARP10_USER} to run this script."
-    exit 1
-  fi
+  #
+  # Make sure the caller is WARP10_USER
+  #
+  isUser ${WARP10_USER}
 
   if [ "$#" -ne 3 ]; then
     echo "Usage: $0 $1 appName ttl(ms)"
     exit 1
   fi
-  ${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -puidg -t -a $2 -ttl $3
+  ${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -puidg -t -a $2 -ttl $3
 }
 
 repair() {
 
   #
-  # Make sure the caller is warp10
+  # Make sure the caller is WARP10_USER
   #
+  isUser ${WARP10_USER}
 
-  if [ "`whoami`" != "${WARP10_USER}" ]
-  then
-    echo "You must be ${WARP10_USER} to run this script."
-    exit 1
-  fi
-
-  echo "Repair Leveldb..."
-  if [ -e ${PID_FILE} ] && [ "`${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" != "" ]; then
+  if isStarted; then
     echo "Repair has been cancelled! - Warp 10 instance must be stopped for repair"
     exit 1
   else
-    ${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.standalone.WarpRepair ${LEVELDB_HOME}
+    echo "Repair Leveldb..."
+    ${JAVACMD} -cp ${WARP10_JAR} io.warp10.standalone.WarpRepair ${LEVELDB_HOME}
   fi
 }
 

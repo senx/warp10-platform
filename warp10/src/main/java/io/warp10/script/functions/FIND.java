@@ -159,7 +159,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
       top = stack.pop();
       
       if (!(top instanceof Long)) {
-        throw new WarpScriptException(getName() + " expects an expiration timestamp on top of the stack.");
+        throw new WarpScriptException(getName() + " expects a metaset TTL (in time units) on top of the stack.");
       }
       
       set.setExpiry(System.currentTimeMillis() + (((long) top) / Constants.TIME_UNITS_PER_MS));
@@ -396,7 +396,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
           // Encode it and push it on the stack
           stack.push(new String(OrderPreservingBase64.encode(wrapped), Charsets.UTF_8));
         } catch (TException | IOException e) {
-          throw new WarpScriptException(getName() + " unable to build MetaSet.");
+          throw new WarpScriptException(getName() + " unable to build MetaSet.", e);
         }
       }
     } else {
