@@ -94,12 +94,16 @@ public class INTERPOLATE extends GTSStackFunction {
     if ((null != filled.elevations) && (GeoTimeSerie.NO_ELEVATION != filled.elevations[0])) {
       nElevations++;
     }
+
+    if ((null != filled.locations) && (GeoTimeSerie.NO_LOCATION != filled.locations[0])) {
+      nLocations++;
+    }
     
     for (int i = 1; i < nvalues; i++) {
-      if (null != filled.elevations && (GeoTimeSerie.NO_ELEVATION != filled.elevations[i])) {
+      if ((null != filled.elevations) && (GeoTimeSerie.NO_ELEVATION != filled.elevations[i])) {
         nElevations++;
       }
-      if (null != filled.locations && (GeoTimeSerie.NO_LOCATION != filled.locations[i])) {
+      if ((null != filled.locations) && (GeoTimeSerie.NO_LOCATION != filled.locations[i])) {
         nLocations++;
       }
       

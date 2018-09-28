@@ -59,6 +59,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     private final Semaphore sem;
     private boolean done = false;
     private Thread thread = null;    
+    private final long creation;
     
     private static volatile boolean foo = false;
     
@@ -70,11 +71,20 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
       this.iterator = iterator;
       this.queue = queue;
       this.sem = sem;
+      this.creation = System.nanoTime();
     }
     
     @Override
     public void run() {
       
+      long waitnanos = System.nanoTime() - this.creation;
+      
+      if (standalone) {
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS_WAITNANOS, Sensision.EMPTY_LABELS, waitnanos);
+      } else {
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_WAITNANOS, Sensision.EMPTY_LABELS, waitnanos);
+      }
+
       GTSDecoder lastdecoder = null;
 
       int count = 0;
@@ -225,7 +235,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     }
     
     if (MAX_INFLIGHT> 0 && POOLSIZE > 0) {
-      executor = new ThreadPoolExecutor(POOLSIZE >>> 1, POOLSIZE, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(POOLSIZE));
+      executor = new ThreadPoolExecutor(POOLSIZE, POOLSIZE, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(POOLSIZE));
     } else {
       executor = null;
     }
@@ -446,7 +456,12 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     try {
       executor.execute(runnable);
       idx++;
-    } catch (RejectedExecutionException ree) {      
+    } catch (RejectedExecutionException ree) {
+      if (standalone) {
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS_REJECTIONS, Sensision.EMPTY_LABELS, 1);
+      } else {
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_REJECTIONS, Sensision.EMPTY_LABELS, 1);
+      }
     }
   }
   

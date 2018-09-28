@@ -76,7 +76,7 @@ public class UNWRAPSIZE extends NamedWarpScriptFunction implements WarpScriptSta
 
         outputs.add(wrapper.getCount());
       } catch (TException te) {
-        throw new WarpScriptException(getName() + " failed to unwrap GTS.");
+        throw new WarpScriptException(getName() + " failed to unwrap GTS.", te);
       }      
     }
     

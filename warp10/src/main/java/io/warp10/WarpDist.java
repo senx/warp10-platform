@@ -44,6 +44,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import com.google.common.base.Preconditions;
 
@@ -116,7 +117,13 @@ public class WarpDist {
     
     System.setProperty("java.awt.headless", "true");
     
-    setProperties(args[0]);
+    if (args.length > 0) {
+      setProperties(args[0]);
+    } else if (null != System.getenv(WarpConfig.WARP10_CONFIG_ENV)) {
+      setProperties(System.getenv(WarpConfig.WARP10_CONFIG_ENV));
+    } else if (null != System.getProperty(WarpConfig.WARP10_CONFIG)) {
+      setProperties(System.getProperty(WarpConfig.WARP10_CONFIG));
+    }
         
     //
     // Extract components to spawn
@@ -137,7 +144,7 @@ public class WarpDist {
     } else {
       keystore = new UnsecureKeyStore();
     }
-    
+
     //
     // Set SIPHASH keys for class/labels/index
     //
@@ -145,6 +152,23 @@ public class WarpDist {
     for (String property: REQUIRED_PROPERTIES) {
       Preconditions.checkNotNull(properties.getProperty(property), "Property '" + property + "' MUST be set.");
     }
+
+    //
+    // Decode generic keys
+    // We do that first so those keys do not have precedence over the specific
+    // keys.
+    //
+    
+    for (Entry<Object,Object> entry: properties.entrySet()) {
+      if (entry.getKey().toString().startsWith(Configuration.WARP_KEY_PREFIX)) {
+        byte[] key = keystore.decodeKey(entry.getValue().toString());
+        if (null == key) {
+          throw new RuntimeException("Unable to decode key '" + entry.getKey() + "'.");
+        }
+        keystore.setKey(entry.getKey().toString().substring(Configuration.WARP_KEY_PREFIX.length()), key);
+      }
+    }
+
 
     keystore.setKey(KeyStore.SIPHASH_CLASS, keystore.decodeKey(properties.getProperty(Configuration.WARP_HASH_CLASS)));
     Preconditions.checkArgument(16 == keystore.getKey(KeyStore.SIPHASH_CLASS).length, Configuration.WARP_HASH_CLASS + " MUST be 128 bits long.");

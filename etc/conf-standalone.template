@@ -5,6 +5,20 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
+// Maximum number of classes for which to report detailed stats in 'FINDSTATS'
+// 
+directory.stats.class.maxcardinality = 100
+
+//
+// Maximum number of labels for which to report detailed stats in 'FINDSTATS'
+// 
+directory.stats.labels.maxcardinality = 100
+
+//
+// Set to true to only run the Warp 10™ Analytics Engine
+//
+#analytics.engine.only = true
+//
 // Comma separated list of headers to return in Access-Control-Allow-Headers on top of the token header
 // This applies to all HTTP endpoints.
 //
@@ -155,8 +169,8 @@ warpscript.jars.fromclasspath = true
 warpscript.repository.directory = ${standalone.home}/macros
 warpscript.repository.refresh = 60000
 
-// Set to true to enable on demand loading of macros not yet loaded.
-#warpscript.repository.ondemand = true
+// Set to false to disable on demand loading of macros not yet loaded.
+#warpscript.repository.ondemand = false
 
 //
 // Maximum levels of recursion in macro calls
@@ -171,17 +185,23 @@ warpscript.maxsymbols = 64
 warpscript.maxsymbols.hard = 256
 
 //
-// Maximum number of pixels per image
+// PGraphics Maximum number of pixels per image
 //
 warpscript.maxpixels = 1000000
 warpscript.maxpixels.hard = 1000000
 
+//
+// WEBCALL limit per WarpScript
+//
 warpscript.maxwebcalls = 4
 
+//
+// WEBCALL user agent
+//
 webcall.user.agent = Warp10-WebCall
 
 //
-// List of patterns to include/exclude for hosts in WebCall calls
+// List of patterns to include/exclude for hosts in WEBCALL calls
 //
 // Typical value is .*,!^127.0.0.1$,!^localhost$,!^192.168.*,!^10.*,!^172.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|39|31)\..*
 // 
@@ -191,7 +211,12 @@ webcall.host.patterns = !.*
 //
 // CALL root directory property
 //
-#warpscript.call.directory =
+warpscript.call.directory = ${standalone.home}/calls
+
+//
+// Maximum number of subprogram instances which can be spawned by CALL
+//
+//warpscript.call.maxcapacity = 1
 
 //   
 // Path of the 'bootstrap' WarpScript code    
@@ -204,14 +229,23 @@ webcall.host.patterns = !.*
 //warpscript.bootstrap.period = 120000
 
 //
-// Maximum number of subprogram instances which can be spawned
-//
-//warpscript.call.maxcapacity = 1
-
-//
-// Comma separated list of WarpScriptExtension classes to instantiate to modify the defined WarpScript functions
+// Comma separated list of WarpScriptExtension classes to instantiate to modify the defined WarpScript functions.
+// Extension classes can be prefixed with SORTKEY# to force the order in which the extensions will be loaded.
+// The SORTKEY# prefix will be used only for sorting.
 //
 //warpscript.extensions = 
+
+//
+// Specific extension loading
+// Extension classes can be prefixed with SORTKEY# to force the order in which the extensions will be loaded.
+// The SORTKEY# prefix will be used only for sorting.
+//
+//warpscript.extension.xxx = package.class
+
+//
+// Specific namespace under which to load an extension. The specified namespace will be used as a prefix for all functions of the extension.
+//
+//warpscript.namespace.package.class = namespace.
 
 //
 // Comma separated list of additional languages to support within WarpScript. This MUST be set as a system property
@@ -287,14 +321,37 @@ warpscript.meta.endpoint = http://${standalone.host}:${standalone.port}/api/v0/m
 warpscript.delete.endpoint = http://${standalone.host}:${standalone.port}/api/v0/delete
 
 //
-// CALL root directory property
-//
-warpscript.call.directory = ${standalone.home}/calls
-
-//
 // Directory where the leveldb files should be created
 //
 leveldb.home = ${standalone.home}/leveldb
+
+//
+// Flag to disable the native LevelDB implementation
+// This flag is false by default if the configuration is missing 
+// When running WarpInit or WarpRepair, use a system property with the same name
+//
+leveldb.native.disable = false
+
+//
+// Flag to disable the use of the pure Java LevelDB implementation
+// This flag is false by default if the configuration is missing 
+// When running WarpInit or WarpRepair, use a system property with the same name
+//
+leveldb.java.disable = false
+
+//
+// Rate of synchronous writes for the datapoints (update/deletes).
+// This is a double between 0.0 (all writes asynchronous) and 1.0 (all writes synchronous).
+// The default value is 1.0 (all writes are synchronous)
+//
+leveldb.data.syncrate = 1.0
+
+//
+// Rate of synchronous writes for the directory writes.
+// This is a double between 0.0 (all writes asynchronous) and 1.0 (all writes synchronous)
+// The default value is 1.0 (all writes are synchronous)
+//
+leveldb.directory.syncrate = 1.0
 
 //
 // AES key to use for wrapping metadata prior to storage in leveldb
@@ -371,6 +428,11 @@ standalone.snapshot.signal = ${leveldb.home}/snapshot.signal
 // Set to true to disable the delete endpoint.
 //
 standalone.delete.disable = false
+
+//
+// Set the size of delete batches in number of records (defaults to 100000)
+//
+#standalone.max.delete.batchsize =
 
 //
 // Configuration parameter to modify the datalog header. DO NOT MODIFY
@@ -737,6 +799,12 @@ throttling.manager.mads.default = 100000
 // R U N N E R
 //
 /////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// Set to true to run each script a first time at startup, to false to schedule the
+// first run at the next timestamp which is congruent to 0 modulo the period of the
+// script
+runner.runatstartup = true
 
 //
 // String uniquely identifying this instance of ScriptRunner

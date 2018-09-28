@@ -276,7 +276,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   @Override
   public void drop() throws EmptyStackException {
     if (list.isEmpty()) {
-      throw new EmptyStackException();
+      throw new EmptyStackException() {
+        @Override
+        public String getMessage() {
+          return "Empty stack.";
+        }
+      };
     }
     
     list.remove(list.size() - 1);
@@ -287,7 +292,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     int n = getn();
     
     if (list.size() < n || n < 0) {
-      throw new IndexOutOfBoundsException();
+      throw new IndexOutOfBoundsException("Index out of bound.");
     }
 
     while (n > 0) {
@@ -299,7 +304,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   @Override
   public void dup() throws EmptyStackException {
     if (list.isEmpty()) {
-      throw new EmptyStackException();
+      throw new EmptyStackException() {
+        @Override
+        public String getMessage() {
+          return "Empty stack.";
+        }
+      };
     }
     
     Object element = list.get(list.size() - 1);
@@ -311,7 +321,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     int n = getn();
     
     if (list.size() < n || n < 0) {
-      throw new IndexOutOfBoundsException();
+      throw new IndexOutOfBoundsException("Index out of bound.");
     }
     
     int count = n;
@@ -325,7 +335,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   @Override
   public Object pop() throws EmptyStackException {
     if (list.isEmpty()) {
-      throw new EmptyStackException();
+      throw new EmptyStackException() {
+        @Override
+        public String getMessage() {
+          return "Empty stack.";
+        }
+      };
     }
 
     Object element = list.remove(list.size() - 1);
@@ -338,7 +353,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     int n = getn();
     
     if (list.size() < n || n < 0) {
-      throw new IndexOutOfBoundsException();
+      throw new IndexOutOfBoundsException("Index out of bound.");
     }
     
     Object[] objects = new Object[n];
@@ -369,11 +384,16 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   @Override
   public void swap() throws WarpScriptException, EmptyStackException, IndexOutOfBoundsException {
     if (list.isEmpty()) {
-      throw new EmptyStackException();
+      throw new EmptyStackException() {
+        @Override
+        public String getMessage() {
+          return "Empty stack.";
+        }
+      };
     }
     
     if (list.size() < 2) {
-      throw new IndexOutOfBoundsException();
+      throw new IndexOutOfBoundsException("Index out of bound.");
     }
     
     Object top = pop();
@@ -385,7 +405,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   @Override
   public Object peek() throws EmptyStackException {
     if (list.isEmpty()) {
-      throw new EmptyStackException();
+      throw new EmptyStackException() {
+        @Override
+        public String getMessage() {
+          return "Empty stack.";
+        }
+      };
     }
 
     return list.get(list.size() - 1);
@@ -395,11 +420,16 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   public void rot() throws EmptyStackException, IndexOutOfBoundsException {
     
     if (list.isEmpty()) {
-      throw new EmptyStackException();
+      throw new EmptyStackException() {
+        @Override
+        public String getMessage() {
+          return "Empty stack.";
+        }
+      };
     }
     
     if (list.size() < 3) {
-      throw new IndexOutOfBoundsException();
+      throw new IndexOutOfBoundsException("Index out of bound.");
     }
     
     Object element = list.remove(list.size() - 1 - 2);
@@ -411,7 +441,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     int n = getn();
     
     if (list.size() < n || n < 0) {
-      throw new IndexOutOfBoundsException();
+      throw new IndexOutOfBoundsException("Index out of bound.");
     }
     
     Object element = list.remove(list.size() - 1 - (n - 1));
@@ -423,7 +453,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     int n = getn();
     
     if (list.size() < n - 1 || n < 0) {
-      throw new IndexOutOfBoundsException();
+      throw new IndexOutOfBoundsException("Index out of bound.");
     }
     
     return list.get(list.size() - 1 - n);
@@ -449,7 +479,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
    */
   private int getn() throws EmptyStackException, IndexOutOfBoundsException {
     if (list.isEmpty()) {
-      throw new EmptyStackException();
+      throw new EmptyStackException() {
+        @Override
+        public String getMessage() {
+          return "Empty stack.";
+        }
+      };
     }
     
     //
@@ -459,7 +494,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     Object o = pop();
     
     if (! (o instanceof Number)) {
-      throw new IndexOutOfBoundsException();
+      throw new IndexOutOfBoundsException("Unexpected type, expecting a numerical value.");
     }
     
     int n = ((Number) o).intValue();
@@ -1055,7 +1090,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     int n = getn();
     
     if (list.size() < n || n < 0) {
-      throw new IndexOutOfBoundsException();
+      throw new IndexOutOfBoundsException("Index out of bound.");
     }
       
     list.add(list.get(list.size() - 1 - (n - 1)));
@@ -1066,7 +1101,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     int n = getn();
     
     if (list.size() < n || n < 0) {
-      throw new IndexOutOfBoundsException();
+      throw new IndexOutOfBoundsException("Index out of bound.");
     }
       
     Object element = list.remove(list.size() - 1);

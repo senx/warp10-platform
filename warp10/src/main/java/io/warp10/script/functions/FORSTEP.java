@@ -151,11 +151,11 @@ public class FORSTEP extends NamedWarpScriptFunction implements WarpScriptStackF
       if (useDouble) {
         stack.push(dcounter);
         stack.exec((Macro) macroStep);
-        dcounter = (double) stack.pop();
+        dcounter = ((Number) stack.pop()).doubleValue();
       } else {
         stack.push(lcounter);
         stack.exec((Macro) macroStep);
-        lcounter = (long) stack.pop();
+        lcounter = ((Number) stack.pop()).longValue();
       }
     }
 

@@ -1,16 +1,14 @@
-#!/bin/sh
+#!/bin/bash
 
 #
 # Script to create a snapshot of the leveldb (standalone) version of Warp.
 #
 
-#JAVA_HOME=/opt/java8
-WARP10_USER=warp10
+WARP10_USER=${WARP10_USER:=warp10}
 
 #
 # Make sure the caller is warp10
 #
-
 if [ "`whoami`" != "${WARP10_USER}" ]
 then
   echo "You must be ${WARP10_USER} to run this script."
@@ -24,6 +22,12 @@ if [ "$#" -eq 1 ]; then
   WARP10_HOME=/opt/warp10-@VERSION@
   LEVELDB_HOME=${WARP10_HOME}/leveldb
   PID_FILE=${WARP10_HOME}/logs/warp10.pid
+elif [ "$#" -eq 2 ]; then
+  SNAPSHOT=$1
+  BASE_SNAPSHOT=$2
+  WARP10_HOME=/opt/warp10-@VERSION@
+  LEVELDB_HOME=${WARP10_HOME}/leveldb
+  PID_FILE=${WARP10_HOME}/logs/warp10.pid
 elif [ "$#" -eq 4 ]; then
   # Name of snapshot
   SNAPSHOT=$1
@@ -31,8 +35,14 @@ elif [ "$#" -eq 4 ]; then
   WARP10_HOME=$2
   LEVELDB_HOME=$3
   PID_FILE=$4
+elif [ "$#" -eq 5 ]; then
+  SNAPSHOT=$1
+  BASE_SNAPSHOT=$2
+  WARP10_HOME=$3
+  LEVELDB_HOME=$4
+  PID_FILE=$5
 else
-  echo "Usage: $0 'snapshot-name' ['{WARP10_HOME}' '{LEVELDB_HOME}' '{PID_FILE}']"
+  echo "Usage: $0 'snapshot-name' [ 'base-snapshot-name' ] [ '{WARP10_HOME}' '{LEVELDB_HOME}' '{PID_FILE}' ]"
   exit 1
 fi
 
@@ -51,17 +61,24 @@ then
   exit 1
 fi
 
-if [ -z "$JAVA_HOME" ]; then
-  echo "JAVA_HOME not set";
-  exit 1
+# Check that the base snapshot exists
+if [ "" != "${BASE_SNAPSHOT}" ]
+then
+  if [ ! -d "${SNAPSHOT_DIR}/${BASE_SNAPSHOT}" ]
+  then
+    echo "Base snapshot ${BASE_SNAPSHOT} does not exist."
+    exit 1
+  fi
+
+  # List the '.sst' files of the base snapshot
+  find -L "${SNAPSHOT_DIR}/${BASE_SNAPSHOT}" -maxdepth 1 -name '*.sst' | sed -e 's,.*/,,' | sort -u > ${SNAPSHOT_DIR}/${BASE_SNAPSHOT}/sst.files
 fi
 
 #
-# Check if Warp instance is currently running
+# Check if Warp 10 instance is currently running
 #
-
-if [ ! -e ${PID_FILE} ] || [ "`${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '`" = "" ]
-then
+# Don't use 'ps -p' for docker compatibility
+if [ ! -e ${PID_FILE} ] || ! ps -Ao pid | grep "^\s*$(cat ${PID_FILE})$" > /dev/null; then
   echo "No Warp 10 instance is currently running !"
   exit 1
 fi
@@ -124,18 +141,33 @@ done
 mkdir ${SNAPSHOT_DIR}/${SNAPSHOT}
 cd ${SNAPSHOT_DIR}/${SNAPSHOT}
 
+# List sst files from leveldb directory
+find -L ${LEVELDB_HOME} -maxdepth 1 -name '*sst'|sed -e 's,.*/,,'|sort -u > ${SNAPSHOT_DIR}/${SNAPSHOT}/sst.leveldb
+
 #
 # Create hard links of '.sst' files
 #
 
-find -L ${LEVELDB_HOME} -maxdepth 1 -name '*sst'|xargs echo|while read FILES; do if [ -n "${FILES}" ]; then ln ${FILES} ${SNAPSHOT_DIR}/${SNAPSHOT}; fi; done
+STATUS=1
 
-if [ $? != 0 ]
+if [ "" == "${BASE_SNAPSHOT}" ]
+then
+  find -L ${LEVELDB_HOME} -maxdepth 1 -name '*sst'|xargs echo|while read FILES; do if [ -n "${FILES}" ]; then ln ${FILES} ${SNAPSHOT_DIR}/${SNAPSHOT}; fi; done
+  STATUS=$?
+else
+  pushd ${LEVELDB_HOME} > /dev/null 2>&1
+  comm -23 ${SNAPSHOT_DIR}/${SNAPSHOT}/sst.leveldb ${SNAPSHOT_DIR}/${BASE_SNAPSHOT}/sst.files|xargs echo|while read FILES; do if [ -n "${FILES}" ]; then ln ${FILES} ${SNAPSHOT_DIR}/${SNAPSHOT}; fi; done
+  STATUS=$?
+  popd > /dev/null 2>&1
+fi
+
+if [ ${STATUS} != 0 ]
 then
   echo "Hard link creation failed - Cancel Snapshot !"
-  rm -rf ${SNAPSHOT_DIR}/${SNAPSHOT}
+  rm -rf ${SNAPSHOT_DIR:?}/${SNAPSHOT}
   exit 1
 fi
+
 
 #
 # Copy CURRENT and MANIFEST
@@ -151,6 +183,25 @@ cp ${LEVELDB_HOME}/*.log ${SNAPSHOT_DIR}/${SNAPSHOT}
 #
 
 rm -f ${TRIGGER_PATH}
+
+#
+# If using a base snapshot, create links for the files already referenced by the base snapshot
+# Do so with an adjusted niceness
+#
+
+if [ "" != "${BASE_SNAPSHOT}" ]
+then
+  pushd ${SNAPSHOT_DIR}/${BASE_SNAPSHOT} > /dev/null 2>&1
+  comm -12 ${SNAPSHOT_DIR}/${SNAPSHOT}/sst.leveldb ${SNAPSHOT_DIR}/${BASE_SNAPSHOT}/sst.files|xargs echo|while read FILES; do if [ -n "${FILES}" ]; then nice -n 39 ln ${FILES} ${SNAPSHOT_DIR}/${SNAPSHOT}; fi; done
+  STATUS=$?
+  popd > /dev/null 2>&1
+  if [ ${STATUS} != 0 ]
+  then
+    echo "Hard link creation failed - Snapshot aborted."
+    rm -rf ${SNAPSHOT_DIR:?}/${SNAPSHOT}
+    exit 1
+  fi
+fi
 
 #
 # Snapshot configuration (contains hash/aes keys)

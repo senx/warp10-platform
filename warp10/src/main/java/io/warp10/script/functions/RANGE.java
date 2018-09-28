@@ -52,36 +52,36 @@ public class RANGE extends NamedWarpScriptFunction implements WarpScriptStackFun
     int n = ((List) top).size();
     
     if (n < 1 || n > 3) {
-      throw new WarpScriptException(getName() + " expects a list of 1 to 3 parameters on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a list of 1 to 3 longs on top of the stack.");
     }
     
-    int start = 0;
-    int step = 1;
-    int stop = start;
+    long start = 0L;
+    long step = 1L;
+    long stop = start;
     
     switch (n) {
       case 1:
-        stop = ((Number) ((List) top).get(0)).intValue();
+        stop = ((Number) ((List) top).get(0)).longValue();
         break;
       case 2:
-        start = ((Number) ((List) top).get(0)).intValue();
-        stop = ((Number) ((List) top).get(1)).intValue();
+        start = ((Number) ((List) top).get(0)).longValue();
+        stop = ((Number) ((List) top).get(1)).longValue();
         break;
       case 3:
-        start = ((Number) ((List) top).get(0)).intValue();
-        stop = ((Number) ((List) top).get(1)).intValue();
-        step = ((Number) ((List) top).get(2)).intValue();
+        start = ((Number) ((List) top).get(0)).longValue();
+        stop = ((Number) ((List) top).get(1)).longValue();
+        step = ((Number) ((List) top).get(2)).longValue();
         break;
     }
     
-    if (step <= 0) {
+    if (step <= 0L) {
       throw new WarpScriptException(getName() + " step MUST be > 0.");
     }
     
     List<Long> range = new ArrayList<Long>();
     
     while (start < stop) {
-      range.add((long) start);
+      range.add(start);
       start += step;
     }
     

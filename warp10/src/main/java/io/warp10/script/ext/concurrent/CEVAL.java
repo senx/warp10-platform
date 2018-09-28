@@ -199,6 +199,17 @@ public class CEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
         LockSupport.parkNanos(100000000L);
       }
       
+      //
+      // Abort the executor abruptly if one of the jobs has failed
+      //
+      if (aborted.get()) {
+        try { 
+          executor.shutdownNow();
+          executor = null;
+        } catch (Throwable t) {          
+        }
+      }
+      
       for (Future<List<Object>> future: futures) {
         try {
           if (future.isDone()) {
