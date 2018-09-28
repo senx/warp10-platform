@@ -18,11 +18,13 @@ package io.warp10.script.functions;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
@@ -56,6 +58,8 @@ public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunc
     
     Set<String> symbols = new LinkedHashSet<String>();
     
+    final Map<String,AtomicInteger> occurrences = new HashMap<String,AtomicInteger>();
+    
     List<Macro> allmacros = new ArrayList<Macro>();
     allmacros.add((Macro) top);
     
@@ -72,11 +76,20 @@ public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunc
           continue;
         } else if (statements.get(i) instanceof LOAD|| statements.get(i) instanceof STORE|| statements.get(i) instanceof CSTORE) {
           Object symbol = statements.get(i - 1);
+          // If the parameter to LOAD/STORE/CSTORE is not a string, then we cannot extract
+          // the variables in a safe way as some may be unknown to us (as their name may be the result
+          // of a computation), so in this case we abort the process
           if (!(symbol instanceof String)) {
             abort = true;
             break;
           }
           symbols.add(symbol.toString());
+          AtomicInteger occ = occurrences.get(symbol.toString());
+          if (null == occ) {
+            occ = new AtomicInteger();
+            occurrences.put(symbol.toString(), occ);
+          }
+          occ.incrementAndGet();
         }
       }            
     }
@@ -86,8 +99,26 @@ public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
     
     List<String> vars = new ArrayList<String>(symbols);
-    Collections.sort(vars);
     
+    // Now sort according to the number of occurrences (decreasing)
+    
+    vars.sort(new Comparator<String>() {
+      @Override
+      public int compare(String s1, String s2) {
+        AtomicInteger occ1 = occurrences.get(s1);
+        AtomicInteger occ2 = occurrences.get(s2);
+        
+        if (occ1.get() < occ2.get()) {
+          return 1;
+        } else if (occ1.get() > occ2.get()) {
+          return -1;
+        } else {
+          // Compare the strings
+          return s1.compareTo(s2);
+        }
+      }
+    });
+        
     stack.push(vars);
     
     return stack;
