@@ -373,6 +373,15 @@ public class Constants {
   
   private static final int DEFAULT_MAX_ENCODER_SIZE = 100000;
   
+  //
+  // Token Attributes
+  //
+  
+  /**
+   * Attribute used to specify a WRITE token cannot be used for delete
+   */
+  public static final String TOKEN_ATTR_NODELETE = ".nodelete";
+  
   static {
 
     Properties props = null;

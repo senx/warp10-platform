@@ -14,7 +14,7 @@ out/
 .settings/
 .idea/
 generated/
-warp10/src/main/java/io/warp10/Revision.java
+warp10/src/main/resources/REVISION
 gradle.properties
 archive
 /CHANGELOG.md

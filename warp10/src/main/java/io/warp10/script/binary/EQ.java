@@ -70,8 +70,10 @@ public class EQ extends NamedWarpScriptFunction implements WarpScriptStackFuncti
       return 0;
     }
 
-    if ((a instanceof Long || a instanceof Integer || a instanceof Short || a instanceof Byte)
-        && (b instanceof Long || b instanceof Integer || b instanceof Short || b instanceof Byte)) {
+    if (a instanceof Double && b instanceof Double) {
+      return ((Double) a).compareTo((Double) b);
+    } else if ((a instanceof Long && b instanceof Long) || ((a instanceof Long || a instanceof Integer || a instanceof Short || a instanceof Byte)
+        && (b instanceof Long || b instanceof Integer || b instanceof Short || b instanceof Byte))) {
       if (a.longValue() < b.longValue()) {
         return -1;
       } else if (a.longValue() > b.longValue()) {
@@ -79,8 +81,6 @@ public class EQ extends NamedWarpScriptFunction implements WarpScriptStackFuncti
       } else {
         return 0;
       }
-    } else if (a instanceof Double && b instanceof Double) {
-      return ((Double) a).compareTo((Double) b);
     } else {    
       // If the equals function fails and the types do not permit direct number comparison,
       // we test again with BigDecimal comparison for type abstraction

@@ -288,12 +288,8 @@ def updateRevision(String revision) {
     //
     // update Revision File
     //
-    File versionFile = new File(rootProject.projectDir, "warp10/src/main/java/io/warp10/Revision.java")
-    String fileContent = versionFile.text
-    String newContent = fileContent.replaceAll(/(REVISION = ")(.*)(";)/){
-        fullMatch, varName, oldVersion, endLine -> return "$varName$revision$endLine"
-    }
-    versionFile.write(newContent)
+    File versionFile = new File(rootProject.projectDir, "warp10/src/main/resources/REVISION")
+    versionFile.write(revision)
 
     return revision
 }
