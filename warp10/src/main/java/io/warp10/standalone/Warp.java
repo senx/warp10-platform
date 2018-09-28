@@ -409,16 +409,12 @@ public class Warp extends WarpDist implements Runnable {
       gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
       
-      handlers.addHandler(geodir);    
-
       if (enablePlasma) {
         StandalonePlasmaHandler plasmaHandler = new StandalonePlasmaHandler(keystore, properties, sdc);
         scc.addPlasmaHandler(plasmaHandler);     
         handlers.addHandler(plasmaHandler);
       }
       
-      scc.addPlasmaHandler(geodir);
-          
       if (enableStreamUpdate) {
         StandaloneStreamUpdateHandler streamUpdateHandler = new StandaloneStreamUpdateHandler(keystore, properties, sdc, scc);
         handlers.addHandler(streamUpdateHandler);
