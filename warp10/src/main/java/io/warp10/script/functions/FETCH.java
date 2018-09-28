@@ -230,6 +230,10 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       params.put(PARAM_END, endts);
       
       if (timespan < 0) {
+        // Make sure negation will be positive
+        if(Long.MIN_VALUE == timespan){
+          timespan++; // It's ok to modify a bit the count of points as it is impossible to return Long.MAX_VALUE points
+        }
         params.put(PARAM_COUNT, -timespan);
       } else {
         params.put(PARAM_TIMESPAN, timespan);
@@ -683,7 +687,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
           
           ms = out.toByteArray();          
         } catch (IOException e) {
-          throw new WarpScriptException(getName() + " encountered an invalid MetaSet.");
+          throw new WarpScriptException(getName() + " encountered an invalid MetaSet.", e);
         }                
       }
       
@@ -693,7 +697,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       try {
         deser.deserialize(metaset, (byte[]) ms);
       } catch (TException te) {
-        throw new WarpScriptException(getName() + " was unable to decode the provided MetaSet.");
+        throw new WarpScriptException(getName() + " was unable to decode the provided MetaSet.", te);
       }
 
       //

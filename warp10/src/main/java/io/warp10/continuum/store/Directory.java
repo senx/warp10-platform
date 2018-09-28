@@ -196,7 +196,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
    * Values of P and P' for the HyperLogLogPlus estimators
    */
   public static final int ESTIMATOR_P = 14;
-  private static final int ESTIMATOR_PPRIME = 25;
+  public static final int ESTIMATOR_PPRIME = 25;
 
   /**
    * Allow individual tracking of 100 class names
@@ -2824,6 +2824,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           
           if (null != ownersel && ownersel.startsWith("=")) {
             classNames = classesPerOwner.get(ownersel.substring(1));
+            if (null == classNames) {
+              classNames = new ArrayList<String>();
+            }
           } else {        
             classNames = this.classNames.values();
           }

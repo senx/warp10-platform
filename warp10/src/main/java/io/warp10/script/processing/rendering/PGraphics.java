@@ -54,7 +54,7 @@ public class PGraphics extends NamedWarpScriptFunction implements WarpScriptStac
           pg.smooth(Integer.parseInt(String.valueOf(top).substring(2)));
         }
       } catch (Throwable t) {
-        throw new WarpScriptException(getName() + " unable to create 3D container.");
+        throw new WarpScriptException(getName() + " unable to create 3D container.", t);
       }
     } else {
       throw new WarpScriptException(getName() + " expects a type ('2D' or '3D') on top of the stack.");

@@ -1,8 +1,20 @@
-package io.warp10.hadoop;
+//
+//   Copyright 2018  Cityzen Data
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
 
-import io.warp10.WarpURLEncoder;
-import io.warp10.continuum.TextFileShuffler;
-import io.warp10.continuum.store.Constants;
+package io.warp10.hadoop;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -17,27 +29,40 @@ import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
-import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.sort.SortConfig;
 import com.fasterxml.sort.std.RawTextLineWriter;
 import com.fasterxml.sort.std.TextFileSorter;
 
-import org.apache.hadoop.mapreduce.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.warp10.WarpURLEncoder;
+import io.warp10.continuum.TextFileShuffler;
+import io.warp10.continuum.store.Constants;
 
 public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
 
   private static final Logger LOG = LoggerFactory.getLogger(Warp10InputFormat.class);
 
+  /**
+   * Suffix as set via the configuration
+   */
+  public static final String PROPERTY_WARP10_INPUTFORMAT_SUFFIX = "warp10.inputformat.suffix";
+  
   /**
    * URL of split endpoint
    */
@@ -126,7 +151,7 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
   /**
    * Suffix for the properties
    */
-  private final String suffix;
+  private String suffix = "";
   
   public Warp10InputFormat(String suffix) {
     if (null != suffix) {
@@ -142,6 +167,15 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
 
   @Override
   public List<InputSplit> getSplits(JobContext context) throws IOException {
+    
+    String sfx = getProperty(context, PROPERTY_WARP10_INPUTFORMAT_SUFFIX);
+    if (null != sfx) {
+      if (!"".equals(sfx)) {
+        this.suffix = "." + sfx;
+      } else {
+        this.suffix = "";
+      }
+    }
     
     List<String> fallbacks = new ArrayList<>();
     
@@ -414,12 +448,16 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
   private String getProperty(JobContext context, String property) {
     return getProperty(context, property, null);
   }
-  
+
   private String getProperty(JobContext context, String property, String defaultValue) {
-    if (null != context.getConfiguration().get(property + suffix)) {
-      return context.getConfiguration().get(property + suffix);      
-    } else if (null != context.getConfiguration().get(property)) {
-      return context.getConfiguration().get(property);
+    return getProperty(context.getConfiguration(), this.suffix, property, defaultValue);
+  }
+
+  public static String getProperty(Configuration conf, String suffix, String property, String defaultValue) {
+    if (null != conf.get(property + suffix)) {
+      return conf.get(property + suffix);      
+    } else if (null != conf.get(property)) {
+      return conf.get(property);
     } else if (null != defaultValue) {
       return defaultValue;
     } else {

@@ -87,16 +87,21 @@ public class STRICTMAPPER extends NamedWarpScriptFunction implements WarpScriptS
     if (!(o instanceof Number)) {
       throw new WarpScriptException(getName() + " expects a maximum (inclusive) number of values on top of the stack.");
     }
-    
-    int max = ((Number) o).intValue();
+
+
+    int max = (int) Math.min(Math.max(0L, ((Number) o).longValue()), Integer.MAX_VALUE); // Clamp to positive int
     
     o = stack.pop(); // minpoints
     
     if (!(o instanceof Number)) {
       throw new WarpScriptException(getName() + " expects a minimum (inclusive) number of values below the top of the stack.");
     }
-    
-    int min = ((Number) o).intValue();
+
+    int min = (int) Math.min(Math.max(0L, ((Number) o).longValue()), Integer.MAX_VALUE); // Clamp to positive int
+
+    if ( min > max ){
+      throw new WarpScriptException(getName() + " expects min <= max.");
+    }
     
     o = stack.pop(); // mapper
     

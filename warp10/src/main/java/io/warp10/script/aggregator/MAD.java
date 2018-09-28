@@ -25,6 +25,8 @@ import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.WarpScriptException;
 
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.geoxp.GeoXPLib;
 
@@ -125,39 +127,28 @@ public class MAD extends NamedWarpScriptFunction implements WarpScriptAggregator
       }      
     }
 
-    
     //
     // Remove nulls
     //
-    
-    int nonnulls = values.length;
-    
+
     for (int i = 0; i < values.length; i++) {
+      //fast if there is no null values (mapper or bucketizer use)
       if (null == values[i]) {
-        // Find the first non null starting from the end of the array
-        while(nonnulls > i + 1 && null == values[nonnulls - 1]) {
-          nonnulls--;          
+        //if one null is detected, rebuild an array without nulls and breaks.
+        List nonnullvalues = new ArrayList<Object>(values.length - 1);
+        for (int n = 0; n < values.length; n++) {
+          if (null != values[n]) {
+            nonnullvalues.add(values[n]);
+          }
         }
-        
-        // Bail out if no non null value was found
-        if (i == nonnulls) {
-          break;
-        }
-        
-        values[i] = values[nonnulls - 1];
+        values = nonnullvalues.toArray();
+        break;
       }
     }
 
+
     //
-    // Remove nulls
-    //
-    
-    if (nonnulls != values.length) {
-      values = Arrays.copyOf(values, nonnulls);
-    }
-    
-    //
-    // Sort values
+    // Sort nonnullvalues
     //
         
     Arrays.sort(values);
@@ -216,8 +207,8 @@ public class MAD extends NamedWarpScriptFunction implements WarpScriptAggregator
     
     if (0 != residuals.length) {
       if (residuals[0].equals(residuals[residuals.length - 1])) {
-        median = residuals[0];
-      } else {      
+        mad = residuals[0];
+      } else {
         int len = residuals.length;
         
         // Compute median

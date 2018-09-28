@@ -977,6 +977,11 @@ public class Ingress extends AbstractHandler implements Runnable {
           return;
         }
         
+        // Add labels from the WriteToken if they exist
+        if (writeToken.getLabelsSize() > 0) {
+          metadata.getLabels().putAll(writeToken.getLabels());
+        }
+
         //
         // Force owner/producer
         //
@@ -1055,6 +1060,10 @@ public class Ingress extends AbstractHandler implements Runnable {
       throw new IOException(ee);
     }
     
+    if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NODELETE)) {
+      throw new IOException("Token cannot be used for deletions.");
+    }
+    
     String application = writeToken.getAppName();
     String producer = Tokens.getUUID(writeToken.getProducerId());
     String owner = Tokens.getUUID(writeToken.getOwnerId());
@@ -1092,11 +1101,19 @@ public class Ingress extends AbstractHandler implements Runnable {
       //
       
       Map<String,String> extraLabels = new HashMap<String,String>();
+
+      // Add extra labels, remove producer,owner,app
+      if (writeToken.getLabelsSize() > 0) {
+        extraLabels.putAll(writeToken.getLabels());
+        extraLabels.remove(Constants.PRODUCER_LABEL);
+        extraLabels.remove(Constants.OWNER_LABEL);
+        extraLabels.remove(Constants.APPLICATION_LABEL);
+      }
+
       //
       // Only set owner and potentially app, producer may vary
       //      
       extraLabels.put(Constants.OWNER_LABEL, owner);
-      // FIXME(hbs): remove me
       if (null != application) {
         extraLabels.put(Constants.APPLICATION_LABEL, application);
         sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);

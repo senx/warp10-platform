@@ -33,7 +33,7 @@ import java.util.Map;
  *
  * Only the ticks with actual values are returned
  */
-public class TICKLIST  extends GTSStackFunction {
+public class TICKLIST extends GTSStackFunction {
   public TICKLIST(String name) {
     super(name);
   }

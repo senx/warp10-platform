@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Split a GTS into N GTS whose timestamps are the original timestamps MODULO XXX
@@ -72,7 +73,7 @@ public class TIMEMODULO extends GTSStackFunction {
     long modulo = (long) params.get(MODULO);
     String label = (String) params.get(LABEL);
 
-    Map<Long,GeoTimeSerie> output = new HashMap<Long,GeoTimeSerie>();
+    Map<Long,GeoTimeSerie> output = new TreeMap<Long,GeoTimeSerie>();
 
     int n = GTSHelper.nvalues(gts);
 

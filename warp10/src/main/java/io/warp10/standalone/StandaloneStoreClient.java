@@ -49,6 +49,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBIterator;
 import org.iq80.leveldb.WriteBatch;
+import org.iq80.leveldb.WriteOptions;
 
 public class StandaloneStoreClient implements StoreClient {
   
@@ -59,11 +60,17 @@ public class StandaloneStoreClient implements StoreClient {
   
   private static final String DEFAULT_MAX_ENCODER_SIZE = "1000000";
   
+  private final int MAX_DELETE_BATCHSIZE;
+  private static final int DEFAULT_MAX_DELETE_BATCHSIZE = 10000;
+  
   private final DB db;
   private final KeyStore keystore;
   private final Properties properties;
   
   private final List<StandalonePlasmaHandlerInterface> plasmaHandlers;
+
+  private final boolean syncwrites;
+  private final double syncrate;
   
   public StandaloneStoreClient(DB db, KeyStore keystore, Properties properties) {
     this.db = db;
@@ -72,6 +79,10 @@ public class StandaloneStoreClient implements StoreClient {
     this.plasmaHandlers = new ArrayList<StandalonePlasmaHandlerInterface>();
     
     MAX_ENCODER_SIZE = Long.valueOf(properties.getProperty(Configuration.STANDALONE_MAX_ENCODER_SIZE, DEFAULT_MAX_ENCODER_SIZE));
+    MAX_DELETE_BATCHSIZE = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_MAX_DELETE_BATCHSIZE, Integer.toString(DEFAULT_MAX_DELETE_BATCHSIZE)));
+    
+    syncrate = Math.min(1.0D, Math.max(0.0D, Double.parseDouble(properties.getProperty(Configuration.LEVELDB_DATA_SYNCRATE, "1.0"))));
+    syncwrites = 0.0 < syncrate && syncrate < 1.0 ;
   }
   
   @Override
@@ -162,8 +173,7 @@ public class StandaloneStoreClient implements StoreClient {
           datapoints++;
           
           nvalues--;
-          
-          
+                    
           if (fromArchive) {
             // When reading from the archive, create an encoder with the chunk data
             encoder = new GTSEncoder(0L, keystore.getKey(KeyStore.AES_LEVELDB_DATA), kv.getValue());
@@ -366,7 +376,14 @@ public class StandaloneStoreClient implements StoreClient {
       }
       
       if (null == kvs || size.get() > MAX_ENCODER_SIZE) {
-        this.db.write(batch);
+        
+        WriteOptions options = new WriteOptions().sync(1.0 == syncrate);
+        
+        if (syncwrites) {
+          options = new WriteOptions().sync(Math.random() < syncrate);
+        }
+        
+        this.db.write(batch, options);
         size.set(0L);
         perThreadWriteBatch.remove();
         written = true;
@@ -454,18 +471,42 @@ public class StandaloneStoreClient implements StoreClient {
       
       iterator.seek(seekto);
 
+      WriteBatch batch = this.db.createWriteBatch();
+      int batchsize = 0;
+      
+      WriteOptions options = new WriteOptions().sync(1.0 == syncrate);
+      
       while (iterator.hasNext()) {
         Entry<byte[],byte[]> entry = iterator.next();
         
         if (0 == Bytes.compareTo(entry.getKey(), 0, seekto.length, seekto, 0, seekto.length)) {
-          this.db.delete(entry.getKey());
+          batch.delete(entry.getKey());
+          batchsize++;
+          
+          if (MAX_DELETE_BATCHSIZE <= batchsize) {
+            if (syncwrites) {
+              options = new WriteOptions().sync(Math.random() < syncrate);
+            }
+            this.db.write(batch, options);
+            batch.close();
+            batch = this.db.createWriteBatch();
+            batchsize = 0;
+          }
+          //this.db.delete(entry.getKey());
           count++;
         } else {
           break;
         }
       }
 
+      if (batchsize > 0) {
+        if (syncwrites) {
+          options = new WriteOptions().sync(Math.random() < syncrate);
+        }
+        this.db.write(batch, options);
+      }
       iterator.close();
+      batch.close();
     }
     
     int v = chunk;
@@ -529,7 +570,6 @@ public class StandaloneStoreClient implements StoreClient {
     //
     
     DBIterator iterator = this.db.iterator();
-    
     //
     // Seek the most recent key
     //
@@ -557,18 +597,43 @@ public class StandaloneStoreClient implements StoreClient {
     
     long count = 0L;
     
+    WriteBatch batch = this.db.createWriteBatch();
+    int batchsize = 0;
+    
+    WriteOptions options = new WriteOptions().sync(1.0 == syncrate);
+                
     while (iterator.hasNext()) {
       Entry<byte[],byte[]> entry = iterator.next();
-      
+
       if (Bytes.compareTo(entry.getKey(), bend) >= 0 && Bytes.compareTo(entry.getKey(), bstart) <= 0) {
-        this.db.delete(entry.getKey());
+        batch.delete(entry.getKey());
+        batchsize++;
+        
+        if (MAX_DELETE_BATCHSIZE <= batchsize) {
+          if (syncwrites) {
+            options = new WriteOptions().sync(Math.random() < syncrate);
+          }
+          this.db.write(batch, options);
+          batch.close();
+          batch = this.db.createWriteBatch();
+          batchsize = 0;
+        }
+        //this.db.delete(entry.getKey());
         count++;
       } else {
         break;
       }
     }
     
+    if (batchsize > 0) {
+      if (syncwrites) {
+        options = new WriteOptions().sync(Math.random() < syncrate);
+      }
+      this.db.write(batch, options);
+    }
+
     iterator.close();
+    batch.close();
     
     return count;
   }

@@ -144,8 +144,10 @@ class TestReadToken extends TokenTestCase {
         String uuid = UUID.randomUUID().toString()
         String readToken = tokenEncoder.deliverReadToken("app", uuid, uuid, ["app"], 32468, getKeyStore())
 
-        // corrupt the token (replace a by A)
-        readToken = readToken.replace('a', 'b')
+        // corrupt the token (pick a random character and increment it)
+        char c1 = readToken.charAt(new Random().nextInt(60))
+        char c2 = c1 + 1
+        readToken = readToken.replace(c1, c2)
 
         QuasarTokenFilter tokenFilter = new QuasarTokenFilter(getConfig(), getKeyStore())
 
