@@ -71,6 +71,11 @@ public interface WarpScriptStack {
   public static final String TOP_LEVEL_SECTION = "[TOP]";
   
   /**
+   * Flag indicating whether or not to set section with the current line number
+   */
+  public static final String ATTRIBUTE_LINENO = "lineno";
+  
+  /**
    * Prefix for traceing push/pop
    */
   public static final String ATTRIBUTE_TRACE_PREFIX = "trace.prefix";
@@ -106,9 +111,9 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_DOCMODE = "docmode";
   
   /**
-   * Flag indicating whether or not the stack is currently in signature mode
+   * Flag indicating whether or not the stack is currently in info mode
    */
-  public static final String ATTRIBUTE_SIGMODE = "sigmode";
+  public static final String ATTRIBUTE_INFOMODE = "infomode";
   
   /**
    * Debug depth of the stack. This is the number
@@ -308,27 +313,8 @@ public interface WarpScriptStack {
       return (Long.MIN_VALUE != this.expiry) && (this.expiry < System.currentTimeMillis());
     }
     
-    public String toString() {
-      StringBuilder sb = new StringBuilder();
-      
-      sb.append(MACRO_START);
-      sb.append(" ");
-
-      if (!secure) {
-        for (Object o: this.statements()) {
-          sb.append(StackUtils.toString(o));
-          sb.append(" ");        
-        }
-      } else {
-        sb.append(WarpScriptStack.COMMENT_START);
-        sb.append(" Secure Macro ");
-        sb.append(WarpScriptStack.COMMENT_END);
-        sb.append(" ");
-      }
-      
-      sb.append(MACRO_END);
-      
-      return sb.toString();
+    public String toString() {      
+      return snapshot();
     }
     
     public void add(Object o) {
@@ -343,6 +329,18 @@ public interface WarpScriptStack {
       return this.statements().size();
     }
     
+    public void setSize(int size) {
+      if (size < this.statements.size() && size > 0) {
+        int delta = this.statements.size() - size;
+        while(delta > 0) {
+          this.statements.remove(this.statements.size() - 1);
+          delta--;
+        }
+      } else if (0 == size) {
+        this.statements.clear();
+      }
+    }
+
     public List<Object> statements() {
       return this.statements;
     }
@@ -610,7 +608,7 @@ public interface WarpScriptStack {
   public void exec(Macro macro) throws WarpScriptException;
 
   /**
-   * Execute an EinsteinJavaFunction against the stack
+   * Execute a WarpScriptJavaFunction against the stack
    * 
    * @param function
    * @throws WarpScriptException

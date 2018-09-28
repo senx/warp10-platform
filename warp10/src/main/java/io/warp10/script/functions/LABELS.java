@@ -40,7 +40,7 @@ public class LABELS extends NamedWarpScriptFunction implements WarpScriptStackFu
     Object o = stack.pop();
     
     if (!(o instanceof GeoTimeSerie) && !(o instanceof GTSEncoder)) {
-      throw new WarpScriptException(getName() + " expects a Geo Time Series or encoderinstance on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a Geo Time Series or encoder instance on top of the stack.");
     }
     
     //

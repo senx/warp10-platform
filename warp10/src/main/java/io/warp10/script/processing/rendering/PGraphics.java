@@ -42,13 +42,19 @@ public class PGraphics extends NamedWarpScriptFunction implements WarpScriptStac
     
     processing.core.PGraphics pg = null;
     
-    if ("2D".equals(top)) {
+    if (String.valueOf(top).startsWith("2D")) {
       pg = new PGraphicsJava2D();
-    } else if ("3D".equals(top)) {
+      if (!"2D".equals(top)) {
+        pg.smooth(Integer.parseInt(String.valueOf(top).substring(2)));
+      }
+    } else if (String.valueOf(top).startsWith("3D")) {
       try {
-      pg = new PGraphics3D();
+        pg = new PGraphics3D();
+        if (!"3D".equals(top)) {
+          pg.smooth(Integer.parseInt(String.valueOf(top).substring(2)));
+        }
       } catch (Throwable t) {
-        throw new WarpScriptException(getName() + " unable to create 3D container.");
+        throw new WarpScriptException(getName() + " unable to create 3D container.", t);
       }
     } else {
       throw new WarpScriptException(getName() + " expects a type ('2D' or '3D') on top of the stack.");
@@ -90,12 +96,12 @@ public class PGraphics extends NamedWarpScriptFunction implements WarpScriptStac
 
     // Initialize the image, otherwise the headless mode won't work
     pg.image = new BufferedImage(pg.pixelWidth, pg.pixelHeight, BufferedImage.TYPE_INT_ARGB);
-
+    
     // Begin the drawing mode
     pg.beginDraw();
  
     pg.loadPixels();
-    pg.colorMode(pg.ARGB, 255, 255, 255, 255);
+    pg.colorMode(pg.RGB, 255, 255, 255, 255);
 
     stack.push(pg);
     

@@ -1,5 +1,5 @@
 //
-//   Copyright 2017  Cityzen Data
+//   Copyright 2018  Cityzen Data
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,30 +14,33 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.functions;
+package io.warp10.script.ext.inventory;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptLib;
+import io.warp10.script.WarpScriptStackFunction;
 
-/**
- * Toggle the 'signature mode' of the stack
- */
-public class SIGMODE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
-  public SIGMODE(String name) {
+
+public class FUNCTIONS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  public FUNCTIONS(String name) {
     super(name);
   }
-  
-  @Override
+
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    if (Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_SIGMODE))) {
-      stack.setAttribute(WarpScriptStack.ATTRIBUTE_SIGMODE, null);
-    } else {
-      stack.setAttribute(WarpScriptStack.ATTRIBUTE_SIGMODE, true);      
-    }
+
+    //
+    // Apply function and push its outputs onto the stack or raise an exception
+    //
+
+    stack.push(WarpScriptLib.getFunctionNames());
+
+    //
+    // Return the new state of the stack
+    //
+
     return stack;
   }
-
 }

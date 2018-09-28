@@ -130,7 +130,7 @@ public class FINDSTATS extends NamedWarpScriptFunction implements WarpScriptStac
     try {
       stats = directoryClient.stats(clsSels, lblsSels);
     } catch (IOException ioe) {
-      throw new WarpScriptException(ioe.getMessage());
+      throw new WarpScriptException(ioe);
     }
 
     stack.push(stats);

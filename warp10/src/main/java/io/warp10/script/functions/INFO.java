@@ -1,5 +1,5 @@
 //
-//   Copyright 2017  Cityzen Data
+//   Copyright 2018  Cityzen Data
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package io.warp10.script.functions;
 
-import java.util.List;
+import java.util.Map;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
@@ -25,12 +25,12 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStopException;
 
 /**
- * Consumes the two lists on the stack or leave them there and stop the script
- * if the stack is currently in signature mode
+ * Consumes the map on the stack or leave it there and stop the script
+ * if the stack is currently in documentation mode
  */
-public class SIG extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class INFO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public SIG(String name) {
+  public INFO(String name) {
     super(name);
   }
   
@@ -38,27 +38,13 @@ public class SIG extends NamedWarpScriptFunction implements WarpScriptStackFunct
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
     
-    if (!(top instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a list of pairs of lists on top of the stack.");
+    if (!(top instanceof Map)) {
+      throw new WarpScriptException(getName() + " expects an info map on top of the stack.");
     }
-
-    List<Object> sig = (List<Object>) top;
     
-    for (Object elt: sig) {
-      if (!(elt instanceof List) || (2 != ((List) elt).size())) {
-        throw new WarpScriptException(getName() + " expects a list of pairs of lists on top of the stack.");        
-      }
-      
-      for (Object o: ((List) elt)) {
-        if (!(o instanceof List)) {
-          throw new WarpScriptException(getName() + " expects a list of pairs of lists on top of the stack.");     
-        }
-      }
-    }
-
-    if (Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_SIGMODE))) {
-      // Push the signatures back on the stack
-      stack.push(sig);
+    if (Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_INFOMODE))) {
+      // Push the documentation back on the stack
+      stack.push(top);
       // Stop the script
       throw new WarpScriptStopException("");
     }

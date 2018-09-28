@@ -90,7 +90,7 @@ public class PIGSCHEMA extends NamedWarpScriptFunction implements WarpScriptStac
         sb.append("top");
       } else {
         sb.append("l");
-        sb.append(i);
+        sb.append(i + 1);
       }
       sb.append(": ");
       sb.append(type);

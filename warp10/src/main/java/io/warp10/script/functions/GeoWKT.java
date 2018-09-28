@@ -16,15 +16,14 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
-
 import com.geoxp.GeoXPLib;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Converts a Well Known Text String into a GeoXP Shape suitable for geo filtering
@@ -44,11 +43,7 @@ public class GeoWKT extends NamedWarpScriptFunction implements WarpScriptStackFu
     Object pcterror = stack.pop();
     Object wkt = stack.pop();
   
-    if (!this.uniform && (!(wkt instanceof String) || !(inside instanceof Boolean) || !(pcterror instanceof Double))) {
-      throw new WarpScriptException(getName() + " expects a WKT string, an error percentage and a boolean as the top 3 elements of the stack.");
-    }
-
-    if (this.uniform && (!(wkt instanceof String) || !(inside instanceof Boolean) || (!(pcterror instanceof Double) && !(pcterror instanceof Long)))) { 
+    if (!(wkt instanceof String) || !(inside instanceof Boolean) || (!(pcterror instanceof Double) && !(pcterror instanceof Long))) { 
       throw new WarpScriptException(getName() + " expects a WKT string, an error percentage or resolution (even number between 2 and 30) and a boolean as the top 3 elements of the stack.");
     }
 
@@ -72,7 +67,11 @@ public class GeoWKT extends NamedWarpScriptFunction implements WarpScriptStackFu
     int maxcells = ((Number) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MAX_GEOCELLS)).intValue();
     
     if (!this.uniform) {
-      stack.push(GeoXPLib.toGeoXPShape(geometry, ((Number) pcterror).doubleValue(), Boolean.TRUE.equals(inside)));
+      if (pcterror instanceof Double) {
+        stack.push(GeoXPLib.toGeoXPShape(geometry, ((Number) pcterror).doubleValue(), Boolean.TRUE.equals(inside), maxcells));
+      } else {
+        stack.push(GeoXPLib.toGeoXPShape(geometry, ((Number) pcterror).intValue(), Boolean.TRUE.equals(inside), maxcells));
+      }
     } else {
       if (pcterror instanceof Double) {
         stack.push(GeoXPLib.toUniformGeoXPShape(geometry, ((Number) pcterror).doubleValue(), Boolean.TRUE.equals(inside), maxcells));

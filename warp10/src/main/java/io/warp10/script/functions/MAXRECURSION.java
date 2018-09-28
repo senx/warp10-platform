@@ -45,11 +45,11 @@ public class MAXRECURSION extends NamedWarpScriptFunction implements WarpScriptS
     
     long limit = ((Number) top).longValue();
 
-    if (limit > (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_RECURSION_MAXDEPTH_HARD)) {
+    if (limit > (int) stack.getAttribute(WarpScriptStack.ATTRIBUTE_RECURSION_MAXDEPTH_HARD)) {
       throw new WarpScriptException(getName() + " cannot extend limit past " + stack.getAttribute(WarpScriptStack.ATTRIBUTE_RECURSION_MAXDEPTH_HARD));
     }
 
-    stack.setAttribute(WarpScriptStack.ATTRIBUTE_RECURSION_MAXDEPTH, limit);
+    stack.setAttribute(WarpScriptStack.ATTRIBUTE_RECURSION_MAXDEPTH, (int) limit);
     
     return stack;
   }

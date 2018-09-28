@@ -29,7 +29,7 @@ public class DEPTH extends NamedWarpScriptFunction implements WarpScriptStackFun
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {   
-    stack.push(stack.depth());
+    stack.push((long) stack.depth());
     return stack;
   }
 }

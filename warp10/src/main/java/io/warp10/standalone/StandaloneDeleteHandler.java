@@ -23,6 +23,7 @@ import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.egress.EgressFetchHandler;
 import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.MetadataIdComparator;
 import io.warp10.continuum.ingress.DatalogForwarder;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
@@ -44,6 +45,7 @@ import java.io.PrintWriter;
 import java.net.URLDecoder;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,6 +104,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
   
   private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
 
+  private final boolean disabled;
+  
   public StandaloneDeleteHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
     this.keyStore = keystore;
     this.storeClient = storeClient;
@@ -145,6 +149,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     }
         
     this.logforwarded = "true".equals(props.getProperty(Configuration.DATALOG_LOGFORWARDED));
+    
+    this.disabled = "true".equals(props.getProperty(Configuration.STANDALONE_DELETE_DISABLE));
   }
   
   @Override
@@ -154,6 +160,11 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     } else {
       return;
     }    
+    
+    if (disabled) {
+      response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Delete endpoint is disabled by configuration.");
+      return;
+    }
     
     //
     // CORS header
@@ -233,6 +244,10 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       return;
     }
     
+    if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NODELETE)) {
+      throw new IOException("Token cannot be used for deletions.");
+    }
+
     String application = writeToken.getAppName();
     String producer = Tokens.getUUID(writeToken.getProducerId());
     String owner = Tokens.getUUID(writeToken.getOwnerId());
@@ -358,6 +373,15 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       //
       
       Map<String,String> extraLabels = new HashMap<String,String>();
+      
+      // Add extra labels, remove producer,owner,app
+      if (writeToken.getLabelsSize() > 0) {
+        extraLabels.putAll(writeToken.getLabels());
+        extraLabels.remove(Constants.PRODUCER_LABEL);
+        extraLabels.remove(Constants.OWNER_LABEL);
+        extraLabels.remove(Constants.APPLICATION_LABEL);
+      }
+
       //
       // Only set owner and potentially app, producer may vary
       //      
@@ -469,17 +493,13 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       PrintWriter pw = response.getWriter();
       StringBuilder sb = new StringBuilder();
       
-      for (Metadata metadata: metadatas) {        
-        //
-        // Remove from DB
-        //
-       
-        if (!hasRange) {
-          if (!dryrun) {
-            this.directoryClient.unregister(metadata);
-          }
-        }
-        
+      //
+      // Sort Metadata by classid/labels id so deletion is more efficient
+      //
+      
+      metadatas.sort(MetadataIdComparator.COMPARATOR);
+      
+      for (Metadata metadata: metadatas) {                
         //
         // Remove data
         //
@@ -488,6 +508,16 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         
         if (!dryrun) {
           localCount = this.storeClient.delete(writeToken, metadata, start, end);
+        }
+
+        //
+        // Remove metadata from DB and Directory
+        //
+
+        if (!hasRange) {
+          if (!dryrun) {
+            this.directoryClient.unregister(metadata);
+          }
         }
 
         count += localCount;

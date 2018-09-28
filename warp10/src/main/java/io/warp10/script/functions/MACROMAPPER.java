@@ -169,6 +169,10 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
         return stackToObjects(stack);
       }
     }
+    
+    public Macro getMacro() {
+      return macro;
+    }
   }
   
   public MACROMAPPER(String name) {

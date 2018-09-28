@@ -16,8 +16,29 @@
 
 package io.warp10.standalone;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+
+import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.Handler;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.handler.HandlerList;
+import org.eclipse.jetty.server.handler.gzip.GzipHandler;
+import org.fusesource.leveldbjni.JniDBFactory;
+import org.iq80.leveldb.CompressionType;
+import org.iq80.leveldb.DB;
+import org.iq80.leveldb.Options;
+import org.iq80.leveldb.impl.Iq80DBFactory;
+
+import com.google.common.base.Preconditions;
+
 import io.warp10.Revision;
-import io.warp10.WarpConfig;
 import io.warp10.WarpDist;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
@@ -43,27 +64,6 @@ import io.warp10.script.WarpScriptLib;
 import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.AbstractWarp10Plugin;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-
-import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.handler.HandlerList;
-import org.eclipse.jetty.server.handler.gzip.GzipHandler;
-import org.fusesource.leveldbjni.JniDBFactory;
-import org.iq80.leveldb.CompressionType;
-import org.iq80.leveldb.DB;
-import org.iq80.leveldb.Options;
-import org.iq80.leveldb.impl.Iq80DBFactory;
-
-import com.google.common.base.Preconditions;
-
 public class Warp extends WarpDist implements Runnable {
     
   private static final String NULL = "null";
@@ -77,7 +77,6 @@ public class Warp extends WarpDist implements Runnable {
   private static String host;
   
   private static final String[] REQUIRED_PROPERTIES = {
-    Configuration.LEVELDB_HOME,
     Configuration.STANDALONE_PORT,
     Configuration.STANDALONE_ACCEPTORS,
     Configuration.STANDALONE_SELECTORS,
@@ -116,7 +115,8 @@ public class Warp extends WarpDist implements Runnable {
     
     Properties properties = getProperties();
     
-    boolean nullbackend = "true".equals(properties.getProperty(NULL));
+    boolean analyticsEngineOnly = "true".equals(properties.getProperty(Configuration.ANALYTICS_ENGINE_ONLY));
+    boolean nullbackend = "true".equals(properties.getProperty(NULL)) || analyticsEngineOnly;
     
     boolean plasmabackend = "true".equals(properties.getProperty(Configuration.PURE_PLASMA));
     
@@ -145,6 +145,22 @@ public class Warp extends WarpDist implements Runnable {
       keystore = new OSSKeyStore(properties.getProperty(Configuration.OSS_MASTER_KEY));
     } else {
       keystore = new UnsecureKeyStore();
+    }
+
+    //
+    // Decode generic keys
+    // We do that first so those keys do not have precedence over the specific
+    // keys.
+    //
+    
+    for (Entry<Object,Object> entry: properties.entrySet()) {
+      if (entry.getKey().toString().startsWith(Configuration.WARP_KEY_PREFIX)) {
+        byte[] key = keystore.decodeKey(entry.getValue().toString());
+        if (null == key) {
+          throw new RuntimeException("Unable to decode key '" + entry.getKey() + "'.");
+        }
+        keystore.setKey(entry.getKey().toString().substring(Configuration.WARP_KEY_PREFIX.length()), key);
+      }
     }
 
     extractKeys(keystore, properties);
@@ -214,11 +230,22 @@ public class Warp extends WarpDist implements Runnable {
     //
     
     if (!inmemory && !nullbackend && !plasmabackend) {
+      boolean nativedisabled = "true".equals(properties.getProperty(Configuration.LEVELDB_NATIVE_DISABLE));
+      boolean javadisabled = "true".equals(properties.getProperty(Configuration.LEVELDB_JAVA_DISABLE));
       try {
-        db = JniDBFactory.factory.open(new File(properties.getProperty(Configuration.LEVELDB_HOME)), options);
+        if (!nativedisabled) {
+          db = JniDBFactory.factory.open(new File(properties.getProperty(Configuration.LEVELDB_HOME)), options);
+        } else {
+          throw new UnsatisfiedLinkError("Native LevelDB implementation disabled.");
+        }
       } catch (UnsatisfiedLinkError ule) {
-        System.out.println("WARNING: falling back to pure java implementation of LevelDB.");
-        db = Iq80DBFactory.factory.open(new File(properties.getProperty(Configuration.LEVELDB_HOME)), options);
+        ule.printStackTrace();
+        if (!javadisabled) {
+          System.out.println("WARNING: falling back to pure java implementation of LevelDB.");
+          db = Iq80DBFactory.factory.open(new File(properties.getProperty(Configuration.LEVELDB_HOME)), options);
+        } else {
+          throw new RuntimeException("No usable LevelDB implementation, aborting.");
+        }
       }      
     }
 
@@ -337,15 +364,17 @@ public class Warp extends WarpDist implements Runnable {
     // Start the Datalog Forwarder
     //
     
-    if (properties.containsKey(Configuration.DATALOG_FORWARDER_SRCDIR) && properties.containsKey(Configuration.DATALOG_FORWARDER_DSTDIR)) {
+    if (!analyticsEngineOnly && properties.containsKey(Configuration.DATALOG_FORWARDER_SRCDIR) && properties.containsKey(Configuration.DATALOG_FORWARDER_DSTDIR)) {
       DatalogForwarder forwarder = new DatalogForwarder(keystore, properties);
     }
     
     //
     // Enable the ThrottlingManager (not 
     //
-    
-    ThrottlingManager.enable();
+
+    if (!analyticsEngineOnly) {
+      ThrottlingManager.enable();
+    }
     
     QuasarTokenFilter tf = new QuasarTokenFilter(properties, keystore);
     
@@ -357,43 +386,53 @@ public class Warp extends WarpDist implements Runnable {
     handlers.addHandler(gzip);
     setEgress(true);
     
-    gzip = new GzipHandler();
-    gzip.setHandler(new StandaloneIngressHandler(keystore, sdc, scc));
-    gzip.setMinGzipSize(0);
-    gzip.addIncludedMethods("POST");
-    handlers.addHandler(gzip);
+    if (!analyticsEngineOnly) {
+      gzip = new GzipHandler();
+      gzip.setHandler(new StandaloneIngressHandler(keystore, sdc, scc));
+      gzip.setMinGzipSize(0);
+      gzip.addIncludedMethods("POST");
+      handlers.addHandler(gzip);
 
-    gzip = new GzipHandler();
-    gzip.setHandler(new EgressFetchHandler(keystore, properties, sdc, scc));
-    gzip.setMinGzipSize(0);
-    gzip.addIncludedMethods("POST");
-    handlers.addHandler(gzip);
+      gzip = new GzipHandler();
+      gzip.setHandler(new EgressFindHandler(keystore, sdc));
+      gzip.setMinGzipSize(0);
+      gzip.addIncludedMethods("POST");
+      handlers.addHandler(gzip);
 
-    gzip = new GzipHandler();
-    gzip.setHandler(new EgressFindHandler(keystore, sdc));
-    gzip.setMinGzipSize(0);
-    gzip.addIncludedMethods("POST");
-    handlers.addHandler(gzip);
+      if ("true".equals(properties.getProperty(Configuration.STANDALONE_SPLITS_ENABLE))) {
+        gzip = new GzipHandler();
+        gzip.setHandler(new StandaloneSplitsHandler(keystore, sdc));
+        gzip.setMinGzipSize(0);
+        gzip.addIncludedMethods("POST");
+        handlers.addHandler(gzip);      
+      }
 
-    gzip = new GzipHandler();
-    gzip.setHandler(new StandaloneDeleteHandler(keystore, sdc, scc));
-    gzip.setMinGzipSize(0);
-    gzip.addIncludedMethods("POST");
-    handlers.addHandler(gzip);
-    
-    handlers.addHandler(geodir);    
+      gzip = new GzipHandler();
+      gzip.setHandler(new StandaloneDeleteHandler(keystore, sdc, scc));
+      gzip.setMinGzipSize(0);
+      gzip.addIncludedMethods("POST");
+      handlers.addHandler(gzip);
+      
+      handlers.addHandler(geodir);    
 
-    if (enablePlasma) {
-      StandalonePlasmaHandler plasmaHandler = new StandalonePlasmaHandler(keystore, properties, sdc);
-      scc.addPlasmaHandler(plasmaHandler);     
-      handlers.addHandler(plasmaHandler);
-    }
-    
-    scc.addPlasmaHandler(geodir);
-        
-    if (enableStreamUpdate) {
-      StandaloneStreamUpdateHandler streamUpdateHandler = new StandaloneStreamUpdateHandler(keystore, properties, sdc, scc);
-      handlers.addHandler(streamUpdateHandler);
+      if (enablePlasma) {
+        StandalonePlasmaHandler plasmaHandler = new StandalonePlasmaHandler(keystore, properties, sdc);
+        scc.addPlasmaHandler(plasmaHandler);     
+        handlers.addHandler(plasmaHandler);
+      }
+      
+      scc.addPlasmaHandler(geodir);
+          
+      if (enableStreamUpdate) {
+        StandaloneStreamUpdateHandler streamUpdateHandler = new StandaloneStreamUpdateHandler(keystore, properties, sdc, scc);
+        handlers.addHandler(streamUpdateHandler);
+      }
+      
+      gzip = new GzipHandler();
+      gzip.setHandler(new EgressFetchHandler(keystore, properties, sdc, scc));
+      gzip.setMinGzipSize(0);
+      gzip.addIncludedMethods("POST");
+      handlers.addHandler(gzip);
     }
 
     if (enableMobius) {
@@ -479,7 +518,7 @@ public class Warp extends WarpDist implements Runnable {
    * 
    * @param props Properties from which to extract the key specs
    */
-  private static void extractKeys(KeyStore keystore, Properties props) {
+  public static void extractKeys(KeyStore keystore, Properties props) {
     String keyspec = props.getProperty(Configuration.LEVELDB_METADATA_AES);
     
     if (null != keyspec) {

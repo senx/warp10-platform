@@ -38,32 +38,34 @@ public class PbeginShape extends NamedWarpScriptFunction implements WarpScriptSt
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
-    List<Object> params = ProcessingUtil.parseParams(stack, 1);
+    List<Object> params = ProcessingUtil.parseParams(stack, 0, 1);
         
     PGraphics pg = (PGraphics) params.get(0);
-    
-    String mode = params.get(1).toString();
-    
-    if ("POLYGON".equals(mode)) {
-      pg.beginShape(PGraphics.POLYGON);      
-    } else if ("POINTS".equals(mode)) {
-      pg.beginShape(PGraphics.POINTS);
-    } else if ("LINES".equals(mode)) {
-      pg.beginShape(PGraphics.LINES);
-    } else if ("TRIANGLES".equals(mode)) {
-      pg.beginShape(PGraphics.TRIANGLES);
-    } else if ("TRIANGLE_STRIP".equals(mode)) {
-      pg.beginShape(PGraphics.TRIANGLE_STRIP);
-    } else if ("TRIANGLE_FAN".equals(mode)) {
-      pg.beginShape(PGraphics.TRIANGLE_FAN);
-    } else if ("QUADS".equals(mode)) {
-      pg.beginShape(PGraphics.QUADS);
-    } else if ("QUAD_STRIP".equals(mode)) {
-      pg.beginShape(PGraphics.QUAD_STRIP);
-    } else {
-      throw new WarpScriptException(getName() + ": invalid mode, should be 'POLYGON', 'POINTS', 'LINES', 'TRIANGLES', 'TRIANGLE_STRIP', 'TRIANGLE_FAN', 'QUADS' or 'QUAD_STRIP'.");
+
+    if (1 == params.size()) {
+      pg.beginShape();
+    } else if (2 == params.size()) {
+      String mode = params.get(1).toString();
+      if ("POLYGON".equals(mode)) {
+        pg.beginShape(PGraphics.POLYGON);
+      } else if ("POINTS".equals(mode)) {
+        pg.beginShape(PGraphics.POINTS);
+      } else if ("LINES".equals(mode)) {
+        pg.beginShape(PGraphics.LINES);
+      } else if ("TRIANGLES".equals(mode)) {
+        pg.beginShape(PGraphics.TRIANGLES);
+      } else if ("TRIANGLE_STRIP".equals(mode)) {
+        pg.beginShape(PGraphics.TRIANGLE_STRIP);
+      } else if ("TRIANGLE_FAN".equals(mode)) {
+        pg.beginShape(PGraphics.TRIANGLE_FAN);
+      } else if ("QUADS".equals(mode)) {
+        pg.beginShape(PGraphics.QUADS);
+      } else if ("QUAD_STRIP".equals(mode)) {
+        pg.beginShape(PGraphics.QUAD_STRIP);
+      } else {
+        throw new WarpScriptException(getName() + ": invalid mode, should be 'POLYGON', 'POINTS', 'LINES', 'TRIANGLES', 'TRIANGLE_STRIP', 'TRIANGLE_FAN', 'QUADS' or 'QUAD_STRIP'.");
+      }
     }
-    
     stack.push(pg);
         
     return stack;

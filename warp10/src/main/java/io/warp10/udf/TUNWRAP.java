@@ -182,7 +182,7 @@ public class TUNWRAP extends NamedWarpScriptFunction implements WarpScriptStackF
         
         outputs.add(typedSeries);
       } catch (TException te) {
-        throw new WarpScriptException(getName() + " failed to unwrap GTS.");
+        throw new WarpScriptException(getName() + " failed to unwrap GTS.", te);
       }      
     }
     

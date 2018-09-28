@@ -35,14 +35,38 @@ public class Configuration {
   public static final String WARP_AES_LOGGING = "warp.aes.logging";
   public static final String WARP_DEFAULT_AES_LOGGING = "hex:3cf5cee9eadddba796f2cce0762f308ad9df36f4883841e167dab2889bcf215b";
   
+  /**
+   * Set to 'true' to only run the analytics engine, i.e. not backend database
+   */
+  public static final String ANALYTICS_ENGINE_ONLY = "analytics.engine.only";
+  
+  /**
+   * Prefix used for identifying keys in the configuration.
+   * At startup time, any property with name warp.key.FOO will
+   * be interpreted as a key, Warp will attempt to decipher the
+   * key and will populate the keystore with the result under
+   * name "FOO".
+   */
+  public static final String WARP_KEY_PREFIX = "warp.key.";
+  
   public static final String WARP_IDENT = "warp.ident";
   
   public static final String WARP10_QUIET = "warp10.quiet";
   
   /**
+   * Comma separated list of headers to return in the Access-Allow-Control-Headers response header to preflight requests.
+   */
+  public static final String CORS_HEADERS = "cors.headers";
+  
+  /**
    * List of Warp 10 plugins to initialize
    */
   public static final String WARP10_PLUGINS = "warp10.plugins";
+  
+  /**
+   * Prefix for plugin declaration
+   */
+  public static final String WARP10_PLUGIN_PREFIX = "warp10.plugin.";
   
   /**
    * Maximum number of subscriptions per plasma connection
@@ -74,9 +98,14 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_EXTENSIONS = "warpscript.extensions";
   
   /**
-   * Prefix for properties which defined WarpScript extensions
+   * Prefix for properties which define WarpScript extensions
    */
   public static final String CONFIG_WARPSCRIPT_EXTENSION_PREFIX = "warpscript.extension.";
+  
+  /**
+   * Prefix for properties which define WarpScript extension namespaces.
+   */
+  public static final String CONFIG_WARPSCRIPT_NAMESPACE_PREFIX = "warpscript.namespace.";
   
   /**
    * This configuration parameter determines if undefining a function (via NULL 'XXX' DEF)
@@ -88,7 +117,7 @@ public class Configuration {
   
   public static final String WARPSCRIPT_MAX_OPS = "warpscript.maxops";
   public static final String WARPSCRIPT_MAX_BUCKETS = "warpscript.maxbuckets";
-  public static final String WARPSCRIPT_MAX_GEOCELLS = "warpscript.geocells";
+  public static final String WARPSCRIPT_MAX_GEOCELLS = "warpscript.maxgeocells";
   public static final String WARPSCRIPT_MAX_DEPTH = "warpscript.maxdepth";
   public static final String WARPSCRIPT_MAX_FETCH = "warpscript.maxfetch";
   public static final String WARPSCRIPT_MAX_GTS = "warpscript.maxgts";
@@ -444,6 +473,11 @@ public class Configuration {
    */
   public static final String DIRECTORY_STREAMING_MAXQUEUESIZE = "directory.streaming.maxqueuesize";
 
+  /**
+   * Prefix used for setting Jetty attributes
+   */
+  public static final String DIRECTORY_STREAMING_JETTY_ATTRIBUTE_PREFIX = "directory.streaming.jetty.attribute.";
+  
   /**
    * Address on which the DirectoryService will listen
    */
@@ -1106,6 +1140,12 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
+   * Boolean indicating whether the first run of each script should be at startup (the default behavior) or
+   * at the next round scheduling period.
+   */
+  public static final String RUNNER_RUNATSTARTUP = "runner.runatstartup";
+  
+  /**
    * ZooKeeper connect string for the leader election among schedulers
    */
   public static final String RUNNER_ZK_QUORUM = "runner.zk.quorum";
@@ -1224,6 +1264,30 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
+   * Rate of synchronous writes for the datapoints (update/deletes).
+   * This is a double between 0.0 (all writes asynchronous) and 1.0 (all writes synchronous).
+   * The default value is 1.0 (all writes are synchronous)
+   */
+  public static final String LEVELDB_DATA_SYNCRATE = "leveldb.data.syncrate";
+
+  /**
+   * Rate of synchronous writes for the directory writes.
+   * This is a double between 0.0 (all writes asynchronous) and 1.0 (all writes synchronous)
+   * The default value is 1.0 (all writes are synchronous)
+   */
+  public static final String LEVELDB_DIRECTORY_SYNCRATE = "leveldb.directory.syncrate";
+
+  /**
+   * Flag to disable the use of the native LevelDB implementation
+   */
+  public static final String LEVELDB_NATIVE_DISABLE = "leveldb.native.disable";
+  
+  /**
+   * Flag to disable the use of the pure java LevelDB implementation
+   */
+  public static final String LEVELDB_JAVA_DISABLE = "leveldb.java.disable";
+  
+  /**
    * Directory where the leveldb files should be created
    */
   public static final String LEVELDB_HOME = "leveldb.home";
@@ -1255,9 +1319,25 @@ public class Configuration {
   public static final String LEVELDB_CACHE_SIZE = "leveldb.cache.size";
   
   /**
+   * LevelDB block size to use when compacting ranges
+   */
+  public static final String LEVELDB_BLOCK_SIZE = "leveldb.block.size";
+  
+  /**
    * Compression type to use for leveldb (SNAPPY/NONE)
    */
   public static final String LEVELDB_COMPRESSION_TYPE = "leveldb.compression.type";
+  
+  /**
+   * Set to true to disable the delete endpoint in the standalone version of Warp 10.
+   */
+  public static final String STANDALONE_DELETE_DISABLE = "standalone.delete.disable";
+  
+  /**
+   * Set to true to enable splits generation on the standalone instance. This MUST be set
+   * to true for Warp10InputFormat to work against a standalone Warp 10 instance.
+   */
+  public static final String STANDALONE_SPLITS_ENABLE = "standalone.splits.enable";
   
   /**
    * IP to bind to for listening to incoming connections. Use 0.0.0.0 to listen to all interfaces
@@ -1288,6 +1368,11 @@ public class Configuration {
    * Maximum encoder size (in bytes) for internal data transfers. Use values from 64k to 512k
    */
   public static final String STANDALONE_MAX_ENCODER_SIZE = "standalone.max.encoder.size";
+  
+  /**
+   * Maximum number of keys to batch when deleting data
+   */
+  public static final String STANDALONE_MAX_DELETE_BATCHSIZE = "standalone.max.delete.batchsize";
   
   /**
    * Maximum size in bytes of a value
@@ -1486,6 +1571,13 @@ public class Configuration {
   //
   // E G R E S S
   //
+  
+  /**
+   * Flag (true/false) indicating whether or not the Directory and Store clients should be exposed by Egress.
+   * If set to true then Warp 10 plugins might access the exposed clients via the getExposedDirectoryClient and
+   * getExposedStoreClient static methods of EgressExecHandler.
+   */
+  public static final String EGRESS_CLIENTS_EXPOSE = "egress.clients.expose";
   
   /**
    * Comma separated list of Egress related HBase configuration keys to extract from the Warp 10 configuration.
