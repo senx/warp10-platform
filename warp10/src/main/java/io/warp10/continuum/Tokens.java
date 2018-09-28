@@ -44,7 +44,6 @@ import java.util.UUID;
 import java.util.concurrent.locks.LockSupport;
 
 import org.apache.thrift.TBase;
-import org.python.jline.internal.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

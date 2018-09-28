@@ -16,7 +16,7 @@
 
 package io.warp10.script.functions;
 
-import org.python.bouncycastle.util.Arrays;
+import java.util.Arrays;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
