@@ -293,27 +293,8 @@ public interface WarpScriptStack {
       return (Long.MIN_VALUE != this.expiry) && (this.expiry < System.currentTimeMillis());
     }
     
-    public String toString() {
-      StringBuilder sb = new StringBuilder();
-      
-      sb.append(MACRO_START);
-      sb.append(" ");
-
-      if (!secure) {
-        for (Object o: this.statements()) {
-          sb.append(StackUtils.toString(o));
-          sb.append(" ");        
-        }
-      } else {
-        sb.append(WarpScriptStack.COMMENT_START);
-        sb.append(" Secure Macro ");
-        sb.append(WarpScriptStack.COMMENT_END);
-        sb.append(" ");
-      }
-      
-      sb.append(MACRO_END);
-      
-      return sb.toString();
+    public String toString() {      
+      return snapshot();
     }
     
     public void add(Object o) {
@@ -328,6 +309,18 @@ public interface WarpScriptStack {
       return this.statements().size();
     }
     
+    public void setSize(int size) {
+      if (size < this.statements.size() && size > 0) {
+        int delta = this.statements.size() - size;
+        while(delta > 0) {
+          this.statements.remove(this.statements.size() - 1);
+          delta--;
+        }
+      } else if (0 == size) {
+        this.statements.clear();
+      }
+    }
+
     public List<Object> statements() {
       return this.statements;
     }

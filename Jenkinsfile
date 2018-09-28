@@ -19,6 +19,7 @@ pipeline {
             steps {
                 this.notifyBuild('STARTED', version)
                 git credentialsId: 'github', poll: false, url: 'git@github.com:cityzendata/warp10-platform.git'
+                sh 'git fetch --tags'
                 echo "Building ${version}"
             }
         }
@@ -26,13 +27,14 @@ pipeline {
         stage('Build') {
             steps {
                 sh './gradlew clean crypto:install token:install build -x test'
+                sh 'node changelog.js > CHANGELOG.md'
             }
         }
 
         stage('Test') {
             options { retry(3) }
             steps {
-                sh './gradlew test'
+                sh './gradlew -Djava.security.egd=file:/dev/urandom test'
                 junit allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/test-results/**/*.xml'
                 step([$class: 'JUnitResultArchiver', allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/test-results/**/*.xml'])
             }

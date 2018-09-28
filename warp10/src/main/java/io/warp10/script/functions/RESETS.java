@@ -55,7 +55,7 @@ public class RESETS extends NamedWarpScriptFunction implements WarpScriptStackFu
     List<Object> params = top instanceof List ? (List<Object>) top : new ArrayList<Object>();
     
     // If top is a GTS, add it to the newly created empty list
-    if (params.isEmpty()) {
+    if (top instanceof GeoTimeSerie) {
       params.add(top);
     }
     

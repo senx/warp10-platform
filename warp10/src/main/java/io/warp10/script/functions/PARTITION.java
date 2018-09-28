@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 /**
- * Partition a set of GTS instances
+ * Partitions a set of GTS instances
  */
 public class PARTITION extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
@@ -55,7 +55,7 @@ public class PARTITION extends NamedWarpScriptFunction implements WarpScriptStac
     try {
       bylabels = (List<String>) top;
     } catch (ClassCastException cce) {
-      throw new WarpScriptException(getName() + " expects a list of labels or null on the top of the stack.");      
+      throw new WarpScriptException(getName() + " expects a list of labels or null on the top of the stack.", cce);
     }
     
     top = stack.pop();
@@ -65,7 +65,7 @@ public class PARTITION extends NamedWarpScriptFunction implements WarpScriptStac
     try {
       params = (List<Object>) top;
     } catch (ClassCastException cce) {
-      throw new WarpScriptException(getName() + " expects a list of geo time series instances under the top of the stack.");      
+      throw new WarpScriptException(getName() + " expects a list of geo time series instances under the top of the stack.", cce);
     }
 
     List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
@@ -92,7 +92,9 @@ public class PARTITION extends NamedWarpScriptFunction implements WarpScriptStac
         Map<String,String> key = entry.getKey();
         Map<String,String> newkey = new HashMap<String,String>();
         for (String label: bylabels) {
-          newkey.put(label, key.get(label));
+          if (null != key.get(label)) {
+            newkey.put(label, key.get(label));
+          }
         }
         stricteqclasses.put(newkey, entry.getValue());
       }

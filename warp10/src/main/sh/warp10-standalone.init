@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 #
 # Warp 10 - Standalone
@@ -7,7 +7,7 @@
 # description: Manage Standalone instance of Warp 10
 #
 
-WARP10_USER=warp10
+export WARP10_USER=warp10
 #WARP10_HOME=/opt/warp10-@VERSION@
 
 #
@@ -20,19 +20,11 @@ then
   exit 1
 fi
 
-OS=$(uname -s)
-
 # If WARP10_HOME is not defined, set it to the parent directory
 if [ -z "${WARP10_HOME}" ]; then
-  if [ "Darwin" = "${OS}" ]
-  then
-    pushd $(dirname $0)/.. > /dev/null 2>&1
-    WARP10_HOME=`pwd`
-    popd > /dev/null 2>&1
-  else
-    WARP10_HOME=$(dirname $(readlink -f $0))/..
-  fi
+  WARP10_HOME=`cd $(dirname $0); cd $(pwd -P)/..; pwd -P`
 fi
+
 export WARP10_HOME
 
 if [ "$1" = "bootstrap" ]; then

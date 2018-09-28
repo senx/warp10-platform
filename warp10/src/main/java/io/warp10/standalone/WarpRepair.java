@@ -10,14 +10,18 @@ import org.iq80.leveldb.impl.Iq80DBFactory;
 import io.warp10.continuum.Configuration;
 
 public class WarpRepair {
+  
+  public static final String DISABLE_CHECKSUMS = "disable.checksums";
+  public static final String DISABLE_PARANOIDCHECKS = "disable.paranoidchecks";
+  
   public static void main(String[] args) throws IOException {
     String path = args[0];
     
     Options options = new Options();
     options.createIfMissing(false);
     options.maxOpenFiles(200);
-    options.verifyChecksums(true);
-    options.paranoidChecks(true);
+    options.verifyChecksums(!("true".equals(System.getProperty(DISABLE_CHECKSUMS))));
+    options.paranoidChecks(!("true".equals(System.getProperty(DISABLE_PARANOIDCHECKS))));
     
     boolean nativedisabled = "true".equals(System.getProperty(Configuration.LEVELDB_NATIVE_DISABLE));
     boolean javadisabled = "true".equals(System.getProperty(Configuration.LEVELDB_JAVA_DISABLE));
