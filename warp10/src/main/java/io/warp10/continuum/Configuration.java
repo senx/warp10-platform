@@ -241,7 +241,7 @@ public class Configuration {
    * Path of the 'bootstrap' Einstein code for Mobius
    */
   public static final String CONFIG_WARPSCRIPT_MOBIUS_BOOTSTRAP_PATH = "warpscript.mobius.bootstrap.path";
-  
+    
   /**
    * Number of threads in the Mobius pool
    */
@@ -252,6 +252,26 @@ public class Configuration {
    */
   public static final String CONFIG_WARPSCRIPT_MOBIUS_BOOTSTRAP_PERIOD = "warpscript.mobius.bootstrap.period";
 
+  /**
+   * Path of the 'bootstrap' WarpScript code for the Read Execute Loop
+   */
+  public static final String CONFIG_WARPSCRIPT_INTERACTIVE_BOOTSTRAP_PATH = "warpscript.interactive.bootstrap.path";
+
+  /**
+   * How often to reload the bootstrap code (in ms) for REL
+   */
+  public static final String CONFIG_WARPSCRIPT_INTERACTIVE_BOOTSTRAP_PERIOD = "warpscript.interactive.bootstrap.period";
+
+  /**
+   * Maximum number of parallel interactive sessions.
+   */
+  public static final String CONFIG_WARPSCRIPT_INTERACTIVE_CAPACITY = "warpscript.interactive.capacity";
+  
+  /**
+   * Port on which the REL will listen
+   */
+  public static final String CONFIG_WARPSCRIPT_INTERACTIVE_TCP_PORT = "warpscript.interactive.tcp.port";
+  
   /**
    * Path of the 'bootstrap' Einstein code for Runner
    */
@@ -1498,6 +1518,11 @@ public class Configuration {
    */
   public static final String WARP_MOBIUS_DISABLE = "warp.mobius.disable";
 
+  /**
+   * Set to 'true' to disable the Read Execute Loop
+   */
+  public static final String WARP_INTERACTIVE_DISABLE = "warp.interactive.disable";
+  
   /**
    * Set to 'true' to disable stream updates
    */

@@ -286,6 +286,11 @@ public class Constants {
   public static final String API_ENDPOINT_MOBIUS = "/api/v0/mobius";
 
   /**
+   * Read Execute Loop endpoint
+   */
+  public static final String API_ENDPOINT_INTERACTIVE = "/api/v0/interactive";
+  
+  /**
    * Meta endpoint
    */
   public static final String API_ENDPOINT_META = "/api/v0/meta";

@@ -697,8 +697,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             throw new WarpScriptException("Not inside a secure script definition.");
           } else {
             this.push(secureScript.toString());
-            new SECURE("SECURESCRIPT").apply(this);
             secureScript = null;
+            new SECURE("SECURESCRIPT").apply(this);
           }
         } else if (WarpScriptStack.SECURE_SCRIPT_START.equals(stmt)) {
           if (null == secureScript) {
@@ -1438,10 +1438,22 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     this.reclevel--;
   }
   
-  public boolean inMultiline() {
+  public int getMacroDepth() {
+    return this.macros.size();
+  }
+  
+  public boolean isInMultiline() {
     return this.inMultiline.get();
   }
   
+  public boolean isInComment() {
+    return this.inComment.get();
+  }
+  
+  public boolean isInSecureScript() {
+    return null != this.secureScript;
+  }
+
   /**
    * Create a 'sub' stack of the current one.
    * A substack will share a certain number of elements with its parent stack.

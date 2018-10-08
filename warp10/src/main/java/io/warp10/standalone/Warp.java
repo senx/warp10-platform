@@ -48,6 +48,7 @@ import io.warp10.continuum.egress.EgressExecHandler;
 import io.warp10.continuum.egress.EgressFetchHandler;
 import io.warp10.continuum.egress.EgressFindHandler;
 import io.warp10.continuum.egress.EgressMobiusHandler;
+import io.warp10.continuum.egress.EgressInteractiveHandler;
 import io.warp10.continuum.ingress.DatalogForwarder;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
@@ -124,6 +125,7 @@ public class Warp extends WarpDist implements Runnable {
     boolean enablePlasma = !("true".equals(properties.getProperty(Configuration.WARP_PLASMA_DISABLE)));
     boolean enableMobius = !("true".equals(properties.getProperty(Configuration.WARP_MOBIUS_DISABLE)));
     boolean enableStreamUpdate = !("true".equals(properties.getProperty(Configuration.WARP_STREAMUPDATE_DISABLE)));
+    boolean enableREL = !("true".equals(properties.getProperty(Configuration.WARP_INTERACTIVE_DISABLE)));
     
     for (String property: REQUIRED_PROPERTIES) {
       // Don't check LEVELDB_HOME when in-memory
@@ -384,7 +386,7 @@ public class Warp extends WarpDist implements Runnable {
     gzip.addIncludedMethods("POST");
     handlers.addHandler(gzip);
     setEgress(true);
-
+    
     if (!analyticsEngineOnly) {
       gzip = new GzipHandler();
       gzip.setHandler(new StandaloneIngressHandler(keystore, sdc, scc));
@@ -439,6 +441,11 @@ public class Warp extends WarpDist implements Runnable {
       handlers.addHandler(mobiusHandler);
     }
 
+    if (enableREL) {
+      EgressInteractiveHandler erel = new EgressInteractiveHandler(keystore, properties, sdc, geodir.getClient(), scc);
+      handlers.addHandler(erel);
+    }
+    
     server.setHandler(handlers);
         
     JettyUtil.setSendServerVersion(server, false);

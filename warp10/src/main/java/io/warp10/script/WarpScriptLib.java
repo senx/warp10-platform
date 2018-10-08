@@ -93,6 +93,14 @@ import io.warp10.script.filter.FilterLastLE;
 import io.warp10.script.filter.FilterLastLT;
 import io.warp10.script.filter.FilterLastNE;
 import io.warp10.script.filter.LatencyFilter;
+import io.warp10.script.functions.ECHOON;
+import io.warp10.script.functions.ECHOOFF;
+import io.warp10.script.functions.WSSTACK;
+import io.warp10.script.functions.PSTACK;
+import io.warp10.script.functions.JSONSTACK;
+import io.warp10.script.functions.PEEK;
+import io.warp10.script.functions.PEEKN;
+import io.warp10.script.functions.NPEEK;
 import io.warp10.script.functions.ADDDAYS;
 import io.warp10.script.functions.ADDMONTHS;
 import io.warp10.script.functions.ADDVALUE;
@@ -443,6 +451,8 @@ import io.warp10.script.functions.TICKLIST;
 import io.warp10.script.functions.TICKS;
 import io.warp10.script.functions.TIMECLIP;
 import io.warp10.script.functions.TIMEMODULO;
+import io.warp10.script.functions.TIMEOFF;
+import io.warp10.script.functions.TIMEON;
 import io.warp10.script.functions.TIMESCALE;
 import io.warp10.script.functions.TIMESHIFT;
 import io.warp10.script.functions.TIMESPLIT;
@@ -1011,6 +1021,17 @@ public class WarpScriptLib {
     functions.put("SNAPSHOTCOPYN", new SNAPSHOT("SNAPSHOTCOPYN", false, false, false, true));
     functions.put("HEADER", new HEADER("HEADER"));
     
+    functions.put("ECHOON", new ECHOON("ECHOON"));
+    functions.put("ECHOOFF", new ECHOOFF("ECHOOFF"));
+    functions.put("JSONSTACK", new JSONSTACK("JSONSTACK"));
+    functions.put("WSSTACK", new WSSTACK("WSSTACK"));
+    functions.put("PEEK", new PEEK("PEEK"));
+    functions.put("PEEKN", new PEEKN("PEEKN"));
+    functions.put("NPEEK", new NPEEK("NPEEK"));
+    functions.put("PSTACK", new PSTACK("PSTACK"));
+    functions.put("TIMEON",  new TIMEON("TIMEON"));
+    functions.put("TIMEOFF",  new TIMEOFF("TIMEOFF"));
+
     //
     // Compilation related dummy functions
     //
