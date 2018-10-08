@@ -18,6 +18,7 @@ package io.warp10.script.functions;
 
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -42,9 +43,9 @@ public class LASTACTIVITY extends NamedWarpScriptFunction implements WarpScriptS
     }
 
     if (o instanceof GeoTimeSerie) {
-      stack.push(((GeoTimeSerie) o).getMetadata().getLastActivity());
+      stack.push(((GeoTimeSerie) o).getMetadata().getLastActivity() * Constants.TIME_UNITS_PER_MS);
     } else {
-      stack.push(((GTSEncoder) o).getMetadata().getLastActivity());
+      stack.push(((GTSEncoder) o).getMetadata().getLastActivity() * Constants.TIME_UNITS_PER_MS);
     }
 
     return stack;
