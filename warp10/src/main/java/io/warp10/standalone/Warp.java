@@ -436,7 +436,7 @@ public class Warp extends WarpDist implements Runnable {
     }
 
     if (enableREL) {
-      EgressInteractiveHandler erel = new EgressInteractiveHandler(keystore, properties, sdc, geodir.getClient(), scc);
+      EgressInteractiveHandler erel = new EgressInteractiveHandler(keystore, properties, sdc, scc);
       handlers.addHandler(erel);
     }
     

@@ -58,7 +58,6 @@ import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.LogUtil;
-import io.warp10.continuum.geo.GeoDirectoryClient;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
@@ -67,10 +66,9 @@ import io.warp10.crypto.KeyStore;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptStack.StackContext;
+import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptStopException;
-import io.warp10.script.functions.PSTACK;
 
 /**
  *
@@ -83,7 +81,6 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
   private final KeyStore keyStore;
   private final StoreClient storeClient;
   private final DirectoryClient directoryClient;
-  private final GeoDirectoryClient geoDirectoryClient;
 
   private final BootstrapManager bootstrapManager;
   
@@ -142,13 +139,12 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
     }
   }
 
-  public EgressInteractiveHandler(KeyStore keyStore, Properties properties, DirectoryClient directoryClient, GeoDirectoryClient geoDirectoryClient, StoreClient storeClient) throws IOException {
+  public EgressInteractiveHandler(KeyStore keyStore, Properties properties, DirectoryClient directoryClient, StoreClient storeClient) throws IOException {
     super(InteractiveWebSocket.class);
 
     this.keyStore = keyStore;
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
-    this.geoDirectoryClient = geoDirectoryClient;
     
     //
     // Check if we have a 'bootstrap' property
@@ -431,7 +427,7 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
 
         out.print(getBanner());
         
-        this.stack = new MemoryWarpScriptStack(this.rel.storeClient, this.rel.directoryClient, this.rel.geoDirectoryClient);
+        this.stack = new MemoryWarpScriptStack(this.rel.storeClient, this.rel.directoryClient);
 
         //
         // Store PrintWriter

@@ -161,7 +161,7 @@ public class Egress {
       }
       
       if (enableREL) {
-        EgressInteractiveHandler erel = new EgressInteractiveHandler(keystore, properties, directoryClient, geoDirectoryClient, storeClient);
+        EgressInteractiveHandler erel = new EgressInteractiveHandler(keystore, properties, directoryClient, storeClient);
         handlers.addHandler(erel);
       }           
     } else {
