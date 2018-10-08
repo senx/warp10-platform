@@ -86,6 +86,11 @@ public class Configuration {
   public static final String WARP_HBASE_REGIONKEYS_UPDATEPERIOD = "warp.hbase.regionkeys.updateperiod";
   
   /**
+   * Number of registers to allocate in stacks. Defaults to WarpScriptStack.DEFAULT_REGISTERS
+   */
+  public static final String CONFIG_WARPSCRIPT_REGISTERS = "warpscript.registers";
+  
+  /**
    * Comma separated list of additional languages to support within WarpScript
    * This MUST be set as a system property
    */

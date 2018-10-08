@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  Cityzen Data
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,29 +21,28 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
-public class LOAD extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class POPR extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public LOAD(String name) {
-    super(name);
+  private final int regno;
+  private final boolean conditional;
+  
+  public POPR(String name, int regno) {
+    this(name, regno, false);
   }
-  
+
+  public POPR(String name, int regno, boolean conditional) {
+    super(name);
+    this.regno = regno;
+    this.conditional = conditional;
+  }
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object var = stack.pop();
+    Object top = stack.pop();
     
-    if (!(var instanceof String) && !(var instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects a variable name (STRING) or a register number (LONG) on top of the stack.");
+    if (!conditional || null == stack.load(this.regno)) {
+      stack.store(this.regno, top);
     }
-    
-    Object val = var instanceof Long ? stack.load(((Long) var).intValue()) : stack.load(var.toString());
-    
-    if (null == val) {
-      if (var instanceof String && !stack.getSymbolTable().containsKey(var.toString())) {
-        throw new WarpScriptException(getName() + " symbol '" + var + "' does not exist.");
-      }
-    }
-    
-    stack.push(val);
     
     return stack;
   }

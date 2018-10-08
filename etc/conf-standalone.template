@@ -95,6 +95,11 @@ warp.aes.metasets = @key:256:warp.aes.metasets@
 #warp.streamupdate.disable =
 
 //
+// Number of registers to allocate in the stack defaults to 256
+//
+#warpscript.registers = 256
+
+//
 // This configuration parameter determines if undefining a function (via NULL 'XXX' DEF)
 // will unshadow the original statement thus making it available again or if it will replace
 // it with a function that will fail with a message saying the function is undefined.

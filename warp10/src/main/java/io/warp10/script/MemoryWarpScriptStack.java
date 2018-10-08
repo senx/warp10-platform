@@ -53,6 +53,8 @@ import org.apache.hadoop.util.Progressable;
 public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
   private AtomicLong[] counters;
+
+  private final Object[] registers;
   
   /**
    * Default maximum depth of the stack
@@ -142,6 +144,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   public static class StackContext extends WarpScriptStack.StackContext {
     public Map<String, Object> symbolTable;
     public Map<String, WarpScriptStackFunction> defined;
+    public Object[] registers;
   }
   
   public StoreClient getStoreClient() {
@@ -232,10 +235,14 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       
       for (int i = 0; i < this.counters.length; i++) {
         this.counters[i] = new AtomicLong(0L);
-      }   
-      
-      this.properties = properties;
+      }         
     }
+    
+    this.properties = properties;
+
+    int nregs = Integer.parseInt(null == this.properties ? String.valueOf(WarpScriptStack.DEFAULT_REGISTERS) : this.properties.getProperty(Configuration.CONFIG_WARPSCRIPT_REGISTERS, String.valueOf(WarpScriptStack.DEFAULT_REGISTERS)));
+
+    this.registers = new Object[nregs];
   }
   
   public void maxLimits() {
@@ -1159,6 +1166,24 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
   
   @Override
+  public Object load(int regidx) throws WarpScriptException {
+    if (regidx >= 0 && regidx < registers.length) {
+      return this.registers[regidx];
+    }
+    
+    throw new WarpScriptException("Invalid register number, must be between 0 and " + (registers.length - 1));
+  }
+  
+  @Override
+  public void store(int regidx, Object value) throws WarpScriptException {
+    if (regidx < 0 || regidx >= registers.length) {
+      throw new WarpScriptException("Invalid register number, must be between 0 and " + (registers.length - 1));
+    }
+    
+    this.registers[regidx] = value;
+  }
+  
+  @Override
   public void forget(String symbol) {
     if (null == symbol) {
       this.symbolTable.clear();
@@ -1172,6 +1197,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     return this.symbolTable;
   }
 
+  @Override
+  public Object[] getRegisters() {
+    return this.registers;
+  }
+  
   @Override
   public Map<String, WarpScriptStackFunction> getDefined() {
     return this.defined;
@@ -1328,11 +1358,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     StackContext context = new StackContext();
     
     //
-    // Copy symbol table
+    // Copy symbol table and registers
     //
     
     context.symbolTable = new HashMap<String, Object>();    
     context.symbolTable.putAll(this.symbolTable);
+    context.registers = Arrays.copyOf(this.registers, this.registers.length);
     
     //
     // Copy redefined functions
@@ -1363,13 +1394,17 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     StackContext context = (StackContext) top;
     
     //
-    // Restore symbol table
+    // Restore symbol table and registers
     //
     
     this.symbolTable.clear();
     
     if (null != context.symbolTable) {
       this.symbolTable.putAll(context.symbolTable);
+    }
+    
+    for (int i = 0; i < this.registers.length; i++) {
+      this.registers[i] = context.registers[i];
     }
     
     //

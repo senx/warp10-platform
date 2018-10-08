@@ -56,6 +56,7 @@ public interface WarpScriptStack {
   public static final long DEFAULT_MAX_PIXELS = 1000000L;
   public static final long DEFAULT_URLFETCH_LIMIT = 64;
   public static final long DEFAULT_URLFETCH_MAXSIZE = 1000000L;
+  public static final long DEFAULT_REGISTERS = 256;
   
   public static final String MACRO_START = "<%";
   public static final String MACRO_END = "%>";
@@ -659,6 +660,21 @@ public interface WarpScriptStack {
   public void store(String symbol, Object value) throws WarpScriptException;
   
   /**
+   * Return the content associated with the given register
+   * @param regidx Index of the register to read
+   * @return The content of the given register or null if the register is not set or does not exist
+   */
+  public Object load(int regidx) throws WarpScriptException;
+  
+  /**
+   * Stores the given value in register 'regidx'
+   * @param regidx
+   * @param value
+   * @throws WarpScriptException
+   */
+  public void store(int regidx, Object value) throws WarpScriptException;
+  
+  /**
    * Forget the given symbol
    * 
    * @param symbol Name of the symbol to forget.
@@ -671,6 +687,13 @@ public interface WarpScriptStack {
    * @return
    */
   public Map<String,Object> getSymbolTable();
+  
+  /**
+   * Return the current registers.
+   * 
+   * @return
+   */
+  public Object[] getRegisters();
   
   /**
    * Return the current map of redefined functions
