@@ -195,6 +195,7 @@ import io.warp10.script.functions.FAIL;
 import io.warp10.script.functions.FDWT;
 import io.warp10.script.functions.FETCH;
 import io.warp10.script.functions.FFTWINDOW;
+import io.warp10.script.functions.FILL;
 import io.warp10.script.functions.FILLNEXT;
 import io.warp10.script.functions.FILLPREVIOUS;
 import io.warp10.script.functions.FILLTICKS;
@@ -280,6 +281,7 @@ import io.warp10.script.functions.LOWESS;
 import io.warp10.script.functions.LR;
 import io.warp10.script.functions.LSORT;
 import io.warp10.script.functions.LTTB;
+import io.warp10.script.functions.MACROFILLER;
 import io.warp10.script.functions.MACROFILTER;
 import io.warp10.script.functions.MACROMAPPER;
 import io.warp10.script.functions.MACROTTL;
@@ -1018,6 +1020,7 @@ public class WarpScriptLib {
     functions.put("MACROREDUCER", new MACROMAPPER("MACROREDUCER"));
     functions.put("MACROBUCKETIZER", new MACROMAPPER("MACROBUCKETIZER"));
     functions.put("MACROFILTER", new MACROFILTER("MACROFILTER"));
+    functions.put("MACROFILLER", new MACROFILLER("MACROFILLER"));
     functions.put("STRICTMAPPER", new STRICTMAPPER("STRICTMAPPER"));
     functions.put("STRICTREDUCER", new STRICTREDUCER("STRICTREDUCER"));
     
@@ -1214,6 +1217,7 @@ public class WarpScriptLib {
     functions.put("NORMALIZE", new NORMALIZE("NORMALIZE"));
     functions.put("ISONORMALIZE", new ISONORMALIZE("ISONORMALIZE"));
     functions.put("ZSCORE", new ZSCORE("ZSCORE"));
+    functions.put("FILL", new FILL("FILL"));
     functions.put("FILLPREVIOUS", new FILLPREVIOUS("FILLPREVIOUS"));
     functions.put("FILLNEXT", new FILLNEXT("FILLNEXT"));
     functions.put("FILLVALUE", new FILLVALUE("FILLVALUE"));
