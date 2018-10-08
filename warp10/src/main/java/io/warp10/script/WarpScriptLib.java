@@ -77,6 +77,10 @@ import io.warp10.script.binary.POW;
 import io.warp10.script.binary.SHIFTLEFT;
 import io.warp10.script.binary.SHIFTRIGHT;
 import io.warp10.script.binary.SUB;
+import io.warp10.script.filler.FillerInterpolate;
+import io.warp10.script.filler.FillerNext;
+import io.warp10.script.filler.FillerPrevious;
+import io.warp10.script.filler.FillerTrend;
 import io.warp10.script.filter.FilterByClass;
 import io.warp10.script.filter.FilterByLabels;
 import io.warp10.script.filter.FilterByMetadata;
@@ -315,7 +319,6 @@ import org.apache.commons.lang3.SystemUtils;
 import org.bouncycastle.crypto.digests.MD5Digest;
 import org.bouncycastle.crypto.digests.SHA1Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
-import org.jruby.ext.ffi.jffi.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

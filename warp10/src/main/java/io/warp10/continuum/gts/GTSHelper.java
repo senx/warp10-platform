@@ -3643,7 +3643,7 @@ public class GTSHelper {
       next[i] = new Object[4];
     }
     Object[] other = new Object[4];
-    Object[][] params = new Object[4][];
+    Object[][] params = new Object[2 + prewindow + postwindow][];
     
     while(idxa < gtsa.values || idxb < gtsb.values) {
 

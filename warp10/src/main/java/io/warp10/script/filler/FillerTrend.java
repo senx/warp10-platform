@@ -51,13 +51,13 @@ public class FillerTrend extends NamedWarpScriptFunction implements WarpScriptFi
     
     double prerate = Double.NaN;
     
-    if (null != prevprev[0] && null != prev[0]) {
+    if (null != prevprev[3] && null != prev[3]) {
       // We compute the rate between the two previous datapoints
       prerate = (((Number) prev[3]).doubleValue() - ((Number) prevprev[3]).doubleValue()) / (((Number) prev[0]).longValue() - ((Number) prevprev[0]).longValue());
-    } else if (null != prev[0] && null != next[0]) {
+    } else if (null != prev[3] && null != next[3]) {
       // We compute the rate between the previous and next datapoints
       prerate = (((Number) next[3]).doubleValue() - ((Number) prev[3]).doubleValue()) / (((Number) next[0]).longValue() - ((Number) prev[0]).longValue()); 
-    } else if (null != next[0] && null != nextnext[0]) {
+    } else if (null != next[3] && null != nextnext[3]) {
       // We compute the rate between the next two datapoints
       prerate = (((Number) nextnext[3]).doubleValue() - ((Number) next[3]).doubleValue()) / (((Number) nextnext[0]).longValue() - ((Number) next[0]).longValue());
     } else {
@@ -70,12 +70,12 @@ public class FillerTrend extends NamedWarpScriptFunction implements WarpScriptFi
     
     double postrate = Double.NaN;
     
-    if (null != nextnext[0] && null != next[0]) {
+    if (null != nextnext[3] && null != next[3]) {
       postrate = (((Number) nextnext[3]).doubleValue() - ((Number) next[3]).doubleValue()) / (((Number) nextnext[0]).longValue() - ((Number) next[0]).longValue());
-    } else  if (null != prev[0] && null != next[0]) {
+    } else  if (null != prev[3] && null != next[3]) {
       // We compute the rate between the previous and next datapoints
       postrate = (((Number) next[3]).doubleValue() - ((Number) prev[3]).doubleValue()) / (((Number) next[0]).longValue() - ((Number) prev[0]).longValue()); 
-    } else if (null != prevprev[0] && null != prev[0]) {
+    } else if (null != prevprev[3] && null != prev[3]) {
       // We compute the rate between the two previous datapoints
       postrate = (((Number) prev[3]).doubleValue() - ((Number) prevprev[3]).doubleValue()) / (((Number) prev[0]).longValue() - ((Number) prevprev[0]).longValue());
     } else {
@@ -128,14 +128,14 @@ public class FillerTrend extends NamedWarpScriptFunction implements WarpScriptFi
     
     // Save the current loc/elev values
     
-    long prevloc = ((Number) prev[1]).longValue();
-    long prevelev = ((Number) prev[2]).longValue();
-    long prevprevloc = ((Number) prevprev[1]).longValue();
-    long prevprevelev = ((Number) prevprev[2]).longValue();
-    long nextloc = ((Number) next[1]).longValue();
-    long nextelev = ((Number) next[2]).longValue();
-    long nextnextloc = ((Number) nextnext[1]).longValue();
-    long nextnextelev = ((Number) nextnext[2]).longValue();
+    long prevloc = null == prev[1] ? GeoTimeSerie.NO_LOCATION : ((Number) prev[1]).longValue();
+    long prevelev = null == prev[2] ? GeoTimeSerie.NO_ELEVATION : ((Number) prev[2]).longValue();
+    long prevprevloc = null == prevprev[1] ? GeoTimeSerie.NO_LOCATION : ((Number) prevprev[1]).longValue();
+    long prevprevelev = null == prevprev[2] ? GeoTimeSerie.NO_ELEVATION : ((Number) prevprev[2]).longValue();
+    long nextloc = null == next[1] ? GeoTimeSerie.NO_LOCATION : ((Number) next[1]).longValue();
+    long nextelev = null == next[2] ? GeoTimeSerie.NO_ELEVATION : ((Number) next[2]).longValue();
+    long nextnextloc = null == nextnext[1] ? GeoTimeSerie.NO_LOCATION : ((Number) nextnext[1]).longValue();
+    long nextnextelev = null == nextnext[2] ? GeoTimeSerie.NO_ELEVATION : ((Number) nextnext[2]).longValue();
 
     prev[1] = GeoTimeSerie.NO_LOCATION;
     prev[2] = GeoTimeSerie.NO_ELEVATION;
