@@ -1730,3 +1730,26 @@ throttling.manager.period = 1000
 // HTTP Header for specifying the timespan in /sfetch requests
 //
 #http.header.timespan = 
+
+//
+// HTTP Plugin
+//
+
+// IP the HTTP plugin will listen on
+#http.host = 127.0.0.1
+// Port the HTTP plugin will listen on
+#http.port = 10080
+// Number of Jetty acceptors to use (defaults to 2)
+#http.acceptors = 2
+// Number of Jetty selectors to use (defaults to 4)
+#http.selectors = 4
+// Number of threads Jetty should use (defaults to 8)
+#http.maxthreads = 8
+// Timeout (in ms) when expecting a HTTP request (defaults to 30000 ms)
+#http.idle.timeout = 30000
+// Directory where spec files are located
+#http.dir =
+// Period (in ms) at which to scan 'http.dir' (defaults to 60s)
+#http.period = 60000
+// Size of the queue to use for the Jetty thread pool. By default no queue is used
+#http.queuesize = 8
