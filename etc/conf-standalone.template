@@ -837,3 +837,12 @@ runner.minperiod = 1000
 #http.period = 60000
 // Size of the queue to use for the Jetty thread pool. By default no queue is used
 #http.queuesize = 8
+
+//
+// UDP Plugin
+//
+
+// Directory where 'spec' files will be located
+#udp.dir = 
+// Period (in ms) at which to rescan 'udp.dir' for spec files changes (defaults to 60s)
+#udp.period = 60000
