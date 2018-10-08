@@ -1743,8 +1743,8 @@ throttling.manager.period = 1000
 #http.acceptors = 2
 // Number of Jetty selectors to use (defaults to 4)
 #http.selectors = 4
-// Number of threads Jetty should use (defaults to 8)
-#http.maxthreads = 8
+// Number of threads Jetty should use (defaults to 1 + acceptors + acceptors * selectors which is the minimum)
+#http.maxthreads = 11
 // Timeout (in ms) when expecting a HTTP request (defaults to 30000 ms)
 #http.idle.timeout = 30000
 // Directory where spec files are located

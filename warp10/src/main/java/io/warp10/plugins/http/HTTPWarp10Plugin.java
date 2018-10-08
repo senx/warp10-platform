@@ -69,7 +69,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
   private int port;
   private int acceptors = 2;
   private int selectors = 4;
-  private int maxthreads = 8;
+  private int maxthreads = 1 + acceptors + acceptors * selectors;
   private long idleTimeout = 30000;
   private BlockingQueue<Runnable> queue = null;
 
