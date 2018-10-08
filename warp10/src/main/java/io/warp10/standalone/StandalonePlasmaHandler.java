@@ -29,6 +29,7 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
@@ -211,7 +212,10 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
         
         List<Metadata> metadatas = new ArrayList<Metadata>();
         
-        Iterator<Metadata> iter = this.handler.getDirectoryClient().iterator(clsSels, lblsSels);
+        DirectoryRequest drequest = new DirectoryRequest();
+        drequest.setClassSelectors(clsSels);
+        drequest.setLabelsSelectors(lblsSels);
+        Iterator<Metadata> iter = this.handler.getDirectoryClient().iterator(drequest);
 
         try {
           while(iter.hasNext()) {

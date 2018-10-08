@@ -21,6 +21,7 @@ import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.Store;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.GTSSplit;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
@@ -87,6 +88,9 @@ public class EgressSplitsHandler extends AbstractHandler {
     String selector = request.getParameter(Constants.HTTP_PARAM_SELECTOR);
     String now = request.getParameter(Constants.HTTP_PARAM_NOW);
     
+    Long activeAfter = null == request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
+    Long quietAfter = null == request.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
+
     //
     // Validate token
     //
@@ -149,7 +153,18 @@ public class EgressSplitsHandler extends AbstractHandler {
     
     RegionLocator locator = this.storeClient.getRegionLocator();
     
-    try (MetadataIterator metadatas = directoryClient.iterator(clsSels, lblsSels)) {
+    DirectoryRequest drequest = new DirectoryRequest();
+    drequest.setClassSelectors(clsSels);
+    drequest.setLabelsSelectors(lblsSels);
+
+    if (null != activeAfter) {
+      drequest.setActiveAfter(activeAfter);
+    }
+    if (null != quietAfter) {
+      drequest.setQuietAfter(quietAfter);
+    }
+
+    try (MetadataIterator metadatas = directoryClient.iterator(drequest)) {
       
       //
       // We output a single split per Metadata, split combining is the

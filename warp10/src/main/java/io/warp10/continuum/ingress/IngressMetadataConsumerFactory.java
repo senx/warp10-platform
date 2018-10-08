@@ -126,8 +126,6 @@ public class IngressMetadataConsumerFactory implements ConsumerFactory {
               // We treat those two types of updates the same way, by removing the cache entry
               // for the corresponding Metadata. By doing so we simplify handling
               //
-              // TODO(hbs): update metadata cache when receiving Metadata from '/meta'?
-              //
               
               if (Configuration.INGRESS_METADATA_DELETE_SOURCE.equals(metadata.getSource())) {
                 //
@@ -140,11 +138,9 @@ public class IngressMetadataConsumerFactory implements ConsumerFactory {
                 continue;
               } else if (Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
                 //
-                // //Update cache with new metadata
                 // Remove entry from Metadata cache
                 //
                 
-                //ingress.metadataCache.put(clslblsId, metadata);
                 synchronized(ingress.metadataCache) {
                   ingress.metadataCache.remove(clslblsId);
                 }

@@ -450,6 +450,23 @@ ingress.websocket.maxmessagesize = 1048576
 plasma.frontend.websocket.maxmessagesize = 1048576
 
 //
+// Period between updates of last activity timestamps for Geo Time Series
+// The value of this parameter is in ms and determines how often the directory
+// will be updated when activity is being tracked.
+//
+#ingress.activity.window = 3600000
+
+//
+// Set to true to consider updates when tracking activity of GTS
+//
+#ingress.activity.update = true
+
+//
+// Set to true to consider attributes updates (calls to /meta) when tracking activity of GTS
+//
+#ingress.activity.meta = true
+
+//
 // Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.
 //
 in.memory = false
@@ -850,3 +867,4 @@ runner.scanperiod = 60000
 // more often than that won't be run
 //
 runner.minperiod = 1000
+

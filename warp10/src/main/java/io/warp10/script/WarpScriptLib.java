@@ -263,6 +263,7 @@ import io.warp10.script.functions.JSONTO;
 import io.warp10.script.functions.KEYLIST;
 import io.warp10.script.functions.KURTOSIS;
 import io.warp10.script.functions.LABELS;
+import io.warp10.script.functions.LASTACTIVITY;
 import io.warp10.script.functions.LASTBUCKET;
 import io.warp10.script.functions.LASTSORT;
 import io.warp10.script.functions.LASTTICK;
@@ -1312,6 +1313,7 @@ public class WarpScriptLib {
     functions.put("NAME", new NAME("NAME"));
     functions.put("LABELS", new LABELS("LABELS"));
     functions.put("ATTRIBUTES", new ATTRIBUTES("ATTRIBUTES"));
+    functions.put("LASTACTIVITY", new LASTACTIVITY("LASTACTIVITY"));
     functions.put("TICKS", new TICKS("TICKS"));
     functions.put("LOCATIONS", new LOCATIONS("LOCATIONS"));
     functions.put("LOCSTRINGS", new LOCSTRINGS("LOCSTRINGS"));

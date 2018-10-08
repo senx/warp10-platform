@@ -513,11 +513,32 @@ public class Configuration {
    */
   public static final String DIRECTORY_METADATA_CACHE_SIZE = "directory.metadata.cache.size";
 
+  /**
+   * Activity window (in ms) to consider when deciding to store a Metadata we already know into HBase
+   */
+  public static final String DIRECTORY_ACTIVITY_WINDOW = "directory.activity.window";
+  
   //
   // I N G R E S S
   //
   /////////////////////////////////////////////////////////////////////////////////////////
   
+  /**
+   * Length of the activity window in ms. If this parameter is set then GTS activity will
+   * be monitored according to the configured activity events.
+   */
+  public static final String INGRESS_ACTIVITY_WINDOW = "ingress.activity.window";
+  
+  /**
+   * Set this to true to take into account updates in the GTS activity.
+   */
+  public static final String INGRESS_ACTIVITY_UPDATE = "ingress.activity.update";
+
+  /**
+   * Set this to true to take into account calls to meta in the GTS activity.
+   */
+  public static final String INGRESS_ACTIVITY_META = "ingress.activity.meta";
+
   /**
    * Should we shuffle the GTS prior to issueing delete messages. Set to true or false.
    * It is highly recommended to set this to true as it will induce a much lower pressure

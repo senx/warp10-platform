@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.store;
 
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 
 import java.io.IOException;
@@ -23,9 +24,9 @@ import java.util.List;
 import java.util.Map;
 
 public interface DirectoryClient {
-  public List<Metadata> find(List<String> classSelector, List<Map<String,String>> labelsSelectors) throws IOException;
+  public List<Metadata> find(DirectoryRequest request) throws IOException;
   
-  public Map<String,Object> stats(List<String> classSelector, List<Map<String,String>> labelsSelectors) throws IOException;
+  public Map<String,Object> stats(DirectoryRequest request) throws IOException;
   
-  public MetadataIterator iterator(List<String> classSelector, List<Map<String,String>> labelsSelectors) throws IOException;
+  public MetadataIterator iterator(DirectoryRequest request) throws IOException;
 }

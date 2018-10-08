@@ -314,17 +314,18 @@ public class Warp extends WarpDist implements Runnable {
     if (inmemory) {
       sdc = new StandaloneDirectoryClient(null, keystore);
       
-      if ("true".equals(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_CHUNKED))) {
-        scc = new StandaloneChunkedMemoryStore(WarpDist.getProperties(), keystore);
+      sdc.setActivityWindow(Long.parseLong(properties.getProperty(Configuration.INGRESS_ACTIVITY_WINDOW, "0")));
+      if ("true".equals(properties.getProperty(Configuration.IN_MEMORY_CHUNKED))) {
+        scc = new StandaloneChunkedMemoryStore(properties, keystore);
         ((StandaloneChunkedMemoryStore) scc).setDirectoryClient((StandaloneDirectoryClient) sdc);
         ((StandaloneChunkedMemoryStore) scc).load();
       } else {
         scc = new StandaloneMemoryStore(keystore,
-            Long.valueOf(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_DEPTH, Long.toString(60 * 60 * 1000 * Constants.TIME_UNITS_PER_MS))),
-            Long.valueOf(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_HIGHWATERMARK, "100000")),
-            Long.valueOf(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_LOWWATERMARK, "80000")));
+            Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_DEPTH, Long.toString(60 * 60 * 1000 * Constants.TIME_UNITS_PER_MS))),
+            Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_HIGHWATERMARK, "100000")),
+            Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_LOWWATERMARK, "80000")));
         ((StandaloneMemoryStore) scc).setDirectoryClient((StandaloneDirectoryClient) sdc);
-        if ("true".equals(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_EPHEMERAL))) {
+        if ("true".equals(properties.getProperty(Configuration.IN_MEMORY_EPHEMERAL))) {
           ((StandaloneMemoryStore) scc).setEphemeral(true);
         }        
         ((StandaloneMemoryStore) scc).load();

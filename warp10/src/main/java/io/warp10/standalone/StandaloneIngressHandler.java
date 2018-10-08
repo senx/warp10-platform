@@ -112,6 +112,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
   
   private final long maxValueSize;
   
+  private final boolean updateActivity;
+  private final boolean metaActivity;
+  
   public StandaloneIngressHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
     this.keyStore = keystore;
     this.storeClient = storeClient;
@@ -124,6 +127,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
     this.labelsKeyLongs = SipHashInline.getKey(this.labelsKey);
     
     Properties props = WarpConfig.getProperties();
+  
+    updateActivity = "true".equals(props.getProperty(Configuration.INGRESS_ACTIVITY_UPDATE));
+    metaActivity = "true".equals(props.getProperty(Configuration.INGRESS_ACTIVITY_META));
     
     if (props.containsKey(Configuration.DATALOG_DIR)) {
       File dir = new File(props.getProperty(Configuration.DATALOG_DIR));
@@ -178,6 +184,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
       return;
     }    
     
+    long lastActivity = System.currentTimeMillis();
+    
     try {
       //
       // CORS header
@@ -216,7 +224,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
         } catch (TException te) {
           throw new IOException();
         }
-        
+
+        // Set lastActivity to the timestamp of the DatalogRequest
+        lastActivity = dr.getTimestamp() / 1000000L;
+
         token = dr.getToken();
         
         Map<String,String> labels = new HashMap<String,String>();
@@ -509,6 +520,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
             if (encoder != lastencoder) {
               Metadata metadata = new Metadata(encoder.getMetadata());
               metadata.setSource(Configuration.INGRESS_METADATA_SOURCE);
+              if (this.updateActivity) {
+                metadata.setLastActivity(lastActivity);
+              }
               //nano6 += System.nanoTime() - nano0;
               this.directoryClient.register(metadata);
               //nano5 += System.nanoTime() - nano0;
@@ -610,6 +624,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
       return;
     }
     
+    long lastActivity = System.currentTimeMillis();
+    
     try {
       //
       // CORS header
@@ -646,7 +662,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
         } catch (TException te) {
           throw new IOException();
         }
-        
+
+        // Set lastActivity to the timestamp of the DatalogRequest
+        lastActivity = dr.getTimestamp() / 1000000L;
+
         Map<String,String> labels = new HashMap<String,String>();
         labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
         labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
@@ -654,7 +673,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
         
         forwarded = true;
       }
-
+      
       //
       // Loop over the input lines.
       // Each has the following format:
@@ -812,6 +831,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
           }
           
           metadata.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+          
+          if (metaActivity) {
+            metadata.setLastActivity(lastActivity);
+          }
+          
           this.directoryClient.register(metadata);
           
           //
