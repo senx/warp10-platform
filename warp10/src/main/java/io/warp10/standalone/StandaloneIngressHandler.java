@@ -48,6 +48,7 @@ import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.GZIPInputStream;
 
 import javax.servlet.ServletException;
@@ -112,6 +113,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
   
   private final long maxValueSize;
   
+  private final boolean updateActivity;
+  private final boolean metaActivity;
+  private final boolean parseAttributes;
+  
   public StandaloneIngressHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
     this.keyStore = keystore;
     this.storeClient = storeClient;
@@ -124,6 +129,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
     this.labelsKeyLongs = SipHashInline.getKey(this.labelsKey);
     
     Properties props = WarpConfig.getProperties();
+  
+    updateActivity = "true".equals(props.getProperty(Configuration.INGRESS_ACTIVITY_UPDATE));
+    metaActivity = "true".equals(props.getProperty(Configuration.INGRESS_ACTIVITY_META));
+    
+    this.parseAttributes = "true".equals(props.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
     
     if (props.containsKey(Configuration.DATALOG_DIR)) {
       File dir = new File(props.getProperty(Configuration.DATALOG_DIR));
@@ -178,6 +188,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
       return;
     }    
     
+    long lastActivity = System.currentTimeMillis();
+    
     try {
       //
       // CORS header
@@ -216,7 +228,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
         } catch (TException te) {
           throw new IOException();
         }
-        
+
+        // Set lastActivity to the timestamp of the DatalogRequest
+        lastActivity = dr.getTimestamp() / 1000000L;
+
         token = dr.getToken();
         
         Map<String,String> labels = new HashMap<String,String>();
@@ -439,11 +454,21 @@ public class StandaloneIngressHandler extends AbstractHandler {
         GTSEncoder lastencoder = null;
         GTSEncoder encoder = null;
         
+        // Atomic boolean to track if attributes were parsed
+        AtomicBoolean hadAttributes = parseAttributes ? new AtomicBoolean(false) : null;
+
         //
         // Chunk index when archiving
         //
         
+        boolean lastHadAttributes = false;
+        
         do {
+        
+          if (parseAttributes) {
+            lastHadAttributes = lastHadAttributes || hadAttributes.get();
+            hadAttributes.set(false);
+          }
           
           String line = br.readLine();
           
@@ -479,7 +504,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
           count++;
 
           try {
-            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, false);
+            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, hadAttributes);
             //nano2 += System.nanoTime() - nano0;
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_PARSEERRORS, sensisionLabels, 1);            
@@ -509,6 +534,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
             if (encoder != lastencoder) {
               Metadata metadata = new Metadata(encoder.getMetadata());
               metadata.setSource(Configuration.INGRESS_METADATA_SOURCE);
+              if (this.updateActivity) {
+                metadata.setLastActivity(lastActivity);
+              }
               //nano6 += System.nanoTime() - nano0;
               this.directoryClient.register(metadata);
               //nano5 += System.nanoTime() - nano0;
@@ -516,11 +544,22 @@ public class StandaloneIngressHandler extends AbstractHandler {
 
             
             if (null != lastencoder) {
-              this.storeClient.store(lastencoder);              
+              this.storeClient.store(lastencoder);
+              
+              if (parseAttributes && lastHadAttributes) {
+                // We need to push lastencoder's metadata update as they were updated since the last
+                // metadata update message sent
+                Metadata meta = new Metadata(lastencoder.getMetadata());
+                meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                this.directoryClient.register(meta);
+                lastHadAttributes = false;
+              }
             }
 
             if (encoder != lastencoder) {
               lastencoder = encoder;
+              // This is the case when we just parsed either the first input line or one for a different
+              // GTS than the previous one.
             } else {
               //lastencoder = null
               //
@@ -530,6 +569,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
               Metadata metadata = lastencoder.getMetadata();
               lastencoder = new GTSEncoder(0L);
               lastencoder.setMetadata(metadata);
+              
+              // This is the case when lastencoder and encoder are identical, but lastencoder was too big and needed
+              // to be flushed
             }
           }
           
@@ -552,6 +594,15 @@ public class StandaloneIngressHandler extends AbstractHandler {
           ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
           ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
           this.storeClient.store(lastencoder);
+          
+          if (parseAttributes && lastHadAttributes) {
+            // Push a metadata UPDATE message so attributes are stored
+            // Build metadata object to push
+            Metadata meta = new Metadata(lastencoder.getMetadata());
+            // Set source to indicate we
+            meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+            this.directoryClient.register(meta);
+          }
         }        
         
         //
@@ -610,6 +661,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
       return;
     }
     
+    long lastActivity = System.currentTimeMillis();
+    
     try {
       //
       // CORS header
@@ -646,7 +699,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
         } catch (TException te) {
           throw new IOException();
         }
-        
+
+        // Set lastActivity to the timestamp of the DatalogRequest
+        lastActivity = dr.getTimestamp() / 1000000L;
+
         Map<String,String> labels = new HashMap<String,String>();
         labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
         labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
@@ -654,7 +710,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
         
         forwarded = true;
       }
-
+      
       //
       // Loop over the input lines.
       // Each has the following format:
@@ -812,6 +868,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
           }
           
           metadata.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+          
+          if (metaActivity) {
+            metadata.setLastActivity(lastActivity);
+          }
+          
           this.directoryClient.register(metadata);
           
           //

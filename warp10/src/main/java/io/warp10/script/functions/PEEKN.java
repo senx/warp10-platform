@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2017  Cityzen Data
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,32 +14,33 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.ext.lua;
+package io.warp10.script.functions;
 
+import java.io.PrintWriter;
+
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.functions.SCRIPTENGINE;
 
-import javax.script.ScriptEngine;
-
-import org.luaj.vm2.script.LuaScriptEngineFactory;
-
-public class LUA extends SCRIPTENGINE {
+public class PEEKN extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public LUA(String name) {
-    super(name, "lua");
+  public PEEKN(String name) {
+    super(name);
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object ret = super.apply(stack);
-    stack.pop();
-    return ret;
-  }
+    PrintWriter out = (PrintWriter) stack.getAttribute(WarpScriptStack.ATTRIBUTE_INTERACTIVE_WRITER);
+    boolean json = Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_INTERACTIVE_JSON));
 
-  @Override
-  protected ScriptEngine getEngine() {
-    ScriptEngine se = new LuaScriptEngineFactory().getScriptEngine();
-    return se;
+    if (null != out) {
+      Object level = stack.peek();
+      Object o = stack.peekn();
+      PSTACK.print(out, ((Number) level).intValue(), o, json);
+      out.flush();
+    }
+    
+    return stack;
   }
 }

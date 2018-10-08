@@ -31,14 +31,14 @@ public class LOAD extends NamedWarpScriptFunction implements WarpScriptStackFunc
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object var = stack.pop();
     
-    if (!(var instanceof String)) {
-      throw new WarpScriptException(getName() + " expects variable name to be a string.");
+    if (!(var instanceof String) && !(var instanceof Long)) {
+      throw new WarpScriptException(getName() + " expects a variable name (STRING) or a register number (LONG) on top of the stack.");
     }
     
-    Object val = stack.load(var.toString());
+    Object val = var instanceof Long ? stack.load(((Long) var).intValue()) : stack.load(var.toString());
     
     if (null == val) {
-      if (!stack.getSymbolTable().containsKey(var.toString())) {
+      if (var instanceof String && !stack.getSymbolTable().containsKey(var.toString())) {
         throw new WarpScriptException(getName() + " symbol '" + var + "' does not exist.");
       }
     }

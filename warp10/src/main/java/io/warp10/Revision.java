@@ -7,7 +7,6 @@ import org.apache.commons.io.output.ByteArrayOutputStream;
 import com.google.common.base.Charsets;
 
 public class Revision {
-  
   private static final String REVFILE = "REVISION";
   
   public static final String REVISION;

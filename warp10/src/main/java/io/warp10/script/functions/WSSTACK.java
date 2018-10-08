@@ -14,24 +14,25 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.ext.python;
+package io.warp10.script.functions;
 
-import java.util.HashMap;
-import java.util.Map;
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
 
-import io.warp10.warp.sdk.WarpScriptExtension;
-
-public class PythonWarpScriptExtension extends WarpScriptExtension {
+/**
+ * Configure the stack to emit WarpScript in interactive mode
+ */
+public class WSSTACK extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  private static final Map<String,Object> functions;
-  
-  static {
-    functions = new HashMap<String,Object>();
-    functions.put("PYTHON", new PYTHON("PYTHON"));              
+  public WSSTACK(String name) {
+    super(name);
   }
   
   @Override
-  public Map<String, Object> getFunctions() {
-    return functions;
-  }  
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    stack.setAttribute(WarpScriptStack.ATTRIBUTE_INTERACTIVE_JSON, false);
+    return stack;
+  }
 }

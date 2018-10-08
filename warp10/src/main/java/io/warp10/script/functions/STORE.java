@@ -31,12 +31,17 @@ public class STORE extends NamedWarpScriptFunction implements WarpScriptStackFun
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object var = stack.pop();
     
-    if (!(var instanceof String)) {
-      throw new WarpScriptException(getName() + " expects variable name to be a string.");
+    if (!(var instanceof String) && !(var instanceof Long)) {
+      throw new WarpScriptException(getName() + " expects variable name or register number on top of the stack.");
     }
     
     Object o = stack.pop();
-    stack.store(var.toString(), o);
+    
+    if (var instanceof Long) {
+      stack.store(((Long) var).intValue(), o);
+    } else {
+      stack.store(var.toString(), o);
+    }
     return stack;
   }
 }

@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  Cityzen Data
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,22 +14,26 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.ext.js;
+package io.warp10.script.functions;
 
-import io.warp10.script.functions.SCRIPTENGINE;
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
 
-import javax.script.ScriptEngine;
-
-import jdk.nashorn.api.scripting.NashornScriptEngineFactory;
-
-public class JS extends SCRIPTENGINE {
+public class PUSHR extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public JS(String name) {
-    super(name, "js");
+  private final int regno;
+  
+  public PUSHR(String name, int regno) {
+    super(name);
+    this.regno = regno;
   }
   
   @Override
-  protected ScriptEngine getEngine() {
-    return new NashornScriptEngineFactory().getScriptEngine(new String[] { "--no-java" });
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    stack.push(stack.load(this.regno));
+    
+    return stack;
   }
 }

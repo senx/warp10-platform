@@ -14,20 +14,25 @@
 //   limitations under the License.
 //
 
-package io.warp10.continuum.geo;
+package io.warp10.script.functions;
 
-import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Set;
-
-import com.geoxp.GeoXPLib.GeoXPShape;
-
-public interface GeoDirectoryClient {
-  public List<Metadata> filter(String geodir, List<Metadata> metadatas, GeoXPShape area, boolean inside, long startTimestamp, long endTimestamp) throws IOException;
+/**
+ * Configure the stack to emit JSON in interactive mode
+ */
+public class JSONSTACK extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public Set<String> getDirectories();
+  public JSONSTACK(String name) {
+    super(name);
+  }
   
-  public boolean knowsDirectory(String name);
+  @Override
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    stack.setAttribute(WarpScriptStack.ATTRIBUTE_INTERACTIVE_JSON, true);
+    return stack;
+  }
 }

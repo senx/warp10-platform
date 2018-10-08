@@ -286,6 +286,11 @@ public class Constants {
   public static final String API_ENDPOINT_MOBIUS = "/api/v0/mobius";
 
   /**
+   * Read Execute Loop endpoint
+   */
+  public static final String API_ENDPOINT_INTERACTIVE = "/api/v0/interactive";
+  
+  /**
    * Meta endpoint
    */
   public static final String API_ENDPOINT_META = "/api/v0/meta";
@@ -357,6 +362,8 @@ public class Constants {
   public static final String HTTP_PARAM_SUFFIX = "suffix";
   public static final String HTTP_PARAM_UNPACK = "unpack";
   public static final String HTTP_PARAM_CHUNKSIZE = "chunksize";
+  public static final String HTTP_PARAM_ACTIVEAFTER = "activeafter";
+  public static final String HTTP_PARAM_QUIETAFTER = "quietafter";
   public static final String HTTP_PARAM_LIMIT = "limit";
   
   public static final String DEFAULT_PACKED_CLASS_SUFFIX = ":packed";

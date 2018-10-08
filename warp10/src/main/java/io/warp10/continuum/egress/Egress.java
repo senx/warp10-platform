@@ -18,8 +18,6 @@ package io.warp10.continuum.egress;
 
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
-import io.warp10.continuum.geo.GeoDirectoryClient;
-import io.warp10.continuum.geo.GeoDirectoryThriftClient;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.crypto.KeyStore;
@@ -104,7 +102,8 @@ public class Egress {
     long idleTimeout = Long.parseLong(props.getProperty(Configuration.EGRESS_IDLE_TIMEOUT));
     
     boolean enableMobius = !("true".equals(props.getProperty(Configuration.WARP_MOBIUS_DISABLE)));
-
+    boolean enableREL = !("true".equals(properties.getProperty(Configuration.WARP_INTERACTIVE_DISABLE)));
+    
     extractKeys(props);
     
     //
@@ -130,10 +129,9 @@ public class Egress {
     
     if (!fetcher) {
       DirectoryClient directoryClient = new ThriftDirectoryClient(this.keystore, this.properties);
-      GeoDirectoryClient geoDirectoryClient = new GeoDirectoryThriftClient(keystore, this.properties);
 
       GzipHandler gzip = new GzipHandler();
-      EgressExecHandler egressExecHandler = new EgressExecHandler(this.keystore, this.properties, directoryClient, geoDirectoryClient, storeClient);
+      EgressExecHandler egressExecHandler = new EgressExecHandler(this.keystore, this.properties, directoryClient, storeClient);
       gzip.setHandler(egressExecHandler);
       gzip.setMinGzipSize(0);
       gzip.addIncludedMethods("POST");
@@ -161,6 +159,11 @@ public class Egress {
         EgressMobiusHandler mobiusHandler = new EgressMobiusHandler(storeClient, directoryClient, this.properties);
         handlers.addHandler(mobiusHandler);
       }
+      
+      if (enableREL) {
+        EgressInteractiveHandler erel = new EgressInteractiveHandler(keystore, properties, directoryClient, storeClient);
+        handlers.addHandler(erel);
+      }           
     } else {
       GzipHandler gzip = new GzipHandler();
       gzip.setHandler(new EgressFetchHandler(this.keystore, this.properties, null, storeClient));

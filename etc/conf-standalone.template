@@ -95,6 +95,11 @@ warp.aes.metasets = @key:256:warp.aes.metasets@
 #warp.streamupdate.disable =
 
 //
+// Number of registers to allocate in the stack defaults to 256
+//
+#warpscript.registers = 256
+
+//
 // This configuration parameter determines if undefining a function (via NULL 'XXX' DEF)
 // will unshadow the original statement thus making it available again or if it will replace
 // it with a function that will fail with a message saying the function is undefined.
@@ -149,6 +154,17 @@ warpscript.maxgts.hard = 100000
 //
 warpscript.maxloop = 5000
 warpscript.maxloop.hard = 10000
+
+// Path of the 'bootstrap' WarpScript code for the interactive mode
+#warpscript.interactive.bootstrap.path =
+// How often to reload the bootstrap code (in ms) for the interactive mode
+#warpscript.interactive.bootstrap.period = 
+// Maximum number of parallel interactive sessions (defaults to 1).
+#warpscript.interactive.capacity = 
+// Port on which the TCP endpoint of the interactive mode will listen. If undefined, no TCP endpoint will be available.
+#warpscript.interactive.tcp.port = 
+// Set to 'true' to disable the interactive mode completely
+#warp.interactive.disable = true
 
 //
 // Directory of Warp10 standalone install
@@ -246,11 +262,6 @@ warpscript.call.directory = ${standalone.home}/calls
 // Specific namespace under which to load an extension. The specified namespace will be used as a prefix for all functions of the extension.
 //
 //warpscript.namespace.package.class = namespace.
-
-//
-// Comma separated list of additional languages to support within WarpScript. This MUST be set as a system property
-//
-//warpscript.languages = 
 
 //
 // Flag to enable REXEC
@@ -448,6 +459,23 @@ ingress.websocket.maxmessagesize = 1048576
 // Max message size for the Plasma Frontend Websocket
 //
 plasma.frontend.websocket.maxmessagesize = 1048576
+
+//
+// Period between updates of last activity timestamps for Geo Time Series
+// The value of this parameter is in ms and determines how often the directory
+// will be updated when activity is being tracked.
+//
+#ingress.activity.window = 3600000
+
+//
+// Set to true to consider updates when tracking activity of GTS
+//
+#ingress.activity.update = true
+
+//
+// Set to true to consider attributes updates (calls to /meta) when tracking activity of GTS
+//
+#ingress.activity.meta = true
 
 //
 // Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.
@@ -732,70 +760,6 @@ throttling.manager.rate.default = 1000000.0
 throttling.manager.mads.default = 100000
 
 //
-// G E O D I R
-//
-/////////////////////////////////////////////////////////////////////////////////////////
-
-//
-// Comma separated list of GeoDirectory instances to maintain.
-// Each instance is defined by a string with the following format:
-// 
-// name/resolution/chunks/chunkdepth
-// 
-// name is the name of the GeoDirectory
-// resolution is a number between 1 and 15 defining the resolution of the geo index:
-// 
-// 1 = 10,000 km
-// 2 =  2,500 km
-// 3 =    625 km
-// 4 =    156 km
-// 5 =     39 km
-// 6 =     10 km
-// 7 =  2,441 m
-// 8 =    610 m
-// 9 =    153 m
-// 10=     38 m
-// 11=     10 m
-// 12=    238 cm 
-// 13=     60 cm
-// 14=     15 cm
-// 15=      4 cm
-// 
-// chunks is the number of time chunks to maintain
-// chunkdepth is the time span of each time chunk, in ms
-//
-#standalone.geodirs = 
-
-//
-// Delay in ms between two subscription updates
-//
-#standalone.geodir.delay = 5000
-
-//
-// Maximum number of 'cells' in the query area, system will attempt to reduce the number
-// of cells searched by replacing small cells with their enclosing parent until the number
-// of cells falls below this maximum or no more simplification can be done.
-// 
-// A good value for performance is around 256
-//
-#standalone.geodir.maxcells = 256
-
-//
-// AES encryption key for subscriptions
-//
-#standalone.geodir.aes = hex:hhhh...
-
-//
-// Directory where subscriptions should be stored
-//
-#standalone.geodir.subs.dir = ${standalone.home}/geodir
-
-//
-// Prefix for subscription files
-//
-#standalone.geodir.subs.prefix =
-
-//
 // R U N N E R
 //
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -850,3 +814,35 @@ runner.scanperiod = 60000
 // more often than that won't be run
 //
 runner.minperiod = 1000
+
+//
+// HTTP Plugin
+//
+
+// IP the HTTP plugin will listen on
+#http.host = 127.0.0.1
+// Port the HTTP plugin will listen on
+#http.port = 10080
+// Number of Jetty acceptors to use (defaults to 2)
+#http.acceptors = 2
+// Number of Jetty selectors to use (defaults to 4)
+#http.selectors = 4
+// Number of threads Jetty should use (defaults to 1 + acceptors + acceptors * selectors which is the minimum)
+#http.maxthreads = 11
+// Timeout (in ms) when expecting a HTTP request (defaults to 30000 ms)
+#http.idle.timeout = 30000
+// Directory where spec files are located
+#http.dir = 
+// Period (in ms) at which to scan 'http.dir' (defaults to 60s)
+#http.period = 60000
+// Size of the queue to use for the Jetty thread pool. By default no queue is used
+#http.queuesize = 8
+
+//
+// UDP Plugin
+//
+
+// Directory where 'spec' files will be located
+#udp.dir = 
+// Period (in ms) at which to rescan 'udp.dir' for spec files changes (defaults to 60s)
+#udp.period = 60000

@@ -221,7 +221,7 @@ subprojects {
             ext.file = relativePath(it)
             exec {
                 executable = (null != System.getenv('THRIFT_HOME')) ? System.getenv('THRIFT_HOME') + '/bin/thrift' : 'thrift'
-                args = ['--gen', 'java:hashcode,private-members', '-o', thriftOutputDir, ext.file]
+                args = ['--gen', 'java:private-members', '-o', thriftOutputDir, ext.file]
             }
         }
     })

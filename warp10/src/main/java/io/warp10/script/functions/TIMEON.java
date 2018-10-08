@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  Cityzen Data
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,33 +14,25 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.ext.python;
+package io.warp10.script.functions;
 
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.functions.SCRIPTENGINE;
 
-import javax.script.ScriptEngine;
-
-import org.python.jsr223.PyScriptEngineFactory;
-
-public class PYTHON extends SCRIPTENGINE {
+/**
+ * Configure the stack to emit timing information when in interactive mode
+ */
+public class TIMEON extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public PYTHON(String name) {
-    super(name, "python");
+  public TIMEON(String name) {
+    super(name);
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object ret = super.apply(stack);
-    stack.pop();
-    return ret;
-  }
-  
-  @Override
-  protected ScriptEngine getEngine() {
-    System.setProperty("python.import.site", "false");
-    ScriptEngine se = new PyScriptEngineFactory().getScriptEngine();
-    return se;
+    stack.setAttribute(WarpScriptStack.ATTRIBUTE_INTERACTIVE_TIME, true);
+    return stack;
   }
 }

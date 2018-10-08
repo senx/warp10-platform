@@ -39,7 +39,7 @@ max.encoder.size = 100000
 
 //
 // Comma separated list of components to run in distributed mode
-// Valid values are 'ingress', 'directory', 'store', 'egress', 'fetch', 'plasmaFE', 'plasmaBE', 'runner', 'geodir'
+// Valid values are 'ingress', 'directory', 'store', 'egress', 'fetch', 'plasmaFE', 'plasmaBE', 'runner'
 //
 warp.components =
 
@@ -138,6 +138,22 @@ warp.aes.metasets = hex:hhhhhhhh....
 // W A R P S R I P T
 //
 /////////////////////////////////////////////////////////////////////////////////////////
+
+// Path of the 'bootstrap' WarpScript code for the interactive mode
+#warpscript.interactive.bootstrap.path =
+// How often to reload the bootstrap code (in ms) for the interactive mode
+#warpscript.interactive.bootstrap.period = 
+// Maximum number of parallel interactive sessions (defaults to 1).
+#warpscript.interactive.capacity = 
+// Port on which the TCP endpoint of the interactive mode will listen. If undefined, no TCP endpoint will be available.
+#warpscript.interactive.tcp.port = 
+// Set to 'true' to disable the interactive mode completely
+#warp.interactive.disable = true
+
+//
+// Number of registers to allocate in the stack defaults to 256
+//
+#warpscript.registers = 256
 
 //
 // This configuration parameter determines if undefining a function (via NULL 'XXX' DEF)
@@ -296,11 +312,6 @@ warpscript.delete.endpoint = http://127.0.0.1:8080/api/v0/delete
 //warpscript.namespace.package.class = namespace.
 
 //
-// Comma separated list of additional languages to support within WarpScript. This MUST be set as a system property
-//
-//warpscript.languages = 
-
-//
 // Path of the 'bootstrap' WarpScript code for Mobius
 //
 //warpscript.mobius.bootstrap.path = 
@@ -425,6 +436,12 @@ webcall.kafka.commitperiod = 60000
 // D I R E C T O R Y
 //
 /////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// Activity period (in ms) to consider when flushing Metadata to HBase
+// Should match ingress.activity.window unless you know what you are doing...
+//
+#directory.activity.window = 3600000
 
 //
 // Comma separated list of Directory related HBase configuration keys. Each key will
@@ -676,6 +693,23 @@ directory.hbase.filter = false
 // I N G R E S S
 //
 /////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// Period between updates of last activity timestamps for Geo Time Series
+// The value of this parameter is in ms and determines how often the directory
+// will be updated when activity is being tracked.
+//
+#ingress.activity.window = 3600000
+
+//
+// Set to true to consider updates when tracking activity of GTS
+//
+#ingress.activity.update = true
+
+//
+// Set to true to consider attributes updates (calls to /meta) when tracking activity of GTS
+//
+#ingress.activity.meta = true
 
 //
 // Should we shuffle the Geo Time Series prior to sending the delete messages?
@@ -1612,298 +1646,6 @@ throttling.manager.period = 1000
 //
 //throttling.manager.maxwait.default = 
 
-/////////////////////////////////////////////////////////////////////////////////////////
-//
-// G E O D I R
-//
-/////////////////////////////////////////////////////////////////////////////////////////
-
-//
-// ZooKeeper connect string for the subscription topic
-//
-geodir.kafka.subs.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
-
-//
-// List of brokers for the subscription topic
-//
-geodir.kafka.subs.brokerlist = 127.0.0.1:9092
-
-//
-// Name of subscription topic
-//
-geodir.kafka.subs.topic = geodir-subscriptions
-
-//
-// Group ID for consuming the subscription topic.
-// MUST be unique per Geo Directory instance
-//
-geodir.kafka.subs.groupid = geodir.subscriptions
-
-//
-// Number of threads to spawn for consuming the subscription topic
-//
-geodir.kafka.subs.nthreads = 1
-
-//
-// How often to commit offsets for the subscription topic (in ms)
-//
-geodir.kafka.subs.commitperiod = 5000
-
-//
-// Key (128 bits) to use for computing MACs of Kafka messages for the subscription topic
-// 
-geodir.kafka.subs.mac = hex:hhhh...
-
-//
-// Key (128, 192 or 256 bits) to use for encryption of Kafka messages for the subscription topic
-//
-#geodir.kafka.subs.aes = hex:hhhh....
-
-//
-// ZooKeeper connect string for the data topic
-//
-geodir.kafka.data.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
-
-//
-// List of brokers for the data topic
-//
-geodir.kafka.data.brokerlist = 127.0.0.1:9092
-
-//
-// Name of the data topic
-//
-geodir.kafka.data.topic = data
-
-//
-// Group ID for consuming the data topic.
-// MUST be unique per Geo Directory instance
-//
-geodir.kafka.data.groupid = geodir.data
-
-//
-// Number of threads to use for consuming the data topic
-//
-geodir.kafka.data.nthreads = 1
-
-//
-// How ofter to commit the offsets for the data topic
-//
-geodir.kafka.data.commitperiod = 1000
-
-//
-// Key (128 bits) to use for computing MACs of Kafka messages for the data topic
-//
-geodir.kafka.data.mac = hex:hhhhhh...
-
-//
-// Key (128, 192 or 256 bits) to use for encryption of Kafka messages of the data topic
-//
-#geodir.kafka.data.aes = 
-
-//
-// Maximum size of a message in the data topic
-//
-geodir.kafka.data.maxsize = 900000
-
-//
-// Id of the Geo Directory instance. MUST be unique across all Geo Directories
-//
-geodir.id = geodir-1
-
-//
-// Name of directory
-//
-geodir.name = geodir
-
-//
-// Number of shards in this Geo Directory instance
-//
-geodir.modulus = 1
-
-//
-// Id of the current shard (in [0,modulus[)
-//
-geodir.remainder = 0 
-
-//
-// Port on which the Geo Directory HTTP endpoint should listen
-//
-geodir.http.port = 8886
-
-//
-// Host on which the Geo Directory HTTP endpoint should listen
-//
-geodir.http.host = 127.0.0.1
-
-//
-// Number of Jetty acceptors
-//
-geodir.acceptors = 2
-
-//
-// Number of Jetty selectors
-//
-geodir.selectors = 4
-
-//
-// Jetty idle timeout (in ms)
-//
-geodir.idle.timeout = 300000
-
-//
-// Port for the Thrift endpoint
-//
-geodir.thrift.port = 8887
-
-//
-// Host for the Thrift endpoint
-//
-geodir.thrift.host = 127.0.0.1
-
-//
-// Maximum number of threads for handling Thrifts requests
-//
-geodir.thrift.maxthreads = 16
-
-//
-// Maximum size of frame in Thrift communications
-//
-geodir.thrift.maxframelen = 8192000
-
-//
-// Maximum number of GeoXP cells a query can span. Areas containing more than
-// that many cells will be simplified prior to performing the search
-//
-geodir.maxcells = 256
-
-//
-// Resolution of the Geo Index (in HHCode levels, even from 2 to 30)
-//
-#geodir.resolution =
-
-//
-// Depth of each of the Geo Directory index chunks in milliseconds
-//
-#geodir.chunk.depth = 
-
-//
-// Number of chunks in the index
-//
-#geodir.chunk.count = 
-
-//
-// Delay between subscription updates
-//
-geodir.period = 5000
-
-//
-// Pre-Shared key for talking to directory
-//
-geodir.directory.psk = hex:hhhh....
-
-//
-// Pre-Shared key for fetching data
-//
-geodir.fetch.psk = hex:hhh.....
-
-//
-// Fetch endpoint to use to fetch data when re-indexing
-//
-geodir.fetch.endpoint = http://127.0.0.1:8080/api/v0/fetch
-
-//
-// ZooKeeper quorum (connect string) to use for the ZK ensemble used to store the subscriptions
-//
-geodir.zk.subs.quorum = 127.0.0.1:2181
-
-//
-// Root Znode to use for storing subscriptions
-//
-geodir.zk.subs.znode = /zk/warp/localhost/geodir
-
-//
-// Max size of the subscription znodes data
-//
-geodir.zk.subs.maxznodesize = 65536
-
-//
-// Key (128, 192 or 256 bits) to use for encrypting the Subscriptions
-//
-#geodir.zk.subs.aes = hex:hhhh...
-
-//
-// ZooKeeper quorum (connect string) to use for the ZK ensemble used to make ourselves known to PlasmaBE
-//
-geodir.zk.plasma.quorum = 127.0.0.1:2181
-
-//
-// ZNode where plasma subscriptions should be done
-//
-geodir.zk.plasma.znode = /zk/warp/localhost/plasma
-
-//
-// Max size of each plasma subscription znode
-//
-geodir.zk.plasma.maxznodesize = 65536
-
-//
-// ZooKeeper quorum to use for the ZK ensemble we will use for registration
-//
-geodir.zk.service.quorum = 127.0.0.1:2181
-
-//
-// Registration znode
-//
-geodir.zk.service.znode = /zk/warp/localhost/services
-
-//
-// ZooKeeper quorum to use for finding the directory to talk to (MUST be the same Directory used for registration)
-//
-geodir.zk.directory.quorum = 127.0.0.1:2181
-
-//
-// ZNode where Directory instances register
-//
-geodir.zk.directory.znode = /zk/warp/localhost/services
-
-//
-// Kafka client id to use for the subscription producer
-//
-//geodir.kafka.subs.producer.clientid=
-
-//
-// Kafka client id to use for the subscription consume
-//
-//geodir.kafka.subs.consumer.clientid=
-
-//
-// Kafka client id to use for the data producer
-//
-//geodir.kafka.data.producer.clientid=
-
-//
-// Kafka client id to use for the data consumer
-//
-//geodir.kafka.data.consumer.clientid=
-
-//
-// Prefix to use if dumping/loading the LKP indices
-//
-//geodir.dump.prefix = 
-
-//
-// Name of partition assignment strategy to use
-//
-//geodir.kafka.data.consumer.partition.assignment.strategy
-
-//
-// Name of partition assignment strategy to use
-//
-//geodir.kafka.subs.consumer.partition.assignment.strategy
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-
 //
 // Header containing the request UUID when calling the endpoint
 //
@@ -1988,3 +1730,35 @@ geodir.zk.directory.znode = /zk/warp/localhost/services
 // HTTP Header for specifying the timespan in /sfetch requests
 //
 #http.header.timespan = 
+
+//
+// HTTP Plugin
+//
+
+// IP the HTTP plugin will listen on
+#http.host = 127.0.0.1
+// Port the HTTP plugin will listen on
+#http.port = 10080
+// Number of Jetty acceptors to use (defaults to 2)
+#http.acceptors = 2
+// Number of Jetty selectors to use (defaults to 4)
+#http.selectors = 4
+// Number of threads Jetty should use (defaults to 1 + acceptors + acceptors * selectors which is the minimum)
+#http.maxthreads = 11
+// Timeout (in ms) when expecting a HTTP request (defaults to 30000 ms)
+#http.idle.timeout = 30000
+// Directory where spec files are located
+#http.dir =
+// Period (in ms) at which to scan 'http.dir' (defaults to 60s)
+#http.period = 60000
+// Size of the queue to use for the Jetty thread pool. By default no queue is used
+#http.queuesize = 8
+
+//
+// UDP Plugin
+//
+
+// Directory where 'spec' files will be located
+#udp.dir = 
+// Period (in ms) at which to rescan 'udp.dir' for spec files changes (defaults to 60s)
+#udp.period = 60000

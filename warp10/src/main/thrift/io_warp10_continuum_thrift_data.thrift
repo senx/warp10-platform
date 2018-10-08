@@ -29,68 +29,6 @@ struct HyperLogLogPlusParameters {
 }
 
 /**
- * Structure to serialize GeoDirectory subscriptions for storage in ZK
- */
-struct GeoDirectorySubscriptions {
-  /**
-   * When was this structure created
-   */
-  1: i64 timestamp,
-  
-  /**
-   * Name of GeoDirectory
-   */
-  2: string name,
-  
-  /**
-   * Flag indicating if we are removing the included subscriptions
-   */
-  3: bool removal,
-  
-  /**
-   * Actual subscriptions per token
-   */
-  4: map<string,set<string>> subscriptions,
-}
-
-/**
- * Structure passed as input to the GeoDirectory service
- * It contains the set of GTS Ids among which to filter and
- * the shape to consider.
- */
-struct GeoDirectoryRequest {
-  /**
-   * Cells of the GeoXPShape
-   */
-  1: list<i64> shape,
-  /**
-   * Flag indicating whether we search inside or outside
-   * the shape
-   */
-  2: bool inside,
-  /**
-   * Map of class Id to labels Ids
-   */
-  3: map<i64,set<i64>> gts,
-  /**
-   * Start timestamp for the search (inclusive, in ms)
-   */
-  4: i64 startTimestamp,
-  /**
-   * End timestamp for the search (inclusive, in ms)
-   */
-  5: i64 endTimestamp,
-}
-
-struct GeoDirectoryResponse {
-  /**
-   * GTS Ids which match the criteria
-   * of GeoDirectoryRequest
-   */
-  1: map<i64,set<i64>> gts,
-}
-
-/**
  * Structure used by ScriptRunner's scheduler to publish in Kafka
  * script to be run by workers.
  */
