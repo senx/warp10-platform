@@ -91,12 +91,6 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_REGISTERS = "warpscript.registers";
   
   /**
-   * Comma separated list of additional languages to support within WarpScript
-   * This MUST be set as a system property
-   */
-  public static final String CONFIG_WARPSCRIPT_LANGUAGES = "warpscript.languages";
-  
-  /**
    * Comma separated list of WarpScriptExtension classes to instantiate to modify
    * the defined WarpScript functions.
    */
@@ -111,6 +105,8 @@ public class Configuration {
    * Prefix for properties which define WarpScript extension namespaces.
    */
   public static final String CONFIG_WARPSCRIPT_NAMESPACE_PREFIX = "warpscript.namespace.";
+  
+  public static final String CONFIG_WARPSCRIPT_DEFAULTCL_PREFIX = "warpscript.defaultcl.";
   
   /**
    * This configuration parameter determines if undefining a function (via NULL 'XXX' DEF)
