@@ -47,6 +47,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -90,12 +91,14 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
   private final Properties properties;
   private final StoreClient storeClient;
   private final StandaloneDirectoryClient directoryClient;
+  private final long maxValueSize;
   
   private final String datalogId;
   private final byte[] datalogPSK;
   private final File loggingDir;
   
   private final boolean updateActivity;
+  private final boolean parseAttributes;
   
   private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
 
@@ -193,8 +196,19 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
             GTSEncoder encoder = null;
 
             BufferedReader br = new BufferedReader(new StringReader(message));
+
+            // Atomic boolean to track if attributes were parsed
+            AtomicBoolean hadAttributes = this.handler.parseAttributes ? new AtomicBoolean(false) : null;
+
+            boolean lastHadAttributes = false;
             
             do {
+              
+              if (this.handler.parseAttributes) {
+                lastHadAttributes = lastHadAttributes || hadAttributes.get();
+                hadAttributes.set(false);
+              }
+              
               String line = br.readLine();
               
               if (null == line) {
@@ -292,7 +306,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               }
 
               try {
-                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now);
+                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.handler.maxValueSize, hadAttributes);
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
                 throw new IOException("Parse error at '" + line + "'", pe);
@@ -340,10 +354,23 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                   lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.keyStore.getKey(KeyStore.SIPHASH_LABELS), lastencoder.getLabels()));
                   this.handler.storeClient.store(lastencoder);
                   count += lastencoder.getCount();
+                  
+                  
+                  if (this.handler.parseAttributes && lastHadAttributes) {
+                    // We need to push lastencoder's metadata update as they were updated since the last
+                    // metadata update message sent
+                    Metadata meta = new Metadata(lastencoder.getMetadata());
+                    meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                    this.handler.directoryClient.register(meta);
+                    lastHadAttributes = false;
+                  }
                 }
                 
                 if (encoder != lastencoder) {
                   lastencoder = encoder;
+                  
+                  // This is the case when we just parsed either the first input line or one for a different
+                  // GTS than the previous one.
                 } else {
                   //lastencoder = null
                   //
@@ -353,6 +380,9 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                   Metadata metadata = lastencoder.getMetadata();
                   lastencoder = new GTSEncoder(0L);
                   lastencoder.setMetadata(metadata);
+                  
+                  // This is the case when lastencoder and encoder are identical, but lastencoder was too big and needed
+                  // to be flushed
                 }
               }
               
@@ -379,7 +409,16 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.keyStore.getKey(KeyStore.SIPHASH_LABELS), lastencoder.getLabels()));
               this.handler.storeClient.store(lastencoder);
               count += lastencoder.getCount();
-            }
+              
+              if (this.handler.parseAttributes && lastHadAttributes) {
+                // Push a metadata UPDATE message so attributes are stored
+                // Build metadata object to push
+                Metadata meta = new Metadata(lastencoder.getMetadata());
+                // Set source to indicate we
+                meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                this.handler.directoryClient.register(meta);
+              }
+            }              
           } finally {
             if (null != loggingWriter) {              
               Map<String,String> labels = new HashMap<String,String>();
@@ -488,6 +527,10 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     this.properties = properties;
     this.updateActivity = "true".equals(properties.getProperty(Configuration.INGRESS_ACTIVITY_UPDATE));
 
+    this.maxValueSize = Long.parseLong(properties.getProperty(Configuration.STANDALONE_VALUE_MAXSIZE, StandaloneIngressHandler.DEFAULT_VALUE_MAXSIZE));
+    
+    this.parseAttributes = "true".equals(properties.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
+    
     if (properties.containsKey(Configuration.DATALOG_DIR)) {
       File dir = new File(properties.getProperty(Configuration.DATALOG_DIR));
       

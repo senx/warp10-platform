@@ -540,6 +540,11 @@ public class Configuration {
   public static final String INGRESS_ACTIVITY_META = "ingress.activity.meta";
 
   /**
+   * Set to true to parse attributes in the data passed to /update.
+   */
+  public static final String INGRESS_PARSE_ATTRIBUTES = "ingress.parse.attributes";
+  
+  /**
    * Should we shuffle the GTS prior to issueing delete messages. Set to true or false.
    * It is highly recommended to set this to true as it will induce a much lower pressure
    * on region servers.

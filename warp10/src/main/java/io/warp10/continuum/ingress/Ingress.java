@@ -279,6 +279,7 @@ public class Ingress extends AbstractHandler implements Runnable {
   final boolean updateActivity;
   private final boolean metaActivity;
   final long activityWindow;
+  public final boolean parseAttributes;
   
   public Ingress(KeyStore keystore, Properties props) {
 
@@ -349,6 +350,8 @@ public class Ingress extends AbstractHandler implements Runnable {
 
     this.sendMetadataOnDelete = Boolean.parseBoolean(props.getProperty(Configuration.INGRESS_DELETE_METADATA_INCLUDE, "false"));
 
+    this.parseAttributes = "true".equals(props.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
+    
     //
     // Prepare meta, data and delete producers
     //
@@ -744,7 +747,19 @@ public class Ingress extends AbstractHandler implements Runnable {
         
         AtomicLong dms = this.dataMessagesSize.get();
         
+        // Atomic boolean to track if attributes were parsed
+        AtomicBoolean hadAttributes = parseAttributes ? new AtomicBoolean(false) : null;
+
+        boolean lastHadAttributes = false;
+
         do {
+          
+          // We copy the current value of hadAttributes
+          if (parseAttributes) {
+            lastHadAttributes = lastHadAttributes || hadAttributes.get();
+            hadAttributes.set(false);
+          }
+          
           String line = br.readLine();
           
           if (null == line) {
@@ -759,9 +774,9 @@ public class Ingress extends AbstractHandler implements Runnable {
           if ('#' == line.charAt(0)) {
             continue;
           }
-          
+                    
           try {
-            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, false);
+            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, hadAttributes);
             count++;
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_PARSEERRORS, sensisionLabels, 1);
@@ -839,11 +854,26 @@ public class Ingress extends AbstractHandler implements Runnable {
               //}
 
               pushDataMessage(lastencoder);
+                           
+              if (parseAttributes && lastHadAttributes) {
+                // We need to push lastencoder's metadata update as they were updated since the last
+                // metadata update message sent
+                Metadata meta = new Metadata(lastencoder.getMetadata());
+                meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                pushMetadataMessage(meta);
+                // Reset lastHadAttributes
+                lastHadAttributes = false;
+              }
             }
             
             if (encoder != lastencoder) {
+              // This is the case when we just parsed either the first input line or one for a different
+              // GTS than the previous one.
               lastencoder = encoder;
             } else {
+              // This is the case when lastencoder and encoder are identical, but lastencoder was too big and needed
+              // to be flushed
+
               //lastencoder = null;
               //
               // Allocate a new GTSEncoder and reuse Metadata so we can
@@ -851,7 +881,7 @@ public class Ingress extends AbstractHandler implements Runnable {
               //
               Metadata metadata = lastencoder.getMetadata();
               lastencoder = new GTSEncoder(0L);
-              lastencoder.setMetadata(metadata);
+              lastencoder.setMetadata(metadata);              
             }
           }
 
@@ -874,6 +904,14 @@ public class Ingress extends AbstractHandler implements Runnable {
           ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
 
           pushDataMessage(lastencoder);
+          
+          if (parseAttributes && lastHadAttributes) {
+            // Push a metadata UPDATE message so attributes are stored
+            // Build metadata object to push
+            Metadata meta = new Metadata(lastencoder.getMetadata());
+            meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+            pushMetadataMessage(meta);
+          }
         }
       } catch (WarpException we) {
         throw new IOException(we);      
