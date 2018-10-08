@@ -83,6 +83,10 @@ import io.warp10.script.ext.lua.LUAWarpScriptExtension;
 import io.warp10.script.ext.python.PythonWarpScriptExtension;
 import io.warp10.script.ext.r.RWarpScriptExtension;
 import io.warp10.script.ext.ruby.RubyWarpScriptExtension;
+import io.warp10.script.filler.FillerInterpolate;
+import io.warp10.script.filler.FillerNext;
+import io.warp10.script.filler.FillerPrevious;
+import io.warp10.script.filler.FillerTrend;
 import io.warp10.script.filter.FilterByClass;
 import io.warp10.script.filter.FilterByLabels;
 import io.warp10.script.filter.FilterByMetadata;
@@ -735,6 +739,7 @@ import org.apache.commons.lang3.SystemUtils;
 import org.bouncycastle.crypto.digests.MD5Digest;
 import org.bouncycastle.crypto.digests.SHA1Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.jruby.ext.ffi.jffi.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1395,7 +1400,7 @@ public class WarpScriptLib {
     functions.put("PAPPLY", new APPLY("PAPPLY", false));
     functions.put("REDUCE", new REDUCE("REDUCE", true));
     functions.put("PREDUCE", new REDUCE("PREDUCE", false));
-    
+        
     functions.put("max.tick.sliding.window", new MaxTickSlidingWindow("max.tick.sliding.window"));
     functions.put("max.time.sliding.window", new MaxTimeSlidingWindow("max.time.sliding.window"));
     functions.put(NULL, new NULL(NULL));
@@ -1468,6 +1473,15 @@ public class WarpScriptLib {
 
     functions.put("filter.latencies", new LatencyFilter.Builder("filter.latencies"));
     
+    //
+    // Fillers
+    //
+    
+    functions.put("filler.next", new FillerNext("filler.next"));
+    functions.put("filler.prev", new FillerPrevious("filler.prev"));
+    functions.put("filler.interpolate", new FillerInterpolate("filler.interpolate"));
+    functions.put("filler.trend", new FillerTrend("filler.trend"));
+ 
     //
     // Geo Manipulation functions
     //
