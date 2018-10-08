@@ -19,7 +19,6 @@ package io.warp10.standalone;
 import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.TimeSource;
-import io.warp10.continuum.geo.GeoDirectoryClient;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
@@ -54,7 +53,6 @@ public class StandaloneScriptRunner extends ScriptRunner {
   
   private final StoreClient storeClient;
   private final DirectoryClient directoryClient;
-  private final GeoDirectoryClient geoDirectoryClient;
   private final Properties props;
   private final BootstrapManager bootstrapManager;
 
@@ -62,12 +60,11 @@ public class StandaloneScriptRunner extends ScriptRunner {
 
   private final byte[] runnerPSK;
   
-  public StandaloneScriptRunner(Properties properties, KeyStore keystore, StoreClient storeClient, DirectoryClient directoryClient, GeoDirectoryClient geoDirectoryClient, Properties props) throws IOException {
+  public StandaloneScriptRunner(Properties properties, KeyStore keystore, StoreClient storeClient, DirectoryClient directoryClient, Properties props) throws IOException {
     super(keystore, props);
 
     this.props = props;
     this.directoryClient = directoryClient;
-    this.geoDirectoryClient = geoDirectoryClient;
     this.storeClient = storeClient;
     
     //
@@ -105,7 +102,7 @@ public class StandaloneScriptRunner extends ScriptRunner {
 
           long nano = System.nanoTime();
           
-          WarpScriptStack stack = new MemoryWarpScriptStack(storeClient, directoryClient, geoDirectoryClient, props);
+          WarpScriptStack stack = new MemoryWarpScriptStack(storeClient, directoryClient, props);
 
           
           ByteArrayOutputStream baos = new ByteArrayOutputStream();

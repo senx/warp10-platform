@@ -20,7 +20,6 @@ import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.LogUtil;
 import io.warp10.continuum.TimeSource;
-import io.warp10.continuum.geo.GeoDirectoryClient;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
@@ -81,15 +80,13 @@ public class EgressExecHandler extends AbstractHandler {
   private final KeyStore keyStore;
   private final StoreClient storeClient;
   private final DirectoryClient directoryClient;
-  private final GeoDirectoryClient geoDirectoryClient;
-
+  
   private final BootstrapManager bootstrapManager;
   
-  public EgressExecHandler(KeyStore keyStore, Properties properties, DirectoryClient directoryClient, GeoDirectoryClient geoDirectoryClient, StoreClient storeClient) {
+  public EgressExecHandler(KeyStore keyStore, Properties properties, DirectoryClient directoryClient, StoreClient storeClient) {
     this.keyStore = keyStore;
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
-    this.geoDirectoryClient = geoDirectoryClient;
     
     //
     // Check if we have a 'bootstrap' property
@@ -152,7 +149,7 @@ public class EgressExecHandler extends AbstractHandler {
     // Create the stack to use
     //
     
-    WarpScriptStack stack = new MemoryWarpScriptStack(this.storeClient, this.directoryClient, this.geoDirectoryClient);
+    WarpScriptStack stack = new MemoryWarpScriptStack(this.storeClient, this.directoryClient);
 
     Throwable t = null;
 
