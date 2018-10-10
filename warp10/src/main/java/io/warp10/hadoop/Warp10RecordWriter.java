@@ -69,6 +69,7 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
     try {
       if (null != pw) {
         pw.flush();
+        pw.close();
         int respcode = conn.getResponseCode();
         
         if (HttpURLConnection.HTTP_OK != respcode) {
