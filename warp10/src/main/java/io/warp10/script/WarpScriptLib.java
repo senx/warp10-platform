@@ -1074,7 +1074,7 @@ public class WarpScriptLib {
     //
     
     functions.put("filler.next", new FillerNext("filler.next"));
-    functions.put("filler.prev", new FillerPrevious("filler.prev"));
+    functions.put("filler.previous", new FillerPrevious("filler.previous"));
     functions.put("filler.interpolate", new FillerInterpolate("filler.interpolate"));
     functions.put("filler.trend", new FillerTrend("filler.trend"));
  
