@@ -933,10 +933,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       
       recurseIn();
       
-      for (i = 0; i < n; i++) {
-        // Notify progress
-        progress();
-        
+      // Notify progress
+      progress();
+
+      for (i = 0; i < n; i++) {        
+
         Object stmt = stmts.get(i);
         
         incOps();
@@ -956,8 +957,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           //Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_FUNCTION_TIME_US, esf.getSensisionLabels(), (System.nanoTime() - nano) / 1000L);          
         } else {
           push(stmt);
-        }
-      }
+        }        
+      }    
       
       checkOps();
     } catch (WarpScriptReturnException ere) {
@@ -1422,6 +1423,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     this.reclevel--;
   }
   
+  // Current call graph depth
+  public long getRecursionLevel() {
+    return this.reclevel;
+  }
+  
+  // Depth of macros being currently defined
   public int getMacroDepth() {
     return this.macros.size();
   }
