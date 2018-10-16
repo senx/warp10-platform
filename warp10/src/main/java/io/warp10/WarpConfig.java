@@ -92,9 +92,9 @@ public class WarpConfig {
     // Load tokens from file
     //
     
-    //if (null != properties.getProperty(CONTINUUM_TOKEN_FILE)) {
-    Tokens.init(properties.getProperty(Configuration.WARP_TOKEN_FILE));
-    //}
+    if (null != properties.getProperty(Configuration.WARP_TOKEN_FILE)) {
+      Tokens.init(properties.getProperty(Configuration.WARP_TOKEN_FILE));
+    }
     
     //
     // Initialize macro repository
