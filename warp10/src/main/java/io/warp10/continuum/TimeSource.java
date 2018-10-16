@@ -49,12 +49,12 @@ public class TimeSource {
       @Override
       public void run() {
         while(true) {
-          // Sleep 100ms
-          LockSupport.parkNanos(100000000L);
           if (!mustRecalibrate.getAndSet(false)) {
             continue;
           }
           calibrate();
+          // Sleep 100ms
+          LockSupport.parkNanos(100000000L);
         }
       }
     });
