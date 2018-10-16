@@ -18,5 +18,5 @@ public class RexecWarpScriptExtension extends WarpScriptExtension {
   
   public java.util.Map<String,Object> getFunctions() {
     return functions;
-  };
+  }
 }
