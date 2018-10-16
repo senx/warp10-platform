@@ -312,7 +312,7 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
     // Configure executor
     //
     
-    Executor executor = new ThreadPoolExecutor(poolsize >>> 1, poolsize, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1 + (poolsize >>> 1)));
+    Executor executor = new ThreadPoolExecutor(poolsize, poolsize, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1 + (poolsize >>> 1)));
     
     while (true) {
       
