@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.functions;
+package io.warp10.script.ext.rexec;
 
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
@@ -41,8 +41,6 @@ import com.google.common.base.Charsets;
  */
 public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  private final boolean enabled;
-  
   private final boolean compress;
 
   public REXEC(String name) {
@@ -54,17 +52,11 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
   
     this.compress = compress;
     
-    Properties props = WarpConfig.getProperties();
-  
-    this.enabled = null != props && "true".equals(props.getProperty(Configuration.WARPSCRIPT_REXEC_ENABLE));
+    Properties props = WarpConfig.getProperties();  
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
-    if (!this.enabled) {
-      throw new WarpScriptException(getName() + " is not enabled, set '" + Configuration.WARPSCRIPT_REXEC_ENABLE + "' to true to enable it.");
-    }
     
     String endpoint = stack.pop().toString();
     

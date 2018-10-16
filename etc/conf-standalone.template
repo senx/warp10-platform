@@ -264,11 +264,6 @@ warpscript.call.directory = ${standalone.home}/calls
 //warpscript.namespace.package.class = namespace.
 
 //
-// Flag to enable REXEC
-//
-//warpscript.rexec.enable = 
-
-//
 // Time units of the platform
 // ns means we store nanoseconds
 // us means we store microseconds

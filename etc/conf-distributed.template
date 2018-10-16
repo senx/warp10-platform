@@ -327,11 +327,6 @@ warpscript.mobius.pool = 16
 //warpscript.mobius.bootstrap.period = 
 
 //
-// Flag to enable REXEC
-//
-//warpscript.rexec.enable = 
-
-//
 // Path of the 'bootstrap' WarpScript code for Runner
 //
 //warpscript.runner.bootstrap.path = 
