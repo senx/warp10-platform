@@ -16,15 +16,6 @@
 
 package io.warp10.script.ext.rexec;
 
-import io.warp10.WarpConfig;
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.store.Constants;
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptLib;
-import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStackFunction;
-
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -35,6 +26,14 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import com.google.common.base.Charsets;
+
+import io.warp10.WarpConfig;
+import io.warp10.continuum.store.Constants;
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptLib;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Execute WarpScript on a remote endpoint
