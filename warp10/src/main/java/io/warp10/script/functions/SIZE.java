@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -46,6 +47,8 @@ public class SIZE extends NamedWarpScriptFunction implements WarpScriptStackFunc
     } else if (obj instanceof GeoTimeSerie) {
       // Return the number of values, not nticks which would return the number of buckets
       stack.push((long) GTSHelper.nvalues((GeoTimeSerie) obj));
+    } else if (obj instanceof GTSEncoder) {
+      stack.push(((GTSEncoder) obj).getCount());
     } else if (obj instanceof String) {
       stack.push((long) obj.toString().length());
     } else if (obj instanceof byte[]) {
