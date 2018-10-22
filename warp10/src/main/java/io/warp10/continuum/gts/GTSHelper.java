@@ -4671,6 +4671,28 @@ public class GTSHelper {
   public static int nvalues(GeoTimeSerie gts) {
     return gts.values;
   }
+
+  /**
+   * Tell if a GTS instance is considered sorted.
+   * If this method returns true, the GTS instance is sorted but if it returns false the GTS instance may or may not be sorted.
+   *
+   * @param gts GeoTimeSerie instance to consider.
+   * @return true if the GTS instance is considered sorted, false otherwise.
+   */
+  public static boolean isSorted(GeoTimeSerie gts) {
+    return gts.sorted;
+  }
+
+  /**
+   * Tell if a GTS instance is considered reversed. This has only a meaning if the GTS instance is considered sorted.
+   * If this method returns true, the GTS instance is reversed but if it returns false the GTS instance may or may not be reversed.
+   *
+   * @param gts GeoTimeSerie instance to consider.
+   * @return true if the GTS instance is considered reversed, false otherwise.
+   */
+  public static boolean isReversed(GeoTimeSerie gts) {
+    return gts.reversed;
+  }
   
   /**
    * Handy method to compute the max value of a GTS instance.
