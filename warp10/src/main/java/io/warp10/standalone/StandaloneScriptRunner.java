@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.geoxp.oss.CryptoHelper;
 import com.geoxp.oss.client.OSSClient;
@@ -84,13 +85,18 @@ public class StandaloneScriptRunner extends ScriptRunner {
   }
   
   @Override
-  protected void schedule(Map<String, Long> nextrun, final String script, final long periodicity) {
+  protected void schedule(final Map<String, Long> nextrun, final String script, final long periodicity) {
     
     try {
+      
+      final long scheduledat = System.currentTimeMillis();
+      
       this.executor.submit(new Runnable() {            
         @Override
         public void run() {
           
+          long nowts = System.currentTimeMillis();
+
           File f = new File(script);
           
           Map<String,String> labels = new HashMap<String,String>();
@@ -148,7 +154,7 @@ public class StandaloneScriptRunner extends ScriptRunner {
 
             stack.store(Constants.RUNNER_PERIODICITY, periodicity);
             stack.store(Constants.RUNNER_PATH, path);
-            stack.store(Constants.RUNNER_SCHEDULEDAT, System.currentTimeMillis());
+            stack.store(Constants.RUNNER_SCHEDULEDAT, scheduledat);
             
             //
             // Generate a nonce by wrapping the current time with random 64bits
@@ -166,11 +172,12 @@ public class StandaloneScriptRunner extends ScriptRunner {
           } catch (Exception e) {                
             Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_FAILURES, labels, 1);
           } finally {
+            nextrun.put(script, nowts + periodicity);
             nano = System.nanoTime() - nano;
             Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_TIME_US, labels, (long) (nano / 1000L));
             Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_ELAPSED, labels, nano); 
             Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_OPS, labels, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS)); 
-            Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_FETCHED, labels, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_FETCH_COUNT));             
+            Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_FETCHED, labels, ((AtomicLong) stack.getAttribute(WarpScriptStack.ATTRIBUTE_FETCH_COUNT)).get());            
             Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_CURRENT, Sensision.EMPTY_LABELS, -1);
           }              
         }
