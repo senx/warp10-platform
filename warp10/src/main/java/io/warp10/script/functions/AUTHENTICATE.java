@@ -64,9 +64,9 @@ public class AUTHENTICATE extends NamedWarpScriptFunction implements WarpScriptS
     // TODO(hbs): check that the provided token can indeed be used for AUTHENTICATION
     // or simply to set specific values of various thresholds
     //
-    
+
     stack.setAttribute(WarpScriptStack.ATTRIBUTE_TOKEN, hide(o.toString()));
-    
+
     return stack;
   }
 
@@ -78,8 +78,9 @@ public class AUTHENTICATE extends NamedWarpScriptFunction implements WarpScriptS
   }
 
   public static String unhide(String hidden) {
-    byte[] bytes = hidden.getBytes(Charsets.UTF_8);
+    byte[] bytes = hidden.getBytes(Charsets.US_ASCII);
+    bytes = OrderPreservingBase64.decode(bytes);
     bytes = CryptoHelper.unwrapBlob(KEY, bytes);
-    return new String(bytes, Charsets.US_ASCII);
+    return new String(bytes, Charsets.UTF_8);
   }
 }
