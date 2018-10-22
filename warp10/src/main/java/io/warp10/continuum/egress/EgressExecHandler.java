@@ -33,6 +33,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStopException;
+import io.warp10.script.functions.AUTHENTICATE;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptStack.StackContext;
@@ -438,7 +439,7 @@ public class EgressExecHandler extends AbstractHandler {
       event = LogUtil.setLoggingEventAttribute(event, LogUtil.WARPSCRIPT_TIMES, times);
       
       if (stack.isAuthenticated()) {
-        event = LogUtil.setLoggingEventAttribute(event, WarpScriptStack.ATTRIBUTE_TOKEN, stack.getAttribute(WarpScriptStack.ATTRIBUTE_TOKEN).toString());        
+        event = LogUtil.setLoggingEventAttribute(event, WarpScriptStack.ATTRIBUTE_TOKEN, AUTHENTICATE.unhide(stack.getAttribute(WarpScriptStack.ATTRIBUTE_TOKEN).toString()));
       }
       
       if (null != t) {

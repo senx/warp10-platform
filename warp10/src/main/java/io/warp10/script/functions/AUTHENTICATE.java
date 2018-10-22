@@ -16,18 +16,31 @@
 
 package io.warp10.script.functions;
 
+import java.util.Random;
+
+import com.geoxp.oss.CryptoHelper;
+import com.google.common.base.Charsets;
+
 import io.warp10.continuum.Tokens;
+import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Check and record the provided ReadToken as the current 'owner' of the stack
  */
 public class AUTHENTICATE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
+  private static final byte[] KEY;
+
+  static {
+    KEY = new byte[32];
+    new Random().nextBytes(KEY);
+  }
+
   public AUTHENTICATE(String name) {
     super(name);
   }
@@ -52,8 +65,21 @@ public class AUTHENTICATE extends NamedWarpScriptFunction implements WarpScriptS
     // or simply to set specific values of various thresholds
     //
     
-    stack.setAttribute(WarpScriptStack.ATTRIBUTE_TOKEN, o.toString());
+    stack.setAttribute(WarpScriptStack.ATTRIBUTE_TOKEN, hide(o.toString()));
     
     return stack;
+  }
+
+  public static String hide(String token) {
+    byte[] bytes = token.getBytes(Charsets.UTF_8);
+    bytes = CryptoHelper.wrapBlob(KEY, bytes);
+    bytes = OrderPreservingBase64.encode(bytes);
+    return new String(bytes, Charsets.US_ASCII);
+  }
+
+  public static String unhide(String hidden) {
+    byte[] bytes = hidden.getBytes(Charsets.UTF_8);
+    bytes = CryptoHelper.unwrapBlob(KEY, bytes);
+    return new String(bytes, Charsets.US_ASCII);
   }
 }
