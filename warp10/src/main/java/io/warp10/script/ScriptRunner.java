@@ -351,7 +351,7 @@ public class ScriptRunner extends Thread {
     //
 
     final Map<String, Long> nextrun = new HashMap<String, Long>();
-
+    
     PriorityQueue<String> runnables = new PriorityQueue<String>(1, new Comparator<String>() {
       @Override
       public int compare(String o1, String o2) {
@@ -397,7 +397,7 @@ public class ScriptRunner extends Thread {
         // If script has no scheduled run yet or should run immediately, select it
         //
 
-        Long schedule = nextrun.remove(script);
+        Long schedule = nextrun.get(script);
 
         if (null == schedule) {
           if (runAtStartup) {
@@ -412,7 +412,8 @@ public class ScriptRunner extends Thread {
 
             nextrun.put(script, schedat);
           }
-        } else if (schedule <= now) {
+        } else if (-1L != schedule && schedule <= now) {
+          // Do not schedule scripts with a schedule set to -1
           runnables.add(script);
         } else { // null != schedule
           nextrun.put(script, schedule);
@@ -423,9 +424,8 @@ public class ScriptRunner extends Thread {
 
       while (runnables.size() > 0) {
         final String script = runnables.poll();
-        // Set next run now. This will be overwritten at the end of execution
-        // of the script (from inside the Runnable) for the standalone version
-        nextrun.put(script, System.currentTimeMillis() + scripts.get(script));
+        // Set nextrun to -1 so we do not reschedule a script being scheduled
+        nextrun.put(script, -1L);
         if (isStandalone) {
           schedule(nextrun, script, scripts.get(script));
         } else if (isLeader) {
@@ -437,7 +437,7 @@ public class ScriptRunner extends Thread {
     }
   }
 
-  protected void schedule(Map<String, Long> nextrun, final String script, final long periodicity) {
+  protected void schedule(final Map<String, Long> nextrun, final String script, final long periodicity) {
 
     if (!isStandalone) {
       return;
@@ -446,10 +446,15 @@ public class ScriptRunner extends Thread {
     final ScriptRunner self = this;
 
     try {
+      
+      final long scheduledat = System.currentTimeMillis();
+      
       this.executor.submit(new Runnable() {
         @Override
         public void run() {
 
+          long nowts = System.currentTimeMillis();
+          
           Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_CURRENT, Sensision.EMPTY_LABELS, 1);
 
           File f = new File(script);
@@ -505,7 +510,7 @@ public class ScriptRunner extends Thread {
             out.write(WarpScriptLib.STORE.getBytes(Charsets.UTF_8));
             out.write('\n');
 
-            out.write(Long.toString(System.currentTimeMillis()).getBytes(Charsets.UTF_8));
+            out.write(Long.toString(scheduledat).getBytes(Charsets.UTF_8));
             out.write(' ');
             out.write('\'');
             out.write(URLEncoder.encode(Constants.RUNNER_SCHEDULEDAT, "UTF-8").replaceAll("\\+", "%20").getBytes(Charsets.US_ASCII));
@@ -557,6 +562,7 @@ public class ScriptRunner extends Thread {
           } catch (Exception e) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_FAILURES, labels, 1);
           } finally {
+            nextrun.put(script, nowts + periodicity);
             nano = System.nanoTime() - nano;
             Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_TIME_US, labels, nano / 1000L);
             Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_CURRENT, Sensision.EMPTY_LABELS, -1);
@@ -578,7 +584,8 @@ public class ScriptRunner extends Thread {
 
     String path = new File(script).getAbsolutePath().substring(new File(this.root).getAbsolutePath().length() + 1);
 
-    request.setScheduledAt(System.currentTimeMillis());
+    long now = System.currentTimeMillis();
+    request.setScheduledAt(now);
     request.setPeriodicity(periodicity);
     request.setPath(path);
     request.setCompressed(true);
@@ -661,11 +668,14 @@ public class ScriptRunner extends Thread {
     } catch (Exception e) {
       // Reschedule immediately
       nextrun.put(script, System.currentTimeMillis());
+      return;
     } finally {
       if (null != producer) {
         this.kafkaProducerPool.recycleProducer(producer);
       }
     }
+    
+    nextrun.put(script, now + periodicity);
   }
 
   private Map<String, Long> scanSuperRoot(String superroot) {
