@@ -110,6 +110,7 @@ public class TOJSON extends NamedWarpScriptFunction implements WarpScriptStackFu
       } else if (obj instanceof Map) {
         for (Entry<Object, Object> entry: ((Map<Object, Object>) obj).entrySet()) {
           Object elt = entry.getKey();
+          // TODO(tce): be careful with null keys as they are converted to empty strings with boon but may not for other libraries
           if (null == elt || elt instanceof Number || elt instanceof String || elt instanceof Boolean) {
             // Ignore keys which are atomic like types
           } else if (elt instanceof List || elt instanceof Map) {
