@@ -373,7 +373,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   public void push(Object o) throws WarpScriptException {
     
     if (size > this.maxdepth) {
-      Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_STACKDEPTH_EXCEEDED, Sensision.EMPTY_LABELS, 1);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_STACKDEPTH_EXCEEDED, Sensision.EMPTY_LABELS, 1);
       throw new WarpScriptException("Stack depth would exceed set limit of " + this.maxdepth);
     }
     
@@ -849,7 +849,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           Object func = null;
           
           //
-          // Check Einstein functions
+          // Check WarpScript functions
           //
 
           func = null != func ? func : defined.get(stmt);
@@ -872,7 +872,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           try {
             if (func instanceof WarpScriptStackFunction && macros.isEmpty()) {
               //
-              // Function is an EinsteinStackFunction, call it on this stack
+              // Function is an WarpScriptStackFunction, call it on this stack
               //
               
               WarpScriptStackFunction esf = (WarpScriptStackFunction) func;
@@ -889,8 +889,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               }
             }          
           } finally {
-            Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_FUNCTION_COUNT, labels, 1);
-            Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_FUNCTION_TIME_US, labels, (System.nanoTime() - nano) / 1000L);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_COUNT, labels, 1);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_TIME_US, labels, (System.nanoTime() - nano) / 1000L);
           }
         }
       }
@@ -953,8 +953,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
           esf.apply(this);
           
-          //Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_FUNCTION_COUNT, esf.getSensisionLabels(), 1);
-          //Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_FUNCTION_TIME_US, esf.getSensisionLabels(), (System.nanoTime() - nano) / 1000L);          
+          //Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_COUNT, esf.getSensisionLabels(), 1);
+          //Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_TIME_US, esf.getSensisionLabels(), (System.nanoTime() - nano) / 1000L);          
         } else {
           push(stmt);
         }        
@@ -990,7 +990,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   public void exec(WarpScriptJavaFunction function) throws WarpScriptException {
     //
     // Check if we can execute the UDF. We enclose this call in a try/catch since we could get weird errors
-    // when the wrong classes were used for EinsteinJavaFunction. Better err on the side of safety here.
+    // when the wrong classes were used for WarpScriptJavaFunction. Better err on the side of safety here.
     //
     
     try {
@@ -1262,7 +1262,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   
   public void checkOps() throws WarpScriptException {
     if (this.currentops > this.maxops) {
-      Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_OPSCOUNT_EXCEEDED, Sensision.EMPTY_LABELS, 1);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_OPSCOUNT_EXCEEDED, Sensision.EMPTY_LABELS, 1);
       throw new WarpScriptException("Operation count (" + this.currentops + ") exceeded maximum of " + this.maxops);
     }
   }

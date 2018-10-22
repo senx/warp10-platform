@@ -532,7 +532,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               if (fetched.addAndGet(count) > fetchLimit) {
                 Map<String,String> sensisionLabels = new HashMap<String, String>();
                 sensisionLabels.put(SensisionConstants.SENSISION_LABEL_CONSUMERID, Tokens.getUUID(rtoken.getBilledId()));
-                Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_FETCHCOUNT_EXCEEDED, sensisionLabels, 1);
+                Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FETCHCOUNT_EXCEEDED, sensisionLabels, 1);
                 throw new WarpScriptException(getName() + " exceeded limit of " + fetchLimit + " datapoints, current count is " + fetched.get());
               }
 
@@ -607,7 +607,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
             if (fetched.addAndGet(gts.size()) > fetchLimit) {
               Map<String,String> sensisionLabels = new HashMap<String, String>();
               sensisionLabels.put(SensisionConstants.SENSISION_LABEL_CONSUMERID, Tokens.getUUID(rtoken.getBilledId()));
-              Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_FETCHCOUNT_EXCEEDED, sensisionLabels, 1);
+              Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FETCHCOUNT_EXCEEDED, sensisionLabels, 1);
               throw new WarpScriptException(getName() + " exceeded limit of " + fetchLimit + " datapoints, current count is " + fetched.get());
               //break;
             }

@@ -42,8 +42,6 @@ public class NRETURN extends NamedWarpScriptFunction implements WarpScriptStackF
     }
     
     stack.getCounter(WarpScriptStack.COUNTER_RETURN_DEPTH).set(((Number) top).longValue());
-    //throw new EinsteinReturnException("NRETURN", ((Number) top).intValue());
-    //ex.setN(((Number) top).intValue());
     throw ex;
   }
 }

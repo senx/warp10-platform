@@ -455,7 +455,7 @@ public class ScriptRunner extends Thread {
 
           long nowts = System.currentTimeMillis();
           
-          Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_CURRENT, Sensision.EMPTY_LABELS, 1);
+          Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_CURRENT, Sensision.EMPTY_LABELS, 1);
 
           File f = new File(script);
 
@@ -464,7 +464,7 @@ public class ScriptRunner extends Thread {
           Map<String, String> labels = new HashMap<String, String>();
           labels.put(SensisionConstants.SENSISION_LABEL_PATH, path);
 
-          Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_COUNT, labels, 1);
+          Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_COUNT, labels, 1);
 
           long nano = System.nanoTime();
 
@@ -557,15 +557,15 @@ public class ScriptRunner extends Thread {
             out.close();
 
             if (200 != conn.getResponseCode()) {
-              Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_FAILURES, labels, 1);
+              Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, 1);
             }
           } catch (Exception e) {
-            Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_FAILURES, labels, 1);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, 1);
           } finally {
             nextrun.put(script, nowts + periodicity);
             nano = System.nanoTime() - nano;
-            Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_TIME_US, labels, nano / 1000L);
-            Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_CURRENT, Sensision.EMPTY_LABELS, -1);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, nano / 1000L);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_CURRENT, Sensision.EMPTY_LABELS, -1);
             if (null != conn) {
               conn.disconnect();
             }

@@ -30,11 +30,11 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * The Einstein Geo Time Serie manipulation environment
+ * The WarpScript Geo Time Serie manipulation environment
  * usually uses a stack to operate.
  * 
  * There may be multiple implementations of stacks that
- * Einstein can use, including some that persist to a
+ * WarpScript can use, including some that persist to a
  * cache or that may spill to disk.
  * 
  * All those implementations MUST implement this interface.
@@ -703,7 +703,7 @@ public interface WarpScriptStack {
   public Map<String,WarpScriptStackFunction> getDefined();
   
   /**
-   * Return a UUID for the instance of EinsteinStack
+   * Return a UUID for the instance of WarpScriptStack
    * @return
    */
   public String getUUID();

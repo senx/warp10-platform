@@ -174,7 +174,7 @@ public class WarpScriptJarRepository extends Thread {
       // Update jar count
       //
       
-      Sensision.set(SensisionConstants.SENSISION_CLASS_EINSTEIN_REPOSITORY_JARS, Sensision.EMPTY_LABELS, classLoadersFingerprints.size());
+      Sensision.set(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_REPOSITORY_JARS, Sensision.EMPTY_LABELS, classLoadersFingerprints.size());
       
       //
       // Sleep a while
@@ -271,7 +271,7 @@ public class WarpScriptJarRepository extends Thread {
   }
     
   /**
-   * Validates an instance of EinsteinJavaFunction by checking that its class loader is still active 
+   * Validates an instance of WarpScriptJavaFunction by checking that its class loader is still active 
    * @param func Instance to check
    * @return
    */

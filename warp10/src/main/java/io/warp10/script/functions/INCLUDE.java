@@ -31,7 +31,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 /**
- * Reads a file and execute it as Einstein code.
+ * Reads a file and execute it as WarpScript code.
  * This function is not intended to be used outside of Macro Repositories and Macro libraries
  */
 public class INCLUDE extends NamedWarpScriptFunction implements WarpScriptStackFunction {

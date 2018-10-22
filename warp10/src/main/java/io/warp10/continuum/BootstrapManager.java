@@ -97,7 +97,7 @@ public class BootstrapManager extends Thread {
       
       this.bootstrapContext = context;
       
-      Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_BOOTSTRAP_LOADS, Sensision.EMPTY_LABELS, 1);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_BOOTSTRAP_LOADS, Sensision.EMPTY_LABELS, 1);
     } catch (Exception e) {
       LOG.error("Error while loading bootstrap code [" + path + "] at line " + lineno + ". Current bootstrap code will not be replaced.", e);
     } finally {

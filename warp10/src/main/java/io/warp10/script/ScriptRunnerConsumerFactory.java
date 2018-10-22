@@ -159,12 +159,12 @@ public class ScriptRunnerConsumerFactory implements ConsumerFactory {
                     @Override
                     public void run() {
                       
-                      Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_CURRENT, Sensision.EMPTY_LABELS, 1);
+                      Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_CURRENT, Sensision.EMPTY_LABELS, 1);
                       
                       Map<String,String> labels = new HashMap<String,String>();
                       labels.put(SensisionConstants.SENSISION_LABEL_PATH, request.getPath());
                       
-                      Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_COUNT, labels, 1);
+                      Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_COUNT, labels, 1);
 
                       long nano = System.nanoTime();
                       
@@ -247,7 +247,7 @@ public class ScriptRunnerConsumerFactory implements ConsumerFactory {
                         out.close();
                         
                         if (200 != conn.getResponseCode()) {
-                          Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_FAILURES, labels, 1);
+                          Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, 1);
                         }
                         
                         String header = conn.getRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_ELAPSEDX));
@@ -273,14 +273,14 @@ public class ScriptRunnerConsumerFactory implements ConsumerFactory {
                         }
                         
                       } catch (Exception e) {                
-                        Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_FAILURES, labels, 1);
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, 1);
                       } finally {
                         nano = System.nanoTime() - nano;
-                        Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_TIME_US, labels, (long) (nano / 1000L));
-                        Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_ELAPSED, labels, elapsed);
-                        Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_FETCHED, labels, fetched);
-                        Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_OPS, labels, ops);
-                        Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_CURRENT, Sensision.EMPTY_LABELS, -1);
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, (long) (nano / 1000L));
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_ELAPSED, labels, elapsed);
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FETCHED, labels, fetched);
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_OPS, labels, ops);
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_CURRENT, Sensision.EMPTY_LABELS, -1);
                         if (null != conn) { conn.disconnect(); }                                
                       }              
                     }

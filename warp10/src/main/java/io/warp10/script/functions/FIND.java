@@ -305,16 +305,6 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     
     Iterator<Metadata> iter = null;
     
-//    try {
-//      metadatas = directoryClient.find(clsSels, lblsSels);
-//      iter = metadatas.iterator();
-//    } catch (IOException ioe) {
-//  try {
-//  iter = directoryClient.iterator(clsSels, lblsSels);
-//} catch (Exception e) {
-//  throw new EinsteinException(e);
-//}
-//    }
     try {
       
       if (null == drequest) {

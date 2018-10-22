@@ -18,7 +18,7 @@ package io.warp10.script;
 
 
 /**
- * Interface implemented by all Einstein functions that can be called
+ * Interface implemented by all WarpScript functions that can be called
  * from the stack.
  */
 public interface WarpScriptStackFunction {

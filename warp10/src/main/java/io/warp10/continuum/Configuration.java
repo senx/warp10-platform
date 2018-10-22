@@ -224,7 +224,7 @@ public class Configuration {
   public static final String WARP_TIME_UNITS = "warp.timeunits";
 
   /**
-   * Path of the 'bootstrap' Einstein code for Egress
+   * Path of the 'bootstrap' WarpScript code for Egress
    */
   public static final String CONFIG_WARPSCRIPT_BOOTSTRAP_PATH = "warpscript.bootstrap.path";
   
@@ -234,7 +234,7 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_BOOTSTRAP_PERIOD = "warpscript.bootstrap.period";
 
   /**
-   * Path of the 'bootstrap' Einstein code for Mobius
+   * Path of the 'bootstrap' WarpScript code for Mobius
    */
   public static final String CONFIG_WARPSCRIPT_MOBIUS_BOOTSTRAP_PATH = "warpscript.mobius.bootstrap.path";
     
@@ -269,7 +269,7 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_INTERACTIVE_TCP_PORT = "warpscript.interactive.tcp.port";
   
   /**
-   * Path of the 'bootstrap' Einstein code for Runner
+   * Path of the 'bootstrap' WarpScript code for Runner
    */
   public static final String CONFIG_WARPSCRIPT_RUNNER_BOOTSTRAP_PATH = "warpscript.runner.bootstrap.path";
   
@@ -1210,7 +1210,7 @@ public class Configuration {
   public static final String RUNNER_SCANPERIOD = "runner.scanperiod";
   
   /**
-   * Einstein endpoint to use for executing the scripts
+   * WarpScript endpoint to use for executing the scripts
    */
   public static final String RUNNER_ENDPOINT = "runner.endpoint";
   

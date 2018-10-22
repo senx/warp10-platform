@@ -35,7 +35,7 @@ import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
 /**
- * Make available a scripting language to EINSTEIN via JSR 223
+ * Make available a scripting language to WarpScript via JSR 223
  * 
  * Expects on the stack one of the following configuration
  * 

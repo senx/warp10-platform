@@ -82,7 +82,7 @@ public class WarpDist {
   private static boolean initialized = false;
   
   /**
-   * Do we run an 'egress' service. Used in EinsteinMacroRepository to bail out if not
+   * Do we run an 'egress' service. Used in WarpScript MacroRepository to bail out if not
    */
   private static boolean hasEgress = false;
   

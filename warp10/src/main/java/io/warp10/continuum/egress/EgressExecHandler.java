@@ -136,12 +136,6 @@ public class EgressExecHandler extends AbstractHandler {
     UUID uuid = UUID.randomUUID();
     
     //
-    // Create EinsteinExecutionReport
-    //
-    
-    //EinsteinExecutionReport report = new EinsteinExecutionReport();
-    
-    //
     // FIXME(hbs): Make sure we have at least one valid token
     //
     
@@ -420,15 +414,15 @@ public class EgressExecHandler extends AbstractHandler {
       }
     } finally {
       // Clear this metric in case there was an exception
-      Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_REQUESTS, Sensision.EMPTY_LABELS, 1);
-      Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_TIME_US, Sensision.EMPTY_LABELS, (long) ((System.nanoTime() - now) / 1000));
-      Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_OPS, Sensision.EMPTY_LABELS, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS));
+      Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_REQUESTS, Sensision.EMPTY_LABELS, 1);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_TIME_US, Sensision.EMPTY_LABELS, (long) ((System.nanoTime() - now) / 1000));
+      Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_OPS, Sensision.EMPTY_LABELS, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS));
       
       //
       // Record the JVM free memory
       //
       
-      Sensision.set(SensisionConstants.SENSISION_CLASS_EINSTEIN_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
+      Sensision.set(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
       
       LoggingEvent event = LogUtil.setLoggingEventAttribute(null, LogUtil.WARPSCRIPT_SCRIPT, scriptSB.toString());
       
@@ -440,7 +434,7 @@ public class EgressExecHandler extends AbstractHandler {
       
       if (null != t) {
         event = LogUtil.setLoggingEventStackTrace(event, LogUtil.STACK_TRACE, t);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_ERRORS, Sensision.EMPTY_LABELS, 1);
+        Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_ERRORS, Sensision.EMPTY_LABELS, 1);
       }
       
       LogUtil.addHttpHeaders(event, req);
