@@ -13,6 +13,7 @@ jar {
     }
 
     from project(":warp10").sourceSets.main.output
+    include 'io/warp10/Py4JEntryPoint.class'
     include 'io/warp10/SortedPathIterator.class'
     include 'io/warp10/SortedPathIterator$*'
     include 'io/warp10/WarpClassLoader.class'
