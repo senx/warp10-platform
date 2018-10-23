@@ -51,6 +51,12 @@ import org.apache.hadoop.util.Progressable;
 
 public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
+  private static final Properties DEFAULT_PROPERTIES;
+  
+  static {
+    DEFAULT_PROPERTIES = WarpConfig.getProperties();
+  }
+  
   private AtomicLong[] counters;
 
   private final Object[] registers;
@@ -153,14 +159,14 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
   
   public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient) {
-    this(storeClient, directoryClient, WarpConfig.getProperties());
+    this(storeClient, directoryClient, DEFAULT_PROPERTIES);
   }
 
   public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient, Properties properties) {
     this(storeClient, directoryClient, properties, true);
   }
   
-  public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient, Properties properties, boolean init) {
+  public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient, Properties properties, boolean init) {    
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
   
@@ -968,6 +974,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     } catch (WarpScriptATCException wsatce) {
       throw wsatce;
     } catch (Exception ee) {
+      ee.printStackTrace();
       if (macro.isSecure()) {
         throw ee;
       } else {
