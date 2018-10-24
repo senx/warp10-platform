@@ -50,6 +50,7 @@ public class TimeSource {
       public void run() {
         while(true) {
           if (!mustRecalibrate.getAndSet(false)) {
+            LockSupport.parkNanos(100000000L);
             continue;
           }
           calibrate();
