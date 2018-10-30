@@ -72,7 +72,7 @@ public class UDPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
 
         Set<String> specs = new HashSet<String>();
 
-        while (iter.hasNext()) {
+        while (null != iter && iter.hasNext()) {
           Path p = iter.next();
 
           boolean load = false;
