@@ -17,6 +17,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -129,19 +130,24 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
 
     while (true) {
       try {
-        Iterator<Path> iter = Files.walk(new File(dir).toPath(), FileVisitOption.FOLLOW_LINKS)
-            //.filter(path -> path.toString().endsWith(".mc2"))
-            .filter(new Predicate<Path>() {
-              @Override
-              public boolean test(Path t) {
-                return t.toString().endsWith(".mc2");
-              }
-            })
-            .iterator();
+        Iterator<Path> iter = null;
+        try {
+          iter = Files.walk(new File(dir).toPath(), FileVisitOption.FOLLOW_LINKS)
+              //.filter(path -> path.toString().endsWith(".mc2"))
+              .filter(new Predicate<Path>() {
+                @Override
+                public boolean test(Path t) {
+                  return t.toString().endsWith(".mc2");
+                }
+              })
+              .iterator();
+        } catch (NoSuchFileException nsfe) {
+          LOG.warn("HTTP plugin could not find directory " + dir);
+        }
 
         Set<String> specs = new HashSet<String>();
 
-        while (iter.hasNext()) {
+        while (null != iter && iter.hasNext()) {
           Path p = iter.next();
 
           boolean load = false;
