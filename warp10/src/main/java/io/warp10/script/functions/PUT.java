@@ -21,6 +21,7 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -40,12 +41,18 @@ public class PUT extends NamedWarpScriptFunction implements WarpScriptStackFunct
     
     Object maporlist = stack.peek();
 
-    if (!(maporlist instanceof Map)) {
-      throw new WarpScriptException(getName() + " operates on a map.");
+    if (maporlist instanceof Map) {
+      ((Map) maporlist).put(key, value);      
+    } else if (maporlist instanceof List) {
+      if (!(key instanceof Number)) {
+        throw new WarpScriptException(getName() + " expects a key which is an integer when operating on a list.");
+      }
+
+      ((List) maporlist).set(((Number) key).intValue(), value);      
+    } else {
+      throw new WarpScriptException(getName() + " operates on a map or list.");
     }
 
-    ((Map) maporlist).put(key, value);
-    
     return stack;
   }
 }
