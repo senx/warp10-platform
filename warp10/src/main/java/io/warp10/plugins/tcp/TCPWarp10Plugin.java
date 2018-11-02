@@ -1,4 +1,4 @@
-package io.warp10.plugins.udp;
+package io.warp10.plugins.tcp;
 
 import io.warp10.warp.sdk.AbstractWarp10Plugin;
 import org.slf4j.Logger;
@@ -18,36 +18,37 @@ import java.util.Set;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Predicate;
 
-public class UDPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
+public class TCPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(UDPWarp10Plugin.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TCPWarp10Plugin.class);
 
   /**
    * Directory where spec files are located
    */
-  private static final String CONF_UDP_DIR = "udp.dir";
+  private static final String CONF_TCP_DIR = "tcp.dir";
 
   /**
    * Period at which to scan the spec directory
    */
-  private static final String CONF_UDP_PERIOD = "udp.period";
+  private static final String CONF_TCP_SCANPERIOD = "tcp.scanperiod";
 
   /**
    * Default scanning period in ms
    */
   private static final long DEFAULT_PERIOD = 60000L;
 
+
   private String dir;
-  private long period;
+  private long scanperiod;
 
   /**
-   * Map of spec file to UDPConsumer instance
+   * Map of spec file to TCPServer instance
    */
-  private Map<String, UDPConsumer> consumers = new HashMap<String, UDPConsumer>();
+  private Map<String, TCPManager> managers = new HashMap<String, TCPManager>();
 
   private boolean done = false;
 
-  public UDPWarp10Plugin() {
+  public TCPWarp10Plugin() {
     super();
   }
 
@@ -77,8 +78,8 @@ public class UDPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
 
           boolean load = false;
 
-          if (this.consumers.containsKey(p.toString())) {
-            if (this.consumers.get(p.toString()).getWarpScript().length() != p.toFile().length()) {
+          if (this.managers.containsKey(p.toString())) {
+            if (this.managers.get(p.toString()).getWarpScript().length() != p.toFile().length()) {
               load = true;
             }
           } else {
@@ -96,12 +97,12 @@ public class UDPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
         // Clean the specs which disappeared
         //
 
-        Set<String> removed = new HashSet<String>(this.consumers.keySet());
+        Set<String> removed = new HashSet<String>(this.managers.keySet());
         removed.removeAll(specs);
 
         for (String spec: removed) {
           try {
-            consumers.remove(spec).end();
+            managers.remove(spec).end();
           } catch (Exception e) {
           }
         }
@@ -109,7 +110,7 @@ public class UDPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
         t.printStackTrace();
       }
 
-      LockSupport.parkNanos(this.period * 1000000L);
+      LockSupport.parkNanos(this.scanperiod * 1000000L);
     }
   }
 
@@ -121,35 +122,35 @@ public class UDPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
   private boolean load(Path p) {
 
     //
-    // Stop the current UDPConsumer if it exists
+    // Stop the current TCPServer if it exists
     //
 
-    UDPConsumer consumer = consumers.get(p.toString());
+    TCPManager server = managers.get(p.toString());
 
-    if (null != consumer) {
-      consumer.end();
+    if (null != server) {
+      server.end();
     }
 
     try {
-      consumer = new UDPConsumer(p);
+      server = new TCPManager(p);
     } catch (Exception e) {
       return false;
     }
 
-    consumers.put(p.toString(), consumer);
+    managers.put(p.toString(), server);
 
     return true;
   }
 
   @Override
   public void init(Properties properties) {
-    this.dir = properties.getProperty(CONF_UDP_DIR);
+    this.dir = properties.getProperty(CONF_TCP_DIR);
 
     if (null == this.dir) {
-      throw new RuntimeException("Missing '" + CONF_UDP_DIR + "' configuration.");
+      throw new RuntimeException("Missing '" + CONF_TCP_DIR + "' configuration.");
     }
 
-    this.period = Long.parseLong(properties.getProperty(CONF_UDP_PERIOD, Long.toString(DEFAULT_PERIOD)));
+    this.scanperiod = Long.parseLong(properties.getProperty(CONF_TCP_SCANPERIOD, Long.toString(DEFAULT_PERIOD)));
 
     //
     // Register shutdown hook
@@ -159,11 +160,11 @@ public class UDPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
       @Override
       public void run() {
         done = true;
-        System.out.println("UDP Plugin shutting down all consumers.");
+        System.out.println("TCP Plugin shutting down all managers.");
         this.interrupt();
-        for (UDPConsumer consumer: consumers.values()) {
+        for (TCPManager server: managers.values()) {
           try {
-            consumer.end();
+            server.end();
           } catch (Exception e) {
           }
         }
@@ -172,7 +173,7 @@ public class UDPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
 
     Thread t = new Thread(this);
     t.setDaemon(true);
-    t.setName("[Warp 10 UDP Plugin " + this.dir + "]");
+    t.setName("[Warp 10 TCP Plugin " + this.dir + "]");
     t.start();
   }
 }
