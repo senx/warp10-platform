@@ -1,9 +1,13 @@
 package io.warp10.plugins.udp;
 
+import io.warp10.warp.sdk.AbstractWarp10Plugin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.DirectoryStream;
+import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -12,147 +16,145 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.locks.LockSupport;
-
-import io.warp10.script.WarpScriptLib;
-import io.warp10.warp.sdk.AbstractWarp10Plugin;
+import java.util.function.Predicate;
 
 public class UDPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
-  
+
+  private static final Logger LOG = LoggerFactory.getLogger(UDPWarp10Plugin.class);
+
   /**
    * Directory where spec files are located
    */
   private static final String CONF_UDP_DIR = "udp.dir";
-  
+
   /**
    * Period at which to scan the spec directory
    */
-  private static final String CONF_UDP_PERIOD = "udp.period";  
+  private static final String CONF_UDP_PERIOD = "udp.period";
 
   /**
    * Default scanning period in ms
    */
   private static final long DEFAULT_PERIOD = 60000L;
-  
+
   private String dir;
   private long period;
 
   /**
    * Map of spec file to UDPConsumer instance
    */
-  private Map<String,UDPConsumer> consumers = new HashMap<String,UDPConsumer>();
-  
+  private Map<String, UDPConsumer> consumers = new HashMap<String, UDPConsumer>();
+
   private boolean done = false;
-  
+
   public UDPWarp10Plugin() {
     super();
   }
-  
+
   @Override
   public void run() {
-    while(true) {
-      
-      DirectoryStream<Path> pathes = null;
-      
+    while (!done) {
       try {
-        
-        if (done) {
-          return;
+        Iterator<Path> iter = null;
+        try {
+          iter = Files.walk(new File(dir).toPath(), FileVisitOption.FOLLOW_LINKS)
+              //.filter(path -> path.toString().endsWith(".mc2"))
+              .filter(new Predicate<Path>() {
+                @Override
+                public boolean test(Path t) {
+                  return t.toString().endsWith(".mc2");
+                }
+              })
+              .iterator();
+        } catch (NoSuchFileException nsfe) {
+          LOG.warn("TCP plugin could not find directory " + dir);
         }
-        
-        pathes = Files.newDirectoryStream(new File(dir).toPath(), "*.mc2");
-        
-        Iterator<Path> iter = pathes.iterator();
-        
+
         Set<String> specs = new HashSet<String>();
-        
-        while (iter.hasNext()) {
+
+        while (null != iter && iter.hasNext()) {
           Path p = iter.next();
-          
-          String filename = p.getFileName().toString();
-          
+
           boolean load = false;
-          
-          if (this.consumers.containsKey(filename)) {
-            if (this.consumers.get(filename).getWarpScript().length() != p.toFile().length()) {
+
+          if (this.consumers.containsKey(p.toString())) {
+            if (this.consumers.get(p.toString()).getWarpScript().length() != p.toFile().length()) {
               load = true;
             }
           } else {
             // This is a new spec
             load = true;
           }
-          
+
           if (load) {
-            load(filename);
+            load(p);
           }
-          specs.add(filename);
+          specs.add(p.toString());
         }
-                
+
         //
         // Clean the specs which disappeared
         //
-        
+
         Set<String> removed = new HashSet<String>(this.consumers.keySet());
         removed.removeAll(specs);
-        
+
         for (String spec: removed) {
           try {
             consumers.remove(spec).end();
-          } catch (Exception e) {              
+          } catch (Exception e) {
           }
         }
       } catch (Throwable t) {
         t.printStackTrace();
-      } finally {
-        if (null != pathes) {
-          try { pathes.close(); } catch (IOException ioe) {}
-        }
       }
-      
+
       LockSupport.parkNanos(this.period * 1000000L);
     }
   }
-  
+
   /**
    * Load a spec file
-   * @param filename
+   *
+   * @param p
    */
-  private boolean load(String filename) {
-    
+  private boolean load(Path p) {
+
     //
     // Stop the current UDPConsumer if it exists
     //
-    
-    UDPConsumer consumer = consumers.get(filename);
-    
+
+    UDPConsumer consumer = consumers.get(p.toString());
+
     if (null != consumer) {
       consumer.end();
     }
-    
+
     try {
-      consumer = new UDPConsumer(new File(this.dir, filename).toPath());
+      consumer = new UDPConsumer(p);
     } catch (Exception e) {
       return false;
     }
-    
-    consumers.put(filename, consumer);
-    
+
+    consumers.put(p.toString(), consumer);
+
     return true;
   }
-  
+
   @Override
   public void init(Properties properties) {
     this.dir = properties.getProperty(CONF_UDP_DIR);
-    
+
     if (null == this.dir) {
       throw new RuntimeException("Missing '" + CONF_UDP_DIR + "' configuration.");
     }
-    
+
     this.period = Long.parseLong(properties.getProperty(CONF_UDP_PERIOD, Long.toString(DEFAULT_PERIOD)));
-    
+
     //
     // Register shutdown hook
     //
-    
+
     Runtime.getRuntime().addShutdownHook(new Thread() {
       @Override
       public void run() {
@@ -162,12 +164,12 @@ public class UDPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
         for (UDPConsumer consumer: consumers.values()) {
           try {
             consumer.end();
-          } catch (Exception e) {            
+          } catch (Exception e) {
           }
         }
       }
     });
-    
+
     Thread t = new Thread(this);
     t.setDaemon(true);
     t.setName("[Warp 10 UDP Plugin " + this.dir + "]");

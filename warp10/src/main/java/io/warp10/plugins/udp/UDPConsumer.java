@@ -1,46 +1,50 @@
 package io.warp10.plugins.udp;
 
+import com.google.common.base.Charsets;
+import io.warp10.script.MemoryWarpScriptStack;
+import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStopException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Charsets;
-
-import io.warp10.script.MemoryWarpScriptStack;
-import io.warp10.script.WarpScriptStack.Macro;
-import io.warp10.script.WarpScriptStopException;
 
 public class UDPConsumer extends Thread {
 
   private static final Logger LOG = LoggerFactory.getLogger(UDPConsumer.class);
 
   private static final int DEFAULT_QSIZE = 1024;
+  private static final int DEFAULT_MAXMESSAGES = 1;
 
   private static final String PARAM_MACRO = "macro";
   private static final String PARAM_PARALLELISM = "parallelism";
   private static final String PARAM_PARTITIONER = "partitioner";
   private static final String PARAM_QSIZE = "qsize";
-  private static final String PARAM_UDP_HOST = "host";
-  private static final String PARAM_UDP_PORT = "port";
-  private static final String PARAM_UDP_TIMEOUT = "timeout";
+  private static final String PARAM_HOST = "host";
+  private static final String PARAM_PORT = "port";
+  private static final String PARAM_TIMEOUT = "timeout";
+  private static final String PARAM_MAXMESSAGES = "maxMessages";
 
   private final MemoryWarpScriptStack stack;
   private final Macro macro;
   private final Macro partitioner;
   private final String host;
-  private long timeout = 0;
+  private final long timeout;
+  private final int maxMessages;
 
   private final int parallelism;
   private final int port;
@@ -49,8 +53,7 @@ public class UDPConsumer extends Thread {
 
   private final String warpscript;
 
-  private final LinkedBlockingQueue<DatagramPacket> queue;
-  private final LinkedBlockingQueue<DatagramPacket>[] queues;
+  private final LinkedBlockingQueue<List<Object>>[] queues;
 
   private Thread[] executors;
 
@@ -100,28 +103,21 @@ public class UDPConsumer extends Thread {
 
     this.macro = (Macro) config.get(PARAM_MACRO);
     this.partitioner = (Macro) config.get(PARAM_PARTITIONER);
-    this.host = String.valueOf(config.get(PARAM_UDP_HOST));
-    this.port = ((Number) config.get(PARAM_UDP_PORT)).intValue();
-    this.parallelism = Integer.parseInt(null != config.get(PARAM_PARALLELISM) ? String.valueOf(config.get(PARAM_PARALLELISM)) : "1");
+    this.host = String.valueOf(config.get(PARAM_HOST));
+    this.port = ((Number) config.get(PARAM_PORT)).intValue();
+    this.parallelism = ((Number) config.getOrDefault(PARAM_PARALLELISM, 1)).intValue();
+    this.timeout = ((Number) config.getOrDefault(PARAM_TIMEOUT, 0L)).longValue();
+    this.maxMessages = ((Number) config.getOrDefault(PARAM_MAXMESSAGES, DEFAULT_MAXMESSAGES)).intValue();
 
-    if (config.containsKey(PARAM_UDP_TIMEOUT)) {
-      this.timeout = Long.parseLong(String.valueOf(config.get(PARAM_UDP_TIMEOUT)));
-    }
-
-    int qsize = DEFAULT_QSIZE;
-
-    if (null != config.get(PARAM_QSIZE)) {
-      qsize = Integer.parseInt(String.valueOf(config.get(PARAM_QSIZE)));
-    }
+    int qsize = ((Number) config.getOrDefault(PARAM_QSIZE, DEFAULT_QSIZE)).intValue();
 
     if (null == this.partitioner) {
-      this.queue = new LinkedBlockingQueue<DatagramPacket>(qsize);
-      this.queues = null;
+      this.queues = new LinkedBlockingQueue[0];
+      this.queues[0] = new LinkedBlockingQueue<List<Object>>(qsize);
     } else {
-      this.queue = null;
       this.queues = new LinkedBlockingQueue[this.parallelism];
       for (int i = 0; i < this.parallelism; i++) {
-        this.queues[i] = new LinkedBlockingQueue<DatagramPacket>(qsize);
+        this.queues[i] = new LinkedBlockingQueue<List<Object>>(qsize);
       }
     }
 
@@ -146,7 +142,7 @@ public class UDPConsumer extends Thread {
       final MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, new Properties());
       stack.maxLimits();
 
-      final LinkedBlockingQueue<DatagramPacket> queue = null == this.partitioner ? this.queue : this.queues[i];
+      final LinkedBlockingQueue<List<Object>> queue = this.queues[Math.min(i, this.queues.length - 1)];
 
       executors[i] = new Thread() {
         @Override
@@ -154,20 +150,24 @@ public class UDPConsumer extends Thread {
           while (true) {
 
             try {
-              DatagramPacket msg = null;
+              List<List<Object>> msgs = new ArrayList<List<Object>>();
 
               if (timeout > 0) {
-                msg = queue.poll(timeout, TimeUnit.MILLISECONDS);
+                List<Object> msg = queue.poll(timeout, TimeUnit.MILLISECONDS);
+                if (null != msg) {
+                  msgs.add(msg);
+                  queue.drainTo(msgs, maxMessages);
+                }
               } else {
-                msg = queue.take();
+                List<Object> msg = queue.take();
+                msgs.add(msg);
+                queue.drainTo(msgs, maxMessages);
               }
 
               stack.clear();
 
-              if (null != msg) {
-                stack.push(msg.getAddress().getHostAddress());
-                stack.push((long) msg.getPort());
-                stack.push(Arrays.copyOfRange(msg.getData(), msg.getOffset(), msg.getOffset() + msg.getLength()));
+              if (0 < msgs.size()) {
+                stack.push(msgs);
               } else {
                 stack.push(null);
               }
@@ -183,7 +183,7 @@ public class UDPConsumer extends Thread {
         }
       };
 
-      executors[i].setName("[UDP Executor #" + i + "]");
+      executors[i].setName("[UDP Executor on port " + this.port + " #" + i + "]");
       executors[i].setDaemon(true);
       executors[i].start();
     }
@@ -196,6 +196,7 @@ public class UDPConsumer extends Thread {
         this.socket.receive(packet);
 
         try {
+          int queueIndex = 0;
           // Apply the partitioning macro if it is defined
           if (null != this.partitioner) {
             this.stack.clear();
@@ -204,19 +205,21 @@ public class UDPConsumer extends Thread {
             this.stack.push(Arrays.copyOfRange(packet.getData(), packet.getOffset(), packet.getOffset() + packet.getLength()));
             this.stack.exec(this.partitioner);
             int seq = ((Number) this.stack.pop()).intValue();
-            this.queues[seq % this.parallelism].put(packet);
-            if (16 > this.queues[seq % this.parallelism].remainingCapacity()) {
-              LOG.warn("Packet queue almost full, increase parallelism or make your macro faster.");
-            }
-          } else {
-            this.queue.put(packet);
-            if (16 > this.queue.remainingCapacity()) {
-              LOG.warn("Packet queue almost full, increase parallelism or make your macro faster.");
-            }
+            queueIndex = seq % this.parallelism;
           }
+
+          ArrayList<Object> msg = new ArrayList<Object>();
+          msg.add(packet.getAddress().getHostName());
+          msg.add(packet.getPort());
+          msg.add(Arrays.copyOfRange(packet.getData(), packet.getOffset(), packet.getOffset() + packet.getLength()));
+
+          this.queues[queueIndex].put(msg);
+
         } catch (Exception e) {
           // Ignore exceptions
         }
+      } catch (SocketException se) {
+        // Closed socket
       } catch (Exception e) {
         LOG.error("Caught exception while receiving message", e);
       }
@@ -228,11 +231,11 @@ public class UDPConsumer extends Thread {
     this.done = true;
     try {
       this.socket.close();
-
-      for (Thread t : this.executors) {
-        t.interrupt();
-      }
     } catch (Exception e) {
+    }
+
+    for (Thread t: this.executors) {
+      t.interrupt();
     }
   }
 
