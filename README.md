@@ -14,12 +14,12 @@ The Warp 10 Platform provides a rich set of features to simplify your work aroun
 * WarpScript, a language dedicated to sensor data analysis with more than 800 functions and extension capabilities
 * Plasma and Mobius, streaming engines allowing to cascade the Warp 10 Platform with Complex Event Processing solutions and to build dynamic dashboards
 * Quasar, a fine grain access control and authorization mechanism
-* [Quantum](https://github.com/cityzendata/warp10-quantum), a set of Web Components for visualizing the result of your analysis
+* [Quantum](https://github.com/senx/warp10-quantum), a set of Web Components for visualizing the result of your analysis
 * Runner, a system for scheduling WarpScript program executions on the server side
-* [Sensision](https://github.com/cityzendata/sensision), a framework for exposing metrics and pushing them into Warp 10
+* [Sensision](https://github.com/senx/sensision), a framework for exposing metrics and pushing them into Warp 10
 * Standalone version running on a Raspberry Pi as well as on a beefy server, with no external dependencies
 * Distributed version based on Hadoop HBase for the most demanding environments
-* Integration with [Pig](https://github.com/cityzendata/warp10-pig), [Spark](https://github.com/cityzendata/warp10-spark), [Flink](https://github.com/cityzendata/warp10-flink) (yet to be released) and [Storm](https://github.com/cityzendata/warp10-storm) for batch and streaming analysis.
+* Integration with [Pig](https://github.com/senx/warp10-pig), [Spark](https://github.com/senx/warp10-spark2), [Flink](https://github.com/senx/warp10-flink) (yet to be released) and [Storm](https://github.com/senx/warp10-storm) for batch and streaming analysis.
 
 ## Getting Help
 
@@ -33,6 +33,6 @@ We also suggest you subscribe to our Twitter account [@warp10io](https://twitter
 
 ## Commercial Support
 
-Should you need commercial support for your projects, Cityzen Data offers support plans which will give you access to the core team developing the platform.
+Should you need commercial support for your projects, SenX offers support plans which will give you access to the core team developing the platform.
 
-Don't hesitate to contact us at [contact@cityzendata.com](mailto:contact@cityzendata.com) for all your enquiries.
+Don't hesitate to contact us at [sales@senx.io](mailto:sales@senx.io) for all your enquiries.

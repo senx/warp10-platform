@@ -53,7 +53,7 @@ bintray {
         repo = 'generic'
         name = 'hbaseFilters'
         licenses = ['Apache-2.0']
-        vcsUrl = 'https://github.com/cityzendata/warp10-platform.git'
+        vcsUrl = 'https://github.com/senx/warp10-platform.git'
         version {
             name = getVersionName(warp10Version['hbaseFilters'])
             released = new Date()

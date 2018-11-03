@@ -254,7 +254,7 @@ subprojects {
             repo = 'maven'
             name = 'warp10'
             licenses = ['Apache-2.0']
-            vcsUrl = 'https://github.com/cityzendata/warp10-platform.git'
+            vcsUrl = 'https://github.com/senx/warp10-platform.git'
             version {
                 name = getVersionName('')
                 released  = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZZ").format(new Date())
