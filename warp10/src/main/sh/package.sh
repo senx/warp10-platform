@@ -51,7 +51,7 @@ mkdir -p ${WARP10_HOME}/logs
 mkdir -p ${WARP10_HOME}/geodir
 
 # Get Quantum plugin
-URL_QUANTUM_PLUGIN="https://dl.bintray.com/cityzendata/generic/io/warp10/warp10-quantum-plugin/${QUANTUM_VERSION}/warp10-quantum-plugin-${QUANTUM_VERSION}.jar"
+URL_QUANTUM_PLUGIN="https://dl.bintray.com/senx/generic/io/warp10/warp10-quantum-plugin/${QUANTUM_VERSION}/warp10-quantum-plugin-${QUANTUM_VERSION}.jar"
 
 cd ${WARP10_HOME}/bin
 echo "curl -L ${URL_QUANTUM_PLUGIN} -o warp10-quantum-plugin-${QUANTUM_VERSION}.jar"
