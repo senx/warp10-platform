@@ -42,7 +42,7 @@ dependencies {
     //
     compile "io.warp10:crypto:${warp10Version['crypto']}"
     compile "io.warp10:token:${warp10Version['token']}"
-    compile 'io.warp10:sensision:1.0.11'
+    compile 'io.warp10:sensision:1.0.17'
 
     //compile 'org.xerial.snappy:snappy-java:1.0.4.1'
     compile 'joda-time:joda-time:2.2'
