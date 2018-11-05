@@ -240,6 +240,7 @@ bintray {
     pkg {
         repo = 'generic'
         name = 'warp10'
+        userOrg = 'senx'
         licenses = ['Apache-2.0']
         vcsUrl = 'https://github.com/senx/warp10-platform.git'
         version {
