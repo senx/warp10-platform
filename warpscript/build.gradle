@@ -124,6 +124,7 @@ bintray {
     pkg {
         repo = 'maven'
         name = 'warpscript'
+        userOrg = 'senx'
         licenses = ['Apache-2.0']
         vcsUrl = 'https://github.com/senx/warp10-platform.git'
         version {
