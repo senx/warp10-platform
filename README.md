@@ -35,4 +35,4 @@ We also suggest you subscribe to our Twitter account [@warp10io](https://twitter
 
 Should you need commercial support for your projects, SenX offers support plans which will give you access to the core team developing the platform.
 
-Don't hesitate to contact us at [contact@senx.io](mailto:contact@senx.io) for all your enquiries.
+Don't hesitate to contact us at [sales@senx.io](mailto:sales@senx.io) for all your enquiries.
