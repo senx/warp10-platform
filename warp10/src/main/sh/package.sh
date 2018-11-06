@@ -1,4 +1,19 @@
 #!/bin/sh
+#
+#   Copyright 2018  SenX S.A.S.
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
 
 #
 # Build the distribution .tgz for Warp 10
@@ -36,7 +51,7 @@ mkdir -p ${WARP10_HOME}/logs
 mkdir -p ${WARP10_HOME}/geodir
 
 # Get Quantum plugin
-URL_QUANTUM_PLUGIN="https://dl.bintray.com/cityzendata/generic/io/warp10/warp10-quantum-plugin/${QUANTUM_VERSION}/warp10-quantum-plugin-${QUANTUM_VERSION}.jar"
+URL_QUANTUM_PLUGIN="https://dl.bintray.com/senx/generic/io/warp10/warp10-quantum-plugin/${QUANTUM_VERSION}/warp10-quantum-plugin-${QUANTUM_VERSION}.jar"
 
 cd ${WARP10_HOME}/bin
 echo "curl -L ${URL_QUANTUM_PLUGIN} -o warp10-quantum-plugin-${QUANTUM_VERSION}.jar"
