@@ -26,7 +26,7 @@ dependencies {
     //
     compile "io.warp10:crypto:${warp10Version['crypto']}"
     compile "io.warp10:token:${warp10Version['token']}"
-    compile 'io.warp10:sensision:1.0.11'
+    compile 'io.warp10:sensision:1.0.17'
 
     //compile 'org.xerial.snappy:snappy-java:1.0.4.1'
     compile 'joda-time:joda-time:2.2'
@@ -202,8 +202,9 @@ bintray {
     pkg {
         repo = 'generic'
         name = 'warp10'
+        userOrg = 'senx'
         licenses = ['Apache-2.0']
-        vcsUrl = 'https://github.com/cityzendata/warp10-platform.git'
+        vcsUrl = 'https://github.com/senx/warp10-platform.git'
         version {
             name = getVersionName(warp10Version['warp10'])
             released = new Date()
