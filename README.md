@@ -19,7 +19,7 @@ The Warp 10 Platform provides a rich set of features to simplify your work aroun
 * [Sensision](https://github.com/senx/sensision), a framework for exposing metrics and pushing them into Warp 10
 * Standalone version running on a Raspberry Pi as well as on a beefy server, with no external dependencies
 * Distributed version based on Hadoop HBase for the most demanding environments
-* Integration with [Pig](https://github.com/senx/warp10-pig), [Spark](https://github.com/senx/warp10-spark), [Flink](https://github.com/senx/warp10-flink) (yet to be released) and [Storm](https://github.com/senx/warp10-storm) for batch and streaming analysis.
+* Integration with [Pig](https://github.com/senx/warp10-pig), [Spark](https://github.com/senx/warp10-spark2), [Flink](https://github.com/senx/warp10-flink) (yet to be released) and [Storm](https://github.com/senx/warp10-storm) for batch and streaming analysis.
 
 ## Getting Help
 
