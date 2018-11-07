@@ -132,6 +132,8 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       this.LIMIT_LABELS_CARDINALITY = Long.parseLong(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STATS_LABELS_MAXCARDINALITY));
     }
 
+    this.activityWindow = Long.parseLong(props.getProperty(io.warp10.continuum.Configuration.INGRESS_ACTIVITY_WINDOW, "0"));
+
     this.initNThreads = Integer.parseInt(props.getProperty(Configuration.DIRECTORY_INIT_NTHREADS, DIRECTORY_INIT_NTHREADS_DEFAULT));
 
     this.db = db;
@@ -572,6 +574,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   };
   
   public void register(Metadata metadata) throws IOException {
+    
     //
     // Special case of null means flush leveldb
     //
@@ -601,7 +604,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
           LOG.warn("LabelsId collision under class '" + metadata.getName() + "' " + metadata.getLabels() + " and " + metadatas.get(metadata.getName()).get(labelsId).getLabels());
           Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_LABELS_COLLISIONS, Sensision.EMPTY_LABELS, 1);
         }
-        
+
         //
         // Check activity of the GTS, storing it if the activity window has passed
         if (activityWindow > 0) {
