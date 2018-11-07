@@ -2992,7 +2992,9 @@ public class GTSHelper {
       if (null == base.ticks) {
         base.ticks = Arrays.copyOf(gts.ticks, gts.values);
       } else {
-        base.ticks = Arrays.copyOf(base.ticks, base.values + gts.values);
+        if (base.ticks.length < base.values + gts.values) {
+          base.ticks = Arrays.copyOf(base.ticks, base.values + gts.values);
+        }
         System.arraycopy(gts.ticks, 0, base.ticks, base.values, gts.values);
       }
 
@@ -3003,7 +3005,9 @@ public class GTSHelper {
           System.arraycopy(gts.locations, 0, base.locations, base.values, gts.values);
         }
       } else {
-        base.locations = Arrays.copyOf(base.locations, base.values + gts.values);
+        if (base.locations.length < base.values + gts.values) {
+          base.locations = Arrays.copyOf(base.locations, base.values + gts.values);
+        }
         if (null != gts.locations) {
           System.arraycopy(gts.locations, 0, base.locations, base.values, gts.values);
         } else {
@@ -3018,7 +3022,9 @@ public class GTSHelper {
           System.arraycopy(gts.elevations, 0, base.elevations, base.values, gts.values);
         }
       } else {
-        base.elevations = Arrays.copyOf(base.elevations, base.values + gts.values);
+        if (base.elevations.length < base.values + gts.values) {
+          base.elevations = Arrays.copyOf(base.elevations, base.values + gts.values);
+        }
         if (null != gts.elevations) {
           System.arraycopy(gts.elevations, 0, base.elevations, base.values, gts.values);
         } else {
@@ -3032,7 +3038,9 @@ public class GTSHelper {
           if (null == base.longValues) {
             base.longValues = Arrays.copyOf(gts.longValues, gts.values);
           } else {
-            base.longValues = Arrays.copyOf(base.longValues, base.values + gts.values);
+            if (base.longValues.length < base.values + gts.values) {
+              base.longValues = Arrays.copyOf(base.longValues, base.values + gts.values);
+            }
             System.arraycopy(gts.longValues, 0, base.longValues, base.values, gts.values);
           }
           break;
@@ -3041,7 +3049,9 @@ public class GTSHelper {
           if (null == base.doubleValues) {
             base.doubleValues = Arrays.copyOf(gts.doubleValues, gts.values);
           } else {
-            base.doubleValues = Arrays.copyOf(base.doubleValues, base.values + gts.values);
+            if (base.doubleValues.length < base.values + gts.values) {
+              base.doubleValues = Arrays.copyOf(base.doubleValues, base.values + gts.values);
+            }
             System.arraycopy(gts.doubleValues, 0, base.doubleValues, base.values, gts.values);
           }
           break;
@@ -3050,7 +3060,9 @@ public class GTSHelper {
           if (null == base.stringValues) {
             base.stringValues = Arrays.copyOf(gts.stringValues, gts.values);
           } else {
-            base.stringValues = Arrays.copyOf(base.stringValues, base.values + gts.values);
+            if (base.stringValues.length < base.values + gts.values) {
+              base.stringValues = Arrays.copyOf(base.stringValues, base.values + gts.values);
+            }
             System.arraycopy(gts.stringValues, 0, base.stringValues, base.values, gts.values);
           }
           break;
