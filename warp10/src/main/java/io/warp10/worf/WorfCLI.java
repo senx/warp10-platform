@@ -514,7 +514,7 @@ public class WorfCLI {
     HelpFormatter formatter = new HelpFormatter();
 
     String header = "DESCRIPTION";
-    String footer = " \n \nCOPYRIGHT\nCopyright © 2017 Cityzen Data.\n Licensed under the Apache License, Version 2.0 (the \"License\")\n" +
+    String footer = " \n \nCOPYRIGHT\nCopyright © 2018 SenX S.A.S.\n Licensed under the Apache License, Version 2.0 (the \"License\")\n" +
         "you may not use this file except in compliance with the License.\n" +
         "You may obtain a copy of the License at\n" +
         "http://www.apache.org/licenses/LICENSE-2.0";
