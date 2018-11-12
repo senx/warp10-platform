@@ -248,7 +248,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         stack.maxLimits();
 
         stack.push(o);
-        WRAP w = new WRAP("", false, snapshot.compresswrappers);
+        WRAP w = new WRAP("", false, null == snapshot ? true : snapshot.compresswrappers);
         w.apply(stack);
 
         sb.append(stack.pop());
