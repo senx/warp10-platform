@@ -125,7 +125,7 @@ public class ThrottlingConfigGenerator {
 //        "\n" + 
 //        "$token\n" +
 //        //"'ZYcRABCkn+CLO/GUWmrvelLOnvAqO9PEmo8PQtOM1tJ5o'\n" + 
-//        "'~com.cityzendata.continuum.*datapoints.raw'\n" + 
+//        "'~warp.*datapoints.raw'\n" + 
 //        "'cell' $cell 2 ->MAP\n" + 
 //        "NOW DUP 86400000000 % -\n" + 
 //        "86400000000 +\n" + 

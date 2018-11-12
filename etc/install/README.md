@@ -2,10 +2,10 @@
 
 ## Download Standalone binary
 
-Standalone binary is available via bintray: https://bintray.com/cityzendata/generic/warp10/
+Standalone binary is available via bintray: https://bintray.com/senx/generic/warp10/
 
 ~~~
-wget https://bintray.com/artifact/download/cityzendata/generic/warp10-X.Y.Z.tar.gz
+wget https://bintray.com/artifact/download/senx/generic/warp10-X.Y.Z.tar.gz
 tar xf warp10-X.Y.Z.tar.gz
 cd warp10-X.Y.Z
 ~~~
@@ -19,7 +19,7 @@ Untar the Warp10 archive.
   cd warp10-X.Y.Z/bin
 ~~~
 
-Execute Warp10 init script `warp10-standalone.sh`. This script must be run as **root**
+Execute Warp 10 init script `warp10-standalone.sh`. This script must be run as **root**
 It will create the Leveldb database and all the stuff surrounding it.
 Then the init script starts the Standalone mode with the right user `warp10`
 An initial set of tokens will be provided and some useful commands to start playing with your Warp10 instance.
