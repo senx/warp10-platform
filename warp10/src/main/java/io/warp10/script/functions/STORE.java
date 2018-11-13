@@ -21,6 +21,8 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
+import java.util.List;
+
 public class STORE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
   public STORE(String name) {
