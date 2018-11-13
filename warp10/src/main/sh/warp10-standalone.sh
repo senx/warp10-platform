@@ -56,6 +56,16 @@ else
 Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."; exit 1)
 fi
 
+#
+# Check java version
+#
+JAVA_VERSION="`${JAVACMD} -version 2>&1 | head -n 1`"
+CHECK_JAVA="`echo ${JAVA_VERSION} | egrep '.*\"1\.(7|8).*'`"
+if [ "$CHECK_JAVA" == "" ]; then
+  echo "You are using a non compatible java version: ${JAVA_VERSION}"
+  echo "We recommend the latest update of OpenJDK 1.8"
+  exit 1
+fi
 
 # If WARP10_HOME is not defined, set it to the parent directory
 if [ -z "${WARP10_HOME}" ]; then
