@@ -34,7 +34,7 @@ public class STORE extends NamedWarpScriptFunction implements WarpScriptStackFun
     Object var = stack.pop();
     
     if (!(var instanceof String) && !(var instanceof Long) && !(var instanceof List)) {
-      throw new WarpScriptException(getName() + " expects variable name or register number or a list thereof on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a variable name or register number or a list thereof on top of the stack.");
     }
     
     int count = 1;
@@ -43,8 +43,8 @@ public class STORE extends NamedWarpScriptFunction implements WarpScriptStackFun
     if (var instanceof List) {
       count = ((List) var).size();
       for (Object elt: (List) var) {
-        if (!(elt instanceof String) && !(elt instanceof Long)) {
-          throw new WarpScriptException(getName() + " expects variable name or register number or a list thereof on top of the stack.");
+        if (null != elt && (!(elt instanceof String) && !(elt instanceof Long))) {
+          throw new WarpScriptException(getName() + " expects a variable name or register number or a list thereof on top of the stack.");
         }
       }
     }
@@ -58,6 +58,10 @@ public class STORE extends NamedWarpScriptFunction implements WarpScriptStackFun
         Object symbol = ((List) var).get(i);
         
         Object o = stack.pop();
+        
+        if (null == symbol) {
+          continue;
+        }
         
         if (symbol instanceof Long) {
           stack.store(((Long) symbol).intValue(), o);
