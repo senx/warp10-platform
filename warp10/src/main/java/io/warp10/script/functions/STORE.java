@@ -34,7 +34,7 @@ public class STORE extends NamedWarpScriptFunction implements WarpScriptStackFun
     Object var = stack.pop();
 
     if (!(var instanceof String) && !(var instanceof List)) {
-      throw new WarpScriptException(getName() + " expects variable name or a list thereof on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a variable name or a list thereof on top of the stack.");
     }
     
     int count = 1;
@@ -43,8 +43,8 @@ public class STORE extends NamedWarpScriptFunction implements WarpScriptStackFun
     if (var instanceof List) {
       count = ((List) var).size();
       for (Object elt: (List) var) {
-        if (!(elt instanceof String)) {
-          throw new WarpScriptException(getName() + " expects variable name or a list thereof on top of the stack.");
+        if (null != elt && !(elt instanceof String)) {
+          throw new WarpScriptException(getName() + " expects a variable name or a list thereof on top of the stack.");
         }
       }
     }
@@ -59,7 +59,9 @@ public class STORE extends NamedWarpScriptFunction implements WarpScriptStackFun
         
         Object o = stack.pop();
         
-        stack.store(symbol.toString(), o);
+        if (null != symbol) {
+          stack.store(symbol.toString(), o);
+        }
       }      
     } else {
       Object o = stack.pop();
