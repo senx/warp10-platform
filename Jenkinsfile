@@ -24,7 +24,7 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '3'))
     }
     environment {
-        THRIFT_HOME = '/opt/thrift-0.9.1'
+        THRIFT_HOME = '/opt/thrift-0.11.0'
         version = "${getVersion()}"
         BINTRAY_USER = getParam('BINTRAY_USER')
         BINTRAY_API_KEY = getParam('BINTRAY_API_KEY')
