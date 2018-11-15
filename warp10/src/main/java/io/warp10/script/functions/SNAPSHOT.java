@@ -157,6 +157,23 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(WarpScriptLib.STORE);
         sb.append(" ");
       }
+      
+      //
+      // Snapshot the registers
+      //
+      
+      Object[] regs = stack.getRegisters();
+      
+      sb.append(WarpScriptLib.CLEARREGS);
+      sb.append(" ");
+      for (int i = 0; i < regs.length; i++) {
+        if (null != regs[i]) {
+          addElement(this, sb, regs[i]);
+          sb.append(WarpScriptLib.POPR);
+          sb.append(i);
+          sb.append(" ");
+        }
+      }
     }
 
     // Clear the stack

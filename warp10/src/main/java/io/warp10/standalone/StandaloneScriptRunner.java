@@ -19,7 +19,6 @@ package io.warp10.standalone;
 import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.TimeSource;
-import io.warp10.continuum.geo.GeoDirectoryClient;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
@@ -55,7 +54,6 @@ public class StandaloneScriptRunner extends ScriptRunner {
   
   private final StoreClient storeClient;
   private final DirectoryClient directoryClient;
-  private final GeoDirectoryClient geoDirectoryClient;
   private final Properties props;
   private final BootstrapManager bootstrapManager;
 
@@ -63,12 +61,11 @@ public class StandaloneScriptRunner extends ScriptRunner {
 
   private final byte[] runnerPSK;
   
-  public StandaloneScriptRunner(Properties properties, KeyStore keystore, StoreClient storeClient, DirectoryClient directoryClient, GeoDirectoryClient geoDirectoryClient, Properties props) throws IOException {
+  public StandaloneScriptRunner(Properties properties, KeyStore keystore, StoreClient storeClient, DirectoryClient directoryClient, Properties props) throws IOException {
     super(keystore, props);
 
     this.props = props;
     this.directoryClient = directoryClient;
-    this.geoDirectoryClient = geoDirectoryClient;
     this.storeClient = storeClient;
     
     //
@@ -107,17 +104,17 @@ public class StandaloneScriptRunner extends ScriptRunner {
           String path = f.getAbsolutePath().substring(getRoot().length() + 1);
           labels.put(SensisionConstants.SENSISION_LABEL_PATH, path);
           
-          Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_COUNT, labels, 1);
+          Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_COUNT, labels, 1);
 
           long nano = System.nanoTime();
           
-          WarpScriptStack stack = new MemoryWarpScriptStack(storeClient, directoryClient, geoDirectoryClient, props);
+          WarpScriptStack stack = new MemoryWarpScriptStack(storeClient, directoryClient, props);
 
           
           ByteArrayOutputStream baos = new ByteArrayOutputStream();
           
           try {            
-            Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_CURRENT, Sensision.EMPTY_LABELS, 1);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_CURRENT, Sensision.EMPTY_LABELS, 1);
 
             InputStream in = new FileInputStream(f);
                         
@@ -173,15 +170,15 @@ public class StandaloneScriptRunner extends ScriptRunner {
             
             stack.execMulti(new String(baos.toByteArray(), Charsets.UTF_8));
           } catch (Exception e) {                
-            Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_FAILURES, labels, 1);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, 1);
           } finally {
             nextrun.put(script, nowts + periodicity);
             nano = System.nanoTime() - nano;
-            Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_TIME_US, labels, (long) (nano / 1000L));
-            Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_ELAPSED, labels, nano); 
-            Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_OPS, labels, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS)); 
-            Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_FETCHED, labels, ((AtomicLong) stack.getAttribute(WarpScriptStack.ATTRIBUTE_FETCH_COUNT)).get());            
-            Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_RUN_CURRENT, Sensision.EMPTY_LABELS, -1);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, (long) (nano / 1000L));
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_ELAPSED, labels, nano); 
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_OPS, labels, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS)); 
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FETCHED, labels, ((AtomicLong) stack.getAttribute(WarpScriptStack.ATTRIBUTE_FETCH_COUNT)).get());            
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_CURRENT, Sensision.EMPTY_LABELS, -1);
           }              
         }
       });                  

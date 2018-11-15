@@ -20,7 +20,6 @@ import io.warp10.WarpDist;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.egress.EgressFetchHandler;
-import io.warp10.continuum.geo.GeoDirectoryClient;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
@@ -31,6 +30,7 @@ import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.GTSDecoderIterator;
 import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.StoreClient;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.MetaSet;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
@@ -86,31 +86,29 @@ import com.google.common.base.Charsets;
  */
 public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  private static final String PARAM_CLASS = "class";
+  public static final String PARAM_CLASS = "class";
   
   /**
-   * Extra classes to retrieve after Directory/GeoDirectory have been called
+   * Extra classes to retrieve after Directory have been called
    */
-  private static final String PARAM_EXTRA = "extra";
-  private static final String PARAM_LABELS = "labels";
-  private static final String PARAM_SELECTOR = "selector";
-  private static final String PARAM_SELECTORS = "selectors";
-  private static final String PARAM_SELECTOR_PAIRS = "selpairs";
-  private static final String PARAM_TOKEN = "token";
-  private static final String PARAM_END = "end";
-  private static final String PARAM_START = "start";
-  private static final String PARAM_COUNT = "count";
-  private static final String PARAM_TIMESPAN = "timespan";
-  private static final String PARAM_TYPE = "type";
-  private static final String PARAM_GEO = "geo";
-  private static final String PARAM_GEODIR = "geodir";
-  private static final String PARAM_GEOOP = "geoop";
-  private static final String PARAM_GEOOP_IN = "in";
-  private static final String PARAM_GEOOP_OUT = "out";
-  private static final String PARAM_WRITE_TIMESTAMP = "wtimestamp";
-  private static final String PARAM_SHOWUUID = "showuuid";
-  private static final String PARAM_TYPEATTR = "typeattr";
-  private static final String PARAM_METASET = "metaset";
+  public static final String PARAM_EXTRA = "extra";
+  public static final String PARAM_LABELS = "labels";
+  public static final String PARAM_SELECTOR = "selector";
+  public static final String PARAM_SELECTORS = "selectors";
+  public static final String PARAM_SELECTOR_PAIRS = "selpairs";
+  public static final String PARAM_TOKEN = "token";
+  public static final String PARAM_END = "end";
+  public static final String PARAM_START = "start";
+  public static final String PARAM_COUNT = "count";
+  public static final String PARAM_TIMESPAN = "timespan";
+  public static final String PARAM_TYPE = "type";
+  public static final String PARAM_WRITE_TIMESTAMP = "wtimestamp";
+  public static final String PARAM_SHOWUUID = "showuuid";
+  public static final String PARAM_TYPEATTR = "typeattr";
+  public static final String PARAM_METASET = "metaset";
+  public static final String PARAM_GTS = "gts";
+  public static final String PARAM_ACTIVE_AFTER = "active.after";
+  public static final String PARAM_QUIET_AFTER = "quiet.after";
   
   public static final String POSTFETCH_HOOK = "postfetch";
   
@@ -308,6 +306,38 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       metaset = (MetaSet) params.get(PARAM_METASET);
       
       iter = metaset.getMetadatas().iterator();
+    } else if (params.containsKey(PARAM_GTS)) {
+      List<Metadata> metas = (List<Metadata>) params.get(PARAM_GTS);
+      
+      for (Metadata m: metas) {
+        if (null == m.getLabels()) {
+          m.setLabels(new HashMap<String,String>());
+        }
+        m.getLabels().remove(Constants.PRODUCER_LABEL);
+        m.getLabels().remove(Constants.OWNER_LABEL);
+        m.getLabels().remove(Constants.APPLICATION_LABEL);
+        m.getLabels().putAll(Tokens.labelSelectorsFromReadToken(rtoken));
+                
+        if (m.getLabels().containsKey(Constants.PRODUCER_LABEL) && '=' == m.getLabels().get(Constants.PRODUCER_LABEL).charAt(0)) {
+          m.getLabels().put(Constants.PRODUCER_LABEL, m.getLabels().get(Constants.PRODUCER_LABEL).substring(1));
+        } else if (m.getLabels().containsKey(Constants.PRODUCER_LABEL)) {
+          throw new WarpScriptException(getName() + " provided token is incompatible with '" + PARAM_GTS + "' parameter, expecting a single producer.");
+        }
+        
+        if (m.getLabels().containsKey(Constants.OWNER_LABEL) && '=' == m.getLabels().get(Constants.OWNER_LABEL).charAt(0)) {
+          m.getLabels().put(Constants.OWNER_LABEL, m.getLabels().get(Constants.OWNER_LABEL).substring(1));
+        } else {
+          throw new WarpScriptException(getName() + " provided token is incompatible with '" + PARAM_GTS + "' parameter, expecting a single owner.");
+        }
+        
+        if (m.getLabels().containsKey(Constants.APPLICATION_LABEL) && '=' == m.getLabels().get(Constants.APPLICATION_LABEL).charAt(0)) {
+          m.getLabels().put(Constants.APPLICATION_LABEL, m.getLabels().get(Constants.APPLICATION_LABEL).substring(1));
+        } else {
+          throw new WarpScriptException(getName() + " provided token is incompatible with '" + PARAM_GTS + "' parameter, expecting a single application.");
+        }
+      }
+      
+      iter = ((List<Metadata>) params.get(PARAM_GTS)).iterator();
     } else {
       if (params.containsKey(PARAM_SELECTOR_PAIRS)) {
         for (Pair<Object,Object> pair: (List<Pair<Object,Object>>) params.get(PARAM_SELECTOR_PAIRS)) {
@@ -322,13 +352,25 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         clsSels.add(params.get(PARAM_CLASS).toString());
         lblsSels.add(labelSelectors);
       }      
-            
+           
+      DirectoryRequest drequest = new DirectoryRequest();
+      drequest.setClassSelectors(clsSels);
+      drequest.setLabelsSelectors(lblsSels);
+
+      if (params.containsKey(PARAM_ACTIVE_AFTER)) {
+        drequest.setActiveAfter((long) params.get(PARAM_ACTIVE_AFTER));
+      }
+
+      if (params.containsKey(PARAM_QUIET_AFTER)) {
+        drequest.setQuietAfter((long) params.get(PARAM_QUIET_AFTER));
+      }
+
       try {
-        metadatas = directoryClient.find(clsSels, lblsSels);
+        metadatas = directoryClient.find(drequest);
         iter = metadatas.iterator();
       } catch (IOException ioe) {
         try {
-          iter = directoryClient.iterator(clsSels, lblsSels);
+          iter = directoryClient.iterator(drequest);
         } catch (Exception e) {
           throw new WarpScriptException(e);
         }
@@ -360,32 +402,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         if (metadatas.size() < EgressFetchHandler.FETCH_BATCHSIZE && iter.hasNext()) {
           continue;
         }
-        
-        //
-        // Filter the retrieved Metadata according to geo
-        //
-        
-        if (params.containsKey(PARAM_GEO)) {
-          GeoDirectoryClient geoclient = stack.getGeoDirectoryClient();
-          long end = (long) params.get(PARAM_END);
-          long start = Long.MIN_VALUE;
-          if (params.containsKey(PARAM_TIMESPAN)) {
-            start = end - (long) params.get(PARAM_TIMESPAN);
-          }
-          
-          boolean inside = false;
-          
-          if (PARAM_GEOOP_IN.equals(params.get(PARAM_GEOOP))) {
-            inside = true;
-          }
-          
-          try {
-            metadatas = geoclient.filter((String) params.get(PARAM_GEODIR), metadatas, (GeoXPShape) params.get(PARAM_GEO), inside, start, end);
-          } catch (IOException ioe) {
-            throw new WarpScriptException(ioe);
-          }
-        }
-        
+                
         //
         // Generate extra Metadata if PARAM_EXTRA is set
         //
@@ -515,7 +532,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               if (fetched.addAndGet(count) > fetchLimit) {
                 Map<String,String> sensisionLabels = new HashMap<String, String>();
                 sensisionLabels.put(SensisionConstants.SENSISION_LABEL_CONSUMERID, Tokens.getUUID(rtoken.getBilledId()));
-                Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_FETCHCOUNT_EXCEEDED, sensisionLabels, 1);
+                Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FETCHCOUNT_EXCEEDED, sensisionLabels, 1);
                 throw new WarpScriptException(getName() + " exceeded limit of " + fetchLimit + " datapoints, current count is " + fetched.get());
               }
 
@@ -590,7 +607,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
             if (fetched.addAndGet(gts.size()) > fetchLimit) {
               Map<String,String> sensisionLabels = new HashMap<String, String>();
               sensisionLabels.put(SensisionConstants.SENSISION_LABEL_CONSUMERID, Tokens.getUUID(rtoken.getBilledId()));
-              Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_FETCHCOUNT_EXCEEDED, sensisionLabels, 1);
+              Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FETCHCOUNT_EXCEEDED, sensisionLabels, 1);
               throw new WarpScriptException(getName() + " exceeded limit of " + fetchLimit + " datapoints, current count is " + fetched.get());
               //break;
             }
@@ -714,7 +731,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       params.put(PARAM_METASET, metaset);      
       params.put(PARAM_TOKEN, metaset.getToken());
     }
-    
+        
     if (!params.containsKey(PARAM_TOKEN)) {
       if (!map.containsKey(PARAM_TOKEN)) {
         throw new WarpScriptException(getName() + " Missing '" + PARAM_TOKEN + "' parameter");
@@ -723,6 +740,25 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       params.put(PARAM_TOKEN, map.get(PARAM_TOKEN));      
     }
     
+    if (map.containsKey(PARAM_GTS)) {
+      Object o = map.get(PARAM_GTS);
+
+      if (!(o instanceof List)) {
+        throw new WarpScriptException(getName() + " invalid '" + PARAM_GTS + "' parameter, expected a list of Geo Time Series.");
+      }
+      
+      List<Metadata> metadatas = new ArrayList<Metadata>();
+      
+      for (Object elt: (List<Object>) o) {
+        if (!(elt instanceof GeoTimeSerie)) {
+          throw new WarpScriptException(getName() + " invalid '" + PARAM_GTS + "' parameter, expected a list of Geo Time Series.");
+        }
+        metadatas.add((new Metadata(((GeoTimeSerie) elt).getMetadata())));        
+      }
+      
+      params.put(PARAM_GTS, metadatas);
+    }
+
     if (map.containsKey(PARAM_SELECTORS)) {
       Object sels = map.get(PARAM_SELECTORS);
       if (!(sels instanceof List)) {
@@ -741,9 +777,9 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       params.put(PARAM_LABELS, clslbls[1]);
     } else if (map.containsKey(PARAM_CLASS) && map.containsKey(PARAM_LABELS)) {
       params.put(PARAM_CLASS, map.get(PARAM_CLASS));
-      params.put(PARAM_LABELS, new HashMap<String,String>((Map<String,String>) map.get(PARAM_LABELS)));
-    } else if (!params.containsKey(PARAM_METASET)) {
-      throw new WarpScriptException(getName() + " Missing '" + PARAM_SELECTOR + "', '" + PARAM_SELECTORS + "' or '" + PARAM_CLASS + "' and '" + PARAM_LABELS + "' parameters.");
+      params.put(PARAM_LABELS, map.get(PARAM_LABELS));
+    } else if (!params.containsKey(PARAM_METASET) && !params.containsKey(PARAM_GTS)) {
+      throw new WarpScriptException(getName() + " Missing '" + PARAM_METASET + "', '" + PARAM_GTS + "', '" + PARAM_SELECTOR + "', '" + PARAM_SELECTORS + "' or '" + PARAM_CLASS + "' and '" + PARAM_LABELS + "' parameters.");
     }
     
     if (!map.containsKey(PARAM_END)) {
@@ -850,35 +886,6 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         params.put(PARAM_END, end);
       }
     }
-
-    if (map.containsKey(PARAM_GEO)) {      
-      if (!(map.get(PARAM_GEO) instanceof GeoXPShape)) {
-        throw new WarpScriptException(getName() + " Invalid '" + PARAM_GEO + "' type.");
-      }
-      
-      if (!map.containsKey(PARAM_GEODIR)) {
-        throw new WarpScriptException(getName() + " Missing '" + PARAM_GEODIR + "' parameter.");
-      }
-      
-      if (!stack.getGeoDirectoryClient().knowsDirectory(map.get(PARAM_GEODIR).toString())) {
-        throw new WarpScriptException(getName() + " Unknwon directory '" + map.get(PARAM_GEODIR) + "' for parameter '" + PARAM_GEODIR + "'.");        
-      }
-      
-      params.put(PARAM_GEODIR, map.get(PARAM_GEODIR));
-      params.put(PARAM_GEO, map.get(PARAM_GEO));
-      
-      if (map.containsKey(PARAM_GEOOP)) {
-        if (PARAM_GEOOP_IN.equals(map.get(PARAM_GEOOP))) {
-          params.put(PARAM_GEOOP, PARAM_GEOOP_IN);
-        } else if (PARAM_GEOOP_OUT.equals(map.get(PARAM_GEOOP))) {
-          params.put(PARAM_GEOOP, PARAM_GEOOP_OUT);
-        } else {
-          throw new WarpScriptException(getName() + " Invalid value for parameter '" + PARAM_GEOOP + "'");
-        }
-      } else {
-        params.put(PARAM_GEOOP, PARAM_GEOOP_IN);
-      }
-    }
     
     if (map.containsKey(PARAM_TYPE)) {
       String type = map.get(PARAM_TYPE).toString();
@@ -909,7 +916,12 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       if (params.containsKey(PARAM_METASET)) {
         throw new WarpScriptException(getName() + " Cannot specify '" + PARAM_EXTRA + "' when '" + PARAM_METASET + "' is used.");
       }
-      
+
+      // Check that we are not using a MetaSet
+      if (params.containsKey(PARAM_GTS)) {
+        throw new WarpScriptException(getName() + " Cannot specify '" + PARAM_EXTRA + "' when '" + PARAM_GTS + "' is used.");
+      }
+
       if (!(map.get(PARAM_EXTRA) instanceof List)) {
         throw new WarpScriptException(getName() + " Invalid type for parameter '" + PARAM_EXTRA + "'.");
       }
@@ -930,6 +942,20 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       params.put(PARAM_WRITE_TIMESTAMP, Boolean.TRUE.equals(map.get(PARAM_WRITE_TIMESTAMP)));
     }
     
+    if (map.containsKey(PARAM_ACTIVE_AFTER)) {
+      if (!(map.get(PARAM_ACTIVE_AFTER) instanceof Long)) {
+        throw new WarpScriptException(getName() + " Invalid type for parameter '" + PARAM_ACTIVE_AFTER + "'.");
+      }
+      params.put(PARAM_ACTIVE_AFTER, ((long) map.get(PARAM_ACTIVE_AFTER)) / Constants.TIME_UNITS_PER_MS);
+    }
+
+    if (map.containsKey(PARAM_QUIET_AFTER)) {
+      if (!(map.get(PARAM_QUIET_AFTER) instanceof Long)) {
+        throw new WarpScriptException(getName() + " Invalid type for parameter '" + PARAM_QUIET_AFTER + "'.");
+      }
+      params.put(PARAM_QUIET_AFTER, ((long) map.get(PARAM_QUIET_AFTER)) / Constants.TIME_UNITS_PER_MS);
+    }
+
     return params;
   }
 }

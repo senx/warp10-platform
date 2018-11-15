@@ -169,7 +169,7 @@ public class WarpScriptMacroRepository extends Thread {
       // Update macro count
       //
       
-      Sensision.set(SensisionConstants.SENSISION_CLASS_EINSTEIN_REPOSITORY_MACROS, Sensision.EMPTY_LABELS, newmacros.size());
+      Sensision.set(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_REPOSITORY_MACROS, Sensision.EMPTY_LABELS, newmacros.size());
       
       //
       // Sleep a while

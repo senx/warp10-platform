@@ -68,7 +68,7 @@ import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 
 /**
- * Mobius allows Einstein scripts to be periodically executed and their result
+ * Mobius allows WarpScript scripts to be periodically executed and their result
  * to be pushed back to the caller.
  * 
   */
@@ -137,7 +137,7 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
       
       if("ABORT".equals(message)) {
         //
-        // Abort current background Einstein execution
+        // Abort current background WarpScript execution
         //
         
         mobius.removeSession(session);
@@ -157,7 +157,7 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
       sb.append(WarpScriptStack.MACRO_END);
       
       //
-      // Execute Einstein so we retrieve the macro
+      // Execute WarpScript so we retrieve the macro
       //
       
       WarpScriptStack stack = new MemoryWarpScriptStack(null, null);           
@@ -312,7 +312,7 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
     // Configure executor
     //
     
-    Executor executor = new ThreadPoolExecutor(poolsize >>> 1, poolsize, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1 + (poolsize >>> 1)));
+    Executor executor = new ThreadPoolExecutor(poolsize, poolsize, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1 + (poolsize >>> 1)));
     
     while (true) {
       

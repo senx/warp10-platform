@@ -86,10 +86,9 @@ public class Configuration {
   public static final String WARP_HBASE_REGIONKEYS_UPDATEPERIOD = "warp.hbase.regionkeys.updateperiod";
   
   /**
-   * Comma separated list of additional languages to support within WarpScript
-   * This MUST be set as a system property
+   * Number of registers to allocate in stacks. Defaults to WarpScriptStack.DEFAULT_REGISTERS
    */
-  public static final String CONFIG_WARPSCRIPT_LANGUAGES = "warpscript.languages";
+  public static final String CONFIG_WARPSCRIPT_REGISTERS = "warpscript.registers";
   
   /**
    * Comma separated list of WarpScriptExtension classes to instantiate to modify
@@ -106,6 +105,8 @@ public class Configuration {
    * Prefix for properties which define WarpScript extension namespaces.
    */
   public static final String CONFIG_WARPSCRIPT_NAMESPACE_PREFIX = "warpscript.namespace.";
+  
+  public static final String CONFIG_WARPSCRIPT_DEFAULTCL_PREFIX = "warpscript.defaultcl.";
   
   /**
    * This configuration parameter determines if undefining a function (via NULL 'XXX' DEF)
@@ -223,7 +224,7 @@ public class Configuration {
   public static final String WARP_TIME_UNITS = "warp.timeunits";
 
   /**
-   * Path of the 'bootstrap' Einstein code for Egress
+   * Path of the 'bootstrap' WarpScript code for Egress
    */
   public static final String CONFIG_WARPSCRIPT_BOOTSTRAP_PATH = "warpscript.bootstrap.path";
   
@@ -233,10 +234,10 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_BOOTSTRAP_PERIOD = "warpscript.bootstrap.period";
 
   /**
-   * Path of the 'bootstrap' Einstein code for Mobius
+   * Path of the 'bootstrap' WarpScript code for Mobius
    */
   public static final String CONFIG_WARPSCRIPT_MOBIUS_BOOTSTRAP_PATH = "warpscript.mobius.bootstrap.path";
-  
+    
   /**
    * Number of threads in the Mobius pool
    */
@@ -248,7 +249,27 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_MOBIUS_BOOTSTRAP_PERIOD = "warpscript.mobius.bootstrap.period";
 
   /**
-   * Path of the 'bootstrap' Einstein code for Runner
+   * Path of the 'bootstrap' WarpScript code for the Read Execute Loop
+   */
+  public static final String CONFIG_WARPSCRIPT_INTERACTIVE_BOOTSTRAP_PATH = "warpscript.interactive.bootstrap.path";
+
+  /**
+   * How often to reload the bootstrap code (in ms) for REL
+   */
+  public static final String CONFIG_WARPSCRIPT_INTERACTIVE_BOOTSTRAP_PERIOD = "warpscript.interactive.bootstrap.period";
+
+  /**
+   * Maximum number of parallel interactive sessions.
+   */
+  public static final String CONFIG_WARPSCRIPT_INTERACTIVE_CAPACITY = "warpscript.interactive.capacity";
+  
+  /**
+   * Port on which the REL will listen
+   */
+  public static final String CONFIG_WARPSCRIPT_INTERACTIVE_TCP_PORT = "warpscript.interactive.tcp.port";
+  
+  /**
+   * Path of the 'bootstrap' WarpScript code for Runner
    */
   public static final String CONFIG_WARPSCRIPT_RUNNER_BOOTSTRAP_PATH = "warpscript.runner.bootstrap.path";
   
@@ -513,10 +534,36 @@ public class Configuration {
    */
   public static final String DIRECTORY_METADATA_CACHE_SIZE = "directory.metadata.cache.size";
 
+  /**
+   * Activity window (in ms) to consider when deciding to store a Metadata we already know into HBase
+   */
+  public static final String DIRECTORY_ACTIVITY_WINDOW = "directory.activity.window";
+  
   //
   // I N G R E S S
   //
   /////////////////////////////////////////////////////////////////////////////////////////
+  
+  /**
+   * Length of the activity window in ms. If this parameter is set then GTS activity will
+   * be monitored according to the configured activity events.
+   */
+  public static final String INGRESS_ACTIVITY_WINDOW = "ingress.activity.window";
+  
+  /**
+   * Set this to true to take into account updates in the GTS activity.
+   */
+  public static final String INGRESS_ACTIVITY_UPDATE = "ingress.activity.update";
+
+  /**
+   * Set this to true to take into account calls to meta in the GTS activity.
+   */
+  public static final String INGRESS_ACTIVITY_META = "ingress.activity.meta";
+
+  /**
+   * Set to true to parse attributes in the data passed to /update.
+   */
+  public static final String INGRESS_PARSE_ATTRIBUTES = "ingress.parse.attributes";
   
   /**
    * Should we shuffle the GTS prior to issueing delete messages. Set to true or false.
@@ -1163,7 +1210,7 @@ public class Configuration {
   public static final String RUNNER_SCANPERIOD = "runner.scanperiod";
   
   /**
-   * Einstein endpoint to use for executing the scripts
+   * WarpScript endpoint to use for executing the scripts
    */
   public static final String RUNNER_ENDPOINT = "runner.endpoint";
   
@@ -1468,6 +1515,11 @@ public class Configuration {
   public static final String WARP_MOBIUS_DISABLE = "warp.mobius.disable";
 
   /**
+   * Set to 'true' to disable the Read Execute Loop
+   */
+  public static final String WARP_INTERACTIVE_DISABLE = "warp.interactive.disable";
+  
+  /**
    * Set to 'true' to disable stream updates
    */
   public static final String WARP_STREAMUPDATE_DISABLE = "warp.streamupdate.disable";
@@ -1768,147 +1820,6 @@ public class Configuration {
    * Default value for the maxwait timeout
    */
   public static final String THROTTLING_MANAGER_MAXWAIT_DEFAULT = "throttling.manager.maxwait.default";
-
-  //
-  // G E O D I R
-  //
-  /////////////////////////////////////////////////////////////////////////////////////////
-  
-  /**
-   * Prefix to use if dumping/loading the LKP indices
-   */
-  public static final String GEODIR_DUMP_PREFIX = "geodir.dump.prefix";
-  
-  public static final String GEODIR_KAFKA_SUBS_ZKCONNECT = "geodir.kafka.subs.zkconnect";
-  public static final String GEODIR_KAFKA_SUBS_BROKERLIST = "geodir.kafka.subs.brokerlist";
-  public static final String GEODIR_KAFKA_SUBS_PRODUCER_CLIENTID = "geodir.kafka.subs.producer.clientid";
-  public static final String GEODIR_KAFKA_SUBS_TOPIC = "geodir.kafka.subs.topic";
-  public static final String GEODIR_KAFKA_SUBS_GROUPID = "geodir.kafka.subs.groupid";
-  public static final String GEODIR_KAFKA_SUBS_CONSUMER_CLIENTID = "geodir.kafka.subs.consumer.clientid";
-  /**
-   * Name of partition assignment strategy to use
-   */
-  public static final String GEODIR_KAFKA_SUBS_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY = "geodir.kafka.subs.consumer.partition.assignment.strategy";
-
-  public static final String GEODIR_KAFKA_SUBS_NTHREADS = "geodir.kafka.subs.nthreads";
-  public static final String GEODIR_KAFKA_SUBS_COMMITPERIOD = "geodir.kafka.subs.commitperiod";
-  public static final String GEODIR_KAFKA_SUBS_MAC = "geodir.kafka.subs.mac";
-  public static final String GEODIR_KAFKA_SUBS_AES = "geodir.kafka.subs.aes";
-
-  public static final String GEODIR_KAFKA_DATA_ZKCONNECT = "geodir.kafka.data.zkconnect";
-  public static final String GEODIR_KAFKA_DATA_BROKERLIST = "geodir.kafka.data.brokerlist";
-  public static final String GEODIR_KAFKA_DATA_PRODUCER_CLIENTID = "geodir.kafka.data.producer.clientid";
-  public static final String GEODIR_KAFKA_DATA_TOPIC = "geodir.kafka.data.topic";
-  public static final String GEODIR_KAFKA_DATA_GROUPID = "geodir.kafka.data.groupid";
-  public static final String GEODIR_KAFKA_DATA_CONSUMER_CLIENTID = "geodir.kafka.data.consumer.clientid";
-  /**
-   * Name of partition assignment strategy to use
-   */
-  public static final String GEODIR_KAFKA_DATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY = "geodir.kafka.data.consumer.partition.assignment.strategy";
-
-  public static final String GEODIR_KAFKA_DATA_NTHREADS = "geodir.kafka.data.nthreads";
-  public static final String GEODIR_KAFKA_DATA_COMMITPERIOD = "geodir.kafka.data.commitperiod";
-  public static final String GEODIR_KAFKA_DATA_MAC = "geodir.kafka.data.mac";
-  public static final String GEODIR_KAFKA_DATA_AES = "geodir.kafka.data.aes";
-  public static final String GEODIR_KAFKA_DATA_MAXSIZE = "geodir.kafka.data.maxsize";
-  
-  public static final String GEODIR_ID = "geodir.id";
-  public static final String GEODIR_NAME = "geodir.name";
-  public static final String GEODIR_MODULUS = "geodir.modulus";
-  public static final String GEODIR_REMAINDER = "geodir.remainder";
-  public static final String GEODIR_HTTP_PORT = "geodir.http.port";
-  public static final String GEODIR_HTTP_HOST = "geodir.http.host";
-  public static final String GEODIR_ACCEPTORS = "geodir.acceptors";
-  public static final String GEODIR_SELECTORS = "geodir.selectors";
-  public static final String GEODIR_IDLE_TIMEOUT = "geodir.idle.timeout";
-  public static final String GEODIR_THRIFT_PORT = "geodir.thrift.port";
-  public static final String GEODIR_THRIFT_HOST = "geodir.thrift.host";
-  public static final String GEODIR_THRIFT_MAXTHREADS = "geodir.thrift.maxthreads";
-  public static final String GEODIR_THRIFT_MAXFRAMELEN = "geodir.thrift.maxframelen";
-  public static final String GEODIR_MAXCELLS = "geodir.maxcells";
-  public static final String GEODIR_RESOLUTION = "geodir.resolution";
-  public static final String GEODIR_CHUNK_DEPTH = "geodir.chunk.depth";
-  public static final String GEODIR_CHUNK_COUNT = "geodir.chunk.count";
-  public static final String GEODIR_PERIOD = "geodir.period";
-  public static final String GEODIR_DIRECTORY_PSK = "geodir.directory.psk";
-  public static final String GEODIR_FETCH_PSK = "geodir.fetch.psk";
-  public static final String GEODIR_FETCH_ENDPOINT = "geodir.fetch.endpoint";
-  
-  public static final String GEODIR_ZK_SUBS_QUORUM = "geodir.zk.subs.quorum";
-  public static final String GEODIR_ZK_SUBS_ZNODE = "geodir.zk.subs.znode";
-  public static final String GEODIR_ZK_SUBS_MAXZNODESIZE = "geodir.zk.subs.maxznodesize";
-  public static final String GEODIR_ZK_SUBS_AES = "geodir.zk.subs.aes";
-  
-  public static final String GEODIR_ZK_PLASMA_QUORUM = "geodir.zk.plasma.quorum";
-  public static final String GEODIR_ZK_PLASMA_ZNODE = "geodir.zk.plasma.znode";
-  public static final String GEODIR_ZK_PLASMA_MAXZNODESIZE = "geodir.zk.plasma.maxznodesize";
-  
-  public static final String GEODIR_ZK_SERVICE_QUORUM = "geodir.zk.service.quorum";
-  public static final String GEODIR_ZK_SERVICE_ZNODE = "geodir.zk.service.znode";
-  
-  public static final String GEODIR_ZK_DIRECTORY_QUORUM = "geodir.zk.directory.quorum";
-  public static final String GEODIR_ZK_DIRECTORY_ZNODE = "geodir.zk.directory.znode";
-  
-  /**
-   * Comma separated list of GeoDirectory instances to maintain.
-   * Each instance is defined by a string with the following format:
-   * 
-   * name/resolution/chunks/chunkdepth
-   * 
-   * name is the name of the GeoDirectory
-   * resolution is a number between 1 and 15 defining the resolution of the geo index:
-   * 
-   * 1 = 10,000 km
-   * 2 =  2,500 km
-   * 3 =    625 km
-   * 4 =    156 km
-   * 5 =     39 km
-   * 6 =     10 km
-   * 7 =  2,441 m
-   * 8 =    610 m
-   * 9 =    153 m
-   * 10=     38 m
-   * 11=     10 m
-   * 12=    238 cm 
-   * 13=     60 cm
-   * 14=     15 cm
-   * 15=      4 cm
-   * 
-   * chunks is the number of time chunks to maintain
-   * chunkdepth is the time span of each time chunk, in ms
-   */
-  public static final String STANDALONE_GEODIRS = "standalone.geodirs";
-  
-  /**
-   * Delay in ms between two subscription updates
-   */
-  public static final String STANDALONE_GEODIR_DELAY = "standalone.geodir.delay";
-  
-  /**
-   * Maximum number of 'cells' in the query area, system will attempt to reduce the number
-   * of cells searched by replacing small cells with their enclosing parent until the number
-   * of cells falls below this maximum or no more simplification can be done.
-   * 
-   * A good value for performance is around 256
-   */
-  public static final String STANDALONE_GEODIR_MAXCELLS = "standalone.geodir.maxcells";
-  
-  /**
-   * AES encryption key for subscriptions
-   */
-  public static final String STANDALONE_GEODIR_AES = "standalone.geodir.aes";
-  
-  /**
-   * Directory where subscriptions should be stored
-   */
-  public static final String STANDALONE_GEODIR_SUBS_DIR = "standalone.geodir.subs.dir";
-  
-  /**
-   * Prefix for subscription files
-   */
-  public static final String STANDALONE_GEODIR_SUBS_PREFIX = "standalone.geodir.subs.prefix";
-  
-  /////////////////////////////////////////////////////////////////////////////////////////
 
   //
   // Jar Repository

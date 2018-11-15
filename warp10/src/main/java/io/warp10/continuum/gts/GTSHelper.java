@@ -67,6 +67,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -1850,14 +1851,14 @@ public class GTSHelper {
   }
   
   public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now) throws ParseException, IOException {
-    return parse(encoder, str, extraLabels, now, Long.MAX_VALUE, false);
+    return parse(encoder, str, extraLabels, now, Long.MAX_VALUE, null);
   }
   
   public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize) throws ParseException, IOException {
-    return parse(encoder, str, extraLabels, now, maxValueSize, false);    
+    return parse(encoder, str, extraLabels, now, maxValueSize, null);    
   }
   
-  public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, boolean parseAttributes) throws ParseException, IOException {
+  public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes) throws ParseException, IOException {
 
     int idx = 0;
     
@@ -2014,11 +2015,13 @@ public class GTSHelper {
         while(idx < str.length() && str.charAt(idx) != '}') {
           idx++;
         }
-        if (parseAttributes) {
+        if (null != parsedAttributes) {
           if (idx >= str.length()) {
             throw new ParseException("Missing attributes.", idx2);
           }
           attributes = parseLabels(str.substring(attrstart, idx));
+          // Set the atomic boolean to true to indicate that attributes were parsed
+          parsedAttributes.set(true);
         }
         idx++;
       }
@@ -3632,6 +3635,9 @@ public class GTSHelper {
     Map<String,String> labelsA = Collections.unmodifiableMap(ga.getLabels());
     Map<String,String> labelsB = Collections.unmodifiableMap(gb.getLabels());
     
+    Map<String,String> attrA = Collections.unmodifiableMap(ga.getMetadata().getAttributes());
+    Map<String,String> attrB = Collections.unmodifiableMap(gb.getMetadata().getAttributes());
+    
     //
     // We use a sweeping line algorithm to go over all the ticks
     //
@@ -3639,7 +3645,7 @@ public class GTSHelper {
     int prewindow = filler.getPreWindow() >= 0 ? filler.getPreWindow() : 0;
     int postwindow = filler.getPostWindow() >= 0 ? filler.getPostWindow() : 0;
     
-    Object[] meta = new Object[4];
+    Object[] meta = new Object[2];
     Object[][] prev = new Object[prewindow][];
     for (int i = 0; i < prewindow; i++) {
       prev[i] = new Object[4];
@@ -3649,7 +3655,7 @@ public class GTSHelper {
       next[i] = new Object[4];
     }
     Object[] other = new Object[4];
-    Object[][] params = new Object[4][];
+    Object[][] params = new Object[2 + prewindow + postwindow][];
     
     while(idxa < gtsa.values || idxb < gtsb.values) {
 
@@ -3705,11 +3711,16 @@ public class GTSHelper {
       Long otherLocation = null;
       Long otherElevation = null;
       
+      Metadata ourMeta = new Metadata();
+      Metadata otherMeta = new Metadata();
+      
       String ourClass = null;
       Map<String,String> ourLabels = null;
+      Map<String,String> ourAttr = null;
       
       String otherClass = null;
       Map<String,String> otherLabels = null;
+      Map<String,String> otherAttr = null;      
       
       GeoTimeSerie filled = null;
       
@@ -3743,9 +3754,11 @@ public class GTSHelper {
         
         ourClass = classA;
         ourLabels = labelsA;
+        ourAttr = attrA;
         
         otherClass = classB;
         otherLabels = labelsB;
+        otherAttr = attrB;
         
         idxb++;        
       } else {
@@ -3778,9 +3791,11 @@ public class GTSHelper {
         
         ourClass = classB;
         ourLabels = labelsB;
+        ourAttr = attrB;
         
         otherClass = classA;
         otherLabels = labelsA;
+        otherAttr = attrA;
         
         idxa++;
       }
@@ -3790,10 +3805,15 @@ public class GTSHelper {
       other[2] = otherElevation;
       other[3] = otherValue;
       
-      meta[0] = ourClass;
-      meta[1] = ourLabels;
-      meta[2] = otherClass;
-      meta[3] = otherLabels;
+      ourMeta.setName(ourClass);
+      ourMeta.setLabels(ourLabels);
+      ourMeta.setAttributes(ourAttr);
+      meta[0] = ourMeta;
+      
+      otherMeta.setName(otherClass);
+      otherMeta.setLabels(otherLabels);
+      otherMeta.setAttributes(otherAttr);
+      meta[1] = otherMeta;
             
       params[0] = meta;
       for (int i = 0; i < prewindow; i++) {

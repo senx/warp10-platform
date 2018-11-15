@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Interface implemented by all Einstein filters.
+ * Interface implemented by all WarpScript filters.
  *
  */
 public interface WarpScriptFilterFunction {

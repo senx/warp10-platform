@@ -20,7 +20,6 @@ import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.LogUtil;
 import io.warp10.continuum.TimeSource;
-import io.warp10.continuum.geo.GeoDirectoryClient;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
@@ -82,15 +81,13 @@ public class EgressExecHandler extends AbstractHandler {
   private final KeyStore keyStore;
   private final StoreClient storeClient;
   private final DirectoryClient directoryClient;
-  private final GeoDirectoryClient geoDirectoryClient;
-
+  
   private final BootstrapManager bootstrapManager;
   
-  public EgressExecHandler(KeyStore keyStore, Properties properties, DirectoryClient directoryClient, GeoDirectoryClient geoDirectoryClient, StoreClient storeClient) {
+  public EgressExecHandler(KeyStore keyStore, Properties properties, DirectoryClient directoryClient, StoreClient storeClient) {
     this.keyStore = keyStore;
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
-    this.geoDirectoryClient = geoDirectoryClient;
     
     //
     // Check if we have a 'bootstrap' property
@@ -140,12 +137,6 @@ public class EgressExecHandler extends AbstractHandler {
     UUID uuid = UUID.randomUUID();
     
     //
-    // Create EinsteinExecutionReport
-    //
-    
-    //EinsteinExecutionReport report = new EinsteinExecutionReport();
-    
-    //
     // FIXME(hbs): Make sure we have at least one valid token
     //
     
@@ -153,7 +144,7 @@ public class EgressExecHandler extends AbstractHandler {
     // Create the stack to use
     //
     
-    WarpScriptStack stack = new MemoryWarpScriptStack(this.storeClient, this.directoryClient, this.geoDirectoryClient);
+    WarpScriptStack stack = new MemoryWarpScriptStack(this.storeClient, this.directoryClient);
 
     Throwable t = null;
 
@@ -275,7 +266,7 @@ public class EgressExecHandler extends AbstractHandler {
         long nano = System.nanoTime();
         
         try {
-          if (Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_LINENO)) && !((MemoryWarpScriptStack) stack).inMultiline()) {
+          if (Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_LINENO)) && !((MemoryWarpScriptStack) stack).isInMultiline()) {
             // We call 'exec' so statements are correctly put in macros if we are currently building one
             stack.exec("'[Line #" + Long.toString(lineno) + "]'");
             stack.exec(WarpScriptLib.SECTION);
@@ -424,15 +415,15 @@ public class EgressExecHandler extends AbstractHandler {
       }
     } finally {
       // Clear this metric in case there was an exception
-      Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_REQUESTS, Sensision.EMPTY_LABELS, 1);
-      Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_TIME_US, Sensision.EMPTY_LABELS, (long) ((System.nanoTime() - now) / 1000));
-      Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_OPS, Sensision.EMPTY_LABELS, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS));
+      Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_REQUESTS, Sensision.EMPTY_LABELS, 1);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_TIME_US, Sensision.EMPTY_LABELS, (long) ((System.nanoTime() - now) / 1000));
+      Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_OPS, Sensision.EMPTY_LABELS, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS));
       
       //
       // Record the JVM free memory
       //
       
-      Sensision.set(SensisionConstants.SENSISION_CLASS_EINSTEIN_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
+      Sensision.set(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
       
       LoggingEvent event = LogUtil.setLoggingEventAttribute(null, LogUtil.WARPSCRIPT_SCRIPT, scriptSB.toString());
       
@@ -444,7 +435,7 @@ public class EgressExecHandler extends AbstractHandler {
       
       if (null != t) {
         event = LogUtil.setLoggingEventStackTrace(event, LogUtil.STACK_TRACE, t);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_ERRORS, Sensision.EMPTY_LABELS, 1);
+        Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_ERRORS, Sensision.EMPTY_LABELS, 1);
       }
       
       LogUtil.addHttpHeaders(event, req);

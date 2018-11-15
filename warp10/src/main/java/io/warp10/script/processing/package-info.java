@@ -15,7 +15,7 @@
 //
 
 /**
- * Package with Einstein functions dedicated to the support of the Processing language
+ * Package with WarpScript functions dedicated to the support of the Processing language
  * 
  * The following Processing functions are supported
  * 

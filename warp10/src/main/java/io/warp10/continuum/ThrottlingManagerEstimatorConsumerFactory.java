@@ -17,11 +17,9 @@
 package io.warp10.continuum;
 
 import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
-import io.warp10.continuum.geo.GeoDirectory;
 import io.warp10.continuum.ingress.Ingress;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.continuum.thrift.data.GeoDirectorySubscriptions;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.HyperLogLogPlus;

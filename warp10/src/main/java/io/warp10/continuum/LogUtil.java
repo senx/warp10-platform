@@ -44,6 +44,9 @@ public class LogUtil {
   public static final String EVENT_CREATION = "event.creation";
   public static final String WARPSCRIPT_SCRIPT = "warpscript.script";
   public static final String WARPSCRIPT_TIMES = "warpscript.times";
+  public static final String WARPSCRIPT_UUID = "warpscript.uuid";
+  public static final String WARPSCRIPT_SEQNO = "warpscript.seqno";
+  
   public static final String STACK_TRACE = "stack.trace";
   public static final String HTTP_HEADERS = "http.headers";
   

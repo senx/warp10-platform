@@ -106,9 +106,9 @@ public class FORSTEP extends NamedWarpScriptFunction implements WarpScriptStackF
     }
     
     long now = System.currentTimeMillis();
-
+    
     long maxtime = this.maxtime > 0 ? this.maxtime : (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_LOOP_MAXDURATION);
-
+    
     while (true) {
       if (System.currentTimeMillis() - now > maxtime) {
         throw new WarpScriptException(getName() + " executed for too long (> " + maxtime + " ms).");

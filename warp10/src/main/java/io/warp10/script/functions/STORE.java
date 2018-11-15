@@ -16,10 +16,12 @@
 
 package io.warp10.script.functions;
 
+import java.util.List;
+
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 import java.util.List;
 
@@ -33,18 +35,18 @@ public class STORE extends NamedWarpScriptFunction implements WarpScriptStackFun
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object var = stack.pop();
 
-    if (!(var instanceof String) && !(var instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a variable name or a list thereof on top of the stack.");
+    if (!(var instanceof String) && !(var instanceof Long) && !(var instanceof List)) {
+      throw new WarpScriptException(getName() + " expects a variable name or register number or a list thereof on top of the stack.");
     }
     
     int count = 1;
     
-    // Check that each element of the list is a STRING
+    // Check that each element of the list is either a LONG or a STRING
     if (var instanceof List) {
       count = ((List) var).size();
       for (Object elt: (List) var) {
-        if (null != elt && !(elt instanceof String)) {
-          throw new WarpScriptException(getName() + " expects a variable name or a list thereof on top of the stack.");
+        if (null != elt && (!(elt instanceof String) && !(elt instanceof Long))) {
+          throw new WarpScriptException(getName() + " expects a variable name or register number or a list thereof on top of the stack.");
         }
       }
     }
@@ -59,14 +61,24 @@ public class STORE extends NamedWarpScriptFunction implements WarpScriptStackFun
         
         Object o = stack.pop();
         
-        if (null != symbol) {
-          stack.store(symbol.toString(), o);
+        if (null == symbol) {
+          continue;
         }
+        
+        if (symbol instanceof Long) {
+          stack.store(((Long) symbol).intValue(), o);
+        } else {
+          stack.store(symbol.toString(), o);
+        }  
       }      
     } else {
       Object o = stack.pop();
         
-      stack.store(var.toString(), o);
+      if (var instanceof Long) {
+        stack.store(((Long) var).intValue(), o);
+      } else {
+        stack.store(var.toString(), o);
+      }  
     }
 
     return stack;

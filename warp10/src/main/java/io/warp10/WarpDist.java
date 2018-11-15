@@ -21,7 +21,6 @@ import io.warp10.continuum.KafkaWebCallBroker;
 import io.warp10.continuum.KafkaWebCallService;
 import io.warp10.continuum.ThrottlingManager;
 import io.warp10.continuum.egress.Egress;
-import io.warp10.continuum.geo.GeoDirectory;
 import io.warp10.continuum.ingress.Ingress;
 import io.warp10.continuum.plasma.PlasmaBackEnd;
 import io.warp10.continuum.plasma.PlasmaFrontEnd;
@@ -83,7 +82,7 @@ public class WarpDist {
   private static boolean initialized = false;
   
   /**
-   * Do we run an 'egress' service. Used in EinsteinMacroRepository to bail out if not
+   * Do we run an 'egress' service. Used in WarpScript MacroRepository to bail out if not
    */
   private static boolean hasEgress = false;
   
@@ -275,11 +274,6 @@ public class WarpDist {
         KafkaWebCallBroker webcall = new KafkaWebCallBroker(getKeyStore(), getProperties());
         Map<String,String> labels = new HashMap<String, String>();
         labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "webcall");
-        Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);
-      } else if ("geodir".equals(subprocess)) {
-        GeoDirectory geodir = new GeoDirectory(getKeyStore(), getProperties());
-        Map<String,String> labels = new HashMap<String, String>();
-        labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "geodir");
         Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);
       } else if ("runner".equals(subprocess)) {
         ScriptRunner runner = new ScriptRunner(getKeyStore(), getProperties());

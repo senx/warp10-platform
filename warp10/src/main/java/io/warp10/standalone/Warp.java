@@ -48,6 +48,7 @@ import io.warp10.continuum.egress.EgressExecHandler;
 import io.warp10.continuum.egress.EgressFetchHandler;
 import io.warp10.continuum.egress.EgressFindHandler;
 import io.warp10.continuum.egress.EgressMobiusHandler;
+import io.warp10.continuum.egress.EgressInteractiveHandler;
 import io.warp10.continuum.ingress.DatalogForwarder;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
@@ -124,6 +125,7 @@ public class Warp extends WarpDist implements Runnable {
     boolean enablePlasma = !("true".equals(properties.getProperty(Configuration.WARP_PLASMA_DISABLE)));
     boolean enableMobius = !("true".equals(properties.getProperty(Configuration.WARP_MOBIUS_DISABLE)));
     boolean enableStreamUpdate = !("true".equals(properties.getProperty(Configuration.WARP_STREAMUPDATE_DISABLE)));
+    boolean enableREL = !("true".equals(properties.getProperty(Configuration.WARP_INTERACTIVE_DISABLE)));
     
     for (String property: REQUIRED_PROPERTIES) {
       // Don't check LEVELDB_HOME when in-memory
@@ -314,17 +316,18 @@ public class Warp extends WarpDist implements Runnable {
     if (inmemory) {
       sdc = new StandaloneDirectoryClient(null, keystore);
       
-      if ("true".equals(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_CHUNKED))) {
-        scc = new StandaloneChunkedMemoryStore(WarpDist.getProperties(), keystore);
+      sdc.setActivityWindow(Long.parseLong(properties.getProperty(Configuration.INGRESS_ACTIVITY_WINDOW, "0")));
+      if ("true".equals(properties.getProperty(Configuration.IN_MEMORY_CHUNKED))) {
+        scc = new StandaloneChunkedMemoryStore(properties, keystore);
         ((StandaloneChunkedMemoryStore) scc).setDirectoryClient((StandaloneDirectoryClient) sdc);
         ((StandaloneChunkedMemoryStore) scc).load();
       } else {
         scc = new StandaloneMemoryStore(keystore,
-            Long.valueOf(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_DEPTH, Long.toString(60 * 60 * 1000 * Constants.TIME_UNITS_PER_MS))),
-            Long.valueOf(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_HIGHWATERMARK, "100000")),
-            Long.valueOf(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_LOWWATERMARK, "80000")));
+            Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_DEPTH, Long.toString(60 * 60 * 1000 * Constants.TIME_UNITS_PER_MS))),
+            Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_HIGHWATERMARK, "100000")),
+            Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_LOWWATERMARK, "80000")));
         ((StandaloneMemoryStore) scc).setDirectoryClient((StandaloneDirectoryClient) sdc);
-        if ("true".equals(WarpDist.getProperties().getProperty(Configuration.IN_MEMORY_EPHEMERAL))) {
+        if ("true".equals(properties.getProperty(Configuration.IN_MEMORY_EPHEMERAL))) {
           ((StandaloneMemoryStore) scc).setEphemeral(true);
         }        
         ((StandaloneMemoryStore) scc).load();
@@ -344,12 +347,10 @@ public class Warp extends WarpDist implements Runnable {
       scc = new StandaloneParallelStoreClientWrapper(scc);
     }
 
-    StandaloneGeoDirectory geodir = new StandaloneGeoDirectory(keystore.clone(), scc, sdc, properties);
-    
     if (properties.containsKey(Configuration.RUNNER_ROOT)) {
       if (!properties.containsKey(Configuration.RUNNER_ENDPOINT)) {
         properties.setProperty(Configuration.RUNNER_ENDPOINT, "");
-        StandaloneScriptRunner runner = new StandaloneScriptRunner(properties, keystore.clone(), scc, sdc,  geodir, properties);
+        StandaloneScriptRunner runner = new StandaloneScriptRunner(properties, keystore.clone(), scc, sdc, properties);
       } else {
         //
         // Allocate a normal runner
@@ -377,13 +378,13 @@ public class Warp extends WarpDist implements Runnable {
     QuasarTokenFilter tf = new QuasarTokenFilter(properties, keystore);
     
     GzipHandler gzip = new GzipHandler();
-    EgressExecHandler egressExecHandler = new EgressExecHandler(keystore, properties, sdc, geodir.getClient(), scc); 
+    EgressExecHandler egressExecHandler = new EgressExecHandler(keystore, properties, sdc, scc); 
     gzip.setHandler(egressExecHandler);
     gzip.setMinGzipSize(0);
     gzip.addIncludedMethods("POST");
     handlers.addHandler(gzip);
     setEgress(true);
-
+    
     if (!analyticsEngineOnly) {
       gzip = new GzipHandler();
       gzip.setHandler(new StandaloneIngressHandler(keystore, sdc, scc));
@@ -411,16 +412,12 @@ public class Warp extends WarpDist implements Runnable {
       gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
       
-      handlers.addHandler(geodir);    
-
       if (enablePlasma) {
         StandalonePlasmaHandler plasmaHandler = new StandalonePlasmaHandler(keystore, properties, sdc);
         scc.addPlasmaHandler(plasmaHandler);     
         handlers.addHandler(plasmaHandler);
       }
       
-      scc.addPlasmaHandler(geodir);
-          
       if (enableStreamUpdate) {
         StandaloneStreamUpdateHandler streamUpdateHandler = new StandaloneStreamUpdateHandler(keystore, properties, sdc, scc);
         handlers.addHandler(streamUpdateHandler);
@@ -438,6 +435,11 @@ public class Warp extends WarpDist implements Runnable {
       handlers.addHandler(mobiusHandler);
     }
 
+    if (enableREL) {
+      EgressInteractiveHandler erel = new EgressInteractiveHandler(keystore, properties, sdc, scc);
+      handlers.addHandler(erel);
+    }
+    
     server.setHandler(handlers);
         
     JettyUtil.setSendServerVersion(server, false);

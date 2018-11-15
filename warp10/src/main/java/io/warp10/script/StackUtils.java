@@ -152,6 +152,8 @@ public class StackUtils {
       objectToJSON(serializer, out, ((GeoTimeSerie) o).getMetadata().getLabels(), recursionLevel, strictJSON);
       out.print(",\"a\":");
       objectToJSON(serializer, out, ((GeoTimeSerie) o).getMetadata().getAttributes(), recursionLevel, strictJSON);
+      out.print(",\"la\":");
+      objectToJSON(serializer, out, ((GeoTimeSerie) o).getMetadata().getLastActivity(), recursionLevel, strictJSON);
       out.print(",\"v\":[");
       boolean first = true;
       for (int i = 0; i < ((GeoTimeSerie) o).size(); i++) {

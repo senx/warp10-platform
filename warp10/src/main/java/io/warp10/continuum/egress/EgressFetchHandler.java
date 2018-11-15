@@ -30,6 +30,7 @@ import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.GTSDecoderIterator;
 import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.StoreClient;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.GTSSplit;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.continuum.store.thrift.data.Metadata;
@@ -369,6 +370,8 @@ public class EgressFetchHandler extends AbstractHandler {
       
       boolean showAttr = "true".equals(req.getParameter(Constants.HTTP_PARAM_SHOWATTR));
       
+      Long activeAfter = null == req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
+      Long quietAfter = null == req.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
       boolean sortMeta = "true".equals(req.getParameter(Constants.HTTP_PARAM_SORTMETA));
       
       //
@@ -427,8 +430,19 @@ public class EgressFetchHandler extends AbstractHandler {
           clsSels.add(classSelector);
           lblsSels.add(labelsSelectors);
           
+          DirectoryRequest request = new DirectoryRequest();
+          request.setClassSelectors(clsSels);
+          request.setLabelsSelectors(lblsSels);
+          
+          if (null != activeAfter) {
+            request.setActiveAfter(activeAfter);
+          }
+          if (null != quietAfter) {
+            request.setQuietAfter(quietAfter);
+          }
+          
           try {
-            metas = directoryClient.find(clsSels, lblsSels);
+            metas = directoryClient.find(request);
             metadatas.addAll(metas);
           } catch (Exception e) {
             //
@@ -438,7 +452,7 @@ public class EgressFetchHandler extends AbstractHandler {
               iterators.add(metadatas.iterator());
               metadatas.clear();
             }
-            iterators.add(directoryClient.iterator(clsSels, lblsSels));
+            iterators.add(directoryClient.iterator(request));
           }
         }      
       } else {
@@ -1373,6 +1387,9 @@ public class EgressFetchHandler extends AbstractHandler {
           sb.append("}");
           sb.append(",\"i\":\"");
           sb.append(decoder.getLabelsId() & mask);
+          sb.append(",\"la\":");
+          sb.append(decoder.getMetadata().getLastActivity());
+
           sb.append("\",\"v\":[");
         }
         

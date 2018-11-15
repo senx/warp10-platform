@@ -16,6 +16,7 @@
 
 package io.warp10.standalone;
 
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
 
@@ -29,7 +30,7 @@ public class NullDirectoryClient extends StandaloneDirectoryClient {
   }
   
   @Override
-  public List<Metadata> find(List<String> classSelector, List<Map<String, String>> labelsSelectors) {
+  public List<Metadata> find(DirectoryRequest request) {
     return new ArrayList<Metadata>();
   }
   

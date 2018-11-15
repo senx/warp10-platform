@@ -19,7 +19,6 @@ package io.warp10.script;
 import io.warp10.WarpConfig;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.Configuration;
-import io.warp10.continuum.geo.GeoDirectoryClient;
 import io.warp10.continuum.gts.UnsafeString;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.DirectoryClient;
@@ -52,7 +51,15 @@ import org.apache.hadoop.util.Progressable;
 
 public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
+  private static final Properties DEFAULT_PROPERTIES;
+  
+  static {
+    DEFAULT_PROPERTIES = WarpConfig.getProperties();
+  }
+  
   private AtomicLong[] counters;
+
+  private final Object[] registers;
   
   /**
    * Default maximum depth of the stack
@@ -80,12 +87,16 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
    */
   private long currentops = 0L;
   
+  private String sectionName = null;
+  
   /**
    * Are we currently in a secure macro?
    */
   private boolean inSecureMacro = false;
   
-  private final List<Object> list = new ArrayList<Object>(32);
+  private int size = 0;
+  
+  private Object[] elements = new Object[32];
 
   private final Map<String,Object> symbolTable = new HashMap<String,Object>();
   
@@ -98,8 +109,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   private StoreClient storeClient;
   
   private DirectoryClient directoryClient;
-  
-  private GeoDirectoryClient geoDirectoryClient;
   
   private final AtomicInteger recursionLevel = new AtomicInteger(0);
   
@@ -138,6 +147,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   public static class StackContext extends WarpScriptStack.StackContext {
     public Map<String, Object> symbolTable;
     public Map<String, WarpScriptStackFunction> defined;
+    public Object[] registers;
   }
   
   public StoreClient getStoreClient() {
@@ -148,30 +158,17 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     return this.directoryClient;
   }
   
-  public GeoDirectoryClient getGeoDirectoryClient() {
-    return this.geoDirectoryClient;
-  }
-  
   public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient) {
-    this(storeClient, directoryClient, WarpConfig.getProperties());
-  }
-
-  public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient, GeoDirectoryClient geoDirectoryClient) {
-    this(storeClient, directoryClient, geoDirectoryClient, WarpConfig.getProperties());
+    this(storeClient, directoryClient, DEFAULT_PROPERTIES);
   }
 
   public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient, Properties properties) {
-    this(storeClient, directoryClient, null, properties);
+    this(storeClient, directoryClient, properties, true);
   }
   
-  public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient, GeoDirectoryClient geoDirectoryClient, Properties properties) {
-    this(storeClient, directoryClient, geoDirectoryClient, properties, true);
-  }
-  
-  public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient, GeoDirectoryClient geoDirectoryClient, Properties properties, boolean init) {
+  public MemoryWarpScriptStack(StoreClient storeClient, DirectoryClient directoryClient, Properties properties, boolean init) {    
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
-    this.geoDirectoryClient = geoDirectoryClient;
   
     this.unshadow = "true".equals(properties.getProperty(Configuration.WARPSCRIPT_DEF_UNSHADOW));
     
@@ -228,10 +225,14 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       
       for (int i = 0; i < this.counters.length; i++) {
         this.counters[i] = new AtomicLong(0L);
-      }   
-      
-      this.properties = properties;
+      }         
     }
+    
+    this.properties = properties;
+
+    int nregs = Integer.parseInt(null == this.properties ? String.valueOf(WarpScriptStack.DEFAULT_REGISTERS) : this.properties.getProperty(Configuration.CONFIG_WARPSCRIPT_REGISTERS, String.valueOf(WarpScriptStack.DEFAULT_REGISTERS)));
+
+    this.registers = new Object[nregs];
   }
   
   public void maxLimits() {
@@ -253,7 +254,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   
   @Override
   public int depth() {
-    return list.size();
+    return size;
   }
   
   @Override
@@ -263,19 +264,19 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     // We remove the last element to prevent having to shift remaining elements
     //
     
-    while (list.size() > depth) {
-      list.remove(list.size() - 1);
+    while (size > depth) {
+      size--;
     }
   }
   
   @Override
   public void clear() {
-    list.clear();
+    size = 0;
   }
   
   @Override
   public void drop() throws EmptyStackException {
-    if (list.isEmpty()) {
+    if (0 == size) {
       throw new EmptyStackException() {
         @Override
         public String getMessage() {
@@ -284,26 +285,26 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       };
     }
     
-    list.remove(list.size() - 1);
+    size--;
   }
 
   @Override
   public void dropn() throws EmptyStackException, IndexOutOfBoundsException {
     int n = getn();
     
-    if (list.size() < n || n < 0) {
+    if (size < n || n < 0) {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
 
     while (n > 0) {
-      list.remove(list.size() - 1);
+      size--;
       n--;
     }
   }
   
   @Override
   public void dup() throws EmptyStackException {
-    if (list.isEmpty()) {
+    if (0 == size) {
       throw new EmptyStackException() {
         @Override
         public String getMessage() {
@@ -312,29 +313,31 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       };
     }
     
-    Object element = list.get(list.size() - 1);
-    list.add(element);
+    Object element = elements[size - 1];
+    ensureCapacity(1);
+    elements[size++] = element;
   }
 
   @Override
   public void dupn() throws EmptyStackException, IndexOutOfBoundsException {
     int n = getn();
     
-    if (list.size() < n || n < 0) {
+    if (size < n || n < 0) {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
     
     int count = n;
+    ensureCapacity(n);
     while (count > 0) {
-      Object o = list.get(list.size() - 1 - (n - 1));
-      list.add(o);
+      Object o = elements[size - 1 - (n - 1)];
+      elements[size++] = o;
       count--;
     }
   }
   
   @Override
   public Object pop() throws EmptyStackException {
-    if (list.isEmpty()) {
+    if (0 == size) {
       throw new EmptyStackException() {
         @Override
         public String getMessage() {
@@ -343,7 +346,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       };
     }
 
-    Object element = list.remove(list.size() - 1);
+    Object element = elements[size - 1];
+    size--;
     
     return element;    
   }
@@ -352,7 +356,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   public Object[] popn() throws EmptyStackException, IndexOutOfBoundsException {
     int n = getn();
     
-    if (list.size() < n || n < 0) {
+    if (size < n || n < 0) {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
     
@@ -364,7 +368,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     //
     
     for (int i = n - 1; i >= 0; i--) {
-      objects[i] = list.remove(list.size() - 1);
+      objects[i] = elements[size - 1];
+      size--;
     }
     
     return objects;
@@ -373,17 +378,18 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   @Override
   public void push(Object o) throws WarpScriptException {
     
-    if (list.size() > this.maxdepth) {
-      Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_STACKDEPTH_EXCEEDED, Sensision.EMPTY_LABELS, 1);
+    if (size > this.maxdepth) {
+      Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_STACKDEPTH_EXCEEDED, Sensision.EMPTY_LABELS, 1);
       throw new WarpScriptException("Stack depth would exceed set limit of " + this.maxdepth);
     }
     
-    list.add(o);
+    ensureCapacity(1);
+    elements[size++] = o;
   }
   
   @Override
   public void swap() throws WarpScriptException, EmptyStackException, IndexOutOfBoundsException {
-    if (list.isEmpty()) {
+    if (0 == size) {
       throw new EmptyStackException() {
         @Override
         public String getMessage() {
@@ -392,19 +398,19 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       };
     }
     
-    if (list.size() < 2) {
+    if (size < 2) {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
-    
-    Object top = pop();
-    Object top2 = pop();
-    push(top);
-    push(top2);
+        
+    Object top = elements[size - 1];
+    Object top2 = elements[size - 2];
+    elements[size - 1] = top2;
+    elements[size - 2] = top;
   }
   
   @Override
   public Object peek() throws EmptyStackException {
-    if (list.isEmpty()) {
+    if (0 == size) {
       throw new EmptyStackException() {
         @Override
         public String getMessage() {
@@ -413,13 +419,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       };
     }
 
-    return list.get(list.size() - 1);
+    return elements[size - 1];
   }
   
   @Override
   public void rot() throws EmptyStackException, IndexOutOfBoundsException {
     
-    if (list.isEmpty()) {
+    if (0 == size) {
       throw new EmptyStackException() {
         @Override
         public String getMessage() {
@@ -428,44 +434,54 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       };
     }
     
-    if (list.size() < 3) {
+    if (size < 3) {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
     
-    Object element = list.remove(list.size() - 1 - 2);
-    list.add(element);
+    Object tmp = elements[size - 1 - 2];
+    
+    for (int i = 0; i < 2; i++) {
+      elements[size - 1 - 2 + i] = elements[size - 1 - 2 + i + 1];
+    }
+    
+    elements[size - 1] = tmp;
   }
   
   @Override
   public void roll() throws EmptyStackException, IndexOutOfBoundsException {    
     int n = getn();
     
-    if (list.size() < n || n < 0) {
+    if (size < n || n < 0) {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
     
-    Object element = list.remove(list.size() - 1 - (n - 1));
-    list.add(element);
+    Object tmp = elements[size - 1 - (n - 1)];
+    
+    for (int i = 0; i < n - 1; i++) {
+      elements[size - 1 - (n - 1) + i] = elements[size - 1 - (n - 1) + i + 1];
+    }
+    
+    elements[size - 1] = tmp;
   }
   
   @Override
   public Object peekn() throws EmptyStackException, IndexOutOfBoundsException {
     int n = getn();
     
-    if (list.size() < n - 1 || n < 0) {
+    if (size < n - 1 || n < 0) {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
     
-    return list.get(list.size() - 1 - n);
+    return elements[size - 1 - n];
   }
   
   @Override
   public Object get(int n) throws WarpScriptException {
-    if (list.size() < n - 1 || n < 0) {
+    if (size < n - 1 || n < 0) {
       throw new WarpScriptException("Invalid level.");
     }
     
-    return list.get(list.size() - 1 - n);
+    return elements[size - 1 - n];
   }
   
   /**
@@ -478,7 +494,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
    * @throws IndexOutOfBoundsException if the stack is empty or its top is not a number. 
    */
   private int getn() throws EmptyStackException, IndexOutOfBoundsException {
-    if (list.isEmpty()) {
+    if (0 == size) {
       throw new EmptyStackException() {
         @Override
         public String getMessage() {
@@ -664,14 +680,15 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
         }
         
         incOps();
+        checkOps();
 
         if (WarpScriptStack.SECURE_SCRIPT_END.equals(stmt)) {
           if (null == secureScript) {
             throw new WarpScriptException("Not inside a secure script definition.");
           } else {
             this.push(secureScript.toString());
-            new SECURE("SECURESCRIPT").apply(this);
             secureScript = null;
+            new SECURE("SECURESCRIPT").apply(this);
           }
         } else if (WarpScriptStack.SECURE_SCRIPT_START.equals(stmt)) {
           if (null == secureScript) {
@@ -838,7 +855,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           Object func = null;
           
           //
-          // Check Einstein functions
+          // Check WarpScript functions
           //
 
           func = null != func ? func : defined.get(stmt);
@@ -861,7 +878,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           try {
             if (func instanceof WarpScriptStackFunction && macros.isEmpty()) {
               //
-              // Function is an EinsteinStackFunction, call it on this stack
+              // Function is an WarpScriptStackFunction, call it on this stack
               //
               
               WarpScriptStackFunction esf = (WarpScriptStackFunction) func;
@@ -878,8 +895,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               }
             }          
           } finally {
-            Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_FUNCTION_COUNT, labels, 1);
-            Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_FUNCTION_TIME_US, labels, (System.nanoTime() - nano) / 1000L);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_COUNT, labels, 1);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_TIME_US, labels, (System.nanoTime() - nano) / 1000L);
           }
         }
       }
@@ -897,32 +914,37 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     // for each statement of the macro inside the loop
     incOps();
 
-    boolean secure = Boolean.TRUE.equals(this.getAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO));
+    boolean secure = this.inSecureMacro; //Boolean.TRUE.equals(this.getAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO));
     
     //
     // Save current section name
     //
     
-    String sectionname = (String) this.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME);
+    String sectionname = this.sectionName; //(String) this.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME);
     
     //
     // If we are already in a secure macro, stay in this mode, otherwise an inner macro could lower the
     // secure level
     //
     
-    this.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, !secure ? macro.isSecure() : secure);
+    //this.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, !secure ? macro.isSecure() : secure);
+    this.inSecureMacro = !secure ? macro.isSecure() : secure;
     
     int i = 0;
+    
+    List<Object> stmts = macro.statements();
+    int n = macro.size();
     
     try {
       
       recurseIn();
       
-      for (i = 0; i < macro.size(); i++) {
-        // Notify progress
-        progress();
-        
-        Object stmt = macro.get(i);
+      // Notify progress
+      progress();
+
+      for (i = 0; i < n; i++) {        
+
+        Object stmt = stmts.get(i);
         
         incOps();
         
@@ -937,12 +959,14 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
           esf.apply(this);
           
-          //Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_FUNCTION_COUNT, esf.getSensisionLabels(), 1);
-          //Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_FUNCTION_TIME_US, esf.getSensisionLabels(), (System.nanoTime() - nano) / 1000L);          
+          //Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_COUNT, esf.getSensisionLabels(), 1);
+          //Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_TIME_US, esf.getSensisionLabels(), (System.nanoTime() - nano) / 1000L);          
         } else {
           push(stmt);
-        }
-      }     
+        }        
+      }    
+      
+      checkOps();
     } catch (WarpScriptReturnException ere) {
       if (this.getCounter(WarpScriptStack.COUNTER_RETURN_DEPTH).decrementAndGet() > 0) {
         throw ere;
@@ -950,17 +974,22 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     } catch (WarpScriptATCException wsatce) {
       throw wsatce;
     } catch (Exception ee) {
+      ee.printStackTrace();
       if (macro.isSecure()) {
         throw ee;
       } else {
         String section = (String) this.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME);
-        throw new WarpScriptException("Exception at statement '" + (i < macro.size() ? macro.get(i).toString() : "") + "' in section '" + section + "' (" + ee.getMessage() + ")", ee);
+        throw new WarpScriptException("Exception at statement '" + (i < n ? macro.get(i).toString() : "") + "' in section '" + section + "' (" + ee.getMessage() + ")", ee);
       }
     } finally {
-      this.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, secure);
+      //this.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, secure);
+      this.inSecureMacro = secure;
       recurseOut();
       // Restore section name
-      this.setAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME, sectionname);
+      this.sectionName = sectionname;
+      //if (sectionname != this.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME)) {
+      //  this.setAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME, sectionname);
+      //}
     }
   }
   
@@ -968,7 +997,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   public void exec(WarpScriptJavaFunction function) throws WarpScriptException {
     //
     // Check if we can execute the UDF. We enclose this call in a try/catch since we could get weird errors
-    // when the wrong classes were used for EinsteinJavaFunction. Better err on the side of safety here.
+    // when the wrong classes were used for WarpScriptJavaFunction. Better err on the side of safety here.
     //
     
     try {
@@ -985,7 +1014,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     
     int levels = function.argDepth();
     
-    if (this.list.size() < levels) {
+    if (this.size < levels) {
       throw new WarpScriptException("Stack does not contain sufficient elements.");
     }
     
@@ -1062,15 +1091,15 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   public String dump(int n) {
     StringBuilder sb = new StringBuilder();
     
-    if (n > this.list.size()) {
-      n = this.list.size();
+    if (n > this.size) {
+      n = this.size;
     }
     
     for (int i = n - 1; i >= 0; i--) {
-      if (i < this.list.size()) {
+      if (i < this.size) {
         sb.append(i + 1);
         sb.append(": ");
-        Object elt = this.list.get(list.size() - 1 - i);
+        Object elt = this.elements[this.size - 1 - i];
         
         if (elt instanceof Object[]) {
           sb.append(Arrays.toString((Object[]) elt));
@@ -1089,23 +1118,28 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   public void pick() throws EmptyStackException, IndexOutOfBoundsException {
     int n = getn();
     
-    if (list.size() < n || n < 0) {
+    if (size < n || n < 0) {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
       
-    list.add(list.get(list.size() - 1 - (n - 1)));
+    ensureCapacity(1);
+    Object o = elements[size - 1 - (n - 1)];
+    elements[size++] = o;
   }
   
   @Override
   public void rolld() throws EmptyStackException, IndexOutOfBoundsException {
     int n = getn();
     
-    if (list.size() < n || n < 0) {
+    if (size < n || n < 0) {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
       
-    Object element = list.remove(list.size() - 1);
-    list.add(list.size() - (n - 1), element);
+    Object tmp = elements[size - 1];
+    for (int i = 0; i < n - 1; i++) {
+      elements[size - 1 - i] = elements[size - 1 - (i + 1)];
+    }
+    elements[size - 1 - (n - 1)] = tmp;
   }
   
   @Override
@@ -1124,6 +1158,24 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
   
   @Override
+  public Object load(int regidx) throws WarpScriptException {
+    if (regidx >= 0 && regidx < registers.length) {
+      return this.registers[regidx];
+    }
+    
+    throw new WarpScriptException("Invalid register number, must be between 0 and " + (registers.length - 1));
+  }
+  
+  @Override
+  public void store(int regidx, Object value) throws WarpScriptException {
+    if (regidx < 0 || regidx >= registers.length) {
+      throw new WarpScriptException("Invalid register number, must be between 0 and " + (registers.length - 1));
+    }
+    
+    this.registers[regidx] = value;
+  }
+  
+  @Override
   public void forget(String symbol) {
     if (null == symbol) {
       this.symbolTable.clear();
@@ -1137,6 +1189,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     return this.symbolTable;
   }
 
+  @Override
+  public Object[] getRegisters() {
+    return this.registers;
+  }
+  
   @Override
   public Map<String, WarpScriptStackFunction> getDefined() {
     return this.defined;
@@ -1174,6 +1231,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       this.maxsymbols = ((Number) value).intValue();
     } else if (WarpScriptStack.ATTRIBUTE_OPS.equals(key)) {
       this.currentops = ((Number) value).longValue();
+    } else if (WarpScriptStack.ATTRIBUTE_SECTION_NAME.equals(key)) {
+      this.sectionName = value.toString();
     } else if (WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE.equals(key)) {
       if (null != value) {
         this.progressable = (Progressable) value;
@@ -1190,6 +1249,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       return this.inSecureMacro;
     } else if (WarpScriptStack.ATTRIBUTE_OPS.equals(key)) {
       return this.currentops;
+    } else if (WarpScriptStack.ATTRIBUTE_SECTION_NAME.equals(key)) {
+      return this.sectionName;
     } else {
       return this.attributes.get(key);
     }
@@ -1203,10 +1264,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
    * @throws WarpScriptException
    */
   public void incOps() throws WarpScriptException {
-    this.currentops++;
-    
+    this.currentops++;    
+  }
+  
+  public void checkOps() throws WarpScriptException {
     if (this.currentops > this.maxops) {
-      Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_OPSCOUNT_EXCEEDED, Sensision.EMPTY_LABELS, 1);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_OPSCOUNT_EXCEEDED, Sensision.EMPTY_LABELS, 1);
       throw new WarpScriptException("Operation count (" + this.currentops + ") exceeded maximum of " + this.maxops);
     }
   }
@@ -1287,11 +1350,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     StackContext context = new StackContext();
     
     //
-    // Copy symbol table
+    // Copy symbol table and registers
     //
     
     context.symbolTable = new HashMap<String, Object>();    
     context.symbolTable.putAll(this.symbolTable);
+    context.registers = Arrays.copyOf(this.registers, this.registers.length);
     
     //
     // Copy redefined functions
@@ -1322,13 +1386,17 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     StackContext context = (StackContext) top;
     
     //
-    // Restore symbol table
+    // Restore symbol table and registers
     //
     
     this.symbolTable.clear();
     
     if (null != context.symbolTable) {
       this.symbolTable.putAll(context.symbolTable);
+    }
+    
+    for (int i = 0; i < this.registers.length; i++) {
+      this.registers[i] = context.registers[i];
     }
     
     //
@@ -1340,21 +1408,50 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       this.defined.putAll(context.defined);
     }
   }  
-  
+
+  private long reclevel = 0;
   protected void recurseIn() throws WarpScriptException {
-    if (this.recursionLevel.addAndGet(1) > this.maxrecurse) {
-      throw new WarpScriptException("Maximum recursion level reached (" + this.recursionLevel.get() + ")");
+    if (++this.reclevel > this.maxrecurse) {
+      throw new WarpScriptException("Maximum recursion level reached (" + this.reclevel + ")");
     }
   }
   
+  //protected void recurseIn() throws WarpScriptException {
+  //  if (this.recursionLevel.addAndGet(1) > this.maxrecurse) {
+  //    throw new WarpScriptException("Maximum recursion level reached (" + this.recursionLevel.get() + ")");
+  //  }
+  //}
+  
+  //protected void recurseOut() {
+  //  this.recursionLevel.addAndGet(-1);
+  //}
+  
   protected void recurseOut() {
-    this.recursionLevel.addAndGet(-1);
+    this.reclevel--;
   }
   
-  public boolean inMultiline() {
+  // Current call graph depth
+  public long getRecursionLevel() {
+    return this.reclevel;
+  }
+  
+  // Depth of macros being currently defined
+  public int getMacroDepth() {
+    return this.macros.size();
+  }
+  
+  public boolean isInMultiline() {
     return this.inMultiline.get();
   }
   
+  public boolean isInComment() {
+    return this.inComment.get();
+  }
+  
+  public boolean isInSecureScript() {
+    return null != this.secureScript;
+  }
+
   /**
    * Create a 'sub' stack of the current one.
    * A substack will share a certain number of elements with its parent stack.
@@ -1365,7 +1462,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     
     final MemoryWarpScriptStack parentStack = this;
     
-    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(getStoreClient(), getDirectoryClient(), getGeoDirectoryClient(), properties, false) {
+    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(getStoreClient(), getDirectoryClient(), properties, false) {
       
       private final Map<String,Object> attributes = new HashMap<String, Object>();
                
@@ -1373,7 +1470,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       public void incOps() throws WarpScriptException {
         parentStack.incOps();
       }
-      
+
+      @Override
+      public void checkOps() throws WarpScriptException {
+        parentStack.checkOps();
+      }
+
       @Override
       public Object getAttribute(String key) {
         //
@@ -1429,5 +1531,14 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     stack.maxrecurse = this.maxrecurse;
     stack.maxsymbols = this.maxsymbols;
     return stack;
+  }
+  
+  private void ensureCapacity(int n) {
+    if (size + n < elements.length) {
+      return;
+    }
+    
+    int newCapacity = elements.length + (elements.length >> 1) + n;
+    elements = Arrays.copyOf(elements, newCapacity);
   }
 }
