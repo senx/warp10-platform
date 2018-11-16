@@ -858,7 +858,7 @@ public class WarpScriptLib {
     functions.put("OPTDTW", new OPTDTW("OPTDTW"));
     functions.put("ZDTW", new DTW("ZDTW", true, true));
     functions.put("RAWDTW", new DTW("RAWDTW", false, false));
-    functions.put("VALUEHISTOGRAM", new VALUEHISTOGRAM("VALUEHISTORGRAM"));
+    functions.put("VALUEHISTOGRAM", new VALUEHISTOGRAM("VALUEHISTOGRAM"));
     functions.put("PROBABILITY", new PROBABILITY.Builder("PROBABILITY"));
     functions.put("PROB", new PROB("PROB"));
     functions.put("CPROB", new CPROB("CPROB"));
