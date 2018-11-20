@@ -69,10 +69,10 @@ public class WarpScriptMacroRepository extends Thread {
   /**
    * Counter to avoid recursive calls to loadMacro
    */
-  private static ThreadLocal<AtomicInteger> loading = new ThreadLocal<AtomicInteger>() {
+  private static ThreadLocal<List<String>> loading = new ThreadLocal<List<String>>() {
     @Override
-    protected AtomicInteger initialValue() {
-      return new AtomicInteger(0);
+    protected List<String> initialValue() {
+      return new ArrayList<String>();
     }
   };
   
@@ -342,11 +342,20 @@ public class WarpScriptMacroRepository extends Thread {
     
     try {
       
-      if (loading.get().get() > 0) {
-        throw new WarpScriptException("Invalid recursive macro loading.");
+      if (loading.get().contains(name)) {
+        // Build the macro loading sequence
+        StringBuilder seq = new StringBuilder();
+        for(String macname: loading.get()) {
+          if (seq.length() > 0) {
+            seq.append(" >>> ");
+          }
+          seq.append("@");
+          seq.append(macname);
+        }
+        throw new WarpScriptException("Invalid recursive macro loading (" + seq.toString() + ")");
       }
       
-      loading.get().addAndGet(1);
+      loading.get().add(name);
       
       FileInputStream in = new FileInputStream(file);
       ByteArrayOutputStream out = new ByteArrayOutputStream((int) file.length());
@@ -455,7 +464,7 @@ public class WarpScriptMacroRepository extends Thread {
       macro.setFingerprint(0L);
       return macro;
     } finally {
-      loading.get().addAndGet(-1);
+      loading.get().remove(loading.get().size() - 1);
     }
   }
 }
