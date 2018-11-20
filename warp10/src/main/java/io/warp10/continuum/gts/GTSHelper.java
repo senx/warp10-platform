@@ -9107,20 +9107,20 @@ public class GTSHelper {
         dest.doubleValues = new double[destMinLength];
       } else if (GeoTimeSerie.TYPE.STRING == dest.type) {
         dest.stringValues = new String[destMinLength];
-      } else { // TYPE.BOOLEAN == combined.type
+      } else { // TYPE.BOOLEAN == dest.type
         dest.booleanValues = new BitSet();
       }
     } else if(dest.ticks.length < destMinLength){ // dest is too small to contain new data
       dest.ticks = Arrays.copyOf(dest.ticks, destMinLength);
 
       if (GeoTimeSerie.TYPE.LONG == dest.type) {
-        dest.longValues = Arrays.copyOf(dest.ticks, destMinLength);
+        dest.longValues = Arrays.copyOf(dest.longValues, destMinLength);
       } else if (GeoTimeSerie.TYPE.DOUBLE == dest.type) {
         dest.doubleValues = Arrays.copyOf(dest.doubleValues, destMinLength);
       } else if (GeoTimeSerie.TYPE.STRING == dest.type) {
         dest.stringValues = Arrays.copyOf(dest.stringValues, destMinLength);
       }
-      // else TYPE.BOOLEAN == combined.type // nothing to do because BitSet grows automatically
+      // else TYPE.BOOLEAN == dest.type // nothing to do because BitSet grows automatically
     }
 
     // If any of dest or src have location info
