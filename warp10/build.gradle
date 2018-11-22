@@ -123,7 +123,7 @@ dependencies {
     //
     // Geo
     //
-    compile 'com.geoxp:geoxplib:1.0.0-rc13'
+    compile 'com.geoxp:geoxplib:1.0.0-rc14'
     compile("org.wololo:jts2geojson:0.10.0") {
         exclude group: 'com.vividsolutions', module: 'jts'
         exclude group: 'com.vividsolutions', module: 'jts-core'
