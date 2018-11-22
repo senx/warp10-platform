@@ -63,19 +63,22 @@ public class GeoJSON extends NamedWarpScriptFunction implements WarpScriptStackF
     //
 
     int maxcells = ((Number) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MAX_GEOCELLS)).intValue();
-    
-    if (!this.uniform) {
-      if (pcterror instanceof Double) {
-        stack.push(GeoXPLib.toGeoXPShape(geometry, ((Number) pcterror).doubleValue(), Boolean.TRUE.equals(inside), maxcells));
+    try {
+      if (!this.uniform) {
+        if (pcterror instanceof Double) {
+          stack.push(GeoXPLib.toGeoXPShape(geometry, ((Number) pcterror).doubleValue(), Boolean.TRUE.equals(inside), maxcells));
+        } else {
+          stack.push(GeoXPLib.toGeoXPShape(geometry, ((Number) pcterror).intValue(), Boolean.TRUE.equals(inside), maxcells));
+        }
       } else {
-        stack.push(GeoXPLib.toGeoXPShape(geometry, ((Number) pcterror).intValue(), Boolean.TRUE.equals(inside), maxcells));
+        if (pcterror instanceof Double) {
+          stack.push(GeoXPLib.toUniformGeoXPShape(geometry, ((Number) pcterror).doubleValue(), Boolean.TRUE.equals(inside), maxcells));
+        } else {
+          stack.push(GeoXPLib.toUniformGeoXPShape(geometry, ((Number) pcterror).intValue(), Boolean.TRUE.equals(inside), maxcells));
+        }
       }
-    } else {
-      if (pcterror instanceof Double) {
-        stack.push(GeoXPLib.toUniformGeoXPShape(geometry, ((Number) pcterror).doubleValue(), Boolean.TRUE.equals(inside), maxcells));
-      } else {
-        stack.push(GeoXPLib.toUniformGeoXPShape(geometry, ((Number) pcterror).intValue(), Boolean.TRUE.equals(inside), maxcells));
-      }
+    } catch (NullPointerException e) {
+      throw new WarpScriptException("Impossible to build this geometry with so few cells. Try to increase maxgeocells.");
     }
 
     return stack;
