@@ -155,7 +155,8 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
       if (this.metaset) {
         throw new WarpScriptException(getName() + " expects a list of parameters on top of the stack.");
       }
-      mapparams = true;
+      mapparams = ((Map)top).containsKey(FETCH.PARAM_TOKEN);
+      //syntax error tolerance for older systems : $readtoken 'classselector' { labels selector } FIND
     } else {
       if (this.metaset) {
         throw new WarpScriptException(getName() + " expects a list of parameters.");
