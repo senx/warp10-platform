@@ -48,7 +48,8 @@ public class TOKENINFO extends NamedWarpScriptFunction implements WarpScriptStac
     
     Map<String,Object> tokenParams = new HashMap<String, Object>();
         
-    boolean error = true;
+    String readError = null;
+    String writeError = null;
     
     try {
       ReadToken rtoken = Tokens.extractReadToken(o.toString());
@@ -63,30 +64,30 @@ public class TOKENINFO extends NamedWarpScriptFunction implements WarpScriptStac
       if (rtoken.getLabelsSize() > 0) {
         tokenParams.put("labels", rtoken.getLabels());
       }
-      error = false;
     } catch (WarpScriptException ee) {
-      tokenParams.put("ReadTokenDecodeError", ee.getMessage());
+      readError = ee.getMessage();
     }
     
-    if (error) {
-      try {
-        WriteToken wtoken = Tokens.extractWriteToken(o.toString());
-        
-        tokenParams.put("type", "WRITE");
-        tokenParams.put("issuance", wtoken.getIssuanceTimestamp());
-        tokenParams.put("expiry", wtoken.getExpiryTimestamp());
-        tokenParams.put("application", wtoken.getAppName());
-        if (wtoken.getLabelsSize() > 0) {
-          tokenParams.put("labels", wtoken.getLabels());
-        }
-        Map<String,Object> limits = ThrottlingManager.getLimits(Tokens.getUUID(wtoken.getProducerId()), wtoken.getAppName());
-        
-        error = false;
-      } catch (WarpScriptException ee) {
-        if (error) {
-          tokenParams.put("WriteTokenDecodeError", ee.getMessage());
-        }
+    try {
+      WriteToken wtoken = Tokens.extractWriteToken(o.toString());
+      
+      tokenParams.put("type", "WRITE");
+      tokenParams.put("issuance", wtoken.getIssuanceTimestamp());
+      tokenParams.put("expiry", wtoken.getExpiryTimestamp());
+      tokenParams.put("application", wtoken.getAppName());
+      if (wtoken.getLabelsSize() > 0) {
+        tokenParams.put("labels", wtoken.getLabels());
       }
+      Map<String,Object> limits = ThrottlingManager.getLimits(Tokens.getUUID(wtoken.getProducerId()), wtoken.getAppName());
+      
+      tokenParams.put("limits", limits);      
+    } catch (WarpScriptException ee) {
+      writeError = ee.getMessage();
+    }
+
+    if (null != readError && null != writeError) {
+      tokenParams.put("ReadTokenDecodeError", readError);
+      tokenParams.put("WriteTokenDecodeError", writeError);
     }
     
     stack.push(tokenParams);
