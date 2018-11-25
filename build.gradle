@@ -130,9 +130,6 @@ subprojects {
         maven {
             url "http://nexus.bedatadriven.com/content/groups/public/"
         }
-        maven {
-            url "http://repo.opengeo.org/"
-        }
 
         maven {
             url 'https://dl.bintray.com/hbs/maven'
