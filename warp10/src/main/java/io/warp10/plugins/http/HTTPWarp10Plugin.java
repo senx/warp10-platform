@@ -177,10 +177,12 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
           }
 
           if (load) {
-            load(p);
+            if (load(p)) {
+              specs.add(p.toString());
+            }
+          } else {
+            specs.add(p.toString());
           }
-
-          specs.add(p.toString());
         }
 
         //
@@ -219,7 +221,8 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
    *
    * @param p
    */
-  private void load(Path p) {
+  private boolean load(Path p) {
+    boolean success = false;
     try {
       //
       // Read content of mc2 file
@@ -268,10 +271,12 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
       if (Boolean.TRUE.equals(config.get(PARAM_PREFIX))) {
         prefixes.add(String.valueOf(config.get(PARAM_PATH)));
       }
+      success = true;
     } catch (Exception e) {
       e.printStackTrace();
       LOG.error("Caught exception while loading '" + p.getFileName() + "'.", e);
     }
+    return success;
   }
 
   @Override
