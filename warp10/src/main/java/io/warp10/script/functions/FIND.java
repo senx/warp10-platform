@@ -159,7 +159,6 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
       mapparams = ((Map)top).containsKey(FETCH.PARAM_TOKEN) &&
               (((Map)top).containsKey(FETCH.PARAM_SELECTORS) || ((Map)top).containsKey(FETCH.PARAM_SELECTOR) ||
               (((Map)top).containsKey(FETCH.PARAM_CLASS) && ((Map)top).containsKey(FETCH.PARAM_LABELS)));
-
     } else {
       if (this.metaset) {
         throw new WarpScriptException(getName() + " expects a list of parameters.");
