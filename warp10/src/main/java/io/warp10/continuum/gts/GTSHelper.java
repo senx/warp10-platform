@@ -1275,8 +1275,7 @@ public class GTSHelper {
           } else if (TYPE.BOOLEAN == gts.type) {
             gts.booleanValues = new BitSet();
           }
-        }
-        else {
+        } else {
           if (GeoTimeSerie.TYPE.LONG == fallbackType) {
             gts.longValues = new long[newSize];
           } else if (GeoTimeSerie.TYPE.DOUBLE == fallbackType) {
