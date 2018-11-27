@@ -1250,6 +1250,70 @@ public class GTSHelper {
       }
     }    
   }
+
+  /**
+   * Provision GTS arrays for several values. If the arrays have enough space left, no provision is done.
+   * If arrays have not enough space left, a provision is done according to the given parameter.
+   * @param gts The GTS instance to provision space for.
+   * @param numberOfValuesToAdd Minimum available space in arrays for new data.
+   * @param provisionSize Array length increase in case arrays are too small.
+   */
+  public static final void multiProvision(GeoTimeSerie gts, GeoTimeSerie.TYPE fallbackType, int numberOfValuesToAdd, int provisionSize) {
+    if (0 < numberOfValuesToAdd) {
+      int newSize = gts.values + provisionSize;
+
+      if (null == gts.ticks) { // gts is empty
+        gts.ticks = new long[newSize];
+
+        if (TYPE.UNDEFINED != gts.type) {
+          if (GeoTimeSerie.TYPE.LONG == gts.type) {
+            gts.longValues = new long[newSize];
+          } else if (GeoTimeSerie.TYPE.DOUBLE == gts.type) {
+            gts.doubleValues = new double[newSize];
+          } else if (GeoTimeSerie.TYPE.STRING == gts.type) {
+            gts.stringValues = new String[newSize];
+          } else if (TYPE.BOOLEAN == gts.type) {
+            gts.booleanValues = new BitSet();
+          }
+        } else {
+          if (GeoTimeSerie.TYPE.LONG == fallbackType) {
+            gts.longValues = new long[newSize];
+          } else if (GeoTimeSerie.TYPE.DOUBLE == fallbackType) {
+            gts.doubleValues = new double[newSize];
+          } else if (GeoTimeSerie.TYPE.STRING == fallbackType) {
+            gts.stringValues = new String[newSize];
+          } else { // TYPE.BOOLEAN == fallbackType || TYPE.UNDEFINED == fallbackType
+            //
+            // Default type is boolean, this is so people will rapidly notice
+            // this is not what they were expecting...
+            //
+            gts.booleanValues = new BitSet();
+          }
+        }
+      } else if (gts.ticks.length < gts.size() + numberOfValuesToAdd) { // gts is too small for added data
+        gts.ticks = Arrays.copyOf(gts.ticks, newSize);
+
+        if (GeoTimeSerie.TYPE.LONG == gts.type) {
+          gts.longValues = Arrays.copyOf(gts.longValues, newSize);
+        } else if (GeoTimeSerie.TYPE.DOUBLE == gts.type) {
+          gts.doubleValues = Arrays.copyOf(gts.doubleValues, newSize);
+        } else if (GeoTimeSerie.TYPE.STRING == gts.type) {
+          gts.stringValues = Arrays.copyOf(gts.stringValues, newSize);
+        }
+        // else TYPE.BOOLEAN == gts.type // nothing to do because BitSet grows automatically
+
+        // If gts has location info
+        if (null != gts.locations) {
+          gts.locations = Arrays.copyOf(gts.locations, newSize);
+        }
+
+        // If gts has elevation info
+        if (null != gts.elevations) {
+          gts.elevations = Arrays.copyOf(gts.elevations, newSize);
+        }
+      }
+    }
+  }
   
   /**
    * Return a new GeoTimeSerie instance containing only the value of 'gts'
