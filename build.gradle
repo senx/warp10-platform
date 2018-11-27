@@ -126,11 +126,6 @@ subprojects {
         maven {
             url "http://maven.twttr.com"
         }
-        // bedatadriven - http://www.renjin.org/#downloads
-        maven {
-            url "http://nexus.bedatadriven.com/content/groups/public/"
-        }
-
         maven {
             url 'https://dl.bintray.com/hbs/maven'
         }
@@ -138,10 +133,6 @@ subprojects {
         maven {
             url 'https://dl.bintray.com/senx/maven'
         }
-
-        //maven {
-        //  url "https://repository.apache.org/content/repositories/orgapachehbase-1065"
-        //}
     }
 
     //
