@@ -265,14 +265,33 @@ warpscript.call.directory = ${standalone.home}/calls
 // Extension classes can be prefixed with SORTKEY# to force the order in which the extensions will be loaded.
 // The SORTKEY# prefix will be used only for sorting.
 //
-//warpscript.extensions = 
+#warpscript.extensions = packageW.classX,packageY.classZ
 
 //
 // Specific extension loading
 // Extension classes can be prefixed with SORTKEY# to force the order in which the extensions will be loaded.
 // The SORTKEY# prefix will be used only for sorting.
 //
-//warpscript.extension.xxx = package.class
+#warpscript.extension.xxx = package.class
+// Integrated extensions:
+// CEVAL, SYNC
+#warpscript.extension.concurrent = io.warp10.script.ext.concurrent.ConcurrentWarpScriptExtension
+// LOGMSG, NOLOG, STDERR, STDOUT, TDESCRIBE
+#warpscript.extension.debug = io.warp10.script.ext.debug.DebugWarpScriptExtension
+// HLOCATE
+#warpscript.extension.hbase = io.warp10.script.ext.debug.HBaseWarpScriptExtension
+// FUNCTIONS
+#warpscript.extension.inventory = io.warp10.script.ext.inventory.InventoryWarpScriptExtension
+// LOGEVENTTO
+#warpscript.extension.logging = io.warp10.script.ext.logging.LoggingWarpScriptExtension
+// REXEC
+#warpscript.extension.rexec = io.warp10.script.ext.rexec.RexecWarpScriptExtension
+// SENSISIONEVENT, SENSISIONGET, SENSISIONSET, SENSISIONUPDATE
+#warpscript.extension.sensision = io.warp10.script.ext.sensision.SensisionWarpScriptExtension
+// MUTEX, SHMLOAD, SHMSTORE
+#warpscript.extension.shm = io.warp10.script.ext.shm.SharedMemoryWarpScriptExtension
+// TOKENDUMP, TOKENGEN
+#warpscript.extension.token = io.warp10.script.ext.token.TokenWarpScriptExtension
 
 //
 // Specific namespace under which to load an extension. The specified namespace will be used as a prefix for all functions of the extension.
@@ -288,9 +307,20 @@ warpscript.call.directory = ${standalone.home}/calls
 warp.timeunits = us
 
 //
-// Comma separated list of Warp 10 plugins to instantiate. 
+// Comma separated list of Warp 10 plugins to instantiate.
 //
-warp10.plugins = io.warp10.plugins.quantum.QuantumPlugin
+#warp10.plugins = packageW.classX,packageY.classZ
+
+//
+// Specific plugin loading
+//
+#warpscript.plugins.xxx = package.class
+// Integrated plugins:
+warp10.plugin.quantum = io.warp10.plugins.quantum.QuantumPlugin
+#warp10.plugin.http = io.warp10.plugins.http.HTTPWarp10Plugin
+#warp10.plugin.udp = io.warp10.plugins.udp.UDPWarp10Plugin
+#warp10.plugin.tcp = io.warp10.plugins.tcp.TCPWarp10Plugin
+#warp10.plugin.influxdb = io.warp10.plugins.influxdb.InfluxDBWarp10Plugin
 
 //
 // Path of the 'bootstrap' warpscript code for Egress
@@ -857,3 +887,34 @@ runner.minperiod = 1000
 #udp.dir = 
 // Period (in ms) at which to rescan 'udp.dir' for spec files changes (defaults to 60s)
 #udp.period = 60000
+
+//
+// TCP Plugin
+//
+
+// Directory where TCP 'spec' files will be located
+#tcp.dir =
+// Period (in ms) at which to rescan 'tcp.dir' for spec files changes (defaults to 60s)
+#tcp.scanperiod = 60000
+
+//
+// InfluxDB Plugin
+//
+// Port the InfluxDB plugin will listen on
+#influxdb.port = 18086
+// IP the InfluxDB plugin will listen on  (defaults to 127.0.0.1)
+#influxdb.host = 127.0.0.1
+// Timeout (in ms) when expecting a HTTP request (defaults to 30000 ms)
+#influxdb.idle.timeout = 30000
+// Number of threads Jetty should use (defaults to 1 + acceptors + acceptors * selectors which is the minimum)
+#influxdb.jetty.threadpool = 11
+// Size of the queue to use for the Jetty thread pool. By default no queue is used
+#influxdb.jetty.maxqueuesize = 8
+// Number of Jetty acceptors to use (defaults to 2)
+#influxdb.acceptors = 2
+// Number of Jetty selectors to use (defaults to 4)
+#influxdb.selectors = 4
+// Warp 10 instance update endpoint to push the data to
+#influxdb.warp10.endpoint = http://ip:port/api/v0/update
+// Default token to be used to update the data to the specified Warp 10 instance. By default uses the password in the request as token.
+#influxdb.default.token =
