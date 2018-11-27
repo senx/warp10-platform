@@ -86,7 +86,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
   private int acceptors = 2;
   private int selectors = 4;
   private int maxthreads = 1 + acceptors + acceptors * selectors;
-  private long idleTimeout = 30000;
+  private int idleTimeout = 30000;
   private BlockingQueue<Runnable> queue = null;
 
   /**
@@ -125,7 +125,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
     // Start Jetty server
     //
 
-    Server server = new Server(new QueuedThreadPool(maxthreads, 8, (int) idleTimeout, queue));
+    Server server = new Server(new QueuedThreadPool(maxthreads, 8, idleTimeout, queue));
 
     ServerConnector connector = new ServerConnector(server, acceptors, selectors);
     connector.setIdleTimeout(idleTimeout);
@@ -300,7 +300,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
     acceptors = Integer.valueOf(properties.getProperty(CONF_HTTP_ACCEPTORS, String.valueOf(acceptors)));
     selectors = Integer.valueOf(properties.getProperty(CONF_HTTP_SELECTORS, String.valueOf(selectors)));
     maxthreads = Integer.valueOf(properties.getProperty(CONF_HTTP_MAXTHREADS, String.valueOf(maxthreads)));
-    idleTimeout = Long.parseLong(properties.getProperty(CONF_HTTP_IDLE_TIMEOUT, String.valueOf(idleTimeout)));
+    idleTimeout = Integer.valueOf(properties.getProperty(CONF_HTTP_IDLE_TIMEOUT, String.valueOf(idleTimeout)));
 
     if (properties.containsKey(CONF_HTTP_QUEUESIZE)) {
       queue = new BlockingArrayQueue<>(Integer.parseInt(properties.getProperty(CONF_HTTP_QUEUESIZE)));
