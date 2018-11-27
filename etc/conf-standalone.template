@@ -883,7 +883,7 @@ runner.minperiod = 1000
 // UDP Plugin
 //
 
-// Directory where 'spec' files will be located
+// Directory where UDP 'spec' files will be located
 #udp.dir = 
 // Period (in ms) at which to rescan 'udp.dir' for spec files changes (defaults to 60s)
 #udp.period = 60000
