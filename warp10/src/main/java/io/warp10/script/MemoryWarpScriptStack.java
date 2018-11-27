@@ -974,7 +974,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     } catch (WarpScriptATCException wsatce) {
       throw wsatce;
     } catch (Exception ee) {
-      ee.printStackTrace();
       if (macro.isSecure()) {
         throw ee;
       } else {
