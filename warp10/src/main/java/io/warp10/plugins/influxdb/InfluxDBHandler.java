@@ -28,6 +28,7 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.servlet.DispatcherType;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -51,6 +52,11 @@ public class InfluxDBHandler extends AbstractHandler {
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
     baseRequest.setHandled(true);
+
+    // Only run code on REQUEST
+    if(DispatcherType.REQUEST != baseRequest.getDispatcherType()){
+      return;
+    }
     
     long nsPerTimeUnit = 1;
     
