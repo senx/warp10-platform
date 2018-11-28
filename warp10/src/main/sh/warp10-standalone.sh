@@ -376,7 +376,7 @@ start() {
   #
   # Check if Warp10 Quantum plugin is defined
   #
-  QUANTUM_PLUGIN="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'warp10.plugins' | grep ${QUANTUM_PLUGIN_NAME}`"
+  QUANTUM_PLUGIN="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'warp10.plugin.quantum' | grep ${QUANTUM_PLUGIN_NAME}`"
 
   if [ "$QUANTUM_PLUGIN" != "" ]; then
     if [ "$IS_JAVA7" = false ]; then
