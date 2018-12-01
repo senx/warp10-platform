@@ -155,11 +155,11 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     // are reversed so the most recent (end) appears first (startkey)
     //
     
-    byte[] startkey = new byte[Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
+    byte[] startkey = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
     byte[] endkey = new byte[startkey.length];
     
     ByteBuffer bb = ByteBuffer.wrap(startkey).order(ByteOrder.BIG_ENDIAN);
-    bb.put(Store.HBASE_RAW_DATA_KEY_PREFIX);
+    bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
     bb.putLong(metadata.getClassId());
     bb.putLong(metadata.getLabelsId());
     // FIXME(hbs): modulus should be extracted from metadata as it depends on GTS and auth
@@ -168,7 +168,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     bb.putLong(Long.MAX_VALUE - modulus);
     
     bb = ByteBuffer.wrap(endkey).order(ByteOrder.BIG_ENDIAN);
-    bb.put(Store.HBASE_RAW_DATA_KEY_PREFIX);
+    bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
     bb.putLong(metadata.getClassId());
     bb.putLong(metadata.getLabelsId());
     //
@@ -290,7 +290,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
           if (1 == Constants.DEFAULT_MODULUS) {
             byte[] data = cell.getRowArray();
             int offset = cell.getRowOffset();
-            offset += Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8; // Add 'prefix' + 'classId' + 'labelsId' to row key offset
+            offset += Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8; // Add 'prefix' + 'classId' + 'labelsId' to row key offset
             long delta = data[offset] & 0xFF;
             delta <<= 8; delta |= (data[offset + 1] & 0xFFL);
             delta <<= 8; delta |= (data[offset + 2] & 0xFFL);

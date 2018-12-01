@@ -217,11 +217,6 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   
   private static final String DIRECTORY_INIT_NTHREADS_DEFAULT = "4";
   
-  /**
-   * row key prefix for metadata
-   */
-  public static final byte[] HBASE_METADATA_KEY_PREFIX = "M".getBytes(Charsets.UTF_8);
-  
   private final int modulus;
   private final int remainder;
   private String host;
@@ -736,7 +731,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           
           boolean done = false;
           
-          byte[] lastrow = HBASE_METADATA_KEY_PREFIX;
+          byte[] lastrow = Constants.HBASE_METADATA_KEY_PREFIX;
           
           while(!done) {
             try {
@@ -769,7 +764,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 // FIXME(hbs): this could be done in a filter on the RS side
                 //
                 
-                int r = (((int) result.getRow()[HBASE_METADATA_KEY_PREFIX.length + 8]) & 0xff) % self.modulus;
+                int r = (((int) result.getRow()[Constants.HBASE_METADATA_KEY_PREFIX.length + 8]) & 0xff) % self.modulus;
                 
                 //byte r = (byte) (result.getRow()[HBASE_METADATA_KEY_PREFIX.length + 8] % self.modulus);
                 
@@ -1584,11 +1579,11 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               // Remove HBase entry
               
               // Prefix + classId + labelsId
-              byte[] rowkey = new byte[HBASE_METADATA_KEY_PREFIX.length + 8 + 8];
+              byte[] rowkey = new byte[Constants.HBASE_METADATA_KEY_PREFIX.length + 8 + 8];
 
               // 128bits
               ByteBuffer bb = ByteBuffer.wrap(rowkey).order(ByteOrder.BIG_ENDIAN);
-              bb.put(HBASE_METADATA_KEY_PREFIX);
+              bb.put(Constants.HBASE_METADATA_KEY_PREFIX);
               bb.putLong(classId);
               bb.putLong(labelsId);
               
@@ -1757,10 +1752,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             //
             
             // Prefix + classId + labelsId
-            byte[] rowkey = new byte[HBASE_METADATA_KEY_PREFIX.length + 8 + 8];
+            byte[] rowkey = new byte[Constants.HBASE_METADATA_KEY_PREFIX.length + 8 + 8];
 
             ByteBuffer bb = ByteBuffer.wrap(rowkey).order(ByteOrder.BIG_ENDIAN);
-            bb.put(HBASE_METADATA_KEY_PREFIX);
+            bb.put(Constants.HBASE_METADATA_KEY_PREFIX);
             bb.putLong(classId);
             bb.putLong(labelsId);
 

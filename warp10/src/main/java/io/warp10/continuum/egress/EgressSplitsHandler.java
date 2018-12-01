@@ -20,7 +20,6 @@ import io.warp10.continuum.Tokens;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.MetadataIterator;
-import io.warp10.continuum.store.Store;
 import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.GTSSplit;
 import io.warp10.continuum.store.thrift.data.Metadata;
@@ -172,8 +171,8 @@ public class EgressSplitsHandler extends AbstractHandler {
       // 128bits
       //
         
-      byte[] row = new byte[Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
-      System.arraycopy(Store.HBASE_RAW_DATA_KEY_PREFIX, 0, row, 0, Store.HBASE_RAW_DATA_KEY_PREFIX.length);           
+      byte[] row = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
+      System.arraycopy(Constants.HBASE_RAW_DATA_KEY_PREFIX, 0, row, 0, Constants.HBASE_RAW_DATA_KEY_PREFIX.length);           
       
       PrintWriter pw = response.getWriter();
       
@@ -188,7 +187,7 @@ public class EgressSplitsHandler extends AbstractHandler {
         long classId = metadata.getClassId();
         long labelsId = metadata.getLabelsId();
         
-        int offset = Store.HBASE_RAW_DATA_KEY_PREFIX.length;
+        int offset = Constants.HBASE_RAW_DATA_KEY_PREFIX.length;
         
         // Add classId
         for (int i = 7; i >= 0; i--) {

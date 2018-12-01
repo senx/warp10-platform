@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import com.google.common.base.Charsets;
+
 public class Constants {
   
   //
@@ -470,4 +472,14 @@ public class Constants {
     
     return false;
   }
+
+  /**
+   * row key prefix for metadata
+   */
+  public static final byte[] HBASE_METADATA_KEY_PREFIX = "M".getBytes(Charsets.UTF_8);
+
+  /**
+   * Prefix for 'raw' (individual datapoints) data
+   */
+  public static final byte[] HBASE_RAW_DATA_KEY_PREFIX = "R".getBytes(Charsets.UTF_8);
 }

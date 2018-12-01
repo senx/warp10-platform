@@ -157,7 +157,7 @@ public class StandaloneStoreClient implements StoreClient {
           if (fromArchive) {
             bb.position(Store.HBASE_ARCHIVE_DATA_KEY_PREFIX.length + 8 + 8);                        
           } else {
-            bb.position(Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8);            
+            bb.position(Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8);            
           }
           
           long basets = fromArchive ? 0L : (Long.MAX_VALUE - bb.getLong());
@@ -292,7 +292,7 @@ public class StandaloneStoreClient implements StoreClient {
             }
             
             if (fromArchive) {
-              startrow = new byte[Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8];
+              startrow = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8];
               ByteBuffer bb = ByteBuffer.wrap(startrow).order(ByteOrder.BIG_ENDIAN);
               bb.put(Store.HBASE_ARCHIVE_DATA_KEY_PREFIX);
               bb.putLong(metadatas.get(idx).getClassId());
@@ -305,16 +305,16 @@ public class StandaloneStoreClient implements StoreClient {
               bb.putLong(metadatas.get(idx).getLabelsId());              
               bb.putLong(0xffffffffffffffffL);
             } else {
-              startrow = new byte[Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
+              startrow = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
               ByteBuffer bb = ByteBuffer.wrap(startrow).order(ByteOrder.BIG_ENDIAN);
-              bb.put(Store.HBASE_RAW_DATA_KEY_PREFIX);
+              bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
               bb.putLong(metadatas.get(idx).getClassId());
               bb.putLong(metadatas.get(idx).getLabelsId());
               bb.putLong(Long.MAX_VALUE - now);
               
               stoprow = new byte[startrow.length];
               bb = ByteBuffer.wrap(stoprow).order(ByteOrder.BIG_ENDIAN);
-              bb.put(Store.HBASE_RAW_DATA_KEY_PREFIX);
+              bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
               bb.putLong(metadatas.get(idx).getClassId());
               bb.putLong(metadatas.get(idx).getLabelsId());              
               
@@ -408,8 +408,8 @@ public class StandaloneStoreClient implements StoreClient {
     List<byte[][]> kvs = new ArrayList<byte[][]>();
     
     while(decoder.next()) {
-      ByteBuffer bb = ByteBuffer.wrap(new byte[Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8]).order(ByteOrder.BIG_ENDIAN);
-      bb.put(Store.HBASE_RAW_DATA_KEY_PREFIX);
+      ByteBuffer bb = ByteBuffer.wrap(new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8]).order(ByteOrder.BIG_ENDIAN);
+      bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
       bb.putLong(encoder.getClassId());
       bb.putLong(encoder.getLabelsId());
       bb.putLong(Long.MAX_VALUE - decoder.getTimestamp());
@@ -575,9 +575,9 @@ public class StandaloneStoreClient implements StoreClient {
     //
     
     // 128BITS
-    byte[] bend = new byte[Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
+    byte[] bend = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
     ByteBuffer bb = ByteBuffer.wrap(bend).order(ByteOrder.BIG_ENDIAN);
-    bb.put(Store.HBASE_RAW_DATA_KEY_PREFIX);
+    bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
     bb.putLong(metadata.getClassId());
     bb.putLong(metadata.getLabelsId());
     bb.putLong(Long.MAX_VALUE - end);
@@ -586,7 +586,7 @@ public class StandaloneStoreClient implements StoreClient {
     
     byte[] bstart = new byte[bend.length];
     bb = ByteBuffer.wrap(bstart).order(ByteOrder.BIG_ENDIAN);
-    bb.put(Store.HBASE_RAW_DATA_KEY_PREFIX);
+    bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
     bb.putLong(metadata.getClassId());
     bb.putLong(metadata.getLabelsId());
     bb.putLong(Long.MAX_VALUE - start);
