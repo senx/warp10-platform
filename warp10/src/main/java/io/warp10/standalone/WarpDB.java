@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
@@ -412,7 +413,7 @@ public class WarpDB implements DB {
     }    
   }
   
-  public List<Long> purge(List<Long> tables) throws IOException {
+  public Object doOffline(Callable callable) throws IOException {
     try {
       mutex.lockInterruptibly();
       
@@ -425,15 +426,14 @@ public class WarpDB implements DB {
         this.db.close();
         this.db = null;
 
-        // Update MANIFEST
-        List<Long> deleted = WarpPurge.purge(this.home, tables);
+        Object result = callable.call();
         
         // Reopen LevelDB
         open(nativedisabled, javadisabled, home, options);
         
-        return deleted;
+        return result;
       } catch (Throwable t) {
-        throw new RuntimeException("Exception when attempting DB purge.", t);
+        throw new RuntimeException("Exception when attempting offline operation, DB will NOT be reopen.", t);
       }
     } catch (InterruptedException ie) {
       throw new DBException("Interrupted while acquiring DB mutex.", ie);
@@ -442,5 +442,9 @@ public class WarpDB implements DB {
         mutex.unlock();
       }
     }
+  }
+  
+  public String getHome() {
+    return this.home;
   }
 }
