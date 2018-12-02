@@ -18,9 +18,9 @@ package io.warp10.standalone;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
@@ -36,10 +36,11 @@ import org.iq80.leveldb.ReadOptions;
 import org.iq80.leveldb.Snapshot;
 import org.iq80.leveldb.WriteBatch;
 import org.iq80.leveldb.WriteOptions;
-import org.iq80.leveldb.impl.Filename;
 import org.iq80.leveldb.impl.Iq80DBFactory;
 
-public class WarpDB implements DB {
+import io.warp10.script.WarpScriptException;
+
+public class WarpDB extends Thread implements DB {
   
   private DB db;
 
@@ -52,6 +53,13 @@ public class WarpDB implements DB {
   private final boolean javadisabled;
   private final String home;
   private final Options options;
+  
+  public static enum WarpDBCommand {
+    CLOSE,
+    OPEN,
+  }
+  
+  private final LinkedBlockingQueue<WarpDBCommand> commandQ = new LinkedBlockingQueue<WarpDBCommand>(16);
   
   private static final class WarpIterator implements DBIterator {
 
@@ -124,7 +132,12 @@ public class WarpDB implements DB {
     this.options = options;
     this.home = home;
 
+    this.setName("[WarpDB Command Thread]");
+    this.setDaemon(true);
+    this.start();
+
     this.open(nativedisabled, javadisabled, home, options);
+    
   }
   
   private synchronized void open(boolean nativedisabled, boolean javadisabled, String home, Options options) throws IOException {
@@ -133,12 +146,13 @@ public class WarpDB implements DB {
       mutex.lockInterruptibly();
       
       // Wait for iterators and other ops to finish
-      while(pendingOps.get() > 0) {
+      while(pendingOps.get() > 0 || compactionsSuspended.get()) {
         LockSupport.parkNanos(100000000L);
       }
       
       if (null != db) {
         this.db.close();
+        this.db = null;
       }
       
       try {
@@ -167,7 +181,11 @@ public class WarpDB implements DB {
   
   @Override
   public void close() throws IOException {
-    this.db.close();
+    if (null != this.db) {
+      this.db.close();
+      this.db = null;
+      compactionsSuspended.set(false);
+    }
   }
   
   @Override
@@ -191,7 +209,16 @@ public class WarpDB implements DB {
   
   @Override
   public WriteBatch createWriteBatch() {
-    return this.db.createWriteBatch();
+    try {
+      mutex.lockInterruptibly();
+      return this.db.createWriteBatch();
+    } catch (InterruptedException ie) {
+      throw new RuntimeException("Interrupted while creating write batch.", ie);
+    } finally {
+      if (mutex.isHeldByCurrentThread()) {
+        mutex.unlock();
+      }      
+    }
   }
   
   @Override
@@ -417,7 +444,7 @@ public class WarpDB implements DB {
     try {
       mutex.lockInterruptibly();
       
-      while(pendingOps.get() > 0 && compactionsSuspended.get()) {
+      while(pendingOps.get() > 0 || compactionsSuspended.get()) {
         LockSupport.parkNanos(100000000L);
       }
       
@@ -446,5 +473,71 @@ public class WarpDB implements DB {
   
   public String getHome() {
     return this.home;
+  }
+  
+  @Override
+  public void run() {
+    while(true) {
+      WarpDBCommand command = null;
+      try {
+         command = this.commandQ.take();
+      } catch (InterruptedException ie) {
+        continue;
+      }
+      
+      switch (command) {
+        case CLOSE:
+          Throwable error = null;
+          try {
+            mutex.lockInterruptibly();
+
+            while(pendingOps.get() > 0 || compactionsSuspended.get()) {
+              LockSupport.parkNanos(100000000L);
+            }
+
+            this.close();
+          } catch (Throwable t) {
+            error = t;
+          } finally {
+            // Unlock only if we are holding the lock more than once or we failed to close the DB
+            if (mutex.isHeldByCurrentThread() && (mutex.getHoldCount() > 1 || null != this.db || null != error)) {
+              mutex.unlock();
+            }
+          }
+          break;
+        case OPEN:
+          // If we are not currently holding the lock or if the DB is not closed, do not attempt
+          // to re-open it
+          if (mutex.isHeldByCurrentThread() && null == this.db) {
+            boolean ok = false;
+            try {            
+              this.open(this.nativedisabled, javadisabled, home, options);
+              ok = true;
+            } catch (IOException ioe) {              
+            } finally {
+              if (ok) {
+                mutex.unlock();
+              }
+            }
+          }
+          break;
+      }
+    }
+  }
+  
+  public void doClose() throws WarpScriptException {
+    try {
+      this.commandQ.put(WarpDBCommand.CLOSE);
+    } catch (InterruptedException ie) {
+      throw new WarpScriptException("Interrupted while attempting to close WarpDB.", ie);
+    }
+  }
+
+  public void doOpen() throws WarpScriptException {
+    try {
+      this.commandQ.put(WarpDBCommand.OPEN);
+    } catch (InterruptedException ie) {
+      throw new WarpScriptException("Interrupted while attempting to open WarpDB.", ie);
+    }
   }
 }
