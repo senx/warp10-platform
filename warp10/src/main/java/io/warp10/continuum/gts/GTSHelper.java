@@ -7711,15 +7711,16 @@ public class GTSHelper {
   }
 
   /**
-   * Multiply the ticks of a GTS instance by a factor.
-   * @param gts The GTS instance whose ticks are to be scaled.
-   * @param scale The factor to apply to the ticks, cannot be negative for bucketized GTSs.
+   * Multiply the ticks of a GTS instance by a factor. Cannot be applied to a bucketized GTS instance as it can cause rounding errors.
+   *
+   * @param gts   The GTS instance whose ticks are to be scaled.
+   * @param scale The factor to apply to the ticks.
    * @return A copy of the given GTS instance with its tick scaled.
-   * @throws WarpScriptException If scale is negative and the GTS instance is bucketized or if the bucketspan of the given bucketized GTS would be 0 after scaling.
+   * @throws WarpScriptException If the GTS instance is bucketized.
    */
   public static GeoTimeSerie timescale(GeoTimeSerie gts, double scale) throws WarpScriptException {
-    if (0 > scale && isBucketized(gts)) {
-      throw new WarpScriptException("Cannot apply a negative timescale on a bucketized GTS.");
+    if (isBucketized(gts)) {
+      throw new WarpScriptException("Cannot apply timescale on a bucketized GTS. Unbucketize it first.");
     }
 
     GeoTimeSerie scaled = gts.clone();
@@ -7728,16 +7729,10 @@ public class GTSHelper {
       scaled.ticks[i] = (long) (scaled.ticks[i] * scale);
     }
 
-    scaled.lastbucket = (long) (scaled.lastbucket * scale);
-    scaled.bucketspan = (long) (scaled.bucketspan * scale);
-
-    if (0 > scale) {
+    if (scaled.sorted && scale < 0.0D) {
       scaled.reversed = !scaled.reversed;
     }
 
-    if (0 != gts.bucketspan && 0 == scaled.bucketspan) {
-      throw new WarpScriptException("Downscaling is too aggressive, bucketspan would end up 0.");
-    }
     return scaled;
   }
   
