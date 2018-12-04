@@ -369,33 +369,12 @@ public class WarpDB extends Thread implements DB {
   
   @Override
   public void resumeCompactions() {
-    if (!compactionsSuspended.get()) {
-      return;
-    }
-    this.db.resumeCompactions();
-    compactionsSuspended.set(false);
+    throw new DBException("Unsupported 'resumeCompactions' operation.");
   }
   
   @Override
   public void suspendCompactions() throws InterruptedException {
-    if (compactionsSuspended.get()) {
-      return;
-    }
-    try {
-      mutex.lockInterruptibly();
-      compactionsSuspended.set(true);
-    } catch (InterruptedException ie) {
-      throw new DBException("Interrupted while acquiring DB mutex.", ie);
-    } finally {
-      if (mutex.isHeldByCurrentThread()) {
-        mutex.unlock();
-      }
-    }    
-    try {
-      this.db.suspendCompactions();
-    } catch (Throwable t) {
-      compactionsSuspended.set(false);
-    }
+    throw new DBException("Unsupported 'suspendCompactions' operation.");
   }
   
   @Override
