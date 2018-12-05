@@ -103,9 +103,9 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptAgg
         @Override
         public int compare(Integer idx1, Integer idx2) {
           if (values[idx1] instanceof Double) {
-            return (int) (((Number) values[idx1]).doubleValue() - ((Number) values[idx2]).doubleValue());
+            return Double.compare(((Number) values[idx1]).doubleValue(), ((Number) values[idx2]).doubleValue());
           } else if (values[idx1] instanceof Long) {
-            return (int) (((Number) values[idx1]).longValue() - ((Number) values[idx2]).longValue());
+            return Long.compare(((Number) values[idx1]).longValue(), ((Number) values[idx2]).longValue());
           } else {
             throw new RuntimeException("PERCENTILE can only operate on numeric Geo Time Series.");
           }
