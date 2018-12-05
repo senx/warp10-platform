@@ -49,7 +49,7 @@ public class GeoWKT extends NamedWarpScriptFunction implements WarpScriptStackFu
 
     // Check the resolution is even and in 2..30, if relevant
     if (pcterror instanceof Long) {
-      Long res = (Long)pcterror;
+      long res = ((Number) pcterror).longValue();
       if (1 == (res % 2) || res > 30 || res < 2) {
         throw new WarpScriptException(getName() + " expects the resolution to be an even number between 2 and 30");
       }
