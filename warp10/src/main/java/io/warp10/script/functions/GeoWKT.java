@@ -47,6 +47,14 @@ public class GeoWKT extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException(getName() + " expects a WKT string, an error percentage or resolution (even number between 2 and 30) and a boolean as the top 3 elements of the stack.");
     }
 
+    // Check the resolution is even and in 2..30, if relevant
+    if (pcterror instanceof Long) {
+      long res = ((Number) pcterror).longValue();
+      if (1 == (res % 2) || res > 30 || res < 2) {
+        throw new WarpScriptException(getName() + " expects the resolution to be an even number between 2 and 30");
+      }
+    }
+
     //
     // Read WKT
     //
