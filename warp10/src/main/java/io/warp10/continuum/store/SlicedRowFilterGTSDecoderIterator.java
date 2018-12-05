@@ -91,7 +91,7 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
   private static final byte[] ONES_BYTES = Longs.toByteArray(0xffffffffffffffffL);
   
   // FIXME(hbs): use a different prefix for archived data
-  private static byte[] prefix = Store.HBASE_RAW_DATA_KEY_PREFIX;
+  private static byte[] prefix = Constants.HBASE_RAW_DATA_KEY_PREFIX;
 
   private final boolean writeTimestamp;
   
@@ -250,7 +250,7 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
 
       // Encode this in ISO_8859_1 so we are sure every possible byte sequence is valid
       // FIXME(hbs): instead of doing a Arrays.copyOfRange, use new String(byte[],offset,len,charset)
-      String classlabelsid = new String(Arrays.copyOfRange(result.getRow(), Store.HBASE_RAW_DATA_KEY_PREFIX.length, Store.HBASE_RAW_DATA_KEY_PREFIX.length + 16), Charsets.ISO_8859_1);
+      String classlabelsid = new String(Arrays.copyOfRange(result.getRow(), Constants.HBASE_RAW_DATA_KEY_PREFIX.length, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 16), Charsets.ISO_8859_1);
     
       Metadata metadata = this.metadatas.get(classlabelsid);
 
@@ -289,7 +289,7 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
             // 128BITS
             byte[] data = cell.getRowArray();
             int offset = cell.getRowOffset();
-            offset += Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8; // Add 'prefix' + 'classId' + 'labelsId' to row key offset
+            offset += Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8; // Add 'prefix' + 'classId' + 'labelsId' to row key offset
             long delta = data[offset] & 0xFF;
             delta <<= 8; delta |= (data[offset + 1] & 0xFFL);
             delta <<= 8; delta |= (data[offset + 2] & 0xFFL);
