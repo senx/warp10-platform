@@ -79,24 +79,24 @@ public class GeoTimeSerie implements Cloneable {
   
   /**
    * Width of each bucket in microseconds.
-   * Value of 0 means Geo Time Serie is not bucketed
+   * Value of 0 means Geo Time Serie is not bucketized
    */
   long bucketspan = 0L;
   
   /**
    * Number of buckets.
-   * Value of 0 means GTS is not bucketed.
+   * Value of 0 means GTS is not bucketized.
    */
   int bucketcount = 0;
   
   /**
    * Timestamp of end of last bucket.
-   * Value of 0 means GTS is not bucketed.
+   * Value of 0 means GTS is not bucketized.
    */
   long lastbucket = 0L;
   
   /**
-   * Array of timestamps (bucket ends if GTS is bucketed) with
+   * Array of timestamps (bucket ends if GTS is bucketized) with
    * values.
    */
   
