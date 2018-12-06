@@ -292,6 +292,8 @@ warpscript.call.directory = ${standalone.home}/calls
 #warpscript.extension.shm = io.warp10.script.ext.shm.SharedMemoryWarpScriptExtension
 // TOKENDUMP, TOKENGEN
 #warpscript.extension.token = io.warp10.script.ext.token.TokenWarpScriptExtension
+// URLFETCH, MAXURLFETCHCOUNT, MAXURLFETCHSIZE
+#warpscript.extension.urlfetch = io.warp10.script.ext.urlfetch.UrlFetchWarpScriptExtension
 
 //
 // Specific namespace under which to load an extension. The specified namespace will be used as a prefix for all functions of the extension.
@@ -919,3 +921,15 @@ runner.minperiod = 1000
 #influxdb.warp10.endpoint = http://ip:port/api/v0/update
 // Default token to be used to update the data to the specified Warp 10 instance. By default uses the password in the request as token.
 #influxdb.default.token =
+
+//
+// URLFETCH extension
+//
+
+// Maximum number of URLFETCH calls, 64 by default for soft and hard
+#warpscript.urlfetch.limit =
+#warpscript.urlfetch.limit.hard =
+// Maximum downloaded bytes by URLFETCH, 1000000 by default for soft and hard
+#warpscript.urlfetch.maxsize =
+#warpscript.urlfetch.maxsize.hard =
+// URLFETCH use the patterns defined in webcall.host.patterns, make sure to set them accordingly

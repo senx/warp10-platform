@@ -127,8 +127,6 @@ public class Configuration {
   public static final String WARPSCRIPT_MAX_SYMBOLS = "warpscript.maxsymbols";
   public static final String WARPSCRIPT_MAX_WEBCALLS = "warpscript.maxwebcalls";
   public static final String WARPSCRIPT_MAX_PIXELS = "warpscript.maxpixels";
-  public static final String WARPSCRIPT_URLFETCH_LIMIT = "warpscript.urlfetch.limit";
-  public static final String WARPSCRIPT_URLFETCH_MAXSIZE = "warpscript.urlfetch.maxsize";
 
   // Hard limits for the above limits which can be changed via a function call
   public static final String WARPSCRIPT_MAX_OPS_HARD = "warpscript.maxops.hard";
@@ -141,8 +139,6 @@ public class Configuration {
   public static final String WARPSCRIPT_MAX_RECURSION_HARD = "warpscript.maxrecursion.hard";
   public static final String WARPSCRIPT_MAX_SYMBOLS_HARD = "warpscript.maxsymbols.hard";
   public static final String WARPSCRIPT_MAX_PIXELS_HARD = "warpscript.maxpixels.hard";
-  public static final String WARPSCRIPT_URLFETCH_LIMIT_HARD = "warpscript.urlfetch.limit.hard";
-  public static final String WARPSCRIPT_URLFETCH_MAXSIZE_HARD = "warpscript.urlfetch.maxsize.hard";
 
   /**
    * Flag to enable REXEC
