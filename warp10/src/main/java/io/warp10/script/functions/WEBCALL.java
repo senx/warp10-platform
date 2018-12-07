@@ -95,7 +95,7 @@ public class WEBCALL extends NamedWarpScriptFunction implements WarpScriptStackF
     }
     
     try {
-      if (!StandaloneWebCallService.checkURL(new URL(url.toString()))) {
+      if (!StandaloneWebCallService.webAccessController.checkURL(new URL(url.toString()))) {
         throw new WarpScriptException(getName() + " invalid host or scheme in URL.");
       }
     } catch (MalformedURLException mue) {

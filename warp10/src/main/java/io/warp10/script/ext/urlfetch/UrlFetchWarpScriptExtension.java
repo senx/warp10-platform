@@ -46,6 +46,11 @@ public class UrlFetchWarpScriptExtension extends WarpScriptExtension {
   public static final String WARPSCRIPT_URLFETCH_MAXSIZE = "warpscript.urlfetch.maxsize";
   public static final String WARPSCRIPT_URLFETCH_MAXSIZE_HARD = "warpscript.urlfetch.maxsize.hard";
 
+  /**
+   * Allowed and excluded host patterns.
+   */
+  public static final String WARPSCRIPT_URLFETCH_HOST_PATTERNS = "warpscript.urlfetch.host.patterns";
+
   //
   // STACK
   //
@@ -95,7 +100,7 @@ public class UrlFetchWarpScriptExtension extends WarpScriptExtension {
 
   private static final Map<String, Object> functions;
 
-  private static final Properties warpProperties = WarpConfig.getProperties();
+  protected static final Properties warpProperties = WarpConfig.getProperties();
 
   static {
     // Initialize attribute->configuration

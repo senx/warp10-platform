@@ -16,11 +16,12 @@
 
 package io.warp10.script.ext.urlfetch;
 
+import io.warp10.continuum.Configuration;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.standalone.StandaloneWebCallService;
+import io.warp10.script.WebAccessControl;
 import org.apache.commons.codec.binary.Base64;
 
 import java.io.ByteArrayOutputStream;
@@ -42,9 +43,18 @@ import java.util.concurrent.locks.ReentrantLock;
 public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private final ReentrantLock stackCountersLock = new ReentrantLock();
+  private final WebAccessControl webAccessController;
 
   public URLFETCH(String name) {
     super(name);
+
+    String patternConf = UrlFetchWarpScriptExtension.warpProperties.getProperty(UrlFetchWarpScriptExtension.WARPSCRIPT_URLFETCH_HOST_PATTERNS);
+    // If not defined, use Configuration.WEBCALL_HOST_PATTERNS
+    if (null == patternConf) {
+      patternConf = UrlFetchWarpScriptExtension.warpProperties.getProperty(Configuration.WEBCALL_HOST_PATTERNS);
+    }
+
+    webAccessController = new WebAccessControl(patternConf);
   }
 
   @Override
@@ -79,7 +89,7 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
     //
 
     for (URL url: urls) {
-      if (!StandaloneWebCallService.checkURL(url)) {
+      if (!webAccessController.checkURL(url)) {
         throw new WarpScriptException(getName() + " encountered a forbidden URL '" + url + "'");
       }
     }

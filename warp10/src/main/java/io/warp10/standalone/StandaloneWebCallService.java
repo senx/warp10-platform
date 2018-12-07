@@ -19,6 +19,7 @@ package io.warp10.standalone;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.store.Constants;
+import io.warp10.script.WebAccessControl;
 import io.warp10.script.thrift.data.WebCallMethod;
 import io.warp10.script.thrift.data.WebCallRequest;
 
@@ -46,9 +47,8 @@ public class StandaloneWebCallService extends Thread {
   private static final String ua;
   
   private static boolean launched = false;
-  
-  private static final List<Pattern> patterns = new ArrayList<Pattern>();
-  private static final BitSet exclusion = new BitSet();
+
+  public static final WebAccessControl webAccessController;
   
   static {
     //
@@ -58,71 +58,10 @@ public class StandaloneWebCallService extends Thread {
     Properties props = WarpConfig.getProperties();
     
     ua = props.getProperty(Configuration.WEBCALL_USER_AGENT);
-    
-    //
-    // Extract list of forbidden/allowed patterns
-    //
-    
+
     String patternConf = props.getProperty(Configuration.WEBCALL_HOST_PATTERNS);
-    
-    if (null != patternConf) {
-      //
-      // Split patterns on ','
-      //
-      
-      String[] subpatterns = patternConf.split(",");
-  
-      int idx = 0;
-      
-      for (String pattern: subpatterns) {
-        if (pattern.contains("%")) {
-          try {
-            pattern = URLDecoder.decode(pattern, "UTF-8");
-          } catch (UnsupportedEncodingException uee) {
-            throw new RuntimeException(uee);
-          }
-        }
-        
-        boolean exclude = false;
-        
-        if (pattern.startsWith("!")) {
-          exclude = true;
-          pattern = pattern.substring(1);
-        }
-        
-        //
-        // Compile pattern
-        //
-        
-        Pattern p = Pattern.compile(pattern);
-        
-        patterns.add(p);
-        exclusion.set(idx, exclude);
-        idx++;
-      }
-      
-      //
-      // If no inclusions were specified, add a pass all .* as first pattern
-      //
-      
-      if (exclusion.cardinality() == idx) {
-        int n = exclusion.length();
-        
-        for (int i = n; i >= 1; i--) {
-          exclusion.set(i, exclusion.get(i - 1));
-        }
-        
-        exclusion.set(0, false);
-        patterns.add(0, Pattern.compile(".*"));
-      }
-      
-    } else {
-      //
-      // Permit all hosts by default
-      //
-      patterns.add(Pattern.compile(".*"));
-      exclusion.set(0, false);
-    }
+
+    webAccessController = new WebAccessControl(patternConf);
   }
 
   private static final ArrayBlockingQueue<WebCallRequest> requests = new ArrayBlockingQueue<WebCallRequest>(1024);
@@ -188,7 +127,7 @@ public class StandaloneWebCallService extends Thread {
       
       URL url = new URL(request.getUrl());
 
-      if (!checkURL(url)) {
+      if (!webAccessController.checkURL(url)) {
         return;
       }
             
@@ -247,36 +186,5 @@ public class StandaloneWebCallService extends Thread {
         conn.disconnect();
       }
     }    
-  }
-  
-  public static boolean checkURL(URL url) {
-    
-    String protocol = url.getProtocol();
-
-    //
-    // Only honor http/https
-    //
-    
-    if (!("http".equals(protocol)) && !("https".equals(protocol))) {
-      return false;
-    }
-
-    //
-    // Check host patterns in order, consider the final value of 'accept'
-    //
-    
-    String host = url.getHost();
-    
-    boolean accept = false;
-    
-    for (int i = 0; i < patterns.size(); i++) {      
-      Matcher m = patterns.get(i).matcher(host);
-      
-      if (m.matches()) {
-        accept = !exclusion.get(i);
-      }
-    }
-    
-    return accept;
   }
 }
