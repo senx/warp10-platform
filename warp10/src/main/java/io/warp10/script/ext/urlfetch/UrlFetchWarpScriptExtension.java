@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 package io.warp10.script.ext.urlfetch;
 
 import io.warp10.WarpConfig;
@@ -22,6 +23,7 @@ import io.warp10.warp.sdk.WarpScriptExtension;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * Extension for URLFETCH and the associated function to change limits: MAXURLFETCHCOUNT and MAXURLFETCHSIZE
@@ -93,6 +95,8 @@ public class UrlFetchWarpScriptExtension extends WarpScriptExtension {
 
   private static final Map<String, Object> functions;
 
+  private static final Properties warpProperties = WarpConfig.getProperties();
+
   static {
     // Initialize attribute->configuration
     Map<String, String> a2c = new HashMap<String, String>();
@@ -125,7 +129,8 @@ public class UrlFetchWarpScriptExtension extends WarpScriptExtension {
   /**
    * Get the value of the attribute in the stack, if not present get the value in the configuration and it not present either, get the default value.
    * Also set the attribute in the stack once the value is found.
-   * @param stack The stack the get the attribute from, if present.
+   *
+   * @param stack     The stack the get the attribute from, if present.
    * @param attribute The attribute name to get.
    * @return The first available value in the list: attribute value, configuration value, default.
    */
@@ -138,7 +143,13 @@ public class UrlFetchWarpScriptExtension extends WarpScriptExtension {
 
     String associatedConf = attributeToConf.get(attribute);
     long associatedDefault = attributeToDefault.get(attribute);
-    String ufLimitConf = WarpConfig.getProperties().getProperty(associatedConf, Long.toString(associatedDefault));
+
+    String ufLimitConf;
+    if (null == warpProperties) {
+      ufLimitConf = Long.toString(associatedDefault);
+    } else {
+      ufLimitConf = warpProperties.getProperty(associatedConf, Long.toString(associatedDefault));
+    }
 
     stack.setAttribute(attribute, Long.valueOf(ufLimitConf));
     return Long.valueOf(ufLimitConf);

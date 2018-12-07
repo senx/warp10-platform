@@ -34,13 +34,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Fetch content from a URL
  */
 public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private Object stackCountersLock = new Object();
+  private final ReentrantLock stackCountersLock = new ReentrantLock();
 
   public URLFETCH(String name) {
     super(name);
@@ -65,7 +66,7 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
       if (o instanceof String) {
         urls.add(new URL(o.toString()));
       } else {
-        for (Object oo : (List) o) {
+        for (Object oo: (List) o) {
           urls.add(new URL(oo.toString()));
         }
       }
@@ -77,9 +78,9 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
     // Check URLs
     //
 
-    for (URL url : urls) {
+    for (URL url: urls) {
       if (!StandaloneWebCallService.checkURL(url)) {
-        throw new WarpScriptException(getName() + " encountered an forbidden URL '" + url + "'");
+        throw new WarpScriptException(getName() + " encountered a forbidden URL '" + url + "'");
       }
     }
 
@@ -90,7 +91,10 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
     // Get the current counters in the stack and initialize them if not present.
     AtomicLong urlfetchCount;
     AtomicLong urlfetchSize;
-    synchronized (stackCountersLock) {
+
+    try {
+      stackCountersLock.lockInterruptibly();
+
       Object ufCount = stack.getAttribute(UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_COUNT);
       Object ufSize = stack.getAttribute(UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_SIZE);
 
@@ -103,6 +107,12 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
         urlfetchCount = (AtomicLong) ufCount;
         urlfetchSize = (AtomicLong) ufSize;
       }
+    } catch (InterruptedException ie) {
+      throw new WarpScriptException(getName() + " thread has been interrupted", ie);
+    } finally {
+      if (stackCountersLock.isHeldByCurrentThread()) {
+        stackCountersLock.unlock();
+      }
     }
 
     if (urlfetchCount.get() + urls.size() > (long) UrlFetchWarpScriptExtension.getAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_LIMIT)) {
@@ -111,7 +121,7 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
 
     List<Object> results = new ArrayList<Object>();
 
-    for (URL url : urls) {
+    for (URL url: urls) {
       // Recheck the count here in case of concurrent runs
       if (urlfetchCount.addAndGet(1) > (long) UrlFetchWarpScriptExtension.getAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_LIMIT)) {
         throw new WarpScriptException(getName() + " is limited to " + UrlFetchWarpScriptExtension.getAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_LIMIT) + " calls.");
