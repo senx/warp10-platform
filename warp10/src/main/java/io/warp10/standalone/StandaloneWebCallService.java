@@ -211,7 +211,7 @@ public class StandaloneWebCallService extends Thread {
       conn.addRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_WEBCALL_UUIDX), request.getWebCallUUID());
             
       //
-      // If issueing a POST request, set doOutput
+      // If issuing a POST request, set doOutput
       //
       
       if (WebCallMethod.POST == request.getMethod()) {

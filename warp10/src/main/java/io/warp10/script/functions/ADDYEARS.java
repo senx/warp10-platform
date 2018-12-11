@@ -86,7 +86,7 @@ public class ADDYEARS extends NamedWarpScriptFunction implements WarpScriptStack
       
       elts.set(0, (long) year);
       
-      // Now check if we are in ferbuary and if this is coherent with
+      // Now check if we are in february and if this is coherent with
       // a possibly non leap year
       
       if (elts.size() > 2) {

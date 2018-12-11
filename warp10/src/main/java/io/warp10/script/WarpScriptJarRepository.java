@@ -141,7 +141,7 @@ public class WarpScriptJarRepository extends Thread {
             String hash = new String(Hex.encode(md.digest()), Charsets.US_ASCII);
               
             if (classLoadersFingerprints.containsValue(hash) && !newClassLoadersFingerprints.containsValue(hash)) {
-              // Reuse existing class loader, so we keep the created objets
+              // Reuse existing class loader, so we keep the created objects
               for (Entry<ClassLoader,String> entry: classLoadersFingerprints.entrySet()) {
                 if (entry.getValue().equals(hash)) {
                   newClassLoadersFingerprints.put(entry.getKey(), entry.getValue());

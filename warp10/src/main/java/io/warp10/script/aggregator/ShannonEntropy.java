@@ -51,7 +51,7 @@ public class ShannonEntropy extends NamedWarpScriptFunction implements WarpScrip
     double sum = 0.0D;
     
     //
-    // Compute sum of occurence counts
+    // Compute sum of occurrence counts
     //
     
     int n = 0;

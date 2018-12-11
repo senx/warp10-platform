@@ -50,7 +50,7 @@ public class MSORT extends NamedWarpScriptFunction implements WarpScriptStackFun
     Collections.sort((List) lkeys);
     
     //
-    // Build a linked hash masp with the ordered entries
+    // Build a linked hash map with the ordered entries
     //
     
     LinkedHashMap<Object,Object> entries = new LinkedHashMap<Object,Object>();

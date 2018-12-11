@@ -105,8 +105,8 @@ public class GTSEncoder {
 
   //
   // Where to store boolean values, we need two different bits because
-  // the ENCRYPTED flag is 0x00 so we would not be able to differenciate a
-  // 'false' from the ENCRYPTED flag if we don't explicitely set a bit for false
+  // the ENCRYPTED flag is 0x00 so we would not be able to differentiate a
+  // 'false' from the ENCRYPTED flag if we don't explicitly set a bit for false
   //
   
   static final byte FLAGS_BOOLEAN_VALUE_TRUE = 0x04;
@@ -447,7 +447,7 @@ public class GTSEncoder {
           }
         }
       } else {
-        // Do nothing, implicitely we will encode location as raw GeoXPPoint
+        // Do nothing, implicitly we will encode location as raw GeoXPPoint
         noDeltaMetaLocation = false;
       }
     } else {

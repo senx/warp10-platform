@@ -293,7 +293,7 @@ public class WarpScriptExecutor implements Serializable {
       try {
         stack.exec(this.macro);
       } catch (WarpScriptStopException wsse) {
-        // We catch those as they only mean the script terminated voluntarly early
+        // We catch those as they only mean the script terminated voluntarily early
       }
       
       //

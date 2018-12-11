@@ -32,7 +32,7 @@ import java.util.Map;
 public class MapperSAX extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
   
   /**
-   * We voluntarly do not use the name 'SAX'.
+   * We voluntarily do not use the name 'SAX'.
    */
   
   private final int levels;

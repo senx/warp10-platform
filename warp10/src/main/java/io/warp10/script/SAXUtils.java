@@ -311,7 +311,7 @@ C------------------------------------------------------------------
   public static double erfcx(double d){ return calerf(d, 2); }
 
 /* ****************************************************
- * Refining algorytm is based on Halley rational method
+ * Refining algorithm is based on Halley rational method
  * for finding roots of equations as described at:
  * http://www.math.uio.no/~jacklam/notes/invnorm/index.html
  * by:
