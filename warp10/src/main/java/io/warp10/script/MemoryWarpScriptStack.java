@@ -567,7 +567,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       line = line.trim();
                               
       //
-      // Replace whistespaces in Strings with '%20'
+      // Replace whitespaces in Strings with '%20'
       //
             
       line = UnsafeString.sanitizeStrings(line);

@@ -466,7 +466,7 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_GTS = "warp.standalone.delete.gts";
 
   /**
-   * Time spent in microsesonds in standalone 'delete'
+   * Time spent in microseconds in standalone 'delete'
    */
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_TIME_US = "warp.standalone.delete.time.us";
       
@@ -825,7 +825,7 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_REQUESTS = "warp.directory.streaming.requests";
 
   /**
-   * Total time spent in successfull streaming requests in microseconds
+   * Total time spent in successful streaming requests in microseconds
    */
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_TIME_US = "warp.directory.streaming.time.us";
 
@@ -1155,7 +1155,7 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_PLASMA_FRONTEND_DISPATCH_SESSIONS = "warp.plasma.frontend.dispatch.sessions";
 
   /**
-   * Time (in miroseconds) spent in 'dispatch'
+   * Time (in microseconds) spent in 'dispatch'
    */
   public static final String SENSISION_CLASS_PLASMA_FRONTEND_DISPATCH_TIME_US = "warp.plasma.frontend.dispatch.time.ns";
   

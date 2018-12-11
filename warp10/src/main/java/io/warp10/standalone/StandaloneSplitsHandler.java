@@ -152,7 +152,7 @@ public class StandaloneSplitsHandler extends AbstractHandler {
       
       //
       // We output a single split per Metadata, split combining is the
-      // responsability of the InputFormat
+      // responsibility of the InputFormat
       // 128bits
       //
         

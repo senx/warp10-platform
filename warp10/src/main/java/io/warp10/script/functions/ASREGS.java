@@ -88,7 +88,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
     }
     
     //
-    // Now loop over the macro statement, replaceing occurrences of X LOAD and X STORE by the use
+    // Now loop over the macro statement, replacing occurrences of X LOAD and X STORE by the use
     // of the assigned register
     //
     

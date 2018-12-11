@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Replace multiple contigual identical value/location/elevation by a single one or a pair if compacting a range
+ * Replace multiple contiguous identical value/location/elevation by a single one or a pair if compacting a range
  */
 public class RANGECOMPACT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   

@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Replace multiple contigual identical value/location/elevation by a single one
+ * Replace multiple contiguous identical value/location/elevation by a single one
  */
 public class COMPACT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 

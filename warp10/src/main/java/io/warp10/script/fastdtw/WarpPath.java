@@ -52,7 +52,7 @@ public class WarpPath {
     this();
 
     try {
-      // Record the Label names (fropm the top row.of the input file).
+      // Record the Label names (from the top row.of the input file).
       final BufferedReader br = new BufferedReader(new FileReader(inputFile)); // open
                                                                                // the
                                                                                // input

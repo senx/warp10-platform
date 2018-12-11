@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Make elements of a list unique by converting it to a set temporarly
+ * Make elements of a list unique by converting it to a set temporarily
  */
 public class UNIQUE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
