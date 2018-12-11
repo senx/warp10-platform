@@ -45,8 +45,8 @@ public class MAXURLFETCHSIZE extends NamedWarpScriptFunction implements WarpScri
 
     long limit = ((Number) top).longValue();
 
-    if (limit > (long) UrlFetchWarpScriptExtension.getAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_MAXSIZE_HARD)) {
-      throw new WarpScriptException(getName() + " cannot extend limit past " + UrlFetchWarpScriptExtension.getAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_MAXSIZE_HARD));
+    if (limit > (long) UrlFetchWarpScriptExtension.getLongAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_MAXSIZE_HARD)) {
+      throw new WarpScriptException(getName() + " cannot extend limit past " + UrlFetchWarpScriptExtension.getLongAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_MAXSIZE_HARD));
     }
 
     stack.setAttribute(UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_MAXSIZE, limit);

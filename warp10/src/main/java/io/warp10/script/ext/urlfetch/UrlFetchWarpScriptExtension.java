@@ -139,24 +139,30 @@ public class UrlFetchWarpScriptExtension extends WarpScriptExtension {
    * @param attribute The attribute name to get.
    * @return The first available value in the list: attribute value, configuration value, default.
    */
-  public static Long getAttribute(WarpScriptStack stack, String attribute) {
-    Object ufLimit = stack.getAttribute(attribute);
+  public static Long getLongAttribute(WarpScriptStack stack, String attribute) {
+    // Get the value from stack attributes if available
+    Object attributeValue = stack.getAttribute(attribute);
 
-    if (null != ufLimit) {
-      return (Long) ufLimit;
+    if (null != attributeValue) {
+      return (Long) attributeValue;
     }
 
+    // Get the value from conf or default
     String associatedConf = attributeToConf.get(attribute);
-    long associatedDefault = attributeToDefault.get(attribute);
 
-    String ufLimitConf;
-    if (null == warpProperties) {
-      ufLimitConf = Long.toString(associatedDefault);
-    } else {
-      ufLimitConf = warpProperties.getProperty(associatedConf, Long.toString(associatedDefault));
+    Long longValue = attributeToDefault.get(attribute);
+
+    // Overwrite the default with the conf, if available
+    if (null != warpProperties) {
+      String confValue = warpProperties.getProperty(associatedConf);
+      if (null != confValue) {
+        longValue = Long.valueOf(confValue);
+      }
     }
 
-    stack.setAttribute(attribute, Long.valueOf(ufLimitConf));
-    return Long.valueOf(ufLimitConf);
+    // The the stack attribute for future usage
+    stack.setAttribute(attribute, longValue);
+
+    return longValue;
   }
 }

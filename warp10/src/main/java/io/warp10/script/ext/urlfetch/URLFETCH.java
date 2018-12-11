@@ -21,7 +21,8 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.WebAccessControl;
+import io.warp10.script.WebAccessController;
+import io.warp10.standalone.StandaloneWebCallService;
 import org.apache.commons.codec.binary.Base64;
 
 import java.io.ByteArrayOutputStream;
@@ -43,18 +44,19 @@ import java.util.concurrent.locks.ReentrantLock;
 public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private final ReentrantLock stackCountersLock = new ReentrantLock();
-  private final WebAccessControl webAccessController;
+  private final WebAccessController webAccessController;
 
   public URLFETCH(String name) {
     super(name);
 
     String patternConf = UrlFetchWarpScriptExtension.warpProperties.getProperty(UrlFetchWarpScriptExtension.WARPSCRIPT_URLFETCH_HOST_PATTERNS);
-    // If not defined, use Configuration.WEBCALL_HOST_PATTERNS
-    if (null == patternConf) {
-      patternConf = UrlFetchWarpScriptExtension.warpProperties.getProperty(Configuration.WEBCALL_HOST_PATTERNS);
-    }
 
-    webAccessController = new WebAccessControl(patternConf);
+    // If not defined, use already existing StandaloneWebCallService webAccessController which uses Configuration.WEBCALL_HOST_PATTERNS
+    if (null == patternConf) {
+      webAccessController = StandaloneWebCallService.getWebAccessController();
+    } else {
+      webAccessController = new WebAccessController(patternConf);
+    }
   }
 
   @Override
@@ -125,16 +127,16 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
       }
     }
 
-    if (urlfetchCount.get() + urls.size() > (long) UrlFetchWarpScriptExtension.getAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_LIMIT)) {
-      throw new WarpScriptException(getName() + " is limited to " + UrlFetchWarpScriptExtension.getAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_LIMIT) + " calls.");
+    if (urlfetchCount.get() + urls.size() > (long) UrlFetchWarpScriptExtension.getLongAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_LIMIT)) {
+      throw new WarpScriptException(getName() + " is limited to " + UrlFetchWarpScriptExtension.getLongAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_LIMIT) + " calls.");
     }
 
     List<Object> results = new ArrayList<Object>();
 
     for (URL url: urls) {
       // Recheck the count here in case of concurrent runs
-      if (urlfetchCount.addAndGet(1) > (long) UrlFetchWarpScriptExtension.getAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_LIMIT)) {
-        throw new WarpScriptException(getName() + " is limited to " + UrlFetchWarpScriptExtension.getAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_LIMIT) + " calls.");
+      if (urlfetchCount.addAndGet(1) > (long) UrlFetchWarpScriptExtension.getLongAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_LIMIT)) {
+        throw new WarpScriptException(getName() + " is limited to " + UrlFetchWarpScriptExtension.getLongAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_LIMIT) + " calls.");
       }
 
       HttpURLConnection conn = null;
@@ -158,8 +160,8 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
             break;
           }
 
-          if (urlfetchSize.get() + baos.size() + len > (long) UrlFetchWarpScriptExtension.getAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_MAXSIZE)) {
-            throw new WarpScriptException(getName() + " would exceed maximum size of content which can be retrieved via URLFETCH (" + UrlFetchWarpScriptExtension.getAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_MAXSIZE) + " bytes)");
+          if (urlfetchSize.get() + baos.size() + len > (long) UrlFetchWarpScriptExtension.getLongAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_MAXSIZE)) {
+            throw new WarpScriptException(getName() + " would exceed maximum size of content which can be retrieved via URLFETCH (" + UrlFetchWarpScriptExtension.getLongAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_MAXSIZE) + " bytes)");
           }
 
           baos.write(buf, 0, len);

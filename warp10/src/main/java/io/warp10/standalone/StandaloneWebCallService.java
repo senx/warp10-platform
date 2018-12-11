@@ -19,25 +19,18 @@ package io.warp10.standalone;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.store.Constants;
-import io.warp10.script.WebAccessControl;
+import io.warp10.script.WebAccessController;
 import io.warp10.script.thrift.data.WebCallMethod;
 import io.warp10.script.thrift.data.WebCallRequest;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLDecoder;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class StandaloneWebCallService extends Thread {
   
@@ -48,7 +41,7 @@ public class StandaloneWebCallService extends Thread {
   
   private static boolean launched = false;
 
-  public static final WebAccessControl webAccessController;
+  private static final WebAccessController webAccessController;
   
   static {
     //
@@ -61,10 +54,14 @@ public class StandaloneWebCallService extends Thread {
 
     String patternConf = props.getProperty(Configuration.WEBCALL_HOST_PATTERNS);
 
-    webAccessController = new WebAccessControl(patternConf);
+    webAccessController = new WebAccessController(patternConf);
   }
 
   private static final ArrayBlockingQueue<WebCallRequest> requests = new ArrayBlockingQueue<WebCallRequest>(1024);
+
+  public static WebAccessController getWebAccessController() {
+    return webAccessController;
+  }
   
   public static synchronized boolean offer(WebCallRequest request) {
     //

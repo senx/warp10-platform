@@ -25,12 +25,12 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class WebAccessControl {
+public class WebAccessController {
 
   private final List<Pattern> patterns = new ArrayList<Pattern>();
   private final BitSet exclusion = new BitSet();
 
-  public WebAccessControl(String patternConf) {
+  public WebAccessController(String patternConf) {
     //
     // Extract list of forbidden/allowed patterns
     //
