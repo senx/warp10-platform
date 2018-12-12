@@ -120,7 +120,7 @@ public class FilterByLabels extends NamedWarpScriptFunction implements WarpScrip
             }
           }
           
-          // If the GTS does not have the named label, check if it has a named attribtue
+          // If the GTS does not have the named label, check if it has a named attribute
           if (!hasLabel && checkAttributes) {
             if (!attributes.containsKey(label)) {
               matched = false;

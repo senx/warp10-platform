@@ -4774,7 +4774,7 @@ public class GTSHelper {
   /**
    * Return the number of values in a GTS instance.
    * 
-   * @param gts GeoTimeSerit instance of which to count values.
+   * @param gts GeoTimeSerie instance of which to count values.
    * 
    * @return Number of values in GTS.
    */

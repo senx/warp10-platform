@@ -50,7 +50,7 @@ public interface GTSDirectory {
   /**
    * Register the given Geo Time Serie under the specified classId/labelsId.
    * 
-   * classId and labelsId are passed as parameters so as to leave the responsability
+   * classId and labelsId are passed as parameters so as to leave the responsibility
    * of choosing hash keys to external entities or to avoid recomputing them
    * if they have been previously computed.
    * 

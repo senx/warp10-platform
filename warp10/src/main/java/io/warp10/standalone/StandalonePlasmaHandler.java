@@ -739,7 +739,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
               //
               // If we've reached 90% of the max message size, flush the current message
               // FIXME(hbs): we really should check beforehand that we will not overflow the buffer.
-              // With specifally crafted content (String values) we could overflow the message size.
+              // With specially crafted content (String values) we could overflow the message size.
               // Given we're in a try/catch we would simply ignore the message, but still...
               //
               

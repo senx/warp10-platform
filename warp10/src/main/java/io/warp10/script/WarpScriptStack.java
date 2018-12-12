@@ -77,7 +77,7 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_LINENO = "lineno";
   
   /**
-   * Prefix for traceing push/pop
+   * Prefix for tracing push/pop
    */
   public static final String ATTRIBUTE_TRACE_PREFIX = "trace.prefix";
   

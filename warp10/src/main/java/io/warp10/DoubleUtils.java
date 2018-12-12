@@ -34,7 +34,7 @@ public class DoubleUtils {
     
     int n = len;
     
-    // Choose shifting value to avoir cancellation during
+    // Choose shifting value to avoid cancellation during
     // variance computation
     // @see https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance 
     

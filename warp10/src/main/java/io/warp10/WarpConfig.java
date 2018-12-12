@@ -110,7 +110,7 @@ public class WarpConfig {
     if (null != properties.getProperty(Configuration.WARP_TOKEN_FILE)) {
       Tokens.init(properties.getProperty(Configuration.WARP_TOKEN_FILE));
     }
-    
+
     //
     // Initialize macro repository
     //
@@ -236,7 +236,7 @@ public class WarpConfig {
     }
     
     //
-    // Now expand ${xxx} contstructs
+    // Now expand ${xxx} constructs
     //
     
     Pattern VAR = Pattern.compile(".*\\$\\{([^}]+)\\}.*");
@@ -280,7 +280,7 @@ public class WarpConfig {
         loopcount++;
         
         if (loopcount > 100) {
-          System.err.println("Hmmm, that's embarassing, but I've been dereferencing variables " + loopcount + " times trying to set a value for '" + name + "'.");
+          System.err.println("Hmmm, that's embarrassing, but I've been dereferencing variables " + loopcount + " times trying to set a value for '" + name + "'.");
           System.exit(-1);
         }
       }

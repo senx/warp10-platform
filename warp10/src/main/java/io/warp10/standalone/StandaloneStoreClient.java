@@ -592,7 +592,7 @@ public class StandaloneStoreClient implements StoreClient {
     bb.putLong(Long.MAX_VALUE - start);
     
     //
-    // Scan the iterator, deleteing keys if they are between start and end
+    // Scan the iterator, deleting keys if they are between start and end
     //
     
     long count = 0L;
