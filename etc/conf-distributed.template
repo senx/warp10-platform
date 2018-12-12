@@ -346,6 +346,8 @@ warpscript.delete.endpoint = http://127.0.0.1:8080/api/v0/delete
 #warpscript.extension.logging = io.warp10.script.ext.logging.LoggingWarpScriptExtension
 // REXEC
 #warpscript.extension.rexec = io.warp10.script.ext.rexec.RexecWarpScriptExtension
+// Comma separated list of included and excluded (! prefixed) host patterns
+#warpscript.rexec.endpoint.patterns = .*
 // SENSISIONEVENT, SENSISIONGET, SENSISIONSET, SENSISIONUPDATE
 #warpscript.extension.sensision = io.warp10.script.ext.sensision.SensisionWarpScriptExtension
 // MUTEX, SHMLOAD, SHMSTORE
