@@ -150,7 +150,7 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        InputStream in;
+        InputStream in = null;
         // When there is an error (response code is 404 for instance), body is in the error stream.
         try {
           in = conn.getInputStream();
