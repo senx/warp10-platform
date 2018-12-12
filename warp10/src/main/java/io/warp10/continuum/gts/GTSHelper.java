@@ -1538,13 +1538,24 @@ public class GTSHelper {
     // cover the complete set of values from firsttick to lastbucket
     //
     
-    if (0 == bucketspan) {
+    if (0 == bucketspan || -1 == bucketspan) {
       if(0 == bucketcount) {
         throw new WarpScriptException("One of bucketspan or bucketcount must be different from zero.");
       } else {
         if (lastbucket >= firsttick) {
-          long delta = lastbucket - firsttick + 1;
-          bucketspan = delta / bucketcount;
+          long delta;
+          
+          if (0 == bucketspan) {
+            delta = lastbucket - firsttick + 1;
+            bucketspan = delta / bucketcount;            
+          } else {
+            delta = lastbucket - firsttick;
+            if (1 == bucketcount) {
+              bucketspan = delta;
+            } else {
+              bucketspan = delta / (bucketcount - 1);
+            }
+          }
 
           //
           // Increase bucketspan by 1 so we cover the whole timespan
@@ -1555,6 +1566,10 @@ public class GTSHelper {
           }
         }
       }
+    }
+    
+    if (bucketspan < 0) {
+      bucketspan = 0;
     }
     
     //
