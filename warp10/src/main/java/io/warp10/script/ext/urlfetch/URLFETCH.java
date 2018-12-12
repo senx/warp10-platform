@@ -16,7 +16,6 @@
 
 package io.warp10.script.ext.urlfetch;
 
-import io.warp10.continuum.Configuration;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -151,7 +150,13 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        InputStream in = conn.getInputStream();
+        InputStream in = null;
+        // When there is an error (response code is 404 for instance), body is in the error stream.
+        try {
+          in = conn.getInputStream();
+        } catch (IOException ioe) {
+          in = conn.getErrorStream();
+        }
 
         while (true) {
           int len = in.read(buf);
