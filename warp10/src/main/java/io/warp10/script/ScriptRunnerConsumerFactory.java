@@ -101,7 +101,7 @@ public class ScriptRunnerConsumerFactory implements ConsumerFactory {
                 data = CryptoUtils.unwrap(runner.KAFKA_AES, data);
               }
               
-              // Skip data that was not unwrapped successfuly
+              // Skip data that was not unwrapped successfully
               if (null == data) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_WARP_RUNNER_KAFKA_IN_INVALIDCIPHERS, Sensision.EMPTY_LABELS, 1);
                 continue;

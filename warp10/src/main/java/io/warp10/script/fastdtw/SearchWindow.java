@@ -104,7 +104,7 @@ abstract public class SearchWindow {
   }
 
   // PROTECTED FUNCTIONS
-  // Expands the current window by a s pecified radius.
+  // Expands the current window by a specified radius.
   protected final void expandWindow(int radius) {
     if (radius > 0) {
       // Expand the search window by one before expanding by the remainder of
@@ -288,13 +288,13 @@ abstract public class SearchWindow {
       minValues[col] = row;
       maxValues[col] = row;
       this.size++;
-      modCount++; // stucture has been changed
+      modCount++; // structure has been changed
       // return true;
     } else if (minValues[col] > row) // minimum range in the column is expanded
     {
       this.size += minValues[col] - row;
       minValues[col] = row;
-      modCount++; // stucture has been changed
+      modCount++; // structure has been changed
     } else if (maxValues[col] < row) // maximum range in the column is expanded
     {
       this.size += row - maxValues[col];
@@ -314,7 +314,7 @@ abstract public class SearchWindow {
 
     // CONSTRUCTOR
     private SearchWindowIterator(SearchWindow w) {
-      // Intiialize values
+      // Initialize values
       window = w;
       hasMoreElements = window.size() > 0;
       currentI = window.minI();

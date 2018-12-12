@@ -155,7 +155,7 @@ public class Worf {
       }
 
       //
-      // Now expand ${xxx} contstructs
+      // Now expand ${xxx} constructs
       //
 
       Pattern VAR = Pattern.compile(".*\\$\\{([^}]+)\\}.*");

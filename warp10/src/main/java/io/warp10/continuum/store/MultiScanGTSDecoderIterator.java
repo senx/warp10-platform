@@ -97,7 +97,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
    * This works great for a single or a few time series but might prove underperforming for
    * a large number.
    * 
-   * Other strategies coulb be attempted.
+   * Other strategies could be attempted.
    * 
    * Fewer scans but with filters.
    * AsyncHBase

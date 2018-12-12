@@ -174,7 +174,7 @@ public class DTW {
     // Find the Warp Path by searching the matrix from the solution at
     // (maxI, maxJ) to the beginning at (0,0). At each step move through
     // the matrix 1 step left, down, or diagonal, whichever has the
-    // smallest cost. Favoer diagonal moves and moves towards the i==j
+    // smallest cost. Favor diagonal moves and moves towards the i==j
     // axis to break ties.
     final WarpPath minCostPath = new WarpPath(maxI + maxJ - 1);
     int i = maxI;
@@ -388,7 +388,7 @@ public class DTW {
     // Find the Warp Path by searching the matrix from the solution at
     // (maxI, maxJ) to the beginning at (0,0). At each step move through
     // the matrix 1 step left, down, or diagonal, whichever has the
-    // smallest cost. Favoer diagonal moves and moves towards the i==j
+    // smallest cost. Favor diagonal moves and moves towards the i==j
     // axis to break ties.
     final WarpPath minCostPath = new WarpPath(maxI + maxJ - 1);
     int i = maxI;

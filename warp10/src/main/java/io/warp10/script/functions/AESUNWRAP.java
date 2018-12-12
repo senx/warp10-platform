@@ -25,7 +25,7 @@ import io.warp10.script.WarpScriptStackFunction;
 import java.util.Arrays;
 
 /**
- * Unwraps a byte array which was AESWRAPped
+ * Unwraps a byte array which was AESWRAPed
  */
 public class AESUNWRAP extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   

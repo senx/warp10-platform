@@ -455,7 +455,7 @@ public class GTSOutliersHelper {
   
   /**
    * Applying STL-ESD test.
-   * ESD test is passed on residual of STL decompostition.
+   * ESD test is passed on residual of STL decomposition.
    * 
    * @param gts
    * @param k       Upper bound of suspected number of outliers
@@ -621,7 +621,7 @@ public class GTSOutliersHelper {
     
     // the other parameters of stl are either already present in params, or their default values fixed in STL class are used
     
-    // instanciating STL
+    // instantiating STL
     STL stl = new STL("STL");
     
     for (int u = 0; u < pieces; u++) {

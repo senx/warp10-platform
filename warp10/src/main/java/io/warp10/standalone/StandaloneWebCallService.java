@@ -19,24 +19,18 @@ package io.warp10.standalone;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.store.Constants;
+import io.warp10.script.WebAccessController;
 import io.warp10.script.thrift.data.WebCallMethod;
 import io.warp10.script.thrift.data.WebCallRequest;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLDecoder;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class StandaloneWebCallService extends Thread {
   
@@ -46,9 +40,8 @@ public class StandaloneWebCallService extends Thread {
   private static final String ua;
   
   private static boolean launched = false;
-  
-  private static final List<Pattern> patterns = new ArrayList<Pattern>();
-  private static final BitSet exclusion = new BitSet();
+
+  private static final WebAccessController webAccessController;
   
   static {
     //
@@ -58,74 +51,17 @@ public class StandaloneWebCallService extends Thread {
     Properties props = WarpConfig.getProperties();
     
     ua = props.getProperty(Configuration.WEBCALL_USER_AGENT);
-    
-    //
-    // Extract list of forbidden/allowed patterns
-    //
-    
+
     String patternConf = props.getProperty(Configuration.WEBCALL_HOST_PATTERNS);
-    
-    if (null != patternConf) {
-      //
-      // Split patterns on ','
-      //
-      
-      String[] subpatterns = patternConf.split(",");
-  
-      int idx = 0;
-      
-      for (String pattern: subpatterns) {
-        if (pattern.contains("%")) {
-          try {
-            pattern = URLDecoder.decode(pattern, "UTF-8");
-          } catch (UnsupportedEncodingException uee) {
-            throw new RuntimeException(uee);
-          }
-        }
-        
-        boolean exclude = false;
-        
-        if (pattern.startsWith("!")) {
-          exclude = true;
-          pattern = pattern.substring(1);
-        }
-        
-        //
-        // Compile pattern
-        //
-        
-        Pattern p = Pattern.compile(pattern);
-        
-        patterns.add(p);
-        exclusion.set(idx, exclude);
-        idx++;
-      }
-      
-      //
-      // If no inclusions were specified, add a pass all .* as first pattern
-      //
-      
-      if (exclusion.cardinality() == idx) {
-        int n = exclusion.length();
-        
-        for (int i = n; i >= 1; i--) {
-          exclusion.set(i, exclusion.get(i - 1));
-        }
-        
-        exclusion.set(0, false);
-        patterns.add(0, Pattern.compile(".*"));
-      }
-      
-    } else {
-      //
-      // Permit all hosts by default
-      //
-      patterns.add(Pattern.compile(".*"));
-      exclusion.set(0, false);
-    }
+
+    webAccessController = new WebAccessController(patternConf);
   }
 
   private static final ArrayBlockingQueue<WebCallRequest> requests = new ArrayBlockingQueue<WebCallRequest>(1024);
+
+  public static WebAccessController getWebAccessController() {
+    return webAccessController;
+  }
   
   public static synchronized boolean offer(WebCallRequest request) {
     //
@@ -188,7 +124,7 @@ public class StandaloneWebCallService extends Thread {
       
       URL url = new URL(request.getUrl());
 
-      if (!checkURL(url)) {
+      if (!webAccessController.checkURL(url)) {
         return;
       }
             
@@ -211,7 +147,7 @@ public class StandaloneWebCallService extends Thread {
       conn.addRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_WEBCALL_UUIDX), request.getWebCallUUID());
             
       //
-      // If issueing a POST request, set doOutput
+      // If issuing a POST request, set doOutput
       //
       
       if (WebCallMethod.POST == request.getMethod()) {
@@ -247,36 +183,5 @@ public class StandaloneWebCallService extends Thread {
         conn.disconnect();
       }
     }    
-  }
-  
-  public static boolean checkURL(URL url) {
-    
-    String protocol = url.getProtocol();
-
-    //
-    // Only honor http/https
-    //
-    
-    if (!("http".equals(protocol)) && !("https".equals(protocol))) {
-      return false;
-    }
-
-    //
-    // Check host patterns in order, consider the final value of 'accept'
-    //
-    
-    String host = url.getHost();
-    
-    boolean accept = false;
-    
-    for (int i = 0; i < patterns.size(); i++) {      
-      Matcher m = patterns.get(i).matcher(host);
-      
-      if (m.matches()) {
-        accept = !exclusion.get(i);
-      }
-    }
-    
-    return accept;
   }
 }

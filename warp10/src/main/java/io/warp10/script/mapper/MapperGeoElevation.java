@@ -24,7 +24,7 @@ import io.warp10.script.WarpScriptException;
 import java.util.Map;
 
 /**
- * Mapper which returns the longiitude of the tick
+ * Mapper which returns the longitude of the tick
  */
 public class MapperGeoElevation extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
 

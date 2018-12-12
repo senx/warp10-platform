@@ -53,8 +53,6 @@ public interface WarpScriptStack {
   public static final int DEFAULT_MAX_SYMBOLS = 64;
   public static final int DEFAULT_MAX_WEBCALLS = 4;
   public static final long DEFAULT_MAX_PIXELS = 1000000L;
-  public static final long DEFAULT_URLFETCH_LIMIT = 64;
-  public static final long DEFAULT_URLFETCH_MAXSIZE = 1000000L;
   public static final long DEFAULT_REGISTERS = 256;
   
   public static final String MACRO_START = "<%";
@@ -77,7 +75,7 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_LINENO = "lineno";
   
   /**
-   * Prefix for traceing push/pop
+   * Prefix for tracing push/pop
    */
   public static final String ATTRIBUTE_TRACE_PREFIX = "trace.prefix";
   
@@ -148,28 +146,6 @@ public interface WarpScriptStack {
    * Number of GTS retrieved so far in the session
    */
   public static final String ATTRIBUTE_GTS_COUNT = "gts.count";
-
-  /**
-   * Maximum number of calls to URLFETCH in a session
-   */
-  public static final String ATTRIBUTE_URLFETCH_LIMIT = "urlfetch.limit";
-  public static final String ATTRIBUTE_URLFETCH_LIMIT_HARD = "urlfetch.limit.hard";
-
-  /**
-   * Number of calls to URLFETCH so far in the sessions
-   */
-  public static final String ATTRIBUTE_URLFETCH_COUNT = "urlfetch.count";
-  
-  /**
-   * Maximum size of content retrieved via calls to URLFETCH in a session
-   */
-  public static final String ATTRIBUTE_URLFETCH_MAXSIZE = "urlfetch.maxsize";
-  public static final String ATTRIBUTE_URLFETCH_MAXSIZE_HARD = "urlfetch.maxsize.hard";
-
-  /**
-   * Current  URLFETCH so far in the sessions
-   */
-  public static final String ATTRIBUTE_URLFETCH_SIZE = "urlfetch.size";
   
   /**
    * List of elapsed times (in ns) per line
@@ -722,7 +698,7 @@ public interface WarpScriptStack {
    * 
    * @param key Name of the attribute to retrieve.
    * 
-   * @return The value store unded 'key' or null
+   * @return The value associated with 'key' or null
    */
   public Object getAttribute(String key);
   

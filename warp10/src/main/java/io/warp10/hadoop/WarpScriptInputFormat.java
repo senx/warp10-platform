@@ -234,7 +234,7 @@ public class WarpScriptInputFormat extends InputFormat<Writable, Writable> {
   /**
    * Create an InputStream from a file path.
    * 
-   * This method can be overriden if custom loading is needed. In Spark for
+   * This method can be overridden if custom loading is needed. In Spark for
    * example SparkFiles#get could be called.
    */
   public InputStream getWarpScriptInputStream(String originalFilePath) throws IOException {

@@ -82,7 +82,7 @@ import com.google.common.primitives.Longs;
  * 
  * At init, an Index instance reads index descriptions from HBase and retains the indices
  * whose indexId modulo a parameterized modulus matches a given remainder (this allows for
- * spreading responsability among N Index instances).
+ * spreading responsibility among N Index instances).
  * 
  * Once the index descriptions are read, the GTS metadata are read from HBase and associated with
  * the indices they are concerned by.
@@ -960,7 +960,7 @@ public class Index {
                 data = CryptoUtils.unwrap(index.keystore.getKey(KeyStore.AES_KAFKA_METADATA), data);
               }
               
-              // Skip data that was not unwrapped successfuly
+              // Skip data that was not unwrapped successfully
               if (null == data) {
                 // TODO(hbs): increment Sensision metric
                 continue;
@@ -1452,7 +1452,7 @@ public class Index {
               data = CryptoUtils.unwrap(aesKey, data);
             }
             
-            // Skip data that was not unwrapped successfuly
+            // Skip data that was not unwrapped successfully
             if (null == data) {
               // TODO(hbs): increment Sensision metric
               continue;

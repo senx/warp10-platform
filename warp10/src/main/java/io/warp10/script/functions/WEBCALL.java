@@ -17,7 +17,6 @@
 package io.warp10.script.functions;
 
 import io.warp10.continuum.KafkaWebCallService;
-import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -95,7 +94,7 @@ public class WEBCALL extends NamedWarpScriptFunction implements WarpScriptStackF
     }
     
     try {
-      if (!StandaloneWebCallService.checkURL(new URL(url.toString()))) {
+      if (!StandaloneWebCallService.getWebAccessController().checkURL(new URL(url.toString()))) {
         throw new WarpScriptException(getName() + " invalid host or scheme in URL.");
       }
     } catch (MalformedURLException mue) {

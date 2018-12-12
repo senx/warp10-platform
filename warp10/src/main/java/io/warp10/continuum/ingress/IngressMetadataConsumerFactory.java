@@ -96,7 +96,7 @@ public class IngressMetadataConsumerFactory implements ConsumerFactory {
                 data = CryptoUtils.unwrap(ingress.AES_KAFKA_META, data);
               }
               
-              // Skip data that was not unwrapped successfuly
+              // Skip data that was not unwrapped successfully
               if (null == data) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_WARP_INGRESS_KAFKA_META_IN_INVALIDCIPHERS, Sensision.EMPTY_LABELS, 1);
                 continue;

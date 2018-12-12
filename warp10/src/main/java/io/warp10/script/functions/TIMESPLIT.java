@@ -31,7 +31,7 @@ import java.util.Map;
  *
  * TIMESPLIT expects the following parameters on the stack:
  *
- * 3: quiet A quiet period in microsecondes
+ * 3: quiet A quiet period in microseconds
  * 2: minValues A minimum number of values
  * 1: label The name of the label which will hold the sequence
  */

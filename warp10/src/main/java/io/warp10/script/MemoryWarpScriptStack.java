@@ -188,10 +188,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       setAttribute(WarpScriptStack.ATTRIBUTE_MAX_WEBCALLS, new AtomicLong(Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_WEBCALLS, Integer.toString(WarpScriptStack.DEFAULT_MAX_WEBCALLS)))));
       setAttribute(WarpScriptStack.ATTRIBUTE_MAX_BUCKETS, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_BUCKETS, Integer.toString(WarpScriptStack.DEFAULT_MAX_BUCKETS))));
       setAttribute(WarpScriptStack.ATTRIBUTE_MAX_PIXELS, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_PIXELS, Long.toString(WarpScriptStack.DEFAULT_MAX_PIXELS))));
-      setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_COUNT, new AtomicLong(0L));
-      setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_SIZE, new AtomicLong(0L));
-      setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_LIMIT, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_URLFETCH_LIMIT, Long.toString(WarpScriptStack.DEFAULT_URLFETCH_LIMIT))));
-      setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_MAXSIZE, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_URLFETCH_MAXSIZE, Long.toString(WarpScriptStack.DEFAULT_URLFETCH_MAXSIZE))));
       setAttribute(WarpScriptStack.ATTRIBUTE_MAX_GEOCELLS, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_GEOCELLS, Integer.toString(WarpScriptStack.DEFAULT_MAX_GEOCELLS))));
 
       //
@@ -207,8 +203,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       setAttribute(WarpScriptStack.ATTRIBUTE_MAX_PIXELS_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_PIXELS_HARD, Long.toString(WarpScriptStack.DEFAULT_MAX_PIXELS))));
       setAttribute(WarpScriptStack.ATTRIBUTE_FETCH_LIMIT_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_FETCH_HARD, Long.toString(WarpScriptStack.DEFAULT_FETCH_LIMIT))));
       setAttribute(WarpScriptStack.ATTRIBUTE_GTS_LIMIT_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_GTS_HARD, Long.toString(WarpScriptStack.DEFAULT_GTS_LIMIT))));
-      setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_LIMIT_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_URLFETCH_LIMIT_HARD, Long.toString(WarpScriptStack.DEFAULT_URLFETCH_LIMIT))));
-      setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_MAXSIZE_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_URLFETCH_MAXSIZE_HARD, Long.toString(WarpScriptStack.DEFAULT_URLFETCH_MAXSIZE))));
       setAttribute(WarpScriptStack.ATTRIBUTE_MAX_GEOCELLS_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_GEOCELLS_HARD, Integer.toString(WarpScriptStack.DEFAULT_MAX_GEOCELLS))));
 
       //
@@ -246,8 +240,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     setAttribute(WarpScriptStack.ATTRIBUTE_MAX_WEBCALLS, new AtomicLong(Long.MAX_VALUE - 1));
     setAttribute(WarpScriptStack.ATTRIBUTE_MAX_BUCKETS, Long.MAX_VALUE - 1);
     setAttribute(WarpScriptStack.ATTRIBUTE_MAX_PIXELS, Long.MAX_VALUE - 1);
-    setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_LIMIT, Long.MAX_VALUE - 1);
-    setAttribute(WarpScriptStack.ATTRIBUTE_URLFETCH_MAXSIZE, Long.MAX_VALUE - 1);
     // Set max of geocells to the largest INTEGER - 1, not Long.MAX_VALUE as it is used as an int
     setAttribute(WarpScriptStack.ATTRIBUTE_MAX_GEOCELLS, Integer.MAX_VALUE - 1);
   }
@@ -567,7 +559,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       line = line.trim();
                               
       //
-      // Replace whistespaces in Strings with '%20'
+      // Replace whitespaces in Strings with '%20'
       //
             
       line = UnsafeString.sanitizeStrings(line);

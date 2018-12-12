@@ -34,6 +34,9 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.WebAccessController;
+import io.warp10.script.ext.urlfetch.UrlFetchWarpScriptExtension;
+import io.warp10.standalone.StandaloneWebCallService;
 
 /**
  * Execute WarpScript on a remote endpoint
@@ -42,6 +45,15 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
   
   private final boolean compress;
 
+  /**
+   * Allowed and excluded host patterns.
+   */
+  public static final String WARPSCRIPT_REXEC_ENDPOINT_PATTERNS = "warpscript.rexec.endpoint.patterns";
+
+  private static final String DEFAULT_ENDPOINT_PATTERNS = ".*";
+  
+  private final WebAccessController webAccessController;
+  
   public REXEC(String name) {
     this(name, false);
   }
@@ -49,9 +61,13 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
   public REXEC(String name, boolean compress) {
     super(name);
   
-    this.compress = compress;
-    
     Properties props = WarpConfig.getProperties();  
+
+    String patternConf = props.getProperty(WARPSCRIPT_REXEC_ENDPOINT_PATTERNS, DEFAULT_ENDPOINT_PATTERNS);
+
+    this.webAccessController = new WebAccessController(patternConf);
+
+    this.compress = compress;    
   }
   
   @Override
@@ -68,6 +84,10 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
 
       if (!"http".equals(url.getProtocol()) && !"https".equals(url.getProtocol())) {
         throw new WarpScriptException(getName() + " invalid endpoint protocol.");
+      }
+      
+      if (!webAccessController.checkURL(url)) {
+        throw new WarpScriptException(getName() + " encountered a forbidden URL '" + url + "'");
       }
       
       conn = (HttpURLConnection) url.openConnection();
@@ -88,7 +108,7 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
       if (this.compress) {
         out = new GZIPOutputStream(out);
       }
-      
+      System.out.println(warpscript);
       out.write(warpscript.getBytes(Charsets.UTF_8));
       out.write('\n');
       out.write(WarpScriptLib.SNAPSHOT.getBytes(Charsets.UTF_8));      

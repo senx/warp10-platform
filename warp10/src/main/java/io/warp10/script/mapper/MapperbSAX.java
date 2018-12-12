@@ -33,7 +33,7 @@ import java.util.Map;
 public class MapperbSAX extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
   
   /**
-   * We voluntarly do not use the name 'bSAX'.
+   * We voluntarily do not use the name 'bSAX'.
    */
   
   /**

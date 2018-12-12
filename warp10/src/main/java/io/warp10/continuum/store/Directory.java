@@ -173,7 +173,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           return 1;
         } else {
           //
-          // If the two numbers have differents signs, then the positive values MUST appear before the negative ones
+          // If the two numbers have different signs, then the positive values MUST appear before the negative ones
           //
           if (o1 > 0) {
             return -1;
@@ -1417,7 +1417,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             
             //
             // We do an early selection check based on the Kafka key.
-            // Since 20151104 we now corretly push the Kafka key (cf Ingress bug in pushMetadataMessage(k,v))
+            // Since 20151104 we now correctly push the Kafka key (cf Ingress bug in pushMetadataMessage(k,v))
             //
                         
             int r = (((int) msg.key()[8]) & 0xff) % directory.modulus;

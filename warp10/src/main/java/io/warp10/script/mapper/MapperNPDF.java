@@ -26,7 +26,7 @@ import io.warp10.script.WarpScriptStack;
 import java.util.Map;
 
 /**
- * Mapper which returns the probability of a value wihin a gaussian distribution with given mu/sigma
+ * Mapper which returns the probability of a value within a gaussian distribution with given mu/sigma
  */
 public class MapperNPDF extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
 
