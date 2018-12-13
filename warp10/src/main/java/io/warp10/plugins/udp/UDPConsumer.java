@@ -127,7 +127,7 @@ public class UDPConsumer extends Thread {
     int qsize = ((Number) config.getOrDefault(PARAM_QSIZE, DEFAULT_QSIZE)).intValue();
 
     if (null == this.partitioner) {
-      this.queues = new LinkedBlockingQueue[0];
+      this.queues = new LinkedBlockingQueue[1];
       this.queues[0] = new LinkedBlockingQueue<List<Object>>(qsize);
     } else {
       this.queues = new LinkedBlockingQueue[this.parallelism];
