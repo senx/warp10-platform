@@ -147,7 +147,7 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
         }
         if (null != tsa && null != tsb) {
           // We have values at the current index for both GTS
-          if (tsa == tsb) {
+          if (0 == tsa.compareTo(tsb)) {
             // Both indices indicate the same timestamp
             switch (type) {
               case STRING:
