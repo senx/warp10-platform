@@ -3753,7 +3753,7 @@ public class GTSHelper {
       // If both ticks are identical, advance the indices until the next timestamp
       //
 
-      if (curTickA == curTickB || (null != curTickA && curTickA.equals(curTickB)) || (null != curTickB && curTickB.equals(curTickA))) {
+      if (null != curTickA && curTickA.equals(curTickB)) {
         idxa++;
         idxb++;
         
