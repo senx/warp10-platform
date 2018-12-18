@@ -22,6 +22,7 @@ import io.warp10.sensision.Sensision;
 
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 
 /**
@@ -40,6 +41,7 @@ public class TimeSource {
   static long baseTimeunits = 0L;
   static long lastCalibration = 0L;
 
+  static AtomicLong calibrations = new AtomicLong(0L);
   static AtomicBoolean mustRecalibrate = new AtomicBoolean(true);
   
   static {
@@ -196,11 +198,13 @@ public class TimeSource {
       baseTimeunits = baseMillis * Constants.TIME_UNITS_PER_MS;
     }
     
+    calibrations.addAndGet(1L);
+    
     //
     // Keep track of calibrations
     //
 
-    Sensision.update(SensisionConstants.CLASS_WARP_TIMESOURCE_CALIBRATIONS, Sensision.EMPTY_LABELS, 1);
+    Sensision.update(SensisionConstants.CLASS_WARP_TIMESOURCE_CALIBRATIONS, Sensision.EMPTY_LABELS, 1);    
   }
   
   /**
@@ -212,6 +216,9 @@ public class TimeSource {
     // TODO(hbs): add periodic re-adjustment of bases so we can cope with
     //            clock adjustment due to either NTP or PTP
     //
+    
+    while(0 == calibrations.get()) {      
+    }
     
     //
     // Extract nanoseconds
@@ -268,7 +275,9 @@ public class TimeSource {
    * Return the current time in nanoseconds
    * @return
    */
-  public static long getNanoTime() {    
+  public static long getNanoTime() {
+    while(0 == calibrations.get()) {      
+    }
     synchronized(mustRecalibrate) {
       long nano = System.nanoTime();
       nano -= baseNanos;   
