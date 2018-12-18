@@ -241,9 +241,9 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_IN_SECURE_MACRO = "in.secure.macro";
   
   /**
-   * Expiration date (in ms since the epoch) of a macro
+   * TTL (in ms since the epoch) of a macro
    */
-  public static final String ATTRIBUTE_MACRO_EXPIRY = "macro.expiry";
+  public static final String ATTRIBUTE_MACRO_TTL = "macro.ttl";
   
   /**
    * List of symbols to export upon script termination as a map of symbol name

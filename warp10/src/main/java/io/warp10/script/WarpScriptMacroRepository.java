@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Charsets;
@@ -52,6 +51,16 @@ public class WarpScriptMacroRepository extends Thread {
    */
   private static final long DEFAULT_DELAY = 3600000L;
 
+  /**
+   * Default TTL for macros loaded on demand
+   */
+  private static final long DEFAULT_MACRO_TTL = 600000L;
+  
+  /**
+   * Default TTL for macros which failed loading
+   */
+  private static final long DEFAULT_FAILED_MACRO_TTL = 10000L;
+  
   private static long[] SIP_KEYS = { 31232312312312L, 543534535435L };
   
   public static final String WARPSCRIPT_FILE_EXTENSION = ".mc2";
@@ -67,7 +76,17 @@ public class WarpScriptMacroRepository extends Thread {
   private static long delay = DEFAULT_DELAY;
   
   /**
-   * Counter to avoid recursive calls to loadMacro
+   * Default TTL for loaded macros
+   */
+  private static long ttl = DEFAULT_MACRO_TTL;
+  
+  /**
+   * Default TTL for failed macros
+   */
+  private static long failedTtl = DEFAULT_FAILED_MACRO_TTL;
+  
+  /**
+   * List of macro names to avoid loops in macro loading
    */
   private static ThreadLocal<List<String>> loading = new ThreadLocal<List<String>>() {
     @Override
@@ -86,7 +105,7 @@ public class WarpScriptMacroRepository extends Thread {
    */
   private final static Map<String,Macro> macros = new HashMap<String,Macro>();
  
-  private WarpScriptMacroRepository() {
+  private WarpScriptMacroRepository() {       
     this.setName("[Warp Macro Repository (" + directory + ")");
     this.setDaemon(true);
     this.start();
@@ -287,6 +306,9 @@ public class WarpScriptMacroRepository extends Thread {
     directory = dir;
     delay = refreshDelay;
     
+    ttl = Long.parseLong(properties.getProperty(Configuration.REPOSITORY_TTL, Long.toString(DEFAULT_MACRO_TTL)));
+    failedTtl = Long.parseLong(properties.getProperty(Configuration.REPOSITORY_TTL_FAILED, Long.toString(DEFAULT_FAILED_MACRO_TTL)));
+
     ondemand = !"false".equals(properties.getProperty(Configuration.REPOSITORY_ONDEMAND));
     new WarpScriptMacroRepository();
   }
@@ -441,9 +463,11 @@ public class WarpScriptMacroRepository extends Thread {
       
       Macro macro = (Macro) stack.pop();
                 
-      // Set expiration if ondemand is set and an expiration date was set
-      if (ondemand && null != stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_EXPIRY)) {
-        macro.setExpiry((long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_EXPIRY));
+      // Set expiration if ondemand is set and a ttl was specified
+      if (ondemand && null != stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL)) {
+        macro.setExpiry(System.currentTimeMillis() + (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL));
+      } else if (ondemand) {
+        macro.setExpiry(System.currentTimeMillis() + ttl);
       }
       
       macro.setFingerprint(hash);
@@ -459,7 +483,7 @@ public class WarpScriptMacroRepository extends Thread {
       macro.add(MSGFAIL_FUNC);
       // Set the expiry to half the refresh interval if ondemand is true so we get a chance to load a newly provided file
       if (ondemand) {
-        macro.setExpiry(System.currentTimeMillis() + Math.max(delay / 2, 10000));
+        macro.setExpiry(System.currentTimeMillis() + Math.max(delay / 2, failedTtl));
       }
       macro.setFingerprint(0L);
       return macro;

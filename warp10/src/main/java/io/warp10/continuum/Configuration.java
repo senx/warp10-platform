@@ -1847,6 +1847,21 @@ public class Configuration {
   public static final String REPOSITORY_REFRESH = "warpscript.repository.refresh";
 
   /**
+   * Default TTL for macros loaded on demand
+   */
+  public static final String REPOSITORY_TTL = "warpscript.repository.ttl";
+  
+  /**
+   * Max TTL for macros loaded on demand (will limit the value one can set using MACROTTL)
+   */
+  public static final String REPOSITORY_TTL_HARD = "warpscript.repository.ttl.hard";
+  
+  /**
+   * TTL to use for failed macros
+   */
+  public static final String REPOSITORY_TTL_FAILED = "warpscript.repository.ttl.failed";
+  
+  /**
    * Should new macros be loaded on demand?
    */
   public static final String REPOSITORY_ONDEMAND = "warpscript.repository.ondemand";

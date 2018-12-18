@@ -16,6 +16,8 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
@@ -23,12 +25,15 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
 /**
- * Sets the TTL for a macro which is loaded from disk
+ * Sets the TTL for a macro which is loaded from disk or http
  */
 public class MACROTTL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
+  private long hardTTL = Long.MAX_VALUE >>> 1;
+  
   public MACROTTL(String name) {
     super(name);
+    hardTTL = Long.parseLong(WarpConfig.getProperties().getProperty(Configuration.REPOSITORY_TTL_HARD, Long.toString(hardTTL)));
   }
   
   @Override
@@ -40,9 +45,17 @@ public class MACROTTL extends NamedWarpScriptFunction implements WarpScriptStack
     }
     
     long ttl = ((long) top) / Constants.TIME_UNITS_PER_MS;
-    long expiry = System.currentTimeMillis() + ttl;
     
-    stack.setAttribute(WarpScriptStack.ATTRIBUTE_MACRO_EXPIRY, expiry);
+    //
+    // Limit the TTL to the hard value, we do not throw an exception because MACROTTL is used in server
+    // side macros and the value might not be easily modifyable
+    //
+    
+    if (ttl > hardTTL) {
+      ttl = hardTTL;
+    }
+    
+    stack.setAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL, ttl);
     
     return stack;
   }
