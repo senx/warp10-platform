@@ -1655,6 +1655,7 @@ public class WarpScriptLib {
         sb.append(extension);
         sb.append("'");
       }
+      LOG.error(sb.toString());
       throw new RuntimeException(sb.toString());
     }
   }
