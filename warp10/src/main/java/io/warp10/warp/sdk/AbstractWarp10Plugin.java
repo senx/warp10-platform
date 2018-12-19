@@ -98,7 +98,7 @@ public abstract class AbstractWarp10Plugin {
         URL url = AbstractWarp10Plugin.class.getResource('/' + plugin.replace('.', '/') + ".class");
         
         if (null == url) {
-          LOG.error("Unable to load plugin '" + plugin + "', make sure it is in the class path.");
+          System.out.println("Unable to load plugin '" + plugin + "', make sure it is in the class path.");
           failedPlugin = true;
           continue;
         }
