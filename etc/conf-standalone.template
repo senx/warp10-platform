@@ -215,6 +215,26 @@ warpscript.repository.refresh = 60000
 #warpscript.repository.ttl.hard = 
 
 //
+// WarpFleet
+//
+
+// Comma separated list of default WarpFleet™ repositories
+#warpfleet.macros.repos =
+
+// Default TTL (in ms) for macros loaded from a WarpFleet repository (defaults to 10 minutes)
+#warpfleet.macros.ttl = 600000
+
+// Default TTL (in ms) for WarpFleet macros which had errors (defaults to 10 seconds)
+#warpfleet.macros.ttl.failed = 10000
+
+// Default TTL (in ms) for WarpFleet macros which were not found. If > 0, a dummy macro
+// will be generated which will fail with an informative error message
+#warpfleet.macros.ttl.unknown = 0
+
+// Name of WarpFleet repository macro. This macro consumes a URL and emits a boolean.
+#warpfleet.macros.validator = 
+
+//
 // Maximum levels of recursion in macro calls
 //
 warpscript.maxrecursion = 16

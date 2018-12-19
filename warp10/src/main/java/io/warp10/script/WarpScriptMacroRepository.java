@@ -379,6 +379,10 @@ public class WarpScriptMacroRepository extends Thread {
       
       loading.get().add(name);
       
+      if (!file.exists()) {
+        return null;
+      }
+      
       FileInputStream in = new FileInputStream(file);
       ByteArrayOutputStream out = new ByteArrayOutputStream((int) file.length());
       

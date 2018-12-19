@@ -1867,6 +1867,32 @@ public class Configuration {
   public static final String REPOSITORY_ONDEMAND = "warpscript.repository.ondemand";
 
   /**
+   * Comma separated list of default WarpFleet™ repositories
+   */
+  public static final String WARPFLEET_MACROS_REPOS = "warpfleet.macros.repos";
+  
+  /**
+   * Default TTL (in ms) for macros loaded from a WarpFleet repository
+   */
+  public static final String WARPFLEET_MACROS_TTL = "warpfleet.macros.ttl";
+
+  /**
+   * Default TTL (in ms) for WarpFleet macros which had errors
+   */
+  public static final String WARPFLEET_MACROS_TTL_FAILED = "warpfleet.macros.ttl.failed";
+
+  /**
+   * Default TTL (in ms) for WarpFleet macros which were not found. If > 0, a dummy macro
+   * will be generated which will fail with an informative error message
+   */
+  public static final String WARPFLEET_MACROS_TTL_UNKNOWN = "warpfleet.macros.ttl.unknown";
+
+  /**
+   * Name of WarpFleet repository macro. This macro consumes a URL and emits a boolean.
+   */
+  public static final String WARPFLEET_MACROS_VALIDATOR = "warpfleet.macros.validator";
+
+  /**
    * Header containing the request UUID when calling the endpoint
    */
   public static final String HTTP_HEADER_WEBCALL_UUIDX = "http.header.webcall.uuid";

@@ -1068,6 +1068,10 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     }
 
     if (null == macro) {
+      macro = WarpFleetMacroRepository.find(this, symbol);
+    }
+    
+    if (null == macro) {
       throw new WarpScriptException("Unknown macro '" + symbol + "'");
     }
     
