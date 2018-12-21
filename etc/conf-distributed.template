@@ -237,6 +237,12 @@ warpscript.def.unshadow = false
 // Default TTL (in ms) for macros loaded from a WarpFleet repository (defaults to 10 minutes)
 #warpfleet.macros.ttl = 600000
 
+// Lower limit for TTL (in ms) of macros loaded from a WarpFleet repository (defaults to 60 seconds)
+#warpfleet.macros.ttl.min = 60000
+
+// Upper limit for TTL (in ms) of macros loaded from a WarpFleet repository (defaults to 24 hours)
+#warpfleet.macros.ttl.max =
+
 // Default TTL (in ms) for WarpFleet macros which had errors (defaults to 10 seconds)
 #warpfleet.macros.ttl.failed = 10000
 
