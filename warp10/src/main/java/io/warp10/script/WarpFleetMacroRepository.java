@@ -35,6 +35,7 @@ import com.google.common.base.Charsets;
 
 import io.warp10.continuum.Configuration;
 import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.ext.urlfetch.MAXURLFETCHCOUNT;
 import io.warp10.script.ext.warpfleet.WarpFleetWarpScriptExtension;
 import io.warp10.script.functions.DROP;
 import io.warp10.script.functions.MSGFAIL;
@@ -63,7 +64,17 @@ public class WarpFleetMacroRepository {
    * Default macro TTL in ms
    */
   private static final long DEFAULT_TTL = 600000L;
-  
+
+  /**
+   * Lower limit for macro TTL in ms. Use this to limit how often a macro will be fetched from a repo.
+   */
+  private static final long DEFAULT_TTL_MIN = 60000L;
+
+  /**
+   * Upper limit for macro TTL in ms. Use this to limit to ensure macros get refreshed from a repo.
+   */
+  private static final long DEFAULT_TTL_MAX = 24 * 3600 * 1000L;
+
   /**
    * Default TTL for macros which failed to load
    */
@@ -75,6 +86,8 @@ public class WarpFleetMacroRepository {
   private static final long DEFAULT_TTL_UNKNOWN = 0L;
 
   private static long ttl = DEFAULT_TTL;
+  private static long minttl = DEFAULT_TTL_MIN;
+  private static long maxttl = DEFAULT_TTL_MAX;
   private static long failedTtl = DEFAULT_TTL_FAILED;
   private static long unknownTtl = DEFAULT_TTL_UNKNOWN;
   
@@ -92,6 +105,11 @@ public class WarpFleetMacroRepository {
   public static Macro find(WarpScriptStack callingStack, String name) {
     
     if (!initialized.get()) {
+      return null;
+    }
+    
+    // Reject names with relative path components in them
+    if (name.contains("/../") || name.contains("/./") || name.startsWith("../") || name.startsWith("./")) {
       return null;
     }
     
@@ -212,7 +230,14 @@ public class WarpFleetMacroRepository {
           macro = (Macro) stack.pop();
 
           if (null != callingStack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL)) {
-            macro.setExpiry(System.currentTimeMillis() + (long) callingStack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL));
+            long macrottl = (long) callingStack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL);
+            if (macrottl < minttl) {
+              macrottl = minttl;
+            }
+            if (macrottl > maxttl) {
+              macrottl = maxttl;
+            }
+            macro.setExpiry(System.currentTimeMillis() + macrottl);
           } else {
             macro.setExpiry(System.currentTimeMillis() + ttl);
           }
@@ -305,7 +330,9 @@ public class WarpFleetMacroRepository {
     //
     // Extract TTLs
     //
-    
+        
+    minttl = Long.parseLong(properties.getProperty(Configuration.WARPFLEET_MACROS_TTL_MIN, Long.toString(DEFAULT_TTL_MIN)));
+    maxttl = Long.parseLong(properties.getProperty(Configuration.WARPFLEET_MACROS_TTL_MAX, Long.toString(DEFAULT_TTL_MAX)));
     ttl = Long.parseLong(properties.getProperty(Configuration.WARPFLEET_MACROS_TTL, Long.toString(DEFAULT_TTL)));
     failedTtl = Long.parseLong(properties.getProperty(Configuration.WARPFLEET_MACROS_TTL_FAILED, Long.toString(DEFAULT_TTL_FAILED)));
     unknownTtl = Long.parseLong(properties.getProperty(Configuration.WARPFLEET_MACROS_TTL_UNKNOWN, Long.toString(DEFAULT_TTL_UNKNOWN)));
@@ -403,6 +430,13 @@ public class WarpFleetMacroRepository {
       repo = null;
     }
 
+    // Reject repos with /../ or /./ in the path so we do not accept repos
+    // which will lead to cache poisoning.
+    
+    if (null != repo && (repo.contains("/../") || repo.contains("/./"))) {
+      repo = null;
+    }
+    
     return repo;
   }
 }
