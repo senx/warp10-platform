@@ -21,6 +21,11 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
+// Secret for REPORT, if unset, a random secret will be generated and output in the logs and on stdout
+//
+#warp10.report.secret = 
+
+//
 // Maximum number of classes for which to report detailed stats in 'FINDSTATS'
 // 
 directory.stats.class.maxcardinality = 100

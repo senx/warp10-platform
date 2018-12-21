@@ -20,6 +20,8 @@ public class Configuration {
 
   public static final String OSS_MASTER_KEY = "oss.master.key";
 
+  public static final String WARP10_REPORT_SECRET = "warp10.report.secret";
+  
   public static final String WARP_COMPONENTS = "warp.components";
 
   public static final String WARP_TOKEN_FILE = "warp.token.file";
