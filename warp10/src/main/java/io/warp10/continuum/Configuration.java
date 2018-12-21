@@ -1877,6 +1877,16 @@ public class Configuration {
   public static final String WARPFLEET_MACROS_TTL = "warpfleet.macros.ttl";
 
   /**
+   * Lower limit for TTL (in ms) of macros loaded from a WarpFleet repository
+   */
+  public static final String WARPFLEET_MACROS_TTL_MIN = "warpfleet.macros.ttl.min";
+
+  /**
+   * Upper limit for TTL (in ms) of macros loaded from a WarpFleet repository
+   */
+  public static final String WARPFLEET_MACROS_TTL_MAX = "warpfleet.macros.ttl.max";
+
+  /**
    * Default TTL (in ms) for WarpFleet macros which had errors
    */
   public static final String WARPFLEET_MACROS_TTL_FAILED = "warpfleet.macros.ttl.failed";
