@@ -24,7 +24,9 @@ import io.warp10.script.WarpScriptLib;
 
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -40,6 +42,9 @@ public abstract class AbstractWarp10Plugin {
   private static Logger LOG = LoggerFactory.getLogger(AbstractWarp10Plugin.class);
   
   private static final AtomicBoolean registered = new AtomicBoolean(false);
+  
+  private static final List<String> plugins = new ArrayList<String>();
+  
   /**
    * Method called to initialize the plugin
    * 
@@ -129,6 +134,7 @@ public abstract class AbstractWarp10Plugin {
 
         AbstractWarp10Plugin wse = (AbstractWarp10Plugin) cls.newInstance();          
         wse.init(WarpConfig.getProperties());
+        plugins.add(plugin);
         System.out.println("LOADED plugin '" + plugin  + "'");
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -172,5 +178,9 @@ public abstract class AbstractWarp10Plugin {
       t.printStackTrace();
     }
     return null;
+  }
+  
+  public static final List<String> plugins() {
+    return new ArrayList<String>(plugins);
   }
 }
