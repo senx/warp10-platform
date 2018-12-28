@@ -688,6 +688,11 @@ quantum.host = ${standalone.host}
 #datalog.id = datalog-0
 
 //
+// Set to false to disable logging the key used for sharding. This defaults to true when datalog is enabled.
+//
+#datalog.logshardkey = false
+
+//
 // Datalog pre-shared key to protect the DatalogRequest instances. If this AES key is not set, the requests will not be
 // encrypted and could be altered.
 //

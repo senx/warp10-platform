@@ -550,10 +550,10 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     
     this.parseAttributes = "true".equals(properties.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
     
-    if ("true".equals(properties.getProperty(Configuration.DATALOG_LOGSHARDKEY))) {
-      logShardKey = true;
-    } else {
+    if ("false".equals(properties.getProperty(Configuration.DATALOG_LOGSHARDKEY))) {
       logShardKey = false;
+    } else {
+      logShardKey = true;
     }
 
     if (properties.containsKey(Configuration.DATALOG_DIR)) {
