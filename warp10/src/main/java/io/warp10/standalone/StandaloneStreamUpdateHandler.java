@@ -33,6 +33,7 @@ import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.sensision.Sensision;
 
@@ -98,6 +99,9 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
   private final byte[] datalogPSK;
   private final File loggingDir;
   
+  private final long[] classKeyLongs;
+  private final long[] labelsKeyLongs;
+
   private final boolean updateActivity;
   private final boolean parseAttributes;
   
@@ -349,12 +353,16 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                   
                   metadata.setSource(Configuration.INGRESS_METADATA_SOURCE);
                   this.handler.directoryClient.register(metadata);
+                  
+                  // Extract shardkey 128BITS
+                  // Shard key is 48 bits, 24 upper from the class Id and 24 lower from the labels Id
+                  shardkey =  (GTSHelper.classId(this.handler.classKeyLongs, encoder.getMetadata().getName()) & 0xFFFFFF000000L) | (GTSHelper.labelsId(this.handler.labelsKeyLongs, encoder.getMetadata().getLabels()) & 0xFFFFFFL);
                 }
 
                 if (null != lastencoder) {
                   // 128BITS
-                  lastencoder.setClassId(GTSHelper.classId(this.handler.keyStore.getKey(KeyStore.SIPHASH_CLASS), lastencoder.getName()));
-                  lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.keyStore.getKey(KeyStore.SIPHASH_LABELS), lastencoder.getLabels()));
+                  lastencoder.setClassId(GTSHelper.classId(this.handler.classKeyLongs, lastencoder.getName()));
+                  lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.labelsKeyLongs, lastencoder.getLabels()));
                   this.handler.storeClient.store(lastencoder);
                   count += lastencoder.getCount();
                   
@@ -412,8 +420,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
               ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
 
-              lastencoder.setClassId(GTSHelper.classId(this.handler.keyStore.getKey(KeyStore.SIPHASH_CLASS), lastencoder.getName()));
-              lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.keyStore.getKey(KeyStore.SIPHASH_LABELS), lastencoder.getLabels()));
+              lastencoder.setClassId(GTSHelper.classId(this.handler.classKeyLongs, lastencoder.getName()));
+              lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.labelsKeyLongs, lastencoder.getLabels()));
               this.handler.storeClient.store(lastencoder);
               count += lastencoder.getCount();
               
@@ -529,6 +537,10 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     super(StandaloneStreamUpdateWebSocket.class);
 
     this.keyStore = keystore;
+    
+    this.classKeyLongs = SipHashInline.getKey(this.keyStore.getKey(KeyStore.SIPHASH_CLASS));    
+    this.labelsKeyLongs = SipHashInline.getKey(this.keyStore.getKey(KeyStore.SIPHASH_LABELS));
+
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
     this.properties = properties;
