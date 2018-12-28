@@ -172,6 +172,9 @@ warp.aes.metasets = hex:hhhhhhhh....
 //
 /////////////////////////////////////////////////////////////////////////////////////////
 
+// Maximum time that TIMEBOX can wait for an execution (in ms), defaults to 30s
+#warpscript.timebox.maxtime=30000
+
 // Path of the 'bootstrap' WarpScript code for the interactive mode
 #warpscript.interactive.bootstrap.path =
 // How often to reload the bootstrap code (in ms) for the interactive mode

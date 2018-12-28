@@ -115,6 +115,9 @@ warp.aes.metasets = @key:256:warp.aes.metasets@
 //
 #warp.streamupdate.disable =
 
+// Maximum time that TIMEBOX can wait for an execution (in ms), defaults to 30s
+#warpscript.timebox.maxtime=30000
+
 //
 // Number of registers to allocate in the stack defaults to 256
 //

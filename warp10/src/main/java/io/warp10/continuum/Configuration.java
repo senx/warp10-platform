@@ -93,6 +93,11 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_REGISTERS = "warpscript.registers";
   
   /**
+   * Maximum time to allocate for timeboxed executions
+   */
+  public static final String CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME = "warpscript.timebox.maxtime";
+  
+  /**
    * Comma separated list of WarpScriptExtension classes to instantiate to modify
    * the defined WarpScript functions.
    */
