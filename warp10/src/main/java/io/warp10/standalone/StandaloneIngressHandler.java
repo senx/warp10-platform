@@ -446,7 +446,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
             // Write request
             //
             
-            loggingWriter.println(new String(encoded, Charsets.US_ASCII));          
+            loggingWriter.println("#" + new String(encoded, Charsets.US_ASCII));          
           }
           
           //

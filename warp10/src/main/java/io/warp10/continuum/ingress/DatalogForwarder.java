@@ -619,9 +619,16 @@ public class DatalogForwarder extends Thread {
           LOG.error("Error while reading Datalog Request", ioe);
           break;
         }
-                       
-        byte[] data = OrderPreservingBase64.decode(encoded.getBytes(Charsets.US_ASCII));
         
+        byte[] bytes = encoded.getBytes(Charsets.US_ASCII);
+        byte[] data = null;
+
+        if ('#' == encoded.charAt(0)) {
+          data = OrderPreservingBase64.decode(bytes, 1, bytes.length - 1);          
+        } else {
+          data = OrderPreservingBase64.decode(bytes);          
+        }
+                
         if (null != this.datalogPSK) {
           data = CryptoUtils.unwrap(this.datalogPSK, data);
         }
