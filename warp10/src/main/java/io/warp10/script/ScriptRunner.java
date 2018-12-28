@@ -37,6 +37,7 @@ import java.util.PriorityQueue;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
@@ -352,7 +353,7 @@ public class ScriptRunner extends Thread {
     // Map of script path to next scheduled run
     //
 
-    final Map<String, Long> nextrun = new HashMap<String, Long>();
+    final Map<String, Long> nextrun = new ConcurrentHashMap<String, Long>();
     
     PriorityQueue<String> runnables = new PriorityQueue<String>(1, new Comparator<String>() {
       @Override
