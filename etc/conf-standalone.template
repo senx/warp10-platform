@@ -700,8 +700,16 @@ quantum.host = ${standalone.host}
 #datalog.logforwarded = false
 
 //
+// Comma separated list of datalog forwarders. Configuration of each forwarder is done via datalog configuration
+// keys suffixed with '.name' (eg .xxx, .yyy), except for datalog.psk which is common to all forwarders.
+//
+#datalog.forwarders = xxx,yyy
+
+//
 // Directory where datalog files to forward reside. If this property and 'datalog.forwarder.dstdir' are set, then
 // the DatalogForwarder daemon will run.
+// When running multiple datalog forwarders, all their srcdir MUST be on the same device as the 'datalog.dir' directory
+// as hard links are used to make the data available to the forwarders
 //
 #datalog.forwarder.srcdir = ${standalone.home}/datalog
 

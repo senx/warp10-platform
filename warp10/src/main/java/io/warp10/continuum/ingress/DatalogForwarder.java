@@ -64,6 +64,8 @@ import com.google.common.base.Charsets;
  * Forward UPDATA/META/DELETE requests to another Warp 10 instance
  */
 public class DatalogForwarder extends Thread {
+
+  private final String name;
   
   private static final Logger LOG = LoggerFactory.getLogger(DatalogForwarder.class);
   
@@ -153,11 +155,18 @@ public class DatalogForwarder extends Thread {
     
     private final DatalogForwarder forwarder;
         
+    private final String name;
+    
     public DatalogForwarderWorker(DatalogForwarder forwarder, LinkedBlockingDeque<DatalogAction> queue) {
+      this.name = forwarder.name;
       this.queue = queue;
       this.forwarder = forwarder;
       this.setDaemon(true);
-      this.setName("[Datalog Forwarder Worker]");
+      if (null != name) {
+        this.setName("[Datalog Forwarder Worker '" + this.name + "']");
+      } else {
+        this.setName("[Datalog Forwarder Worker]");
+      }
       this.start();
     }
     
@@ -300,8 +309,14 @@ public class DatalogForwarder extends Thread {
         conn = null;
 
         Map<String,String> labels = new HashMap<String,String>();
+        
+        if (null != name) {
+          labels.put(SensisionConstants.SENSISION_LABEL_FORWARDER, name);
+        }
+
         labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
         labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.UPDATE.name());
+        
         if (success) {
           Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FORWARDED, labels, 1);
         } else {
@@ -309,8 +324,18 @@ public class DatalogForwarder extends Thread {
         }
 
         return success;
-      } catch (IOException ioe){
-        ioe.printStackTrace();
+      } catch (IOException ioe) {
+        Map<String,String> labels = new HashMap<String,String>();
+        
+        if (null != name) {
+          labels.put(SensisionConstants.SENSISION_LABEL_FORWARDER, name);
+        }
+
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.UPDATE.name());
+        
+        Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FAILED, labels, 1);
+
         return false;
       } finally {
         if (null != conn) {
@@ -355,8 +380,13 @@ public class DatalogForwarder extends Thread {
         conn = null;
 
         Map<String,String> labels = new HashMap<String,String>();
+        
+        if (null != name) {
+          labels.put(SensisionConstants.SENSISION_LABEL_FORWARDER, name);
+        }
+
         labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
-        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.UPDATE.name());
+        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.DELETE.name());
         if (success) {
           Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FORWARDED, labels, 1);
         } else {
@@ -364,7 +394,17 @@ public class DatalogForwarder extends Thread {
         }
         
         return success;
-      } catch (IOException ioe){
+      } catch (IOException ioe) {
+        Map<String,String> labels = new HashMap<String,String>();
+        
+        if (null != name) {
+          labels.put(SensisionConstants.SENSISION_LABEL_FORWARDER, name);
+        }
+
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.DELETE.name());
+        Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FAILED, labels, 1);
+
         return false;
       } finally {
         if (null != conn) {
@@ -448,8 +488,13 @@ public class DatalogForwarder extends Thread {
         conn = null;
 
         Map<String,String> labels = new HashMap<String,String>();
+        
+        if (null != name) {
+          labels.put(SensisionConstants.SENSISION_LABEL_FORWARDER, name);
+        }
+
         labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
-        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.UPDATE.name());
+        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.META.name());
         if (success) {
           Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FORWARDED, labels, 1);
         } else {
@@ -457,7 +502,17 @@ public class DatalogForwarder extends Thread {
         }
 
         return success;
-      } catch (IOException ioe){
+      } catch (IOException ioe) {
+        Map<String,String> labels = new HashMap<String,String>();
+        
+        if (null != name) {
+          labels.put(SensisionConstants.SENSISION_LABEL_FORWARDER, name);
+        }
+
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.META.name());
+        Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FAILED, labels, 1);
+
         return false;
       } finally {
         if (null != conn) {
@@ -470,60 +525,79 @@ public class DatalogForwarder extends Thread {
   }
   
   public DatalogForwarder(KeyStore keystore, Properties properties) throws Exception {
+    this(null, keystore, properties);
+  }
+  
+  public DatalogForwarder(String name, KeyStore keystore, Properties properties) throws Exception {
+  
+    this.name = name;
     
-    this.rootdir = new File(properties.getProperty(Configuration.DATALOG_FORWARDER_SRCDIR)).toPath();
+    String suffix = "";
     
+    if (null != name) {
+      suffix = "." + name;
+      LOG.info("Initializing datalog forwarder '" + name + "'.");
+    } else {
+      LOG.info("Initializing datalog forwarder.");
+    }
+    
+    this.rootdir = new File(properties.getProperty(Configuration.DATALOG_FORWARDER_SRCDIR + suffix)).toPath();
+    
+    if (!this.rootdir.toFile().isDirectory()) {
+      throw new RuntimeException("Invalid datalog forwarder source directory '" + this.rootdir + "'.");
+    }
+
     if (properties.containsKey(Configuration.DATALOG_PSK)) {
       this.datalogPSK = keystore.decodeKey(properties.getProperty(Configuration.DATALOG_PSK));
     } else {
       this.datalogPSK = null;
     }
     
-    this.period = Long.parseLong(properties.getProperty(Configuration.DATALOG_FORWARDER_PERIOD, DEFAULT_PERIOD));
+    this.period = Long.parseLong(properties.getProperty(Configuration.DATALOG_FORWARDER_PERIOD + suffix, DEFAULT_PERIOD));
     
-    this.compress = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_COMPRESS));
+    this.compress = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_COMPRESS + suffix));
     
-    this.actasclient = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_ACTASCLIENT));
+    this.actasclient = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_ACTASCLIENT + suffix));
     
     this.ignoredIds = new HashSet<String>();
     
-    if (properties.containsKey(Configuration.DATALOG_FORWARDER_IGNORED)) {
-      String[] ids = properties.getProperty(Configuration.DATALOG_FORWARDER_IGNORED).split(",");
+    if (properties.containsKey(Configuration.DATALOG_FORWARDER_IGNORED + suffix)) {
+      String[] ids = properties.getProperty(Configuration.DATALOG_FORWARDER_IGNORED + suffix).split(",");
       
       for (String id: ids) {
         ignoredIds.add(id.trim());
       }
     }
     
-    if (!properties.containsKey(Configuration.DATALOG_FORWARDER_DSTDIR)) {
-      throw new RuntimeException("Datalog forwarder target directory (" +  Configuration.DATALOG_FORWARDER_DSTDIR + ") not set.");
+    if (!properties.containsKey(Configuration.DATALOG_FORWARDER_DSTDIR + suffix)) {
+      throw new RuntimeException("Datalog forwarder target directory (" +  Configuration.DATALOG_FORWARDER_DSTDIR + suffix + ") not set.");
     }
 
-    this.targetDir = new File(properties.getProperty(Configuration.DATALOG_FORWARDER_DSTDIR));
+    this.targetDir = new File(properties.getProperty(Configuration.DATALOG_FORWARDER_DSTDIR + suffix));
 
     if (!this.targetDir.isDirectory()) {
-      throw new RuntimeException("Invalid datalog forwarder target directory.");
+      throw new RuntimeException("Invalid datalog forwarder target directory '" + this.targetDir + "'.");
     }
     
-    this.deleteForwarded = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_DELETEFORWARDED));
-    this.deleteIgnored = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_DELETEIGNORED));
+    this.deleteForwarded = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_DELETEFORWARDED + suffix));
+    this.deleteIgnored = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_DELETEIGNORED + suffix));
     
-    int nthreads = Integer.parseInt(properties.getProperty(Configuration.DATALOG_FORWARDER_NTHREADS, "1"));
+    int nthreads = Integer.parseInt(properties.getProperty(Configuration.DATALOG_FORWARDER_NTHREADS + suffix, "1"));
     
-    if (!properties.containsKey(Configuration.DATALOG_FORWARDER_ENDPOINT_UPDATE)) {
+    if (!properties.containsKey(Configuration.DATALOG_FORWARDER_ENDPOINT_UPDATE + suffix)) {
       throw new RuntimeException("Missing UPDATE endpoint.");
     }
-    this.updateUrl = new URL(properties.getProperty(Configuration.DATALOG_FORWARDER_ENDPOINT_UPDATE));
+    this.updateUrl = new URL(properties.getProperty(Configuration.DATALOG_FORWARDER_ENDPOINT_UPDATE + suffix));
 
-    if (!properties.containsKey(Configuration.DATALOG_FORWARDER_ENDPOINT_DELETE)) {
+    if (!properties.containsKey(Configuration.DATALOG_FORWARDER_ENDPOINT_DELETE + suffix)) {
       throw new RuntimeException("Missing DELETE endpoint.");
     }
-    this.deleteUrl = new URL(properties.getProperty(Configuration.DATALOG_FORWARDER_ENDPOINT_DELETE));
+    this.deleteUrl = new URL(properties.getProperty(Configuration.DATALOG_FORWARDER_ENDPOINT_DELETE + suffix));
 
-    if (!properties.containsKey(Configuration.DATALOG_FORWARDER_ENDPOINT_META)) {
+    if (!properties.containsKey(Configuration.DATALOG_FORWARDER_ENDPOINT_META + suffix)) {
       throw new RuntimeException("Missing META endpoint.");
     }
-    this.metaUrl = new URL(properties.getProperty(Configuration.DATALOG_FORWARDER_ENDPOINT_META));
+    this.metaUrl = new URL(properties.getProperty(Configuration.DATALOG_FORWARDER_ENDPOINT_META + suffix));
 
     queues = new LinkedBlockingDeque[nthreads];
     
@@ -532,7 +606,11 @@ public class DatalogForwarder extends Thread {
       DatalogForwarderWorker forwarder = new DatalogForwarderWorker(this, queues[i]);
     }
     
-    this.setName("[Datalog Forwarder]");
+    if (null == name) {
+      this.setName("[Datalog Forwarder]");
+    } else {
+      this.setName("[Datalog Forwarder '" + name + "']");
+    }
     this.setDaemon(true);
     this.start();
   }
@@ -661,6 +739,11 @@ public class DatalogForwarder extends Thread {
         String decodedId = new String(OrderPreservingBase64.decode(id.getBytes(Charsets.US_ASCII)), Charsets.UTF_8);
         if (this.ignoredIds.contains(decodedId)) {
           Map<String,String> labels = new HashMap<String,String>();
+          
+          if (null != name) {
+            labels.put(SensisionConstants.SENSISION_LABEL_FORWARDER, name);
+          }
+          
           labels.put(SensisionConstants.SENSISION_LABEL_ID, decodedId);
           labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.UPDATE.name());
           Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_IGNORED, labels, 1);
@@ -710,5 +793,9 @@ public class DatalogForwarder extends Thread {
       
       LockSupport.parkNanos(this.period * 1000000L);
     }
+  }
+  
+  public Path getRootDir() {
+    return this.rootdir;
   }
 }
