@@ -770,6 +770,18 @@ quantum.host = ${standalone.host}
 #datalog.forwarder.endpoint.delete = http://host:port/api/v0/delete
 
 //
+// Comma separated list of shards to forward, each shard being specified as MODULUS:REMAINDER
+// If no shards are specified, then the shard key is not analyzed
+//
+#datalog.forwarder.shards =
+
+//
+// Number of bits to right shift the shard key. If this is >= 24, then only the class id will be
+// considered for sharding. Defaults to 0
+//
+#datalog.forwarder.shardkey.shift =
+
+//
 // TRL (TOKEN REVOCATION LIST)
 //
 /////////////////////////////////////////////////////////////////////////////////////////

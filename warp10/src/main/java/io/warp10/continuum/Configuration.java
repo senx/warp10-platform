@@ -1434,7 +1434,7 @@ public class Configuration {
    * Set to true or false to log the sharding key in the datalog request files
    */
   public static final String DATALOG_LOGSHARDKEY = "datalog.logshardkey";
-
+  
   /**
    * Pre-shared AES key to wrap datalog.id and datalog.timestamp header values
    */
@@ -1511,6 +1511,17 @@ public class Configuration {
    * Endpoint to use when forwarding META actions
    */
   public static final String DATALOG_FORWARDER_ENDPOINT_META = "datalog.forwarder.endpoint.meta";
+  
+  /**
+   * Comma separated list of shards to forward, each shard being specified as MODULUS:REMAINDER
+   */
+  public static final String DATALOG_FORWARDER_SHARDS = "datalog.forwarder.shards";
+  
+  /**
+   * Number of bits to right shift the shard key. If this is >= 24, then only the class id will be
+   * considered for sharding. 
+   */
+  public static final String DATALOG_FORWARDER_SHARDKEY_SHIFT = "datalog.forwarder.shardkey.shift";
   
   /**
    * Set to 'true' to disable plasma

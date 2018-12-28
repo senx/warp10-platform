@@ -522,10 +522,6 @@ public class DatalogForwarder extends Thread {
       this.datalogPSK = null;
     }
     
-    this.modulus = null;
-    this.remainder = null;
-    this.shardkeyshift = 0;
-    
     this.period = Long.parseLong(properties.getProperty(Configuration.DATALOG_FORWARDER_PERIOD, DEFAULT_PERIOD));
     
     this.compress = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_COMPRESS));
@@ -571,6 +567,41 @@ public class DatalogForwarder extends Thread {
       throw new RuntimeException("Missing META endpoint.");
     }
     this.metaUrl = new URL(properties.getProperty(Configuration.DATALOG_FORWARDER_ENDPOINT_META));
+
+    if (properties.containsKey(Configuration.DATALOG_FORWARDER_SHARDS)) {
+      
+      this.shardkeyshift = Long.parseLong(properties.getProperty(Configuration.DATALOG_FORWARDER_SHARDKEY_SHIFT, "0"));
+      
+      if (this.shardkeyshift >= 48 || this.shardkeyshift < 0) {
+        throw new RuntimeException("Invalid shard key shifting.");
+      }
+      
+      String[] shards = properties.getProperty(Configuration.DATALOG_FORWARDER_SHARDS).split(",");
+      
+      this.modulus = new long[shards.length];
+      this.remainder = new long[shards.length];
+        
+      int idx = 0;
+        
+      for (String shard: shards) {
+        String[] tokens = shard.trim().split(":");
+        if (2 != tokens.length) {
+          throw new RuntimeException("Invalid shard specification " + shard);
+        }
+        this.modulus[idx] = Long.parseLong(tokens[0]);
+        this.remainder[idx] = Long.parseLong(tokens[1]);
+          
+        if (this.modulus[idx] < 1 || this.remainder[idx] >= this.modulus[idx]) {
+          throw new RuntimeException("Invalid shard specification " + shard);
+        }
+        
+        idx++;
+      }
+    } else {
+      this.modulus = null;
+      this.remainder = null;
+      this.shardkeyshift = 0;
+    }
 
     queues = new LinkedBlockingDeque[nthreads];
     
