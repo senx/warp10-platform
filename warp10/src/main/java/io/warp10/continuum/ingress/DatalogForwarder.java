@@ -78,6 +78,15 @@ public class DatalogForwarder extends Thread {
   
   private final byte[] datalogPSK;
   
+  private final long[] modulus;
+  private final long[] remainder;
+  
+  /**
+   * Number of bits to shift the shard key right.
+   * If this is 24, then only the class Id will be considered
+   */
+  private final long shardkeyshift;
+  
   /**
    * URL for the UPDATE endpoint
    */
@@ -269,6 +278,8 @@ public class DatalogForwarder extends Thread {
                 
         boolean first = true;
         
+        boolean include = false;
+
         while(true) {
           String line = br.readLine();
           if (null == line) {
@@ -279,7 +290,39 @@ public class DatalogForwarder extends Thread {
             first = false;
             continue;
           }
-          pw.println(line);
+
+          // If shards are defined, check the shard key          
+          if (null != forwarder.modulus && null != forwarder.remainder) {
+            if (line.length() >= 3 && '#' == line.charAt(0) && 'K' == line.charAt(1)) {
+              // Extract the shard key
+              long shardkey = Long.parseLong(line.substring(2));
+              
+              shardkey >>>= forwarder.shardkeyshift;
+              
+              include = false;
+              
+              // Check if one shard matches, in which case we print out the line and continue
+              for (int i = 0; i < forwarder.modulus.length; i++) {
+                if (shardkey % forwarder.modulus[i] == forwarder.remainder[i]) {
+                  include = true;
+                  break;
+                }
+              }
+              continue;
+            } else {
+              // Ignore line if shard is not included in those we forward
+              if (!include) {
+                continue;
+              }
+            }
+          } else {
+            // No shards defined, include everything
+            include = true;
+          }
+          
+          if (include) {
+            pw.println(line);
+          }
         }
         
         pw.close();
@@ -478,6 +521,10 @@ public class DatalogForwarder extends Thread {
     } else {
       this.datalogPSK = null;
     }
+    
+    this.modulus = null;
+    this.remainder = null;
+    this.shardkeyshift = 0;
     
     this.period = Long.parseLong(properties.getProperty(Configuration.DATALOG_FORWARDER_PERIOD, DEFAULT_PERIOD));
     
