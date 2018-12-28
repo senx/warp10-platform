@@ -16,6 +16,25 @@
 
 package io.warp10.script;
 
+import java.net.URL;
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
+
+import org.apache.commons.lang3.JavaVersion;
+import org.apache.commons.lang3.SystemUtils;
+import org.bouncycastle.crypto.digests.MD5Digest;
+import org.bouncycastle.crypto.digests.SHA1Digest;
+import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.warp10.WarpClassLoader;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
@@ -314,25 +333,6 @@ import io.warp10.script.unary.TOSTRING;
 import io.warp10.script.unary.TOTIMESTAMP;
 import io.warp10.script.unary.UNIT;
 import io.warp10.warp.sdk.WarpScriptExtension;
-import org.apache.commons.lang3.JavaVersion;
-import org.apache.commons.lang3.SystemUtils;
-import org.bouncycastle.crypto.digests.MD5Digest;
-import org.bouncycastle.crypto.digests.SHA1Digest;
-import org.bouncycastle.crypto.digests.SHA256Digest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URL;
-import java.net.URLDecoder;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
 
 /**
  * Library of functions used to manipulate Geo Time Series
@@ -344,7 +344,7 @@ public class WarpScriptLib {
   
   private static Map<String,Object> functions = new HashMap<String, Object>();
   
-  private static Set<String> extloaded = new HashSet<String>();
+  private static Set<String> extloaded = new LinkedHashSet<String>();
   
   /**
    * Static definition of name so it can be reused outside of WarpScriptLib
@@ -435,6 +435,7 @@ public class WarpScriptLib {
   static {
 
     functions.put("REV", new REV("REV"));
+    functions.put("REPORT", new REPORT("REPORT"));
     functions.put("MINREV", new MINREV("MINREV"));
 
     functions.put(BOOTSTRAP, new NOOP(BOOTSTRAP));
@@ -546,6 +547,7 @@ public class WarpScriptLib {
     functions.put("TRY", new TRY("TRY"));
     functions.put("RETHROW", new RETHROW("RETHROW"));
     functions.put("ERROR", new ERROR("ERROR"));
+    functions.put("TIMEBOX", new TIMEBOX("TIMEBOX"));
     functions.put("JSONSTRICT", new JSONSTRICT("JSONSTRICT"));
     functions.put("JSONLOOSE", new JSONLOOSE("JSONLOOSE"));
     functions.put("DEBUGON", new DEBUGON("DEBUGON"));
@@ -1700,6 +1702,10 @@ public class WarpScriptLib {
   
   public static boolean extloaded(String name) {
     return extloaded.contains(name);
+  }
+  
+  public static List<String> extensions() {
+    return new ArrayList<String>(extloaded);
   }
   
   /**

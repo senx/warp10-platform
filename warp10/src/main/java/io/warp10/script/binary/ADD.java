@@ -17,6 +17,8 @@
 package io.warp10.script.binary;
 
 import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GTSOpsHelper;
+import io.warp10.continuum.gts.GTSOpsHelper.GTSBinaryOp;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -86,6 +88,10 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       GeoTimeSerie gts1 = (GeoTimeSerie) op1;
       GeoTimeSerie gts2 = (GeoTimeSerie) op2;
 
+      //
+      // Determine the type of the result GTS
+      //
+      
       TYPE type = TYPE.UNDEFINED;
       
       if (TYPE.BOOLEAN == gts1.getType() || TYPE.BOOLEAN == gts2.getType()) {
@@ -100,94 +106,40 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       
       GeoTimeSerie result = new GeoTimeSerie(Math.max(GTSHelper.nvalues(gts1), GTSHelper.nvalues(gts2)));
       
-      if (GTSHelper.isBucketized(gts1) && GTSHelper.isBucketized(gts2)) {
-        if (GTSHelper.getBucketSpan(gts1) == GTSHelper.getBucketSpan(gts2)) {
-          // Both GTS have the same bucket span, check their lastbucket to see if they have the
-          // same remainder modulo the bucketspan
-          long bucketspan = GTSHelper.getBucketSpan(gts1);
-          if (GTSHelper.getLastBucket(gts1) % bucketspan == GTSHelper.getLastBucket(gts2) % bucketspan) {
-            GTSHelper.setBucketSpan(result, bucketspan);
-            GTSHelper.setLastBucket(result, Math.max(GTSHelper.getLastBucket(gts1), GTSHelper.getLastBucket(gts2)));
-            // Compute the number of bucket counts
-            long firstbucket = Math.min(GTSHelper.getLastBucket(gts1) - (GTSHelper.getBucketCount(gts1) - 1) * bucketspan, GTSHelper.getLastBucket(gts2) - (GTSHelper.getBucketCount(gts2) - 1) * bucketspan);
-            int bucketcount = (int) ((GTSHelper.getLastBucket(result) - firstbucket) / bucketspan) + 1;
-            GTSHelper.setBucketCount(result, bucketcount);
-          }
-        }
-      }
       result.setType(type);
-      
-      // Sort GTS
-      GTSHelper.sort(gts1);
-      GTSHelper.sort(gts2);
-      
-      // Sweeping line over the timestamps
-      int idxa = 0;
-      int idxb = 0;
-               
-      int na = GTSHelper.nvalues(gts1);
-      int nb = GTSHelper.nvalues(gts2);
-      
-      Long tsa = null;
-      Long tsb = null;
 
-      if (idxa < na) {
-        tsa = GTSHelper.tickAtIndex(gts1, idxa);
-      }
-      if (idxb < na) {
-        tsb = GTSHelper.tickAtIndex(gts2, idxb);
-      }
-
-      while(idxa < na || idxb < nb) {
-        if (idxa >= na) {
-          tsa = null;
-        }
-        if (idxb >= nb) {
-          tsb = null;
-        }
-        if (null != tsa && null != tsb) {
-          // We have values at the current index for both GTS
-          if (tsa == tsb) {
-            // Both indices indicate the same timestamp
-            switch (type) {
-              case STRING:
-                GTSHelper.setValue(result, tsa, GTSHelper.valueAtIndex(gts1, idxa).toString() + GTSHelper.valueAtIndex(gts2, idxb).toString());
-                break;
-              case LONG:
-                GTSHelper.setValue(result, tsa, ((Number) GTSHelper.valueAtIndex(gts1, idxa)).longValue() + ((Number) GTSHelper.valueAtIndex(gts2, idxb)).longValue());
-                break;
-              case DOUBLE:
-                GTSHelper.setValue(result, tsa, ((Number) GTSHelper.valueAtIndex(gts1, idxa)).doubleValue() + ((Number) GTSHelper.valueAtIndex(gts2, idxb)).doubleValue());
-                break;
-              default:
-                throw new WarpScriptException(getName() + " Invalid Geo Time Series™ type.");
+      GTSBinaryOp op = null;
+      
+      switch (type) {
+        case STRING:
+          op = new GTSBinaryOp() {
+            @Override
+            public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+              return GTSHelper.valueAtIndex(gtsa, idxa).toString() + GTSHelper.valueAtIndex(gtsb, idxb).toString();
             }
-            // Advance both indices
-            idxa++;
-            idxb++;
-          } else if (tsa < tsb) {
-            // Timestamp at index A is lower than timestamp at index B
-            // Advance index for GTS A
-            idxa++;
-          } else {
-            // Timestamp at index B is >= timestamp at index B
-            // Advance index for GTS B
-            idxb++;
-          }
-        } else if (null == tsa && null != tsb) {
-          // Index A has reached the end of GTS A, GTS B still has values to scan
-          idxb++;
-        } else if (null == tsb && null != tsa) {
-          // Index B has reached the end of GTS B, GTS A still has values to scan
-          idxa++;
-        }
-        if (idxa < na) {
-          tsa = GTSHelper.tickAtIndex(gts1, idxa);
-        }
-        if (idxb < nb) {
-          tsb = GTSHelper.tickAtIndex(gts2, idxb);
-        }
+          };
+          break;
+        case LONG:
+          op = new GTSBinaryOp() {
+            @Override
+            public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+              return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).longValue() + ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).longValue();
+            }
+          };
+          break;
+        case DOUBLE:
+          op = new GTSBinaryOp() {
+            @Override
+            public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+              return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).doubleValue() + ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).doubleValue();
+            }
+          };
+          break;
+        default:
+          throw new WarpScriptException(getName() + " Invalid Geo Time Series™ type.");
       }
+
+      GTSOpsHelper.applyBinaryOp(result, gts1, gts2, op);
 
       stack.push(result);
     } else if (op1 instanceof GeoTimeSerie || op2 instanceof GeoTimeSerie) {
@@ -197,8 +149,10 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       
       int n = op1gts ? GTSHelper.nvalues((GeoTimeSerie) op1) : GTSHelper.nvalues((GeoTimeSerie) op2);
       
-      GeoTimeSerie result = op1gts ? ((GeoTimeSerie) op1).cloneEmpty(n) : ((GeoTimeSerie) op2).cloneEmpty();
+      GeoTimeSerie result = op1gts ? ((GeoTimeSerie) op1).cloneEmpty(n) : ((GeoTimeSerie) op2).cloneEmpty(n);
       GeoTimeSerie gts = op1gts ? (GeoTimeSerie) op1 : (GeoTimeSerie) op2;
+      
+      // Determine type of result
       
       Object op = op1gts ? op2 : op1;
       
