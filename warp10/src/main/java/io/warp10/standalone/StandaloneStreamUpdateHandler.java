@@ -94,6 +94,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
   private final long maxValueSize;
   
   private final String datalogId;
+  private final boolean logShardKey;
   private final byte[] datalogPSK;
   private final File loggingDir;
   
@@ -531,6 +532,12 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     
     this.parseAttributes = "true".equals(properties.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
     
+    if ("true".equals(properties.getProperty(Configuration.DATALOG_LOGSHARDKEY))) {
+      logShardKey = true;
+    } else {
+      logShardKey = false;
+    }
+
     if (properties.containsKey(Configuration.DATALOG_DIR)) {
       File dir = new File(properties.getProperty(Configuration.DATALOG_DIR));
       
