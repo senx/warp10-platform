@@ -642,15 +642,15 @@ public class DatalogForwarder extends Thread {
     }
     this.metaUrl = new URL(properties.getProperty(Configuration.DATALOG_FORWARDER_ENDPOINT_META + suffix));
 
-    if (properties.containsKey(Configuration.DATALOG_FORWARDER_SHARDS)) {
+    if (properties.containsKey(Configuration.DATALOG_FORWARDER_SHARDS + suffix)) {
       
-      this.shardkeyshift = Long.parseLong(properties.getProperty(Configuration.DATALOG_FORWARDER_SHARDKEY_SHIFT, "0"));
+      this.shardkeyshift = Long.parseLong(properties.getProperty(Configuration.DATALOG_FORWARDER_SHARDKEY_SHIFT + suffix, "0"));
       
       if (this.shardkeyshift >= 48 || this.shardkeyshift < 0) {
         throw new RuntimeException("Invalid shard key shifting.");
       }
       
-      String[] shards = properties.getProperty(Configuration.DATALOG_FORWARDER_SHARDS).split(",");
+      String[] shards = properties.getProperty(Configuration.DATALOG_FORWARDER_SHARDS + suffix).split(",");
       
       this.modulus = new long[shards.length];
       this.remainder = new long[shards.length];
