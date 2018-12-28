@@ -550,8 +550,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
               //nano6 += System.nanoTime() - nano0;
               this.directoryClient.register(metadata);
               //nano5 += System.nanoTime() - nano0;
+              
+              // Extract shardkey 128BITS
+              // Shard key is 48 bits, 24 upper from the class Id and 24 lower from the labels Id
+              shardkey =  (GTSHelper.classId(classKeyLongs, encoder.getMetadata().getName()) & 0xFFFFFF000000L) | (GTSHelper.labelsId(labelsKeyLongs, encoder.getMetadata().getLabels()) & 0xFFFFFFL);
             }
-
             
             if (null != lastencoder) {
               this.storeClient.store(lastencoder);
