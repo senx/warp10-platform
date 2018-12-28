@@ -1433,7 +1433,7 @@ public class Configuration {
   /**
    * Set to true or false to log the sharding key in the datalog request files
    */
-  public static final String DATALOG_SHARDKEY = "datalog.shardkey";
+  public static final String DATALOG_LOGSHARDKEY = "datalog.logshardkey";
 
   /**
    * Pre-shared AES key to wrap datalog.id and datalog.timestamp header values

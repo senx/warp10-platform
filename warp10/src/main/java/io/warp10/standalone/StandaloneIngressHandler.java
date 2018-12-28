@@ -107,6 +107,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
   
   private final String datalogId;
   
+  private final boolean logShardKey;
+  
   private final boolean logforwarded;
   
   private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
@@ -155,9 +157,15 @@ public class StandaloneIngressHandler extends AbstractHandler {
         datalogId = new String(OrderPreservingBase64.encode(id.getBytes(Charsets.UTF_8)), Charsets.US_ASCII);
       }
       
+      if ("true".equals(props.getProperty(Configuration.DATALOG_LOGSHARDKEY))) {
+        logShardKey = true;
+      } else {
+        logShardKey = false;
+      }
     } else {
       loggingDir = null;
       datalogId = null;
+      logShardKey = false;
     }
     
     if (props.containsKey(Configuration.DATALOG_PSK)) {
