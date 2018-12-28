@@ -278,6 +278,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
       File loggingFile = null;   
       PrintWriter loggingWriter = null;
 
+      long shardkey = 0L;
+      
       try {      
         if (null == producer || null == owner) {
           response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
@@ -588,6 +590,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
           //
           
           if (null != loggingWriter) {
+            if (this.logShardKey && '=' != line.charAt(0)) {
+              loggingWriter.print("#K");
+              loggingWriter.println(shardkey);
+            }                         
             loggingWriter.println(line);
           }
         } while (true); 
