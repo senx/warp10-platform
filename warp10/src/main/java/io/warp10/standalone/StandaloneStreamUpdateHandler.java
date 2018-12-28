@@ -43,6 +43,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.math.BigInteger;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -241,6 +243,14 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                   Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
 
                   loggingWriter.close();
+                  // Create hard links when multiple datalog forwarders are configured
+                  for (Path srcDir: Warp.getDatalogSrcDirs()) {
+                    try {
+                      Files.createLink(new File(srcDir.toFile(), loggingFile.getName() + DatalogForwarder.DATALOG_SUFFIX).toPath(), loggingFile.toPath());              
+                    } catch (Exception e) {
+                      throw new RuntimeException("Encountered an error while attempting to link " + loggingFile + " to " + srcDir);
+                    }
+                  }
                   loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
                   loggingFile = null;
                   loggingWriter = null;
@@ -442,6 +452,14 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
 
               loggingWriter.close();
+              // Create hard links when multiple datalog forwarders are configured
+              for (Path srcDir: Warp.getDatalogSrcDirs()) {
+                try {
+                  Files.createLink(new File(srcDir.toFile(), loggingFile.getName() + DatalogForwarder.DATALOG_SUFFIX).toPath(), loggingFile.toPath());              
+                } catch (Exception e) {
+                  throw new RuntimeException("Encountered an error while attempting to link " + loggingFile + " to " + srcDir);
+                }
+              }
               loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
               loggingFile = null;
               loggingWriter = null;

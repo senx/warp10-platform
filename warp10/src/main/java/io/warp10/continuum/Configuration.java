@@ -1451,6 +1451,12 @@ public class Configuration {
   public static final String HTTP_HEADER_DATALOG = "http.header.datalog";
   
   /**
+   * Comma separated list of forwarders. Configuration for each forwarder will be suffixed with
+   * '.name' except for datalog.psk which is common to all forwarders
+   */
+  public static final String DATALOG_FORWARDERS = "datalog.forwarders";
+  
+  /**
    * Comma separated list of ids which should be ignored by the forwarder. This is to prevent loops from
    * forming.
    */

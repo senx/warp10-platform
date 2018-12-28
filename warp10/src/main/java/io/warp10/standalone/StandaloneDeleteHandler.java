@@ -44,6 +44,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URLDecoder;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -575,6 +577,14 @@ public class StandaloneDeleteHandler extends AbstractHandler {
 
         loggingWriter.close();
         if (validated) {
+          // Create hard links when multiple datalog forwarders are configured
+          for (Path srcDir: Warp.getDatalogSrcDirs()) {
+            try {
+              Files.createLink(new File(srcDir.toFile(), loggingFile.getName() + DatalogForwarder.DATALOG_SUFFIX).toPath(), loggingFile.toPath());              
+            } catch (Exception e) {
+              throw new RuntimeException("Encountered an error while attempting to link " + loggingFile + " to " + srcDir);
+            }
+          }
           loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
         } else {
           loggingFile.delete();
