@@ -191,6 +191,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
           File loggingFile = null;   
           PrintWriter loggingWriter = null;
           DatalogRequest dr = null;
+
+          long shardkey = 0L;
           
           try {
             GTSEncoder lastencoder = null;
@@ -388,6 +390,10 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               }
               
               if (null != loggingWriter) {
+                if (this.handler.logShardKey && '=' != line.charAt(0)) {
+                  loggingWriter.print("#K");
+                  loggingWriter.println(shardkey);
+                }                         
                 loggingWriter.println(line);
               }
             } while (true); 
