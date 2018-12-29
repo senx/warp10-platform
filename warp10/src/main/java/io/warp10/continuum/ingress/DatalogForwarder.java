@@ -665,7 +665,7 @@ public class DatalogForwarder extends Thread {
         this.modulus[idx] = Long.parseLong(tokens[0]);
         this.remainder[idx] = Long.parseLong(tokens[1]);
           
-        if (this.modulus[idx] < 1 || this.remainder[idx] >= this.modulus[idx]) {
+        if (this.modulus[idx] < 1 || this.remainder[idx] >= this.modulus[idx] || this.remainder[idx] < 0) {
           throw new RuntimeException("Invalid shard specification " + shard);
         }
         
