@@ -365,6 +365,7 @@ public class WarpScriptLib {
   public static final String EVALSECURE = "EVALSECURE";
   public static final String SNAPSHOT = "SNAPSHOT";
   public static final String SNAPSHOTALL = "SNAPSHOTALL";
+  public static final String QSNAPSHOT = "QSNAPSHOT";
   public static final String LOAD = "LOAD";
   public static final String POPR = "POPR";
   public static final String CPOPR = "CPOPR";
@@ -373,6 +374,7 @@ public class WarpScriptLib {
   public static final String RUN = "RUN";
   public static final String BOOTSTRAP = "BOOTSTRAP";
   public static final String NOOP = "NOOP";
+  public static final String JSONTO = "JSON->";
   
   public static final String MAP_START = "{";
   public static final String MAP_END = "}";
@@ -473,7 +475,7 @@ public class WarpScriptLib {
     functions.put("UNMAP", new UNMAP("UNMAP"));
     functions.put("MAPID", new MAPID("MAPID"));
     functions.put("->JSON", new TOJSON("->JSON"));      
-    functions.put("JSON->", new JSONTO("JSON->"));
+    functions.put(JSONTO, new JSONTO(JSONTO));
     functions.put("->PICKLE", new TOPICKLE("->PICKLE"));
     functions.put("PICKLE->", new PICKLETO("PICKLE->"));
     functions.put("GET", new GET("GET"));
@@ -593,6 +595,7 @@ public class WarpScriptLib {
     functions.put("SNAPSHOTCOPYALLTOMARK", new SNAPSHOT("SNAPSHOTCOPYALLTOMARK", true, true, false, false));
     functions.put("SNAPSHOTN", new SNAPSHOT("SNAPSHOTN", false, false, true, true));
     functions.put("SNAPSHOTCOPYN", new SNAPSHOT("SNAPSHOTCOPYN", false, false, false, true));
+    functions.put(QSNAPSHOT, new SNAPSHOT(QSNAPSHOT, false, false, true, false, false));
     functions.put("HEADER", new HEADER("HEADER"));
     
     functions.put("ECHOON", new ECHOON("ECHOON"));
