@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,27 +16,17 @@
 
 package io.warp10.continuum.store;
 
-import io.warp10.continuum.KafkaOffsetCounters;
-import io.warp10.continuum.gts.GTSDecoder;
-import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
-import io.warp10.continuum.store.thrift.data.KafkaDataMessageType;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.KeyStore;
-import io.warp10.sensision.Sensision;
-
-import java.net.InetAddress;
-import java.util.UUID;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,13 +48,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 
-import kafka.consumer.Consumer;
-import kafka.consumer.ConsumerConfig;
-import kafka.consumer.ConsumerIterator;
-import kafka.consumer.KafkaStream;
-import kafka.javaapi.consumer.ConsumerConnector;
-import kafka.message.MessageAndMetadata;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
@@ -82,6 +65,10 @@ import org.apache.hadoop.hbase.coprocessor.example.generated.BulkDeleteProtos.Bu
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.slf4j.Logger;
@@ -90,6 +77,18 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
+
+import io.warp10.continuum.KafkaOffsetCounters;
+import io.warp10.continuum.gts.GTSDecoder;
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
+import io.warp10.continuum.store.thrift.data.KafkaDataMessageType;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.CryptoUtils;
+import io.warp10.crypto.KeyStore;
+import io.warp10.sensision.Sensision;
 
 /**
  * Class which implements pulling data from Kafka and storing it in
@@ -324,7 +323,7 @@ public class Store extends Thread {
       public void run() {
         
         ExecutorService executor = null;
-        ConsumerConnector connector = null;
+        KafkaConsumer<byte[], byte[]>[] kconsumers = null;
         
         StoreConsumer[] consumers = new StoreConsumer[nthreads];
         Table[] tables = new Table[nthreads];
@@ -346,15 +345,11 @@ public class Store extends Thread {
             // previous snapshot).
             //
             
-            Map<String,Integer> topicCountMap = new HashMap<String, Integer>();
-              
-            topicCountMap.put(topic, nthreads);
-                          
             Properties props = new Properties();
-            props.setProperty("zookeeper.connect", properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_ZKCONNECT));
-            props.setProperty("group.id", groupid);
+            props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_ZKCONNECT));
+            props.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupid);
             if (null != properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_CLIENTID)) {
-              props.setProperty("client.id", properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_CLIENTID));
+              props.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_CLIENTID));
             }
             if (null != properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMERID_PREFIX)) {
               // If a consumerId prefix is provided, the consumerId is built the same way than inside the Kafka ConsumerConnector with the prefix part prepended to the hostname
@@ -367,23 +362,23 @@ public class Store extends Thread {
               props.setProperty("consumer.id", consumerUuid);
             }
             if (null != properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY)) {
-              props.setProperty("partition.assignment.strategy", properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY));
+              props.setProperty(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY));
             }
-            props.setProperty("auto.commit.enable", "false");
+            props.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
             //
-            // This is VERY important, offset MUST be reset to 'smallest' so we get a chance to store as many datapoints
+            // This is VERY important, offset MUST be reset to 'earliest' so we get a chance to store as many datapoints
             // as we can when the lag gets beyond the history Kafka maintains.
             //
-            props.setProperty("auto.offset.reset", "smallest");
+            props.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+            props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
+            props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
+            props.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1");
             
             ConsumerConfig config = new ConsumerConfig(props);
-            connector = Consumer.createJavaConsumerConnector(config);
 
-            Map<String,List<KafkaStream<byte[], byte[]>>> consumerMap = connector.createMessageStreams(topicCountMap);
-            
-            List<KafkaStream<byte[], byte[]>> streams = consumerMap.get(topic);
-            
-            self.barrier = new CyclicBarrier(streams.size() + 1);
+            kconsumers = new KafkaConsumer[nthreads];
+                       
+            self.barrier = new CyclicBarrier(nthreads + 1);
             
             executor = Executors.newFixedThreadPool(nthreads);
     
@@ -415,7 +410,7 @@ public class Store extends Thread {
               LockSupport.parkNanos(100000L);
             }
 
-            for (final KafkaStream<byte[],byte[]> stream : streams) {
+            for (int i = 0; i < nthreads; i++) {
               if (null != consumers[idx] && consumers[idx].getHBaseReset()) {
                 try {
                   tables[idx].close();
@@ -431,7 +426,9 @@ public class Store extends Thread {
                   throw new RuntimeException(t);
                 }
               }
-              consumers[idx] = new StoreConsumer(tables[idx], self, stream, counters);
+              kconsumers[i] = new KafkaConsumer<byte[],byte[]>(props);
+              kconsumers[i].subscribe(Collections.singletonList(topic));
+              consumers[idx] = new StoreConsumer(tables[idx], self, kconsumers[i], counters);
               executor.submit(consumers[idx]);
               idx++;
             }      
@@ -440,7 +437,7 @@ public class Store extends Thread {
             
             while(!abort.get() && !Thread.currentThread().isInterrupted()) {
               try {
-                if (streams.size() == barrier.getNumberWaiting()) {
+                if (nthreads == barrier.getNumberWaiting()) {
                   //
                   // Check if we should abort, which could happen when
                   // an exception was thrown when flushing the commits just before
@@ -457,7 +454,10 @@ public class Store extends Thread {
                   //
                     
                   // Commit offsets
-                  connector.commitOffsets(true);
+                  
+                  for (KafkaConsumer kconsumer: kconsumers) {
+                    kconsumer.commitSync();
+                  }
                   counters.sensisionPublish();
                   Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_KAFKA_COMMITS, Sensision.EMPTY_LABELS, 1);
                   
@@ -505,14 +505,16 @@ public class Store extends Thread {
             // we will shut down the executor and shut down the connector to start over.
             //
         
-            if (null != connector) {
+            if (null != kconsumers) {
               if (LOG.isDebugEnabled()) {
-                LOG.debug("Closing Kafka connector.");
+                LOG.debug("Closing Kafka consumers.");
               }              
-              try {
-                connector.shutdown();
-              } catch (Exception e) {
-                LOG.error("Error while closing connector", e);
+              for (KafkaConsumer kconsumer: kconsumers) {
+                try {
+                  kconsumer.close();
+                } catch (Exception e) {
+                  LOG.error("Error while closing Kafka consumer", e);
+                }                
               }
             }
 
@@ -682,7 +684,7 @@ public class Store extends Thread {
     private boolean resetHBase = false;
     private boolean done = false;
     private final Store store;
-    private final KafkaStream<byte[],byte[]> stream;
+    private final KafkaConsumer<byte[],byte[]> consumer;
     private final byte[] hbaseAESKey;
     private Table table = null;
     private final AtomicLong lastPut = new AtomicLong(0L);
@@ -708,9 +710,9 @@ public class Store extends Thread {
     final AtomicBoolean inflightMessage = new AtomicBoolean(false);
     final AtomicBoolean needToSync = new AtomicBoolean(false);
 
-    public StoreConsumer(Table table, Store store, KafkaStream<byte[], byte[]> stream, KafkaOffsetCounters counters) {
+    public StoreConsumer(Table table, Store store, KafkaConsumer<byte[], byte[]> consumer, KafkaOffsetCounters counters) {
       this.store = store;
-      this.stream = stream;
+      this.consumer = consumer;
       this.puts = new ArrayList<Put>();
       this.counters = counters;
       this.table = table;
@@ -745,8 +747,6 @@ public class Store extends Thread {
       long count = 0L;
             
       try {
-        ConsumerIterator<byte[],byte[]> iter = this.stream.iterator();
-
         byte[] siphashKey = store.keystore.getKey(KeyStore.SIPHASH_KAFKA_DATA);
         byte[] aesKey = store.keystore.getKey(KeyStore.AES_KAFKA_DATA);
         
@@ -1031,21 +1031,15 @@ public class Store extends Thread {
         // of resetting inflightMessage, this makes the code cleaner as we don't have to add calls to inflightMessage.set(false)
         // throughout the code
         
-        while (resetInflight() && iter.hasNext() && !Thread.currentThread().isInterrupted()) {
+        Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
+        
+        while (resetInflight() && !store.abort.get() && !Thread.currentThread().isInterrupted()) {
           
           // Clear the 'inflight' status
           inflightMessage.set(false);
           
-          //
-          // Since the call to 'next' may block, we need to first
-          // check that there is a message available, otherwise we
-          // will miss the synchronization point with the other
-          // threads.
-          //
-          
-          boolean nonEmpty = iter.nonEmpty();
-          
-          if (nonEmpty) {
+          ConsumerRecords<byte[], byte[]> consumerRecords = consumer.poll(delay);
+          for (ConsumerRecord<byte[], byte[]> record : consumerRecords) {
             
             //
             // If throttling is defined, check if we should consume this message
@@ -1087,10 +1081,9 @@ public class Store extends Thread {
             //
             
             count++;
-            MessageAndMetadata<byte[], byte[]> msg = iter.next();
-            self.counters.count(msg.partition(), msg.offset());
+            self.counters.count(record.partition(), record.offset());
             
-            byte[] data = msg.message();
+            byte[] data = record.value();
 
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_KAFKA_COUNT, Sensision.EMPTY_LABELS, 1);
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_KAFKA_BYTES, Sensision.EMPTY_LABELS, data.length);
@@ -1137,12 +1130,7 @@ public class Store extends Thread {
                 break;
               default:
                 throw new RuntimeException("Invalid message type.");
-            }
-            
-
-          } else {
-            // Sleep a tiny while
-            LockSupport.parkNanos(10000L);
+            }            
           }          
         }        
       } catch (Throwable t) {

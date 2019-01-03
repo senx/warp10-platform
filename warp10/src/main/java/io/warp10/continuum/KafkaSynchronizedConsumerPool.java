@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,10 +16,8 @@
 
 package io.warp10.continuum;
 
-import io.warp10.continuum.store.Directory;
-
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CyclicBarrier;
@@ -28,13 +26,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import kafka.consumer.Consumer;
-import kafka.consumer.ConsumerConfig;
-import kafka.consumer.KafkaStream;
-import kafka.javaapi.consumer.ConsumerConnector;
 
 /**
  * Generic class handling Kafka topic consumption and handling
@@ -66,7 +61,7 @@ public class KafkaSynchronizedConsumerPool {
   private final AtomicBoolean stopped = new AtomicBoolean(false);
   
   public static interface ConsumerFactory {
-    public Runnable getConsumer(KafkaSynchronizedConsumerPool pool, KafkaStream<byte[], byte[]> stream);
+    public Runnable getConsumer(KafkaSynchronizedConsumerPool pool, KafkaConsumer<byte[], byte[]> stream);
   }
 
   public static interface Hook {
@@ -157,9 +152,11 @@ public class KafkaSynchronizedConsumerPool {
     public void run() {
         
       ExecutorService executor = null;
-      ConsumerConnector connector = null;
         
       while(!pool.shutdown.get()) {
+        
+        KafkaConsumer[] consumers = null;
+        
         try {
           //
           // Enter an endless loop which will spawn 'nthreads' threads
@@ -173,30 +170,26 @@ public class KafkaSynchronizedConsumerPool {
           topicCountMap.put(topic, nthreads);
               
           Properties props = new Properties();
-          props.setProperty("zookeeper.connect", this.zkconnect);
-          props.setProperty("group.id",this.groupid);
+          props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, this.zkconnect);
+          props.setProperty(ConsumerConfig.GROUP_ID_CONFIG,this.groupid);
           if (null != this.clientid) {
-            props.setProperty("client.id", this.clientid);
+            props.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, this.clientid);
           }
           if (null != this.strategy) {
-            props.setProperty("partition.assignment.strategy", this.strategy);
+            props.setProperty(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, this.strategy);
           }
-          props.setProperty("auto.commit.enable", "false");
+          props.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
           
           if (null != this.autoOffsetReset) {
-            props.setProperty("auto.offset.reset", this.autoOffsetReset);
+            props.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, this.autoOffsetReset);
           }
-          
-          ConsumerConfig config = new ConsumerConfig(props);
-          connector = Consumer.createJavaConsumerConnector(config);
 
-          Map<String,List<KafkaStream<byte[], byte[]>>> consumerMap = connector.createMessageStreams(topicCountMap);
+          // Only retrieve a single message per call to poll
+          props.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1");
           
           // Reset counters so we only export metrics for partitions we really consume
           pool.getCounters().reset();
           
-          List<KafkaStream<byte[], byte[]>> streams = consumerMap.get(topic);
-            
           // 1 for the Synchronizer, 1 for the Spawner
           
           pool.setBarrier(new CyclicBarrier(1 + 1));
@@ -207,9 +200,13 @@ public class KafkaSynchronizedConsumerPool {
           // now create runnables which will consume messages
           //
             
-          for (final KafkaStream<byte[],byte[]> stream : streams) {
-            executor.submit(factory.getConsumer(pool,stream));
-          }      
+          consumers = new KafkaConsumer[nthreads];
+
+          for (int i = 0; i < nthreads; i++) {
+            consumers[i] = new KafkaConsumer<>(props);
+            consumers[i].subscribe(Collections.singletonList(topic));
+            executor.submit(factory.getConsumer(pool,consumers[i]));
+          }
                 
           pool.getInitialized().set(true);
           
@@ -237,7 +234,10 @@ public class KafkaSynchronizedConsumerPool {
                 }
                 
                 // Commit offsets
-                connector.commitOffsets();
+                for (KafkaConsumer consumer: consumers) {
+                  consumer.commitSync();
+                }
+                
                 pool.getCounters().commit();
                 pool.getCounters().sensisionPublish();
                 
@@ -274,11 +274,12 @@ public class KafkaSynchronizedConsumerPool {
             } catch (Exception e) {                
             }
           }
-          if (null != connector) {
-            try {
-              connector.shutdown();
-            } catch (Exception e) {
-                
+          if (null != consumers) {
+            for (KafkaConsumer consumer: consumers) {
+              try {
+                consumer.close();
+              } catch (Exception e) {
+              }              
             }
           }
             

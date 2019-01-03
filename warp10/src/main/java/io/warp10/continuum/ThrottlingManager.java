@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,18 +15,6 @@
 //
 
 package io.warp10.continuum;
-
-import io.warp10.WarpConfig;
-import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.ingress.IngressMetadataConsumerFactory;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.continuum.thrift.data.HyperLogLogPlusParameters;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.script.HyperLogLogPlus;
-import io.warp10.sensision.Sensision;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -49,19 +37,27 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import kafka.javaapi.producer.Producer;
-import kafka.producer.KeyedMessage;
-import kafka.producer.ProducerConfig;
-
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
 import com.google.common.util.concurrent.RateLimiter;
+
+import io.warp10.WarpConfig;
+import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.CryptoUtils;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.script.HyperLogLogPlus;
+import io.warp10.sensision.Sensision;
 
 /**
  * This class manages the throttling of data ingestion.
@@ -200,7 +196,7 @@ public class ThrottlingManager {
   
   private static boolean enabled = false;
   
-  private static Producer<byte[],byte[]> throttlingProducer = null;
+  private static KafkaProducer<byte[],byte[]> throttlingProducer = null;
   private static String throttlingTopic = null;
   private static byte[] throttlingMAC = null;
   
@@ -631,21 +627,21 @@ public class ThrottlingManager {
     if (properties.containsKey(Configuration.INGRESS_KAFKA_THROTTLING_BROKERLIST)) {
       Properties dataProps = new Properties();
       // @see http://kafka.apache.org/documentation.html#producerconfigs
-      dataProps.setProperty("metadata.broker.list", properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_BROKERLIST));
+      dataProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_BROKERLIST));
       if (null != properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID)) {
-        dataProps.setProperty("client.id", properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID));
+        dataProps.setProperty(ProducerConfig.CLIENT_ID_CONFIG, properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID));
       }
-      dataProps.setProperty("request.required.acks", "-1");
-      dataProps.setProperty("producer.type","sync");
-      dataProps.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");
+      dataProps.setProperty(ProducerConfig.ACKS_CONFIG, "-1");
+      dataProps.setProperty(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION,"1");
       
       if (null != properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_REQUEST_TIMEOUT_MS)) {
-        dataProps.setProperty("request.timeout.ms", properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_REQUEST_TIMEOUT_MS));
+        dataProps.setProperty(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_REQUEST_TIMEOUT_MS));
       }
 
-      ProducerConfig dataConfig = new ProducerConfig(dataProps);
+      dataProps.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
+      dataProps.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
       
-      throttlingProducer = new Producer<byte[],byte[]>(dataConfig);
+      throttlingProducer = new KafkaProducer<byte[],byte[]>(dataProps);
       throttlingTopic = properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_TOPIC);
     }
     
@@ -670,7 +666,7 @@ public class ThrottlingManager {
           properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_CLIENTID),
           properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_GROUPID),
           null,
-          properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_AUTO_OFFSET_RESET, "largest"),
+          properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_AUTO_OFFSET_RESET, "latest"),
           1,
           commitOffset,
           estimatorConsumerFactory);      
@@ -1014,9 +1010,10 @@ public class ThrottlingManager {
           bytes = CryptoUtils.addMAC(throttlingMAC, bytes);
         }
 
-        KeyedMessage<byte[], byte[]> message = new KeyedMessage<byte[], byte[]>(throttlingTopic, bytes);
+        ProducerRecord<byte[],byte[]> record = new ProducerRecord<byte[],byte[]>(throttlingTopic, bytes);
         
-        throttlingProducer.send(message);
+        // Call get immediately so we simulate a synchronous producer
+        throttlingProducer.send(record).get();
         Sensision.update(SensisionConstants.CLASS_WARP_INGRESS_KAFKA_THROTTLING_OUT_MESSAGES, Sensision.EMPTY_LABELS, 1);
         Sensision.update(SensisionConstants.CLASS_WARP_INGRESS_KAFKA_THROTTLING_OUT_BYTES, Sensision.EMPTY_LABELS, bytes.length);
       } catch (Exception e) {

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,11 +22,11 @@ import io.warp10.crypto.KeyStore;
 import io.warp10.script.thrift.data.WebCallRequest;
 
 import java.util.Properties;
+import java.util.concurrent.Future;
 
-import kafka.javaapi.producer.Producer;
-import kafka.producer.KeyedMessage;
-import kafka.producer.ProducerConfig;
-
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 
@@ -36,7 +36,7 @@ public class KafkaWebCallService {
   
   private static boolean initialized = false;
   
-  private static Producer<byte[],byte[]> producer;
+  private static KafkaProducer<byte[],byte[]> producer;
   
   private static String topic;
   
@@ -74,10 +74,9 @@ public class KafkaWebCallService {
         value = CryptoUtils.addMAC(siphashKey, value);
       }
 
-      KeyedMessage<byte[], byte[]> message = new KeyedMessage<byte[], byte[]>(topic, value);
-      
-      producer.send(message);
-      
+      ProducerRecord record = new ProducerRecord(topic, value);
+      // We call get() so we have a synchronous producer behaviour
+      producer.send(record).get();
       return true;
     } catch (Exception e) {
       return false;
@@ -121,19 +120,19 @@ public class KafkaWebCallService {
 
     Properties properties = new Properties();
     // @see http://kafka.apache.org/documentation.html#producerconfigs
-    properties.setProperty("metadata.broker.list", props.getProperty(Configuration.WEBCALL_KAFKA_BROKERLIST));
+    properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(Configuration.WEBCALL_KAFKA_BROKERLIST));
     
     if (null != props.getProperty(Configuration.WEBCALL_KAFKA_PRODUCER_CLIENTID)) {
-      properties.setProperty("client.id", props.getProperty(Configuration.WEBCALL_KAFKA_PRODUCER_CLIENTID));
+      properties.setProperty(ProducerConfig.CLIENT_ID_CONFIG, props.getProperty(Configuration.WEBCALL_KAFKA_PRODUCER_CLIENTID));
     }
     
-    properties.setProperty("request.required.acks", "-1");
-    properties.setProperty("producer.type","sync");
-    properties.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");
-    properties.setProperty("partitioner.class", io.warp10.continuum.KafkaPartitioner.class.getName());
+    properties.setProperty(ProducerConfig.ACKS_CONFIG, "-1");
+    properties.setProperty(ProducerConfig.PARTITIONER_CLASS_CONFIG, io.warp10.continuum.KafkaPartitioner.class.getName());
+    properties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
+    properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
+    properties.setProperty(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1");
     
-    ProducerConfig config = new ProducerConfig(properties);
-    producer = new Producer<byte[], byte[]>(config);
+    producer = new KafkaProducer<byte[], byte[]>(properties);
 
     topic = props.getProperty(Configuration.WEBCALL_KAFKA_TOPIC);
     

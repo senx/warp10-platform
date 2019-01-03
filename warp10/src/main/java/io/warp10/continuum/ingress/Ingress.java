@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -45,6 +45,7 @@ import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -57,13 +58,12 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import kafka.javaapi.producer.Producer;
-import kafka.producer.KeyedMessage;
-import kafka.producer.ProducerConfig;
-
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.util.ShutdownHookManager;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -118,11 +118,6 @@ import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
-import kafka.javaapi.producer.Producer;
-import kafka.producer.KeyedMessage;
-import kafka.producer.ProducerConfig;
-
-// FIXME(hbs): handle archive
 
 /**
  * This is the class which ingests metrics.
@@ -172,9 +167,9 @@ public class Ingress extends AbstractHandler implements Runnable {
   /**
    * List of pending Kafka messages containing metadata (one per Thread)
    */
-  private final ThreadLocal<List<KeyedMessage<byte[], byte[]>>> metadataMessages = new ThreadLocal<List<KeyedMessage<byte[], byte[]>>>() {
-    protected java.util.List<kafka.producer.KeyedMessage<byte[],byte[]>> initialValue() {
-      return new ArrayList<KeyedMessage<byte[], byte[]>>();
+  private final ThreadLocal<List<ProducerRecord<byte[], byte[]>>> metadataMessages = new ThreadLocal<List<ProducerRecord<byte[], byte[]>>>() {
+    protected java.util.List<ProducerRecord<byte[],byte[]>> initialValue() {
+      return new ArrayList<ProducerRecord<byte[], byte[]>>();
     };
   };
   
@@ -195,9 +190,9 @@ public class Ingress extends AbstractHandler implements Runnable {
   /**
    * List of pending Kafka messages containing data
    */
-  private final ThreadLocal<List<KeyedMessage<byte[], byte[]>>> dataMessages = new ThreadLocal<List<KeyedMessage<byte[], byte[]>>>() {
-    protected java.util.List<kafka.producer.KeyedMessage<byte[],byte[]>> initialValue() {
-      return new ArrayList<KeyedMessage<byte[], byte[]>>();
+  private final ThreadLocal<List<ProducerRecord<byte[], byte[]>>> dataMessages = new ThreadLocal<List<ProducerRecord<byte[], byte[]>>>() {
+    protected java.util.List<ProducerRecord<byte[],byte[]>> initialValue() {
+      return new ArrayList<ProducerRecord<byte[], byte[]>>();
     };
   };
   
@@ -225,7 +220,7 @@ public class Ingress extends AbstractHandler implements Runnable {
   /**
    * Pool of producers for the 'data' topic
    */
-  private final Producer<byte[], byte[]>[] dataProducers;
+  private final KafkaProducer<byte[], byte[]>[] dataProducers;
   
   private int dataProducersCurrentPoolSize = 0;
   
@@ -359,16 +354,15 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     Properties metaProps = new Properties();
     // @see http://kafka.apache.org/documentation.html#producerconfigs
-    metaProps.setProperty("metadata.broker.list", props.getProperty(Configuration.INGRESS_KAFKA_META_BROKERLIST));
+    metaProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(Configuration.INGRESS_KAFKA_META_BROKERLIST));
     if (null != props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CLIENTID)) {
-      metaProps.setProperty("client.id", props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CLIENTID));
+      metaProps.setProperty(ProducerConfig.CLIENT_ID_CONFIG, props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CLIENTID));
     }
-    metaProps.setProperty("request.required.acks", "-1");
-    // TODO(hbs): when we move to the new KafkaProducer API
-    //metaProps.setProperty(org.apache.kafka.clients.producer.ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1");
-    metaProps.setProperty("producer.type","sync");
-    metaProps.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");
-    metaProps.setProperty("partitioner.class", io.warp10.continuum.KafkaPartitioner.class.getName());
+    metaProps.setProperty(ProducerConfig.ACKS_CONFIG, "-1");
+    metaProps.setProperty(org.apache.kafka.clients.producer.ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1");
+    metaProps.setProperty(ProducerConfig.PARTITIONER_CLASS_CONFIG, io.warp10.continuum.KafkaPartitioner.class.getName());
+    metaProps.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,"org.apache.kafka.common.serialization.ByteArraySerializer");
+    metaProps.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,"org.apache.kafka.common.serialization.ByteArraySerializer");
     //??? metaProps.setProperty("block.on.buffer.full", "true");
     
     // FIXME(hbs): compression does not work
@@ -384,21 +378,20 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     Properties dataProps = new Properties();
     // @see http://kafka.apache.org/documentation.html#producerconfigs
-    dataProps.setProperty("metadata.broker.list", props.getProperty(Configuration.INGRESS_KAFKA_DATA_BROKERLIST));
+    dataProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(Configuration.INGRESS_KAFKA_DATA_BROKERLIST));
     if (null != props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_CLIENTID)) {
-      dataProps.setProperty("client.id", props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_CLIENTID));
+      dataProps.setProperty(ProducerConfig.CLIENT_ID_CONFIG, props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_CLIENTID));
     }
-    dataProps.setProperty("request.required.acks", "-1");
-    dataProps.setProperty("producer.type","sync");
-    dataProps.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");
-    dataProps.setProperty("partitioner.class", io.warp10.continuum.KafkaPartitioner.class.getName());
-    // TODO(hbs): when we move to the new KafkaProducer API
-    //dataProps.setProperty(org.apache.kafka.clients.producer.ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1");
+    dataProps.setProperty(ProducerConfig.ACKS_CONFIG, "-1");
+    dataProps.setProperty(ProducerConfig.PARTITIONER_CLASS_CONFIG, io.warp10.continuum.KafkaPartitioner.class.getName());
+    dataProps.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,"org.apache.kafka.common.serialization.ByteArraySerializer");
+    dataProps.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,"org.apache.kafka.common.serialization.ByteArraySerializer");
+    dataProps.setProperty(org.apache.kafka.clients.producer.ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1");
     
     if (null != props.getProperty(Configuration.INGRESS_KAFKA_DATA_REQUEST_TIMEOUT_MS)) {
-      dataProps.setProperty("request.timeout.ms", props.getProperty(Configuration.INGRESS_KAFKA_DATA_REQUEST_TIMEOUT_MS));
+      dataProps.setProperty(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, props.getProperty(Configuration.INGRESS_KAFKA_DATA_REQUEST_TIMEOUT_MS));
     }
-    
+
     ///???? dataProps.setProperty("block.on.buffer.full", "true");
     
     // FIXME(hbs): compression does not work
@@ -407,16 +400,14 @@ public class Ingress extends AbstractHandler implements Runnable {
 
     ProducerConfig dataConfig = new ProducerConfig(dataProps);
 
-    //this.dataProducer = new Producer<byte[], byte[]>(dataConfig);
-
     //
     // Allocate producer pool
     //
     
-    this.dataProducers = new Producer[Integer.parseInt(props.getProperty(Configuration.INGRESS_KAFKA_DATA_POOLSIZE))];
+    this.dataProducers = new KafkaProducer[Integer.parseInt(props.getProperty(Configuration.INGRESS_KAFKA_DATA_POOLSIZE))];
     
     for (int i = 0; i < dataProducers.length; i++) {
-      this.dataProducers[i] = new Producer<byte[], byte[]>(dataConfig);
+      this.dataProducers[i] = new KafkaProducer<byte[], byte[]>(dataConfig.originals());
     }
     
     this.dataProducersCurrentPoolSize = this.dataProducers.length;
@@ -1683,7 +1674,7 @@ public class Ingress extends AbstractHandler implements Runnable {
   private void pushMetadataMessage(byte[] key, byte[] value) throws IOException {
     
     AtomicLong mms = this.metadataMessagesSize.get();
-    List<KeyedMessage<byte[], byte[]>> msglist = this.metadataMessages.get();
+    List<ProducerRecord<byte[], byte[]>> msglist = this.metadataMessages.get();
     
     if (null != key && null != value) {
       
@@ -1711,7 +1702,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         value = CryptoUtils.addMAC(this.SIPHASH_KAFKA_META, value);
       }
       
-      KeyedMessage<byte[], byte[]> message = new KeyedMessage<byte[], byte[]>(this.metaTopic, Arrays.copyOf(key, key.length), value);
+      ProducerRecord<byte[], byte[]> message = new ProducerRecord<byte[], byte[]>(this.metaTopic, Arrays.copyOf(key, key.length), value);
       msglist.add(message);
       mms.addAndGet(key.length + value.length);
       
@@ -1719,7 +1710,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     }
     
     if (msglist.size() > 0 && (null == key || null == value || mms.get() > METADATA_MESSAGES_THRESHOLD)) {
-      Producer<byte[],byte[]> producer = this.metaProducerPool.getProducer();
+      KafkaProducer<byte[],byte[]> producer = this.metaProducerPool.getProducer();
       try {
 
         //
@@ -1728,7 +1719,22 @@ public class Ingress extends AbstractHandler implements Runnable {
 
         long nano = System.nanoTime();
 
-        producer.send(msglist);
+        Future[] futures = new Future[msglist.size()];
+        
+        int idx = 0;
+        
+        for (ProducerRecord record: msglist) {
+          futures[idx++] = producer.send(record);
+        }
+
+        // Flush the producer.
+        producer.flush();
+        
+        // Call get for each future, this will throw an exception if one of the messages was
+        // not properly sent
+        for (Future future: futures) {
+          future.get();
+        }
 
         nano = System.nanoTime() - nano;
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_KAFKA_METADATA_PRODUCER_SEND, Sensision.EMPTY_LABELS, nano);
@@ -1739,13 +1745,17 @@ public class Ingress extends AbstractHandler implements Runnable {
         // pushed later
         //
 
-        for (KeyedMessage<byte[],byte[]> msg: msglist) {
+        for (ProducerRecord<byte[],byte[]> msg: msglist) {
           synchronized(this.metadataCache) {
             this.metadataCache.remove(new BigInteger(msg.key()));
           }          
         }
 
-        throw t;
+        if (t instanceof IOException) {
+          throw (IOException) t;
+        } else {
+          throw new IOException(t);
+        }
       } finally {
         this.metaProducerPool.recycleProducer(producer);
       }
@@ -1780,7 +1790,7 @@ public class Ingress extends AbstractHandler implements Runnable {
 
   private void sendDataMessage(KafkaDataMessage msg) throws IOException {    
     AtomicLong dms = this.dataMessagesSize.get();
-    List<KeyedMessage<byte[], byte[]>> msglist = this.dataMessages.get();
+    List<ProducerRecord<byte[], byte[]>> msglist = this.dataMessages.get();
     
     if (null != msg) {
       //
@@ -1822,7 +1832,7 @@ public class Ingress extends AbstractHandler implements Runnable {
       }
         
       //KeyedMessage<byte[], byte[]> message = new KeyedMessage<byte[], byte[]>(this.dataTopic, bb.array(), msgbytes);
-      KeyedMessage<byte[], byte[]> message = new KeyedMessage<byte[], byte[]>(this.dataTopic, bytes, msgbytes);
+      ProducerRecord<byte[], byte[]> message = new ProducerRecord<byte[], byte[]>(this.dataTopic, bytes, msgbytes);
       msglist.add(message);
       //this.dataMessagesSize.get().addAndGet(bb.array().length + msgbytes.length);      
       dms.addAndGet(bytes.length + msgbytes.length);      
@@ -1831,7 +1841,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     }
 
     if (msglist.size() > 0 && (null == msg || dms.get() > DATA_MESSAGES_THRESHOLD)) {
-      Producer<byte[],byte[]> producer = getDataProducer();
+      KafkaProducer<byte[],byte[]> producer = getDataProducer();
       //this.dataProducer.send(msglist);
       try {
 
@@ -1841,13 +1851,31 @@ public class Ingress extends AbstractHandler implements Runnable {
 
         long nano = System.nanoTime();
 
-        producer.send(msglist);
+        Future[] futures = new Future[msglist.size()];
+        
+        int idx = 0;
+        
+        for (ProducerRecord record: msglist) {
+          futures[idx++] = producer.send(record);
+        }
+
+        // Flush the producer.
+        producer.flush();
+        
+        // Call get for each future, this will throw an exception if one of the messages was
+        // not properly sent
+        for (Future future: futures) {
+          future.get();
+        }
 
         nano = System.nanoTime() - nano;
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_KAFKA_DATA_PRODUCER_SEND, Sensision.EMPTY_LABELS, nano);
-
       } catch (Throwable t) {
-        throw t;
+        if (t instanceof IOException) {
+          throw (IOException) t;
+        } else {
+          throw new IOException(t);
+        }
       } finally {
         recycleDataProducer(producer);
       }
@@ -1857,7 +1885,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     }        
   }
   
-  private Producer<byte[],byte[]> getDataProducer() {
+  private KafkaProducer<byte[],byte[]> getDataProducer() {
     
     //
     // We will count how long we wait for a producer
@@ -1874,7 +1902,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           // hand out the producer at index 0
           //
           
-          Producer<byte[],byte[]> producer = this.dataProducers[0];
+          KafkaProducer<byte[],byte[]> producer = this.dataProducers[0];
           
           //
           // Decrement current pool size
@@ -1904,7 +1932,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     }    
   }
   
-  private void recycleDataProducer(Producer<byte[],byte[]> producer) {
+  private void recycleDataProducer(KafkaProducer<byte[],byte[]> producer) {
     
     if (this.dataProducersCurrentPoolSize == this.dataProducers.length) {
       throw new RuntimeException("Invalid call to recycleProducer, pool already full!");

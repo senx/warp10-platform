@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,27 @@
 
 package io.warp10.script;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.zip.GZIPInputStream;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.protocol.TCompactProtocol;
+
+import com.google.common.base.Charsets;
+
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.KafkaOffsetCounters;
 import io.warp10.continuum.KafkaSynchronizedConsumerPool;
@@ -25,26 +46,6 @@ import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.thrift.data.RunRequest;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.sensision.Sensision;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.zip.GZIPInputStream;
-
-import kafka.consumer.ConsumerIterator;
-import kafka.consumer.KafkaStream;
-import kafka.message.MessageAndMetadata;
-
-import org.apache.thrift.TDeserializer;
-import org.apache.thrift.protocol.TCompactProtocol;
-
-import com.google.common.base.Charsets;
 
 public class ScriptRunnerConsumerFactory implements ConsumerFactory {
   
@@ -56,32 +57,25 @@ public class ScriptRunnerConsumerFactory implements ConsumerFactory {
   }
   
   @Override
-  public Runnable getConsumer(final KafkaSynchronizedConsumerPool pool, final KafkaStream<byte[], byte[]> stream) {
+  public Runnable getConsumer(final KafkaSynchronizedConsumerPool pool, final KafkaConsumer<byte[], byte[]> consumer) {
     
     return new Runnable() {          
       @Override
       public void run() {
-        ConsumerIterator<byte[],byte[]> iter = stream.iterator();
-
         // Iterate on the messages
         TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
 
         KafkaOffsetCounters counters = pool.getCounters();
         
         try {
-          while (iter.hasNext()) {
-            //
-            // Since the call to 'next' may block, we need to first
-            // check that there is a message available
-            //
+          Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
+          while (!pool.getAbort().get()) {
+            ConsumerRecords<byte[], byte[]> records = consumer.poll(delay);
             
-            boolean nonEmpty = iter.nonEmpty();
-            
-            if (nonEmpty) {
-              MessageAndMetadata<byte[], byte[]> msg = iter.next();
-              counters.count(msg.partition(), msg.offset());
+            for (ConsumerRecord<byte[], byte[]> record : records) {
+              counters.count(record.partition(), record.offset());
               
-              byte[] data = msg.message();
+              byte[] data = record.value();
 
               Sensision.update(SensisionConstants.SENSISION_CLASS_WARP_RUNNER_KAFKA_IN_MESSAGES, Sensision.EMPTY_LABELS, 1);
               Sensision.update(SensisionConstants.SENSISION_CLASS_WARP_RUNNER_KAFKA_IN_BYTES, Sensision.EMPTY_LABELS, data.length);

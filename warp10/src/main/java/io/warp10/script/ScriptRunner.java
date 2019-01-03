@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -48,6 +48,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -74,9 +77,6 @@ import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.sensision.Sensision;
-import kafka.javaapi.producer.Producer;
-import kafka.producer.KeyedMessage;
-import kafka.producer.ProducerConfig;
 
 /**
  * Periodically submit WarpScript scripts residing in subdirectories of the given root.
@@ -300,13 +300,15 @@ public class ScriptRunner extends Thread {
 
       Properties props = new Properties();
       // @see http://kafka.apache.org/documentation.html#producerconfigs
-      props.setProperty("metadata.broker.list", props.getProperty(Configuration.RUNNER_KAFKA_BROKERLIST));
+      props.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(Configuration.RUNNER_KAFKA_BROKERLIST));
       if (null != props.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CLIENTID)) {
-        props.setProperty("client.id", props.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CLIENTID));
+        props.setProperty(ProducerConfig.CLIENT_ID_CONFIG, props.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CLIENTID));
       }
-      props.setProperty("request.required.acks", "-1");
-      props.setProperty("producer.type", "sync");
-      props.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");
+      props.setProperty(ProducerConfig.ACKS_CONFIG, "-1");
+      props.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
+      props.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
+      // Only a single in flight request to remove risk of message reordering during retries
+      props.setProperty(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1");
 
       ProducerConfig kafkaConfig = new ProducerConfig(props);
 
@@ -660,16 +662,17 @@ public class ScriptRunner extends Thread {
       content = CryptoUtils.addMAC(this.KAFKA_MAC, content);
     }
 
-    Producer<byte[], byte[]> producer = null;
+    KafkaProducer<byte[], byte[]> producer = null;
 
     // Use the script path as the scheduling key so the same script ends up in the same partition
     byte[] key = path.getBytes(Charsets.UTF_8);
-    KeyedMessage<byte[], byte[]> message = new KeyedMessage<byte[], byte[]>(this.topic, key, content);
+    ProducerRecord<byte[],byte[]> record = new ProducerRecord<byte[],byte[]>(this.topic, key, content);
 
     try {
       producer = this.kafkaProducerPool.getProducer();
 
-      producer.send(message);
+      // Call get() so we simulate a synchronous producer
+      producer.send(record).get();
     } catch (Exception e) {
       // Reschedule immediately
       nextrun.put(script, System.currentTimeMillis());

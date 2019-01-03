@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,35 +16,6 @@
 
 package io.warp10.continuum.store;
 
-import io.warp10.SmartPattern;
-import io.warp10.continuum.DirectoryUtil;
-import io.warp10.continuum.JettyUtil;
-import io.warp10.continuum.KafkaOffsetCounters;
-import io.warp10.continuum.LogUtil;
-import io.warp10.continuum.MetadataUtils;
-import io.warp10.continuum.MetadataUtils.MetadataID;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.thrift.data.DirectoryFindRequest;
-import io.warp10.continuum.store.thrift.data.DirectoryFindResponse;
-import io.warp10.continuum.store.thrift.data.DirectoryGetRequest;
-import io.warp10.continuum.store.thrift.data.DirectoryGetResponse;
-import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
-import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.continuum.store.thrift.service.DirectoryService;
-import io.warp10.continuum.thrift.data.LoggingEvent;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.KeyStore;
-import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.crypto.SipHashInline;
-import io.warp10.script.HyperLogLogPlus;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.functions.PARSESELECTOR;
-import io.warp10.sensision.Sensision;
-import io.warp10.warp.sdk.DirectoryPlugin;
-import io.warp10.warp.sdk.DirectoryPlugin.GTS;
-
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -53,9 +24,12 @@ import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -84,15 +58,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import kafka.consumer.Consumer;
-import kafka.consumer.ConsumerConfig;
-import kafka.consumer.ConsumerIterator;
-import kafka.consumer.KafkaStream;
-import kafka.javaapi.consumer.ConsumerConnector;
-import kafka.message.MessageAndMetadata;
-
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
@@ -103,6 +69,10 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -132,7 +102,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.MapMaker;
-import com.google.common.primitives.Longs;
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.retry.RetryNTimes;
@@ -141,6 +110,35 @@ import com.netflix.curator.x.discovery.ServiceDiscoveryBuilder;
 import com.netflix.curator.x.discovery.ServiceInstance;
 import com.netflix.curator.x.discovery.ServiceInstanceBuilder;
 import com.netflix.curator.x.discovery.ServiceType;
+
+import io.warp10.SmartPattern;
+import io.warp10.continuum.DirectoryUtil;
+import io.warp10.continuum.JettyUtil;
+import io.warp10.continuum.KafkaOffsetCounters;
+import io.warp10.continuum.LogUtil;
+import io.warp10.continuum.MetadataUtils;
+import io.warp10.continuum.MetadataUtils.MetadataID;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.thrift.data.DirectoryFindRequest;
+import io.warp10.continuum.store.thrift.data.DirectoryFindResponse;
+import io.warp10.continuum.store.thrift.data.DirectoryGetRequest;
+import io.warp10.continuum.store.thrift.data.DirectoryGetResponse;
+import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
+import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.continuum.store.thrift.service.DirectoryService;
+import io.warp10.continuum.thrift.data.LoggingEvent;
+import io.warp10.crypto.CryptoUtils;
+import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.crypto.SipHashInline;
+import io.warp10.script.HyperLogLogPlus;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.functions.PARSESELECTOR;
+import io.warp10.sensision.Sensision;
+import io.warp10.warp.sdk.DirectoryPlugin;
+import io.warp10.warp.sdk.DirectoryPlugin.GTS;
 
 /**
  * Manages Metadata for a subset of known GTS.
@@ -884,28 +882,29 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             topicCountMap.put(topic, nthreads);
                         
             Properties props = new Properties();
-            props.setProperty("zookeeper.connect", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_ZKCONNECT));
-            props.setProperty("group.id", groupid);
+            props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_ZKCONNECT));
+            props.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupid);
             if (null != properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_CLIENTID)) {
-              props.setProperty("client.id", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_CLIENTID));
+              props.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_CLIENTID));
             }
             if (null != properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY)) {
-              props.setProperty("partition.assignment.strategy", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY));
+              props.setProperty(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY));
             }
-            props.setProperty("auto.commit.enable", "false");    
+            props.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");    
             
             if (null != properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_AUTO_OFFSET_RESET)) {
-              props.setProperty("auto.offset.reset", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_AUTO_OFFSET_RESET));
+              props.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_AUTO_OFFSET_RESET));
             }
             
-            ConsumerConfig config = new ConsumerConfig(props);
-            ConsumerConnector connector = Consumer.createJavaConsumerConnector(config);
+            props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
+            props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
+            props.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1");
 
-            Map<String,List<KafkaStream<byte[], byte[]>>> consumerMap = connector.createMessageStreams(topicCountMap);
+            ConsumerConfig config = new ConsumerConfig(props);
             
-            List<KafkaStream<byte[], byte[]>> streams = consumerMap.get(topic);
+            KafkaConsumer<byte[], byte[]>[] consumers = null;
             
-            self.barrier = new CyclicBarrier(streams.size() + 1);
+            self.barrier = new CyclicBarrier(nthreads + 1);
 
             ExecutorService executor = Executors.newFixedThreadPool(nthreads);
             
@@ -916,13 +915,15 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             // Reset counters
             counters.reset();
             
-            for (final KafkaStream<byte[],byte[]> stream : streams) {
-              executor.submit(new DirectoryConsumer(self, stream, counters));
-            }      
+            for (int i = 0; i < nthreads; i++) {
+              consumers[i] = new KafkaConsumer<>(props);
+              consumers[i].subscribe(Collections.singletonList(topic));
+              executor.submit(new DirectoryConsumer(self, consumers[i], counters));
+            }
 
             while(!abort.get() && !Thread.currentThread().isInterrupted()) {
               try {
-                if (streams.size() == barrier.getNumberWaiting()) {
+                if (nthreads == barrier.getNumberWaiting()) {
                   //
                   // Check if we should abort, which could happen when
                   // an exception was thrown when flushing the commits just before
@@ -940,7 +941,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
                   // Commit offsets
                   try {
-                    connector.commitOffsets(true);
+                    for (KafkaConsumer consumer: consumers) {
+                      consumer.commitSync();
+                    }
                   } catch (Throwable t) {
                     throw t;
                   } finally {
@@ -977,7 +980,13 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             
             executor.shutdownNow();
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARP_DIRECTORY_KAFKA_SHUTDOWNS, Sensision.EMPTY_LABELS, 1);
-            connector.shutdown();
+            
+            for (KafkaConsumer consumer: consumers) {
+              try {
+                consumer.close();
+              } catch (Exception e) {                
+              }
+            }
           } catch (Throwable t) {
             LOG.error("Caught throwable in spawner.", t);
           } finally {
@@ -1201,15 +1210,15 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   private static class DirectoryConsumer implements Runnable {
 
     private final Directory directory;
-    private final KafkaStream<byte[],byte[]> stream;
+    private final KafkaConsumer<byte[],byte[]> consumer;
         
     private final KafkaOffsetCounters counters;
     
     private final AtomicBoolean localabort = new AtomicBoolean(false);
     
-    public DirectoryConsumer(Directory directory, KafkaStream<byte[], byte[]> stream, KafkaOffsetCounters counters) {
+    public DirectoryConsumer(Directory directory, KafkaConsumer<byte[], byte[]> consumer, KafkaOffsetCounters counters) {
       this.directory = directory;
-      this.stream = stream;
+      this.consumer = consumer;
       this.counters = counters;
     }
     
@@ -1218,8 +1227,6 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       Table htable = null;
 
       try {
-        ConsumerIterator<byte[],byte[]> iter = this.stream.iterator();
-
         byte[] siphashKey = directory.keystore.getKey(KeyStore.SIPHASH_KAFKA_METADATA);
         byte[] kafkaAESKey = directory.keystore.getKey(KeyStore.AES_KAFKA_METADATA);
             
@@ -1397,21 +1404,15 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         
         byte[] hbaseAESKey = directory.keystore.getKey(KeyStore.AES_HBASE_METADATA);
         
-        while (iter.hasNext()) {
+        Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
+        
+        while (!directory.abort.get()) {
           Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
 
-          //
-          // Since the call to 'next' may block, we need to first
-          // check that there is a message available, otherwise we
-          // will miss the synchronization point with the other
-          // threads.
-          //
+          ConsumerRecords<byte[], byte[]> consumerRecords = consumer.poll(delay);
           
-          boolean nonEmpty = iter.nonEmpty();
-          
-          if (nonEmpty) {
-            MessageAndMetadata<byte[], byte[]> msg = iter.next();
-            if (!counters.safeCount(msg.partition(), msg.offset())) {
+          for(ConsumerRecord<byte[], byte[]> record : consumerRecords) {
+            if (!counters.safeCount(record.partition(), record.offset())) {
               continue;
             }
             
@@ -1420,7 +1421,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             // Since 20151104 we now correctly push the Kafka key (cf Ingress bug in pushMetadataMessage(k,v))
             //
                         
-            int r = (((int) msg.key()[8]) & 0xff) % directory.modulus;
+            int r = (((int) record.key()[8]) & 0xff) % directory.modulus;
             
             if (directory.remainder != r) {
               continue;
@@ -1431,7 +1432,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             // We therefore unwrap all messages and decide later.
             //
             
-            byte[] data = msg.message();
+            byte[] data = record.value();
             
             if (null != siphashKey) {
               data = CryptoUtils.removeMAC(siphashKey, data);
@@ -1858,10 +1859,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 actionsLock.unlock();
               }
             }
-          } else {
-            // Sleep a tiny while
-            LockSupport.parkNanos(2000000L);
-          }          
+          }         
         }        
       } catch (Throwable t) {
         LOG.error("", t);

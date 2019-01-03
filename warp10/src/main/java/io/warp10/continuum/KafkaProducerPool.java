@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,37 +16,37 @@
 
 package io.warp10.continuum;
 
-import io.warp10.sensision.Sensision;
-
 import java.util.concurrent.locks.LockSupport;
 
-import kafka.javaapi.producer.Producer;
-import kafka.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+
+import io.warp10.sensision.Sensision;
 
 public class KafkaProducerPool {
   
   /**
    * Pool of producers
    */
-  private final Producer<byte[], byte[]>[] producers;
+  private final KafkaProducer<byte[], byte[]>[] producers;
   private final String GET_METRIC_CLASS;
   private final String TIME_METRIC_CLASS;
   
   private int currentPoolSize = 0;
 
   public KafkaProducerPool(ProducerConfig config, int size, String GET_METRIC, String TIME_METRIC) {
-    this.producers = new Producer[size];
+    this.producers = new KafkaProducer[size];
     this.GET_METRIC_CLASS = GET_METRIC;
     this.TIME_METRIC_CLASS = TIME_METRIC;
     
     for (int i = 0; i < this.producers.length; i++) {
-      this.producers[i] = new Producer<byte[], byte[]>(config);
+      this.producers[i] = new KafkaProducer<byte[], byte[]>(config.originals());
     }
     
     this.currentPoolSize = this.producers.length;
   }
   
-  public Producer<byte[],byte[]> getProducer() {
+  public KafkaProducer<byte[],byte[]> getProducer() {
     
     //
     // We will count how long we wait for a producer
@@ -63,7 +63,7 @@ public class KafkaProducerPool {
           // hand out the producer at index 0
           //
           
-          Producer<byte[],byte[]> producer = this.producers[0];
+          KafkaProducer<byte[],byte[]> producer = this.producers[0];
           
           //
           // Decrement current pool size
@@ -93,7 +93,7 @@ public class KafkaProducerPool {
     }    
   }
   
-  public void recycleProducer(Producer<byte[],byte[]> producer) {
+  public void recycleProducer(KafkaProducer<byte[],byte[]> producer) {
     
     if (this.currentPoolSize == this.producers.length) {
       throw new RuntimeException("Invalid call to recycleProducer, pool already full!");
@@ -107,5 +107,4 @@ public class KafkaProducerPool {
       this.producers[this.currentPoolSize++] = producer;
     }
   }
-
 }

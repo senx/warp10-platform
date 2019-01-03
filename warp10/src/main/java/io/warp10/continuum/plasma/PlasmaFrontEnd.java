@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,27 +16,9 @@
 
 package io.warp10.continuum.plasma;
 
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.JettyUtil;
-import io.warp10.continuum.KafkaOffsetCounters;
-import io.warp10.continuum.KafkaSynchronizedConsumerPool;
-import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
-import io.warp10.continuum.KafkaSynchronizedConsumerPool.Hook;
-import io.warp10.continuum.egress.ThriftDirectoryClient;
-import io.warp10.continuum.gts.GTSDecoder;
-import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.Directory;
-import io.warp10.continuum.store.DirectoryClient;
-import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.KeyStore;
-import io.warp10.crypto.SipHashInline;
-import io.warp10.sensision.Sensision;
-import io.warp10.standalone.StandalonePlasmaHandler;
-
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -46,10 +28,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import kafka.consumer.ConsumerIterator;
-import kafka.consumer.KafkaStream;
-import kafka.message.MessageAndMetadata;
-
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.zookeeper.CreateMode;
@@ -62,6 +43,23 @@ import com.google.common.base.Preconditions;
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.retry.RetryNTimes;
+
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.JettyUtil;
+import io.warp10.continuum.KafkaOffsetCounters;
+import io.warp10.continuum.KafkaSynchronizedConsumerPool;
+import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
+import io.warp10.continuum.KafkaSynchronizedConsumerPool.Hook;
+import io.warp10.continuum.egress.ThriftDirectoryClient;
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.DirectoryClient;
+import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
+import io.warp10.crypto.CryptoUtils;
+import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.SipHashInline;
+import io.warp10.sensision.Sensision;
+import io.warp10.standalone.StandalonePlasmaHandler;
 
 public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable, PlasmaSubscriptionListener {
 
@@ -173,12 +171,10 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
     
     ConsumerFactory factory = new ConsumerFactory() {      
       @Override
-      public Runnable getConsumer(final KafkaSynchronizedConsumerPool pool, final KafkaStream<byte[], byte[]> stream) {
+      public Runnable getConsumer(final KafkaSynchronizedConsumerPool pool, final KafkaConsumer<byte[], byte[]> consumer) {
         return new Runnable() {          
           @Override
           public void run() {
-            ConsumerIterator<byte[],byte[]> iter = stream.iterator();
-
             byte[] sipHashKey = frontend.keystore.getKey(KeyStore.SIPHASH_KAFKA_PLASMA_FRONTEND_IN);
             byte[] aesKey = frontend.keystore.getKey(KeyStore.AES_KAFKA_PLASMA_FRONTEND_IN);
 
@@ -190,79 +186,66 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
             // TODO(hbs): allow setting of writeBufferSize
 
             try {
-            while (iter.hasNext()) {
-              //
-              // Since the cal to 'next' may block, we need to first
-              // check that there is a message available
-              //
-              
-              boolean nonEmpty = iter.nonEmpty();
-              
-              if (nonEmpty) {
-                MessageAndMetadata<byte[], byte[]> msg = iter.next();
-                counters.count(msg.partition(), msg.offset());
-                
-                byte[] data = msg.message();
+              Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
+              while (!pool.getAbort().get()) {
+                ConsumerRecords<byte[], byte[]> records = consumer.poll(delay);
+                for (ConsumerRecord<byte[], byte[]> record: records) {
+                  counters.count(record.partition(), record.offset());
+                  
+                  byte[] data = record.value();
 
-                Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_FRONTEND_KAFKA_MESSAGES, Sensision.EMPTY_LABELS, 1);
-                Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_FRONTEND_KAFKA_BYTES, Sensision.EMPTY_LABELS, data.length);
-                
-                if (null != sipHashKey) {
-                  data = CryptoUtils.removeMAC(sipHashKey, data);
-                }
-                
-                // Skip data whose MAC was not verified successfully
-                if (null == data) {
-                  Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_FRONTEND_KAFKA_INVALIDMACS, Sensision.EMPTY_LABELS, 1);
-                  continue;
-                }
-                
-                // Unwrap data if need be
-                if (null != aesKey) {
-                  data = CryptoUtils.unwrap(aesKey, data);
-                }
-                
-                // Skip data that was not unwrapped successfuly
-                if (null == data) {
-                  Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_FRONTEND_KAFKA_INVALIDCIPHERS, Sensision.EMPTY_LABELS, 1);
-                  continue;
-                }
-                
-                //
-                // Extract KafkaDataMessage
-                //
-                
-                KafkaDataMessage tmsg = new KafkaDataMessage();
-                deserializer.deserialize(tmsg, data);
-                
-                switch(tmsg.getType()) {
-                  case STORE:
-                    GTSEncoder encoder = new GTSEncoder(0L, null, tmsg.getData());
-                    encoder.setClassId(tmsg.getClassId());
-                    encoder.setLabelsId(tmsg.getLabelsId());
-                    frontend.dispatch(encoder);
-                    break;
-                  case DELETE:
-                  case ARCHIVE:
-                    break;
-                  default:
-                    throw new RuntimeException("Invalid message type.");
-                }            
-              } else {
-                // Sleep a tiny while
-                try {
-                  Thread.sleep(1L);
-                } catch (InterruptedException ie) {             
-                }
-              }          
-            }        
-          } catch (Throwable t) {
-            t.printStackTrace(System.err);
-          } finally {
-            // Set abort to true in case we exit the 'run' method
-            pool.getAbort().set(true);
-          }
-                 
+                  Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_FRONTEND_KAFKA_MESSAGES, Sensision.EMPTY_LABELS, 1);
+                  Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_FRONTEND_KAFKA_BYTES, Sensision.EMPTY_LABELS, data.length);
+                  
+                  if (null != sipHashKey) {
+                    data = CryptoUtils.removeMAC(sipHashKey, data);
+                  }
+                  
+                  // Skip data whose MAC was not verified successfully
+                  if (null == data) {
+                    Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_FRONTEND_KAFKA_INVALIDMACS, Sensision.EMPTY_LABELS, 1);
+                    continue;
+                  }
+                  
+                  // Unwrap data if need be
+                  if (null != aesKey) {
+                    data = CryptoUtils.unwrap(aesKey, data);
+                  }
+                  
+                  // Skip data that was not unwrapped successfuly
+                  if (null == data) {
+                    Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_FRONTEND_KAFKA_INVALIDCIPHERS, Sensision.EMPTY_LABELS, 1);
+                    continue;
+                  }
+                  
+                  //
+                  // Extract KafkaDataMessage
+                  //
+                  
+                  KafkaDataMessage tmsg = new KafkaDataMessage();
+                  deserializer.deserialize(tmsg, data);
+                  
+                  switch(tmsg.getType()) {
+                    case STORE:
+                      GTSEncoder encoder = new GTSEncoder(0L, null, tmsg.getData());
+                      encoder.setClassId(tmsg.getClassId());
+                      encoder.setLabelsId(tmsg.getLabelsId());
+                      frontend.dispatch(encoder);
+                      break;
+                    case DELETE:
+                    case ARCHIVE:
+                      break;
+                    default:
+                      throw new RuntimeException("Invalid message type.");
+                  }            
+                }        
+              }        
+            } catch (Throwable t) {
+              t.printStackTrace(System.err);
+            } finally {
+              // Set abort to true in case we exit the 'run' method
+              pool.getAbort().set(true);
+            }                 
           }
         };
       }
