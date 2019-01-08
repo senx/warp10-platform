@@ -896,8 +896,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               props.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_AUTO_OFFSET_RESET));
             }
             
-            props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
-            props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
+            props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+            props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer");
             props.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1");
 
             ConsumerConfig config = new ConsumerConfig(props);

@@ -370,8 +370,8 @@ public class Store extends Thread {
             // as we can when the lag gets beyond the history Kafka maintains.
             //
             props.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-            props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
-            props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
+            props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+            props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer");
             props.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1");
             
             ConsumerConfig config = new ConsumerConfig(props);
