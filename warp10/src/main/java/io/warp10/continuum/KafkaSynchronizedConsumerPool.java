@@ -165,10 +165,6 @@ public class KafkaSynchronizedConsumerPool {
           // previous snapshot).
           //
           
-          Map<String,Integer> topicCountMap = new HashMap<String, Integer>();
-              
-          topicCountMap.put(topic, nthreads);
-              
           Properties props = new Properties();
           props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, this.zkconnect);
           props.setProperty(ConsumerConfig.GROUP_ID_CONFIG,this.groupid);
@@ -184,6 +180,9 @@ public class KafkaSynchronizedConsumerPool {
             props.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, this.autoOffsetReset);
           }
 
+          props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+          props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+          
           // Only retrieve a single message per call to poll
           props.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1");
           
@@ -195,7 +194,7 @@ public class KafkaSynchronizedConsumerPool {
           pool.setBarrier(new CyclicBarrier(1 + 1));
             
           executor = Executors.newFixedThreadPool(nthreads);
-            
+
           //
           // now create runnables which will consume messages
           //
@@ -207,7 +206,7 @@ public class KafkaSynchronizedConsumerPool {
             consumers[i].subscribe(Collections.singletonList(topic));
             executor.submit(factory.getConsumer(pool,consumers[i]));
           }
-                
+
           pool.getInitialized().set(true);
           
           while(!pool.getAbort().get() && !Thread.currentThread().isInterrupted()) {
