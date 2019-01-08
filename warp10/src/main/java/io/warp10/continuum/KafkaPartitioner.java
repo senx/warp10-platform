@@ -32,6 +32,9 @@ public class KafkaPartitioner implements Partitioner {
   
   private Random random = new Random();
   
+  public KafkaPartitioner() {
+  }
+  
   public KafkaPartitioner(VerifiableProperties props) {
   }
   
