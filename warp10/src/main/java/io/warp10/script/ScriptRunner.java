@@ -61,6 +61,7 @@ import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.framework.recipes.leader.LeaderLatch;
 import com.netflix.curator.retry.RetryNTimes;
 
+import io.warp10.WarpDist;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.KafkaProducerPool;
 import io.warp10.continuum.KafkaSynchronizedConsumerPool;
@@ -365,6 +366,11 @@ public class ScriptRunner extends Thread {
       }
     });
 
+    // Wait until we are initialized so the local endpoint is up before we may attempt to use it
+    while(!WarpDist.isInitialized()) {
+      LockSupport.parkNanos(100000000L);
+    }
+    
     while (true) {
       long now = System.currentTimeMillis();
 
@@ -418,8 +424,6 @@ public class ScriptRunner extends Thread {
         } else if (-1L != schedule && schedule <= now) {
           // Do not schedule scripts with a schedule set to -1
           runnables.add(script);
-        } else { // null != schedule
-          nextrun.put(script, schedule);
         }
       }
 
@@ -455,7 +459,6 @@ public class ScriptRunner extends Thread {
       this.executor.submit(new Runnable() {
         @Override
         public void run() {
-
           long nowts = System.currentTimeMillis();
           
           Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_CURRENT, Sensision.EMPTY_LABELS, 1);
@@ -475,8 +478,10 @@ public class ScriptRunner extends Thread {
 
           long ttl = Math.max(scanperiod * 2, periodicity * 2);
 
+          InputStream in = null;
+          
           try {
-            InputStream in = new FileInputStream(f);
+            in = new FileInputStream(f);
 
             conn = (HttpURLConnection) new URL(self.endpoint).openConnection();
 
@@ -558,7 +563,6 @@ public class ScriptRunner extends Thread {
             // Add a 'CLEAR' at the end of the script so we don't return anything
             out.write(CLEAR);
 
-            in.close();
             out.close();
 
             if (200 != conn.getResponseCode()) {
@@ -572,7 +576,16 @@ public class ScriptRunner extends Thread {
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, ttl, nano / 1000L);
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_CURRENT, Sensision.EMPTY_LABELS, -1);
             if (null != conn) {
-              conn.disconnect();
+              try {
+                conn.disconnect();
+              } catch (Exception e) {                
+              }
+            }
+            if (null != in) {
+              try {
+                in.close();
+              } catch (Exception e) {                
+              }
             }
           }
         }
