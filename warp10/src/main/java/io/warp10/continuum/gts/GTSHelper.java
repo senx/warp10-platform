@@ -1317,7 +1317,7 @@ public class GTSHelper {
 
   /**
    * Return a new GeoTimeSerie instance containing only the value of 'gts'
-   * which fall between 'timestamp' (inclusive) and 'timestamp' - 'span' (exclusive)
+   * which fall between 'starttimestamp' (inclusive) and 'stoptimestamp' (inclusive)
    * 
    * The resulting GTS instance will be sorted.
    * 
@@ -4534,6 +4534,378 @@ public class GTSHelper {
   
   public static List<GeoTimeSerie> map(GeoTimeSerie gts, WarpScriptMapperFunction mapper, long prewindow, long postwindow) throws WarpScriptException {
     return map(gts, mapper, prewindow, postwindow, 0, false);
+  }
+
+  /**
+   * An improvement of MAP for which the ticks of the resulting gts can be specified with @param outputTicks.
+   * Until we are sure this do not introduce a bug that breaks other features of MAP, the WarpScript function MAP will call map_v2() instead of map() if and only if @param outputTicks is provided.
+   *
+   */
+  public static List<GeoTimeSerie> map_v2(GeoTimeSerie gts, WarpScriptMapperFunction mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick) throws WarpScriptException {
+    return map_v2(gts, mapper, prewindow, postwindow, occurrences, reversed, step, overrideTick, null);
+  }
+
+  public static List<GeoTimeSerie> map_v2(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack) throws WarpScriptException {
+    return map_v2(gts, mapper, prewindow, postwindow, occurrences, reversed, step, overrideTick, stack, null);
+  }
+
+  public static List<GeoTimeSerie> map_v2(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack,
+                                       List<Long> outputTicks) throws WarpScriptException {
+
+    //
+    // Make sure step is positive
+    //
+
+    if (step <= 0) {
+      step = 1;
+    }
+
+    List<GeoTimeSerie> results = new ArrayList<GeoTimeSerie>();
+
+    //
+    // Clone gts
+    //
+
+    GeoTimeSerie mapped = gts.clone();
+
+    //
+    // Do nothing if there are no values and gts was not bucketized
+    //
+
+    if (0 == mapped.values && !isBucketized(mapped)) {
+      results.add(mapped);
+      return results;
+    }
+
+    // Sort ticks
+    sort(mapped, reversed);
+    // Retrieve ticks if GTS is not bucketized.
+    long[] ticks = isBucketized(gts) ? null : Arrays.copyOf(mapped.ticks, gts.values);
+
+    // Sort outputTicks
+    if (null != outputTicks) {
+      if (reversed) {
+        Collections.sort(outputTicks, Collections.<Long>reverseOrder());
+      } else {
+        Collections.sort(outputTicks);
+      }
+    }
+
+    // Clear clone
+    GTSHelper.clear(mapped);
+
+    // If @param outputTicks is not specified, then leftIdx and rightIdx are not used.
+    int idx = 0;
+    int rightIdx = 0; // used only if (!reversed)
+    int leftIdx = 0; // used only if (reversed)
+
+    //
+    // idx is the index of the current output tick,
+    // if (!reversed), rightIdx is the index of the tick of the input gts that is the least greater or equal than the current output tick.
+    // if (reversed), leftIdx is the index of the tick of the input gts that is the least lesser or equal than the current output tick.
+    // Note that they may not exist if all values are at the left (or right).
+    //
+
+    // Number of ticks for which to run the mapper
+    int nticks = null != ticks ? ticks.length : mapped.bucketcount;
+    if (null != outputTicks) {
+      nticks = outputTicks.size();
+    }
+
+    // Call getLabels once so we don't waste CPU cycles, this will create a clone of the labels map
+    Map<String, String> labels = gts.getLabels();
+
+    long tick = 0;
+
+    GeoTimeSerie subgts = null;
+
+    boolean hasOccurrences = (0 != occurrences);
+
+    Map<String, GeoTimeSerie> multipleMapped = new TreeMap<String, GeoTimeSerie>();
+
+    boolean hasSingleResult = false;
+
+    while (idx < nticks) {
+
+      if (hasOccurrences && 0 == occurrences) {
+        break;
+      }
+
+      if (null == outputTicks) {
+
+        if (reversed) {
+          tick = null != ticks ? ticks[idx] : mapped.lastbucket - idx * mapped.bucketspan;
+        } else {
+          tick = null != ticks ? ticks[idx] : mapped.lastbucket - (mapped.bucketcount - 1 - idx) * mapped.bucketspan;
+        }
+      } else {
+        tick = outputTicks.get(idx);
+
+        // calculate leftIdx and rightIdx
+        if (reversed) {
+          while (leftIdx < ticks.length && ticks[leftIdx] > tick) {
+            leftIdx++;
+          }
+        } else {
+          while (rightIdx < ticks.length && ticks[rightIdx] < tick) {
+            rightIdx++;
+          }
+        }
+      }
+
+      //
+      // Determine start/stop timestamp for extracting subserie
+      //
+
+      long start = tick;
+      long stop = tick;
+
+      if (prewindow < 0) {
+        start = tick + prewindow;
+      } else if (prewindow > 0) {
+        // window is a number of ticks
+        if (null == ticks) { // means gts is bucketized
+          start = prewindow <= mapped.bucketcount ? tick - prewindow * mapped.bucketspan : Long.MIN_VALUE;
+        } else {
+          if (null == outputTicks) {
+            if (reversed) {
+              start = idx + prewindow < ticks.length ? (ticks[idx + (int) prewindow]) : Long.MIN_VALUE;
+            } else {
+              start = idx - prewindow >= 0 ? (ticks[idx - (int) prewindow]) : Long.MIN_VALUE;
+            }
+          } else {
+
+            //
+            // Note that if output ticks are provided,
+            // then if the current output tick matches an input tick,
+            // then if (reversed)
+            // then prewindow counts the current tick
+            // else it is postwindow that counts the current tick
+            //
+
+            if (reversed) {
+              start = leftIdx - 1 + prewindow < ticks.length ? (ticks[leftIdx - 1 + (int) prewindow]) : Long.MIN_VALUE;
+            } else {
+              start = rightIdx - prewindow >= 0 ? (ticks[rightIdx - (int) prewindow]) : Long.MIN_VALUE;
+            }
+          }
+        }
+      } else {
+        if (!(null == outputTicks) && reversed) {
+          start = tick + 1;
+        }
+      }
+
+      if (postwindow < 0) {
+        stop = tick - postwindow;
+      } else if (postwindow > 0) {
+        // window is a number of ticks
+        if (null == ticks) {
+          stop = postwindow <= mapped.bucketcount ? tick + postwindow * mapped.bucketspan : Long.MAX_VALUE;
+        } else {
+          if (null == outputTicks) {
+            if (reversed) {
+              stop = idx - postwindow >= 0 ? (ticks[idx - (int) postwindow]) : Long.MAX_VALUE;
+            } else {
+              stop = idx + postwindow < ticks.length ? (ticks[idx + (int) postwindow]) : Long.MAX_VALUE;
+            }
+          } else {
+            if (reversed) {
+              stop = leftIdx - postwindow >= 0 ? (ticks[leftIdx - (int) postwindow]) : Long.MAX_VALUE;
+            } else {
+              stop = rightIdx - 1 + postwindow < ticks.length ? (ticks[rightIdx - 1 + (int) postwindow]) : Long.MAX_VALUE;
+            }
+          }
+        }
+      } else {
+        if (!(null == outputTicks) && !reversed) {
+          stop = tick - 1;
+        }
+      }
+
+      // For debug purposes
+      System.out.println("idx: " + idx +
+              " | tick: " + tick +
+              " | left: " + leftIdx +
+              " | right: " + rightIdx +
+              " | start: " + start +
+              " | stop: " + stop +
+              " | pre: " + prewindow +
+              " | post: " + postwindow);
+
+      //
+      // Extract values
+      //
+
+      subgts = GTSHelper.subSerie(gts, start, stop, false, false, subgts);
+
+      Object mapResult = null;
+
+      if (null != stack) {
+        if (mapper instanceof Macro) {
+          subgts.safeSetMetadata(mapped.getMetadata());
+          stack.push(subgts);
+          stack.exec((Macro) mapper);
+          Object res = stack.peek();
+
+          if (res instanceof List) {
+            stack.drop();
+
+            mapResult = MACROMAPPER.listToObjects((List) res);
+          } else if (res instanceof Map) {
+            stack.drop();
+
+            Set<Object> keys = ((Map) res).keySet();
+
+            for (Object key : keys) {
+              Object[] ores2 = MACROMAPPER.listToObjects((List) ((Map) res).get(key));
+              ((Map) res).put(key, ores2);
+            }
+
+            mapResult = res;
+          } else {
+            //
+            // Retrieve result
+            //
+
+            mapResult = MACROMAPPER.stackToObjects(stack);
+          }
+
+        } else {
+          throw new WarpScriptException("Invalid mapper function.");
+        }
+      } else {
+        if (!(mapper instanceof WarpScriptMapperFunction)) {
+          throw new WarpScriptException("Expected a mapper function.");
+        }
+        //
+        // Mapper functions have 8 parameters
+        //
+        // tick: timestamp we're computing the value for
+        // names: array of names (for reducer compatibility)
+        // labels: array of labels (for reducer compatibility)
+        // ticks: array of ticks being aggregated
+        // locations: array of locations being aggregated
+        // elevations: array of elevations being aggregated
+        // values: array of values being aggregated
+        // window: An array with the window parameters [ prewindow, postwindow, start, stop, tick index ] on which the mapper runs
+        //
+        // 'window' nullity should be checked prior to using to allow mappers to be used as reducers.
+        //
+        // They return an array of 4 values:
+        //
+        // timestamp, location, elevation, value
+        //
+        // timestamp: an indication relative to timestamp (may be the timestamp at which the returned value was observed).
+        //            it is usually not used (the returned value will be set at 'tick') but must be present.
+        // location: location associated with the returned value
+        // elevation: elevation associated with the returned value
+        // value: computed value
+        //
+
+        Object[] parms = new Object[8];
+
+        int i = 0;
+        parms[i++] = tick;
+
+        //
+        // All arrays are allocated each time, so we don't risk
+        // having a rogue mapper modify them.
+        //
+
+        parms[i++] = new String[subgts.values];
+        Arrays.fill((Object[]) parms[i - 1], gts.getName());
+
+        parms[i++] = new Map[subgts.values];
+        Arrays.fill((Object[]) parms[i - 1], labels);
+
+        parms[i++] = subgts.values > 0 ? Arrays.copyOf(subgts.ticks, subgts.values) : new long[0];
+        if (null != subgts.locations) {
+          parms[i++] = subgts.values > 0 ? Arrays.copyOf(subgts.locations, subgts.values) : new long[0];
+        } else {
+          if (subgts.values > 0) {
+            parms[i++] = new long[subgts.values];
+            Arrays.fill((long[]) parms[i - 1], GeoTimeSerie.NO_LOCATION);
+          } else {
+            parms[i++] = new long[0];
+          }
+        }
+        if (null != subgts.elevations) {
+          parms[i++] = subgts.values > 0 ? Arrays.copyOf(subgts.elevations, subgts.values) : new long[0];
+        } else {
+          if (subgts.values > 0) {
+            parms[i++] = new long[subgts.values];
+            Arrays.fill((long[]) parms[i - 1], GeoTimeSerie.NO_ELEVATION);
+          } else {
+            parms[i++] = new long[0];
+          }
+        }
+        parms[i++] = new Object[subgts.values];
+
+        int tickidx = -1;
+
+        for (int j = 0; j < subgts.values; j++) {
+          ((Object[]) parms[6])[j] = valueAtIndex(subgts, j);
+          if (-1 == tickidx && tick == tickAtIndex(subgts, j)) {
+            tickidx = j;
+          }
+        }
+
+        parms[i++] = new long[]{prewindow, postwindow, start, stop, tickidx};
+
+        mapResult = ((WarpScriptMapperFunction) mapper).apply(parms);
+      }
+
+      if (mapResult instanceof Map) {
+        for (Entry<Object, Object> entry : ((Map<Object, Object>) mapResult).entrySet()) {
+          GeoTimeSerie mgts = multipleMapped.get(entry.getKey().toString());
+          if (null == mgts) {
+            mgts = mapped.cloneEmpty();
+
+            mgts.setName(entry.getKey().toString());
+            multipleMapped.put(entry.getKey().toString(), mgts);
+          }
+
+          Object[] result = (Object[]) entry.getValue();
+          if (null != result[3]) {
+            GTSHelper.setValue(mgts, overrideTick ? (long) result[0] : tick, (long) result[1], (long) result[2], result[3], false);
+          }
+        }
+      } else {
+        Object[] result = mapResult instanceof List ? ((List) mapResult).toArray() : (Object[]) mapResult;
+
+        //
+        // Set value if it was not null. Don't overwrite, we scan ticks only once
+        //
+
+        hasSingleResult = true;
+
+        if (null != result[3]) {
+          GTSHelper.setValue(mapped, overrideTick ? (long) result[0] : tick, (long) result[1], (long) result[2], result[3], false);
+        }
+      }
+
+      idx += step;
+      occurrences--;
+    }
+
+    if (hasSingleResult) {
+      results.add(mapped);
+    }
+
+    if (!multipleMapped.isEmpty()) {
+      results.addAll(multipleMapped.values());
+    }
+
+    return results;
+  }
+
+  public static List<GeoTimeSerie> map_v2(GeoTimeSerie gts, WarpScriptMapperFunction mapper, long prewindow, long postwindow, long occurrences, boolean reversed) throws WarpScriptException {
+    return map_v2(gts, mapper, prewindow, postwindow, occurrences, reversed, 1, false);
+  }
+
+  public static List<GeoTimeSerie> map_v2(GeoTimeSerie gts, WarpScriptMapperFunction mapper, long prewindow, long postwindow) throws WarpScriptException {
+    return map_v2(gts, mapper, prewindow, postwindow, 0, false);
   }
   
   /**
