@@ -40,7 +40,8 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
   private static final String PARAM_POSTWINDOW = "post";
   private static final String PARAM_OCCURENCES = "occurences";
   private static final String PARAM_STEP = "step";
-  private static final String PARAM_OVERRIDE = "override";  
+  private static final String PARAM_OVERRIDE = "override";
+  private static final String PARAM_OUTPUTTICKS = "ticks";
   
   public MAP(String name) {
     super(name);
@@ -112,6 +113,16 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
         overrideTick = Boolean.TRUE.equals(params.get(nseries + 5));
       }            
     }
+
+    List<Long> ticks = null;
+
+    if (params.size() > nseries + 6) {
+      if (!(params.get(nseries + 6) instanceof List)) {
+        throw new WarpScriptException(getName() + " expects a list of Long as 'output ticks' parameter.");
+      } else {
+        ticks = (List<Long>) params.get(nseries + 6);
+      }
+    }
     
     List<Object> series = new ArrayList<Object>();
 
@@ -128,6 +139,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     mapParams.put(PARAM_OCCURENCES, params.get(nseries + 3));
     mapParams.put(PARAM_STEP, (long) step);
     mapParams.put(PARAM_OVERRIDE, overrideTick);
+    mapParams.put(PARAM_OUTPUTTICKS, ticks);
     
     return applyWithParamsFromMap(stack, mapParams);
   }
@@ -144,6 +156,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     int occurrences = !params.containsKey(PARAM_OCCURENCES) ? 0 : (int) ((long) params.get(PARAM_OCCURENCES));
     int step = !params.containsKey(PARAM_STEP) ? 1 : (int) ((long) params.get(PARAM_STEP));
     boolean overrideTick = !params.containsKey(PARAM_OVERRIDE) ? false : (boolean) params.get(PARAM_OVERRIDE);
+    Object outputTicks = params.get(PARAM_OUTPUTTICKS);
     
     // Handle gts and nested list of gts
     
@@ -187,7 +200,20 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     List<Object> mapped = new ArrayList<Object>();
     
     for (GeoTimeSerie gts: series) {
-      List<GeoTimeSerie> res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), occurrences < 0 ? true : false, step, overrideTick, mapper instanceof Macro ? stack : null);
+      List<GeoTimeSerie> res;
+
+      //
+      // Until we are sure using outputTicks do not introduce a bug that breaks other features of MAP,
+      // the WarpScript function MAP will call map_v2() instead of map() if and only if @param outputTicks is provided.
+      //
+
+      if (null == outputTicks) {
+        res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), occurrences < 0 ? true : false, step, overrideTick, mapper instanceof Macro ? stack : null);
+      } else {
+        res = GTSHelper.map_v2(gts, mapper, prewindow, postwindow, Math.abs(occurrences), occurrences < 0 ? true : false, step, overrideTick, mapper instanceof Macro ? stack : null,
+                (List<Long>) outputTicks);
+      }
+
       if (res.size() < 2) {
         mapped.addAll(res);
       } else {
