@@ -4723,16 +4723,6 @@ public class GTSHelper {
         }
       }
 
-      // For debug purposes
-      System.out.println("idx: " + idx +
-              " | tick: " + tick +
-              " | left: " + leftIdx +
-              " | right: " + rightIdx +
-              " | start: " + start +
-              " | stop: " + stop +
-              " | pre: " + prewindow +
-              " | post: " + postwindow);
-
       //
       // Extract values
       //
