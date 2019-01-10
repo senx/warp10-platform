@@ -200,19 +200,8 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     List<Object> mapped = new ArrayList<Object>();
     
     for (GeoTimeSerie gts: series) {
-      List<GeoTimeSerie> res;
-
-      //
-      // Until we are sure using outputTicks do not introduce a bug that breaks other features of MAP,
-      // the WarpScript function MAP will call map_v2() instead of map() if and only if @param outputTicks is provided.
-      //
-
-      if (null == outputTicks) {
-        res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), occurrences < 0 ? true : false, step, overrideTick, mapper instanceof Macro ? stack : null);
-      } else {
-        res = GTSHelper.map_v2(gts, mapper, prewindow, postwindow, Math.abs(occurrences), occurrences < 0 ? true : false, step, overrideTick, mapper instanceof Macro ? stack : null,
-                (List<Long>) outputTicks);
-      }
+      List<GeoTimeSerie> res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), occurrences < 0 ? true : false, step, overrideTick, mapper instanceof Macro ? stack : null,
+              (List<Long>) outputTicks);
 
       if (res.size() < 2) {
         mapped.addAll(res);
