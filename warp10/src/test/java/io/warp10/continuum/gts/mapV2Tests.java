@@ -260,5 +260,74 @@ public class mapV2Tests {
     stack.clear();
   }
 
+  @Test
+  public void testI() throws Exception {
+    Properties conf = WarpConfig.getProperties();
+    conf.setProperty("warpscript.maxops", "100000");
+    conf.setProperty("warpscript.maxops.hard", "100000");
+    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, conf);
+
+    //
+    // Testing pre = 0, post = 5 with some input and output ticks that match together
+    // with input GTS being bucketized
+    //
+
+    stack.exec("[ NEWGTS 1 100 <% 2 * DUP 0 0 0 5 ROLL ADDVALUE %> FOR " +
+            "[ SWAP bucketizer.last 0 2 0 ] BUCKETIZE " +
+            "<% 7 GET ->JSON 0 NaN NaN NaN 5 ROLL %> MACROMAPPER " +
+            "0 5 0 1 false [ 51 150 <% 2 * %> FOR ] ] MAP 0 GET " +
+
+            // output ticks must match
+            "DUP TICKLIST REVERSE LIST-> 1 SWAP <% 50 + 2 * == ASSERT %> FOR " +
+
+            // sliding windows must match
+            "VALUES REVERSE LIST-> DROP 1 46 <% 50 + [ 0 4 <% DUP 3 + PICK + 2 * %> FOR ] SWAP DROP ->JSON == ASSERT %> FOR " +
+
+            // the 4 next sliding windows have 1 less values each time
+            "[ 194 196 198 200 ] ->JSON == ASSERT " +
+            "[ 196 198 200 ] ->JSON == ASSERT " +
+            "[ 198 200 ] ->JSON == ASSERT " +
+            "[ 200 ] ->JSON == ASSERT " +
+
+            // the remaining 50 sliding windows are empty
+            " 1 50 <% DROP [] ->JSON == ASSERT %> FOR " +
+            " DEPTH 0 == ASSERT");
+    stack.clear();
+  }
+
+  @Test
+  public void testJ() throws Exception {
+    Properties conf = WarpConfig.getProperties();
+    conf.setProperty("warpscript.maxops", "100000");
+    conf.setProperty("warpscript.maxops.hard", "100000");
+    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, conf);
+
+    //
+    // Testing pre = 5, post = 0 with some input and output ticks that match together
+    // with input GTS being bucketized
+    //
+
+    stack.exec("[ NEWGTS 1 100 <% 2 * DUP 0 0 0 5 ROLL ADDVALUE %> FOR " +
+            "[ SWAP bucketizer.last 0 2 0 ] BUCKETIZE " +
+            "<% 7 GET ->JSON 0 NaN NaN NaN 5 ROLL %> MACROMAPPER " +
+            "5 0 0 1 false [ 51 150 <% 2 * %> FOR ] ] MAP 0 GET " +
+
+            // output ticks must match
+            "DUP TICKLIST REVERSE LIST-> 1 SWAP <% 50 + 2 * == ASSERT %> FOR " +
+
+            // sliding windows must match
+            "VALUES REVERSE LIST-> DROP 1 51 <% 50 + [ 0 4 <% DUP 3 + PICK + 5 - 2 * %> FOR ] SWAP DROP ->JSON == ASSERT %> FOR " +
+
+            // in the remaining 49 sliding windows, empty values are found
+            "[ 194 196 198 200 ] ->JSON == ASSERT " +
+            "[ 196 198 200 ] ->JSON == ASSERT " +
+            "[ 198 200 ] ->JSON == ASSERT " +
+            "[ 200 ] ->JSON == ASSERT " +
+            "1 45 <% DROP [] ->JSON == ASSERT %> FOR " +
+            "DEPTH 0 == ASSERT");
+    System.out.println(stack.dump(10000));
+    stack.clear();
+  }
+
 
 }

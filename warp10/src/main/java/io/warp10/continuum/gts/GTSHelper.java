@@ -4641,14 +4641,17 @@ public class GTSHelper {
       } else {
         tick = outputTicks.get(idx);
 
-        // calculate leftIdx and rightIdx
-        if (reversed) {
-          while (leftIdx < ticks.length && ticks[leftIdx] > tick) {
-            leftIdx++;
-          }
-        } else {
-          while (rightIdx < ticks.length && ticks[rightIdx] < tick) {
-            rightIdx++;
+        if (null != ticks) { // means input gts is not bucketized
+
+          // calculate leftIdx and rightIdx
+          if (reversed) {
+            while (leftIdx < ticks.length && ticks[leftIdx] > tick) {
+              leftIdx++;
+            }
+          } else {
+            while (rightIdx < ticks.length && ticks[rightIdx] < tick) {
+              rightIdx++;
+            }
           }
         }
       }
@@ -4664,8 +4667,12 @@ public class GTSHelper {
         start = tick + prewindow;
       } else if (prewindow > 0) {
         // window is a number of ticks
-        if (null == ticks) { // means gts is bucketized
-          start = prewindow <= mapped.bucketcount ? tick - prewindow * mapped.bucketspan : Long.MIN_VALUE;
+        if (null == ticks) {
+          if (null == outputTicks || !reversed) {
+            start = prewindow <= mapped.bucketcount ? tick - prewindow * mapped.bucketspan : Long.MIN_VALUE;
+          } else {
+            start = prewindow - 1 <= mapped.bucketcount ? tick - (prewindow - 1) * mapped.bucketspan : Long.MIN_VALUE;
+          }
         } else {
           if (null == outputTicks) {
             if (reversed) {
@@ -4701,7 +4708,11 @@ public class GTSHelper {
       } else if (postwindow > 0) {
         // window is a number of ticks
         if (null == ticks) {
-          stop = postwindow <= mapped.bucketcount ? tick + postwindow * mapped.bucketspan : Long.MAX_VALUE;
+          if (null == outputTicks || reversed) {
+            stop = postwindow <= mapped.bucketcount ? tick + postwindow * mapped.bucketspan : Long.MAX_VALUE;
+          } else {
+            stop = postwindow - 1 <= mapped.bucketcount ? tick + (postwindow - 1) * mapped.bucketspan : Long.MAX_VALUE;
+          }
         } else {
           if (null == outputTicks) {
             if (reversed) {
