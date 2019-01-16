@@ -4576,6 +4576,9 @@ public class GTSHelper {
           GeoTimeSerie mgts = multipleMapped.get(entry.getKey().toString());
           if (null == mgts) {
             mgts = mapped.cloneEmpty();
+            if (null != outputTicks ) {
+              unbucketize(mgts);
+            }
 
             mgts.setName(entry.getKey().toString());
             multipleMapped.put(entry.getKey().toString(), mgts);
@@ -4605,6 +4608,10 @@ public class GTSHelper {
     }
 
     if (hasSingleResult) {
+
+      if (null != outputTicks) {
+        unbucketize(mapped);
+      }
       results.add(mapped);
     }
 

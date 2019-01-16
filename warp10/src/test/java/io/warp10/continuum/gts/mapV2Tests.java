@@ -33,7 +33,7 @@ public class mapV2Tests {
     stack.exec("[ NEWGTS 100 0 0 0 1 ADDVALUE 0 mapper.replace 1 1 0 1 false [ 20000 ] ] MAP ");
     String res1 = stack.dump(1);
     stack.clear();
-    stack.exec("NEWGTS 100 0 0 0 1 ADDVALUE { 'mapper' 0 mapper.replace 'pre' 1 'post' 1 'occurence' 0 'ticks' [ 20000 ] } MAP ");
+    stack.exec("NEWGTS 100 0 0 0 1 ADDVALUE { 'mapper' 0 mapper.replace 'pre' 1 'post' 1 'ticks' [ 20000 ] } MAP ");
     String res2 = stack.dump(1);
     Assert.assertTrue(res1.equals(res2));
   }
@@ -277,6 +277,11 @@ public class mapV2Tests {
             "<% 7 GET ->JSON 0 NaN NaN NaN 5 ROLL %> MACROMAPPER " +
             "0 5 0 1 false [ 51 150 <% 2 * %> FOR ] ] MAP 0 GET " +
 
+            // output not supposed to be bucketized
+            "DUP BUCKETCOUNT  0 == ASSERT " +
+            "DUP BUCKETSPAN  0 == ASSERT " +
+            "DUP LASTBUCKET  0 == ASSERT " +
+
             // output ticks must match
             "DUP TICKLIST REVERSE LIST-> 1 SWAP <% 50 + 2 * == ASSERT %> FOR " +
 
@@ -311,6 +316,11 @@ public class mapV2Tests {
             "[ SWAP bucketizer.last 0 2 0 ] BUCKETIZE " +
             "<% 7 GET ->JSON 0 NaN NaN NaN 5 ROLL %> MACROMAPPER " +
             "5 0 0 1 false [ 51 150 <% 2 * %> FOR ] ] MAP 0 GET " +
+
+            // output not supposed to be bucketized
+            "DUP BUCKETCOUNT  0 == ASSERT " +
+            "DUP BUCKETSPAN  0 == ASSERT " +
+            "DUP LASTBUCKET  0 == ASSERT " +
 
             // output ticks must match
             "DUP TICKLIST REVERSE LIST-> 1 SWAP <% 50 + 2 * == ASSERT %> FOR " +
