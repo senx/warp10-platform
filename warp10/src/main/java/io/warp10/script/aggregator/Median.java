@@ -132,6 +132,12 @@ public class Median extends NamedWarpScriptFunction implements WarpScriptAggrega
     
     for (int i = 0; i < values.length; i++) {
       if (null == values[i]) {
+        // If the null is the last value, decrement the number of
+        // nonnulls and bail out
+        if (i == values.length - 1) {
+          nonnulls--;
+          break;
+        }
         // Find the first non null starting from the end of the array
         while(nonnulls > i + 1 && null == values[nonnulls - 1]) {
           nonnulls--;          
@@ -142,14 +148,14 @@ public class Median extends NamedWarpScriptFunction implements WarpScriptAggrega
           break;
         }
         
-        values[i] = values[nonnulls - 1];
+        values[i] = values[nonnulls - 1];        
       }
     }
 
     //
     // Remove nulls
     //
-    
+
     if (nonnulls != values.length) {
       values = Arrays.copyOf(values, nonnulls);
     }
@@ -157,7 +163,6 @@ public class Median extends NamedWarpScriptFunction implements WarpScriptAggrega
     //
     // Sort values
     //
-        
     Arrays.sort(values);
 
     //
