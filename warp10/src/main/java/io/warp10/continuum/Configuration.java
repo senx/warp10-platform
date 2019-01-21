@@ -20,6 +20,8 @@ public class Configuration {
 
   public static final String OSS_MASTER_KEY = "oss.master.key";
 
+  public static final String WARP10_REPORT_SECRET = "warp10.report.secret";
+  
   public static final String WARP_COMPONENTS = "warp.components";
 
   public static final String WARP_TOKEN_FILE = "warp.token.file";
@@ -89,6 +91,11 @@ public class Configuration {
    * Number of registers to allocate in stacks. Defaults to WarpScriptStack.DEFAULT_REGISTERS
    */
   public static final String CONFIG_WARPSCRIPT_REGISTERS = "warpscript.registers";
+  
+  /**
+   * Maximum time to allocate for timeboxed executions
+   */
+  public static final String CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME = "warpscript.timebox.maxtime";
   
   /**
    * Comma separated list of WarpScriptExtension classes to instantiate to modify

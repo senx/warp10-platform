@@ -21,6 +21,11 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
+// Secret for REPORT, if unset, a random secret will be generated and output in the logs and on stdout
+//
+#warp10.report.secret = 
+
+//
 // Maximum number of classes for which to report detailed stats in 'FINDSTATS'
 // 
 directory.stats.class.maxcardinality = 100
@@ -109,6 +114,9 @@ warp.aes.metasets = @key:256:warp.aes.metasets@
 // Set to true to disable streaming updates
 //
 #warp.streamupdate.disable =
+
+// Maximum time that TIMEBOX can wait for an execution (in ms), defaults to 30s
+#warpscript.timebox.maxtime=30000
 
 //
 // Number of registers to allocate in the stack defaults to 256

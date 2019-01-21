@@ -41,6 +41,11 @@ warp.timeunits = us
 #warp10.plugins = packageW.classX,packageY.classZ
 
 //
+// Secret for REPORT, if unset, a random secret will be generated and output in the logs and on stdout
+//
+#warp10.report.secret =
+
+//
 // Specific plugin loading
 //
 #warpscript.plugins.xxx = package.class
@@ -166,6 +171,9 @@ warp.aes.metasets = hex:hhhhhhhh....
 // W A R P S R I P T
 //
 /////////////////////////////////////////////////////////////////////////////////////////
+
+// Maximum time that TIMEBOX can wait for an execution (in ms), defaults to 30s
+#warpscript.timebox.maxtime=30000
 
 // Path of the 'bootstrap' WarpScript code for the interactive mode
 #warpscript.interactive.bootstrap.path =

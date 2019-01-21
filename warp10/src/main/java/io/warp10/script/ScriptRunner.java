@@ -16,34 +16,6 @@
 
 package io.warp10.script;
 
-import com.geoxp.oss.CryptoHelper;
-import com.google.common.base.Charsets;
-import com.google.common.base.Preconditions;
-import com.google.common.primitives.Longs;
-import com.netflix.curator.framework.CuratorFramework;
-import com.netflix.curator.framework.CuratorFrameworkFactory;
-import com.netflix.curator.framework.recipes.leader.LeaderLatch;
-import com.netflix.curator.retry.RetryNTimes;
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.KafkaProducerPool;
-import io.warp10.continuum.KafkaSynchronizedConsumerPool;
-import io.warp10.continuum.TimeSource;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.thrift.data.RunRequest;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.DummyKeyStore;
-import io.warp10.crypto.KeyStore;
-import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.crypto.SipHashInline;
-import io.warp10.sensision.Sensision;
-import kafka.javaapi.producer.Producer;
-import kafka.producer.KeyedMessage;
-import kafka.producer.ProducerConfig;
-import org.apache.thrift.TException;
-import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -65,6 +37,7 @@ import java.util.PriorityQueue;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
@@ -74,6 +47,37 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 import java.util.zip.GZIPOutputStream;
+
+import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TCompactProtocol;
+
+import com.geoxp.oss.CryptoHelper;
+import com.google.common.base.Charsets;
+import com.google.common.base.Preconditions;
+import com.google.common.primitives.Longs;
+import com.netflix.curator.framework.CuratorFramework;
+import com.netflix.curator.framework.CuratorFrameworkFactory;
+import com.netflix.curator.framework.recipes.leader.LeaderLatch;
+import com.netflix.curator.retry.RetryNTimes;
+
+import io.warp10.WarpDist;
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.KafkaProducerPool;
+import io.warp10.continuum.KafkaSynchronizedConsumerPool;
+import io.warp10.continuum.TimeSource;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.thrift.data.RunRequest;
+import io.warp10.crypto.CryptoUtils;
+import io.warp10.crypto.DummyKeyStore;
+import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.crypto.SipHashInline;
+import io.warp10.sensision.Sensision;
+import kafka.javaapi.producer.Producer;
+import kafka.producer.KeyedMessage;
+import kafka.producer.ProducerConfig;
 
 /**
  * Periodically submit WarpScript scripts residing in subdirectories of the given root.
@@ -113,7 +117,7 @@ public class ScriptRunner extends Thread {
 
   protected ExecutorService executor;
 
-  private long scanperiod;
+  protected long scanperiod;
 
   private String root;
 
@@ -350,7 +354,7 @@ public class ScriptRunner extends Thread {
     // Map of script path to next scheduled run
     //
 
-    final Map<String, Long> nextrun = new HashMap<String, Long>();
+    final Map<String, Long> nextrun = new ConcurrentHashMap<String, Long>();
     
     PriorityQueue<String> runnables = new PriorityQueue<String>(1, new Comparator<String>() {
       @Override
@@ -362,6 +366,11 @@ public class ScriptRunner extends Thread {
       }
     });
 
+    // Wait until we are initialized so the local endpoint is up before we may attempt to use it
+    while(!WarpDist.isInitialized()) {
+      LockSupport.parkNanos(100000000L);
+    }
+    
     while (true) {
       long now = System.currentTimeMillis();
 
@@ -415,8 +424,6 @@ public class ScriptRunner extends Thread {
         } else if (-1L != schedule && schedule <= now) {
           // Do not schedule scripts with a schedule set to -1
           runnables.add(script);
-        } else { // null != schedule
-          nextrun.put(script, schedule);
         }
       }
 
@@ -452,7 +459,6 @@ public class ScriptRunner extends Thread {
       this.executor.submit(new Runnable() {
         @Override
         public void run() {
-
           long nowts = System.currentTimeMillis();
           
           Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_CURRENT, Sensision.EMPTY_LABELS, 1);
@@ -470,8 +476,12 @@ public class ScriptRunner extends Thread {
 
           HttpURLConnection conn = null;
 
+          long ttl = Math.max(scanperiod * 2, periodicity * 2);
+
+          InputStream in = null;
+          
           try {
-            InputStream in = new FileInputStream(f);
+            in = new FileInputStream(f);
 
             conn = (HttpURLConnection) new URL(self.endpoint).openConnection();
 
@@ -553,21 +563,29 @@ public class ScriptRunner extends Thread {
             // Add a 'CLEAR' at the end of the script so we don't return anything
             out.write(CLEAR);
 
-            in.close();
             out.close();
 
             if (200 != conn.getResponseCode()) {
-              Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, 1);
+              Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, ttl, 1);
             }
           } catch (Exception e) {
-            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, 1);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, ttl, 1);
           } finally {
             nextrun.put(script, nowts + periodicity);
             nano = System.nanoTime() - nano;
-            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, nano / 1000L);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, ttl, nano / 1000L);
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_CURRENT, Sensision.EMPTY_LABELS, -1);
             if (null != conn) {
-              conn.disconnect();
+              try {
+                conn.disconnect();
+              } catch (Exception e) {                
+              }
+            }
+            if (null != in) {
+              try {
+                in.close();
+              } catch (Exception e) {                
+              }
             }
           }
         }
