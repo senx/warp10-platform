@@ -1049,6 +1049,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   
   @Override
   public Macro find(String symbol) throws WarpScriptException {
+    
+    //
+    // Check if we have import rules which must be applied
+    //
+    
+    symbol = rewriteMacroSymbol(symbol);
+    
     //
     // Look up the macro in the local symbol table
     //
@@ -1535,5 +1542,30 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     
     int newCapacity = elements.length + (elements.length >> 1) + n;
     elements = Arrays.copyOf(elements, newCapacity);
+  }
+  
+  private String rewriteMacroSymbol(String symbol) {
+    Map<String,String> rules = (Map<String,String>) this.attributes.get(WarpScriptStack.ATTRIBUTE_IMPORT_RULES);
+    
+    if (null == rules) {
+      return symbol;
+    }
+    
+    //
+    // Scan the rules, from longest to shortest
+    //
+    
+    List<String> prefixes = new ArrayList<String>(rules.keySet()); 
+    
+    for (String prefix: prefixes) {
+      String substitute = rules.get(prefix);
+      
+      if (symbol.startsWith(prefix)) {
+        symbol = substitute + symbol.substring(prefix.length());
+        break;
+      }
+    }
+    
+    return symbol;
   }
 }
