@@ -68,10 +68,12 @@ public class ScriptRunnerConsumerFactory implements ConsumerFactory {
         KafkaOffsetCounters counters = pool.getCounters();
         
         try {
-          Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
+          // Kafka 2.x Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
+          long delay = 500L;
+          
           while (!pool.getAbort().get()) {
-            ConsumerRecords<byte[], byte[]> records = consumer.poll(delay);
-            
+            ConsumerRecords<byte[], byte[]> records = pool.poll(consumer,delay);
+                        
             for (ConsumerRecord<byte[], byte[]> record : records) {
               counters.count(record.partition(), record.offset());
               

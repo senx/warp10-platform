@@ -16,6 +16,7 @@
 
 package io.warp10.continuum;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,8 +26,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +62,11 @@ public class KafkaSynchronizedConsumerPool {
   private final AtomicBoolean shutdown = new AtomicBoolean(false);
   
   private final AtomicBoolean stopped = new AtomicBoolean(false);
+
+  private Map<KafkaConsumer,ReentrantLock> consumerLocks = null;
+  private Map<KafkaConsumer,AtomicBoolean> pending = null;
+  
+  private AtomicBoolean mustCommit = new AtomicBoolean(false);
   
   public static interface ConsumerFactory {
     public Runnable getConsumer(KafkaSynchronizedConsumerPool pool, KafkaConsumer<byte[], byte[]> stream);
@@ -101,6 +109,7 @@ public class KafkaSynchronizedConsumerPool {
           // commit of offsets
           //
           try {
+            pool.mustCommit.set(true);
             pool.getBarrier().await();
             if (null != syncHook) {
               syncHook.call();
@@ -113,10 +122,7 @@ public class KafkaSynchronizedConsumerPool {
           }
         }
 
-        try {
-          Thread.sleep(100L);
-        } catch (InterruptedException ie) {                
-        }
+        LockSupport.parkNanos(100000000L);
       }
     }
   }
@@ -200,10 +206,14 @@ public class KafkaSynchronizedConsumerPool {
           //
             
           consumers = new KafkaConsumer[nthreads];
-
+          pool.consumerLocks = new HashMap<KafkaConsumer,ReentrantLock>(nthreads);
+          pool.pending = new HashMap<KafkaConsumer,AtomicBoolean>(nthreads);
+          
           for (int i = 0; i < nthreads; i++) {
             consumers[i] = new KafkaConsumer<>(props);
             consumers[i].subscribe(Collections.singletonList(topic));
+            pool.consumerLocks.put(consumers[i], new ReentrantLock());
+            pool.pending.put(consumers[i], new AtomicBoolean(false));
             executor.submit(factory.getConsumer(pool,consumers[i]));
           }
 
@@ -233,8 +243,31 @@ public class KafkaSynchronizedConsumerPool {
                 }
                 
                 // Commit offsets
-                for (KafkaConsumer consumer: consumers) {
-                  consumer.commitSync();
+                try {
+                  for (KafkaConsumer consumer: consumers) {
+                    ReentrantLock lock = pool.consumerLocks.get(consumer);
+                    AtomicBoolean pending = pool.pending.get(consumer);
+                    
+                    while(true) {
+                      try {
+                        lock.lockInterruptibly();
+                        // Check if the consumer has pending records, if so,
+                        // continue the look
+                        if (pending.get()) {
+                          continue;
+                        }
+                        // No pending records, commit the offsets and exit the loop
+                        consumer.commitSync();
+                        break;
+                      } finally {
+                        if (lock.isHeldByCurrentThread()) {
+                          lock.unlock();
+                        }
+                      }
+                    }                    
+                  }                  
+                } finally {
+                  pool.mustCommit.set(false);
                 }
                 
                 pool.getCounters().commit();
@@ -366,5 +399,30 @@ public class KafkaSynchronizedConsumerPool {
   
   public boolean isStopped() {
     return this.stopped.get();
+  }
+  
+  //Kafka 2.xpublic ConsumerRecords poll(KafkaConsumer consumer, Duration delay) throws InterruptedException {
+  public ConsumerRecords poll(KafkaConsumer consumer, long delay) throws InterruptedException {
+    ReentrantLock lock = consumerLocks.get(consumer);
+    
+    if (null == lock) {
+      throw new RuntimeException("Unknown consumer.");
+    }
+    
+    try {
+      this.pending.get(consumer).set(false);
+      lock.lockInterruptibly();
+      // If the pool must commit, return an empty set of records
+      if (this.mustCommit.get()) {
+        return new ConsumerRecords(new HashMap());
+      }
+      ConsumerRecords records = consumer.poll(delay);
+      this.pending.get(consumer).set(records.count() > 0);
+      return records;
+    } finally {
+      if (lock.isHeldByCurrentThread()) {
+        lock.unlock();
+      }
+    }
   }
 }

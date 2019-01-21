@@ -54,6 +54,8 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.geoxp.oss.CryptoHelper;
 import com.google.common.base.Charsets;
@@ -85,6 +87,8 @@ import io.warp10.sensision.Sensision;
  */
 public class ScriptRunner extends Thread {
 
+  private static final Logger LOG = LoggerFactory.getLogger(ScriptRunner.class);
+  
   static class NamedThreadFactory implements ThreadFactory {
     final ThreadGroup group;
     final AtomicInteger threadNumber = new AtomicInteger(1);
@@ -113,7 +117,11 @@ public class ScriptRunner extends Thread {
     }
   }
 
-  protected static final byte[] CLEAR = "\nCLEAR\n".getBytes(Charsets.UTF_8);
+  /*
+   * CLEAR footer, used to remove all symbols and clear the stack so no output is returned
+   * even if EXPORT was called
+   */
+  protected static final byte[] CLEAR = ("\n" + WarpScriptLib.CLEARSYMBOLS + " " + WarpScriptLib.CLEAR + "\n").getBytes(Charsets.UTF_8);
 
   protected ExecutorService executor;
 
@@ -193,7 +201,6 @@ public class ScriptRunner extends Thread {
   private final boolean runAtStartup;
 
   public ScriptRunner(KeyStore keystore, Properties config) throws IOException {
-
     //
     // Extract our roles
     //
@@ -301,9 +308,9 @@ public class ScriptRunner extends Thread {
 
       Properties props = new Properties();
       // @see http://kafka.apache.org/documentation.html#producerconfigs
-      props.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(Configuration.RUNNER_KAFKA_BROKERLIST));
-      if (null != props.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CLIENTID)) {
-        props.setProperty(ProducerConfig.CLIENT_ID_CONFIG, props.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CLIENTID));
+      props.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.getProperty(Configuration.RUNNER_KAFKA_BROKERLIST));
+      if (null != config.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CLIENTID)) {
+        props.setProperty(ProducerConfig.CLIENT_ID_CONFIG, config.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CLIENTID));
       }
       props.setProperty(ProducerConfig.ACKS_CONFIG, "-1");
       props.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
@@ -311,10 +318,8 @@ public class ScriptRunner extends Thread {
       // Only a single in flight request to remove risk of message reordering during retries
       props.setProperty(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1");
 
-      ProducerConfig kafkaConfig = new ProducerConfig(props);
-
-      this.kafkaProducerPool = new KafkaProducerPool(kafkaConfig,
-          Integer.parseInt(props.getProperty(Configuration.RUNNER_KAFKA_POOLSIZE)),
+      this.kafkaProducerPool = new KafkaProducerPool(props,
+          Integer.parseInt(config.getProperty(Configuration.RUNNER_KAFKA_POOLSIZE)),
           SensisionConstants.SENSISION_CLASS_CONTINUUM_RUNNER_KAFKA_PRODUCER_POOL_GET,
           SensisionConstants.SENSISION_CLASS_CONTINUUM_RUNNER_KAFKA_PRODUCER_WAIT_NANOS);
 
@@ -334,8 +339,13 @@ public class ScriptRunner extends Thread {
       try {
         this.leaderLatch.start();
       } catch (Exception e) {
+        LOG.error("Error starting leader latch", e);
         throw new IOException(e);
       }
+      
+      this.setDaemon(true);
+      this.setName("[Warp ScriptRunner]");
+      this.start();
     }
 
     this.id = config.getProperty(Configuration.RUNNER_ID);
@@ -382,7 +392,6 @@ public class ScriptRunner extends Thread {
         Set<String> currentScripts = scripts.keySet();
         scripts.clear();
         scripts.putAll(newscripts);
-
 
         //
         // Clear entries from 'nextrun' which are for scripts which no longer exist
@@ -442,7 +451,7 @@ public class ScriptRunner extends Thread {
         }
       }
 
-      LockSupport.parkNanos(10000000L);
+      LockSupport.parkNanos(50000000L);
     }
   }
 
@@ -683,7 +692,6 @@ public class ScriptRunner extends Thread {
 
     try {
       producer = this.kafkaProducerPool.getProducer();
-
       // Call get() so we simulate a synchronous producer
       producer.send(record).get();
     } catch (Exception e) {
@@ -811,5 +819,4 @@ public class ScriptRunner extends Thread {
 
     this.keystore.forget();
   }
-
 }

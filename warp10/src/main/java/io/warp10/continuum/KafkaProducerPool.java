@@ -16,10 +16,10 @@
 
 package io.warp10.continuum;
 
+import java.util.Properties;
 import java.util.concurrent.locks.LockSupport;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerConfig;
 
 import io.warp10.sensision.Sensision;
 
@@ -34,13 +34,13 @@ public class KafkaProducerPool {
   
   private int currentPoolSize = 0;
 
-  public KafkaProducerPool(ProducerConfig config, int size, String GET_METRIC, String TIME_METRIC) {
+  public KafkaProducerPool(Properties config, int size, String GET_METRIC, String TIME_METRIC) {
     this.producers = new KafkaProducer[size];
     this.GET_METRIC_CLASS = GET_METRIC;
     this.TIME_METRIC_CLASS = TIME_METRIC;
     
-    for (int i = 0; i < this.producers.length; i++) {
-      this.producers[i] = new KafkaProducer<byte[], byte[]>(config.originals());
+    for (int i = 0; i < this.producers.length; i++) {      
+      this.producers[i] = new KafkaProducer<byte[], byte[]>(config);
     }
     
     this.currentPoolSize = this.producers.length;

@@ -72,7 +72,7 @@ max.encoder.size = 100000
 
 //
 // Comma separated list of components to run in distributed mode
-// Valid values are 'ingress', 'directory', 'store', 'egress', 'fetch', 'plasmaFE', 'plasmaBE', 'runner'
+// Valid values are 'ingress', 'directory', 'store', 'egress', 'fetch', 'plasmaFE', 'plasmaBE', 'webcall', 'runner'
 //
 warp.components =
 
@@ -424,14 +424,14 @@ webcall.user.agent = Warp10-WebCall
 webcall.host.patterns = !.*
 
 //
-// ZK Quorum to use for reaching the Kafka cluster to consume WebCall requests
+// Comma separated list of Kafka broker host:port for reaching the Kafka cluster to consume WebCall requests
 //
-webcall.kafka.zkconnect =
+webcall.kafka.consumer.bootstrap.servers =
 
 //
 // List of Kafka brokers to use for sending WebCall requests
 //
-webcall.kafka.brokerlist =
+webcall.kafka.producer.bootstrap.servers =
 
 //
 // Topic to use for WebCall requests
@@ -524,9 +524,9 @@ directory.find.maxresults = 100000
 directory.find.maxresults.hard = 100000
 
 //
-// Zookeeper ZK connect string for Kafka ('metadata' topic)
+// Comma separated list of Kafka broker host:port for Kafka ('metadata' topic)
 //  
-directory.kafka.metadata.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
+directory.kafka.metadata.consumer.bootstrap.servers = 127.0.0.1:9092
 
 //
 // Actual 'metadata' topic
@@ -832,14 +832,14 @@ ingress.websocket.maxmessagesize = 1048576
 ingress.zk.quorum = 127.0.0.1:2181
 
 //
-// ZK Connect String for the metadata kafka cluster
+// Comma separated list of Kafka broker host:port for the metadata kafka cluster
 //
-ingress.kafka.metadata.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
+ingress.kafka.metadata.consumer.bootstrap.servers = 127.0.0.1:9092
 
 //
 // Kafka broker list for the 'meta' topic
 //
-ingress.kafka.metadata.brokerlist = 127.0.0.1:9092
+ingress.kafka.metadata.producer.bootstrap.servers = 127.0.0.1:9092
 
 //
 // Actual 'meta' topic
@@ -881,7 +881,7 @@ ingress.kafka.metadata.nthreads = 2
 //
 // Kafka broker list for the 'data' topic
 //
-ingress.kafka.data.brokerlist = 127.0.0.1:9092
+ingress.kafka.data.producer.bootstrap.servers = 127.0.0.1:9092
 
 //
 // Actual 'data' topic
@@ -921,7 +921,7 @@ ingress.kafka.metadata.maxsize = 900000
 //
 // Kafka broker list for the throttling topic
 //
-#ingress.kafka.throttling.brokerlist = 
+#ingress.kafka.throttling.producer.bootstrap.servers = 
   
 //
 // Optional client id to use when producing messages in the throttling topic
@@ -939,9 +939,9 @@ ingress.kafka.metadata.maxsize = 900000
 #ingress.kafka.throttling.topic = 
   
 //
-// ZK connect string for the throttling kafka cluster
+// Comma separated list of Kafka broker host:port for the throttling kafka cluster
 //
-#ingress.kafka.throttling.zkconnect = 
+#ingress.kafka.throttling.consumer.bootstrap.servers = 
   
 //
 // Client id to use when consuming the throttling topic
@@ -1029,14 +1029,14 @@ ingress.kafka.metadata.maxsize = 900000
 #store.hbase.data.aes = 
 
 //
-// Zookeeper ZK connect string for Kafka ('data' topic)
+// Comma separated list of Kafka broker host:port for Kafka ('data' topic)
 //  
-store.kafka.data.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
+store.kafka.data.consumer.bootstrap.servers = 127.0.0.1:9092
 
 //
 // Kafka broker list for the 'data' topic
 //
-store.kafka.data.brokerlist = 127.0.0.1:9092
+store.kafka.data.producer.bootstrap.servers = 127.0.0.1:9092
 
 //
 // Actual 'data' topic
@@ -1094,6 +1094,18 @@ store.nthreads.kafka = 1
 // Defaults to 0 meaning no pool is used.
 //
 store.nthreads.delete = 0
+
+//
+// Should we use the BulkDeleteEndpoint for deleting data? If set to 'true', the
+// BulkDeleteEndpoint MUST be enabled on all RegionServers.
+//
+store.bulkdeleteendpoint = false
+  
+//
+// When not using the BulkDeleteEndpoint, how many Delete actions should we request
+// HBase to do at a time? Defaults to 10000
+//
+store.delete.batchsize = 10000
 
 //
 // ZooKeeper connect string for HBase
@@ -1189,9 +1201,9 @@ store.hbase.hconnection.threads.core = 4
 #warp.plasma.maxsubs
 
 //
-// ZooKeeper connect string for Kafka consumer
+// Comma separated list of Kafka broker host:port for Kafka consumer
 //
-plasma.frontend.kafka.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
+plasma.frontend.kafka.consumer.bootstrap.servers = 127.0.0.1:9092
 
 //
 // Kafka topic to consume. This topic is dedicated to this Plasma frontend.
@@ -1272,9 +1284,9 @@ plasma.frontend.kafka.mac = hex:hhhh...
 plasma.frontend.subscribe.delay = 5000
 
 //
-// Zookeeper ZK connect string for Kafka ('in' topic)
+// Comma separated list of Kafka broker host:port for Kafka ('in' topic)
 //  
-plasma.backend.kafka.in.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
+plasma.backend.kafka.in.consumer.bootstrap.servers = 127.0.0.1:9092
 
 //
 // Actual 'in' topic
@@ -1309,7 +1321,7 @@ plasma.backend.kafka.in.nthreads = 2
 //
 // Kafka broker list for the 'out' topic
 //
-plasma.backend.kafka.out.brokerlist = 127.0.0.1:9092
+plasma.backend.kafka.out.producer.bootstrap.servers = 127.0.0.1:9092
 
 //
 // Maximum size of Kafka outward messages
@@ -1427,14 +1439,14 @@ runner.endpoint = http://127.0.0.1:8881/api/v0/exec/warpscript
 runner.minperiod = 1000
 
 //
-// ZooKeeper connect string for the Kafka cluster
+// Comma separated list of Kafka broker host:port for the Kafka cluster
 //
-runner.kafka.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
+runner.kafka.consumer.bootstrap.servers = 127.0.0.1:9092
 
 //
 // List of Kafka brokers
 //
-runner.kafka.brokerlist = 127.0.0.1:9092
+runner.kafka.producer.bootstrap.servers = 127.0.0.1:9092
 
 //
 // Size of Kafka producer pool

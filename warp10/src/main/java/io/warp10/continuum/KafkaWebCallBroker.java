@@ -17,7 +17,6 @@
 package io.warp10.continuum;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,6 +27,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -163,7 +163,9 @@ public class KafkaWebCallBroker extends Thread {
             //
             
             counters.reset();
-                        
+                       
+            consumers = new KafkaConsumer[nthreads];
+            
             for (int i = 0; i < nthreads; i++) {
               consumers[i] = new KafkaConsumer<>(props);
               consumers[i].subscribe(Collections.singletonList(topic));
@@ -203,6 +205,8 @@ public class KafkaWebCallBroker extends Thread {
                   }
                 }                
               } catch (Throwable t) {
+                t.printStackTrace(System.out);
+                LOG.error("",t);
                 abort.set(true);
               }
               
@@ -235,7 +239,7 @@ public class KafkaWebCallBroker extends Thread {
             
             abort.set(false);
 
-            try { Thread.sleep(1000L); } catch (InterruptedException ie) {}
+            LockSupport.parkNanos(1000000000L);
           }
         }
       }
@@ -277,6 +281,8 @@ public class KafkaWebCallBroker extends Thread {
 
       long count = 0L;
       
+      final ReentrantLock lock = new ReentrantLock(true);
+      
       try {
         byte[] siphashKey = broker.keystore.getKey(KeyStore.SIPHASH_KAFKA_WEBCALL);
         byte[] aesKey = broker.keystore.getKey(KeyStore.AES_KAFKA_WEBCALL);
@@ -302,8 +308,11 @@ public class KafkaWebCallBroker extends Thread {
                 //
                 // Now join the cyclic barrier which will trigger the
                 // commit of offsets
+                // We lock on 'lock' so KafkaConsumer is not accessed while we wait
+                // for the commit of offsets (as KafkaConsumer is not thread safe)
                 //
                 try {
+                  lock.lockInterruptibly();
                   broker.barrier.await();
                   Sensision.update(SensisionConstants.SENSISION_CLASS_WEBCALL_BARRIER_SYNCS, Sensision.EMPTY_LABELS, 1);
                 } catch (Exception e) {
@@ -311,13 +320,13 @@ public class KafkaWebCallBroker extends Thread {
                   return;
                 } finally {
                   lastsync = System.currentTimeMillis();
+                  if (lock.isHeldByCurrentThread()) {
+                    lock.unlock();
+                  }
                 }
               }
  
-              try {
-                Thread.sleep(100L);
-              } catch (InterruptedException ie) {                
-              }
+              LockSupport.parkNanos(100000000L);
             }
           }
         });
@@ -328,9 +337,19 @@ public class KafkaWebCallBroker extends Thread {
 
         TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
 
-        Duration delay = Duration.of(500, ChronoUnit.MILLIS);
+        //Kafka 2.x Duration delay = Duration.of(500, ChronoUnit.MILLIS);
+        long delay = 500L;
         while (!broker.abort.get()) {
-          ConsumerRecords<byte[], byte[]> records = consumer.poll(delay);
+          ConsumerRecords<byte[], byte[]> records = null;
+          
+          try {
+            lock.lockInterruptibly();
+            records = consumer.poll(delay);
+          } finally {
+            if (lock.isHeldByCurrentThread()) {
+              lock.unlock();
+            }
+          }
           
           for (ConsumerRecord<byte[], byte[]> record: records) {
             count++;
@@ -386,7 +405,7 @@ public class KafkaWebCallBroker extends Thread {
         }        
       } catch (Throwable t) {
         // FIXME(hbs): log something/update Sensision metrics
-        t.printStackTrace(System.out);
+        LOG.error("",t);
       } finally {
         // Set abort to true in case we exit the 'run' method
         broker.abort.set(true);

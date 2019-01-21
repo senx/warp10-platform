@@ -353,6 +353,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     //
     
     Properties metaProps = new Properties();
+    
     // @see http://kafka.apache.org/documentation.html#producerconfigs
     metaProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(Configuration.INGRESS_KAFKA_META_BROKERLIST));
     if (null != props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CLIENTID)) {
@@ -369,9 +370,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     //metaProps.setProperty("compression.codec", "snappy");
     //metaProps.setProperty("client.id","");
 
-    ProducerConfig metaConfig = new ProducerConfig(metaProps);
-    
-    this.metaProducerPool = new KafkaProducerPool(metaConfig,
+    this.metaProducerPool = new KafkaProducerPool(metaProps,
         Integer.parseInt(props.getProperty(Configuration.INGRESS_KAFKA_METADATA_POOLSIZE)),
         SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_KAFKA_METADATA_PRODUCER_POOL_GET,
         SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_KAFKA_METADATA_PRODUCER_WAIT_NANO);
@@ -398,8 +397,6 @@ public class Ingress extends AbstractHandler implements Runnable {
     //dataProps.setProperty("compression.codec", "snappy");
     //dataProps.setProperty("client.id","");
 
-    ProducerConfig dataConfig = new ProducerConfig(dataProps);
-
     //
     // Allocate producer pool
     //
@@ -407,7 +404,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     this.dataProducers = new KafkaProducer[Integer.parseInt(props.getProperty(Configuration.INGRESS_KAFKA_DATA_POOLSIZE))];
     
     for (int i = 0; i < dataProducers.length; i++) {
-      this.dataProducers[i] = new KafkaProducer<byte[], byte[]>(dataConfig.originals());
+      this.dataProducers[i] = new KafkaProducer<byte[], byte[]>(dataProps);
     }
     
     this.dataProducersCurrentPoolSize = this.dataProducers.length;

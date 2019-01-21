@@ -16,6 +16,9 @@
 
 package io.warp10.continuum;
 
+import java.util.Map.Entry;
+import java.util.Properties;
+
 public class Configuration {
 
   public static final String OSS_MASTER_KEY = "oss.master.key";
@@ -163,14 +166,14 @@ public class Configuration {
   public static final String WEBCALL_HOST_PATTERNS = "webcall.host.patterns";
 
   /**
-   * ZK Quorum to use for reaching the Kafka cluster to consume WebCall requests
+   * Comma separated list of Kafka broker host:port to use for reaching the Kafka cluster to consume WebCall requests
    */
-  public static final String WEBCALL_KAFKA_ZKCONNECT = "webcall.kafka.zkconnect";
+  public static final String WEBCALL_KAFKA_ZKCONNECT = "webcall.kafka.consumer.bootstrap.servers";
   
   /**
    * List of Kafka brokers to use for sending WebCall requests
    */
-  public static final String WEBCALL_KAFKA_BROKERLIST = "webcall.kafka.brokerlist";
+  public static final String WEBCALL_KAFKA_BROKERLIST = "webcall.kafka.producer.bootstrap.servers";
   
   /**
    * Topic to use for WebCall requests
@@ -333,9 +336,9 @@ public class Configuration {
   public static String DIRECTORY_FIND_MAXRESULTS_HARD = "directory.find.maxresults.hard";
   
   /**
-   * Zookeeper ZK connect string for Kafka ('metadata' topic)
+   * Comma separated list of Kafka broker host:port for Kafka ('metadata' topic)
    */  
-  public static final String DIRECTORY_KAFKA_METADATA_ZKCONNECT = "directory.kafka.metadata.zkconnect";
+  public static final String DIRECTORY_KAFKA_METADATA_ZKCONNECT = "directory.kafka.metadata.consumer.bootstrap.servers";
   
   /**
    * Actual 'metadata' topic
@@ -662,14 +665,14 @@ public class Configuration {
   public static final String INGRESS_ZK_QUORUM = "ingress.zk.quorum";
   
   /**
-   * ZK Connect String for the metadata kafka cluster
+   * Comma separated list of Kafka broker host:port for the metadata kafka cluster
    */
-  public static final String INGRESS_KAFKA_META_ZKCONNECT = "ingress.kafka.metadata.zkconnect";
+  public static final String INGRESS_KAFKA_META_ZKCONNECT = "ingress.kafka.metadata.consumer.bootstrap.servers";
   
   /**
    * Kafka broker list for the 'meta' topic
    */
-  public static final String INGRESS_KAFKA_META_BROKERLIST = "ingress.kafka.metadata.brokerlist";
+  public static final String INGRESS_KAFKA_META_BROKERLIST = "ingress.kafka.metadata.producer.bootstrap.servers";
 
   /**
    * Kafka client id for producing on the 'meta' topic
@@ -724,7 +727,7 @@ public class Configuration {
   /**
    * Kafka broker list for the 'data' topic
    */
-  public static final String INGRESS_KAFKA_DATA_BROKERLIST = "ingress.kafka.data.brokerlist";
+  public static final String INGRESS_KAFKA_DATA_BROKERLIST = "ingress.kafka.data.producer.bootstrap.servers";
 
   /**
    * Kafka client id for producing on the 'data' topic
@@ -774,7 +777,7 @@ public class Configuration {
   /**
    * Kafka broker list for the throttling topic
    */
-  public static final String INGRESS_KAFKA_THROTTLING_BROKERLIST = "ingress.kafka.throttling.brokerlist";
+  public static final String INGRESS_KAFKA_THROTTLING_BROKERLIST = "ingress.kafka.throttling.producer.bootstrap.servers";
   
   /**
    * Optional client id to use when producing messages in the throttling topic
@@ -792,9 +795,9 @@ public class Configuration {
   public static final String INGRESS_KAFKA_THROTTLING_TOPIC = "ingress.kafka.throttling.topic";
   
   /**
-   * ZK connect string for the throttling kafka cluster
+   * Comma separated list of Kafka broker host:port for the throttling kafka cluster
    */
-  public static final String INGRESS_KAFKA_THROTTLING_ZKCONNECT = "ingress.kafka.throttling.zkconnect";
+  public static final String INGRESS_KAFKA_THROTTLING_ZKCONNECT = "ingress.kafka.throttling.consumer.bootstrap.servers";
   
   /**
    * Client id to use when consuming the throttling topic
@@ -844,14 +847,14 @@ public class Configuration {
   public static final String STORE_HBASE_DATA_AES = "store.hbase.data.aes";
   
   /**
-   * Zookeeper ZK connect string for Kafka ('data' topic)
+   * Comma separated list of Kafka broker host:port for Kafka ('data' topic)
    */  
-  public static final String STORE_KAFKA_DATA_ZKCONNECT = "store.kafka.data.zkconnect";
+  public static final String STORE_KAFKA_DATA_ZKCONNECT = "store.kafka.data.consumer.bootstrap.servers";
   
   /**
    * Kafka broker list for the 'data' topic
    */
-  public static final String STORE_KAFKA_DATA_BROKERLIST = "store.kafka.data.brokerlist";
+  public static final String STORE_KAFKA_DATA_BROKERLIST = "store.kafka.data.producer.bootstrap.servers";
 
   /**
    * Kafka client.id for producing on the 'data' topic
@@ -925,6 +928,18 @@ public class Configuration {
   public static final String STORE_NTHREADS_DELETE = "store.nthreads.delete";
   
   /**
+   * Should we use the BulkDeleteEndpoint for deleting data? If set to 'true', the
+   * BulkDeleteEndpoint MUST be enabled on all RegionServers.
+   */
+  public static final String STORE_BULKDELETEENDPOINT = "store.bulkdeleteendpoint";
+  
+  /**
+   * When not using the BulkDeleteEndpoint, how many Delete actions should we request
+   * HBase to do at a time? Defaults to 10000
+   */
+  public static final String STORE_DELETE_BATCHSIZE = "store.delete.batchsize";
+  
+  /**
    * ZooKeeper connect string for HBase
    */
   public static final String STORE_HBASE_DATA_ZKCONNECT = "store.hbase.data.zkconnect";
@@ -992,9 +1007,9 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
-   * ZooKeeper connect string for Kafka consumer
+   * Comma separated list of Kafka broker host:port for Kafka consumer
    */
-  public static final String PLASMA_FRONTEND_KAFKA_ZKCONNECT = "plasma.frontend.kafka.zkconnect";
+  public static final String PLASMA_FRONTEND_KAFKA_ZKCONNECT = "plasma.frontend.kafka.consumer.bootstrap.servers";
   
   /**
    * Kafka topic to consume. This topic is dedicated to this Plasma frontend.
@@ -1084,9 +1099,9 @@ public class Configuration {
   public static final String PLASMA_FRONTEND_SUBSCRIBE_DELAY = "plasma.frontend.subscribe.delay";
   
   /**
-   * Zookeeper ZK connect string for Kafka ('in' topic)
+   * Comma separated list of Kafka broker host:port for Kafka ('in' topic)
    */  
-  public static final String PLASMA_BACKEND_KAFKA_IN_ZKCONNECT = "plasma.backend.kafka.in.zkconnect";
+  public static final String PLASMA_BACKEND_KAFKA_IN_ZKCONNECT = "plasma.backend.kafka.in.consumer.bootstrap.servers";
   
   /**
    * Actual 'in' topic
@@ -1131,7 +1146,7 @@ public class Configuration {
   /**
    * Kafka broker list for the 'out' topic
    */
-  public static final String PLASMA_BACKEND_KAFKA_OUT_BROKERLIST = "plasma.backend.kafka.out.brokerlist";
+  public static final String PLASMA_BACKEND_KAFKA_OUT_BROKERLIST = "plasma.backend.kafka.out.producer.bootstrap.servers";
 
   /**
    * Kafka client id for producing on the 'out' topic
@@ -1224,14 +1239,14 @@ public class Configuration {
   public static final String RUNNER_MINPERIOD = "runner.minperiod";
   
   /**
-   * ZooKeeper connect string for the Kafka cluster
+   * Comma separated list of Kafka broker host:port for the Kafka cluster
    */
-  public static final String RUNNER_KAFKA_ZKCONNECT = "runner.kafka.zkconnect";
+  public static final String RUNNER_KAFKA_ZKCONNECT = "runner.kafka.consumer.bootstrap.servers";
   
   /**
    * List of Kafka brokers
    */
-  public static final String RUNNER_KAFKA_BROKERLIST = "runner.kafka.brokerlist";
+  public static final String RUNNER_KAFKA_BROKERLIST = "runner.kafka.producer.bootstrap.servers";
 
   /**
    * Kafka client id for producing on the runner topic
@@ -1959,4 +1974,26 @@ public class Configuration {
    */
   public static String HTTP_HEADER_EXPOSE_HEADERS = "http.header.exposeheaders";
   
+  /**
+   * Extract properties which have a given prefix an return a Properties instance
+   * with those properties from which the prefix was removed.
+   *
+   * @param properties Properties to inspect
+   * @param prefix Prefix to detect
+   * @return the subset of properties which had the given prefix (removed)
+   */
+  public static Properties extractPrefixed(Properties properties, String prefix) {
+    Properties extract = new Properties();
+
+    if (null != prefix) {
+      for (Entry<Object, Object> entry: properties.entrySet()) {
+        String key = entry.getKey().toString();
+        if (key.startsWith(prefix)) {
+          extract.put(key.substring(prefix.length()), entry.getValue());
+        }
+      }      
+    }
+    
+    return extract;
+  }
 }

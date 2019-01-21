@@ -22,7 +22,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
-import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,7 +52,10 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
@@ -204,6 +206,17 @@ public class Store extends Thread {
   
   private long throttlingDelay = 10000000L;
   
+  /**
+   * Should we use the BulkDeleteEndpoint or iterate over the results?
+   */
+  private boolean useBulkDeleteEndpoint = true;
+  
+  /**
+   * When not using the BulkDeleteEndpoint, how often do we call delete on the
+   * underlying HTable?
+   */
+  private int deleteBatchSize = 10000;
+  
   public Store(KeyStore keystore, final Properties properties, Integer nthr) throws IOException {
     this.keystore = keystore;
     this.properties = properties;
@@ -230,6 +243,10 @@ public class Store extends Thread {
     final int nthreads = null != nthr ? nthr.intValue() : Integer.valueOf(properties.getProperty(io.warp10.continuum.Configuration.STORE_NTHREADS_KAFKA, "1"));
     
     nthreadsDelete = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.STORE_NTHREADS_DELETE, "0"));
+    
+    this.useBulkDeleteEndpoint = !"false".equals(properties.getProperty(io.warp10.continuum.Configuration.STORE_BULKDELETEENDPOINT));
+
+    this.deleteBatchSize = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.STORE_DELETE_BATCHSIZE, Integer.toString(this.deleteBatchSize)));
     
     //
     // If instructed to do so, launch a thread which will read the throttling file periodically
@@ -374,8 +391,6 @@ public class Store extends Thread {
             props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer");
             props.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1");
             
-            ConsumerConfig config = new ConsumerConfig(props);
-
             kconsumers = new KafkaConsumer[nthreads];
                        
             self.barrier = new CyclicBarrier(nthreads + 1);
@@ -450,7 +465,8 @@ public class Store extends Thread {
                    
                   //
                   // All processing threads are waiting on the barrier, this means we can flush the offsets because
-                  // they have all processed data successfully for the given activity period
+                  // they have all processed data successfully for the given activity period and none is currently calling
+                  // KafkaConsumer.poll
                   //
                     
                   // Commit offsets
@@ -458,6 +474,7 @@ public class Store extends Thread {
                   for (KafkaConsumer kconsumer: kconsumers) {
                     kconsumer.commitSync();
                   }
+                  
                   counters.sensisionPublish();
                   Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_KAFKA_COMMITS, Sensision.EMPTY_LABELS, 1);
                   
@@ -494,6 +511,7 @@ public class Store extends Thread {
             }
 
           } catch (Throwable t) {
+            t.printStackTrace();
             LOG.error("Caught Throwable while synchronizing", t);
           } finally {
             if (LOG.isDebugEnabled()) {
@@ -781,9 +799,16 @@ public class Store extends Thread {
             while(!localabort.get() && !synchronizer.isInterrupted()) { 
               long now = System.currentTimeMillis();
               
-              if (now - lastsync > store.commitPeriod
-                  && (!inflightMessage.get() || !needToSync.get()
-                      || !(forcecommit.get() || (0 != lastPut.get() && (now - lastPut.get() > 500) || putsSize.get() > store.maxPendingPutsSize)))) {
+              if (now - lastsync > store.commitPeriod // We've committed too long ago
+                  && (!inflightMessage.get()
+                      || !needToSync.get()
+                      || !(forcecommit.get()
+                          || (0 != lastPut.get()
+                             && (now - lastPut.get() > 500)
+                             || putsSize.get() > store.maxPendingPutsSize)
+                          )
+                      )
+                  ) {
                 
                 //
                 // We synchronize on 'puts' so the main Thread does not add Puts to ht
@@ -792,17 +817,17 @@ public class Store extends Thread {
                 try {
                   putslock.lockInterruptibly();
                   
+                  needToSync.set(true);
+
                   //
                   // If a message processing is ongoing we need to delay synchronization
                   //
+                                    
                   if (inflightMessage.get()) {
-                    needToSync.set(true);
                     // Indicate we should pause after we've relinquished the lock
                     doPause = true;
                     continue;
                   }
-                  
-                  needToSync.set(false);
                   
                   //
                   // Make sure we do not have pendingDeletes
@@ -871,13 +896,17 @@ public class Store extends Thread {
                     LOG.error("Received Throwable while writing to HBase - forcing HBase reset", t);
                     return;
                   }
+                  
                   //
                   // Now join the cyclic barrier which will trigger the
                   // commit of offsets
                   //
+                  
                   try {           
                     // We wait at most maxTimeBetweenCommits so we can abort in case the synchronization was too long ago
                     ourbarrier.await(store.maxTimeBetweenCommits, TimeUnit.MILLISECONDS);
+                    needToSync.set(false);
+                    
                     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_BARRIER_SYNCS, Sensision.EMPTY_LABELS, 1);
                   } catch (Exception e) {
                     store.abort.set(true);
@@ -1031,14 +1060,38 @@ public class Store extends Thread {
         // of resetting inflightMessage, this makes the code cleaner as we don't have to add calls to inflightMessage.set(false)
         // throughout the code
         
-        Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
+        // Kafka 2.x Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
+        long delay = 500L;
         
         while (resetInflight() && !store.abort.get() && !Thread.currentThread().isInterrupted()) {
+
+          ConsumerRecords<byte[], byte[]> consumerRecords = null;
+
+          boolean doPause = false;
           
-          // Clear the 'inflight' status
-          inflightMessage.set(false);
-          
-          ConsumerRecords<byte[], byte[]> consumerRecords = consumer.poll(delay);
+          try {
+            putslock.lockInterruptibly();
+            // Clear the 'inflight' status
+            inflightMessage.set(false);
+
+            // Do not call poll if we must commit the offsets
+            if (needToSync.get()) {
+              doPause = true;
+              continue;
+            }
+
+            consumerRecords = consumer.poll(delay);
+            inflightMessage.set(consumerRecords.count() > 0);
+          } finally {
+            if (putslock.isHeldByCurrentThread()) {
+              putslock.unlock();
+            }
+            // Wait a little if we need to sync
+            if (doPause) {
+              LockSupport.parkNanos(10000L);
+            }
+          }
+                    
           for (ConsumerRecord<byte[], byte[]> record : consumerRecords) {
             
             //
@@ -1284,14 +1337,26 @@ public class Store extends Thread {
       // 'flushsem' Semaphore every microsecond.
       // 'flushsem' is released by the Synchronizer thread
       //
+
+      boolean waitForSem = false;
       
-      if (!puts.isEmpty()) {
-        forcecommit.set(true);
-        while(!flushsem.tryAcquire()) {
-          LockSupport.parkNanos(1000);
-        }        
+      // We check puts while holding the lock
+      try {
+        putslock.lockInterruptibly();
+        if (!puts.isEmpty()) {
+          forcecommit.set(true);
+          waitForSem = true;
+        }
+      } finally {
+        if (putslock.isHeldByCurrentThread()) {
+          putslock.unlock();
+        }
       }
       
+      while(waitForSem && !flushsem.tryAcquire()) {
+        LockSupport.parkNanos(1000);
+      }        
+
       //
       // @see https://hbase.apache.org/apidocs/org/apache/hadoop/hbase/coprocessor/example/BulkDeleteEndpoint.html
       //
@@ -1367,36 +1432,42 @@ public class Store extends Thread {
       //
       
       final AtomicBoolean error = new AtomicBoolean(false);
+
+      final Batch.Call<BulkDeleteService, BulkDeleteResponse> callable;
       
-      final Batch.Call<BulkDeleteService, BulkDeleteResponse> callable = new Batch.Call<BulkDeleteService, BulkDeleteResponse>() {  
-        public BulkDeleteResponse call(BulkDeleteService service) throws IOException {
-          BlockingRpcCallback<BulkDeleteResponse> rpcCallback = new BlockingRpcCallback<BulkDeleteResponse>();
-          ServerRpcController controller = new ServerRpcController();
+      if (store.useBulkDeleteEndpoint) {
+         callable = new Batch.Call<BulkDeleteService, BulkDeleteResponse>() {  
+          public BulkDeleteResponse call(BulkDeleteService service) throws IOException {
+            BlockingRpcCallback<BulkDeleteResponse> rpcCallback = new BlockingRpcCallback<BulkDeleteResponse>();
+            ServerRpcController controller = new ServerRpcController();
 
-          Builder builder = BulkDeleteRequest.newBuilder();
-          builder.setScan(ProtobufUtil.toScan(scan));
+            Builder builder = BulkDeleteRequest.newBuilder();
+            builder.setScan(ProtobufUtil.toScan(scan));
 
-          builder.setDeleteType(DeleteType.VERSION);
-                    
-          // Arbitrary for now, maybe come up with a better heuristic
-          builder.setRowBatchSize(1000);
-          service.delete(controller, builder.build(), rpcCallback);
+            builder.setDeleteType(DeleteType.VERSION);
+                      
+            // Arbitrary for now, maybe come up with a better heuristic
+            builder.setRowBatchSize(1000);
+            service.delete(controller, builder.build(), rpcCallback);
 
-          BulkDeleteResponse resp = rpcCallback.get();
-          
-          //
-          // Check if controller trapped an exception or an error message (may happen if a region is too busy)
-          //
+            BulkDeleteResponse resp = rpcCallback.get();
+            
+            //
+            // Check if controller trapped an exception or an error message (may happen if a region is too busy)
+            //
 
-          if (controller.failed()) {
-            error.set(true);
+            if (controller.failed()) {
+              error.set(true);
+            }
+
+            controller.checkFailed();
+                  
+            return resp;
           }
-
-          controller.checkFailed();
-                
-          return resp;
-        }
-      };
+        };       
+      } else {
+        callable = null;
+      }
 
       Callable<Object> deleteCallable = new Callable<Object>() {
         @Override
@@ -1406,22 +1477,48 @@ public class Store extends Thread {
           long nano = System.nanoTime();
           
           try {
-            Map<byte[], BulkDeleteResponse> result = table.coprocessorService(BulkDeleteService.class, scan.getStartRow(), scan.getStopRow(), callable);
-
-            nano = System.nanoTime() - nano;
-
-            if (error.get()) {
-              throw new IOException("Error while processing delete request.");
-            }
-            
             long noOfDeletedRows = 0L;
             long noOfDeletedVersions = 0L;
-            long noOfRegions = result.size();
+            long noOfRegions = 0;
 
-            // One element per region
-            for (BulkDeleteResponse response : result.values()) {
-              noOfDeletedRows += response.getRowsDeleted();
-              noOfDeletedVersions += response.getVersionsDeleted();
+            if (null != callable) {
+              Map<byte[], BulkDeleteResponse> result = table.coprocessorService(BulkDeleteService.class, scan.getStartRow(), scan.getStopRow(), callable);
+
+              nano = System.nanoTime() - nano;
+
+              if (error.get()) {
+                throw new IOException("Error while processing delete request.");
+              }
+              
+              noOfDeletedRows = 0L;
+              noOfDeletedVersions = 0L;
+              noOfRegions = result.size();
+
+              // One element per region
+              for (BulkDeleteResponse response : result.values()) {
+                noOfDeletedRows += response.getRowsDeleted();
+                noOfDeletedVersions += response.getVersionsDeleted();
+              }              
+            } else {
+              // Avoid using coprocessors since they are not supported by MapR-DB Binary
+              ResultScanner scanner = table.getScanner(scan);
+              List<Delete> dels = new ArrayList<>();
+              for (Result r : scanner) {
+                Delete d = new Delete(r.getRow());
+                dels.add(d);
+                if (dels.size() >= store.deleteBatchSize) {
+                  int size = dels.size();
+                  table.delete(dels);
+                  noOfDeletedRows += size;
+                  noOfDeletedVersions += size;
+                }
+              }
+              if (dels.size() > 0) {
+                int size = dels.size();
+                table.delete(dels);
+                noOfDeletedRows += size;
+                noOfDeletedVersions += size;
+              }
             }
             
             //

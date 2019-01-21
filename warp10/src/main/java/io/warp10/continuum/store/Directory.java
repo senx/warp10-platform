@@ -24,7 +24,6 @@ import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -73,6 +72,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -900,8 +900,6 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer");
             props.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1");
 
-            ConsumerConfig config = new ConsumerConfig(props);
-            
             KafkaConsumer<byte[], byte[]>[] consumers = null;
             
             self.barrier = new CyclicBarrier(nthreads + 1);
@@ -914,6 +912,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             
             // Reset counters
             counters.reset();
+
+            consumers = new KafkaConsumer[nthreads];
             
             for (int i = 0; i < nthreads; i++) {
               consumers[i] = new KafkaConsumer<>(props);
@@ -1245,6 +1245,15 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         final ReentrantLock actionsLock = new ReentrantLock();
         
         final AtomicLong actionsSize = new AtomicLong(0L);
+
+        // Boolean indicating that we should commit the offsets. This is used
+        // to ensure that we do not call poll when a commit must be performed
+        final AtomicBoolean mustCommit = new AtomicBoolean(false);
+        
+        // Boolean indicating that the last call to poll returned records which
+        // must be stored prior to committing the offsets, if pending is true
+        // then we will not trigger a commit
+        final AtomicBoolean pending = new AtomicBoolean(false);
         
         //
         // Start the synchronization Thread
@@ -1265,7 +1274,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               while(!localabort.get() && !Thread.currentThread().isInterrupted()) { 
                 long now = System.currentTimeMillis();
                 
-                if (now - lastsync > directory.commitPeriod) {
+                if (now - lastsync > directory.commitPeriod || (mustCommit.get() && !pending.get())) {
                   //
                   // We synchronize on 'puts' so the main Thread does not add Puts to it
                   //
@@ -1281,7 +1290,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                     try {
                       Object[] results = new Object[actions.size()];
                       
-                      if (directory.store||directory.delete) {
+                      if ((directory.store||directory.delete) && !actions.isEmpty()) {
                         ht.batch(actions, results);
 
                         // Check results for nulls
@@ -1312,12 +1321,20 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                       directory.abort.set(true);
                       return;                    
                     }
+                    
+                    mustCommit.set(true);
+                    // Do not trigger the commit if there are pending records
+                    if (pending.get()) {
+                      continue;
+                    }
+                    
                     //
                     // Now join the cyclic barrier which will trigger the
                     // commit of offsets
                     //
                     try {
                       directory.barrier.await();
+                      mustCommit.set(false);
                       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_BARRIER_SYNCS, Sensision.EMPTY_LABELS, 1);
                     } catch (Exception e) {
                       directory.abort.set(true);
@@ -1404,12 +1421,38 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         
         byte[] hbaseAESKey = directory.keystore.getKey(KeyStore.AES_HBASE_METADATA);
         
-        Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
+        //Kafka 2.x Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
+        long delay = 500L;
         
         while (!directory.abort.get()) {
           Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
+          
+          ConsumerRecords<byte[], byte[]> consumerRecords = null;
+          
+          //
+          // We acquire actionsLock prior to calling poll, so we know when the synchronizer
+          // thread is waiting on the barrier, as it holds the lock, no current call to poll
+          // is ongoing so we can safely call commitSync on the consumer.
+          //
+          
+          try {
+            actionsLock.lockInterruptibly();
+            
+            pending.set(false);
 
-          ConsumerRecords<byte[], byte[]> consumerRecords = consumer.poll(delay);
+            // Do not call poll if we must commit the offsets
+            if (mustCommit.get()) {
+              continue;
+            }
+            
+            consumerRecords = consumer.poll(delay);
+            
+            pending.set(consumerRecords.count() > 0);
+          } finally {
+            if (actionsLock.isHeldByCurrentThread()) {
+              actionsLock.unlock();
+            }
+          }
           
           for(ConsumerRecord<byte[], byte[]> record : consumerRecords) {
             if (!counters.safeCount(record.partition(), record.offset())) {
@@ -1777,6 +1820,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 encrypted = CryptoUtils.wrap(hbaseAESKey, metadataBytes);
                 put.addColumn(directory.colfam, new byte[0], encrypted);
               } else {
+                encrypted = metadataBytes;
                 put.addColumn(directory.colfam, new byte[0], metadataBytes);
               }
             }
@@ -1862,6 +1906,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           }         
         }        
       } catch (Throwable t) {
+        t.printStackTrace();
         LOG.error("", t);
       } finally {
         // Set abort to true in case we exit the 'run' method

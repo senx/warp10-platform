@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -370,6 +370,8 @@ public class WarpScriptLib {
   public static final String CPOPR = "CPOPR";
   public static final String PUSHR = "PUSHR";
   public static final String CLEARREGS = "CLEARREGS";
+  public static final String CLEARSYMBOLS = "CLEARSYMBOLS";
+  public static final String CLEAR = "CLEAR";
   public static final String RUN = "RUN";
   public static final String BOOTSTRAP = "BOOTSTRAP";
   public static final String NOOP = "NOOP";
@@ -498,9 +500,9 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new DROP("DROP"));
     addNamedWarpScriptFunction(new SAVE(SAVE));
     addNamedWarpScriptFunction(new RESTORE(RESTORE));
-    addNamedWarpScriptFunction(new CLEAR("CLEAR"));
+    addNamedWarpScriptFunction(new CLEAR(CLEAR));
     addNamedWarpScriptFunction(new CLEARDEFS("CLEARDEFS"));
-    addNamedWarpScriptFunction(new CLEARSYMBOLS("CLEARSYMBOLS"));
+    addNamedWarpScriptFunction(new CLEARSYMBOLS(CLEARSYMBOLS));
     addNamedWarpScriptFunction(new DROPN("DROPN"));
     addNamedWarpScriptFunction(new ROT("ROT"));
     addNamedWarpScriptFunction(new ROLL("ROLL"));

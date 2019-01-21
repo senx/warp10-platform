@@ -70,10 +70,19 @@ dependencies {
     //
     // HBase 1.0.0
     //
-    compile 'org.apache.hbase:hbase-client:1.1.13'
-    compile 'org.apache.hbase:hbase-examples:1.1.13'
-    compile 'org.apache.hbase:hbase-common:1.1.13'
-    compile 'org.apache.hbase:hbase-protocol:1.1.13'
+    if (null != System.getProperty("mapr-db")) {
+      println '#### Building Warp 10 for MapR-DB ###'
+      compile 'com.mapr.fs:mapr-hbase:6.0.1-mapr'
+      compile 'org.apache.hbase:hbase-client:1.1.8-mapr-1710'
+      compile 'org.apache.hbase:hbase-examples:1.1.8-mapr-1710'
+      compile 'org.apache.hbase:hbase-common:1.1.8-mapr-1710'
+      compile 'org.apache.hbase:hbase-protocol:1.1.8-mapr-1710'
+    } else {
+      compile 'org.apache.hbase:hbase-client:1.1.13'
+      compile 'org.apache.hbase:hbase-examples:1.1.13'
+      compile 'org.apache.hbase:hbase-common:1.1.13'
+      compile 'org.apache.hbase:hbase-protocol:1.1.13'
+    }
 
     compile 'org.fusesource.jansi:jansi:1.6'
     //compile 'org.mvel:mvel2:2.1.5.Final'
@@ -135,10 +144,23 @@ dependencies {
     compile 'com.fasterxml.util:java-merge-sort:1.0.0'
 
     // @see http://www.mail-archive.com/dev@kafka.apache.org/msg03829.html
-    compile("org.apache.kafka:kafka_2.11:2.1.0") {
+    if (null != System.getProperty("mapr-streams")) {
+      println '#### Building Warp 10 for MapR Streams ###'
+      compile("org.apache.kafka:kafka_2.11:1.0.1-mapr-1803") {
         exclude module: 'jms'
         exclude module: 'jmxtools'
         exclude module: 'jmxri'
+      }
+      // MapR Streams
+      compile("com.mapr.streams:mapr-streams:6.0.1-mapr")
+    } else {
+      // We need the kafka dep and not just kafka-clients as we are providing a custom partitioner
+      compile("org.apache.kafka:kafka_2.11:2.1.0") {
+      //compile("org.apache.kafka:kafka_2.11:1.1.1") {
+        exclude module: 'jms'
+        exclude module: 'jmxtools'
+        exclude module: 'jmxri'
+      }
     }
     testCompile 'junit:junit:4.6'
 }

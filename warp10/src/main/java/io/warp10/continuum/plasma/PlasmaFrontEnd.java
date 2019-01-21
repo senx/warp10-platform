@@ -17,7 +17,6 @@
 package io.warp10.continuum.plasma;
 
 import java.math.BigInteger;
-import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -37,6 +36,8 @@ import org.apache.zookeeper.CreateMode;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
@@ -63,6 +64,7 @@ import io.warp10.standalone.StandalonePlasmaHandler;
 
 public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable, PlasmaSubscriptionListener {
 
+  private static final Logger LOG = LoggerFactory.getLogger(PlasmaFrontEnd.class);
   
   /**
    * Curator Framework for Subscriptions
@@ -186,10 +188,14 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
             // TODO(hbs): allow setting of writeBufferSize
 
             try {
-              Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
+              // Kafka 2.x Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
+              long delay = 500L;
+              
               while (!pool.getAbort().get()) {
-                ConsumerRecords<byte[], byte[]> records = consumer.poll(delay);
+                ConsumerRecords<byte[], byte[]> records = pool.poll(consumer,delay);
+                
                 for (ConsumerRecord<byte[], byte[]> record: records) {
+                  System.out.println("FE RECORD=" + record);
                   counters.count(record.partition(), record.offset());
                   
                   byte[] data = record.value();
@@ -241,7 +247,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
                 }        
               }        
             } catch (Throwable t) {
-              t.printStackTrace(System.err);
+              LOG.error("Error while receiving message", t);
             } finally {
               // Set abort to true in case we exit the 'run' method
               pool.getAbort().set(true);
@@ -343,7 +349,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
         try {
           this.subscriptionCuratorFramework.delete().guaranteed().forPath(znode);
         } catch (Exception e) {
-          e.printStackTrace();
+          LOG.error("Error while removing subscription", e);
         }
       }
       
@@ -393,7 +399,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
           this.subscriptionCuratorFramework.create().withMode(CreateMode.EPHEMERAL).forPath(path, data);
           currentZnodes.add(path);
         } catch (Exception e) {
-          e.printStackTrace();
+          LOG.error("Error while adding subscription", e);
         }
         
         idx += data.length;
@@ -408,7 +414,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
       try {
         this.subscriptionCuratorFramework.setData().forPath(this.znoderoot, randomData);
       } catch (Exception e) {
-        e.printStackTrace();
+        LOG.error("Error while setting the subscription", e);
       }
       
       Map<String,String> labels = new HashMap<String,String>();

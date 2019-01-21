@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -278,7 +278,7 @@ public class WarpDist {
       } else if ("runner".equals(subprocess)) {
         ScriptRunner runner = new ScriptRunner(getKeyStore(), getProperties());
         Map<String,String> labels = new HashMap<String, String>();
-        labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "runner");
+        labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "runner");        
         Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);
       } else {
         System.err.println("Unknown component '" + subprocess + "', skipping.");
