@@ -3703,8 +3703,6 @@ public class GTSHelper {
     int idxa = 0;
     int idxb = 0;
     
-    int previdxA = -1;
-    int previdxB = -1;
     Long curTickA = null;
     Long curTickB = null;
     
@@ -3764,9 +3762,6 @@ public class GTSHelper {
         continue;
       }
 
-      previdxA = idxa - 1;
-      previdxB = idxb - 1;      
-
       //
       // Determine if we should fill GTS A or GTS B
       //
@@ -3807,22 +3802,28 @@ public class GTSHelper {
         // We should fill GTS A
         
         filled = ga;
-        
+
         for (int i = prewindow - 1; i >= 0; i--) {
-          if (previdxA - i >= 0) {
-            prev[i][0] = gtsa.ticks[previdxA - i];
-            prev[i][1] = locationAtIndex(gtsa, previdxA - i);
-            prev[i][2] = elevationAtIndex(gtsa, previdxA - i);
-            prev[i][3] = valueAtIndex(gtsa, previdxA - i);
+          int ia = idxa - prewindow + i;
+          if (ia >= 0) {
+            prev[i][0] = gtsa.ticks[ia];
+            prev[i][1] = locationAtIndex(gtsa, ia);
+            prev[i][2] = elevationAtIndex(gtsa, ia);
+            prev[i][3] = valueAtIndex(gtsa, ia);
+          } else {
+            break; // No more element to add
           }
         }
 
         for (int i = 0; i < postwindow; i++) {
-          if (idxa + i < gtsa.values) {
-            next[i][0] = gtsa.ticks[idxa + i];
-            next[i][1] = locationAtIndex(gtsa, idxa + i);
-            next[i][2] = elevationAtIndex(gtsa, idxa + i);
-            next[i][3] = valueAtIndex(gtsa, idxa + i);
+          int ia = idxa + i;
+          if (ia < gtsa.values) {
+            next[i][0] = gtsa.ticks[ia];
+            next[i][1] = locationAtIndex(gtsa, ia);
+            next[i][2] = elevationAtIndex(gtsa, ia);
+            next[i][3] = valueAtIndex(gtsa, ia);
+          } else {
+            break; // No more element to add
           }
         }
       
@@ -3844,22 +3845,28 @@ public class GTSHelper {
         // We should fill GTS B
       
         filled = gb;
-        
+
         for (int i = prewindow - 1; i >= 0; i--) {
-          if (previdxB - i >= 0) {
-            prev[i][0] = gtsb.ticks[previdxB - i];
-            prev[i][1] = locationAtIndex(gtsb, previdxB - i);
-            prev[i][2] = elevationAtIndex(gtsb, previdxB - i);
-            prev[i][3] = valueAtIndex(gtsb, previdxB - i);
+          int ib = idxb - prewindow + i;
+          if (ib >= 0) {
+            prev[i][0] = gtsb.ticks[ib];
+            prev[i][1] = locationAtIndex(gtsb, ib);
+            prev[i][2] = elevationAtIndex(gtsb, ib);
+            prev[i][3] = valueAtIndex(gtsb, ib);
+          } else {
+            break; // No more element to add
           }
         }
 
         for (int i = 0; i < postwindow; i++) {
-          if (idxb + i < gtsb.values) {
-            next[i][0] = gtsb.ticks[idxb + i];
-            next[i][1] = locationAtIndex(gtsb, idxb + i);
-            next[i][2] = elevationAtIndex(gtsb, idxb + i);
-            next[i][3] = valueAtIndex(gtsb, idxb + i);
+          int ib = idxb + i;
+          if (ib < gtsb.values) {
+            next[i][0] = gtsb.ticks[ib];
+            next[i][1] = locationAtIndex(gtsb, ib);
+            next[i][2] = elevationAtIndex(gtsb, ib);
+            next[i][3] = valueAtIndex(gtsb, ib);
+          } else {
+            break; // No more element to add
           }
         }
         
