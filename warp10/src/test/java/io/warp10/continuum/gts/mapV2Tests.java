@@ -331,7 +331,6 @@ public class mapV2Tests {
       "[ 200 ] ->JSON == ASSERT " +
       "1 45 <% DROP [] ->JSON == ASSERT %> FOR " +
       "DEPTH 0 == ASSERT");
-    System.out.println(stack.dump(10000));
     stack.clear();
   }
 
