@@ -113,16 +113,6 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
         overrideTick = Boolean.TRUE.equals(params.get(nseries + 5));
       }            
     }
-
-    List<Long> ticks = null;
-
-    if (params.size() > nseries + 6) {
-      if (!(params.get(nseries + 6) instanceof List)) {
-        throw new WarpScriptException(getName() + " expects a list of Long as 'output ticks' parameter.");
-      } else {
-        ticks = (List<Long>) params.get(nseries + 6);
-      }
-    }
     
     List<Object> series = new ArrayList<Object>();
 
@@ -139,7 +129,6 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     mapParams.put(PARAM_OCCURENCES, params.get(nseries + 3));
     mapParams.put(PARAM_STEP, (long) step);
     mapParams.put(PARAM_OVERRIDE, overrideTick);
-    mapParams.put(PARAM_OUTPUTTICKS, ticks);
     
     return applyWithParamsFromMap(stack, mapParams);
   }

@@ -4412,7 +4412,7 @@ public class GTSHelper {
           }
         }
       } else {
-        if (!(null == outputTicks) && reversed) {
+        if (null != outputTicks && reversed) {
           start = tick + 1;
         }
       }
@@ -4566,7 +4566,7 @@ public class GTSHelper {
           }
         }
 
-        parms[i++] = new long[]{prewindow, postwindow, start, stop, tickidx};
+        parms[i++] = new long[] {prewindow, postwindow, start, stop, tickidx};
 
         mapResult = ((WarpScriptMapperFunction) mapper).apply(parms);
       }
