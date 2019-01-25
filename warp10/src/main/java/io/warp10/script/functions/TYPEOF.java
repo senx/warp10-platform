@@ -133,7 +133,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
     } else if (o instanceof AtomicLong) {
       return (TYPE_COUNTER);
     } else if (o instanceof Typeofable) {
-      return (((Typeofable) o).typeof());
+      return ("X-" + ((Typeofable) o).typeof());
     } else {
       return (o.getClass().getCanonicalName());
     }
