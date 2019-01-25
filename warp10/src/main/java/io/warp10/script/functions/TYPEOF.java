@@ -70,6 +70,9 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String TYPE_PSHAPE = "PSHAPE";
   public static final String TYPE_COUNTER = "COUNTER";
 
+  public static interface Typeofable {
+    public String typeof();
+  }
 
   public TYPEOF(String name) {
     super(name);
@@ -81,7 +84,6 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
     stack.push(this.typeof(o));
     return stack;
   }
-
 
   public String typeof(Object o) {
     if (null == o) {
@@ -130,6 +132,8 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
       return (TYPE_REALMATRIX);
     } else if (o instanceof AtomicLong) {
       return (TYPE_COUNTER);
+    } else if (o instanceof Typeofable) {
+      return ("X-" + ((Typeofable) o).typeof());
     } else {
       return (o.getClass().getCanonicalName());
     }
