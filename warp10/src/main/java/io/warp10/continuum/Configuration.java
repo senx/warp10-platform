@@ -1879,6 +1879,11 @@ public class Configuration {
   public static final String WARPFLEET_MACROS_REPOS = "warpfleet.macros.repos";
   
   /**
+   * Maximum number of cached macros in the cache
+   */
+  public static final String WARPFLEET_CACHE_SIZE = "warpfleet.cache.size";
+  
+  /**
    * Default TTL (in ms) for macros loaded from a WarpFleet repository
    */
   public static final String WARPFLEET_MACROS_TTL = "warpfleet.macros.ttl";

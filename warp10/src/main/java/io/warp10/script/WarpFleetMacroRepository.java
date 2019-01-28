@@ -19,10 +19,12 @@ package io.warp10.script;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -95,8 +97,10 @@ public class WarpFleetMacroRepository {
    * Default list of WarpFleet™ repositories
    */
   private static final List<String> DEFAULT_REPOS = new ArrayList<String>();
+
+  private static final int DEFAULT_CACHE_SIZE = 10000;
   
-  private static Map<String,Macro> macros = new HashMap<String,Macro>();
+  private static Map<String,Macro> macros = null;
   
   private static Macro validator = null;
   
@@ -107,7 +111,7 @@ public class WarpFleetMacroRepository {
     if (!initialized.get()) {
       return null;
     }
-    
+
     // Reject names with relative path components in them
     if (name.contains("/../") || name.contains("/./") || name.startsWith("../") || name.startsWith("./")) {
       return null;
@@ -327,6 +331,18 @@ public class WarpFleetMacroRepository {
       }
     }
     
+    //
+    // Create macro map
+    //
+    
+    final int maxcachesize = Integer.parseInt(properties.getProperty(Configuration.WARPFLEET_CACHE_SIZE, Integer.toString(DEFAULT_CACHE_SIZE)));
+    
+    WarpFleetMacroRepository.macros = new LinkedHashMap<String,Macro>() {
+      @Override
+      protected boolean removeEldestEntry(java.util.Map.Entry<String,Macro> eldest) {
+        return this.size() > maxcachesize;
+      }
+    };
     //
     // Extract TTLs
     //

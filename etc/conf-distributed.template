@@ -242,6 +242,9 @@ warpscript.def.unshadow = false
 // Comma separated list of default WarpFleet™ repositories
 #warpfleet.macros.repos =
 
+// Maximum number of macros from WarpFleet™ to cache, defaults to 10000
+#warpfleet.cache.size = 10000
+
 // Default TTL (in ms) for macros loaded from a WarpFleet repository (defaults to 10 minutes)
 #warpfleet.macros.ttl = 600000
 
