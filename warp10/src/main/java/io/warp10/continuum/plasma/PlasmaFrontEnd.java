@@ -194,8 +194,15 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
               while (!pool.getAbort().get()) {
                 ConsumerRecords<byte[], byte[]> records = pool.poll(consumer,delay);
                 
+                boolean first = true;
+                
                 for (ConsumerRecord<byte[], byte[]> record: records) {
-                  System.out.println("FE RECORD=" + record);
+                  if (!first) {
+                    throw new RuntimeException("Invalid input, expected a single record, got " + records.count());
+                  }
+                  
+                  first = false;
+
                   counters.count(record.partition(), record.offset());
                   
                   byte[] data = record.value();

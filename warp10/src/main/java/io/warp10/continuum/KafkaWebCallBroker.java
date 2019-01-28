@@ -351,7 +351,15 @@ public class KafkaWebCallBroker extends Thread {
             }
           }
           
-          for (ConsumerRecord<byte[], byte[]> record: records) {
+          boolean first = true;
+          
+          for (ConsumerRecord<byte[], byte[]> record: records) {            
+            if (!first) {
+              throw new RuntimeException("Invalid input, expected a single record, got " + records.count());
+            }
+            
+            first = false;
+
             count++;
             counters.count(record.partition(), record.offset());
             

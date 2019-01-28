@@ -1454,7 +1454,15 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             }
           }
           
+          boolean first = true;
+          
           for(ConsumerRecord<byte[], byte[]> record : consumerRecords) {
+            if (!first) {
+              throw new RuntimeException("Invalid input, expected a single record, got " + consumerRecords.count());
+            }
+            
+            first = false;
+            
             if (!counters.safeCount(record.partition(), record.offset())) {
               continue;
             }

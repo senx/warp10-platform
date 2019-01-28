@@ -62,9 +62,17 @@ public class IngressMetadataConsumerFactory implements ConsumerFactory {
 
             ConsumerRecords<byte[], byte[]> records =  pool.poll(consumer,delay);            
 
+            boolean first = true;
+            
             for (ConsumerRecord<byte[], byte[]> record: records) {
-              counters.count(record.partition(), record.offset());
+              if (!first) {
+                throw new RuntimeException("Invalid input, expected a single record, got " + records.count());
+              }
               
+              first = false;
+
+              counters.count(record.partition(), record.offset());
+                            
               byte[] data = record.value();
 
               Sensision.update(SensisionConstants.SENSISION_CLASS_WARP_INGRESS_KAFKA_META_IN_MESSAGES, Sensision.EMPTY_LABELS, 1);

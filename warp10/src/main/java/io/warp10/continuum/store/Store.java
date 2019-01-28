@@ -1092,7 +1092,14 @@ public class Store extends Thread {
             }
           }
                     
+          boolean first = true;
+          
           for (ConsumerRecord<byte[], byte[]> record : consumerRecords) {
+            if (!first) {
+              throw new RuntimeException("Invalid input, expected a single record, got " + consumerRecords.count());
+            }
+            
+            first = false;
             
             //
             // If throttling is defined, check if we should consume this message
