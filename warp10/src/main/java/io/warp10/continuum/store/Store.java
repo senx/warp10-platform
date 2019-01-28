@@ -110,8 +110,8 @@ public class Store extends Thread {
    */
   private static final String[] REQUIRED_PROPERTIES = new String[] {
     io.warp10.continuum.Configuration.STORE_NTHREADS,
-    io.warp10.continuum.Configuration.STORE_KAFKA_DATA_ZKCONNECT,
-    io.warp10.continuum.Configuration.STORE_KAFKA_DATA_BROKERLIST,
+    io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_BOOTSTRAP_SERVERS,
+    io.warp10.continuum.Configuration.STORE_KAFKA_DATA_PRODUCER_BOOTSTRAP_SERVERS,
     io.warp10.continuum.Configuration.STORE_KAFKA_DATA_TOPIC,
     io.warp10.continuum.Configuration.STORE_KAFKA_DATA_GROUPID,
     io.warp10.continuum.Configuration.STORE_KAFKA_DATA_COMMITPERIOD,
@@ -367,7 +367,7 @@ public class Store extends Thread {
             // Load explicit configuration 
             props.putAll(io.warp10.continuum.Configuration.extractPrefixed(properties, properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_CONF_PREFIX)));
             
-            props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_ZKCONNECT));
+            props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_BOOTSTRAP_SERVERS));
             props.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupid);
             if (null != properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_CLIENTID)) {
               props.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_CLIENTID));

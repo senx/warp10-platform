@@ -85,7 +85,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
    * Set of required parameters, those MUST be set
    */
   private static final String[] REQUIRED_PROPERTIES = new String[] {
-    Configuration.PLASMA_FRONTEND_KAFKA_ZKCONNECT,
+    Configuration.PLASMA_FRONTEND_KAFKA_CONSUMER_BOOTSTRAP_SERVERS,
     Configuration.PLASMA_FRONTEND_KAFKA_TOPIC,
     Configuration.PLASMA_FRONTEND_KAFKA_GROUPID,
     Configuration.PLASMA_FRONTEND_KAFKA_COMMITPERIOD,
@@ -266,7 +266,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
     
     KafkaSynchronizedConsumerPool pool = new KafkaSynchronizedConsumerPool(
         Configuration.extractPrefixed(properties, properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_CONSUMER_CONF_PREFIX)),
-        properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_ZKCONNECT),
+        properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_CONSUMER_BOOTSTRAP_SERVERS),
         properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_TOPIC),
         properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_CONSUMER_CLIENTID),
         properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_GROUPID),

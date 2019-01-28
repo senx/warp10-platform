@@ -106,12 +106,12 @@ public class KafkaWebCallService {
   private static void initialize() {
     Properties props = WarpConfig.getProperties();
     
-    if (null == props.getProperty(Configuration.WEBCALL_KAFKA_ZKCONNECT)) {
-      throw new RuntimeException(Configuration.WEBCALL_KAFKA_ZKCONNECT + " was not specified in the configuration.");
+    if (null == props.getProperty(Configuration.WEBCALL_KAFKA_CONSUMER_BOOTSTRAP_SERVERS)) {
+      throw new RuntimeException(Configuration.WEBCALL_KAFKA_CONSUMER_BOOTSTRAP_SERVERS + " was not specified in the configuration.");
     }
 
-    if (null == props.getProperty(Configuration.WEBCALL_KAFKA_BROKERLIST)) {
-      throw new RuntimeException(Configuration.WEBCALL_KAFKA_BROKERLIST + " was not specified in the configuration.");
+    if (null == props.getProperty(Configuration.WEBCALL_KAFKA_PRODUCER_BOOTSTRAP_SERVERS)) {
+      throw new RuntimeException(Configuration.WEBCALL_KAFKA_PRODUCER_BOOTSTRAP_SERVERS + " was not specified in the configuration.");
     }
 
     if (null == props.getProperty(Configuration.WEBCALL_KAFKA_TOPIC)) {
@@ -123,7 +123,7 @@ public class KafkaWebCallService {
     properties.putAll(Configuration.extractPrefixed(props, props.getProperty(Configuration.WEBCALL_KAFKA_PRODUCER_CONF_PREFIX)));
 
     // @see http://kafka.apache.org/documentation.html#producerconfigs
-    properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(Configuration.WEBCALL_KAFKA_BROKERLIST));
+    properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(Configuration.WEBCALL_KAFKA_PRODUCER_BOOTSTRAP_SERVERS));
     
     if (null != props.getProperty(Configuration.WEBCALL_KAFKA_PRODUCER_CLIENTID)) {
       properties.setProperty(ProducerConfig.CLIENT_ID_CONFIG, props.getProperty(Configuration.WEBCALL_KAFKA_PRODUCER_CLIENTID));

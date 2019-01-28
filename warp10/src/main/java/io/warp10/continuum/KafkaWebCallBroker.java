@@ -59,8 +59,8 @@ public class KafkaWebCallBroker extends Thread {
    */
   private static final String[] REQUIRED_PROPERTIES = new String[] {
     Configuration.WEBCALL_NTHREADS,
-    Configuration.WEBCALL_KAFKA_ZKCONNECT,
-    Configuration.WEBCALL_KAFKA_BROKERLIST,
+    Configuration.WEBCALL_KAFKA_CONSUMER_BOOTSTRAP_SERVERS,
+    Configuration.WEBCALL_KAFKA_PRODUCER_BOOTSTRAP_SERVERS,
     Configuration.WEBCALL_KAFKA_TOPIC,
     Configuration.WEBCALL_KAFKA_GROUPID,
     Configuration.WEBCALL_KAFKA_COMMITPERIOD,
@@ -143,7 +143,7 @@ public class KafkaWebCallBroker extends Thread {
             // Load explicit configuration 
             props.putAll(Configuration.extractPrefixed(properties, properties.getProperty(Configuration.WEBCALL_KAFKA_CONSUMER_CONF_PREFIX)));
 
-            props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getProperty(Configuration.WEBCALL_KAFKA_ZKCONNECT));
+            props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getProperty(Configuration.WEBCALL_KAFKA_CONSUMER_BOOTSTRAP_SERVERS));
             props.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupid);
             if (null != properties.getProperty(Configuration.WEBCALL_KAFKA_CONSUMER_CLIENTID)) {
               props.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, properties.getProperty(Configuration.WEBCALL_KAFKA_CONSUMER_CLIENTID));

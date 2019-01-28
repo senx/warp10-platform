@@ -624,13 +624,13 @@ public class ThrottlingManager {
     // Configure Kafka if defined
     //
     
-    if (properties.containsKey(Configuration.INGRESS_KAFKA_THROTTLING_BROKERLIST)) {
+    if (properties.containsKey(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_BOOTSTRAP_SERVERS)) {
       Properties dataProps = new Properties();
       
       dataProps.putAll(Configuration.extractPrefixed(properties, properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CONF_PREFIX)));
 
       // @see http://kafka.apache.org/documentation.html#producerconfigs
-      dataProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_BROKERLIST));
+      dataProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_BOOTSTRAP_SERVERS));
       if (null != properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID)) {
         dataProps.setProperty(ProducerConfig.CLIENT_ID_CONFIG, properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID));
       }
@@ -650,7 +650,7 @@ public class ThrottlingManager {
     
     final long delay = Long.parseLong(properties.getProperty(Configuration.THROTTLING_MANAGER_PERIOD, "60000"));
 
-    if (properties.containsKey(Configuration.INGRESS_KAFKA_THROTTLING_ZKCONNECT)) {
+    if (properties.containsKey(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_BOOTSTRAP_SERVERS)) {
       ConsumerFactory estimatorConsumerFactory = new ThrottlingManagerEstimatorConsumerFactory(throttlingMAC);
       
       //
@@ -666,7 +666,7 @@ public class ThrottlingManager {
       
       KafkaSynchronizedConsumerPool pool = new KafkaSynchronizedConsumerPool(
           Configuration.extractPrefixed(properties, properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_CONF_PREFIX)),
-          properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_ZKCONNECT),
+          properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_BOOTSTRAP_SERVERS),
           properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_TOPIC),
           properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_CLIENTID),
           properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_GROUPID),

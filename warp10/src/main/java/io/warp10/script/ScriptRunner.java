@@ -166,7 +166,7 @@ public class ScriptRunner extends Thread {
    * Required properties for the distributed 'worker' role of ScriptRunner
    */
   public static final String[] REQUIRED_PROPERTIES_WORKER = {
-      Configuration.RUNNER_KAFKA_ZKCONNECT,
+      Configuration.RUNNER_KAFKA_CONSUMER_BOOTSTRAP_SERVERS,
       Configuration.RUNNER_KAFKA_TOPIC,
       Configuration.RUNNER_KAFKA_GROUPID,
       Configuration.RUNNER_KAFKA_COMMITPERIOD,
@@ -180,7 +180,7 @@ public class ScriptRunner extends Thread {
    * Required properties for the distributed 'scheduler' role of ScriptRunner
    */
   public static final String[] REQUIRED_PROPERTIES_SCHEDULER = {
-      Configuration.RUNNER_KAFKA_BROKERLIST,
+      Configuration.RUNNER_KAFKA_PRODUCER_BOOTSTRAP_SERVERS,
       Configuration.RUNNER_KAFKA_TOPIC,
       Configuration.RUNNER_KAFKA_POOLSIZE,
       Configuration.RUNNER_ROOT,
@@ -280,7 +280,7 @@ public class ScriptRunner extends Thread {
 
       this.endpoint = config.getProperty(Configuration.RUNNER_ENDPOINT);
 
-      String zkconnect = config.getProperty(Configuration.RUNNER_KAFKA_ZKCONNECT);
+      String zkconnect = config.getProperty(Configuration.RUNNER_KAFKA_CONSUMER_BOOTSTRAP_SERVERS);
       Properties initialConfig = Configuration.extractPrefixed(config, config.getProperty(Configuration.RUNNER_KAFKA_CONSUMER_CONF_PREFIX));
       this.topic = config.getProperty(Configuration.RUNNER_KAFKA_TOPIC);
       String groupid = config.getProperty(Configuration.RUNNER_KAFKA_GROUPID);
@@ -312,7 +312,7 @@ public class ScriptRunner extends Thread {
       props.putAll(Configuration.extractPrefixed(config, config.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CONF_PREFIX)));
 
       // @see http://kafka.apache.org/documentation.html#producerconfigs
-      props.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.getProperty(Configuration.RUNNER_KAFKA_BROKERLIST));
+      props.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_BOOTSTRAP_SERVERS));
       if (null != config.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CLIENTID)) {
         props.setProperty(ProducerConfig.CLIENT_ID_CONFIG, config.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CLIENTID));
       }

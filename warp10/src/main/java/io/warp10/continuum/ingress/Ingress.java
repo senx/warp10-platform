@@ -139,9 +139,9 @@ public class Ingress extends AbstractHandler implements Runnable {
     Configuration.INGRESS_IDLE_TIMEOUT,
     Configuration.INGRESS_JETTY_THREADPOOL,
     Configuration.INGRESS_ZK_QUORUM,
-    Configuration.INGRESS_KAFKA_META_BROKERLIST,
+    Configuration.INGRESS_KAFKA_METADATA_PRODUCER_BOOTSTRAP_SERVERS,
     Configuration.INGRESS_KAFKA_META_TOPIC,
-    Configuration.INGRESS_KAFKA_DATA_BROKERLIST,
+    Configuration.INGRESS_KAFKA_DATA_PRODUCER_BOOTSTRAP_SERVERS,
     Configuration.INGRESS_KAFKA_DATA_TOPIC,
     Configuration.INGRESS_KAFKA_DATA_POOLSIZE,
     Configuration.INGRESS_KAFKA_METADATA_POOLSIZE,
@@ -357,7 +357,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     metaProps.putAll(Configuration.extractPrefixed(props, props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CONF_PREFIX)));
 
     // @see http://kafka.apache.org/documentation.html#producerconfigs
-    metaProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(Configuration.INGRESS_KAFKA_META_BROKERLIST));
+    metaProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(Configuration.INGRESS_KAFKA_METADATA_PRODUCER_BOOTSTRAP_SERVERS));
     if (null != props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CLIENTID)) {
       metaProps.setProperty(ProducerConfig.CLIENT_ID_CONFIG, props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CLIENTID));
     }
@@ -382,7 +382,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     dataProps.putAll(Configuration.extractPrefixed(props, props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_CONF_PREFIX)));
 
     // @see http://kafka.apache.org/documentation.html#producerconfigs
-    dataProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(Configuration.INGRESS_KAFKA_DATA_BROKERLIST));
+    dataProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_BOOTSTRAP_SERVERS));
     if (null != props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_CLIENTID)) {
       dataProps.setProperty(ProducerConfig.CLIENT_ID_CONFIG, props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_CLIENTID));
     }
@@ -446,7 +446,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     if (props.containsKey(Configuration.INGRESS_KAFKA_META_GROUPID)) {
       pool = new KafkaSynchronizedConsumerPool(
           Configuration.extractPrefixed(props, props.getProperty(Configuration.INGRESS_KAFKA_META_CONSUMER_CONF_PREFIX)),
-          props.getProperty(Configuration.INGRESS_KAFKA_META_ZKCONNECT),
+          props.getProperty(Configuration.INGRESS_KAFKA_METADATA_CONSUMER_BOOTSTRAP_SERVERS),
           props.getProperty(Configuration.INGRESS_KAFKA_META_TOPIC),
           props.getProperty(Configuration.INGRESS_KAFKA_META_CONSUMER_CLIENTID),
           props.getProperty(Configuration.INGRESS_KAFKA_META_GROUPID),

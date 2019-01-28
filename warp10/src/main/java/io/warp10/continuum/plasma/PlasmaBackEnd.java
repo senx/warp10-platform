@@ -89,12 +89,12 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
    * Set of required parameters, those MUST be set
    */
   private static final String[] REQUIRED_PROPERTIES = new String[] {
-    io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_ZKCONNECT,
+    io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_CONSUMER_BOOTSTRAP_SERVERS,
     io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_TOPIC,
     io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_GROUPID,
     io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_COMMITPERIOD,
     io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_NTHREADS,
-    io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_BROKERLIST,
+    io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_PRODUCER_BOOTSTRAP_SERVERS,
     io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZKCONNECT,
     io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZNODE,
     io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_MAXSIZE,
@@ -156,7 +156,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     final int nthreads = Integer.valueOf(properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_NTHREADS));
     
     Configuration conf = new Configuration();
-    conf.set("hbase.zookeeper.quorum", properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_ZKCONNECT));
+    conf.set("hbase.zookeeper.quorum", properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_CONSUMER_BOOTSTRAP_SERVERS));
     
     //
     // Extract keys
@@ -173,7 +173,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     properties.putAll(io.warp10.continuum.Configuration.extractPrefixed(props, props.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_PRODUCER_CONF_PREFIX)));
 
     // @see http://kafka.apache.org/documentation.html#producerconfigs
-    dataProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_BROKERLIST));
+    dataProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_PRODUCER_BOOTSTRAP_SERVERS));
     if (null != props.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_PRODUCER_CLIENTID)) {
       dataProps.setProperty(ProducerConfig.CLIENT_ID_CONFIG, props.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_PRODUCER_CLIENTID));
     }
@@ -223,7 +223,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
             // Load explicit configuration 
             props.putAll(io.warp10.continuum.Configuration.extractPrefixed(properties, properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_CONF_PREFIX)));
 
-            props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_ZKCONNECT));
+            props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_CONSUMER_BOOTSTRAP_SERVERS));
             props.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupid);
             // Do not commit offsets in ZK
             props.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");

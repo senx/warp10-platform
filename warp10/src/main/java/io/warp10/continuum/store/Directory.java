@@ -234,7 +234,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     io.warp10.continuum.Configuration.DIRECTORY_PARTITION,
     io.warp10.continuum.Configuration.DIRECTORY_HOST,
     io.warp10.continuum.Configuration.DIRECTORY_PORT,
-    io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_ZKCONNECT,
+    io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_BOOTSTRAP_SERVERS,
     io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_TOPIC,
     io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_GROUPID,
     io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_COMMITPERIOD,
@@ -886,7 +886,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             // Load explicit configuration 
             props.putAll(io.warp10.continuum.Configuration.extractPrefixed(properties, properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_CONF_PREFIX)));
 
-            props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_ZKCONNECT));
+            props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_BOOTSTRAP_SERVERS));
             props.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupid);
             if (null != properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_CLIENTID)) {
               props.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_CLIENTID));
