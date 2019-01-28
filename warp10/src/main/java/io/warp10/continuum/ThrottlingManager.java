@@ -452,49 +452,45 @@ public class ThrottlingManager {
      
     // Check per application limiter
     if (null != applicationLimiter) {
-      synchronized(applicationLimiter) {
-        if (!applicationLimiter.tryAcquire(count, appMaxWait * count, TimeUnit.MILLISECONDS)) {
-          StringBuilder sb = new StringBuilder();
-          sb.append("Storing data for ");
-          if (null != metadata) {
-            GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
-          }
-          sb.append(" would incur a wait greater than ");
-          sb.append(appMaxWait);
-          sb.append(" ms per datapoint due to your Daily Data Points limit being already exceeded for application '" + application + "'. Current max rate is " + applicationLimiter.getRate() + " datapoints/s.");
-
-          Map<String,String> labels = new HashMap<String, String>();
-          labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_RATE_PER_APP, labels, 1);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_RATE_PER_APP_GLOBAL, Sensision.EMPTY_LABELS, 1);
-          
-          throw new WarpException(sb.toString());      
-        }
-      }      
-    }
-    
-    if (null == producerLimiter) {
-      return;
-    }
-    
-    synchronized(producerLimiter) {
-      if (!producerLimiter.tryAcquire(count, producerMaxWait * count, TimeUnit.MILLISECONDS)) {
+      if (!applicationLimiter.tryAcquire(count, appMaxWait * count, TimeUnit.MILLISECONDS)) {
         StringBuilder sb = new StringBuilder();
         sb.append("Storing data for ");
         if (null != metadata) {
           GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
         }
         sb.append(" would incur a wait greater than ");
-        sb.append(producerMaxWait);
-        sb.append(" ms per datapoint due to your Daily Data Points limit being already exceeded. Current maximum rate is " + producerLimiter.getRate() + " datapoints/s.");
+        sb.append(appMaxWait);
+        sb.append(" ms per datapoint due to your Daily Data Points limit being already exceeded for application '" + application + "'. Current max rate is " + applicationLimiter.getRate() + " datapoints/s.");
 
         Map<String,String> labels = new HashMap<String, String>();
-        labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_RATE, labels, 1);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_RATE_GLOBAL, Sensision.EMPTY_LABELS, 1);
+        labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_RATE_PER_APP, labels, 1);
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_RATE_PER_APP_GLOBAL, Sensision.EMPTY_LABELS, 1);
         
         throw new WarpException(sb.toString());      
       }
+    }
+    
+    if (null == producerLimiter) {
+      return;
+    }
+    
+    if (!producerLimiter.tryAcquire(count, producerMaxWait * count, TimeUnit.MILLISECONDS)) {
+      StringBuilder sb = new StringBuilder();
+      sb.append("Storing data for ");
+      if (null != metadata) {
+        GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
+      }
+      sb.append(" would incur a wait greater than ");
+      sb.append(producerMaxWait);
+      sb.append(" ms per datapoint due to your Daily Data Points limit being already exceeded. Current maximum rate is " + producerLimiter.getRate() + " datapoints/s.");
+
+      Map<String,String> labels = new HashMap<String, String>();
+      labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_RATE, labels, 1);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_RATE_GLOBAL, Sensision.EMPTY_LABELS, 1);
+      
+      throw new WarpException(sb.toString());      
     }
   }
 
