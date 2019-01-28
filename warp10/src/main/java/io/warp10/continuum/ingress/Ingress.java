@@ -439,7 +439,9 @@ public class Ingress extends AbstractHandler implements Runnable {
     ConsumerFactory metadataConsumerFactory = new IngressMetadataConsumerFactory(this);
     
     if (props.containsKey(Configuration.INGRESS_KAFKA_META_GROUPID)) {
-      pool = new KafkaSynchronizedConsumerPool(props.getProperty(Configuration.INGRESS_KAFKA_META_ZKCONNECT),
+      pool = new KafkaSynchronizedConsumerPool(
+          Configuration.extractPrefixed(props, props.getProperty(Configuration.INGRESS_KAFKA_META_CONSUMER_CONF_PREFIX)),
+          props.getProperty(Configuration.INGRESS_KAFKA_META_ZKCONNECT),
           props.getProperty(Configuration.INGRESS_KAFKA_META_TOPIC),
           props.getProperty(Configuration.INGRESS_KAFKA_META_CONSUMER_CLIENTID),
           props.getProperty(Configuration.INGRESS_KAFKA_META_GROUPID),

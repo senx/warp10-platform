@@ -661,7 +661,9 @@ public class ThrottlingManager {
       
       long commitOffset = 2 * delay;
       
-      KafkaSynchronizedConsumerPool pool = new KafkaSynchronizedConsumerPool(properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_ZKCONNECT),
+      KafkaSynchronizedConsumerPool pool = new KafkaSynchronizedConsumerPool(
+          Configuration.extractPrefixed(properties, properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_CONF_PREFIX)),
+          properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_ZKCONNECT),
           properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_TOPIC),
           properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_CLIENTID),
           properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_GROUPID),

@@ -201,6 +201,11 @@ public class Configuration {
   public static final String WEBCALL_KAFKA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY = "webcall.kafka.consumer.partition.assignment.strategy";
 
   /**
+   * Prefix of WebCall Kafka Consumer configuration keys
+   */
+  public static final String WEBCALL_KAFKA_CONSUMER_CONF_PREFIX = "webcall.kafka.consumer.conf.prefix";
+  
+  /**
    * Kafka client id to use when producing WebCall requests
    */
   public static final String WEBCALL_KAFKA_PRODUCER_CLIENTID = "webcall.kafka.producer.clientid";
@@ -339,6 +344,11 @@ public class Configuration {
    * Comma separated list of Kafka broker host:port for Kafka ('metadata' topic)
    */  
   public static final String DIRECTORY_KAFKA_METADATA_ZKCONNECT = "directory.kafka.metadata.consumer.bootstrap.servers";
+  
+  /**
+   * Prefix for Directory Kafka Metadata Consumer configuration keys
+   */
+  public static final String DIRECTORY_KAFKA_METADATA_CONSUMER_CONF_PREFIX = "directory.kafka.metadata.consumer.conf.prefix";
   
   /**
    * Actual 'metadata' topic
@@ -668,6 +678,11 @@ public class Configuration {
    * Comma separated list of Kafka broker host:port for the metadata kafka cluster
    */
   public static final String INGRESS_KAFKA_META_ZKCONNECT = "ingress.kafka.metadata.consumer.bootstrap.servers";
+ 
+  /**
+   * Prefix for Ingress Kafka Consumer configuration keys
+   */
+  public static final String INGRESS_KAFKA_META_CONSUMER_CONF_PREFIX = "ingress.kafka.metadata.consumer.conf.prefix";
   
   /**
    * Kafka broker list for the 'meta' topic
@@ -798,6 +813,11 @@ public class Configuration {
    * Comma separated list of Kafka broker host:port for the throttling kafka cluster
    */
   public static final String INGRESS_KAFKA_THROTTLING_ZKCONNECT = "ingress.kafka.throttling.consumer.bootstrap.servers";
+ 
+  /**
+   * Prefix for Ingress Throttling Kafka Consumer configuration keys
+   */
+  public static final String INGRESS_KAFKA_THROTTLING_CONSUMER_CONF_PREFIX = "ingress.kafka.throttling.consumer.conf.prefix";
   
   /**
    * Client id to use when consuming the throttling topic
@@ -850,6 +870,11 @@ public class Configuration {
    * Comma separated list of Kafka broker host:port for Kafka ('data' topic)
    */  
   public static final String STORE_KAFKA_DATA_ZKCONNECT = "store.kafka.data.consumer.bootstrap.servers";
+  
+  /**
+   * Prefix for Store Kafka Consumer configuration keys
+   */
+  public static final String STORE_KAFKA_DATA_CONSUMER_CONF_PREFIX = "store.kafka.data.consumer.conf.prefix";
   
   /**
    * Kafka broker list for the 'data' topic
@@ -1010,6 +1035,11 @@ public class Configuration {
    * Comma separated list of Kafka broker host:port for Kafka consumer
    */
   public static final String PLASMA_FRONTEND_KAFKA_ZKCONNECT = "plasma.frontend.kafka.consumer.bootstrap.servers";
+
+  /**
+   * Prefix for Plasma FrontEnd Kafka Consumer configuration keys
+   */
+  public static final String PLASMA_FRONTEND_KAFKA_CONSUMER_CONF_PREFIX = "plasma.frontend.kafka.consumer.conf.prefix";
   
   /**
    * Kafka topic to consume. This topic is dedicated to this Plasma frontend.
@@ -1103,6 +1133,11 @@ public class Configuration {
    */  
   public static final String PLASMA_BACKEND_KAFKA_IN_ZKCONNECT = "plasma.backend.kafka.in.consumer.bootstrap.servers";
   
+  /**
+   * Prefix for Plasma Backend Kafka Consumer configuration keys
+   */
+  public static final String PLASMA_BACKEND_KAFKA_IN_CONF_PREFIX = "plasma.backend.kafka.in.conf.prefix"; 
+
   /**
    * Actual 'in' topic
    */
@@ -1242,6 +1277,11 @@ public class Configuration {
    * Comma separated list of Kafka broker host:port for the Kafka cluster
    */
   public static final String RUNNER_KAFKA_ZKCONNECT = "runner.kafka.consumer.bootstrap.servers";
+  
+  /**
+   * Prefix for Runner Kafka Consumer configuration keys
+   */
+  public static final String RUNNER_KAFKA_CONSUMER_CONF_PREFIX = "runner.kafka.consumer.conf.prefix";
   
   /**
    * List of Kafka brokers

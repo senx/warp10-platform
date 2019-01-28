@@ -139,6 +139,10 @@ public class KafkaWebCallBroker extends Thread {
             topicCountMap.put(topic, nthreads);
                           
             Properties props = new Properties();
+            
+            // Load explicit configuration 
+            props.putAll(Configuration.extractPrefixed(properties, properties.getProperty(Configuration.WEBCALL_KAFKA_CONSUMER_CONF_PREFIX)));
+
             props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getProperty(Configuration.WEBCALL_KAFKA_ZKCONNECT));
             props.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupid);
             if (null != properties.getProperty(Configuration.WEBCALL_KAFKA_CONSUMER_CLIENTID)) {

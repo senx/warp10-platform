@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -50,6 +51,7 @@ public class KafkaSynchronizedConsumerPool {
 
   private static final Logger LOG = LoggerFactory.getLogger(KafkaSynchronizedConsumerPool.class);
 
+  private Properties initialConfig;
   private CyclicBarrier barrier;
   private final AtomicBoolean abort;
   private final AtomicBoolean initialized;
@@ -172,6 +174,10 @@ public class KafkaSynchronizedConsumerPool {
           //
           
           Properties props = new Properties();
+          
+          // Load explicit configuration 
+          props.putAll(this.pool.initialConfig);
+
           props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, this.zkconnect);
           props.setProperty(ConsumerConfig.GROUP_ID_CONFIG,this.groupid);
           if (null != this.clientid) {
@@ -332,12 +338,13 @@ public class KafkaSynchronizedConsumerPool {
     }    
   }
   
-  public KafkaSynchronizedConsumerPool(String zkconnect, String topic, String clientid, String groupid, String strategy, int nthreads, long commitPeriod, ConsumerFactory factory) {
-    this(zkconnect, topic, clientid, groupid, strategy, null, nthreads, commitPeriod, factory);
+  public KafkaSynchronizedConsumerPool(Properties initialConfig, String zkconnect, String topic, String clientid, String groupid, String strategy, int nthreads, long commitPeriod, ConsumerFactory factory) {
+    this(initialConfig, zkconnect, topic, clientid, groupid, strategy, null, nthreads, commitPeriod, factory);
   }
   
-  public KafkaSynchronizedConsumerPool(String zkconnect, String topic, String clientid, String groupid, String strategy, String autoOffsetReset, int nthreads, long commitPeriod, ConsumerFactory factory) {
+  public KafkaSynchronizedConsumerPool(Properties initialConfig, String zkconnect, String topic, String clientid, String groupid, String strategy, String autoOffsetReset, int nthreads, long commitPeriod, ConsumerFactory factory) {
     
+    this.initialConfig = initialConfig;
     this.abort = new AtomicBoolean(false);
     this.initialized = new AtomicBoolean(false);
     

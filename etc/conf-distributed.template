@@ -429,6 +429,11 @@ webcall.host.patterns = !.*
 webcall.kafka.consumer.bootstrap.servers =
 
 //
+// Prefix of WebCall Kafka Consumer configuration keys
+//
+#webcall.kafka.consumer.conf.prefix =
+
+//
 // List of Kafka brokers to use for sending WebCall requests
 //
 webcall.kafka.producer.bootstrap.servers =
@@ -527,6 +532,11 @@ directory.find.maxresults.hard = 100000
 // Comma separated list of Kafka broker host:port for Kafka ('metadata' topic)
 //  
 directory.kafka.metadata.consumer.bootstrap.servers = 127.0.0.1:9092
+
+//
+// Prefix for Directory Kafka Metadata Consumer configuration keys
+//
+#directory.kafka.metadata.consumer.conf.prefix =
 
 //
 // Actual 'metadata' topic
@@ -837,6 +847,11 @@ ingress.zk.quorum = 127.0.0.1:2181
 ingress.kafka.metadata.consumer.bootstrap.servers = 127.0.0.1:9092
 
 //
+// Prefix for Ingress Kafka Consumer configuration keys
+//
+#ingress.kafka.metadata.consumer.conf.prefix =
+
+//
 // Kafka broker list for the 'meta' topic
 //
 ingress.kafka.metadata.producer.bootstrap.servers = 127.0.0.1:9092
@@ -944,6 +959,11 @@ ingress.kafka.metadata.maxsize = 900000
 #ingress.kafka.throttling.consumer.bootstrap.servers = 
   
 //
+// Prefix for Ingress Throttling Kafka Consumer configuration keys
+//
+#ingress.kafka.throttling.consumer.conf.prefix =
+
+//
 // Client id to use when consuming the throttling topic
 //
 #ingress.kafka.throttling.consumer.clientid = 
@@ -1032,6 +1052,11 @@ ingress.kafka.metadata.maxsize = 900000
 // Comma separated list of Kafka broker host:port for Kafka ('data' topic)
 //  
 store.kafka.data.consumer.bootstrap.servers = 127.0.0.1:9092
+
+//
+// Prefix for Store Kafka Consumer configuration keys
+//
+#store.kafka.data.consumer.conf.prefix =
 
 //
 // Kafka broker list for the 'data' topic
@@ -1206,6 +1231,11 @@ store.hbase.hconnection.threads.core = 4
 plasma.frontend.kafka.consumer.bootstrap.servers = 127.0.0.1:9092
 
 //
+// Prefix for Plasma FrontEnd Kafka Consumer configuration keys
+//
+#plasma.frontend.kafka.consumer.conf.prefix =
+
+//
 // Kafka topic to consume. This topic is dedicated to this Plasma frontend.
 // One topic per instance of plasma frontend.
 //
@@ -1287,6 +1317,11 @@ plasma.frontend.subscribe.delay = 5000
 // Comma separated list of Kafka broker host:port for Kafka ('in' topic)
 //  
 plasma.backend.kafka.in.consumer.bootstrap.servers = 127.0.0.1:9092
+
+//
+// Prefix for Plasma Backend Kafka Consumer configuration keys
+//
+#plasma.backend.kafka.in.conf.prefix =
 
 //
 // Actual 'in' topic
@@ -1442,6 +1477,11 @@ runner.minperiod = 1000
 // Comma separated list of Kafka broker host:port for the Kafka cluster
 //
 runner.kafka.consumer.bootstrap.servers = 127.0.0.1:9092
+
+//
+// Prefix for Runner Kafka Consumer configuration keys
+//
+#runner.kafka.consumer.conf.prefix =
 
 //
 // List of Kafka brokers

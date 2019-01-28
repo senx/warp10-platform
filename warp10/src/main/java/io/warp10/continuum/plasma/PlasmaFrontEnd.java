@@ -264,7 +264,9 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
       }
     };
     
-    KafkaSynchronizedConsumerPool pool = new KafkaSynchronizedConsumerPool(properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_ZKCONNECT),
+    KafkaSynchronizedConsumerPool pool = new KafkaSynchronizedConsumerPool(
+        Configuration.extractPrefixed(properties, properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_CONSUMER_CONF_PREFIX)),
+        properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_ZKCONNECT),
         properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_TOPIC),
         properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_CONSUMER_CLIENTID),
         properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_GROUPID),

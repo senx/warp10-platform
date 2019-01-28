@@ -281,6 +281,7 @@ public class ScriptRunner extends Thread {
       this.endpoint = config.getProperty(Configuration.RUNNER_ENDPOINT);
 
       String zkconnect = config.getProperty(Configuration.RUNNER_KAFKA_ZKCONNECT);
+      Properties initialConfig = Configuration.extractPrefixed(config, config.getProperty(Configuration.RUNNER_KAFKA_CONSUMER_CONF_PREFIX));
       this.topic = config.getProperty(Configuration.RUNNER_KAFKA_TOPIC);
       String groupid = config.getProperty(Configuration.RUNNER_KAFKA_GROUPID);
       String clientid = config.getProperty(Configuration.RUNNER_KAFKA_CONSUMER_CLIENTID);
@@ -293,7 +294,7 @@ public class ScriptRunner extends Thread {
 
       this.executor = runnersExecutor;
 
-      this.consumerPool = new KafkaSynchronizedConsumerPool(zkconnect, topic, clientid, groupid, strategy, nthreads, commitPeriod, new ScriptRunnerConsumerFactory(this));
+      this.consumerPool = new KafkaSynchronizedConsumerPool(initialConfig, zkconnect, topic, clientid, groupid, strategy, nthreads, commitPeriod, new ScriptRunnerConsumerFactory(this));
     }
 
     if (isScheduler) {

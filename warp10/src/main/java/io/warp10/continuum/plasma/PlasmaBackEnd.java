@@ -216,6 +216,10 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
             topicCountMap.put(properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_TOPIC), nthreads);
                     
             Properties props = new Properties();
+            
+            // Load explicit configuration 
+            props.putAll(io.warp10.continuum.Configuration.extractPrefixed(properties, properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_CONF_PREFIX)));
+
             props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_ZKCONNECT));
             props.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupid);
             // Do not commit offsets in ZK
