@@ -176,6 +176,11 @@ public class Configuration {
   public static final String WEBCALL_KAFKA_BROKERLIST = "webcall.kafka.producer.bootstrap.servers";
   
   /**
+   * Prefix for WebCall Kafka Producer configuration keys
+   */
+  public static final String WEBCALL_KAFKA_PRODUCER_CONF_PREFIX = "webcall.kafka.producer.conf.prefix";
+  
+  /**
    * Topic to use for WebCall requests
    */
   public static final String WEBCALL_KAFKA_TOPIC = "webcall.kafka.topic";
@@ -678,7 +683,7 @@ public class Configuration {
    * Comma separated list of Kafka broker host:port for the metadata kafka cluster
    */
   public static final String INGRESS_KAFKA_META_ZKCONNECT = "ingress.kafka.metadata.consumer.bootstrap.servers";
- 
+
   /**
    * Prefix for Ingress Kafka Consumer configuration keys
    */
@@ -688,6 +693,11 @@ public class Configuration {
    * Kafka broker list for the 'meta' topic
    */
   public static final String INGRESS_KAFKA_META_BROKERLIST = "ingress.kafka.metadata.producer.bootstrap.servers";
+
+  /**
+   * Prefix for Ingress Metadata Kafka Producer configuration keys
+   */
+  public static final String INGRESS_KAFKA_META_PRODUCER_CONF_PREFIX = "ingress.kafka.metadata.producer.conf.prefix";
 
   /**
    * Kafka client id for producing on the 'meta' topic
@@ -745,6 +755,11 @@ public class Configuration {
   public static final String INGRESS_KAFKA_DATA_BROKERLIST = "ingress.kafka.data.producer.bootstrap.servers";
 
   /**
+   * Prefix for Ingress Data Kafka Producer configuration keys
+   */
+  public static final String INGRESS_KAFKA_DATA_PRODUCER_CONF_PREFIX = "ingress.kafka.data.producer.conf.prefix";
+  
+  /**
    * Kafka client id for producing on the 'data' topic
    */
   public static final String INGRESS_KAFKA_DATA_PRODUCER_CLIENTID = "ingress.kafka.data.producer.clientid";
@@ -793,6 +808,11 @@ public class Configuration {
    * Kafka broker list for the throttling topic
    */
   public static final String INGRESS_KAFKA_THROTTLING_BROKERLIST = "ingress.kafka.throttling.producer.bootstrap.servers";
+  
+  /**
+   * Prefix for Ingress Throttling Kafka Producer configuration keys
+   */
+  public static final String INGRESS_KAFKA_THROTTLING_PRODUCER_CONF_PREFIX = "ingress.kafka.throttling.producer.conf.prefix";
   
   /**
    * Optional client id to use when producing messages in the throttling topic
@@ -1184,6 +1204,11 @@ public class Configuration {
   public static final String PLASMA_BACKEND_KAFKA_OUT_BROKERLIST = "plasma.backend.kafka.out.producer.bootstrap.servers";
 
   /**
+   * Prefix for Plasma BackEnd Kafka Producer configuration keys
+   */
+  public static final String PLASMA_BACKEND_KAFKA_OUT_PRODUCER_CONF_PREFIX = "plasma.backend.kafka.out.producer.conf.prefix";
+  
+  /**
    * Kafka client id for producing on the 'out' topic
    */
   public static final String PLASMA_BACKEND_KAFKA_OUT_PRODUCER_CLIENTID = "plasma.backend.kafka.out.producer.clientid";
@@ -1288,6 +1313,11 @@ public class Configuration {
    */
   public static final String RUNNER_KAFKA_BROKERLIST = "runner.kafka.producer.bootstrap.servers";
 
+  /**
+   * Prefix for Runner Kafka Producer configuration keys
+   */
+  public static final String RUNNER_KAFKA_PRODUCER_CONF_PREFIX = "runner.kafka.producer.conf.prefix";
+  
   /**
    * Kafka client id for producing on the runner topic
    */

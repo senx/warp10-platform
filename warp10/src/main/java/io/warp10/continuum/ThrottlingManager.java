@@ -626,6 +626,9 @@ public class ThrottlingManager {
     
     if (properties.containsKey(Configuration.INGRESS_KAFKA_THROTTLING_BROKERLIST)) {
       Properties dataProps = new Properties();
+      
+      dataProps.putAll(Configuration.extractPrefixed(properties, properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CONF_PREFIX)));
+
       // @see http://kafka.apache.org/documentation.html#producerconfigs
       dataProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_BROKERLIST));
       if (null != properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID)) {

@@ -308,6 +308,9 @@ public class ScriptRunner extends Thread {
       this.topic = config.getProperty(Configuration.RUNNER_KAFKA_TOPIC);
 
       Properties props = new Properties();
+      
+      props.putAll(Configuration.extractPrefixed(config, config.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CONF_PREFIX)));
+
       // @see http://kafka.apache.org/documentation.html#producerconfigs
       props.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.getProperty(Configuration.RUNNER_KAFKA_BROKERLIST));
       if (null != config.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CLIENTID)) {

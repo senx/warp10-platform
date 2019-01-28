@@ -439,6 +439,11 @@ webcall.kafka.consumer.bootstrap.servers =
 webcall.kafka.producer.bootstrap.servers =
 
 //
+// Prefix for WebCall Kafka Producer configuration keys
+//
+#webcall.kafka.producer.conf.prefix =
+
+//
 // Topic to use for WebCall requests
 //
 webcall.kafka.topic =
@@ -857,6 +862,11 @@ ingress.kafka.metadata.consumer.bootstrap.servers = 127.0.0.1:9092
 ingress.kafka.metadata.producer.bootstrap.servers = 127.0.0.1:9092
 
 //
+// Prefix for Ingress Metadata Kafka Producer configuration keys
+//
+#ingress.kafka.metadata.producer.conf.prefix =
+
+//
 // Actual 'meta' topic
 //
 ingress.kafka.metadata.topic =  metadata   
@@ -899,6 +909,11 @@ ingress.kafka.metadata.nthreads = 2
 ingress.kafka.data.producer.bootstrap.servers = 127.0.0.1:9092
 
 //
+// Prefix for Ingress Data Kafka Producer configuration keys
+//
+#ingress.kafka.data.producer.conf.prefix =
+
+//
 // Actual 'data' topic
 //
 ingress.kafka.data.topic = data
@@ -938,6 +953,11 @@ ingress.kafka.metadata.maxsize = 900000
 //
 #ingress.kafka.throttling.producer.bootstrap.servers = 
   
+//
+// Prefix for Ingress Throttling Kafka Producer configuration keys
+//
+#ingress.kafka.throttling.producer.conf.prefix =
+
 //
 // Optional client id to use when producing messages in the throttling topic
 //
@@ -1359,6 +1379,11 @@ plasma.backend.kafka.in.nthreads = 2
 plasma.backend.kafka.out.producer.bootstrap.servers = 127.0.0.1:9092
 
 //
+// Prefix for Plasma BackEnd Kafka Producer configuration keys
+//
+#plasma.backend.kafka.out.producer.conf.prefix =
+
+//
 // Maximum size of Kafka outward messages
 //
 plasma.backend.kafka.out.maxsize = 500000
@@ -1477,6 +1502,11 @@ runner.minperiod = 1000
 // Comma separated list of Kafka broker host:port for the Kafka cluster
 //
 runner.kafka.consumer.bootstrap.servers = 127.0.0.1:9092
+
+//
+// Prefix for Runner Kafka Producer configuration keys
+//
+#runner.kafka.producer.conf.prefix =
 
 //
 // Prefix for Runner Kafka Consumer configuration keys

@@ -169,6 +169,9 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     //
     
     Properties dataProps = new Properties();
+    
+    properties.putAll(io.warp10.continuum.Configuration.extractPrefixed(props, props.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_PRODUCER_CONF_PREFIX)));
+
     // @see http://kafka.apache.org/documentation.html#producerconfigs
     dataProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_BROKERLIST));
     if (null != props.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_PRODUCER_CLIENTID)) {

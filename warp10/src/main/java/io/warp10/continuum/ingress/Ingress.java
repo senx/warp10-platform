@@ -353,7 +353,9 @@ public class Ingress extends AbstractHandler implements Runnable {
     //
     
     Properties metaProps = new Properties();
-    
+ 
+    metaProps.putAll(Configuration.extractPrefixed(props, props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CONF_PREFIX)));
+
     // @see http://kafka.apache.org/documentation.html#producerconfigs
     metaProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(Configuration.INGRESS_KAFKA_META_BROKERLIST));
     if (null != props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CLIENTID)) {
@@ -376,6 +378,9 @@ public class Ingress extends AbstractHandler implements Runnable {
         SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_KAFKA_METADATA_PRODUCER_WAIT_NANO);
     
     Properties dataProps = new Properties();
+    
+    dataProps.putAll(Configuration.extractPrefixed(props, props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_CONF_PREFIX)));
+
     // @see http://kafka.apache.org/documentation.html#producerconfigs
     dataProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(Configuration.INGRESS_KAFKA_DATA_BROKERLIST));
     if (null != props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_CLIENTID)) {

@@ -119,6 +119,9 @@ public class KafkaWebCallService {
     }
 
     Properties properties = new Properties();
+    
+    properties.putAll(Configuration.extractPrefixed(props, props.getProperty(Configuration.WEBCALL_KAFKA_PRODUCER_CONF_PREFIX)));
+
     // @see http://kafka.apache.org/documentation.html#producerconfigs
     properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(Configuration.WEBCALL_KAFKA_BROKERLIST));
     
