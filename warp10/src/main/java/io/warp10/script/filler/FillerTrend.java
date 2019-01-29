@@ -102,7 +102,7 @@ public class FillerTrend extends NamedWarpScriptFunction implements WarpScriptFi
       // We will compute the average of the projected previous and next datapoints
       long span = ((Number) next[0]).longValue() - ((Number) prev[0]).longValue();
       long delta = ((Number) other[0]).longValue() - ((Number) prev[0]).longValue();
-      double alpha = (((Number) other[0]).longValue() - ((Number) prev[0]).longValue()) / span;
+      double alpha = (double) delta / span;
       
       double projectedPrevious = ((Number) prev[3]).doubleValue() + delta * prerate;
       double projectedNext = ((Number) next[3]).doubleValue() - (span - delta) * postrate;
