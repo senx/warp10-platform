@@ -170,6 +170,10 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
   
+    if (null == properties) {
+      throw new RuntimeException("Warp 10 configuration not set.");
+    }
+    
     this.unshadow = "true".equals(properties.getProperty(Configuration.WARPSCRIPT_DEF_UNSHADOW));
     
     if (init) {
