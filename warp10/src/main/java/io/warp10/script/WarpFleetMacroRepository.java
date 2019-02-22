@@ -290,7 +290,7 @@ public class WarpFleetMacroRepository {
       macro = new Macro();
       macro.add("[" + System.currentTimeMillis() + "] Error while loading macro '" + name + "': " + wse.getMessage());      
       macro.add(MSGFAIL_FUNC);
-      // Set the expiry to half the refresh interval if ondemand is true so we get a chance to load a newly provided file
+      // Set the expiry
       macro.setExpiry(System.currentTimeMillis() + failedTtl);
     } finally {
       loading.get().remove(loading.get().size() - 1);
@@ -303,9 +303,9 @@ public class WarpFleetMacroRepository {
     
     if (null == macro && unknownTtl > 0) {
       macro = new Macro();
-      macro.add("[" + System.currentTimeMillis() + "] Macro '" + name + "' was not found in any of the WarpFleet repositories");      
+      macro.add("[" + System.currentTimeMillis() + "] Macro '" + name + "' was not found in any of the WarpFleet™ repositories");      
       macro.add(MSGFAIL_FUNC);
-      // Set the expiry to half the refresh interval if ondemand is true so we get a chance to load a newly provided file
+      // Set the expiry
       macro.setExpiry(System.currentTimeMillis() + unknownTtl);
     }
     
