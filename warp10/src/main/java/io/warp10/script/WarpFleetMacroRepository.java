@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,13 +19,11 @@ package io.warp10.script;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +38,6 @@ import com.google.common.base.Charsets;
 import io.warp10.Revision;
 import io.warp10.continuum.Configuration;
 import io.warp10.script.WarpScriptStack.Macro;
-import io.warp10.script.ext.urlfetch.MAXURLFETCHCOUNT;
 import io.warp10.script.ext.warpfleet.WarpFleetWarpScriptExtension;
 import io.warp10.script.functions.DROP;
 import io.warp10.script.functions.MSGFAIL;
