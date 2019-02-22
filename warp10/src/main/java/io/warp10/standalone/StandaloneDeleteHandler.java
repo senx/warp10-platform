@@ -17,6 +17,7 @@
 package io.warp10.standalone;
 
 import io.warp10.WarpConfig;
+import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.LogUtil;
 import io.warp10.continuum.TimeSource;
@@ -165,6 +166,10 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     if (disabled) {
       response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Delete endpoint is disabled by configuration.");
       return;
+    }
+    
+    if (null != WarpManager.getAttribute(WarpManager.DELETE_DISABLED)) {
+      response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.DELETE_DISABLED)));
     }
     
     //

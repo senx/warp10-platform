@@ -83,14 +83,14 @@ public class FillerInterpolate extends NamedWarpScriptFunction implements WarpSc
       double[] prevlatlon = GeoXPLib.fromGeoXPPoint(prevloc);
       double[] nextlatlon = GeoXPLib.fromGeoXPPoint(nextloc);
       
-      double lat = prevlatlon[0] + rate * ((nextlatlon[0] - prevlatlon[0]) / span);
-      double lon = prevlatlon[1] + rate * ((nextlatlon[1] - prevlatlon[1]) / span);
+      double lat = prevlatlon[0] + delta * ((nextlatlon[0] - prevlatlon[0]) / span);
+      double lon = prevlatlon[1] + delta * ((nextlatlon[1] - prevlatlon[1]) / span);
       
       location = GeoXPLib.toGeoXPPoint(lat, lon);
     }
     
     if (GeoTimeSerie.NO_ELEVATION != prevelev && GeoTimeSerie.NO_ELEVATION != nextelev) {
-      elevation = (long) Math.round(prevelev + ((nextelev - prevelev) / (double) span) * rate);
+      elevation = (long) Math.round(prevelev + delta * ((nextelev - prevelev) / (double) span));
     }
     
     results[0] = tick;

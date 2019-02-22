@@ -26,6 +26,11 @@
 #warp10.report.secret = 
 
 //
+// Manager secret, must be set to use the managing functions
+//
+#warp10.manager.secret =
+
+//
 // Maximum number of classes for which to report detailed stats in 'FINDSTATS'
 // 
 directory.stats.class.maxcardinality = 100
@@ -114,6 +119,22 @@ warp.aes.metasets = @key:256:warp.aes.metasets@
 // Set to true to disable streaming updates
 //
 #warp.streamupdate.disable =
+
+//
+// Set to a message indicating the reason why updates are disabled, they are enabled if this is not set
+//
+#warp.update.disabled = Updates are momentarily disabled
+  
+//
+// Set to a message indicating the reason why deletes are disabled, they are enabled if this is not set
+//
+#warp.delete.disabled = Deletes are momentarily disabled
+  
+//
+// Set to a message indicating the reason why meta updates are disabled, they are enabled if this is not set
+//
+#warp.meta.disabled = Meta updates are momentarily disabled
+
 
 // Maximum time that TIMEBOX can wait for an execution (in ms), defaults to 30s
 #warpscript.timebox.maxtime=30000
@@ -339,8 +360,9 @@ warpscript.call.directory = ${standalone.home}/calls
 #warpscript.extension.sensision = io.warp10.script.ext.sensision.SensisionWarpScriptExtension
 // MUTEX, SHMLOAD, SHMSTORE
 #warpscript.extension.shm = io.warp10.script.ext.shm.SharedMemoryWarpScriptExtension
-// TOKENDUMP, TOKENGEN
+// TOKENDUMP, TOKENGEN, TOKENSECRET
 #warpscript.extension.token = io.warp10.script.ext.token.TokenWarpScriptExtension
+#token.secret = ....
 // URLFETCH, MAXURLFETCHCOUNT, MAXURLFETCHSIZE
 #warpscript.extension.urlfetch = io.warp10.script.ext.urlfetch.UrlFetchWarpScriptExtension
 
