@@ -20,8 +20,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -35,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
 
+import io.warp10.Revision;
 import io.warp10.continuum.Configuration;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.ext.urlfetch.MAXURLFETCHCOUNT;
@@ -186,7 +189,13 @@ public class WarpFleetMacroRepository {
         try {
           URL url = new URL(macroURL + ".mc2");
 
-          in = url.openStream();
+          URLConnection conn = url.openConnection();
+          
+          if (conn instanceof HttpURLConnection) {
+            ((HttpURLConnection) conn).setRequestProperty("X-Warp10-Revision", Revision.REVISION);
+          }
+          
+          in = conn.getInputStream();
 
           ByteArrayOutputStream out = new ByteArrayOutputStream();
           
