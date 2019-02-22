@@ -33,6 +33,9 @@ sourceSets {
         java {
             srcDirs 'src/generated/thrift/gen-java'
         }
+        resources {
+            srcDirs 'src/main/resources'
+        }
     }
 }
 
@@ -167,6 +170,7 @@ task pack(type: Jar) {
     }
 
     from files(sourceSets.main.output.classesDirs)
+    from files(sourceSets.main.resources.srcDirs)
     from {
         configurations.compile.collect {
             it.isDirectory() ? it : zipTree(it).matching {
