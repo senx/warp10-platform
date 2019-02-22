@@ -250,6 +250,9 @@ warpscript.repository.refresh = 60000
 // Comma separated list of default WarpFleet™ repositories
 warpfleet.macros.repos = https://warpfleet.senx.io/macros
 
+// Configure this property to 'true' to disable the function WF.GETREPOS. This is useful when some of your repo URLs have sensitive information.
+#warpfleet.getrepos.disable = true
+
 // Maximum number of macros from WarpFleet™ to cache, defaults to 10000
 #warpfleet.cache.size = 10000
 

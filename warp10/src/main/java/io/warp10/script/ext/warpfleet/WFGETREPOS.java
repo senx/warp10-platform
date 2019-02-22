@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,11 @@
 
 package io.warp10.script.ext.warpfleet;
 
+import java.util.ArrayList;
+import java.util.Properties;
+
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpFleetMacroRepository;
 import io.warp10.script.WarpScriptException;
@@ -23,13 +28,27 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 public class WFGETREPOS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+  
+  private static final boolean disabled;
+  
+  static {
+    Properties props = WarpConfig.getProperties();
+    
+    disabled = "true".equals(props.getProperty(Configuration.WARPFLEET_GETREPOS_DISABLE));
+  }
+  
   public WFGETREPOS(String name) {
     super(name);
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    stack.push(WarpFleetMacroRepository.getRepos(stack));
+    
+    if (disabled) {
+      stack.push(new ArrayList<String>(0));
+    } else {
+      stack.push(WarpFleetMacroRepository.getRepos(stack));
+    }
     
     return stack;
   }

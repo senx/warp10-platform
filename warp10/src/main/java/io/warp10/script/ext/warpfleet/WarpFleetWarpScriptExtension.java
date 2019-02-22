@@ -29,8 +29,8 @@ public class WarpFleetWarpScriptExtension extends WarpScriptExtension {
     functions = new HashMap<String,Object>();
     
     functions.put("WF.ADDREPO", new WFADDREPO("WF.ADDREPO"));
-    functions.put("WF.SETREPOS", new WFSETREPOS("WF.SETREPOS"));
-    functions.put("WF.GETREPOS", new WFGETREPOS("WF.GETREPOS"));
+    functions.put("WF.SETREPOS", new WFSETREPOS("WF.SETREPOS"));    
+    functions.put("WF.GETREPOS", new WFGETREPOS("WF.GETREPOS"));    
   }
   
   @Override

@@ -1899,6 +1899,11 @@ public class Configuration {
   public static final String WARPFLEET_MACROS_REPOS = "warpfleet.macros.repos";
   
   /**
+   * Configure this property to 'true' to disable the function WF.GETREPOS. This is useful when some of your repo URLs have sensitive information.
+   */
+  public static final String WARPFLEET_GETREPOS_DISABLE = "warpfleet.getrepos.disable";
+  
+  /**
    * Maximum number of cached macros in the cache
    */
   public static final String WARPFLEET_CACHE_SIZE = "warpfleet.cache.size";
