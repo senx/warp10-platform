@@ -248,7 +248,7 @@ warpscript.repository.refresh = 60000
 //
 
 // Comma separated list of default WarpFleet™ repositories
-#warpfleet.macros.repos =
+warpfleet.macros.repos = https://warpfleet.senx.io/macros
 
 // Maximum number of macros from WarpFleet™ to cache, defaults to 10000
 #warpfleet.cache.size = 10000
