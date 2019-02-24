@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import io.warp10.WarpClassLoader;
 import io.warp10.WarpConfig;
+import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.gts.CORRELATE;
 import io.warp10.continuum.gts.DISCORDS;
@@ -440,6 +441,13 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new REPORT("REPORT"));
     addNamedWarpScriptFunction(new MINREV("MINREV"));
 
+    addNamedWarpScriptFunction(new MANAGERONOFF("UPDATEON", WarpManager.UPDATE_DISABLED, true));   
+    addNamedWarpScriptFunction(new MANAGERONOFF("UPDATEOFF", WarpManager.UPDATE_DISABLED, false));   
+    addNamedWarpScriptFunction(new MANAGERONOFF("METAON", WarpManager.META_DISABLED, true));   
+    addNamedWarpScriptFunction(new MANAGERONOFF("METAOFF", WarpManager.META_DISABLED, false));   
+    addNamedWarpScriptFunction(new MANAGERONOFF("DELETEON", WarpManager.DELETE_DISABLED, true));   
+    addNamedWarpScriptFunction(new MANAGERONOFF("DELETEOFF", WarpManager.DELETE_DISABLED, false));
+    
     addNamedWarpScriptFunction(new NOOP(BOOTSTRAP));
 
     addNamedWarpScriptFunction(new RTFM("RTFM"));

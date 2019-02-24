@@ -1593,6 +1593,26 @@ public class Configuration {
   public static final String DATALOG_FORWARDER_ENDPOINT_META = "datalog.forwarder.endpoint.meta";
   
   /**
+   * Set to a message indicating the reason why updates are disabled, they are enabled if this is not set
+   */
+  public static final String WARP_UPDATE_DISABLED = "warp.update.disabled";
+  
+  /**
+   * Manager secret, must be set to use the managing functions
+   */
+  public static final String WARP10_MANAGER_SECRET = "warp10.manager.secret";
+  
+  /**
+   * Set to a message indicating the reason why deletes are disabled, they are enabled if this is not set
+   */
+  public static final String WARP_DELETE_DISABLED = "warp.delete.disabled";
+  
+  /**
+   * Set to a message indicating the reason why meta updates are disabled, they are enabled if this is not set
+   */
+  public static final String WARP_META_DISABLED = "warp.meta.disabled";
+  
+  /**
    * Set to 'true' to disable plasma
    */
   public static final String WARP_PLASMA_DISABLE = "warp.plasma.disable";

@@ -18,16 +18,52 @@ package io.warp10.script.ext.token;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
+import io.warp10.WarpConfig;
+import io.warp10.WarpDist;
 import io.warp10.crypto.KeyStore;
+import io.warp10.standalone.Warp;
 import io.warp10.warp.sdk.WarpScriptExtension;
 
 public class TokenWarpScriptExtension extends WarpScriptExtension {
-  private final Map<String,Object> functions = new HashMap<String,Object>();
+  
+  /*
+   *  Name of configuration key with the token secret. 
+   */
+  public static final String CONF_TOKEN_SECRET = "token.secret";
+  
+  /**
+   * Current Token Secret
+   */
+  public static String TOKEN_SECRET = null;
+  
+  private static final Map<String,Object> functions = new HashMap<String,Object>();
+  private static final KeyStore keystore;
+  
+  static {
+    Properties props = WarpConfig.getProperties();
     
+    if (null != props) {
+      TOKEN_SECRET = props.getProperty(CONF_TOKEN_SECRET);
+    }
+    
+    if (null != TOKEN_SECRET) {
+      keystore = Warp.getKeyStore();
+    } else {
+      keystore = null;
+    }
+  }
+  
   public TokenWarpScriptExtension() {
-    functions.put("TOKENGEN", new TOKENGEN("TOKENGEN"));
-    functions.put("TOKENDUMP", new TOKENDUMP("TOKENDUMP"));
+    if (null != keystore) {
+      functions.put("TOKENGEN", new TOKENGEN("TOKENGEN", keystore));
+      functions.put("TOKENDUMP", new TOKENDUMP("TOKENDUMP", keystore));      
+    } else {
+      functions.put("TOKENGEN", new TOKENGEN("TOKENGEN"));
+      functions.put("TOKENDUMP", new TOKENDUMP("TOKENDUMP"));
+    }
+    functions.put("TOKENSECRET", new TOKENSECRET("TOKENSECRET"));
   }
   
   public TokenWarpScriptExtension(KeyStore keystore) {
