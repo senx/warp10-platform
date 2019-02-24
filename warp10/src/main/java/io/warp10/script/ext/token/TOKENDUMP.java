@@ -75,6 +75,21 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
     }
     
     Object top = stack.pop();
+
+    //
+    // A non null token secret was configured, check it
+    //
+    String secret = TokenWarpScriptExtension.TOKEN_SECRET;
+    
+    if (null != secret) {
+      if (!(top instanceof String)) {
+        throw new WarpScriptException(getName() + " expects a token secret on top of the stack.");
+      }
+      if (!secret.equals(top)) {
+        throw new WarpScriptException(getName() + " invalid token secret.");
+      }
+      top = stack.pop();
+    }
     
     if (!(top instanceof String)) {
       throw new WarpScriptException(getName() + " expects a token on top of the stack.");

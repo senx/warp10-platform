@@ -149,8 +149,8 @@ jar {
 
     manifest {
         attributes(
-                "Implementation-Title": "Warp10",
-                "Implementation-Vendor": "Warp 10",
+                "Implementation-Title": "Warp 10",
+                "Implementation-Vendor": "SenX",
                 "Implementation-Version": version)
     }
 }
@@ -184,7 +184,6 @@ task pack(type: Jar) {
         exclude 'plugin.properties'
         exclude 'jetty-dir.css'
     }
-    with jar
 }
 
 task createTarArchive(type: Exec, dependsOn: pack) {

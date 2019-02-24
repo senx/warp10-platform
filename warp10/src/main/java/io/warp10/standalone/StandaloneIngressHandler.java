@@ -17,6 +17,7 @@
 package io.warp10.standalone;
 
 import io.warp10.WarpConfig;
+import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.ThrottlingManager;
@@ -187,6 +188,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
     } else {
       return;
     }    
+    
+    if (null != WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)) {
+      response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)));
+    }
     
     long lastActivity = System.currentTimeMillis();
     
@@ -659,6 +664,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
       baseRequest.setHandled(true);
     } else {
       return;
+    }
+    
+    if (null != WarpManager.getAttribute(WarpManager.META_DISABLED)) {
+      response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.META_DISABLED)));
     }
     
     long lastActivity = System.currentTimeMillis();

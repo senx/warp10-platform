@@ -87,6 +87,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 
+import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.KafkaProducerPool;
@@ -606,6 +607,10 @@ public class Ingress extends AbstractHandler implements Runnable {
       return;
     }
     
+    if (null != WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)) {
+      response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)));
+    }
+    
     long nowms = System.currentTimeMillis();
     
     try {
@@ -954,6 +959,10 @@ public class Ingress extends AbstractHandler implements Runnable {
       return;
     }
     
+    if (null != WarpManager.getAttribute(WarpManager.META_DISABLED)) {
+      response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.META_DISABLED)));
+    }
+
     //
     // CORS header
     //
@@ -1122,6 +1131,10 @@ public class Ingress extends AbstractHandler implements Runnable {
       throw new IOException(Constants.API_ENDPOINT_DELETE + " endpoint is not activated.");
     }
     
+    if (null != WarpManager.getAttribute(WarpManager.META_DISABLED)) {
+      response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.META_DISABLED)));
+    }
+
     //
     // CORS header
     //
