@@ -70,6 +70,11 @@ public interface WarpScriptStack {
   public static final String TOP_LEVEL_SECTION = "[TOP]";
   
   /**
+   * Name of attribute for storing macro import rules
+   */
+  public static final String ATTRIBUTE_IMPORT_RULES = "import.rules";
+  
+  /**
    * Flag indicating whether or not to set section with the current line number
    */
   public static final String ATTRIBUTE_LINENO = "lineno";

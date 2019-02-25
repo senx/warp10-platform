@@ -534,6 +534,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new STORE(STORE));
     addNamedWarpScriptFunction(new CSTORE("CSTORE"));
     addNamedWarpScriptFunction(new LOAD(LOAD));
+    addNamedWarpScriptFunction(new IMPORT("IMPORT"));
     addNamedWarpScriptFunction(new RUN(RUN));
     addNamedWarpScriptFunction(new DEF("DEF"));
     addNamedWarpScriptFunction(new UDF("UDF", false));
