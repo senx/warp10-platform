@@ -20,6 +20,8 @@ public class Configuration {
 
   public static final String OSS_MASTER_KEY = "oss.master.key";
 
+  public static final String WARP10_REPORT_SECRET = "warp10.report.secret";
+  
   public static final String WARP_COMPONENTS = "warp.components";
 
   public static final String WARP_TOKEN_FILE = "warp.token.file";
@@ -89,6 +91,11 @@ public class Configuration {
    * Number of registers to allocate in stacks. Defaults to WarpScriptStack.DEFAULT_REGISTERS
    */
   public static final String CONFIG_WARPSCRIPT_REGISTERS = "warpscript.registers";
+  
+  /**
+   * Maximum time to allocate for timeboxed executions
+   */
+  public static final String CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME = "warpscript.timebox.maxtime";
   
   /**
    * Comma separated list of WarpScriptExtension classes to instantiate to modify
@@ -1501,6 +1508,26 @@ public class Configuration {
   public static final String DATALOG_FORWARDER_ENDPOINT_META = "datalog.forwarder.endpoint.meta";
   
   /**
+   * Set to a message indicating the reason why updates are disabled, they are enabled if this is not set
+   */
+  public static final String WARP_UPDATE_DISABLED = "warp.update.disabled";
+  
+  /**
+   * Manager secret, must be set to use the managing functions
+   */
+  public static final String WARP10_MANAGER_SECRET = "warp10.manager.secret";
+  
+  /**
+   * Set to a message indicating the reason why deletes are disabled, they are enabled if this is not set
+   */
+  public static final String WARP_DELETE_DISABLED = "warp.delete.disabled";
+  
+  /**
+   * Set to a message indicating the reason why meta updates are disabled, they are enabled if this is not set
+   */
+  public static final String WARP_META_DISABLED = "warp.meta.disabled";
+  
+  /**
    * Set to 'true' to disable plasma
    */
   public static final String WARP_PLASMA_DISABLE = "warp.plasma.disable";
@@ -1847,9 +1874,70 @@ public class Configuration {
   public static final String REPOSITORY_REFRESH = "warpscript.repository.refresh";
 
   /**
+   * Default TTL for macros loaded on demand
+   */
+  public static final String REPOSITORY_TTL = "warpscript.repository.ttl";
+  
+  /**
+   * Max TTL for macros loaded on demand (will limit the value one can set using MACROTTL)
+   */
+  public static final String REPOSITORY_TTL_HARD = "warpscript.repository.ttl.hard";
+  
+  /**
+   * TTL to use for failed macros
+   */
+  public static final String REPOSITORY_TTL_FAILED = "warpscript.repository.ttl.failed";
+  
+  /**
    * Should new macros be loaded on demand?
    */
   public static final String REPOSITORY_ONDEMAND = "warpscript.repository.ondemand";
+
+  /**
+   * Comma separated list of default WarpFleet™ repositories
+   */
+  public static final String WARPFLEET_MACROS_REPOS = "warpfleet.macros.repos";
+  
+  /**
+   * Configure this property to 'true' to disable the function WF.GETREPOS. This is useful when some of your repo URLs have sensitive information.
+   */
+  public static final String WARPFLEET_GETREPOS_DISABLE = "warpfleet.getrepos.disable";
+  
+  /**
+   * Maximum number of cached macros in the cache
+   */
+  public static final String WARPFLEET_CACHE_SIZE = "warpfleet.cache.size";
+  
+  /**
+   * Default TTL (in ms) for macros loaded from a WarpFleet repository
+   */
+  public static final String WARPFLEET_MACROS_TTL = "warpfleet.macros.ttl";
+
+  /**
+   * Lower limit for TTL (in ms) of macros loaded from a WarpFleet repository
+   */
+  public static final String WARPFLEET_MACROS_TTL_MIN = "warpfleet.macros.ttl.min";
+
+  /**
+   * Upper limit for TTL (in ms) of macros loaded from a WarpFleet repository
+   */
+  public static final String WARPFLEET_MACROS_TTL_MAX = "warpfleet.macros.ttl.max";
+
+  /**
+   * Default TTL (in ms) for WarpFleet macros which had errors
+   */
+  public static final String WARPFLEET_MACROS_TTL_FAILED = "warpfleet.macros.ttl.failed";
+
+  /**
+   * Default TTL (in ms) for WarpFleet macros which were not found. If > 0, a dummy macro
+   * will be generated which will fail with an informative error message
+   */
+  public static final String WARPFLEET_MACROS_TTL_UNKNOWN = "warpfleet.macros.ttl.unknown";
+
+  /**
+   * Name of WarpFleet repository macro. This macro consumes a URL and emits a boolean.
+   */
+  public static final String WARPFLEET_MACROS_VALIDATOR = "warpfleet.macros.validator";
 
   /**
    * Header containing the request UUID when calling the endpoint

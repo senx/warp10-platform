@@ -21,6 +21,16 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
+// Secret for REPORT, if unset, a random secret will be generated and output in the logs and on stdout
+//
+#warp10.report.secret = 
+
+//
+// Manager secret, must be set to use the managing functions
+//
+#warp10.manager.secret =
+
+//
 // Maximum number of classes for which to report detailed stats in 'FINDSTATS'
 // 
 directory.stats.class.maxcardinality = 100
@@ -109,6 +119,25 @@ warp.aes.metasets = @key:256:warp.aes.metasets@
 // Set to true to disable streaming updates
 //
 #warp.streamupdate.disable =
+
+//
+// Set to a message indicating the reason why updates are disabled, they are enabled if this is not set
+//
+#warp.update.disabled = Updates are momentarily disabled
+  
+//
+// Set to a message indicating the reason why deletes are disabled, they are enabled if this is not set
+//
+#warp.delete.disabled = Deletes are momentarily disabled
+  
+//
+// Set to a message indicating the reason why meta updates are disabled, they are enabled if this is not set
+//
+#warp.meta.disabled = Meta updates are momentarily disabled
+
+
+// Maximum time that TIMEBOX can wait for an execution (in ms), defaults to 30s
+#warpscript.timebox.maxtime=30000
 
 //
 // Number of registers to allocate in the stack defaults to 256
@@ -204,6 +233,48 @@ warpscript.repository.refresh = 60000
 // Set to false to disable on demand loading of macros not yet loaded.
 #warpscript.repository.ondemand = false
 
+// Default TTL for macros loaded on demand
+#warpscript.repository.ttl = 600000
+
+// TTL to use for failed macros, a new on-demand loading will occur after this delay.
+// Defaults to the max of 10s or half of warpscript.repository.refresh
+#warpscript.repository.ttl = 
+
+// Maximum TTL that can be set using MACROTTL (defaults to 2**62 ms)
+#warpscript.repository.ttl.hard = 
+
+//
+// WarpFleet
+//
+
+// Comma separated list of default WarpFleet™ repositories
+warpfleet.macros.repos = https://warpfleet.senx.io/macros
+
+// Configure this property to 'true' to disable the function WF.GETREPOS. This is useful when some of your repo URLs have sensitive information.
+#warpfleet.getrepos.disable = true
+
+// Maximum number of macros from WarpFleet™ to cache, defaults to 10000
+#warpfleet.cache.size = 10000
+
+// Default TTL (in ms) for macros loaded from a WarpFleet repository (defaults to 10 minutes)
+#warpfleet.macros.ttl = 600000
+
+// Lower limit for TTL (in ms) of macros loaded from a WarpFleet repository (defaults to 60 seconds)
+#warpfleet.macros.ttl.min = 60000
+
+// Upper limit for TTL (in ms) of macros loaded from a WarpFleet repository (defaults to 24 hours)
+#warpfleet.macros.ttl.max = 
+
+// Default TTL (in ms) for WarpFleet macros which had errors (defaults to 10 seconds)
+#warpfleet.macros.ttl.failed = 10000
+
+// Default TTL (in ms) for WarpFleet macros which were not found. If > 0, a dummy macro
+// will be generated which will fail with an informative error message
+#warpfleet.macros.ttl.unknown = 0
+
+// Name of WarpFleet repository macro. This macro consumes a URL and emits a boolean.
+#warpfleet.macros.validator = 
+
 //
 // Maximum levels of recursion in macro calls
 //
@@ -292,8 +363,9 @@ warpscript.call.directory = ${standalone.home}/calls
 #warpscript.extension.sensision = io.warp10.script.ext.sensision.SensisionWarpScriptExtension
 // MUTEX, SHMLOAD, SHMSTORE
 #warpscript.extension.shm = io.warp10.script.ext.shm.SharedMemoryWarpScriptExtension
-// TOKENDUMP, TOKENGEN
+// TOKENDUMP, TOKENGEN, TOKENSECRET
 #warpscript.extension.token = io.warp10.script.ext.token.TokenWarpScriptExtension
+#token.secret = ....
 // URLFETCH, MAXURLFETCHCOUNT, MAXURLFETCHSIZE
 #warpscript.extension.urlfetch = io.warp10.script.ext.urlfetch.UrlFetchWarpScriptExtension
 

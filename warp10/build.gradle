@@ -33,6 +33,9 @@ sourceSets {
         java {
             srcDirs 'src/generated/thrift/gen-java'
         }
+        resources {
+            srcDirs 'src/main/resources'
+        }
     }
 }
 
@@ -106,7 +109,7 @@ dependencies {
     //
     //compile 'leveldb:leveldb:0.7-SNAPSHOT-uber'
     compile 'org.fusesource.leveldbjni:leveldbjni-all:1.7'
-    compile 'org.iq80.leveldb:leveldb:0.6'
+    compile 'org.iq80.leveldb:leveldb:0.11'
     compile 'org.xerial.snappy:snappy-java:1.0.5'
     compile 'org.iq80.snappy:snappy:0.3'
 
@@ -149,8 +152,8 @@ jar {
 
     manifest {
         attributes(
-                "Implementation-Title": "Warp10",
-                "Implementation-Vendor": "Warp 10",
+                "Implementation-Title": "Warp 10",
+                "Implementation-Vendor": "SenX",
                 "Implementation-Version": version)
     }
 }
@@ -167,6 +170,7 @@ task pack(type: Jar) {
     }
 
     from files(sourceSets.main.output.classesDirs)
+    from files(sourceSets.main.resources.srcDirs)
     from {
         configurations.compile.collect {
             it.isDirectory() ? it : zipTree(it).matching {
@@ -184,7 +188,6 @@ task pack(type: Jar) {
         exclude 'plugin.properties'
         exclude 'jetty-dir.css'
     }
-    with jar
 }
 
 task createTarArchive(type: Exec, dependsOn: pack) {

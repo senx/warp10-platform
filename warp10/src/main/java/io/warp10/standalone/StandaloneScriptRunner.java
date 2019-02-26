@@ -16,23 +16,6 @@
 
 package io.warp10.standalone;
 
-import io.warp10.continuum.BootstrapManager;
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.TimeSource;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.DirectoryClient;
-import io.warp10.continuum.store.StoreClient;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.KeyStore;
-import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.script.WarpScriptLib;
-import io.warp10.script.WarpScriptStack;
-import io.warp10.script.MemoryWarpScriptStack;
-import io.warp10.script.ScriptRunner;
-import io.warp10.script.WarpScriptStack.StackContext;
-import io.warp10.sensision.Sensision;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -46,9 +29,24 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.geoxp.oss.CryptoHelper;
-import com.geoxp.oss.client.OSSClient;
 import com.google.common.base.Charsets;
 import com.google.common.primitives.Longs;
+
+import io.warp10.continuum.BootstrapManager;
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.TimeSource;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.DirectoryClient;
+import io.warp10.continuum.store.StoreClient;
+import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.script.MemoryWarpScriptStack;
+import io.warp10.script.ScriptRunner;
+import io.warp10.script.WarpScriptLib;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.StackContext;
+import io.warp10.sensision.Sensision;
 
 public class StandaloneScriptRunner extends ScriptRunner {
   
@@ -104,7 +102,9 @@ public class StandaloneScriptRunner extends ScriptRunner {
           String path = f.getAbsolutePath().substring(getRoot().length() + 1);
           labels.put(SensisionConstants.SENSISION_LABEL_PATH, path);
           
-          Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_COUNT, labels, 1);
+          long ttl = Math.max(scanperiod * 2, periodicity * 2);
+          
+          Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_COUNT, labels, ttl, 1);
 
           long nano = System.nanoTime();
           
@@ -174,10 +174,10 @@ public class StandaloneScriptRunner extends ScriptRunner {
           } finally {
             nextrun.put(script, nowts + periodicity);
             nano = System.nanoTime() - nano;
-            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, (long) (nano / 1000L));
-            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_ELAPSED, labels, nano); 
-            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_OPS, labels, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS)); 
-            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FETCHED, labels, ((AtomicLong) stack.getAttribute(WarpScriptStack.ATTRIBUTE_FETCH_COUNT)).get());            
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, ttl, (long) (nano / 1000L));
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_ELAPSED, labels, ttl, nano); 
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_OPS, labels, ttl, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS)); 
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FETCHED, labels, ttl, ((AtomicLong) stack.getAttribute(WarpScriptStack.ATTRIBUTE_FETCH_COUNT)).get());            
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_CURRENT, Sensision.EMPTY_LABELS, -1);
           }              
         }
