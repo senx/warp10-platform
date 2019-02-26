@@ -1646,16 +1646,14 @@ public class WarpScriptLib {
         WarpScriptExtension wse = (WarpScriptExtension) cls.newInstance();          
         wse.register();
         
-        System.out.print("LOADED extension '" + extension  + "'");
-        
         String namespace = props.getProperty(Configuration.CONFIG_WARPSCRIPT_NAMESPACE_PREFIX + wse.getClass().getName(), "").trim(); 
         if (null != namespace && !"".equals(namespace)) {
           if (namespace.contains("%")) {
             namespace = URLDecoder.decode(namespace, "UTF-8");
           }
-          System.out.println(" under namespace '" + namespace + "'.");
+          LOG.info("LOADED extension '" + extension + "'" + " under namespace '" + namespace + "'.");
         } else {
-          System.out.println();
+          LOG.info("LOADED extension '" + extension + "'");
         }
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -1670,6 +1668,7 @@ public class WarpScriptLib {
         sb.append(extension);
         sb.append("'");
       }
+      LOG.error(sb.toString());
       throw new RuntimeException(sb.toString());
     }
   }
