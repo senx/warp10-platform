@@ -37,16 +37,25 @@ import com.google.common.base.Charsets;
 
 import io.warp10.Revision;
 import io.warp10.continuum.Configuration;
+import io.warp10.continuum.store.Constants;
 import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.binary.ADD;
+import io.warp10.script.binary.SUB;
 import io.warp10.script.ext.warpfleet.WarpFleetWarpScriptExtension;
 import io.warp10.script.functions.DROP;
+import io.warp10.script.functions.HUMANDURATION;
 import io.warp10.script.functions.MSGFAIL;
+import io.warp10.script.functions.NOW;
 
 public class WarpFleetMacroRepository {
 
   private static final Logger LOG = LoggerFactory.getLogger(WarpFleetMacroRepository.class);
   
   private static final MSGFAIL MSGFAIL_FUNC = new MSGFAIL("MSGFAIL");
+  private static final NOW NOW_FUNC = new NOW("NOW");
+  private static final SUB SUB_FUNC = new SUB("-");
+  private static final ADD ADD_FUNC = new ADD("+");
+  private static final HUMANDURATION HUMANDURATION_FUNC = new HUMANDURATION("HUMANDURATION");
 
   private static final int FINGERPRINT_UNKNOWN = -1;
   
@@ -288,10 +297,16 @@ public class WarpFleetMacroRepository {
     } catch (WarpScriptException wse) {
       // Replace macro with a FAIL indicating the error message
       macro = new Macro();
-      macro.add("[" + System.currentTimeMillis() + "] Error while loading macro '" + name + "': " + wse.getMessage());      
+      macro.add("[" + System.currentTimeMillis() + "] Error while loading macro '" + name + "': " + wse.getMessage() + ", result cached for ");
+      long expiry_ts = System.currentTimeMillis() + failedTtl;
+      macro.add(expiry_ts * Constants.TIME_UNITS_PER_MS);
+      macro.add(NOW_FUNC);
+      macro.add(SUB_FUNC);
+      macro.add(HUMANDURATION_FUNC);
+      macro.add(ADD_FUNC);
       macro.add(MSGFAIL_FUNC);
       // Set the expiry
-      macro.setExpiry(System.currentTimeMillis() + failedTtl);
+      macro.setExpiry(expiry_ts);
     } finally {
       loading.get().remove(loading.get().size() - 1);
     }
@@ -303,10 +318,16 @@ public class WarpFleetMacroRepository {
     
     if (null == macro && unknownTtl > 0) {
       macro = new Macro();
-      macro.add("[" + System.currentTimeMillis() + "] Macro '" + name + "' was not found in any of the WarpFleet™ repositories");      
+      macro.add("[" + System.currentTimeMillis() + "] Macro '" + name + "' was not found in any of the WarpFleet™ repositories, result cached for ");      
+      long expiry_ts = System.currentTimeMillis() + unknownTtl;
+      macro.add(expiry_ts * Constants.TIME_UNITS_PER_MS);
+      macro.add(NOW_FUNC);
+      macro.add(SUB_FUNC);
+      macro.add(HUMANDURATION_FUNC);
+      macro.add(ADD_FUNC);
       macro.add(MSGFAIL_FUNC);
       // Set the expiry
-      macro.setExpiry(System.currentTimeMillis() + unknownTtl);
+      macro.setExpiry(expiry_ts);
     }
     
     if (null != macro && null != macroURL) {
