@@ -44,6 +44,7 @@ import io.warp10.script.binary.SUB;
 import io.warp10.script.ext.warpfleet.WarpFleetWarpScriptExtension;
 import io.warp10.script.functions.DROP;
 import io.warp10.script.functions.HUMANDURATION;
+import io.warp10.script.functions.MACROCONFIG;
 import io.warp10.script.functions.MSGFAIL;
 import io.warp10.script.functions.NOW;
 
@@ -225,10 +226,33 @@ public class WarpFleetMacroRepository {
           MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
           stack.maxLimits();
           
+          AtomicBoolean enabled = new AtomicBoolean(true);
+          
+          //
+          // Add 'MACROCONFIG' and 'MACROCONFIGDEFAULT'
+          //
+          
+          final MACROCONFIG macroconfig = new MACROCONFIG(MACROCONFIG.MACROCONFIG, enabled);
+          final MACROCONFIG macroconfigdef = new MACROCONFIG(MACROCONFIG.MACROCONFIGDEFAULT, enabled, true);
+          
+          Macro m = new Macro();
+          m.setSecure(true);
+          m.add(macroconfig);
+          
+          stack.define(macroconfig.getName(), m);
+          
+          m = new Macro();
+          m.setSecure(true);
+          m.add(macroconfigdef);
+          
+          stack.define(macroconfigdef.getName(), m);
+          
           //
           // Execute the code
           //
           stack.execMulti(sb.toString());
+          
+          enabled.set(false);
           
           //
           // Ensure the resulting stack is one level deep and has a macro on top

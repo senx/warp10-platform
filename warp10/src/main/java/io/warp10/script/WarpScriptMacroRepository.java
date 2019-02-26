@@ -22,6 +22,7 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.functions.INCLUDE;
+import io.warp10.script.functions.MACROCONFIG;
 import io.warp10.script.functions.MSGFAIL;
 import io.warp10.sensision.Sensision;
 
@@ -439,12 +440,31 @@ public class WarpScriptMacroRepository extends Thread {
       );
       
       //
+      // Add 'MACROCONFIG' and 'MACROCONFIGDEFAULT'
+      //
+      
+      final MACROCONFIG macroconfig = new MACROCONFIG(MACROCONFIG.MACROCONFIG, enabled);
+      final MACROCONFIG macroconfigdef = new MACROCONFIG(MACROCONFIG.MACROCONFIGDEFAULT, enabled, true);
+      
+      Macro m = new Macro();
+      m.setSecure(true);
+      m.add(macroconfig);
+      
+      stack.define(macroconfig.getName(), m);
+      
+      m = new Macro();
+      m.setSecure(true);
+      m.add(macroconfigdef);
+      
+      stack.define(macroconfigdef.getName(), m);
+      
+      //
       // Execute the code
       //
       stack.execMulti(sb.toString());
       
       //
-      // Disable 'INCLUDE'
+      // Disable INCLUDE, MACROCONFIG, MACROCONFIGDEFAULT
       //
       
       enabled.set(false);
