@@ -88,11 +88,6 @@ public class Configuration {
   public static final String WARP_HBASE_REGIONKEYS_UPDATEPERIOD = "warp.hbase.regionkeys.updateperiod";
   
   /**
-   * Prefix for macro configurations (for MACROCONFIG/MACROCONFIGDEFAULT)
-   */
-  public static final String CONFIG_MACRO_CONFIG_PREFIX = "macro.config.";
-  
-  /**
    * Number of registers to allocate in stacks. Defaults to WarpScriptStack.DEFAULT_REGISTERS
    */
   public static final String CONFIG_WARPSCRIPT_REGISTERS = "warpscript.registers";

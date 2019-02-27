@@ -44,6 +44,7 @@ public class MACROCONFIG extends NamedWarpScriptFunction implements WarpScriptSt
   
   private final AtomicBoolean enabled;
   private final boolean defaultValue;
+  private final String macro;
   
   private static Properties properties;
   
@@ -51,14 +52,15 @@ public class MACROCONFIG extends NamedWarpScriptFunction implements WarpScriptSt
     properties = WarpConfig.getProperties();
   }
   
-  public MACROCONFIG(String name, AtomicBoolean enabled, boolean defaultValue) {
+  public MACROCONFIG(String name, AtomicBoolean enabled, String macro, boolean defaultValue) {
     super(name);
     this.enabled = enabled;
     this.defaultValue = defaultValue;
+    this.macro = macro;
   }
   
-  public MACROCONFIG(String name, AtomicBoolean enabled) {
-    this(name, enabled, false);
+  public MACROCONFIG(String name, AtomicBoolean enabled, String macro) {
+    this(name, enabled, macro, false);
   }
   
   @Override
@@ -81,12 +83,12 @@ public class MACROCONFIG extends NamedWarpScriptFunction implements WarpScriptSt
       throw new WarpScriptException(getName() + " expects a macro configuration key name.");
     }
 
-    String key = Configuration.CONFIG_MACRO_CONFIG_PREFIX + String.valueOf(top);
-    
-    String value = this.defaultValue ? properties.getProperty(key, defVal) : properties.getProperty(key);
+    String key = String.valueOf(top).trim();
+        
+    String value = this.defaultValue ? properties.getProperty(key + "@" + macro, defVal) : properties.getProperty(key + "@" + macro);
     
     if (null == value) {
-      throw new WarpScriptException(getName() + " macro configuration not found, property '" + key + "' not set.");
+      throw new WarpScriptException(getName() + " macro configuration not found, property '" + key + "@" + macro + "' not set.");
     }
     
     stack.push(value);

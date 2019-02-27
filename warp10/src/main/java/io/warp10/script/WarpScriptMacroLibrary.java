@@ -95,7 +95,7 @@ public class WarpScriptMacroLibrary {
         
         InputStream in = jar.getInputStream(entry);
 
-        Macro macro = loadMacro(jar, in);
+        Macro macro = loadMacro(jar, in, name);
         
         //
         // Store resulting macro under 'name'
@@ -114,7 +114,7 @@ public class WarpScriptMacroLibrary {
     }    
   }
   
-  public static Macro loadMacro(Object root, InputStream in) throws WarpScriptException {
+  public static Macro loadMacro(Object root, InputStream in, String name) throws WarpScriptException {
     try {
       byte[] buf = new byte[8192];
       StringBuilder sb = new StringBuilder();
@@ -162,8 +162,8 @@ public class WarpScriptMacroLibrary {
       // Add 'MACROCONFIG' and 'MACROCONFIGDEFAULT'
       //
       
-      final MACROCONFIG macroconfig = new MACROCONFIG(MACROCONFIG.MACROCONFIG, enabled);
-      final MACROCONFIG macroconfigdef = new MACROCONFIG(MACROCONFIG.MACROCONFIGDEFAULT, enabled, true);
+      final MACROCONFIG macroconfig = new MACROCONFIG(MACROCONFIG.MACROCONFIG, enabled, name);
+      final MACROCONFIG macroconfigdef = new MACROCONFIG(MACROCONFIG.MACROCONFIGDEFAULT, enabled, name, true);
       
       Macro m = new Macro();
       m.setSecure(true);
@@ -244,7 +244,7 @@ public class WarpScriptMacroLibrary {
             //
             String urlstr = url.toString();
             File root = new File(urlstr.substring(0, urlstr.length() - name.length()  - WarpScriptMacroRepository.WARPSCRIPT_FILE_EXTENSION.length()));
-            macro = loadMacro(root, conn.getInputStream());
+            macro = loadMacro(root, conn.getInputStream(), name);
           }          
         } catch (URISyntaxException use) {
           throw new WarpScriptException("Error while loading '" + name + "'", use);

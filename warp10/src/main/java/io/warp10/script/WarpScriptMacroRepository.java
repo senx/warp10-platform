@@ -443,8 +443,8 @@ public class WarpScriptMacroRepository extends Thread {
       // Add 'MACROCONFIG' and 'MACROCONFIGDEFAULT'
       //
       
-      final MACROCONFIG macroconfig = new MACROCONFIG(MACROCONFIG.MACROCONFIG, enabled);
-      final MACROCONFIG macroconfigdef = new MACROCONFIG(MACROCONFIG.MACROCONFIGDEFAULT, enabled, true);
+      final MACROCONFIG macroconfig = new MACROCONFIG(MACROCONFIG.MACROCONFIG, enabled, name);
+      final MACROCONFIG macroconfigdef = new MACROCONFIG(MACROCONFIG.MACROCONFIGDEFAULT, enabled, name, true);
       
       Macro m = new Macro();
       m.setSecure(true);
