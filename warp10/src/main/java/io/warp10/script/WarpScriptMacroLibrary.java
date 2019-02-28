@@ -18,7 +18,6 @@ package io.warp10.script;
 
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.functions.INCLUDE;
-import io.warp10.script.functions.MACROCONFIG;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -144,6 +143,7 @@ public class WarpScriptMacroLibrary {
       
       MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, new Properties());
       stack.maxLimits();
+      stack.setAttribute(WarpScriptStack.ATTRIBUTE_MACRO_NAME, name);
 
       //
       // Add 'INCLUDE'
@@ -159,32 +159,13 @@ public class WarpScriptMacroLibrary {
       );
       
       //
-      // Add 'MACROCONFIG' and 'MACROCONFIGDEFAULT'
-      //
-      
-      final MACROCONFIG macroconfig = new MACROCONFIG(MACROCONFIG.MACROCONFIG, enabled, name);
-      final MACROCONFIG macroconfigdef = new MACROCONFIG(MACROCONFIG.MACROCONFIGDEFAULT, enabled, name, true);
-      
-      Macro m = new Macro();
-      m.setSecure(true);
-      m.add(macroconfig);
-      
-      stack.define(macroconfig.getName(), m);
-      
-      m = new Macro();
-      m.setSecure(true);
-      m.add(macroconfigdef);
-      
-      stack.define(macroconfigdef.getName(), m);
-      
-      //
       // Execute the code
       //
 
       stack.execMulti(sb.toString());
 
       //
-      // Disable INCLUDE, MACROCONFIG, MACROCONFIGDEFAULT
+      // Disable INCLUDE
       //
       
       enabled.set(false);
@@ -203,6 +184,7 @@ public class WarpScriptMacroLibrary {
       
       Macro macro = (Macro) stack.pop();
       macro.setSecure(true);
+      macro.setName(name);
       
       return macro;
     } catch (IOException ioe) {

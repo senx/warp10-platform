@@ -22,7 +22,6 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.functions.INCLUDE;
-import io.warp10.script.functions.MACROCONFIG;
 import io.warp10.script.functions.MSGFAIL;
 import io.warp10.sensision.Sensision;
 
@@ -418,7 +417,8 @@ public class WarpScriptMacroRepository extends Thread {
       
       MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
       stack.maxLimits();
-
+      stack.setAttribute(WarpScriptStack.ATTRIBUTE_MACRO_NAME, name);
+      
       //
       // Add 'INCLUDE', 'enabled' will disable 'INCLUDE' after we've used it when loading 
       //
@@ -438,33 +438,14 @@ public class WarpScriptMacroRepository extends Thread {
         public java.util.List<Object> statements() { return new ArrayList<Object>() {{ add(include); }}; }
         }
       );
-      
-      //
-      // Add 'MACROCONFIG' and 'MACROCONFIGDEFAULT'
-      //
-      
-      final MACROCONFIG macroconfig = new MACROCONFIG(MACROCONFIG.MACROCONFIG, enabled, name);
-      final MACROCONFIG macroconfigdef = new MACROCONFIG(MACROCONFIG.MACROCONFIGDEFAULT, enabled, name, true);
-      
-      Macro m = new Macro();
-      m.setSecure(true);
-      m.add(macroconfig);
-      
-      stack.define(macroconfig.getName(), m);
-      
-      m = new Macro();
-      m.setSecure(true);
-      m.add(macroconfigdef);
-      
-      stack.define(macroconfigdef.getName(), m);
-      
+            
       //
       // Execute the code
       //
       stack.execMulti(sb.toString());
       
       //
-      // Disable INCLUDE, MACROCONFIG, MACROCONFIGDEFAULT
+      // Disable INCLUDE
       //
       
       enabled.set(false);
@@ -498,6 +479,8 @@ public class WarpScriptMacroRepository extends Thread {
       
       // Make macro a secure one
       macro.setSecure(true);
+      
+      macro.setName(name);
       
       return macro;
     } catch(Exception e) {

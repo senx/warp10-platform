@@ -44,7 +44,6 @@ import io.warp10.script.binary.SUB;
 import io.warp10.script.ext.warpfleet.WarpFleetWarpScriptExtension;
 import io.warp10.script.functions.DROP;
 import io.warp10.script.functions.HUMANDURATION;
-import io.warp10.script.functions.MACROCONFIG;
 import io.warp10.script.functions.MSGFAIL;
 import io.warp10.script.functions.NOW;
 
@@ -225,34 +224,12 @@ public class WarpFleetMacroRepository {
           
           MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
           stack.maxLimits();
-          
-          AtomicBoolean enabled = new AtomicBoolean(true);
-          
-          //
-          // Add 'MACROCONFIG' and 'MACROCONFIGDEFAULT'
-          //
-          
-          final MACROCONFIG macroconfig = new MACROCONFIG(MACROCONFIG.MACROCONFIG, enabled, name);
-          final MACROCONFIG macroconfigdef = new MACROCONFIG(MACROCONFIG.MACROCONFIGDEFAULT, enabled, name, true);
-          
-          Macro m = new Macro();
-          m.setSecure(true);
-          m.add(macroconfig);
-          
-          stack.define(macroconfig.getName(), m);
-          
-          m = new Macro();
-          m.setSecure(true);
-          m.add(macroconfigdef);
-          
-          stack.define(macroconfigdef.getName(), m);
-          
+          stack.setAttribute(WarpScriptStack.ATTRIBUTE_MACRO_NAME, name);
+
           //
           // Execute the code
           //
           stack.execMulti(sb.toString());
-          
-          enabled.set(false);
           
           //
           // Ensure the resulting stack is one level deep and has a macro on top
@@ -285,6 +262,8 @@ public class WarpFleetMacroRepository {
             macro.setExpiry(System.currentTimeMillis() + ttl);
           }
 
+          macro.setName(name);
+          
           synchronized(macros) {
             macros.put(macroURL, macro);
           }
@@ -414,6 +393,7 @@ public class WarpFleetMacroRepository {
     if (null != validationMacro) {
       MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
       stack.maxLimits();
+      
       try {
         validator = stack.find(validationMacro.trim());
       } catch (WarpScriptException wse) {

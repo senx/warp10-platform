@@ -38,13 +38,8 @@ import java.util.jar.JarFile;
  * This function is not intended to be used outside of Macro Repositories, Macro libraries and WarpFleet™ Resolver
  */
 public class MACROCONFIG extends NamedWarpScriptFunction implements WarpScriptStackFunction {
- 
-  public static final String MACROCONFIG = "MACROCONFIG";
-  public static final String MACROCONFIGDEFAULT = "MACROCONFIGDEFAULT";
-  
-  private final AtomicBoolean enabled;
+   
   private final boolean defaultValue;
-  private final String macro;
   
   private static Properties properties;
   
@@ -52,22 +47,22 @@ public class MACROCONFIG extends NamedWarpScriptFunction implements WarpScriptSt
     properties = WarpConfig.getProperties();
   }
   
-  public MACROCONFIG(String name, AtomicBoolean enabled, String macro, boolean defaultValue) {
+  public MACROCONFIG(String name, boolean defaultValue) {
     super(name);
-    this.enabled = enabled;
     this.defaultValue = defaultValue;
-    this.macro = macro;
   }
   
-  public MACROCONFIG(String name, AtomicBoolean enabled, String macro) {
-    this(name, enabled, macro, false);
+  public MACROCONFIG(String name) {
+    this(name, false);
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
-    if (!enabled.get()) {
-      throw new WarpScriptException(getName() + " can only be used when loading macros, not when using them.");
+    String macro = (String) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_NAME);
+
+    if (null == macro) {
+      throw new WarpScriptException(getName() + " can only be used from named macro.");
     }
         
     Object top = stack.pop();
