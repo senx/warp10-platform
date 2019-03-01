@@ -28,6 +28,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.JarEntry;
@@ -70,7 +72,7 @@ public class MACROCONFIG extends NamedWarpScriptFunction implements WarpScriptSt
     String defVal = null;
     
     if (this.defaultValue) {
-      defVal = String.valueOf(top);
+      defVal = null == top ? null : String.valueOf(top);
       top = stack.pop();
     }
     
@@ -79,11 +81,48 @@ public class MACROCONFIG extends NamedWarpScriptFunction implements WarpScriptSt
     }
 
     String key = String.valueOf(top).trim();
-        
-    String value = this.defaultValue ? properties.getProperty(key + "@" + macro, defVal) : properties.getProperty(key + "@" + macro);
+
+    String value = null;
     
+    List<String> attempts = new ArrayList<String>();
+
+    if (this.defaultValue) {
+      attempts.add(key + "@" + macro);
+      value = properties.getProperty(key + "@" + macro, defVal);  
+    } else {
+      //
+      // We will attempt to find key@name/of/macro
+      // then fallback to key@name/of
+      // then fallback to key@name
+      //
+            
+      String m = macro;
+      
+      while(true) {
+        attempts.add(key + "@"  + m);
+        
+        value =  properties.getProperty(key + "@" + m);
+            
+        if (null != value) {
+          break;
+        }
+            
+        if (!m.contains("/")) {
+          break;
+        }
+        
+        m = m.replaceAll("/[^/]+$", "");
+      }       
+    }
+       
     if (null == value) {
-      throw new WarpScriptException(getName() + " macro configuration not found, property '" + key + "@" + macro + "' not set.");
+      StringBuilder sb = new StringBuilder();
+      sb.append(getName() + " macro configuration '" + key + "' not found, need to set one of [");
+      for (String attempt: attempts) {
+        sb.append(" '" + attempt + "'");
+      }
+      sb.append(" ].");
+      throw new WarpScriptException(sb.toString());
     }
     
     stack.push(value);
