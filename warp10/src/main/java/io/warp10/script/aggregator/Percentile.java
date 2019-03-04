@@ -56,7 +56,7 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptAgg
     public Object apply(WarpScriptStack stack) throws WarpScriptException {
       Object value = stack.pop();
       
-      if (!(value instanceof Double)) {
+      if (!(value instanceof Number)) {
         throw new WarpScriptException("Invalid parameter for " + getName());
       }
       
