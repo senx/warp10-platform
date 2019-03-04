@@ -316,7 +316,23 @@ public class WarpConfig {
     }
     return (Properties) properties.clone();
   }
+  
+  public static String getProperty(String key) {
+    if (null == properties) {
+      return null;
+    } else {
+      return properties.getProperty(key);
+    }
+  }
 
+  public static String getProperty(String key, String defaultValue) {
+    if (null == properties) {
+      return null;
+    } else {
+      return properties.getProperty(key, defaultValue);
+    }    
+  }
+  
   public static void main(String... args) {
     if (2 != args.length) {
       System.err.println("2 arguments required: properties file and the property key");

@@ -34,12 +34,6 @@ public class MACROCONFIG extends NamedWarpScriptFunction implements WarpScriptSt
    
   private final boolean defaultValue;
   
-  private static Properties properties;
-  
-  static {
-    properties = WarpConfig.getProperties();
-  }
-  
   public MACROCONFIG(String name, boolean defaultValue) {
     super(name);
     this.defaultValue = defaultValue;
@@ -79,7 +73,7 @@ public class MACROCONFIG extends NamedWarpScriptFunction implements WarpScriptSt
 
     if (this.defaultValue) {
       attempts.add(key + "@" + macro);
-      value = properties.getProperty(key + "@" + macro, defVal);  
+      value = WarpConfig.getProperty(key + "@" + macro, defVal);  
     } else {
       //
       // We will attempt to find key@name/of/macro
@@ -92,7 +86,7 @@ public class MACROCONFIG extends NamedWarpScriptFunction implements WarpScriptSt
       while(true) {
         attempts.add(key + "@"  + m);
         
-        value =  properties.getProperty(key + "@" + m);
+        value =  WarpConfig.getProperty(key + "@" + m);
             
         if (null != value) {
           break;
