@@ -404,7 +404,7 @@ start() {
 
   isStarted
   if [ $? -eq 1 ]; then
-    echo "Start failed! - See warp10.log for more details"
+    echo "Start failed! - See warp10.log and warplog.log for more details"
     exit 1
   fi
 
@@ -459,6 +459,15 @@ start() {
     rm -f ${FIRSTINIT_FILE}
 
   fi
+
+  # Check again 5s later (time for plugin load errors)
+  sleep 5
+  isStarted
+  if [ $? -eq 1 ]; then
+    echo "Start failed! - See warp10.log and warplog.log for more details"
+    exit 1
+  fi
+
 }
 
 stop() {

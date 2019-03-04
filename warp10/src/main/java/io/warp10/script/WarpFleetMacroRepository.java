@@ -224,7 +224,8 @@ public class WarpFleetMacroRepository {
           
           MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
           stack.maxLimits();
-          
+          stack.setAttribute(WarpScriptStack.ATTRIBUTE_MACRO_NAME, name);
+
           //
           // Execute the code
           //
@@ -261,6 +262,8 @@ public class WarpFleetMacroRepository {
             macro.setExpiry(System.currentTimeMillis() + ttl);
           }
 
+          macro.setName(name);
+          
           synchronized(macros) {
             macros.put(macroURL, macro);
           }
@@ -390,6 +393,7 @@ public class WarpFleetMacroRepository {
     if (null != validationMacro) {
       MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
       stack.maxLimits();
+      
       try {
         validator = stack.find(validationMacro.trim());
       } catch (WarpScriptException wse) {

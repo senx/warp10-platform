@@ -110,6 +110,11 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_SECTION_NAME = "section.name";
   
   /**
+   * Name of the current macro, or null if not in a macro or in an anonymous one
+   */
+  public static final String ATTRIBUTE_MACRO_NAME = "macro.name";
+  
+  /**
    * Flag indicating whether or not the stack is currently in documentation mode
    */
   public static final String ATTRIBUTE_DOCMODE = "docmode";
@@ -284,6 +289,8 @@ public interface WarpScriptStack {
     
     private long fingerprint;
     
+    private String name = null;
+    
     /**
      * Timestamp at which the macro expired, or LONG.MIN_VALUE if no expiry date was set
      */
@@ -350,6 +357,14 @@ public interface WarpScriptStack {
     
     public void setExpiry(long expiry) {
       this.expiry = expiry;
+    }
+    
+    public void setName(String name) {
+      this.name = name;
+    }
+    
+    public String getName() {
+      return this.name;
     }
     
     @Override

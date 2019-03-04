@@ -89,6 +89,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   
   private String sectionName = null;
   
+  private String macroName = null;
+  
   /**
    * Are we currently in a secure macro?
    */
@@ -931,6 +933,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     List<Object> stmts = macro.statements();
     int n = macro.size();
     
+    String macroname = this.macroName;
+    this.macroName = macro.getName();
+
     try {
       
       recurseIn();
@@ -982,6 +987,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       recurseOut();
       // Restore section name
       this.sectionName = sectionname;
+      // Restore macro name
+      this.macroName = macroname;
+      
       //if (sectionname != this.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME)) {
       //  this.setAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME, sectionname);
       //}
@@ -1239,6 +1247,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       this.currentops = ((Number) value).longValue();
     } else if (WarpScriptStack.ATTRIBUTE_SECTION_NAME.equals(key)) {
       this.sectionName = value.toString();
+    } else if (WarpScriptStack.ATTRIBUTE_MACRO_NAME.equals(key)) {
+      this.macroName = value.toString();
     } else if (WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE.equals(key)) {
       if (null != value) {
         this.progressable = (Progressable) value;
@@ -1257,6 +1267,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       return this.currentops;
     } else if (WarpScriptStack.ATTRIBUTE_SECTION_NAME.equals(key)) {
       return this.sectionName;
+    } else if (WarpScriptStack.ATTRIBUTE_MACRO_NAME.equals(key)) {
+      return this.macroName;
     } else {
       return this.attributes.get(key);
     }
