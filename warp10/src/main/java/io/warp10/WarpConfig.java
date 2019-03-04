@@ -18,6 +18,7 @@ package io.warp10;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.store.Constants;
+import io.warp10.script.WarpFleetMacroRepository;
 import io.warp10.script.WarpScriptJarRepository;
 import io.warp10.script.WarpScriptMacroRepository;
 
@@ -122,6 +123,12 @@ public class WarpConfig {
     //
     
     WarpScriptJarRepository.init(properties);
+    
+    //
+    // Initialize WarpFleet repository
+    //
+    
+    WarpFleetMacroRepository.init(properties);
   }
   
   private static Properties readConfig(InputStream file, Properties properties) throws IOException {
@@ -309,7 +316,23 @@ public class WarpConfig {
     }
     return (Properties) properties.clone();
   }
+  
+  public static String getProperty(String key) {
+    if (null == properties) {
+      return null;
+    } else {
+      return properties.getProperty(key);
+    }
+  }
 
+  public static String getProperty(String key, String defaultValue) {
+    if (null == properties) {
+      return null;
+    } else {
+      return properties.getProperty(key, defaultValue);
+    }    
+  }
+  
   public static void main(String... args) {
     if (2 != args.length) {
       System.err.println("2 arguments required: properties file and the property key");

@@ -134,8 +134,8 @@ public abstract class AbstractWarp10Plugin {
 
         AbstractWarp10Plugin wse = (AbstractWarp10Plugin) cls.newInstance();          
         wse.init(WarpConfig.getProperties());
+        LOG.info("LOADED plugin '" + plugin  + "'");
         plugins.add(plugin);
-        System.out.println("LOADED plugin '" + plugin  + "'");
       } catch (Exception e) {
         throw new RuntimeException(e);
       }

@@ -22,6 +22,7 @@ import io.warp10.sensision.Sensision;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.Callable;
 import java.util.concurrent.locks.LockSupport;
 
 import org.iq80.leveldb.DB;
@@ -65,69 +66,64 @@ public class StandaloneSnapshotManager extends Thread {
       // Check if the trigger file for backup exists
       //
       
-      File trigger = new File(triggerPath);
+      final File trigger = new File(triggerPath);
       
       if (!trigger.exists()) {
         continue;
       }
       
-      long nano = System.nanoTime();
+      final long nanos = System.nanoTime();
       
       //
-      // Trigger path exists, suspend compactions
+      // Trigger path exists, close DB, wait for 
       //
+            
+      final WarpDB db = Warp.getDB();
       
-      DB db = Warp.getDB();
-      
-      synchronized(db) {
-        
-        boolean interrupted = false;
-        
-        do {
-          interrupted = false;
-          try {
-            db.suspendCompactions();
-          } catch (InterruptedException ie) {
-            interrupted = true;
-          }
-        } while (interrupted);
-        
-        //
-        // Signal that compactions are suspended by creating the signalPath
-        //
-        
-        File signal = new File(signalPath);
-        
-        try {
-          signal.createNewFile();
-        } catch (IOException ioe) {          
-        }
-        
-        //
-        // Wait until the trigger file has vanished
-        //
-        
-        while(trigger.exists()) {
-          LockSupport.parkNanos(100000000L);
-        }
-        
-        //
-        // Resume compactions
-        //
-        
-        db.resumeCompactions();
+      try {
+        db.doOffline(new Callable<Object>() {
+          @Override
+          public Object call() throws Exception {
+            //
+            // Signal that DB is closed by creating the signalPath
+            //
+            
+            File signal = new File(signalPath);
+            
+            try {
+              signal.createNewFile();
+            } catch (IOException ioe) {          
+            }
+            
+            //
+            // Wait until the trigger file has vanished
+            //
+            
+            while(trigger.exists()) {
+              LockSupport.parkNanos(100000000L);
+            }
+            
+            //
+            // Return so we re-open the DB
+            //
+            
+            long nano = System.nanoTime() - nanos;
+            
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARP_STANDALONE_LEVELDB_SNAPSHOT_REQUESTS, Sensision.EMPTY_LABELS, 1);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_WARP_STANDALONE_LEVELDB_SNAPSHOT_TIME_NS, Sensision.EMPTY_LABELS, nano);
+            
+            //
+            // Remove the signal file
+            //
+            
+            signal.delete();
 
-        nano = System.nanoTime() - nano;
-        
-        Sensision.update(SensisionConstants.SENSISION_CLASS_WARP_STANDALONE_LEVELDB_SNAPSHOT_REQUESTS, Sensision.EMPTY_LABELS, 1);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_WARP_STANDALONE_LEVELDB_SNAPSHOT_TIME_NS, Sensision.EMPTY_LABELS, nano);
-        
-        //
-        // Remove the signal file
-        //
-        
-        signal.delete();
-      }            
+            return null;
+          }                    
+        });        
+      } catch (IOException ioe) {
+        ioe.printStackTrace();
+      }
     }
   }
 }

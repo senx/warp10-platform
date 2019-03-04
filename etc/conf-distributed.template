@@ -256,6 +256,39 @@ warpscript.def.unshadow = false
 #warpscript.repository.ttl.hard = 
 
 //
+// WarpFleet
+//
+
+// Comma separated list of default WarpFleet™ repositories
+warpfleet.macros.repos = https://warpfleet.senx.io/macros
+
+// Configure this property to 'true' to disable the function WF.GETREPOS. This is useful when some of your repo URLs have sensitive information.
+#warpfleet.getrepos.disable = true
+
+// Maximum number of macros from WarpFleet™ to cache, defaults to 10000
+#warpfleet.cache.size = 10000
+
+// Default TTL (in ms) for macros loaded from a WarpFleet repository (defaults to 10 minutes)
+#warpfleet.macros.ttl = 600000
+
+// Lower limit for TTL (in ms) of macros loaded from a WarpFleet repository (defaults to 60 seconds)
+#warpfleet.macros.ttl.min = 60000
+
+// Upper limit for TTL (in ms) of macros loaded from a WarpFleet repository (defaults to 24 hours)
+#warpfleet.macros.ttl.max =
+
+// Default TTL (in ms) for WarpFleet macros which had errors (defaults to 10 seconds)
+#warpfleet.macros.ttl.failed = 10000
+
+// Default TTL (in ms) for WarpFleet macros which were not found. If > 0, a dummy macro
+// will be generated which will fail with an informative error message
+#warpfleet.macros.ttl.unknown = 0
+
+// Name of WarpFleet repository macro. This macro consumes a URL and emits a boolean.
+#warpfleet.macros.validator = 
+
+
+//
 // Default maximum number of operations a single WarpScript execution can do
 //
 warpscript.maxops = 1000

@@ -108,7 +108,7 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
       if (this.compress) {
         out = new GZIPOutputStream(out);
       }
-      System.out.println(warpscript);
+
       out.write(warpscript.getBytes(Charsets.UTF_8));
       out.write('\n');
       out.write(WarpScriptLib.SNAPSHOT.getBytes(Charsets.UTF_8));      
