@@ -21,6 +21,7 @@ import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
@@ -75,6 +76,8 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.fitting.PolynomialCurveFitter;
 import org.apache.commons.math3.fitting.WeightedObservedPoint;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TCompactProtocol;
 import org.boon.json.JsonParser;
 import org.boon.json.JsonParserFactory;
 
@@ -2242,6 +2245,141 @@ public class GTSHelper {
         }
         
         value = TOQUATERNION.toQuaternion(q[0], q[1], q[2], q[3]);
+      } else if ('G' == valuestr.charAt(0)) {
+        // Value is a GTS, a space separated list of tokens of the form:
+        // VALUE
+        // TS/VALUE
+        // TS/LAT:LON/VALUE
+        // TS/LAT:LON/ELEV/VALUE
+        //
+        // Elements between two '/' can be empty
+        
+        GTSEncoder encoder = new GTSEncoder();
+        
+        int idx0 = 1;
+        int idx1 = 0;
+        
+        while(idx0 < valuestr.length()) {
+          while(idx0 < valuestr.length() && ' ' == valuestr.charAt(idx0)) {
+            idx0++;
+          }
+
+          // Find end of current token
+          int idx2 = idx0 + 1;
+          
+          while(idx2 < valuestr.length() && ' ' != valuestr.charAt(idx2)) {
+            idx2++;
+          }
+          
+          // Current token is between idx0 (included) and idx2 (excluded)
+          
+          // Find out if there is a first '/'
+          idx1 = idx0 + 1;
+          
+          while(idx1 < idx2 && '/' != valuestr.charAt(idx1)) {
+            idx1++;
+          }
+          
+          long ts;
+          long location = GeoTimeSerie.NO_LOCATION;
+          long elevation = GeoTimeSerie.NO_ELEVATION;
+              
+          Object val;
+          
+          // No '/', we simply have a value, we'll store it at ts 0
+          
+          if (idx1 == idx2) {
+            ts = 0L;
+            val = GTSHelper.parseValue(valuestr.substring(idx0, idx1));
+            encoder.addValue(ts, location, elevation, val);
+            idx0 = idx1;
+            continue;
+          }
+          
+          //
+          // Parse the timestamp
+          //
+          ts = Long.parseLong(valuestr.substring(idx0, idx1));
+          
+          // Advance idx1 after the first '/'
+          idx1++;
+          idx0 = idx1;
+          
+          // Identify a possible second '/'
+          while(idx1 < idx2 && '/' != valuestr.charAt(idx1)) {
+            idx1++;
+          }
+          
+          // No second '/', we have TS/VALUE
+          if (idx1 == idx2) {
+            val = GTSHelper.parseValue(valuestr.substring(idx0, idx1));
+            encoder.addValue(ts, location, elevation, val);
+            idx0 = idx1;
+            continue;
+          }
+          
+          // Parse lat:lon or HHCode
+          // Identify ':'
+          
+          int idx3 = idx0;
+          
+          // idx1 is the index of the second '/' we found
+          while(idx3 < idx1 && ':' != valuestr.charAt(idx3)) {
+            idx3++;
+          }
+          
+          // No ':', we have TS/HHCode/... or TS//...
+          if (idx3 == idx1) {
+            if (idx3 > idx0) {              
+              location = Long.parseLong(valuestr.substring(idx0, idx3));
+            }
+          } else {       
+            // Parse LAT:LON
+            double lat = Double.parseDouble(valuestr.substring(idx0, idx3));
+            double lon = Double.parseDouble(valuestr.substring(idx3 + 1, idx1));
+            location = GeoXPLib.toGeoXPPoint(lat, lon);
+          }
+          
+          idx0 = idx1 + 1;
+          
+          // Identify a possible third '/'
+          idx3 = idx0;
+          
+          while(idx3 < idx2 && '/' != valuestr.charAt(idx3)) {
+            idx3++;
+          }
+          
+          // No '/', we have TS/LAT:LON/VALUE
+          if (idx3 == idx2) {
+            val = GTSHelper.parseValue(valuestr.substring(idx0, idx2));
+            encoder.addValue(ts, location, elevation, val);
+            idx0 = idx2;
+            continue;
+          }
+          
+          // Extract elevation
+          if (idx3 > idx0) {
+            elevation = Long.parseLong(valuestr.substring(idx0, idx3));
+          }
+          
+          // Extract value
+          val = GTSHelper.parseValue(valuestr.substring(idx3 + 1, idx2));
+          
+          encoder.addValue(ts, location, elevation, val);
+          
+          idx0 = idx2;
+        }
+        
+        // Wrap GTSEncoder and encode result
+        GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true);
+        
+        TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+        
+        byte[] ser = serializer.serialize(wrapper);
+        
+        byte[] enc = OrderPreservingBase64.encode(ser);
+        
+        return new String(enc, "UTF-8");
       } else {
         boolean likelydouble = UnsafeString.isDouble(valuestr);
         
