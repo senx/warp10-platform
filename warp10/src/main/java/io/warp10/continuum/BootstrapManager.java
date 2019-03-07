@@ -75,8 +75,6 @@ public class BootstrapManager extends Thread {
   
   private void loadBootstrap(String path) {
     
-    InputStream in = null;
-    
     long lineno = 0;
     
     try {
@@ -115,9 +113,7 @@ public class BootstrapManager extends Thread {
       Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_BOOTSTRAP_LOADS, Sensision.EMPTY_LABELS, 1);
     } catch (Exception e) {
       LOG.error("Error while loading bootstrap code [" + path + "] at line " + lineno + ". Current bootstrap code will not be replaced.", e);
-    } finally {
-      if (null != in) { try { in.close(); } catch (Exception e) {} }
-    }   
+    }
   }
   
   public StackContext getBootstrapContext() {
