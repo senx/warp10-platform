@@ -17,7 +17,6 @@
 package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -39,17 +38,13 @@ public class DEFINEDMACRO extends NamedWarpScriptFunction implements WarpScriptS
       throw new WarpScriptException(getName() + " expects a string on top of the stack.");
     }
     
-    boolean exists = false;
-    
     try {
-      Macro macro = stack.find(o.toString());
-      exists = true;
+      stack.find(o.toString());
+      stack.push(true);
     } catch (WarpScriptException wse) {
-      exists = false;      
+      stack.push(false);
     }
     
-    stack.push(exists);
-
     return stack;
   }
 }
