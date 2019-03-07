@@ -146,7 +146,7 @@ public class SUB extends NamedWarpScriptFunction implements WarpScriptStackFunct
       }
 
       stack.push(result);
-    } else if ((op1 instanceof GeoTimeSerie && op2 instanceof Number )|| (op1 instanceof Number && op2 instanceof GeoTimeSerie)) {
+    } else if ((op1 instanceof GeoTimeSerie && op2 instanceof Number) || (op1 instanceof Number && op2 instanceof GeoTimeSerie)) {
       boolean op1gts = op1 instanceof GeoTimeSerie;
       
       int n = op1gts ? GTSHelper.nvalues((GeoTimeSerie) op1) : GTSHelper.nvalues((GeoTimeSerie) op2);
