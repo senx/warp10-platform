@@ -55,7 +55,7 @@ public class DIV extends NamedWarpScriptFunction implements WarpScriptStackFunct
       GeoTimeSerie gts1 = (GeoTimeSerie) op1;
       GeoTimeSerie gts2 = (GeoTimeSerie) op2;
 
-      if(!(gts1.getType() == TYPE.DOUBLE || gts1.getType() == TYPE.LONG) || !(gts2.getType() == TYPE.DOUBLE || gts2.getType() == TYPE.LONG)) {
+      if (!(gts1.getType() == TYPE.DOUBLE || gts1.getType() == TYPE.LONG) || !(gts2.getType() == TYPE.DOUBLE || gts2.getType() == TYPE.LONG)) {
         throw new WarpScriptException(typeCheckErrorMsg);
       }
 
@@ -152,7 +152,7 @@ public class DIV extends NamedWarpScriptFunction implements WarpScriptStackFunct
       GeoTimeSerie result = op1gts ? ((GeoTimeSerie) op1).cloneEmpty(n) : ((GeoTimeSerie) op2).cloneEmpty();
       GeoTimeSerie gts = op1gts ? (GeoTimeSerie) op1 : (GeoTimeSerie) op2;
 
-      if (!(gts.getType() == TYPE.LONG || gts.getType() == TYPE.DOUBLE)){
+      if (!(gts.getType() == TYPE.LONG || gts.getType() == TYPE.DOUBLE)) {
         throw new WarpScriptException(typeCheckErrorMsg);
       }
       

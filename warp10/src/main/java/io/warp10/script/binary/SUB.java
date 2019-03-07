@@ -43,12 +43,12 @@ public class SUB extends NamedWarpScriptFunction implements WarpScriptStackFunct
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object op2 = stack.pop();
     Object op1 = stack.pop();
-    
+
     if (op2 instanceof Number && op1 instanceof Number) {
       if (op1 instanceof Double || op2 instanceof Double) {
         stack.push(((Number) op1).doubleValue() - ((Number) op2).doubleValue());
       } else {
-        stack.push(((Number) op1).longValue() - ((Number) op2).longValue());        
+        stack.push(((Number) op1).longValue() - ((Number) op2).longValue());
       }
     } else if (op1 instanceof RealMatrix && op2 instanceof RealMatrix) {
       stack.push(((RealMatrix) op1).subtract((RealMatrix) op2));
@@ -58,13 +58,13 @@ public class SUB extends NamedWarpScriptFunction implements WarpScriptStackFunct
       GeoTimeSerie gts1 = (GeoTimeSerie) op1;
       GeoTimeSerie gts2 = (GeoTimeSerie) op2;
 
-      if(!(gts1.getType() == TYPE.DOUBLE || gts1.getType() == TYPE.LONG) || !(gts2.getType() == TYPE.DOUBLE || gts2.getType() == TYPE.LONG)) {
+      if (!(gts1.getType() == TYPE.DOUBLE || gts1.getType() == TYPE.LONG) || !(gts2.getType() == TYPE.DOUBLE || gts2.getType() == TYPE.LONG)) {
         throw new WarpScriptException(typeCheckErrorMsg);
       }
 
       // The result will be of type DOUBLE
       GeoTimeSerie result = new GeoTimeSerie(Math.max(GTSHelper.nvalues(gts1), GTSHelper.nvalues(gts2)));
-      
+
       if (GTSHelper.isBucketized(gts1) && GTSHelper.isBucketized(gts2)) {
         if (GTSHelper.getBucketSpan(gts1) == GTSHelper.getBucketSpan(gts2)) {
           // Both GTS have the same bucket span, check their lastbucket to see if they have the
@@ -81,18 +81,18 @@ public class SUB extends NamedWarpScriptFunction implements WarpScriptStackFunct
         }
       }
       result.setType(TYPE.DOUBLE);
-      
+
       // Sort GTS
       GTSHelper.sort(gts1);
       GTSHelper.sort(gts2);
-      
+
       // Sweeping line over the timestamps
       int idxa = 0;
       int idxb = 0;
-               
+
       int na = GTSHelper.nvalues(gts1);
       int nb = GTSHelper.nvalues(gts2);
-      
+
       Long tsa = null;
       Long tsb = null;
 
@@ -149,18 +149,18 @@ public class SUB extends NamedWarpScriptFunction implements WarpScriptStackFunct
       stack.push(result);
     } else if ((op1 instanceof GeoTimeSerie && op2 instanceof Number) || (op1 instanceof Number && op2 instanceof GeoTimeSerie)) {
       boolean op1gts = op1 instanceof GeoTimeSerie;
-      
+
       int n = op1gts ? GTSHelper.nvalues((GeoTimeSerie) op1) : GTSHelper.nvalues((GeoTimeSerie) op2);
-      
+
       GeoTimeSerie result = op1gts ? ((GeoTimeSerie) op1).cloneEmpty(n) : ((GeoTimeSerie) op2).cloneEmpty();
       GeoTimeSerie gts = op1gts ? (GeoTimeSerie) op1 : (GeoTimeSerie) op2;
 
-      if (!(gts.getType() == TYPE.LONG || gts.getType() == TYPE.DOUBLE)){
+      if (!(gts.getType() == TYPE.LONG || gts.getType() == TYPE.DOUBLE)) {
         throw new WarpScriptException(typeCheckErrorMsg);
       }
-      
+
       double op = op1gts ? ((Number) op2).doubleValue() : ((Number) op1).doubleValue();
-      
+
       for (int i = 0; i < n; i++) {
        double value;
        if (op1gts) {
@@ -169,13 +169,13 @@ public class SUB extends NamedWarpScriptFunction implements WarpScriptStackFunct
          value = op - ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue();
        }
        GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value, false);
-      }      
+      }
 
-      stack.push(result);      
+      stack.push(result);
     } else {
       throw new WarpScriptException(typeCheckErrorMsg);
     }
-    
+
     return stack;
   }
 }
