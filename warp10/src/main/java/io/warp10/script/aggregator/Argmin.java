@@ -91,11 +91,8 @@ public class Argmin extends NamedWarpScriptFunction implements WarpScriptAggrega
   @Override
   public Object apply(Object[] args) throws WarpScriptException {
     long tick = (long) args[0];
-    String[] names = (String[]) args[1];
     Map<String,String>[] labels = (Map<String,String>[]) args[2];
     long[] ticks = (long[]) args[3];
-    long[] locations = (long[]) args[4];
-    long[] elevations = (long[]) args[5];
     Object[] values = (Object[]) args[6];
         
     BitSet bitset = new BitSet(ticks.length);
@@ -136,18 +133,12 @@ public class Argmin extends NamedWarpScriptFunction implements WarpScriptAggrega
       // DOUBLE rulez...
       //
       
-      if (TYPE.UNDEFINED == type) {
-        if (values[i] instanceof Long) {
-          type = TYPE.LONG; 
-        } else if (values[i] instanceof Double) {
-          type = TYPE.DOUBLE;
-        } else {
-          throw new WarpScriptException(getName() + " can only operate on DOUBLE and LONG.");
-        }
-      } else if (values[i] instanceof Long && TYPE.DOUBLE == type) {
-        values[i] = (double) values[i];
+      if (values[i] instanceof Long && TYPE.DOUBLE == type) {
+        values[i] = ((Long) values[i]).doubleValue();
       } else if (values[i] instanceof Double && TYPE.LONG == type) {
-        dmin = (double) lmin;
+        if(bitset.length() > 0) { // Only if a min has already been found
+          dmin = (double) lmin;
+        }
         type = TYPE.DOUBLE;
       }
       

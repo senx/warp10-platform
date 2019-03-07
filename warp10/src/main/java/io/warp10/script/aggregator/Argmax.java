@@ -91,11 +91,8 @@ public class Argmax extends NamedWarpScriptFunction implements WarpScriptAggrega
   @Override
   public Object apply(Object[] args) throws WarpScriptException {
     long tick = (long) args[0];
-    String[] names = (String[]) args[1];
     Map<String,String>[] labels = (Map<String,String>[]) args[2];
     long[] ticks = (long[]) args[3];
-    long[] locations = (long[]) args[4];
-    long[] elevations = (long[]) args[5];
     Object[] values = (Object[]) args[6];
         
     BitSet bitset = new BitSet(ticks.length);
@@ -132,22 +129,16 @@ public class Argmax extends NamedWarpScriptFunction implements WarpScriptAggrega
       }
       
       //
-      // Adapt the type of the min according to that of the current value,
+      // Adapt the type of the max according to that of the current value,
       // DOUBLE rulez...
       //
       
-      if (TYPE.UNDEFINED == type) {
-        if (values[i] instanceof Long) {
-          type = TYPE.LONG; 
-        } else if (values[i] instanceof Double) {
-          type = TYPE.DOUBLE;
-        } else {
-          throw new WarpScriptException(getName() + " can only operate on DOUBLE and LONG.");
-        }
-      } else if (values[i] instanceof Long && TYPE.DOUBLE == type) {
-        values[i] = (double) values[i];
+      if (values[i] instanceof Long && TYPE.DOUBLE == type) {
+        values[i] = ((Long) values[i]).doubleValue();
       } else if (values[i] instanceof Double && TYPE.LONG == type) {
-        dmax = (double) lmax;
+        if(bitset.length() > 0) { // Only if a max has already been found
+          dmax = (double) lmax;
+        }
         type = TYPE.DOUBLE;
       }
       
@@ -162,7 +153,7 @@ public class Argmax extends NamedWarpScriptFunction implements WarpScriptAggrega
           }
           break;
         case DOUBLE:
-          if ((double) values[i] < dmax) {
+          if ((double) values[i] > dmax) {
             bitset.clear();
             dmax = (double) values[i];
             bitset.set(i);
