@@ -77,7 +77,7 @@ public class WarpRun {
       // Output the stack in either JSON or SNAPSHOT format
       //
       
-      boolean json = "json".equals(properties.getProperty(WARPRUN_FORMAT));
+      boolean json = "json".equals(WarpConfig.getProperty(WARPRUN_FORMAT));
       
       if (!json) {
         SNAPSHOT snap = new SNAPSHOT("SNAPSHOT", false, false, false, false);

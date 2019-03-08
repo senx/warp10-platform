@@ -42,12 +42,8 @@ public class TokenWarpScriptExtension extends WarpScriptExtension {
   private static final KeyStore keystore;
   
   static {
-    Properties props = WarpConfig.getProperties();
-    
-    if (null != props) {
-      TOKEN_SECRET = props.getProperty(CONF_TOKEN_SECRET);
-    }
-    
+    TOKEN_SECRET = WarpConfig.getProperty(CONF_TOKEN_SECRET);
+
     if (null != TOKEN_SECRET) {
       keystore = Warp.getKeyStore();
     } else {

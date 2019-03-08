@@ -118,11 +118,10 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     
     this.labelsKey = this.keyStore.getKey(KeyStore.SIPHASH_LABELS);
     this.labelsKeyLongs = SipHashInline.getKey(this.labelsKey);
-    
-    Properties props = WarpConfig.getProperties();
-    
-    if (props.containsKey(Configuration.DATALOG_DIR)) {
-      File dir = new File(props.getProperty(Configuration.DATALOG_DIR));
+
+    String dirProp = WarpConfig.getProperty(Configuration.DATALOG_DIR);
+    if (null != dirProp) {
+      File dir = new File(dirProp);
       
       if (!dir.exists()) {
         throw new RuntimeException("Data logging target '" + dir + "' does not exist.");
@@ -132,7 +131,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         loggingDir = dir;
       }
       
-      String id = props.getProperty(Configuration.DATALOG_ID);
+      String id = WarpConfig.getProperty(Configuration.DATALOG_ID);
       
       if (null == id) {
         throw new RuntimeException("Property '" + Configuration.DATALOG_ID + "' MUST be set to a unique value for this instance.");
@@ -143,16 +142,15 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       loggingDir = null;
       datalogId = null;
     }
-    
-    if (props.containsKey(Configuration.DATALOG_PSK)) {
-      this.datalogPSK = this.keyStore.decodeKey(props.getProperty(Configuration.DATALOG_PSK));
-    } else {
-      this.datalogPSK = null;
+
+    String pskProp = WarpConfig.getProperty(Configuration.DATALOG_PSK);
+    if (null != pskProp) {
+      this.datalogPSK = this.keyStore.decodeKey(pskProp);
     }
         
-    this.logforwarded = "true".equals(props.getProperty(Configuration.DATALOG_LOGFORWARDED));
+    this.logforwarded = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_LOGFORWARDED));
     
-    this.disabled = "true".equals(props.getProperty(Configuration.STANDALONE_DELETE_DISABLE));
+    this.disabled = "true".equals(WarpConfig.getProperty(Configuration.STANDALONE_DELETE_DISABLE));
   }
   
   @Override

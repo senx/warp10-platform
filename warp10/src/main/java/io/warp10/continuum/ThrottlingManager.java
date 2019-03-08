@@ -575,39 +575,31 @@ public class ThrottlingManager {
       return;
     }
     
-    final Properties properties = WarpConfig.getProperties();
+    ESTIMATOR_CACHE_SIZE = Integer.parseInt(WarpConfig.getProperty(Configuration.THROTTLING_MANAGER_ESTIMATOR_CACHE_SIZE, Integer.toString(ESTIMATOR_CACHE_SIZE)));
     
-    ESTIMATOR_CACHE_SIZE = Integer.parseInt(properties.getProperty(Configuration.THROTTLING_MANAGER_ESTIMATOR_CACHE_SIZE, Integer.toString(ESTIMATOR_CACHE_SIZE)));
-    
-    String rate = properties.getProperty(Configuration.THROTTLING_MANAGER_RATE_DEFAULT);
+    String rate = WarpConfig.getProperty(Configuration.THROTTLING_MANAGER_RATE_DEFAULT);
     
     if (null != rate) {
       DEFAULT_RATE_PRODUCER = Double.parseDouble(rate); 
     }
 
-    String mads = properties.getProperty(Configuration.THROTTLING_MANAGER_MADS_DEFAULT);
+    String mads = WarpConfig.getProperty(Configuration.THROTTLING_MANAGER_MADS_DEFAULT);
     
     if (null != mads) {
       DEFAULT_MADS_PRODUCER = Long.parseLong(mads);
     }
-    
-    String maxwait = properties.getProperty(Configuration.THROTTLING_MANAGER_MAXWAIT_DEFAULT);
-    
-    if (null != maxwait) {
-      MAXWAIT_PER_DATAPOINT = Long.parseLong(maxwait);
-    } else {
-      MAXWAIT_PER_DATAPOINT = MAXWAIT_PER_DATAPOINT_DEFAULT;
-    }
-    
+
+    MAXWAIT_PER_DATAPOINT = Long.parseLong(WarpConfig.getProperty(Configuration.THROTTLING_MANAGER_MAXWAIT_DEFAULT, Long.toString(MAXWAIT_PER_DATAPOINT_DEFAULT)));
+
     //
     // Start the thread which will read the throttling configuration periodically
     //
     
-    dir = properties.getProperty(Configuration.THROTTLING_MANAGER_DIR);
+    dir = WarpConfig.getProperty(Configuration.THROTTLING_MANAGER_DIR);
 
     final long now = System.currentTimeMillis();
    
-    final long rampup = Long.parseLong(properties.getProperty(Configuration.THROTTLING_MANAGER_RAMPUP, "0")); 
+    final long rampup = Long.parseLong(WarpConfig.getProperty(Configuration.THROTTLING_MANAGER_RAMPUP, "0"));
     
     //
     // Register a shutdown hook which will dump the current throttling configuration to a file
@@ -623,31 +615,35 @@ public class ThrottlingManager {
     //
     // Configure Kafka if defined
     //
-    
-    if (properties.containsKey(Configuration.INGRESS_KAFKA_THROTTLING_BROKERLIST)) {
+
+    String brokerlistProp = WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_BROKERLIST);
+    if (null != brokerlistProp) {
       Properties dataProps = new Properties();
       // @see http://kafka.apache.org/documentation.html#producerconfigs
-      dataProps.setProperty("metadata.broker.list", properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_BROKERLIST));
-      if (null != properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID)) {
-        dataProps.setProperty("client.id", properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID));
+      dataProps.setProperty("metadata.broker.list", brokerlistProp);
+      String producerClientId = WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID);
+      if (null != producerClientId) {
+        dataProps.setProperty("client.id", producerClientId);
       }
       dataProps.setProperty("request.required.acks", "-1");
       dataProps.setProperty("producer.type","sync");
       dataProps.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");
-      
-      if (null != properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_REQUEST_TIMEOUT_MS)) {
-        dataProps.setProperty("request.timeout.ms", properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_REQUEST_TIMEOUT_MS));
+
+      String timeoutProp = WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_REQUEST_TIMEOUT_MS);
+      if (null != timeoutProp) {
+        dataProps.setProperty("request.timeout.ms", timeoutProp);
       }
 
       ProducerConfig dataConfig = new ProducerConfig(dataProps);
       
       throttlingProducer = new Producer<byte[],byte[]>(dataConfig);
-      throttlingTopic = properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_TOPIC);
+      throttlingTopic = WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_TOPIC);
     }
     
-    final long delay = Long.parseLong(properties.getProperty(Configuration.THROTTLING_MANAGER_PERIOD, "60000"));
+    final long delay = Long.parseLong(WarpConfig.getProperty(Configuration.THROTTLING_MANAGER_PERIOD, "60000"));
 
-    if (properties.containsKey(Configuration.INGRESS_KAFKA_THROTTLING_ZKCONNECT)) {
+    String zkConnectProp = WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_ZKCONNECT);
+    if (null != zkConnectProp) {
       ConsumerFactory estimatorConsumerFactory = new ThrottlingManagerEstimatorConsumerFactory(throttlingMAC);
       
       //
@@ -661,12 +657,12 @@ public class ThrottlingManager {
       
       long commitOffset = 2 * delay;
       
-      KafkaSynchronizedConsumerPool pool = new KafkaSynchronizedConsumerPool(properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_ZKCONNECT),
-          properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_TOPIC),
-          properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_CLIENTID),
-          properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_GROUPID),
+      KafkaSynchronizedConsumerPool pool = new KafkaSynchronizedConsumerPool(zkConnectProp,
+          WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_TOPIC),
+          WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_CLIENTID),
+          WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_GROUPID),
           null,
-          properties.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_AUTO_OFFSET_RESET, "largest"),
+          WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_AUTO_OFFSET_RESET, "largest"),
           1,
           commitOffset,
           estimatorConsumerFactory);      

@@ -47,9 +47,7 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
   private static final long TIMEBOX_MAXTIME;
   
   static {
-    Properties props = WarpConfig.getProperties();
-    
-    TIMEBOX_MAXTIME = Long.parseLong(props.getProperty(Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME, Long.toString(DEFAULT_TIMEBOX_MAXTIME)));
+    TIMEBOX_MAXTIME = Long.parseLong(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME, Long.toString(DEFAULT_TIMEBOX_MAXTIME)));
   }
   
   public TIMEBOX(String name) {

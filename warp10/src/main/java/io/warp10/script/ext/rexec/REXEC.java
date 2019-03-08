@@ -61,9 +61,7 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
   public REXEC(String name, boolean compress) {
     super(name);
   
-    Properties props = WarpConfig.getProperties();  
-
-    String patternConf = props.getProperty(WARPSCRIPT_REXEC_ENDPOINT_PATTERNS, DEFAULT_ENDPOINT_PATTERNS);
+    String patternConf = WarpConfig.getProperty(WARPSCRIPT_REXEC_ENDPOINT_PATTERNS, DEFAULT_ENDPOINT_PATTERNS);
 
     this.webAccessController = new WebAccessController(patternConf);
 

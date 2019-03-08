@@ -100,8 +100,6 @@ public class UrlFetchWarpScriptExtension extends WarpScriptExtension {
 
   private static final Map<String, Object> functions;
 
-  protected static final Properties warpProperties = WarpConfig.getProperties();
-
   static {
     // Initialize attribute->configuration
     Map<String, String> a2c = new HashMap<String, String>();
@@ -153,11 +151,9 @@ public class UrlFetchWarpScriptExtension extends WarpScriptExtension {
     Long longValue = attributeToDefault.get(attribute);
 
     // Overwrite the default with the conf, if available
-    if (null != warpProperties) {
-      String confValue = warpProperties.getProperty(associatedConf);
-      if (null != confValue) {
-        longValue = Long.valueOf(confValue);
-      }
+    String confValue = WarpConfig.getProperty(associatedConf);
+    if (null != confValue) {
+      longValue = Long.valueOf(confValue);
     }
 
     // The the stack attribute for future usage
