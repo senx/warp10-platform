@@ -471,7 +471,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TIMINGS("TIMINGS")); // NOT TO BE DOCUMENTED (YET)
     addNamedWarpScriptFunction(new NOTIMINGS("NOTIMINGS")); // NOT TO BE DOCUMENTED (YET)
     addNamedWarpScriptFunction(new ELAPSED("ELAPSED")); // NOT TO BE DOCUMENTED (YET)
-    addNamedWarpScriptFunction(new CHRONO("CHRONO"));
+    addNamedWarpScriptFunction(new TIMED("TIMED"));
     addNamedWarpScriptFunction(new CHRONOSTART(CHRONOSTART));
     addNamedWarpScriptFunction(new CHRONOEND(CHRONOEND));
     addNamedWarpScriptFunction(new CHRONOSTATS("CHRONOSTATS"));

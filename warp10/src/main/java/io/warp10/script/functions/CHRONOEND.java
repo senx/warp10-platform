@@ -49,7 +49,7 @@ public class CHRONOEND extends NamedWarpScriptFunction implements WarpScriptStac
     AtomicLong startNanos = (AtomicLong) stack.getAttribute(keyStart);
     AtomicLong totalCount = (AtomicLong) stack.getAttribute(keyTotalCount);
 
-    Map<String, AtomicLong[]> stats = (Map) stack.getAttribute(CHRONOSTATS.key);
+    Map<String, AtomicLong[]> stats = (Map<String, AtomicLong[]>) stack.getAttribute(CHRONOSTATS.key);
     if (null == stats) {
       stats = new ConcurrentHashMap<String, AtomicLong[]>();
       stack.setAttribute(CHRONOSTATS.key, stats);

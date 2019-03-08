@@ -7,9 +7,9 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 
-public class CHRONO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class TIMED extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public CHRONO(String name) {
+  public TIMED(String name) {
     super(name);
   }
 
@@ -26,10 +26,13 @@ public class CHRONO extends NamedWarpScriptFunction implements WarpScriptStackFu
 
     Macro macro = (Macro) o2;
 
+    // Encapsulate the CHRONOEND function in a macro to use it as a finally block.
+    // Make TIMED resilient to STOP, RETURN and any exception.
     Macro finallyMacro = new Macro();
     finallyMacro.add(alias);
     finallyMacro.add(WarpScriptLib.getFunction(WarpScriptLib.CHRONOEND));
 
+    // Build a new macro starting with CHRONOSTART, calling the given macro and ending with CHRONOEND in the finally block of a TRY.
     Macro timedMacro = new Macro();
     timedMacro.add(alias);
     timedMacro.add(WarpScriptLib.getFunction(WarpScriptLib.CHRONOSTART));
