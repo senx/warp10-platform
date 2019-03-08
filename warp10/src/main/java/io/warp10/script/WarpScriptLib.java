@@ -432,7 +432,12 @@ public class WarpScriptLib {
 
   public static final String SAVE = "SAVE";
   public static final String RESTORE = "RESTORE";
-  
+
+  public static final String CHRONOSTART = "CHRONOSTART";
+  public static final String CHRONOEND = "CHRONOEND";
+
+  public static final String TRY = "TRY";
+
   static {
 
     addNamedWarpScriptFunction(new REV("REV"));
@@ -466,6 +471,10 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TIMINGS("TIMINGS")); // NOT TO BE DOCUMENTED (YET)
     addNamedWarpScriptFunction(new NOTIMINGS("NOTIMINGS")); // NOT TO BE DOCUMENTED (YET)
     addNamedWarpScriptFunction(new ELAPSED("ELAPSED")); // NOT TO BE DOCUMENTED (YET)
+    addNamedWarpScriptFunction(new TIMED("TIMED"));
+    addNamedWarpScriptFunction(new CHRONOSTART(CHRONOSTART));
+    addNamedWarpScriptFunction(new CHRONOEND(CHRONOEND));
+    addNamedWarpScriptFunction(new CHRONOSTATS("CHRONOSTATS"));
     addNamedWarpScriptFunction(new TOLIST("->LIST"));
     addNamedWarpScriptFunction(new LISTTO("LIST->"));
     addNamedWarpScriptFunction(new UNLIST("UNLIST"));
@@ -553,7 +562,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FAIL("FAIL"));
     addNamedWarpScriptFunction(new MSGFAIL(MSGFAIL));
     addNamedWarpScriptFunction(new STOP("STOP"));
-    addNamedWarpScriptFunction(new TRY("TRY"));
+    addNamedWarpScriptFunction(new TRY(TRY));
     addNamedWarpScriptFunction(new RETHROW("RETHROW"));
     addNamedWarpScriptFunction(new ERROR("ERROR"));
     addNamedWarpScriptFunction(new TIMEBOX("TIMEBOX"));
