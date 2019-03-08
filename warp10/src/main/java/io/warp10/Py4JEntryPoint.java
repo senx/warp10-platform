@@ -41,7 +41,7 @@ public class Py4JEntryPoint {
       WarpConfig.safeSetProperties(path);
       WarpScriptLib.registerExtensions();
      }
-     this.nolimits = "true".equals(WarpConfig.getProperties().getProperty(CONFIG_PY4J_STACK_NOLIMITS));
+     this.nolimits = "true".equals(WarpConfig.getProperty(CONFIG_PY4J_STACK_NOLIMITS));
   }
 
   public Py4JEntryPoint(Map<String,String> props) throws IOException {
@@ -57,11 +57,11 @@ public class Py4JEntryPoint {
       WarpConfig.safeSetProperties(reader);
       WarpScriptLib.registerExtensions();
      }
-     this.nolimits = "true".equals(WarpConfig.getProperties().getProperty(CONFIG_PY4J_STACK_NOLIMITS));
+     this.nolimits = "true".equals(WarpConfig.getProperty(CONFIG_PY4J_STACK_NOLIMITS));
   }
 
   public Py4JEntryPoint() {
-    this.nolimits = "true".equals(WarpConfig.getProperties().getProperty(CONFIG_PY4J_STACK_NOLIMITS));
+    this.nolimits = "true".equals(WarpConfig.getProperty(CONFIG_PY4J_STACK_NOLIMITS));
   }
 
   public WarpScriptStack newStack() {

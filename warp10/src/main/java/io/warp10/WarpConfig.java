@@ -319,7 +319,7 @@ public class WarpConfig {
   
   public static String getProperty(String key) {
     if (null == properties) {
-      return null;
+      throw new RuntimeException("Properties not set.");
     } else {
       return properties.getProperty(key);
     }
@@ -327,7 +327,7 @@ public class WarpConfig {
 
   public static String getProperty(String key, String defaultValue) {
     if (null == properties) {
-      return null;
+      throw new RuntimeException("Properties not set.");
     } else {
       return properties.getProperty(key, defaultValue);
     }    
@@ -348,7 +348,7 @@ public class WarpConfig {
     String key = args[1];
     try {
       properties = WarpConfig.readConfig(new FileReader(file), null);
-      System.out.println(key + "=" + WarpConfig.getProperties().getProperty(key));
+      System.out.println(key + "=" + WarpConfig.getProperty(key));
     } catch (Exception e) {
       e.printStackTrace();
     }

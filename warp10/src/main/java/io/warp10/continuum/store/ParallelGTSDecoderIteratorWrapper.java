@@ -231,22 +231,20 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
   private static final int POOLSIZE;
   
   static {
-    Properties properties = WarpConfig.getProperties();
-    
     standalone = Warp.isStandaloneMode();
     
     if (standalone) {
-      MAX_INFLIGHT = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST, "0"));      
-      POOLSIZE = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_POOLSIZE, "0"));
+      MAX_INFLIGHT = Integer.parseInt(WarpConfig.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST, "0"));
+      POOLSIZE = Integer.parseInt(WarpConfig.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_POOLSIZE, "0"));
             
-      MIN_GTS_PERSCANNER = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MIN_GTS_PERSCANNER, "4"));
-      MAX_PARALLEL_SCANNERS = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS, "16"));
+      MIN_GTS_PERSCANNER = Integer.parseInt(WarpConfig.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MIN_GTS_PERSCANNER, "4"));
+      MAX_PARALLEL_SCANNERS = Integer.parseInt(WarpConfig.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS, "16"));
     } else {
-      MAX_INFLIGHT = Integer.parseInt(properties.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST, "0"));      
-      POOLSIZE = Integer.parseInt(properties.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_POOLSIZE, "0"));
+      MAX_INFLIGHT = Integer.parseInt(WarpConfig.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST, "0"));
+      POOLSIZE = Integer.parseInt(WarpConfig.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_POOLSIZE, "0"));
             
-      MIN_GTS_PERSCANNER = Integer.parseInt(properties.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MIN_GTS_PERSCANNER, "4"));
-      MAX_PARALLEL_SCANNERS = Integer.parseInt(properties.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS, "16"));      
+      MIN_GTS_PERSCANNER = Integer.parseInt(WarpConfig.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MIN_GTS_PERSCANNER, "4"));
+      MAX_PARALLEL_SCANNERS = Integer.parseInt(WarpConfig.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS, "16"));
     }
     
     if (MAX_INFLIGHT> 0 && POOLSIZE > 0) {

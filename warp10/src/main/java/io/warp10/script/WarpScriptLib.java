@@ -1529,20 +1529,16 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new OpOR("op.or", true));
 
     /////////////////////////
-    
-    Properties props = WarpConfig.getProperties();
-      
-    if (null != props) {
-      int nregs = Integer.parseInt(props.getProperty(Configuration.CONFIG_WARPSCRIPT_REGISTERS, String.valueOf(WarpScriptStack.DEFAULT_REGISTERS)));
-            
-      addNamedWarpScriptFunction(new CLEARREGS(CLEARREGS));
-      addNamedWarpScriptFunction(new VARS("VARS"));
-      addNamedWarpScriptFunction(new ASREGS("ASREGS"));
-      for (int i = 0; i < nregs; i++) {
-        addNamedWarpScriptFunction(new POPR(POPR + i, i));
-        addNamedWarpScriptFunction(new POPR(CPOPR + i, i, true));
-        addNamedWarpScriptFunction(new PUSHR(PUSHR + i, i));
-      }      
+
+    int nregs = Integer.parseInt(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_REGISTERS, String.valueOf(WarpScriptStack.DEFAULT_REGISTERS)));
+
+    addNamedWarpScriptFunction(new CLEARREGS(CLEARREGS));
+    addNamedWarpScriptFunction(new VARS("VARS"));
+    addNamedWarpScriptFunction(new ASREGS("ASREGS"));
+    for (int i = 0; i < nregs; i++) {
+      addNamedWarpScriptFunction(new POPR(POPR + i, i));
+      addNamedWarpScriptFunction(new POPR(CPOPR + i, i, true));
+      addNamedWarpScriptFunction(new PUSHR(PUSHR + i, i));
     }
   }
 
@@ -1676,13 +1672,7 @@ public class WarpScriptLib {
   }
   
   public static void register(WarpScriptExtension extension) {
-    Properties props = WarpConfig.getProperties();
-    
-    if (null == props) {
-      return;
-    }
-
-    String namespace = props.getProperty(Configuration.CONFIG_WARPSCRIPT_NAMESPACE_PREFIX + extension.getClass().getName(), "").trim();
+    String namespace = WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_NAMESPACE_PREFIX + extension.getClass().getName(), "").trim();
         
     if (namespace.contains("%")) {
       try {

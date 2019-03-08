@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -109,10 +110,14 @@ public class META extends NamedWarpScriptFunction implements WarpScriptStackFunc
     HttpURLConnection conn = null;
 
     try {
-
       if (null == url) {
-        if (WarpConfig.getProperties().containsKey(Configuration.CONFIG_WARPSCRIPT_META_ENDPOINT)) {
-          url = new URL(WarpConfig.getProperties().getProperty(Configuration.CONFIG_WARPSCRIPT_META_ENDPOINT));
+        String url_property = WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_META_ENDPOINT);
+        if (null != url_property) {
+          try {
+            url = new URL(url_property);
+          } catch (MalformedURLException mue) {
+            throw new WarpScriptException(getName() + " configuration parameter '" + Configuration.CONFIG_WARPSCRIPT_META_ENDPOINT + "' does not define a valid URL.");
+          }
         } else {
           throw new WarpScriptException(getName() + " configuration parameter '" + Configuration.CONFIG_WARPSCRIPT_META_ENDPOINT + "' not set.");
         }

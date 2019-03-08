@@ -121,20 +121,20 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   private long activityWindow = 0L;
   
   public StandaloneDirectoryClient(DB db, final KeyStore keystore) {
-    
-    Properties props = WarpConfig.getProperties();
-    
-    if (props.containsKey(io.warp10.continuum.Configuration.DIRECTORY_STATS_CLASS_MAXCARDINALITY)) {
-      this.LIMIT_CLASS_CARDINALITY = Long.parseLong(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STATS_CLASS_MAXCARDINALITY));
+
+    String classMaxCardinalityProp = WarpConfig.getProperty(Configuration.DIRECTORY_STATS_CLASS_MAXCARDINALITY);
+    if (null != classMaxCardinalityProp) {
+      this.LIMIT_CLASS_CARDINALITY = Long.parseLong(classMaxCardinalityProp);
     }
 
-    if (props.containsKey(io.warp10.continuum.Configuration.DIRECTORY_STATS_LABELS_MAXCARDINALITY)) {
-      this.LIMIT_LABELS_CARDINALITY = Long.parseLong(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STATS_LABELS_MAXCARDINALITY));
+    String labelsMaxCardinalityProp = WarpConfig.getProperty(Configuration.DIRECTORY_STATS_LABELS_MAXCARDINALITY);
+    if (null != labelsMaxCardinalityProp) {
+      this.LIMIT_LABELS_CARDINALITY = Long.parseLong(labelsMaxCardinalityProp);
     }
 
-    this.activityWindow = Long.parseLong(props.getProperty(io.warp10.continuum.Configuration.INGRESS_ACTIVITY_WINDOW, "0"));
+    this.activityWindow = Long.parseLong(WarpConfig.getProperty(io.warp10.continuum.Configuration.INGRESS_ACTIVITY_WINDOW, "0"));
 
-    this.initNThreads = Integer.parseInt(props.getProperty(Configuration.DIRECTORY_INIT_NTHREADS, DIRECTORY_INIT_NTHREADS_DEFAULT));
+    this.initNThreads = Integer.parseInt(WarpConfig.getProperty(Configuration.DIRECTORY_INIT_NTHREADS, DIRECTORY_INIT_NTHREADS_DEFAULT));
 
     this.db = db;
     this.keystore = keystore;
@@ -146,7 +146,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     this.labelsKey = this.keystore.getKey(KeyStore.SIPHASH_LABELS);
     this.labelsLongs = SipHashInline.getKey(this.labelsKey);
     
-    syncrate = Math.min(1.0D, Math.max(0.0D, Double.parseDouble(props.getProperty(Configuration.LEVELDB_DIRECTORY_SYNCRATE, "1.0"))));
+    syncrate = Math.min(1.0D, Math.max(0.0D, Double.parseDouble(WarpConfig.getProperty(Configuration.LEVELDB_DIRECTORY_SYNCRATE, "1.0"))));
     syncwrites = 0.0 < syncrate && syncrate < 1.0;
 
     //

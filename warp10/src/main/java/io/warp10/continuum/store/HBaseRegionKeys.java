@@ -63,10 +63,9 @@ public class HBaseRegionKeys extends Thread {
   private static Map<TableName, Connection> connections = new ConcurrentHashMap<TableName, Connection>();
   
   static {
-    Properties props = WarpConfig.getProperties();
-    
-    if (props.containsKey(Configuration.WARP_HBASE_REGIONKEYS_UPDATEPERIOD)) {
-      PERIOD = Long.parseLong(props.getProperty(Configuration.WARP_HBASE_REGIONKEYS_UPDATEPERIOD));
+    String updatePeriodProp = WarpConfig.getProperty(Configuration.WARP_HBASE_REGIONKEYS_UPDATEPERIOD);
+    if (null != updatePeriodProp) {
+      PERIOD = Long.parseLong(updatePeriodProp);
     }
     
     singleton = new HBaseRegionKeys();
