@@ -163,6 +163,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
     String pskDir = WarpConfig.getProperty(Configuration.DATALOG_PSK);
     if (null != pskDir) {
       this.datalogPSK = this.keyStore.decodeKey(pskDir);
+    } else {
+      this.datalogPSK = null;
     }
     
     this.logforwarded = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_LOGFORWARDED));

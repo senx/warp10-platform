@@ -146,6 +146,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     String pskProp = WarpConfig.getProperty(Configuration.DATALOG_PSK);
     if (null != pskProp) {
       this.datalogPSK = this.keyStore.decodeKey(pskProp);
+    } else {
+      this.datalogPSK = null;
     }
         
     this.logforwarded = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_LOGFORWARDED));
