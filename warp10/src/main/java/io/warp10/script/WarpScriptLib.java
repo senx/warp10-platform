@@ -437,6 +437,7 @@ public class WarpScriptLib {
   public static final String CHRONOEND = "CHRONOEND";
 
   public static final String TRY = "TRY";
+  public static final String RETHROW = "RETHROW";
 
   static {
 
@@ -563,7 +564,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MSGFAIL(MSGFAIL));
     addNamedWarpScriptFunction(new STOP("STOP"));
     addNamedWarpScriptFunction(new TRY(TRY));
-    addNamedWarpScriptFunction(new RETHROW("RETHROW"));
+    addNamedWarpScriptFunction(new RETHROW(RETHROW));
     addNamedWarpScriptFunction(new ERROR("ERROR"));
     addNamedWarpScriptFunction(new TIMEBOX("TIMEBOX"));
     addNamedWarpScriptFunction(new JSONSTRICT("JSONSTRICT"));
