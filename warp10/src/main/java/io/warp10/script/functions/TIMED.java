@@ -28,6 +28,7 @@ public class TIMED extends NamedWarpScriptFunction implements WarpScriptStackFun
   // Define private instances of used functions to avoid potential redefinition by extensions
   private static final CHRONOEND funcCHRONOEND = new CHRONOEND(WarpScriptLib.CHRONOEND);
   private static final CHRONOSTART funcCHRONOSTART = new CHRONOSTART(WarpScriptLib.CHRONOSTART);
+  private static final RETHROW funcRETHROW = new RETHROW(WarpScriptLib.RETHROW);
   private static final TRY funcTRY = new TRY(WarpScriptLib.TRY);
 
   public TIMED(String name) {
@@ -47,6 +48,9 @@ public class TIMED extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     Macro macro = (Macro) o2;
 
+    Macro catchMacro = new Macro();
+    catchMacro.add(funcRETHROW);
+
     // Encapsulate the CHRONOEND function in a macro to use it as a finally block.
     // Make TIMED resilient to STOP, RETURN and any exception.
     Macro finallyMacro = new Macro();
@@ -58,7 +62,7 @@ public class TIMED extends NamedWarpScriptFunction implements WarpScriptStackFun
     timedMacro.add(alias);
     timedMacro.add(funcCHRONOSTART);
     timedMacro.add(macro);        // Try
-    timedMacro.add(new Macro());  // Catch
+    timedMacro.add(catchMacro);   // Catch
     timedMacro.add(finallyMacro); // Finally
     timedMacro.add(funcTRY);
 
