@@ -720,6 +720,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new RUNNERNONCE("RUNNERNONCE"));
     addNamedWarpScriptFunction(new GZIP("GZIP"));
     addNamedWarpScriptFunction(new UNGZIP("UNGZIP"));
+    addNamedWarpScriptFunction(new DEFLATE("DEFLATE"));
+    addNamedWarpScriptFunction(new INFLATE("INFLATE"));
     addNamedWarpScriptFunction(new RSAGEN("RSAGEN"));
     addNamedWarpScriptFunction(new RSAPUBLIC(RSAPUBLIC));
     addNamedWarpScriptFunction(new RSAPRIVATE(RSAPRIVATE));
