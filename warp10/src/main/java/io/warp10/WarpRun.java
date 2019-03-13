@@ -35,7 +35,10 @@ public class WarpRun {
   public static void main(String[] args) throws Exception {
     try {
       System.setProperty(Configuration.WARP10_QUIET, "true");
-      System.setProperty(Configuration.WARPSCRIPT_REXEC_ENABLE, "true");
+
+      if (null == System.getProperty(Configuration.WARPSCRIPT_REXEC_ENABLE)) {
+        System.setProperty(Configuration.WARPSCRIPT_REXEC_ENABLE, "true");
+      }
       
       if (null == System.getProperty(Configuration.WARP_TIME_UNITS)) {
         System.setProperty(Configuration.WARP_TIME_UNITS, "us");

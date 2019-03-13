@@ -28,6 +28,7 @@ import java.util.zip.GZIPOutputStream;
 import com.google.common.base.Charsets;
 
 import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -44,6 +45,7 @@ import io.warp10.standalone.StandaloneWebCallService;
 public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
   private final boolean compress;
+  private final boolean enabled;
 
   /**
    * Allowed and excluded host patterns.
@@ -66,11 +68,16 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
     this.webAccessController = new WebAccessController(patternConf);
 
     this.compress = compress;    
+    this.enabled = null != props && "true".equals(props.getProperty(Configuration.WARPSCRIPT_REXEC_ENABLE));
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
+    if (!this.enabled) {
+      throw new WarpScriptException(getName() + " is not enabled, set '" + Configuration.WARPSCRIPT_REXEC_ENABLE + "' to true to enable it.");
+    }
+
     String endpoint = stack.pop().toString();
     
     String warpscript = stack.pop().toString();
