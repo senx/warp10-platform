@@ -32,8 +32,11 @@ import io.warp10.script.WarpScriptStack;
  */
 public class MUL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
+  private final String typeCheckErrorMsg;
+
   public MUL(String name) {
     super(name);
+    typeCheckErrorMsg = getName() + " can only operate on numeric values, vectors, matrices and numeric Geo Time Series.";
   }
   
   @Override
@@ -64,6 +67,10 @@ public class MUL extends NamedWarpScriptFunction implements WarpScriptStackFunct
     } else if (op1 instanceof GeoTimeSerie && op2 instanceof GeoTimeSerie) {
       GeoTimeSerie gts1 = (GeoTimeSerie) op1;
       GeoTimeSerie gts2 = (GeoTimeSerie) op2;
+
+      if (!(gts1.getType() == TYPE.DOUBLE || gts1.getType() == TYPE.LONG) || !(gts2.getType() == TYPE.DOUBLE || gts2.getType() == TYPE.LONG)) {
+        throw new WarpScriptException(typeCheckErrorMsg);
+      }
 
       // The result will be of type DOUBLE
       GeoTimeSerie result = new GeoTimeSerie(Math.max(GTSHelper.nvalues(gts1), GTSHelper.nvalues(gts2)));
@@ -146,13 +153,17 @@ public class MUL extends NamedWarpScriptFunction implements WarpScriptStackFunct
       }
 
       stack.push(result);
-    } else if (op1 instanceof GeoTimeSerie || op2 instanceof GeoTimeSerie) {
+    } else if ((op1 instanceof GeoTimeSerie && op2 instanceof Number) || (op1 instanceof Number && op2 instanceof GeoTimeSerie)) {
       boolean op1gts = op1 instanceof GeoTimeSerie;
       
       int n = op1gts ? GTSHelper.nvalues((GeoTimeSerie) op1) : GTSHelper.nvalues((GeoTimeSerie) op2);
       
       GeoTimeSerie result = op1gts ? ((GeoTimeSerie) op1).cloneEmpty(n) : ((GeoTimeSerie) op2).cloneEmpty();
       GeoTimeSerie gts = op1gts ? (GeoTimeSerie) op1 : (GeoTimeSerie) op2;
+
+      if (!(gts.getType() == TYPE.LONG || gts.getType() == TYPE.DOUBLE)) {
+        throw new WarpScriptException(typeCheckErrorMsg);
+      }
       
       double op = op1gts ? ((Number) op2).doubleValue() : ((Number) op1).doubleValue();
       
@@ -163,7 +174,7 @@ public class MUL extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
       stack.push(result);                   
     } else {
-      throw new WarpScriptException(getName() + " can only operate on numeric values, vectors and matrices and Geo Time Series.");
+      throw new WarpScriptException(typeCheckErrorMsg);
     }
     
     return stack;

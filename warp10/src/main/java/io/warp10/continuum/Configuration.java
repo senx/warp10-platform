@@ -1528,6 +1528,25 @@ public class Configuration {
    * considered for sharding. 
    */
   public static final String DATALOG_FORWARDER_SHARDKEY_SHIFT = "datalog.forwarder.shardkey.shift";
+
+   * Set to a message indicating the reason why updates are disabled, they are enabled if this is not set
+   */
+  public static final String WARP_UPDATE_DISABLED = "warp.update.disabled";
+  
+  /**
+   * Manager secret, must be set to use the managing functions
+   */
+  public static final String WARP10_MANAGER_SECRET = "warp10.manager.secret";
+  
+  /**
+   * Set to a message indicating the reason why deletes are disabled, they are enabled if this is not set
+   */
+  public static final String WARP_DELETE_DISABLED = "warp.delete.disabled";
+  
+  /**
+   * Set to a message indicating the reason why meta updates are disabled, they are enabled if this is not set
+   */
+  public static final String WARP_META_DISABLED = "warp.meta.disabled";
   
   /**
    * Set to 'true' to disable plasma
@@ -1894,6 +1913,62 @@ public class Configuration {
    * Should new macros be loaded on demand?
    */
   public static final String REPOSITORY_ONDEMAND = "warpscript.repository.ondemand";
+
+  /**
+   * Comma separated list of default WarpFleet™ repositories
+   */
+  public static final String WARPFLEET_MACROS_REPOS = "warpfleet.macros.repos";
+  
+  /**
+   * Configure this property to 'true' to disable the function WF.GETREPOS. This is useful when some of your repo URLs have sensitive information.
+   */
+  public static final String WARPFLEET_GETREPOS_DISABLE = "warpfleet.getrepos.disable";
+  
+  /**
+   * Maximum number of cached macros in the cache
+   */
+  public static final String WARPFLEET_CACHE_SIZE = "warpfleet.cache.size";
+  
+  /**
+   * Default TTL (in ms) for macros loaded from a WarpFleet repository
+   */
+  public static final String WARPFLEET_MACROS_TTL = "warpfleet.macros.ttl";
+
+  /**
+   * Lower limit for TTL (in ms) of macros loaded from a WarpFleet repository
+   */
+  public static final String WARPFLEET_MACROS_TTL_MIN = "warpfleet.macros.ttl.min";
+
+  /**
+   * Upper limit for TTL (in ms) of macros loaded from a WarpFleet repository
+   */
+  public static final String WARPFLEET_MACROS_TTL_MAX = "warpfleet.macros.ttl.max";
+
+  /**
+   * Default TTL (in ms) for WarpFleet macros which had errors
+   */
+  public static final String WARPFLEET_MACROS_TTL_FAILED = "warpfleet.macros.ttl.failed";
+
+  /**
+   * Default TTL (in ms) for WarpFleet macros which were not found. If > 0, a dummy macro
+   * will be generated which will fail with an informative error message
+   */
+  public static final String WARPFLEET_MACROS_TTL_UNKNOWN = "warpfleet.macros.ttl.unknown";
+
+  /**
+   * Read timeout when fetching macro source code from a repository, in ms. Defaults to 10s.
+   */
+  public static final String WARPFLEET_TIMEOUT_READ = "warpfleet.timeout.read";
+  
+  /**
+   * Connection timeout when fetching macro source code from a repository, in ms. Defaults to 5s.
+   */
+  public static final String WARPFLEET_TIMEOUT_CONNECT = "warpfleet.timeout.connect";
+  
+  /**
+   * Name of WarpFleet repository macro. This macro consumes a URL and emits a boolean.
+   */
+  public static final String WARPFLEET_MACROS_VALIDATOR = "warpfleet.macros.validator";
 
   /**
    * Header containing the request UUID when calling the endpoint

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
 //
 
 package io.warp10.script.functions;
+
+import java.util.List;
 
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
@@ -37,11 +39,24 @@ public class LASTTICK extends NamedWarpScriptFunction implements WarpScriptStack
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
 
-    if (!(top instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " expects a Geo Time Serie on top of the stack.");
+    if (top instanceof GeoTimeSerie) {
+      stack.push(GTSHelper.lasttick((GeoTimeSerie) top));      
+    } else if (top instanceof List) {
+      long last = Long.MIN_VALUE;
+      for(Object o: (List) top) {
+        if (!(o instanceof GeoTimeSerie)) {
+          throw new WarpScriptException(getName() + " expects a Geo Time Series™ or a list thereof on top of the stack.");          
+        }
+        long lt = GTSHelper.lasttick((GeoTimeSerie) o);
+        if (lt > last) {
+          last = lt;
+        }
+      }
+      stack.push(last);      
+    } else {
+      throw new WarpScriptException(getName() + " expects a Geo Time Series™ or a list thereof on top of the stack.");
     }
     
-    stack.push(GTSHelper.lasttick((GeoTimeSerie) top));
     return stack;
   }
 }

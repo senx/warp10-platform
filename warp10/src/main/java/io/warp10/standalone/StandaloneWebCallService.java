@@ -48,11 +48,9 @@ public class StandaloneWebCallService extends Thread {
     // Read properties to set up proxy etc
     //
     
-    Properties props = WarpConfig.getProperties();
-    
-    ua = props.getProperty(Configuration.WEBCALL_USER_AGENT);
+    ua = WarpConfig.getProperty(Configuration.WEBCALL_USER_AGENT);
 
-    String patternConf = props.getProperty(Configuration.WEBCALL_HOST_PATTERNS);
+    String patternConf = WarpConfig.getProperty(Configuration.WEBCALL_HOST_PATTERNS);
 
     webAccessController = new WebAccessController(patternConf);
   }

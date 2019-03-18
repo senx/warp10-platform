@@ -17,6 +17,7 @@
 package io.warp10.standalone;
 
 import io.warp10.WarpConfig;
+import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.ThrottlingManager;
@@ -132,15 +133,14 @@ public class StandaloneIngressHandler extends AbstractHandler {
     this.labelsKey = this.keyStore.getKey(KeyStore.SIPHASH_LABELS);
     this.labelsKeyLongs = SipHashInline.getKey(this.labelsKey);
     
-    Properties props = WarpConfig.getProperties();
-  
-    updateActivity = "true".equals(props.getProperty(Configuration.INGRESS_ACTIVITY_UPDATE));
-    metaActivity = "true".equals(props.getProperty(Configuration.INGRESS_ACTIVITY_META));
+    updateActivity = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_ACTIVITY_UPDATE));
+    metaActivity = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_ACTIVITY_META));
     
-    this.parseAttributes = "true".equals(props.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
-    
-    if (props.containsKey(Configuration.DATALOG_DIR)) {
-      File dir = new File(props.getProperty(Configuration.DATALOG_DIR));
+    this.parseAttributes = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
+
+    String dirProp = WarpConfig.getProperty(Configuration.DATALOG_DIR);
+    if (null != dirProp) {
+      File dir = new File(dirProp);
       
       if (!dir.exists()) {
         throw new RuntimeException("Data logging target '" + dir + "' does not exist.");
@@ -151,7 +151,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
         LOG.info("Data logging enabled in directory '" + dir + "'.");
       }
       
-      String id = props.getProperty(Configuration.DATALOG_ID);
+      String id = WarpConfig.getProperty(Configuration.DATALOG_ID);
       
       if (null == id) {
         throw new RuntimeException("Property '" + Configuration.DATALOG_ID + "' MUST be set to a unique value for this instance.");
@@ -169,16 +169,17 @@ public class StandaloneIngressHandler extends AbstractHandler {
       datalogId = null;
       logShardKey = false;
     }
-    
-    if (props.containsKey(Configuration.DATALOG_PSK)) {
-      this.datalogPSK = this.keyStore.decodeKey(props.getProperty(Configuration.DATALOG_PSK));
+
+    String pskDir = WarpConfig.getProperty(Configuration.DATALOG_PSK);
+    if (null != pskDir) {
+      this.datalogPSK = this.keyStore.decodeKey(pskDir);
     } else {
       this.datalogPSK = null;
     }
     
-    this.logforwarded = "true".equals(props.getProperty(Configuration.DATALOG_LOGFORWARDED));
+    this.logforwarded = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_LOGFORWARDED));
     
-    this.maxValueSize = Long.parseLong(props.getProperty(Configuration.STANDALONE_VALUE_MAXSIZE, DEFAULT_VALUE_MAXSIZE));
+    this.maxValueSize = Long.parseLong(WarpConfig.getProperty(Configuration.STANDALONE_VALUE_MAXSIZE, DEFAULT_VALUE_MAXSIZE));
   }
   
   @Override
@@ -197,6 +198,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
     } else {
       return;
     }    
+    
+    if (null != WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)) {
+      response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)));
+    }
     
     long lastActivity = System.currentTimeMillis();
     
@@ -687,6 +692,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
       baseRequest.setHandled(true);
     } else {
       return;
+    }
+    
+    if (null != WarpManager.getAttribute(WarpManager.META_DISABLED)) {
+      response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.META_DISABLED)));
     }
     
     long lastActivity = System.currentTimeMillis();

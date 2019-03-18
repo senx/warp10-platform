@@ -224,7 +224,7 @@ public class UDPConsumer extends Thread {
           }
 
           ArrayList<Object> msg = new ArrayList<Object>();
-          msg.add(packet.getAddress().getHostName());
+          msg.add(packet.getAddress().getHostAddress());
           msg.add(packet.getPort());
           msg.add(Arrays.copyOfRange(packet.getData(), packet.getOffset(), packet.getOffset() + packet.getLength()));
 

@@ -61,9 +61,7 @@ public class SharedMemoryWarpScriptExtension extends WarpScriptExtension impleme
     shmobjectLocks = new HashMap<String,String>();
     shmobjectUses = new HashMap<String,Long>();
   
-    Properties props = WarpConfig.getProperties();
-    
-    ttl = Long.parseLong(props.getProperty(CONFIG_SHM_TTL, String.valueOf(DEFAULT_SHM_TTL)));
+    ttl = Long.parseLong(WarpConfig.getProperty(CONFIG_SHM_TTL, String.valueOf(DEFAULT_SHM_TTL)));
     
     functions = new HashMap<String,Object>();
     

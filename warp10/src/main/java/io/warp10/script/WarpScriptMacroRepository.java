@@ -379,6 +379,10 @@ public class WarpScriptMacroRepository extends Thread {
       
       loading.get().add(name);
       
+      if (!file.exists()) {
+        return null;
+      }
+      
       FileInputStream in = new FileInputStream(file);
       ByteArrayOutputStream out = new ByteArrayOutputStream((int) file.length());
       
@@ -413,7 +417,8 @@ public class WarpScriptMacroRepository extends Thread {
       
       MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
       stack.maxLimits();
-
+      stack.setAttribute(WarpScriptStack.ATTRIBUTE_MACRO_NAME, name);
+      
       //
       // Add 'INCLUDE', 'enabled' will disable 'INCLUDE' after we've used it when loading 
       //
@@ -433,14 +438,14 @@ public class WarpScriptMacroRepository extends Thread {
         public java.util.List<Object> statements() { return new ArrayList<Object>() {{ add(include); }}; }
         }
       );
-      
+            
       //
       // Execute the code
       //
       stack.execMulti(sb.toString());
       
       //
-      // Disable 'INCLUDE'
+      // Disable INCLUDE
       //
       
       enabled.set(false);
@@ -474,6 +479,8 @@ public class WarpScriptMacroRepository extends Thread {
       
       // Make macro a secure one
       macro.setSecure(true);
+      
+      macro.setName(name);
       
       return macro;
     } catch(Exception e) {

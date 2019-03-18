@@ -89,6 +89,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   
   private String sectionName = null;
   
+  private String macroName = null;
+  
   /**
    * Are we currently in a secure macro?
    */
@@ -170,6 +172,10 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
   
+    if (null == properties) {
+      throw new RuntimeException("Warp 10 configuration not set.");
+    }
+    
     this.unshadow = "true".equals(properties.getProperty(Configuration.WARPSCRIPT_DEF_UNSHADOW));
     
     if (init) {
@@ -927,6 +933,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     List<Object> stmts = macro.statements();
     int n = macro.size();
     
+    String macroname = this.macroName;
+    this.macroName = macro.getName();
+
     try {
       
       recurseIn();
@@ -978,6 +987,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       recurseOut();
       // Restore section name
       this.sectionName = sectionname;
+      // Restore macro name
+      this.macroName = macroname;
+      
       //if (sectionname != this.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME)) {
       //  this.setAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME, sectionname);
       //}
@@ -1049,6 +1061,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   
   @Override
   public Macro find(String symbol) throws WarpScriptException {
+    
+    //
+    // Check if we have import rules which must be applied
+    //
+    
+    symbol = rewriteMacroSymbol(symbol);
+    
     //
     // Look up the macro in the local symbol table
     //
@@ -1067,6 +1086,10 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       macro = WarpScriptMacroLibrary.find(symbol);
     }
 
+    if (null == macro) {
+      macro = WarpFleetMacroRepository.find(this, symbol);
+    }
+    
     if (null == macro) {
       throw new WarpScriptException("Unknown macro '" + symbol + "'");
     }
@@ -1224,6 +1247,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       this.currentops = ((Number) value).longValue();
     } else if (WarpScriptStack.ATTRIBUTE_SECTION_NAME.equals(key)) {
       this.sectionName = value.toString();
+    } else if (WarpScriptStack.ATTRIBUTE_MACRO_NAME.equals(key)) {
+      this.macroName = value.toString();
     } else if (WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE.equals(key)) {
       if (null != value) {
         this.progressable = (Progressable) value;
@@ -1242,6 +1267,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       return this.currentops;
     } else if (WarpScriptStack.ATTRIBUTE_SECTION_NAME.equals(key)) {
       return this.sectionName;
+    } else if (WarpScriptStack.ATTRIBUTE_MACRO_NAME.equals(key)) {
+      return this.macroName;
     } else {
       return this.attributes.get(key);
     }
@@ -1531,5 +1558,30 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     
     int newCapacity = elements.length + (elements.length >> 1) + n;
     elements = Arrays.copyOf(elements, newCapacity);
+  }
+  
+  private String rewriteMacroSymbol(String symbol) {
+    Map<String,String> rules = (Map<String,String>) this.attributes.get(WarpScriptStack.ATTRIBUTE_IMPORT_RULES);
+    
+    if (null == rules) {
+      return symbol;
+    }
+    
+    //
+    // Scan the rules, from longest to shortest
+    //
+    
+    List<String> prefixes = new ArrayList<String>(rules.keySet()); 
+    
+    for (String prefix: prefixes) {
+      String substitute = rules.get(prefix);
+      
+      if (symbol.startsWith(prefix)) {
+        symbol = substitute + symbol.substring(prefix.length());
+        break;
+      }
+    }
+    
+    return symbol;
   }
 }

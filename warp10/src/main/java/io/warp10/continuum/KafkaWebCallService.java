@@ -105,26 +105,27 @@ public class KafkaWebCallService {
   }
   
   private static void initialize() {
-    Properties props = WarpConfig.getProperties();
-    
-    if (null == props.getProperty(Configuration.WEBCALL_KAFKA_ZKCONNECT)) {
+    if (null == WarpConfig.getProperty(Configuration.WEBCALL_KAFKA_ZKCONNECT)) {
       throw new RuntimeException(Configuration.WEBCALL_KAFKA_ZKCONNECT + " was not specified in the configuration.");
     }
 
-    if (null == props.getProperty(Configuration.WEBCALL_KAFKA_BROKERLIST)) {
+    String brokerListProp = WarpConfig.getProperty(Configuration.WEBCALL_KAFKA_BROKERLIST);
+    if (null == brokerListProp) {
       throw new RuntimeException(Configuration.WEBCALL_KAFKA_BROKERLIST + " was not specified in the configuration.");
     }
 
-    if (null == props.getProperty(Configuration.WEBCALL_KAFKA_TOPIC)) {
+    topic = WarpConfig.getProperty(Configuration.WEBCALL_KAFKA_TOPIC);
+    if (null == topic) {
       throw new RuntimeException(Configuration.WEBCALL_KAFKA_TOPIC + " was not specified in the configuration.");
     }
 
     Properties properties = new Properties();
     // @see http://kafka.apache.org/documentation.html#producerconfigs
-    properties.setProperty("metadata.broker.list", props.getProperty(Configuration.WEBCALL_KAFKA_BROKERLIST));
-    
-    if (null != props.getProperty(Configuration.WEBCALL_KAFKA_PRODUCER_CLIENTID)) {
-      properties.setProperty("client.id", props.getProperty(Configuration.WEBCALL_KAFKA_PRODUCER_CLIENTID));
+    properties.setProperty("metadata.broker.list", brokerListProp);
+
+    String producerClientIdProp = WarpConfig.getProperty(Configuration.WEBCALL_KAFKA_PRODUCER_CLIENTID);
+    if (null != producerClientIdProp) {
+      properties.setProperty("client.id", producerClientIdProp);
     }
     
     properties.setProperty("request.required.acks", "-1");
@@ -135,8 +136,6 @@ public class KafkaWebCallService {
     ProducerConfig config = new ProducerConfig(properties);
     producer = new Producer<byte[], byte[]>(config);
 
-    topic = props.getProperty(Configuration.WEBCALL_KAFKA_TOPIC);
-    
     initialized = true;
   }  
 }

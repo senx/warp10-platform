@@ -70,6 +70,11 @@ public interface WarpScriptStack {
   public static final String TOP_LEVEL_SECTION = "[TOP]";
   
   /**
+   * Name of attribute for storing macro import rules
+   */
+  public static final String ATTRIBUTE_IMPORT_RULES = "import.rules";
+  
+  /**
    * Flag indicating whether or not to set section with the current line number
    */
   public static final String ATTRIBUTE_LINENO = "lineno";
@@ -103,6 +108,11 @@ public interface WarpScriptStack {
    * Name of current code section, null is unnamed
    */
   public static final String ATTRIBUTE_SECTION_NAME = "section.name";
+  
+  /**
+   * Name of the current macro, or null if not in a macro or in an anonymous one
+   */
+  public static final String ATTRIBUTE_MACRO_NAME = "macro.name";
   
   /**
    * Flag indicating whether or not the stack is currently in documentation mode
@@ -279,6 +289,8 @@ public interface WarpScriptStack {
     
     private long fingerprint;
     
+    private String name = null;
+    
     /**
      * Timestamp at which the macro expired, or LONG.MIN_VALUE if no expiry date was set
      */
@@ -345,6 +357,14 @@ public interface WarpScriptStack {
     
     public void setExpiry(long expiry) {
       this.expiry = expiry;
+    }
+    
+    public void setName(String name) {
+      this.name = name;
+    }
+    
+    public String getName() {
+      return this.name;
     }
     
     @Override

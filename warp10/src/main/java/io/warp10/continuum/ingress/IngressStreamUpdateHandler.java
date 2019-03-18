@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.ingress;
 
+import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.ThrottlingManager;
 import io.warp10.continuum.TimeSource;
@@ -94,6 +95,10 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
     public void onWebSocketMessage(Session session, String message) throws Exception {
       
       try {
+        if (null != WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)) {
+          throw new IOException(String.valueOf(WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)));
+        }
+
         //
         // Split message on whitespace boundary
         //
