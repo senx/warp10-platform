@@ -367,7 +367,6 @@ public class WarpScriptLib {
   public static final String EVALSECURE = "EVALSECURE";
   public static final String SNAPSHOT = "SNAPSHOT";
   public static final String SNAPSHOTALL = "SNAPSHOTALL";
-  public static final String QSNAPSHOT = "QSNAPSHOT";
   public static final String LOAD = "LOAD";
   public static final String POPR = "POPR";
   public static final String CPOPR = "CPOPR";

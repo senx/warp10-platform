@@ -38,7 +38,7 @@ public class ShardingWarpScriptExtension extends WarpScriptExtension {
   public static final String SHARDING_ENDPOINT_PREFIX = "sharding.endpoint.";
   
   /**
-   * Snapshot command to use when talking to shards, defaults to QSNAPSHOT
+   * Snapshot command to use when talking to shards, defaults to SNAPSHOT
    */
   public static final String SHARDING_SNAPSHOT = "sharding.snapshot";
     

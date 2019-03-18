@@ -56,6 +56,7 @@ import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.functions.JSONTO;
 import io.warp10.script.functions.SNAPSHOT;
 
 /**
@@ -75,6 +76,8 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
    * Snapshot command to use
    */
   private static byte[] snapshot;
+  
+  private static JSONTO JSONTO;
   
   static {
     Properties props = WarpConfig.getProperties();
@@ -155,7 +158,9 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
     
     if (shardmodulus != allremainders.size()) {
       throw new RuntimeException("Missing shards, only have " + allremainders.size() + " shards defined out of " + shardmodulus);
-    }    
+    }
+    
+    JSONTO = new JSONTO(WarpScriptLib.JSONTO);
   }
   
   public DEVAL(String name) {
@@ -332,7 +337,8 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
       try {
         String result = futures[i].get();
         stack.push(result);
-        stack.exec(WarpScriptLib.JSONTO);
+        // Unwrap the JSON
+        JSONTO.apply(stack);
         results.add(stack.pop());
       } catch (ExecutionException ee) {
         throw new WarpScriptException(ee.getCause());
