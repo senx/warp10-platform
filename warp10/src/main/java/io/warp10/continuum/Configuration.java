@@ -1529,6 +1529,7 @@ public class Configuration {
    */
   public static final String DATALOG_FORWARDER_SHARDKEY_SHIFT = "datalog.forwarder.shardkey.shift";
 
+  /*
    * Set to a message indicating the reason why updates are disabled, they are enabled if this is not set
    */
   public static final String WARP_UPDATE_DISABLED = "warp.update.disabled";
