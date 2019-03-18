@@ -85,6 +85,13 @@ public abstract class AbstractWarp10Plugin {
     boolean failedPlugin = false;
       
     //
+    // Sort the plugins by prefix
+    //
+    
+    List<String> sorted = new ArrayList<String>(plugs);
+    sorted.sort(null);
+    
+    //
     // Determine the possible jar from which we were loaded
     //
       
@@ -94,8 +101,14 @@ public abstract class AbstractWarp10Plugin {
       wsljar = wslurl.toString().replaceAll("!/.*", "").replaceAll("jar:file:", "");
     }
       
-    for (String plugin: plugs) {
-      try {
+    for (String plugin: sorted) {
+      try {        
+        // If the plugin name contains '#', remove everything up to the last '#', this was used as a sorting prefix
+        
+        if (plugin.contains("#")) {
+          plugin = plugin.replaceAll("^.*#", "");
+        }
+
         //
         // Locate the class using the current class loader
         //
