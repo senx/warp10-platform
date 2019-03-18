@@ -23,6 +23,7 @@ import java.util.Properties;
 import io.warp10.WarpConfig;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
@@ -32,6 +33,7 @@ import io.warp10.warp.sdk.WarpScriptExtension;
 
 public class ShadowWarpScriptExtension extends WarpScriptExtension {
   
+  private static final String SHADOW_RENAME = "shadow.rename.";
   private static final String SHADOW_NOOP = "shadow.noop";
   private static final String SHADOW_FAIL = "shadow.fail";
   private static final String SHADOW_FAILMSG = "shadow.failmsg";
@@ -58,6 +60,25 @@ public class ShadowWarpScriptExtension extends WarpScriptExtension {
   static {
     functions = new HashMap<String,Object>();
     Properties properties = WarpConfig.getProperties();
+    
+    //
+    // Handle the renaming first
+    //
+    
+    for (Object key: properties.keySet()) {
+      if (key.toString().startsWith(SHADOW_RENAME)) {
+        final String f = key.toString().substring(SHADOW_RENAME.length());
+
+        String target = WarpConfig.getProperty(key.toString());
+        
+        Object from = WarpScriptLib.getFunction(f);
+        
+        // Store the new association
+        functions.put(target, from);
+        // Remove the original association
+        functions.put(f, null);
+      }
+    }
     
     //
     // Generate the functions shadowed by a macro
