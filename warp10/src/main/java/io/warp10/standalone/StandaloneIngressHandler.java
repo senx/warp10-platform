@@ -159,7 +159,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
         datalogId = new String(OrderPreservingBase64.encode(id.getBytes(Charsets.UTF_8)), Charsets.US_ASCII);
       }
       
-      if ("false".equals(props.getProperty(Configuration.DATALOG_LOGSHARDKEY))) {
+      if ("false".equals(WarpConfig.getProperty(Configuration.DATALOG_LOGSHARDKEY))) {
         logShardKey = false;
       } else {
         logShardKey = true;
