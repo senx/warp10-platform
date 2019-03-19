@@ -227,6 +227,10 @@ warpscript.jars.fromclasspath = true
 //
 // Macro Repository
 //
+
+// Secret to use for setting configuration accessible via MACROCONFIG
+#warpscript.macroconfig.secret =
+
 warpscript.repository.directory = ${standalone.home}/macros
 warpscript.repository.refresh = 60000
 
