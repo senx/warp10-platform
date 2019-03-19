@@ -14,39 +14,38 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.functions;
-
-import java.util.Collection;
+package io.warp10.script.ext.sensision;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.sensision.Sensision;
 
 /**
- * Checks if a list contains an element
+ * Retrieve a string representation of all current Sensision metrics
  */
-public class CONTAINS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class SENSISIONDUMPEVENTS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public CONTAINS(String name) {
+  public SENSISIONDUMPEVENTS(String name) {
     super(name);
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object elt = stack.pop();    
-    Object coll = stack.peek();
 
-    if (coll instanceof Collection) {
-      stack.push(((Collection) coll).contains(elt));      
-    } else if (coll instanceof String) {
-      stack.pop();
-      stack.push(coll.toString().contains(elt.toString()));
-    } else {
-      throw new WarpScriptException(getName() + " operates on a list, set or STRING.");
+    StringBuilder sb = new StringBuilder();
+    
+    for (String event: Sensision.getEvents()) {
+      if (sb.length() > 0) {
+        sb.append("\n");
+      }
+      sb.append(event);
     }
     
-
+    stack.push(sb.toString());
+    
     return stack;
   }
+  
 }

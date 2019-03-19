@@ -1935,6 +1935,16 @@ public class Configuration {
   public static final String WARPFLEET_MACROS_TTL_UNKNOWN = "warpfleet.macros.ttl.unknown";
 
   /**
+   * Read timeout when fetching macro source code from a repository, in ms. Defaults to 10s.
+   */
+  public static final String WARPFLEET_TIMEOUT_READ = "warpfleet.timeout.read";
+  
+  /**
+   * Connection timeout when fetching macro source code from a repository, in ms. Defaults to 5s.
+   */
+  public static final String WARPFLEET_TIMEOUT_CONNECT = "warpfleet.timeout.connect";
+  
+  /**
    * Name of WarpFleet repository macro. This macro consumes a URL and emits a boolean.
    */
   public static final String WARPFLEET_MACROS_VALIDATOR = "warpfleet.macros.validator";

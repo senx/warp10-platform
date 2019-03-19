@@ -40,15 +40,39 @@ public class SET extends NamedWarpScriptFunction implements WarpScriptStackFunct
     
     Object maporlist = stack.peek();
 
-    if (!(maporlist instanceof List)) {
-      throw new WarpScriptException(getName() + " operates on a list.");
+    if (!(maporlist instanceof List) && !(maporlist instanceof byte[])) {
+      throw new WarpScriptException(getName() + " operates on a list or byte array.");
     }
 
     if (!(key instanceof Number)) {
       throw new WarpScriptException(getName() + " expects a key which is an integer when operating on a list.");
     }
 
-    ((List) maporlist).set(((Number) key).intValue(), value);
+    if (maporlist instanceof List) {
+      ((List) maporlist).set(((Number) key).intValue(), value);
+    } else {
+      byte[] data = (byte[]) maporlist;
+      
+      if (!(value instanceof Long)) {
+        throw new WarpScriptException(getName() + " expects the element to be a LONG in either [0,255] or [-128,127].");
+      }
+      
+      long l = ((Number) value).longValue();
+
+      if (l < -128 || l > 255) {
+        throw new WarpScriptException(getName() + " expects the element to be a LONG in either [0,255] or [-128,127].");        
+      }
+      
+      byte elt = (byte) (l & 0xFFL);
+      
+      int idx = ((Number) key).intValue();
+      
+      if (idx < 0 || idx >= data.length) {
+        throw new WarpScriptException(getName() + " index out of bounds, " + idx + " >= " + data.length);
+      }
+      
+      data[idx] = elt;
+    }
     
     return stack;
   }

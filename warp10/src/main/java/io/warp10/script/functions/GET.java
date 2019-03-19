@@ -51,10 +51,23 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
       if (!(key instanceof Number)) {
         throw new WarpScriptException(getName() + " expects the key to be an integer when operating on a list.");
       }
+      int idx = ((Number) key).intValue();
+      
+      if (idx < 0) {
+        throw new WarpScriptException(getName() + " expects a positive index.");
+      }
       if (coll instanceof List) {
-        value = ((List) coll).get(((Number) key).intValue());
+        int size = ((List) coll).size();
+        if (idx >= size) {
+          throw new WarpScriptException(getName() + " index out of bound, " + idx + " >= " + size);
+        }
+        value = ((List) coll).get(idx);
       } else {
-        value = (long) (((byte[]) coll)[((Number) key).intValue()] & 0xFFL);
+        int size = ((byte[]) coll).length;
+        if (idx >= size) {
+          throw new WarpScriptException(getName() + " index out of bound, " + idx + " >= " + size);
+        }
+        value = (long) (((byte[]) coll)[idx] & 0xFFL);
       }
     }
     

@@ -250,6 +250,12 @@ warpscript.repository.refresh = 60000
 // Comma separated list of default WarpFleet™ repositories
 warpfleet.macros.repos = https://warpfleet.senx.io/macros
 
+// Read timeout when fetching macro source code from a repository, in ms. Defaults to 10s.
+#warpfleet.timeout.read =
+
+// Connection timeout when fetching macro source code from a repository, in ms. Defaults to 5s.
+#warpfleet.timeout.connect =
+
 // Configure this property to 'true' to disable the function WF.GETREPOS. This is useful when some of your repo URLs have sensitive information.
 #warpfleet.getrepos.disable = true
 

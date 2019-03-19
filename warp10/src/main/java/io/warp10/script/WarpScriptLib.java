@@ -248,6 +248,7 @@ import io.warp10.script.processing.image.PnoTint;
 import io.warp10.script.processing.image.Ppixels;
 import io.warp10.script.processing.image.Pset;
 import io.warp10.script.processing.image.Ptint;
+import io.warp10.script.processing.image.PtoImage;
 import io.warp10.script.processing.image.PupdatePixels;
 import io.warp10.script.processing.math.Pconstrain;
 import io.warp10.script.processing.math.Pdist;
@@ -730,6 +731,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new RUNNERNONCE("RUNNERNONCE"));
     addNamedWarpScriptFunction(new GZIP("GZIP"));
     addNamedWarpScriptFunction(new UNGZIP("UNGZIP"));
+    addNamedWarpScriptFunction(new DEFLATE("DEFLATE"));
+    addNamedWarpScriptFunction(new INFLATE("INFLATE"));
     addNamedWarpScriptFunction(new RSAGEN("RSAGEN"));
     addNamedWarpScriptFunction(new RSAPUBLIC(RSAPUBLIC));
     addNamedWarpScriptFunction(new RSAPRIVATE(RSAPRIVATE));
@@ -1238,9 +1241,9 @@ public class WarpScriptLib {
     //
     // Processing
     //
-    
+
     addNamedWarpScriptFunction(new Pencode("Pencode"));
-    
+
     // Structure
     
     addNamedWarpScriptFunction(new PpushStyle("PpushStyle"));
@@ -1337,6 +1340,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new PnoTint("PnoTint"));
     addNamedWarpScriptFunction(new Ppixels("Ppixels"));
     addNamedWarpScriptFunction(new PupdatePixels("PupdatePixels"));
+    addNamedWarpScriptFunction(new PtoImage("PtoImage"));
     
     // TODO(hbs): support texture related functions?
     
