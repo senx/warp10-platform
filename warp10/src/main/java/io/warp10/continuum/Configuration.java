@@ -1862,7 +1862,12 @@ public class Configuration {
    * Maximum number of subprogram instances which can be spawned
    */
   public static final String WARPSCRIPT_CALL_MAXCAPACITY = "warpscript.call.maxcapacity";
-      
+  
+  /**
+   * Secret to use for setting configuration accessible via MACROCONFIG
+   */
+  public static final String CONFIG_MACROCONFIG_SECRET = "warpscript.macroconfig.secret";
+  
   /**
    * Macro Repository root directory
    */  

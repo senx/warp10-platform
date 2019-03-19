@@ -635,6 +635,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new REF(REF));
 
     addNamedWarpScriptFunction(new MACROTTL("MACROTTL"));
+    addNamedWarpScriptFunction(new SETMACROCONFIG("SETMACROCONFIG"));
+    addNamedWarpScriptFunction(new MACROCONFIGSECRET("MACROCONFIGSECRET"));
     addNamedWarpScriptFunction(new MACROCONFIG("MACROCONFIG", false));
     addNamedWarpScriptFunction(new MACROCONFIG("MACROCONFIGDEFAULT", true));
     addNamedWarpScriptFunction(new MACROMAPPER("MACROMAPPER"));
