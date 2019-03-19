@@ -47,7 +47,7 @@ public class TOLONGBYTES extends NamedWarpScriptFunction implements WarpScriptSt
         //truncate the result to nbBytes
         stack.push(Arrays.copyOfRange(b.array(), 8 - nbBytes.intValue(), 8));
       } else {
-        throw new WarpScriptException(getName() + " could convert Long to an array of 1 to 8 bytes.");
+        throw new WarpScriptException(getName() + " could convert a long to an array of 1 to 8 bytes.");
       }
     } else {
       throw new WarpScriptException(getName() + " operates on a long and expects a number of bytes on top of the stack.");
