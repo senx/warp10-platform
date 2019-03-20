@@ -21,8 +21,9 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
-import java.nio.ByteBuffer;
 import java.util.Arrays;
+
+import com.google.common.primitives.Longs;
 
 /**
  * Converts a string into its bytes given a charset
@@ -39,15 +40,13 @@ public class TOLONGBYTES extends NamedWarpScriptFunction implements WarpScriptSt
     Object o = stack.pop();
 
     if (o instanceof Long) {
-      Long nbBytes = (Long) o;
+      long nbBytes = ((Long) o).longValue();
       o = stack.pop();
       if (o instanceof Long && nbBytes > 0 && nbBytes <= 8) {
-        ByteBuffer b = ByteBuffer.allocate(8);
-        b.putLong((Long) o);
         //truncate the result to nbBytes
-        stack.push(Arrays.copyOfRange(b.array(), 8 - nbBytes.intValue(), 8));
+        stack.push(Arrays.copyOfRange(Longs.toByteArray(((Long) o).longValue()), 8 - (int) nbBytes, 8));
       } else {
-        throw new WarpScriptException(getName() + " could convert a long to an array of 1 to 8 bytes.");
+        throw new WarpScriptException(getName() + " operates on a long and expects a number of output bytes between 1 and 8 on top of the stack.");
       }
     } else {
       throw new WarpScriptException(getName() + " operates on a long and expects a number of bytes on top of the stack.");
