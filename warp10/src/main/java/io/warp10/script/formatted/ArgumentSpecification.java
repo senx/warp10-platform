@@ -20,10 +20,15 @@ import io.warp10.script.functions.TYPEOF;
 
 public class ArgumentSpecification {
 
-  public Class<?> clazz;
-  public String name;
-  public Object default_value; // optional
-  public String doc; // used for auto-generated doc
+  private Class<?> clazz;
+  private String name;
+  private Object default_value; // optional
+  private String doc; // used for auto-generated doc
+
+  public Class<?> getClazz() { return clazz; }
+  public String getName() { return name; }
+  public Object getDefaultValue() { return default_value; }
+  public String getDoc() { return doc; }
 
   public boolean isOptional() { return null != default_value; }
   public boolean isDocumented() {
@@ -66,7 +71,7 @@ public class ArgumentSpecification {
     this.doc = null;
   }
 
-  public String mc2Type(){
+  public String WarpScriptType() {
     return TYPEOF.typeof(clazz);
   }
 }

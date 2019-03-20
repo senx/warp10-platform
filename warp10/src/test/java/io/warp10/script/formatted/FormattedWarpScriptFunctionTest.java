@@ -37,7 +37,7 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
     //
 
     List<ArgumentSpecification> args = getArguments();
-    args.add(new ArgumentSpecification(GeoTimeSerie.class, "1st arg","A GTS."));
+    args.add(new ArgumentSpecification(GeoTimeSerie.class, "1st arg","A Geo Time Series™."));
     args.add(new ArgumentSpecification(Long.class, "2nd arg","A LONG."));
     args.add(new ArgumentSpecification(Double.class, "3rd arg","A DOUBLE."));
 
@@ -116,28 +116,28 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
   }
 
   @Test
-  public void test1() throws Exception {
+  public void testPositionalArguments() throws Exception {
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
 
     stack.execMulti(getUnitTests().get(0));
   }
 
   @Test
-  public void test2() throws Exception {
+  public void testMapArguments() throws Exception {
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
 
     stack.execMulti(getUnitTests().get(1));
   }
 
   @Test
-  public void test3() throws Exception {
+  public void testMapArgumentsWithOptionalOnes() throws Exception {
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
 
     stack.execMulti(getUnitTests().get(2));
   }
 
   @Test
-  public void test4() throws Exception {
+  public void testDocGeneration() throws Exception {
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
 
     List<ArgumentSpecification> output = new ArrayList<>();

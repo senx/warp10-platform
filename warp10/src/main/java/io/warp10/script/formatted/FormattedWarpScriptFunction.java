@@ -27,6 +27,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.warp10.script.WarpScriptStack.MACRO_END;
+import static io.warp10.script.WarpScriptStack.MACRO_START;
+
 /**
  * Do the extraction of arguments from the stack in a formatted manner.
  * Arguments inside collections still have to be handled manually.
@@ -34,6 +37,12 @@ import java.util.Map;
  * Alternatively, a Map that contains all arguments and optional arguments can be provided on top of the stack.
  */
 public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  private final List<ArgumentSpecification> args;
+  private final List<ArgumentSpecification> optArgs;
+  private final StringBuilder docstring;
+  private final List<String> unitTests;
+
   public FormattedWarpScriptFunction(String name) {
     super(name);
 
@@ -41,28 +50,26 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     // A default child class has 0 argument, 0 optional argument, an empty docstring, and 0 unit tests.
     //
 
-    this.args = new ArrayList<>();
-    this.optArgs = new ArrayList<>();
+    this.args = new ArrayList<ArgumentSpecification>();
+    this.optArgs = new ArrayList<ArgumentSpecification>();
     this.docstring = new StringBuilder();
-    this.unitTests = new ArrayList<>();
+    this.unitTests = new ArrayList<String>();
   }
 
   //
   // A child class provides the specs of its arguments by adding them to args and optArgs in its constructor.
   //
 
-  private final List<ArgumentSpecification> args;
   protected final List<ArgumentSpecification> getArguments() {
     return args;
   }
 
-  private final List<ArgumentSpecification> optArgs;
   protected final List<ArgumentSpecification> getOptionalArguments() {
     return optArgs;
   }
 
   //
-  // A child class use formattedArgs to apply its function's logic, and pushed its outputs onto the stack.
+  // A child class uses formattedArgs to apply its function's logic, and pushes its outputs onto the stack.
   //
 
   protected abstract WarpScriptStack apply(Map<String, Object> formattedArgs, WarpScriptStack stack) throws WarpScriptException;
@@ -71,10 +78,10 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
   // Optionally, the child class can fill the fields docstring and unitTests for doc generation purpose.
   //
 
-  private final StringBuilder docstring;
-  protected final StringBuilder getDocstring() { return docstring; }
+  protected final StringBuilder getDocstring() {
+    return docstring;
+  }
 
-  private final List<String> unitTests;
   protected List<String> getUnitTests() {
     return unitTests;
   }
@@ -101,12 +108,12 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     //
 
     if (null == args) {
-      throw new NullPointerException(getClass().getCanonicalName() + "'s method getArguments() returned null. If no " +
+      throw new WarpScriptException(getClass().getCanonicalName() + "'s method getArguments() returned null. If no " +
         "argument is expected, it should return an empty array instead.");
     }
 
     if (null == optArgs) {
-      throw new NullPointerException(getClass().getCanonicalName() + "'s method getOptionalArguments() returned null." +
+      throw new WarpScriptException(getClass().getCanonicalName() + "'s method getOptionalArguments() returned null." +
         " If no argument is expected, it should return an empty array instead.");
     }
 
@@ -136,8 +143,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     if (0 == args.size()) {
 
       if (0 == stack.depth() || !(stack.peek() instanceof Map)) {
-        throw new WarpScriptException(getClass().getCanonicalName() + " expects a MAP on top of the stack. To use " +
-          "default argument values, an empty MAP is expected.");
+        throw new WarpScriptException(getClass().getCanonicalName() + " expects a MAP on top of the stack. To use default argument values, an empty MAP is expected.");
       }
     }
 
@@ -147,8 +153,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     //
 
     if (args.size() > 1 && args.get(args.size() - 1) instanceof Map && optArgs.size() > 0) {
-      throw new IllegalStateException("In this case, the last non-optional argument can not be a Map so as to " +
-        "avoid any confusion when using optional arguments.");
+      throw new IllegalStateException("In this case, the last non-optional argument can not be a Map so as to avoid any confusion when using optional arguments.");
     }
 
     //
@@ -170,16 +175,16 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       //
 
       for (ArgumentSpecification arg: args) {
-        if (!map.containsKey(arg.name)) {
+        if (!map.containsKey(arg.getName())) {
 
-          throw new WarpScriptException("The MAP that is on top of the stack does not have the argument '" + arg.name +
-            "' (of type "  + arg.mc2Type() + ") that is required by " + getClass().getCanonicalName());
+          throw new WarpScriptException("The MAP that is on top of the stack does not have the argument '" + arg.getName() +
+            "' (of type "  + arg.WarpScriptType() + ") that is required by " + getClass().getCanonicalName());
         }
 
-        if (!arg.clazz.isInstance(map.get(arg.name))) {
+        if (!arg.getClazz().isInstance(map.get(arg.getName()))) {
 
-          throw new WarpScriptException(getClass().getCanonicalName() + " expects the argument '" + arg.name + "' to" +
-            " be a " + arg.mc2Type() + ".");
+          throw new WarpScriptException(getClass().getCanonicalName() + " expects the argument '" + arg.getName() + "' to" +
+            " be a " + arg.WarpScriptType() + ".");
         }
       }
 
@@ -188,10 +193,10 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       //
 
       for (ArgumentSpecification arg: optArgs) {
-        if (map.containsKey(arg.name) && !arg.clazz.isInstance(map.get(arg.name))) {
+        if (map.containsKey(arg.getName()) && !arg.getClazz().isInstance(map.get(arg.getName()))) {
 
-          throw new WarpScriptException(getClass().getCanonicalName() + " expects the argument '" + arg.name + "' to " +
-            "be a " + arg.mc2Type() + ".");
+          throw new WarpScriptException(getClass().getCanonicalName() + " expects the argument '" + arg.getName() + "' to " +
+            "be a " + arg.WarpScriptType() + ".");
         }
       }
 
@@ -220,9 +225,9 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
         ArgumentSpecification arg = args.get(args.size() - 1 - i);
         Object candidate = stack.get(i);
 
-        if (!arg.clazz.isInstance(candidate)) {
-          throw new WarpScriptException(getClass().getCanonicalName() + " expects to find a '" + arg.name + "' (a " +
-            arg.mc2Type() + ") " + leveldenomination(i));
+        if (!arg.getClazz().isInstance(candidate)) {
+          throw new WarpScriptException(getClass().getCanonicalName() + " expects to find a '" + arg.getName() + "' (a " +
+            arg.WarpScriptType() + ") " + leveldenomination(i));
         }
       }
 
@@ -230,11 +235,11 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       // Consume these arguments off the top of the stack
       //
 
-      formattedArgs = new HashMap<>();
+      formattedArgs = new HashMap<String,Object>();
 
       for (int i = 0; i < args.size(); i++) {
         ArgumentSpecification arg = args.get(args.size() - 1 - i);
-        formattedArgs.put(arg.name, stack.pop());
+        formattedArgs.put(arg.getName(), stack.pop());
       }
 
     }
@@ -244,8 +249,8 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     //
 
     for (ArgumentSpecification arg: optArgs) {
-      if (!formattedArgs.containsKey(arg.name)) {
-        formattedArgs.put(arg.name, arg.default_value);
+      if (!formattedArgs.containsKey(arg.getName())) {
+        formattedArgs.put(arg.getName(), arg.getDefaultValue());
       }
     }
 
@@ -299,13 +304,13 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
 
     HashMap<String, String> params = new HashMap<>();
     for (ArgumentSpecification arg: getArguments()) {
-      params.put(arg.name, arg.doc);
+      params.put(arg.getName(), arg.getDoc());
     }
     for (ArgumentSpecification arg: getOptionalArguments()) {
-      params.put(arg.name, arg.doc);
+      params.put(arg.getName(), arg.getDoc());
     }
     for (ArgumentSpecification arg: outputs) {
-      params.put(arg.name, arg.doc);
+      params.put(arg.getName(), arg.getDoc());
     }
 
     info.put("params", params);
@@ -317,7 +322,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     List<List<List<Object>>> sig = new ArrayList<>();
     List<Object> output = new ArrayList<>();
     for (ArgumentSpecification arg: outputs) {
-      output.add(arg.name + ":" + arg.mc2Type());
+      output.add(arg.getName() + ":" + arg.WarpScriptType());
     }
 
     //
@@ -332,7 +337,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     }
 
     for (ArgumentSpecification arg: getArguments()) {
-      input1.add(arg.name + ":" + arg.mc2Type());
+      input1.add(arg.getName() + ":" + arg.WarpScriptType());
     }
 
     sig1.add(input1);
@@ -348,11 +353,11 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     HashMap<String, String> optMap = new HashMap<>();
 
     for (ArgumentSpecification arg: getArguments()) {
-      optMap.put(arg.name, arg.name + ":" + arg.mc2Type());
+      optMap.put(arg.getName(), arg.getName() + ":" + arg.WarpScriptType());
     }
 
     for (ArgumentSpecification arg: getOptionalArguments()) {
-      optMap.put(arg.name, arg.name + ":" + arg.mc2Type());
+      optMap.put(arg.getName(), arg.getName() + ":" + arg.WarpScriptType());
     }
 
     input2.add(optMap);
@@ -375,12 +380,12 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
 
     StringBuilder mc2 = new StringBuilder();
 
-    mc2.append("<%" + System.lineSeparator());
+    mc2.append(MACRO_START + System.lineSeparator());
     SNAPSHOT.addElement(mc2, generateInfo(since, deprecated, deleted, version, tags, related, examples, conf, outputs));
     mc2.append(System.lineSeparator());
     mc2.append("INFO" + System.lineSeparator());
     mc2.append(getName() + System.lineSeparator());
-    mc2.append("%>" + System.lineSeparator());
+    mc2.append(MACRO_END + System.lineSeparator());
     mc2.append("'macro' STORE" + System.lineSeparator());
     mc2.append("// Unit tests" + System.lineSeparator());
 
