@@ -48,7 +48,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
   }
 
   //
-  // A child class provides the specs of the arguments and how to use them in its constructor.
+  // A child class provides the specs of its arguments by adding them to args and optArgs in its constructor.
   //
 
   private final List<ArgumentSpecification> args;
@@ -61,10 +61,14 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     return optArgs;
   }
 
+  //
+  // A child class use formattedArgs to apply its function's logic, and pushed its outputs onto the stack.
+  //
+
   protected abstract WarpScriptStack apply(Map<String, Object> formattedArgs, WarpScriptStack stack) throws WarpScriptException;
 
   //
-  // Optionally, the child class can fill the fields docstring and unitTests for docstring generation purpose.
+  // Optionally, the child class can fill the fields docstring and unitTests for doc generation purpose.
   //
 
   private final StringBuilder docstring;
@@ -76,7 +80,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
   }
 
   //
-  // Handle arguments
+  // Handle arguments parsing
   //
 
   /**

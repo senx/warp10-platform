@@ -23,7 +23,7 @@ public class ArgumentSpecification {
   public Class<?> clazz;
   public String name;
   public Object default_value; // optional
-  public String doc; // might be used later for auto-generated doc
+  public String doc; // used for auto-generated doc
 
   public boolean isOptional() { return null != default_value; }
   public boolean isDocumented() {
