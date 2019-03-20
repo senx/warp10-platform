@@ -138,10 +138,10 @@ public class DocumentationGenerator {
 
     StringBuilder mc2 = new StringBuilder();
 
-    mc2.append(MACRO_START + System.lineSeparator());
     SNAPSHOT.addElement(mc2, generateInfo(function, since, deprecated, deleted, version, tags, related, examples, conf, outputs));
-    mc2.append(System.lineSeparator());
-    mc2.append("INFO" + System.lineSeparator());
+    mc2.append(" 'infomap' STORE" + System.lineSeparator());
+    mc2.append(MACRO_START + System.lineSeparator());
+    mc2.append("!$infomap INFO" + System.lineSeparator());
     mc2.append(function.getName() + System.lineSeparator());
     mc2.append(MACRO_END + System.lineSeparator());
     mc2.append("'macro' STORE" + System.lineSeparator());
