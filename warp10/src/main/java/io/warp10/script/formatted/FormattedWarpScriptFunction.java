@@ -284,7 +284,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     info.put("deleted", deleted);
     info.put("version", version);
     info.put("tags", tags);
-    info.put("desc", getDocstring());
+    info.put("desc", getDocstring().toString());
     info.put("related", related);
     info.put("examples", examples);
     info.put("conf", conf);
