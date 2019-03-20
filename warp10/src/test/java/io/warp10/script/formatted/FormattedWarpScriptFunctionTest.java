@@ -27,6 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static io.warp10.script.formatted.DocumentationGenerator.generateWarpScriptDoc;
+
 public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction {
 
   public FormattedWarpScriptFunctionTest() {
@@ -143,7 +145,7 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
     List<ArgumentSpecification> output = new ArrayList<>();
     output.add(new ArgumentSpecification(Map.class, "result", "A map containing the input arguments."));
 
-    stack.execMulti(generateMc2Doc(output));
+    stack.execMulti(generateWarpScriptDoc(this, output));
     stack.execMulti("'EXAMPLE' DEF");
 
     try {
