@@ -20,15 +20,11 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.functions.SNAPSHOT;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static io.warp10.script.WarpScriptStack.MACRO_END;
-import static io.warp10.script.WarpScriptStack.MACRO_START;
 
 /**
  * Do the extraction of arguments from the stack in a formatted manner.
