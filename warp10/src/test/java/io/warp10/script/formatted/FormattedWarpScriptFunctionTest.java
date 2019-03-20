@@ -18,14 +18,12 @@ package io.warp10.script.formatted;
 
 import io.warp10.WarpConfig;
 import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.script.MemoryWarpScriptStack;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptLib;
-import io.warp10.script.WarpScriptStack;
+import io.warp10.script.*;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -136,6 +134,26 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
 
     stack.execMulti(getUnitTests().get(2));
+  }
+
+  @Test
+  public void test4() throws Exception {
+    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
+
+    List<ArgumentSpecification> output = new ArrayList<>();
+    output.add(new ArgumentSpecification(Map.class, "result", "A map containing the input arguments."));
+
+    stack.execMulti(generateMc2Doc(output));
+    stack.execMulti("'EXAMPLE' DEF");
+
+    try {
+      stack.execMulti("INFOMODE EXAMPLE");
+    } catch (WarpScriptStopException wse) {
+      // do nothing
+    }
+
+    // manual check that INFO is correct
+    System.out.println(stack.dump(10));
   }
 
 }
