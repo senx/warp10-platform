@@ -26,7 +26,7 @@ import java.util.Arrays;
 import com.google.common.primitives.Longs;
 
 /**
- * Converts a string into its bytes given a charset
+ * Converts a LONG to a byte array
  */
 public class TOLONGBYTES extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -43,13 +43,17 @@ public class TOLONGBYTES extends NamedWarpScriptFunction implements WarpScriptSt
       long nbBytes = ((Long) o).longValue();
       o = stack.pop();
       if (o instanceof Long && nbBytes > 0 && nbBytes <= 8) {
-        //truncate the result to nbBytes
-        stack.push(Arrays.copyOfRange(Longs.toByteArray(((Long) o).longValue()), 8 - (int) nbBytes, 8));
+        //truncate the result to nbBytes when needed
+        if (8 != nbBytes) {
+          stack.push(Arrays.copyOfRange(Longs.toByteArray(((Long) o).longValue()), 8 - (int) nbBytes, 8));
+        } else {
+          stack.push(Longs.toByteArray(((Long) o).longValue()));
+        }
       } else {
-        throw new WarpScriptException(getName() + " operates on a long and expects a number of output bytes between 1 and 8 on top of the stack.");
+        throw new WarpScriptException(getName() + " operates on a LONG and expects a number of output bytes between 1 and 8 on top of the stack.");
       }
     } else {
-      throw new WarpScriptException(getName() + " operates on a long and expects a number of bytes on top of the stack.");
+      throw new WarpScriptException(getName() + " operates on a LONG and expects a number of output bytes between 1 and 8 on top of the stack.");
     }
 
     return stack;
