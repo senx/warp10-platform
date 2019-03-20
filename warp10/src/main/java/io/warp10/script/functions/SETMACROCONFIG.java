@@ -62,7 +62,7 @@ public class SETMACROCONFIG extends NamedWarpScriptFunction implements WarpScrip
     
     top = stack.pop();
     
-    String value = String.valueOf(top);
+    String value = null != top ? String.valueOf(top) : null;
     
     WarpConfig.setProperty(key, value);
         
