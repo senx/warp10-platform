@@ -79,13 +79,11 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
   
   private static JSONTO JSONTO;
   
-  static {
-    Properties props = WarpConfig.getProperties();
+  static {    
+    snapshot = WarpConfig.getProperty(ShardingWarpScriptExtension.SHARDING_SNAPSHOT, WarpScriptLib.SNAPSHOT).trim().getBytes(Charsets.UTF_8);
     
-    snapshot = props.getProperty(ShardingWarpScriptExtension.SHARDING_SNAPSHOT, WarpScriptLib.SNAPSHOT).trim().getBytes(Charsets.UTF_8);
-    
-    int poolsize = Integer.parseInt(props.getProperty(ShardingWarpScriptExtension.SHARDING_POOLSIZE, "4"));
-    maxThreadsPerRequest = Integer.parseInt(props.getProperty(ShardingWarpScriptExtension.SHARDING_MAXTHREADSPERCALL, Integer.toString(poolsize)));
+    int poolsize = Integer.parseInt(WarpConfig.getProperty(ShardingWarpScriptExtension.SHARDING_POOLSIZE, "4"));
+    maxThreadsPerRequest = Integer.parseInt(WarpConfig.getProperty(ShardingWarpScriptExtension.SHARDING_MAXTHREADSPERCALL, Integer.toString(poolsize)));
         
     BlockingQueue<Runnable> queue = new LinkedBlockingDeque<Runnable>(poolsize * 2);
     
@@ -96,7 +94,9 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
     //
     
     long shardmodulus = -1;        
-    
+
+    Properties props = WarpConfig.getProperties();
+
     for (Entry<Object,Object> entry: props.entrySet()) {
       if (!entry.getKey().toString().startsWith(ShardingWarpScriptExtension.SHARDING_ENDPOINT_PREFIX)) {
         continue;
