@@ -20,6 +20,7 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.functions.SNAPSHOT;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -267,7 +268,124 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
   // Doc generation
   //
 
-  final public String generateMc2Doc() {
-    throw new IllegalStateException("TODO");
+  public Map<String, Object> generateInfo(List<ArgumentSpecification> outputs) {
+    return generateInfo("","","","", new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>(), outputs);
+  }
+
+  public Map<String, Object> generateInfo(String since, String deprecated, String deleted, String version,
+                                          List<String> tags, List<String> related, List<String> examples, List<String> conf,
+                                          List<ArgumentSpecification> outputs) {
+
+    HashMap<String, Object> info = new HashMap<>();
+
+    info.put("name", getName());
+    info.put("since", since);
+    info.put("deprecated", deprecated);
+    info.put("deleted", deleted);
+    info.put("version", version);
+    info.put("tags", tags);
+    info.put("desc", getDocstring());
+    info.put("related", related);
+    info.put("examples", examples);
+    info.put("conf", conf);
+
+    //
+    // Params generation
+    //
+
+    HashMap<String, String> params = new HashMap<>();
+    for (ArgumentSpecification arg: getArguments()) {
+      params.put(arg.name, arg.doc);
+    }
+    for (ArgumentSpecification arg: getOptionalArguments()) {
+      params.put(arg.name, arg.doc);
+    }
+    for (ArgumentSpecification arg: outputs) {
+      params.put(arg.name, arg.doc);
+    }
+
+    info.put("params", params);
+
+    //
+    // Signature generation
+    //
+
+    List<List<List<Object>>> sig = new ArrayList<>();
+    List<Object> output = new ArrayList<>();
+    for (ArgumentSpecification arg: outputs) {
+      output.add(arg.name + ":" + arg.mc2Type());
+    }
+
+    //
+    // Sig without opt args on the stack
+    //
+
+    List<List<Object>> sig1 = new ArrayList<>();
+    List<Object> input1 = new ArrayList<>();
+
+    if (0 == getArguments().size() && 0 != getOptionalArguments().size()) {
+      input1.add(new HashMap<>());
+    }
+
+    for (ArgumentSpecification arg: getArguments()) {
+      input1.add(arg.name + ":" + arg.mc2Type());
+    }
+
+    sig1.add(input1);
+    sig1.add(output);
+    sig.add(sig1);
+
+    //
+    // Sig with opt args on the stack (in a map)
+    //
+
+    List<List<Object>> sig2 = new ArrayList<>();
+    List<Object> input2 = new ArrayList<>();
+    HashMap<String, String> optMap = new HashMap<>();
+
+    for (ArgumentSpecification arg: getArguments()) {
+      optMap.put(arg.name, arg.name + ":" + arg.mc2Type());
+    }
+
+    for (ArgumentSpecification arg: getOptionalArguments()) {
+      optMap.put(arg.name, arg.name + ":" + arg.mc2Type());
+    }
+
+    input2.add(optMap);
+    sig2.add(input2);
+    sig2.add(output);
+    sig.add(sig2);
+
+    info.put("sig", sig);
+
+    return info;
+  }
+
+  public String generateMc2Doc(List<ArgumentSpecification> outputs) throws WarpScriptException {
+    return generateMc2Doc("","","","", new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>(), outputs);
+  }
+
+  public String generateMc2Doc(String since, String deprecated, String deleted, String version,
+                               List<String> tags, List<String> related, List<String> examples, List<String> conf,
+                               List<ArgumentSpecification> outputs) throws WarpScriptException {
+
+    StringBuilder mc2 = new StringBuilder();
+
+    mc2.append("<%" + System.lineSeparator());
+    SNAPSHOT.addElement(mc2, generateInfo(since, deprecated, deleted, version, tags, related, examples, conf, outputs));
+    mc2.append(System.lineSeparator());
+    mc2.append("INFO" + System.lineSeparator());
+    mc2.append(getName() + System.lineSeparator());
+    mc2.append("%>" + System.lineSeparator());
+    mc2.append("'macro' STORE" + System.lineSeparator());
+    mc2.append("// Unit tests" + System.lineSeparator());
+
+    for (String unitTest: getUnitTests()) {
+      mc2.append(unitTest + System.lineSeparator());
+    }
+
+    mc2.append("$macro" + System.lineSeparator());
+
+    return mc2.toString();
   }
 }
