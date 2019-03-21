@@ -34,10 +34,42 @@ import java.util.Map;
  */
 public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private final List<ArgumentSpecification> args;
-  private final List<ArgumentSpecification> optArgs;
   private final StringBuilder docstring;
   private final List<String> unitTests;
+
+  protected static class Arguments {
+    private final List<ArgumentSpecification> args;
+    private final List<ArgumentSpecification> optArgs;
+
+    private Arguments(List<ArgumentSpecification> args, List<ArgumentSpecification> optArgs) {
+      this.args = args;
+      this.optArgs = optArgs;
+    }
+  }
+
+  protected static class ArgumentsBuilder {
+    private final List<ArgumentSpecification> args;
+    private final List<ArgumentSpecification> optArgs;
+
+    protected ArgumentsBuilder() {
+      args = new ArrayList<>();
+      optArgs = new ArrayList<>();
+    }
+
+    protected ArgumentsBuilder addArgument(Class<?> clazz, String name, String doc) {
+      args.add(new ArgumentSpecification(clazz, name, doc));
+      return this;
+    }
+
+    protected ArgumentsBuilder addOptionalArgument(Class<?> clazz, String name, Object defaultValue, String doc) {
+      optArgs.add(new ArgumentSpecification(clazz, name, defaultValue, doc));
+      return this;
+    }
+
+    protected Arguments build() {
+      return new Arguments(args, optArgs);
+    }
+  }
 
   public FormattedWarpScriptFunction(String name) {
     super(name);
@@ -46,22 +78,22 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     // A default child class has 0 argument, 0 optional argument, an empty docstring, and 0 unit tests.
     //
 
-    this.args = new ArrayList<ArgumentSpecification>();
-    this.optArgs = new ArrayList<ArgumentSpecification>();
-    this.docstring = new StringBuilder();
-    this.unitTests = new ArrayList<String>();
+    docstring = new StringBuilder();
+    unitTests = new ArrayList<String>();
   }
 
   //
-  // A child class provides the specs of its arguments by adding them to args and optArgs in its constructor.
+  // A child class provides the specs of its arguments by building an instance of Arguments in its constructor.
   //
 
-  protected final List<ArgumentSpecification> getArguments() {
-    return args;
+  protected abstract Arguments getArguments();
+
+  public List<ArgumentSpecification> getArgs() {
+    return getArguments().args;
   }
 
-  protected final List<ArgumentSpecification> getOptionalArguments() {
-    return optArgs;
+  public List<ArgumentSpecification> getOptArgs() {
+    return getArguments().optArgs;
   }
 
   //
@@ -96,8 +128,8 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
   @Override
   final public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    List<ArgumentSpecification> args = getArguments();
-    List<ArgumentSpecification> optArgs = getOptionalArguments();
+    List<ArgumentSpecification> args = getArgs();
+    List<ArgumentSpecification> optArgs = getOptArgs();
 
     //
     // Sanity checks

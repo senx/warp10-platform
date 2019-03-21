@@ -60,10 +60,10 @@ public class DocumentationGenerator {
     //
 
     HashMap<String, String> params = new HashMap<>();
-    for (ArgumentSpecification arg: function.getArguments()) {
+    for (ArgumentSpecification arg: function.getArgs()) {
       params.put(arg.getName(), arg.getDoc());
     }
-    for (ArgumentSpecification arg: function.getOptionalArguments()) {
+    for (ArgumentSpecification arg: function.getOptArgs()) {
       params.put(arg.getName(), arg.getDoc());
     }
     for (ArgumentSpecification arg: outputs) {
@@ -89,11 +89,11 @@ public class DocumentationGenerator {
     List<List<Object>> sig1 = new ArrayList<>();
     List<Object> input1 = new ArrayList<>();
 
-    if (0 == function.getArguments().size() && 0 != function.getOptionalArguments().size()) {
+    if (0 == function.getArgs().size() && 0 != function.getOptArgs().size()) {
       input1.add(new HashMap<>());
     }
 
-    for (ArgumentSpecification arg: function.getArguments()) {
+    for (ArgumentSpecification arg: function.getArgs()) {
       input1.add(arg.getName() + ":" + arg.WarpScriptType());
     }
 
@@ -109,11 +109,11 @@ public class DocumentationGenerator {
     List<Object> input2 = new ArrayList<>();
     HashMap<String, String> optMap = new HashMap<>();
 
-    for (ArgumentSpecification arg: function.getArguments()) {
+    for (ArgumentSpecification arg: function.getArgs()) {
       optMap.put(arg.getName(), arg.getName() + ":" + arg.WarpScriptType());
     }
 
-    for (ArgumentSpecification arg: function.getOptionalArguments()) {
+    for (ArgumentSpecification arg: function.getOptArgs()) {
       optMap.put(arg.getName(), arg.getName() + ":" + arg.WarpScriptType());
     }
 

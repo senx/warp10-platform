@@ -31,24 +31,25 @@ import static io.warp10.script.formatted.DocumentationGenerator.generateWarpScri
 
 public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction {
 
+  private final Arguments args;
+
+  protected Arguments getArguments() {
+    return args;
+  }
+
   public FormattedWarpScriptFunctionTest() {
     super("EXAMPLE");
 
     //
-    // Positional arguments
+    // Arguments
     //
 
-    List<ArgumentSpecification> args = getArguments();
-    args.add(new ArgumentSpecification(GeoTimeSerie.class, "1st arg","A Geo Time Series™."));
-    args.add(new ArgumentSpecification(Long.class, "2nd arg","A LONG."));
-    args.add(new ArgumentSpecification(Double.class, "3rd arg","A DOUBLE."));
-
-    //
-    // Optional arguments
-    //
-
-    List<ArgumentSpecification> optArgs = getOptionalArguments();
-    optArgs.add(new ArgumentSpecification(String.class, "1st opt arg", "The default value.", "A STRING."));
+    args = new ArgumentsBuilder()
+      .addArgument(GeoTimeSerie.class, "1st arg","A Geo Time Series™.")
+      .addArgument(Long.class, "2nd arg","A LONG.")
+      .addArgument(Double.class, "3rd arg","A DOUBLE.")
+      .addOptionalArgument(String.class, "1st opt arg", "The default value.", "A STRING.")
+      .build();
 
     //
     // Optional doc
