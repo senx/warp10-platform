@@ -105,7 +105,7 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
       
       String spec = entry.getKey().toString().substring(ShardingWarpScriptExtension.SHARDING_ENDPOINT_PREFIX.length());
       
-      // Get rid of the '.xxxx'
+      // Get rid of the prefix and name
       
       spec = spec.replaceAll(".*\\.", "");
       
