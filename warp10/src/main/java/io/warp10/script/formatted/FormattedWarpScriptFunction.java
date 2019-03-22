@@ -51,22 +51,22 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     private final List<ArgumentSpecification> args;
     private final List<ArgumentSpecification> optArgs;
 
-    protected ArgumentsBuilder() {
+    public ArgumentsBuilder() {
       args = new ArrayList<>();
       optArgs = new ArrayList<>();
     }
 
-    protected ArgumentsBuilder addArgument(Class<?> clazz, String name, String doc) {
+    public ArgumentsBuilder addArgument(Class<?> clazz, String name, String doc) {
       args.add(new ArgumentSpecification(clazz, name, doc));
       return this;
     }
 
-    protected ArgumentsBuilder addOptionalArgument(Class<?> clazz, String name, Object defaultValue, String doc) {
+    public ArgumentsBuilder addOptionalArgument(Class<?> clazz, String name, Object defaultValue, String doc) {
       optArgs.add(new ArgumentSpecification(clazz, name, defaultValue, doc));
       return this;
     }
 
-    protected Arguments build() {
+    public Arguments build() {
       return new Arguments(args, optArgs);
     }
   }
