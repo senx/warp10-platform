@@ -703,6 +703,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FROMBIN("FROMBIN"));
     addNamedWarpScriptFunction(new TOBITS("TOBITS", false));
     addNamedWarpScriptFunction(new FROMBITS("FROMBITS", false));
+    addNamedWarpScriptFunction(new TOLONGBYTES("->LONGBYTES"));
     addNamedWarpScriptFunction(new TOBITS("->DOUBLEBITS", false));
     addNamedWarpScriptFunction(new FROMBITS("DOUBLEBITS->", false));
     addNamedWarpScriptFunction(new TOBITS("->FLOATBITS", true));
