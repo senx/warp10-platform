@@ -31,13 +31,15 @@ import java.util.Map;
  * Arguments inside collections still have to be handled manually.
  *
  * Alternatively, a Map that contains all arguments and optional arguments can be provided on top of the stack.
+ *
+ * See FormattedWarpScriptFunctionTest for an example of child class.
  */
 public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private final StringBuilder docstring;
   private final List<String> unitTests;
 
-  protected static class Arguments {
+  public static class Arguments {
     private final List<ArgumentSpecification> args;
     private final List<ArgumentSpecification> optArgs;
 
@@ -45,9 +47,17 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       this.args = args;
       this.optArgs = optArgs;
     }
+
+    public List<ArgumentSpecification> getArgsCopy() {
+      return new ArrayList<>(args);
+    }
+
+    public List<ArgumentSpecification> getOptArgsCopy() {
+      return new ArrayList<>(optArgs);
+    }
   }
 
-  protected static class ArgumentsBuilder {
+  public static class ArgumentsBuilder {
     private final List<ArgumentSpecification> args;
     private final List<ArgumentSpecification> optArgs;
 
@@ -88,14 +98,6 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
 
   protected abstract Arguments getArguments();
 
-  public List<ArgumentSpecification> getArgs() {
-    return getArguments().args;
-  }
-
-  public List<ArgumentSpecification> getOptArgs() {
-    return getArguments().optArgs;
-  }
-
   //
   // A child class uses formattedArgs to apply its function's logic, and pushes its outputs onto the stack.
   //
@@ -128,8 +130,8 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
   @Override
   final public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    List<ArgumentSpecification> args = getArgs();
-    List<ArgumentSpecification> optArgs = getOptArgs();
+    List<ArgumentSpecification> args = getArguments().args;
+    List<ArgumentSpecification> optArgs = getArguments().optArgs;
 
     //
     // Sanity checks

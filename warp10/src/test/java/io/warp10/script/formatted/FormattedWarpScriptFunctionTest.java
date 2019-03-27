@@ -64,6 +64,7 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
 
     List<String> unitTests = getUnitTests();
 
+    // test positional arguments
     StringBuilder test1 = new StringBuilder();
     test1.append("NEWGTS 3 0.5 EXAMPLE 'res' STORE" + System.lineSeparator());
     test1.append("$res '1st arg' GET TYPEOF 'GTS' == ASSERT" + System.lineSeparator());
@@ -73,6 +74,7 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
     test1.append("$res '1st opt arg' GET 'The default value.' == ASSERT");
     unitTests.add(test1.toString());
 
+    // test map arguments
     StringBuilder test2 = new StringBuilder();
     test2.append("{ '1st arg' NEWGTS '2nd arg' 3 '3rd arg' 0.5 } EXAMPLE 'res' STORE" + System.lineSeparator());
     test2.append("$res '1st arg' GET TYPEOF 'GTS' == ASSERT" + System.lineSeparator());
@@ -82,6 +84,7 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
     test2.append("$res '1st opt arg' GET 'The default value.' == ASSERT");
     unitTests.add(test2.toString());
 
+    // test map arguments with optional ones
     StringBuilder test3 = new StringBuilder();
     test3.append("{ '1st arg' NEWGTS '2nd arg' 3 '3rd arg' 0.5 '1st opt arg' 'hi' } EXAMPLE 'res' STORE" + System.lineSeparator());
     test3.append("$res '1st arg' GET TYPEOF 'GTS' == ASSERT" + System.lineSeparator());
