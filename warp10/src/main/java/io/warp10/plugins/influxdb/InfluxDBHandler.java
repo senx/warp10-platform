@@ -21,12 +21,14 @@ import io.warp10.continuum.store.Constants;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
 
 import javax.servlet.DispatcherType;
 import javax.servlet.ServletException;
@@ -123,7 +125,15 @@ public class InfluxDBHandler extends AbstractHandler {
       //GZIPOutputStream out = new GZIPOutputStream(os);
       PrintWriter pw = new PrintWriter(os);
 
-      BufferedReader br = request.getReader();
+      String contentType = request.getHeader("Content-Type"); 
+      BufferedReader br;
+      
+      if (null == contentType || !"application/gzip".equals(contentType)) {
+        br = request.getReader();
+      } else {
+        GZIPInputStream gzin = new GZIPInputStream(request.getInputStream());
+        br = new BufferedReader(new InputStreamReader(gzin));
+      }
       
       while(true) {
         String line = br.readLine();
