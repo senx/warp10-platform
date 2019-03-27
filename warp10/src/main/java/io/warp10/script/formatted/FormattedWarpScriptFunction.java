@@ -208,7 +208,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
         if (!map.containsKey(arg.getName())) {
 
           throw new WarpScriptException("The MAP that is on top of the stack does not have the argument '" + arg.getName() +
-            "' (of type "  + arg.WarpScriptType() + ") that is required by " + getClass().getCanonicalName());
+            "' (of type "  + arg.WarpScriptType() + ") that is required by " + getName());
         }
 
         if (!arg.getClazz().isInstance(map.get(arg.getName()))) {
