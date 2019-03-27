@@ -20,7 +20,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.functions.SNAPSHOT;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -42,7 +42,7 @@ public class DocumentationGenerator {
                                                  List<String> tags, List<String> related, List<String> examples, List<String> conf,
                                                  List<ArgumentSpecification> outputs) {
 
-    HashMap<String, Object> info = new HashMap<>();
+    LinkedHashMap<String, Object> info = new LinkedHashMap<>();
 
     info.put("name", function.getName());
     info.put("since", since);
@@ -62,7 +62,7 @@ public class DocumentationGenerator {
     // Params generation
     //
 
-    HashMap<String, String> params = new HashMap<>();
+    LinkedHashMap<String, String> params = new LinkedHashMap<>();
     for (ArgumentSpecification arg: args) {
       params.put(arg.getName(), arg.getDoc());
     }
@@ -93,7 +93,7 @@ public class DocumentationGenerator {
     List<Object> input1 = new ArrayList<>();
 
     if (0 == args.size() && 0 != optArgs.size()) {
-      input1.add(new HashMap<>());
+      input1.add(new LinkedHashMap<>());
     }
 
     for (ArgumentSpecification arg: args) {
@@ -110,7 +110,7 @@ public class DocumentationGenerator {
 
     List<List<Object>> sig2 = new ArrayList<>();
     List<Object> input2 = new ArrayList<>();
-    HashMap<String, String> optMap = new HashMap<>();
+    LinkedHashMap<String, String> optMap = new LinkedHashMap<>();
 
     for (ArgumentSpecification arg: args) {
       optMap.put(arg.getName(), arg.getName() + ":" + arg.WarpScriptType());
