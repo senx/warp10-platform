@@ -144,7 +144,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
       try {
         return (((Typeofable) c.newInstance()).typeof());
       } catch(Exception e) {
-        return (c.getCanonicalName());
+        return ("X-" + c.getSimpleName());
       }
     } else {
       return (c.getCanonicalName());
