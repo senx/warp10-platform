@@ -130,7 +130,12 @@ public class InfluxDBHandler extends AbstractHandler {
         if (null == line) {
           break;
         }
+        try {
         parse(pw,line,nsPerTimeUnit);
+        } catch (Throwable t) {
+          t.printStackTrace();
+          throw t;
+        }
       }
       
       br.close();
@@ -149,12 +154,41 @@ public class InfluxDBHandler extends AbstractHandler {
   
   private static void parse(PrintWriter pw, String line, long nsPerTimeUnit) throws IOException {
     
+    line = line.trim();
+    
+    // Skip comments and empty lines
+    if ("".equals(line) || line.startsWith("#")) {
+      return;
+    }
+    
     //
     // Replace escape sequences
     //
     
     if (line.indexOf('\\') >= 0) {
-      line = line.replaceAll("%", "%25").replaceAll("\\=", "%3D").replaceAll("\\,", "%2C").replaceAll("\\ ", "%20").replaceAll("\\\"", "%22").replaceAll("\\{", "%7B").replaceAll("\\}", "%7D");
+      line = line.replaceAll("%", "%25").replaceAll("\\\\=", "%3D").replaceAll("\\\\,", "%2C").replaceAll("\\\\ ", "%20").replaceAll("\\\\\"", "%22").replaceAll("\\\\\\{", "%7B").replaceAll("\\\\\\}", "%7D");
+    }
+
+    // Replace spaces in strings
+    if (line.indexOf('\"') >= 0) {
+      StringBuilder sb = new StringBuilder();
+      int idx0 = 0;
+      int idx = line.indexOf('\"');
+      while (idx >= 0) {
+        sb.append(line.substring(idx0, idx + 1));
+        idx0 = idx + 1;
+        // Find the end quote
+        idx = line.indexOf('\"', idx0);
+        // Replace single quotes and spaces
+        sb.append(line.substring(idx0, idx + 1).replaceAll("'", "%27").replaceAll(" ", "%20"));
+        idx0 = idx + 1;
+        idx = line.indexOf('\"', idx0);
+      }
+      
+      if (idx0 <= line.length()) {
+        sb.append(line.substring(idx0));
+      }
+      line = sb.toString();
     }
     
     String[] tokens = line.split(" ");
