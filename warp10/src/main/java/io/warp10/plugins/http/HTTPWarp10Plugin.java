@@ -319,12 +319,13 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
 
     for (String prefix: this.prefixes) {
       // Check if prefix is a prefix of uri (in term of path) and longer than previously found
-      if (uri.startsWith(prefix) && (uri.length() == prefix.length() || '/' == uri.charAt(prefix.length())) && prefix.length() > prefixLength) {
+      if (uri.startsWith(prefix)
+          && (uri.length() == prefix.length() || (prefix.endsWith("/") || '/' == uri.charAt(prefix.length())))
+          && prefix.length() > prefixLength) {
         foundPrefix = prefix;
         prefixLength = prefix.length();
       }
     }
-
     return foundPrefix;
   }
 
