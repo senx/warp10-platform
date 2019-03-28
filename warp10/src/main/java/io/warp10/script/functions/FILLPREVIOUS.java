@@ -50,7 +50,7 @@ public class FILLPREVIOUS extends NamedWarpScriptFunction implements WarpScriptS
         } else if (params.get(i) instanceof List) {
           for (Object o: (List) params.get(i)) {
             if (!(o instanceof GeoTimeSerie)) {
-              throw new WarpScriptException(getName() + " expects a LIST or a GTS as input.");
+              throw new WarpScriptException(getName() + " expects a LIST or a Geo Time Series™ as input.");
             }
             series.add((GeoTimeSerie) o);
           }
@@ -64,9 +64,9 @@ public class FILLPREVIOUS extends NamedWarpScriptFunction implements WarpScriptS
       }
       stack.push(result);
     } else if (top instanceof GeoTimeSerie) {
-      stack.push(GTSHelper.fillprevious((GeoTimeSerie)top));
+      stack.push(GTSHelper.fillprevious((GeoTimeSerie) top));
     } else {
-      throw new WarpScriptException(getName() + " expects a LIST or a GTS as input.");
+      throw new WarpScriptException(getName() + " expects a LIST or a Geo Time Series™ as input.");
     }
 
     return stack;
