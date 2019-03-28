@@ -51,29 +51,9 @@ public class DocumentationGenerator {
     info.put("version", version);
     info.put("tags", tags);
     info.put("desc", function.getDocstring().toString());
-    info.put("related", related);
-    info.put("examples", examples);
-    info.put("conf", conf);
 
     List<ArgumentSpecification> args = function.getArguments().getArgsCopy();
     List<ArgumentSpecification> optArgs = function.getArguments().getOptArgsCopy();
-
-    //
-    // Params generation
-    //
-
-    LinkedHashMap<String, String> params = new LinkedHashMap<>();
-    for (ArgumentSpecification arg: args) {
-      params.put(arg.getName(), arg.getDoc());
-    }
-    for (ArgumentSpecification arg: optArgs) {
-      params.put(arg.getName(), arg.getDoc());
-    }
-    for (ArgumentSpecification arg: outputs) {
-      params.put(arg.getName(), arg.getDoc());
-    }
-
-    info.put("params", params);
 
     //
     // Signature generation
@@ -126,6 +106,31 @@ public class DocumentationGenerator {
     sig.add(sig2);
 
     info.put("sig", sig);
+
+    //
+    // Params generation
+    //
+
+    LinkedHashMap<String, String> params = new LinkedHashMap<>();
+    for (ArgumentSpecification arg: args) {
+      params.put(arg.getName(), arg.getDoc());
+    }
+    for (ArgumentSpecification arg: optArgs) {
+      params.put(arg.getName(), arg.getDoc());
+    }
+    for (ArgumentSpecification arg: outputs) {
+      params.put(arg.getName(), arg.getDoc());
+    }
+
+    info.put("params", params);
+
+    //
+    // Remaining fields
+    //
+
+    info.put("related", related);
+    info.put("examples", examples);
+    info.put("conf", conf);
 
     return info;
   }
