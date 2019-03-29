@@ -191,6 +191,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
     
     if (null != WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)) {
       response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)));
+      return;
     }
     
     long lastActivity = System.currentTimeMillis();
@@ -668,6 +669,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
     
     if (null != WarpManager.getAttribute(WarpManager.META_DISABLED)) {
       response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.META_DISABLED)));
+      return;
     }
     
     long lastActivity = System.currentTimeMillis();
