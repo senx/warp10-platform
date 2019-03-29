@@ -609,6 +609,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     if (null != WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)) {
       response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)));
+      return;
     }
     
     long nowms = System.currentTimeMillis();
@@ -961,6 +962,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     if (null != WarpManager.getAttribute(WarpManager.META_DISABLED)) {
       response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.META_DISABLED)));
+      return;
     }
 
     //
@@ -1131,8 +1133,9 @@ public class Ingress extends AbstractHandler implements Runnable {
       throw new IOException(Constants.API_ENDPOINT_DELETE + " endpoint is not activated.");
     }
     
-    if (null != WarpManager.getAttribute(WarpManager.META_DISABLED)) {
-      response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.META_DISABLED)));
+    if (null != WarpManager.getAttribute(WarpManager.DELETE_DISABLED)) {
+      response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.DELETE_DISABLED)));
+      return;
     }
 
     //

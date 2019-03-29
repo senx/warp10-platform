@@ -80,11 +80,6 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_LINENO = "lineno";
   
   /**
-   * Prefix for tracing push/pop
-   */
-  public static final String ATTRIBUTE_TRACE_PREFIX = "trace.prefix";
-  
-  /**
    * PrintWriter instance for the REL (Read Execute Loop)
    */
   public static final String ATTRIBUTE_INTERACTIVE_WRITER = "interactive.writer";

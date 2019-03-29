@@ -207,7 +207,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
           this.macros.remove(uri);
           this.parsePayloads.remove(uri);
           this.prefixes.remove(uri);
-        }
+        }        
       } catch (Throwable t) {
         t.printStackTrace();
       }
@@ -316,15 +316,21 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
     // Seek longest match
     int prefixLength = 0;
     String foundPrefix = uri; // Return uri if no prefix found
-
+    
+    // Is there an exact match?
+    if (null != this.macros.get(uri)) {
+      return uri;
+    }
+    
     for (String prefix: this.prefixes) {
       // Check if prefix is a prefix of uri (in term of path) and longer than previously found
-      if (uri.startsWith(prefix) && (uri.length() == prefix.length() || '/' == uri.charAt(prefix.length())) && prefix.length() > prefixLength) {
+      if (uri.startsWith(prefix)
+          && (uri.length() == prefix.length() || (prefix.endsWith("/") || '/' == uri.charAt(prefix.length())))
+          && prefix.length() > prefixLength) {
         foundPrefix = prefix;
         prefixLength = prefix.length();
       }
     }
-
     return foundPrefix;
   }
 

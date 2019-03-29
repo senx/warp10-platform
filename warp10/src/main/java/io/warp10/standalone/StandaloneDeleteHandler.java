@@ -170,6 +170,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     
     if (null != WarpManager.getAttribute(WarpManager.DELETE_DISABLED)) {
       response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.DELETE_DISABLED)));
+      return;
     }
     
     //
