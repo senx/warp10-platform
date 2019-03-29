@@ -635,6 +635,9 @@ public class Ingress extends AbstractHandler implements Runnable {
       
       try {
         writeToken = Tokens.extractWriteToken(token);
+        if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NOUPDATE)) {
+          throw new WarpScriptException("Token cannot be used for updating data.");
+        }
       } catch (WarpScriptException ee) {
         throw new IOException(ee);
       }
@@ -989,6 +992,9 @@ public class Ingress extends AbstractHandler implements Runnable {
     try {
       try {
         writeToken = Tokens.extractWriteToken(token);
+        if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NOMETA)) {
+          throw new WarpScriptException("Token cannot be used for updating metadata.");
+        }
       } catch (WarpScriptException ee) {
         throw new IOException(ee);
       }
@@ -1156,13 +1162,13 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     try {
       writeToken = Tokens.extractWriteToken(token);
+      if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NODELETE)) {
+        throw new WarpScriptException("Token cannot be used for deletions.");
+      }
     } catch (WarpScriptException ee) {
       throw new IOException(ee);
     }
     
-    if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NODELETE)) {
-      throw new IOException("Token cannot be used for deletions.");
-    }
     
     String application = writeToken.getAppName();
     String producer = Tokens.getUUID(writeToken.getProducerId());

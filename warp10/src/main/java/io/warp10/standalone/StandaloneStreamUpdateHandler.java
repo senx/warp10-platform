@@ -35,6 +35,7 @@ import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.quasar.token.thrift.data.WriteToken;
+import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
 
 import java.io.BufferedReader;
@@ -484,6 +485,10 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
       
       if (null == wtoken) {
         throw new IOException("Invalid token.");
+      }
+
+      if (wtoken.getAttributesSize() > 0 && wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_NOUPDATE)) {
+        throw new IOException("Token cannot be used for updating data.");
       }
 
       String application = wtoken.getAppName();
