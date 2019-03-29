@@ -85,57 +85,69 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
     return stack;
   }
 
-  public String typeof(Object o) {
+  public static String typeof(Object o) {
     if (null == o) {
       return (TYPE_NULL);
-    } else if (o instanceof String) {
-      return (TYPE_STRING);
-    } else if (o instanceof Long || o instanceof Integer || o instanceof Short || o instanceof Byte || o instanceof BigInteger) {
-      return (TYPE_LONG);
-    } else if (o instanceof Double || o instanceof Float || o instanceof BigDecimal) {
-      return (TYPE_DOUBLE);
-    } else if (o instanceof Boolean) {
-      return (TYPE_BOOLEAN);
-    } else if (o instanceof Vector) {  // place before List. Vector implements List.
-      return (TYPE_VECTOR);
-    } else if (o instanceof List) {
-      return (TYPE_LIST);
-    } else if (o instanceof Map) {
-      return (TYPE_MAP);
-    } else if (o instanceof Macro) {
-      return (TYPE_MACRO);
-    } else if (o instanceof WarpScriptMapperFunction) {
-      return (TYPE_MAPPER);
-    } else if (o instanceof WarpScriptReducerFunction) {
-      return (TYPE_REDUCER);
-    } else if (o instanceof GeoTimeSerie) {
-      return (TYPE_GTS);
-    } else if (o instanceof byte[]) {
-      return (TYPE_BYTES);
-    } else if (o instanceof PGraphics) {
-      return (TYPE_PGRAPHICSIMAGE);
-    } else if (o instanceof PImage) {
-      return (TYPE_PIMAGE);
-    } else if (o instanceof PFont) {
-      return (TYPE_PFONT);
-    } else if (o instanceof PShape) {
-      return (TYPE_PSHAPE);
-    } else if (o instanceof GeoXPLib.GeoXPShape) {
-      return (TYPE_GEOSHAPE);
-    } else if (o instanceof Set) {
-      return (TYPE_SET);
-    } else if (o instanceof BitSet) {
-      return (TYPE_BITSET);
-    } else if (o instanceof ArrayRealVector) {
-      return (TYPE_REALVECTOR);
-    } else if (o instanceof RealMatrix) {
-      return (TYPE_REALMATRIX);
-    } else if (o instanceof AtomicLong) {
-      return (TYPE_COUNTER);
     } else if (o instanceof Typeofable) {
       return ("X-" + ((Typeofable) o).typeof());
     } else {
-      return (o.getClass().getCanonicalName());
+      return typeof(o.getClass());
+    }
+  }
+
+  public static String typeof(Class c) {
+    if (String.class.isAssignableFrom(c)) {
+      return (TYPE_STRING);
+    } else if (Long.class.isAssignableFrom(c) || Integer.class.isAssignableFrom(c) || Short.class.isAssignableFrom(c) || Byte.class.isAssignableFrom(c) || BigInteger.class.isAssignableFrom(c)) {
+      return (TYPE_LONG);
+    } else if (Double.class.isAssignableFrom(c) || Float.class.isAssignableFrom(c) || BigDecimal.class.isAssignableFrom(c)) {
+      return (TYPE_DOUBLE);
+    } else if (Boolean.class.isAssignableFrom(c)) {
+      return (TYPE_BOOLEAN);
+    } else if (Vector.class.isAssignableFrom(c)) {  // place before List. Vector implements List.
+      return (TYPE_VECTOR);
+    } else if (List.class.isAssignableFrom(c)) {
+      return (TYPE_LIST);
+    } else if (Map.class.isAssignableFrom(c)) {
+      return (TYPE_MAP);
+    } else if (Macro.class.isAssignableFrom(c)) {
+      return (TYPE_MACRO);
+    } else if (WarpScriptMapperFunction.class.isAssignableFrom(c)) {
+      return (TYPE_MAPPER);
+    } else if (WarpScriptReducerFunction.class.isAssignableFrom(c)) {
+      return (TYPE_REDUCER);
+    } else if (GeoTimeSerie.class.isAssignableFrom(c)) {
+      return (TYPE_GTS);
+    } else if (byte[].class.isAssignableFrom(c)) {
+      return (TYPE_BYTES);
+    } else if (PGraphics.class.isAssignableFrom(c)) {
+      return (TYPE_PGRAPHICSIMAGE);
+    } else if (PImage.class.isAssignableFrom(c)) {
+      return (TYPE_PIMAGE);
+    } else if (PFont.class.isAssignableFrom(c)) {
+      return (TYPE_PFONT);
+    } else if (PShape.class.isAssignableFrom(c)) {
+      return (TYPE_PSHAPE);
+    } else if (GeoXPLib.GeoXPShape.class.isAssignableFrom(c)) {
+      return (TYPE_GEOSHAPE);
+    } else if (Set.class.isAssignableFrom(c)) {
+      return (TYPE_SET);
+    } else if (BitSet.class.isAssignableFrom(c)) {
+      return (TYPE_BITSET);
+    } else if (ArrayRealVector.class.isAssignableFrom(c)) {
+      return (TYPE_REALVECTOR);
+    } else if (RealMatrix.class.isAssignableFrom(c)) {
+      return (TYPE_REALMATRIX);
+    } else if (AtomicLong.class.isAssignableFrom(c)) {
+      return (TYPE_COUNTER);
+    } else if (Typeofable.class.isAssignableFrom(c)) {
+      try {
+        return (((Typeofable) c.newInstance()).typeof());
+      } catch(Exception e) {
+        return ("X-" + c.getSimpleName().toUpperCase());
+      }
+    } else {
+      return (c.getCanonicalName());
     }
   }
 
