@@ -244,16 +244,15 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     
     try {
       writeToken = Tokens.extractWriteToken(token);
+      if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NODELETE)) {
+        throw new WarpScriptException("Token cannot be used for deletions.");
+      }
     } catch (WarpScriptException ee) {
       ee.printStackTrace();
       response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ee.getMessage());
       return;
     }
     
-    if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NODELETE)) {
-      throw new IOException("Token cannot be used for deletions.");
-    }
-
     String application = writeToken.getAppName();
     String producer = Tokens.getUUID(writeToken.getProducerId());
     String owner = Tokens.getUUID(writeToken.getOwnerId());
@@ -494,9 +493,9 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       DirectoryRequest drequest = new DirectoryRequest();
       drequest.setClassSelectors(clsSels);
       drequest.setLabelsSelectors(lblsSels);
-      
-      metadatas = directoryClient.find(drequest);
 
+      metadatas = directoryClient.find(drequest);
+      
       response.setStatus(HttpServletResponse.SC_OK);
       response.setContentType("text/plain");
       
