@@ -990,7 +990,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     try {
       try {
         writeToken = Tokens.extractWriteToken(token);
-        if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_META)) {
+        if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NOMETA)) {
           throw new WarpScriptException("Token cannot be used for updating metadata.");
         }
       } catch (WarpScriptException ee) {
