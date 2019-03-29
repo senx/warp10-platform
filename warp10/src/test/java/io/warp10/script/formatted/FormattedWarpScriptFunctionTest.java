@@ -48,7 +48,7 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
       .addArgument(GeoTimeSerie.class, "1st arg","A Geo Time Series™.")
       .addArgument(Long.class, "2nd arg","A LONG.")
       .addArgument(Double.class, "3rd arg","A DOUBLE.")
-      .addOptionalArgument(String.class, "1st opt arg", "The default value.", "A STRING.")
+      .addOptionalArgument(String.class, "1st opt arg", "A STRING.", "The default value.")
       .build();
 
     //

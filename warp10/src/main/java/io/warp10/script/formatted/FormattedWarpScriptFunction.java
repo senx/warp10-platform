@@ -71,7 +71,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       return this;
     }
 
-    public ArgumentsBuilder addOptionalArgument(Class<?> clazz, String name, Object defaultValue, String doc) {
+    public ArgumentsBuilder addOptionalArgument(Class<?> clazz, String name, String doc, Object defaultValue) {
       optArgs.add(new ArgumentSpecification(clazz, name, defaultValue, doc));
       return this;
     }
