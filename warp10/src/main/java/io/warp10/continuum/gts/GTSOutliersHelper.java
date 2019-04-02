@@ -446,13 +446,7 @@ public class GTSOutliersHelper {
   // Consider using methods of the next section instead
   // as piecewise approximation yields better results.
   //
-  
-  // parameters used in STL
-  private static final String PERIOD_PARAM = "PERIOD";
-  private static final String PRECISION_PARAM = "PRECISION";
-  private static final String ROBUSTNESS_PARAM = "ROBUSTNESS";
-  private static final String BANDWIDTH_S_PARAM = "BANDWIDTH_S";
-  
+
   /**
    * Applying STL-ESD test.
    * ESD test is passed on residual of STL decomposition.
@@ -483,18 +477,18 @@ public class GTSOutliersHelper {
     }
     
     // Parameters PERIOD and BANDWIDTH_S must be set    
-    if (null != params.get(PERIOD_PARAM)) {
-      if (buckets_per_period != (int) params.get(PERIOD_PARAM)) {
+    if (null != params.get(STL.PERIOD_PARAM)) {
+      if (buckets_per_period != (int) params.get(STL.PERIOD_PARAM)) {
         throw new WarpScriptException("Incoherence between PERIOD parameter of test and PERIOD parameter of STL");
       }
     } else {
-      params.put(PERIOD_PARAM, buckets_per_period);
+      params.put(STL.PERIOD_PARAM, buckets_per_period);
     }
-    params.put(BANDWIDTH_S_PARAM, Math.min(gts.bucketcount, 7));
+    params.put(STL.BANDWIDTH_S_PARAM, Math.min(gts.bucketcount, 7));
     
     // FIXME(JCV): do unit test for stl with outer > 0 so it can be changed here
-    params.put(PRECISION_PARAM, 10);
-    params.put(ROBUSTNESS_PARAM, 0);
+    params.put(STL.PRECISION_PARAM, 10);
+    params.put(STL.ROBUSTNESS_PARAM, 0);
     
     // the other parameters of stl are either already present in params, or their default values fixed in STL class are used
     
@@ -606,18 +600,18 @@ public class GTSOutliersHelper {
     }
     
     // Parameters PERIOD and BANDWIDTH_S must be set
-    if (null != params.get(PERIOD_PARAM)) {
-      if (buckets_per_period != (int) params.get(PERIOD_PARAM)) {
+    if (null != params.get(STL.PERIOD_PARAM)) {
+      if (buckets_per_period != (int) params.get(STL.PERIOD_PARAM)) {
         throw new WarpScriptException("Incoherence between PERIOD parameter of test and PERIOD parameter of STL");
       }
     } else {
-      params.put(PERIOD_PARAM, buckets_per_period);
+      params.put(STL.PERIOD_PARAM, buckets_per_period);
     }
-    params.put(BANDWIDTH_S_PARAM, periods_per_piece);
+    params.put(STL.BANDWIDTH_S_PARAM, periods_per_piece);
     
     // FIXME(JCV): do unit test for stl with outer > 0 so it can be changed here
-    params.put(PRECISION_PARAM, 10);
-    params.put(ROBUSTNESS_PARAM, 0);
+    params.put(STL.PRECISION_PARAM, 10);
+    params.put(STL.ROBUSTNESS_PARAM, 0);
     
     // the other parameters of stl are either already present in params, or their default values fixed in STL class are used
     

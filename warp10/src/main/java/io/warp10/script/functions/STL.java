@@ -38,15 +38,15 @@ public class STL extends GTSStackFunction {
   //
   // Mandatory parameter
   //
-  
-  private static final String PERIOD_PARAM = "PERIOD";
+
+  public static final String PERIOD_PARAM = "PERIOD";
   
   //
   // Optional parameters
   //
-  
-  private static final String PRECISION_PARAM = "PRECISION";
-  private static final String ROBUSTNESS_PARAM = "ROBUSTNESS";
+
+  public static final String PRECISION_PARAM = "PRECISION";
+  public static final String ROBUSTNESS_PARAM = "ROBUSTNESS";
 
   //
   // High Level optional parameter
@@ -54,27 +54,27 @@ public class STL extends GTSStackFunction {
   // if false, set PRECISION to 2, ROBUSTNESS to 0
   //
 
-  private static final String ROBUST_PARAM = "ROBUST";
+  public static final String ROBUST_PARAM = "ROBUST";
   
   //
   // Optional lowess parameters
   //
-  
-  private static final String BANDWIDTH_S_PARAM = "BANDWIDTH_S";
-  private static final String DEGREE_S_PARAM = "DEGREE_S";
-  private static final String SPEED_S_PARAM = "SPEED_S";
-  
-  private static final String BANDWIDTH_L_PARAM = "BANDWIDTH_L";
-  private static final String DEGREE_L_PARAM = "DEGREE_L";
-  private static final String SPEED_L_PARAM = "SPEED_L";
-  
-  private static final String BANDWIDTH_T_PARAM = "BANDWIDTH_T";
-  private static final String DEGREE_T_PARAM = "DEGREE_T";
-  private static final String SPEED_T_PARAM = "SPEED_T";
-  
-  private static final String BANDWIDTH_P_PARAM = "BANDWIDTH_P";
-  private static final String DEGREE_P_PARAM = "DEGREE_P";
-  private static final String SPEED_P_PARAM = "SPEED_P";
+
+  public static final String BANDWIDTH_S_PARAM = "BANDWIDTH_S";
+  public static final String DEGREE_S_PARAM = "DEGREE_S";
+  public static final String SPEED_S_PARAM = "SPEED_S";
+
+  public static final String BANDWIDTH_L_PARAM = "BANDWIDTH_L";
+  public static final String DEGREE_L_PARAM = "DEGREE_L";
+  public static final String SPEED_L_PARAM = "SPEED_L";
+
+  public static final String BANDWIDTH_T_PARAM = "BANDWIDTH_T";
+  public static final String DEGREE_T_PARAM = "DEGREE_T";
+  public static final String SPEED_T_PARAM = "SPEED_T";
+
+  public static final String BANDWIDTH_P_PARAM = "BANDWIDTH_P";
+  public static final String DEGREE_P_PARAM = "DEGREE_P";
+  public static final String SPEED_P_PARAM = "SPEED_P";
     
   public STL(String name) {
     super(name);
