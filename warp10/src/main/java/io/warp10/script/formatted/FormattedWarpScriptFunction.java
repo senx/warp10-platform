@@ -207,6 +207,36 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       Map<String, Object> map = (Map) stack.peek();
 
       //
+      // Check that the map does not contain unrecognized argument
+      //
+
+      for (String key: map.keySet()) {
+        boolean found = false;
+
+        for (ArgumentSpecification arg: args) {
+          if (arg.getName().equals(key)) {
+            found = true;
+            break;
+          }
+        }
+
+        if (found) {
+          break;
+        }
+
+        for (ArgumentSpecification arg: optArgs) {
+          if (arg.getName().equals(key)) {
+            found = true;
+            break;
+          }
+        }
+
+        if (!found) {
+          throw new WarpScriptException("Argument '" + key + "' is not recognized by " + getName());
+        }
+      }
+
+      //
       // Check that non-optional args are contained in the map and that they have the correct type
       //
 
