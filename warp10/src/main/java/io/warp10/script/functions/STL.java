@@ -194,31 +194,31 @@ public class STL extends GTSStackFunction {
     int inner = (boolean) params.get(ROBUST_PARAM) ? 1 : 2;
     int outer = (boolean) params.get(ROBUST_PARAM) ? 15 : 0;
     if (null != params.get(PRECISION_PARAM)) {
-      inner = (int) params.get(PRECISION_PARAM);
+      inner = ((Number) params.get(PRECISION_PARAM)).intValue();
     }
     if (null != params.get(ROBUSTNESS_PARAM)) {
-      outer = (int) params.get(ROBUSTNESS_PARAM);
+      outer = ((Number) params.get(ROBUSTNESS_PARAM)).intValue();
     }
     
     // authors recommend ns to be odd and at least 7
-    int ns = null == params.get(BANDWIDTH_S_PARAM) ? 7 : (int) params.get(BANDWIDTH_S_PARAM);
-    int ds = null == params.get(DEGREE_S_PARAM) ? 1 : (int) params.get(DEGREE_S_PARAM);
-    int js = null == params.get(SPEED_S_PARAM) ? ns / 10 : (int) params.get(SPEED_S_PARAM);
+    int ns = null == params.get(BANDWIDTH_S_PARAM) ? 7 : ((Number) params.get(BANDWIDTH_S_PARAM)).intValue();
+    int ds = null == params.get(DEGREE_S_PARAM) ? 1 : ((Number) params.get(DEGREE_S_PARAM)).intValue();
+    int js = null == params.get(SPEED_S_PARAM) ? ns / 10 : ((Number) params.get(SPEED_S_PARAM)).intValue();
     
-    int nl = null == params.get(BANDWIDTH_L_PARAM) ? nextOdd(buckets_per_period) : (int) params.get(BANDWIDTH_L_PARAM);
-    int dl = null == params.get(DEGREE_L_PARAM) ? 1 : (int) params.get(DEGREE_L_PARAM);
-    int jl = null == params.get(SPEED_L_PARAM) ? nl / 10 : (int) params.get(SPEED_L_PARAM);
+    int nl = null == params.get(BANDWIDTH_L_PARAM) ? nextOdd(buckets_per_period) : ((Number) params.get(BANDWIDTH_L_PARAM)).intValue();
+    int dl = null == params.get(DEGREE_L_PARAM) ? 1 : ((Number) params.get(DEGREE_L_PARAM)).intValue();
+    int jl = null == params.get(SPEED_L_PARAM) ? nl / 10 : ((Number) params.get(SPEED_L_PARAM)).intValue();
     
     int value = (int) Math.ceil(1.5 * buckets_per_period / (1 - (1.5 / ns)));
     
-    int nt = null == params.get(BANDWIDTH_T_PARAM) ? nextOdd(value) : (int) params.get(BANDWIDTH_T_PARAM);
-    int dt = null == params.get(DEGREE_T_PARAM) ? 1 : (int) params.get(DEGREE_T_PARAM);
-    int jt = null == params.get(SPEED_T_PARAM) ? nt / 10 : (int) params.get(SPEED_T_PARAM);
+    int nt = null == params.get(BANDWIDTH_T_PARAM) ? nextOdd(value) : ((Number) params.get(BANDWIDTH_T_PARAM)).intValue();
+    int dt = null == params.get(DEGREE_T_PARAM) ? 1 : ((Number) params.get(DEGREE_T_PARAM)).intValue();
+    int jt = null == params.get(SPEED_T_PARAM) ? nt / 10 : ((Number) params.get(SPEED_T_PARAM)).intValue();
     
     // default is no post seasonal smoothing
-    int np = null == params.get(BANDWIDTH_P_PARAM) ? 0 : (int) params.get(BANDWIDTH_P_PARAM);
-    int dp = null == params.get(DEGREE_P_PARAM) ? 2 : (int) params.get(DEGREE_P_PARAM);
-    int jp = null == params.get(SPEED_P_PARAM) ? np / 10 : (int) params.get(SPEED_P_PARAM);
+    int np = null == params.get(BANDWIDTH_P_PARAM) ? 0 : ((Number) params.get(BANDWIDTH_P_PARAM)).intValue();
+    int dp = null == params.get(DEGREE_P_PARAM) ? 2 : ((Number) params.get(DEGREE_P_PARAM)).intValue();
+    int jp = null == params.get(SPEED_P_PARAM) ? np / 10 : ((Number) params.get(SPEED_P_PARAM)).intValue();
     
     //
     // Call STL
