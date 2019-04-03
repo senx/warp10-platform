@@ -646,7 +646,7 @@ public class GTSOutliersHelper {
       
       seasonal = ((List<GeoTimeSerie>) stl.doGtsOp(params, subgts)).get(0);
       
-      double m = median(seasonal);
+      double m = median(subgts);
       
       int idx = 0;
       for (int i = 0; i < subgts.values; i++) {
@@ -779,7 +779,7 @@ public class GTSOutliersHelper {
       }
       
       GTSHelper.sort(seasonal);
-      double m = median(seasonal);
+      double m = median(subgts);
       
       int idx = 0;
       for (int i = 0; i < subgts.values; i++) {
