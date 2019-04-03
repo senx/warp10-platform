@@ -35,15 +35,15 @@ import java.util.Map;
 
 /**
  * For each tick return the tick and the concatenation of the values of the labels
- * for which the value is the minimum of Geo Time Series which are in the same equivalence class.
+ * for which the value is the maximum or minimum of Geo Time Series which are in the same equivalence class.
  * <p>
  * It operates on LONG and DOUBLE.
  * There is no location and elevation returned.
  * <p>
- * This reducer takes an additional LONG parameter to choose the minimum to report (use 0 to report them all),
+ * This reducer takes an additional LONG parameter to choose the maximum to report (use 0 to report them all),
  * and a String parameter to choose on which label it operates.
  */
-public class Argmin extends NamedWarpScriptFunction implements WarpScriptAggregatorFunction, WarpScriptMapperFunction, WarpScriptBucketizerFunction, WarpScriptReducerFunction {
+public class Argminmax extends NamedWarpScriptFunction implements WarpScriptAggregatorFunction, WarpScriptMapperFunction, WarpScriptBucketizerFunction, WarpScriptReducerFunction {
 
   /**
    * Label to report
@@ -51,13 +51,21 @@ public class Argmin extends NamedWarpScriptFunction implements WarpScriptAggrega
   private final String label;
 
   /**
-   * Maximum number of minima to report
+   * Maximum number of maxima or minima to report
    */
   private final int count;
 
+  /**
+   * Is this method doing Argmin. If not, does Argmax.
+   */
+  private final boolean isArgmin;
+
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-    public Builder(String name) {
+    private final boolean isArgmin;
+
+    public Builder(String name, boolean isArgmin) {
       super(name);
+      this.isArgmin = isArgmin;
     }
 
     @Override
@@ -65,7 +73,7 @@ public class Argmin extends NamedWarpScriptFunction implements WarpScriptAggrega
       Object o = stack.pop();
 
       if (!(o instanceof Long)) {
-        throw new WarpScriptException(getName() + " expects an integer number of minima to report (use 0 to report them all).");
+        throw new WarpScriptException(getName() + " expects an integer number of maxima to report (use 0 to report them all).");
       }
 
       int count = ((Number) o).intValue();
@@ -77,15 +85,16 @@ public class Argmin extends NamedWarpScriptFunction implements WarpScriptAggrega
 
       String label = o.toString();
 
-      stack.push(new Argmin(getName(), label, count));
+      stack.push(new Argminmax(getName(), label, count, isArgmin));
       return stack;
     }
   }
 
-  public Argmin(String name, String label, int count) {
+  public Argminmax(String name, String label, int count, boolean isArgmin) {
     super(name);
     this.label = label;
     this.count = count;
+    this.isArgmin = isArgmin;
   }
 
   @Override
@@ -99,8 +108,8 @@ public class Argmin extends NamedWarpScriptFunction implements WarpScriptAggrega
 
     TYPE type = TYPE.LONG;
 
-    long lmin = Long.MAX_VALUE;
-    double dmin = Double.POSITIVE_INFINITY;
+    long lmax = isArgmin ? Long.MAX_VALUE : Long.MIN_VALUE;
+    double dmax = isArgmin ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY;
 
     //
     // Iterate over all values
@@ -129,35 +138,35 @@ public class Argmin extends NamedWarpScriptFunction implements WarpScriptAggrega
       }
 
       //
-      // Adapt the type of the min according to that of the current value,
+      // Adapt the type of the max according to that of the current value,
       // DOUBLE rulez...
       //
 
       if (values[i] instanceof Long && TYPE.DOUBLE == type) {
         values[i] = ((Long) values[i]).doubleValue();
       } else if (values[i] instanceof Double && TYPE.LONG == type) {
-        if (bitset.length() > 0) { // Only if a min has already been found
-          dmin = (double) lmin;
+        if (bitset.length() > 0) { // Only if a max has already been found
+          dmax = (double) lmax;
         }
         type = TYPE.DOUBLE;
       }
 
       switch (type) {
         case LONG:
-          if ((long) values[i] < lmin) {
-            bitset.clear();
-            lmin = (long) values[i];
+          if ((long) values[i] == lmax) {
             bitset.set(i);
-          } else if ((long) values[i] == lmin) {
+          } else if (((long) values[i] > lmax) ^ isArgmin) { // XOR to inverse test in case of Argmin
+            bitset.clear();
+            lmax = (long) values[i];
             bitset.set(i);
           }
           break;
         case DOUBLE:
-          if ((double) values[i] < dmin) {
-            bitset.clear();
-            dmin = (double) values[i];
+          if ((double) values[i] == dmax) {
             bitset.set(i);
-          } else if ((double) values[i] == dmin) {
+          } else if (((double) values[i] > dmax) ^ isArgmin) { // XOR to inverse test in case of Argmin
+            bitset.clear();
+            dmax = (double) values[i];
             bitset.set(i);
           }
           break;
@@ -205,4 +214,5 @@ public class Argmin extends NamedWarpScriptFunction implements WarpScriptAggrega
     sb.append(this.getName());
     return sb.toString();
   }
+
 }
