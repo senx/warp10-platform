@@ -6027,9 +6027,13 @@ public class GTSHelper {
 
     return gts;
   }
-  
+
   public static List<GeoTimeSerie> reduce(WarpScriptReducerFunction reducer, Collection<GeoTimeSerie> series, Collection<String> bylabels) throws WarpScriptException {
-    Map<Map<String,String>,List<GeoTimeSerie>> unflattened = reduceUnflattened(reducer, series, bylabels);
+    return reduce(reducer, series, bylabels, false);
+  }
+
+  public static List<GeoTimeSerie> reduce(WarpScriptReducerFunction reducer, Collection<GeoTimeSerie> series, Collection<String> bylabels, boolean overrideTick) throws WarpScriptException {
+    Map<Map<String,String>,List<GeoTimeSerie>> unflattened = reduceUnflattened(reducer, series, bylabels, overrideTick);
     
     List<GeoTimeSerie> results = new ArrayList<GeoTimeSerie>();
     
@@ -6039,8 +6043,12 @@ public class GTSHelper {
     
     return results;
   }
-  
-  public static Map<Map<String,String>,List<GeoTimeSerie>> reduceUnflattened(WarpScriptReducerFunction reducer, Collection<GeoTimeSerie> series, Collection<String> bylabels) throws WarpScriptException {
+
+  public static Map<Map<String, String>, List<GeoTimeSerie>> reduceUnflattened(WarpScriptReducerFunction reducer, Collection<GeoTimeSerie> series, Collection<String> bylabels) throws WarpScriptException {
+    return reduceUnflattened(reducer, series, bylabels, false);
+  }
+
+  public static Map<Map<String, String>, List<GeoTimeSerie>> reduceUnflattened(WarpScriptReducerFunction reducer, Collection<GeoTimeSerie> series, Collection<String> bylabels, boolean overrideTick) throws WarpScriptException {
     //
     // Partition the GTS instances using the given labels
     //
@@ -6279,14 +6287,14 @@ public class GTSHelper {
             Object[] reduced = (Object[]) entry.getValue();
             
             if (null != reduced[3]) {
-              GTSHelper.setValue(gts, smallest, (long) reduced[1], (long) reduced[2], reduced[3], false);
+              GTSHelper.setValue(gts, overrideTick ? (long) reduced[0] : smallest, (long) reduced[1], (long) reduced[2], reduced[3], false);
             }
           }
         } else {
           Object[] reduced = (Object[]) reducerResult;
           singleGTSResult = true;
           if (null != reduced[3]) {
-            GTSHelper.setValue(result, smallest, (long) reduced[1], (long) reduced[2], reduced[3], false);
+            GTSHelper.setValue(result, overrideTick ? (long) reduced[0] : smallest, (long) reduced[1], (long) reduced[2], reduced[3], false);
           }
         }
         
