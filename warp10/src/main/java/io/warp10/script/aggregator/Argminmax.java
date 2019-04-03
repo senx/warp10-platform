@@ -35,7 +35,7 @@ import java.util.Map;
 
 /**
  * For each tick return the tick and the concatenation of the values of the labels
- * for which the value is the maximum of Geo Time Series which are in the same equivalence class.
+ * for which the value is the maximum or minimum of Geo Time Series which are in the same equivalence class.
  * <p>
  * It operates on LONG and DOUBLE.
  * There is no location and elevation returned.
