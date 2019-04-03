@@ -8817,76 +8817,87 @@ public class GTSHelper {
     }
     
     sort(fromGTS);
-    
-    // estimate all points but skip jump_s points between each
-    // (we are starting at lastbucket and are going backward)
-    int idx = fromGTS.values - 1;
-    
-    // we want to end on the oldest bucket
-    int rest = (fromGTS.bucketcount - 1) % (jump + 1);
-    for (int j = 0; j <= (fromGTS.bucketcount - 1) / (jump + 1); j++) {
-      
-      // calculate tick
-      long tick = fromGTS.lastbucket - (j * (jump + 1) + rest) * fromGTS.bucketspan;
-      
-      // take back idx to the first neighbour at the left whose value is not null
-      while(idx > -1 && tick < tickAtIndex(fromGTS, idx)) {
-        idx--;
+
+    // if neighbours < 0, do not do lowess smoothing but instead take the mean
+    if (neighbours < 0) {
+      double mean = GTSHelper.musigma(fromGTS, false)[0];
+      for (int j = 0; j < fromGTS.bucketcount; j ++) {
+        long tick = fromGTS.lastbucket - j * fromGTS.bucketspan;
+        setValue(toGTS, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, mean, true);
       }
-      
-      // estimate value
-      double estimated = pointwise_lowess(fromGTS, idx, tick, neighbours, degree, weights, rho, null, true);
-      setValue(toGTS, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, estimated, true);
-      
-    }    
-    
-    // interpolate skipped points
-    for (int j = 0; j < (fromGTS.bucketcount - 1) / (jump + 1); j++) {
-      
-      int right = j * (jump + 1) + rest;
-      int left = (j + 1) * (jump + 1) + rest;
-      double denom = left - right;
-      long righttick = fromGTS.lastbucket - right * fromGTS.bucketspan;
-      long lefttick = fromGTS.lastbucket - left * fromGTS.bucketspan;
-      
-      for (int r = 1; r < jump + 1; r++) {
-        
-        int middle = r + j * (jump + 1) + rest;
-        long tick = fromGTS.lastbucket - middle * fromGTS.bucketspan;
-        
-        double alpha = (middle - right) / denom;
-        double interpolated = alpha * ((Number) valueAtTick(toGTS, lefttick)).doubleValue() + (1 - alpha) * ((Number) valueAtTick(toGTS, righttick)).doubleValue();
-        setValue(toGTS, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, interpolated, true);
-        
+
+    } else {
+
+      // estimate all points but skip jump_s points between each
+      // (we are starting at lastbucket and are going backward)
+      int idx = fromGTS.values - 1;
+
+      // we want to end on the oldest bucket
+      int rest = (fromGTS.bucketcount - 1) % (jump + 1);
+      for (int j = 0; j <= (fromGTS.bucketcount - 1) / (jump + 1); j++) {
+
+        // calculate tick
+        long tick = fromGTS.lastbucket - (j * (jump + 1) + rest) * fromGTS.bucketspan;
+
+        // take back idx to the first neighbour at the left whose value is not null
+        while (idx > -1 && tick < tickAtIndex(fromGTS, idx)) {
+          idx--;
+        }
+
+        // estimate value
+        double estimated = pointwise_lowess(fromGTS, idx, tick, neighbours, degree, weights, rho, null, true);
+        setValue(toGTS, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, estimated, true);
+
       }
-    }
-    
-    // estimate the most recent point in case it has been jumped
-    if (0 != rest) {
-      
-      // take back idx to the first neighbour at the left whose value is not null if any
-      idx = fromGTS.values - 1;
-      while(idx > -1 && fromGTS.lastbucket < tickAtIndex(fromGTS, idx)) {
-        idx--;
-      }
-      
-      // estimate value
-      double estimated = pointwise_lowess(fromGTS, idx, fromGTS.lastbucket, neighbours, degree, weights, rho, null, true);          
-      setValue(toGTS, fromGTS.lastbucket, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, estimated, true);
-      
+
       // interpolate skipped points
-      int right = 0;
-      int left = rest;
-      double denom = left - right;
-      long lefttick = fromGTS.lastbucket - left * fromGTS.bucketspan;
-      
-      for (int r = 1; r < rest; r++) {
-        long tick = fromGTS.lastbucket - r * fromGTS.bucketspan;
-        
-        double alpha = (r - right) / denom;
-        double interpolated = alpha * ((Number) valueAtTick(toGTS, lefttick)).doubleValue() + (1 - alpha) * estimated;
-        setValue(toGTS, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, interpolated, true);
-      }      
+      for (int j = 0; j < (fromGTS.bucketcount - 1) / (jump + 1); j++) {
+
+        int right = j * (jump + 1) + rest;
+        int left = (j + 1) * (jump + 1) + rest;
+        double denom = left - right;
+        long righttick = fromGTS.lastbucket - right * fromGTS.bucketspan;
+        long lefttick = fromGTS.lastbucket - left * fromGTS.bucketspan;
+
+        for (int r = 1; r < jump + 1; r++) {
+
+          int middle = r + j * (jump + 1) + rest;
+          long tick = fromGTS.lastbucket - middle * fromGTS.bucketspan;
+
+          double alpha = (middle - right) / denom;
+          double interpolated = alpha * ((Number) valueAtTick(toGTS, lefttick)).doubleValue() + (1 - alpha) * ((Number) valueAtTick(toGTS, righttick)).doubleValue();
+          setValue(toGTS, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, interpolated, true);
+
+        }
+      }
+
+      // estimate the most recent point in case it has been jumped
+      if (0 != rest) {
+
+        // take back idx to the first neighbour at the left whose value is not null if any
+        idx = fromGTS.values - 1;
+        while (idx > -1 && fromGTS.lastbucket < tickAtIndex(fromGTS, idx)) {
+          idx--;
+        }
+
+        // estimate value
+        double estimated = pointwise_lowess(fromGTS, idx, fromGTS.lastbucket, neighbours, degree, weights, rho, null, true);
+        setValue(toGTS, fromGTS.lastbucket, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, estimated, true);
+
+        // interpolate skipped points
+        int right = 0;
+        int left = rest;
+        double denom = left - right;
+        long lefttick = fromGTS.lastbucket - left * fromGTS.bucketspan;
+
+        for (int r = 1; r < rest; r++) {
+          long tick = fromGTS.lastbucket - r * fromGTS.bucketspan;
+
+          double alpha = (r - right) / denom;
+          double interpolated = alpha * ((Number) valueAtTick(toGTS, lefttick)).doubleValue() + (1 - alpha) * estimated;
+          setValue(toGTS, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, interpolated, true);
+        }
+      }
     }
   }
   
