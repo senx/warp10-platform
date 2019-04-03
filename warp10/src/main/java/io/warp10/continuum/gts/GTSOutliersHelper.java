@@ -117,7 +117,7 @@ public class GTSOutliersHelper {
     
     if (!useMedian) {
       madsigma = GTSHelper.musigma(gts, true);
-    } else {;
+    } else {
       madsigma = new double[2];
       madsigma[0] = median(gts);
       madsigma[1] = medianAbsoluteDeviation(gts, madsigma[0]);
@@ -667,8 +667,8 @@ public class GTSOutliersHelper {
   
   
   /**
-   * Applying Seasonal Entropy Hybrid test
-   * This test is based on piecewise decomposition where trend components are approximated by median and seasonal components by entropy of the cycle sub-series.
+   * Applying Seasonal Entropy Hybrid ESD test
+   * This test is based on piecewise decomposition where trend components are approximated by median and seasonal components are factored by the entropy of the cycle sub-series.
    * An ESD test is passed upon the residuals.
    * 
    * It differs from hybridTest by approximating seasonal component instead of using STL.
@@ -745,14 +745,18 @@ public class GTSOutliersHelper {
         
         subsubgts = GTSHelper.subCycleSerie(subgts, stop - v * bs, buckets_per_period, true, subsubgts);
         
-        // compute entropy of absolute modified zscore
-        double[] madsigma = madsigma(subsubgts, true);
-        double median = madsigma[0];
-        double mad = madsigma[1];
+        // compute zscore, then we transform it into a probability before computing the entropy
+        double[] musigma = GTSHelper.musigma(subsubgts, true);
+        double mu = musigma[0];
+        double sigma = musigma[1];
         
         double sum = 0.0D;
         for (int w = 0; w < subsubgts.values; w++) {
-          subsubgts.doubleValues[w] = 0.0D != mad ? Math.abs((subsubgts.doubleValues[w] - median) / mad) : 1.0D;
+          subsubgts.doubleValues[w] = 0.0D != sigma ? Math.abs((subsubgts.doubleValues[w] - mu) / sigma) : 1.0D;
+
+          // we use a variant of softmax to compute probabilities
+          // exp separates too much non-outliers from the mean so we use (exp o sqrt)
+          subsubgts.doubleValues[w] = Math.exp(Math.sqrt(subsubgts.doubleValues[w]));
           sum += subsubgts.doubleValues[w];
         }
         
@@ -772,9 +776,9 @@ public class GTSOutliersHelper {
           entropy = 1.0D;
         }
         
-        // update seasonal
+        // update seasonal. The more the values in the sub sycle series are similar, the more we want to substract the seasonal part.
         for (int w = 0; w < subsubgts.values; w++) {
-          GTSHelper.setValue(seasonal, subsubgts.ticks[w], entropy * subsubgts.doubleValues[w]);
+          GTSHelper.setValue(seasonal, subsubgts.ticks[w], entropy * mu);
         }
       }
       
