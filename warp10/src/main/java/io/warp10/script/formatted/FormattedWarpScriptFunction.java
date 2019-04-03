@@ -182,7 +182,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     // confusion
     //
 
-    if (args.size() > 1 && args.get(args.size() - 1) instanceof Map && optArgs.size() > 0) {
+    if (args.size() > 1 && Map.class.isAssignableFrom(args.get(args.size() - 1).getClazz()) && optArgs.size() > 0) {
       throw new WarpScriptException("The function " + getName() + " is a formatted WarpScript function. As such, it cannot expect a Map as its last non-optional argument. Its implementation must be modified.");
     }
 
