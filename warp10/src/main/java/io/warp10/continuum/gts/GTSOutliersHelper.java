@@ -484,11 +484,14 @@ public class GTSOutliersHelper {
     } else {
       params.put(STL.PERIOD_PARAM, buckets_per_period);
     }
-    params.put(STL.BANDWIDTH_S_PARAM, Math.min(gts.bucketcount, 7));
-    
-    // FIXME(JCV): do unit test for stl with outer > 0 so it can be changed here
-    params.put(STL.PRECISION_PARAM, 10);
-    params.put(STL.ROBUSTNESS_PARAM, 0);
+    if (null == params.get(STL.BANDWIDTH_S_PARAM)) {
+      params.put(STL.BANDWIDTH_S_PARAM, -1);
+    }
+
+    // per default, use non-robust version of STL since it is faster
+    if (null == params.get(STL.ROBUST_PARAM)) {
+      params.put(STL.ROBUST_PARAM, false);
+    }
     
     // the other parameters of stl are either already present in params, or their default values fixed in STL class are used
     
@@ -575,6 +578,10 @@ public class GTSOutliersHelper {
     if (k >= periods_per_piece * buckets_per_period / 2) {
       throw new WarpScriptException("Upper bound of number of outliers must be less than half of the number of observations per piece");
     }
+
+    if (gts.bucketcount / buckets_per_period < 1) {
+      throw new WarpScriptException("Not enough buckets to make up at least one seasonal period.");
+    }
     
     //
     // SubSerie attributes
@@ -585,6 +592,10 @@ public class GTSOutliersHelper {
     
     // number of pieces
     long pieces = gts.bucketcount / buckets_per_period / periods_per_piece;
+
+    if (0 == pieces) {
+      throw new WarpScriptException("Not enough seasonal periods to make up at least one piece. Please use a lower number of periods per piece.");
+    }
     
     // number of buckets per piece
     int bpp = periods_per_piece * buckets_per_period;
@@ -607,11 +618,15 @@ public class GTSOutliersHelper {
     } else {
       params.put(STL.PERIOD_PARAM, buckets_per_period);
     }
-    params.put(STL.BANDWIDTH_S_PARAM, periods_per_piece);
-    
-    // FIXME(JCV): do unit test for stl with outer > 0 so it can be changed here
-    params.put(STL.PRECISION_PARAM, 10);
-    params.put(STL.ROBUSTNESS_PARAM, 0);
+
+    if (null == params.get(STL.BANDWIDTH_S_PARAM)) {
+      params.put(STL.BANDWIDTH_S_PARAM, -1);
+    }
+
+    // per default, use non-robust version of STL since it is faster
+    if (null == params.get(STL.ROBUST_PARAM)) {
+      params.put(STL.ROBUST_PARAM, false);
+    }
     
     // the other parameters of stl are either already present in params, or their default values fixed in STL class are used
     
@@ -678,6 +693,10 @@ public class GTSOutliersHelper {
     if (k >= periods_per_piece * buckets_per_period / 2) {
       throw new WarpScriptException("Upper bound of number of outliers must be less than half of the number of observations per piece");
     }
+
+    if (gts.bucketcount / buckets_per_period < 1) {
+      throw new WarpScriptException("Not enough buckets to make up at least one seasonal period.");
+    }
     
     //
     // SubSerie attributes
@@ -689,6 +708,10 @@ public class GTSOutliersHelper {
     
     // number of pieces
     long pieces = gts.bucketcount / buckets_per_period / periods_per_piece;
+
+    if (0 == pieces) {
+      throw new WarpScriptException("Not enough seasonal periods to make up at least one piece. Please use a lower number of periods per piece.");
+    }
     
     // number of buckets per piece
     int bpp = periods_per_piece * buckets_per_period;
