@@ -165,7 +165,11 @@ public class STL extends GTSStackFunction {
   
   // This method is used for the default values of some parameters
   private int nextOdd(int a) {
-    return 1 == a / 2 ? a : a + 1;
+    if (a > 0) {
+      return 1 == a / 2 ? a : a + 1;
+    } else {
+      return 1;
+    }
   }
 
   @Override
@@ -183,7 +187,7 @@ public class STL extends GTSStackFunction {
     }
     
     // only buckets_per_period is mandatory
-    int buckets_per_period = (int) params.get(PERIOD_PARAM);
+    int buckets_per_period = ((Number) params.get(PERIOD_PARAM)).intValue();
 
     // If ROBUST_PARAM is not set, consider it false
     if (null == params.get(ROBUST_PARAM)) {
@@ -219,6 +223,70 @@ public class STL extends GTSStackFunction {
     int np = null == params.get(BANDWIDTH_P_PARAM) ? 0 : ((Number) params.get(BANDWIDTH_P_PARAM)).intValue();
     int dp = null == params.get(DEGREE_P_PARAM) ? 2 : ((Number) params.get(DEGREE_P_PARAM)).intValue();
     int jp = null == params.get(SPEED_P_PARAM) ? np / 10 : ((Number) params.get(SPEED_P_PARAM)).intValue();
+
+    //
+    // Sanity check on arguments
+    //
+
+    if (buckets_per_period < 2) {
+      throw new WarpScriptException("Seasonal periods must be composed by at least 2 buckets.");
+    }
+
+    if (inner < 1) {
+      throw new WarpScriptException(PRECISION_PARAM + " must be positive.");
+    }
+
+    if (outer < 0) {
+      throw new WarpScriptException(ROBUSTNESS_PARAM + " can not be negative.");
+    }
+
+    if (0 == ns) {
+      throw new WarpScriptException(BANDWIDTH_S_PARAM + " can not be equal to zero.");
+    }
+
+    if (ds < 0) {
+      throw new WarpScriptException(DEGREE_S_PARAM + " can not be negative.");
+    }
+
+    if (js < 0) {
+      throw new WarpScriptException(SPEED_S_PARAM + " can not be negative.");
+    }
+
+    if (nl < 1) {
+      throw new WarpScriptException(BANDWIDTH_L_PARAM + " must be positive.");
+    }
+
+    if (dl < 0) {
+      throw new WarpScriptException(DEGREE_L_PARAM + " can not be negative.");
+    }
+
+    if (jl < 0) {
+      throw new WarpScriptException(SPEED_L_PARAM + " can not be negative.");
+    }
+
+    if (nt < 1) {
+      throw new WarpScriptException(BANDWIDTH_T_PARAM + " must be positive.");
+    }
+
+    if (dt < 0) {
+      throw new WarpScriptException(DEGREE_T_PARAM + " can not be negative.");
+    }
+
+    if (jt < 0) {
+      throw new WarpScriptException(SPEED_T_PARAM + " can not be negative.");
+    }
+
+    if (np < 1) {
+      throw new WarpScriptException(BANDWIDTH_P_PARAM + " must be positive.");
+    }
+
+    if (dp < 0) {
+      throw new WarpScriptException(DEGREE_P_PARAM + " can not be negative.");
+    }
+
+    if (jp < 0) {
+      throw new WarpScriptException(SPEED_P_PARAM + " can not be negative.");
+    }
     
     //
     // Call STL

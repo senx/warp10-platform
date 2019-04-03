@@ -8375,7 +8375,7 @@ public class GTSHelper {
     }
     
     if (q < 1) {
-      throw new WarpScriptException("Bandwitdth parameter must be greater than 0");
+      throw new WarpScriptException("Bandwidth parameter must be greater than 0");
     }
     
     if (r < 0) {
@@ -8912,7 +8912,7 @@ public class GTSHelper {
    * @param outer Robustness   : number of outer loops (to alleviate the impact of outliers upon the decomposition)
    *
    * Optional sets of parameters shared by call of lowess of the same kind:
-   * @param neighbour_s        : (for the seasonal extracting step) Bandwidth, i.e. number of nearest neighbours to consider when applying LOWESS
+   * @param neighbour_s        : (for the seasonal extracting step) Bandwidth, i.e. number of nearest neighbours to consider when applying LOWESS. If negative, approximation by the mean is used instead of LOWESS.
    * @param degree_s           : (for the seasonal extracting step) Degree, i.e. degree of the polynomial fit
    * @param jump_s             : (for the seasonal extracting step) Jump, i.e. number of bucket to skip to speed up computation. These buckets are interpolated afterward.
    *
