@@ -39,14 +39,12 @@ public class STRICTMAPPER extends NamedWarpScriptFunction implements WarpScriptS
     private final long min;
     private final long max;
     private final WarpScriptMapperFunction mapper;
-    private final boolean isOnCount;
 
-    public StringentMapper(String name, long min, long max, WarpScriptMapperFunction mapper, boolean isOnCount) {
+    public StringentMapper(String name, long min, long max, WarpScriptMapperFunction mapper) {
       super(name);
       this.min = min;
       this.max = max;
       this.mapper = mapper;
-      this.isOnCount = isOnCount;
     }
 
     @Override
@@ -54,19 +52,14 @@ public class STRICTMAPPER extends NamedWarpScriptFunction implements WarpScriptS
 
       long[] ticks = (long[]) args[3];
 
-      long size;
-
-      if (isOnCount) {
-        size = ticks.length;
+      long timespan;
+      if (0 == ticks.length) {
+        timespan = 0;
       } else {
-        if (0 == ticks.length) {
-          size = 0;
-        } else {
-          size = ticks[ticks.length - 1] - ticks[0] + 1;
-        }
+        timespan = ticks[ticks.length - 1] - ticks[0] + 1;
       }
 
-      if (size < min || size > max) {
+      if (min > 0 && ticks.length < min || max > 0 && ticks.length > max || min < 0 && timespan < -min || max < 0 && timespan > -max) {
         return new Object[]{args[0], GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null};
       }
 
@@ -80,9 +73,9 @@ public class STRICTMAPPER extends NamedWarpScriptFunction implements WarpScriptS
       sb.append(" ");
       sb.append(mapper.toString());
       sb.append(" ");
-      sb.append(min * (isOnCount ? 1 : -1));
+      sb.append(min);
       sb.append(" ");
-      sb.append(max * (isOnCount ? 1 : -1));
+      sb.append(max);
       sb.append(" ");
       sb.append(getName());
       sb.append(" ");
@@ -98,7 +91,7 @@ public class STRICTMAPPER extends NamedWarpScriptFunction implements WarpScriptS
     Object o = stack.pop(); // maxpoints or -maxspan
 
     if (!(o instanceof Number)) {
-      throw new WarpScriptException(getName() + " expects a maximum (inclusive) number of values on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a maximum (inclusive) number of values or a minimum timespan on top of the stack.");
     }
 
 
@@ -107,44 +100,34 @@ public class STRICTMAPPER extends NamedWarpScriptFunction implements WarpScriptS
     o = stack.pop(); // minpoints or -minspan
 
     if (!(o instanceof Number)) {
-      throw new WarpScriptException(getName() + " expects a minimum (inclusive) number of values below the top of the stack.");
+      throw new WarpScriptException(getName() + " expects a minimum (inclusive) number of values or a minimum timespan below the top of the stack.");
     }
 
     long min = ((Number) o).longValue();
 
-    boolean isOnCount = true;
-    if (min < 0 || max < 0) { // Either min or max is strictly negative -> timespan definition
-      if(min > 0 || max > 0) { // Either min or max is strictly positive -> error
-        throw new WarpScriptException(getName() + " expects min and max to be of the same sign.");
+    if(min > 0 && max >= 0 || min < 0 && max <= 0) {
+      if(Math.abs(min) > Math.abs(max)){
+        throw new WarpScriptException(getName() + " expects abs(min) <= abs(max) when min and max both express a count or both express a duration");
       }
-
-      isOnCount = false;
-
-      // Safeguard over long overflow when negating
-      if (Long.MIN_VALUE == min) {
-        min++;
-      }
-      if (Long.MIN_VALUE == max) {
-        max++;
-      }
-
-      min = -min;
-      max = -max;
     }
 
-    if (min > max) {
-      throw new WarpScriptException(getName() + " expects abs(min) <= abs(max).");
+    // Safeguard over long overflow when negating
+    if (Long.MIN_VALUE == min) {
+      min++;
+    }
+    if (Long.MIN_VALUE == max) {
+      max++;
     }
 
     o = stack.pop(); // mapper
 
     if (!(o instanceof WarpScriptMapperFunction)) {
-      throw new WarpScriptException(getName() + " expects a mapper below the extrema defining the value count range.");
+      throw new WarpScriptException(getName() + " expects a mapper below the extrema defining the value count range or timespan.");
     }
 
     WarpScriptMapperFunction mapper = (WarpScriptMapperFunction) o;
 
-    stack.push(new StringentMapper(getName(), min, max, mapper, isOnCount));
+    stack.push(new StringentMapper(getName(), min, max, mapper));
 
     return stack;
   }
