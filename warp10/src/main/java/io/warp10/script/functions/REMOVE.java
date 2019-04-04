@@ -51,13 +51,20 @@ public class REMOVE extends NamedWarpScriptFunction implements WarpScriptStackFu
     } else if (coll instanceof List) {
       if (!(key instanceof Long) && !(key instanceof Integer)) {
         throw new WarpScriptException(getName() + " expects an integer as key.");
-      }      
+      }
       int idx = ((Number) key).intValue();
+
+      int size = ((List) coll).size();
+
+      if (idx < 0) {
+        idx += size;
+      }
+
+      Object o = null;
+      if (idx >= 0 && idx < size) {
+        o = ((List) coll).remove(idx);
+      }
       
-      idx = GET.computeAndCheckIndex(this, idx, ((List) coll).size());
-
-      Object o = ((List) coll).remove(idx);
-
       stack.push(coll);
       stack.push(o);
     } else {
