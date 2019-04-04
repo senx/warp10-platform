@@ -43,9 +43,7 @@ public class ATINDEX extends GTSStackFunction {
   protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
     int idx = (Integer) params.get(INDEX);
 
-    if (idx > GTSHelper.nvalues(gts)) {
-      throw new WarpScriptException(getName() + " cannot retrieve the value at index " + idx + " since the GTS only contains " + GTSHelper.nvalues(gts) + " values.");
-    }
+    idx = GET.computeAndCheckIndex(this, idx, GTSHelper.nvalues(gts));
 
     return getTupleAtIndex(gts, idx);
   }

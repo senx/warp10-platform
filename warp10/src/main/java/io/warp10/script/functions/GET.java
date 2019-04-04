@@ -52,21 +52,18 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
         throw new WarpScriptException(getName() + " expects the key to be an integer when operating on a list.");
       }
       int idx = ((Number) key).intValue();
-      
-      if (idx < 0) {
-        throw new WarpScriptException(getName() + " expects a positive index.");
-      }
+
       if (coll instanceof List) {
         int size = ((List) coll).size();
-        if (idx >= size) {
-          throw new WarpScriptException(getName() + " index out of bound, " + idx + " >= " + size);
-        }
+
+        idx = computeAndCheckIndex(this, idx, size);
+
         value = ((List) coll).get(idx);
       } else {
         int size = ((byte[]) coll).length;
-        if (idx >= size) {
-          throw new WarpScriptException(getName() + " index out of bound, " + idx + " >= " + size);
-        }
+
+        idx = computeAndCheckIndex(this, idx, size);
+
         value = (long) (((byte[]) coll)[idx] & 0xFFL);
       }
     }
@@ -74,5 +71,18 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
     stack.push(value);
 
     return stack;
+  }
+
+  public static int computeAndCheckIndex(NamedWarpScriptFunction func, int index, int size) throws WarpScriptException {
+    if (index < 0) {
+      index += size;
+    } else if (index >= size) {
+      throw new WarpScriptException(func.getName() + " index out of bound, " + index + " >= " + size);
+    }
+    if (index < 0) {
+      throw new WarpScriptException(func.getName() + " index out of bound, " + (index - size) + " < -" + size);
+    }
+
+    return index;
   }
 }
