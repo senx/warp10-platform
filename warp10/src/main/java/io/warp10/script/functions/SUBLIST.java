@@ -67,8 +67,7 @@ public class SUBLIST extends NamedWarpScriptFunction implements WarpScriptStackF
       } else if (o instanceof Number) {
         try {
           intParams.add(0, Math.toIntExact(((Number) o).longValue())); // Prepend the int parameter
-        }
-        catch(ArithmeticException ae){
+        } catch (ArithmeticException ae) {
           throw new WarpScriptException(getName() + " expects number parameters to be ints.", ae);
         }
       } else {
@@ -95,7 +94,7 @@ public class SUBLIST extends NamedWarpScriptFunction implements WarpScriptStackF
         end += elements.size();
       }
 
-      start = Math.max(0, Math.min(elements.size() -1 ,start));
+      start = Math.max(0, Math.min(elements.size() - 1, start));
       end = Math.max(0, Math.min(elements.size() - 1, end));
 
       int step = 1;
