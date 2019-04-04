@@ -105,18 +105,18 @@ public class STRICTMAPPER extends NamedWarpScriptFunction implements WarpScriptS
 
     long min = ((Number) o).longValue();
 
-    if(min > 0 && max >= 0 || min < 0 && max <= 0) {
-      if(Math.abs(min) > Math.abs(max)){
-        throw new WarpScriptException(getName() + " expects abs(min) <= abs(max) when min and max both express a count or both express a duration");
-      }
-    }
-
     // Safeguard over long overflow when negating
     if (Long.MIN_VALUE == min) {
       min++;
     }
     if (Long.MIN_VALUE == max) {
       max++;
+    }
+
+    if(min > 0 && max >= 0 || min < 0 && max <= 0) {
+      if(Math.abs(min) > Math.abs(max)){
+        throw new WarpScriptException(getName() + " expects abs(min) <= abs(max) when min and max both express a count or both express a duration");
+      }
     }
 
     o = stack.pop(); // mapper
