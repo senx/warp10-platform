@@ -747,6 +747,12 @@ quantum.host = ${standalone.host}
 #datalog.dir = ${standalone.home}/datalog
 
 //
+// Set datalog.sync to true to force a call to fsync upon closing each datalog file, thus ensuring
+// the file blocks are written to the underlying device. This defaults to false if the property is not set.
+//
+datalog.sync = true
+
+//
 // Unique id for this datalog instance.
 //
 #datalog.id = datalog-0
