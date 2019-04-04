@@ -42,7 +42,10 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
 
 import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.URLDecoder;
 import java.text.ParseException;
@@ -98,6 +101,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
   
   private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
 
+  private final boolean datalogSync;
+  
   private final File loggingDir;
   
   private final String datalogId;
@@ -151,7 +156,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     }
         
     this.logforwarded = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_LOGFORWARDED));
-    
+    this.datalogSync = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_SYNC));        
     this.disabled = "true".equals(WarpConfig.getProperty(Configuration.STANDALONE_DELETE_DISABLE));
   }
   
@@ -302,6 +307,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     
     File loggingFile = null;
     PrintWriter loggingWriter = null;
+    FileDescriptor loggingFD = null;
     
     //
     // Open the logging file if logging is enabled
@@ -356,7 +362,11 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         encoded = OrderPreservingBase64.encode(encoded);
                 
         loggingFile = new File(loggingDir, sb.toString());
-        loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
+        
+        FileOutputStream fos = new FileOutputStream(loggingFile);
+        loggingFD = fos.getFD();
+        OutputStreamWriter osw = new OutputStreamWriter(fos, Charsets.UTF_8);
+        loggingWriter = new PrintWriter(osw);
         
         //
         // Write request
@@ -578,6 +588,10 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
         Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
 
+        if (datalogSync) {
+          loggingWriter.flush();
+          loggingFD.sync();
+        }
         loggingWriter.close();
         if (validated) {
           loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));

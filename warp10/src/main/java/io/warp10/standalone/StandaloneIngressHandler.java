@@ -42,8 +42,12 @@ import io.warp10.sensision.Sensision;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.text.ParseException;
 import java.util.HashMap;
@@ -104,6 +108,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
   private final long[] classKeyLongs;
   private final long[] labelsKeyLongs;
     
+  private final boolean datalogSync;
+  
   private final File loggingDir;
   
   private final String datalogId;
@@ -168,6 +174,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
     }
     
     this.logforwarded = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_LOGFORWARDED));
+    this.datalogSync = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_SYNC));
     
     this.maxValueSize = Long.parseLong(WarpConfig.getProperty(Configuration.STANDALONE_VALUE_MAXSIZE, DEFAULT_VALUE_MAXSIZE));
   }
@@ -278,7 +285,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
       
       File loggingFile = null;   
       PrintWriter loggingWriter = null;
-
+      FileDescriptor loggingFD = null;
+      
       try {      
         if (null == producer || null == owner) {
           response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
@@ -439,7 +447,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
                     
             loggingFile = new File(loggingDir, sb.toString());
             
-            loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
+            FileOutputStream fos = new FileOutputStream(loggingFile);
+            loggingFD = fos.getFD();
+            OutputStreamWriter osw = new OutputStreamWriter(fos, Charsets.UTF_8);
+            loggingWriter = new PrintWriter(osw);
             
             //
             // Write request
@@ -589,7 +600,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
           //
           
           if (null != loggingWriter) {
-            loggingWriter.println(line);
+            loggingWriter.println(line);            
           }
         } while (true); 
         
@@ -632,6 +643,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
           labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
           Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
 
+          if (datalogSync) {
+            loggingWriter.flush();
+            loggingFD.sync();
+          }
           loggingWriter.close();
           loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
         }
