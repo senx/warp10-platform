@@ -44,7 +44,7 @@ public class SUBLIST extends NamedWarpScriptFunction implements WarpScriptStackF
     Object o;
     List indices = null;
     List elements = null;
-    ArrayList<Integer> intParams = new ArrayList<Integer>();
+    ArrayList<Long> longParams = new ArrayList<Long>();
 
     // Get the 4 elements on top of the stack or until a list is found.
     // After this, either indices is null or longParams contains at least one long.
@@ -65,11 +65,7 @@ public class SUBLIST extends NamedWarpScriptFunction implements WarpScriptStackF
         }
         break;
       } else if (o instanceof Number) {
-        try {
-          intParams.add(0, Math.toIntExact(((Number) o).longValue())); // Prepend the int parameter
-        } catch (ArithmeticException ae) {
-          throw new WarpScriptException(getName() + " expects number parameters to be ints.", ae);
-        }
+        longParams.add(0, ((Number) o).longValue()); // Prepend the clamped int parameter
       } else {
         throw new WarpScriptException(getName() + " expects a list of indices on top of the stack or a start end step and will operate on the list below it.");
       }
@@ -80,52 +76,78 @@ public class SUBLIST extends NamedWarpScriptFunction implements WarpScriptStackF
       throw new WarpScriptException(getName() + " expects a list of indices on top of the stack or a start end step and will operate on the list below it.");
     }
 
+    int size = elements.size();
+
     List<Object> sublist = new ArrayList<Object>();
 
-    if (null == indices) { // Range definition with intParams
+    if (null == indices) { // Range definition with longParams
       // If indices is null, there is at least one parameter in longParams: start.
-      int start = intParams.get(0);
-      int end = intParams.size() > 1 ? intParams.get(1) : -1; // Defaults to end of the list
+      long start = longParams.get(0);
 
+      // Get end if defined
+      long end;
+      if (longParams.size() > 1) {
+        end = longParams.get(1);
+      } else {
+        // End is not defined, neither is step. So step will default to 1.
+        // Thus end defaults to the end of the list or start, if start is greater than end.
+        end = Math.max(size - 1, start);
+      }
+
+      // Add the size of the list to defined negative indexes. They can still be negative afterward.
+      // No risk of overflow because start/end is strictly negative and size is positive
       if (start < 0) {
-        start += elements.size();
+        start += size;
       }
       if (end < 0) {
-        end += elements.size();
+        end += size;
       }
 
-      start = Math.max(0, Math.min(elements.size() - 1, start));
-      end = Math.max(0, Math.min(elements.size() - 1, end));
+      // Only if the defined range intersects the valid indexes, else the sublist is empty.
+      if (!(start < 0 && end < 0 || start >= size && end >= size)) {
+        // Get step if defined
+        long step = 1L;
+        if (longParams.size() > 2) {
+          step = longParams.get(2);
+        } else {
+          if (start > end) {
+            step = -1L; // Reverse order
+          }
+          // else step is already 1
+        }
 
-      int step = 1;
-      if (intParams.size() > 2) {
-        step = intParams.get(2);
-      } else {
-        if (start > end) {
-          step = -1;
+        // Check start/end/step coherency
+        if (0 == step) {
+          throw new WarpScriptException(getName() + " expects the step parameter to be a strictly positive or negative number.");
+        } else if (step > 0) {
+          if (start > end) {
+            throw new WarpScriptException(getName() + " expects start to be before end when step is positive.");
+          }
+        } else {
+          if (end > start) {
+            throw new WarpScriptException(getName() + " expects start to be after end when step is negative.");
+          }
         }
-        // else step is already 1
-      }
 
-      if (0 == step) {
-        throw new WarpScriptException(getName() + " expects the step parameter to be a strictly positive or negative integer.");
-      } else if (step > 0) {
-        if (start > end) {
-          throw new WarpScriptException(getName() + " expects start to be before end when step is positive.");
-        }
-      } else {
-        if (end > start) {
-          throw new WarpScriptException(getName() + " expects start to be after end when step is negative.");
-        }
-      }
+        // Jump step by step start to nearest valid index in elements
+        start = nearestValidBound(start, step, size);
 
-      if (step > 0) {
-        for (int i = start; i <= end; i += step) {
-          sublist.add(elements.get(i));
-        }
-      } else {
-        for (int i = start; i >= end; i += step) {
-          sublist.add(elements.get(i));
+        // Fill the sublist
+        try {
+          if (step > 0) {
+            end = Math.min(end, size - 1);
+            for (long i = start; i <= end; i = Math.addExact(i, step)) {
+              sublist.add(elements.get(Math.toIntExact(i)));
+            }
+          } else {
+            end = Math.max(end, 0L);
+            for (long i = start; i >= end; i = Math.addExact(i, step)) {
+              sublist.add(elements.get(Math.toIntExact(i)));
+            }
+          }
+        } catch (ArithmeticException ae) {
+          // Do nothing, that means i + step overflowed int and thus is not a valid index anymore.
+          // This is most probably the case of a step near to or greater than max integer.
         }
       }
     } else if (2 == indices.size()) { // Range definition with indices
@@ -140,15 +162,15 @@ public class SUBLIST extends NamedWarpScriptFunction implements WarpScriptStackF
       int lb = ((Long) b).intValue();
 
       if (la < 0) {
-        la = elements.size() + la;
+        la = size + la;
       }
       if (lb < 0) {
-        lb = elements.size() + lb;
+        lb = size + lb;
       }
 
       if (la < 0 && lb < 0) {
-        la = elements.size();
-        lb = elements.size();
+        la = size;
+        lb = size;
       } else {
         la = Math.max(0, la);
         lb = Math.max(0, lb);
@@ -159,30 +181,30 @@ public class SUBLIST extends NamedWarpScriptFunction implements WarpScriptStackF
       // fix the other one
       //
 
-      if (la < elements.size() || lb < elements.size()) {
-        if (la >= elements.size()) {
-          la = elements.size() - 1;
-        } else if (la < -1 * elements.size()) {
-          la = -1 * elements.size();
+      if (la < size || lb < size) {
+        if (la >= size) {
+          la = size - 1;
+        } else if (la < -1 * size) {
+          la = -1 * size;
         }
 
-        if (lb >= elements.size()) {
-          lb = elements.size() - 1;
-        } else if (lb < -1 * elements.size()) {
-          lb = -1 * elements.size();
+        if (lb >= size) {
+          lb = size - 1;
+        } else if (lb < -1 * size) {
+          lb = -1 * size;
         }
       }
 
       if (la < lb) {
-        if (la < elements.size()) {
-          lb = Math.min(elements.size() - 1, lb);
+        if (la < size) {
+          lb = Math.min(size - 1, lb);
           for (int i = la; i <= lb; i++) {
             sublist.add(elements.get(i));
           }
         }
       } else {
-        if (lb < elements.size()) {
-          la = Math.min(elements.size() - 1, la);
+        if (lb < size) {
+          la = Math.min(size - 1, la);
           for (int i = lb; i <= la; i++) {
             sublist.add(elements.get(i));
           }
@@ -196,14 +218,14 @@ public class SUBLIST extends NamedWarpScriptFunction implements WarpScriptStackF
 
         int idx = ((Long) index).intValue();
 
-        if (idx >= elements.size() || (idx < -1 * elements.size())) {
+        if (idx >= size || (idx < -1 * size)) {
           throw new WarpScriptException(getName() + " reported an out of bound index.");
         }
 
         if (idx >= 0) {
           sublist.add(elements.get(idx));
         } else {
-          sublist.add(elements.get(elements.size() + idx));
+          sublist.add(elements.get(size + idx));
         }
       }
     }
@@ -211,5 +233,28 @@ public class SUBLIST extends NamedWarpScriptFunction implements WarpScriptStackF
     stack.push(sublist);
 
     return stack;
+  }
+
+  /**
+   * Moves a bound to the closer valid index by "jumping" by step.
+   *
+   * Example table for a step of 3 and a size of 8, list given for visualization:
+   * Input bound:   [ -5 -4 -3 -2 -1  0  1  2  3  4  5  6  7  8  9 10 11 ]
+   * Nearest valid: [  1  2  0  1  2  0  1  2  3  4  5  6  7  5  6  7  5 ]
+   * List:          [                 a  b  c  d  e  f  g  h             ]
+   *
+   * @param bound start or end.
+   * @param step Amount to add or subtract to the bound. May be positive or negative.
+   * @param size Size of the list.
+   * @return A valid index if it exists, else an invalid index.
+   */
+  private static long nearestValidBound(long bound, long step, int size) {
+    if (bound >= size) {
+      return ((bound - size) % step) - Math.abs(step) + size;
+    } else if (bound < 0) {
+      return ((bound + 1) % step) + Math.abs(step) - 1;
+    } else {
+      return bound;
+    }
   }
 }
