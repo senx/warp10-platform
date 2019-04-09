@@ -32,7 +32,7 @@ fi
 
 #JAVA_HOME=/opt/java8
 #WARP10_HOME=/opt/warp10-@VERSION@
-
+JMX_PORT=1098
 
 # Strongly inspired by gradlew
 # Determine the Java command to use to start the JVM.
@@ -563,6 +563,11 @@ case "$1" in
   start)
   start
   ;;
+  startwithjmx)
+  JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=${JMX_PORT}"
+  echo "## WARNING : JMX is enabled on port ${JMX_PORT}"
+  start
+  ;;
   stop)
   stop
   ;;
@@ -572,6 +577,13 @@ case "$1" in
   restart)
   stop
   sleep 2
+  start
+  ;;
+  restartwithjmx)
+  stop
+  sleep 2
+  JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=${JMX_PORT}"
+  echo "## WARNING : JMX is enabled on port ${JMX_PORT}"
   start
   ;;
   worfcli)
@@ -587,7 +599,7 @@ case "$1" in
   repair
   ;;
   *)
-  echo $"Usage: $0 {bootstrap|start|stop|status|worfcli|worf appName ttl(ms)|snapshot 'snapshot_name'|repair}"
+  echo $"Usage: $0 {bootstrap|start|startwithjmx|stop|status|worfcli|worf appName ttl(ms)|snapshot 'snapshot_name'|repair|restart|restartwithjmx}"
   exit 2
 esac
 
