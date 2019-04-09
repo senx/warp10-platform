@@ -480,6 +480,11 @@ stop() {
   if isStarted; then
     echo "Stop Warp 10..."
     kill $(cat ${PID_FILE})
+      echo "Wait for Warp 10 to stop..."
+    while $(kill -0 $(cat ${PID_FILE}) 2>/dev/null); do
+      sleep 2
+    done
+    echo "Warp 10 stopped..."
     rm -f ${PID_FILE}
   else
     echo "No instance of Warp 10 is currently running"
