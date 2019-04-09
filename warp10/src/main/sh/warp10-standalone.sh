@@ -563,9 +563,9 @@ case "$1" in
   start)
   start
   ;;
-  startwithjmx)
+  jmxstart)
   JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=${JMX_PORT}"
-  echo "## WARNING : JMX is enabled on port ${JMX_PORT}"
+  echo "## WARNING: JMX is enabled on port ${JMX_PORT}"
   start
   ;;
   stop)
@@ -579,11 +579,11 @@ case "$1" in
   sleep 2
   start
   ;;
-  restartwithjmx)
+  jmxrestart)
   stop
   sleep 2
   JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=${JMX_PORT}"
-  echo "## WARNING : JMX is enabled on port ${JMX_PORT}"
+  echo "## WARNING: JMX is enabled on port ${JMX_PORT}"
   start
   ;;
   worfcli)
@@ -599,7 +599,7 @@ case "$1" in
   repair
   ;;
   *)
-  echo $"Usage: $0 {bootstrap|start|startwithjmx|stop|status|worfcli|worf appName ttl(ms)|snapshot 'snapshot_name'|repair|restart|restartwithjmx}"
+  echo $"Usage: $0 {bootstrap|start|jmxstart|stop|status|worfcli|worf appName ttl(ms)|snapshot 'snapshot_name'|repair|restart|jmxrestart}"
   exit 2
 esac
 
