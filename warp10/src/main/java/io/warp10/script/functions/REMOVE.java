@@ -37,33 +37,35 @@ public class REMOVE extends NamedWarpScriptFunction implements WarpScriptStackFu
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
     Object key = stack.pop();
-    Object maporlist = stack.pop();
+    Object coll = stack.pop();
 
-    if (maporlist instanceof Map) {
+    if (coll instanceof Map) {
       if (!(key instanceof String)) {
         throw new WarpScriptException(getName() + " expects a string as key.");
       }      
       
-      Object o = null;
-      
-      o = ((Map) maporlist).remove(key);
+      Object o = ((Map) coll).remove(key);
 
-      stack.push(maporlist);
+      stack.push(coll);
       stack.push(o);
-    } else if (maporlist instanceof List) {
+    } else if (coll instanceof List) {
       if (!(key instanceof Long) && !(key instanceof Integer)) {
-        throw new WarpScriptException(getName() + " expects a positive integer as key.");
-      }      
+        throw new WarpScriptException(getName() + " expects an integer as key.");
+      }
       int idx = ((Number) key).intValue();
-      
-      stack.push(maporlist);
-      
-      Object o = null;
-      
-      if (idx >= 0 && idx <= ((List) maporlist).size()) {
-        o = ((List) maporlist).remove(idx);
+
+      int size = ((List) coll).size();
+
+      if (idx < 0) {
+        idx += size;
       }
 
+      Object o = null;
+      if (idx >= 0 && idx < size) {
+        o = ((List) coll).remove(idx);
+      }
+      
+      stack.push(coll);
       stack.push(o);
     } else {
       throw new WarpScriptException(getName() + " operates on a map or a list.");      

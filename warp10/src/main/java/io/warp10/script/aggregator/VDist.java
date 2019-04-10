@@ -51,30 +51,7 @@ public class VDist extends NamedWarpScriptFunction implements WarpScriptAggregat
     }
 
     //
-    // We need to sort indices from oldest tick to most recent
-    //
-    
-    Integer[] idx = new Integer[ticks.length];
-    for (int i = 0; i < idx.length; i++) {
-      idx[i] = i;
-    }
-    
-    Arrays.sort(idx, new Comparator<Integer>() {
-      @Override
-      public int compare(Integer o1, Integer o2) {
-        if (ticks[o1] < ticks[o2]) {
-          return -1;
-        } else if (ticks[o1] > ticks[o2]) {
-          return 1;
-        } else {
-          return 0;
-        }
-      }
-    });
-
-    //
-    // The idx array now contains the indices in the order
-    // of increasing ticks.
+    // The GTS is considered sorted. It is the case for MAP, REDUCE and BUCKETIZE.
     // Let's compute the total distance traveled
     //
     
@@ -84,7 +61,7 @@ public class VDist extends NamedWarpScriptFunction implements WarpScriptAggregat
     
     long totaldistance = 0L;
     
-    while(i < idx.length) {
+    while(i < elevations.length) {
       // Skip measurements with no elevation
       if (GeoTimeSerie.NO_ELEVATION == elevations[i]) {
         i++;
