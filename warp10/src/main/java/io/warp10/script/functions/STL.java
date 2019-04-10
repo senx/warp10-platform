@@ -252,8 +252,8 @@ public class STL extends GTSStackFunction {
       throw new WarpScriptException(SPEED_S_PARAM + " can not be negative.");
     }
 
-    if (nl < 1) {
-      throw new WarpScriptException(BANDWIDTH_L_PARAM + " must be positive.");
+    if (nl < 0) {
+      throw new WarpScriptException(BANDWIDTH_L_PARAM + " can not be negative..");
     }
 
     if (dl < 0) {
@@ -264,8 +264,8 @@ public class STL extends GTSStackFunction {
       throw new WarpScriptException(SPEED_L_PARAM + " can not be negative.");
     }
 
-    if (nt < 1) {
-      throw new WarpScriptException(BANDWIDTH_T_PARAM + " must be positive.");
+    if (nt < 0) {
+      throw new WarpScriptException(BANDWIDTH_T_PARAM + " can not be negative..");
     }
 
     if (dt < 0) {
@@ -276,8 +276,8 @@ public class STL extends GTSStackFunction {
       throw new WarpScriptException(SPEED_T_PARAM + " can not be negative.");
     }
 
-    if (np < 1) {
-      throw new WarpScriptException(BANDWIDTH_P_PARAM + " must be positive.");
+    if (np < 0) {
+      throw new WarpScriptException(BANDWIDTH_P_PARAM + " can not be negative.");
     }
 
     if (dp < 0) {
