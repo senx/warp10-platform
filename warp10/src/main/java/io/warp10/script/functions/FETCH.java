@@ -956,6 +956,10 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       params.put(PARAM_QUIET_AFTER, ((long) map.get(PARAM_QUIET_AFTER)) / Constants.TIME_UNITS_PER_MS);
     }
 
+    if (map.containsKey(PARAM_SHOWUUID)) {
+      params.put(PARAM_SHOWUUID, map.get(PARAM_SHOWUUID));
+    }
+    
     return params;
   }
 }
