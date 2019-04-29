@@ -103,11 +103,110 @@ public class GTSHelper {
     
     //
     // If GTS is sorted in another order than the one requested,
-    // consider it's not sorted.
+    // simply reverse the arrays
     //
     
     if (gts.sorted && gts.reversed != reversed) {
-      gts.sorted = false;
+      if (null != gts.ticks) {
+        int i = 0;
+        int j = gts.values - 1;
+        
+        while(i < j) {
+          long tmp = gts.ticks[i];
+          gts.ticks[i] = gts.ticks[j];
+          gts.ticks[j] = tmp;
+          i++;
+          j--;
+        }
+      }
+      if (null != gts.locations) {
+        int i = 0;
+        int j = gts.values - 1;
+        
+        while(i < j) {
+          long tmp = gts.locations[i];
+          gts.locations[i] = gts.locations[j];
+          gts.locations[j] = tmp;
+          i++;
+          j--;
+        }        
+      }
+      if (null != gts.elevations) {
+        int i = 0;
+        int j = gts.values - 1;
+        
+        while(i < j) {
+          long tmp = gts.elevations[i];
+          gts.elevations[i] = gts.elevations[j];
+          gts.elevations[j] = tmp;
+          i++;
+          j--;
+        }
+      }
+      //
+      // Now reverse the values
+      //
+      
+      switch (gts.type) {
+        case LONG:
+          if (null != gts.longValues) {
+            int i = 0;
+            int j = gts.values - 1;
+            
+            while(i < j) {
+              long tmp = gts.longValues[i];
+              gts.longValues[i] = gts.longValues[j];
+              gts.longValues[j] = tmp;
+              i++;
+              j--;
+            }
+          }
+          break;
+        case DOUBLE:
+          if (null != gts.doubleValues) {
+            int i = 0;
+            int j = gts.values - 1;
+            
+            while(i < j) {
+              double tmp = gts.doubleValues[i];
+              gts.doubleValues[i] = gts.doubleValues[j];
+              gts.doubleValues[j] = tmp;
+              i++;
+              j--;
+            }
+          }
+          break;
+        case STRING:
+          if (null != gts.stringValues) {
+            int i = 0;
+            int j = gts.values - 1;
+            
+            while(i < j) {
+              String tmp = gts.stringValues[i];
+              gts.stringValues[i] = gts.stringValues[j];
+              gts.stringValues[j] = tmp;
+              i++;
+              j--;
+            }
+          }
+          break;
+        case BOOLEAN:
+          if (null != gts.booleanValues) {
+            int i = 0;
+            int j = gts.values - 1;
+            
+            while(i < j) {
+              boolean tmp = gts.booleanValues.get(i);
+              gts.booleanValues.set(i, gts.booleanValues.get(j));
+              gts.booleanValues.set(j, tmp);
+              i++;
+              j--;
+            }
+          }
+          break;
+      }
+      gts.reversed = reversed;
+      return gts;
     }    
 
     //
