@@ -15,10 +15,17 @@
 //
 package io.warp10.worf;
 
-import com.google.common.base.Strings;
 import io.warp10.Revision;
 import io.warp10.continuum.gts.GTSHelper;
-import org.apache.commons.cli.*;
+
+import com.google.common.base.Strings;
+import org.apache.commons.cli.BasicParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
+import org.apache.commons.cli.Options;
 import org.codehaus.jettison.json.JSONObject;
 
 import java.io.File;
@@ -26,32 +33,24 @@ import java.io.PrintWriter;
 import java.net.URLDecoder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class WorfCLI {
-  public enum WorfTokenType {
-    READ,
-    WRITE,
-    READ_WRITE
-  }
-
   public static boolean verbose = false;
   public static boolean quiet = false;
-
-
-  private Options options = new Options();
-
   public static String UUIDGEN_PRODUCER = "puidg";
   public static String UUIDGEN_OWNER = "ouidg";
-
   public static String P_UUID = "puid";
   public static String O_UUID = "ouid";
-
   public static String APPNAME = "a";
   public static String LABELS = "l";
-
   private static String HELP = "h";
   private static String VERBOSE = "v";
   private static String VERSION = "version";
@@ -62,8 +61,9 @@ public class WorfCLI {
   private static String TOKEN_TYPE = "tt";
   private static String TTL = "ttl";
   private static String KEYSTORE = "ks";
-
   private static Pattern tokenPattern = Pattern.compile("([^\\{\\}]+)\\{([^\\{\\}]+)\\}");
+  private Options options = new Options();
+
   public WorfCLI() {
     options.addOption(new Option(KEYSTORE, "keystore", true, "configuration file for generating tokens inside templates"));
     options.addOption(new Option(OUTPUT, "output", true, "output configuration destination file"));
@@ -98,6 +98,31 @@ public class WorfCLI {
       out.println(message);
       out.flush();
     }
+  }
+
+  private static int runInteractive(String warp10Configuration) throws WorfException {
+    WorfInteractive worfInteractive = new WorfInteractive();
+    PrintWriter out = worfInteractive.getPrintWriter();
+
+    // read warp10 configuration
+    consolePrintln("Reading warp10 configuration " + warp10Configuration, out);
+    Properties config = Worf.readConfig(warp10Configuration, out);
+
+    if (null == config) {
+      consolePrintln("Unable to read warp10 configuration.", out);
+      return -1;
+    }
+
+    if (WorfTemplate.isTemplate(config)) {
+      warp10Configuration = worfInteractive.runTemplate(config, warp10Configuration);
+      // reload config
+      config = Worf.readConfig(warp10Configuration, out);
+    }
+    // get Default values
+    Properties worfConfig = Worf.readDefault(warp10Configuration, out);
+    worfInteractive.run(config, worfConfig);
+
+    return 0;
   }
 
   public int execute(String[] args) {
@@ -204,7 +229,7 @@ public class WorfCLI {
             String[] uuids = matcher.group(2).split(",");
 
             // adds uuid to the list, fail otherwise
-            for (String uuid:uuids){
+            for (String uuid : uuids) {
               UUID.fromString(uuid);
               authorizedOwnersUID.add(uuid);
             }
@@ -237,7 +262,7 @@ public class WorfCLI {
             String[] apps = matcher.group(2).split(",");
 
             // adds uuid to the list, fail otherwise
-            for (String app: apps){
+            for (String app : apps) {
               authorizedApplications.add(URLDecoder.decode(app, "UTF-8"));
             }
 
@@ -254,8 +279,7 @@ public class WorfCLI {
           try {
             labels = GTSHelper.parseLabels(lbs);
             labelMap = true;
-          }
-          catch ( Exception e) {
+          } catch (Exception e) {
             throw new WorfException("Not a valid label selector : " + e.getMessage());
           }
         }
@@ -287,7 +311,7 @@ public class WorfCLI {
           long ttlMax = Long.MAX_VALUE - System.currentTimeMillis();
 
           if (ttl >= ttlMax) {
-            throw new WorfException("TTL can not be upper than " + ttlMax + " ms") ;
+            throw new WorfException("TTL can not be upper than " + ttlMax + " ms");
           }
 
         } else {
@@ -353,7 +377,7 @@ public class WorfCLI {
           ownerUID = Worf.getDefault(defaultProperties, out, ownerUID, O_UUID);
         }
         // GENERATE TOKENS
-        for(String tokenKey: tpl.getTokenKeys()) {
+        for (String tokenKey : tpl.getTokenKeys()) {
           if (!token) {
             throw new WorfException("Unable to generate template tokens missing -t option");
           }
@@ -376,8 +400,14 @@ public class WorfCLI {
           String outputFileName = inputConfigurationPath.getFileName().toString();
           outputFileName = outputFileName.replace("template", "conf");
 
+          String configPath = ".";
+          Path parent = inputConfigurationPath.getParent();
+          if (null != parent) {
+            configPath = parent.toString();
+          }
+
           StringBuilder sb = new StringBuilder();
-          sb.append(inputConfigurationPath.getParent().toString());
+          sb.append(configPath);
           if (!inputConfigurationPath.endsWith(File.separator)) {
             sb.append(File.separator);
           }
@@ -424,7 +454,7 @@ public class WorfCLI {
         }
 
         // deliver token
-        switch(tokenType) {
+        switch (tokenType) {
           case READ:
             readToken = keyMaster.deliverReadToken(appName, authorizedApplications, producerUID, authorizedProducersUID, authorizedOwnersUID, labels, ttl);
             break;
@@ -483,49 +513,29 @@ public class WorfCLI {
     return 0;
   }
 
-  private static int runInteractive(String warp10Configuration) throws WorfException {
-    WorfInteractive worfInteractive = new WorfInteractive();
-    PrintWriter out = worfInteractive.getPrintWriter();
-
-    // read warp10 configuration
-    consolePrintln("Reading warp10 configuration " + warp10Configuration, out);
-    Properties config = Worf.readConfig(warp10Configuration, out);
-
-    if (null == config) {
-      consolePrintln("Unable to read warp10 configuration.", out);
-      return -1;
-    }
-
-    if (WorfTemplate.isTemplate(config)) {
-      warp10Configuration = worfInteractive.runTemplate(config, warp10Configuration);
-      // reload config
-      config = Worf.readConfig(warp10Configuration, out);
-    }
-    // get Default values
-    Properties worfConfig = Worf.readDefault(warp10Configuration, out);
-    worfInteractive.run(config, worfConfig);
-
-    return 0;
-  }
-
-
   private void help() {
     // This prints out some help
     HelpFormatter formatter = new HelpFormatter();
 
     String header = "DESCRIPTION";
     String footer = " \n \nCOPYRIGHT\nCopyright © 2018 SenX S.A.S.\n Licensed under the Apache License, Version 2.0 (the \"License\")\n" +
-        "you may not use this file except in compliance with the License.\n" +
-        "You may obtain a copy of the License at\n" +
-        "http://www.apache.org/licenses/LICENSE-2.0";
+            "you may not use this file except in compliance with the License.\n" +
+            "You may obtain a copy of the License at\n" +
+            "http://www.apache.org/licenses/LICENSE-2.0";
 
-    formatter.printHelp("worf [OPTION] SOURCE_CONFIG [-o OUTPUT_CONFIG]", header,  options, footer, false);
+    formatter.printHelp("worf [OPTION] SOURCE_CONFIG [-o OUTPUT_CONFIG]", header, options, footer, false);
     System.exit(0);
   }
 
   private void version(PrintWriter out) {
     out.println("Warp 10 revision " + Revision.REVISION);
     System.exit(0);
+  }
+
+  public enum WorfTokenType {
+    READ,
+    WRITE,
+    READ_WRITE
   }
 }
 
