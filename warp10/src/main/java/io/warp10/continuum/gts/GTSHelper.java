@@ -1514,6 +1514,9 @@ public class GTSHelper {
     // Extract values/locations/elevations that lie in the requested interval
     //
     
+    int count = lastidx - firstidx + 1;
+    GTSHelper.multiProvision(subgts, gts.type, count, count);
+    
     for (int i = firstidx; i <= lastidx; i++) {
       if (gts.ticks[i] >= starttimestamp && gts.ticks[i] <= stoptimestamp) {
         setValue(subgts, gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, valueAtIndex(gts, i), overwrite);
@@ -7390,6 +7393,11 @@ public class GTSHelper {
    * @return A new GeoTimeSerie instance which is a subset of the input GTS with only those ticks which fall between start and end (both inclusive).
    */
   public static GeoTimeSerie timeclip(GeoTimeSerie gts, long start, long end) {
+    
+    if (gts.sorted) {
+      return subSerie(gts, start, end, false);
+    }
+    
     GeoTimeSerie clipped = gts.cloneEmpty();
     
     for (int idx = 0; idx < gts.values; idx++) {
