@@ -4383,6 +4383,17 @@ public class GTSHelper {
       step = 1;
     }
 
+    //
+    // Limit pre/post windows to Integer.MAX_VALUE
+    // as this is as many indices we may have at most in a GTS
+    //
+    
+    if (prewindow > 0 && prewindow > Integer.MAX_VALUE) {
+      prewindow = Integer.MAX_VALUE;
+    }
+    if (postwindow > 0 && postwindow > Integer.MAX_VALUE) {
+      postwindow = Integer.MAX_VALUE;
+    }
     List<GeoTimeSerie> results = new ArrayList<GeoTimeSerie>();
 
     //
