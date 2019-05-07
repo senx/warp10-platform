@@ -1436,7 +1436,7 @@ public class GTSHelper {
     //
     
     if (null == subgts) {
-      subgts = new GeoTimeSerie();
+      subgts = new GeoTimeSerie(gts.sizehint);
       //
       // Copy name and labels
       //
