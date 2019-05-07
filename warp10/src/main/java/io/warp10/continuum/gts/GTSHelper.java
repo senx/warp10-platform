@@ -1435,9 +1435,8 @@ public class GTSHelper {
     // Create sub GTS
     //
     
-    // The size hint impacts performance, choose it wisely...
     if (null == subgts) {
-      subgts = new GeoTimeSerie(128);
+      subgts = new GeoTimeSerie(gts.sizehint);
       //
       // Copy name and labels
       //
@@ -1482,7 +1481,7 @@ public class GTSHelper {
       // We found the stop timestamp, we now must find the last occurrence of
       // it in case there are duplicates
       int lastlastidx = lastidx + 1;
-      while(lastlastidx < gts.ticks.length && stoptimestamp == gts.ticks[lastlastidx]) {
+      while(lastlastidx < gts.values && stoptimestamp == gts.ticks[lastlastidx]) {
         lastlastidx++;
       }
       
@@ -1493,6 +1492,11 @@ public class GTSHelper {
     
     if (firstidx < 0) {
       firstidx = -firstidx - 1;
+
+      // Start after the last tick of the GTS
+      if (firstidx >= gts.values) {
+        return subgts;
+      }
     } else if (firstidx > 0) {
       // We found the start timestamp, we now must find the first occurrence of it
       // in case there are duplicates
@@ -1504,23 +1508,18 @@ public class GTSHelper {
       
       firstidx = firstfirstidx + 1;
     }
-    
-    if (firstidx >= gts.values) {
-      return subgts;
-    }
         
     
     //
     // Extract values/locations/elevations that lie in the requested interval
     //
-    
+
+    // We know how many data will the new GTS so we provision arrays to receive the data.
     int count = lastidx - firstidx + 1;
     GTSHelper.multiProvision(subgts, gts.type, count, count);
     
     for (int i = firstidx; i <= lastidx; i++) {
-      if (gts.ticks[i] >= starttimestamp && gts.ticks[i] <= stoptimestamp) {
-        setValue(subgts, gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, valueAtIndex(gts, i), overwrite);
-      }
+      setValue(subgts, gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, valueAtIndex(gts, i), overwrite);
     }
 
     return subgts;
@@ -7404,26 +7403,20 @@ public class GTSHelper {
    * @return A new GeoTimeSerie instance which is a subset of the input GTS with only those ticks which fall between start and end (both inclusive).
    */
   public static GeoTimeSerie timeclip(GeoTimeSerie gts, long start, long end) {
-    
+    // If the GTS is sorted, use subSerie which is vastly faster
     if (gts.sorted) {
       return subSerie(gts, start, end, false);
     }
-    
+
+    // GTS is not sorted, scan the GTS and add tick in [start;end] to an empty GTS
     GeoTimeSerie clipped = gts.cloneEmpty();
-    
+
     for (int idx = 0; idx < gts.values; idx++) {
       long ts = GTSHelper.tickAtIndex(gts, idx);
-      
-      if (ts < start || ts > end) {
-        if (gts.sorted) {
-          if ((gts.reversed && ts < start) || (!gts.reversed && ts > end)) {
-            break;
-          }
-        }
-        continue;     
+
+      if (ts >= start && ts <= end) {
+        GTSHelper.setValue(clipped, ts, GTSHelper.locationAtIndex(gts, idx), GTSHelper.elevationAtIndex(gts, idx), GTSHelper.valueAtIndex(gts, idx), false);
       }
-      
-      GTSHelper.setValue(clipped, ts, GTSHelper.locationAtIndex(gts, idx), GTSHelper.elevationAtIndex(gts, idx), GTSHelper.valueAtIndex(gts, idx), false);
     }
     
     return clipped;
