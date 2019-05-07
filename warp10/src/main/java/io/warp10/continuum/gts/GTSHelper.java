@@ -1481,7 +1481,7 @@ public class GTSHelper {
       // We found the stop timestamp, we now must find the last occurrence of
       // it in case there are duplicates
       int lastlastidx = lastidx + 1;
-      while(lastlastidx < gts.ticks.length && stoptimestamp == gts.ticks[lastlastidx]) {
+      while(lastlastidx < gts.values && stoptimestamp == gts.ticks[lastlastidx]) {
         lastlastidx++;
       }
       
