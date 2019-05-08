@@ -554,6 +554,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new DEFINED("DEFINED"));
     addNamedWarpScriptFunction(new REDEFS("REDEFS"));
     addNamedWarpScriptFunction(new DEFINEDMACRO("DEFINEDMACRO"));
+    addNamedWarpScriptFunction(new DEFINEDMACRO("CHECKMACRO", true));
     addNamedWarpScriptFunction(new NaN("NaN"));
     addNamedWarpScriptFunction(new ISNaN("ISNaN"));
     addNamedWarpScriptFunction(new TYPEOF("TYPEOF"));
@@ -954,6 +955,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new COMMONTICKS("COMMONTICKS"));
     addNamedWarpScriptFunction(new WRAP("WRAP"));
     addNamedWarpScriptFunction(new WRAPRAW("WRAPRAW"));
+    addNamedWarpScriptFunction(new WRAPRAW("WRAPFAST", false, false));
     addNamedWarpScriptFunction(new WRAP("WRAPOPT", true));
     addNamedWarpScriptFunction(new WRAPRAW("WRAPRAWOPT", true));
     addNamedWarpScriptFunction(new UNWRAP(UNWRAP));
