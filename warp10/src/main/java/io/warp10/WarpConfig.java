@@ -95,11 +95,13 @@ public class WarpConfig {
       while(!filenames.isEmpty()) {
         String file = filenames.remove(0);
         
+        boolean atfile = '@' == file.charAt(0);
+        
         // Read content of file
-        List<String> lines = Files.readLines(new File(file), Charsets.UTF_8);
+        List<String> lines = Files.readLines(new File(atfile ? file.substring(1) : file), Charsets.UTF_8);
 
         // If 'file' starts with '@', add the lines as filenames
-        if ('@' == file.charAt(0)) {
+        if (atfile) {
           filenames.addAll(0, lines);
         } else {
           for (String line: lines) {
