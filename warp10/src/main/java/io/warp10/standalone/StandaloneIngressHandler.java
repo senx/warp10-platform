@@ -106,8 +106,12 @@ public class StandaloneIngressHandler extends AbstractHandler {
   private final byte[] datalogPSK;
 
   private final long[] classKeyLongs;
+  private final long ckl0;
+  private final long ckl1;
   private final long[] labelsKeyLongs;
-    
+  private final long lkl0;
+  private final long lkl1;
+  
   private final boolean datalogSync;
   
   private final File loggingDir;
@@ -131,9 +135,13 @@ public class StandaloneIngressHandler extends AbstractHandler {
     
     this.classKey = this.keyStore.getKey(KeyStore.SIPHASH_CLASS);
     this.classKeyLongs = SipHashInline.getKey(this.classKey);
+    this.ckl0 = this.classKeyLongs[0];
+    this.ckl1 = this.classKeyLongs[1];
     
     this.labelsKey = this.keyStore.getKey(KeyStore.SIPHASH_LABELS);
     this.labelsKeyLongs = SipHashInline.getKey(this.labelsKey);
+    this.lkl0 = this.labelsKeyLongs[0];
+    this.lkl1 = this.labelsKeyLongs[1];
     
     updateActivity = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_ACTIVITY_UPDATE));
     metaActivity = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_ACTIVITY_META));
@@ -540,8 +548,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
             if (null != lastencoder) {
               
               // 128BITS
-              lastencoder.setClassId(GTSHelper.classId(classKeyLongs, lastencoder.getName()));
-              lastencoder.setLabelsId(GTSHelper.labelsId(labelsKeyLongs, lastencoder.getMetadata().getLabels()));
+              lastencoder.setClassId(GTSHelper.classId(ckl0, ckl1, lastencoder.getName()));
+              lastencoder.setLabelsId(GTSHelper.labelsId(lkl0, lkl1, lastencoder.getMetadata().getLabels()));
 
               ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
               ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
@@ -608,8 +616,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
         
         if (null != lastencoder && lastencoder.size() > 0) {
           // 128BITS
-          lastencoder.setClassId(GTSHelper.classId(classKeyLongs, lastencoder.getName()));
-          lastencoder.setLabelsId(GTSHelper.labelsId(labelsKeyLongs, lastencoder.getMetadata().getLabels()));
+          lastencoder.setClassId(GTSHelper.classId(ckl0, ckl1, lastencoder.getName()));
+          lastencoder.setLabelsId(GTSHelper.labelsId(lkl0, lkl1, lastencoder.getMetadata().getLabels()));
                   
           ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
           ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
