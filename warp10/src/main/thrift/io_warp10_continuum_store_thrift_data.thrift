@@ -125,6 +125,11 @@ struct KafkaDataMessage {
    * Optional metadata
    */
   9: optional Metadata metadata,
+  
+  /**
+   * Message attributes, placeholder to store K/V.
+   */
+  10: optional map<string,string> attributes,
 }
 
 /**
