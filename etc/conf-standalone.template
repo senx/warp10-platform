@@ -971,6 +971,8 @@ runner.minperiod = 1000
 #http.period = 60000
 // Size of the queue to use for the Jetty thread pool. By default no queue is used
 #http.queuesize = 8
+// Set to false to disable support for gzipped responses
+#http.gzip = false
 
 //
 // UDP Plugin
