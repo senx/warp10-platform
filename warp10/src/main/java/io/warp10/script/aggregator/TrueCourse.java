@@ -48,46 +48,11 @@ public class TrueCourse extends NamedWarpScriptFunction implements WarpScriptAgg
     final long[] ticks = (long[]) args[3];
     long[] locations = (long[]) args[4];
     long[] elevations = (long[]) args[5];
-    
+
     if (0 == ticks.length) {
       return new Object[] { Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null };
     }
 
-    //
-    // We need to sort indices from oldest tick to most recent
-    //
-    
-    Integer[] idx = new Integer[ticks.length];
-    
-    long location = GeoTimeSerie.NO_LOCATION;
-    long elevation = GeoTimeSerie.NO_ELEVATION;
-    
-    for (int i = 0; i < idx.length; i++) {
-      idx[i] = i;
-      if (tick == ticks[i]) {
-        location = locations[i];
-        elevation = elevations[i];
-      }
-    }
-    
-    Arrays.sort(idx, new Comparator<Integer>() {
-      @Override
-      public int compare(Integer o1, Integer o2) {
-        if (ticks[o1] < ticks[o2]) {
-          return -1;
-        } else if (ticks[o1] > ticks[o2]) {
-          return 1;
-        } else {
-          return 0;
-        }
-      }
-    });
-
-    //
-    // The idx array now contains the indices in the order
-    // of increasing ticks.
-    //
-    
     //
     // Return null if extrema do not have a location
     //
@@ -97,6 +62,7 @@ public class TrueCourse extends NamedWarpScriptFunction implements WarpScriptAgg
     }
     
     //
+    // The GTS is considered sorted. It is the case for MAP, REDUCE and BUCKETIZE.
     // Extract lat/lon
     //
 
@@ -124,6 +90,21 @@ public class TrueCourse extends NamedWarpScriptFunction implements WarpScriptAgg
   
     // Convert to degrees
     tc = Math.toDegrees(tc);
+
+    //
+    // Determine location/elevation at 'tick' if known
+    //
+
+    long location = GeoTimeSerie.NO_LOCATION;
+    long elevation = GeoTimeSerie.NO_ELEVATION;
+
+    for (int i = 0; i < ticks.length; i++) {
+      if (tick == ticks[i]) {
+        location = locations[i];
+        elevation = elevations[i];
+        break;
+      }
+    }
     
     return new Object[] { tick, location, elevation, tc };
   }

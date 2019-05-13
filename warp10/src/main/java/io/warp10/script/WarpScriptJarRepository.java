@@ -139,17 +139,19 @@ public class WarpScriptJarRepository extends Thread {
             in.close();
             
             String hash = new String(Hex.encode(md.digest()), Charsets.US_ASCII);
-              
-            if (classLoadersFingerprints.containsValue(hash) && !newClassLoadersFingerprints.containsValue(hash)) {
-              // Reuse existing class loader, so we keep the created objects
-              for (Entry<ClassLoader,String> entry: classLoadersFingerprints.entrySet()) {
-                if (entry.getValue().equals(hash)) {
-                  newClassLoadersFingerprints.put(entry.getKey(), entry.getValue());
+
+            if(!newClassLoadersFingerprints.containsValue(hash)) {
+              if (classLoadersFingerprints.containsValue(hash)) {
+                // Reuse existing class loader, so we keep the created objects
+                for (Entry<ClassLoader, String> entry: classLoadersFingerprints.entrySet()) {
+                  if (entry.getValue().equals(hash)) {
+                    newClassLoadersFingerprints.put(entry.getKey(), entry.getValue());
+                  }
                 }
+              } else {
+                ClassLoader parentCL = this.getClass().getClassLoader();
+                newClassLoadersFingerprints.put(new WarpClassLoader(file.getCanonicalPath(), parentCL), hash);
               }
-            } else if (!newClassLoadersFingerprints.containsKey(hash)){
-              ClassLoader parentCL = this.getClass().getClassLoader();
-              newClassLoadersFingerprints.put(new WarpClassLoader(file.getCanonicalPath(), parentCL), hash);
             }
           }  
         } catch (NoSuchAlgorithmException nsae) {

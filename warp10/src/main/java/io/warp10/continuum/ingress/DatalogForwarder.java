@@ -15,19 +15,6 @@
 //
 package io.warp10.continuum.ingress;
 
-import io.warp10.SortedPathIterator;
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.Tokens;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.thrift.data.DatalogRequest;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.KeyStore;
-import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.quasar.token.thrift.data.WriteToken;
-import io.warp10.script.WarpScriptException;
-import io.warp10.sensision.Sensision;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -48,7 +35,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.LockSupport;
 import java.util.zip.GZIPOutputStream;
 
@@ -59,6 +45,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
+
+import io.warp10.SortedPathIterator;
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.Tokens;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.thrift.data.DatalogRequest;
+import io.warp10.crypto.CryptoUtils;
+import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.quasar.token.thrift.data.WriteToken;
+import io.warp10.script.WarpScriptException;
+import io.warp10.sensision.Sensision;
 
 /**
  * Forward UPDATA/META/DELETE requests to another Warp 10 instance

@@ -16,37 +16,25 @@
 
 package io.warp10.script.functions;
 
-import java.util.Collection;
-
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpFleetMacroRepository;
+import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStackFunction;
 
 /**
- * Checks if a list contains an element
+ * Enable WarpFleet™ Resolver
  */
-public class CONTAINS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class WFON extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public CONTAINS(String name) {
+  public WFON(String name) {
     super(name);
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object elt = stack.pop();    
-    Object coll = stack.peek();
-
-    if (coll instanceof Collection) {
-      stack.push(((Collection) coll).contains(elt));      
-    } else if (coll instanceof String) {
-      stack.pop();
-      stack.push(coll.toString().contains(elt.toString()));
-    } else {
-      throw new WarpScriptException(getName() + " operates on a list, set or STRING.");
-    }
-    
-
+    stack.setAttribute(WarpFleetMacroRepository.ATTRIBUTE_WARPFLEET_DISABLE, null);
     return stack;
   }
+
 }

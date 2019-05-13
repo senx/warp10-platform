@@ -49,8 +49,7 @@ import io.warp10.continuum.gts.LOCATIONOFFSET;
 import io.warp10.continuum.gts.ZIP;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.aggregator.And;
-import io.warp10.script.aggregator.Argmax;
-import io.warp10.script.aggregator.Argmin;
+import io.warp10.script.aggregator.Argminmax;
 import io.warp10.script.aggregator.CircularMean;
 import io.warp10.script.aggregator.Count;
 import io.warp10.script.aggregator.Delta;
@@ -248,6 +247,7 @@ import io.warp10.script.processing.image.PnoTint;
 import io.warp10.script.processing.image.Ppixels;
 import io.warp10.script.processing.image.Pset;
 import io.warp10.script.processing.image.Ptint;
+import io.warp10.script.processing.image.PtoImage;
 import io.warp10.script.processing.image.PupdatePixels;
 import io.warp10.script.processing.math.Pconstrain;
 import io.warp10.script.processing.math.Pdist;
@@ -554,6 +554,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new DEFINED("DEFINED"));
     addNamedWarpScriptFunction(new REDEFS("REDEFS"));
     addNamedWarpScriptFunction(new DEFINEDMACRO("DEFINEDMACRO"));
+    addNamedWarpScriptFunction(new DEFINEDMACRO("CHECKMACRO", true));
     addNamedWarpScriptFunction(new NaN("NaN"));
     addNamedWarpScriptFunction(new ISNaN("ISNaN"));
     addNamedWarpScriptFunction(new TYPEOF("TYPEOF"));
@@ -634,6 +635,10 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new REF(REF));
 
     addNamedWarpScriptFunction(new MACROTTL("MACROTTL"));
+    addNamedWarpScriptFunction(new WFON("WFON"));
+    addNamedWarpScriptFunction(new WFOFF("WFOFF"));
+    addNamedWarpScriptFunction(new SETMACROCONFIG("SETMACROCONFIG"));
+    addNamedWarpScriptFunction(new MACROCONFIGSECRET("MACROCONFIGSECRET"));
     addNamedWarpScriptFunction(new MACROCONFIG("MACROCONFIG", false));
     addNamedWarpScriptFunction(new MACROCONFIG("MACROCONFIGDEFAULT", true));
     addNamedWarpScriptFunction(new MACROMAPPER("MACROMAPPER"));
@@ -700,6 +705,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FROMBIN("FROMBIN"));
     addNamedWarpScriptFunction(new TOBITS("TOBITS", false));
     addNamedWarpScriptFunction(new FROMBITS("FROMBITS", false));
+    addNamedWarpScriptFunction(new TOLONGBYTES("->LONGBYTES"));
     addNamedWarpScriptFunction(new TOBITS("->DOUBLEBITS", false));
     addNamedWarpScriptFunction(new FROMBITS("DOUBLEBITS->", false));
     addNamedWarpScriptFunction(new TOBITS("->FLOATBITS", true));
@@ -949,6 +955,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new COMMONTICKS("COMMONTICKS"));
     addNamedWarpScriptFunction(new WRAP("WRAP"));
     addNamedWarpScriptFunction(new WRAPRAW("WRAPRAW"));
+    addNamedWarpScriptFunction(new WRAPRAW("WRAPFAST", false, false));
     addNamedWarpScriptFunction(new WRAP("WRAPOPT", true));
     addNamedWarpScriptFunction(new WRAPRAW("WRAPRAWOPT", true));
     addNamedWarpScriptFunction(new UNWRAP(UNWRAP));
@@ -1240,9 +1247,9 @@ public class WarpScriptLib {
     //
     // Processing
     //
-    
+
     addNamedWarpScriptFunction(new Pencode("Pencode"));
-    
+
     // Structure
     
     addNamedWarpScriptFunction(new PpushStyle("PpushStyle"));
@@ -1339,6 +1346,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new PnoTint("PnoTint"));
     addNamedWarpScriptFunction(new Ppixels("Ppixels"));
     addNamedWarpScriptFunction(new PupdatePixels("PupdatePixels"));
+    addNamedWarpScriptFunction(new PtoImage("PtoImage"));
     
     // TODO(hbs): support texture related functions?
     
@@ -1498,8 +1506,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Variance.Builder("reducer.var.forbid-nulls", false));
     addNamedWarpScriptFunction(new StandardDeviation.Builder("reducer.sd", false));
     addNamedWarpScriptFunction(new StandardDeviation.Builder("reducer.sd.forbid-nulls", false));
-    addNamedWarpScriptFunction(new Argmin.Builder("reducer.argmin"));
-    addNamedWarpScriptFunction(new Argmax.Builder("reducer.argmax"));
+    addNamedWarpScriptFunction(new Argminmax.Builder("reducer.argmin", true));
+    addNamedWarpScriptFunction(new Argminmax.Builder("reducer.argmax", false));
     addNamedWarpScriptFunction(new MapperProduct("reducer.product"));
     addNamedWarpScriptFunction(new Count("reducer.count", false));
     addNamedWarpScriptFunction(new Count("reducer.count.include-nulls", false));

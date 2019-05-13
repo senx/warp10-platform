@@ -26,8 +26,16 @@ import io.warp10.script.WarpScriptStack;
  */
 public class DEFINEDMACRO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
+  private final boolean fail;
+  
   public DEFINEDMACRO(String name) {
     super(name);
+    this.fail = false;
+  }
+  
+  public DEFINEDMACRO(String name, boolean fail) {
+    super(name);
+    this.fail = fail;
   }
   
   @Override
@@ -40,8 +48,13 @@ public class DEFINEDMACRO extends NamedWarpScriptFunction implements WarpScriptS
     
     try {
       stack.find(o.toString());
-      stack.push(true);
+      if (!this.fail) {
+        stack.push(true);
+      }
     } catch (WarpScriptException wse) {
+      if (this.fail) {
+        throw new WarpScriptException(getName() + " macro '" + o.toString() + "' could not be loaded.");
+      }
       stack.push(false);
     }
     

@@ -45,12 +45,9 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
   
   private static final String SECRET;
   
-  private static final Properties properties;
-  
   static {
-    properties = WarpConfig.getProperties();
     String defaultSecret = UUID.randomUUID().toString();
-    SECRET = properties.getProperty(Configuration.WARP10_REPORT_SECRET, defaultSecret);
+    SECRET = WarpConfig.getProperty(Configuration.WARP10_REPORT_SECRET, defaultSecret);
     
     if (defaultSecret.equals(SECRET)) {
       LOG.info("REPORT secret not set, using '" + defaultSecret + "'.");
@@ -117,6 +114,8 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
       }
       
       sb.append("\n[config]\n");
+
+      Properties properties = WarpConfig.getProperties();
       
       for (Entry<Object,Object> entry: properties.entrySet()) {
         String key = entry.getKey().toString();

@@ -44,8 +44,26 @@ public class TOLONG extends NamedWarpScriptFunction implements WarpScriptStackFu
       }
     } else if (op instanceof String) {
       stack.push(Long.decode(op.toString().trim()));
+    } else if (op instanceof byte[]) {
+      byte[] bytes = (byte[]) op;
+      if (bytes.length > 8) {
+        throw new WarpScriptException(getName() + " can only operate on byte arrays from 1 to 8 bytes.");
+      }
+      
+      long v = 0L;
+      
+      for (byte b: bytes) {
+        v <<= 8;
+        v |= ((long) b) & 0xFFL;
+      }
+      
+      // Now shift left then right again so we have the correct sign
+      v <<= 64 - (8 * bytes.length);
+      v >>= 64 - (8 * bytes.length);
+      
+      stack.push(v);
     } else {
-      throw new WarpScriptException(getName() + " can only operate on numeric, boolean or string values.");
+      throw new WarpScriptException(getName() + " can only operate on numeric, boolean, byte array or string values.");
     }
     
     return stack;

@@ -70,7 +70,12 @@ public class WarpFleetMacroRepository {
   };
   
   private static final String ATTRIBUTE_WARPFLEET_REPOS = "warpfleet.repos";
-
+  
+  /**
+   * Stack attribute to disable WarpFleet resolution
+   */
+  public static final String ATTRIBUTE_WARPFLEET_DISABLE = "warpfleet.disable";
+  
   /**
    * Default macro TTL in ms
    */
@@ -126,6 +131,11 @@ public class WarpFleetMacroRepository {
       return null;
     }
 
+    // Do not attempt to fetch macros remotely if the stack was instructed not to
+    if (Boolean.TRUE.equals(callingStack.getAttribute(WarpFleetMacroRepository.ATTRIBUTE_WARPFLEET_DISABLE))) {
+      return null;
+    }
+    
     // Reject names with relative path components in them
     if (name.contains("/../") || name.contains("/./") || name.startsWith("../") || name.startsWith("./")) {
       return null;

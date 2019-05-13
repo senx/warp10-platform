@@ -38,15 +38,15 @@ public class STL extends GTSStackFunction {
   //
   // Mandatory parameter
   //
-  
-  private static final String PERIOD_PARAM = "PERIOD";
+
+  public static final String PERIOD_PARAM = "PERIOD";
   
   //
   // Optional parameters
   //
-  
-  private static final String PRECISION_PARAM = "PRECISION";
-  private static final String ROBUSTNESS_PARAM = "ROBUSTNESS";
+
+  public static final String PRECISION_PARAM = "PRECISION";
+  public static final String ROBUSTNESS_PARAM = "ROBUSTNESS";
 
   //
   // High Level optional parameter
@@ -54,27 +54,27 @@ public class STL extends GTSStackFunction {
   // if false, set PRECISION to 2, ROBUSTNESS to 0
   //
 
-  private static final String ROBUST_PARAM = "ROBUST";
+  public static final String ROBUST_PARAM = "ROBUST";
   
   //
   // Optional lowess parameters
   //
-  
-  private static final String BANDWIDTH_S_PARAM = "BANDWIDTH_S";
-  private static final String DEGREE_S_PARAM = "DEGREE_S";
-  private static final String SPEED_S_PARAM = "SPEED_S";
-  
-  private static final String BANDWIDTH_L_PARAM = "BANDWIDTH_L";
-  private static final String DEGREE_L_PARAM = "DEGREE_L";
-  private static final String SPEED_L_PARAM = "SPEED_L";
-  
-  private static final String BANDWIDTH_T_PARAM = "BANDWIDTH_T";
-  private static final String DEGREE_T_PARAM = "DEGREE_T";
-  private static final String SPEED_T_PARAM = "SPEED_T";
-  
-  private static final String BANDWIDTH_P_PARAM = "BANDWIDTH_P";
-  private static final String DEGREE_P_PARAM = "DEGREE_P";
-  private static final String SPEED_P_PARAM = "SPEED_P";
+
+  public static final String BANDWIDTH_S_PARAM = "BANDWIDTH_S";
+  public static final String DEGREE_S_PARAM = "DEGREE_S";
+  public static final String SPEED_S_PARAM = "SPEED_S";
+
+  public static final String BANDWIDTH_L_PARAM = "BANDWIDTH_L";
+  public static final String DEGREE_L_PARAM = "DEGREE_L";
+  public static final String SPEED_L_PARAM = "SPEED_L";
+
+  public static final String BANDWIDTH_T_PARAM = "BANDWIDTH_T";
+  public static final String DEGREE_T_PARAM = "DEGREE_T";
+  public static final String SPEED_T_PARAM = "SPEED_T";
+
+  public static final String BANDWIDTH_P_PARAM = "BANDWIDTH_P";
+  public static final String DEGREE_P_PARAM = "DEGREE_P";
+  public static final String SPEED_P_PARAM = "SPEED_P";
     
   public STL(String name) {
     super(name);
@@ -165,7 +165,11 @@ public class STL extends GTSStackFunction {
   
   // This method is used for the default values of some parameters
   private int nextOdd(int a) {
-    return 1 == a / 2 ? a : a + 1;
+    if (a > 0) {
+      return 1 == a / 2 ? a : a + 1;
+    } else {
+      return 1;
+    }
   }
 
   @Override
@@ -183,7 +187,7 @@ public class STL extends GTSStackFunction {
     }
     
     // only buckets_per_period is mandatory
-    int buckets_per_period = (int) params.get(PERIOD_PARAM);
+    int buckets_per_period = ((Number) params.get(PERIOD_PARAM)).intValue();
 
     // If ROBUST_PARAM is not set, consider it false
     if (null == params.get(ROBUST_PARAM)) {
@@ -194,31 +198,95 @@ public class STL extends GTSStackFunction {
     int inner = (boolean) params.get(ROBUST_PARAM) ? 1 : 2;
     int outer = (boolean) params.get(ROBUST_PARAM) ? 15 : 0;
     if (null != params.get(PRECISION_PARAM)) {
-      inner = (int) params.get(PRECISION_PARAM);
+      inner = ((Number) params.get(PRECISION_PARAM)).intValue();
     }
     if (null != params.get(ROBUSTNESS_PARAM)) {
-      outer = (int) params.get(ROBUSTNESS_PARAM);
+      outer = ((Number) params.get(ROBUSTNESS_PARAM)).intValue();
     }
     
     // authors recommend ns to be odd and at least 7
-    int ns = null == params.get(BANDWIDTH_S_PARAM) ? 7 : (int) params.get(BANDWIDTH_S_PARAM);
-    int ds = null == params.get(DEGREE_S_PARAM) ? 1 : (int) params.get(DEGREE_S_PARAM);
-    int js = null == params.get(SPEED_S_PARAM) ? ns / 10 : (int) params.get(SPEED_S_PARAM);
+    int ns = null == params.get(BANDWIDTH_S_PARAM) ? 7 : ((Number) params.get(BANDWIDTH_S_PARAM)).intValue();
+    int ds = null == params.get(DEGREE_S_PARAM) ? 1 : ((Number) params.get(DEGREE_S_PARAM)).intValue();
+    int js = null == params.get(SPEED_S_PARAM) ? ns / 10 : ((Number) params.get(SPEED_S_PARAM)).intValue();
     
-    int nl = null == params.get(BANDWIDTH_L_PARAM) ? nextOdd(buckets_per_period) : (int) params.get(BANDWIDTH_L_PARAM);
-    int dl = null == params.get(DEGREE_L_PARAM) ? 1 : (int) params.get(DEGREE_L_PARAM);
-    int jl = null == params.get(SPEED_L_PARAM) ? nl / 10 : (int) params.get(SPEED_L_PARAM);
+    int nl = null == params.get(BANDWIDTH_L_PARAM) ? nextOdd(buckets_per_period) : ((Number) params.get(BANDWIDTH_L_PARAM)).intValue();
+    int dl = null == params.get(DEGREE_L_PARAM) ? 1 : ((Number) params.get(DEGREE_L_PARAM)).intValue();
+    int jl = null == params.get(SPEED_L_PARAM) ? nl / 10 : ((Number) params.get(SPEED_L_PARAM)).intValue();
     
     int value = (int) Math.ceil(1.5 * buckets_per_period / (1 - (1.5 / ns)));
     
-    int nt = null == params.get(BANDWIDTH_T_PARAM) ? nextOdd(value) : (int) params.get(BANDWIDTH_T_PARAM);
-    int dt = null == params.get(DEGREE_T_PARAM) ? 1 : (int) params.get(DEGREE_T_PARAM);
-    int jt = null == params.get(SPEED_T_PARAM) ? nt / 10 : (int) params.get(SPEED_T_PARAM);
+    int nt = null == params.get(BANDWIDTH_T_PARAM) ? nextOdd(value) : ((Number) params.get(BANDWIDTH_T_PARAM)).intValue();
+    int dt = null == params.get(DEGREE_T_PARAM) ? 1 : ((Number) params.get(DEGREE_T_PARAM)).intValue();
+    int jt = null == params.get(SPEED_T_PARAM) ? nt / 10 : ((Number) params.get(SPEED_T_PARAM)).intValue();
     
     // default is no post seasonal smoothing
-    int np = null == params.get(BANDWIDTH_P_PARAM) ? 0 : (int) params.get(BANDWIDTH_P_PARAM);
-    int dp = null == params.get(DEGREE_P_PARAM) ? 2 : (int) params.get(DEGREE_P_PARAM);
-    int jp = null == params.get(SPEED_P_PARAM) ? np / 10 : (int) params.get(SPEED_P_PARAM);
+    int np = null == params.get(BANDWIDTH_P_PARAM) ? 0 : ((Number) params.get(BANDWIDTH_P_PARAM)).intValue();
+    int dp = null == params.get(DEGREE_P_PARAM) ? 2 : ((Number) params.get(DEGREE_P_PARAM)).intValue();
+    int jp = null == params.get(SPEED_P_PARAM) ? np / 10 : ((Number) params.get(SPEED_P_PARAM)).intValue();
+
+    //
+    // Sanity check on arguments
+    //
+
+    if (buckets_per_period < 2) {
+      throw new WarpScriptException("Seasonal periods must be composed by at least 2 buckets.");
+    }
+
+    if (inner < 1) {
+      throw new WarpScriptException(PRECISION_PARAM + " must be positive.");
+    }
+
+    if (outer < 0) {
+      throw new WarpScriptException(ROBUSTNESS_PARAM + " can not be negative.");
+    }
+
+    if (0 == ns) {
+      throw new WarpScriptException(BANDWIDTH_S_PARAM + " can not be equal to zero.");
+    }
+
+    if (ds < 0) {
+      throw new WarpScriptException(DEGREE_S_PARAM + " can not be negative.");
+    }
+
+    if (js < 0) {
+      throw new WarpScriptException(SPEED_S_PARAM + " can not be negative.");
+    }
+
+    if (nl < 0) {
+      throw new WarpScriptException(BANDWIDTH_L_PARAM + " can not be negative..");
+    }
+
+    if (dl < 0) {
+      throw new WarpScriptException(DEGREE_L_PARAM + " can not be negative.");
+    }
+
+    if (jl < 0) {
+      throw new WarpScriptException(SPEED_L_PARAM + " can not be negative.");
+    }
+
+    if (nt < 0) {
+      throw new WarpScriptException(BANDWIDTH_T_PARAM + " can not be negative..");
+    }
+
+    if (dt < 0) {
+      throw new WarpScriptException(DEGREE_T_PARAM + " can not be negative.");
+    }
+
+    if (jt < 0) {
+      throw new WarpScriptException(SPEED_T_PARAM + " can not be negative.");
+    }
+
+    if (np < 0) {
+      throw new WarpScriptException(BANDWIDTH_P_PARAM + " can not be negative.");
+    }
+
+    if (dp < 0) {
+      throw new WarpScriptException(DEGREE_P_PARAM + " can not be negative.");
+    }
+
+    if (jp < 0) {
+      throw new WarpScriptException(SPEED_P_PARAM + " can not be negative.");
+    }
     
     //
     // Call STL

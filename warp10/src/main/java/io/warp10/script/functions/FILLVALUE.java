@@ -42,62 +42,63 @@ public class FILLVALUE extends NamedWarpScriptFunction implements WarpScriptStac
     Object top = stack.pop();
 
     if (!(top instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a list of parameters.");
+      throw new WarpScriptException(getName() + " expects a LIST of 4 parameters: latitude longitude elevation value.");
     }
-    
+
     List<Object> params = (List<Object>) top;
-    
+
     if(4 != params.size()) {
-      throw new WarpScriptException(getName() + " expects 4 parameters.");
+      throw new WarpScriptException(getName() + " expects a LIST of 4 parameters: latitude longitude elevation value.");
     }
-    
+
     double lat = (double) params.get(0);
     double lon = (double) params.get(1);
-    
+
     long location = GeoTimeSerie.NO_LOCATION;
     long elevation = GeoTimeSerie.NO_ELEVATION;
-    
+
     if (!((Double) params.get(0)).isNaN() && !((Double) params.get(1)).isNaN()) {
       location = GeoXPLib.toGeoXPPoint(lat, lon);
     }
-    
-    if (params.get(2) instanceof Double && ((Double) params.get(2)).isNaN()) {
-    } else {
+
+    if (!(params.get(2) instanceof Double && ((Double) params.get(2)).isNaN())) {
       elevation = (long) params.get(2);
     }
 
     Object value = params.get(3);
-    
-    top = stack.pop();
-    
-    if (!(top instanceof List)) {
-      throw new WarpScriptException(getName() + " operates on a list of Geo Time Series.");
-    }
-    
-    params = (List<Object>) top;
-    
-    List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
 
-    for (int i = 0; i < params.size(); i++) {      
-      if (params.get(i) instanceof GeoTimeSerie) {
-        series.add((GeoTimeSerie) params.get(i));
-      } else if (params.get(i) instanceof List) {
-        for (Object o: (List) params.get(i)) {
-          if (!(o instanceof GeoTimeSerie)) {
-            throw new WarpScriptException(getName() + " expects a list of geo time series as first parameter.");
+    top = stack.pop();
+
+    if (top instanceof List) {
+      List<Object> gtsList = (List<Object>) top;
+
+      List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
+
+      for (int i = 0; i < gtsList.size(); i++) {
+        if (gtsList.get(i) instanceof GeoTimeSerie) {
+          series.add((GeoTimeSerie) gtsList.get(i));
+        } else if (gtsList.get(i) instanceof List) {
+          for (Object o: (List) gtsList.get(i)) {
+            if (!(o instanceof GeoTimeSerie)) {
+              throw new WarpScriptException(getName() + " expects a LIST or a Geo Time Series™ as input.");
+            }
+            series.add((GeoTimeSerie) o);
           }
-          series.add((GeoTimeSerie) o);
-        }      
-      }      
+        }
+      }
+
+      List<GeoTimeSerie> result = new ArrayList<GeoTimeSerie>();
+
+      for (GeoTimeSerie gts: series) {
+        result.add(GTSHelper.fillvalue(gts, location, elevation, value));
+      }
+      stack.push(result);
+    } else if (top instanceof GeoTimeSerie) {
+      stack.push(GTSHelper.fillvalue((GeoTimeSerie) top, location, elevation, value));
+    } else {
+      throw new WarpScriptException(getName() + " expects a LIST or a Geo Time Series™ as input.");
     }
-    
-    List<GeoTimeSerie> result = new ArrayList<GeoTimeSerie>();
-    
-    for (GeoTimeSerie gts: series) {
-      result.add(GTSHelper.fillvalue(gts, location, elevation, value));
-    }
-    
-    stack.push(result);
+
     return stack;
   }
 }

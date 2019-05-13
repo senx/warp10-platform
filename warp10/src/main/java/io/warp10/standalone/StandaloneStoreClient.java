@@ -377,12 +377,12 @@ public class StandaloneStoreClient implements StoreClient {
       
       if (null == kvs || size.get() > MAX_ENCODER_SIZE) {
         
-        WriteOptions options = new WriteOptions().sync(1.0 == syncrate);
+        WriteOptions options = new WriteOptions().sync(null == kvs || 1.0 == syncrate);
         
-        if (syncwrites) {
+        if (syncwrites && !options.sync()) {
           options = new WriteOptions().sync(Math.random() < syncrate);
         }
-        
+
         this.db.write(batch, options);
         size.set(0L);
         perThreadWriteBatch.remove();
