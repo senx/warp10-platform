@@ -441,38 +441,40 @@ public class GTSHelper {
         // values.
         // As we are done we can increase i and j
         if (i <= j) {
-          long tmplong = gts.ticks[i];
-          gts.ticks[i] = gts.ticks[j];
-          gts.ticks[j] = tmplong;
-          
-          if (null != gts.locations) {
-            tmplong = gts.locations[i];
-            gts.locations[i] = gts.locations[j];
-            gts.locations[j] = tmplong;          
-          }
-          
-          if (null != gts.elevations) {
-            tmplong = gts.elevations[i];
-            gts.elevations[i] = gts.elevations[j];
-            gts.elevations[j] = tmplong;          
-          }
-          
-          if (TYPE.LONG == gts.type) {
-            tmplong = gts.longValues[i];
-            gts.longValues[i] = gts.longValues[j];
-            gts.longValues[j] = tmplong;          
-          } else if (TYPE.DOUBLE == gts.type) {
-            double tmpdouble = gts.doubleValues[i];
-            gts.doubleValues[i] = gts.doubleValues[j];
-            gts.doubleValues[j] = tmpdouble;
-          } else if (TYPE.STRING == gts.type) {
-            String tmpstring = gts.stringValues[i];
-            gts.stringValues[i] = gts.stringValues[j];
-            gts.stringValues[j] = tmpstring;
-          } else if (TYPE.BOOLEAN == gts.type) {
-            boolean tmpboolean = gts.booleanValues.get(i);
-            gts.booleanValues.set(i, gts.booleanValues.get(j));
-            gts.booleanValues.set(j, tmpboolean);
+          if (i != j) {
+            long tmplong = gts.ticks[i];
+            gts.ticks[i] = gts.ticks[j];
+            gts.ticks[j] = tmplong;
+            
+            if (null != gts.locations) {
+              tmplong = gts.locations[i];
+              gts.locations[i] = gts.locations[j];
+              gts.locations[j] = tmplong;          
+            }
+            
+            if (null != gts.elevations) {
+              tmplong = gts.elevations[i];
+              gts.elevations[i] = gts.elevations[j];
+              gts.elevations[j] = tmplong;          
+            }
+            
+            if (TYPE.LONG == gts.type) {
+              tmplong = gts.longValues[i];
+              gts.longValues[i] = gts.longValues[j];
+              gts.longValues[j] = tmplong;          
+            } else if (TYPE.DOUBLE == gts.type) {
+              double tmpdouble = gts.doubleValues[i];
+              gts.doubleValues[i] = gts.doubleValues[j];
+              gts.doubleValues[j] = tmpdouble;
+            } else if (TYPE.STRING == gts.type) {
+              String tmpstring = gts.stringValues[i];
+              gts.stringValues[i] = gts.stringValues[j];
+              gts.stringValues[j] = tmpstring;
+            } else if (TYPE.BOOLEAN == gts.type) {
+              boolean tmpboolean = gts.booleanValues.get(i);
+              gts.booleanValues.set(i, gts.booleanValues.get(j));
+              gts.booleanValues.set(j, tmpboolean);
+            }            
           }
 
           i++;
@@ -2652,24 +2654,28 @@ public class GTSHelper {
     //
     
     for (int i = 0; i < labels.size() - 1; i++) {
+      int ii = i << 1;
+      int iip = ii + 1;
       for (int j = i + 1; j < labels.size(); j++) {
-        if (hashes[i * 2] > hashes[j * 2]) {
+        int jj = j << 1;
+        int jjp = jj + 1;
+        if (hashes[ii] > hashes[jj]) {
           //
           // We need to swap name and value ids at i and j
           //
-          long tmp = hashes[j * 2];
-          hashes[j * 2] = hashes[i * 2];
-          hashes[i * 2] = tmp;
-          tmp = hashes[j * 2 + 1];
-          hashes[j * 2 + 1] = hashes[i * 2 + 1];
-          hashes[i * 2 + 1] = tmp;                    
-        } else if (hashes[i * 2] == hashes[j * 2] && hashes[i * 2 + 1] > hashes[j * 2 + 1]) {
+          long tmp = hashes[jj];
+          hashes[jj] = hashes[ii];
+          hashes[ii] = tmp;
+          tmp = hashes[jjp];
+          hashes[jjp] = hashes[iip];
+          hashes[iip] = tmp;                    
+        } else if (hashes[ii] == hashes[jj] && hashes[iip] > hashes[jjp]) {
           //
           // We need to swap value ids at i and j
           //
-          long tmp = hashes[j * 2 + 1];
-          hashes[j * 2 + 1] = hashes[i * 2 + 1];
-          hashes[i * 2 + 1] = tmp;
+          long tmp = hashes[jjp];
+          hashes[jjp] = hashes[iip];
+          hashes[iip] = tmp;
         }
       }
     }
@@ -2683,14 +2689,14 @@ public class GTSHelper {
     idx = 0;
     
     for (long hash: hashes) {
-      buf[idx++] = (byte) ((hash >> 56) & 0xff);
-      buf[idx++] = (byte) ((hash >> 48) & 0xff);
-      buf[idx++] = (byte) ((hash >> 40) & 0xff);
-      buf[idx++] = (byte) ((hash >> 32) & 0xff);
-      buf[idx++] = (byte) ((hash >> 24) & 0xff);
-      buf[idx++] = (byte) ((hash >> 16) & 0xff);
-      buf[idx++] = (byte) ((hash >> 8) & 0xff);
-      buf[idx++] = (byte) (hash & 0xff);
+      buf[idx++] = (byte) ((hash >> 56) & 0xffL);
+      buf[idx++] = (byte) ((hash >> 48) & 0xffL);
+      buf[idx++] = (byte) ((hash >> 40) & 0xffL);
+      buf[idx++] = (byte) ((hash >> 32) & 0xffL);
+      buf[idx++] = (byte) ((hash >> 24) & 0xffL);
+      buf[idx++] = (byte) ((hash >> 16) & 0xffL);
+      buf[idx++] = (byte) ((hash >> 8) & 0xffL);
+      buf[idx++] = (byte) (hash & 0xffL);
     }
     
     return SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, buf.length);
