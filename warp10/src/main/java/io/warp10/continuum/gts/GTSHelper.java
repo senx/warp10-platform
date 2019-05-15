@@ -4697,8 +4697,8 @@ public class GTSHelper {
       }
 
       if (mapResult instanceof Map) {
+        hasSingleResult = false;
         for (Entry<Object, Object> entry : ((Map<Object, Object>) mapResult).entrySet()) {
-          hasSingleResult = false;
           GeoTimeSerie mgts = multipleMapped.get(entry.getKey().toString());
           if (null == mgts) {
             mgts = mapped.cloneEmpty();
