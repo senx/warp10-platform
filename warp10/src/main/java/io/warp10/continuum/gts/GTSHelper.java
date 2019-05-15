@@ -4462,7 +4462,7 @@ public class GTSHelper {
 
     Map<String, GeoTimeSerie> multipleMapped = new TreeMap<String, GeoTimeSerie>();
 
-    boolean hasSingleResult = false;
+    boolean hasSingleResult = true;
 
     while (idx < nticks) {
 
@@ -4697,6 +4697,7 @@ public class GTSHelper {
       }
 
       if (mapResult instanceof Map) {
+        hasSingleResult = false;
         for (Entry<Object, Object> entry : ((Map<Object, Object>) mapResult).entrySet()) {
           GeoTimeSerie mgts = multipleMapped.get(entry.getKey().toString());
           if (null == mgts) {
@@ -4721,7 +4722,7 @@ public class GTSHelper {
         // Set value if it was not null. Don't overwrite, we scan ticks only once
         //
 
-        hasSingleResult = true;
+
 
         if (null != result[3]) {
           GTSHelper.setValue(mapped, overrideTick ? (long) result[0] : tick, (long) result[1], (long) result[2], result[3], false);
