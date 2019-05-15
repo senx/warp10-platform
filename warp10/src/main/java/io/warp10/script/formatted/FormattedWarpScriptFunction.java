@@ -138,25 +138,25 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     //
 
     if (null == args) {
-      throw new WarpScriptException(getClass().getCanonicalName() + "'s method getArguments() returned null. If no " +
+      throw new WarpScriptException(getClass().getSimpleName() + "'s method getArguments() returned null. If no " +
         "argument is expected, it should return an empty array instead.");
     }
 
     if (null == optArgs) {
-      throw new WarpScriptException(getClass().getCanonicalName() + "'s method getOptionalArguments() returned null." +
+      throw new WarpScriptException(getClass().getSimpleName() + "'s method getOptionalArguments() returned null." +
         " If no argument is expected, it should return an empty array instead.");
     }
 
     for (ArgumentSpecification arg: args) {
       if (arg.isOptional()) {
-        throw new WarpScriptException("Output of " + getClass().getCanonicalName() + "'s method getArguments() must" +
+        throw new WarpScriptException("Output of " + getClass().getSimpleName() + "'s method getArguments() must" +
           " only contain arguments without a default value.");
       }
     }
 
     for (ArgumentSpecification arg: optArgs) {
       if (!arg.isOptional()) {
-        throw new WarpScriptException("Output of " + getClass().getCanonicalName() + "'s method getArguments() must" +
+        throw new WarpScriptException("Output of " + getClass().getSimpleName() + "'s method getArguments() must" +
           " only contain arguments with a default value.");
       }
     }
@@ -173,7 +173,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     if (0 == args.size()) {
 
       if (0 == stack.depth() || !(stack.peek() instanceof Map)) {
-        throw new WarpScriptException(getClass().getCanonicalName() + " expects a MAP on top of the stack. To use default argument values, an empty MAP is expected.");
+        throw new WarpScriptException(getClass().getSimpleName() + " expects a MAP on top of the stack. To use default argument values, an empty MAP is expected.");
       }
     }
 
@@ -252,7 +252,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
 
         if (!arg.getClazz().isInstance(value)) {
 
-          throw new WarpScriptException(getClass().getCanonicalName() + " expects the argument '" + arg.getName() + "' to" +
+          throw new WarpScriptException(getClass().getSimpleName() + " expects the argument '" + arg.getName() + "' to" +
             " be a " + arg.WarpScriptType() + ".");
         }
       }
@@ -267,7 +267,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
 
         if (null != value && !arg.getClazz().isInstance(value)) {
 
-          throw new WarpScriptException(getClass().getCanonicalName() + " expects the argument '" + arg.getName() + "' to " +
+          throw new WarpScriptException(getClass().getSimpleName() + " expects the argument '" + arg.getName() + "' to " +
             "be a " + arg.WarpScriptType() + ".");
         }
       }
@@ -285,7 +285,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       //
 
       if (stack.depth() < args.size()) {
-        throw new WarpScriptException(getClass().getCanonicalName() + " expects to find " + args.size() + " arguments" +
+        throw new WarpScriptException(getClass().getSimpleName() + " expects to find " + args.size() + " arguments" +
           " off the top of the stack, but the stack contains only " + stack.depth() + " levels.");
       }
 
@@ -298,7 +298,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
         Object candidate = stack.get(i);
 
         if (!arg.getClazz().isInstance(candidate)) {
-          throw new WarpScriptException(getClass().getCanonicalName() + " expects to find a '" + arg.getName() + "' (a " +
+          throw new WarpScriptException(getClass().getSimpleName() + " expects to find a '" + arg.getName() + "' (a " +
             arg.WarpScriptType() + ") " + leveldenomination(i));
         }
       }
