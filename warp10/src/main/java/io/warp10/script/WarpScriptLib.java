@@ -903,6 +903,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new LTTB("TLTTB", true));
     addNamedWarpScriptFunction(new LOCATIONOFFSET("LOCATIONOFFSET"));
     addNamedWarpScriptFunction(new FLATTEN("FLATTEN"));
+    addNamedWarpScriptFunction(new RESHAPE("RESHAPE"));
+    addNamedWarpScriptFunction(new SHAPE("SHAPE"));
     addNamedWarpScriptFunction(new CORRELATE.Builder("CORRELATE"));
     addNamedWarpScriptFunction(new SORT("SORT"));
     addNamedWarpScriptFunction(new SORTBY("SORTBY"));
