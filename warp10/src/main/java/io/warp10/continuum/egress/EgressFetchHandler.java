@@ -1270,7 +1270,7 @@ public class EgressFetchHandler extends AbstractHandler {
     lastCount.set(currentCount);
   }
 
-  private static void jsonDump(PrintWriter pw, GTSDecoderIterator iter, long now, long timespan, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount) throws IOException {
+  static void jsonDump(PrintWriter pw, Iterator<GTSDecoder> iter, long now, long timespan, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount) throws IOException {
     
     String name = null;
     Map<String,String> labels = null;
@@ -1388,7 +1388,7 @@ public class EgressFetchHandler extends AbstractHandler {
           sb.append("\",\"la\":");
           sb.append(decoder.getMetadata().getLastActivity());
 
-          sb.append("\",\"v\":[");
+          sb.append(",\"v\":[");
         }
         
         long decoded = 0L;
