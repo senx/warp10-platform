@@ -269,8 +269,6 @@ public class EgressFetchHandler extends AbstractHandler {
           
           ISOPeriodFormat.standard().getParser().parseInto(period, timespanParam, 0, Locale.US);
 
-          System.out.println(period);
-          
           Period p = period.toPeriod();
           
           if (p.getMonths() != 0 || p.getYears() != 0) {
@@ -1387,7 +1385,7 @@ public class EgressFetchHandler extends AbstractHandler {
           sb.append("}");
           sb.append(",\"i\":\"");
           sb.append(decoder.getLabelsId() & mask);
-          sb.append(",\"la\":");
+          sb.append("\",\"la\":");
           sb.append(decoder.getMetadata().getLastActivity());
 
           sb.append("\",\"v\":[");
