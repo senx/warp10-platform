@@ -158,9 +158,9 @@ class TestWriteToken extends TokenTestCase {
         String uuid = UUID.randomUUID().toString()
         String writeToken = tokenEncoder.deliverWriteToken("app", uuid, 32478, getKeyStore())
 
-        // corrupt the token (pick a random character and increment it)
+        // corrupt the token (pick a random character and decrement it)
         char c1 = writeToken.charAt(new Random().nextInt(60))
-        char c2 = c1 + 1
+        char c2 = c1 - 1
         writeToken = writeToken.replace(c1, c2)
 
         QuasarTokenFilter tokenFilter = new QuasarTokenFilter(getConfig(), getKeyStore())
