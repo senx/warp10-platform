@@ -1463,19 +1463,18 @@ public class GTSHelper {
     GTSHelper.sort(gts);
         
     //
-    // Determine index to start at
+    // Determine index to stop at
     //
     
     int lastidx = Arrays.binarySearch(gts.ticks, 0, gts.values, stoptimestamp);
     
-    //
-    // The upper timestamp is less than the first tick, so subserie is necessarly empty
-    //
-    
     if (-1 == lastidx) {
+      // The upper timestamp is less than the first tick, so subserie is necessarly empty
       return subgts;
     } else if (lastidx < 0) {
-      lastidx =  -lastidx - 1;
+      // The upper timestamp is in between ticks, so we set the last index to the tick
+      // just before the insertion point
+      lastidx =  -lastidx - 1 - 1;
       if (lastidx >= gts.values) {
         lastidx = gts.values - 1;
       }
@@ -1493,6 +1492,8 @@ public class GTSHelper {
     int firstidx = Arrays.binarySearch(gts.ticks, 0, lastidx + 1, starttimestamp);
     
     if (firstidx < 0) {
+      // The first timestamp is in between existing ticks, so we set
+      // the first index to the index of the insertion point
       firstidx = -firstidx - 1;
 
       // Start after the last tick of the GTS
@@ -1511,6 +1512,13 @@ public class GTSHelper {
       firstidx = firstfirstidx + 1;
     }
         
+    //
+    // Check that indices are ok with the requested time range
+    //
+    
+    if (gts.ticks[firstidx] > stoptimestamp || gts.ticks[lastidx] < starttimestamp) {
+      return subgts;
+    }
     
     //
     // Extract values/locations/elevations that lie in the requested interval
