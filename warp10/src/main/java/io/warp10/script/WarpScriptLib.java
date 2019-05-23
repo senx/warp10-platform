@@ -914,6 +914,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new VALUESORT("VALUESORT"));
     addNamedWarpScriptFunction(new RVALUESORT("RVALUESORT"));
     addNamedWarpScriptFunction(new LSORT("LSORT"));
+    addNamedWarpScriptFunction(new SHUFFLE("SHUFFLE"));
     addNamedWarpScriptFunction(new MSORT("MSORT"));
     addNamedWarpScriptFunction(new GROUPBY("GROUPBY"));
     addNamedWarpScriptFunction(new FILTERBY("FILTERBY"));
