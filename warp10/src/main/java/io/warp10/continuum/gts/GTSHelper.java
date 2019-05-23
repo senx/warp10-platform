@@ -1457,6 +1457,14 @@ public class GTSHelper {
     }
 
     //
+    // No value to return in the following case
+    //
+
+    if (starttimestamp > stoptimestamp) {
+      return subgts;
+    }
+
+    //
     // Sort GTS so ticks are ordered
     //
     
@@ -1475,7 +1483,14 @@ public class GTSHelper {
     if (-1 == lastidx) {
       return subgts;
     } else if (lastidx < 0) {
-      lastidx =  -lastidx - 1;
+
+      //
+      // In that case, stoptimestamp is not present in gts.ticks and -lastidx - 1 is the idx where it would be inserted
+      // So we can stop at the index just before.
+      // In the same case for starttimestamp, -fisrtidx - 1 will be at the right spot.
+      //
+
+      lastidx =  -lastidx - 2;
       if (lastidx >= gts.values) {
         lastidx = gts.values - 1;
       }
