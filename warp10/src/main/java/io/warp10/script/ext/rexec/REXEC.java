@@ -170,7 +170,7 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
     } catch (WarpScriptException e) {
       throw e;
     } catch(SocketTimeoutException e) {
-      throw new WarpScriptException(getName() + " Timeout : check configurations " + WARPSCRIPT_REXEC_CONNECT_TIMEOUT + " and " + WARPSCRIPT_REXEC_READ_TIMEOUT);
+      throw new WarpScriptException(getName() + " Timeout: check configurations " + WARPSCRIPT_REXEC_CONNECT_TIMEOUT + " and " + WARPSCRIPT_REXEC_READ_TIMEOUT);
     } catch (Exception e) {
       throw new WarpScriptException(e);
     } finally {
