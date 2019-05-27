@@ -20,8 +20,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
 import java.net.URL;
-import java.util.Properties;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -35,8 +35,6 @@ import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WebAccessController;
-import io.warp10.script.ext.urlfetch.UrlFetchWarpScriptExtension;
-import io.warp10.standalone.StandaloneWebCallService;
 
 /**
  * Execute WarpScript on a remote endpoint
@@ -51,7 +49,17 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
   public static final String WARPSCRIPT_REXEC_ENDPOINT_PATTERNS = "warpscript.rexec.endpoint.patterns";
 
   private static final String DEFAULT_ENDPOINT_PATTERNS = ".*";
-  
+
+  /**
+   * Timeouts
+   */
+  public static final String WARPSCRIPT_REXEC_CONNECT_TIMEOUT = "warpscript.rexec.timeout.connect";
+  private static final String DEFAULT_REXEC_CONNECT_TIMEOUT = "0";
+  private int connConnectTimeout;
+  public static final String WARPSCRIPT_REXEC_READ_TIMEOUT = "warpscript.rexec.timeout.read";
+  private static final String DEFAULT_REXEC_READ_TIMEOUT = "0";
+  private int connReadTimeout;
+
   private final WebAccessController webAccessController;
   
   public REXEC(String name) {
@@ -62,7 +70,10 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
     super(name);
   
     String patternConf = WarpConfig.getProperty(WARPSCRIPT_REXEC_ENDPOINT_PATTERNS, DEFAULT_ENDPOINT_PATTERNS);
-
+    String readTimeout = WarpConfig.getProperty(WARPSCRIPT_REXEC_READ_TIMEOUT, DEFAULT_REXEC_READ_TIMEOUT);
+    this.connReadTimeout= Integer.parseInt(readTimeout);
+    String connectTimeout = WarpConfig.getProperty(WARPSCRIPT_REXEC_CONNECT_TIMEOUT, DEFAULT_REXEC_CONNECT_TIMEOUT);
+    this.connConnectTimeout = Integer.parseInt(connectTimeout);
     this.webAccessController = new WebAccessController(patternConf);
 
     this.compress = compress;    
@@ -89,6 +100,8 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
       
       conn = (HttpURLConnection) url.openConnection();
+      conn.setReadTimeout(this.connReadTimeout);
+      conn.setConnectTimeout(this.connConnectTimeout);
       conn.setChunkedStreamingMode(8192);
       conn.setRequestProperty("Accept-Encoding", "gzip");
       
@@ -156,6 +169,8 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
       
     } catch (WarpScriptException e) {
       throw e;
+    } catch(SocketTimeoutException e) {
+      throw new WarpScriptException(getName() + " Timeout: check configurations " + WARPSCRIPT_REXEC_CONNECT_TIMEOUT + " and " + WARPSCRIPT_REXEC_READ_TIMEOUT);
     } catch (Exception e) {
       throw new WarpScriptException(e);
     } finally {
