@@ -1457,6 +1457,14 @@ public class GTSHelper {
     }
 
     //
+    // No value to return in the following case
+    //
+
+    if (starttimestamp > stoptimestamp) {
+      return subgts;
+    }
+
+    //
     // Sort GTS so ticks are ordered
     //
     
@@ -1472,9 +1480,11 @@ public class GTSHelper {
       // The upper timestamp is less than the first tick, so subserie is necessarly empty
       return subgts;
     } else if (lastidx < 0) {
+
       // The upper timestamp is in between ticks, so we set the last index to the tick
       // just before the insertion point
       lastidx =  -lastidx - 1 - 1;
+
       if (lastidx >= gts.values) {
         lastidx = gts.values - 1;
       }
