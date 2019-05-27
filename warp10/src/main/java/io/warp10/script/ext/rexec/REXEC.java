@@ -70,9 +70,9 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
     super(name);
   
     String patternConf = WarpConfig.getProperty(WARPSCRIPT_REXEC_ENDPOINT_PATTERNS, DEFAULT_ENDPOINT_PATTERNS);
-    String readTimeout = WarpConfig.getProperty(WARPSCRIPT_REXEC_READ_TIMEOUT,DEFAULT_REXEC_READ_TIMEOUT);
+    String readTimeout = WarpConfig.getProperty(WARPSCRIPT_REXEC_READ_TIMEOUT, DEFAULT_REXEC_READ_TIMEOUT);
     this.connReadTimeout= Integer.parseInt(readTimeout);
-    String connectTimeout = WarpConfig.getProperty(WARPSCRIPT_REXEC_CONNECT_TIMEOUT,DEFAULT_REXEC_CONNECT_TIMEOUT);
+    String connectTimeout = WarpConfig.getProperty(WARPSCRIPT_REXEC_CONNECT_TIMEOUT, DEFAULT_REXEC_CONNECT_TIMEOUT);
     this.connConnectTimeout = Integer.parseInt(connectTimeout);
     this.webAccessController = new WebAccessController(patternConf);
 
