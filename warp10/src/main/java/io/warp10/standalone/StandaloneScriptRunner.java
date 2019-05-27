@@ -92,6 +92,8 @@ public class StandaloneScriptRunner extends ScriptRunner {
       this.executor.submit(new Runnable() {            
         @Override
         public void run() {
+          String name = currentThread().getName();
+          currentThread().setName(script);
           
           long nowts = System.currentTimeMillis();
 
@@ -172,6 +174,7 @@ public class StandaloneScriptRunner extends ScriptRunner {
           } catch (Exception e) {                
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, 1);
           } finally {
+            currentThread().setName(name);
             nextrun.put(script, nowts + periodicity);
             nano = System.nanoTime() - nano;
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, ttl, (long) (nano / 1000L));
