@@ -31,6 +31,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.net.URLDecoder;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
@@ -216,6 +217,31 @@ public class WarpConfig {
     }
     
     //
+    // Now override properties with environment variables
+    //
+    
+    for (Entry<String, String> entry: System.getenv().entrySet()) {
+      String name = entry.getKey().toString();
+      String value = entry.getValue().toString();
+
+      try {
+        // URL Decode name/value if needed
+        if (name.contains("%")) {
+          name = URLDecoder.decode(name, "UTF-8");
+        }
+        if (value.contains("%")) {
+          value = URLDecoder.decode(value, "UTF-8");
+        }
+
+        // Override property
+        properties.setProperty(name, value);        
+      } catch (Exception e) {
+        System.err.println("Error decoding environment variable '" + entry.getKey().toString() + "' = '" + entry.getValue().toString() + "', using raw values.");
+        properties.setProperty(entry.getKey().toString(), entry.getValue().toString());
+      }
+    }
+
+    //
     // Now override properties with system properties
     //
 
@@ -241,7 +267,7 @@ public class WarpConfig {
         properties.setProperty(entry.getKey().toString(), entry.getValue().toString());
       }
     }
-    
+ 
     //
     // Now expand ${xxx} constructs
     //
@@ -331,6 +357,21 @@ public class WarpConfig {
     } else {
       return properties.getProperty(key, defaultValue);
     }    
+  }
+  
+  public static Object setProperty(String key, String value) {    
+    if (null == properties) {
+      return null;
+    } else {
+      synchronized(properties) {
+        // Set the new value
+        if (null == value) {
+          return properties.remove(key);
+        } else {
+          return properties.setProperty(key, value);
+        }
+      }
+    }
   }
   
   public static void main(String... args) {

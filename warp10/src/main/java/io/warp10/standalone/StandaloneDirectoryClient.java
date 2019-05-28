@@ -728,7 +728,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     
     boolean written = false;
     
-    WriteOptions options = new WriteOptions().sync(1.0 == syncrate);
+    WriteOptions options = new WriteOptions().sync(null == key || null == value || 1.0 == syncrate);
     
     try {
       if (null != key && null != value) {
@@ -738,7 +738,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       
       if (null == key || null == value || size.get() > MAX_BATCH_SIZE) {
         
-        if (syncwrites) {
+        if (syncwrites && !options.sync()) {
           options = new WriteOptions().sync(Math.random() < syncrate);
         }
         

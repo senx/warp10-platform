@@ -201,12 +201,12 @@ public class TCPManager extends Thread {
                 List<Object> msg = queue.poll(timeout, TimeUnit.MILLISECONDS);
                 if (null != msg) {
                   msgs.add(msg);
-                  queue.drainTo(msgs, maxMessages);
+                  queue.drainTo(msgs, maxMessages - 1);
                 }
               } else {
                 List<Object> msg = queue.take();
                 msgs.add(msg);
-                queue.drainTo(msgs, maxMessages);
+                queue.drainTo(msgs, maxMessages - 1);
               }
 
               stack.clear();

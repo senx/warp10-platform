@@ -269,8 +269,6 @@ public class EgressFetchHandler extends AbstractHandler {
           
           ISOPeriodFormat.standard().getParser().parseInto(period, timespanParam, 0, Locale.US);
 
-          System.out.println(period);
-          
           Period p = period.toPeriod();
           
           if (p.getMonths() != 0 || p.getYears() != 0) {
@@ -1272,7 +1270,7 @@ public class EgressFetchHandler extends AbstractHandler {
     lastCount.set(currentCount);
   }
 
-  private static void jsonDump(PrintWriter pw, GTSDecoderIterator iter, long now, long timespan, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount) throws IOException {
+  static void jsonDump(PrintWriter pw, Iterator<GTSDecoder> iter, long now, long timespan, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount) throws IOException {
     
     String name = null;
     Map<String,String> labels = null;
@@ -1387,10 +1385,10 @@ public class EgressFetchHandler extends AbstractHandler {
           sb.append("}");
           sb.append(",\"i\":\"");
           sb.append(decoder.getLabelsId() & mask);
-          sb.append(",\"la\":");
+          sb.append("\",\"la\":");
           sb.append(decoder.getMetadata().getLastActivity());
 
-          sb.append("\",\"v\":[");
+          sb.append(",\"v\":[");
         }
         
         long decoded = 0L;

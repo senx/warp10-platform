@@ -236,6 +236,9 @@ warpscript.def.unshadow = false
 // Macro Repository
 //
 
+// Secret to use for setting configuration accessible via MACROCONFIG
+#warpscript.macroconfig.secret =
+
 // Directory which contains subdirectories with macros
 #warpscript.repository.directory = 
 
@@ -425,6 +428,10 @@ warpscript.delete.endpoint = http://127.0.0.1:8080/api/v0/delete
 #warpscript.extension.rexec = io.warp10.script.ext.rexec.RexecWarpScriptExtension
 // Comma separated list of included and excluded (! prefixed) host patterns
 #warpscript.rexec.endpoint.patterns = .*
+// REXEC connect timeout in ms (default = 0, no timeout)
+#warpscript.rexec.timeout.connect = 0
+// REXEC read timeout in ms (default = 0, no timeout)
+#warpscript.rexec.timeout.read = 0
 // SENSISIONEVENT, SENSISIONGET, SENSISIONSET, SENSISIONUPDATE
 #warpscript.extension.sensision = io.warp10.script.ext.sensision.SensisionWarpScriptExtension
 // MUTEX, SHMLOAD, SHMSTORE
@@ -1860,6 +1867,8 @@ throttling.manager.period = 1000
 #http.period = 60000
 // Size of the queue to use for the Jetty thread pool. By default no queue is used
 #http.queuesize = 8
+// Set to false to disable support for gzipped responses
+#http.gzip = false
 
 //
 // UDP Plugin

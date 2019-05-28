@@ -42,8 +42,12 @@ import io.warp10.sensision.Sensision;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -104,8 +108,14 @@ public class StandaloneIngressHandler extends AbstractHandler {
   private final byte[] datalogPSK;
 
   private final long[] classKeyLongs;
+  private final long ckl0;
+  private final long ckl1;
   private final long[] labelsKeyLongs;
-    
+  private final long lkl0;
+  private final long lkl1;
+  
+  private final boolean datalogSync;
+  
   private final File loggingDir;
   
   private final String datalogId;
@@ -129,9 +139,13 @@ public class StandaloneIngressHandler extends AbstractHandler {
     
     this.classKey = this.keyStore.getKey(KeyStore.SIPHASH_CLASS);
     this.classKeyLongs = SipHashInline.getKey(this.classKey);
+    this.ckl0 = this.classKeyLongs[0];
+    this.ckl1 = this.classKeyLongs[1];
     
     this.labelsKey = this.keyStore.getKey(KeyStore.SIPHASH_LABELS);
     this.labelsKeyLongs = SipHashInline.getKey(this.labelsKey);
+    this.lkl0 = this.labelsKeyLongs[0];
+    this.lkl1 = this.labelsKeyLongs[1];
     
     updateActivity = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_ACTIVITY_UPDATE));
     metaActivity = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_ACTIVITY_META));
@@ -178,6 +192,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
     }
     
     this.logforwarded = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_LOGFORWARDED));
+    this.datalogSync = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_SYNC));
     
     this.maxValueSize = Long.parseLong(WarpConfig.getProperty(Configuration.STANDALONE_VALUE_MAXSIZE, DEFAULT_VALUE_MAXSIZE));
   }
@@ -201,6 +216,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
     
     if (null != WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)) {
       response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)));
+      return;
     }
     
     long lastActivity = System.currentTimeMillis();
@@ -268,6 +284,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
       
       try {
         writeToken = Tokens.extractWriteToken(token);
+        if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NOUPDATE)) {
+          throw new WarpScriptException("Token cannot be used for updating data.");
+        }
       } catch (WarpScriptException ee) {
         throw new IOException(ee);
       }
@@ -286,6 +305,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
       PrintWriter loggingWriter = null;
 
       long shardkey = 0L;
+      FileDescriptor loggingFD = null;
       
       try {      
         if (null == producer || null == owner) {
@@ -447,7 +467,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
                     
             loggingFile = new File(loggingDir, sb.toString());
             
-            loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
+            FileOutputStream fos = new FileOutputStream(loggingFile);
+            loggingFD = fos.getFD();
+            OutputStreamWriter osw = new OutputStreamWriter(fos, Charsets.UTF_8);
+            loggingWriter = new PrintWriter(osw);
             
             //
             // Write request
@@ -537,8 +560,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
             if (null != lastencoder) {
               
               // 128BITS
-              lastencoder.setClassId(GTSHelper.classId(classKeyLongs, lastencoder.getName()));
-              lastencoder.setLabelsId(GTSHelper.labelsId(labelsKeyLongs, lastencoder.getMetadata().getLabels()));
+              lastencoder.setClassId(GTSHelper.classId(ckl0, ckl1, lastencoder.getName()));
+              lastencoder.setLabelsId(GTSHelper.labelsId(lkl0, lkl1, lastencoder.getMetadata().getLabels()));
 
               ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
               ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
@@ -612,8 +635,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
         
         if (null != lastencoder && lastencoder.size() > 0) {
           // 128BITS
-          lastencoder.setClassId(GTSHelper.classId(classKeyLongs, lastencoder.getName()));
-          lastencoder.setLabelsId(GTSHelper.labelsId(labelsKeyLongs, lastencoder.getMetadata().getLabels()));
+          lastencoder.setClassId(GTSHelper.classId(ckl0, ckl1, lastencoder.getName()));
+          lastencoder.setLabelsId(GTSHelper.labelsId(lkl0, lkl1, lastencoder.getMetadata().getLabels()));
                   
           ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
           ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
@@ -646,6 +669,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
           labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
           labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
           Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
+
+          if (datalogSync) {
+            loggingWriter.flush();
+            loggingFD.sync();
+          }
 
           loggingWriter.close();
           
@@ -696,6 +724,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
     
     if (null != WarpManager.getAttribute(WarpManager.META_DISABLED)) {
       response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.META_DISABLED)));
+      return;
     }
     
     long lastActivity = System.currentTimeMillis();
@@ -761,6 +790,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
       
       try {
         wtoken = Tokens.extractWriteToken(token);
+        if (wtoken.getAttributesSize() > 0 && wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_NOMETA)) {
+          throw new WarpScriptException("Token cannot be used for updating metadata.");
+        }
       } catch (WarpScriptException ee) {
         throw new IOException(ee);
       }

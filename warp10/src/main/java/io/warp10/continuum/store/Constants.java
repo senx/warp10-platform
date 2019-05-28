@@ -390,6 +390,8 @@ public class Constants {
    * Attribute used to specify a WRITE token cannot be used for delete
    */
   public static final String TOKEN_ATTR_NODELETE = ".nodelete";
+  public static final String TOKEN_ATTR_NOUPDATE = ".noupdate";
+  public static final String TOKEN_ATTR_NOMETA = ".nometa";
   
   static {
     String tu = WarpConfig.getProperty(Configuration.WARP_TIME_UNITS);

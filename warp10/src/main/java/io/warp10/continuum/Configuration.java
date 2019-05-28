@@ -1425,6 +1425,11 @@ public class Configuration {
   public static final String DATALOG_DIR = "datalog.dir";
   
   /**
+   * Set to true to call fsync when closing datalog files
+   */
+  public static final String DATALOG_SYNC = "datalog.sync";
+  
+  /**
    * Id of this datalog node. The id will be used in the file name and will be passed down to child nodes via
    * a header.
    */
@@ -1884,7 +1889,12 @@ public class Configuration {
    * Maximum number of subprogram instances which can be spawned
    */
   public static final String WARPSCRIPT_CALL_MAXCAPACITY = "warpscript.call.maxcapacity";
-      
+  
+  /**
+   * Secret to use for setting configuration accessible via MACROCONFIG
+   */
+  public static final String CONFIG_MACROCONFIG_SECRET = "warpscript.macroconfig.secret";
+  
   /**
    * Macro Repository root directory
    */  

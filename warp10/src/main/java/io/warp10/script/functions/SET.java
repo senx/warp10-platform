@@ -49,7 +49,8 @@ public class SET extends NamedWarpScriptFunction implements WarpScriptStackFunct
     }
 
     if (maporlist instanceof List) {
-      ((List) maporlist).set(((Number) key).intValue(), value);
+      int idx = GET.computeAndCheckIndex(this, ((Number) key).intValue(), ((List) maporlist).size());
+      ((List) maporlist).set(idx, value);
     } else {
       byte[] data = (byte[]) maporlist;
       
@@ -65,11 +66,7 @@ public class SET extends NamedWarpScriptFunction implements WarpScriptStackFunct
       
       byte elt = (byte) (l & 0xFFL);
       
-      int idx = ((Number) key).intValue();
-      
-      if (idx < 0 || idx >= data.length) {
-        throw new WarpScriptException(getName() + " index out of bounds, " + idx + " >= " + data.length);
-      }
+      int idx = GET.computeAndCheckIndex(this, ((Number) key).intValue(), data.length);
       
       data[idx] = elt;
     }

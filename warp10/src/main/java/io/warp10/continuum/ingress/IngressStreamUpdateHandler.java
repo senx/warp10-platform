@@ -364,6 +364,10 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
         throw new IOException("Invalid token.");
       }
 
+      if (wtoken.getAttributesSize() > 0 && wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_NOUPDATE)) {
+        throw new IOException("Token cannot be used for updating data.");
+      }
+      
       String application = wtoken.getAppName();
       String producer = Tokens.getUUID(wtoken.getProducerId());
       String owner = Tokens.getUUID(wtoken.getOwnerId());
