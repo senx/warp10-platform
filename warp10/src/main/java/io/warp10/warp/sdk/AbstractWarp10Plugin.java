@@ -25,6 +25,7 @@ import io.warp10.script.WarpScriptLib;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -84,6 +85,8 @@ public abstract class AbstractWarp10Plugin {
     
     boolean failedPlugin = false;
       
+    List<String> failed = new ArrayList<String>();
+    
     //
     // Sort the plugins by prefix
     //
@@ -118,6 +121,7 @@ public abstract class AbstractWarp10Plugin {
         if (null == url) {
           LOG.error("Unable to load plugin '" + plugin + "', make sure it is in the class path.");
           failedPlugin = true;
+          failed.add(plugin);
           continue;
         }
         
@@ -154,8 +158,8 @@ public abstract class AbstractWarp10Plugin {
       }
     }
       
-    if (failedPlugin) {
-      throw new RuntimeException("Some WarpScript plugins could not be loaded, aborting.");
+    if (failedPlugin) {      
+      throw new RuntimeException("Some WarpScript plugins could not be loaded, aborting. " + failed.toString());
     }
   }
   
