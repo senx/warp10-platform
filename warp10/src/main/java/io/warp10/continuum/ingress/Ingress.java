@@ -57,10 +57,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import kafka.javaapi.producer.Producer;
-import kafka.producer.KeyedMessage;
-import kafka.producer.ProducerConfig;
-
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.util.ShutdownHookManager;
@@ -267,6 +263,7 @@ public class Ingress extends AbstractHandler implements Runnable {
   private final long[] siphashDataKey;
 
   private final boolean sendMetadataOnDelete;
+  private final boolean sendMetadataOnStore;
 
   private final KafkaSynchronizedConsumerPool  pool;
   
@@ -351,6 +348,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     this.siphashDataKey = SipHashInline.getKey(this.keystore.getKey(KeyStore.SIPHASH_KAFKA_DATA));    
 
     this.sendMetadataOnDelete = Boolean.parseBoolean(props.getProperty(Configuration.INGRESS_DELETE_METADATA_INCLUDE, "false"));
+    this.sendMetadataOnStore = Boolean.parseBoolean(props.getProperty(Configuration.INGRESS_STORE_METADATA_INCLUDE, "false"));
 
     this.parseAttributes = "true".equals(props.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
     
@@ -1793,6 +1791,10 @@ public class Ingress extends AbstractHandler implements Runnable {
       msg.setData(encoder.getBytes());
       msg.setClassId(encoder.getClassId());
       msg.setLabelsId(encoder.getLabelsId());
+
+      if (this.sendMetadataOnStore) {
+        msg.setMetadata(encoder.getMetadata());
+      }
 
       sendDataMessage(msg);
     } else {

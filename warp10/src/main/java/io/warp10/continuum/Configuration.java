@@ -612,6 +612,11 @@ public class Configuration {
   public static final String INGRESS_DELETE_METADATA_INCLUDE = "ingress.delete.metadata.include";
 
   /**
+   * Do we send Metadata in the Kafka message for store operations?
+   */
+  public static final String INGRESS_STORE_METADATA_INCLUDE = "ingress.store.metadata.include";
+
+  /**
    * Host onto which the ingress server should listen
    */
   public static final String INGRESS_HOST = "ingress.host";
