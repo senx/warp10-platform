@@ -1036,7 +1036,11 @@ public class EgressFetchHandler extends AbstractHandler {
       //
 
       labels.clear();
-      labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, wrapper.getMetadata().getLabels().get(Constants.APPLICATION_LABEL));
+      if (wrapper.isSetMetadata()) {
+        labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, wrapper.getMetadata().getLabels().get(Constants.APPLICATION_LABEL));
+      } else {
+        labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, "");
+      }
 
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPERS, Sensision.EMPTY_LABELS, 1);
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPERS_PERAPP, labels, 1);
