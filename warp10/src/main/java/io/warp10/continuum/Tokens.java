@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -44,7 +44,6 @@ import java.util.UUID;
 import java.util.concurrent.locks.LockSupport;
 
 import org.apache.thrift.TBase;
-import org.python.jline.internal.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +61,8 @@ public class Tokens {
   private static KeyStore keystore;
   
   private static QuasarTokenFilter tokenFilter;
+  
+  private static List<AuthenticationPlugin> plugins = new ArrayList<>();
   
   private static QuasarTokenFilter getTokenFilter() {
     if (null != tokenFilter) {
@@ -198,6 +199,16 @@ public class Tokens {
   }
   
   public static WriteToken extractWriteToken(String token) throws WarpScriptException {
+    
+    if (!plugins.isEmpty()) {
+      for (AuthenticationPlugin plugin: plugins) {
+        WriteToken wtoken = plugin.extractWriteToken(token);
+        if (null != wtoken) {
+          return wtoken;
+        }
+      }  
+    }
+
     WriteToken wtoken = Tokens.getWriteToken(token);
     
     if (null != wtoken) {
@@ -225,6 +236,15 @@ public class Tokens {
   
   public static ReadToken extractReadToken(String token) throws WarpScriptException {
     
+    if (!plugins.isEmpty()) {
+      for (AuthenticationPlugin plugin: plugins) {
+        ReadToken rtoken = plugin.extractReadToken(token);
+        if (null != rtoken) {
+          return rtoken;
+        }
+      }  
+    }
+
     ReadToken rtoken = Tokens.getReadToken(token);
     
     if (null != rtoken) {
@@ -548,5 +568,9 @@ public class Tokens {
     t.setName("[Token Manager]");
     t.setDaemon(true);
     t.start();
+  }
+  
+  public static final void register(AuthenticationPlugin plugin) {
+    plugins.add(plugin);
   }
 }

@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import io.warp10.script.WarpScriptStack;
  * Checks the two operands on top of the stack for equality, accepting a difference under a configurable lambda value
  *
  * ALMOSTEQ expects the following parameters on the stack:
- * 3: lambda The tolerance of the comparation
+ * 3: lambda The tolerance of the comparision
  * 2: op2
  * 1: op1
  * Both op1 and op2 need to be instances of Number, and at least one of them need to be instance of Double

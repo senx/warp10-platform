@@ -1,3 +1,18 @@
+//
+//   Copyright 2018  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
 package io.warp10.hadoop;
 
 import java.io.IOException;
@@ -5,10 +20,12 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptExecutor;
@@ -65,11 +82,18 @@ public class WarpScriptRecordReader extends RecordReader<Writable, Writable> {
     // Initialize wrapped reader
     reader.initialize(split, context);
     
-    String code = Warp10InputFormat.getProperty(context.getConfiguration(), this.suffix, WarpScriptInputFormat.WARPSCRIPT_INPUTFORMAT_SCRIPT, null);
-    // Initialize WarpScriptExecutor
+    Configuration conf = context.getConfiguration();
     
+    String code = Warp10InputFormat.getProperty(conf, this.suffix, WarpScriptInputFormat.WARPSCRIPT_INPUTFORMAT_SCRIPT, null);
+
+    // Record the current path in the configuration if the split is a FileSplit
+    if (split instanceof FileSplit) {
+      conf.set(WarpScriptInputFormat.PATH_CONFIG_KEY, ((FileSplit) split).getPath().toString());      
+    }
+    
+    // Initialize WarpScriptExecutor
     try {
-      this.executor = inputFormat.getWarpScriptExecutor(context.getConfiguration(), code);
+      this.executor = inputFormat.getWarpScriptExecutor(conf, code);
     } catch (WarpScriptException wse) {
       throw new IOException("Error while instatiating WarpScript executor", wse);
     }

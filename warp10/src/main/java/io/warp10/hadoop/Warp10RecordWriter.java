@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -69,6 +69,7 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
     try {
       if (null != pw) {
         pw.flush();
+        pw.close();
         int respcode = conn.getResponseCode();
         
         if (HttpURLConnection.HTTP_OK != respcode) {

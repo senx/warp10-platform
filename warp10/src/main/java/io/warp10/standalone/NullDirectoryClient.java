@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.standalone;
 
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
 
@@ -29,7 +30,7 @@ public class NullDirectoryClient extends StandaloneDirectoryClient {
   }
   
   @Override
-  public List<Metadata> find(List<String> classSelector, List<Map<String, String>> labelsSelectors) {
+  public List<Metadata> find(DirectoryRequest request) {
     return new ArrayList<Metadata>();
   }
   

@@ -1,3 +1,18 @@
+//
+//   Copyright 2018  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
 package io.warp10.continuum.store;
 
 import java.io.IOException;
@@ -59,6 +74,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     private final Semaphore sem;
     private boolean done = false;
     private Thread thread = null;    
+    private final long creation;
     
     private static volatile boolean foo = false;
     
@@ -70,11 +86,20 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
       this.iterator = iterator;
       this.queue = queue;
       this.sem = sem;
+      this.creation = System.nanoTime();
     }
     
     @Override
     public void run() {
       
+      long waitnanos = System.nanoTime() - this.creation;
+      
+      if (standalone) {
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS_WAITNANOS, Sensision.EMPTY_LABELS, waitnanos);
+      } else {
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_WAITNANOS, Sensision.EMPTY_LABELS, waitnanos);
+      }
+
       GTSDecoder lastdecoder = null;
 
       int count = 0;
@@ -206,26 +231,24 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
   private static final int POOLSIZE;
   
   static {
-    Properties properties = WarpConfig.getProperties();
-    
     standalone = Warp.isStandaloneMode();
     
     if (standalone) {
-      MAX_INFLIGHT = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST, "0"));      
-      POOLSIZE = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_POOLSIZE, "0"));
+      MAX_INFLIGHT = Integer.parseInt(WarpConfig.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST, "0"));
+      POOLSIZE = Integer.parseInt(WarpConfig.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_POOLSIZE, "0"));
             
-      MIN_GTS_PERSCANNER = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MIN_GTS_PERSCANNER, "4"));
-      MAX_PARALLEL_SCANNERS = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS, "16"));
+      MIN_GTS_PERSCANNER = Integer.parseInt(WarpConfig.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MIN_GTS_PERSCANNER, "4"));
+      MAX_PARALLEL_SCANNERS = Integer.parseInt(WarpConfig.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS, "16"));
     } else {
-      MAX_INFLIGHT = Integer.parseInt(properties.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST, "0"));      
-      POOLSIZE = Integer.parseInt(properties.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_POOLSIZE, "0"));
+      MAX_INFLIGHT = Integer.parseInt(WarpConfig.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST, "0"));
+      POOLSIZE = Integer.parseInt(WarpConfig.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_POOLSIZE, "0"));
             
-      MIN_GTS_PERSCANNER = Integer.parseInt(properties.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MIN_GTS_PERSCANNER, "4"));
-      MAX_PARALLEL_SCANNERS = Integer.parseInt(properties.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS, "16"));      
+      MIN_GTS_PERSCANNER = Integer.parseInt(WarpConfig.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MIN_GTS_PERSCANNER, "4"));
+      MAX_PARALLEL_SCANNERS = Integer.parseInt(WarpConfig.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS, "16"));
     }
     
     if (MAX_INFLIGHT> 0 && POOLSIZE > 0) {
-      executor = new ThreadPoolExecutor(POOLSIZE >>> 1, POOLSIZE, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(POOLSIZE));
+      executor = new ThreadPoolExecutor(POOLSIZE, POOLSIZE, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(POOLSIZE));
     } else {
       executor = null;
     }
@@ -446,7 +469,12 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     try {
       executor.execute(runnable);
       idx++;
-    } catch (RejectedExecutionException ree) {      
+    } catch (RejectedExecutionException ree) {
+      if (standalone) {
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS_REJECTIONS, Sensision.EMPTY_LABELS, 1);
+      } else {
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_REJECTIONS, Sensision.EMPTY_LABELS, 1);
+      }
     }
   }
   

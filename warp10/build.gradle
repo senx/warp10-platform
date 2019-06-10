@@ -1,3 +1,19 @@
+//
+//   Copyright 2018  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
 archivesBaseName = 'warp10'
 version = updateRevision(getVersionName(warp10Version[archivesBaseName]))
 
@@ -17,6 +33,9 @@ sourceSets {
         java {
             srcDirs 'src/generated/thrift/gen-java'
         }
+        resources {
+            srcDirs 'src/main/resources'
+        }
     }
 }
 
@@ -26,7 +45,7 @@ dependencies {
     //
     compile "io.warp10:crypto:${warp10Version['crypto']}"
     compile "io.warp10:token:${warp10Version['token']}"
-    compile 'io.warp10:sensision:1.0.11'
+    compile 'io.warp10:sensision:1.0.17'
 
     //compile 'org.xerial.snappy:snappy-java:1.0.4.1'
     compile 'joda-time:joda-time:2.2'
@@ -40,26 +59,6 @@ dependencies {
     // Processing
     //
     compile 'org.processing:core:3.0'
-
-    //
-    // Reinjin
-    //
-    compile 'org.renjin:renjin-script-engine:0.7.1548'
-
-    //
-    // Lua
-    //
-    compile 'org.luaj:luaj-jse:3.0.1'
-
-    //
-    // Ruby
-    //
-    compile 'org.jruby:jruby-complete:9.0.0.0.rc2'
-
-    //
-    // Python
-    //
-    compile 'org.python:jython:2.7.0'
 
     //
     // Lz4, pure Java implementation
@@ -79,8 +78,6 @@ dependencies {
     compile 'org.apache.hbase:hbase-common:1.0.0'
     compile 'org.apache.hbase:hbase-protocol:1.0.0'
 
-    // Consider using -indy version of groovy-all
-    compile 'org.codehaus.groovy:groovy-all:2.1.6'
     compile 'org.fusesource.jansi:jansi:1.6'
     //compile 'org.mvel:mvel2:2.1.5.Final'
     compile 'com.esotericsoftware.kryo:kryo:2.21'
@@ -112,7 +109,7 @@ dependencies {
     //
     //compile 'leveldb:leveldb:0.7-SNAPSHOT-uber'
     compile 'org.fusesource.leveldbjni:leveldbjni-all:1.7'
-    compile 'org.iq80.leveldb:leveldb:0.6'
+    compile 'org.iq80.leveldb:leveldb:0.11:uber'
     compile 'org.xerial.snappy:snappy-java:1.0.5'
     compile 'org.iq80.snappy:snappy:0.3'
 
@@ -129,7 +126,7 @@ dependencies {
     //
     // Geo
     //
-    compile 'com.geoxp:geoxplib:1.0.0-rc13'
+    compile 'com.geoxp:geoxplib:1.0.0-rc14'
     compile("org.wololo:jts2geojson:0.10.0") {
         exclude group: 'com.vividsolutions', module: 'jts'
         exclude group: 'com.vividsolutions', module: 'jts-core'
@@ -155,8 +152,8 @@ jar {
 
     manifest {
         attributes(
-                "Implementation-Title": "Warp10",
-                "Implementation-Vendor": "Warp 10",
+                "Implementation-Title": "Warp 10",
+                "Implementation-Vendor": "SenX",
                 "Implementation-Version": version)
     }
 }
@@ -173,6 +170,7 @@ task pack(type: Jar) {
     }
 
     from files(sourceSets.main.output.classesDirs)
+    from files(sourceSets.main.resources.srcDirs)
     from {
         configurations.compile.collect {
             it.isDirectory() ? it : zipTree(it).matching {
@@ -190,7 +188,6 @@ task pack(type: Jar) {
         exclude 'plugin.properties'
         exclude 'jetty-dir.css'
     }
-    with jar
 }
 
 task createTarArchive(type: Exec, dependsOn: pack) {
@@ -224,8 +221,9 @@ bintray {
     pkg {
         repo = 'generic'
         name = 'warp10'
+        userOrg = 'senx'
         licenses = ['Apache-2.0']
-        vcsUrl = 'https://github.com/cityzendata/warp10-platform.git'
+        vcsUrl = 'https://github.com/senx/warp10-platform.git'
         version {
             name = getVersionName(warp10Version['warp10'])
             released = new Date()

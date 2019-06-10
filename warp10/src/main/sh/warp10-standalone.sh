@@ -1,4 +1,19 @@
 #!/bin/bash
+#
+#   Copyright 2018  SenX S.A.S.
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
 
 ### BEGIN INIT INFO
 # Provides:          warp10
@@ -17,7 +32,7 @@ fi
 
 #JAVA_HOME=/opt/java8
 #WARP10_HOME=/opt/warp10-@VERSION@
-
+JMX_PORT=1098
 
 # Strongly inspired by gradlew
 # Determine the Java command to use to start the JVM.
@@ -41,6 +56,16 @@ else
 Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."; exit 1)
 fi
 
+#
+# Check java version
+#
+JAVA_VERSION="`${JAVACMD} -version 2>&1 | head -n 1`"
+CHECK_JAVA="`echo ${JAVA_VERSION} | egrep '.*\"1\.(7|8).*'`"
+if [ "$CHECK_JAVA" == "" ]; then
+  echo "You are using a non compatible java version: ${JAVA_VERSION}"
+  echo "We recommend the latest update of OpenJDK 1.8"
+  exit 1
+fi
 
 # If WARP10_HOME is not defined, set it to the parent directory
 if [ -z "${WARP10_HOME}" ]; then
@@ -215,6 +240,15 @@ bootstrap() {
   chmod -R 755 ${WARP10_HOME}/leveldb
 
   #
+  # Test access to WARP10_HOME for WARP10_USER
+  #
+  su ${WARP10_USER} -c "ls ${WARP10_HOME} >/dev/null 2>&1"
+  if [ $? != 0 ]; then
+    echo "ERROR: ${WARP10_USER} user cannot access to ${WARP10_HOME}"
+    exit 1
+  fi
+
+  #
   # ${WARP10_HOME} != ${WARP10_DATA_DIR}
   # A dedicated data directory has been provided
   # Move data to ${WARP10_DATA_DIR}/etc, ${WARP10_DATA_DIR}/logs, ${WARP10_DATA_DIR}/leveldb..
@@ -241,7 +275,7 @@ bootstrap() {
     #
     # Test access to WARP10_DATA_DIR and its parent directories
     #
-    su ${WARP10_USER} -c "ls ${WARP10_DATA_DIR} 2>&1"
+    su ${WARP10_USER} -c "ls ${WARP10_DATA_DIR} >/dev/null 2>&1"
     if [ $? != 0 ]; then
       echo "ERROR: Cannot access to ${WARP10_DATA_DIR}"
       exit 1
@@ -342,7 +376,7 @@ start() {
   #
   # Check if Warp10 Quantum plugin is defined
   #
-  QUANTUM_PLUGIN="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'warp10.plugins' | grep ${QUANTUM_PLUGIN_NAME}`"
+  QUANTUM_PLUGIN="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'warp10.plugin.quantum' | grep ${QUANTUM_PLUGIN_NAME}`"
 
   if [ "$QUANTUM_PLUGIN" != "" ]; then
     if [ "$IS_JAVA7" = false ]; then
@@ -370,7 +404,7 @@ start() {
 
   isStarted
   if [ $? -eq 1 ]; then
-    echo "Start failed! - See warp10.log for more details"
+    echo "Start failed! - See warp10.log and warplog.log for more details"
     exit 1
   fi
 
@@ -425,6 +459,15 @@ start() {
     rm -f ${FIRSTINIT_FILE}
 
   fi
+
+  # Check again 5s later (time for plugin load errors)
+  sleep 5
+  isStarted
+  if [ $? -eq 1 ]; then
+    echo "Start failed! - See warp10.log and warplog.log for more details"
+    exit 1
+  fi
+
 }
 
 stop() {
@@ -437,6 +480,11 @@ stop() {
   if isStarted; then
     echo "Stop Warp 10..."
     kill $(cat ${PID_FILE})
+    echo "Wait for Warp 10 to stop..."
+    while $(kill -0 $(cat ${PID_FILE}) 2>/dev/null); do
+      sleep 2
+    done
+    echo "Warp 10 stopped..."
     rm -f ${PID_FILE}
   else
     echo "No instance of Warp 10 is currently running"
@@ -515,6 +563,11 @@ case "$1" in
   start)
   start
   ;;
+  jmxstart)
+  JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=${JMX_PORT}"
+  echo "## WARNING: JMX is enabled on port ${JMX_PORT}"
+  start
+  ;;
   stop)
   stop
   ;;
@@ -524,6 +577,13 @@ case "$1" in
   restart)
   stop
   sleep 2
+  start
+  ;;
+  jmxrestart)
+  stop
+  sleep 2
+  JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=${JMX_PORT}"
+  echo "## WARNING: JMX is enabled on port ${JMX_PORT}"
   start
   ;;
   worfcli)
@@ -539,7 +599,7 @@ case "$1" in
   repair
   ;;
   *)
-  echo $"Usage: $0 {bootstrap|start|stop|status|worfcli|worf appName ttl(ms)|snapshot 'snapshot_name'|repair}"
+  echo $"Usage: $0 {bootstrap|start|jmxstart|stop|status|worfcli|worf appName ttl(ms)|snapshot 'snapshot_name'|repair|restart|jmxrestart}"
   exit 2
 esac
 

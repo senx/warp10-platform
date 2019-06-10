@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -466,7 +466,7 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_GTS = "warp.standalone.delete.gts";
 
   /**
-   * Time spent in microsesonds in standalone 'delete'
+   * Time spent in microseconds in standalone 'delete'
    */
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_TIME_US = "warp.standalone.delete.time.us";
       
@@ -712,6 +712,26 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS = "warp.standalone.client.scanners.parallel";
 
   /**
+   * Total number of nanoseconds spent waiting for a scanner to be scheduled in the standalone version
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS_WAITNANOS = "warp.standalone.client.scanners.parallel.waitnanos";
+
+  /**
+   * Total number of nanoseconds spent waiting for a scanner to be scheduled
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_WAITNANOS = "warp.hbase.client.scanners.parallel.waitnanos";
+
+  /**
+   * Number of rejections when attempting to schedule parallel scanners in the distributed version
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_REJECTIONS = "warp.hbase.client.scanners.parallel.rejections";
+
+  /**
+   * Number of rejections when attempting to schedule parallel scanners in the standalone version
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS_REJECTIONS = "warp.standalone.client.scanners.parallel.rejections";
+  
+  /**
    * Number of times a mutex was requested among parallel scanners. A Mutex is requested when consecutive GTSDecoders belong
    * to the same GTS, they must be pushed to the queue as a block. This can happen when the size of a GTSDecoder grows beyond
    * a limit or when a GTS spawns several regions.
@@ -805,7 +825,7 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_REQUESTS = "warp.directory.streaming.requests";
 
   /**
-   * Total time spent in successfull streaming requests in microseconds
+   * Total time spent in successful streaming requests in microseconds
    */
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_TIME_US = "warp.directory.streaming.time.us";
 
@@ -870,94 +890,94 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_RESULTS = "warp.directory.plugin.find.results";
 
   /**
-   * Number of times the Einstein bootstrap code was loaded
+   * Number of times the WarpScript bootstrap code was loaded
    */
-  public static final String SENSISION_CLASS_EINSTEIN_BOOTSTRAP_LOADS = "warp.script.bootstrap.loads";
+  public static final String SENSISION_CLASS_WARPSCRIPT_BOOTSTRAP_LOADS = "warp.script.bootstrap.loads";
   
   /**
-   * Number of Einstein requests
+   * Number of WarpScript requests
    */
-  public static final String SENSISION_CLASS_EINSTEIN_REQUESTS = "warp.script.requests";
+  public static final String SENSISION_CLASS_WARPSCRIPT_REQUESTS = "warp.script.requests";
   
   /**
-   * Total time (us) spent in Einstein requests
+   * Total time (us) spent in WarpScript requests
    */
-  public static final String SENSISION_CLASS_EINSTEIN_TIME_US = "warp.script.time.us";
+  public static final String SENSISION_CLASS_WARPSCRIPT_TIME_US = "warp.script.time.us";
   
   /**
-   * Total number of ops in Einstein scripts
+   * Total number of ops in WarpScript scripts
    */
-  public static final String SENSISION_CLASS_EINSTEIN_OPS = "warp.script.ops";
+  public static final String SENSISION_CLASS_WARPSCRIPT_OPS = "warp.script.ops";
   
   /**
-   * Total number of errors in Einstein scripts
+   * Total number of errors in WarpScript scripts
    */
-  public static final String SENSISION_CLASS_EINSTEIN_ERRORS = "warp.script.errors";  
+  public static final String SENSISION_CLASS_WARPSCRIPT_ERRORS = "warp.script.errors";  
 
   /**
    * Free memory reported by the JVM
    */
-  public static final String SENSISION_CLASS_EINSTEIN_JVM_FREEMEMORY = "warp.script.jvm.freememory";
+  public static final String SENSISION_CLASS_WARPSCRIPT_JVM_FREEMEMORY = "warp.script.jvm.freememory";
   
   /**
-   * Number of uses of a given Einstein function
+   * Number of uses of a given WarpScript function
    */
-  public static final String SENSISION_CLASS_EINSTEIN_FUNCTION_COUNT = "warp.script.function.count";
+  public static final String SENSISION_CLASS_WARPSCRIPT_FUNCTION_COUNT = "warp.script.function.count";
   
   /**
    * Number of times the stack depth limit was reached
    */
-  public static final String SENSISION_CLASS_EINSTEIN_STACKDEPTH_EXCEEDED = "warp.script.stackdepth.exceeded";
+  public static final String SENSISION_CLASS_WARPSCRIPT_STACKDEPTH_EXCEEDED = "warp.script.stackdepth.exceeded";
 
   /**
    * Number of times the operation count limit was reached
    */
-  public static final String SENSISION_CLASS_EINSTEIN_OPSCOUNT_EXCEEDED = "warp.script.opscount.exceeded";
+  public static final String SENSISION_CLASS_WARPSCRIPT_OPSCOUNT_EXCEEDED = "warp.script.opscount.exceeded";
 
   /**
    * Number of times the fetch limit was reached
    */
-  public static final String SENSISION_CLASS_EINSTEIN_FETCHCOUNT_EXCEEDED = "warp.script.fetchcount.exceeded";
+  public static final String SENSISION_CLASS_WARPSCRIPT_FETCHCOUNT_EXCEEDED = "warp.script.fetchcount.exceeded";
 
   /**
-   * Total time in nanoseconds spent in Einstein functions
+   * Total time in nanoseconds spent in WarpScript functions
    */
-  public static final String SENSISION_CLASS_EINSTEIN_FUNCTION_TIME_US = "warp.script.function.time.us";
+  public static final String SENSISION_CLASS_WARPSCRIPT_FUNCTION_TIME_US = "warp.script.function.time.us";
 
   /**
    * Number of times a script has been run
    */
-  public static final String SENSISION_CLASS_EINSTEIN_RUN_COUNT = "warp.script.run.count";
+  public static final String SENSISION_CLASS_WARPSCRIPT_RUN_COUNT = "warp.script.run.count";
 
   /**
    * Number of current active executions
    */
-  public static final String SENSISION_CLASS_EINSTEIN_RUN_CURRENT = "warp.script.run.current";
+  public static final String SENSISION_CLASS_WARPSCRIPT_RUN_CURRENT = "warp.script.run.current";
   
   /**
    * Total time spent running a given script
    */
-  public static final String SENSISION_CLASS_EINSTEIN_RUN_TIME_US = "warp.script.run.time.us";
+  public static final String SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US = "warp.script.run.time.us";
 
   /**
    * Number of times a script has failed
    */
-  public static final String SENSISION_CLASS_EINSTEIN_RUN_FAILURES = "warp.script.run.failures";
+  public static final String SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES = "warp.script.run.failures";
 
   /**
    * Elapsed time per scheduled script
    */
-  public static final String SENSISION_CLASS_EINSTEIN_RUN_ELAPSED = "warp.script.run.elapsed.ns";
+  public static final String SENSISION_CLASS_WARPSCRIPT_RUN_ELAPSED = "warp.script.run.elapsed.ns";
   
   /**
    * Number of ops per scheduled script
    */
-  public static final String SENSISION_CLASS_EINSTEIN_RUN_OPS = "warp.script.run.ops";
+  public static final String SENSISION_CLASS_WARPSCRIPT_RUN_OPS = "warp.script.run.ops";
   
   /**
    * Number of datapoints fetched per scheduled script
    */
-  public static final String SENSISION_CLASS_EINSTEIN_RUN_FETCHED = "warp.script.run.fetched";
+  public static final String SENSISION_CLASS_WARPSCRIPT_RUN_FETCHED = "warp.script.run.fetched";
   
   /**
    * Number of sessions with macros currently scheduled by Mobius
@@ -1135,7 +1155,7 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_PLASMA_FRONTEND_DISPATCH_SESSIONS = "warp.plasma.frontend.dispatch.sessions";
 
   /**
-   * Time (in miroseconds) spent in 'dispatch'
+   * Time (in microseconds) spent in 'dispatch'
    */
   public static final String SENSISION_CLASS_PLASMA_FRONTEND_DISPATCH_TIME_US = "warp.plasma.frontend.dispatch.time.ns";
   
@@ -1222,12 +1242,12 @@ public class SensisionConstants {
   /**
    * Number of macros known in the repository
    */
-  public static final String SENSISION_CLASS_EINSTEIN_REPOSITORY_MACROS = "warp.script.repository.macros";
+  public static final String SENSISION_CLASS_WARPSCRIPT_REPOSITORY_MACROS = "warp.script.repository.macros";
   
   /**
    * Number of jar files known in the repository
    */
-  public static final String SENSISION_CLASS_EINSTEIN_REPOSITORY_JARS = "warp.script.repository.jars";
+  public static final String SENSISION_CLASS_WARPSCRIPT_REPOSITORY_JARS = "warp.script.repository.jars";
   
   /**
    * Number of messages consumed from Kafka
@@ -1269,37 +1289,6 @@ public class SensisionConstants {
    */
   public static final String SENSISION_CLASS_WEBCALL_BARRIER_SYNCS = "warp.webcall.barrier.syncs";
 
-  public static final String SENSISION_CLASS_GEODIR_SUBS_ABORTS = "warp.geodir.subscriptions.aborts";
-  public static final String SENSISION_CLASS_GEODIR_SUBS_KAFKA_COMMITS = "warp.geodir.subscriptions.kafka.commits";
-  public static final String SENSISION_CLASS_GEODIR_SUBS_SYNCS = "warp.geodir.subscriptions.syncs";
-  public static final String SENSISION_CLASS_GEODIR_DATA_ABORTS = "warp.geodir.data.aborts";
-  public static final String SENSISION_CLASS_GEODIR_DATA_KAFKA_COMMITS = "warp.geodir.data.kafka.commits";
-  public static final String SENSISION_CLASS_GEODIR_DATA_SYNCS = "warp.geodir.data.syncs";
-  public static final String SENSISION_CLASS_GEODIR_INDEXED_PERCONSUMER = "warp.geodir.indexed.perconsumer";
-  public static final String SENSISION_CLASS_GEODIR_INDEXED = "warp.geodir.indexed";
-  public static final String SENSISION_CLASS_GEODIR_SUBS_KAFKA_MESSAGES = "warp.geodir.subscriptions.kafka.messages";
-  public static final String SENSISION_CLASS_GEODIR_SUBS_KAFKA_BYTES = "warp.geodir.subscriptions.kafka.bytes";
-  public static final String SENSISION_CLASS_GEODIR_SUBS_KAFKA_INVALIDMACS = "warp.geodir.subscriptions.kafka.invalidmacs";
-  public static final String SENSISION_CLASS_GEODIR_SUBS_KAFKA_INVALIDCIPHERS = "warp.geodir.subscriptions.kafka.invalidciphers";
-  public static final String SENSISION_CLASS_GEODIR_SUBS_INVALIDKTOKENS = "warp.geodir.subscriptions.invalidtokens";
-  public static final String SENSISION_CLASS_GEODIR_DATA_KAFKA_MESSAGES = "warp.geodir.data.kafka.messages";
-  public static final String SENSISION_CLASS_GEODIR_DATA_KAFKA_BYTES = "warp.geodir.data.kafka.bytes";
-  public static final String SENSISION_CLASS_GEODIR_DATA_KAFKA_INVALIDMACS = "warp.geodir.data.kafka.invalidmacs";
-  public static final String SENSISION_CLASS_GEODIR_DATA_KAFKA_INVALIDCIPHERS = "warp.geodir.data.kafka.invalidciphers";
-  public static final String SENSISION_CLASS_GEODIR_FILTERED = "warp.geodir.filtered";
-  public static final String SENSISION_CLASS_GEODIR_UNFILTERED = "warp.geodir.unfiltered";
-  public static final String SENSISION_CLASS_GEODIR_REQUESTS = "warp.geodir.requests";
-  public static final String SENSISION_CLASS_GEODIR_CELLS = "warp.geodir.cells";
-  public static final String SENSISION_CLASS_GEODIR_TIME_US = "warp.geodir.time.us";
-  public static final String SENSISION_CLASS_GEODIR_CLIENT_ERRORS = "warp.geodir.client.errors";
-  public static final String SENSISION_CLASS_GEODIR_FETCH_INVALIDMACS = "warp.geodir.fetch.invalidmacs";
-  public static final String SENSISION_CLASS_GEODIR_FETCH_INVALIDCIPHERS = "warp.geodir.fetch.invalidciphers";
-  public static final String SENSISION_CLASS_GEODIR_FETCH_INVALIDBASE = "warp.geodir.fetch.invalidbase";
-  public static final String SENSISION_CLASS_GEODIR_DATA_KAFKA_OUT_SENT = "warp.geodir.data.kafka.out.sent";
-  public static final String SENSISION_CLASS_GEODIR_DATA_KAFKA_OUT_MESSAGES = "warp.geodir.data.kafka.out.messages";
-  public static final String SENSISION_CLASS_GEODIR_DATA_KAFKA_OUT_BYTES = "warp.geodir.data.kafka.out.bytes";
-  public static final String SENSISION_CLASS_GEODIR_FETCH_FAILEDDESER = "warp.geodir.fetch.faileddeser";
-  
   /**
    * Kafka Consumer Offset
    */
@@ -1389,7 +1378,7 @@ public class SensisionConstants {
   public static final String SENSISION_LABEL_OWNER = "owner";
 
   /**
-   * Name of function for which an Einstein metric is collected
+   * Name of function for which a WarpScript metric is collected
    */
   public static final String SENSISION_LABEL_FUNCTION = "function";
   

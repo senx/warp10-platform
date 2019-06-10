@@ -1,3 +1,19 @@
+//
+//   Copyright 2018  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
 namespace java io.warp10.continuum.store.thrift.data
 
 /**
@@ -38,7 +54,16 @@ struct Metadata {
    * read/write metadata from/to persistent storage, i.e. to differentiate
    * between updates and discovery of metadata.
    */
-  6: optional string source,  
+  6: optional string source,
+  
+  /**
+   * Timestamp (in ms since the Epoch) of the last observed activity on this Geo Time Series.
+   * Activity can be update, attribute changes or deletions depending on the configuration.
+   * This field is used to select GTS which have had (or not) activity after a given moment in time.
+   * The last activity timestamp is an estimate of the moment of the last activity, its resolution
+   * depends on the configuration of the activity window in Warp 10.
+   */
+  7: optional i64 lastActivity,  
 }
 
 /**
@@ -100,6 +125,11 @@ struct KafkaDataMessage {
    * Optional metadata
    */
   9: optional Metadata metadata,
+  
+  /**
+   * Message attributes, placeholder to store K/V.
+   */
+  10: optional map<string,string> attributes,
 }
 
 /**
@@ -254,6 +284,31 @@ struct DirectoryStatsResponse {
    * Detail of encountered error
    */
   7: optional string error,
+}
+
+/**
+ * Generic DirectoryRequest, container for all selection criteria.
+ */
+struct DirectoryRequest {
+  /**
+   * Patterns for selecting GTS class.
+   */
+  1: optional list<string> classSelectors,
+  
+  /**
+   * Patterns for selecting labels. Each element of labelsSelectors matches the element of identical index in classSelectors
+   */
+  2: optional list<map<string,string>> labelsSelectors,
+  
+  /**
+   * Timestamp (in ms) after which a given Geo Time Series was active.
+   */
+  3: optional i64 activeAfter,
+  
+  /**
+   * Timestamp (in ms) after which a given Geo Time Series was quiet.
+   */
+  4: optional i64 quietAfter,  
 }
 
 struct GTSWrapper {

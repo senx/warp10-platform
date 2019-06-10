@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -125,7 +125,7 @@ public class ThrottlingConfigGenerator {
 //        "\n" + 
 //        "$token\n" +
 //        //"'ZYcRABCkn+CLO/GUWmrvelLOnvAqO9PEmo8PQtOM1tJ5o'\n" + 
-//        "'~com.cityzendata.continuum.*datapoints.raw'\n" + 
+//        "'~warp.*datapoints.raw'\n" + 
 //        "'cell' $cell 2 ->MAP\n" + 
 //        "NOW DUP 86400000000 % -\n" + 
 //        "86400000000 +\n" + 

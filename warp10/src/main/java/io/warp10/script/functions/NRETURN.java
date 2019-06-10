@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -42,8 +42,6 @@ public class NRETURN extends NamedWarpScriptFunction implements WarpScriptStackF
     }
     
     stack.getCounter(WarpScriptStack.COUNTER_RETURN_DEPTH).set(((Number) top).longValue());
-    //throw new EinsteinReturnException("NRETURN", ((Number) top).intValue());
-    //ex.setN(((Number) top).intValue());
     throw ex;
   }
 }

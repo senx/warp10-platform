@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -144,8 +144,10 @@ class TestReadToken extends TokenTestCase {
         String uuid = UUID.randomUUID().toString()
         String readToken = tokenEncoder.deliverReadToken("app", uuid, uuid, ["app"], 32468, getKeyStore())
 
-        // corrupt the token (replace a by A)
-        readToken = readToken.replace('a', 'b')
+        // corrupt the token (pick a random character and decrement it)
+        char c1 = readToken.charAt(new Random().nextInt(60))
+        char c2 = c1 - 1
+        readToken = readToken.replace(c1, c2)
 
         QuasarTokenFilter tokenFilter = new QuasarTokenFilter(getConfig(), getKeyStore())
 

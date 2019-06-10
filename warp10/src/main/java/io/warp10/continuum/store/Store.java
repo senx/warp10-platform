@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -100,16 +100,10 @@ public class Store extends Thread {
   private static final Logger LOG = LoggerFactory.getLogger(Store.class);
   
   /**
-   * Prefix for 'raw' (individual datapoints) data
-   */
-  public static final byte[] HBASE_RAW_DATA_KEY_PREFIX = "R".getBytes(Charsets.UTF_8);
-
-  /**
    * Prefix for 'archived' data
    */
   public static final byte[] HBASE_ARCHIVE_DATA_KEY_PREFIX = "A".getBytes(Charsets.UTF_8);
   
-
   /**
    * Set of required parameters, those MUST be set
    */
@@ -1211,12 +1205,12 @@ public class Store extends Thread {
         
         // Prefix + classId + labelsId + timestamp
         // 128 bits
-        byte[] rowkey = new byte[HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
+        byte[] rowkey = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
 
-        System.arraycopy(HBASE_RAW_DATA_KEY_PREFIX, 0, rowkey, 0, HBASE_RAW_DATA_KEY_PREFIX.length);
+        System.arraycopy(Constants.HBASE_RAW_DATA_KEY_PREFIX, 0, rowkey, 0, Constants.HBASE_RAW_DATA_KEY_PREFIX.length);
         // Copy classId/labelsId
-        System.arraycopy(Longs.toByteArray(msg.getClassId()), 0, rowkey, HBASE_RAW_DATA_KEY_PREFIX.length, 8);
-        System.arraycopy(Longs.toByteArray(msg.getLabelsId()), 0, rowkey, HBASE_RAW_DATA_KEY_PREFIX.length + 8, 8);
+        System.arraycopy(Longs.toByteArray(msg.getClassId()), 0, rowkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length, 8);
+        System.arraycopy(Longs.toByteArray(msg.getLabelsId()), 0, rowkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8, 8);
         // Copy timestamp % DEFAULT_MODULUS
         // It could be useful to have per GTS modulus BUT we don't do lookups for metadata, so we can't access a per GTS
         // modulus.... This means we will use the default.
@@ -1226,14 +1220,14 @@ public class Store extends Thread {
         byte[] bytes = encoder.getBytes();
         
         if (1 == Constants.DEFAULT_MODULUS) {
-          System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - basets), 0, rowkey, HBASE_RAW_DATA_KEY_PREFIX.length + 16, 8);
+          System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - basets), 0, rowkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 16, 8);
           put = new Put(rowkey);
           //
           // If the modulus is 1, we don't use a column qualifier
           //
           put.addColumn(store.colfam, null, bytes);
         } else {
-          System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - (basets - (basets % Constants.DEFAULT_MODULUS))), 0, rowkey, HBASE_RAW_DATA_KEY_PREFIX.length + 16, 8);
+          System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - (basets - (basets % Constants.DEFAULT_MODULUS))), 0, rowkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 16, 8);
           put = new Put(rowkey);
           //
           // We use the reversed base timestamp as the column qualifier. This introduces some redundancy but it
@@ -1333,12 +1327,12 @@ public class Store extends Thread {
       scan.addFamily(store.colfam);
 
       // Prefix + classId + labelsId + timestamp
-      byte[] rowkey = new byte[HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
+      byte[] rowkey = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
 
-      System.arraycopy(HBASE_RAW_DATA_KEY_PREFIX, 0, rowkey, 0, HBASE_RAW_DATA_KEY_PREFIX.length);
+      System.arraycopy(Constants.HBASE_RAW_DATA_KEY_PREFIX, 0, rowkey, 0, Constants.HBASE_RAW_DATA_KEY_PREFIX.length);
       // Copy classId/labelsId
-      System.arraycopy(Longs.toByteArray(msg.getClassId()), 0, rowkey, HBASE_RAW_DATA_KEY_PREFIX.length, 8);
-      System.arraycopy(Longs.toByteArray(msg.getLabelsId()), 0, rowkey, HBASE_RAW_DATA_KEY_PREFIX.length + 8, 8);
+      System.arraycopy(Longs.toByteArray(msg.getClassId()), 0, rowkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length, 8);
+      System.arraycopy(Longs.toByteArray(msg.getLabelsId()), 0, rowkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8, 8);
 
       long start = msg.getDeletionStartTimestamp();
       long end = msg.getDeletionEndTimestamp();
@@ -1349,11 +1343,11 @@ public class Store extends Thread {
 
       if (Long.MAX_VALUE == end && Long.MIN_VALUE == start) {
         // Only set the end key.
-        Arrays.fill(endkey, HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8, endkey.length - 1, (byte) 0xff);
+        Arrays.fill(endkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8, endkey.length - 1, (byte) 0xff);
       } else {
         // Add reversed timestamps. The end timestamps is the start key
-        System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - end), 0, startkey, HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8, 8);
-        System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - start), 0, endkey, HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8, 8);
+        System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - end), 0, startkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8, 8);
+        System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - start), 0, endkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8, 8);
       }
       
       scan.setStartRow(startkey);

@@ -1,5 +1,5 @@
 //
-//   Copyright 2017  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -60,7 +60,9 @@ public class TRY extends NamedWarpScriptFunction implements WarpScriptStackFunct
       stack.setAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERROR, t);
       stack.exec(catchMacro);
     } finally {
-      stack.exec(finallyMacro);
+      if (finallyMacro.size() > 0) {
+        stack.exec(finallyMacro);
+      }
     }
 
     return stack;

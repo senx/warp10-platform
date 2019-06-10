@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -88,6 +88,21 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
     
     Object top = stack.pop();
     
+    //
+    // A non null token secret was configured, check it
+    //
+    String secret = TokenWarpScriptExtension.TOKEN_SECRET;
+    
+    if (null != secret) {
+      if (!(top instanceof String)) {
+        throw new WarpScriptException(getName() + " expects a token secret on top of the stack.");
+      }
+      if (!secret.equals(top)) {
+        throw new WarpScriptException(getName() + " invalid token secret.");
+      }
+      top = stack.pop();
+    }
+    
     if (!(top instanceof Map)) {
       throw new WarpScriptException(getName() + " expects a map on top of the stack.");
     }
@@ -134,21 +149,20 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
       rtoken.setAppName(params.get(KEY_APPLICATION).toString());
       
       if (null != params.get(KEY_ISSUANCE)) {
-        rtoken.setIssuanceTimestamp(((Number) params.get(KEY_ISSUANCE)).longValue() / Constants.TIME_UNITS_PER_MS);
+        rtoken.setIssuanceTimestamp(((Number) params.get(KEY_ISSUANCE)).longValue());
       } else {
         rtoken.setIssuanceTimestamp(System.currentTimeMillis());
       }
       
       if (null != params.get(KEY_TTL)) {
         long ttl = ((Number) params.get(KEY_TTL)).longValue();
-        ttl = ttl / Constants.TIME_UNITS_PER_MS;
         if (ttl > Long.MAX_VALUE - rtoken.getIssuanceTimestamp()) { 
           rtoken.setExpiryTimestamp(Long.MAX_VALUE);
         } else {
           rtoken.setExpiryTimestamp(rtoken.getIssuanceTimestamp() + ttl);
         }
       } else if (null != params.get(KEY_EXPIRY)) {
-        rtoken.setExpiryTimestamp(((Number) params.get(KEY_EXPIRY)).longValue() / Constants.TIME_UNITS_PER_MS);
+        rtoken.setExpiryTimestamp(((Number) params.get(KEY_EXPIRY)).longValue());
       } else if (0 == DEFAULT_TTL) {
         throw new WarpScriptException(getName() + " missing '" + KEY_TTL + "' or '" + KEY_EXPIRY + "'.");
       } else {
@@ -232,21 +246,20 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
       wtoken.setAppName(params.get(KEY_APPLICATION).toString());
       
       if (null != params.get(KEY_ISSUANCE)) {
-        wtoken.setIssuanceTimestamp(((Number) params.get(KEY_ISSUANCE)).longValue() / Constants.TIME_UNITS_PER_MS);
+        wtoken.setIssuanceTimestamp(((Number) params.get(KEY_ISSUANCE)).longValue());
       } else {
         wtoken.setIssuanceTimestamp(System.currentTimeMillis());
       }
       
       if (null != params.get(KEY_TTL)) {
         long ttl = ((Number) params.get(KEY_TTL)).longValue();
-        ttl = ttl / Constants.TIME_UNITS_PER_MS;
         if (ttl > Long.MAX_VALUE - wtoken.getIssuanceTimestamp()) { 
           wtoken.setExpiryTimestamp(Long.MAX_VALUE);
         } else {
           wtoken.setExpiryTimestamp(wtoken.getIssuanceTimestamp() + ttl);
         }
       } else if (null != params.get(KEY_EXPIRY)) {
-        wtoken.setExpiryTimestamp(((Number) params.get(KEY_EXPIRY)).longValue() / Constants.TIME_UNITS_PER_MS);
+        wtoken.setExpiryTimestamp(((Number) params.get(KEY_EXPIRY)).longValue());
       } else if (0 == DEFAULT_TTL) {
         throw new WarpScriptException(getName() + " missing '" + KEY_TTL + "' or '" + KEY_EXPIRY + "'.");
       } else {

@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,11 +16,29 @@
 
 package io.warp10.standalone;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TCompactProtocol;
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.handler.AbstractHandler;
+
+import com.google.common.base.Charsets;
+
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.MetadataIterator;
-import io.warp10.continuum.store.Store;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.GTSSplit;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
@@ -29,28 +47,6 @@ import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.functions.PARSESELECTOR;
-
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.hadoop.hbase.HRegionLocation;
-import org.apache.hadoop.hbase.client.RegionLocator;
-import org.apache.thrift.TException;
-import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.handler.AbstractHandler;
-
-import com.google.common.base.Charsets;
 
 /**
  * This handler will generate splits from a selector and a token, those
@@ -82,7 +78,9 @@ public class StandaloneSplitsHandler extends AbstractHandler {
     String token = request.getParameter(Constants.HTTP_PARAM_TOKEN);
     String selector = request.getParameter(Constants.HTTP_PARAM_SELECTOR);
     String now = request.getParameter(Constants.HTTP_PARAM_NOW);
-    
+    Long activeAfter = null == request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
+    Long quietAfter = null == request.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
+
     //
     // Validate token
     //
@@ -139,11 +137,22 @@ public class StandaloneSplitsHandler extends AbstractHandler {
     // Determine the list of fetchers we can use
     //
     
-    try (MetadataIterator metadatas = directoryClient.iterator(clsSels, lblsSels)) {
+    DirectoryRequest dr = new DirectoryRequest();
+    dr.setClassSelectors(clsSels);
+    dr.setLabelsSelectors(lblsSels);
+    
+    if (null != activeAfter) {
+      dr.setActiveAfter(activeAfter);
+    }
+    if (null != quietAfter) {
+      dr.setQuietAfter(quietAfter);
+    }
+
+    try (MetadataIterator metadatas = directoryClient.iterator(dr)) {
       
       //
       // We output a single split per Metadata, split combining is the
-      // responsability of the InputFormat
+      // responsibility of the InputFormat
       // 128bits
       //
         

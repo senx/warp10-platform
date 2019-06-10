@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.Directory;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
 import io.warp10.continuum.store.thrift.data.Metadata;
@@ -116,20 +117,24 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   // 128BITS
   private static final Map<String,Map<Long,Metadata>> metadatas = new MapMaker().concurrencyLevel(64).makeMap();
   private static final Map<BigInteger,Metadata> metadatasById = new MapMaker().concurrencyLevel(64).makeMap();
+
+  private long activityWindow = 0L;
   
   public StandaloneDirectoryClient(DB db, final KeyStore keystore) {
-    
-    Properties props = WarpConfig.getProperties();
-    
-    if (props.containsKey(io.warp10.continuum.Configuration.DIRECTORY_STATS_CLASS_MAXCARDINALITY)) {
-      this.LIMIT_CLASS_CARDINALITY = Long.parseLong(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STATS_CLASS_MAXCARDINALITY));
+
+    String classMaxCardinalityProp = WarpConfig.getProperty(Configuration.DIRECTORY_STATS_CLASS_MAXCARDINALITY);
+    if (null != classMaxCardinalityProp) {
+      this.LIMIT_CLASS_CARDINALITY = Long.parseLong(classMaxCardinalityProp);
     }
 
-    if (props.containsKey(io.warp10.continuum.Configuration.DIRECTORY_STATS_LABELS_MAXCARDINALITY)) {
-      this.LIMIT_LABELS_CARDINALITY = Long.parseLong(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STATS_LABELS_MAXCARDINALITY));
+    String labelsMaxCardinalityProp = WarpConfig.getProperty(Configuration.DIRECTORY_STATS_LABELS_MAXCARDINALITY);
+    if (null != labelsMaxCardinalityProp) {
+      this.LIMIT_LABELS_CARDINALITY = Long.parseLong(labelsMaxCardinalityProp);
     }
 
-    this.initNThreads = Integer.parseInt(props.getProperty(Configuration.DIRECTORY_INIT_NTHREADS, DIRECTORY_INIT_NTHREADS_DEFAULT));
+    this.activityWindow = Long.parseLong(WarpConfig.getProperty(io.warp10.continuum.Configuration.INGRESS_ACTIVITY_WINDOW, "0"));
+
+    this.initNThreads = Integer.parseInt(WarpConfig.getProperty(Configuration.DIRECTORY_INIT_NTHREADS, DIRECTORY_INIT_NTHREADS_DEFAULT));
 
     this.db = db;
     this.keystore = keystore;
@@ -141,7 +146,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     this.labelsKey = this.keystore.getKey(KeyStore.SIPHASH_LABELS);
     this.labelsLongs = SipHashInline.getKey(this.labelsKey);
     
-    syncrate = Math.min(1.0D, Math.max(0.0D, Double.parseDouble(props.getProperty(Configuration.LEVELDB_DIRECTORY_SYNCRATE, "1.0"))));
+    syncrate = Math.min(1.0D, Math.max(0.0D, Double.parseDouble(WarpConfig.getProperty(Configuration.LEVELDB_DIRECTORY_SYNCRATE, "1.0"))));
     syncwrites = 0.0 < syncrate && syncrate < 1.0;
 
     //
@@ -352,7 +357,17 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     }
   }
   
-  public List<Metadata> find(List<String> classExpr, List<Map<String,String>> labelsExpr) {
+  @Override
+  public List<Metadata> find(DirectoryRequest request) {
+    
+    List<String> classExpr = request.getClassSelectors();
+    List<Map<String,String>> labelsExpr = request.getLabelsSelectors();
+    
+    boolean hasActiveAfter = request.isSetActiveAfter();
+    long activeAfter = request.getActiveAfter();
+    
+    boolean hasQuietAfter = request.isSetQuietAfter();
+    long quietAfter = request.getQuietAfter();
     
     //
     // Build patterns from expressions
@@ -459,6 +474,20 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         
         if (classSmartPattern.matches(className)) {
           for (Metadata metadata: this.metadatas.get(className).values()) {
+            
+            //
+            // Check activity
+            //
+            
+            if (hasActiveAfter && metadata.getLastActivity() < activeAfter) {
+              continue;
+            }
+            
+            if (hasQuietAfter && metadata.getLastActivity() >= quietAfter) {
+              continue;
+            }
+            
+            
             boolean exclude = false;
             
             int idx = 0;
@@ -528,6 +557,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
               meta.setLabelsId(GTSHelper.labelsId(labelsKey, meta.getLabels()));
             }
             
+            meta.setLastActivity(metadata.getLastActivity());
             metadatas.add(meta);
           }
         }
@@ -566,10 +596,27 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       long labelsId = GTSHelper.labelsId(this.labelsLongs, metadata.getLabels());
       
       if (!metadatas.get(metadata.getName()).containsKey(labelsId)) {
+        // Metadata is unknown so we know the Metadata should be stored
         store(metadata);
-      } else if (!metadatas.get(metadata.getName()).get(labelsId).getLabels().equals(metadata.getLabels())) {
-        LOG.warn("LabelsId collision under class '" + metadata.getName() + "' " + metadata.getLabels() + " and " + metadatas.get(metadata.getName()).get(labelsId).getLabels());
-        Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_LABELS_COLLISIONS, Sensision.EMPTY_LABELS, 1);
+      } else {
+        // Check that we do not have a collision
+        if (!metadatas.get(metadata.getName()).get(labelsId).getLabels().equals(metadata.getLabels())) {
+          LOG.warn("LabelsId collision under class '" + metadata.getName() + "' " + metadata.getLabels() + " and " + metadatas.get(metadata.getName()).get(labelsId).getLabels());
+          Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_LABELS_COLLISIONS, Sensision.EMPTY_LABELS, 1);
+        }
+
+        //
+        // Check activity of the GTS, storing it if the activity window has passed
+        if (activityWindow > 0) {
+          //
+          // If the currently stored lastactivity is more than 'activityWindow' before the one in 'metadata',
+          // store the metadata
+          //
+          long currentLastActivity = metadatas.get(metadata.getName()).get(labelsId).getLastActivity();
+          if (metadata.getLastActivity() - currentLastActivity >= activityWindow) {
+            store(metadata);
+          }
+        }
       }
     } else if (!Configuration.INGRESS_METADATA_SOURCE.equals(metadata.getSource())) {
       //
@@ -582,6 +629,12 @@ public class StandaloneDirectoryClient implements DirectoryClient {
           // 128BITS
           long labelsId = GTSHelper.labelsId(this.labelsLongs, metadata.getLabels());
           if (metadatas.get(metadata.getName()).containsKey(labelsId)) {
+            // Check the activity so we only increase it
+            // 128 bits
+            long currentLastActivity = metadatas.get(metadata.getName()).get(labelsId).getLastActivity();
+            if (metadata.getLastActivity() < currentLastActivity) {
+              metadata.setLastActivity(currentLastActivity);
+            }
             store(metadata);
           }
         }
@@ -675,7 +728,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     
     boolean written = false;
     
-    WriteOptions options = new WriteOptions().sync(1.0 == syncrate);
+    WriteOptions options = new WriteOptions().sync(null == key || null == value || 1.0 == syncrate);
     
     try {
       if (null != key && null != value) {
@@ -685,7 +738,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       
       if (null == key || null == value || size.get() > MAX_BATCH_SIZE) {
         
-        if (syncwrites) {
+        if (syncwrites && !options.sync()) {
           options = new WriteOptions().sync(Math.random() < syncrate);
         }
         
@@ -738,8 +791,24 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     metadata.setClassId(classId);
     metadata.setLabelsId(labelsId);
     
-    if (null == metadata.getAttributes()) {
+    if (null == metadata.getAttributes() || !Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
       metadata.setAttributes(new HashMap<String,String>());
+      
+      // If we are not updating the attributes, copy the attributes from the directory as we are probably
+      // registering the GTS due to its recent activity.
+      if (!Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
+        Metadata oldmeta = null;
+        // Copy the attributes if the Metadata is already known, which can happen when
+        // tracking the activity
+        synchronized(metadatas) {
+          if (metadatas.containsKey(metadata.getName())) {
+            oldmeta = metadatas.get(metadata.getName()).get(labelsId);        
+          }        
+        }
+        if (null != oldmeta && oldmeta.getAttributesSize() > 0) {
+          metadata.getAttributes().putAll(oldmeta.getAttributes());
+        }        
+      }
     }
     
     TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
@@ -755,6 +824,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         //this.db.put(bytes, serialized);
         store(bytes, serialized);
       }
+      
       synchronized (metadatas) {
         if (!metadatas.containsKey(metadata.getName())) {
           metadatas.put(metadata.getName(), (Map) new MapMaker().concurrencyLevel(64).makeMap());
@@ -780,13 +850,13 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   public Metadata getMetadataById(BigInteger id) {
     return this.metadatasById.get(id);
   }
-  
+    
   @Override
-  public Map<String,Object> stats(List<String> classSelector, List<Map<String, String>> labelsSelectors) throws IOException {
+  public Map<String,Object> stats(DirectoryRequest dr) throws IOException {
     final DirectoryStatsRequest request = new DirectoryStatsRequest();
     request.setTimestamp(System.currentTimeMillis());
-    request.setClassSelector(classSelector);
-    request.setLabelsSelectors(labelsSelectors);
+    request.setClassSelector(dr.getClassSelectors());
+    request.setLabelsSelectors(dr.getLabelsSelectors());
     
     try {
       final DirectoryStatsResponse response = stats(request);
@@ -1143,8 +1213,8 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   }
   
   @Override
-  public MetadataIterator iterator(List<String> classSelector, List<Map<String, String>> labelsSelectors) throws IOException {
-    List<Metadata> metadatas = find(classSelector, labelsSelectors);
+  public MetadataIterator iterator(DirectoryRequest request) throws IOException {
+    List<Metadata> metadatas = find(request);
 
     final Iterator<Metadata> iter = metadatas.iterator();
 
@@ -1158,5 +1228,9 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       @Override
       public Metadata next() { return iter.next(); }
     };
+  }
+  
+  public void setActivityWindow(long activityWindow) {
+    this.activityWindow = activityWindow;
   }
 }

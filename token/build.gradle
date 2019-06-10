@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -36,9 +36,9 @@ dependencies {
 
     // WARP10 DEPENDENCIES
     compile "io.warp10:crypto:${warp10Version['crypto']}"
-    compile 'io.warp10:sensision:1.0.11'
+    compile 'io.warp10:sensision:1.0.17'
 
-    compile 'org.apache.thrift:libthrift:0.9.1'
+    compile 'org.apache.thrift:libthrift:0.11.0'
 }
 
 jar {

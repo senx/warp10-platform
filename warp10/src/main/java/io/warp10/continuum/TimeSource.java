@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import io.warp10.sensision.Sensision;
 
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 
 /**
@@ -40,6 +41,7 @@ public class TimeSource {
   static long baseTimeunits = 0L;
   static long lastCalibration = 0L;
 
+  static AtomicLong calibrations = new AtomicLong(0L);
   static AtomicBoolean mustRecalibrate = new AtomicBoolean(true);
   
   static {
@@ -49,12 +51,13 @@ public class TimeSource {
       @Override
       public void run() {
         while(true) {
-          // Sleep 100ms
-          LockSupport.parkNanos(100000000L);
           if (!mustRecalibrate.getAndSet(false)) {
+            LockSupport.parkNanos(100000000L);
             continue;
           }
           calibrate();
+          // Sleep 100ms
+          LockSupport.parkNanos(100000000L);
         }
       }
     });
@@ -195,11 +198,13 @@ public class TimeSource {
       baseTimeunits = baseMillis * Constants.TIME_UNITS_PER_MS;
     }
     
+    calibrations.addAndGet(1L);
+    
     //
     // Keep track of calibrations
     //
 
-    Sensision.update(SensisionConstants.CLASS_WARP_TIMESOURCE_CALIBRATIONS, Sensision.EMPTY_LABELS, 1);
+    Sensision.update(SensisionConstants.CLASS_WARP_TIMESOURCE_CALIBRATIONS, Sensision.EMPTY_LABELS, 1);    
   }
   
   /**
@@ -211,6 +216,9 @@ public class TimeSource {
     // TODO(hbs): add periodic re-adjustment of bases so we can cope with
     //            clock adjustment due to either NTP or PTP
     //
+    
+    while(0 == calibrations.get()) {      
+    }
     
     //
     // Extract nanoseconds
@@ -267,7 +275,9 @@ public class TimeSource {
    * Return the current time in nanoseconds
    * @return
    */
-  public static long getNanoTime() {    
+  public static long getNanoTime() {
+    while(0 == calibrations.get()) {      
+    }
     synchronized(mustRecalibrate) {
       long nano = System.nanoTime();
       nano -= baseNanos;   

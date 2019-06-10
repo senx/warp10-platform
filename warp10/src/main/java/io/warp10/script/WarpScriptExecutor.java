@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -149,7 +149,7 @@ public class WarpScriptExecutor implements Serializable {
     // to define a macro
     //
       
-    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, null, new Properties());
+    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, new Properties());
     stack.maxLimits();
     if (null != this.progressable) {
       stack.setAttribute(WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE, this.progressable);
@@ -218,7 +218,7 @@ public class WarpScriptExecutor implements Serializable {
     this.perThreadStack = new ThreadLocal<WarpScriptStack>() {
       @Override
       protected WarpScriptStack initialValue() {
-        MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, null, properties);
+        MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, properties);
         stack.maxLimits();
         if (null != progressable) {
           stack.setAttribute(WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE, progressable);
@@ -293,7 +293,7 @@ public class WarpScriptExecutor implements Serializable {
       try {
         stack.exec(this.macro);
       } catch (WarpScriptStopException wsse) {
-        // We catch those as they only mean the script terminated voluntarly early
+        // We catch those as they only mean the script terminated voluntarily early
       }
       
       //
@@ -326,7 +326,7 @@ public class WarpScriptExecutor implements Serializable {
     if (StackSemantics.PERTHREAD.equals(this.semantics)) {
       stack = perThreadStack.get();
     } else if (StackSemantics.NEW.equals(this.semantics)) {
-      stack = new MemoryWarpScriptStack(null, null, null, properties);
+      stack = new MemoryWarpScriptStack(null, null, properties);
       ((MemoryWarpScriptStack) stack).maxLimits();
       if (null != this.progressable) {
         stack.setAttribute(WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE, this.progressable);

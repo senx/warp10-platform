@@ -1,8 +1,24 @@
+//
+//   Copyright 2018  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
 package io.warp10;
 
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.store.Constants;
+import io.warp10.script.WarpFleetMacroRepository;
 import io.warp10.script.WarpScriptJarRepository;
 import io.warp10.script.WarpScriptMacroRepository;
 
@@ -15,6 +31,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.net.URLDecoder;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
@@ -92,10 +109,10 @@ public class WarpConfig {
     // Load tokens from file
     //
     
-    //if (null != properties.getProperty(CONTINUUM_TOKEN_FILE)) {
-    Tokens.init(properties.getProperty(Configuration.WARP_TOKEN_FILE));
-    //}
-    
+    if (null != properties.getProperty(Configuration.WARP_TOKEN_FILE)) {
+      Tokens.init(properties.getProperty(Configuration.WARP_TOKEN_FILE));
+    }
+
     //
     // Initialize macro repository
     //
@@ -107,6 +124,12 @@ public class WarpConfig {
     //
     
     WarpScriptJarRepository.init(properties);
+    
+    //
+    // Initialize WarpFleet repository
+    //
+    
+    WarpFleetMacroRepository.init(properties);
   }
   
   private static Properties readConfig(InputStream file, Properties properties) throws IOException {
@@ -194,6 +217,31 @@ public class WarpConfig {
     }
     
     //
+    // Now override properties with environment variables
+    //
+    
+    for (Entry<String, String> entry: System.getenv().entrySet()) {
+      String name = entry.getKey().toString();
+      String value = entry.getValue().toString();
+
+      try {
+        // URL Decode name/value if needed
+        if (name.contains("%")) {
+          name = URLDecoder.decode(name, "UTF-8");
+        }
+        if (value.contains("%")) {
+          value = URLDecoder.decode(value, "UTF-8");
+        }
+
+        // Override property
+        properties.setProperty(name, value);        
+      } catch (Exception e) {
+        System.err.println("Error decoding environment variable '" + entry.getKey().toString() + "' = '" + entry.getValue().toString() + "', using raw values.");
+        properties.setProperty(entry.getKey().toString(), entry.getValue().toString());
+      }
+    }
+
+    //
     // Now override properties with system properties
     //
 
@@ -219,9 +267,9 @@ public class WarpConfig {
         properties.setProperty(entry.getKey().toString(), entry.getValue().toString());
       }
     }
-    
+ 
     //
-    // Now expand ${xxx} contstructs
+    // Now expand ${xxx} constructs
     //
     
     Pattern VAR = Pattern.compile(".*\\$\\{([^}]+)\\}.*");
@@ -265,7 +313,7 @@ public class WarpConfig {
         loopcount++;
         
         if (loopcount > 100) {
-          System.err.println("Hmmm, that's embarassing, but I've been dereferencing variables " + loopcount + " times trying to set a value for '" + name + "'.");
+          System.err.println("Hmmm, that's embarrassing, but I've been dereferencing variables " + loopcount + " times trying to set a value for '" + name + "'.");
           System.exit(-1);
         }
       }
@@ -294,7 +342,38 @@ public class WarpConfig {
     }
     return (Properties) properties.clone();
   }
+  
+  public static String getProperty(String key) {
+    if (null == properties) {
+      throw new RuntimeException("Properties not set.");
+    } else {
+      return properties.getProperty(key);
+    }
+  }
 
+  public static String getProperty(String key, String defaultValue) {
+    if (null == properties) {
+      throw new RuntimeException("Properties not set.");
+    } else {
+      return properties.getProperty(key, defaultValue);
+    }    
+  }
+  
+  public static Object setProperty(String key, String value) {    
+    if (null == properties) {
+      return null;
+    } else {
+      synchronized(properties) {
+        // Set the new value
+        if (null == value) {
+          return properties.remove(key);
+        } else {
+          return properties.setProperty(key, value);
+        }
+      }
+    }
+  }
+  
   public static void main(String... args) {
     if (2 != args.length) {
       System.err.println("2 arguments required: properties file and the property key");
@@ -310,7 +389,7 @@ public class WarpConfig {
     String key = args[1];
     try {
       properties = WarpConfig.readConfig(new FileReader(file), null);
-      System.out.println(key + "=" + WarpConfig.getProperties().getProperty(key));
+      System.out.println(key + "=" + WarpConfig.getProperty(key));
     } catch (Exception e) {
       e.printStackTrace();
     }

@@ -1,3 +1,18 @@
+//
+//   Copyright 2018  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
 package io.warp10.hadoop;
 
 import java.io.BufferedReader;
@@ -9,10 +24,12 @@ import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
@@ -41,6 +58,11 @@ public class WarpScriptInputFormat extends InputFormat<Writable, Writable> {
   private static final String CONFIG_SYMBOL = ".conf";
   
   /**
+   * Configuration key we will set to the current path if the split if a FileSplit
+   */
+  public static final String PATH_CONFIG_KEY = ".path";
+  
+  /**
    * Suffix to use for the configuration
    */
   public static final String WARPSCRIPT_INPUTFORMAT_SUFFIX = "warpscript.inputformat.suffix";
@@ -55,6 +77,11 @@ public class WarpScriptInputFormat extends InputFormat<Writable, Writable> {
    */
   public static final String WARPSCRIPT_INPUTFORMAT_SCRIPT = "warpscript.inputformat.script";
 
+  /**
+   * Suffix to remove from configuration keys to override or create specific configuration entries
+   */
+  public static final String WARPSCRIPT_INPUTFORMAT_CONF_SUFFIX = "warpscript.inputformat.conf.suffix";
+  
   private InputFormat wrappedInputFormat;
   private RecordReader wrappedRecordReader;
     
@@ -72,14 +99,41 @@ public class WarpScriptInputFormat extends InputFormat<Writable, Writable> {
     }
 
     ensureInnerFormat(context.getConfiguration());
-    
+
     return this.wrappedInputFormat.getSplits(context); 
   }
   
   private void ensureInnerFormat(Configuration conf) throws IOException {
     if (null == this.wrappedInputFormat) {
       try {
-        Class innerClass = Class.forName(conf.get(WARPSCRIPT_INPUTFORMAT_CLASS));
+        String cls = Warp10InputFormat.getProperty(conf, this.suffix, WARPSCRIPT_INPUTFORMAT_CLASS, null);
+        
+        //
+        // Tweak the configuration if a conf suffix was specified
+        //
+        
+        String confsfx = Warp10InputFormat.getProperty(conf, this.suffix, WARPSCRIPT_INPUTFORMAT_CONF_SUFFIX, "");
+        
+        if (!"".equals(confsfx)) {
+          confsfx = "." + confsfx;
+          List<Entry<String,String>> keys = new ArrayList<Entry<String,String>>();
+          Iterator<Entry<String,String>> iter = conf.iterator();
+          while(iter.hasNext()) {
+            Entry<String,String> entry = iter.next();
+            
+            if (entry.getKey().endsWith(confsfx)) {
+              keys.add(entry);
+            }
+          }
+          
+          // Override or create the unsuffixed configuration parameters
+          for (Entry<String,String> entry: keys) {
+            String key = entry.getKey().substring(0, entry.getKey().length() - confsfx.length());
+            conf.set(key, entry.getValue());
+          }
+        }
+
+        Class innerClass = Class.forName(cls);
         this.wrappedInputFormat = (InputFormat) innerClass.newInstance();        
       } catch (Throwable t) {
         throw new IOException(t);
@@ -180,7 +234,7 @@ public class WarpScriptInputFormat extends InputFormat<Writable, Writable> {
   /**
    * Create an InputStream from a file path.
    * 
-   * This method can be overriden if custom loading is needed. In Spark for
+   * This method can be overridden if custom loading is needed. In Spark for
    * example SparkFiles#get could be called.
    */
   public InputStream getWarpScriptInputStream(String originalFilePath) throws IOException {

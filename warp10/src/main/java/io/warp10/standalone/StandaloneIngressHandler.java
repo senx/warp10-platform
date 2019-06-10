@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package io.warp10.standalone;
 
 import io.warp10.WarpConfig;
+import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.ThrottlingManager;
@@ -41,13 +42,18 @@ import io.warp10.sensision.Sensision;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.GZIPInputStream;
 
 import javax.servlet.ServletException;
@@ -100,8 +106,14 @@ public class StandaloneIngressHandler extends AbstractHandler {
   private final byte[] datalogPSK;
 
   private final long[] classKeyLongs;
+  private final long ckl0;
+  private final long ckl1;
   private final long[] labelsKeyLongs;
-    
+  private final long lkl0;
+  private final long lkl1;
+  
+  private final boolean datalogSync;
+  
   private final File loggingDir;
   
   private final String datalogId;
@@ -112,6 +124,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
   
   private final long maxValueSize;
   
+  private final boolean updateActivity;
+  private final boolean metaActivity;
+  private final boolean parseAttributes;
+  
   public StandaloneIngressHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
     this.keyStore = keystore;
     this.storeClient = storeClient;
@@ -119,14 +135,22 @@ public class StandaloneIngressHandler extends AbstractHandler {
     
     this.classKey = this.keyStore.getKey(KeyStore.SIPHASH_CLASS);
     this.classKeyLongs = SipHashInline.getKey(this.classKey);
+    this.ckl0 = this.classKeyLongs[0];
+    this.ckl1 = this.classKeyLongs[1];
     
     this.labelsKey = this.keyStore.getKey(KeyStore.SIPHASH_LABELS);
     this.labelsKeyLongs = SipHashInline.getKey(this.labelsKey);
+    this.lkl0 = this.labelsKeyLongs[0];
+    this.lkl1 = this.labelsKeyLongs[1];
     
-    Properties props = WarpConfig.getProperties();
+    updateActivity = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_ACTIVITY_UPDATE));
+    metaActivity = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_ACTIVITY_META));
     
-    if (props.containsKey(Configuration.DATALOG_DIR)) {
-      File dir = new File(props.getProperty(Configuration.DATALOG_DIR));
+    this.parseAttributes = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
+
+    String dirProp = WarpConfig.getProperty(Configuration.DATALOG_DIR);
+    if (null != dirProp) {
+      File dir = new File(dirProp);
       
       if (!dir.exists()) {
         throw new RuntimeException("Data logging target '" + dir + "' does not exist.");
@@ -137,7 +161,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
         LOG.info("Data logging enabled in directory '" + dir + "'.");
       }
       
-      String id = props.getProperty(Configuration.DATALOG_ID);
+      String id = WarpConfig.getProperty(Configuration.DATALOG_ID);
       
       if (null == id) {
         throw new RuntimeException("Property '" + Configuration.DATALOG_ID + "' MUST be set to a unique value for this instance.");
@@ -149,16 +173,18 @@ public class StandaloneIngressHandler extends AbstractHandler {
       loggingDir = null;
       datalogId = null;
     }
-    
-    if (props.containsKey(Configuration.DATALOG_PSK)) {
-      this.datalogPSK = this.keyStore.decodeKey(props.getProperty(Configuration.DATALOG_PSK));
+
+    String pskDir = WarpConfig.getProperty(Configuration.DATALOG_PSK);
+    if (null != pskDir) {
+      this.datalogPSK = this.keyStore.decodeKey(pskDir);
     } else {
       this.datalogPSK = null;
     }
     
-    this.logforwarded = "true".equals(props.getProperty(Configuration.DATALOG_LOGFORWARDED));
+    this.logforwarded = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_LOGFORWARDED));
+    this.datalogSync = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_SYNC));
     
-    this.maxValueSize = Long.parseLong(props.getProperty(Configuration.STANDALONE_VALUE_MAXSIZE, DEFAULT_VALUE_MAXSIZE));
+    this.maxValueSize = Long.parseLong(WarpConfig.getProperty(Configuration.STANDALONE_VALUE_MAXSIZE, DEFAULT_VALUE_MAXSIZE));
   }
   
   @Override
@@ -177,6 +203,13 @@ public class StandaloneIngressHandler extends AbstractHandler {
     } else {
       return;
     }    
+    
+    if (null != WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)) {
+      response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)));
+      return;
+    }
+    
+    long lastActivity = System.currentTimeMillis();
     
     try {
       //
@@ -216,7 +249,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
         } catch (TException te) {
           throw new IOException();
         }
-        
+
+        // Set lastActivity to the timestamp of the DatalogRequest
+        lastActivity = dr.getTimestamp() / 1000000L;
+
         token = dr.getToken();
         
         Map<String,String> labels = new HashMap<String,String>();
@@ -238,6 +274,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
       
       try {
         writeToken = Tokens.extractWriteToken(token);
+        if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NOUPDATE)) {
+          throw new WarpScriptException("Token cannot be used for updating data.");
+        }
       } catch (WarpScriptException ee) {
         throw new IOException(ee);
       }
@@ -254,7 +293,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
       
       File loggingFile = null;   
       PrintWriter loggingWriter = null;
-
+      FileDescriptor loggingFD = null;
+      
       try {      
         if (null == producer || null == owner) {
           response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
@@ -415,7 +455,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
                     
             loggingFile = new File(loggingDir, sb.toString());
             
-            loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
+            FileOutputStream fos = new FileOutputStream(loggingFile);
+            loggingFD = fos.getFD();
+            OutputStreamWriter osw = new OutputStreamWriter(fos, Charsets.UTF_8);
+            loggingWriter = new PrintWriter(osw);
             
             //
             // Write request
@@ -439,11 +482,21 @@ public class StandaloneIngressHandler extends AbstractHandler {
         GTSEncoder lastencoder = null;
         GTSEncoder encoder = null;
         
+        // Atomic boolean to track if attributes were parsed
+        AtomicBoolean hadAttributes = parseAttributes ? new AtomicBoolean(false) : null;
+
         //
         // Chunk index when archiving
         //
         
+        boolean lastHadAttributes = false;
+        
         do {
+        
+          if (parseAttributes) {
+            lastHadAttributes = lastHadAttributes || hadAttributes.get();
+            hadAttributes.set(false);
+          }
           
           String line = br.readLine();
           
@@ -479,7 +532,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
           count++;
 
           try {
-            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, false);
+            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, hadAttributes);
             //nano2 += System.nanoTime() - nano0;
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_PARSEERRORS, sensisionLabels, 1);            
@@ -495,8 +548,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
             if (null != lastencoder) {
               
               // 128BITS
-              lastencoder.setClassId(GTSHelper.classId(classKeyLongs, lastencoder.getName()));
-              lastencoder.setLabelsId(GTSHelper.labelsId(labelsKeyLongs, lastencoder.getMetadata().getLabels()));
+              lastencoder.setClassId(GTSHelper.classId(ckl0, ckl1, lastencoder.getName()));
+              lastencoder.setLabelsId(GTSHelper.labelsId(lkl0, lkl1, lastencoder.getMetadata().getLabels()));
 
               ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
               ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
@@ -509,6 +562,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
             if (encoder != lastencoder) {
               Metadata metadata = new Metadata(encoder.getMetadata());
               metadata.setSource(Configuration.INGRESS_METADATA_SOURCE);
+              if (this.updateActivity) {
+                metadata.setLastActivity(lastActivity);
+              }
               //nano6 += System.nanoTime() - nano0;
               this.directoryClient.register(metadata);
               //nano5 += System.nanoTime() - nano0;
@@ -516,11 +572,22 @@ public class StandaloneIngressHandler extends AbstractHandler {
 
             
             if (null != lastencoder) {
-              this.storeClient.store(lastencoder);              
+              this.storeClient.store(lastencoder);
+              
+              if (parseAttributes && lastHadAttributes) {
+                // We need to push lastencoder's metadata update as they were updated since the last
+                // metadata update message sent
+                Metadata meta = new Metadata(lastencoder.getMetadata());
+                meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                this.directoryClient.register(meta);
+                lastHadAttributes = false;
+              }
             }
 
             if (encoder != lastencoder) {
               lastencoder = encoder;
+              // This is the case when we just parsed either the first input line or one for a different
+              // GTS than the previous one.
             } else {
               //lastencoder = null
               //
@@ -530,6 +597,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
               Metadata metadata = lastencoder.getMetadata();
               lastencoder = new GTSEncoder(0L);
               lastencoder.setMetadata(metadata);
+              
+              // This is the case when lastencoder and encoder are identical, but lastencoder was too big and needed
+              // to be flushed
             }
           }
           
@@ -538,7 +608,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
           //
           
           if (null != loggingWriter) {
-            loggingWriter.println(line);
+            loggingWriter.println(line);            
           }
         } while (true); 
         
@@ -546,12 +616,21 @@ public class StandaloneIngressHandler extends AbstractHandler {
         
         if (null != lastencoder && lastencoder.size() > 0) {
           // 128BITS
-          lastencoder.setClassId(GTSHelper.classId(classKeyLongs, lastencoder.getName()));
-          lastencoder.setLabelsId(GTSHelper.labelsId(labelsKeyLongs, lastencoder.getMetadata().getLabels()));
+          lastencoder.setClassId(GTSHelper.classId(ckl0, ckl1, lastencoder.getName()));
+          lastencoder.setLabelsId(GTSHelper.labelsId(lkl0, lkl1, lastencoder.getMetadata().getLabels()));
                   
           ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
           ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
           this.storeClient.store(lastencoder);
+          
+          if (parseAttributes && lastHadAttributes) {
+            // Push a metadata UPDATE message so attributes are stored
+            // Build metadata object to push
+            Metadata meta = new Metadata(lastencoder.getMetadata());
+            // Set source to indicate we
+            meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+            this.directoryClient.register(meta);
+          }
         }        
         
         //
@@ -572,6 +651,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
           labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
           Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
 
+          if (datalogSync) {
+            loggingWriter.flush();
+            loggingFD.sync();
+          }
           loggingWriter.close();
           loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
         }
@@ -610,6 +693,13 @@ public class StandaloneIngressHandler extends AbstractHandler {
       return;
     }
     
+    if (null != WarpManager.getAttribute(WarpManager.META_DISABLED)) {
+      response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.META_DISABLED)));
+      return;
+    }
+    
+    long lastActivity = System.currentTimeMillis();
+    
     try {
       //
       // CORS header
@@ -646,7 +736,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
         } catch (TException te) {
           throw new IOException();
         }
-        
+
+        // Set lastActivity to the timestamp of the DatalogRequest
+        lastActivity = dr.getTimestamp() / 1000000L;
+
         Map<String,String> labels = new HashMap<String,String>();
         labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
         labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
@@ -654,7 +747,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
         
         forwarded = true;
       }
-
+      
       //
       // Loop over the input lines.
       // Each has the following format:
@@ -668,6 +761,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
       
       try {
         wtoken = Tokens.extractWriteToken(token);
+        if (wtoken.getAttributesSize() > 0 && wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_NOMETA)) {
+          throw new WarpScriptException("Token cannot be used for updating metadata.");
+        }
       } catch (WarpScriptException ee) {
         throw new IOException(ee);
       }
@@ -812,6 +908,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
           }
           
           metadata.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+          
+          if (metaActivity) {
+            metadata.setLastActivity(lastActivity);
+          }
+          
           this.directoryClient.register(metadata);
           
           //

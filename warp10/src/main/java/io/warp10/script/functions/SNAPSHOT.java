@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -157,6 +157,23 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(WarpScriptLib.STORE);
         sb.append(" ");
       }
+      
+      //
+      // Snapshot the registers
+      //
+      
+      Object[] regs = stack.getRegisters();
+      
+      sb.append(WarpScriptLib.CLEARREGS);
+      sb.append(" ");
+      for (int i = 0; i < regs.length; i++) {
+        if (null != regs[i]) {
+          addElement(this, sb, regs[i]);
+          sb.append(WarpScriptLib.POPR);
+          sb.append(i);
+          sb.append(" ");
+        }
+      }
     }
 
     // Clear the stack
@@ -231,7 +248,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         stack.maxLimits();
 
         stack.push(o);
-        WRAP w = new WRAP("", false, snapshot.compresswrappers);
+        WRAP w = new WRAP("", false, null == snapshot ? true : snapshot.compresswrappers);
         w.apply(stack);
 
         sb.append(stack.pop());

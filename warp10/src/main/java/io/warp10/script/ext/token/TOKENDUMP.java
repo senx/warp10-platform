@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -75,6 +75,21 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
     }
     
     Object top = stack.pop();
+
+    //
+    // A non null token secret was configured, check it
+    //
+    String secret = TokenWarpScriptExtension.TOKEN_SECRET;
+    
+    if (null != secret) {
+      if (!(top instanceof String)) {
+        throw new WarpScriptException(getName() + " expects a token secret on top of the stack.");
+      }
+      if (!secret.equals(top)) {
+        throw new WarpScriptException(getName() + " invalid token secret.");
+      }
+      top = stack.pop();
+    }
     
     if (!(top instanceof String)) {
       throw new WarpScriptException(getName() + " expects a token on top of the stack.");

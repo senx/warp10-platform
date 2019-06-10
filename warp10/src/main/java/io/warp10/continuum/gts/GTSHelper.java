@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptBinaryOp;
 import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptFillerFunction;
 import io.warp10.script.WarpScriptFilterFunction;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptMapperFunction;
@@ -66,6 +67,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -103,11 +105,110 @@ public class GTSHelper {
     
     //
     // If GTS is sorted in another order than the one requested,
-    // consider it's not sorted.
+    // simply reverse the arrays
     //
     
     if (gts.sorted && gts.reversed != reversed) {
-      gts.sorted = false;
+      if (null != gts.ticks) {
+        int i = 0;
+        int j = gts.values - 1;
+        
+        while(i < j) {
+          long tmp = gts.ticks[i];
+          gts.ticks[i] = gts.ticks[j];
+          gts.ticks[j] = tmp;
+          i++;
+          j--;
+        }
+      }
+      if (null != gts.locations) {
+        int i = 0;
+        int j = gts.values - 1;
+        
+        while(i < j) {
+          long tmp = gts.locations[i];
+          gts.locations[i] = gts.locations[j];
+          gts.locations[j] = tmp;
+          i++;
+          j--;
+        }        
+      }
+      if (null != gts.elevations) {
+        int i = 0;
+        int j = gts.values - 1;
+        
+        while(i < j) {
+          long tmp = gts.elevations[i];
+          gts.elevations[i] = gts.elevations[j];
+          gts.elevations[j] = tmp;
+          i++;
+          j--;
+        }
+      }
+      //
+      // Now reverse the values
+      //
+      
+      switch (gts.type) {
+        case LONG:
+          if (null != gts.longValues) {
+            int i = 0;
+            int j = gts.values - 1;
+            
+            while(i < j) {
+              long tmp = gts.longValues[i];
+              gts.longValues[i] = gts.longValues[j];
+              gts.longValues[j] = tmp;
+              i++;
+              j--;
+            }
+          }
+          break;
+        case DOUBLE:
+          if (null != gts.doubleValues) {
+            int i = 0;
+            int j = gts.values - 1;
+            
+            while(i < j) {
+              double tmp = gts.doubleValues[i];
+              gts.doubleValues[i] = gts.doubleValues[j];
+              gts.doubleValues[j] = tmp;
+              i++;
+              j--;
+            }
+          }
+          break;
+        case STRING:
+          if (null != gts.stringValues) {
+            int i = 0;
+            int j = gts.values - 1;
+            
+            while(i < j) {
+              String tmp = gts.stringValues[i];
+              gts.stringValues[i] = gts.stringValues[j];
+              gts.stringValues[j] = tmp;
+              i++;
+              j--;
+            }
+          }
+          break;
+        case BOOLEAN:
+          if (null != gts.booleanValues) {
+            int i = 0;
+            int j = gts.values - 1;
+            
+            while(i < j) {
+              boolean tmp = gts.booleanValues.get(i);
+              gts.booleanValues.set(i, gts.booleanValues.get(j));
+              gts.booleanValues.set(j, tmp);
+              i++;
+              j--;
+            }
+          }
+          break;
+      }
+      gts.reversed = reversed;
+      return gts;
     }    
 
     //
@@ -135,6 +236,79 @@ public class GTSHelper {
    */
   public static final GeoTimeSerie sort(GeoTimeSerie gts) {
     return sort(gts, false);
+  }
+
+  /**
+   * Option for the binarySearchTick function.
+   * In case of duplicate ticks in a GTS, specify which index to return.
+   *
+   * ARBITRARY: binarySearchTick will return an arbitrary index corresponding to a matching tick.
+   * FIRST:     binarySearchTick will return the lowest index corresponding to a matching tick.
+   * LAST:      binarySearchTick will return the highest index corresponding to a matching tick.
+   */
+  public enum BinarySearchTickChoice {
+    ARBITRARY, FIRST, LAST
+  }
+
+  public static final int binarySearchTick(GeoTimeSerie gts, long timestamp, BinarySearchTickChoice tickChoice) {
+    return binarySearchTick(gts, 0, gts.values, timestamp, tickChoice);
+  }
+
+  /**
+   * Gives the index of the first/last/arbitrary instance of the given timestamp in a sorted GTS.
+   * Similar in principle to Arrays.binarySearch
+   *
+   * @param gts       The GTS in which the timestamp is searched
+   * @param timestamp The searched timestamp
+   * @return the index of the last instance of the given timestamp in a sorted GTS or (-(insertion point) - 1).
+   */
+  public static final int binarySearchTick(GeoTimeSerie gts, int fromIndex, int toIndex, long timestamp, BinarySearchTickChoice tickChoice) {
+
+    // If no ticks
+    if (null == gts.ticks) {
+      return -1;
+    }
+
+    // Make sure the GTS is sorted
+    sort(gts, gts.reversed);
+
+    int low = fromIndex;
+    int high = toIndex - 1;
+    int resIndex = -1;
+    int compFactor = gts.reversed ? -1 : 1;
+
+    while (low <= high) {
+      int mid = (low + high) >>> 1;
+      long midVal = gts.ticks[mid];
+
+      int comp = Long.compare(midVal, timestamp) * compFactor;
+
+      if (0 > comp) {
+        low = mid + 1;
+      } else if (0 < comp) {
+        high = mid - 1;
+      } else {
+        if (BinarySearchTickChoice.ARBITRARY == tickChoice) {
+          return mid;
+        }
+        resIndex = mid;
+        if (BinarySearchTickChoice.FIRST == tickChoice) {
+          high = mid - 1;
+        } else { // BinarySearchTickChoice.LAST == tickChoice
+          low = mid + 1;
+        }
+      }
+    }
+
+    if (0 <= resIndex) { // Key found
+      return resIndex;
+    } else { // Key not found, return insertion point: -(insertion_point + 1)
+      if (gts.reversed) {
+        return -(high + 1);
+      } else {
+        return -(low + 1);
+      }
+    }
   }
   
   public static final GeoTimeSerie valueSort(GeoTimeSerie gts, boolean reversed) {
@@ -269,38 +443,40 @@ public class GTSHelper {
         // values.
         // As we are done we can increase i and j
         if (i <= j) {
-          long tmplong = gts.ticks[i];
-          gts.ticks[i] = gts.ticks[j];
-          gts.ticks[j] = tmplong;
-          
-          if (null != gts.locations) {
-            tmplong = gts.locations[i];
-            gts.locations[i] = gts.locations[j];
-            gts.locations[j] = tmplong;          
-          }
-          
-          if (null != gts.elevations) {
-            tmplong = gts.elevations[i];
-            gts.elevations[i] = gts.elevations[j];
-            gts.elevations[j] = tmplong;          
-          }
-          
-          if (TYPE.LONG == gts.type) {
-            tmplong = gts.longValues[i];
-            gts.longValues[i] = gts.longValues[j];
-            gts.longValues[j] = tmplong;          
-          } else if (TYPE.DOUBLE == gts.type) {
-            double tmpdouble = gts.doubleValues[i];
-            gts.doubleValues[i] = gts.doubleValues[j];
-            gts.doubleValues[j] = tmpdouble;
-          } else if (TYPE.STRING == gts.type) {
-            String tmpstring = gts.stringValues[i];
-            gts.stringValues[i] = gts.stringValues[j];
-            gts.stringValues[j] = tmpstring;
-          } else if (TYPE.BOOLEAN == gts.type) {
-            boolean tmpboolean = gts.booleanValues.get(i);
-            gts.booleanValues.set(i, gts.booleanValues.get(j));
-            gts.booleanValues.set(j, tmpboolean);
+          if (i != j) {
+            long tmplong = gts.ticks[i];
+            gts.ticks[i] = gts.ticks[j];
+            gts.ticks[j] = tmplong;
+            
+            if (null != gts.locations) {
+              tmplong = gts.locations[i];
+              gts.locations[i] = gts.locations[j];
+              gts.locations[j] = tmplong;          
+            }
+            
+            if (null != gts.elevations) {
+              tmplong = gts.elevations[i];
+              gts.elevations[i] = gts.elevations[j];
+              gts.elevations[j] = tmplong;          
+            }
+            
+            if (TYPE.LONG == gts.type) {
+              tmplong = gts.longValues[i];
+              gts.longValues[i] = gts.longValues[j];
+              gts.longValues[j] = tmplong;          
+            } else if (TYPE.DOUBLE == gts.type) {
+              double tmpdouble = gts.doubleValues[i];
+              gts.doubleValues[i] = gts.doubleValues[j];
+              gts.doubleValues[j] = tmpdouble;
+            } else if (TYPE.STRING == gts.type) {
+              String tmpstring = gts.stringValues[i];
+              gts.stringValues[i] = gts.stringValues[j];
+              gts.stringValues[j] = tmpstring;
+            } else if (TYPE.BOOLEAN == gts.type) {
+              boolean tmpboolean = gts.booleanValues.get(i);
+              gts.booleanValues.set(i, gts.booleanValues.get(j));
+              gts.booleanValues.set(j, tmpboolean);
+            }            
           }
 
           i++;
@@ -917,10 +1093,19 @@ public class GTSHelper {
     int idx = gts.values;
     
     if (overwrite) {
-      for (int i = 0; i < gts.values; i++) {
-        if (timestamp == gts.ticks[i]) {
-          idx = i;
-          break;
+      // Use binary search if possible
+      if (gts.sorted) {
+        int possibleIndex = binarySearchTick(gts, timestamp, BinarySearchTickChoice.FIRST);
+        // If the tick is found, change idx
+        if (0 <= possibleIndex) {
+          idx = possibleIndex;
+        }
+      } else { // GTS is not sorted, scan the ticks
+        for (int i = 0; i < gts.values; i++) {
+          if (timestamp == gts.ticks[i]) {
+            idx = i;
+            break;
+          }
         }
       }
     }
@@ -928,10 +1113,25 @@ public class GTSHelper {
     //
     // Provision memory allocation for the new value.
     //
-    
+
     if (gts.values == idx) {
-      // Reset 'sorted' flag as we add a value
-      gts.sorted = false;
+      // Try to keep 'sorted' flag if possible
+      if (2 > gts.values) { // Optimization to only make one check on most cases
+        if (0 == gts.values) {
+          gts.sorted = true;
+          gts.reversed = false;
+        } else { // 1 == gts.values
+          gts.sorted = true;
+          gts.reversed = gts.ticks[0] > timestamp;
+        }
+      } else if (gts.sorted) { // Simple check, if all values are equal we could keep checking
+        if (gts.reversed) {
+          gts.sorted = gts.ticks[gts.values - 1] >= timestamp;
+        } else {
+          gts.sorted = gts.ticks[gts.values - 1] <= timestamp;
+        }
+      }
+
       if (TYPE.UNDEFINED == gts.type || null == gts.ticks || gts.values >= gts.ticks.length || (null == gts.locations && GeoTimeSerie.NO_LOCATION != geoxppoint) || (null == gts.elevations && GeoTimeSerie.NO_ELEVATION != elevation)) {
         provision(gts, value, geoxppoint, elevation);
       }
@@ -1157,10 +1357,74 @@ public class GTSHelper {
       }
     }    
   }
-  
+
+  /**
+   * Provision GTS arrays for several values. If the arrays have enough space left, no provision is done.
+   * If arrays have not enough space left, a provision is done according to the given parameter.
+   * @param gts The GTS instance to provision space for.
+   * @param numberOfValuesToAdd Minimum available space in arrays for new data.
+   * @param provisionSize Array length increase in case arrays are too small.
+   */
+  public static final void multiProvision(GeoTimeSerie gts, GeoTimeSerie.TYPE fallbackType, int numberOfValuesToAdd, int provisionSize) {
+    if (0 < numberOfValuesToAdd) {
+      int newSize = gts.values + provisionSize;
+
+      if (null == gts.ticks) { // gts is empty
+        gts.ticks = new long[newSize];
+
+        if (TYPE.UNDEFINED != gts.type) {
+          if (GeoTimeSerie.TYPE.LONG == gts.type) {
+            gts.longValues = new long[newSize];
+          } else if (GeoTimeSerie.TYPE.DOUBLE == gts.type) {
+            gts.doubleValues = new double[newSize];
+          } else if (GeoTimeSerie.TYPE.STRING == gts.type) {
+            gts.stringValues = new String[newSize];
+          } else if (TYPE.BOOLEAN == gts.type) {
+            gts.booleanValues = new BitSet();
+          }
+        } else {
+          if (GeoTimeSerie.TYPE.LONG == fallbackType) {
+            gts.longValues = new long[newSize];
+          } else if (GeoTimeSerie.TYPE.DOUBLE == fallbackType) {
+            gts.doubleValues = new double[newSize];
+          } else if (GeoTimeSerie.TYPE.STRING == fallbackType) {
+            gts.stringValues = new String[newSize];
+          } else { // TYPE.BOOLEAN == fallbackType || TYPE.UNDEFINED == fallbackType
+            //
+            // Default type is boolean, this is so people will rapidly notice
+            // this is not what they were expecting...
+            //
+            gts.booleanValues = new BitSet();
+          }
+        }
+      } else if (gts.ticks.length < gts.size() + numberOfValuesToAdd) { // gts is too small for added data
+        gts.ticks = Arrays.copyOf(gts.ticks, newSize);
+
+        if (GeoTimeSerie.TYPE.LONG == gts.type) {
+          gts.longValues = Arrays.copyOf(gts.longValues, newSize);
+        } else if (GeoTimeSerie.TYPE.DOUBLE == gts.type) {
+          gts.doubleValues = Arrays.copyOf(gts.doubleValues, newSize);
+        } else if (GeoTimeSerie.TYPE.STRING == gts.type) {
+          gts.stringValues = Arrays.copyOf(gts.stringValues, newSize);
+        }
+        // else TYPE.BOOLEAN == gts.type // nothing to do because BitSet grows automatically
+
+        // If gts has location info
+        if (null != gts.locations) {
+          gts.locations = Arrays.copyOf(gts.locations, newSize);
+        }
+
+        // If gts has elevation info
+        if (null != gts.elevations) {
+          gts.elevations = Arrays.copyOf(gts.elevations, newSize);
+        }
+      }
+    }
+  }
+
   /**
    * Return a new GeoTimeSerie instance containing only the value of 'gts'
-   * which fall between 'timestamp' (inclusive) and 'timestamp' - 'span' (exclusive)
+   * which fall between 'starttimestamp' (inclusive) and 'stoptimestamp' (inclusive)
    * 
    * The resulting GTS instance will be sorted.
    * 
@@ -1179,9 +1443,8 @@ public class GTSHelper {
     // Create sub GTS
     //
     
-    // The size hint impacts performance, choose it wisely...
     if (null == subgts) {
-      subgts = new GeoTimeSerie(128);
+      subgts = new GeoTimeSerie(gts.sizehint);
       //
       // Copy name and labels
       //
@@ -1200,25 +1463,34 @@ public class GTSHelper {
     }
 
     //
+    // No value to return in the following case
+    //
+
+    if (starttimestamp > stoptimestamp) {
+      return subgts;
+    }
+
+    //
     // Sort GTS so ticks are ordered
     //
     
     GTSHelper.sort(gts);
         
     //
-    // Determine index to start at
+    // Determine index to stop at
     //
     
     int lastidx = Arrays.binarySearch(gts.ticks, 0, gts.values, stoptimestamp);
     
-    //
-    // The upper timestamp is less than the first tick, so subserie is necessarly empty
-    //
-    
     if (-1 == lastidx) {
+      // The upper timestamp is less than the first tick, so subserie is necessarly empty
       return subgts;
     } else if (lastidx < 0) {
-      lastidx =  -lastidx - 1;
+
+      // The upper timestamp is in between ticks, so we set the last index to the tick
+      // just before the insertion point
+      lastidx =  -lastidx - 1 - 1;
+
       if (lastidx >= gts.values) {
         lastidx = gts.values - 1;
       }
@@ -1226,7 +1498,7 @@ public class GTSHelper {
       // We found the stop timestamp, we now must find the last occurrence of
       // it in case there are duplicates
       int lastlastidx = lastidx + 1;
-      while(lastlastidx < gts.ticks.length && stoptimestamp == gts.ticks[lastlastidx]) {
+      while(lastlastidx < gts.values && stoptimestamp == gts.ticks[lastlastidx]) {
         lastlastidx++;
       }
       
@@ -1236,7 +1508,14 @@ public class GTSHelper {
     int firstidx = Arrays.binarySearch(gts.ticks, 0, lastidx + 1, starttimestamp);
     
     if (firstidx < 0) {
+      // The first timestamp is in between existing ticks, so we set
+      // the first index to the index of the insertion point
       firstidx = -firstidx - 1;
+
+      // Start after the last tick of the GTS
+      if (firstidx >= gts.values) {
+        return subgts;
+      }
     } else if (firstidx > 0) {
       // We found the start timestamp, we now must find the first occurrence of it
       // in case there are duplicates
@@ -1248,20 +1527,25 @@ public class GTSHelper {
       
       firstidx = firstfirstidx + 1;
     }
+        
+    //
+    // Check that indices are ok with the requested time range
+    //
     
-    if (firstidx >= gts.values) {
+    if (gts.ticks[firstidx] > stoptimestamp || gts.ticks[lastidx] < starttimestamp) {
       return subgts;
     }
-        
     
     //
     // Extract values/locations/elevations that lie in the requested interval
     //
+
+    // We know how many data will the new GTS so we provision arrays to receive the data.
+    int count = lastidx - firstidx + 1;
+    GTSHelper.multiProvision(subgts, gts.type, count, count);
     
     for (int i = firstidx; i <= lastidx; i++) {
-      if (gts.ticks[i] >= starttimestamp && gts.ticks[i] <= stoptimestamp) {
-        setValue(subgts, gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, valueAtIndex(gts, i), overwrite);
-      }
+      setValue(subgts, gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, valueAtIndex(gts, i), overwrite);
     }
 
     return subgts;
@@ -1381,13 +1665,24 @@ public class GTSHelper {
     // cover the complete set of values from firsttick to lastbucket
     //
     
-    if (0 == bucketspan) {
+    if (0 == bucketspan || -1 == bucketspan) {
       if(0 == bucketcount) {
         throw new WarpScriptException("One of bucketspan or bucketcount must be different from zero.");
       } else {
         if (lastbucket >= firsttick) {
-          long delta = lastbucket - firsttick + 1;
-          bucketspan = delta / bucketcount;
+          long delta;
+          
+          if (0 == bucketspan) {
+            delta = lastbucket - firsttick + 1;
+            bucketspan = delta / bucketcount;            
+          } else {
+            delta = lastbucket - firsttick;
+            if (1 == bucketcount) {
+              bucketspan = delta;
+            } else {
+              bucketspan = delta / (bucketcount - 1);
+            }
+          }
 
           //
           // Increase bucketspan by 1 so we cover the whole timespan
@@ -1398,6 +1693,10 @@ public class GTSHelper {
           }
         }
       }
+    }
+    
+    if (bucketspan < 0) {
+      bucketspan = 0;
     }
     
     //
@@ -1758,14 +2057,14 @@ public class GTSHelper {
   }
   
   public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now) throws ParseException, IOException {
-    return parse(encoder, str, extraLabels, now, Long.MAX_VALUE, false);
+    return parse(encoder, str, extraLabels, now, Long.MAX_VALUE, null);
   }
   
   public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize) throws ParseException, IOException {
-    return parse(encoder, str, extraLabels, now, maxValueSize, false);    
+    return parse(encoder, str, extraLabels, now, maxValueSize, null);    
   }
   
-  public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, boolean parseAttributes) throws ParseException, IOException {
+  public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes) throws ParseException, IOException {
 
     int idx = 0;
     
@@ -1922,11 +2221,13 @@ public class GTSHelper {
         while(idx < str.length() && str.charAt(idx) != '}') {
           idx++;
         }
-        if (parseAttributes) {
+        if (null != parsedAttributes) {
           if (idx >= str.length()) {
             throw new ParseException("Missing attributes.", idx2);
           }
           attributes = parseLabels(str.substring(attrstart, idx));
+          // Set the atomic boolean to true to indicate that attributes were parsed
+          parsedAttributes.set(true);
         }
         idx++;
       }
@@ -2381,24 +2682,28 @@ public class GTSHelper {
     //
     
     for (int i = 0; i < labels.size() - 1; i++) {
+      int ii = i << 1;
+      int iip = ii + 1;
       for (int j = i + 1; j < labels.size(); j++) {
-        if (hashes[i * 2] > hashes[j * 2]) {
+        int jj = j << 1;
+        int jjp = jj + 1;
+        if (hashes[ii] > hashes[jj]) {
           //
           // We need to swap name and value ids at i and j
           //
-          long tmp = hashes[j * 2];
-          hashes[j * 2] = hashes[i * 2];
-          hashes[i * 2] = tmp;
-          tmp = hashes[j * 2 + 1];
-          hashes[j * 2 + 1] = hashes[i * 2 + 1];
-          hashes[i * 2 + 1] = tmp;                    
-        } else if (hashes[i * 2] == hashes[j * 2] && hashes[i * 2 + 1] > hashes[j * 2 + 1]) {
+          long tmp = hashes[jj];
+          hashes[jj] = hashes[ii];
+          hashes[ii] = tmp;
+          tmp = hashes[jjp];
+          hashes[jjp] = hashes[iip];
+          hashes[iip] = tmp;                    
+        } else if (hashes[ii] == hashes[jj] && hashes[iip] > hashes[jjp]) {
           //
           // We need to swap value ids at i and j
           //
-          long tmp = hashes[j * 2 + 1];
-          hashes[j * 2 + 1] = hashes[i * 2 + 1];
-          hashes[i * 2 + 1] = tmp;
+          long tmp = hashes[jjp];
+          hashes[jjp] = hashes[iip];
+          hashes[iip] = tmp;
         }
       }
     }
@@ -2412,14 +2717,14 @@ public class GTSHelper {
     idx = 0;
     
     for (long hash: hashes) {
-      buf[idx++] = (byte) ((hash >> 56) & 0xff);
-      buf[idx++] = (byte) ((hash >> 48) & 0xff);
-      buf[idx++] = (byte) ((hash >> 40) & 0xff);
-      buf[idx++] = (byte) ((hash >> 32) & 0xff);
-      buf[idx++] = (byte) ((hash >> 24) & 0xff);
-      buf[idx++] = (byte) ((hash >> 16) & 0xff);
-      buf[idx++] = (byte) ((hash >> 8) & 0xff);
-      buf[idx++] = (byte) (hash & 0xff);
+      buf[idx++] = (byte) ((hash >> 56) & 0xffL);
+      buf[idx++] = (byte) ((hash >> 48) & 0xffL);
+      buf[idx++] = (byte) ((hash >> 40) & 0xffL);
+      buf[idx++] = (byte) ((hash >> 32) & 0xffL);
+      buf[idx++] = (byte) ((hash >> 24) & 0xffL);
+      buf[idx++] = (byte) ((hash >> 16) & 0xffL);
+      buf[idx++] = (byte) ((hash >> 8) & 0xffL);
+      buf[idx++] = (byte) (hash & 0xffL);
     }
     
     return SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, buf.length);
@@ -2907,7 +3212,9 @@ public class GTSHelper {
       if (null == base.ticks) {
         base.ticks = Arrays.copyOf(gts.ticks, gts.values);
       } else {
-        base.ticks = Arrays.copyOf(base.ticks, base.values + gts.values);
+        if (base.ticks.length < base.values + gts.values) {
+          base.ticks = Arrays.copyOf(base.ticks, base.values + gts.values);
+        }
         System.arraycopy(gts.ticks, 0, base.ticks, base.values, gts.values);
       }
 
@@ -2918,7 +3225,9 @@ public class GTSHelper {
           System.arraycopy(gts.locations, 0, base.locations, base.values, gts.values);
         }
       } else {
-        base.locations = Arrays.copyOf(base.locations, base.values + gts.values);
+        if (base.locations.length < base.values + gts.values) {
+          base.locations = Arrays.copyOf(base.locations, base.values + gts.values);
+        }
         if (null != gts.locations) {
           System.arraycopy(gts.locations, 0, base.locations, base.values, gts.values);
         } else {
@@ -2933,7 +3242,9 @@ public class GTSHelper {
           System.arraycopy(gts.elevations, 0, base.elevations, base.values, gts.values);
         }
       } else {
-        base.elevations = Arrays.copyOf(base.elevations, base.values + gts.values);
+        if (base.elevations.length < base.values + gts.values) {
+          base.elevations = Arrays.copyOf(base.elevations, base.values + gts.values);
+        }
         if (null != gts.elevations) {
           System.arraycopy(gts.elevations, 0, base.elevations, base.values, gts.values);
         } else {
@@ -2947,7 +3258,9 @@ public class GTSHelper {
           if (null == base.longValues) {
             base.longValues = Arrays.copyOf(gts.longValues, gts.values);
           } else {
-            base.longValues = Arrays.copyOf(base.longValues, base.values + gts.values);
+            if (base.longValues.length < base.values + gts.values) {
+              base.longValues = Arrays.copyOf(base.longValues, base.values + gts.values);
+            }
             System.arraycopy(gts.longValues, 0, base.longValues, base.values, gts.values);
           }
           break;
@@ -2956,7 +3269,9 @@ public class GTSHelper {
           if (null == base.doubleValues) {
             base.doubleValues = Arrays.copyOf(gts.doubleValues, gts.values);
           } else {
-            base.doubleValues = Arrays.copyOf(base.doubleValues, base.values + gts.values);
+            if (base.doubleValues.length < base.values + gts.values) {
+              base.doubleValues = Arrays.copyOf(base.doubleValues, base.values + gts.values);
+            }
             System.arraycopy(gts.doubleValues, 0, base.doubleValues, base.values, gts.values);
           }
           break;
@@ -2965,7 +3280,9 @@ public class GTSHelper {
           if (null == base.stringValues) {
             base.stringValues = Arrays.copyOf(gts.stringValues, gts.values);
           } else {
-            base.stringValues = Arrays.copyOf(base.stringValues, base.values + gts.values);
+            if (base.stringValues.length < base.values + gts.values) {
+              base.stringValues = Arrays.copyOf(base.stringValues, base.values + gts.values);
+            }
             System.arraycopy(gts.stringValues, 0, base.stringValues, base.values, gts.values);
           }
           break;
@@ -2981,14 +3298,27 @@ public class GTSHelper {
           break;
       }
       
-      base.values = base.values + gts.values;
-      
     } else {
       throw new RuntimeException("Merge cannot proceed with incompatible GTS types.");
     }
 
-    base.sorted = false;
-    
+    // Try to keep sorted and reversed information on the base GTS
+    if (0 == base.values) {
+      base.sorted = gts.sorted;
+      base.reversed = gts.reversed;
+    } else if (base.sorted && gts.sorted && base.reversed == gts.reversed) {
+      // We're already sure 0 != gts.values (checked at the beginning of the function) and 0 != base.values (checked above)
+      if (base.reversed) {
+        base.sorted = base.ticks[base.values - 1] >= gts.ticks[0];
+      } else {
+        base.sorted = base.ticks[base.values - 1] <= gts.ticks[0];
+      }
+    } else {
+      base.sorted = false;
+    }
+
+    base.values = base.values + gts.values;
+
     return base;
   }
 
@@ -3022,6 +3352,134 @@ public class GTSHelper {
     
     //return encoder.getUnsafeDecoder(false).decode();
     return encoder.getDecoder(true).decode();
+  }
+
+  /**
+   * Merge 2 GTSs into one sorted GTS, with values from gts overwriting values from base.
+   * If both GTSs are without duplicate, the result is also without duplicate.
+   * If there are some duplicates in base or gts, the result will contain some duplicates so it's best to avoid this situation.
+   *
+   * The returned GTS has the same classname, labels and attributes as the base GTS.
+   *
+   * @param base The GTS used as a reference
+   * @param gts  The GTS whose data is to be merged with that of base.
+   * @return A new instance of GTS, sorted and without duplicates if base and gts are without duplicates.
+   * @throws RuntimeException when GTSs are not of the same type and base is not empty.
+   */
+  public static GeoTimeSerie sortedMerge(GeoTimeSerie base, GeoTimeSerie gts) {
+    // No values to merge, return clone of base
+    if (0 == gts.values) {
+      return base.clone();
+    }
+
+    GeoTimeSerie.TYPE baseType = base.getType();
+    GeoTimeSerie.TYPE gtsType = gts.getType();
+
+    if (!GeoTimeSerie.TYPE.UNDEFINED.equals(baseType) && !baseType.equals(gtsType)) {
+      throw new RuntimeException("merge cannot proceed with incompatible GTS types.");
+    }
+
+    GeoTimeSerie merged = base.cloneEmpty();
+    merged.type = gtsType; // Make sure the type is set in case the base is UNDEFINED
+
+
+    // GTSs must be sorted
+    sort(base);
+    sort(gts);
+
+    //
+    // Initialize arrays
+    //
+
+    merged.ticks = new long[base.values + gts.values]; // If there are dups it may be more than enough but it's cheaper that way
+
+    if (null != base.locations || null != gts.locations) {
+      merged.locations = new long[merged.ticks.length];
+    }
+
+    if (null != base.elevations || null != gts.elevations) {
+      merged.elevations = new long[merged.ticks.length];
+    }
+
+    if (GeoTimeSerie.TYPE.LONG == merged.type) {
+      merged.longValues = new long[base.values + gts.values];
+    } else if (GeoTimeSerie.TYPE.DOUBLE == merged.type) {
+      merged.doubleValues = new double[base.values + gts.values];
+    } else if (GeoTimeSerie.TYPE.STRING == merged.type) {
+      merged.stringValues = new String[base.values + gts.values];
+    } else { // TYPE.BOOLEAN == merged.type
+      merged.booleanValues = new BitSet();
+    }
+
+    int baseIndex = 0;
+    int gtsIndex = 0;
+    int mergedIndex = 0;
+
+    while (base.values > baseIndex && gts.values > gtsIndex) {
+
+      if (base.ticks[baseIndex] < gts.ticks[gtsIndex]) {
+        merged.ticks[mergedIndex] = base.ticks[baseIndex];
+        if (null != merged.locations) {
+          merged.locations[mergedIndex] = null == base.locations ? GeoTimeSerie.NO_LOCATION : base.locations[baseIndex];
+        }
+        if (null != merged.locations) {
+          merged.locations[mergedIndex] = null == base.locations ? GeoTimeSerie.NO_LOCATION : base.locations[baseIndex];
+        }
+        if (GeoTimeSerie.TYPE.LONG == merged.type) {
+          merged.longValues[mergedIndex] = base.longValues[baseIndex];
+        } else if (GeoTimeSerie.TYPE.DOUBLE == merged.type) {
+          merged.doubleValues[mergedIndex] = base.doubleValues[baseIndex];
+        } else if (GeoTimeSerie.TYPE.STRING == merged.type) {
+          merged.stringValues[mergedIndex] = base.stringValues[baseIndex];
+        } else { // TYPE.BOOLEAN == merged.type
+          merged.booleanValues.set(mergedIndex, base.booleanValues.get(baseIndex));
+        }
+
+        baseIndex++;
+      } else {
+        if (base.ticks[baseIndex] == gts.ticks[gtsIndex]) {
+          baseIndex++;
+        }
+
+        merged.ticks[mergedIndex] = gts.ticks[gtsIndex];
+        if (null != merged.locations) {
+          merged.locations[mergedIndex] = null == gts.locations ? GeoTimeSerie.NO_LOCATION : gts.locations[gtsIndex];
+        }
+        if (null != merged.locations) {
+          merged.locations[mergedIndex] = null == gts.locations ? GeoTimeSerie.NO_LOCATION : gts.locations[gtsIndex];
+        }
+        if (GeoTimeSerie.TYPE.LONG == merged.type) {
+          merged.longValues[mergedIndex] = gts.longValues[gtsIndex];
+        } else if (GeoTimeSerie.TYPE.DOUBLE == merged.type) {
+          merged.doubleValues[mergedIndex] = gts.doubleValues[gtsIndex];
+        } else if (GeoTimeSerie.TYPE.STRING == merged.type) {
+          merged.stringValues[mergedIndex] = gts.stringValues[gtsIndex];
+        } else { // TYPE.BOOLEAN == merged.type
+          merged.booleanValues.set(mergedIndex, gts.booleanValues.get(gtsIndex));
+        }
+
+        gtsIndex++;
+      }
+
+      mergedIndex++;
+    }
+
+    if (base.values > baseIndex) {
+      int length = base.values - baseIndex;
+      // Safe to use copy0 because all checks have been done on array existence and size
+      copy0(base, baseIndex, merged, mergedIndex, length);
+      mergedIndex += length;
+    } else if (gts.values > gtsIndex) {
+      int length = gts.values - gtsIndex;
+      // Safe to use copy0 because all checks have been done on array existence and size
+      copy0(gts, gtsIndex, merged, mergedIndex, length);
+      mergedIndex += length;
+    }
+
+    merged.values = mergedIndex;
+    merged.sorted = true;
+
+    return merged;
   }
   
   /**
@@ -3359,6 +3817,261 @@ public class GTSHelper {
   }
 
   /**
+   * This function fills the gaps in two GTS so they end up with identical ticks
+   * 
+   * @param gtsa First GTS to fill
+   * @param gtsb Second GTS to fill
+   * @param filler Instance of filler to use for filling the gaps.
+   */
+  public static final List<GeoTimeSerie> fill(GeoTimeSerie gtsa, GeoTimeSerie gtsb, WarpScriptFillerFunction filler) throws WarpScriptException {
+    //
+    // Ensure the two original GTS are sorted
+    //
+    
+    sort(gtsa, false);
+    sort(gtsb, false);
+
+    //
+    // Clone the Geo Time Series, we will fill ga and gb
+    //
+    
+    GeoTimeSerie ga = gtsa.clone();
+    GeoTimeSerie gb = gtsb.clone();    
+    
+    int idxa = 0;
+    int idxb = 0;
+    
+    Long curTickA = null;
+    Long curTickB = null;
+    
+    String classA = ga.getName();
+    String classB = gb.getName();
+    
+    Map<String,String> labelsA = Collections.unmodifiableMap(ga.getLabels());
+    Map<String,String> labelsB = Collections.unmodifiableMap(gb.getLabels());
+    
+    Map<String,String> attrA = Collections.unmodifiableMap(ga.getMetadata().getAttributes());
+    Map<String,String> attrB = Collections.unmodifiableMap(gb.getMetadata().getAttributes());
+    
+    //
+    // We use a sweeping line algorithm to go over all the ticks
+    //
+
+    int prewindow = filler.getPreWindow() >= 0 ? filler.getPreWindow() : 0;
+    int postwindow = filler.getPostWindow() >= 0 ? filler.getPostWindow() : 0;
+    
+    Object[] meta = new Object[2];
+    Object[][] prev = new Object[prewindow][];
+    for (int i = 0; i < prewindow; i++) {
+      prev[i] = new Object[4];
+    }
+    Object[][] next = new Object[postwindow][];
+    for (int i = 0; i < postwindow; i++) {
+      next[i] = new Object[4];
+    }
+    Object[] other = new Object[4];
+    Object[][] params = new Object[2 + prewindow + postwindow][];
+    
+    while(idxa < gtsa.values || idxb < gtsb.values) {
+
+      curTickA = null;
+      curTickB = null;
+      
+      if (idxa < gtsa.values) {
+        curTickA = gtsa.ticks[idxa];
+      }
+      
+      if (idxb < gtsb.values) {
+        curTickB = gtsb.ticks[idxb];
+      }
+      
+      //
+      // If both ticks are identical, advance the indices until the next timestamp
+      //
+
+      if (null != curTickA && curTickA.equals(curTickB)) {
+        idxa++;
+        idxb++;
+        
+        if ((idxa < gtsa.values && curTickA == gtsa.ticks[idxa])
+            || (idxb < gtsb.values && curTickB == gtsb.ticks[idxb])) {
+          throw new WarpScriptException("Cannot fill Geo Time Series™ with duplicate timestamps.");
+        }
+        continue;
+      }
+
+      //
+      // Determine if we should fill GTS A or GTS B
+      //
+
+      for (int i = 0; i < prewindow; i++) {
+        prev[i][0] = null;
+        prev[i][1] = null;
+        prev[i][2] = null;
+        prev[i][3] = null;
+      }
+
+      for (int i = 0; i < postwindow; i++) {
+        next[i][0] = null;
+        next[i][1] = null;
+        next[i][2] = null;
+        next[i][3] = null;
+      }
+
+      Object otherValue = null;
+      Long otherTick = null;
+      Long otherLocation = null;
+      Long otherElevation = null;
+      
+      Metadata ourMeta = new Metadata();
+      Metadata otherMeta = new Metadata();
+      
+      String ourClass = null;
+      Map<String,String> ourLabels = null;
+      Map<String,String> ourAttr = null;
+      
+      String otherClass = null;
+      Map<String,String> otherLabels = null;
+      Map<String,String> otherAttr = null;      
+      
+      GeoTimeSerie filled = null;
+      
+      if (curTickA == null || (null != curTickB && curTickA > curTickB)) {
+        // We should fill GTS A
+        
+        filled = ga;
+
+        for (int i = prewindow - 1; i >= 0; i--) {
+          int ia = idxa - prewindow + i;
+          if (ia >= 0) {
+            prev[i][0] = gtsa.ticks[ia];
+            prev[i][1] = locationAtIndex(gtsa, ia);
+            prev[i][2] = elevationAtIndex(gtsa, ia);
+            prev[i][3] = valueAtIndex(gtsa, ia);
+          } else {
+            break; // No more element to add
+          }
+        }
+
+        for (int i = 0; i < postwindow; i++) {
+          int ia = idxa + i;
+          if (ia < gtsa.values) {
+            next[i][0] = gtsa.ticks[ia];
+            next[i][1] = locationAtIndex(gtsa, ia);
+            next[i][2] = elevationAtIndex(gtsa, ia);
+            next[i][3] = valueAtIndex(gtsa, ia);
+          } else {
+            break; // No more element to add
+          }
+        }
+      
+        otherValue = valueAtIndex(gtsb, idxb);
+        otherTick = gtsb.ticks[idxb];
+        otherLocation = locationAtIndex(gtsb, idxb);
+        otherElevation = elevationAtIndex(gtsb, idxb);
+        
+        ourClass = classA;
+        ourLabels = labelsA;
+        ourAttr = attrA;
+        
+        otherClass = classB;
+        otherLabels = labelsB;
+        otherAttr = attrB;
+        
+        idxb++;        
+      } else {
+        // We should fill GTS B
+      
+        filled = gb;
+
+        for (int i = prewindow - 1; i >= 0; i--) {
+          int ib = idxb - prewindow + i;
+          if (ib >= 0) {
+            prev[i][0] = gtsb.ticks[ib];
+            prev[i][1] = locationAtIndex(gtsb, ib);
+            prev[i][2] = elevationAtIndex(gtsb, ib);
+            prev[i][3] = valueAtIndex(gtsb, ib);
+          } else {
+            break; // No more element to add
+          }
+        }
+
+        for (int i = 0; i < postwindow; i++) {
+          int ib = idxb + i;
+          if (ib < gtsb.values) {
+            next[i][0] = gtsb.ticks[ib];
+            next[i][1] = locationAtIndex(gtsb, ib);
+            next[i][2] = elevationAtIndex(gtsb, ib);
+            next[i][3] = valueAtIndex(gtsb, ib);
+          } else {
+            break; // No more element to add
+          }
+        }
+        
+        otherValue = valueAtIndex(gtsa, idxa);
+        otherTick = gtsa.ticks[idxa];
+        otherLocation = locationAtIndex(gtsa, idxa);
+        otherElevation = elevationAtIndex(gtsa, idxa);
+        
+        ourClass = classB;
+        ourLabels = labelsB;
+        ourAttr = attrB;
+        
+        otherClass = classA;
+        otherLabels = labelsA;
+        otherAttr = attrA;
+        
+        idxa++;
+      }
+      
+      other[0] = otherTick;
+      other[1] = otherLocation;
+      other[2] = otherElevation;
+      other[3] = otherValue;
+      
+      ourMeta.setName(ourClass);
+      ourMeta.setLabels(ourLabels);
+      ourMeta.setAttributes(ourAttr);
+      meta[0] = ourMeta;
+      
+      otherMeta.setName(otherClass);
+      otherMeta.setLabels(otherLabels);
+      otherMeta.setAttributes(otherAttr);
+      meta[1] = otherMeta;
+            
+      params[0] = meta;
+      for (int i = 0; i < prewindow; i++) {
+        params[1 + i] = prev[i];
+      }
+      params[prewindow + 1] = other;
+      for (int i = 0; i < postwindow; i++) {
+        params[2 + prewindow + i] = next[i];
+      }
+
+      //
+      // Call the filler
+      //
+      
+      Object[] result = filler.apply(params);
+      
+      if (null != result[3]) {
+        long tick = ((Number) result[0]).longValue();
+        long location = ((Number) result[1]).longValue();
+        long elevation = ((Number) result[2]).longValue();
+        Object value = result[3];
+        
+        GTSHelper.setValue(filled, tick, location, elevation, value, false);        
+      }
+    }
+    
+    List<GeoTimeSerie> results = new ArrayList<GeoTimeSerie>();
+    results.add(ga);
+    results.add(gb);
+    
+    return results;
+  }
+  
+  /**
    * Compensate resets by computing an offset each time a value decreased between two ticks.
    * 
    * If we have the following TS (from most recent to most ancient) :
@@ -3367,7 +4080,7 @@ public class GTSHelper {
    * 
    * we detect 2 resets (one between values 9 and 1, another one between 7 and 3).
    * 
-   * The filled GTS will be
+   * The compensated GTS will be
    * 
    * 31 21 17 16 11 10 7 2 1
    * 
@@ -3690,134 +4403,232 @@ public class GTSHelper {
   public static List<GeoTimeSerie> map(GeoTimeSerie gts, WarpScriptMapperFunction mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick) throws WarpScriptException {
     return map(gts, mapper, prewindow, postwindow, occurrences, reversed, step, overrideTick, null);
   }
-  
+
   public static List<GeoTimeSerie> map(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack) throws WarpScriptException {
+    return map(gts, mapper, prewindow, postwindow, occurrences, reversed, step, overrideTick, stack, null);
+  }
+
+  public static List<GeoTimeSerie> map(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack,
+                                       List<Long> outputTicks) throws WarpScriptException {
 
     //
     // Make sure step is positive
     //
-    
+
     if (step <= 0) {
       step = 1;
     }
+
+    //
+    // Limit pre/post windows to Integer.MAX_VALUE
+    // as this is as many indices we may have at most in a GTS
+    //
     
+    if (prewindow > 0 && prewindow > Integer.MAX_VALUE) {
+      prewindow = Integer.MAX_VALUE;
+    }
+    if (postwindow > 0 && postwindow > Integer.MAX_VALUE) {
+      postwindow = Integer.MAX_VALUE;
+    }
     List<GeoTimeSerie> results = new ArrayList<GeoTimeSerie>();
-    
+
     //
     // Clone gts
     //
-    
+
     GeoTimeSerie mapped = gts.clone();
-    
+
     //
     // Do nothing if there are no values and gts was not bucketized
     //
-    
+
     if (0 == mapped.values && !isBucketized(mapped)) {
       results.add(mapped);
       return results;
     }
-    
+
     // Sort ticks
     sort(mapped, reversed);
-    // Retrieve ticks if GTS is not bucketized.        
+    // Retrieve ticks if GTS is not bucketized.
     long[] ticks = isBucketized(gts) ? null : Arrays.copyOf(mapped.ticks, gts.values);
-    
-    
+
+    // Sort outputTicks
+    if (null != outputTicks) {
+      if (reversed) {
+        Collections.sort(outputTicks, Collections.<Long>reverseOrder());
+      } else {
+        Collections.sort(outputTicks);
+      }
+    }
+
     // Clear clone
     GTSHelper.clear(mapped);
 
+    // If @param outputTicks is not specified, then leftIdx and rightIdx are not used.
     int idx = 0;
+    int rightIdx = 0; // used only if (!reversed)
+    int leftIdx = 0; // used only if (reversed)
+
+    //
+    // idx is the index of the current output tick,
+    // if (!reversed), rightIdx is the index of the tick of the input gts that is the least greater or equal than the current output tick.
+    // if (reversed), leftIdx is the index of the tick of the input gts that is the least lesser or equal than the current output tick.
+    // Note that they may not exist if all values are at the left (or right).
+    //
+
     // Number of ticks for which to run the mapper
     int nticks = null != ticks ? ticks.length : mapped.bucketcount;
+    if (null != outputTicks) {
+      nticks = outputTicks.size();
+    }
 
     // Call getLabels once so we don't waste CPU cycles, this will create a clone of the labels map
-    Map<String,String> labels = gts.getLabels();
+    Map<String, String> labels = gts.getLabels();
 
     long tick = 0;
-    
+
     GeoTimeSerie subgts = null;
-    
+
     boolean hasOccurrences = (0 != occurrences);
-    
-    Map<String,GeoTimeSerie> multipleMapped = new TreeMap<String,GeoTimeSerie>();
-    
-    boolean hasSingleResult = false;
-    
+
+    Map<String, GeoTimeSerie> multipleMapped = new TreeMap<String, GeoTimeSerie>();
+
+    boolean hasSingleResult = true;
+
     while (idx < nticks) {
 
       if (hasOccurrences && 0 == occurrences) {
         break;
       }
-      
-      if (reversed) {
-        tick = null != ticks ? ticks[idx] : mapped.lastbucket - idx * mapped.bucketspan;
+
+      if (null == outputTicks) {
+
+        if (reversed) {
+          tick = null != ticks ? ticks[idx] : mapped.lastbucket - idx * mapped.bucketspan;
+        } else {
+          tick = null != ticks ? ticks[idx] : mapped.lastbucket - (mapped.bucketcount - 1 - idx) * mapped.bucketspan;
+        }
       } else {
-        tick = null != ticks ? ticks[idx] : mapped.lastbucket - (mapped.bucketcount - 1 - idx) * mapped.bucketspan;
+        tick = outputTicks.get(idx);
+
+        if (null != ticks) { // means input gts is not bucketized
+
+          // calculate leftIdx and rightIdx
+          if (reversed) {
+            while (leftIdx < ticks.length && ticks[leftIdx] > tick) {
+              leftIdx++;
+            }
+          } else {
+            while (rightIdx < ticks.length && ticks[rightIdx] < tick) {
+              rightIdx++;
+            }
+          }
+        }
       }
-      
+
       //
       // Determine start/stop timestamp for extracting subserie
       //
-      
+
       long start = tick;
       long stop = tick;
-      
+
       if (prewindow < 0) {
         start = tick + prewindow;
       } else if (prewindow > 0) {
         // window is a number of ticks
         if (null == ticks) {
-          start = prewindow <= mapped.bucketcount ? tick - prewindow * mapped.bucketspan : Long.MIN_VALUE;
-        } else {
-          if (reversed) {
-            start = idx + prewindow < ticks.length ? (ticks[idx + (int) prewindow]) : Long.MIN_VALUE;
+          if (null == outputTicks || !reversed) {
+            start = prewindow <= mapped.bucketcount ? tick - prewindow * mapped.bucketspan : Long.MIN_VALUE;
           } else {
-            start = idx - prewindow >= 0 ? (ticks[idx - (int) prewindow]) : Long.MIN_VALUE;
+            start = prewindow - 1 <= mapped.bucketcount ? tick - (prewindow - 1) * mapped.bucketspan : Long.MIN_VALUE;
+          }
+        } else {
+          if (null == outputTicks) {
+            if (reversed) {
+              start = idx + prewindow < ticks.length ? (ticks[idx + (int) prewindow]) : Long.MIN_VALUE;
+            } else {
+              start = idx - prewindow >= 0 ? (ticks[idx - (int) prewindow]) : Long.MIN_VALUE;
+            }
+          } else {
+
+            //
+            // Note that if output ticks are provided,
+            // then if the current output tick matches an input tick,
+            // then if (reversed)
+            // then prewindow counts the current tick
+            // else it is postwindow that counts the current tick
+            //
+
+            if (reversed) {
+              start = leftIdx - 1 + prewindow < ticks.length ? (ticks[leftIdx - 1 + (int) prewindow]) : Long.MIN_VALUE;
+            } else {
+              start = rightIdx - prewindow >= 0 ? (ticks[rightIdx - (int) prewindow]) : Long.MIN_VALUE;
+            }
           }
         }
+      } else {
+        if (null != outputTicks && reversed) {
+          start = tick + 1;
+        }
       }
-      
+
       if (postwindow < 0) {
         stop = tick - postwindow;
       } else if (postwindow > 0) {
         // window is a number of ticks
         if (null == ticks) {
-          stop = postwindow <= mapped.bucketcount ? tick + postwindow * mapped.bucketspan : Long.MAX_VALUE;
-        } else {
-          if (reversed) {
-            stop = idx - postwindow >= 0 ? (ticks[idx - (int) postwindow]) : Long.MAX_VALUE;
+          if (null == outputTicks || reversed) {
+            stop = postwindow <= mapped.bucketcount ? tick + postwindow * mapped.bucketspan : Long.MAX_VALUE;
           } else {
-            stop = idx + postwindow < ticks.length ? (ticks[idx + (int) postwindow]) : Long.MAX_VALUE;
+            stop = postwindow - 1 <= mapped.bucketcount ? tick + (postwindow - 1) * mapped.bucketspan : Long.MAX_VALUE;
+          }
+        } else {
+          if (null == outputTicks) {
+            if (reversed) {
+              stop = idx - postwindow >= 0 ? (ticks[idx - (int) postwindow]) : Long.MAX_VALUE;
+            } else {
+              stop = idx + postwindow < ticks.length ? (ticks[idx + (int) postwindow]) : Long.MAX_VALUE;
+            }
+          } else {
+            if (reversed) {
+              stop = leftIdx - postwindow >= 0 ? (ticks[leftIdx - (int) postwindow]) : Long.MAX_VALUE;
+            } else {
+              stop = rightIdx - 1 + postwindow < ticks.length ? (ticks[rightIdx - 1 + (int) postwindow]) : Long.MAX_VALUE;
+            }
           }
         }
+      } else {
+        if (!(null == outputTicks) && !reversed) {
+          stop = tick - 1;
+        }
       }
-      
+
       //
-      // Extract values 
+      // Extract values
       //
-      
+
       subgts = GTSHelper.subSerie(gts, start, stop, false, false, subgts);
-      
+
       Object mapResult = null;
-      
+
       if (null != stack) {
         if (mapper instanceof Macro) {
           subgts.safeSetMetadata(mapped.getMetadata());
           stack.push(subgts);
           stack.exec((Macro) mapper);
           Object res = stack.peek();
-          
+
           if (res instanceof List) {
             stack.drop();
-            
+
             mapResult = MACROMAPPER.listToObjects((List) res);
           } else if (res instanceof Map) {
             stack.drop();
-            
+
             Set<Object> keys = ((Map) res).keySet();
-            
-            for (Object key: keys) {
+
+            for (Object key : keys) {
               Object[] ores2 = MACROMAPPER.listToObjects((List) ((Map) res).get(key));
               ((Map) res).put(key, ores2);
             }
@@ -3833,7 +4644,7 @@ public class GTSHelper {
 
         } else {
           throw new WarpScriptException("Invalid mapper function.");
-        }        
+        }
       } else {
         if (!(mapper instanceof WarpScriptMapperFunction)) {
           throw new WarpScriptException("Expected a mapper function.");
@@ -3862,22 +4673,22 @@ public class GTSHelper {
         // elevation: elevation associated with the returned value
         // value: computed value
         //
-        
+
         Object[] parms = new Object[8];
 
         int i = 0;
         parms[i++] = tick;
-        
+
         //
         // All arrays are allocated each time, so we don't risk
         // having a rogue mapper modify them.
         //
-        
-        parms[i++] = new String[subgts.values];
-        Arrays.fill((Object[]) parms[i-1], gts.getName());
 
-        parms[i++] = new Map[subgts.values]; 
-        Arrays.fill((Object[]) parms[i-1], labels);
+        parms[i++] = new String[subgts.values];
+        Arrays.fill((Object[]) parms[i - 1], gts.getName());
+
+        parms[i++] = new Map[subgts.values];
+        Arrays.fill((Object[]) parms[i - 1], labels);
 
         parms[i++] = subgts.values > 0 ? Arrays.copyOf(subgts.ticks, subgts.values) : new long[0];
         if (null != subgts.locations) {
@@ -3900,10 +4711,10 @@ public class GTSHelper {
             parms[i++] = new long[0];
           }
         }
-        parms[i++] = new Object[subgts.values];      
+        parms[i++] = new Object[subgts.values];
 
         int tickidx = -1;
-        
+
         for (int j = 0; j < subgts.values; j++) {
           ((Object[]) parms[6])[j] = valueAtIndex(subgts, j);
           if (-1 == tickidx && tick == tickAtIndex(subgts, j)) {
@@ -3911,21 +4722,25 @@ public class GTSHelper {
           }
         }
 
-        parms[i++] = new long[] { prewindow, postwindow, start, stop, tickidx };
-        
+        parms[i++] = new long[] {prewindow, postwindow, start, stop, tickidx};
+
         mapResult = ((WarpScriptMapperFunction) mapper).apply(parms);
       }
-            
+
       if (mapResult instanceof Map) {
-        for (Entry<Object,Object> entry: ((Map<Object,Object>) mapResult).entrySet()) {
+        hasSingleResult = false;
+        for (Entry<Object, Object> entry : ((Map<Object, Object>) mapResult).entrySet()) {
           GeoTimeSerie mgts = multipleMapped.get(entry.getKey().toString());
           if (null == mgts) {
             mgts = mapped.cloneEmpty();
+            if (null != outputTicks ) {
+              unbucketize(mgts);
+            }
 
             mgts.setName(entry.getKey().toString());
             multipleMapped.put(entry.getKey().toString(), mgts);
           }
-          
+
           Object[] result = (Object[]) entry.getValue();
           if (null != result[3]) {
             GTSHelper.setValue(mgts, overrideTick ? (long) result[0] : tick, (long) result[1], (long) result[2], result[3], false);
@@ -3933,37 +4748,41 @@ public class GTSHelper {
         }
       } else {
         Object[] result = mapResult instanceof List ? ((List) mapResult).toArray() : (Object[]) mapResult;
-        
+
         //
         // Set value if it was not null. Don't overwrite, we scan ticks only once
         //
 
-        hasSingleResult = true;
-        
+
+
         if (null != result[3]) {
           GTSHelper.setValue(mapped, overrideTick ? (long) result[0] : tick, (long) result[1], (long) result[2], result[3], false);
-        }        
+        }
       }
-      
+
       idx += step;
       occurrences--;
     }
 
     if (hasSingleResult) {
+
+      if (null != outputTicks) {
+        unbucketize(mapped);
+      }
       results.add(mapped);
     }
-    
+
     if (!multipleMapped.isEmpty()) {
       results.addAll(multipleMapped.values());
     }
-    
+
     return results;
   }
-  
+
   public static List<GeoTimeSerie> map(GeoTimeSerie gts, WarpScriptMapperFunction mapper, long prewindow, long postwindow, long occurrences, boolean reversed) throws WarpScriptException {
     return map(gts, mapper, prewindow, postwindow, occurrences, reversed, 1, false);
   }
-  
+
   public static List<GeoTimeSerie> map(GeoTimeSerie gts, WarpScriptMapperFunction mapper, long prewindow, long postwindow) throws WarpScriptException {
     return map(gts, mapper, prewindow, postwindow, 0, false);
   }
@@ -4206,13 +5025,35 @@ public class GTSHelper {
   /**
    * Return the number of values in a GTS instance.
    * 
-   * @param gts GeoTimeSerit instance of which to count values.
+   * @param gts GeoTimeSerie instance of which to count values.
    * 
    * @return Number of values in GTS.
    */
   
   public static int nvalues(GeoTimeSerie gts) {
     return gts.values;
+  }
+
+  /**
+   * Tell if a GTS instance is considered sorted.
+   * If this method returns true, the GTS instance is sorted but if it returns false the GTS instance may or may not be sorted.
+   *
+   * @param gts GeoTimeSerie instance to consider.
+   * @return true if the GTS instance is considered sorted, false otherwise.
+   */
+  public static boolean isSorted(GeoTimeSerie gts) {
+    return gts.sorted;
+  }
+
+  /**
+   * Tell if a GTS instance is considered reversed. This has only a meaning if the GTS instance is considered sorted.
+   * If this method returns true, the GTS instance is reversed but if it returns false the GTS instance may or may not be reversed.
+   *
+   * @param gts GeoTimeSerie instance to consider.
+   * @return true if the GTS instance is considered reversed, false otherwise.
+   */
+  public static boolean isReversed(GeoTimeSerie gts) {
+    return gts.reversed;
   }
   
   /**
@@ -5336,9 +6177,13 @@ public class GTSHelper {
 
     return gts;
   }
-  
+
   public static List<GeoTimeSerie> reduce(WarpScriptReducerFunction reducer, Collection<GeoTimeSerie> series, Collection<String> bylabels) throws WarpScriptException {
-    Map<Map<String,String>,List<GeoTimeSerie>> unflattened = reduceUnflattened(reducer, series, bylabels);
+    return reduce(reducer, series, bylabels, false);
+  }
+
+  public static List<GeoTimeSerie> reduce(WarpScriptReducerFunction reducer, Collection<GeoTimeSerie> series, Collection<String> bylabels, boolean overrideTick) throws WarpScriptException {
+    Map<Map<String,String>,List<GeoTimeSerie>> unflattened = reduceUnflattened(reducer, series, bylabels, overrideTick);
     
     List<GeoTimeSerie> results = new ArrayList<GeoTimeSerie>();
     
@@ -5348,8 +6193,12 @@ public class GTSHelper {
     
     return results;
   }
-  
-  public static Map<Map<String,String>,List<GeoTimeSerie>> reduceUnflattened(WarpScriptReducerFunction reducer, Collection<GeoTimeSerie> series, Collection<String> bylabels) throws WarpScriptException {
+
+  public static Map<Map<String, String>, List<GeoTimeSerie>> reduceUnflattened(WarpScriptReducerFunction reducer, Collection<GeoTimeSerie> series, Collection<String> bylabels) throws WarpScriptException {
+    return reduceUnflattened(reducer, series, bylabels, false);
+  }
+
+  public static Map<Map<String, String>, List<GeoTimeSerie>> reduceUnflattened(WarpScriptReducerFunction reducer, Collection<GeoTimeSerie> series, Collection<String> bylabels, boolean overrideTick) throws WarpScriptException {
     //
     // Partition the GTS instances using the given labels
     //
@@ -5588,14 +6437,14 @@ public class GTSHelper {
             Object[] reduced = (Object[]) entry.getValue();
             
             if (null != reduced[3]) {
-              GTSHelper.setValue(gts, smallest, (long) reduced[1], (long) reduced[2], reduced[3], false);
+              GTSHelper.setValue(gts, overrideTick ? (long) reduced[0] : smallest, (long) reduced[1], (long) reduced[2], reduced[3], false);
             }
           }
         } else {
           Object[] reduced = (Object[]) reducerResult;
           singleGTSResult = true;
           if (null != reduced[3]) {
-            GTSHelper.setValue(result, smallest, (long) reduced[1], (long) reduced[2], reduced[3], false);
+            GTSHelper.setValue(result, overrideTick ? (long) reduced[0] : smallest, (long) reduced[1], (long) reduced[2], reduced[3], false);
           }
         }
         
@@ -6592,21 +7441,20 @@ public class GTSHelper {
    * @return A new GeoTimeSerie instance which is a subset of the input GTS with only those ticks which fall between start and end (both inclusive).
    */
   public static GeoTimeSerie timeclip(GeoTimeSerie gts, long start, long end) {
+    // If the GTS is sorted, use subSerie which is vastly faster
+    if (gts.sorted) {
+      return subSerie(gts, start, end, false);
+    }
+
+    // GTS is not sorted, scan the GTS and add tick in [start;end] to an empty GTS
     GeoTimeSerie clipped = gts.cloneEmpty();
-    
+
     for (int idx = 0; idx < gts.values; idx++) {
       long ts = GTSHelper.tickAtIndex(gts, idx);
-      
-      if (ts < start || ts > end) {
-        if (gts.sorted) {
-          if ((gts.reversed && ts < start) || (!gts.reversed && ts > end)) {
-            break;
-          }
-        }
-        continue;     
+
+      if (ts >= start && ts <= end) {
+        GTSHelper.setValue(clipped, ts, GTSHelper.locationAtIndex(gts, idx), GTSHelper.elevationAtIndex(gts, idx), GTSHelper.valueAtIndex(gts, idx), false);
       }
-      
-      GTSHelper.setValue(clipped, ts, GTSHelper.locationAtIndex(gts, idx), GTSHelper.elevationAtIndex(gts, idx), GTSHelper.valueAtIndex(gts, idx), false);
     }
     
     return clipped;
@@ -7134,20 +7982,30 @@ public class GTSHelper {
 
     return new GeoTimeSerie();
   }
-  
+
+  /**
+   * Multiply the ticks of a GTS instance by a factor. Cannot be applied to a bucketized GTS instance as it can cause rounding errors.
+   *
+   * @param gts   The GTS instance whose ticks are to be scaled.
+   * @param scale The factor to apply to the ticks.
+   * @return A copy of the given GTS instance with its tick scaled.
+   * @throws WarpScriptException If the GTS instance is bucketized.
+   */
   public static GeoTimeSerie timescale(GeoTimeSerie gts, double scale) throws WarpScriptException {
+    if (isBucketized(gts)) {
+      throw new WarpScriptException("Cannot apply timescale on a bucketized GTS. Unbucketize it first.");
+    }
+
     GeoTimeSerie scaled = gts.clone();
-    
+
     for (int i = 0; i < scaled.values; i++) {
       scaled.ticks[i] = (long) (scaled.ticks[i] * scale);
     }
-    
-    scaled.lastbucket = (long) (scaled.lastbucket * scale);        
-    scaled.bucketspan = (long) (scaled.bucketspan * scale);
 
-    if (gts.bucketspan != 0 && 0 == scaled.bucketspan) {
-      throw new WarpScriptException("Down scaling is too agressive, bucketspan would end up 0.");
+    if (scaled.sorted && scale < 0.0D) {
+      scaled.reversed = !scaled.reversed;
     }
+
     return scaled;
   }
   
@@ -7674,7 +8532,7 @@ public class GTSHelper {
     }
     
     if (q < 1) {
-      throw new WarpScriptException("Bandwitdth parameter must be greater than 0");
+      throw new WarpScriptException("Bandwidth parameter must be greater than 0");
     }
     
     if (r < 0) {
@@ -8116,76 +8974,87 @@ public class GTSHelper {
     }
     
     sort(fromGTS);
-    
-    // estimate all points but skip jump_s points between each
-    // (we are starting at lastbucket and are going backward)
-    int idx = fromGTS.values - 1;
-    
-    // we want to end on the oldest bucket
-    int rest = (fromGTS.bucketcount - 1) % (jump + 1);
-    for (int j = 0; j <= (fromGTS.bucketcount - 1) / (jump + 1); j++) {
-      
-      // calculate tick
-      long tick = fromGTS.lastbucket - (j * (jump + 1) + rest) * fromGTS.bucketspan;
-      
-      // take back idx to the first neighbour at the left whose value is not null
-      while(idx > -1 && tick < tickAtIndex(fromGTS, idx)) {
-        idx--;
+
+    // if neighbours < 0, do not do lowess smoothing but instead take the mean
+    if (neighbours < 0) {
+      double mean = GTSHelper.musigma(fromGTS, false)[0];
+      for (int j = 0; j < fromGTS.bucketcount; j ++) {
+        long tick = fromGTS.lastbucket - j * fromGTS.bucketspan;
+        setValue(toGTS, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, mean, true);
       }
-      
-      // estimate value
-      double estimated = pointwise_lowess(fromGTS, idx, tick, neighbours, degree, weights, rho, null, true);
-      setValue(toGTS, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, estimated, true);
-      
-    }    
-    
-    // interpolate skipped points
-    for (int j = 0; j < (fromGTS.bucketcount - 1) / (jump + 1); j++) {
-      
-      int right = j * (jump + 1) + rest;
-      int left = (j + 1) * (jump + 1) + rest;
-      double denom = left - right;
-      long righttick = fromGTS.lastbucket - right * fromGTS.bucketspan;
-      long lefttick = fromGTS.lastbucket - left * fromGTS.bucketspan;
-      
-      for (int r = 1; r < jump + 1; r++) {
-        
-        int middle = r + j * (jump + 1) + rest;
-        long tick = fromGTS.lastbucket - middle * fromGTS.bucketspan;
-        
-        double alpha = (middle - right) / denom;
-        double interpolated = alpha * ((Number) valueAtTick(toGTS, lefttick)).doubleValue() + (1 - alpha) * ((Number) valueAtTick(toGTS, righttick)).doubleValue();
-        setValue(toGTS, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, interpolated, true);
-        
+
+    } else {
+
+      // estimate all points but skip jump_s points between each
+      // (we are starting at lastbucket and are going backward)
+      int idx = fromGTS.values - 1;
+
+      // we want to end on the oldest bucket
+      int rest = (fromGTS.bucketcount - 1) % (jump + 1);
+      for (int j = 0; j <= (fromGTS.bucketcount - 1) / (jump + 1); j++) {
+
+        // calculate tick
+        long tick = fromGTS.lastbucket - (j * (jump + 1) + rest) * fromGTS.bucketspan;
+
+        // take back idx to the first neighbour at the left whose value is not null
+        while (idx > -1 && tick < tickAtIndex(fromGTS, idx)) {
+          idx--;
+        }
+
+        // estimate value
+        double estimated = pointwise_lowess(fromGTS, idx, tick, neighbours, degree, weights, rho, null, true);
+        setValue(toGTS, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, estimated, true);
+
       }
-    }
-    
-    // estimate the most recent point in case it has been jumped
-    if (0 != rest) {
-      
-      // take back idx to the first neighbour at the left whose value is not null if any
-      idx = fromGTS.values - 1;
-      while(idx > -1 && fromGTS.lastbucket < tickAtIndex(fromGTS, idx)) {
-        idx--;
-      }
-      
-      // estimate value
-      double estimated = pointwise_lowess(fromGTS, idx, fromGTS.lastbucket, neighbours, degree, weights, rho, null, true);          
-      setValue(toGTS, fromGTS.lastbucket, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, estimated, true);
-      
+
       // interpolate skipped points
-      int right = 0;
-      int left = rest;
-      double denom = left - right;
-      long lefttick = fromGTS.lastbucket - left * fromGTS.bucketspan;
-      
-      for (int r = 1; r < rest; r++) {
-        long tick = fromGTS.lastbucket - r * fromGTS.bucketspan;
-        
-        double alpha = (r - right) / denom;
-        double interpolated = alpha * ((Number) valueAtTick(toGTS, lefttick)).doubleValue() + (1 - alpha) * estimated;
-        setValue(toGTS, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, interpolated, true);
-      }      
+      for (int j = 0; j < (fromGTS.bucketcount - 1) / (jump + 1); j++) {
+
+        int right = j * (jump + 1) + rest;
+        int left = (j + 1) * (jump + 1) + rest;
+        double denom = left - right;
+        long righttick = fromGTS.lastbucket - right * fromGTS.bucketspan;
+        long lefttick = fromGTS.lastbucket - left * fromGTS.bucketspan;
+
+        for (int r = 1; r < jump + 1; r++) {
+
+          int middle = r + j * (jump + 1) + rest;
+          long tick = fromGTS.lastbucket - middle * fromGTS.bucketspan;
+
+          double alpha = (middle - right) / denom;
+          double interpolated = alpha * ((Number) valueAtTick(toGTS, lefttick)).doubleValue() + (1 - alpha) * ((Number) valueAtTick(toGTS, righttick)).doubleValue();
+          setValue(toGTS, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, interpolated, true);
+
+        }
+      }
+
+      // estimate the most recent point in case it has been jumped
+      if (0 != rest) {
+
+        // take back idx to the first neighbour at the left whose value is not null if any
+        idx = fromGTS.values - 1;
+        while (idx > -1 && fromGTS.lastbucket < tickAtIndex(fromGTS, idx)) {
+          idx--;
+        }
+
+        // estimate value
+        double estimated = pointwise_lowess(fromGTS, idx, fromGTS.lastbucket, neighbours, degree, weights, rho, null, true);
+        setValue(toGTS, fromGTS.lastbucket, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, estimated, true);
+
+        // interpolate skipped points
+        int right = 0;
+        int left = rest;
+        double denom = left - right;
+        long lefttick = fromGTS.lastbucket - left * fromGTS.bucketspan;
+
+        for (int r = 1; r < rest; r++) {
+          long tick = fromGTS.lastbucket - r * fromGTS.bucketspan;
+
+          double alpha = (r - right) / denom;
+          double interpolated = alpha * ((Number) valueAtTick(toGTS, lefttick)).doubleValue() + (1 - alpha) * estimated;
+          setValue(toGTS, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, interpolated, true);
+        }
+      }
     }
   }
   
@@ -8200,7 +9069,7 @@ public class GTSHelper {
    * @param outer Robustness   : number of outer loops (to alleviate the impact of outliers upon the decomposition)
    *
    * Optional sets of parameters shared by call of lowess of the same kind:
-   * @param neighbour_s        : (for the seasonal extracting step) Bandwidth, i.e. number of nearest neighbours to consider when applying LOWESS
+   * @param neighbour_s        : (for the seasonal extracting step) Bandwidth, i.e. number of nearest neighbours to consider when applying LOWESS. If negative, approximation by the mean is used instead of LOWESS.
    * @param degree_s           : (for the seasonal extracting step) Degree, i.e. degree of the polynomial fit
    * @param jump_s             : (for the seasonal extracting step) Jump, i.e. number of bucket to skip to speed up computation. These buckets are interpolated afterward.
    *
@@ -8566,6 +9435,111 @@ public class GTSHelper {
     output.add(trend);
     
     return output;
+  }
+
+  /**
+   * Copy the specified part of a GTS to an other specified part of GTS.
+   *
+   * @param src The source GTS
+   * @param srcPos The starting index in src
+   * @param dest The destination GTS
+   * @param destPos The starting index in dest
+   * @param length The number of points to copy
+   */
+  public static void copy(GeoTimeSerie src, int srcPos, GeoTimeSerie dest, int destPos, int length) {
+    if (!GeoTimeSerie.TYPE.UNDEFINED.equals(dest.type) && !dest.type.equals(src.type)) {
+      throw new RuntimeException("Combine cannot proceed with incompatible GTS types.");
+    }
+
+    // Make sure dest is not UNDEFINED
+    dest.type = src.type;
+
+    // Make sure all receiving arrays are initialized and big enough
+    int destMinLength = destPos + length;
+
+    if(null == dest.ticks){ // dest is empty
+      dest.ticks = new long[destMinLength];
+
+      if (GeoTimeSerie.TYPE.LONG == dest.type) {
+        dest.longValues = new long[destMinLength];
+      } else if (GeoTimeSerie.TYPE.DOUBLE == dest.type) {
+        dest.doubleValues = new double[destMinLength];
+      } else if (GeoTimeSerie.TYPE.STRING == dest.type) {
+        dest.stringValues = new String[destMinLength];
+      } else { // TYPE.BOOLEAN == dest.type
+        dest.booleanValues = new BitSet();
+      }
+    } else if(dest.ticks.length < destMinLength){ // dest is too small to contain new data
+      dest.ticks = Arrays.copyOf(dest.ticks, destMinLength);
+
+      if (GeoTimeSerie.TYPE.LONG == dest.type) {
+        dest.longValues = Arrays.copyOf(dest.longValues, destMinLength);
+      } else if (GeoTimeSerie.TYPE.DOUBLE == dest.type) {
+        dest.doubleValues = Arrays.copyOf(dest.doubleValues, destMinLength);
+      } else if (GeoTimeSerie.TYPE.STRING == dest.type) {
+        dest.stringValues = Arrays.copyOf(dest.stringValues, destMinLength);
+      }
+      // else TYPE.BOOLEAN == dest.type // nothing to do because BitSet grows automatically
+    }
+
+    // If any of dest or src have location info
+    if (null != dest.locations || null != src.locations) {
+      if(null == dest.locations){
+        dest.locations = new long[destMinLength];
+        Arrays.fill(dest.locations, GeoTimeSerie.NO_LOCATION);
+      } else if(dest.locations.length < destMinLength){
+        dest.locations = Arrays.copyOf(dest.locations, destMinLength);
+        Arrays.fill(dest.locations, dest.values, dest.values + destMinLength, GeoTimeSerie.NO_LOCATION);
+      }
+    }
+
+    // If any of dest or src have elevation info
+    if (null != dest.elevations || null != src.elevations) {
+      if(null == dest.elevations){
+        dest.elevations = new long[destMinLength];
+        Arrays.fill(dest.elevations, GeoTimeSerie.NO_ELEVATION);
+      } else if(dest.elevations.length < destMinLength){
+        dest.elevations = Arrays.copyOf(dest.elevations, destMinLength);
+        Arrays.fill(dest.elevations, dest.values, dest.values + destMinLength, GeoTimeSerie.NO_ELEVATION);
+      }
+    }
+
+    // Actual copy
+    copy0(src, srcPos, dest, destPos, length);
+
+    dest.values = Math.max(dest.values, destMinLength);
+  }
+
+  /**
+   * CAREFUL, no check done in this method.
+   * Copy the specified part of a GTS to an other specified part of GTS.
+   * Very similar to System.arraycopy.
+   *
+   * @param src The source GTS
+   * @param srcPos The starting index in src
+   * @param dest The destination GTS
+   * @param destPos The starting index in dest
+   * @param length The number of points to copy
+   */
+  private static void copy0(GeoTimeSerie src, int srcPos, GeoTimeSerie dest, int destPos, int length){
+    System.arraycopy(src.ticks, srcPos, dest.ticks, destPos, length);
+    if (null != src.locations) {
+      System.arraycopy(src.locations, srcPos, dest.locations, destPos, length);
+    }
+    if (null != src.elevations) {
+      System.arraycopy(src.elevations, srcPos, dest.elevations, destPos, length);
+    }
+    if (GeoTimeSerie.TYPE.LONG == dest.type) {
+      System.arraycopy(src.longValues, srcPos, dest.longValues, destPos, length);
+    } else if (GeoTimeSerie.TYPE.DOUBLE == dest.type) {
+      System.arraycopy(src.doubleValues, srcPos, dest.doubleValues, destPos, length);
+    } else if (GeoTimeSerie.TYPE.STRING == dest.type) {
+      System.arraycopy(src.stringValues, srcPos, dest.stringValues, destPos, length);
+    } else { // TYPE.BOOLEAN == dest.type
+      for(int i = 0; i < length; i++) {
+        dest.booleanValues.set(destPos + i, src.booleanValues.get(srcPos + i));
+      }
+    }
   }
   
   /**

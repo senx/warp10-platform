@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -40,15 +40,36 @@ public class SET extends NamedWarpScriptFunction implements WarpScriptStackFunct
     
     Object maporlist = stack.peek();
 
-    if (!(maporlist instanceof List)) {
-      throw new WarpScriptException(getName() + " operates on a list.");
+    if (!(maporlist instanceof List) && !(maporlist instanceof byte[])) {
+      throw new WarpScriptException(getName() + " operates on a list or byte array.");
     }
 
     if (!(key instanceof Number)) {
       throw new WarpScriptException(getName() + " expects a key which is an integer when operating on a list.");
     }
 
-    ((List) maporlist).set(((Number) key).intValue(), value);
+    if (maporlist instanceof List) {
+      int idx = GET.computeAndCheckIndex(this, ((Number) key).intValue(), ((List) maporlist).size());
+      ((List) maporlist).set(idx, value);
+    } else {
+      byte[] data = (byte[]) maporlist;
+      
+      if (!(value instanceof Long)) {
+        throw new WarpScriptException(getName() + " expects the element to be a LONG in either [0,255] or [-128,127].");
+      }
+      
+      long l = ((Number) value).longValue();
+
+      if (l < -128 || l > 255) {
+        throw new WarpScriptException(getName() + " expects the element to be a LONG in either [0,255] or [-128,127].");        
+      }
+      
+      byte elt = (byte) (l & 0xFFL);
+      
+      int idx = GET.computeAndCheckIndex(this, ((Number) key).intValue(), data.length);
+      
+      data[idx] = elt;
+    }
     
     return stack;
   }

@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -128,7 +129,11 @@ public class FINDSTATS extends NamedWarpScriptFunction implements WarpScriptStac
     Map<String,Object> stats = null;
 
     try {
-      stats = directoryClient.stats(clsSels, lblsSels);
+      DirectoryRequest drequest = new DirectoryRequest();
+      drequest.setClassSelectors(clsSels);
+      drequest.setLabelsSelectors(lblsSels);
+
+      stats = directoryClient.stats(drequest);
     } catch (IOException ioe) {
       throw new WarpScriptException(ioe);
     }

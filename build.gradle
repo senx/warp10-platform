@@ -1,7 +1,5 @@
-import java.text.SimpleDateFormat
-
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,6 +13,8 @@ import java.text.SimpleDateFormat
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
+import java.text.SimpleDateFormat
 
 buildscript {
     repositories {
@@ -74,7 +74,7 @@ subprojects {
         warp10Version['crypto'] = commonVersion
         warp10Version['token'] = commonVersion
 
-        quantumVersion = '3.0.5'
+        quantumVersion = '3.0.7'
 
         stagingUser = project.hasProperty('stagingUser') ? project.property('stagingUser') : System.getenv('STAGING_USER')
         stagingURL = project.hasProperty('stagingURL') ? project.property('stagingURL') : System.getenv('STAGING_URL')
@@ -126,25 +126,13 @@ subprojects {
         maven {
             url "http://maven.twttr.com"
         }
-        // bedatadriven - http://www.renjin.org/#downloads
-        maven {
-            url "http://nexus.bedatadriven.com/content/groups/public/"
-        }
-        maven {
-            url "http://repo.opengeo.org/"
-        }
-
         maven {
             url 'https://dl.bintray.com/hbs/maven'
         }
 
         maven {
-            url 'https://dl.bintray.com/cityzendata/maven'
+            url 'https://dl.bintray.com/senx/maven'
         }
-
-        //maven {
-        //  url "https://repository.apache.org/content/repositories/orgapachehbase-1065"
-        //}
     }
 
     //
@@ -221,7 +209,7 @@ subprojects {
             ext.file = relativePath(it)
             exec {
                 executable = (null != System.getenv('THRIFT_HOME')) ? System.getenv('THRIFT_HOME') + '/bin/thrift' : 'thrift'
-                args = ['--gen', 'java:hashcode,private-members', '-o', thriftOutputDir, ext.file]
+                args = ['--gen', 'java:private-members', '-o', thriftOutputDir, ext.file]
             }
         }
     })
@@ -253,8 +241,9 @@ subprojects {
         pkg {
             repo = 'maven'
             name = 'warp10'
+            userOrg = 'senx'
             licenses = ['Apache-2.0']
-            vcsUrl = 'https://github.com/cityzendata/warp10-platform.git'
+            vcsUrl = 'https://github.com/senx/warp10-platform.git'
             version {
                 name = getVersionName('')
                 released  = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZZ").format(new Date())

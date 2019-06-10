@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ public class FORSTEP extends NamedWarpScriptFunction implements WarpScriptStackF
 
   public FORSTEP(String name) {
     super(name);
-    this.maxtime = 5000L;
+    this.maxtime = -1L;
   }
   
   public FORSTEP(String name, long maxtime) {
@@ -107,9 +107,11 @@ public class FORSTEP extends NamedWarpScriptFunction implements WarpScriptStackF
     
     long now = System.currentTimeMillis();
     
+    long maxtime = this.maxtime > 0 ? this.maxtime : (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_LOOP_MAXDURATION);
+    
     while (true) {
-      if (System.currentTimeMillis() - now > this.maxtime) {
-        throw new WarpScriptException(getName() + " executed for too long (> " + this.maxtime + " ms).");
+      if (System.currentTimeMillis() - now > maxtime) {
+        throw new WarpScriptException(getName() + " executed for too long (> " + maxtime + " ms).");
       }
       
       if (useDouble) {

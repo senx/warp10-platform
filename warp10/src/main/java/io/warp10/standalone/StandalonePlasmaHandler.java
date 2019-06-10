@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
@@ -211,7 +212,10 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
         
         List<Metadata> metadatas = new ArrayList<Metadata>();
         
-        Iterator<Metadata> iter = this.handler.getDirectoryClient().iterator(clsSels, lblsSels);
+        DirectoryRequest drequest = new DirectoryRequest();
+        drequest.setClassSelectors(clsSels);
+        drequest.setLabelsSelectors(lblsSels);
+        Iterator<Metadata> iter = this.handler.getDirectoryClient().iterator(drequest);
 
         try {
           while(iter.hasNext()) {
@@ -735,7 +739,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
               //
               // If we've reached 90% of the max message size, flush the current message
               // FIXME(hbs): we really should check beforehand that we will not overflow the buffer.
-              // With specifally crafted content (String values) we could overflow the message size.
+              // With specially crafted content (String values) we could overflow the message size.
               // Given we're in a try/catch we would simply ignore the message, but still...
               //
               

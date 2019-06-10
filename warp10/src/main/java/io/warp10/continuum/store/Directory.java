@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -173,7 +173,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           return 1;
         } else {
           //
-          // If the two numbers have differents signs, then the positive values MUST appear before the negative ones
+          // If the two numbers have different signs, then the positive values MUST appear before the negative ones
           //
           if (o1 > 0) {
             return -1;
@@ -216,11 +216,6 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   public static final String DIRECTORY_SERVICE = "com.cityzendata.continuum.directory";
   
   private static final String DIRECTORY_INIT_NTHREADS_DEFAULT = "4";
-  
-  /**
-   * row key prefix for metadata
-   */
-  public static final byte[] HBASE_METADATA_KEY_PREFIX = "M".getBytes(Charsets.UTF_8);
   
   private final int modulus;
   private final int remainder;
@@ -366,6 +361,16 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   private final boolean delete;
 
   /**
+   * Do we track activity of GeoTimeSeries?
+   */
+  private final boolean trackingActivity;
+  
+  /**
+   * Activity window for activity tracking
+   */
+  private final long activityWindow;
+  
+  /**
    * Directory plugin to use
    */
   private final DirectoryPlugin plugin;
@@ -409,6 +414,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     this.init = "true".equals(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_INIT));
     this.store = "true".equals(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STORE));
     this.delete = "true".equals(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_DELETE));
+    
+    this.activityWindow = Long.parseLong(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_ACTIVITY_WINDOW, "0"));
+    this.trackingActivity = this.activityWindow > 0;
     
     //
     // Extract parameters
@@ -723,7 +731,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           
           boolean done = false;
           
-          byte[] lastrow = HBASE_METADATA_KEY_PREFIX;
+          byte[] lastrow = Constants.HBASE_METADATA_KEY_PREFIX;
           
           while(!done) {
             try {
@@ -756,7 +764,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 // FIXME(hbs): this could be done in a filter on the RS side
                 //
                 
-                int r = (((int) result.getRow()[HBASE_METADATA_KEY_PREFIX.length + 8]) & 0xff) % self.modulus;
+                int r = (((int) result.getRow()[Constants.HBASE_METADATA_KEY_PREFIX.length + 8]) & 0xff) % self.modulus;
                 
                 //byte r = (byte) (result.getRow()[HBASE_METADATA_KEY_PREFIX.length + 8] % self.modulus);
                 
@@ -1409,7 +1417,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             
             //
             // We do an early selection check based on the Kafka key.
-            // Since 20151104 we now corretly push the Kafka key (cf Ingress bug in pushMetadataMessage(k,v))
+            // Since 20151104 we now correctly push the Kafka key (cf Ingress bug in pushMetadataMessage(k,v))
             //
                         
             int r = (((int) msg.key()[8]) & 0xff) % directory.modulus;
@@ -1454,6 +1462,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             //byte[] labelsBytes = Arrays.copyOfRange(data, 8, 16);
             //long labelsId = Longs.fromByteArray(labelsBytes);
             
+            // 128bits
             byte[] metadataBytes = Arrays.copyOfRange(data, 16, data.length);
             TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
             Metadata metadata = new Metadata();
@@ -1570,11 +1579,11 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               // Remove HBase entry
               
               // Prefix + classId + labelsId
-              byte[] rowkey = new byte[HBASE_METADATA_KEY_PREFIX.length + 8 + 8];
+              byte[] rowkey = new byte[Constants.HBASE_METADATA_KEY_PREFIX.length + 8 + 8];
 
               // 128bits
               ByteBuffer bb = ByteBuffer.wrap(rowkey).order(ByteOrder.BIG_ENDIAN);
-              bb.put(HBASE_METADATA_KEY_PREFIX);
+              bb.put(Constants.HBASE_METADATA_KEY_PREFIX);
               bb.putLong(classId);
               bb.putLong(labelsId);
               
@@ -1617,7 +1626,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                     metadata.getAttributes());
 
                 //
-                // If we are doing a metadata update and the GTS is not known, skip calling the plugin
+                // If we are doing a metadata update and the GTS is not known, skip the call to store.
                 //
                 
                 if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource()) && !directory.plugin.known(gts)) {
@@ -1639,13 +1648,54 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             } else {
               //
               // If Metadata comes from Ingress and it is already in the cache, do
-              // nothing.
+              // nothing. Unless we are tracking activity in which case we need to check
+              // if the last activity is more recent than the one we have in cache and then update
+              // the attributes.
               //
               
               if (io.warp10.continuum.Configuration.INGRESS_METADATA_SOURCE.equals(metadata.getSource())
                   && directory.metadatas.containsKey(metadata.getName())
                   && directory.metadatas.get(metadata.getName()).containsKey(labelsId)) {
-                continue;
+                
+                if (!directory.trackingActivity) {
+                  continue;
+                }
+                
+                //
+                // We need to keep track of the activity
+                //
+                
+                Metadata meta = directory.metadatas.get(metadata.getName()).get(labelsId);
+                
+                // If none of the Metadata instances has a last activity recorded, do nothing
+                if (!metadata.isSetLastActivity() && !meta.isSetLastActivity()) {
+                  continue;
+                }
+                
+                // If one of the Metadata instances does not have a last activity set, use the one which is defined
+                
+                if (!metadata.isSetLastActivity()) {
+                  metadata.setLastActivity(meta.getLastActivity());
+                } else if (!meta.isSetLastActivity()) {
+                  meta.setLastActivity(metadata.getLastActivity());
+                } else if (metadata.getLastActivity() -  meta.getLastActivity() < directory.activityWindow) {
+                  // both Metadata have a last activity set, but the activity window has not yet passed, so do nothing
+                  continue;
+                }
+
+                // Update last activity, replace serialized GTS so we have the correct activity timestamp AND
+                // the correct attributes when storing. Clear the serialized metadata cache
+                meta.setLastActivity(Math.max(meta.getLastActivity(), metadata.getLastActivity()));
+                metadata.setLastActivity(meta.getLastActivity());
+                
+                // Copy attributes from the currently store Metadata instance
+                metadata.setAttributes(meta.getAttributes());
+                
+                TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+                metadataBytes = serializer.serialize(meta);
+                
+                id = MetadataUtils.id(metadata);
+                directory.serializedMetadataCache.remove(id);
               }              
               
               //
@@ -1666,6 +1716,31 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
               id = MetadataUtils.id(metadata);
               directory.serializedMetadataCache.remove(id);
+              
+              //
+              // Update the last activity
+              //
+              
+              if (null == directory.plugin) {                
+                Metadata meta = directory.metadatas.get(metadata.getName()).get(labelsId);
+                
+                boolean hasChanged = false;
+                
+                if (!metadata.isSetLastActivity() && meta.isSetLastActivity()) {
+                  metadata.setLastActivity(meta.getLastActivity());
+                  hasChanged = true;
+                } else if (metadata.isSetLastActivity() && meta.isSetLastActivity() && meta.getLastActivity() > metadata.getLastActivity()) {
+                  // Take the most recent last activity timestamp
+                  metadata.setLastActivity(meta.getLastActivity());
+                  hasChanged = true;
+                }
+                
+                if (hasChanged) {
+                  // We re-serialize metadata
+                  TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+                  metadataBytes = serializer.serialize(meta);
+                }                
+              }
             }
                         
             //
@@ -1677,10 +1752,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             //
             
             // Prefix + classId + labelsId
-            byte[] rowkey = new byte[HBASE_METADATA_KEY_PREFIX.length + 8 + 8];
+            byte[] rowkey = new byte[Constants.HBASE_METADATA_KEY_PREFIX.length + 8 + 8];
 
             ByteBuffer bb = ByteBuffer.wrap(rowkey).order(ByteOrder.BIG_ENDIAN);
-            bb.put(HBASE_METADATA_KEY_PREFIX);
+            bb.put(Constants.HBASE_METADATA_KEY_PREFIX);
             bb.putLong(classId);
             bb.putLong(labelsId);
 
@@ -1773,6 +1848,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               metadata.setClassId(classId);
               metadata.setLabelsId(labelsId);
               
+              // 128bits
               if (null == directory.metadatas.get(metadata.getName()).put(labelsId, metadata)) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, 1);
               }
@@ -2622,7 +2698,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     if (null == selector) {
       throw new IOException("Missing parameter '" + Constants.HTTP_PARAM_SELECTOR + "'.");
     }
-    
+        
     // Decode selector
     
     selector = new String(OrderPreservingBase64.decode(selector.getBytes(Charsets.US_ASCII)), Charsets.UTF_8);
@@ -2670,6 +2746,11 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       throw new IOException("Corrupted signature");
     }
     
+    boolean hasActiveAfter = null != request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER);
+    long activeAfter = hasActiveAfter ? Long.parseLong(request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER)) : 0L;
+    boolean hasQuietAfter = null != request.getParameter(Constants.HTTP_PARAM_QUIETAFTER);
+    long quietAfter = hasQuietAfter ? Long.parseLong(request.getParameter(Constants.HTTP_PARAM_QUIETAFTER)) : 0L;
+
     //
     // Parse selector  
     //
@@ -2894,6 +2975,18 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             metadataInspected++;
             boolean exclude = false;
             
+            //
+            // Check activity
+            //
+            
+            if (hasActiveAfter && metadata.getLastActivity() < activeAfter) {
+              continue;
+            }
+            
+            if (hasQuietAfter && metadata.getLastActivity() >= quietAfter) {
+              continue;
+            }
+
             int idx = 0;
       
             for (String labelName: labelNames) {

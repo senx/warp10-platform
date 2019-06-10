@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ import java.util.Map;
  *
  * Only the ticks with actual values are returned
  */
-public class TICKLIST  extends GTSStackFunction {
+public class TICKLIST extends GTSStackFunction {
   public TICKLIST(String name) {
     super(name);
   }

@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -99,11 +99,12 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
     //
     // Add a shutdown hook to dump the memory store on exit
     //
-    
-    if (null != WarpConfig.getProperties().getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_STORE_DUMP)) {
+
+    String storeDumpProp = WarpConfig.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_STORE_DUMP);
+    if (null != storeDumpProp) {
       
       final StandaloneMemoryStore self = this;
-      final String path = WarpConfig.getProperties().getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_STORE_DUMP); 
+      final String path = storeDumpProp;
       Thread dumphook = new Thread() {
         @Override
         public void run() {
@@ -401,9 +402,10 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
     long bytes = 0L;
     
     long gcperiod = (long) (0.25 * (timespan / Constants.TIME_UNITS_PER_MS));
-    
-    if (null != WarpConfig.getProperties().getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_GC_PERIOD)) {
-      gcperiod = Long.valueOf(WarpConfig.getProperties().getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_GC_PERIOD));
+
+    String gcPeriodProp = WarpConfig.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_GC_PERIOD);
+    if (null != gcPeriodProp) {
+      gcperiod = Long.valueOf(gcPeriodProp);
     }
     
     while(true) {
@@ -702,10 +704,11 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
     //
     // Load data from the specified file
     //
-    
-    if (null != WarpConfig.getProperties().getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_STORE_LOAD)) {
+
+    String storeLoacProp = WarpConfig.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_STORE_LOAD);
+    if (null != storeLoacProp) {
       try {
-        load(WarpConfig.getProperties().getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_STORE_LOAD));
+        load(storeLoacProp);
       } catch (IOException ioe) {
         throw new RuntimeException(ioe);
       }

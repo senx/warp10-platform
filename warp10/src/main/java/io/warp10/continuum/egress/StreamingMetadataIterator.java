@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import io.warp10.continuum.Configuration;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
@@ -62,20 +63,17 @@ public class StreamingMetadataIterator extends MetadataIterator {
   
   Metadata metadata = null;
   
-  private final long[] SIPHASH_PSK;
+  private final long[] SIPHASH_PSK; 
   
-  private final List<String> classSelectors;
-  
-  private final List<Map<String,String>> labelsSelectors;
+  private final DirectoryRequest directoryRequest;
   
   private final List<URL> urls;
 
   private final boolean noProxy;
   
-  public StreamingMetadataIterator(long[] SIPHASH_PSK, List<String> classSelectors, List<Map<String,String>> labelsSelectors, List<URL> urls, boolean noProxy) {
+  public StreamingMetadataIterator(long[] SIPHASH_PSK, DirectoryRequest request, List<URL> urls, boolean noProxy) {        
     this.SIPHASH_PSK = SIPHASH_PSK;
-    this.classSelectors = classSelectors;
-    this.labelsSelectors = labelsSelectors;
+    this.directoryRequest = request;
     this.urls = urls;
     this.noProxy = noProxy;
   }
@@ -105,7 +103,7 @@ public class StreamingMetadataIterator extends MetadataIterator {
     
     // TODO(hbs): swap idx and urlidx. Add support for multiple selectors in query string
     
-    if (idx >= classSelectors.size()) {
+    if (idx >= directoryRequest.getClassSelectorsSize()) {
       return false;
     }
             
@@ -124,12 +122,12 @@ public class StreamingMetadataIterator extends MetadataIterator {
       // Rebuild selector
       
       StringBuilder selector = new StringBuilder();
-      selector.append(WarpURLEncoder.encode(classSelectors.get(idx), "UTF-8"));
+      selector.append(WarpURLEncoder.encode(directoryRequest.getClassSelectors().get(idx), "UTF-8"));
       selector.append("{");
       
       boolean first = true;
       
-      for (Entry<String,String> entry: labelsSelectors.get(idx).entrySet()) {
+      for (Entry<String,String> entry: directoryRequest.getLabelsSelectors().get(idx).entrySet()) {
         if (!first) {
           selector.append(","); // ','
         }
@@ -159,6 +157,14 @@ public class StreamingMetadataIterator extends MetadataIterator {
       // Open connection
       
       String qs = Constants.HTTP_PARAM_SELECTOR + "=" + new String(OrderPreservingBase64.encode(selector.toString().getBytes(Charsets.UTF_8)), Charsets.US_ASCII);
+
+      if (directoryRequest.isSetActiveAfter()) {
+        qs = qs + "&" + Constants.HTTP_PARAM_ACTIVEAFTER + "=" + Long.toString(directoryRequest.getActiveAfter());
+      }
+
+      if (directoryRequest.isSetQuietAfter()) {
+        qs = qs + "&" + Constants.HTTP_PARAM_QUIETAFTER + "=" + Long.toString(directoryRequest.getQuietAfter());
+      }
 
       //URL url = new URL(urls.get(urlidx) + "?" + qs);
       URL url = urls.get(urlidx);

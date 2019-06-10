@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,37 +15,6 @@
 //
 
 package io.warp10.continuum.ingress;
-
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.JettyUtil;
-import io.warp10.continuum.KafkaProducerPool;
-import io.warp10.continuum.KafkaSynchronizedConsumerPool;
-import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
-import io.warp10.continuum.MetadataUtils;
-import io.warp10.continuum.TextFileShuffler;
-import io.warp10.continuum.ThrottlingManager;
-import io.warp10.continuum.TimeSource;
-import io.warp10.continuum.Tokens;
-import io.warp10.continuum.WarpException;
-import io.warp10.continuum.egress.CORSHandler;
-import io.warp10.continuum.egress.EgressFetchHandler;
-import io.warp10.continuum.egress.ThriftDirectoryClient;
-import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.DirectoryClient;
-import io.warp10.continuum.store.MetadataIterator;
-import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
-import io.warp10.continuum.store.thrift.data.KafkaDataMessageType;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.KeyStore;
-import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.crypto.SipHashInline;
-import io.warp10.quasar.token.thrift.data.WriteToken;
-import io.warp10.script.WarpScriptException;
-import io.warp10.sensision.Sensision;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -88,10 +57,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import kafka.javaapi.producer.Producer;
-import kafka.producer.KeyedMessage;
-import kafka.producer.ProducerConfig;
-
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.util.ShutdownHookManager;
@@ -99,7 +64,6 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.bouncycastle.util.encoders.Hex;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
@@ -117,6 +81,43 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.sort.SortConfig;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
+import com.google.common.primitives.Longs;
+
+import io.warp10.WarpManager;
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.JettyUtil;
+import io.warp10.continuum.KafkaProducerPool;
+import io.warp10.continuum.KafkaSynchronizedConsumerPool;
+import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
+import io.warp10.continuum.MetadataUtils;
+import io.warp10.continuum.TextFileShuffler;
+import io.warp10.continuum.ThrottlingManager;
+import io.warp10.continuum.TimeSource;
+import io.warp10.continuum.Tokens;
+import io.warp10.continuum.WarpException;
+import io.warp10.continuum.egress.CORSHandler;
+import io.warp10.continuum.egress.EgressFetchHandler;
+import io.warp10.continuum.egress.ThriftDirectoryClient;
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.DirectoryClient;
+import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
+import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
+import io.warp10.continuum.store.thrift.data.KafkaDataMessageType;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.CryptoUtils;
+import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.crypto.SipHashInline;
+import io.warp10.quasar.token.thrift.data.WriteToken;
+import io.warp10.script.WarpScriptException;
+import io.warp10.sensision.Sensision;
+import kafka.javaapi.producer.Producer;
+import kafka.producer.KeyedMessage;
+import kafka.producer.ProducerConfig;
 
 // FIXME(hbs): handle archive
 
@@ -126,6 +127,8 @@ import com.google.common.base.Preconditions;
 public class Ingress extends AbstractHandler implements Runnable {
 
   private static final Logger LOG = LoggerFactory.getLogger(Ingress.class);
+  
+  private static final Long NO_LAST_ACTIVITY = Long.MIN_VALUE;
   
   /**
    * Set of required parameters, those MUST be set
@@ -240,9 +243,9 @@ public class Ingress extends AbstractHandler implements Runnable {
    * Cache used to determine if we should push metadata into Kafka or if it was previously seen.
    * Key is a BigInteger constructed from a byte array of classId+labelsId (we cannot use byte[] as map key)
    */
-  final Map<BigInteger, Object> metadataCache = new LinkedHashMap<BigInteger, Object>(100, 0.75F, true) {
+  final Map<BigInteger, Long> metadataCache = new LinkedHashMap<BigInteger, Long>(100, 0.75F, true) {
     @Override
-    protected boolean removeEldestEntry(java.util.Map.Entry<BigInteger, Object> eldest) {
+    protected boolean removeEldestEntry(java.util.Map.Entry<BigInteger, Long> eldest) {
       return this.size() > METADATA_CACHE_SIZE;
     }
   };
@@ -260,6 +263,7 @@ public class Ingress extends AbstractHandler implements Runnable {
   private final long[] siphashDataKey;
 
   private final boolean sendMetadataOnDelete;
+  private final boolean sendMetadataOnStore;
 
   private final KafkaSynchronizedConsumerPool  pool;
   
@@ -269,6 +273,12 @@ public class Ingress extends AbstractHandler implements Runnable {
    * Flag indicating whether or not we reject delete requests
    */
   private final boolean rejectDelete;
+  
+  final boolean activityTracking;
+  final boolean updateActivity;
+  private final boolean metaActivity;
+  final long activityWindow;
+  public final boolean parseAttributes;
   
   public Ingress(KeyStore keystore, Properties props) {
 
@@ -297,6 +307,11 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     this.rejectDelete = "true".equals(props.getProperty(Configuration.INGRESS_DELETE_REJECT));
         
+    this.activityWindow = Long.parseLong(properties.getProperty(Configuration.INGRESS_ACTIVITY_WINDOW, "0"));
+    this.activityTracking = this.activityWindow > 0;
+    this.updateActivity = "true".equals(props.getProperty(Configuration.INGRESS_ACTIVITY_UPDATE));
+    this.metaActivity = "true".equals(props.getProperty(Configuration.INGRESS_ACTIVITY_META));
+
     if (props.containsKey(Configuration.INGRESS_CACHE_DUMP_PATH)) {
       this.cacheDumpPath = props.getProperty(Configuration.INGRESS_CACHE_DUMP_PATH);
     } else {
@@ -333,7 +348,10 @@ public class Ingress extends AbstractHandler implements Runnable {
     this.siphashDataKey = SipHashInline.getKey(this.keystore.getKey(KeyStore.SIPHASH_KAFKA_DATA));    
 
     this.sendMetadataOnDelete = Boolean.parseBoolean(props.getProperty(Configuration.INGRESS_DELETE_METADATA_INCLUDE, "false"));
+    this.sendMetadataOnStore = Boolean.parseBoolean(props.getProperty(Configuration.INGRESS_STORE_METADATA_INCLUDE, "false"));
 
+    this.parseAttributes = "true".equals(props.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
+    
     //
     // Prepare meta, data and delete producers
     //
@@ -587,6 +605,13 @@ public class Ingress extends AbstractHandler implements Runnable {
       return;
     }
     
+    if (null != WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)) {
+      response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)));
+      return;
+    }
+    
+    long nowms = System.currentTimeMillis();
+    
     try {
       //
       // CORS header
@@ -608,6 +633,9 @@ public class Ingress extends AbstractHandler implements Runnable {
       
       try {
         writeToken = Tokens.extractWriteToken(token);
+        if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NOUPDATE)) {
+          throw new WarpScriptException("Token cannot be used for updating data.");
+        }
       } catch (WarpScriptException ee) {
         throw new IOException(ee);
       }
@@ -727,7 +755,19 @@ public class Ingress extends AbstractHandler implements Runnable {
         
         AtomicLong dms = this.dataMessagesSize.get();
         
+        // Atomic boolean to track if attributes were parsed
+        AtomicBoolean hadAttributes = parseAttributes ? new AtomicBoolean(false) : null;
+
+        boolean lastHadAttributes = false;
+
         do {
+          
+          // We copy the current value of hadAttributes
+          if (parseAttributes) {
+            lastHadAttributes = lastHadAttributes || hadAttributes.get();
+            hadAttributes.set(false);
+          }
+          
           String line = br.readLine();
           
           if (null == line) {
@@ -742,9 +782,9 @@ public class Ingress extends AbstractHandler implements Runnable {
           if ('#' == line.charAt(0)) {
             continue;
           }
-          
+                    
           try {
-            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, false);
+            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, hadAttributes);
             count++;
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_PARSEERRORS, sensisionLabels, 1);
@@ -772,26 +812,47 @@ public class Ingress extends AbstractHandler implements Runnable {
               ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
             }
             
-            if (!this.metadataCache.containsKey(metadataCacheKey)) {
+            boolean pushMeta = false;
+            
+            Long val = this.metadataCache.getOrDefault(metadataCacheKey, NO_LAST_ACTIVITY);
+
+            if (NO_LAST_ACTIVITY.equals(val)) {
+              pushMeta = true;
+            } else if (activityTracking && updateActivity) {
+              Long lastActivity = val;
+              
+              if (null == lastActivity) {
+                pushMeta = true;
+              } else if (nowms - lastActivity > activityWindow) {
+                pushMeta = true;
+              }
+            }
+            
+            if (pushMeta) {
               // Build metadata object to push
               Metadata metadata = new Metadata();
               // Set source to indicate we
               metadata.setSource(Configuration.INGRESS_METADATA_SOURCE);
               metadata.setName(encoder.getMetadata().getName());
               metadata.setLabels(encoder.getMetadata().getLabels());
+              
+              if (this.activityTracking && updateActivity) {
+                metadata.setLastActivity(nowms);
+              }
+              
               TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
               try {
                 pushMetadataMessage(bytes, serializer.serialize(metadata));
+                
+                // Update metadataCache with the current key
+                synchronized(metadataCache) {
+                  this.metadataCache.put(metadataCacheKey, (activityTracking && updateActivity) ? nowms : null);
+                }
               } catch (TException te) {
                 throw new IOException("Unable to push metadata.");
               }
             }
             
-            // Update metadataCache with the current key so the key is considered used recently
-            synchronized(metadataCache) {
-              this.metadataCache.put(metadataCacheKey, null);
-            }
-
             if (null != lastencoder) {
               Map<String,String> labels = new HashMap<String, String>();
               //labels.put(SensisionConstants.SENSISION_LABEL_OWNER, owner);
@@ -801,11 +862,26 @@ public class Ingress extends AbstractHandler implements Runnable {
               //}
 
               pushDataMessage(lastencoder);
+                           
+              if (parseAttributes && lastHadAttributes) {
+                // We need to push lastencoder's metadata update as they were updated since the last
+                // metadata update message sent
+                Metadata meta = new Metadata(lastencoder.getMetadata());
+                meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                pushMetadataMessage(meta);
+                // Reset lastHadAttributes
+                lastHadAttributes = false;
+              }
             }
             
             if (encoder != lastencoder) {
+              // This is the case when we just parsed either the first input line or one for a different
+              // GTS than the previous one.
               lastencoder = encoder;
             } else {
+              // This is the case when lastencoder and encoder are identical, but lastencoder was too big and needed
+              // to be flushed
+
               //lastencoder = null;
               //
               // Allocate a new GTSEncoder and reuse Metadata so we can
@@ -813,7 +889,7 @@ public class Ingress extends AbstractHandler implements Runnable {
               //
               Metadata metadata = lastencoder.getMetadata();
               lastencoder = new GTSEncoder(0L);
-              lastencoder.setMetadata(metadata);
+              lastencoder.setMetadata(metadata);              
             }
           }
 
@@ -836,6 +912,14 @@ public class Ingress extends AbstractHandler implements Runnable {
           ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
 
           pushDataMessage(lastencoder);
+          
+          if (parseAttributes && lastHadAttributes) {
+            // Push a metadata UPDATE message so attributes are stored
+            // Build metadata object to push
+            Metadata meta = new Metadata(lastencoder.getMetadata());
+            meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+            pushMetadataMessage(meta);
+          }
         }
       } catch (WarpException we) {
         throw new IOException(we);      
@@ -877,6 +961,11 @@ public class Ingress extends AbstractHandler implements Runnable {
       return;
     }
     
+    if (null != WarpManager.getAttribute(WarpManager.META_DISABLED)) {
+      response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.META_DISABLED)));
+      return;
+    }
+
     //
     // CORS header
     //
@@ -901,6 +990,9 @@ public class Ingress extends AbstractHandler implements Runnable {
     try {
       try {
         writeToken = Tokens.extractWriteToken(token);
+        if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NOMETA)) {
+          throw new WarpScriptException("Token cannot be used for updating metadata.");
+        }
       } catch (WarpScriptException ee) {
         throw new IOException(ee);
       }
@@ -945,6 +1037,8 @@ public class Ingress extends AbstractHandler implements Runnable {
         br = request.getReader();
       }
       
+      long nowms = System.currentTimeMillis();
+      
       //
       // Loop on all lines
       //
@@ -977,6 +1071,11 @@ public class Ingress extends AbstractHandler implements Runnable {
           return;
         }
         
+        // Add labels from the WriteToken if they exist
+        if (writeToken.getLabelsSize() > 0) {
+          metadata.getLabels().putAll(writeToken.getLabels());
+        }
+
         //
         // Force owner/producer
         //
@@ -999,6 +1098,11 @@ public class Ingress extends AbstractHandler implements Runnable {
         metadata.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
         
         try {
+          // We do not take into consideration this activity timestamp in the cache
+          // this way we do not allocate BigIntegers
+          if (activityTracking && metaActivity) {
+            metadata.setLastActivity(nowms);
+          }
           pushMetadataMessage(metadata);
         } catch (Exception e) {
           throw new IOException("Unable to push metadata");
@@ -1033,6 +1137,11 @@ public class Ingress extends AbstractHandler implements Runnable {
       throw new IOException(Constants.API_ENDPOINT_DELETE + " endpoint is not activated.");
     }
     
+    if (null != WarpManager.getAttribute(WarpManager.DELETE_DISABLED)) {
+      response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.DELETE_DISABLED)));
+      return;
+    }
+
     //
     // CORS header
     //
@@ -1051,9 +1160,13 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     try {
       writeToken = Tokens.extractWriteToken(token);
+      if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NODELETE)) {
+        throw new WarpScriptException("Token cannot be used for deletions.");
+      }
     } catch (WarpScriptException ee) {
       throw new IOException(ee);
     }
+    
     
     String application = writeToken.getAppName();
     String producer = Tokens.getUUID(writeToken.getProducerId());
@@ -1092,11 +1205,19 @@ public class Ingress extends AbstractHandler implements Runnable {
       //
       
       Map<String,String> extraLabels = new HashMap<String,String>();
+
+      // Add extra labels, remove producer,owner,app
+      if (writeToken.getLabelsSize() > 0) {
+        extraLabels.putAll(writeToken.getLabels());
+        extraLabels.remove(Constants.PRODUCER_LABEL);
+        extraLabels.remove(Constants.OWNER_LABEL);
+        extraLabels.remove(Constants.APPLICATION_LABEL);
+      }
+
       //
       // Only set owner and potentially app, producer may vary
       //      
       extraLabels.put(Constants.OWNER_LABEL, owner);
-      // FIXME(hbs): remove me
       if (null != application) {
         extraLabels.put(Constants.APPLICATION_LABEL, application);
         sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
@@ -1236,7 +1357,11 @@ public class Ingress extends AbstractHandler implements Runnable {
 
         TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
         
-        try (MetadataIterator iterator = directoryClient.iterator(clsSels, lblsSels)) {
+        DirectoryRequest drequest = new DirectoryRequest();
+        drequest.setClassSelectors(clsSels);
+        drequest.setLabelsSelectors(lblsSels);
+        
+        try (MetadataIterator iterator = directoryClient.iterator(drequest)) {
           while(iterator.hasNext()) {
             Metadata metadata = iterator.next();
           
@@ -1417,7 +1542,12 @@ public class Ingress extends AbstractHandler implements Runnable {
           try { shufflediterator.close(); } catch (Exception e) {}
         }
       } else {
-        try (MetadataIterator iterator = directoryClient.iterator(clsSels, lblsSels)) {
+        
+        DirectoryRequest drequest = new DirectoryRequest();
+        drequest.setClassSelectors(clsSels);
+        drequest.setLabelsSelectors(lblsSels);
+
+        try (MetadataIterator iterator = directoryClient.iterator(drequest)) {
           while(iterator.hasNext()) {
             Metadata metadata = iterator.next();
             
@@ -1549,7 +1679,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     //
     // Compute class/labels Id
     //
-    
+    // 128bits
     metadata.setClassId(GTSHelper.classId(this.classKey, metadata.getName()));
     metadata.setLabelsId(GTSHelper.labelsId(this.labelsKey, metadata.getLabels()));
     
@@ -1661,6 +1791,10 @@ public class Ingress extends AbstractHandler implements Runnable {
       msg.setData(encoder.getBytes());
       msg.setClassId(encoder.getClassId());
       msg.setLabelsId(encoder.getLabelsId());
+
+      if (this.sendMetadataOnStore) {
+        msg.setMetadata(encoder.getMetadata());
+      }
 
       sendDataMessage(msg);
     } else {
@@ -1894,6 +2028,17 @@ public class Ingress extends AbstractHandler implements Runnable {
           }
           
           out.write(raw);
+          
+          if (this.activityTracking) {
+            Long lastActivity = this.metadataCache.get(bi);
+            byte[] bytes;
+            if (null != lastActivity) {
+              bytes = Longs.toByteArray(lastActivity);
+            } else {
+              bytes = new byte[8];
+            }
+            out.write(bytes);
+          }
           count++;
         } catch (ConcurrentModificationException cme) {          
         }
@@ -1927,6 +2072,8 @@ public class Ingress extends AbstractHandler implements Runnable {
       
       int offset = 0;
       
+      // 128 bits
+      int reclen = this.activityTracking ? 24 : 16;
       byte[] raw = new byte[16];
       
       while(true) {
@@ -1936,14 +2083,26 @@ public class Ingress extends AbstractHandler implements Runnable {
 
         int idx = 0;
         
-        while(idx < offset && offset - idx >= 16) {
+        while(idx < offset && offset - idx >= reclen) {
           System.arraycopy(buf, idx, raw, 0, 16);
           BigInteger id = new BigInteger(raw);
-          synchronized(this.metadataCache) {
-            this.metadataCache.put(id, null);
+          if (this.activityTracking) {
+            long lastActivity = 0L;
+              
+            for (int i = 0; i < 8; i++) {
+              lastActivity <<= 8;
+              lastActivity |= ((long) buf[idx + 16 + i]) & 0xFFL;
+            }
+            synchronized(this.metadataCache) {  
+              this.metadataCache.put(id, lastActivity);
+            }
+          } else {
+            synchronized(this.metadataCache) {  
+              this.metadataCache.put(id, null);
+            }
           }
           count++;
-          idx += 16;
+          idx += reclen;
         }
         
         if (idx < offset) {

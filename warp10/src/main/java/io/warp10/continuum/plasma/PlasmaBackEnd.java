@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -581,7 +581,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
               data = CryptoUtils.unwrap(inAESKey, data);
             }
             
-            // Skip data that was not unwrapped successfuly
+            // Skip data that was not unwrapped successfully
             if (null == data) {
               Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_BACKEND_KAFKA_IN_INVALIDCIPHERS, Sensision.EMPTY_LABELS, 1);
               continue;

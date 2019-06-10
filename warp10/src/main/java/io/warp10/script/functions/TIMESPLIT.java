@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ import java.util.Map;
  *
  * TIMESPLIT expects the following parameters on the stack:
  *
- * 3: quiet A quiet period in microsecondes
+ * 3: quiet A quiet period in microseconds
  * 2: minValues A minimum number of values
  * 1: label The name of the label which will hold the sequence
  */

@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -44,18 +44,10 @@ import com.google.common.base.Charsets;
  */
 public class CALL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private static Properties properties;
-  
   private static int maxCapacity;
   
   static {
-    properties = WarpConfig.getProperties();
-    
-    if (null != properties && properties.containsKey(Configuration.WARPSCRIPT_CALL_MAXCAPACITY)) {
-      maxCapacity = Integer.parseInt(properties.getProperty(Configuration.WARPSCRIPT_CALL_MAXCAPACITY));
-    } else {
-      maxCapacity = 1;
-    }
+    maxCapacity = Integer.parseInt(WarpConfig.getProperty(Configuration.WARPSCRIPT_CALL_MAXCAPACITY, "1"));
   }
     
   private static class ProcessPool {
@@ -229,7 +221,7 @@ public class CALL extends NamedWarpScriptFunction implements WarpScriptStackFunc
       return;
     }
     
-    String dir = properties.getProperty(Configuration.WARPSCRIPT_CALL_DIRECTORY);
+    String dir = WarpConfig.getProperty(Configuration.WARPSCRIPT_CALL_DIRECTORY);
     
     if (null == dir) {
       throw new WarpScriptException(getName() + " configuration key '" + Configuration.WARPSCRIPT_CALL_DIRECTORY + "' not set, " + getName() + " disabled.");

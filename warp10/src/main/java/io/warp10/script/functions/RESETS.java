@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ public class RESETS extends NamedWarpScriptFunction implements WarpScriptStackFu
     List<Object> params = top instanceof List ? (List<Object>) top : new ArrayList<Object>();
     
     // If top is a GTS, add it to the newly created empty list
-    if (params.isEmpty()) {
+    if (top instanceof GeoTimeSerie) {
       params.add(top);
     }
     

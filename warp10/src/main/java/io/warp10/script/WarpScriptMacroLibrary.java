@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -94,7 +94,7 @@ public class WarpScriptMacroLibrary {
         
         InputStream in = jar.getInputStream(entry);
 
-        Macro macro = loadMacro(jar, in);
+        Macro macro = loadMacro(jar, in, name);
         
         //
         // Store resulting macro under 'name'
@@ -113,7 +113,7 @@ public class WarpScriptMacroLibrary {
     }    
   }
   
-  public static Macro loadMacro(Object root, InputStream in) throws WarpScriptException {
+  public static Macro loadMacro(Object root, InputStream in, String name) throws WarpScriptException {
     try {
       byte[] buf = new byte[8192];
       StringBuilder sb = new StringBuilder();
@@ -143,6 +143,7 @@ public class WarpScriptMacroLibrary {
       
       MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, new Properties());
       stack.maxLimits();
+      stack.setAttribute(WarpScriptStack.ATTRIBUTE_MACRO_NAME, name);
 
       //
       // Add 'INCLUDE'
@@ -183,6 +184,7 @@ public class WarpScriptMacroLibrary {
       
       Macro macro = (Macro) stack.pop();
       macro.setSecure(true);
+      macro.setName(name);
       
       return macro;
     } catch (IOException ioe) {
@@ -224,7 +226,7 @@ public class WarpScriptMacroLibrary {
             //
             String urlstr = url.toString();
             File root = new File(urlstr.substring(0, urlstr.length() - name.length()  - WarpScriptMacroRepository.WARPSCRIPT_FILE_EXTENSION.length()));
-            macro = loadMacro(root, conn.getInputStream());
+            macro = loadMacro(root, conn.getInputStream(), name);
           }          
         } catch (URISyntaxException use) {
           throw new WarpScriptException("Error while loading '" + name + "'", use);

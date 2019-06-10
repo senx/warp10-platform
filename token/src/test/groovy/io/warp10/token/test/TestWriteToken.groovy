@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -158,8 +158,10 @@ class TestWriteToken extends TokenTestCase {
         String uuid = UUID.randomUUID().toString()
         String writeToken = tokenEncoder.deliverWriteToken("app", uuid, 32478, getKeyStore())
 
-        // corrupt the token (replace a by A)
-        writeToken = writeToken.replace('a', 'b')
+        // corrupt the token (pick a random character and decrement it)
+        char c1 = writeToken.charAt(new Random().nextInt(60))
+        char c2 = c1 - 1
+        writeToken = writeToken.replace(c1, c2)
 
         QuasarTokenFilter tokenFilter = new QuasarTokenFilter(getConfig(), getKeyStore())
 

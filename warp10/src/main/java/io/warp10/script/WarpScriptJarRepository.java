@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -139,17 +139,19 @@ public class WarpScriptJarRepository extends Thread {
             in.close();
             
             String hash = new String(Hex.encode(md.digest()), Charsets.US_ASCII);
-              
-            if (classLoadersFingerprints.containsValue(hash) && !newClassLoadersFingerprints.containsValue(hash)) {
-              // Reuse existing class loader, so we keep the created objets
-              for (Entry<ClassLoader,String> entry: classLoadersFingerprints.entrySet()) {
-                if (entry.getValue().equals(hash)) {
-                  newClassLoadersFingerprints.put(entry.getKey(), entry.getValue());
+
+            if(!newClassLoadersFingerprints.containsValue(hash)) {
+              if (classLoadersFingerprints.containsValue(hash)) {
+                // Reuse existing class loader, so we keep the created objects
+                for (Entry<ClassLoader, String> entry: classLoadersFingerprints.entrySet()) {
+                  if (entry.getValue().equals(hash)) {
+                    newClassLoadersFingerprints.put(entry.getKey(), entry.getValue());
+                  }
                 }
+              } else {
+                ClassLoader parentCL = this.getClass().getClassLoader();
+                newClassLoadersFingerprints.put(new WarpClassLoader(file.getCanonicalPath(), parentCL), hash);
               }
-            } else if (!newClassLoadersFingerprints.containsKey(hash)){
-              ClassLoader parentCL = this.getClass().getClassLoader();
-              newClassLoadersFingerprints.put(new WarpClassLoader(file.getCanonicalPath(), parentCL), hash);
             }
           }  
         } catch (NoSuchAlgorithmException nsae) {
@@ -174,7 +176,7 @@ public class WarpScriptJarRepository extends Thread {
       // Update jar count
       //
       
-      Sensision.set(SensisionConstants.SENSISION_CLASS_EINSTEIN_REPOSITORY_JARS, Sensision.EMPTY_LABELS, classLoadersFingerprints.size());
+      Sensision.set(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_REPOSITORY_JARS, Sensision.EMPTY_LABELS, classLoadersFingerprints.size());
       
       //
       // Sleep a while
@@ -271,7 +273,7 @@ public class WarpScriptJarRepository extends Thread {
   }
     
   /**
-   * Validates an instance of EinsteinJavaFunction by checking that its class loader is still active 
+   * Validates an instance of WarpScriptJavaFunction by checking that its class loader is still active 
    * @param func Instance to check
    * @return
    */

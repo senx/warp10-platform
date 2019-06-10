@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ public class OPTDTW extends NamedWarpScriptFunction implements WarpScriptStackFu
     Object o = stack.pop();
     
     if (!(o instanceof Number)) {
-      throw new WarpScriptException(getName() + " expects a count of best restults to return on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a count of best results to return on top of the stack.");
     }
     
     int count = ((Number) o).intValue();
