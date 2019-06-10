@@ -79,6 +79,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
     GeoTimeSerie gts;
     
     while(decoder.next()) {
+      // We are populating a GTS, so we do not call getBinaryValue
       Object value = decoder.getValue();
       
       String type = "DOUBLE";

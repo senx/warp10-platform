@@ -689,6 +689,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
                 json.put("l", labels);              
                 
                 json.put("t", decoder.getTimestamp());
+                // Requested format is JSON so we do not use getBinaryValue as JSON cannot represent byte arrays
                 json.put("v", decoder.getValue());
                 if (GeoTimeSerie.NO_LOCATION != decoder.getLocation()) {
                   double[] latlon = GeoXPLib.fromGeoXPPoint(decoder.getLocation());

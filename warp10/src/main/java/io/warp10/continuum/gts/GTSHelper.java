@@ -7478,7 +7478,7 @@ public class GTSHelper {
         continue;
       }
       try {
-        clipped.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+        clipped.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
       } catch (IOException ioe) {
         throw new RuntimeException(ioe);
       }

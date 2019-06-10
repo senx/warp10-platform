@@ -150,6 +150,7 @@ public class TUNWRAP extends NamedWarpScriptFunction implements WarpScriptStackF
           
           long location = decoder.getLocation();
           long elevation = decoder.getElevation();
+          // We are populating a GTS, so we do not call getBinaryValue
           Object value = decoder.getValue();
           
           if (value instanceof Long) {

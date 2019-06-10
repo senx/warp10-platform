@@ -35,6 +35,7 @@ import java.util.Map.Entry;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.bouncycastle.crypto.CipherParameters;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.AESWrapEngine;
@@ -764,7 +765,7 @@ public class GTSDecoder {
         
         location = this.getLocation();
         elevation = this.getElevation();
-        value = this.getValue();
+        value = this.getBinaryValue();
         
         dedupped.addValue(timestamp, location, elevation, value);
         continue;
@@ -773,7 +774,7 @@ public class GTSDecoder {
       long newTimestamp = this.getTimestamp();
       long newloc = this.getLocation();
       long newelev = this.getElevation();
-      Object newValue = this.getValue();
+      Object newValue = this.getBinaryValue();
             
       if (location != newloc || elevation != newelev) {
         dup = false;
@@ -793,6 +794,14 @@ public class GTSDecoder {
           }
         } else if (value instanceof Boolean) {
           if (!((Boolean) value).equals(newValue)) {
+            dup = false;
+          }
+        } else if (value instanceof byte[]) {
+          if (newValue instanceof byte[]) {
+            if (0 != Bytes.compareTo((byte[]) value, (byte[]) newValue)) {
+              dup = false;
+            }
+          } else {
             dup = false;
           }
         }

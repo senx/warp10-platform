@@ -496,6 +496,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                 long ts = decoder.getTimestamp();
                 long location = decoder.getLocation();
                 long elevation = decoder.getElevation();
+                // We are populating a GeoTimeSerie instance so we cannot retrieve the binary value
                 Object value = decoder.getValue();
                 
                 int gtsidx = 0;
