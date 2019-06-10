@@ -289,7 +289,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     String typelabel = (String) params.get(PARAM_TYPEATTR);
 
     if (null != typelabel) {
-      bases = new GeoTimeSerie[4];
+      bases = new GeoTimeSerie[5];
     }
     
     ReadToken rtoken = Tokens.extractReadToken(params.get(PARAM_TOKEN).toString());
@@ -496,8 +496,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                 long ts = decoder.getTimestamp();
                 long location = decoder.getLocation();
                 long elevation = decoder.getElevation();
-                // We are populating a GeoTimeSerie instance so we cannot retrieve the binary value
-                Object value = decoder.getValue();
+                Object value = decoder.getBinaryValue();
                 
                 int gtsidx = 0;
                 String typename = "DOUBLE";
@@ -511,6 +510,9 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                 } else if (value instanceof String) {
                   gtsidx = 3;
                   typename = "STRING";
+                } else if (value instanceof byte[]) {
+                  gtsidx = 4;
+                  typename = "BINARY";
                 }
                 
                 base = bases[gtsidx];
