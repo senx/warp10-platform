@@ -693,7 +693,7 @@ public class GTSEncoderTest {
   
   @Test
   public void testParse() throws Exception {
-    String GTS = "0/-90.0:-180.0/0 {} F\r\n=1/-90.0:-180.0/0 1\r\n=2/-90.0:-180.0/0 2.0\r\n=3/-90.0:-180.0/0 '3'\r\n=4/-90.0:-180.0/0 b64:6Q\r\n";
+    String GTS = "0/-90.0:-180.0/0 {} F\r\n=1/-90.0:-180.0/0 1\r\n=2/-90.0:-180.0/0 2.0\r\n=3/-90.0:-180.0/0 '3'\r\n=4/-90.0:-180.0/0 b64:6Q\r\n=5// hex:404142\r\n";
     
     BufferedReader br = new BufferedReader(new StringReader(GTS));
     
@@ -725,6 +725,13 @@ public class GTSEncoderTest {
     decoder.next();
     Assert.assertTrue(decoder.getBinaryValue() instanceof byte[]);
     Assert.assertTrue(decoder.isBinary());
-    Assert.assertArrayEquals("é".getBytes(Charsets.ISO_8859_1), (byte[]) decoder.getBinaryValue());    
+    Assert.assertArrayEquals("é".getBytes(Charsets.ISO_8859_1), (byte[]) decoder.getBinaryValue());
+    Assert.assertEquals("é", decoder.getValue());
+    decoder.next();
+    Assert.assertTrue(decoder.getBinaryValue() instanceof byte[]);
+    Assert.assertTrue(decoder.isBinary());
+    Assert.assertArrayEquals("@AB".getBytes(Charsets.ISO_8859_1), (byte[]) decoder.getBinaryValue());
+    Assert.assertEquals("@AB", decoder.getValue());
+
   }
 }
