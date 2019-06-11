@@ -35,6 +35,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.geoxp.GeoXPLib;
+import com.google.common.base.Charsets;
 
 public class GTSEncoderTest {
   
@@ -612,5 +613,79 @@ public class GTSEncoderTest {
     
     Assert.assertEquals(1.0D, decoder.getTimestamp(), 0.000000000001D);
     Assert.assertEquals("1", decoder.getValue().toString());
+  }
+  
+  @Test
+  public void testBINARY() throws Exception {
+    GTSEncoder encoder = new GTSEncoder(0L);
+    
+    encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "é".getBytes(Charsets.ISO_8859_1));
+    encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "é".getBytes(Charsets.ISO_8859_1));
+    
+    byte[] bytes = encoder.getBytes();
+    Assert.assertEquals(4, bytes.length);
+    
+    encoder.reset(0L);
+    encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "é".getBytes(Charsets.ISO_8859_1));
+
+    bytes = encoder.getBytes();
+    Assert.assertEquals(3, bytes.length);
+    
+    GTSEncoder enc2 = new GTSEncoder(123L);
+    enc2.reset(encoder);
+    
+    bytes = encoder.getBytes();
+    Assert.assertEquals(3, bytes.length);
+
+    GTSDecoder decoder = enc2.getDecoder();
+    
+    Assert.assertTrue(decoder.next());
+    Assert.assertTrue(0L == decoder.getTimestamp());
+    Assert.assertTrue(decoder.getBinaryValue() instanceof byte[]);
+    Assert.assertTrue("é".equals(decoder.getValue()));        
+    
+    encoder = new GTSEncoder(0L);
+    encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "@".getBytes(Charsets.ISO_8859_1));
+    encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "@");
+    encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "@".getBytes(Charsets.ISO_8859_1));
+    
+    bytes = encoder.getBytes();
+    Assert.assertEquals(5, bytes.length);
+    
+    //
+    // Ensure that dedup does not remove artificial duplicates between byte[] and String values
+    //
+    
+    decoder = encoder.getDecoder();
+    decoder = decoder.dedup();
+    decoder.next();
+    encoder = decoder.getEncoder();
+    
+    bytes = encoder.getBytes();
+    Assert.assertEquals(5, bytes.length);    
+  }
+  
+  @Test
+  public void testResetBINARY() throws Exception {
+    GTSEncoder encoder = new GTSEncoder(0L);
+    
+    encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "é".getBytes(Charsets.ISO_8859_1));
+    encoder.addValue(1L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "è".getBytes(Charsets.ISO_8859_1));
+    
+    GTSDecoder decoder = encoder.getDecoder();
+    decoder.next();
+    decoder.next();
+    
+    encoder.reset(decoder.getEncoder());
+    
+    decoder = encoder.getDecoder();
+    
+    decoder.next();
+    
+    Assert.assertEquals(1.0D, decoder.getTimestamp(), 0.000000000001D);
+    Object value = decoder.getBinaryValue();
+    Assert.assertTrue(value instanceof byte[]);    
+    Assert.assertTrue(1 == ((byte[]) value).length);
+    Assert.assertTrue((byte) 0xE8 == ((byte[]) value)[0]);    
   }
 }

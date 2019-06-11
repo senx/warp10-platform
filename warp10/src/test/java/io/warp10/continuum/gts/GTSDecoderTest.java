@@ -30,6 +30,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.geoxp.oss.jarjar.org.bouncycastle.util.encoders.Hex;
+import com.google.common.base.Charsets;
 
 public class GTSDecoderTest {
   
@@ -401,4 +402,29 @@ public class GTSDecoderTest {
     
     Assert.assertEquals(19, encoder.size());    
   }  
+  
+  @Test
+  public void testDecoder_duplicateBinary() throws Exception {
+    GTSEncoder encoder = new GTSEncoder(0L);
+    encoder.addValue(0L, 0L, 0L, "@".getBytes(Charsets.ISO_8859_1));
+    encoder.addValue(0L, 0L, 0L, "@");
+    
+    GTSDecoder decoder = encoder.getDecoder();
+    decoder.next();
+    
+    Assert.assertTrue(decoder.getBinaryValue() instanceof byte[]);
+    Assert.assertTrue(decoder.isBinary());
+    
+    decoder = decoder.duplicate();    
+    Assert.assertTrue(decoder.getBinaryValue() instanceof byte[]);
+    Assert.assertTrue(decoder.isBinary());
+    
+    decoder.next();
+    Assert.assertTrue(decoder.getBinaryValue() instanceof String);
+    Assert.assertFalse(decoder.isBinary());
+    
+    decoder = decoder.duplicate();
+    Assert.assertTrue(decoder.getBinaryValue() instanceof String);
+    Assert.assertFalse(decoder.isBinary());
+  }
 }
