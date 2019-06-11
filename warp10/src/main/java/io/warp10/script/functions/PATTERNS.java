@@ -75,14 +75,14 @@ public class PATTERNS extends NamedWarpScriptFunction implements WarpScriptStack
       for (Object o: (List<Object>) top) {
         if (! (o instanceof GeoTimeSerie)) {
           stack.push(top);
-          throw new WarpScriptException(getName() + " can only operate on geo time serie instances.");
+          throw new WarpScriptException(getName() + " can only operate on Geo Time Series instances.");
         }
         series.add(GTSHelper.bSAX((GeoTimeSerie) o, alphabetSize, wordLen, windowLen, standardizePAA));
       }
       stack.push(series);
     } else {
       stack.push(top);
-      throw new WarpScriptException(getName() + " can only operate on geo time serie instances.");
+      throw new WarpScriptException(getName() + " can only operate on Geo Time Series instances.");
     }
     
     return stack;

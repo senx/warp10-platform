@@ -38,7 +38,7 @@ public class LASTBUCKET extends NamedWarpScriptFunction implements WarpScriptSta
     Object o = stack.pop();
     
     if (!(o instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " expects a Geo Time Serie on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a Geo Time Series on top of the stack.");
     } else {
       if (!GTSHelper.isBucketized((GeoTimeSerie) o)) {
         stack.push(0L);
