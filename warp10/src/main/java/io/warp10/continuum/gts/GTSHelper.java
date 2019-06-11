@@ -10270,4 +10270,8 @@ public class GTSHelper {
   public static double skewness(GeoTimeSerie gts, boolean bessel) throws WarpScriptException {
     return standardizedMoment(3, gts, bessel);
   }
+
+  public static void booleanNot(GeoTimeSerie gts) {
+    gts.booleanValues.flip(0, gts.booleanValues.length());
+  }
 }
