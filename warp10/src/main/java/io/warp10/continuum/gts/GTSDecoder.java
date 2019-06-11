@@ -865,6 +865,7 @@ public class GTSDecoder {
     decoder.lastStringValue = this.lastStringValue;
     decoder.lastBooleanValue = this.lastBooleanValue;
     decoder.lastType = this.lastType;
+    decoder.lastStringBinary = this.lastStringBinary;
 
     return decoder;
   }
