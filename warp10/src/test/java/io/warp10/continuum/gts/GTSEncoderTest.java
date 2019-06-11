@@ -22,7 +22,9 @@ import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.StringReader;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -687,5 +689,42 @@ public class GTSEncoderTest {
     Assert.assertTrue(value instanceof byte[]);    
     Assert.assertTrue(1 == ((byte[]) value).length);
     Assert.assertTrue((byte) 0xE8 == ((byte[]) value)[0]);    
+  }
+  
+  @Test
+  public void testParse() throws Exception {
+    String GTS = "0/-90.0:-180.0/0 {} F\r\n=1/-90.0:-180.0/0 1\r\n=2/-90.0:-180.0/0 2.0\r\n=3/-90.0:-180.0/0 '3'\r\n=4/-90.0:-180.0/0 b64:6Q\r\n";
+    
+    BufferedReader br = new BufferedReader(new StringReader(GTS));
+    
+    GTSEncoder encoder = null;
+    
+    while(true) {
+      String line = br.readLine();
+      
+      if (null == line) {
+        break;
+      }
+      
+      encoder = GTSHelper.parse(encoder, line);
+    }
+    
+    br.close();
+    
+    GTSDecoder decoder = encoder.getDecoder();
+    
+    decoder.next();
+    Assert.assertEquals(false, decoder.getBinaryValue());
+    decoder.next();
+    Assert.assertEquals(1L, decoder.getBinaryValue());
+    decoder.next();
+    Assert.assertTrue(decoder.getBinaryValue() instanceof BigDecimal);
+    Assert.assertEquals(new BigDecimal(2.0D), decoder.getBinaryValue());
+    decoder.next();
+    Assert.assertEquals("3", decoder.getBinaryValue());
+    decoder.next();
+    Assert.assertTrue(decoder.getBinaryValue() instanceof byte[]);
+    Assert.assertTrue(decoder.isBinary());
+    Assert.assertArrayEquals("é".getBytes(Charsets.ISO_8859_1), (byte[]) decoder.getBinaryValue());    
   }
 }
