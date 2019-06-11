@@ -62,7 +62,7 @@ public abstract class GTSStackFunction extends NamedWarpScriptFunction implement
       for (Object o: (List<Object>) top) {
         if (! (o instanceof GeoTimeSerie)) {
           stack.push(top);
-          throw new WarpScriptException(getName() + " can only operate on geo time serie instances.");
+          throw new WarpScriptException(getName() + " can only operate on Geo Time Series instances.");
         }
         results.add(gtsOp(params, (GeoTimeSerie) o));
       }
@@ -70,7 +70,7 @@ public abstract class GTSStackFunction extends NamedWarpScriptFunction implement
       stack.push(results);
     } else {
       stack.push(top);
-      throw new WarpScriptException(getName() + " can only operate on geo time serie instances.");
+      throw new WarpScriptException(getName() + " can only operate on Geo Time Series instances.");
     }
     
     return stack;

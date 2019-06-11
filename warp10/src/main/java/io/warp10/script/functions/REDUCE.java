@@ -59,7 +59,7 @@ public class REDUCE extends NamedWarpScriptFunction implements WarpScriptStackFu
     
     for (int i = 0; i < params.size() - 2; i++) {
       if (!(params.get(i) instanceof List)) {
-        throw new WarpScriptException(getName() + " expects lists of geo time series as first parameter.");
+        throw new WarpScriptException(getName() + " expects lists of Geo Time Series as first parameter.");
       }              
     }
 

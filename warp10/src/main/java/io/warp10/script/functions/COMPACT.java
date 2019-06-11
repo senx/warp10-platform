@@ -48,14 +48,14 @@ public class COMPACT extends NamedWarpScriptFunction implements WarpScriptStackF
       for (Object o: (List<Object>) top) {
         if (! (o instanceof GeoTimeSerie)) {
           stack.push(top);
-          throw new WarpScriptException(getName() + " can only operate on geo time serie instances.");
+          throw new WarpScriptException(getName() + " can only operate on Geo Time Series instances.");
         }
         series.add(GTSHelper.compact((GeoTimeSerie) o, false));
       }
       stack.push(series);
     } else {
       stack.push(top);
-      throw new WarpScriptException(getName() + " can only operate on geo time serie instances.");
+      throw new WarpScriptException(getName() + " can only operate on Geo Time Series instances.");
     }
     
     return stack;
