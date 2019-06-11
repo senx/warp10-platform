@@ -18,43 +18,39 @@ package io.warp10.script.functions;
 
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.script.GTSStackFunction;
+import io.warp10.script.ElementOrListStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Apply timescale to GTS
  * When downscaling timestamps, you may have to run DEDUP
  */
-public class TIMESCALE extends GTSStackFunction {
-  
-  private static final String SCALE = "scale";
-  
+public class TIMESCALE extends ElementOrListStackFunction {
+
   public TIMESCALE(String name) {
     super(name);
   }
 
   @Override
-  protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
+  public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-    
+
     if (!(top instanceof Long) && !(top instanceof Double)) {
       throw new WarpScriptException(getName() + " expects a time scale on top of the stack.");
     }
-    
-    Map<String,Object> params = new HashMap<String,Object>();
-    
-    params.put(SCALE, ((Number) top).doubleValue());
-    
-    return params;
-  }
-  
-  @Override
-  protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
-    double scale = (double) params.get(SCALE);
-    return GTSHelper.timescale(gts, scale);
+
+    final double scale = ((Number) top).doubleValue();
+
+    return new ElementStackFunction() {
+      @Override
+      public Object applyOnElement(Object element) throws WarpScriptException {
+        if (element instanceof GeoTimeSerie) {
+          return GTSHelper.timescale((GeoTimeSerie) element, scale);
+        } else {
+          throw new WarpScriptException(getName() + " expects a Geo Time Series or a list thereof under the scale parameter.");
+        }
+      }
+    };
   }
 }

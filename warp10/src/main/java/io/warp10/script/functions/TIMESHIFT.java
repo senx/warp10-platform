@@ -18,41 +18,38 @@ package io.warp10.script.functions;
 
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.script.GTSStackFunction;
+import io.warp10.script.ElementOrListStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Apply timeshift on GTS instances
  */
-public class TIMESHIFT extends GTSStackFunction {
-  
-  private static final String OFFSET = "offset";
-  
+public class TIMESHIFT extends ElementOrListStackFunction {
+
   public TIMESHIFT(String name) {
     super(name);
-  }  
-  
+  }
+
   @Override
-  protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
+  public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
 
     if (!(top instanceof Long)) {
       throw new WarpScriptException(getName() + " expects a long offset as parameter.");
     }
-    
-    Map<String,Object> params = new HashMap<String, Object>();
-    params.put(OFFSET, (long) top);
-    
-    return params;
-  }
-  
-  @Override
-  protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
-    long offset = (long) params.get(OFFSET);
-    return GTSHelper.timeshift(gts, offset);
+
+    final long offset = (long) top;
+
+    return new ElementStackFunction() {
+      @Override
+      public Object applyOnElement(Object element) throws WarpScriptException {
+        if (element instanceof GeoTimeSerie) {
+          return GTSHelper.timeshift((GeoTimeSerie) element, offset);
+        } else {
+          throw new WarpScriptException(getName() + " expects a Geo Time Series or a list thereof under the offset parameter.");
+        }
+      }
+    };
   }
 }
