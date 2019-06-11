@@ -90,7 +90,7 @@ public class TIMECLIP extends ElementOrListStackFunction {
         } else if (element instanceof GTSEncoder) {
           return GTSHelper.timeclip((GTSEncoder) element, finalStart, end);
         } else {
-          return null;
+          throw new WarpScriptException(getName()+" expects a Geo Time Series, a GTSEncoder or a list thereof under the timeframe definition.");
         }
       }
     };

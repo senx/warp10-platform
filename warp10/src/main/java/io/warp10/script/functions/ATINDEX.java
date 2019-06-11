@@ -51,7 +51,7 @@ public class ATINDEX extends ElementOrListStackFunction {
       @Override
       public Object applyOnElement(Object element) throws WarpScriptException {
         if (!(element instanceof GeoTimeSerie)) {
-          throw new WarpScriptException(getName() + " expects a GTS under the top.");
+          throw new WarpScriptException(getName() + " expects a Geo Time Series instance or a list thereof under the index.");
         }
 
         GeoTimeSerie gts = (GeoTimeSerie) element;

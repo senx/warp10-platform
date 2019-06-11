@@ -35,7 +35,7 @@ public class DEDUP extends ElementOrListStackFunction {
       if (element instanceof GeoTimeSerie) {
         return GTSHelper.dedup((GeoTimeSerie) element);
       } else {
-        throw new WarpScriptException(getName() + " expects to work on Geo Time Series instances.");
+        throw new WarpScriptException(getName() + " expects a Geo Time Series instance or a list thereof under the top.");
       }
     }
   };

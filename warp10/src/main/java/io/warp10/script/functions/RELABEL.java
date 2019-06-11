@@ -59,7 +59,7 @@ public class RELABEL extends ElementOrListStackFunction {
         } else if (element instanceof GTSEncoder) {
           return GTSHelper.relabel((GTSEncoder) element, labels);
         } else {
-          throw new WarpScriptException(getName() + " expects a Geo Time Series or a GTSEncoder or a list thereof under the labels parameter.");
+          throw new WarpScriptException(getName() + " expects a Geo Time Series, a GTSEncoder or a list thereof under the labels parameter.");
         }
       }
     };
