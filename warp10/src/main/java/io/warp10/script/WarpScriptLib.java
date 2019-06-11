@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -205,6 +205,7 @@ import io.warp10.script.mapper.MapperToDouble;
 import io.warp10.script.mapper.MapperToLong;
 import io.warp10.script.mapper.MapperToString;
 import io.warp10.script.mapper.MapperYear;
+import io.warp10.script.mapper.MapperNot;
 import io.warp10.script.mapper.STRICTMAPPER;
 import io.warp10.script.op.OpAND;
 import io.warp10.script.op.OpAdd;
@@ -1479,6 +1480,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new CircularMean.Builder("mapper.mean.circular.exclude-nulls", false));
     addNamedWarpScriptFunction(new MapperMod.Builder("mapper.mod"));
     addNamedWarpScriptFunction(new RMS("mapper.rms", false));
+    addNamedWarpScriptFunction(new MapperNot("mapper.not"));
 
     //
     // Reducers
