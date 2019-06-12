@@ -43,20 +43,39 @@ public class BitwiseOR extends NamedWarpScriptFunction implements WarpScriptStac
     } else if (op1 instanceof GeoTimeSerie && op2 instanceof GeoTimeSerie) {
       GeoTimeSerie gts1 = (GeoTimeSerie) op1;
       GeoTimeSerie gts2 = (GeoTimeSerie) op2;
-      if (GeoTimeSerie.TYPE.BOOLEAN == gts1.getType() && GeoTimeSerie.TYPE.BOOLEAN == gts2.getType()) {
+      if (GeoTimeSerie.TYPE.LONG == gts1.getType() && GeoTimeSerie.TYPE.LONG == gts2.getType()) {
         GeoTimeSerie result = new GeoTimeSerie(Math.max(GTSHelper.nvalues(gts1), GTSHelper.nvalues(gts2)));
-        result.setType(GeoTimeSerie.TYPE.BOOLEAN);
+        result.setType(GeoTimeSerie.TYPE.LONG);
         GTSOpsHelper.GTSBinaryOp op = new GTSOpsHelper.GTSBinaryOp() {
           @Override
           public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-            return ((Boolean) GTSHelper.valueAtIndex(gtsa, idxa)) || ((Boolean) GTSHelper.valueAtIndex(gtsb, idxb));
+            return ((Long) GTSHelper.valueAtIndex(gtsa, idxa)) | ((Long) GTSHelper.valueAtIndex(gtsb, idxb));
           }
         };
         GTSOpsHelper.applyBinaryOp(result, gts1, gts2, op);
         stack.push(result);
       } else {
-        throw new WarpScriptException(getName() + " can only operate on long values or boolean GTS.");
+        throw new WarpScriptException(getName() + " can only operate on long values or long GTS.");
       }
+    } else if (op1 instanceof GeoTimeSerie || op2 instanceof GeoTimeSerie) {
+      GeoTimeSerie gts;
+      Long mask;
+      if (op1 instanceof GeoTimeSerie && op2 instanceof Long) {
+        gts = (GeoTimeSerie)op1;
+        mask = (Long)op2;
+      } else if (op2 instanceof GeoTimeSerie && op1 instanceof Long) {
+        gts = (GeoTimeSerie)op2;
+        mask = (Long)op1;
+      } else {
+        throw new WarpScriptException(getName() + " can only operate two GTS or one GTS and a long value.");
+      }
+      GeoTimeSerie result = gts.cloneEmpty();
+      result.setType(GeoTimeSerie.TYPE.LONG);
+      for (int i = 0; i < GTSHelper.nvalues(gts); i++) {
+        GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i),
+                mask | ((Number)GTSHelper.valueAtIndex(gts,i)).longValue() , false);
+      }
+      stack.push(result);
     } else {
       throw new WarpScriptException(getName() + " can only operate on long values.");
     }
