@@ -37,11 +37,19 @@ public abstract class CondShortCircuit extends NamedWarpScriptFunction implement
 
   protected final boolean triggerValue;
 
+  private GTSOpsHelper.GTSBinaryOp op;
+
   public abstract boolean operator(boolean bool1, boolean bool2);
 
   public CondShortCircuit(String name, boolean triggerValue) {
     super(name);
     this.triggerValue = triggerValue;
+    this.op = new GTSOpsHelper.GTSBinaryOp() {
+      @Override
+      public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+        return operator(((boolean) GTSHelper.valueAtIndex(gtsa, idxa)) , ((boolean) GTSHelper.valueAtIndex(gtsb, idxb)));
+      }
+    };
   }
 
   @Override
@@ -89,13 +97,7 @@ public abstract class CondShortCircuit extends NamedWarpScriptFunction implement
         if (GeoTimeSerie.TYPE.BOOLEAN == gts1.getType() && GeoTimeSerie.TYPE.BOOLEAN == gts2.getType()) {
           GeoTimeSerie result = new GeoTimeSerie(Math.max(GTSHelper.nvalues(gts1), GTSHelper.nvalues(gts2)));
           result.setType(GeoTimeSerie.TYPE.BOOLEAN);
-          GTSOpsHelper.GTSBinaryOp op = new GTSOpsHelper.GTSBinaryOp() {
-            @Override
-            public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-              return operator(((Boolean) GTSHelper.valueAtIndex(gtsa, idxa)), ((Boolean) GTSHelper.valueAtIndex(gtsb, idxb)));
-            }
-          };
-          GTSOpsHelper.applyBinaryOp(result, gts1, gts2, op);
+          GTSOpsHelper.applyBinaryOp(result, gts1, gts2, this.op);
           stack.push(result);
           return stack;
         } else {
