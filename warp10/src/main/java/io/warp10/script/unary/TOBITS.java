@@ -47,7 +47,7 @@ public class TOBITS extends NamedWarpScriptFunction implements WarpScriptStackFu
     Object op = stack.pop();
     
     if (!(op instanceof Number) && !(op instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " operates on a DOUBLE, LONG or Geo Time Serie thereof.");
+      throw new WarpScriptException(getName() + " operates on a DOUBLE, LONG or Geo Time Series thereof.");
     }
     
     if (op instanceof Number) {

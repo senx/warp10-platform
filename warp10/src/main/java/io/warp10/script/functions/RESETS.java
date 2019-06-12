@@ -67,7 +67,7 @@ public class RESETS extends NamedWarpScriptFunction implements WarpScriptStackFu
       } else if (params.get(i) instanceof List) {
         for (Object o: (List) params.get(i)) {
           if (!(o instanceof GeoTimeSerie)) {
-            throw new WarpScriptException(getName() + " expects a list of geo time series as first parameter.");
+            throw new WarpScriptException(getName() + " expects a list of Geo Time Series as first parameter.");
           }
           series.add((GeoTimeSerie) o);
         }      

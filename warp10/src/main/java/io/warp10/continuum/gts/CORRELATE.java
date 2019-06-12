@@ -65,19 +65,19 @@ public class CORRELATE extends NamedWarpScriptFunction {
         for (Object o: (List<Object>) top) {
           if (! (o instanceof GeoTimeSerie)) {
             stack.push(top);
-            throw new WarpScriptException(getName() + " can only operate on geo time serie instances.");
+            throw new WarpScriptException(getName() + " can only operate on Geo Time Series instances.");
           }
           series.add((GeoTimeSerie) o);
         }
       } else {
         stack.push(top);
-        throw new WarpScriptException(getName() + " can only operate on geo time serie instances.");
+        throw new WarpScriptException(getName() + " can only operate on Geo Time Series instances.");
       }
 
       top = stack.pop();
       
       if (!(top instanceof GeoTimeSerie)) {
-        throw new WarpScriptException(getName() + " expects a Geo Time Serie two levels below the top of the stack.");
+        throw new WarpScriptException(getName() + " expects a Geo Time Series two levels below the top of the stack.");
       }
       
       stack.push(correlate.correlate((GeoTimeSerie) top, series, offsets));

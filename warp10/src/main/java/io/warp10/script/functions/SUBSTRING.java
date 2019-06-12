@@ -42,15 +42,19 @@ public class SUBSTRING extends NamedWarpScriptFunction implements WarpScriptStac
     top = stack.pop();
 
     if (top instanceof String) {
-      stack.push(top.toString().substring(n));
+      String str = top.toString();
+      n = GET.computeAndCheckIndex(this, n, str.length());
+      stack.push(str.substring(n));
       return stack;
     } else if (top instanceof byte[]) {
-      stack.push(Arrays.copyOfRange((byte[]) top, n, ((byte[]) top).length));
+      byte[] bytes = (byte[]) top;
+      n = GET.computeAndCheckIndex(this, n, bytes.length);
+      stack.push(Arrays.copyOfRange(bytes, n, bytes.length));
       return stack;
     }
         
     if (!(top instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects a numeric (0 based) start index below the length.");
+      throw new WarpScriptException(getName() + " expects a 0-based start index below the length.");
     }
     
     int idx = ((Number) top).intValue();
@@ -58,9 +62,13 @@ public class SUBSTRING extends NamedWarpScriptFunction implements WarpScriptStac
     top = stack.pop();
     
     if (top instanceof String) {
-      stack.push(top.toString().substring(idx, Math.min(n + idx, top.toString().length())));      
+      String str = top.toString();
+      idx = GET.computeAndCheckIndex(this, idx, str.length());
+      stack.push(top.toString().substring(idx, Math.min(n + idx, str.length())));
     } else if (top instanceof byte[]) {
-      stack.push(Arrays.copyOfRange((byte[]) top, idx, Math.min(n + idx, ((byte[]) top).length)));
+      byte[] bytes = (byte[]) top;
+      idx = GET.computeAndCheckIndex(this, idx, bytes.length);
+      stack.push(Arrays.copyOfRange(bytes, idx, Math.min(n + idx, bytes.length)));
     } else {
       throw new WarpScriptException(getName() + " can only operate on strings or byte arrays.");
     }

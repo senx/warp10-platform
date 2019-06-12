@@ -5619,7 +5619,7 @@ public class GTSHelper {
     //if (function instanceof WarpScriptFilterFunction) {
     //  for (GeoTimeSerie gts: result) {
     //    if (!allgts.contains(gts)) {
-    //      throw new WarpScriptException("Some filtered geo time series were not in the original set.");
+    //      throw new WarpScriptException("Some filtered Geo Time Series were not in the original set.");
     //    }
     //  }      
     //}
@@ -6218,10 +6218,9 @@ public class GTSHelper {
       // bucketized, have the same bucketspan and have congruent lastbucket values
       //
       
-      long endbucket = Long.MIN_VALUE;
-      long startbucket = Long.MAX_VALUE;
       long lastbucket = Long.MIN_VALUE;
-      long bucketspan = 0L;
+      long startbucket = Long.MAX_VALUE;
+      long bucketspan = 0L;      
       
       for (GeoTimeSerie gts: partitionSeries) {
         // One GTS instance is not bucketized, result won't be either
@@ -6246,12 +6245,13 @@ public class GTSHelper {
           bucketspan = 0L;
           break;
         }
+        
         //
         // Update start/end bucket
         //
         
-        if (gts.lastbucket > endbucket) {
-          endbucket = gts.lastbucket;
+        if (gts.lastbucket > lastbucket) {
+          lastbucket = gts.lastbucket;
         }
         if (gts.lastbucket - gts.bucketcount * gts.bucketspan < startbucket) {
           startbucket = gts.lastbucket - gts.bucketcount * gts.bucketspan;
@@ -6266,9 +6266,9 @@ public class GTSHelper {
       int bucketcount = 0;
       
       if (0L != bucketspan) {
-        bucketcount = (int) ((endbucket - startbucket) / bucketspan);
+        bucketcount = (int) ((lastbucket - startbucket) / bucketspan);
       }
-      
+
       //
       // Create target GTS
       //
@@ -7002,7 +7002,7 @@ public class GTSHelper {
   public static GeoTimeSerie bSAX(GeoTimeSerie gts, int alphabetSize, int wordLen, int windowLen, boolean standardizePAA) throws WarpScriptException {
     
     if (!GTSHelper.isBucketized(gts) || (TYPE.DOUBLE != gts.type && TYPE.LONG != gts.type)) {
-      throw new WarpScriptException("Function can only be applied to numeric, bucketized, filled geo time series.");
+      throw new WarpScriptException("Function can only be applied to numeric, bucketized, filled Geo Time Series.");
     }
     
     if (windowLen % wordLen != 0) {
@@ -7141,11 +7141,11 @@ public class GTSHelper {
     //
     
     if (TYPE.LONG != gts.type && TYPE.DOUBLE != gts.type) {
-      throw new WarpScriptException("Can only perform exponential smoothing on numeric geo time series.");
+      throw new WarpScriptException("Can only perform exponential smoothing on numeric Geo Time Series.");
     }
     
     if (gts.values < 2) {
-      throw new WarpScriptException("Can only perform exponential smoothing on geo time series containing at least two values.");
+      throw new WarpScriptException("Can only perform exponential smoothing on Geo Time Series containing at least two values.");
     }
     
     GeoTimeSerie s = new GeoTimeSerie(gts.lastbucket, gts.bucketcount, gts.bucketspan, gts.values);
@@ -7200,11 +7200,11 @@ public class GTSHelper {
     //
     
     if (TYPE.LONG != gts.type && TYPE.DOUBLE != gts.type) {
-      throw new WarpScriptException("Can only perform exponential smoothing on numeric geo time series.");
+      throw new WarpScriptException("Can only perform exponential smoothing on numeric Geo Time Series.");
     }
     
     if (gts.values < 2) {
-      throw new WarpScriptException("Can only perform exponential smoothing on geo time series containing at least two values.");
+      throw new WarpScriptException("Can only perform exponential smoothing on Geo Time Series containing at least two values.");
     }
 
     //

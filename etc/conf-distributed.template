@@ -1042,9 +1042,14 @@ ingress.kafka.metadata.maxsize = 900000
 #ingress.kafka.data.producer.clientid =
 
 //
-// Do we send Metadata in the Kafka message for delete operations?
+// Do we send Metadata in the Kafka message for delete operations? (defaults to false)
 //
 #ingress.delete.metadata.include =
+
+//
+// Do we send Metadata in the Kafka message for store operations? (defaults to false)
+//
+#ingress.store.metadata.include =
 
 //
 // Request timeout when talking to Kafka

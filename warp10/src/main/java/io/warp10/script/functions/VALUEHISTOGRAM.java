@@ -48,14 +48,14 @@ public class VALUEHISTOGRAM extends NamedWarpScriptFunction implements WarpScrip
       for (Object o: (List<Object>) top) {
         if (! (o instanceof GeoTimeSerie)) {
           stack.push(top);
-          throw new WarpScriptException(getName() + " can only operate on geo time serie instances.");
+          throw new WarpScriptException(getName() + " can only operate on Geo Time Series instances.");
         }
         histograms.add(GTSHelper.valueHistogram((GeoTimeSerie) o));
       }
       stack.push(histograms);
     } else {
       stack.push(top);
-      throw new WarpScriptException(getName() + " can only operate on geo time serie instances.");
+      throw new WarpScriptException(getName() + " can only operate on Geo Time Series instances.");
     }
     
     return stack;
