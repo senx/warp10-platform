@@ -6218,10 +6218,9 @@ public class GTSHelper {
       // bucketized, have the same bucketspan and have congruent lastbucket values
       //
       
-      long endbucket = Long.MIN_VALUE;
-      long startbucket = Long.MAX_VALUE;
       long lastbucket = Long.MIN_VALUE;
-      long bucketspan = 0L;
+      long startbucket = Long.MAX_VALUE;
+      long bucketspan = 0L;      
       
       for (GeoTimeSerie gts: partitionSeries) {
         // One GTS instance is not bucketized, result won't be either
@@ -6246,12 +6245,13 @@ public class GTSHelper {
           bucketspan = 0L;
           break;
         }
+        
         //
         // Update start/end bucket
         //
         
-        if (gts.lastbucket > endbucket) {
-          endbucket = gts.lastbucket;
+        if (gts.lastbucket > lastbucket) {
+          lastbucket = gts.lastbucket;
         }
         if (gts.lastbucket - gts.bucketcount * gts.bucketspan < startbucket) {
           startbucket = gts.lastbucket - gts.bucketcount * gts.bucketspan;
@@ -6266,9 +6266,9 @@ public class GTSHelper {
       int bucketcount = 0;
       
       if (0L != bucketspan) {
-        bucketcount = (int) ((endbucket - startbucket) / bucketspan);
+        bucketcount = (int) ((lastbucket - startbucket) / bucketspan);
       }
-      
+
       //
       // Create target GTS
       //
