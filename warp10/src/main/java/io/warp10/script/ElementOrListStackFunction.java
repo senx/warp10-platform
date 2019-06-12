@@ -38,7 +38,7 @@ public abstract class ElementOrListStackFunction extends NamedWarpScriptFunction
    */
   @FunctionalInterface
   public interface ElementStackFunction {
-    Object applyOnElement(Object element) throws WarpScriptException;
+    public Object applyOnElement(Object element) throws WarpScriptException;
   }
 
   /**
