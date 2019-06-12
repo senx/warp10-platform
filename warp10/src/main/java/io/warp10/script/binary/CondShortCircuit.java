@@ -46,7 +46,7 @@ public abstract class CondShortCircuit extends NamedWarpScriptFunction implement
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    String exceptionMessage = getName() + " can only operate on two boolean values, or two GTS, or a GTS and a boolean, or a list of booleans or macros, each macro putting a single boolean on top of the stack.";
+    String exceptionMessage = getName() + " can only operate on two boolean values, or two boolean GTS, or a list of booleans or macros, each macro putting a single boolean on top of the stack.";
 
     Object top = stack.pop();
 
@@ -101,27 +101,6 @@ public abstract class CondShortCircuit extends NamedWarpScriptFunction implement
         } else {
           throw new WarpScriptException(getName() + " can only operate on long values or long GTS.");
         }
-      } else if (op1 instanceof GeoTimeSerie || op2 instanceof GeoTimeSerie) {
-        // logical operator between a boolean GTS value and a constant (might be usefull to set values to true or false)
-        GeoTimeSerie gts;
-        boolean mask;
-        if (op1 instanceof GeoTimeSerie && op2 instanceof Boolean) {
-          gts = (GeoTimeSerie) op1;
-          mask = (boolean) op2;
-        } else if (op2 instanceof GeoTimeSerie && op1 instanceof Boolean) {
-          gts = (GeoTimeSerie) op2;
-          mask = (boolean) op1;
-        } else {
-          throw new WarpScriptException(getName() + " can only operate two GTS or one GTS and a long value.");
-        }
-        GeoTimeSerie result = gts.cloneEmpty();
-        result.setType(GeoTimeSerie.TYPE.BOOLEAN);
-        for (int i = 0; i < GTSHelper.nvalues(gts); i++) {
-          GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i),
-                  operator(mask, (boolean) GTSHelper.valueAtIndex(gts, i)), false);
-        }
-        stack.push(result);
-        return stack;
       } else {
         throw new WarpScriptException(exceptionMessage);
       }
