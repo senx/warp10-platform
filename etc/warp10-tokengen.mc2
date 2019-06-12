@@ -1,0 +1,66 @@
+UUID 'owner' STORE
+'io.warp10.bootstrap' 'application' STORE
+365 100 * d 'ttl' STORE
+
+#
+# Generate read token
+#
+{
+  'type' 'READ'
+  'owner' $owner
+  'application' $application
+  'ttl' $ttl
+}
+{{secret}}
+TOKENGEN
+
+DUP
+'ident' GET 'readIdent' STORE
+'token' GET 'readToken' STORE
+
+#
+# Generate write token
+#
+{
+  'type' 'WRITE'
+  'owner' $owner
+  'producer' $owner
+  'application' $application
+  'ttl' $ttl
+}
+{{secret}}
+TOKENGEN
+
+DUP
+'ident' GET 'writeIdent' STORE
+'token' GET 'writeToken' STORE
+
+
+#
+# Format token to match initial.tokens pattern
+#
+
+{
+  "read" {
+    "token" $readToken
+    "tokenIdent" $readIdent
+    "ttl" $ttl
+    "application" $application
+    "applications" [
+      $application
+    ]
+    "owners" [
+      $owner
+    ]
+    "producer" $owner
+    "producers" []
+  }
+  "write" {
+    "token" $writeToken
+    "tokenIdent" $writeIdent
+    "ttl" $ttl
+    "application" $application
+    "owner" $owner
+    "producer" $owner
+  }
+}

@@ -32,12 +32,12 @@
 
 //
 // Maximum number of classes for which to report detailed stats in 'FINDSTATS'
-// 
+//
 directory.stats.class.maxcardinality = 100
 
 //
 // Maximum number of labels for which to report detailed stats in 'FINDSTATS'
-// 
+//
 directory.stats.labels.maxcardinality = 100
 
 //
@@ -53,47 +53,47 @@ directory.stats.labels.maxcardinality = 100
 //
 // 128 bits key for verifying class names, format is hex:hhhhh...hhhh
 //
-warp.hash.class = @key:128:warp.hash.class@
+warp.hash.class = ${warp.hash.class.secret}
 
 //
 // 128 bits key for verifying labels, format is hex:hhhhh...hhhh
 //
-warp.hash.labels = @key:128:warp.hash.labels@
+warp.hash.labels = ${warp.hash.labels.secret}
 
 //
 // 128 bits key for verifying index names, format is hex:hhhhh...hhhh
 //
-warp.hash.index = @key:128:warp.hash.index@
+warp.hash.index = ${warp.hash.index.secret}
 
 //
 // 128 bits key for verifying tokens, format is hex:hhhhh...hhhh
 //
-warp.hash.token = @key:128:warp.hash.token@
+warp.hash.token = ${warp.hash.token.secret}
 
 //
 // 128 bits key for verifying app names, format is hex:hhhhh...hhhh
 //
-warp.hash.app = @key:128:warp.hash.app@
+warp.hash.app = ${warp.hash.app.secret}
 
 //
 // 256 bits key for protecting tokens, format is hex:hhhh...hhhh
 //
-warp.aes.token = @key:256:warp.aes.token@
+warp.aes.token = ${warp.aes.token.secret}
 
 //
 // 256 bits key to generate secure scripts
 //
-warp.aes.scripts = @key:256:warp.aes.scripts@
+warp.aes.scripts = ${warp.aes.scripts.secret}
 
 //
 // AES key to wrap metasets
 //
-warp.aes.metasets = @key:256:warp.aes.metasets@
+warp.aes.metasets = ${warp.aes.metasets.secret}
 
 //
 // 256 bits key for protecting log messages, format is hex:hhhhh...hhhh
 //
-#warp.aes.logging = @key:256:warp.aes.logging@
+#warp.aes.logging = ${warp.aes.logging.secret}
 
 //
 // OSS Master Key, used to decrypt any 'wrapped:base64' key
@@ -382,6 +382,18 @@ warpscript.call.directory = ${standalone.home}/calls
 #token.secret = ....
 // URLFETCH, MAXURLFETCHCOUNT, MAXURLFETCHSIZE
 #warpscript.extension.urlfetch = io.warp10.script.ext.urlfetch.UrlFetchWarpScriptExtension
+
+// DEVAL
+#warpscript.extension.sharding = io.warp10.script.ext.sharding.ShardingWarpScriptExtension
+// Number of threads in the pool used for querying the shards, defaults to 4
+#sharding.poolsize = 4
+// Maximum number of threads used by a single request, defaults to the poolsize
+#sharding.maxthreadspercall = 2
+// WarpScript code used to process results on the shards prior to returning them, defaults to SNAPSHOT
+#sharding.snapshot = SNAPSHOT
+// Shard endpoints definition, format is sharding.endpoint.NAME.MODULUS:REMAINDER = https://..../api/v0/exec
+#sharding.endpoint.NAME.2:0 = ...
+#sharding.endpoint.NAME.2:1 = ...
 
 //
 // Specific namespace under which to load an extension. The specified namespace will be used as a prefix for all functions of the extension.
@@ -762,6 +774,11 @@ datalog.sync = true
 #datalog.id = datalog-0
 
 //
+// Set to false to disable logging the key used for sharding. This defaults to true when datalog is enabled.
+//
+#datalog.logshardkey = false
+
+//
 // Datalog pre-shared key to protect the DatalogRequest instances. If this AES key is not set, the requests will not be
 // encrypted and could be altered.
 //
@@ -774,8 +791,16 @@ datalog.sync = true
 #datalog.logforwarded = false
 
 //
+// Comma separated list of datalog forwarders. Configuration of each forwarder is done via datalog configuration
+// keys suffixed with '.name' (eg .xxx, .yyy), except for datalog.psk which is common to all forwarders.
+//
+#datalog.forwarders = xxx,yyy
+
+//
 // Directory where datalog files to forward reside. If this property and 'datalog.forwarder.dstdir' are set, then
 // the DatalogForwarder daemon will run.
+// When running multiple datalog forwarders, all their srcdir MUST be on the same device as the 'datalog.dir' directory
+// as hard links are used to make the data available to the forwarders
 //
 #datalog.forwarder.srcdir = ${standalone.home}/datalog
 
@@ -837,6 +862,18 @@ datalog.sync = true
 // Endpoint to use when forwarding datalog DELETE requests.
 //
 #datalog.forwarder.endpoint.delete = http://host:port/api/v0/delete
+
+//
+// Comma separated list of shards to forward, each shard being specified as MODULUS:REMAINDER
+// If no shards are specified, then the shard key is not analyzed
+//
+#datalog.forwarder.shards =
+
+//
+// Number of bits to right shift the shard key. If this is >= 24, then only the class id will be
+// considered for sharding. Defaults to 0
+//
+#datalog.forwarder.shardkey.shift =
 
 //
 // TRL (TOKEN REVOCATION LIST)
