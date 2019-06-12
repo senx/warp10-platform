@@ -57,14 +57,14 @@ public class FFT {
         for (Object o: (List<Object>) top) {
           if (! (o instanceof GeoTimeSerie)) {
             stack.push(top);
-            throw new WarpScriptException("FFT can only operate on geo time serie instances.");
+            throw new WarpScriptException("FFT can only operate on Geo Time Series instances.");
           }
           series.add(fft((GeoTimeSerie) o, this.complex));
         }
         stack.push(series);
       } else {
         stack.push(top);
-        throw new WarpScriptException("FFT can only operate on geo time serie instances.");
+        throw new WarpScriptException("FFT can only operate on Geo Time Series instances.");
       }
       
       return stack;
@@ -79,11 +79,11 @@ public class FFT {
     //
     
     if (TYPE.LONG != gts.type && TYPE.DOUBLE != gts.type) {
-      throw new WarpScriptException("FFT can only be applied to numeric geo time series.");
+      throw new WarpScriptException("FFT can only be applied to numeric Geo Time Series.");
     }
     
     if (!GTSHelper.isBucketized(gts)) {
-      throw new WarpScriptException("FFT can only be applied to bucketized geo time series.");
+      throw new WarpScriptException("FFT can only be applied to bucketized Geo Time Series.");
     }
     
     //

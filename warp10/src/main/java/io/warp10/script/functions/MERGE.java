@@ -63,7 +63,7 @@ public class MERGE extends NamedWarpScriptFunction implements WarpScriptStackFun
           } else if (o instanceof GTSEncoder) {
             encoders.add((GTSEncoder) o);
           } else {
-            throw new WarpScriptException(getName() + " expects a list of geo time series or encoders as first parameter.");
+            throw new WarpScriptException(getName() + " expects a list of Geo Time Series or encoders as first parameter.");
           }
         }      
       }      

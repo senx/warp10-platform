@@ -47,7 +47,7 @@ public class OpSub extends NamedWarpScriptFunction implements WarpScriptNAryFunc
     //
     
     if (2 != values.length) {
-      //throw new WarpScriptException("op.sub can only be applied to two geo time series.");
+      //throw new WarpScriptException("op.sub can only be applied to two Geo Time Series.");
       return new Object[] { tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null };
     }
 
