@@ -35,12 +35,11 @@ public abstract class BitwiseOperation extends NamedWarpScriptFunction implement
     this.op = new GTSOpsHelper.GTSBinaryOp() {
       @Override
       public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-        return operator(((Long) GTSHelper.valueAtIndex(gtsa, idxa)) , ((Long) GTSHelper.valueAtIndex(gtsb, idxb)));
+        return operator(((Number) GTSHelper.valueAtIndex(gtsa, idxa)).longValue(), ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).longValue());
       }
     };
   }
-
-
+  
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     String exceptionMessage = getName() + " can only operate on two long, or two long GTS, or one long GTS and a long.";
