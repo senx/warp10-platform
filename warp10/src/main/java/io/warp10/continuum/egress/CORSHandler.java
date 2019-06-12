@@ -34,14 +34,14 @@ public class CORSHandler extends AbstractHandler {
   
   private static final String headers;
   static {
-    Properties props = WarpConfig.getProperties();
-    
     StringBuilder sb = new StringBuilder();
     
     sb.append(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
+
+    String corsHeadersProp = WarpConfig.getProperty(Configuration.CORS_HEADERS);
         
-    if (props.containsKey(Configuration.CORS_HEADERS)) {
-      String[] hdrs = props.getProperty(Configuration.CORS_HEADERS).split(",");
+    if (null != corsHeadersProp) {
+      String[] hdrs = corsHeadersProp.split(",");
       
       for (String hdr: hdrs) {
         sb.append(",");

@@ -50,7 +50,7 @@ public class OpMask extends NamedWarpScriptFunction implements WarpScriptNAryFun
     Object[] values = (Object[]) args[6];
     
     if (2 != ticks.length || ticks[0] == ticks[1]) {
-      throw new WarpScriptException("op.mask can only be applied to pairs of geo time series, the first one being boolean.");
+      throw new WarpScriptException("op.mask can only be applied to pairs of Geo Time Series, the first one being boolean.");
     }
     
     Object value = null;

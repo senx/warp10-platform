@@ -34,6 +34,7 @@ import java.util.Set;
 
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
+import org.apache.commons.lang3.ArrayUtils;
 
 /**
  * Adds the two operands on top of the stack
@@ -213,8 +214,10 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       }      
 
       stack.push(result);          
+    } else if (op1 instanceof byte[] && op2 instanceof byte[]) {
+      stack.push(ArrayUtils.addAll((byte[])op1,(byte[])op2));
     } else {
-      throw new WarpScriptException(getName() + " can only operate on numeric, string, lists, matrices, vectors, Geo Time Series and macro values.");
+      throw new WarpScriptException(getName() + " can only operate on numeric, string, lists, matrices, vectors, Geo Time Series, byte array and macro values.");
     }
     
     return stack;

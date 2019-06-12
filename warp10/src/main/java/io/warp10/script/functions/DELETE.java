@@ -29,7 +29,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Properties;
 
 /**
  * Delete a set of GTS.
@@ -92,7 +94,7 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
     o = stack.pop();
     
     if (!(o instanceof String)) {
-      throw new WarpScriptException(getName() + " expects a Geo Time Serie selector below the time parameters.");
+      throw new WarpScriptException(getName() + " expects a Geo Time Series selector below the time parameters.");
     }
     
     String selector = o.toString();
@@ -116,10 +118,14 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
     HttpURLConnection conn = null;
 
     try {
-
       if (null == url) {
-        if (WarpConfig.getProperties().containsKey(Configuration.CONFIG_WARPSCRIPT_DELETE_ENDPOINT)) {
-          url = new URL(WarpConfig.getProperties().getProperty(Configuration.CONFIG_WARPSCRIPT_DELETE_ENDPOINT));
+        String url_property = WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_DELETE_ENDPOINT);
+        if (null != url_property) {
+          try {
+            url = new URL(url_property);
+          } catch (MalformedURLException mue) {
+            throw new WarpScriptException(getName() + " configuration parameter '" + Configuration.CONFIG_WARPSCRIPT_DELETE_ENDPOINT + "' does not define a valid URL.");
+          }
         } else {
           throw new WarpScriptException(getName() + " configuration parameter '" + Configuration.CONFIG_WARPSCRIPT_DELETE_ENDPOINT + "' not set.");
         }

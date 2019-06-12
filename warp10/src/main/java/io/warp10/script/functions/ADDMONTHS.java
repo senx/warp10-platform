@@ -69,7 +69,7 @@ public class ADDMONTHS extends NamedWarpScriptFunction implements WarpScriptStac
         tz = "UTC";
       }
 
-      DateTimeZone dtz = DateTimeZone.forID(null == tz ? "UTC" : tz);
+      DateTimeZone dtz = DateTimeZone.forID(tz);
     
       DateTime dt = new DateTime(instant / Constants.TIME_UNITS_PER_MS, dtz);
     

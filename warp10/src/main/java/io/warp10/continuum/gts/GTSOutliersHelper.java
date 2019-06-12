@@ -117,7 +117,7 @@ public class GTSOutliersHelper {
     
     if (!useMedian) {
       madsigma = GTSHelper.musigma(gts, true);
-    } else {;
+    } else {
       madsigma = new double[2];
       madsigma[0] = median(gts);
       madsigma[1] = medianAbsoluteDeviation(gts, madsigma[0]);
@@ -446,13 +446,7 @@ public class GTSOutliersHelper {
   // Consider using methods of the next section instead
   // as piecewise approximation yields better results.
   //
-  
-  // parameters used in STL
-  private static final String PERIOD_PARAM = "PERIOD";
-  private static final String PRECISION_PARAM = "PRECISION";
-  private static final String ROBUSTNESS_PARAM = "ROBUSTNESS";
-  private static final String BANDWIDTH_S_PARAM = "BANDWIDTH_S";
-  
+
   /**
    * Applying STL-ESD test.
    * ESD test is passed on residual of STL decomposition.
@@ -483,18 +477,21 @@ public class GTSOutliersHelper {
     }
     
     // Parameters PERIOD and BANDWIDTH_S must be set    
-    if (null != params.get(PERIOD_PARAM)) {
-      if (buckets_per_period != (int) params.get(PERIOD_PARAM)) {
+    if (null != params.get(STL.PERIOD_PARAM)) {
+      if (buckets_per_period != (int) params.get(STL.PERIOD_PARAM)) {
         throw new WarpScriptException("Incoherence between PERIOD parameter of test and PERIOD parameter of STL");
       }
     } else {
-      params.put(PERIOD_PARAM, buckets_per_period);
+      params.put(STL.PERIOD_PARAM, buckets_per_period);
     }
-    params.put(BANDWIDTH_S_PARAM, Math.min(gts.bucketcount, 7));
-    
-    // FIXME(JCV): do unit test for stl with outer > 0 so it can be changed here
-    params.put(PRECISION_PARAM, 10);
-    params.put(ROBUSTNESS_PARAM, 0);
+    if (null == params.get(STL.BANDWIDTH_S_PARAM)) {
+      params.put(STL.BANDWIDTH_S_PARAM, -1);
+    }
+
+    // per default, use non-robust version of STL since it is faster
+    if (null == params.get(STL.ROBUST_PARAM)) {
+      params.put(STL.ROBUST_PARAM, false);
+    }
     
     // the other parameters of stl are either already present in params, or their default values fixed in STL class are used
     
@@ -581,6 +578,10 @@ public class GTSOutliersHelper {
     if (k >= periods_per_piece * buckets_per_period / 2) {
       throw new WarpScriptException("Upper bound of number of outliers must be less than half of the number of observations per piece");
     }
+
+    if (gts.bucketcount / buckets_per_period < 1) {
+      throw new WarpScriptException("Not enough buckets to make up at least one seasonal period.");
+    }
     
     //
     // SubSerie attributes
@@ -591,6 +592,10 @@ public class GTSOutliersHelper {
     
     // number of pieces
     long pieces = gts.bucketcount / buckets_per_period / periods_per_piece;
+
+    if (0 == pieces) {
+      throw new WarpScriptException("Not enough seasonal periods to make up at least one piece. Please use a lower number of periods per piece.");
+    }
     
     // number of buckets per piece
     int bpp = periods_per_piece * buckets_per_period;
@@ -606,18 +611,22 @@ public class GTSOutliersHelper {
     }
     
     // Parameters PERIOD and BANDWIDTH_S must be set
-    if (null != params.get(PERIOD_PARAM)) {
-      if (buckets_per_period != (int) params.get(PERIOD_PARAM)) {
+    if (null != params.get(STL.PERIOD_PARAM)) {
+      if (buckets_per_period != (int) params.get(STL.PERIOD_PARAM)) {
         throw new WarpScriptException("Incoherence between PERIOD parameter of test and PERIOD parameter of STL");
       }
     } else {
-      params.put(PERIOD_PARAM, buckets_per_period);
+      params.put(STL.PERIOD_PARAM, buckets_per_period);
     }
-    params.put(BANDWIDTH_S_PARAM, periods_per_piece);
-    
-    // FIXME(JCV): do unit test for stl with outer > 0 so it can be changed here
-    params.put(PRECISION_PARAM, 10);
-    params.put(ROBUSTNESS_PARAM, 0);
+
+    if (null == params.get(STL.BANDWIDTH_S_PARAM)) {
+      params.put(STL.BANDWIDTH_S_PARAM, -1);
+    }
+
+    // per default, use non-robust version of STL since it is faster
+    if (null == params.get(STL.ROBUST_PARAM)) {
+      params.put(STL.ROBUST_PARAM, false);
+    }
     
     // the other parameters of stl are either already present in params, or their default values fixed in STL class are used
     
@@ -637,7 +646,7 @@ public class GTSOutliersHelper {
       
       seasonal = ((List<GeoTimeSerie>) stl.doGtsOp(params, subgts)).get(0);
       
-      double m = median(seasonal);
+      double m = median(subgts);
       
       int idx = 0;
       for (int i = 0; i < subgts.values; i++) {
@@ -658,8 +667,8 @@ public class GTSOutliersHelper {
   
   
   /**
-   * Applying Seasonal Entropy Hybrid test
-   * This test is based on piecewise decomposition where trend components are approximated by median and seasonal components by entropy of the cycle sub-series.
+   * Applying Seasonal Entropy Hybrid ESD test
+   * This test is based on piecewise decomposition where trend components are approximated by median and seasonal components are factored by the entropy of the cycle sub-series.
    * An ESD test is passed upon the residuals.
    * 
    * It differs from hybridTest by approximating seasonal component instead of using STL.
@@ -684,6 +693,10 @@ public class GTSOutliersHelper {
     if (k >= periods_per_piece * buckets_per_period / 2) {
       throw new WarpScriptException("Upper bound of number of outliers must be less than half of the number of observations per piece");
     }
+
+    if (gts.bucketcount / buckets_per_period < 1) {
+      throw new WarpScriptException("Not enough buckets to make up at least one seasonal period.");
+    }
     
     //
     // SubSerie attributes
@@ -695,6 +708,10 @@ public class GTSOutliersHelper {
     
     // number of pieces
     long pieces = gts.bucketcount / buckets_per_period / periods_per_piece;
+
+    if (0 == pieces) {
+      throw new WarpScriptException("Not enough seasonal periods to make up at least one piece. Please use a lower number of periods per piece.");
+    }
     
     // number of buckets per piece
     int bpp = periods_per_piece * buckets_per_period;
@@ -728,14 +745,18 @@ public class GTSOutliersHelper {
         
         subsubgts = GTSHelper.subCycleSerie(subgts, stop - v * bs, buckets_per_period, true, subsubgts);
         
-        // compute entropy of absolute modified zscore
-        double[] madsigma = madsigma(subsubgts, true);
-        double median = madsigma[0];
-        double mad = madsigma[1];
+        // compute zscore, then we transform it into a probability before computing the entropy
+        double[] musigma = GTSHelper.musigma(subsubgts, true);
+        double mu = musigma[0];
+        double sigma = musigma[1];
         
         double sum = 0.0D;
         for (int w = 0; w < subsubgts.values; w++) {
-          subsubgts.doubleValues[w] = 0.0D != mad ? Math.abs((subsubgts.doubleValues[w] - median) / mad) : 1.0D;
+          subsubgts.doubleValues[w] = 0.0D != sigma ? Math.abs((subsubgts.doubleValues[w] - mu) / sigma) : 1.0D;
+
+          // we use a variant of softmax to compute probabilities
+          // exp separates too much non-outliers from the mean so we use (exp o sqrt)
+          subsubgts.doubleValues[w] = Math.exp(Math.sqrt(subsubgts.doubleValues[w]));
           sum += subsubgts.doubleValues[w];
         }
         
@@ -755,14 +776,14 @@ public class GTSOutliersHelper {
           entropy = 1.0D;
         }
         
-        // update seasonal
+        // update seasonal. The more the values in the sub sycle series are similar, the more we want to substract the seasonal part.
         for (int w = 0; w < subsubgts.values; w++) {
-          GTSHelper.setValue(seasonal, subsubgts.ticks[w], entropy * subsubgts.doubleValues[w]);
+          GTSHelper.setValue(seasonal, subsubgts.ticks[w], entropy * mu);
         }
       }
       
       GTSHelper.sort(seasonal);
-      double m = median(seasonal);
+      double m = median(subgts);
       
       int idx = 0;
       for (int i = 0; i < subgts.values; i++) {

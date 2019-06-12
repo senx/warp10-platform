@@ -70,7 +70,12 @@ public class WarpFleetMacroRepository {
   };
   
   private static final String ATTRIBUTE_WARPFLEET_REPOS = "warpfleet.repos";
-
+  
+  /**
+   * Stack attribute to disable WarpFleet resolution
+   */
+  public static final String ATTRIBUTE_WARPFLEET_DISABLE = "warpfleet.disable";
+  
   /**
    * Default macro TTL in ms
    */
@@ -96,11 +101,16 @@ public class WarpFleetMacroRepository {
    */
   private static final long DEFAULT_TTL_UNKNOWN = 0L;
 
+  private static final int DEFAULT_READ_TIMEOUT = 10000;
+  private static final int DEFAULT_CONNECT_TIMEOUT = 5000;
+  
   private static long ttl = DEFAULT_TTL;
   private static long minttl = DEFAULT_TTL_MIN;
   private static long maxttl = DEFAULT_TTL_MAX;
   private static long failedTtl = DEFAULT_TTL_FAILED;
   private static long unknownTtl = DEFAULT_TTL_UNKNOWN;
+  private static int readTimeout = DEFAULT_READ_TIMEOUT;
+  private static int connectTimeout = DEFAULT_CONNECT_TIMEOUT;
   
   /**
    * Default list of WarpFleet™ repositories
@@ -121,6 +131,11 @@ public class WarpFleetMacroRepository {
       return null;
     }
 
+    // Do not attempt to fetch macros remotely if the stack was instructed not to
+    if (Boolean.TRUE.equals(callingStack.getAttribute(WarpFleetMacroRepository.ATTRIBUTE_WARPFLEET_DISABLE))) {
+      return null;
+    }
+    
     // Reject names with relative path components in them
     if (name.contains("/../") || name.contains("/./") || name.startsWith("../") || name.startsWith("./")) {
       return null;
@@ -199,6 +214,8 @@ public class WarpFleetMacroRepository {
           
           if (conn instanceof HttpURLConnection) {
             ((HttpURLConnection) conn).setRequestProperty("X-Warp10-Revision", Revision.REVISION);
+            ((HttpURLConnection) conn).setReadTimeout(readTimeout);            
+            ((HttpURLConnection) conn).setConnectTimeout(connectTimeout);
           }
           
           in = conn.getInputStream();
@@ -383,7 +400,9 @@ public class WarpFleetMacroRepository {
     ttl = Long.parseLong(properties.getProperty(Configuration.WARPFLEET_MACROS_TTL, Long.toString(DEFAULT_TTL)));
     failedTtl = Long.parseLong(properties.getProperty(Configuration.WARPFLEET_MACROS_TTL_FAILED, Long.toString(DEFAULT_TTL_FAILED)));
     unknownTtl = Long.parseLong(properties.getProperty(Configuration.WARPFLEET_MACROS_TTL_UNKNOWN, Long.toString(DEFAULT_TTL_UNKNOWN)));
-    
+
+    readTimeout = Integer.parseInt(properties.getProperty(Configuration.WARPFLEET_TIMEOUT_READ, Integer.toString(DEFAULT_READ_TIMEOUT)));
+    connectTimeout = Integer.parseInt(properties.getProperty(Configuration.WARPFLEET_TIMEOUT_CONNECT, Integer.toString(DEFAULT_CONNECT_TIMEOUT)));
     //
     // Extract validation macro
     //

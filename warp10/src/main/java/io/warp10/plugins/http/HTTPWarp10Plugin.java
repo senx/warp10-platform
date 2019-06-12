@@ -16,11 +16,14 @@
 package io.warp10.plugins.http;
 
 import com.google.common.base.Charsets;
+
+import io.warp10.continuum.egress.EgressExecHandler;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.warp.sdk.AbstractWarp10Plugin;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 import org.eclipse.jetty.util.BlockingArrayQueue;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.slf4j.Logger;
@@ -72,6 +75,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
   private static final String CONF_HTTP_MAXTHREADS = "http.maxthreads";
   private static final String CONF_HTTP_IDLE_TIMEOUT = "http.idle.timeout";
   private static final String CONF_HTTP_QUEUESIZE = "http.queuesize";
+  private static final String CONF_HTTP_GZIP = "http.gzip";
 
 
   /**
@@ -114,6 +118,8 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
    */
   private Map<String, Integer> sizes = new HashMap<String, Integer>();
 
+  private boolean gzip = true;
+  
   public HTTPWarp10Plugin() {
     super();
   }
@@ -135,7 +141,18 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
 
     server.addConnector(connector);
 
-    server.setHandler(new WarpScriptHandler(this));
+    WarpScriptHandler handler = new WarpScriptHandler(this);
+
+    if (this.gzip) {
+      GzipHandler gzip = new GzipHandler();
+      gzip.setHandler(handler);
+      gzip.setMinGzipSize(0);
+      gzip.addIncludedMethods("GET","POST");
+      server.setHandler(gzip);
+    } else {
+      server.setHandler(handler);
+    }
+
 
     try {
       server.start();
@@ -207,7 +224,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
           this.macros.remove(uri);
           this.parsePayloads.remove(uri);
           this.prefixes.remove(uri);
-        }
+        }        
       } catch (Throwable t) {
         t.printStackTrace();
       }
@@ -306,6 +323,8 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
       queue = new BlockingArrayQueue<>(Integer.parseInt(properties.getProperty(CONF_HTTP_QUEUESIZE)));
     }
 
+    gzip = !"false".equals(properties.get(CONF_HTTP_GZIP));
+    
     Thread t = new Thread(this);
     t.setDaemon(true);
     t.setName("[Warp 10 HTTP Plugin " + this.dir + "]");
@@ -316,15 +335,21 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
     // Seek longest match
     int prefixLength = 0;
     String foundPrefix = uri; // Return uri if no prefix found
-
+    
+    // Is there an exact match?
+    if (null != this.macros.get(uri)) {
+      return uri;
+    }
+    
     for (String prefix: this.prefixes) {
       // Check if prefix is a prefix of uri (in term of path) and longer than previously found
-      if (uri.startsWith(prefix) && (uri.length() == prefix.length() || '/' == uri.charAt(prefix.length())) && prefix.length() > prefixLength) {
+      if (uri.startsWith(prefix)
+          && (uri.length() == prefix.length() || (prefix.endsWith("/") || '/' == uri.charAt(prefix.length())))
+          && prefix.length() > prefixLength) {
         foundPrefix = prefix;
         prefixLength = prefix.length();
       }
     }
-
     return foundPrefix;
   }
 

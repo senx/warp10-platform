@@ -32,9 +32,7 @@ public class WFGETREPOS extends NamedWarpScriptFunction implements WarpScriptSta
   private static final boolean disabled;
   
   static {
-    Properties props = WarpConfig.getProperties();
-    
-    disabled = "true".equals(props.getProperty(Configuration.WARPFLEET_GETREPOS_DISABLE));
+    disabled = "true".equals(WarpConfig.getProperty(Configuration.WARPFLEET_GETREPOS_DISABLE));
   }
   
   public WFGETREPOS(String name) {

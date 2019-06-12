@@ -32,7 +32,7 @@ fi
 
 #JAVA_HOME=/opt/java8
 #WARP10_HOME=/opt/warp10-@VERSION@
-
+JMX_PORT=1098
 
 # Strongly inspired by gradlew
 # Determine the Java command to use to start the JVM.
@@ -480,6 +480,11 @@ stop() {
   if isStarted; then
     echo "Stop Warp 10..."
     kill $(cat ${PID_FILE})
+    echo "Wait for Warp 10 to stop..."
+    while $(kill -0 $(cat ${PID_FILE}) 2>/dev/null); do
+      sleep 2
+    done
+    echo "Warp 10 stopped..."
     rm -f ${PID_FILE}
   else
     echo "No instance of Warp 10 is currently running"
@@ -558,6 +563,11 @@ case "$1" in
   start)
   start
   ;;
+  jmxstart)
+  JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=${JMX_PORT}"
+  echo "## WARNING: JMX is enabled on port ${JMX_PORT}"
+  start
+  ;;
   stop)
   stop
   ;;
@@ -567,6 +577,13 @@ case "$1" in
   restart)
   stop
   sleep 2
+  start
+  ;;
+  jmxrestart)
+  stop
+  sleep 2
+  JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=${JMX_PORT}"
+  echo "## WARNING: JMX is enabled on port ${JMX_PORT}"
   start
   ;;
   worfcli)
@@ -582,7 +599,7 @@ case "$1" in
   repair
   ;;
   *)
-  echo $"Usage: $0 {bootstrap|start|stop|status|worfcli|worf appName ttl(ms)|snapshot 'snapshot_name'|repair}"
+  echo $"Usage: $0 {bootstrap|start|jmxstart|stop|status|worfcli|worf appName ttl(ms)|snapshot 'snapshot_name'|repair|restart|jmxrestart}"
   exit 2
 esac
 

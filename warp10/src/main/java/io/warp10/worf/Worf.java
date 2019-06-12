@@ -19,11 +19,22 @@ package io.warp10.worf;
 
 import com.google.common.base.Strings;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.net.URLDecoder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,7 +46,7 @@ public class Worf {
       WorfCLI worfCLI = new WorfCLI();
       System.exit(worfCLI.execute(args));
     } catch (Exception exp) {
-      System.err.println("Worf error: " + exp.getMessage() );
+      System.err.println("Worf error: " + exp.getMessage());
       exp.printStackTrace();
       System.exit(-1);
     }
@@ -231,7 +242,11 @@ public class Worf {
 
   private static String getDefaultFilename(String configFile) {
     Path inputConfigurationPath = Paths.get(configFile);
-    String configPath = inputConfigurationPath.getParent().toString();
+    String configPath = ".";
+    Path parent = inputConfigurationPath.getParent();
+    if (null != parent) {
+      configPath = parent.toString();
+    }
     String configFileName = inputConfigurationPath.getFileName().toString();
 
     // configuration filename
@@ -257,7 +272,7 @@ public class Worf {
       // load a properties file
       prop.load(input);
 
-      WorfCLI.consolePrintln("default options loaded from file:" + file, out );
+      WorfCLI.consolePrintln("default options loaded from file:" + file, out);
 
       return prop;
     } catch (IOException ex) {
@@ -284,7 +299,7 @@ public class Worf {
     }
 
     if (Strings.isNullOrEmpty(value)) {
-      throw new WorfException("The option '"+ optionName +"' is missing ");
+      throw new WorfException("The option '" + optionName + "' is missing ");
     }
 
     return value;

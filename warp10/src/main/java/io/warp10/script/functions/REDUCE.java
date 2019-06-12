@@ -59,37 +59,48 @@ public class REDUCE extends NamedWarpScriptFunction implements WarpScriptStackFu
     
     for (int i = 0; i < params.size() - 2; i++) {
       if (!(params.get(i) instanceof List)) {
-        throw new WarpScriptException(getName() + " expects lists of geo time series as first parameter.");
+        throw new WarpScriptException(getName() + " expects lists of Geo Time Series as first parameter.");
       }              
     }
-      
-    if (null != params.get(params.size() - 2) && !(params.get(params.size() - 2) instanceof Collection<?>)) {
-      throw new WarpScriptException(getName() + " expects a list of label names or null as penultimate parameter.");                
+
+    int labelsIndex = params.size() - 2;
+    int reducerIndex = params.size() - 1;
+    boolean overrideTick = false;
+
+    // If Override tick is set, get the value and change labels and reducer indexes
+    if (params.get(params.size() - 1) instanceof Boolean) {
+      labelsIndex--;
+      reducerIndex--;
+      overrideTick = (Boolean) params.get(params.size() - 1);
+    }
+
+    if (null != params.get(labelsIndex) && !(params.get(labelsIndex) instanceof Collection<?>)) {
+      throw new WarpScriptException(getName() + " expects a list of label names or null as parameter number" + labelsIndex + 1 + ".");
     } else {
-      if (null != params.get(params.size() - 2)) {
-        for (Object o: ((Collection<?>) params.get(params.size() - 2))) {
-          if (! (o instanceof String)) {
-            throw new WarpScriptException(getName() + " expects a list of label names as penultimate parameter.");                            
+      if (null != params.get(labelsIndex)) {
+        for (Object o: ((Collection<?>) params.get(labelsIndex))) {
+          if (!(o instanceof String)) {
+            throw new WarpScriptException(getName() + " expects a list of label names as parameter number" + labelsIndex + 1 + ".");
           }
         }        
       }
     }
       
-    if (!(params.get(params.size() - 1) instanceof WarpScriptReducerFunction)) {
-      throw new WarpScriptException(getName() + " expects a function as last parameter.");        
+    if (!(params.get(reducerIndex) instanceof WarpScriptReducerFunction)) {
+      throw new WarpScriptException(getName() + " expects a function as parameter number" + reducerIndex + 1 + ".");
     }
 
     Collection<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
-    Collection<String> bylabels = (Collection<String>) params.get(params.size() - 2);
+    Collection<String> bylabels = (Collection<String>) params.get(labelsIndex);
 
-    for (int i = 0; i < params.size() - 2; i++) {
+    for (int i = 0; i < labelsIndex; i++) {
       series.addAll((Collection<GeoTimeSerie>) params.get(i));
     }    
 
     if (this.flatten) {
-      stack.push(GTSHelper.reduce((WarpScriptReducerFunction) params.get(params.size() - 1), series, bylabels));
+      stack.push(GTSHelper.reduce((WarpScriptReducerFunction) params.get(reducerIndex), series, bylabels, overrideTick));
     } else {
-      stack.push(GTSHelper.reduceUnflattened((WarpScriptReducerFunction) params.get(params.size() - 1), series, bylabels));
+      stack.push(GTSHelper.reduceUnflattened((WarpScriptReducerFunction) params.get(reducerIndex), series, bylabels, overrideTick));
     }
     return stack;
   }

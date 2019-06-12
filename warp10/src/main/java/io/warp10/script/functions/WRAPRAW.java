@@ -40,6 +40,8 @@ public class WRAPRAW  extends GTSStackFunction {
   
   private final boolean opt;
   
+  private final boolean comp;
+  
   public WRAPRAW(String name) {
     this(name, false);
   }
@@ -47,8 +49,14 @@ public class WRAPRAW  extends GTSStackFunction {
   public WRAPRAW(String name, boolean opt) {
     super(name);
     this.opt = opt;
+    this.comp = true;
   }
 
+  public WRAPRAW(String name, boolean opt, boolean comp) {
+    super(name);
+    this.opt = opt;
+    this.comp = comp;
+  }
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     if (!(stack.peek() instanceof GTSEncoder)) {
@@ -60,9 +68,9 @@ public class WRAPRAW  extends GTSStackFunction {
     GTSWrapper wrapper;
     
     if (opt) {
-      wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true, 1.0);
+      wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, this.comp, 1.0);
     } else {
-      wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true);
+      wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, this.comp);
     }
     
     TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
@@ -89,9 +97,9 @@ public class WRAPRAW  extends GTSStackFunction {
     GTSWrapper wrapper;
     
     if (opt) {
-      wrapper = GTSWrapperHelper.fromGTSToGTSWrapper(gts, true, 1.0, true);
+      wrapper = GTSWrapperHelper.fromGTSToGTSWrapper(gts, this.comp, 1.0, true);
     } else {
-      wrapper = GTSWrapperHelper.fromGTSToGTSWrapper(gts, true);
+      wrapper = GTSWrapperHelper.fromGTSToGTSWrapper(gts, this.comp);
     }
     
     TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());

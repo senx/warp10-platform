@@ -36,6 +36,8 @@ public class SensisionWarpScriptExtension extends WarpScriptExtension {
     functions.put("SENSISION.UPDATE", new SENSISIONUPDATE("SENSISION.UPDATE"));
     functions.put("SENSISION.SET", new SENSISIONSET("SENSISION.SET"));
     functions.put("SENSISION.GET", new SENSISIONGET("SENSISION.GET"));
+    functions.put("SENSISION.DUMP", new SENSISIONDUMP("SENSISION.DUMP"));
+    functions.put("SENSISION.DUMPEVENTS", new SENSISIONDUMPEVENTS("SENSISION.DUMPEVENTS"));
   }
   
   @Override

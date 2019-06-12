@@ -33,7 +33,7 @@ public class MACROTTL extends NamedWarpScriptFunction implements WarpScriptStack
   
   public MACROTTL(String name) {
     super(name);
-    hardTTL = Long.parseLong(WarpConfig.getProperties().getProperty(Configuration.REPOSITORY_TTL_HARD, Long.toString(hardTTL)));
+    hardTTL = Long.parseLong(WarpConfig.getProperty(Configuration.REPOSITORY_TTL_HARD, Long.toString(hardTTL)));
   }
   
   @Override

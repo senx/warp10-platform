@@ -455,14 +455,14 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
             GTSDecoder decoder = gtsiter.next();
             
             boolean identical = true;
-            
+
             if (null == lastMetadata || !lastMetadata.equals(decoder.getMetadata())) {
               lastMetadata = decoder.getMetadata();
               identical = false;
               lastCount = 0;
               lastType = TYPE.UNDEFINED;
             }
-                         
+
             GeoTimeSerie gts;
             
             //
@@ -488,7 +488,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               while(decoder.next()) {
                 
                 // If we've read enough data, exit
-                if (identical && timespan < 0 && lastCount + count >= -timespan) {
+                if (timespan < 0 && lastCount + count >= -timespan) {
                   break;
                 }
                 
@@ -557,7 +557,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               lastType = gts.getType();
             }
         
-            if (identical && timespan < 0 && lastCount + GTSHelper.nvalues(gts) > -timespan) {
+            if (timespan < 0 && lastCount + GTSHelper.nvalues(gts) > -timespan) {
               // We would add too many datapoints, we will shrink the GTS.
               // As it it sorted in reverse order of the ticks (since the datapoints are organized
               // this way in HBase), we just need to shrink the GTS.
@@ -956,6 +956,10 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       params.put(PARAM_QUIET_AFTER, ((long) map.get(PARAM_QUIET_AFTER)) / Constants.TIME_UNITS_PER_MS);
     }
 
+    if (map.containsKey(PARAM_SHOWUUID)) {
+      params.put(PARAM_SHOWUUID, map.get(PARAM_SHOWUUID));
+    }
+    
     return params;
   }
 }

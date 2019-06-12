@@ -227,6 +227,10 @@ warpscript.jars.fromclasspath = true
 //
 // Macro Repository
 //
+
+// Secret to use for setting configuration accessible via MACROCONFIG
+#warpscript.macroconfig.secret =
+
 warpscript.repository.directory = ${standalone.home}/macros
 warpscript.repository.refresh = 60000
 
@@ -249,6 +253,12 @@ warpscript.repository.refresh = 60000
 
 // Comma separated list of default WarpFleet™ repositories
 warpfleet.macros.repos = https://warpfleet.senx.io/macros
+
+// Read timeout when fetching macro source code from a repository, in ms. Defaults to 10s.
+#warpfleet.timeout.read =
+
+// Connection timeout when fetching macro source code from a repository, in ms. Defaults to 5s.
+#warpfleet.timeout.connect =
 
 // Configure this property to 'true' to disable the function WF.GETREPOS. This is useful when some of your repo URLs have sensitive information.
 #warpfleet.getrepos.disable = true
@@ -359,6 +369,10 @@ warpscript.call.directory = ${standalone.home}/calls
 #warpscript.extension.rexec = io.warp10.script.ext.rexec.RexecWarpScriptExtension
 // Comma separated list of included and excluded (! prefixed) host patterns
 #warpscript.rexec.endpoint.patterns = .*
+// REXEC connect timeout in ms (default = 0, no timeout)
+#warpscript.rexec.timeout.connect = 0
+// REXEC read timeout in ms (default = 0, no timeout)
+#warpscript.rexec.timeout.read = 0
 // SENSISIONEVENT, SENSISIONGET, SENSISIONSET, SENSISIONUPDATE
 #warpscript.extension.sensision = io.warp10.script.ext.sensision.SensisionWarpScriptExtension
 // MUTEX, SHMLOAD, SHMSTORE
@@ -737,6 +751,12 @@ quantum.host = ${standalone.host}
 #datalog.dir = ${standalone.home}/datalog
 
 //
+// Set datalog.sync to true to force a call to fsync upon closing each datalog file, thus ensuring
+// the file blocks are written to the underlying device. This defaults to false if the property is not set.
+//
+datalog.sync = true
+
+//
 // Unique id for this datalog instance.
 //
 #datalog.id = datalog-0
@@ -955,6 +975,8 @@ runner.minperiod = 1000
 #http.period = 60000
 // Size of the queue to use for the Jetty thread pool. By default no queue is used
 #http.queuesize = 8
+// Set to false to disable support for gzipped responses
+#http.gzip = false
 
 //
 // UDP Plugin

@@ -16,6 +16,7 @@
 
 package io.warp10.standalone;
 
+import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.ThrottlingManager;
@@ -35,11 +36,15 @@ import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.quasar.token.thrift.data.WriteToken;
+import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.math.BigInteger;
@@ -96,6 +101,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
   
   private final String datalogId;
   private final byte[] datalogPSK;
+  private final boolean datalogSync;
   private final File loggingDir;
   
   private final boolean updateActivity;
@@ -195,6 +201,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
           
           File loggingFile = null;   
           PrintWriter loggingWriter = null;
+          FileDescriptor loggingFD = null;
           DatalogRequest dr = null;
           
           try {
@@ -239,6 +246,10 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                   labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
                   Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
 
+                  if (handler.datalogSync) {
+                    loggingWriter.flush();
+                    loggingFD.sync();
+                  }
                   loggingWriter.close();
                   loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
                   loggingFile = null;
@@ -302,7 +313,11 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                 encoded = OrderPreservingBase64.encode(encoded);
                         
                 loggingFile = new File(handler.loggingDir, sb.toString());
-                loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
+                
+                FileOutputStream fos = new FileOutputStream(loggingFile);
+                loggingFD = fos.getFD();
+                OutputStreamWriter osw = new OutputStreamWriter(fos, Charsets.UTF_8);
+                loggingWriter = new PrintWriter(osw);
                 
                 //
                 // Write request
@@ -486,6 +501,10 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
         throw new IOException("Invalid token.");
       }
 
+      if (wtoken.getAttributesSize() > 0 && wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_NOUPDATE)) {
+        throw new IOException("Token cannot be used for updating data.");
+      }
+
       String application = wtoken.getAppName();
       String producer = Tokens.getUUID(wtoken.getProducerId());
       String owner = Tokens.getUUID(wtoken.getOwnerId());
@@ -561,7 +580,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
       loggingDir = null;
       datalogId = null;
     }
-    
+
+    this.datalogSync = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_SYNC));
     if (properties.containsKey(Configuration.DATALOG_PSK)) {
       this.datalogPSK = this.keyStore.decodeKey(properties.getProperty(Configuration.DATALOG_PSK));
     } else {
