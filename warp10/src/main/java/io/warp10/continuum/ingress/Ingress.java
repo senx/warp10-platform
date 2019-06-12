@@ -83,6 +83,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 
+import io.warp10.SSLUtils;
 import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
@@ -318,12 +319,6 @@ public class Ingress extends AbstractHandler implements Runnable {
       this.cacheDumpPath = null;
     }
     
-    int port = Integer.valueOf(props.getProperty(Configuration.INGRESS_PORT));
-    String host = props.getProperty(Configuration.INGRESS_HOST);
-    int acceptors = Integer.valueOf(props.getProperty(Configuration.INGRESS_ACCEPTORS));
-    int selectors = Integer.valueOf(props.getProperty(Configuration.INGRESS_SELECTORS));
-    long idleTimeout = Long.parseLong(props.getProperty(Configuration.INGRESS_IDLE_TIMEOUT));
-    
     if (null != props.getProperty(Configuration.INGRESS_METADATA_CACHE_SIZE)) {
       this.METADATA_CACHE_SIZE = Integer.valueOf(props.getProperty(Configuration.INGRESS_METADATA_CACHE_SIZE));
     }
@@ -526,14 +521,36 @@ public class Ingress extends AbstractHandler implements Runnable {
       queue = new BlockingArrayQueue<Runnable>(queuesize);
     }
     
-    Server server = new Server(new QueuedThreadPool(maxThreads,8, (int) idleTimeout, queue));
-    ServerConnector connector = new ServerConnector(server, acceptors, selectors);
-    connector.setIdleTimeout(idleTimeout);
-    connector.setPort(port);
-    connector.setHost(host);
-    connector.setName("Continuum Ingress");
+    Server server = new Server(new QueuedThreadPool(maxThreads,8, 60000, queue));
     
-    server.setConnectors(new Connector[] { connector });
+    List<Connector> connectors = new ArrayList<Connector>();
+
+    boolean useHttp = null != props.getProperty(Configuration.INGRESS_PORT);
+    boolean useHttps = null != props.getProperty(Configuration.INGRESS_PREFIX + Configuration._SSL_PORT);
+    
+    if (useHttp) {
+      int port = Integer.valueOf(props.getProperty(Configuration.INGRESS_PORT));
+      String host = props.getProperty(Configuration.INGRESS_HOST);
+      int acceptors = Integer.valueOf(props.getProperty(Configuration.INGRESS_ACCEPTORS));
+      int selectors = Integer.valueOf(props.getProperty(Configuration.INGRESS_SELECTORS));
+      long idleTimeout = Long.parseLong(props.getProperty(Configuration.INGRESS_IDLE_TIMEOUT));
+      
+      ServerConnector connector = new ServerConnector(server, acceptors, selectors);
+      connector.setIdleTimeout(idleTimeout);
+      connector.setPort(port);
+      connector.setHost(host);
+      connector.setName("Continuum Ingress HTTP");
+      
+      connectors.add(connector);
+    }
+    
+    if (useHttps) {
+      ServerConnector connector = SSLUtils.getConnector(server, Configuration.INGRESS_PREFIX);
+      connector.setName("Continuum Ingress HTTPS");
+      connectors.add(connector);
+    }
+    
+    server.setConnectors(connectors.toArray(new Connector[0]));
 
     HandlerList handlers = new HandlerList();
     
