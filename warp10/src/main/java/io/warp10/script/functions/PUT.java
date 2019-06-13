@@ -21,11 +21,12 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Pushes a value into a map. Modifies the map on the stack.
+ * Pushes a value into a map or list. Modifies the map or list on the stack.
  */
 public class PUT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
@@ -44,11 +45,26 @@ public class PUT extends NamedWarpScriptFunction implements WarpScriptStackFunct
     if (maporlist instanceof Map) {
       ((Map) maporlist).put(key, value);      
     } else if (maporlist instanceof List) {
-      if (!(key instanceof Number)) {
-        throw new WarpScriptException(getName() + " expects a key which is an integer when operating on a list.");
-      }
+      List list = (List) maporlist;
 
-      ((List) maporlist).set(((Number) key).intValue(), value);      
+      if (key instanceof Number) {
+        list.set(((Number) key).intValue(), value);
+
+      } else if (!(key instanceof List)) {
+        throw new WarpScriptException(getName() + " expects the key to be an integer or a list of integers when operating on a List.");
+
+      } else {
+        for (Object o: (List) key) {
+          if (!(o instanceof Number)) {
+            throw new WarpScriptException(getName() + " expects the key to be an integer or a list of integers when operating on a List.");
+          }
+        }
+
+        List<Number> copyIndices = new ArrayList<>((List<Number>) key);
+        int lastIdx = copyIndices.remove(copyIndices.size() - 1).intValue();
+
+        ((List) GET.recNestedGet(this, list, copyIndices)).set(lastIdx, value);
+      }
     } else {
       throw new WarpScriptException(getName() + " operates on a map or list.");
     }
