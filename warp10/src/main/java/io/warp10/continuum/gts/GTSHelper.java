@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.gts;
 
+import io.warp10.CapacityExtractorOutputStream;
 import io.warp10.DoubleUtils;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.TimeSource;
@@ -7838,6 +7839,179 @@ public class GTSHelper {
     }
 
     return result;
+  }
+
+  public static List<GTSEncoder> chunk(GTSEncoder encoder, long lastchunk, long chunkwidth, long chunkcount, String chunklabel, boolean keepempty, long overlap) throws WarpScriptException {
+
+    if (overlap < 0 || overlap > chunkwidth) {
+      throw new WarpScriptException("Overlap cannot exceed chunk width.");
+    }
+
+    //
+    // Check if 'chunklabel' exists in the GTS labels
+    //
+
+    Metadata metadata = encoder.getMetadata();
+
+    if(metadata.getLabels().containsKey(chunklabel)) {
+      throw new WarpScriptException("Cannot operate on encoders which already have a label named '" + chunklabel + "'");
+    }
+
+    // Order the chunks by descending chunkid
+    TreeMap<Long, GTSEncoder> chunks = new TreeMap<Long,GTSEncoder>(new Comparator<Long>() {
+      @Override
+      public int compare(Long o1, Long o2) {
+        return -o1.compareTo(o2);
+      }
+    });
+
+    // Encoder has 0 values, if lastchunk was 0, return an empty list as we are unable to produce chunks
+    if (0 == encoder.getCount() && 0 == encoder.size() && 0L == lastchunk) {
+      return new ArrayList<GTSEncoder>();
+    }
+
+    //
+    // Set chunkcount to Integer.MAX_VALUE if it's 0
+    //
+
+    boolean zeroChunkCount = false;
+
+    if (0 == chunkcount) {
+      chunkcount = Integer.MAX_VALUE;
+      zeroChunkCount = true;
+    }
+
+    //
+    // Loop on the chunks
+    //
+
+    GTSDecoder decoder = encoder.getUnsafeDecoder(false);
+
+    try {
+      while(decoder.next()) {
+        long timestamp = decoder.getTimestamp();
+
+        // Compute chunkid for the current timestamp (the end timestamp of the chunk timestamp is in)
+
+        long chunkid = 0L;
+
+        // Compute delta from 'lastchunk'
+
+        long delta = timestamp - lastchunk;
+
+        // Compute chunkid
+
+        if (delta < 0) { // timestamp is before 'lastchunk'
+          if (0 != -delta % chunkwidth) {
+            delta += (-delta % chunkwidth);
+          }
+          chunkid = lastchunk + delta;
+        } else if (delta > 0) { // timestamp if after 'lastchunk'
+          if (0 != delta % chunkwidth) {
+            delta = delta - (delta % chunkwidth) + chunkwidth;
+          }
+          chunkid = lastchunk + delta;
+        } else {
+          chunkid = lastchunk;
+        }
+
+        // Add datapoint in the chunk it belongs to
+
+        GTSEncoder chunkencoder = chunks.get(chunkid);
+
+        if (null == chunkencoder) {
+          chunkencoder = new GTSEncoder(0L);
+          chunkencoder.setMetadata(encoder.getMetadata());
+          chunkencoder.getMetadata().putToLabels(chunklabel, Long.toString(chunkid));
+          chunks.put(chunkid, chunkencoder);
+        }
+
+        chunkencoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+
+        // Add datapoint to adjacent chunk if overlap is > 0
+
+        if (overlap > 0) {
+          // Check next chunk
+          if (timestamp >= chunkid + 1 - overlap) {
+            chunkencoder = chunks.get(chunkid + chunkwidth);
+            if (null == chunkencoder) {
+              chunkencoder = new GTSEncoder(0L);
+              chunkencoder.setMetadata(encoder.getMetadata());
+              chunkencoder.getMetadata().putToLabels(chunklabel, Long.toString(chunkid + chunkwidth));
+              chunks.put(chunkid + chunkwidth, chunkencoder);
+            }
+            chunkencoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+          }
+
+          // Check previous chunk
+          if (timestamp <= chunkid - chunkwidth + overlap) {
+            chunkencoder = chunks.get(chunkid - chunkwidth);
+            if (null == chunkencoder) {
+              chunkencoder = new GTSEncoder(0L);
+              chunkencoder.setMetadata(encoder.getMetadata());
+              chunkencoder.getMetadata().putToLabels(chunklabel, Long.toString(chunkid - chunkwidth));
+              chunks.put(chunkid - chunkwidth, chunkencoder);
+            }
+            chunkencoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+          }
+        }
+      }
+    } catch (IOException ioe) {
+      throw new WarpScriptException("Encountered an error while creating chunks.", ioe);
+    }
+
+    ArrayList<GTSEncoder> encoders = new ArrayList<GTSEncoder>();
+
+    // Now retain only the chunks we want according to chunkcount and lastchunk.
+
+    CapacityExtractorOutputStream extractor = new CapacityExtractorOutputStream();
+
+    long lastchunkid = lastchunk;
+    if (0L == lastchunk){
+      lastchunkid = chunks.lastKey();
+    }
+
+    long firstchunkid = chunks.firstKey();
+    if(!zeroChunkCount){
+      firstchunkid = lastchunkid - chunkcount * chunkwidth;
+    }
+
+    for (long chunkid = lastchunkid; chunkid >= firstchunkid; chunkid -= chunkwidth) {
+
+      // Do we have enough chunks?
+      if (!zeroChunkCount && encoders.size() >= chunkcount) {
+        break;
+      }
+
+      GTSEncoder enc = chunks.get(chunkid);
+
+      if (null == enc) {
+        if (keepempty) {
+          enc = new GTSEncoder();
+          enc.setMetadata(encoder.getMetadata());
+          enc.getMetadata().putToLabels(chunklabel, Long.toString(chunkid));
+        } else {
+          continue;
+        }
+      } else {
+        // Shrink encoder if it has more than 10% unused memory
+        try {
+          enc.writeTo(extractor);
+          if (extractor.getCapacity() > 1.1 * enc.size()) {
+            enc.resize(enc.size());
+          }
+        } catch (IOException ioe) {
+          throw new WarpScriptException("Encountered an error while optimizing chunks.", ioe);
+        }
+      }
+
+      encoders.add(enc);
+    }
+
+    // Reverse result list so chunk ids are in ascending order
+    Collections.reverse(encoders);
+
+    return encoders;
   }
   
   public static GeoTimeSerie fuse(Collection<GeoTimeSerie> chunks) throws WarpScriptException {
