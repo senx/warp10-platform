@@ -2366,11 +2366,13 @@ public class GTSHelper {
         }
         
         value = TOQUATERNION.toQuaternion(q[0], q[1], q[2], q[3]);
-      } else if ('G' == valuestr.charAt(0)) {
-        // Value is a GTS, a space separated list of tokens of the form:
+      } else if ('[' == valuestr.charAt(0)) {        
+        
+        // Value is a tensor, a space separated list of tokens of the form enclodes in [ ... ]
         // VALUE
         // TS/VALUE
         // TS/LAT:LON/VALUE
+        // TS//ELEV/VALUE
         // TS/LAT:LON/ELEV/VALUE
         //
         // Elements between two '/' can be empty
@@ -2381,10 +2383,14 @@ public class GTSHelper {
         int idx1 = 0;
         
         while(idx0 < valuestr.length()) {
-          while(idx0 < valuestr.length() && ' ' == valuestr.charAt(idx0)) {
+          while(idx0 < valuestr.length() && (' ' == valuestr.charAt(idx0) || ']' == valuestr.charAt(idx0))) {
             idx0++;
           }
 
+          if (idx0 >= valuestr.length()) {
+            break;
+          }
+          
           // Find end of current token
           int idx2 = idx0 + 1;
           
@@ -2411,9 +2417,28 @@ public class GTSHelper {
           
           if (idx1 == idx2) {
             ts = 0L;
-            val = GTSHelper.parseValue(valuestr.substring(idx0, idx1));
+            // Advance to the closing ']' if the value starts with '['
+            int offset = 0;
+            if ('[' == valuestr.charAt(idx0)) {
+              int closing = idx0 + 1;
+              int opening = 1;
+              while(closing < valuestr.length() && opening > 0) {
+                char lead = valuestr.charAt(closing);
+                if (']' == lead) {
+                  opening--;
+                } else if ('[' == lead) {
+                  opening++;
+                }
+                closing++;
+              }
+              idx1 = closing;
+              idx2 = closing;
+              offset = 1;
+            }
+            
+            val = GTSHelper.parseValue(valuestr.substring(idx0, idx2));
             encoder.addValue(ts, location, elevation, val);
-            idx0 = idx1;
+            idx0 = idx1 + offset;
             continue;
           }
           
@@ -2433,9 +2458,27 @@ public class GTSHelper {
           
           // No second '/', we have TS/VALUE
           if (idx1 == idx2) {
-            val = GTSHelper.parseValue(valuestr.substring(idx0, idx1));
+            // Advance to the closing ']' if the value starts with '['
+            int offset = 0;
+            if ('[' == valuestr.charAt(idx0)) {
+              int closing = idx0 + 1;
+              int opening = 1;
+              while(closing < valuestr.length() && opening > 0) {
+                char lead = valuestr.charAt(closing);
+                if (']' == lead) {
+                  opening--;
+                } else if ('[' == lead) {
+                  opening++;
+                }
+                closing++;
+              }
+              idx1 = closing;
+              idx2 = closing;
+              offset = 1;
+            }
+            val = GTSHelper.parseValue(valuestr.substring(idx0, idx2));
             encoder.addValue(ts, location, elevation, val);
-            idx0 = idx1;
+            idx0 = idx1 + offset;
             continue;
           }
           
@@ -2472,9 +2515,27 @@ public class GTSHelper {
           
           // No '/', we have TS/LAT:LON/VALUE
           if (idx3 == idx2) {
+            // Advance to the closing ']' if the value starts with '['
+            int offset = 0;
+            if ('[' == valuestr.charAt(idx0)) {
+              int closing = idx0 + 1;
+              int opening = 1;
+              while(closing < valuestr.length() && opening > 0) {
+                char lead = valuestr.charAt(closing);
+                if (']' == lead) {
+                  opening--;
+                } else if ('[' == lead) {
+                  opening++;
+                }
+                closing++;
+              }
+              idx3 = closing;
+              idx2 = closing;
+              offset = 1;
+            }
             val = GTSHelper.parseValue(valuestr.substring(idx0, idx2));
             encoder.addValue(ts, location, elevation, val);
-            idx0 = idx2;
+            idx0 = idx3 + offset;
             continue;
           }
           
@@ -2483,15 +2544,32 @@ public class GTSHelper {
             elevation = Long.parseLong(valuestr.substring(idx0, idx3));
           }
           
-          // Extract value
-          val = GTSHelper.parseValue(valuestr.substring(idx3 + 1, idx2));
-          
+          // Advance to the closing ']' if the value starts with '['
+          int offset = 0;
+          if ('[' == valuestr.charAt(idx3 + 1)) {
+            int closing = idx3 + 2;
+            int opening = 1;
+            while(closing < valuestr.length() && opening > 0) {
+              char lead = valuestr.charAt(closing);
+              if (']' == lead) {
+                opening--;
+              } else if ('[' == lead) {
+                opening++;
+              }
+              closing++;
+            }
+            idx2 = closing;
+            offset = 1;
+          }
+
+          val = GTSHelper.parseValue(valuestr.substring(idx3 + 1, idx2));          
           encoder.addValue(ts, location, elevation, val);
           
-          idx0 = idx2;
+          idx0 = idx2 + offset;
         }
         
         // Wrap GTSEncoder and encode result
+        // Wait for the binary support to generate a raw byte array as value
         GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true);
         
         TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
@@ -2525,7 +2603,9 @@ public class GTSHelper {
         }
       }      
     } catch (Exception e) {
-      throw new ParseException(valuestr, 0);
+      ParseException pe = new ParseException(valuestr, 0);
+      pe.initCause(e);
+      throw pe;
     }
     
     return value;
