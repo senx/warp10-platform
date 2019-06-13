@@ -839,12 +839,6 @@ datalog.sync = true
 #datalog.forwarder.endpoint.delete = http://host:port/api/v0/delete
 
 //
-// Comma separated list of shards to forward, each shard being specified as MODULUS:REMAINDER
-// If no shards are specified, then the shard key is not analyzed
-//
-#datalog.forwarder.shards =
-
-//
 // TRL (TOKEN REVOCATION LIST)
 //
 /////////////////////////////////////////////////////////////////////////////////////////
