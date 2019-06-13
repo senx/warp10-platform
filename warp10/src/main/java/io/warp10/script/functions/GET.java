@@ -68,19 +68,19 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
       }
 
     } else if (coll instanceof byte[]) {
-      throw new WarpScriptException(getName() + " expects the key to be an long when operating on a byte array.");
+      throw new WarpScriptException(getName() + " expects the key to be an integer when operating on a byte array.");
 
     } else if (!(key instanceof List)) {
-      throw new WarpScriptException(getName() + " expects the key to be an long or a List of long when operating on a List.");
+      throw new WarpScriptException(getName() + " expects the key to be an integer or a list of integers when operating on a List.");
 
     } else {
       for (Object o: (List) key) {
         if (!(o instanceof Number)) {
-          throw new WarpScriptException(getName() + " expects the key to be an long or a List of long when operating on a List.");
+          throw new WarpScriptException(getName() + " expects the key to be an integer or a list of integers when operating on a List.");
         }
       }
 
-      value = recNestedGet((List) coll, (List<Long>) key);
+      value = recNestedGet(this, (List) coll, (List<Number>) key);
     }
     
     stack.push(value);
@@ -101,20 +101,20 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
     return index;
   }
 
-  private Object recNestedGet(List nestedList, List<Long> indexList) throws WarpScriptException {
-    List<Long> copyIndices = new ArrayList<>(indexList);
+  static Object recNestedGet(NamedWarpScriptFunction func, List nestedList, List<Number> indexList) throws WarpScriptException {
+    List<Number> copyIndices = new ArrayList<>(indexList);
 
-    int idx = computeAndCheckIndex(this, copyIndices.remove(0).intValue(), nestedList.size());
+    int idx = computeAndCheckIndex(func, copyIndices.remove(0).intValue(), nestedList.size());
 
     if (0 == copyIndices.size()) {
       return nestedList.get(idx);
 
     } else {
       if (nestedList.get(idx) instanceof List) {
-        return recNestedGet((List) nestedList.get(idx), copyIndices);
+        return recNestedGet(func, (List) nestedList.get(idx), copyIndices);
 
       } else {
-        throw new WarpScriptException(getName() + " tried to get an element at a nested path that does not exist in the input list.");
+        throw new WarpScriptException(func.getName() + " tried to get an element at a nested path that does not exist in the input list.");
       }
     }
   }
