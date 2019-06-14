@@ -32,7 +32,7 @@ public class PERMUTE extends FormattedWarpScriptFunction {
 
     args = new ArgumentsBuilder()
       .addArgument(List.class, TENSOR, "The nested LIST for which dimensions will be permuted as if it were a tensor.")
-      .addArgument(List.class, PATTERN, "The permutation pattern (a LIST of LONG).")
+      .addListArgument(Long.class, PATTERN, "The permutation pattern (a LIST of LONG).")
       .addOptionalArgument(Boolean.class, FAST, "If True, it does not check if the sizes of the nested lists are coherent before operating. Default to False.", false)
       .build();
 
@@ -48,12 +48,6 @@ public class PERMUTE extends FormattedWarpScriptFunction {
     List<Object> tensor = (List) formattedArgs.get(TENSOR);
     pattern = (List) formattedArgs.get(PATTERN);
     boolean fast = ((Boolean) formattedArgs.get(FAST)).booleanValue();
-
-    for (Object el : pattern) {
-      if (!(el instanceof Long)) {
-        throw new WarpScriptException(getName() + " expects the pattern argument to be a list of LONG.");
-      }
-    }
 
     List<Long> shape = SHAPE.candidate_shape(tensor);
 
