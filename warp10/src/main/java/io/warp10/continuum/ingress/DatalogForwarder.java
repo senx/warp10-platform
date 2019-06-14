@@ -583,7 +583,7 @@ public class DatalogForwarder extends Thread {
       LOG.info("Initializing datalog forwarder.");
     }
     
-    this.rootdir = new File(properties.getProperty(Configuration.DATALOG_FORWARDER_SRCDIR + suffix)).toPath();
+    this.rootdir = new File(properties.getProperty(Configuration.DATALOG_FORWARDER_SRCDIR + suffix)).toPath().toRealPath();
     
     if (!this.rootdir.toFile().isDirectory()) {
       throw new RuntimeException("Invalid datalog forwarder source directory '" + this.rootdir + "'.");
