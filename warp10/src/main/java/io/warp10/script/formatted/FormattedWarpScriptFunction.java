@@ -71,8 +71,28 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       return this;
     }
 
+    public ArgumentsBuilder addListArgument(Class<?> subClazz, String name, String doc) {
+      args.add(new ListSpecification(subClazz, name, doc));
+      return this;
+    }
+
+    public ArgumentsBuilder addMapArgument(Class<?> keyClass, Class<?> valueClass, String name, String doc) {
+      args.add(new MapSpecification(keyClass, valueClass, name, doc));
+      return this;
+    }
+
     public ArgumentsBuilder addOptionalArgument(Class<?> clazz, String name, String doc, Object defaultValue) {
       optArgs.add(new ArgumentSpecification(clazz, name, defaultValue, doc));
+      return this;
+    }
+
+    public ArgumentsBuilder addOptionalListArgument(Class<?> subClazz, String name, String doc, Object defaultValue) {
+      optArgs.add(new ListSpecification(subClazz, name, defaultValue, doc));
+      return this;
+    }
+
+    public ArgumentsBuilder addOptionalMapArgument(Class<?> keyClass, Class<?> valueClass, String name, String doc, Object defaultValue) {
+      args.add(new MapSpecification(keyClass, valueClass, name, defaultValue, doc));
       return this;
     }
 
