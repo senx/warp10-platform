@@ -44,7 +44,7 @@ public class CHECKSHAPE extends FormattedWarpScriptFunction {
       .build();
 
     output = new ArgumentsBuilder()
-      .addArgument(Boolean.class, RES, "True or False.")
+      .addListArgument(Long.class, RES, "True or False.")
       .build();
   }
 
