@@ -22,9 +22,9 @@ public class MapSpecification extends ArgumentSpecification {
 
   private Class<?> classOfKey;
   private Class<?> classOfValue;
-  
+
   public Class<?> getClassOfKey() { return classOfKey; }
-  public Class<?> getclassOfValue() { return classOfValue; }
+  public Class<?> getClassOfValue() { return classOfValue; }
 
   public MapSpecification(Class classOfKey, Class classOfValue, String name, Object default_value, String doc) {
     super(Map.class, name, default_value, doc);
