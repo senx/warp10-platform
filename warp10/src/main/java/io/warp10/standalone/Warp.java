@@ -16,8 +16,10 @@
 
 package io.warp10.standalone;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
@@ -363,11 +365,17 @@ public class Warp extends WarpDist implements Runnable {
       
       Set<Path> srcDirs = new HashSet<Path>();
       
+      Path datalogdir = new File(properties.getProperty(Configuration.DATALOG_DIR)).toPath().toRealPath();
+      
       for (String name: names) {
         DatalogForwarder forwarder = new DatalogForwarder(name, keystore, properties);
         
-        Path root = forwarder.getRootDir();
+        Path root = forwarder.getRootDir().toRealPath();
         
+        if (datalogdir.equals(root)) {
+          throw new RuntimeException("Datalog directory '" + datalogdir + "' cannot be used as a forwarder source.");
+        }
+      
         if (!srcDirs.add(root)) {
           throw new RuntimeException("Duplicate datalog source directory '" + root + "'.");
         }
