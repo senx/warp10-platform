@@ -17,7 +17,7 @@
 package io.warp10.script.functions;
 
 /**
- * Decode a String in binary
+ * Decode a binary representation as a String to a byte array.
  */
 public class BINTO extends BINTOx {
 
@@ -27,16 +27,20 @@ public class BINTO extends BINTOx {
 
   @Override
   public Object initData(int numberOfBits) {
+    // 1 byte for 8 bits.
+    // Structure is an array of byte which will be returned at the end, without any transformation.
     return new byte[numberOfBits / 8];
   }
 
   @Override
   public void updateData(Object data, int byteIndex, byte currentByte) {
+    // Put the decoded byte in the byte array, at the given byte index.
     ((byte[]) data)[byteIndex] = currentByte;
   }
 
   @Override
   public Object generateResult(Object data) {
+    // The result is simply the data structure.
     return data;
   }
 

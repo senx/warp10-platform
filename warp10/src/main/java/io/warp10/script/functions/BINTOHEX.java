@@ -17,7 +17,7 @@
 package io.warp10.script.functions;
 
 /**
- * Decode a String in binary and immediately encode it as hexadecimal
+ * Decode a binary representation as a String and convert it to an hexadecimal representation as a String.
  */
 public class BINTOHEX extends BINTOx {
 
@@ -29,17 +29,21 @@ public class BINTOHEX extends BINTOx {
 
   @Override
   public Object initData(int numberOfBits) {
+    // 2 characters for each byte, so 1 character for 4 bits.
+    // Structure is an array of chars which will be converted to a String at the end.
     return new char[numberOfBits / 4];
   }
 
   @Override
   public void updateData(Object data, int byteIndex, byte currentByte) {
-    ((char[]) data)[byteIndex * 2] = hexArray[(currentByte & 0xF0) >>> 4];
-    ((char[]) data)[byteIndex * 2 + 1] = hexArray[currentByte & 0x0F];
+    // Bit-mask the first 4 bits and the last 4 bits and find the corresponding character in hexArray.
+    ((char[]) data)[byteIndex * 2] = hexArray[(currentByte & 0xF0) >>> 4]; // first 4 bits, & 0xF0 is necessary
+    ((char[]) data)[byteIndex * 2 + 1] = hexArray[currentByte & 0x0F]; // last 4 bits
   }
 
   @Override
   public Object generateResult(Object data) {
+    // Convert the char array to a String.
     return new String((char[]) data);
   }
 
