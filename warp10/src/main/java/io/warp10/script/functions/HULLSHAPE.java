@@ -44,7 +44,7 @@ public class HULLSHAPE extends FormattedWarpScriptFunction {
       .build();
 
     output = new ArgumentsBuilder()
-      .addArgument(List.class, SHAPE, "The hull shape of the input list.")
+      .addListArgument(Long.class, SHAPE, "The hull shape of the input list.")
       .build();
   }
 

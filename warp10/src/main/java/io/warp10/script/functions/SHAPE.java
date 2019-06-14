@@ -46,7 +46,7 @@ public class SHAPE extends FormattedWarpScriptFunction {
       .build();
 
     output = new ArgumentsBuilder()
-      .addArgument(List.class, SHAPE, "The shape of the input list.")
+      .addListArgument(Long.class, SHAPE, "The shape of the input list.")
       .build();
   }
 
