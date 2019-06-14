@@ -27,6 +27,7 @@ import io.warp10.script.formatted.FormattedWarpScriptFunction;
 public class SHAPE extends FormattedWarpScriptFunction {
 
   public static final String LIST = "list";
+  public static final String FAST = "fast";
   public static final String SHAPE = "shape";
 
   private final Arguments args;
@@ -41,6 +42,7 @@ public class SHAPE extends FormattedWarpScriptFunction {
 
     args = new ArgumentsBuilder()
       .addArgument(List.class, LIST, "The input list.")
+      .addOptionalArgument(Boolean.class, FAST, "If True, it does not check if the sizes of the nested lists are coherent and it returns a shape based on the first nested lists at each level. Default to False.", false)
       .build();
 
     output = new ArgumentsBuilder()
@@ -51,11 +53,14 @@ public class SHAPE extends FormattedWarpScriptFunction {
   @Override
   protected WarpScriptStack apply(Map<String, Object> formattedArgs, WarpScriptStack stack) throws WarpScriptException {
     List list = (List) formattedArgs.get(LIST);
+    boolean fast = ((Boolean) formattedArgs.get(FAST)).booleanValue();
+
     List<Long> candidateShape = candidate_shape(list);
-    if (CHECKSHAPE.recValidateShape(list, candidateShape)) {
+
+    if (fast || CHECKSHAPE.recValidateShape(list, candidateShape)) {
       stack.push(candidateShape);
     } else {
-      throw new WarpScriptException(getName() + " expects that the sizes of the nested lists of the input list are coherent together to form a tensor (or multidimensional array).");
+      throw new WarpScriptException(getName() + " expects that the sizes of the nested lists are coherent together to form a tensor (or multidimensional array).");
     }
     return stack;
   }
