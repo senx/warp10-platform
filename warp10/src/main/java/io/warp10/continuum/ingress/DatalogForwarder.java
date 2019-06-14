@@ -769,6 +769,11 @@ public class DatalogForwarder extends Thread {
         try {
           BufferedReader br = new BufferedReader(new FileReader(action.file));
           encoded = br.readLine();
+          
+          if ('#' == encoded.charAt(0)) {
+            encoded = encoded.substring(1);
+          }
+          
           br.close();          
         } catch (IOException ioe) {
           LOG.error("Error while reading Datalog Request", ioe);
@@ -778,11 +783,7 @@ public class DatalogForwarder extends Thread {
         byte[] bytes = encoded.getBytes(Charsets.US_ASCII);
         byte[] data = null;
 
-        if ('#' == encoded.charAt(0)) {
-          data = OrderPreservingBase64.decode(bytes, 1, bytes.length - 1);          
-        } else {
-          data = OrderPreservingBase64.decode(bytes);          
-        }
+        data = OrderPreservingBase64.decode(bytes);          
                 
         if (null != this.datalogPSK) {
           data = CryptoUtils.unwrap(this.datalogPSK, data);
