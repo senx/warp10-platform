@@ -268,7 +268,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                       throw new RuntimeException("Encountered an error while attempting to link " + loggingFile + " to " + srcDir);
                     }
                   }
-                  loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+                  //loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+                  loggingFile.delete();
                   loggingFile = null;
                   loggingWriter = null;
                 }
@@ -481,7 +482,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                   throw new RuntimeException("Encountered an error while attempting to link " + loggingFile + " to " + srcDir);
                 }
               }
-              loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+              //loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+              loggingFile.delete();
               loggingFile = null;
               loggingWriter = null;
             }

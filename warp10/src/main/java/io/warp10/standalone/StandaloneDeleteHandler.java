@@ -604,10 +604,9 @@ public class StandaloneDeleteHandler extends AbstractHandler {
               throw new RuntimeException("Encountered an error while attempting to link " + loggingFile + " to " + srcDir);
             }
           }
-          loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
-        } else {
-          loggingFile.delete();
+          //loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
         }
+        loggingFile.delete();
       }      
 
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_REQUESTS, sensisionLabels, 1);

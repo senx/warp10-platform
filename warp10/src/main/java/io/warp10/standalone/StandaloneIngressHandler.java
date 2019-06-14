@@ -685,7 +685,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
               throw new RuntimeException("Encountered an error while attempting to link " + loggingFile + " to " + srcDir);
             }
           }
-          loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+          //loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+          loggingFile.delete();
         }
 
         //
@@ -968,7 +969,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
               throw new RuntimeException("Encountered an error while attempting to link " + loggingFile + " to " + srcDir);
             }
           }
-          loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+          //loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+          loggingFile.delete();
         }
         this.directoryClient.register(null);
       }
