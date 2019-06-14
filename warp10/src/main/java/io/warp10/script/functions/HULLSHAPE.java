@@ -64,11 +64,9 @@ public class HULLSHAPE extends FormattedWarpScriptFunction {
     }
 
     List<Long> res = new ArrayList<>(taller.size());
-    Long x, y;
-
     while (smaller.size() > 0) {
-      x = smaller.remove(0);
-      y = taller.remove(0);
+      Long x = smaller.remove(0);
+      Long y = taller.remove(0);
       res.add(x > y ? x : y);
     }
 
