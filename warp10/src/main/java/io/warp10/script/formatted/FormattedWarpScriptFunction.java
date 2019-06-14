@@ -302,6 +302,9 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       for (ArgumentSpecification arg: both) {
 
         Object candidate = map.get(arg.getName());
+        if (null == candidate) {
+          continue;
+        }
 
         //
         // Check lists sub types

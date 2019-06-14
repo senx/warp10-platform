@@ -24,6 +24,7 @@ import org.junit.Test;
 
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -49,6 +50,7 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
       .addArgument(Long.class, "2nd arg","A LONG.")
       .addArgument(Double.class, "3rd arg","A DOUBLE.")
       .addOptionalArgument(String.class, "1st opt arg", "A STRING.", "The default value.")
+      .addOptionalListArgument(Long.class, "2nd opt arg", "A LIST of LONG.", Arrays.asList(1L))
       .build();
 
     //
@@ -70,8 +72,9 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
     test1.append("$res '1st arg' GET TYPEOF 'GTS' == ASSERT" + System.lineSeparator());
     test1.append("$res '2nd arg' GET 3 == ASSERT" + System.lineSeparator());
     test1.append("$res '3rd arg' GET 0.5 == ASSERT" + System.lineSeparator());
-    test1.append("$res SIZE 4 == ASSERT" + System.lineSeparator());
-    test1.append("$res '1st opt arg' GET 'The default value.' == ASSERT");
+    test1.append("$res SIZE 5 == ASSERT" + System.lineSeparator());
+    test1.append("$res '1st opt arg' GET 'The default value.' == ASSERT" + System.lineSeparator());
+    test1.append("$res '2nd opt arg' GET LIST-> 1 == ASSERT 1 == ASSERT" + System.lineSeparator());
     unitTests.add(test1.toString());
 
     // test map arguments
@@ -80,7 +83,7 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
     test2.append("$res '1st arg' GET TYPEOF 'GTS' == ASSERT" + System.lineSeparator());
     test2.append("$res '2nd arg' GET 3 == ASSERT" + System.lineSeparator());
     test2.append("$res '3rd arg' GET 0.5 == ASSERT" + System.lineSeparator());
-    test2.append("$res SIZE 4 == ASSERT" + System.lineSeparator());
+    test2.append("$res SIZE 5 == ASSERT" + System.lineSeparator());
     test2.append("$res '1st opt arg' GET 'The default value.' == ASSERT");
     unitTests.add(test2.toString());
 
@@ -91,9 +94,18 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
     test3.append("$res '2nd arg' GET 3 == ASSERT" + System.lineSeparator());
     test3.append("$res '3rd arg' GET 0.5 == ASSERT" + System.lineSeparator());
     test3.append("$res '1st opt arg' GET 'hi' == ASSERT" + System.lineSeparator());
-    test3.append("$res SIZE 4 == ASSERT");
+    test3.append("$res SIZE 5 == ASSERT");
     unitTests.add(test3.toString());
 
+    // test ListSpecification
+    StringBuilder test4 = new StringBuilder();
+    test4.append("{ '1st arg' NEWGTS '2nd arg' 3 '3rd arg' 0.5 '2nd opt arg' [ 1 2 ] } EXAMPLE 'res' STORE" + System.lineSeparator());
+    test4.append("$res '1st arg' GET TYPEOF 'GTS' == ASSERT" + System.lineSeparator());
+    test4.append("$res '2nd arg' GET 3 == ASSERT" + System.lineSeparator());
+    test4.append("$res '3rd arg' GET 0.5 == ASSERT" + System.lineSeparator());
+    test4.append("$res '2nd opt arg' GET LIST-> 2 == ASSERT 2 == ASSERT 1 == ASSERT" + System.lineSeparator());
+    test4.append("$res SIZE 5 == ASSERT");
+    unitTests.add(test4.toString());
   }
 
   //
@@ -141,6 +153,13 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
 
     stack.execMulti(getUnitTests().get(2));
+  }
+
+  @Test
+  public void testListSpecification() throws Exception {
+    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
+
+    stack.execMulti(getUnitTests().get(3));
   }
 
   @Test
