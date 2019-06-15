@@ -23,6 +23,7 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.standalone.Warp;
 
 public abstract class BitwiseOperation extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -60,25 +61,20 @@ public abstract class BitwiseOperation extends NamedWarpScriptFunction implement
       } else {
         throw new WarpScriptException(exceptionMessage);
       }
-    } else if (op1 instanceof GeoTimeSerie || op2 instanceof GeoTimeSerie) {
-      GeoTimeSerie gts;
-      long mask;
-      if (op1 instanceof GeoTimeSerie && op2 instanceof Long) {
-        gts = (GeoTimeSerie)op1;
-        mask = ((Number)op2).longValue();
-      } else if (op2 instanceof GeoTimeSerie && op1 instanceof Long) {
-        gts = (GeoTimeSerie)op2;
-        mask = ((Number)op1).longValue();
+    } else if (op1 instanceof GeoTimeSerie && op2 instanceof Long) {
+      GeoTimeSerie  gts = (GeoTimeSerie)op1;
+      long mask = ((Number)op2).longValue();
+      if (GeoTimeSerie.TYPE.LONG == gts.getType()){
+        GeoTimeSerie result = gts.cloneEmpty();
+        result.setType(GeoTimeSerie.TYPE.LONG);
+        for (int i = 0; i < GTSHelper.nvalues(gts); i++) {
+          GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i),
+                  operator(((Number)GTSHelper.valueAtIndex(gts,i)).longValue(), mask) , false);
+        }
+        stack.push(result);
       } else {
         throw new WarpScriptException(exceptionMessage);
       }
-      GeoTimeSerie result = gts.cloneEmpty();
-      result.setType(GeoTimeSerie.TYPE.LONG);
-      for (int i = 0; i < GTSHelper.nvalues(gts); i++) {
-        GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i),
-                operator(mask, ((Number)GTSHelper.valueAtIndex(gts,i)).longValue()) , false);
-      }
-      stack.push(result);
     } else {
       throw new WarpScriptException(exceptionMessage);
     }
