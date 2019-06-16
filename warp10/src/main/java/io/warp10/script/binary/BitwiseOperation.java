@@ -27,18 +27,17 @@ import io.warp10.standalone.Warp;
 
 public abstract class BitwiseOperation extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private GTSOpsHelper.GTSBinaryOp op;
+  private final GTSOpsHelper.GTSBinaryOp op = new GTSOpsHelper.GTSBinaryOp() {
+    @Override
+    public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+      return operator(((Number) GTSHelper.valueAtIndex(gtsa, idxa)).longValue(), ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).longValue());
+    }
+  };
 
   public abstract long operator(long op1, long op2);
 
   public BitwiseOperation(String name) {
     super(name);
-    this.op = new GTSOpsHelper.GTSBinaryOp() {
-      @Override
-      public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-        return operator(((Number) GTSHelper.valueAtIndex(gtsa, idxa)).longValue(), ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).longValue());
-      }
-    };
   }
   
   @Override
@@ -58,6 +57,10 @@ public abstract class BitwiseOperation extends NamedWarpScriptFunction implement
         result.setType(GeoTimeSerie.TYPE.LONG);
         GTSOpsHelper.applyBinaryOp(result, gts1, gts2, op);
         stack.push(result);
+      } else if ((GeoTimeSerie.TYPE.UNDEFINED == gts1.getType() && GeoTimeSerie.TYPE.LONG == gts2.getType())
+              || (GeoTimeSerie.TYPE.UNDEFINED == gts2.getType() && GeoTimeSerie.TYPE.LONG == gts1.getType())) {
+        // gts1 or gts2 empty, return an empty gts
+        stack.push(new GeoTimeSerie());
       } else {
         throw new WarpScriptException(exceptionMessage);
       }
@@ -72,6 +75,9 @@ public abstract class BitwiseOperation extends NamedWarpScriptFunction implement
                   operator(((Number)GTSHelper.valueAtIndex(gts,i)).longValue(), mask) , false);
         }
         stack.push(result);
+      } else if (GeoTimeSerie.TYPE.UNDEFINED == gts.getType()) {
+        // gts is empty return gts
+        stack.push(gts);
       } else {
         throw new WarpScriptException(exceptionMessage);
       }

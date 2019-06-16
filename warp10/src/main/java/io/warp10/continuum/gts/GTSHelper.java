@@ -10271,7 +10271,11 @@ public class GTSHelper {
     return standardizedMoment(3, gts, bessel);
   }
 
-  public static void booleanNot(GeoTimeSerie gts) {
-    gts.booleanValues.flip(0, gts.booleanValues.length());
+  public static void booleanNot(GeoTimeSerie gts) throws WarpScriptException {
+    if (GeoTimeSerie.TYPE.BOOLEAN == gts.getType()) {
+      gts.booleanValues.flip(0, gts.booleanValues.length());
+    } else {
+      throw new WarpScriptException("Non boolean Geo Time Series.");
+    }
   }
 }
