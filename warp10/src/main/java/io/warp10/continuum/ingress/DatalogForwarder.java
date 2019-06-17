@@ -834,10 +834,10 @@ public class DatalogForwarder extends Thread {
           Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_IGNORED, labels, 1);
 
           // File should be ignored, move it directly to the target directory
-          if(this.deleteIgnored) {
-            action.file.renameTo(new File(this.targetDir, action.file.getName()));
-          } else {
+          if (this.deleteIgnored) {
             action.file.delete();
+          } else {
+            action.file.renameTo(new File(this.targetDir, action.file.getName()));
           }
           continue;
         }
