@@ -23,19 +23,18 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.standalone.Warp;
 
 public abstract class BitwiseOperation extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-
+  
   private final GTSOpsHelper.GTSBinaryOp op = new GTSOpsHelper.GTSBinaryOp() {
     @Override
     public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
       return operator(((Number) GTSHelper.valueAtIndex(gtsa, idxa)).longValue(), ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).longValue());
     }
   };
-
+  
   public abstract long operator(long op1, long op2);
-
+  
   public BitwiseOperation(String name) {
     super(name);
   }
@@ -43,10 +42,10 @@ public abstract class BitwiseOperation extends NamedWarpScriptFunction implement
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     String exceptionMessage = getName() + " can only operate on two long, or two long GTS, or one long GTS and a long.";
-
+    
     Object op2 = stack.pop();
     Object op1 = stack.pop();
-
+    
     if (op2 instanceof Long && op1 instanceof Long) {
       stack.push(operator(((Long) op1).longValue(), ((Long) op2).longValue()));
     } else if (op1 instanceof GeoTimeSerie && op2 instanceof GeoTimeSerie) {
@@ -58,21 +57,21 @@ public abstract class BitwiseOperation extends NamedWarpScriptFunction implement
         GTSOpsHelper.applyBinaryOp(result, gts1, gts2, op);
         stack.push(result);
       } else if ((GeoTimeSerie.TYPE.UNDEFINED == gts1.getType() && GeoTimeSerie.TYPE.LONG == gts2.getType())
-              || (GeoTimeSerie.TYPE.UNDEFINED == gts2.getType() && GeoTimeSerie.TYPE.LONG == gts1.getType())) {
+          || (GeoTimeSerie.TYPE.UNDEFINED == gts2.getType() && GeoTimeSerie.TYPE.LONG == gts1.getType())) {
         // gts1 or gts2 empty, return an empty gts
         stack.push(new GeoTimeSerie());
       } else {
         throw new WarpScriptException(exceptionMessage);
       }
     } else if (op1 instanceof GeoTimeSerie && op2 instanceof Long) {
-      GeoTimeSerie  gts = (GeoTimeSerie)op1;
-      long mask = ((Number)op2).longValue();
-      if (GeoTimeSerie.TYPE.LONG == gts.getType()){
+      GeoTimeSerie gts = (GeoTimeSerie) op1;
+      long mask = ((Number) op2).longValue();
+      if (GeoTimeSerie.TYPE.LONG == gts.getType()) {
         GeoTimeSerie result = gts.cloneEmpty();
         result.setType(GeoTimeSerie.TYPE.LONG);
         for (int i = 0; i < GTSHelper.nvalues(gts); i++) {
           GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i),
-                  operator(((Number)GTSHelper.valueAtIndex(gts,i)).longValue(), mask) , false);
+              operator(((Number) GTSHelper.valueAtIndex(gts, i)).longValue(), mask), false);
         }
         stack.push(result);
       } else if (GeoTimeSerie.TYPE.UNDEFINED == gts.getType()) {
@@ -84,7 +83,7 @@ public abstract class BitwiseOperation extends NamedWarpScriptFunction implement
     } else {
       throw new WarpScriptException(exceptionMessage);
     }
-
+    
     return stack;
   }
 }

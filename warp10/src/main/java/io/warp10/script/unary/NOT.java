@@ -27,7 +27,7 @@ import io.warp10.script.WarpScriptStack;
  * Unary NOT of the operand on top of the stack
  */
 public class NOT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-
+  
   public NOT(String name) {
     super(name);
   }
@@ -50,8 +50,7 @@ public class NOT extends NamedWarpScriptFunction implements WarpScriptStackFunct
       } else {
         throw new WarpScriptException(getName() + " can only operate on a boolean value or a boolean GTS.");
       }
-    }
-    else {
+    } else {
       throw new WarpScriptException(getName() + " can only operate on a boolean value or a boolean GTS.");
     }
     
