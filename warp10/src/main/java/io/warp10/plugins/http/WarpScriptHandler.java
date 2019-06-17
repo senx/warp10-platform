@@ -87,7 +87,11 @@ public class WarpScriptHandler extends AbstractHandler {
       while (hvalues.hasMoreElements()) {
         hval.add(hvalues.nextElement());
       }
-      headers.put(hdr, hval);
+      if (plugin.isLcHeaders()) {
+        headers.put(hdr.toLowerCase(), hval);
+      } else {
+        headers.put(hdr, hval);
+      }
     }
     params.put("headers", headers);
 
