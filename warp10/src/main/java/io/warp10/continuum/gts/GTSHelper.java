@@ -237,6 +237,31 @@ public class GTSHelper {
     return sort(gts, false);
   }
 
+
+  /**
+   * Sort the GTS by respectively by tick, value, location and elevation.
+   * @param gts The GTS instance to be sorted.
+   * @return a fully sorted GTS.
+   */
+  public static final GeoTimeSerie fullsort(GeoTimeSerie gts) {
+    return fullsort(gts, false);
+  }
+
+  /**
+   * Sort the GTS by respectively by tick, value, location and elevation.
+   * @param gts The GTS instance to be sorted.
+   * @param reversed Whether to reverse the order of the returned list.
+   * @return a fully sorted GTS.
+   */
+  public static final GeoTimeSerie fullsort(GeoTimeSerie gts, boolean reversed) {
+    fullquicksort(gts, 0, gts.values - 1, reversed);
+
+    gts.sorted = true;
+    gts.reversed = reversed;
+
+    return gts;
+  }
+
   /**
    * Option for the binarySearchTick function.
    * In case of duplicate ticks in a GTS, specify which index to return.
@@ -781,7 +806,174 @@ public class GTSHelper {
     quicksortByLocation(gts,0,gts.values - 1,false);
     return gts;
   }
-    
+
+  /**
+   * Compare data in a GTS at given indexes. Compare ticks, then if equal, values, then if equal locations then if equal elevations.
+   * Be careful, no check is done on the validity of the indexes.
+   * @param gts The GTS to get the data form.
+   * @param index1 The first index to get the data at in the GTS.
+   * @param index2 The second index to get the data at in the GTS.
+   * @return -1 if the data at first given index is considered before, 1 if considered after else 0. Comparison is done using natural ordering and false before true.
+   */
+  public static int compareAllAtTick(GeoTimeSerie gts, int index1, int index2) {
+    if (gts.ticks[index1] < gts.ticks[index2]) {
+      return -1;
+    } else if (gts.ticks[index1] > gts.ticks[index2]) {
+      return 1;
+    }
+
+    // if ticks are equals, test values
+    if (TYPE.LONG == gts.type) {
+      if (gts.longValues[index1] < gts.longValues[index2]) {
+        return -1;
+      } else if (gts.longValues[index1] > gts.longValues[index2]) {
+        return 1;
+      }
+    } else if (TYPE.DOUBLE == gts.type) {
+      if (gts.doubleValues[index1] < gts.doubleValues[index2]) {
+        return -1;
+      } else if (gts.doubleValues[index1] > gts.doubleValues[index2]) {
+        return 1;
+      }
+    } else if (TYPE.STRING == gts.type) {
+      return gts.stringValues[index1].compareTo(gts.stringValues[index2]);
+    } else if (TYPE.BOOLEAN == gts.type) {
+      if (!gts.booleanValues.get(index1) && gts.booleanValues.get(index2)) {
+        return -1;
+      } else if (gts.booleanValues.get(index1) && !gts.booleanValues.get(index2)) {
+        return 1;
+      }
+    }
+
+    // if ticks and values are equals, test locations
+    if (null != gts.locations) {
+      if (gts.locations[index1] < gts.locations[index2]) {
+        return -1;
+      } else if (gts.locations[index1] > gts.locations[index2]) {
+        return 1;
+      }
+    }
+
+    // if ticks, values and locations are equal, test elevation
+    if (null != gts.elevations) {
+      if (gts.elevations[index1] < gts.elevations[index2]) {
+        return -1;
+      } else if (gts.elevations[index1] > gts.elevations[index2]) {
+        return 1;
+      }
+    }
+
+    return 0; // Equality
+  }
+
+  /**
+   * Apply a quicksort on the given GTS instance using all the data at each tick to make the comparisons.
+   * Use natural ordering to first order according to ticks then values, then locations, then elevations.
+   * @param gts The GTS to be sorted, will be modified in place.
+   * @param low Lowest considered index in the GTS.
+   * @param high Highest considered index in the GTS.
+   * @param reversed Whether to return a reversed GTS or not.
+   */
+  private static void fullquicksort(GeoTimeSerie gts, int low, int high, final boolean reversed) {
+
+    if (0 == gts.values) {
+      return;
+    }
+
+    List<int[]> ranges = new ArrayList<int[]>();
+
+    ranges.add(new int[]{low, high});
+
+    while (!ranges.isEmpty()) {
+      int[] range = ranges.remove(0);
+      low = range[0];
+      high = range[1];
+
+      int i = low, j = high;
+      // Get the pivot element from the middle of the list
+      int pivotIndex = low + (high - low) / 2;
+      int reverseComp = reversed ? -1 : 1;
+
+      // Divide into two lists
+      while (i <= j) {
+        // If the current value from the left list is smaller
+        // (or greater if reversed is true) than the pivot
+        // element then get the next element from the left list
+        while (reverseComp * compareAllAtTick(gts, i, pivotIndex) < 0) {
+          i++;
+        }
+        // If the current value from the right list is larger (or lower if reversed is true)
+        // than the pivot element then get the next element from the right list
+        while (reverseComp * compareAllAtTick(gts, j, pivotIndex) > 0) {
+          j--;
+        }
+
+        // If we have found a value in the left list which is larger than
+        // the pivot element and if we have found a value in the right list
+        // which is smaller then the pivot element then we exchange the
+        // values.
+        // As we are done we can increase i and j
+        if (i <= j) {
+          if (i != j) {
+            long tmplong = gts.ticks[i];
+            gts.ticks[i] = gts.ticks[j];
+            gts.ticks[j] = tmplong;
+
+            if (null != gts.locations) {
+              tmplong = gts.locations[i];
+              gts.locations[i] = gts.locations[j];
+              gts.locations[j] = tmplong;
+            }
+
+            if (null != gts.elevations) {
+              tmplong = gts.elevations[i];
+              gts.elevations[i] = gts.elevations[j];
+              gts.elevations[j] = tmplong;
+            }
+
+            if (TYPE.LONG == gts.type) {
+              tmplong = gts.longValues[i];
+              gts.longValues[i] = gts.longValues[j];
+              gts.longValues[j] = tmplong;
+            } else if (TYPE.DOUBLE == gts.type) {
+              double tmpdouble = gts.doubleValues[i];
+              gts.doubleValues[i] = gts.doubleValues[j];
+              gts.doubleValues[j] = tmpdouble;
+            } else if (TYPE.STRING == gts.type) {
+              String tmpstring = gts.stringValues[i];
+              gts.stringValues[i] = gts.stringValues[j];
+              gts.stringValues[j] = tmpstring;
+            } else if (TYPE.BOOLEAN == gts.type) {
+              boolean tmpboolean = gts.booleanValues.get(i);
+              gts.booleanValues.set(i, gts.booleanValues.get(j));
+              gts.booleanValues.set(j, tmpboolean);
+            }
+
+            // Update pivotIndex if either i or j
+            if (pivotIndex == i) {
+              pivotIndex = j;
+            } else if (pivotIndex == j) {
+              pivotIndex = i;
+            }
+          }
+
+          i++;
+          j--;
+        }
+      }
+
+      // Recursion
+      if (low < j) {
+        //quicksort(gts, low, j, reversed);
+        ranges.add(new int[]{low, j});
+      }
+      if (i < high) {
+        //quicksort(gts, i, high, reversed);
+        ranges.add(new int[]{i, high});
+      }
+    }
+  }
+
   /**
    * Return the tick at a given index in a GeoTimeSerie.
    * 
