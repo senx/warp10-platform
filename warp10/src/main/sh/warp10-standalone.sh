@@ -179,24 +179,17 @@ isStarted() {
   return 1
 }
 
-
 CONFIG_FILES=
 getConfigFiles() {
-  path1=""
-  path2=""
-
   # Get standard configuration directory
   if [[ -d "${WARP10_CONFIG_DIR}" ]]; then
-    path1=${WARP10_CONFIG_DIR}
+    CONFIG_FILES=`find ${WARP10_CONFIG_DIR} -not -path "*/\.*" -name "*.conf" | sort | tr '\n' ' ' 2> /dev/null`
   fi
 
   # Get additional configuration directory
   if [[ -n "${WARP10_EXT_CONFIG_DIR}" && -d "${WARP10_EXT_CONFIG_DIR}" ]]; then
-    path2=${WARP10_EXT_CONFIG_DIR}
+    CONFIG_FILES="${CONFIG_FILES} `find ${WARP10_EXT_CONFIG_DIR} -not -path "*/\.*" -name "*.conf" | sort | tr '\n' ' ' 2> /dev/null`"
   fi
-
-  # Get config file path separate by space
-  CONFIG_FILES=`find ${path1} ${path2} -not -path "*/\.*" -name "*.conf" | tr '\n' ' ' 2> /dev/null`
 }
 
 bootstrap() {
