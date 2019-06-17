@@ -107,7 +107,7 @@ public class Warp extends WarpDist implements Runnable {
     labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "standalone");
     Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);
 
-    setProperties(args[0]);
+    setProperties(args);
     
     Properties properties = getProperties();
     
