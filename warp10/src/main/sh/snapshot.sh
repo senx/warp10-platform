@@ -229,5 +229,5 @@ cp -a ${WARP10_CONFIG_DIR} ${SNAPSHOT_DIR}/${SNAPSHOT}/warp10-config/
 
 
 if [[ -n "${WARP10_EXT_CONFIG_DIR}" && -d "${WARP10_EXT_CONFIG_DIR}" ]]; then
-  cp -a ${WARP10_EXT_CONFIG_DIR} ${SNAPSHOT_DIR}/${SNAPSHOT}/warp10-config/
+  cp -r ${WARP10_EXT_CONFIG_DIR} ${SNAPSHOT_DIR}/${SNAPSHOT}/warp10-config/
 fi
