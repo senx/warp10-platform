@@ -79,7 +79,7 @@ public class PERMUTE extends FormattedWarpScriptFunction {
 
       if (newShape.size() - 1 == dimension) {
         List<Number> permutedIndices = new ArrayList<>();
-        
+
         for (int r = 0; r < pattern.size(); r++) {
           permutedIndices.add(new_indices.get(pattern.lastIndexOf(new Long(r))));
         }

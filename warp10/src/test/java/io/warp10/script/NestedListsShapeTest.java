@@ -1,6 +1,7 @@
 package io.warp10.script;
 
 import io.warp10.WarpConfig;
+import io.warp10.script.functions.RESHAPE;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -102,8 +103,12 @@ public class NestedListsShapeTest {
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
     stack.maxLimits();
 
-    stack.execMulti("[ 1 2 2 3 4 5 * * * * <% %> FOR ]");
-    stack.execMulti("[ 5 4 4 3 ] RESHAPE ->JSON");
+    stack.execMulti("[ 0 5 4 4 3 * * * 1 - <% %> FOR ]");
+
+    //stack.execMulti("[ 5 4 4 3 ] RESHAPE ->JSON");
+    stack.execMulti("[ 5 4 4 3 ]");
+    (new RESHAPE("RESHAPE")).apply(stack); // to get error line in RESHAPE source code
+    stack.execMulti("->JSON");
 
     stack.execMulti(new String(Files.readAllBytes(FILE_1), StandardCharsets.UTF_8));
     stack.execMulti("->JSON");
