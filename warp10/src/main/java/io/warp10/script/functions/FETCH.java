@@ -471,10 +471,6 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
             
             if (null != typelabel) {
               
-              Map<String,String> labels = new HashMap<String,String>(decoder.getMetadata().getLabels());
-              labels.remove(Constants.PRODUCER_LABEL);
-              labels.remove(Constants.OWNER_LABEL);
-
               java.util.UUID uuid = null;
               
               if (showUUID) {
@@ -518,7 +514,14 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                   bases[gtsidx] = new GeoTimeSerie();
                   base = bases[gtsidx];
                   series.add(base);
-                  base.setLabels(decoder.getLabels());
+
+                  // Copy labels to GTS, removing producer and owner
+                  Map<String,String> labels = new HashMap<String, String>();
+                  labels.putAll(decoder.getMetadata().getLabels());
+                  labels.remove(Constants.PRODUCER_LABEL);
+                  labels.remove(Constants.OWNER_LABEL);
+                  base.setLabels(labels);
+
                   base.getMetadata().putToAttributes(typelabel, typename);
                   base.setName(decoder.getName());
                   if (null != uuid) {
