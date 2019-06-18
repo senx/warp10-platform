@@ -101,8 +101,23 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
     return index;
   }
 
+  /**
+   * Recursively get elements of a nested list given a list of indices. At the last recursive call, a single element is returned.
+   *
+   * For example, we will have:
+   * recNestedGet(func, nestedList, [ 0, 1, 2 ])
+   * -> recNestedGet(func, nestedList[0], [ 1, 2 ])
+   * -> recNestedGet(func, (nestedList.get(0)).get(1), [ 2 ])
+   * -> return ((nestedList.get(0)).get(1)).get(2)
+   *
+   * @param func        The function that calls this method
+   * @param nestedList  The list to which to get the elements
+   * @param indexList   The list of indices.
+   * @return
+   * @throws WarpScriptException
+   */
   static Object recNestedGet(NamedWarpScriptFunction func, List nestedList, List<Number> indexList) throws WarpScriptException {
-    List<Number> copyIndices = new ArrayList<>(indexList);
+    List<Number> copyIndices = new ArrayList<Number>(indexList);
 
     int idx = computeAndCheckIndex(func, copyIndices.remove(0).intValue(), nestedList.size());
 
