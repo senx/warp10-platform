@@ -32,8 +32,8 @@ import java.util.List;
 public class NestedListsShapeTest {
 
   private static final Path FILE_1 = Paths.get("src", "test", "warpscript", "nestedList_0.mc2");
-  private static final Path FILE_2 = Paths.get("src", "test", "java", "io", "warp10", "script", "nestedList_1.mc2");
-  private static final Path FILE_3 = Paths.get("src", "test", "java", "io", "warp10", "script", "nestedList_2.mc2");
+  private static final Path FILE_2 = Paths.get("src", "test", "warpscript", "nestedList_1.mc2");
+  private static final Path FILE_3 = Paths.get("src", "test", "warpscript", "nestedList_2.mc2");
 
   @BeforeClass
   public static void beforeClass() throws Exception {
