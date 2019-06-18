@@ -45,13 +45,9 @@ public class TIMESPLIT extends ElementOrListStackFunction {
 
   @Override
   public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {Object top = stack.pop();
-
-
     if (!(top instanceof String)) {
       throw new WarpScriptException(getName() + " expects a label on top of the stack.");
     }
-
-    Map<String,Object> params = new HashMap<String, Object>();
 
     final String label = (String) top;
 

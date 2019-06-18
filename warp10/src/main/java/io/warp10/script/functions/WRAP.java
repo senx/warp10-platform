@@ -16,104 +16,89 @@
 
 package io.warp10.script.functions;
 
+import com.google.common.base.Charsets;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.script.GTSStackFunction;
+import io.warp10.script.ElementOrListStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import java.util.Map;
-
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 
-import com.google.common.base.Charsets;
-
 /**
  * Wrap a GTS into a GTSWrapper
  */
-public class WRAP  extends GTSStackFunction {
-  
+public class WRAP extends ElementOrListStackFunction {
+
   private final boolean opt;
   private final boolean compress;
-  
+  private final ElementStackFunction function;
+
   public WRAP(String name) {
     this(name, false);
   }
-  
+
   public WRAP(String name, boolean opt) {
     super(name);
     this.opt = opt;
     this.compress = true;
+
+    function = generateFunctionOnce();
   }
 
   public WRAP(String name, boolean opt, boolean compress) {
     super(name);
     this.opt = opt;
     this.compress = compress;
-    
+
     if (this.opt && !this.compress) {
       throw new RuntimeException("Invalid combination of opt and compress.");
     }
-  }
-  
-  @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    if (!(stack.peek() instanceof GTSEncoder)) {
-      return super.apply(stack);      
-    }
-    
-    GTSEncoder encoder = (GTSEncoder) stack.pop();
-    
-    GTSWrapper wrapper;
-    
-    if (opt) {
-      wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, this.compress, 1.0);
-    } else {
-      wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, this.compress);
-    }
-    
-    TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-    
-    try {
-      byte[] bytes = serializer.serialize(wrapper);
-      
-      stack.push(new String(OrderPreservingBase64.encode(bytes), Charsets.US_ASCII));
-    } catch (TException te) {
-      throw new WarpScriptException(getName() + " failed to wrap GTS.", te);
-    }        
 
-    return stack;
-  }
-  
-  @Override
-  protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
-    return null;
+    function = generateFunctionOnce();
   }
 
-  @Override
-  protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
+  private ElementStackFunction generateFunctionOnce() {
+    return new ElementStackFunction() {
+      @Override
+      public Object applyOnElement(Object element) throws WarpScriptException {
+        GTSWrapper wrapper;
+        if (element instanceof GeoTimeSerie) {
+          if (opt) {
+            wrapper = GTSWrapperHelper.fromGTSToGTSWrapper((GeoTimeSerie) element, compress, 1.0, true);
+          } else {
+            wrapper = GTSWrapperHelper.fromGTSToGTSWrapper((GeoTimeSerie) element, compress);
+          }
+        } else if (element instanceof GTSEncoder) {
+          if (opt) {
+            wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper((GTSEncoder) element, compress, 1.0);
+          } else {
+            wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper((GTSEncoder) element, compress);
+          }
+        } else {
+          throw new WarpScriptException(getName() + " expects a Geo Time Series of a GTSEncoder or a list on top of the stack");
+        }
 
-    GTSWrapper wrapper;
-    
-    if (opt) {
-      wrapper = GTSWrapperHelper.fromGTSToGTSWrapper(gts, this.compress, 1.0, true);
-    } else {
-      wrapper = GTSWrapperHelper.fromGTSToGTSWrapper(gts, this.compress);
-    }
-    
-    TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-    
-    try {
-      byte[] bytes = serializer.serialize(wrapper);
-      
-      return new String(OrderPreservingBase64.encode(bytes), Charsets.US_ASCII);
-    } catch (TException te) {
-      throw new WarpScriptException(getName() + " failed to wrap GTS.", te);
-    }        
+        TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+
+        try {
+          byte[] bytes = serializer.serialize(wrapper);
+
+          return new String(OrderPreservingBase64.encode(bytes), Charsets.US_ASCII);
+        } catch (TException te) {
+          throw new WarpScriptException(getName() + " failed to wrap GTS.", te);
+        }
+      }
+    };
   }
+
+  @Override
+  public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {
+    return function;
+  }
+
 }
