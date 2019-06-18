@@ -53,7 +53,7 @@ public class SHAPE extends FormattedWarpScriptFunction {
   @Override
   protected WarpScriptStack apply(Map<String, Object> formattedArgs, WarpScriptStack stack) throws WarpScriptException {
     List list = (List) formattedArgs.get(LIST);
-    boolean fast = ((Boolean) formattedArgs.get(FAST)).booleanValue();
+    boolean fast = Boolean.TRUE.equals(formattedArgs.get(FAST));
 
     List<Long> candidateShape = candidate_shape(list);
 
@@ -66,11 +66,11 @@ public class SHAPE extends FormattedWarpScriptFunction {
   }
 
   static List<Long> candidate_shape(List list) {
-    List<Long> shape = new ArrayList<>();
+    List<Long> shape = new ArrayList<Long>();
     Object l = list;
 
     while(l instanceof List) {
-      shape.add(new Long(((List) l).size()));
+      shape.add((long) ((List) l).size());
       l = ((List) l).get(0);
     }
 

@@ -67,7 +67,7 @@ public class CHECKSHAPE extends FormattedWarpScriptFunction {
   }
 
   static Boolean recValidateShape(List list, List<Long> candidateShape) {
-    List<Long> copyShape =  new ArrayList<>(candidateShape);
+    List<Long> copyShape =  new ArrayList<Long>(candidateShape);
 
     if (list.size() != copyShape.remove(0)) {
       return false;

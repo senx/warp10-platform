@@ -63,7 +63,7 @@ public class HULLSHAPE extends FormattedWarpScriptFunction {
       return taller;
     }
 
-    List<Long> res = new ArrayList<>(taller.size());
+    List<Long> res = new ArrayList<Long>(taller.size());
     while (smaller.size() > 0) {
       Long x = smaller.remove(0);
       Long y = taller.remove(0);
@@ -75,8 +75,8 @@ public class HULLSHAPE extends FormattedWarpScriptFunction {
   }
 
   private List<Long> recHullShape(List list) {
-    List<Long> res = new ArrayList<>();
-    res.add(new Long(list.size()));
+    List<Long> res = new ArrayList<Long>();
+    res.add((long) list.size());
 
     List<Long> hull = new ArrayList<>();
     for (Object el: list) {
