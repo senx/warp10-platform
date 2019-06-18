@@ -58,12 +58,9 @@ public class PERMUTE extends FormattedWarpScriptFunction {
       .build();
   }
 
-  private List<Long> pattern;
-  private List<Long> newShape;
-
   protected WarpScriptStack apply(Map<String, Object> formattedArgs, WarpScriptStack stack) throws WarpScriptException {
     List<Object> tensor = (List) formattedArgs.get(TENSOR);
-    pattern = (List) formattedArgs.get(PATTERN);
+    List<Long> pattern = (List) formattedArgs.get(PATTERN);
     boolean fast = Boolean.TRUE.equals(formattedArgs.get(FAST));
 
     if (pattern.size() > (new HashSet<Object>(pattern)).size()){
@@ -76,18 +73,18 @@ public class PERMUTE extends FormattedWarpScriptFunction {
       throw new WarpScriptException(getName() + " expects that the sizes of the nested lists are coherent together to form a tensor (or multidimensional array).");
     }
 
-    newShape = new ArrayList<Long>();
+    List<Long> newShape = new ArrayList<Long>();
     for (int r = 0; r < pattern.size(); r++) {
       newShape.add(shape.get(pattern.get(r).intValue()));
     }
 
     List<Object> result = new ArrayList<Object>();
-    recPermute(tensor, result, new ArrayList<Long>(), 0);
+    recPermute(tensor, result, new ArrayList<Long>(), 0, pattern, newShape);
     stack.push(result);
     return stack;
   }
 
-  private void recPermute(List<Object> tensor, List<Object> result, List<Long> indices, int dimension) throws WarpScriptException {
+  private void recPermute(List<Object> tensor, List<Object> result, List<Long> indices, int dimension, List<Long> pattern, List<Long> newShape) throws WarpScriptException {
 
     for (int i = 0; i < newShape.get(dimension); i++) {
       List<Long> new_indices = new ArrayList(indices);
@@ -106,7 +103,7 @@ public class PERMUTE extends FormattedWarpScriptFunction {
 
         List<Object> nested = new ArrayList<>();
         result.add(nested);
-        recPermute(tensor, nested, new_indices, dimension + 1);
+        recPermute(tensor, nested, new_indices, dimension + 1, pattern, newShape);
       }
     }
   }
