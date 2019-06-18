@@ -5,6 +5,7 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.formatted.FormattedWarpScriptFunction;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -49,6 +50,10 @@ public class PERMUTE extends FormattedWarpScriptFunction {
     pattern = (List) formattedArgs.get(PATTERN);
     boolean fast = ((Boolean) formattedArgs.get(FAST)).booleanValue();
 
+    if (pattern.size() > (new HashSet<Object>(pattern)).size()){
+      throw new WarpScriptException(getName() + " error: duplicate axis in permutation pattern.");
+    }
+
     List<Long> shape = SHAPE.candidate_shape(tensor);
 
     if (!(fast || CHECKSHAPE.recValidateShape(tensor, shape))) {
@@ -69,14 +74,14 @@ public class PERMUTE extends FormattedWarpScriptFunction {
   private void recPermute(List<Object> tensor, List<Object> result, List<Long> indices, int dimension) throws WarpScriptException {
 
     for (int i = 0; i < newShape.get(dimension); i++) {
-      indices = new ArrayList(indices);
-      indices.add(new Long(i));
+      List<Long> new_indices = new ArrayList(indices);
+      new_indices.add(new Long(i));
 
       if (newShape.size() - 1 == dimension) {
         List<Number> permutedIndices = new ArrayList<>();
-
+        
         for (int r = 0; r < pattern.size(); r++) {
-          permutedIndices.add(indices.get(pattern.get(r).intValue()));
+          permutedIndices.add(new_indices.get(pattern.lastIndexOf(new Long(r))));
         }
 
         result.add(GET.recNestedGet(this, tensor, permutedIndices));
@@ -85,7 +90,7 @@ public class PERMUTE extends FormattedWarpScriptFunction {
 
         List<Object> nested = new ArrayList<>();
         result.add(nested);
-        recPermute(tensor, nested, indices, dimension++);
+        recPermute(tensor, nested, new_indices, dimension + 1);
       }
     }
   }

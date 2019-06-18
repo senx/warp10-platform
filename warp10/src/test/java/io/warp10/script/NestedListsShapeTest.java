@@ -16,6 +16,7 @@ public class NestedListsShapeTest {
 
   private static final Path FILE_1 = Paths.get("src", "test", "warpscript", "nestedList_0.mc2");
   private static final Path FILE_2 = Paths.get("src", "test", "java", "io", "warp10", "script", "nestedList_1.mc2");
+  private static final Path FILE_3 = Paths.get("src", "test", "java", "io", "warp10", "script", "nestedList_2.mc2");
 
   @BeforeClass
   public static void beforeClass() throws Exception {
@@ -120,6 +121,21 @@ public class NestedListsShapeTest {
     stack.execMulti("[ 1 0 3 2 ] PERMUTE ->JSON");
 
     stack.execMulti(new String(Files.readAllBytes(FILE_2), StandardCharsets.UTF_8));
+    stack.execMulti("->JSON");
+
+    Assert.assertArrayEquals(((String) stack.pop()).toCharArray(), ((String) stack.pop()).toCharArray());
+    stack.execMulti("DEPTH 0 == ASSERT");
+  }
+
+  @Test
+  public void testPermuteCycle() throws Exception {
+    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
+    stack.maxLimits();
+
+    stack.execMulti(new String(Files.readAllBytes(FILE_1), StandardCharsets.UTF_8));
+    stack.execMulti("[ 3 0 1 2 ] PERMUTE ->JSON");
+
+    stack.execMulti(new String(Files.readAllBytes(FILE_3), StandardCharsets.UTF_8));
     stack.execMulti("->JSON");
 
     Assert.assertArrayEquals(((String) stack.pop()).toCharArray(), ((String) stack.pop()).toCharArray());
