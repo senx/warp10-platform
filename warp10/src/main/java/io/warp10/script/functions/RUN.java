@@ -33,7 +33,7 @@ public class RUN extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
     if (symbol instanceof String) {
       stack.run(symbol.toString());
-    } else if (symbol instanceof Long || symbol instanceof Integer) {
+    } else if (symbol instanceof Long) {
       Object reg = stack.load(((Number) symbol).intValue());
       if (reg instanceof WarpScriptStack.Macro) {
         stack.exec((WarpScriptStack.Macro) reg);
