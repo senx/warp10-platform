@@ -75,6 +75,7 @@ public class UNPACK extends NamedWarpScriptFunction implements WarpScriptStackFu
     byte[] atad = new byte[data.length];
     
     for (int i = 0; i < data.length; i++) {
+      // see http://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith64BitsDiv
       atad[i] = (byte) ((((((long) data[i]) & 0xFFL) * 0x0202020202L & 0x010884422010L) % 1023L) & 0xFFL);
     }
     
