@@ -45,8 +45,6 @@ public class ATINDEX extends ElementOrListStackFunction {
 
     final int idx = ((Number) o).intValue();
 
-    final ATINDEX atindexInstance = this;
-
     return new ElementStackFunction() {
       @Override
       public Object applyOnElement(Object element) throws WarpScriptException {
@@ -56,7 +54,7 @@ public class ATINDEX extends ElementOrListStackFunction {
 
         GeoTimeSerie gts = (GeoTimeSerie) element;
 
-        return getTupleAtIndex(gts, GET.computeAndCheckIndex(atindexInstance, idx, GTSHelper.nvalues(gts)));
+        return getTupleAtIndex(gts, GET.computeAndCheckIndex(idx, GTSHelper.nvalues(gts)));
       }
     };
   }
