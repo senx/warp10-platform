@@ -80,7 +80,7 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
         }
       }
 
-      value = recNestedGet(this, (List) coll, (List<Number>) key);
+      value = nestedGet((List) coll, (List<Number>) key);
     }
     
     stack.push(value);
@@ -101,36 +101,34 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
     return index;
   }
 
-  /**
-   * Recursively get elements of a nested list given a list of indices. At the last recursive call, a single element is returned.
-   *
-   * For example, we will have:
-   * recNestedGet(func, nestedList, [ 0, 1, 2 ])
-   * -> recNestedGet(func, nestedList[0], [ 1, 2 ])
-   * -> recNestedGet(func, (nestedList.get(0)).get(1), [ 2 ])
-   * -> return ((nestedList.get(0)).get(1)).get(2)
-   *
-   * @param func        The function that calls this method
-   * @param nestedList  The list to which to get the elements
-   * @param indexList   The list of indices.
-   * @return
-   * @throws WarpScriptException
-   */
-  static Object recNestedGet(NamedWarpScriptFunction func, List nestedList, List<Number> indexList) throws WarpScriptException {
-    List<Number> copyIndices = new ArrayList<Number>(indexList);
+  public static int computeAndCheckIndex(int index, int size) throws WarpScriptException {
+    if (index < 0) {
+      index += size;
+    } else if (index >= size) {
+      throw new WarpScriptException("Index out of bound, " + index + " >= " + size);
+    }
+    if (index < 0) {
+      throw new WarpScriptException("Index out of bound, " + (index - size) + " < -" + size);
+    }
 
-    int idx = computeAndCheckIndex(func, copyIndices.remove(0).intValue(), nestedList.size());
+    return index;
+  }
 
-    if (0 == copyIndices.size()) {
-      return nestedList.get(idx);
+  static Object nestedGet(List<Object> nestedList, List<Number> indexList) throws WarpScriptException {
+    Object res = nestedList;
 
-    } else {
-      if (nestedList.get(idx) instanceof List) {
-        return recNestedGet(func, (List) nestedList.get(idx), copyIndices);
+    for (int i = 0; i < indexList.size(); i++) {
+
+      if (res instanceof List) {
+
+        int idx = computeAndCheckIndex(indexList.get(i).intValue(), ((List) res).size());
+        res = ((List) res).get(idx);
 
       } else {
-        throw new WarpScriptException(func.getName() + " tried to get an element at a nested path that does not exist in the input list.");
+        throw new WarpScriptException("Tried to get an element at a nested path that does not exist in the input list.");
       }
     }
+
+    return res;
   }
 }

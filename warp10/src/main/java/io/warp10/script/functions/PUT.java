@@ -62,8 +62,21 @@ public class PUT extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
         List<Number> copyIndices = new ArrayList<>((List<Number>) key);
         int lastIdx = copyIndices.remove(copyIndices.size() - 1).intValue();
+        Object container;
 
-        ((List) GET.recNestedGet(this, list, copyIndices)).set(lastIdx, value);
+        try {
+          container = GET.nestedGet(list, copyIndices);
+        } catch (WarpScriptException wse) {
+          throw new WarpScriptException("Tried to set an element at a nested path that does not exist in the input list.");
+        }
+
+        if (container instanceof List) {
+          ((List) container).set(lastIdx, value);
+
+        } else {
+          throw new WarpScriptException("Tried to set an element at a nested path that does not exist in the input list.");
+        }
+
       }
     } else {
       throw new WarpScriptException(getName() + " operates on a map or list.");
