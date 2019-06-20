@@ -23,6 +23,7 @@ import io.warp10.script.WarpScriptStackFunction;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -62,7 +63,7 @@ public class PACK extends NamedWarpScriptFunction implements WarpScriptStackFunc
     // Parse the format
     //
 
-    List<Boolean> bigendians = new ArrayList<Boolean>();
+    BitSet bigendians = new BitSet();
     List<Character> types = new ArrayList<Character>();
     List<Integer> lengths = new ArrayList<Integer>();
     
@@ -141,7 +142,7 @@ public class PACK extends NamedWarpScriptFunction implements WarpScriptStackFunc
     return stack;
   }
 
-  public static int parseFormat(NamedWarpScriptFunction function, String format, List<Boolean> bigendians, List<Character> types, List<Integer> lengths) throws WarpScriptException {
+  public static int parseFormat(NamedWarpScriptFunction function, String format, BitSet bigendians, List<Character> types, List<Integer> lengths) throws WarpScriptException {
     int idx = 0;
     int totalbits = 0;
 
@@ -197,7 +198,9 @@ public class PACK extends NamedWarpScriptFunction implements WarpScriptStackFunc
         throw new WarpScriptException(function.getName() + " encountered an invalid format specification '" + type + "'.");
       }
 
-      bigendians.add(isBigendian);
+      // Can't use bigendians.size() nor bigendians.length() because they don't give the number of defined bits (set or cleared).
+      // bigendians, types and lengths contains the same number of elements, so we can use either types.size() or lengths.size().
+      bigendians.set(types.size(), isBigendian);
       types.add(type);
       lengths.add(len);
 

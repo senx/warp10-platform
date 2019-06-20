@@ -56,7 +56,7 @@ public class UNPACK extends NamedWarpScriptFunction implements WarpScriptStackFu
     // Parse the format
     //
 
-    List<Boolean> bigendians = new ArrayList<Boolean>();
+    BitSet bigendians = new BitSet();
     List<Character> types = new ArrayList<Character>();
     List<Integer> lengths = new ArrayList<Integer>();
 
