@@ -66,4 +66,16 @@ public class NestedListsShapeTest {
     stack.execMulti("7.5 [ 1 0 2 2 ] PUT [ 1 0 2 2 ] GET 7.5 == ASSERT ");
     stack.execMulti("DEPTH 0 == ASSERT");
   }
+
+
+  @Test
+  public void testSet() throws Exception {
+    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
+    stack.maxLimits();
+
+    stack.execMulti(new String(Files.readAllBytes(FILE_1), StandardCharsets.UTF_8));
+    stack.execMulti("4.3 [ 4 3 2 1 ] SET DUP [ 4 3 2 1 ] GET 4.3 == ASSERT ");
+    stack.execMulti("7.5 [ 1 0 2 2 ] SET [ 1 0 2 2 ] GET 7.5 == ASSERT ");
+    stack.execMulti("DEPTH 0 == ASSERT");
+  }
 }
