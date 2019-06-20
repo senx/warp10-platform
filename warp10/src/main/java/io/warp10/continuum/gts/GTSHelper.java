@@ -7560,7 +7560,7 @@ public class GTSHelper {
     TreeMap<Long, GeoTimeSerie> chunks = new TreeMap<Long,GeoTimeSerie>();
     
     //
-    // If GTS is bucketized, make sure bucketspan is less than boxwidth
+    // If GTS is bucketized, make sure bucketspan is less than chunkwidth
     //
     
     boolean bucketized = GTSHelper.isBucketized(gts);
@@ -7620,6 +7620,12 @@ public class GTSHelper {
           lastchunk = lastchunk - (lastchunk % chunkwidth) + chunkwidth;
         }
       }            
+    }
+
+    // If we have overlap add extra chunks at the beginning and end to compute overlap
+    if (overlap > 0) {
+      chunkcount += 2;
+      lastchunk += chunkwidth;
     }
 
     //
@@ -7749,33 +7755,6 @@ public class GTSHelper {
     //
     
     if (overlap > 0) {
-      
-      //
-      // Check if we need to add a first and a last chunk
-      //
-      
-      long ts = GTSHelper.tickAtIndex(gts, 0);
-      
-      if (ts <= chunks.firstKey() - chunkwidth) {
-        Entry<Long,GeoTimeSerie> currentFirst = chunks.firstEntry();
-        GeoTimeSerie firstChunk = currentFirst.getValue().cloneEmpty();
-        if (GTSHelper.isBucketized(currentFirst.getValue())) {
-          firstChunk.lastbucket = firstChunk.lastbucket - firstChunk.bucketspan;
-        }
-        chunks.put(currentFirst.getKey() - chunkwidth, firstChunk);
-      }
-      
-      ts = GTSHelper.tickAtIndex(gts, gts.values - 1);
-      
-      if (ts >= chunks.lastKey() - chunkwidth + 1 - overlap) {
-        Entry<Long,GeoTimeSerie> currentLast = chunks.lastEntry();
-        GeoTimeSerie lastChunk = currentLast.getValue().cloneEmpty();
-        if (GTSHelper.isBucketized(currentLast.getValue())) {
-          lastChunk.lastbucket = lastChunk.lastbucket + lastChunk.bucketspan;
-        }
-        chunks.put(currentLast.getKey() + chunkwidth, lastChunk);
-      }
-      
       //
       // Put all entries in a list so we can access them randomly
       //
@@ -7818,6 +7797,10 @@ public class GTSHelper {
           }
         }
       }
+
+      // Remove extra chunks at the beginning and end used to compute overlap
+      chunks.remove(lastchunk);
+      chunks.remove(lastchunk - (chunkcount - 1) * chunkwidth);
     }
     
     List<GeoTimeSerie> result = new ArrayList<GeoTimeSerie>();
@@ -7857,13 +7840,8 @@ public class GTSHelper {
       throw new WarpScriptException("Cannot operate on encoders which already have a label named '" + chunklabel + "'");
     }
 
-    // Order the chunks by descending chunkid
-    TreeMap<Long, GTSEncoder> chunks = new TreeMap<Long,GTSEncoder>(new Comparator<Long>() {
-      @Override
-      public int compare(Long o1, Long o2) {
-        return -o1.compareTo(o2);
-      }
-    });
+    // Store and associate chunks with their id.
+    HashMap<Long, GTSEncoder> chunks = new HashMap<Long, GTSEncoder>();
 
     // Encoder has 0 values, if lastchunk was 0, return an empty list as we are unable to produce chunks
     if (0 == encoder.getCount() && 0 == encoder.size() && 0L == lastchunk) {
@@ -7886,6 +7864,9 @@ public class GTSHelper {
     //
 
     GTSDecoder decoder = encoder.getUnsafeDecoder(false);
+
+    long oldestChunk = Long.MAX_VALUE;
+    long newestChunk = Long.MIN_VALUE;
 
     try {
       while(decoder.next()) {
@@ -7955,6 +7936,9 @@ public class GTSHelper {
             chunkencoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
           }
         }
+
+        oldestChunk = Math.min(oldestChunk, chunkid);
+        newestChunk = Math.max(newestChunk, chunkid);
       }
     } catch (IOException ioe) {
       throw new WarpScriptException("Encountered an error while creating chunks.", ioe);
@@ -7966,26 +7950,28 @@ public class GTSHelper {
 
     CapacityExtractorOutputStream extractor = new CapacityExtractorOutputStream();
 
+    long firstchunkid = oldestChunk;
+    if (!zeroChunkCount) {
+      firstchunkid = lastchunk - (chunkcount - 1) * chunkwidth;
+    }
+
     long lastchunkid = lastchunk;
-    if (0L == lastchunk){
-      lastchunkid = chunks.lastKey();
+    if (0 == lastchunk) {
+      lastchunkid = newestChunk;
     }
 
-    long firstchunkid = chunks.firstKey();
-    if(!zeroChunkCount){
-      firstchunkid = lastchunkid - chunkcount * chunkwidth;
-    }
-
+    // Scan chunkIDs backward to early abort in case chunkcount is reached.
     for (long chunkid = lastchunkid; chunkid >= firstchunkid; chunkid -= chunkwidth) {
 
-      // Do we have enough chunks?
-      if (!zeroChunkCount && encoders.size() >= chunkcount) {
+      // Stop if chunkcount is reached. We can't rely on the size of the encoders list because we may have skipped empty encoders
+      if (!zeroChunkCount && (lastchunkid - chunkid) / chunkwidth >= chunkcount) {
         break;
       }
 
       GTSEncoder enc = chunks.get(chunkid);
 
       if (null == enc) {
+        // If there is no encoder for this chunk, add an empty one if requested, or skip to next chunkid.
         if (keepempty) {
           enc = new GTSEncoder();
           enc.setMetadata(encoder.getMetadata());
@@ -8008,7 +7994,7 @@ public class GTSHelper {
       encoders.add(enc);
     }
 
-    // Reverse result list so chunk ids are in ascending order
+    // Reverse result list so chunk ids are in ascending order, consistent with chunk on GTSs.
     Collections.reverse(encoders);
 
     return encoders;
