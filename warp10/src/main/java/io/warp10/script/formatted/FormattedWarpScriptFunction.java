@@ -327,7 +327,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
 
         if (arg instanceof MapSpecification) {
 
-          for (Object key : ((Map) candidate).keySet()) {
+          for (Object key: ((Map) candidate).keySet()) {
 
             if (!((MapSpecification) arg).getClassOfKey().isInstance(key)) {
               throw new WarpScriptException(getClass().getSimpleName() + " expects the argument '" + arg.getName() + "' to be a MAP with keys of type " +
@@ -394,7 +394,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
 
         if (arg instanceof MapSpecification) {
 
-          for (Object key : ((Map) candidate).keySet()) {
+          for (Object key: ((Map) candidate).keySet()) {
 
             if (!((MapSpecification) arg).getClassOfKey().isInstance(key)) {
               throw new WarpScriptException(getClass().getSimpleName() + " expects to find a '" + arg.getName() + "' (a MAP with keys of type " +
