@@ -76,7 +76,7 @@ public class SET extends NamedWarpScriptFunction implements WarpScriptStackFunct
       }
 
       if (listOrByteArray instanceof List) {
-        int idx = GET.computeAndCheckIndex(this, ((Number) key).intValue(), ((List) listOrByteArray).size());
+        int idx = GET.computeAndCheckIndex(((Number) key).intValue(), ((List) listOrByteArray).size());
         ((List) listOrByteArray).set(idx, value);
       } else {
         byte[] data = (byte[]) listOrByteArray;
@@ -93,7 +93,7 @@ public class SET extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
         byte elt = (byte) (l & 0xFFL);
 
-        int idx = GET.computeAndCheckIndex(this, ((Number) key).intValue(), data.length);
+        int idx = GET.computeAndCheckIndex(((Number) key).intValue(), data.length);
 
         data[idx] = elt;
       }

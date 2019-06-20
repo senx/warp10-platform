@@ -21,7 +21,6 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -55,14 +54,14 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
       if (coll instanceof List) {
         int size = ((List) coll).size();
 
-        idx = computeAndCheckIndex(this, idx, size);
+        idx = computeAndCheckIndex(idx, size);
 
         value = ((List) coll).get(idx);
 
       } else {
         int size = ((byte[]) coll).length;
 
-        idx = computeAndCheckIndex(this, idx, size);
+        idx = computeAndCheckIndex(idx, size);
 
         value = (long) (((byte[]) coll)[idx] & 0xFFL);
       }
@@ -86,19 +85,6 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
     stack.push(value);
 
     return stack;
-  }
-
-  public static int computeAndCheckIndex(NamedWarpScriptFunction func, int index, int size) throws WarpScriptException {
-    if (index < 0) {
-      index += size;
-    } else if (index >= size) {
-      throw new WarpScriptException(func.getName() + " index out of bound, " + index + " >= " + size);
-    }
-    if (index < 0) {
-      throw new WarpScriptException(func.getName() + " index out of bound, " + (index - size) + " < -" + size);
-    }
-
-    return index;
   }
 
   public static int computeAndCheckIndex(int index, int size) throws WarpScriptException {

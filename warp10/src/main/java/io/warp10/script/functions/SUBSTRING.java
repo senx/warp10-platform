@@ -43,12 +43,12 @@ public class SUBSTRING extends NamedWarpScriptFunction implements WarpScriptStac
 
     if (top instanceof String) {
       String str = top.toString();
-      n = GET.computeAndCheckIndex(this, n, str.length());
+      n = GET.computeAndCheckIndex(n, str.length());
       stack.push(str.substring(n));
       return stack;
     } else if (top instanceof byte[]) {
       byte[] bytes = (byte[]) top;
-      n = GET.computeAndCheckIndex(this, n, bytes.length);
+      n = GET.computeAndCheckIndex(n, bytes.length);
       stack.push(Arrays.copyOfRange(bytes, n, bytes.length));
       return stack;
     }
@@ -63,11 +63,11 @@ public class SUBSTRING extends NamedWarpScriptFunction implements WarpScriptStac
     
     if (top instanceof String) {
       String str = top.toString();
-      idx = GET.computeAndCheckIndex(this, idx, str.length());
+      idx = GET.computeAndCheckIndex(idx, str.length());
       stack.push(top.toString().substring(idx, Math.min(n + idx, str.length())));
     } else if (top instanceof byte[]) {
       byte[] bytes = (byte[]) top;
-      idx = GET.computeAndCheckIndex(this, idx, bytes.length);
+      idx = GET.computeAndCheckIndex(idx, bytes.length);
       stack.push(Arrays.copyOfRange(bytes, idx, Math.min(n + idx, bytes.length)));
     } else {
       throw new WarpScriptException(getName() + " can only operate on strings or byte arrays.");
