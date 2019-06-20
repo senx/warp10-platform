@@ -685,8 +685,7 @@ public class GTSHelper {
 
   /**
    * Sort GTS according to location, using HHCodes, between two indexes.
-   * The ticks with no locations are clustered somewhere in-between those with locations since the
-   * marker for NO_LOCATION is a valid location (!)
+   * The ticks with no locations are considered the smallest.
    * 
    * @param gts GeoTimeSerie instance to sort.
    * @param low Lower index, only indexes higher or equal to this value will be sorted.
@@ -714,11 +713,9 @@ public class GTSHelper {
 
       int i = low, j = high;
       // Get the pivot element from the middle of the list
-      long pivot = 0L;
-
-      pivot = gts.locations[low + (high-low)/2];
+      long pivot = gts.locations[low + (high - low) / 2];
       
-      long pivotTick = gts.ticks[low + (high-low) / 2];
+      long pivotTick = gts.ticks[low + (high - low) / 2];
       
       // Divide into two lists
       while (i <= j) {
@@ -727,20 +724,24 @@ public class GTSHelper {
           // If the current value from the left list is smaller
           // (or greater if reversed is true) than the pivot
           // element then get the next element from the left list        
-          while(gts.locations[i] < pivot || (gts.locations[i] == pivot && gts.ticks[i] < pivotTick)) {
+          while ((pivot != GeoTimeSerie.NO_LOCATION && (gts.locations[i] == GeoTimeSerie.NO_LOCATION || gts.locations[i] < pivot))
+              || (gts.locations[i] == pivot && gts.ticks[i] < pivotTick)) {
             i++;
           }
-          
+
           // If the current value from the right list is larger (or lower if reversed is true)
           // than the pivot element then get the next element from the right list
-          while(gts.locations[j] > pivot || (gts.locations[j] == pivot && gts.ticks[j] > pivotTick)) {
+          while ((gts.locations[j] != GeoTimeSerie.NO_LOCATION && (pivot == GeoTimeSerie.NO_LOCATION || gts.locations[j] > pivot))
+              || (gts.locations[j] == pivot && gts.ticks[j] > pivotTick)) {
             j--;
           }
         } else {
-          while(gts.locations[i] > pivot || (gts.locations[i] == pivot && gts.ticks[i] > pivotTick)) {
+          while ((gts.locations[i] != GeoTimeSerie.NO_LOCATION && (pivot == GeoTimeSerie.NO_LOCATION || gts.locations[i] > pivot))
+              || (gts.locations[i] == pivot && gts.ticks[i] > pivotTick)) {
             i++;
           }
-          while(gts.locations[j] < pivot || (gts.locations[j] == pivot && gts.ticks[j] < pivotTick)) {
+          while ((pivot != GeoTimeSerie.NO_LOCATION && (gts.locations[j] == GeoTimeSerie.NO_LOCATION || gts.locations[j] < pivot))
+              || (gts.locations[j] == pivot && gts.ticks[j] < pivotTick)) {
             j--;
           }
         }
@@ -848,8 +849,14 @@ public class GTSHelper {
     // if ticks and values are equals, test locations
     if (null != gts.locations) {
       if (gts.locations[index1] < gts.locations[index2]) {
+        if (GeoTimeSerie.NO_LOCATION == gts.locations[index2]) {
+          return 1;
+        }
         return -1;
       } else if (gts.locations[index1] > gts.locations[index2]) {
+        if (GeoTimeSerie.NO_LOCATION == gts.locations[index1]) {
+          return -1;
+        }
         return 1;
       }
     }
@@ -857,8 +864,14 @@ public class GTSHelper {
     // if ticks, values and locations are equal, test elevation
     if (null != gts.elevations) {
       if (gts.elevations[index1] < gts.elevations[index2]) {
+        if (GeoTimeSerie.NO_ELEVATION == gts.elevations[index2]) {
+          return 1;
+        }
         return -1;
       } else if (gts.elevations[index1] > gts.elevations[index2]) {
+        if (GeoTimeSerie.NO_ELEVATION == gts.elevations[index1]) {
+          return -1;
+        }
         return 1;
       }
     }
