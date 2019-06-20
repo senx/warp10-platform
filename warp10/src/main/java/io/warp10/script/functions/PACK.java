@@ -159,7 +159,7 @@ public class PACK extends NamedWarpScriptFunction implements WarpScriptStackFunc
           throw new WarpScriptException(function.getName() + " encountered an invalid format specification.");
         }
 
-        isBigendian = '>' == type;
+        isBigendian = ('>' == type);
 
         type = format.charAt(idx++);
 
