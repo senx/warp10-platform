@@ -16,61 +16,61 @@
 
 package io.warp10.script.functions;
 
-import java.io.IOException;
-
+import io.warp10.CapacityExtractorOutputStream;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.ElementOrListStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.CapacityExtractorOutputStream;
+
+import java.io.IOException;
 
 /**
  * Optimize storage of GeoTimeSerie or encoder instances
  */
-public class OPTIMIZE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+public class OPTIMIZE extends ElementOrListStackFunction {
+
   public OPTIMIZE(String name) {
     super(name);
-  }  
+  }
 
   @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+  public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
 
-    if (!(top instanceof Double)) {
+    if (!(top instanceof Number)) {
       throw new WarpScriptException(getName() + " expects a ratio on top of the stack.");
     }
-    
-    double ratio = (double) top;
-    
-    top = stack.pop();
-    
-    if (top instanceof GeoTimeSerie) {
-      GeoTimeSerie gts = (GeoTimeSerie) top;
-      GTSHelper.shrink(gts, ratio);
-      stack.push(gts);
-    } else if (top instanceof GTSEncoder) {
-      GTSEncoder encoder = (GTSEncoder) top;
-      
-      if (encoder.size() > 0) {
-        CapacityExtractorOutputStream extractor = new CapacityExtractorOutputStream();
-        try {
-          encoder.writeTo(extractor);
-          if ((double) extractor.getCapacity() / (double) encoder.size() > ratio) {
-            encoder.resize(encoder.size());
-          }                    
-        } catch (IOException ioe) {
-          throw new WarpScriptException(getName() + " encountered an error while shrinking encoder.", ioe);
+
+    final double ratio = ((Number) top).doubleValue();
+
+    return new ElementStackFunction() {
+      @Override
+      public Object applyOnElement(Object element) throws WarpScriptException {
+        if (element instanceof GeoTimeSerie) {
+          GeoTimeSerie gts = (GeoTimeSerie) element;
+          GTSHelper.shrink(gts, ratio);
+          return gts;
+        } else if (element instanceof GTSEncoder) {
+          GTSEncoder encoder = (GTSEncoder) element;
+          if (encoder.size() > 0) {
+            CapacityExtractorOutputStream extractor = new CapacityExtractorOutputStream();
+            try {
+              encoder.writeTo(extractor);
+              if ((double) extractor.getCapacity() / (double) encoder.size() > ratio) {
+                encoder.resize(encoder.size());
+              }
+            } catch (IOException ioe) {
+              throw new WarpScriptException(getName() + " encountered an error while shrinking encoder.", ioe);
+            }
+          }
+          return encoder;
+        } else {
+          throw new WarpScriptException(getName() + "  operates on a Geo Time Series or encoder instance or a list thereof.");
         }
-      }      
-      stack.push(encoder);
-    } else {
-      throw new WarpScriptException(getName() + " operates on a GeoTimeSerie or encoder instance.");
-    }
-    
-    return stack;
-  }  
+      }
+    };
+  }
+
 }
