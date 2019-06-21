@@ -24,7 +24,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
 /**
- * Apply chunk on GTS instances
+ * Apply chunk on GTS or GTSEncoder instances
  * <p>
  * CHUNK expects the following parameters on the stack:
  * <p>
@@ -103,7 +103,7 @@ public class CHUNK extends ElementOrListStackFunction {
         } else if (element instanceof GTSEncoder) {
           return GTSHelper.chunk((GTSEncoder) element, lastChunk, chunkWidth, chunkCount, chunkLabel, keepEmpty, overlap);
         } else {
-          throw new WarpScriptException(getName() + " expects a Geo Time Series, a GTSEncode or a list thereof under the lastchunk parameter.");
+          throw new WarpScriptException(getName() + " expects a Geo Time Series, a GTSEncoder or a list thereof under the lastchunk parameter.");
         }
       }
     };

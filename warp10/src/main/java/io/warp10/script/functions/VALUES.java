@@ -54,7 +54,7 @@ public class VALUES extends GTSStackFunction {
     GTSDecoder decoder = encoder.getDecoder(true);
     
     while(decoder.next()) {
-      values.add(decoder.getValue());
+      values.add(decoder.getBinaryValue());
     }
     
     stack.push(values);

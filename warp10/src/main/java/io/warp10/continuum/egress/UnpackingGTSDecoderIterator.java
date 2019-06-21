@@ -67,10 +67,10 @@ public class UnpackingGTSDecoderIterator extends GTSDecoderIterator {
     //
     
     if (currentDecoder.next()) {
-      Object value = currentDecoder.getValue();
+      Object value = currentDecoder.getBinaryValue();
       
-      if (!(value instanceof String)) {
-        throw new RuntimeException("Invalid value, expected String.");
+      if (!(value instanceof String) && !(value instanceof byte[])) {
+        throw new RuntimeException("Invalid value, expected String or byte array.");
       }
       
       //
@@ -81,7 +81,11 @@ public class UnpackingGTSDecoderIterator extends GTSDecoderIterator {
       
       GTSWrapper wrapper = new GTSWrapper();
       try {
-        deser.deserialize(wrapper, OrderPreservingBase64.decode(value.toString().getBytes(Charsets.US_ASCII)));
+        if (value instanceof byte[]) {
+          deser.deserialize(wrapper, (byte[]) value);
+        } else {
+          deser.deserialize(wrapper, OrderPreservingBase64.decode(value.toString().getBytes(Charsets.US_ASCII)));
+        }
       } catch (TException te) {
         throw new RuntimeException(te);
       }

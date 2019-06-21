@@ -16,7 +16,6 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.continuum.gts.UnsafeString;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -52,92 +51,22 @@ public class UNPACK extends NamedWarpScriptFunction implements WarpScriptStackFu
     }
     
     byte[] data = (byte[]) o;
-    
+
     //
     // Parse the format
     //
-    
-    int idx = 0;
 
-    List<String> types = new ArrayList<String>();
+    BitSet bigendians = new BitSet();
+    List<Character> types = new ArrayList<Character>();
     List<Integer> lengths = new ArrayList<Integer>();
-    
-    while(idx < fmt.length()) {
-      
-      String type = new String(UnsafeString.substring(fmt, idx, idx + 2));
-      
-      char prefix = fmt.charAt(idx++);
-      
-      if (idx > fmt.length()) {
-        throw new WarpScriptException(getName() + " encountered an invalid format specification.");
-      }
-      
-      int len = 0;
-      
-      if ('<' == prefix || '>' == prefix) {
-        char t = fmt.charAt(idx++);
-                
-        boolean nolen = false;
-        
-        if ('L' == t || 'U' == t) {
-          len = 64;
-        } else if ('D' == t) {
-          len = 64;
-          nolen = true;
-        } else {
-          throw new WarpScriptException(getName() + " encountered an invalid format specification '" + prefix + t + "'.");
-        }
-        
-        // Check if we have a length
-        if (!nolen && idx < fmt.length()) {
-          if (fmt.charAt(idx) <= '9' && fmt.charAt(idx) >= '0') {
-            len = 0;
-            while (idx < fmt.length() && fmt.charAt(idx) <= '9' && fmt.charAt(idx) >= '0') {
-              len *= 10;
-              len += (int) (fmt.charAt(idx++) - '0');
-            }
-          }
-        }
-        
-        if (len > 64) {
-          throw new WarpScriptException(getName() + " encountered an invalid length for 'L', max length is 64.");
-        }
-      } else if ('S' == prefix || 's' == prefix) {
-        type = "" + prefix;
-        if (idx >= fmt.length()) {
-          throw new WarpScriptException(getName() + " encountered an invalid Skip specification.");
-        }
-        if (fmt.charAt(idx) <= '9' && fmt.charAt(idx) >= '0') {
-          len = 0;
-          while (idx < fmt.length() && fmt.charAt(idx) <= '9' && fmt.charAt(idx) >= '0') {
-            len *= 10;
-            len += (int) (fmt.charAt(idx++) - '0');
-          }
-        }
-      } else if ('B' == prefix) {
-        type = "" + prefix;
-        len = 1;
-      } else {
-        throw new WarpScriptException(getName() + " encountered an invalid format specification '" + prefix + "'.");
-      }
-      
-      types.add(type);
-      lengths.add(len);      
-    }
+
+    PACK.parseFormat(this, fmt, bigendians, types, lengths);
 
     //
     // Now decode the various values
     //
     
     int bitno = 0;
-    
-//    BitSet bits = new BitSet(data.length * 8);
-//    
-//    for (int i = 0; i < data.length * 8; i++) {
-//      if ((data[i/8] & (1 << (7 - (i % 8)))) != 0) {
-//        bits.set(i);
-//      }
-//    }
 
     //
     // Invert the bits of the input data
@@ -146,6 +75,7 @@ public class UNPACK extends NamedWarpScriptFunction implements WarpScriptStackFu
     byte[] atad = new byte[data.length];
     
     for (int i = 0; i < data.length; i++) {
+      // see http://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith64BitsDiv
       atad[i] = (byte) ((((((long) data[i]) & 0xFFL) * 0x0202020202L & 0x010884422010L) % 1023L) & 0xFFL);
     }
     
@@ -154,26 +84,21 @@ public class UNPACK extends NamedWarpScriptFunction implements WarpScriptStackFu
     List<Object> values = new ArrayList<Object>();
     
     for (int i = 0; i < types.size(); i++) {
-      
+
+      char type = types.get(i);
       int len = lengths.get(i);
       
-      if ("s".equals(types.get(i)) || "S".equals(types.get(i))) {
+      if ('s' == type || 'S' == type) {
         bitno += len;
         continue;
       }
       
-      if ("B".equals(types.get(i))) {
+      if ('B' == type) {
         values.add(bits.get(bitno++));
         continue;
       }
       
-      boolean bigendian = true;
-      
-      if (types.get(i).startsWith("<")) {
-        bigendian = false;
-      } else {
-        bigendian = true;
-      }
+      boolean bigendian = bigendians.get(i);
       
       //
       // Extract bits
@@ -193,14 +118,14 @@ public class UNPACK extends NamedWarpScriptFunction implements WarpScriptStackFu
 
       bitno += len;
 
-      switch (types.get(i).charAt(1)) {
-        case 'D':
+      switch (type) {
+        case 'D': // double
           values.add(Double.longBitsToDouble(value));
           break;
-        case 'L':
+        case 'L': // long
           values.add((value << (64 - len)) >> (64 - len));
           break;
-        case 'U':
+        case 'U': // Unsigned long
           values.add(value);
           break;
       }
