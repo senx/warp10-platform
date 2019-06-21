@@ -19,71 +19,47 @@ package io.warp10.script.functions;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.script.GTSStackFunction;
+import io.warp10.script.ElementOrListStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Apply relabel on GTS instances
- * 
+ * <p>
  * RELABEL expects the following parameters on the stack:
- * 
+ * <p>
  * 1: labels A map of labels
  */
-public class RELABEL extends GTSStackFunction  {
-
-  private static final String LABELS = "labels";
+public class RELABEL extends ElementOrListStackFunction {
 
   public RELABEL(String name) {
     super(name);
   }
 
   @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    if (!(stack.get(1) instanceof GTSEncoder)) {
-      return super.apply(stack);
-    }
-    
-    Map<String,Object> params = retrieveParameters(stack);
-    
-    GTSEncoder encoder = (GTSEncoder) stack.peek();
-    
-    GeoTimeSerie gts = new GeoTimeSerie();
-    gts.setMetadata(encoder.getMetadata());
-    
-    gts = (GeoTimeSerie) gtsOp(params, gts);
-    
-    encoder.setMetadata(gts.getMetadata());  
-    
-    return stack;
-  }
-  
-  @Override
-  protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
-
+  public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-    
+
     if (!(top instanceof Map)) {
       throw new WarpScriptException(getName() + " expects a map of labels as parameter.");
     }
-        
-    Map<String,Object> params = new HashMap<String, Object>();
-    
-    params.put(LABELS, (Map<String,String>) top);
 
-    return params;
-  }
+    final Map<String, String> labels = (Map<String, String>) top;
 
-  @Override
-  protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
-
-    Map<String,String> labels = (Map<String,String>) params.get(LABELS);    
-
-    return GTSHelper.relabel(gts, labels);
+    return new ElementStackFunction() {
+      @Override
+      public Object applyOnElement(Object element) throws WarpScriptException {
+        if (element instanceof GeoTimeSerie) {
+          return GTSHelper.relabel((GeoTimeSerie) element, labels);
+        } else if (element instanceof GTSEncoder) {
+          return GTSHelper.relabel((GTSEncoder) element, labels);
+        } else {
+          throw new WarpScriptException(getName() + " expects a Geo Time Series, a GTSEncoder or a list thereof under the labels parameter.");
+        }
+      }
+    };
   }
 }

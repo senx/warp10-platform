@@ -16,29 +16,22 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.continuum.store.Constants;
+import io.warp10.script.ElementOrListStackFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.continuum.store.Constants;
-import io.warp10.script.GTSStackFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
-
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * Only retain ticks within the given timerange
  */
-public class TIMECLIP extends GTSStackFunction  {
-
-  private static final String START = "start";
-  private static final String END = "end";
-
+public class TIMECLIP extends ElementOrListStackFunction {
 
   private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
 
@@ -47,9 +40,7 @@ public class TIMECLIP extends GTSStackFunction  {
   }
 
   @Override
-  protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
-
-
+  public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
 
     long start;
@@ -69,11 +60,11 @@ public class TIMECLIP extends GTSStackFunction  {
       start = (long) top;
     }
 
-    long end;
+    final long end;
 
     top = stack.pop();
 
-    if (top instanceof String) {      
+    if (top instanceof String) {
       if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
         end = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(top.toString());
       } else {
@@ -89,21 +80,20 @@ public class TIMECLIP extends GTSStackFunction  {
       start = end - start + 1;
     }
 
-    Map<String,Object> params = new HashMap<String, Object>();
+    final long finalStart = start;
 
-    params.put(START, start);
-    params.put(END, end);
-
-    return params;
+    return new ElementStackFunction() {
+      @Override
+      public Object applyOnElement(Object element) throws WarpScriptException {
+        if (element instanceof GeoTimeSerie) {
+          return GTSHelper.timeclip((GeoTimeSerie) element, finalStart, end);
+        } else if (element instanceof GTSEncoder) {
+          return GTSHelper.timeclip((GTSEncoder) element, finalStart, end);
+        } else {
+          throw new WarpScriptException(getName()+" expects a Geo Time Series, a GTSEncoder or a list thereof under the timeframe definition.");
+        }
+      }
+    };
   }
 
-  @Override
-  protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
-    long start = (long) params.get(START);
-    long end = (long) params.get(END);
-
-    GeoTimeSerie result = GTSHelper.timeclip(gts, start, end);
-
-    return result;
-  }
 }

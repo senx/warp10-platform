@@ -72,7 +72,7 @@ public class OpLE extends NamedWarpScriptFunction implements WarpScriptNAryFunct
           return new Object[] { tick, location, elevation, false };
         }
       } else {
-        throw new WarpScriptException(getName() + " can only be applied to geo time series of the same type.");
+        throw new WarpScriptException(getName() + " can only be applied to Geo Time Series of the same type.");
       }
     }
     

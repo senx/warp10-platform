@@ -19,50 +19,46 @@ package io.warp10.script.functions;
 import com.geoxp.GeoXPLib;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.script.GTSStackFunction;
+import io.warp10.script.ElementOrListStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Extract the value/location/elevation at 'index' of the GTS on top of the stack
  */
-public class ATINDEX extends GTSStackFunction {
-
-  private static final String INDEX = "INDEX";
+public class ATINDEX extends ElementOrListStackFunction {
 
   public ATINDEX(String name) {
     super(name);
   }
 
   @Override
-  protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
-    int idx = (Integer) params.get(INDEX);
-
-    idx = GET.computeAndCheckIndex(this, idx, GTSHelper.nvalues(gts));
-
-    return getTupleAtIndex(gts, idx);
-  }
-
-  @Override
-  protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
-    Map<String, Object> params = new HashMap<String, Object>();
-
+  public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
 
     if (!(o instanceof Number)) {
       throw new WarpScriptException(getName() + " expects an index on top of the stack.");
     }
 
-    int idx = ((Number) o).intValue();
+    final int idx = ((Number) o).intValue();
 
-    params.put(INDEX, idx);
+    final ATINDEX atindexInstance = this;
 
-    return params;
+    return new ElementStackFunction() {
+      @Override
+      public Object applyOnElement(Object element) throws WarpScriptException {
+        if (!(element instanceof GeoTimeSerie)) {
+          throw new WarpScriptException(getName() + " expects a Geo Time Series instance or a list thereof under the index.");
+        }
+
+        GeoTimeSerie gts = (GeoTimeSerie) element;
+
+        return getTupleAtIndex(gts, GET.computeAndCheckIndex(atindexInstance, idx, GTSHelper.nvalues(gts)));
+      }
+    };
   }
 
   public static List<Object> getTupleAtIndex(GeoTimeSerie gts, int idx) {
