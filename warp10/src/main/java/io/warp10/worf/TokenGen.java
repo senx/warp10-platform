@@ -123,7 +123,7 @@ public class TokenGen {
 
   public void usage(String[] args) {
     if (args.length < 3) {
-      System.err.println("Usage: TokenGean config ... in out");
+      System.err.println("Usage: TokenGen config ... in out");
       System.exit(-1);
     }
   }
