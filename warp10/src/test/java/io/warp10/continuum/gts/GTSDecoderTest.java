@@ -21,6 +21,8 @@ import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GeoTimeSerie;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,6 +32,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.geoxp.oss.jarjar.org.bouncycastle.util.encoders.Hex;
+import com.google.common.base.Charsets;
 
 public class GTSDecoderTest {
   
@@ -401,4 +404,48 @@ public class GTSDecoderTest {
     
     Assert.assertEquals(19, encoder.size());    
   }  
+  
+  @Test
+  public void testDecoder_duplicateBinary() throws Exception {
+    GTSEncoder encoder = new GTSEncoder(0L);
+    encoder.addValue(0L, 0L, 0L, "@".getBytes(Charsets.ISO_8859_1));
+    encoder.addValue(0L, 0L, 0L, "@");
+    
+    GTSDecoder decoder = encoder.getDecoder();
+    decoder.next();
+    
+    Assert.assertTrue(decoder.getBinaryValue() instanceof byte[]);
+    Assert.assertTrue(decoder.isBinary());
+    
+    decoder = decoder.duplicate();    
+    Assert.assertTrue(decoder.getBinaryValue() instanceof byte[]);
+    Assert.assertTrue(decoder.isBinary());
+    
+    decoder.next();
+    Assert.assertTrue(decoder.getBinaryValue() instanceof String);
+    Assert.assertFalse(decoder.isBinary());
+    
+    decoder = decoder.duplicate();
+    Assert.assertTrue(decoder.getBinaryValue() instanceof String);
+    Assert.assertFalse(decoder.isBinary());
+  }
+  
+  @Test
+  public void testDecoder_dump() throws Exception {
+    GTSEncoder encoder = new GTSEncoder(0L);
+    encoder.addValue(0L, 0L, 0L, false);
+    encoder.addValue(1L, 0L, 0L, 1L);
+    encoder.addValue(2L, 0L, 0L, 2.0D);
+    encoder.addValue(3L, 0L, 0L, "3");
+    encoder.addValue(4L, 0L, 0L, "é".getBytes(Charsets.ISO_8859_1));
+    
+    StringWriter sw = new StringWriter();
+    PrintWriter pw = new PrintWriter(sw);
+    
+    GTSDecoder decoder = encoder.getDecoder();
+    decoder.dump(pw);
+    pw.close();
+    
+    Assert.assertEquals("0/-90.0:-180.0/0 {} F\r\n=1/-90.0:-180.0/0 1\r\n=2/-90.0:-180.0/0 2.0\r\n=3/-90.0:-180.0/0 '3'\r\n=4/-90.0:-180.0/0 b64:6Q\r\n", sw.toString());
+  }
 }

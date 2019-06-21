@@ -118,7 +118,7 @@ public class GTSSplitter {
       
       int encsize = encoder.size();
       
-      encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+      encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
       
       totalsize += encoder.size() - encsize;
       
