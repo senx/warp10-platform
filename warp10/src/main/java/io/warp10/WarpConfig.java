@@ -23,6 +23,7 @@ import io.warp10.script.WarpScriptJarRepository;
 import io.warp10.script.WarpScriptMacroRepository;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,13 +31,18 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 
 public class WarpConfig {
   
@@ -66,6 +72,47 @@ public class WarpConfig {
       safeSetProperties((Reader) null);
     } else {      
       safeSetProperties(new FileReader(file));
+    }
+  }
+  
+  public static void setProperties(String[] files) throws IOException {
+    if (null == files || 0 == files.length) {
+      setProperties((Reader) null);
+    } else {
+      //
+      // Read all files, in the order they were provided, in a String which
+      // will be fed to a StringReader
+      //
+      // If a file starts with '@', treat it as a file containing lists of files
+      //
+      
+      List<String> filenames = new ArrayList<String>(files.length);
+      for (String file: files) {
+        filenames.add(file);
+      }
+
+      StringBuilder sb = new StringBuilder();
+
+      while(!filenames.isEmpty()) {
+        String file = filenames.remove(0);
+        
+        boolean atfile = '@' == file.charAt(0);
+        
+        // Read content of file
+        List<String> lines = Files.readLines(new File(atfile ? file.substring(1) : file), Charsets.UTF_8);
+
+        // If 'file' starts with '@', add the lines as filenames
+        if (atfile) {
+          filenames.addAll(0, lines);
+        } else {
+          for (String line: lines) {
+            sb.append(line);
+            sb.append("\n");
+          }          
+        }
+      }
+
+      setProperties(new StringReader(sb.toString()));
     }
   }
   

@@ -20,6 +20,7 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.Map.Entry;
 import java.util.Properties;
 
@@ -50,9 +51,7 @@ public class TokenGen {
   }
   
   public void parse(String[] args) throws Exception {
-    String config = args[0];
-    
-    WarpConfig.setProperties(config);
+    WarpConfig.setProperties(Arrays.copyOf(args, args.length - 2));
     
     Properties properties = WarpConfig.getProperties();
     
@@ -123,8 +122,8 @@ public class TokenGen {
   }
   
   public void usage(String[] args) {
-    if (args.length < 2) {
-      System.err.println("Usage: TokenGen config in out");
+    if (args.length < 3) {
+      System.err.println("Usage: TokenGen config ... in out");
       System.exit(-1);
     }
   }
@@ -132,10 +131,8 @@ public class TokenGen {
   public void process(String[] args) throws Exception {
     PrintWriter pw = new PrintWriter(System.out);
     
-    if (args.length > 2) {
-      if (!"-".equals(args[2])) {
-        pw = new PrintWriter(new FileWriter(args[2]));
-      }
+    if (!"-".equals(args[args.length - 1])) {
+      pw = new PrintWriter(new FileWriter(args[args.length - 1]));
     }
     
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, WarpConfig.getProperties());
@@ -147,10 +144,10 @@ public class TokenGen {
       
     InputStream in = null;
       
-    if ("-".equals(args[1])) {
+    if ("-".equals(args[args.length - 2])) {
       in = System.in;
     } else {
-      in = new FileInputStream(args[1]);
+      in = new FileInputStream(args[args.length - 2]);
     }
       
     while(true) {

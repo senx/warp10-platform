@@ -47,8 +47,6 @@ public class RELABEL extends ElementOrListStackFunction {
       throw new WarpScriptException(getName() + " expects a map of labels as parameter.");
     }
 
-    Map<String, Object> params = new HashMap<String, Object>();
-
     final Map<String, String> labels = (Map<String, String>) top;
 
     return new ElementStackFunction() {

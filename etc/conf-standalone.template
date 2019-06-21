@@ -977,6 +977,8 @@ runner.minperiod = 1000
 #http.queuesize = 8
 // Set to false to disable support for gzipped responses
 #http.gzip = false
+// Set to true to convert header names to lower case in the request map
+#http.lcheaders = true
 
 //
 // UDP Plugin

@@ -93,6 +93,12 @@ public class WarpDist {
     
     properties = props;
   }
+ 
+  public static void setProperties(String[] files) throws IOException {
+    WarpConfig.setProperties(files);
+    
+    properties = WarpConfig.getProperties();    
+  }
   
   public static void setProperties(String file) throws IOException {
     WarpConfig.setProperties(file);
@@ -117,7 +123,7 @@ public class WarpDist {
     System.setProperty("java.awt.headless", "true");
     
     if (args.length > 0) {
-      setProperties(args[0]);
+      setProperties(args);
     } else if (null != System.getenv(WarpConfig.WARP10_CONFIG_ENV)) {
       setProperties(System.getenv(WarpConfig.WARP10_CONFIG_ENV));
     } else if (null != System.getProperty(WarpConfig.WARP10_CONFIG)) {
