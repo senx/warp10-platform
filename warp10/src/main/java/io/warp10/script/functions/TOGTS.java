@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -79,7 +80,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
     GeoTimeSerie gts;
     
     while(decoder.next()) {
-      Object value = decoder.getValue();
+      Object value = decoder.getBinaryValue();
       
       String type = "DOUBLE";
       
@@ -89,11 +90,14 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
         type = "BOOLEAN";
       } else if (value instanceof Long) {
         type = "LONG";
-      } else {
+      } else if (value instanceof Double || value instanceof BigDecimal) { 
         type = "DOUBLE";
+      } else if (value instanceof byte[]) {
+        type = "BINARY";
       }
       
       gts = series.get(type);
+      
       if (null == gts) {
         gts = new GeoTimeSerie();
         gts.setMetadata(decoder.getMetadata());

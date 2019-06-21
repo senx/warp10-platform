@@ -242,7 +242,7 @@ public class GTSWrapperHelper {
     while(decoder.next()) {
       if (decoder.getTimestamp() >= from && decoder.getTimestamp() <= to) {
         try {
-          encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+          encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
         } catch (IOException ioe) {
           return null;
         }

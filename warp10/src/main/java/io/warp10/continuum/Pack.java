@@ -127,7 +127,7 @@ public class Pack {
         }        
       }
 
-      chunkEncoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+      chunkEncoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
       
       if (ts > maxTS) {
         maxTS = ts;
@@ -249,7 +249,7 @@ public class Pack {
         long splitmax = Long.MIN_VALUE;
         
         while(deco.next()) {
-          split.addValue(deco.getTimestamp(), deco.getLocation(), deco.getElevation(), deco.getValue());
+          split.addValue(deco.getTimestamp(), deco.getLocation(), deco.getElevation(), deco.getBinaryValue());
           
           if (deco.getTimestamp() > splitmax) {
             splitmax = deco.getTimestamp();

@@ -16,7 +16,6 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.continuum.gts.UnsafeString;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -24,6 +23,7 @@ import io.warp10.script.WarpScriptStackFunction;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -62,84 +62,18 @@ public class PACK extends NamedWarpScriptFunction implements WarpScriptStackFunc
     //
     // Parse the format
     //
-    
-    int idx = 0;
 
-    List<String> types = new ArrayList<String>();
+    BitSet bigendians = new BitSet();
+    List<Character> types = new ArrayList<Character>();
     List<Integer> lengths = new ArrayList<Integer>();
     
-    int totalbits = 0;
-    
-    while(idx < fmt.length()) {
-      
-      String type = new String(UnsafeString.substring(fmt, idx, idx + 2));
-      
-      char prefix = fmt.charAt(idx++);
-      
-      if (idx > fmt.length()) {
-        throw new WarpScriptException(getName() + " encountered an invalid format specification.");
-      }
-      
-      int len = 0;
-      
-      if ('<' == prefix || '>' == prefix) {
-        char t = fmt.charAt(idx++);
-                
-        boolean nolen = false;
-        
-        if ('L' == t) {
-          len = 64;
-        } else if ('D' == t) {
-          len = 64;
-          nolen = true;
-        } else {
-          throw new WarpScriptException(getName() + " encountered an invalid format specification '" + prefix + t + "'.");
-        }
-        
-        // Check if we have a length
-        if (!nolen && idx < fmt.length()) {
-          if (fmt.charAt(idx) <= '9' && fmt.charAt(idx) >= '0') {
-            len = 0;
-            while (idx < fmt.length() && fmt.charAt(idx) <= '9' && fmt.charAt(idx) >= '0') {
-              len *= 10;
-              len += (int) (fmt.charAt(idx++) - '0');
-            }
-          }
-        }
-        
-        if (len > 64) {
-          throw new WarpScriptException(getName() + " encountered an invalid length for 'L', max length is 64.");
-        }
-      } else if ('S' == prefix || 's' == prefix) {
-        type = "" + prefix;
-        if (idx >= fmt.length()) {
-          throw new WarpScriptException(getName() + " encountered an invalid Skip specification.");
-        }
-        if (fmt.charAt(idx) <= '9' && fmt.charAt(idx) >= '0') {
-          len = 0;
-          while (idx < fmt.length() && fmt.charAt(idx) <= '9' && fmt.charAt(idx) >= '0') {
-            len *= 10;
-            len += (int) (fmt.charAt(idx++) - '0');
-          }
-        }
-      } else if ('B' == prefix) {
-        type = "" + prefix;
-        len = 1;
-      } else {
-        throw new WarpScriptException(getName() + " encountered an invalid format specification '" + prefix + "'.");
-      }
-      
-      types.add(type);
-      lengths.add(len);
-      
-      totalbits += len;
-    }
+    int totalbits = PACK.parseFormat(this, fmt, bigendians, types, lengths);
 
     //
     // Now encode the various values
     //
     
-    ByteArrayOutputStream baos = new ByteArrayOutputStream(((totalbits + 7) / 8));
+    ByteArrayOutputStream baos = new ByteArrayOutputStream(((totalbits + 7) / 8)); // Round up to multiple of 8
     
     int nbits = 0;
     int vidx = 0;
@@ -151,14 +85,10 @@ public class PACK extends NamedWarpScriptFunction implements WarpScriptStackFunc
       int len = lengths.get(i);
       long value = 0L;
       
-      boolean bigendian = true;
-
-      if ("s".equals(types.get(i))) {
+      if ('s' == types.get(i)) {
         value = 0L;
-        bigendian = false;
-      } else if ("S".equals(types.get(i))) {
+      } else if ('S' == types.get(i)) {
         value = 0xFFFFFFFFFFFFFFFFL;
-        bigendian = false;
       } else {
         Object v = values.get(vidx++);
         
@@ -170,26 +100,17 @@ public class PACK extends NamedWarpScriptFunction implements WarpScriptStackFunc
           }
         }
 
-        if ("<D".equals(types.get(i))) {
-          bigendian = false;
+        if ('D' == types.get(i)) {
           value = Double.doubleToRawLongBits(((Number) v).doubleValue());
-        } else if (">D".equals(types.get(i))) {
-          bigendian = true;
-          value = Double.doubleToRawLongBits(((Number) v).doubleValue());        
-        } else if ("<L".equals(types.get(i))) {
-          bigendian = false;
+        } else if ('L' == types.get(i) || 'U' == types.get(i)) {
           value = ((Number) v).longValue();
-        } else if (">L".equals(types.get(i))) {
-          bigendian = true;          
-          value = ((Number) v).longValue();
-        } else if ("B".equals(types.get(i))) {
-          bigendian = false;
+        } else if ('B' == types.get(i)) {
           value = 0 != ((Number) v).longValue() ? 1L : 0L;
         }
       }
-      
-      if (bigendian) {
-        
+
+      // Reverse bits for big endians
+      if (bigendians.get(i)) {
         value = Long.reverse(value);
         
         if (len < 64) {
@@ -210,6 +131,7 @@ public class PACK extends NamedWarpScriptFunction implements WarpScriptStackFunc
       }
     }
 
+    // Right-pad with zeros
     if (0 != nbits % 8) {
       curbyte <<= 8 - (nbits % 8);
       baos.write((int) (curbyte & 0xFFL));
@@ -219,4 +141,73 @@ public class PACK extends NamedWarpScriptFunction implements WarpScriptStackFunc
     
     return stack;
   }
+
+  public static int parseFormat(NamedWarpScriptFunction function, String format, BitSet bigendians, List<Character> types, List<Integer> lengths) throws WarpScriptException {
+    int idx = 0;
+    int totalbits = 0;
+
+    while (idx < format.length()) {
+
+      boolean isBigendian = false;
+
+      char type = format.charAt(idx++);
+
+      int len = 0;
+
+      if ('<' == type || '>' == type) {
+        if (idx >= format.length()) {
+          throw new WarpScriptException(function.getName() + " encountered an invalid format specification.");
+        }
+
+        isBigendian = ('>' == type);
+
+        type = format.charAt(idx++);
+
+        if ('L' == type || 'U' == type) {
+          // Parse length
+          while (idx < format.length() && format.charAt(idx) <= '9' && format.charAt(idx) >= '0') {
+            len *= 10;
+            len += (int) (format.charAt(idx++) - '0');
+          }
+
+          if (0 == len) {
+            // If no specified length, fall back to 64
+            len = 64;
+          } else if (len > 64) {
+            throw new WarpScriptException(function.getName() + " encountered an invalid length for 'L', max length is 64.");
+          }
+        } else if ('D' == type) {
+          len = 64;
+        } else {
+          throw new WarpScriptException(function.getName() + " encountered an invalid format specification '" + type + "'.");
+        }
+      } else if ('S' == type || 's' == type) {
+        // Parse length
+        while (idx < format.length() && format.charAt(idx) <= '9' && format.charAt(idx) >= '0') {
+          len *= 10;
+          len += (int) (format.charAt(idx++) - '0');
+        }
+
+        // If no specified length, error.
+        if (0 == len) {
+          throw new WarpScriptException(function.getName() + " encountered an invalid Skip specification, length must be a strictly positive number.");
+        }
+      } else if ('B' == type) {
+        len = 1;
+      } else {
+        throw new WarpScriptException(function.getName() + " encountered an invalid format specification '" + type + "'.");
+      }
+
+      // Can't use bigendians.size() nor bigendians.length() because they don't give the number of defined bits (set or cleared).
+      // bigendians, types and lengths contains the same number of elements, so we can use either types.size() or lengths.size().
+      bigendians.set(types.size(), isBigendian);
+      types.add(type);
+      lengths.add(len);
+
+      totalbits += len;
+    }
+
+    return totalbits;
+  }
+
 }

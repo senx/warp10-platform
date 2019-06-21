@@ -17,26 +17,33 @@
 package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 public class RUN extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public RUN(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object symbol = stack.pop();
-    
-    if (!(symbol instanceof String)) {
-      throw new WarpScriptException(getName() + " expects macro name to be a string.");
+
+    if (symbol instanceof String) {
+      stack.run(symbol.toString());
+    } else if (symbol instanceof Long) {
+      Object reg = stack.load(((Number) symbol).intValue());
+      if (reg instanceof WarpScriptStack.Macro) {
+        stack.exec((WarpScriptStack.Macro) reg);
+      } else {
+        throw new WarpScriptException(getName() + " expects register number " + symbol + " to contain a macro.");
+      }
+    } else {
+      throw new WarpScriptException(getName() + " expects macro name to be a STRING or a register number (LONG).");
     }
-    
-    stack.run(symbol.toString());
-    
+
     return stack;
   }
 }

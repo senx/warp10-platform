@@ -48,12 +48,12 @@ public class SET extends NamedWarpScriptFunction implements WarpScriptStackFunct
     if (key instanceof List) {
 
       for (Object o: (List) key) {
-        if (!(o instanceof Number)) {
+        if (!(o instanceof Long)) {
           throw new WarpScriptException(getName() + " expects the key to be an integer or a list of integers when operating on a List.");
         }
       }
 
-      List<Number> copyIndices = new ArrayList<>((List<Number>) key);
+      List<Long> copyIndices = new ArrayList<>((List<Long>) key);
       int lastIdx = copyIndices.remove(copyIndices.size() - 1).intValue();
       Object container;
 
@@ -71,12 +71,12 @@ public class SET extends NamedWarpScriptFunction implements WarpScriptStackFunct
       }
 
     } else {
-      if (!(key instanceof Number)) {
+      if (!(key instanceof Long)) {
         throw new WarpScriptException(getName() + " expects a key which is an LONG or a list of LONG.");
       }
 
       if (listOrByteArray instanceof List) {
-        int idx = GET.computeAndCheckIndex(((Number) key).intValue(), ((List) listOrByteArray).size());
+        int idx = GET.computeAndCheckIndex(((Long) key).intValue(), ((List) listOrByteArray).size());
         ((List) listOrByteArray).set(idx, value);
       } else {
         byte[] data = (byte[]) listOrByteArray;
@@ -85,7 +85,7 @@ public class SET extends NamedWarpScriptFunction implements WarpScriptStackFunct
           throw new WarpScriptException(getName() + " expects the element to be a LONG in either [0,255] or [-128,127], when operating on a byte array.");
         }
 
-        long l = ((Number) value).longValue();
+        long l = ((Long) value).longValue();
 
         if (l < -128 || l > 255) {
           throw new WarpScriptException(getName() + " expects the element to be a LONG in either [0,255] or [-128,127], when operating on a byte array.");
@@ -93,7 +93,7 @@ public class SET extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
         byte elt = (byte) (l & 0xFFL);
 
-        int idx = GET.computeAndCheckIndex(((Number) key).intValue(), data.length);
+        int idx = GET.computeAndCheckIndex(((Long) key).intValue(), data.length);
 
         data[idx] = elt;
       }

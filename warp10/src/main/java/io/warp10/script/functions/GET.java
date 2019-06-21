@@ -48,8 +48,8 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
     if (coll instanceof Map) {
       value = ((Map) coll).get(key);
 
-    } else if (key instanceof Number) {
-      int idx = ((Number) key).intValue();
+    } else if (key instanceof Long) {
+      int idx = ((Long) key).intValue();
 
       if (coll instanceof List) {
         int size = ((List) coll).size();
@@ -74,12 +74,12 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
     } else {
       for (Object o: (List) key) {
-        if (!(o instanceof Number)) {
+        if (!(o instanceof Long)) {
           throw new WarpScriptException(getName() + " expects the key to be an integer or a list of integers when operating on a List.");
         }
       }
 
-      value = nestedGet((List) coll, (List<Number>) key);
+      value = nestedGet((List) coll, (List<Long>) key);
     }
     
     stack.push(value);
@@ -100,7 +100,7 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
     return index;
   }
 
-  static Object nestedGet(List<Object> nestedList, List<Number> indexList) throws WarpScriptException {
+  static Object nestedGet(List<Object> nestedList, List<Long> indexList) throws WarpScriptException {
     Object res = nestedList;
 
     for (int i = 0; i < indexList.size(); i++) {

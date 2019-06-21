@@ -74,6 +74,7 @@ public class GEOUNPACK extends NamedWarpScriptFunction implements WarpScriptStac
     
     while(idx < cells.length && decoder.next()) {
       long cell = decoder.getTimestamp();
+      // We do not call getBinaryValue because we expect booleans anyway
       Object value = decoder.getValue();
       
       if (!Boolean.TRUE.equals(value)) {
