@@ -97,7 +97,7 @@ public class PERMUTE extends FormattedWarpScriptFunction {
           permutedIndices.add(new_indices.get(pattern.lastIndexOf(new Long(r))));
         }
 
-        result.add(GET.recNestedGet(this, tensor, permutedIndices));
+        result.add(GET.nestedGet(tensor, permutedIndices));
 
       } else {
 
