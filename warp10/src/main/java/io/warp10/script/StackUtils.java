@@ -212,6 +212,7 @@ public class StackUtils {
         long ts = decoder.getTimestamp();
         long location = decoder.getLocation();
         long elevation = decoder.getElevation();
+        // We do not call getBinaryValue because JSON cannot represent byte arrays
         Object v = decoder.getValue();
         out.print("[");
         out.print(ts);

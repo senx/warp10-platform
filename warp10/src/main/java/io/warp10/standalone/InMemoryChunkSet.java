@@ -129,7 +129,7 @@ public class InMemoryChunkSet {
         this.lasttimestamp[chunkid] = timestamp;
       }
       
-      chunkEncoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());      
+      chunkEncoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());      
     }
   }
   
@@ -262,7 +262,7 @@ public class InMemoryChunkSet {
           continue;
         }
         
-        encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
+        encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue());
       }
     }
 
@@ -339,7 +339,7 @@ try {
           // we can add everything.
           //
           while(chunkDecoder.next()) {
-            encoder.addValue(chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
+            encoder.addValue(chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue());
             nvalues--;
           }
         } else if (chunkDecoder.getCount() <= nvalues) {
@@ -353,7 +353,7 @@ try {
               // we can break because we know the encoder is in chronological order.
               break;
             }
-            encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
+            encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue());
             nvalues--;
           }          
         } else {
@@ -370,7 +370,7 @@ try {
               skip--;
             }
             while(chunkDecoder.next()) {
-              encoder.addValue(chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
+              encoder.addValue(chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue());
               nvalues--;
             }          
           } else {            
@@ -394,7 +394,7 @@ try {
               valid--;
             }
             while(valid > 0 && chunkDecoder.next()) {
-              encoder.addValue(chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
+              encoder.addValue(chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue());
               nvalues--;
               valid--;
             }                      
@@ -412,7 +412,7 @@ try {
           // what is still needed, add everything.
           //
           while(chunkDecoder.next()) {
-            encoder.addValue(chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
+            encoder.addValue(chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue());
             nvalues--;
           }          
         } else if(chunkDecoder.getCount() <= nvalues) {
@@ -426,7 +426,7 @@ try {
               // we skip the value as the encoder is not in chronological order
               continue;
             }
-            encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
+            encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue());
             nvalues--;
           }          
         } else {
@@ -463,7 +463,7 @@ try {
               if (ts < lowest) {
                 continue;
               }
-              encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
+              encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue());
               nvalues--;
             }                                  
           } else {
@@ -477,7 +477,7 @@ try {
               if (ts > now) {
                 continue;
               }
-              encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue());
+              encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue());
               nvalues--;
               valid--;
             }                                              
