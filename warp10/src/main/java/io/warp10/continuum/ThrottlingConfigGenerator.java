@@ -306,7 +306,6 @@ public class ThrottlingConfigGenerator {
 
       if (decoder.next()) {        
         // We don't call getBinaryValue because we know the value was stored as OPB64
-        //HyperLogLogPlus estimator = HyperLogLogPlus.fromBytes(OrderPreservingBase64.decode(decoder.getValue().toString().getBytes(Charsets.US_ASCII)));
         HyperLogLogPlus estimator = HyperLogLogPlus.fromBytes(OrderPreservingBase64.decode(decoder.getValue().toString().getBytes(Charsets.US_ASCII)));
         
         if (estimator.hasExpired()) {
@@ -424,7 +423,8 @@ public class ThrottlingConfigGenerator {
       
       GTSDecoder decoder = encoder.getDecoder();
 
-      if (decoder.next()) {        
+      if (decoder.next()) {
+        // We don't call getBinaryValue because we know the value was stored as OPB64
         HyperLogLogPlus estimator = HyperLogLogPlus.fromBytes(OrderPreservingBase64.decode(decoder.getValue().toString().getBytes(Charsets.US_ASCII)));
         
         if (estimator.hasExpired()) {

@@ -644,7 +644,7 @@ public class GTSEncoderTest {
     Assert.assertTrue(decoder.next());
     Assert.assertTrue(0L == decoder.getTimestamp());
     Assert.assertTrue(decoder.getBinaryValue() instanceof byte[]);
-    Assert.assertTrue("é".equals(decoder.getValue()));        
+    Assert.assertEquals("é", decoder.getValue());        
     
     encoder = new GTSEncoder(0L);
     encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "@".getBytes(Charsets.ISO_8859_1));
@@ -687,8 +687,8 @@ public class GTSEncoderTest {
     Assert.assertEquals(1.0D, decoder.getTimestamp(), 0.000000000001D);
     Object value = decoder.getBinaryValue();
     Assert.assertTrue(value instanceof byte[]);    
-    Assert.assertTrue(1 == ((byte[]) value).length);
-    Assert.assertTrue((byte) 0xE8 == ((byte[]) value)[0]);    
+    Assert.assertEquals(1, ((byte[]) value).length);
+    Assert.assertEquals((byte) 0xE8, ((byte[]) value)[0]);    
   }
   
   @Test

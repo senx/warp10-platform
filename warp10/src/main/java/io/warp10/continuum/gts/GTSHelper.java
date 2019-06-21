@@ -2331,9 +2331,6 @@ public class GTSHelper {
         value = Boolean.TRUE;
       } else if (('f' == firstChar || 'F' == firstChar) && (1 == valuestr.length() || "false".equalsIgnoreCase(valuestr))) {
         value = Boolean.FALSE;
-      //
-      // FIXME(hbs): add support for quaternions, for hex values???
-      //
       } else if ('H' == firstChar && valuestr.startsWith("HH:")) {
         int colon = valuestr.indexOf(':',3);
         if (-1 == colon) {
