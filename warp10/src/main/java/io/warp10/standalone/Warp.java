@@ -41,6 +41,7 @@ import org.iq80.leveldb.Options;
 import com.google.common.base.Preconditions;
 
 import io.warp10.Revision;
+import io.warp10.WarpConfig;
 import io.warp10.WarpDist;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
@@ -384,7 +385,12 @@ public class Warp extends WarpDist implements Runnable {
       datalogSrcDirs = Collections.unmodifiableSet(srcDirs);
       
     } else if (!analyticsEngineOnly && properties.containsKey(Configuration.DATALOG_FORWARDER_SRCDIR) && properties.containsKey(Configuration.DATALOG_FORWARDER_DSTDIR)) {
-      DatalogForwarder forwarder = new DatalogForwarder(keystore, properties);
+      Path datalogdir = new File(properties.getProperty(Configuration.DATALOG_DIR)).toPath().toRealPath();
+      DatalogForwarder forwarder = new DatalogForwarder(keystore, properties);      
+      Path root = forwarder.getRootDir().toRealPath();
+      if (datalogdir.equals(root)) {
+        throw new RuntimeException("Datalog directory '" + datalogdir + "' cannot be used as the source directory of a forwarder.");
+      }
     }
     
     //
