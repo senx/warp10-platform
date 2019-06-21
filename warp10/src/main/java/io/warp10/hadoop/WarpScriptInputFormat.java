@@ -49,7 +49,7 @@ import io.warp10.script.WarpScriptExecutor.StackSemantics;
  * This InputFormat wraps another InputFormat and creates a RecordReader
  * which returns K/V processed by some WarpScript™ code.
  */
-public class WarpScriptInputFormat extends InputFormat<Writable, Writable> {
+public class WarpScriptInputFormat extends InputFormat<Object, Object> {
 
   /**
    * Name of symbol under which the Hadoop Configuration will be made available
@@ -142,7 +142,7 @@ public class WarpScriptInputFormat extends InputFormat<Writable, Writable> {
   }
   
   @Override
-  public RecordReader<Writable, Writable> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
+  public RecordReader<Object, Object> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
     if (null == this.wrappedRecordReader) {
       ensureInnerFormat(context.getConfiguration());
       this.wrappedRecordReader = this.wrappedInputFormat.createRecordReader(split, context);
