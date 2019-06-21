@@ -566,8 +566,8 @@ public class StackUtils {
       
       if (null != inGTS.booleanValues) {
         type = TYPE.BOOLEAN;
-        if (inGTS.booleanValues.size() != len) {
-          throw new WarpScriptException("Incoherent size for boolean values (" + inGTS.booleanValues.size() + "), expected " + len);
+        if (inGTS.booleanValues.size() < len) {  // .size() gives the number of bits the implementation uses
+          throw new WarpScriptException("Incoherent size for boolean values (" + inGTS.booleanValues.size() + "), or less expected " + len);
         }
       }
       

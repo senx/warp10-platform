@@ -1330,7 +1330,8 @@ public class GTSHelper {
       
       if (value instanceof Boolean) {
         gts.type = TYPE.BOOLEAN;
-        if (null == gts.booleanValues || gts.booleanValues.size() < gts.ticks.length) {
+        // BitSet capacity increases as booleans are added so there is no need to create another if it's too small
+        if (null == gts.booleanValues) {
           gts.booleanValues = new BitSet(gts.ticks.length);
         }
       } else if (value instanceof Long || value instanceof Integer || value instanceof Short || value instanceof Byte || value instanceof BigInteger) {
@@ -6622,11 +6623,7 @@ public class GTSHelper {
         gts.doubleValues = null;
         gts.stringValues = null;
         if (null != gts.booleanValues && gts.booleanValues.size() > gts.values) {
-          BitSet newbits = new BitSet(gts.values);
-          for (int i = 0; i < gts.values; i++) {
-            newbits.set(i, gts.booleanValues.get(i));
-          }
-          gts.booleanValues = newbits;
+          gts.booleanValues = gts.booleanValues.get(0, gts.values);
         }
         break;
     }
