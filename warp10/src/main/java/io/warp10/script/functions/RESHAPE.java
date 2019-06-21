@@ -71,18 +71,13 @@ public class RESHAPE extends NamedWarpScriptFunction implements WarpScriptStackF
     List<Object> elts = (List<Object>) stack.pop();
     
     if (elts.size() != ncells) {
-      throw new WarpScriptException(getName() + " not enough elements, expected " + ncells + " but only found " + elts.size());
+      throw new WarpScriptException(getName() + " expected " + ncells + " elements, but found " + elts.size());
     }
     
     // Now perform a reshape of the List
 
-    for (int k = shape.size() - 1; k >= 0; k--) {
+    for (int k = shape.size() - 1; k >= 1; k--) {
       int dim = ((Number) shape.get(k)).intValue();
-      
-      // The deepest dimension is the number of elements per array
-      if (shape.size() - 1 == k) {
-        dim = elts.size() / dim;
-      }
       
       List<Object> ll = elts;
       int size = elts.size() / dim;
@@ -94,14 +89,9 @@ public class RESHAPE extends NamedWarpScriptFunction implements WarpScriptStackF
       elts = new ArrayList<Object>(size);
 
       int idx = 0;
-      
-      if (k == shape.size() - 2) {
-        elts.addAll(ll);
-      } else {
-        while (idx < ll.size()) {
-          elts.add(ll.subList(idx, idx + size));
-          idx += size;
-        }
+      while (idx < ll.size()) {
+        elts.add(ll.subList(idx, idx + dim));
+        idx += dim;
       }
     }
 
