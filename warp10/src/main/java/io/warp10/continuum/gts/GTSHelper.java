@@ -2578,7 +2578,7 @@ public class GTSHelper {
         value = TOQUATERNION.toQuaternion(q[0], q[1], q[2], q[3]);
       } else if ('[' == valuestr.charAt(0)) {        
         
-        // Value is a tensor, a space separated list of tokens of the form enclodes in [ ... ]
+        // Value is a nested set of lists, each one being a space separated list of tokens of the form enclosed in [ ... ]
         // VALUE
         // TS/VALUE
         // TS/LAT:LON/VALUE
