@@ -94,11 +94,11 @@ public class NestedListsShapeTest {
   }
 
   @Test
-  public void testHullShape() throws Exception {
+  public void testHullShapeSimple() throws Exception {
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null,null);
     stack.maxLimits();
 
-    stack.execMulti("[ 1 2 2 3 4 5 * * * * <% %> FOR ] SHAPE");
+    stack.execMulti("[ 1 2 2 3 4 5 * * * * <% %> FOR ] HULLSHAPE");
 
     Object o = stack.pop();
     Assert.assertTrue(o instanceof List);
@@ -111,6 +111,36 @@ public class NestedListsShapeTest {
       "4 == ASSERT " +
       "4 == ASSERT " +
       "5 == ASSERT ");
+    stack.execMulti("DEPTH 0 == ASSERT");
+  }
+
+  @Test
+  public void testHullShape() throws Exception {
+    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null,null);
+    stack.maxLimits();
+
+    stack.execMulti("[ 1 2 [ 4 5 [ 6 ] 7 8 ] [ [ 9  10 ] [ 11  12 ] ] 13 14 [ 15 16 ] ]");
+
+    stack.execMulti("HULLSHAPE LIST-> " +
+      "3 == ASSERT " +
+      "2 == ASSERT " +
+      "5 == ASSERT " +
+      "7 == ASSERT ");
+    stack.execMulti("DEPTH 0 == ASSERT");
+  }
+
+  @Test
+  public void testHullShapeWithEmptyLists() throws Exception {
+    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null,null);
+    stack.maxLimits();
+
+    stack.execMulti("[ 1 2 [ 4 5 [ ] 7 8 ] [ [ 9  10 ] [ 11  12 ] ] 13 [] [ 15 16 ] ]");
+
+    stack.execMulti("HULLSHAPE LIST-> " +
+      "3 == ASSERT " +
+      "2 == ASSERT " +
+      "5 == ASSERT " +
+      "7 == ASSERT ");
     stack.execMulti("DEPTH 0 == ASSERT");
   }
 
