@@ -76,7 +76,7 @@ public abstract class BitwiseOperation extends NamedWarpScriptFunction implement
         stack.push(result);
       } else if (GeoTimeSerie.TYPE.UNDEFINED == gts.getType()) {
         // gts is empty return gts
-        stack.push(gts);
+        stack.push(gts.cloneEmpty());
       } else {
         throw new WarpScriptException(exceptionMessage);
       }

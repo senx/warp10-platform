@@ -32,6 +32,31 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
     super(name);
   }
   
+  private final GTSOpsHelper.GTSBinaryOp stringOp = new GTSOpsHelper.GTSBinaryOp() {
+    @Override
+    public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+      boolean ComparisonResult = operator((GTSHelper.valueAtIndex(gtsa, idxa)).toString().compareTo((GTSHelper.valueAtIndex(gtsb, idxb)).toString()), 0);
+      return ComparisonResult ? GTSHelper.valueAtIndex(gtsa, idxa) : null;
+    }
+  };
+  
+  private final GTSOpsHelper.GTSBinaryOp numberOp = new GTSOpsHelper.GTSBinaryOp() {
+    @Override
+    public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+      if (GTSHelper.valueAtIndex(gtsa, idxa) instanceof Double && Double.isNaN((Double) GTSHelper.valueAtIndex(gtsa, idxa))) {
+        // if one is NaN, result of comparison is always false, return null.
+        return null;
+      } else if (GTSHelper.valueAtIndex(gtsb, idxb) instanceof Double && Double.isNaN((Double) GTSHelper.valueAtIndex(gtsb, idxb))) {
+        // if one is NaN, result of comparison is always false, return null.
+        return null;
+      } else {
+        // both inputs are numbers
+        boolean ComparisonResult = operator(EQ.compare((Number) (GTSHelper.valueAtIndex(gtsa, idxa)), (Number) (GTSHelper.valueAtIndex(gtsb, idxb))), 0);
+        return ComparisonResult ? GTSHelper.valueAtIndex(gtsa, idxa) : null;
+      }
+    }
+  };
+  
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     String exceptionMessage = getName() + "  can only operate on homogeneous numeric or string types.";
@@ -57,14 +82,7 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
         // both strings, compare lexicographically
         GeoTimeSerie result = new GeoTimeSerie(Math.max(GTSHelper.nvalues(gts1), GTSHelper.nvalues(gts2)));
         result.setType(GeoTimeSerie.TYPE.STRING);
-        GTSOpsHelper.GTSBinaryOp op = new GTSOpsHelper.GTSBinaryOp() {
-          @Override
-          public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-            boolean ComparisonResult = operator((GTSHelper.valueAtIndex(gtsa, idxa)).toString().compareTo((GTSHelper.valueAtIndex(gtsb, idxb)).toString()), 0);
-            return ComparisonResult ? GTSHelper.valueAtIndex(gtsa, idxa) : null;
-          }
-        };
-        GTSOpsHelper.applyBinaryOp(result, gts1, gts2, op);
+        GTSOpsHelper.applyBinaryOp(result, gts1, gts2, stringOp);
         stack.push(result);
       } else if ((GeoTimeSerie.TYPE.LONG == gts1.getType() || GeoTimeSerie.TYPE.DOUBLE == gts1.getType())
           && (GeoTimeSerie.TYPE.LONG == gts2.getType() || GeoTimeSerie.TYPE.DOUBLE == gts2.getType())) {
@@ -76,30 +94,14 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
         } else {
           result.setType(GeoTimeSerie.TYPE.LONG);
         }
-        GTSOpsHelper.GTSBinaryOp op = new GTSOpsHelper.GTSBinaryOp() {
-          @Override
-          public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-            if (GTSHelper.valueAtIndex(gtsa, idxa) instanceof Double && Double.isNaN((Double) GTSHelper.valueAtIndex(gtsa, idxa))) {
-              // if one is NaN, result of comparison is always false, return null.
-              return null;
-            } else if (GTSHelper.valueAtIndex(gtsb, idxb) instanceof Double && Double.isNaN((Double) GTSHelper.valueAtIndex(gtsb, idxb))) {
-              // if one is NaN, result of comparison is always false, return null.
-              return null;
-            } else {
-              // both inputs are numbers
-              boolean ComparisonResult = operator(EQ.compare((Number) (GTSHelper.valueAtIndex(gtsa, idxa)), (Number) (GTSHelper.valueAtIndex(gtsb, idxb))), 0);
-              return ComparisonResult ? GTSHelper.valueAtIndex(gtsa, idxa) : null;
-            }
-          }
-        };
-        GTSOpsHelper.applyBinaryOp(result, gts1, gts2, op);
+        GTSOpsHelper.applyBinaryOp(result, gts1, gts2, numberOp);
         stack.push(result);
       } else {
         throw new WarpScriptException(exceptionMessage);
       }
     } else if (op1 instanceof GeoTimeSerie && GeoTimeSerie.TYPE.UNDEFINED == ((GeoTimeSerie) op1).getType() && (op2 instanceof String || op1 instanceof Number)) {
-      // empty string compared to a string or a number
-      stack.push(op1);
+      // empty gts compared to a string or a number
+      stack.push(((GeoTimeSerie) op1).cloneEmpty());
     } else if (op1 instanceof GeoTimeSerie && op2 instanceof String && GeoTimeSerie.TYPE.STRING == ((GeoTimeSerie) op1).getType()) {
       // one string gts compared to a string
       GeoTimeSerie gts = (GeoTimeSerie) op1;

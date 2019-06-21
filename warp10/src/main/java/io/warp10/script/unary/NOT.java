@@ -46,7 +46,7 @@ public class NOT extends NamedWarpScriptFunction implements WarpScriptStackFunct
         stack.push(result);
       } else if (GeoTimeSerie.TYPE.UNDEFINED == gts.getType()) {
         // empty gts
-        stack.push(gts);
+        stack.push(gts.cloneEmpty());
       } else {
         throw new WarpScriptException(getName() + " can only operate on a boolean value or a boolean GTS.");
       }
