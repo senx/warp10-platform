@@ -1046,7 +1046,7 @@ public class GTSEncoder {
 
     int size = size();
     
-    if (target >= size) {
+    if (target > size) {
       ByteArrayOutputStream out = new ByteArrayOutputStream(target);
       this.stream.writeTo(out);
       this.stream = out;
