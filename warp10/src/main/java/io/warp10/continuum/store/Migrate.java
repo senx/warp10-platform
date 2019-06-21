@@ -356,7 +356,7 @@ public class Migrate {
           
           while(decoder.next()) {
             long timestamp = decoder.getTimestamp();
-            encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+            encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
           }
           
           count++;

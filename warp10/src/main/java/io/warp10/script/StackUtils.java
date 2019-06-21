@@ -212,6 +212,7 @@ public class StackUtils {
         long ts = decoder.getTimestamp();
         long location = decoder.getLocation();
         long elevation = decoder.getElevation();
+        // We do not call getBinaryValue because JSON cannot represent byte arrays
         Object v = decoder.getValue();
         out.print("[");
         out.print(ts);
@@ -565,8 +566,8 @@ public class StackUtils {
       
       if (null != inGTS.booleanValues) {
         type = TYPE.BOOLEAN;
-        if (inGTS.booleanValues.size() != len) {
-          throw new WarpScriptException("Incoherent size for boolean values (" + inGTS.booleanValues.size() + "), expected " + len);
+        if (inGTS.booleanValues.size() < len) {  // .size() gives the number of bits the implementation uses
+          throw new WarpScriptException("Incoherent size for boolean values (" + inGTS.booleanValues.size() + "), or less expected " + len);
         }
       }
       

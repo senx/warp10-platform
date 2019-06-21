@@ -45,7 +45,7 @@ public class TICKS extends NamedWarpScriptFunction implements WarpScriptStackFun
     Object o = stack.pop();
     
     if (!(o instanceof GeoTimeSerie) && !(o instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a geo time series or a list thereof on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a Geo Time Series or a list thereof on top of the stack.");
     }
 
     Set<Long> ticks = new HashSet<Long>();
@@ -59,7 +59,7 @@ public class TICKS extends NamedWarpScriptFunction implements WarpScriptStackFun
     } else {
       for (Object oo: (List) o) {
         if (!(oo instanceof GeoTimeSerie)) {
-          throw new WarpScriptException(getName() + " expects a geo time series or a list thereof on top of the stack.");
+          throw new WarpScriptException(getName() + " expects a Geo Time Series or a list thereof on top of the stack.");
         }
         
         int nvalues = GTSHelper.nvalues((GeoTimeSerie) oo);

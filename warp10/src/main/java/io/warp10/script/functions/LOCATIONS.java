@@ -44,7 +44,7 @@ public class LOCATIONS extends NamedWarpScriptFunction implements WarpScriptStac
     Object o = stack.pop();
     
     if (!(o instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " expects a geo time series on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a Geo Time Series on top of the stack.");
     }
 
     List<Object> latitudes = new ArrayList<Object>();

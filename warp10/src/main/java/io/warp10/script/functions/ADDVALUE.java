@@ -67,8 +67,8 @@ public class ADDVALUE extends NamedWarpScriptFunction implements WarpScriptStack
       elevation = (long) array[2];
       value = array[3];
     } else {
-      if (!(o instanceof Number) && !(o instanceof String) && !(o instanceof Boolean)) {
-        throw new WarpScriptException(getName() + " expects a LONG, DOUBLE, STRING or BOOLEAN value.");
+      if (!(o instanceof Number) && !(o instanceof String) && !(o instanceof Boolean) && !(o instanceof byte[])) {
+        throw new WarpScriptException(getName() + " expects a LONG, DOUBLE, STRING, byte array or BOOLEAN value.");
       }
       
       value = o;

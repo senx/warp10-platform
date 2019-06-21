@@ -18,32 +18,36 @@ package io.warp10.script.functions;
 
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.script.GTSStackFunction;
+import io.warp10.script.ElementOrListStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 /**
  * Remove duplicates from GTS instances.
- *
- * DEPUD expects no other parameter on the stack than the GTS instances
+ * <p>
+ * DEDUP expects no other parameter on the stack than the GTS instances
  */
-public class DEDUP extends  GTSStackFunction  {
+public class DEDUP extends ElementOrListStackFunction {
+
+  private final ElementStackFunction dedup = new ElementStackFunction() {
+    @Override
+    public Object applyOnElement(Object element) throws WarpScriptException {
+      if (element instanceof GeoTimeSerie) {
+        return GTSHelper.dedup((GeoTimeSerie) element);
+      } else {
+        throw new WarpScriptException(getName() + " expects a Geo Time Series instance or a list thereof under the top.");
+      }
+    }
+  };
+
 
   public DEDUP(String name) {
     super(name);
   }
 
   @Override
-  protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
-      return null;
+  public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {
+    return dedup;
   }
 
-  @Override
-  protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
-      return GTSHelper.dedup(gts);
-  }
 }
