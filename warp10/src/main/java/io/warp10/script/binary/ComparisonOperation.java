@@ -57,12 +57,17 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
     }
   };
   
+  // Default apply function for > < >= =<
+  // It only supports number and strings.
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    String exceptionMessage = getName() + "  can only operate on homogeneous numeric or string types.";
-    
     Object op2 = stack.pop();
     Object op1 = stack.pop();
+    return comparison(stack, op1, op2);
+  }
+  
+  public Object comparison(WarpScriptStack stack, Object op1, Object op2) throws WarpScriptException {
+    String exceptionMessage = getName() + "  can only operate on homogeneous numeric or string types.";
     
     if (op1 instanceof Double && Double.isNaN((Double) op1) && !(op2 instanceof GeoTimeSerie)) { // Do we have only one NaN ?
       stack.push(false);
@@ -70,6 +75,8 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
       stack.push(false);
     } else if (op2 instanceof Number && op1 instanceof Number) {
       stack.push(operator(EQ.compare((Number) op1, (Number) op2), 0));
+    } else if (op1 instanceof Boolean && op1 instanceof Boolean) {
+    
     } else if (op2 instanceof String && op1 instanceof String) {
       stack.push(operator(op1.toString().compareTo(op2.toString()), 0));
     } else if (op1 instanceof GeoTimeSerie && op2 instanceof GeoTimeSerie) {
@@ -82,7 +89,7 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
         // both strings, compare lexicographically
         GeoTimeSerie result = new GeoTimeSerie(Math.max(GTSHelper.nvalues(gts1), GTSHelper.nvalues(gts2)));
         result.setType(GeoTimeSerie.TYPE.STRING);
-        GTSOpsHelper.applyBinaryOp(result, gts1, gts2, stringOp);
+        GTSOpsHelper.applyBinaryOp(result, gts1, gts2, stringOp, true);
         stack.push(result);
       } else if ((GeoTimeSerie.TYPE.LONG == gts1.getType() || GeoTimeSerie.TYPE.DOUBLE == gts1.getType())
           && (GeoTimeSerie.TYPE.LONG == gts2.getType() || GeoTimeSerie.TYPE.DOUBLE == gts2.getType())) {
@@ -94,7 +101,7 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
         } else {
           result.setType(GeoTimeSerie.TYPE.LONG);
         }
-        GTSOpsHelper.applyBinaryOp(result, gts1, gts2, numberOp);
+        GTSOpsHelper.applyBinaryOp(result, gts1, gts2, numberOp, true);
         stack.push(result);
       } else {
         throw new WarpScriptException(exceptionMessage);
