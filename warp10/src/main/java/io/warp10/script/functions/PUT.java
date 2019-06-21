@@ -44,11 +44,11 @@ public class PUT extends NamedWarpScriptFunction implements WarpScriptStackFunct
     if (maporlist instanceof Map) {
       ((Map) maporlist).put(key, value);
     } else if (maporlist instanceof List) {
-      if (!(key instanceof Number)) {
+      if (!(key instanceof Long)) {
         throw new WarpScriptException(getName() + " expects a key which is an integer when operating on a list.");
       }
 
-      ((List) maporlist).set(((Number) key).intValue(), value);
+      ((List) maporlist).set(((Long) key).intValue(), value);
     } else {
       throw new WarpScriptException(getName() + " operates on a map or list.");
     }
