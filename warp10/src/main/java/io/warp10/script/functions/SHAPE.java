@@ -42,7 +42,7 @@ public class SHAPE extends FormattedWarpScriptFunction {
 
     args = new ArgumentsBuilder()
       .addArgument(List.class, LIST, "The input list.")
-      .addOptionalArgument(Boolean.class, FAST, "If True, it does not check if the sizes of the nested lists are coherent and it returns a shape based on the first nested lists at each level. Default to False.", false)
+      .addOptionalArgument(Boolean.class, FAST, "If true, it does not check if the sizes of the nested lists are coherent and it returns a shape based on the first nested lists at each level. Default to false.", false)
       .build();
 
     output = new ArgumentsBuilder()

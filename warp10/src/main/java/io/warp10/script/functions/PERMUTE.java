@@ -50,7 +50,7 @@ public class PERMUTE extends FormattedWarpScriptFunction {
     args = new ArgumentsBuilder()
       .addArgument(List.class, TENSOR, "The nested LIST for which dimensions will be permuted as if it were a tensor.")
       .addListArgument(Long.class, PATTERN, "The permutation pattern (a LIST of LONG).")
-      .addOptionalArgument(Boolean.class, FAST, "If True, it does not check if the sizes of the nested lists are coherent before operating. Default to False.", false)
+      .addOptionalArgument(Boolean.class, FAST, "If true, it does not check if the sizes of the nested lists are coherent before operating. Default to false.", false)
       .build();
 
     output = new ArgumentsBuilder()
