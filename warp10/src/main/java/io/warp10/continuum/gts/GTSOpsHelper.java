@@ -79,10 +79,7 @@ public class GTSOpsHelper {
         if (0 == tsa.compareTo(tsb)) {
           // Both indices indicate the same timestamp
           if (copyGts1Location) {
-            value = op.op(gts1, gts2, idxa, idxb);
-            if (null != value) {
-              GTSHelper.setValue(result, tsa,GTSHelper.locationAtIndex(gts1,idxa),GTSHelper.elevationAtIndex(gts1,idxa),value,false);
-            }
+            GTSHelper.setValue(result, tsa,GTSHelper.locationAtIndex(gts1,idxa),GTSHelper.elevationAtIndex(gts1,idxa),op.op(gts1, gts2, idxa, idxb),false);
           } else {
             GTSHelper.setValue(result, tsa, op.op(gts1, gts2, idxa, idxb));
           }

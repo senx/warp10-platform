@@ -30,6 +30,7 @@ public class EQ extends ComparisonOperation {
   
   public EQ(String name) {
     super(name);
+    ifTwoNaNOperands = true; // NaN NaN == must return true in WarpScript
   }
   
   @Override
@@ -42,15 +43,7 @@ public class EQ extends ComparisonOperation {
     Object op2 = stack.pop();
     Object op1 = stack.pop();
     
-    if (op2 instanceof Double && op1 instanceof Double) {
-      // Special case if the 2 parameters are NaN value : we want 'NaN NaN ==' to be true
-      // NaN is not convertible to BigDecimal, so we cannot use the compare method
-      if (Double.isNaN((Double) op1) || Double.isNaN((Double) op2)) {
-        stack.push(Double.isNaN((Double) op1) && Double.isNaN((Double) op2));
-      } else {
-        stack.push(0 == EQ.compare((Number) op1, (Number) op2));
-      }
-    } else if (op1 instanceof Boolean || op1 instanceof String
+    if (op1 instanceof Boolean || op1 instanceof String
         || op1 instanceof RealVector || op1 instanceof RealMatrix) {
       stack.push(op1.equals(op2));
     } else {

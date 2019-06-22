@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ public class NE extends ComparisonOperation {
   
   public NE(String name) {
     super(name);
+    ifOneNaNOperand = true; // 0.0 NaN != must return true
   }
   
   @Override
@@ -40,18 +41,11 @@ public class NE extends ComparisonOperation {
     Object op2 = stack.pop();
     Object op1 = stack.pop();
     
-    if (op2 instanceof Double && op1 instanceof Double) {
-      // Special case if the 2 parameters are NaN value : we want 'NaN NaN !=' to be true
-      // NaN is not convertible to BigDecimal, so we cannot use the compare method
-      if (Double.isNaN((Double) op1) || Double.isNaN((Double) op2)) {
-        stack.push(!(Double.isNaN((Double) op1) && Double.isNaN((Double) op2)));
-      } else {
-        stack.push(0 != EQ.compare((Number) op1, (Number) op2));
-      }
-    } else if (op1 instanceof Boolean || op1 instanceof String
+    if (op1 instanceof Boolean || op1 instanceof String
         || op1 instanceof RealVector || op1 instanceof RealMatrix) {
       stack.push(!op1.equals(op2));
     } else {
+      // gts and numbers
       comparison(stack, op1, op2);
     }
     

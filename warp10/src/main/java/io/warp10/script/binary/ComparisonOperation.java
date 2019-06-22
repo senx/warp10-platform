@@ -28,31 +28,67 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
   
   public abstract boolean operator(int op1, int op2);
   
+  //default behavior for > < operators. For >= <= == or !=, you need to set these.
+  public boolean ifOneNaNOperand = false;
+  public boolean ifTwoNaNOperands = false;
+  
   public ComparisonOperation(String name) {
     super(name);
   }
   
   private final GTSOpsHelper.GTSBinaryOp stringOp = new GTSOpsHelper.GTSBinaryOp() {
+    //could be optimized for string inequality operation
     @Override
     public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-      boolean ComparisonResult = operator((GTSHelper.valueAtIndex(gtsa, idxa)).toString().compareTo((GTSHelper.valueAtIndex(gtsb, idxb)).toString()), 0);
-      return ComparisonResult ? GTSHelper.valueAtIndex(gtsa, idxa) : null;
+      return operator((GTSHelper.valueAtIndex(gtsa, idxa)).toString().compareTo((GTSHelper.valueAtIndex(gtsb, idxb)).toString()), 0) ? GTSHelper.valueAtIndex(gtsa, idxa) : null;
     }
   };
   
-  private final GTSOpsHelper.GTSBinaryOp numberOp = new GTSOpsHelper.GTSBinaryOp() {
+  // building four different Op for each combination avoid unnecessary type tests in each Operation :
+  //  double / double : need to test every NaN use cases
+  //  long / long : fastest
+  //  double / long : need to test if gtsa value is NaN
+  //  long / double : need to test if gtsb value is NaN
+  
+  private final GTSOpsHelper.GTSBinaryOp longOp = new GTSOpsHelper.GTSBinaryOp() {
     @Override
     public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-      if (GTSHelper.valueAtIndex(gtsa, idxa) instanceof Double && Double.isNaN((Double) GTSHelper.valueAtIndex(gtsa, idxa))) {
-        // if one is NaN, result of comparison is always false, return null.
-        return null;
-      } else if (GTSHelper.valueAtIndex(gtsb, idxb) instanceof Double && Double.isNaN((Double) GTSHelper.valueAtIndex(gtsb, idxb))) {
-        // if one is NaN, result of comparison is always false, return null.
-        return null;
+      return operator(EQ.compare((Number) (GTSHelper.valueAtIndex(gtsa, idxa)), (Number) (GTSHelper.valueAtIndex(gtsb, idxb))), 0) ? GTSHelper.valueAtIndex(gtsa, idxa) : null;
+    }
+  };
+  
+  private final GTSOpsHelper.GTSBinaryOp doublesOp = new GTSOpsHelper.GTSBinaryOp() {
+    // both input GTS are doubles, we need to deal with NaN special cases.
+    @Override
+    public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+      if (ifTwoNaNOperands && Double.isNaN((Double) GTSHelper.valueAtIndex(gtsa, idxa)) && Double.isNaN((Double) GTSHelper.valueAtIndex(gtsb, idxb))) {
+        return GTSHelper.valueAtIndex(gtsa, idxa);
+      } else if (ifOneNaNOperand && (Double.isNaN((Double) GTSHelper.valueAtIndex(gtsa, idxa)) || Double.isNaN((Double) GTSHelper.valueAtIndex(gtsb, idxb)))) {
+        return GTSHelper.valueAtIndex(gtsa, idxa);
       } else {
-        // both inputs are numbers
-        boolean ComparisonResult = operator(EQ.compare((Number) (GTSHelper.valueAtIndex(gtsa, idxa)), (Number) (GTSHelper.valueAtIndex(gtsb, idxb))), 0);
-        return ComparisonResult ? GTSHelper.valueAtIndex(gtsa, idxa) : null;
+        return operator(EQ.compare((Number) (GTSHelper.valueAtIndex(gtsa, idxa)), (Number) (GTSHelper.valueAtIndex(gtsb, idxb))), 0) ? GTSHelper.valueAtIndex(gtsa, idxa) : null;
+      }
+    }
+  };
+  
+  private final GTSOpsHelper.GTSBinaryOp gtsaIsDoubleOp = new GTSOpsHelper.GTSBinaryOp() {
+    @Override
+    public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+      if (ifOneNaNOperand && (Double.isNaN((Double) GTSHelper.valueAtIndex(gtsa, idxa)))) {
+        return GTSHelper.valueAtIndex(gtsa, idxa);
+      } else {
+        return operator(EQ.compare((Number) (GTSHelper.valueAtIndex(gtsa, idxa)), (Number) (GTSHelper.valueAtIndex(gtsb, idxb))), 0) ? GTSHelper.valueAtIndex(gtsa, idxa) : null;
+      }
+    }
+  };
+  
+  private final GTSOpsHelper.GTSBinaryOp gtsbIsDoubleOp = new GTSOpsHelper.GTSBinaryOp() {
+    @Override
+    public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+      if (ifOneNaNOperand && (Double.isNaN((Double) GTSHelper.valueAtIndex(gtsb, idxb)))) {
+        return GTSHelper.valueAtIndex(gtsa, idxa);
+      } else {
+        return operator(EQ.compare((Number) (GTSHelper.valueAtIndex(gtsa, idxa)), (Number) (GTSHelper.valueAtIndex(gtsb, idxb))), 0) ? GTSHelper.valueAtIndex(gtsa, idxa) : null;
       }
     }
   };
@@ -67,19 +103,20 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
   }
   
   public Object comparison(WarpScriptStack stack, Object op1, Object op2) throws WarpScriptException {
-    String exceptionMessage = getName() + "  can only operate on homogeneous numeric or string types.";
     
-    if (op1 instanceof Double && Double.isNaN((Double) op1) && !(op2 instanceof GeoTimeSerie)) { // Do we have only one NaN ?
-      stack.push(false);
+    if (op1 instanceof Double && op2 instanceof Double && Double.isNaN((Double) op1) && Double.isNaN((Double) op2)) {
+      //two NaN
+      stack.push(ifTwoNaNOperands);
+    } else if (op1 instanceof Double && Double.isNaN((Double) op1) && !(op2 instanceof GeoTimeSerie)) { // Do we have only one NaN ?
+      stack.push(ifOneNaNOperand);
     } else if (op2 instanceof Double && Double.isNaN((Double) op2) && !(op1 instanceof GeoTimeSerie)) { // Do we have only one NaN ?
-      stack.push(false);
+      stack.push(ifOneNaNOperand);
     } else if (op2 instanceof Number && op1 instanceof Number) {
       stack.push(operator(EQ.compare((Number) op1, (Number) op2), 0));
-    } else if (op1 instanceof Boolean && op1 instanceof Boolean) {
-    
     } else if (op2 instanceof String && op1 instanceof String) {
       stack.push(operator(op1.toString().compareTo(op2.toString()), 0));
     } else if (op1 instanceof GeoTimeSerie && op2 instanceof GeoTimeSerie) {
+      // compare two GTS
       GeoTimeSerie gts1 = (GeoTimeSerie) op1;
       GeoTimeSerie gts2 = (GeoTimeSerie) op2;
       if (GeoTimeSerie.TYPE.UNDEFINED == gts1.getType() || GeoTimeSerie.TYPE.UNDEFINED == gts2.getType()) {
@@ -95,16 +132,25 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
           && (GeoTimeSerie.TYPE.LONG == gts2.getType() || GeoTimeSerie.TYPE.DOUBLE == gts2.getType())) {
         // both are numbers
         GeoTimeSerie result = new GeoTimeSerie(Math.max(GTSHelper.nvalues(gts1), GTSHelper.nvalues(gts2)));
-        if (GeoTimeSerie.TYPE.DOUBLE == gts1.getType() || GeoTimeSerie.TYPE.DOUBLE == gts2.getType()) {
-          //one input gts is double
+        if (GeoTimeSerie.TYPE.DOUBLE == gts1.getType() && GeoTimeSerie.TYPE.DOUBLE == gts2.getType()) {
+          //both input gts are double
           result.setType(GeoTimeSerie.TYPE.DOUBLE);
+          GTSOpsHelper.applyBinaryOp(result, gts1, gts2, doublesOp, true);
+        } else if (GeoTimeSerie.TYPE.DOUBLE == gts1.getType() && GeoTimeSerie.TYPE.LONG == gts2.getType()) {
+          //gts1 is double
+          result.setType(GeoTimeSerie.TYPE.DOUBLE);
+          GTSOpsHelper.applyBinaryOp(result, gts1, gts2, gtsaIsDoubleOp, true);
+        } else if (GeoTimeSerie.TYPE.LONG == gts1.getType() && GeoTimeSerie.TYPE.DOUBLE == gts2.getType()) {
+          //gts2 is double
+          result.setType(GeoTimeSerie.TYPE.DOUBLE);
+          GTSOpsHelper.applyBinaryOp(result, gts1, gts2, gtsbIsDoubleOp, true);
         } else {
           result.setType(GeoTimeSerie.TYPE.LONG);
+          GTSOpsHelper.applyBinaryOp(result, gts1, gts2, longOp, true);
         }
-        GTSOpsHelper.applyBinaryOp(result, gts1, gts2, numberOp, true);
         stack.push(result);
       } else {
-        throw new WarpScriptException(exceptionMessage);
+        throw new WarpScriptException(getName() + "can only operate on two GTS with NUMBER or STRING values.");
       }
     } else if (op1 instanceof GeoTimeSerie && GeoTimeSerie.TYPE.UNDEFINED == ((GeoTimeSerie) op1).getType() && (op2 instanceof String || op1 instanceof Number)) {
       // empty gts compared to a string or a number
@@ -125,26 +171,34 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
       GeoTimeSerie result = gts.cloneEmpty();
       result.setType(GeoTimeSerie.TYPE.DOUBLE);
       if (op2 instanceof Double && Double.isNaN((Double) op2)) {
-        // nothing is comparable to NaN
-        stack.push(result);
-      } else {
+        // op2 is NaN, must test if both are NaN
         for (int i = 0; i < GTSHelper.nvalues(gts); i++) {
-          if (!Double.isNaN((Double) GTSHelper.valueAtIndex(gts, i))) {
-            //exclude NaN inputs
+          if ((Double.isNaN((Double) GTSHelper.valueAtIndex(gts, i)) && ifTwoNaNOperands) || ifOneNaNOperand) {
+            GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i),
+                GTSHelper.valueAtIndex(gts, i), false);
+          }
+        }
+      } else {
+        // op2 is not NaN, must only test if gts content for NaN
+        for (int i = 0; i < GTSHelper.nvalues(gts); i++) {
+          if (Double.isNaN((Double) GTSHelper.valueAtIndex(gts, i)) && ifOneNaNOperand) {
+            GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i),
+                GTSHelper.valueAtIndex(gts, i), false);
+          } else {
             GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i),
                 operator(EQ.compare((Number) GTSHelper.valueAtIndex(gts, i), (Number) op2), 0) ? GTSHelper.valueAtIndex(gts, i) : null, false);
           }
         }
-        stack.push(result);
       }
+      stack.push(result);
     } else if (op1 instanceof GeoTimeSerie && op2 instanceof Number && GeoTimeSerie.TYPE.LONG == ((GeoTimeSerie) op1).getType()) {
       // one long gts compared to number
       GeoTimeSerie gts = (GeoTimeSerie) op1;
       GeoTimeSerie result = gts.cloneEmpty();
       result.setType(GeoTimeSerie.TYPE.LONG);
       if (op2 instanceof Double && Double.isNaN((Double) op2)) {
-        // nothing is comparable to NaN
-        stack.push(result);
+        // if the comparison with a NaN is always true, returns a clone of the input GTS ( $longGts NaN != )
+        stack.push(ifOneNaNOperand ? gts.clone() : result);
       } else {
         for (int i = 0; i < GTSHelper.nvalues(gts); i++) {
           GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i),
@@ -153,7 +207,7 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
         stack.push(result);
       }
     } else {
-      throw new WarpScriptException(exceptionMessage);
+      throw new WarpScriptException(getName() + " can only operate when GTS values and the top stack operand have the same type. Booleans are not supported.");
     }
     
     return stack;
