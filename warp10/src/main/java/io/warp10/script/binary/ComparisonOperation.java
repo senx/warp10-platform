@@ -61,10 +61,10 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
     // both input GTS are doubles, we need to deal with NaN special cases.
     @Override
     public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-      if (ifTwoNaNOperands && Double.isNaN((Double) GTSHelper.valueAtIndex(gtsa, idxa)) && Double.isNaN((Double) GTSHelper.valueAtIndex(gtsb, idxb))) {
-        return GTSHelper.valueAtIndex(gtsa, idxa);
-      } else if (ifOneNaNOperand && (Double.isNaN((Double) GTSHelper.valueAtIndex(gtsa, idxa)) || Double.isNaN((Double) GTSHelper.valueAtIndex(gtsb, idxb)))) {
-        return GTSHelper.valueAtIndex(gtsa, idxa);
+      if (Double.isNaN((Double) GTSHelper.valueAtIndex(gtsa, idxa)) && Double.isNaN((Double) GTSHelper.valueAtIndex(gtsb, idxb))) {
+        return ifTwoNaNOperands ? GTSHelper.valueAtIndex(gtsa, idxa) : null;
+      } else if ((Double.isNaN((Double) GTSHelper.valueAtIndex(gtsa, idxa)) || Double.isNaN((Double) GTSHelper.valueAtIndex(gtsb, idxb)))) {
+        return ifOneNaNOperand ? GTSHelper.valueAtIndex(gtsa, idxa) : null;
       } else {
         return operator(EQ.compare((Number) (GTSHelper.valueAtIndex(gtsa, idxa)), (Number) (GTSHelper.valueAtIndex(gtsb, idxb))), 0) ? GTSHelper.valueAtIndex(gtsa, idxa) : null;
       }
@@ -74,8 +74,8 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
   private final GTSOpsHelper.GTSBinaryOp gtsaIsDoubleOp = new GTSOpsHelper.GTSBinaryOp() {
     @Override
     public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-      if (ifOneNaNOperand && (Double.isNaN((Double) GTSHelper.valueAtIndex(gtsa, idxa)))) {
-        return GTSHelper.valueAtIndex(gtsa, idxa);
+      if (Double.isNaN((Double) GTSHelper.valueAtIndex(gtsa, idxa))) {
+        return ifOneNaNOperand ? GTSHelper.valueAtIndex(gtsa, idxa) : null;
       } else {
         return operator(EQ.compare((Number) (GTSHelper.valueAtIndex(gtsa, idxa)), (Number) (GTSHelper.valueAtIndex(gtsb, idxb))), 0) ? GTSHelper.valueAtIndex(gtsa, idxa) : null;
       }
@@ -85,8 +85,8 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
   private final GTSOpsHelper.GTSBinaryOp gtsbIsDoubleOp = new GTSOpsHelper.GTSBinaryOp() {
     @Override
     public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-      if (ifOneNaNOperand && (Double.isNaN((Double) GTSHelper.valueAtIndex(gtsb, idxb)))) {
-        return GTSHelper.valueAtIndex(gtsa, idxa);
+      if (Double.isNaN((Double) GTSHelper.valueAtIndex(gtsb, idxb))) {
+        return ifOneNaNOperand ? GTSHelper.valueAtIndex(gtsa, idxa) : null;
       } else {
         return operator(EQ.compare((Number) (GTSHelper.valueAtIndex(gtsa, idxa)), (Number) (GTSHelper.valueAtIndex(gtsb, idxb))), 0) ? GTSHelper.valueAtIndex(gtsa, idxa) : null;
       }
@@ -173,7 +173,7 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
       if (op2 instanceof Double && Double.isNaN((Double) op2)) {
         // op2 is NaN, must test if both are NaN
         for (int i = 0; i < GTSHelper.nvalues(gts); i++) {
-          if ((Double.isNaN((Double) GTSHelper.valueAtIndex(gts, i)) && ifTwoNaNOperands) || ifOneNaNOperand) {
+          if ((Double.isNaN((Double) GTSHelper.valueAtIndex(gts, i)) && ifTwoNaNOperands) || (!Double.isNaN((Double) GTSHelper.valueAtIndex(gts, i)) && ifOneNaNOperand)) {
             GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i),
                 GTSHelper.valueAtIndex(gts, i), false);
           }
@@ -181,9 +181,9 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
       } else {
         // op2 is not NaN, must only test if gts content for NaN
         for (int i = 0; i < GTSHelper.nvalues(gts); i++) {
-          if (Double.isNaN((Double) GTSHelper.valueAtIndex(gts, i)) && ifOneNaNOperand) {
+          if (Double.isNaN((Double) GTSHelper.valueAtIndex(gts, i))) {
             GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i),
-                GTSHelper.valueAtIndex(gts, i), false);
+                ifOneNaNOperand ? GTSHelper.valueAtIndex(gts, i) : null, false);
           } else {
             GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i),
                 operator(EQ.compare((Number) GTSHelper.valueAtIndex(gts, i), (Number) op2), 0) ? GTSHelper.valueAtIndex(gts, i) : null, false);
