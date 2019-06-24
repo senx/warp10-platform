@@ -94,6 +94,7 @@ public class FILTER extends NamedWarpScriptFunction implements WarpScriptStackFu
     } else {
       stack.push(GTSHelper.partitionAndApplyUnflattened(params.get(params.size() - 1), null, null, bylabels, colls));
     }
+
     return stack;
   }
 }
