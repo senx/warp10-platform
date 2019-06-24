@@ -752,7 +752,7 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
         if (wrapper.isSetMetadata()) {
           encoder.safeSetMetadata(wrapper.getMetadata());
         } else {
-          encoder.setMetadata(new Metadata());
+          encoder.safeSetMetadata(new Metadata());
         }
         store(encoder);
         if (null != this.directoryClient) {

@@ -193,7 +193,7 @@ public class GTSWrapperHelper {
       Metadata meta = encoder.getMetadata();
       
       // Only set Metadata if one of the fields was set
-      if (null != meta && ((meta.isSetName() && !"".equals(meta.getName())) || (meta.isSetLabels() && meta.getLabelsSize() > 0) || (meta.isSetAttributes() && meta.getAttributesSize() > 0) || meta.isSetClassId() || meta.isSetLabelsId() || meta.isSetSource())) {
+      if (null != meta && ((meta.isSetName() && !"".equals(meta.getName())) || (meta.isSetLabels() && meta.getLabelsSize() > 0) || (meta.isSetAttributes() && meta.getAttributesSize() > 0) || meta.isSetClassId() || meta.isSetLabelsId() || meta.isSetSource() || meta.isSetLastActivity())) {
         wrapper.setMetadata(encoder.getMetadata());
       }
     } catch (IOException e) {
