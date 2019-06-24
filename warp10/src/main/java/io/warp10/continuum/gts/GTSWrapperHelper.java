@@ -40,7 +40,11 @@ public class GTSWrapperHelper {
     byte[] unwrapped = unwrapEncoded(wrapper);
     
     GTSDecoder decoder = new GTSDecoder(wrapper.getBase(), ByteBuffer.wrap(unwrapped).order(ByteOrder.BIG_ENDIAN));
-    decoder.setMetadata(wrapper.getMetadata());
+    if (wrapper.isSetMetadata()) {
+      decoder.setMetadata(wrapper.getMetadata());
+    } else {
+      decoder.setMetadata(new Metadata());
+    }
     decoder.setCount(wrapper.getCount());
     
     return decoder;
@@ -174,15 +178,24 @@ public class GTSWrapperHelper {
             // Only store number of passes if it is > 1 as 1 is the default value
             wrapper.setCompressionPasses(pass);
           }
-        } else {
-          wrapper.setCompressed(false);
-        }
+        } // false is the default value
       }
       
-      wrapper.setBase(encoder.getBaseTimestamp());
+      if (0 != encoder.getBaseTimestamp()) {
+        wrapper.setBase(encoder.getBaseTimestamp());
+      }
+      
+      //
+      // Consider setting the count only when not generating an optimized wrapper
+      //
+      
       wrapper.setCount(encoder.getCount());
-      wrapper.setMetadata(encoder.getMetadata());
-
+      Metadata meta = encoder.getMetadata();
+      
+      // Only set Metadata if one of the fields was set
+      if (null != meta && ((meta.isSetName() && !"".equals(meta.getName())) || (meta.isSetLabels() && meta.getLabelsSize() > 0) || (meta.isSetAttributes() && meta.getAttributesSize() > 0) || meta.isSetClassId() || meta.isSetLabelsId() || meta.isSetSource() || meta.isSetLastActivity())) {
+        wrapper.setMetadata(encoder.getMetadata());
+      }
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -256,7 +269,9 @@ public class GTSWrapperHelper {
     clipped.setCount(encoder.getCount());
     clipped.setEncoded(encoder.getBytes());
     clipped.setLastbucket(wrapper.getLastbucket());
-    clipped.setMetadata(new Metadata(wrapper.getMetadata()));
+    if (wrapper.isSetMetadata()) {
+      clipped.setMetadata(new Metadata(wrapper.getMetadata()));
+    }
     if (wrapper.isSetKey()) {
       clipped.setKey(wrapper.getKey());
     }
@@ -320,6 +335,10 @@ public class GTSWrapperHelper {
    */
   public static byte[] getId(GTSWrapper wrapper) {
     byte[] id = new byte[16];
+    
+    if (!wrapper.isSetMetadata()) {
+      return id;
+    }
     
     long classId = wrapper.getMetadata().getClassId();
     long labelsId = wrapper.getMetadata().getLabelsId();
