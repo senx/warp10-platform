@@ -2778,8 +2778,9 @@ public class GTSHelper {
           idx0 = idx2 + offset;
         }
         
-        // Wrap GTSEncoder and encode result
-        GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true);
+        // Wrap GTSEncoder and encode result, we don't set the count in the wrapper to save some
+        // space
+        GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true, GTSWrapperHelper.DEFAULT_COMP_RATIO_THRESHOLD, Integer.MAX_VALUE, false);
         
         TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
         
