@@ -55,7 +55,7 @@ public class WarpScriptMacroLibrary {
   
   private static void addJar(String path, String resource) throws WarpScriptException {
     //
-    // Exract basename of path
+    // Extract basename of path
     //
     
     File f = new File(path);

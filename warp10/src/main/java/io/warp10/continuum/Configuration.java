@@ -28,7 +28,6 @@ public class Configuration {
   
   public static final String WARP_HASH_CLASS = "warp.hash.class";
   public static final String WARP_HASH_LABELS = "warp.hash.labels";
-  public static final String CONTINUUM_HASH_INDEX = "warp.hash.index";
   public static final String WARP_HASH_TOKEN = "warp.hash.token";
   public static final String WARP_HASH_APP = "warp.hash.app";
   public static final String WARP_AES_TOKEN = "warp.aes.token";
@@ -1341,12 +1340,6 @@ public class Configuration {
    * AES key to use for wrapping datapoints prior to storage in leveldb
    */
   public static final String LEVELDB_DATA_AES = "leveldb.data.aes";
-  
-  /**
-   * @deprecated
-   * AES key to use for storing index details in leveldb
-   */
-  public static final String LEVELDB_INDEX_AES = "leveldb.index.aes";
   
   /**
    * Cache size for leveldb (in bytes)

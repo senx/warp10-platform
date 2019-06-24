@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Extracts a value from a map or list given a key.
+ * Extracts a value from a map, list, or byte array given a key.
  */
 public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
@@ -47,25 +47,39 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
     
     if (coll instanceof Map) {
       value = ((Map) coll).get(key);
-    } else {
-      if (!(key instanceof Number)) {
-        throw new WarpScriptException(getName() + " expects the key to be an integer when operating on a list.");
-      }
-      int idx = ((Number) key).intValue();
+
+    } else if (key instanceof Long) {
+      int idx = ((Long) key).intValue();
 
       if (coll instanceof List) {
         int size = ((List) coll).size();
 
-        idx = computeAndCheckIndex(this, idx, size);
+        idx = computeAndCheckIndex(idx, size);
 
         value = ((List) coll).get(idx);
+
       } else {
         int size = ((byte[]) coll).length;
 
-        idx = computeAndCheckIndex(this, idx, size);
+        idx = computeAndCheckIndex(idx, size);
 
         value = (long) (((byte[]) coll)[idx] & 0xFFL);
       }
+
+    } else if (coll instanceof byte[]) {
+      throw new WarpScriptException(getName() + " expects the key to be an integer when operating on a byte array.");
+
+    } else if (!(key instanceof List)) {
+      throw new WarpScriptException(getName() + " expects the key to be an integer or a list of integers when operating on a List.");
+
+    } else {
+      for (Object o: (List) key) {
+        if (!(o instanceof Long)) {
+          throw new WarpScriptException(getName() + " expects the key to be an integer or a list of integers when operating on a List.");
+        }
+      }
+
+      value = nestedGet((List) coll, (List<Long>) key);
     }
     
     stack.push(value);
@@ -73,16 +87,34 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
     return stack;
   }
 
-  public static int computeAndCheckIndex(NamedWarpScriptFunction func, int index, int size) throws WarpScriptException {
+  public static int computeAndCheckIndex(int index, int size) throws WarpScriptException {
     if (index < 0) {
       index += size;
     } else if (index >= size) {
-      throw new WarpScriptException(func.getName() + " index out of bound, " + index + " >= " + size);
+      throw new WarpScriptException("Index out of bound, " + index + " >= " + size);
     }
     if (index < 0) {
-      throw new WarpScriptException(func.getName() + " index out of bound, " + (index - size) + " < -" + size);
+      throw new WarpScriptException("Index out of bound, " + (index - size) + " < -" + size);
     }
 
     return index;
+  }
+
+  static Object nestedGet(List<Object> nestedList, List<Long> indexList) throws WarpScriptException {
+    Object res = nestedList;
+
+    for (int i = 0; i < indexList.size(); i++) {
+
+      if (res instanceof List) {
+
+        int idx = computeAndCheckIndex(indexList.get(i).intValue(), ((List) res).size());
+        res = ((List) res).get(idx);
+
+      } else {
+        throw new WarpScriptException("Tried to get an element at a nested path that does not exist in the input list.");
+      }
+    }
+
+    return res;
   }
 }

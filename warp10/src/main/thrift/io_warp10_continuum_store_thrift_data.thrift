@@ -315,7 +315,7 @@ struct GTSWrapper {
   /**
    * Metadata for the GTS
    */
-  1: Metadata metadata,
+  1: optional Metadata metadata,
   /**
    * Last bucket for bucketized GTS
    */
