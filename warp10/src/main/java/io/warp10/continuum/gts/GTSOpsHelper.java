@@ -64,9 +64,7 @@ public class GTSOpsHelper {
     if (idxb < na) {
       tsb = GTSHelper.tickAtIndex(gts2, idxb);
     }
-  
-    Object value;
-  
+    
     while(idxa < na || idxb < nb) {
       if (idxa >= na) {
         tsa = null;
