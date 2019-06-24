@@ -5709,7 +5709,9 @@ public class GTSHelper {
   
   /**
    * Apply a function or filter GTS and keep the results ventilated per equivalence class
-
+   * 
+   * This function has the side effect of unsetting classId/labelsId
+   *
    * @param function The function to apply, either an WarpScriptFilterFunction or WarpScriptNAryFunction
    * @param bylabels Labels to use for partitioning the GTS instances
    * @param series Set of GTS instances collections
@@ -5759,102 +5761,113 @@ public class GTSHelper {
     // We check it is indeed the case
     //
 
+    long idx = 0L;
+    
     for (int i = 0; i < series.length; i++) {
       for (GeoTimeSerie gts: series[i]) {
-        if (!gts.getMetadata().isSetClassId() || !gts.getMetadata().isSetLabelsId()) {
-          throw new RuntimeException("Unset class/labels id.");
-        }
+        gts.getMetadata().setClassId(idx++);
+        gts.getMetadata().setLabelsId(0L);
       }
       
       Collections.sort(series[i], GTSIdComparator.COMPARATOR);      
     }
     //Collections.sort(series[i], METASORT.META_COMPARATOR);
 
-    //
-    // Loop on each partition
-    //
-    
-    for (Map<String,String> partitionlabels: partition.keySet()) {
-      Map<String,String> commonlabels = Collections.unmodifiableMap(partitionlabels);
+    try {
+      //
+      // Loop on each partition
+      //
       
-      List<GeoTimeSerie> result = new ArrayList<GeoTimeSerie>();
+      for (Map<String,String> partitionlabels: partition.keySet()) {
+        Map<String,String> commonlabels = Collections.unmodifiableMap(partitionlabels);
+        
+        List<GeoTimeSerie> result = new ArrayList<GeoTimeSerie>();
 
-      //
-      // Make N (cardinality of 'series') sublists of GTS instances.
-      //
-      
-      List<GeoTimeSerie>[] subseries = new List[series.length];
-      for (int i = 0; i < series.length; i++) {
-        
-        subseries[i] = new ArrayList<GeoTimeSerie>();
-       
         //
-        // Treat the case when the original series had a cardinality of 1
-        // as a special case by adding the original series unconditionally
+        // Make N (cardinality of 'series') sublists of GTS instances.
         //
         
-        if (1 == series[i].size()) {
-          subseries[i].add(series[i].iterator().next());
-        } else {
-          // The series appear in the order they are in the original list due to 'partition' using a List
-          for (GeoTimeSerie serie: partition.get(partitionlabels)) {
-            //if (Collections.binarySearch(series[i], serie, METASORT.META_COMPARATOR) >= 0) {
-            if (Collections.binarySearch(series[i], serie, GTSIdComparator.COMPARATOR) >= 0) {
-              subseries[i].add(serie);
-            }
-          }          
-        }        
-      }
-      
-      //
-      // Call the function
-      //
-      
-      if (function instanceof WarpScriptFilterFunction) {
-        List<GeoTimeSerie> filtered = ((WarpScriptFilterFunction) function).filter(commonlabels, subseries);
-        if (null != filtered) {
-          result.addAll(filtered);
+        List<GeoTimeSerie>[] subseries = new List[series.length];
+        for (int i = 0; i < series.length; i++) {
+          
+          subseries[i] = new ArrayList<GeoTimeSerie>();
+         
+          //
+          // Treat the case when the original series had a cardinality of 1
+          // as a special case by adding the original series unconditionally
+          //
+          
+          if (1 == series[i].size()) {
+            subseries[i].add(series[i].iterator().next());
+          } else {
+            // The series appear in the order they are in the original list due to 'partition' using a List
+            for (GeoTimeSerie serie: partition.get(partitionlabels)) {
+              //if (Collections.binarySearch(series[i], serie, METASORT.META_COMPARATOR) >= 0) {
+              if (Collections.binarySearch(series[i], serie, GTSIdComparator.COMPARATOR) >= 0) {
+                subseries[i].add(serie);
+              }
+            }          
+          }        
         }
-      } else if (function instanceof WarpScriptNAryFunction) {
+        
         //
-        // If we have a stack and a validator, push the commonlabels and the list of subseries onto the stack,
-        // call the validator and check if it left true or false onto the stack.
+        // Call the function
         //
         
-        boolean proceed = true;
-        
-        if (null != stack && null != validator) {
-          stack.push(Arrays.asList(subseries));
-          stack.push(commonlabels);
-          stack.exec(validator);
-          if (!Boolean.TRUE.equals(stack.pop())) {
-            proceed = false;
+        if (function instanceof WarpScriptFilterFunction) {
+          List<GeoTimeSerie> filtered = ((WarpScriptFilterFunction) function).filter(commonlabels, subseries);
+          if (null != filtered) {
+            result.addAll(filtered);
           }
+        } else if (function instanceof WarpScriptNAryFunction) {
+          //
+          // If we have a stack and a validator, push the commonlabels and the list of subseries onto the stack,
+          // call the validator and check if it left true or false onto the stack.
+          //
+          
+          boolean proceed = true;
+          
+          if (null != stack && null != validator) {
+            stack.push(Arrays.asList(subseries));
+            stack.push(commonlabels);
+            stack.exec(validator);
+            if (!Boolean.TRUE.equals(stack.pop())) {
+              proceed = false;
+            }
+          }
+          
+          if (proceed) {
+            result.add(GTSHelper.applyNAryFunction((WarpScriptNAryFunction) function, commonlabels, subseries));
+          }
+        } else {
+          throw new WarpScriptException("Invalid function to apply.");
         }
         
-        if (proceed) {
-          result.add(GTSHelper.applyNAryFunction((WarpScriptNAryFunction) function, commonlabels, subseries));
-        }
-      } else {
-        throw new WarpScriptException("Invalid function to apply.");
+        results.put(commonlabels, result);
       }
       
-      results.put(commonlabels, result);
-    }
-    
-    //
-    // Check that all resulting GTS instances were in allgts
-    //
+      //
+      // Check that all resulting GTS instances were in allgts
+      //
 
-    //if (function instanceof WarpScriptFilterFunction) {
-    //  for (GeoTimeSerie gts: result) {
-    //    if (!allgts.contains(gts)) {
-    //      throw new WarpScriptException("Some filtered Geo Time Series were not in the original set.");
-    //    }
-    //  }      
-    //}
-    
-    return results;
+      //if (function instanceof WarpScriptFilterFunction) {
+      //  for (GeoTimeSerie gts: result) {
+      //    if (!allgts.contains(gts)) {
+      //      throw new WarpScriptException("Some filtered Geo Time Series were not in the original set.");
+      //    }
+      //  }      
+      //}
+      
+      return results;      
+    } finally {
+      // Unset classId/labelsId since we modified them
+      for (int i = 0; i < series.length; i++) {
+        for (GeoTimeSerie gts: series[i]) {
+          gts.getMetadata().unsetClassId();
+          gts.getMetadata().unsetLabelsId();
+        }
+      }
+    }
   }
 
   @SafeVarargs

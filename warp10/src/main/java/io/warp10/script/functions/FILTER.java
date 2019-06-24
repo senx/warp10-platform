@@ -89,34 +89,12 @@ public class FILTER extends NamedWarpScriptFunction implements WarpScriptStackFu
       colls[i].addAll((Collection<GeoTimeSerie>) params.get(i));
     }
     
-    try {
-      //
-      // Set dummy classId/labelsId so we can rely on sorting on IDs within partitionAndApply
-      //
-      
-      long idx = 0;
-      for (List<GeoTimeSerie> series: colls) {
-        for (GeoTimeSerie gts: series) {
-          gts.getMetadata().setClassId(idx++);
-          gts.getMetadata().setLabelsId(0L);
-        }
-      }
-      if (flatten) {
-        stack.push(GTSHelper.partitionAndApply(params.get(params.size() - 1), null, null, bylabels, colls));
-      } else {
-        stack.push(GTSHelper.partitionAndApplyUnflattened(params.get(params.size() - 1), null, null, bylabels, colls));
-      }
-    } finally {
-      // Unset classId/labelsId
-      // This has the side effect of clearing possible valid classId/labelsId but
-      // it should not be a problem since we recompute them anyway when we really need them
-      for (List<GeoTimeSerie> series: colls) {
-        for (GeoTimeSerie gts: series) {
-          gts.getMetadata().unsetClassId();
-          gts.getMetadata().unsetLabelsId();
-        }
-      }      
+    if (flatten) {
+      stack.push(GTSHelper.partitionAndApply(params.get(params.size() - 1), null, null, bylabels, colls));
+    } else {
+      stack.push(GTSHelper.partitionAndApplyUnflattened(params.get(params.size() - 1), null, null, bylabels, colls));
     }
+
     return stack;
   }
 }
