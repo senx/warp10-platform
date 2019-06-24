@@ -27,8 +27,7 @@ import org.apache.commons.math3.linear.RealVector;
 public class NE extends ComparisonOperation {
   
   public NE(String name) {
-    super(name);
-    ifOneNaNOperand = true; // 0.0 NaN != must return true
+    super(name, true, false); // 0.0 NaN != must return true
   }
   
   @Override

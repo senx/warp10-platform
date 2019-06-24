@@ -29,11 +29,29 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
   public abstract boolean operator(int op1, int op2);
   
   //default behavior for > < operators. For >= <= == or !=, you need to set these.
-  public boolean ifOneNaNOperand = false;
-  public boolean ifTwoNaNOperands = false;
+  private final boolean ifOneNaNOperand;
+  private final boolean ifTwoNaNOperands;
   
+  /**
+   * Default constructor with default behavior for > < operators. For >= <= == or !=, you need to set ifOneNaNOperand and ifTwoNaNOperands.
+   *
+   * @param name WarpScript function name
+   */
   public ComparisonOperation(String name) {
     super(name);
+    ifOneNaNOperand = false;
+    ifTwoNaNOperands = false;
+  }
+  
+  /**
+   * @param name                 WarpsScript function name
+   * @param trueIfOneNaNOperand  set it for != comparison
+   * @param trueIfTwoNaNOperands set it for == or <= or >= comparison
+   */
+  public ComparisonOperation(String name, boolean trueIfOneNaNOperand, boolean trueIfTwoNaNOperands) {
+    super(name);
+    ifOneNaNOperand = trueIfOneNaNOperand;
+    ifTwoNaNOperands = trueIfTwoNaNOperands;
   }
   
   private final GTSOpsHelper.GTSBinaryOp stringOp = new GTSOpsHelper.GTSBinaryOp() {

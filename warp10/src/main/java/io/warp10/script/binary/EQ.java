@@ -29,8 +29,7 @@ import java.math.BigDecimal;
 public class EQ extends ComparisonOperation {
   
   public EQ(String name) {
-    super(name);
-    ifTwoNaNOperands = true; // NaN NaN == must return true in WarpScript
+    super(name, false, true); // NaN NaN == must return true in WarpScript
   }
   
   @Override

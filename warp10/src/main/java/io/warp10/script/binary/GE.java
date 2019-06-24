@@ -22,8 +22,7 @@ package io.warp10.script.binary;
 public class GE extends ComparisonOperation {
   
   public GE(String name) {
-    super(name);
-    ifTwoNaNOperands = true; // NaN NaN >= must return true in WarpScript
+    super(name, false, true); // NaN NaN >= must return true in WarpScript
   }
   
   @Override
