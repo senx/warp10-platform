@@ -24,10 +24,9 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.formatted.FormattedWarpScriptFunction;
 
-public class SHAPE extends FormattedWarpScriptFunction {
+public class HULLSHAPE extends FormattedWarpScriptFunction {
 
   public static final String LIST = "list";
-  public static final String FAST = "fast";
   public static final String SHAPE = "shape";
 
   private final Arguments args;
@@ -35,45 +34,58 @@ public class SHAPE extends FormattedWarpScriptFunction {
   protected Arguments getArguments() { return args; }
   protected Arguments getOutput() { return output; }
 
-  public SHAPE(String name) {
+  public HULLSHAPE(String name) {
     super(name);
 
-    getDocstring().append("Return the shape of an input list if it could be a tensor (or multidimensional array), or raise an Exception.");
+    getDocstring().append("Return the shape of a tensor (or multidimensional array) that would be able to contain all the values of an input nested list. The size of the returned shape is equal to the deepest level of nesting plus one. Its i-th value is equal to the size of the largest list that is nested i levels deep.");
 
     args = new ArgumentsBuilder()
       .addArgument(List.class, LIST, "The input list.")
-      .addOptionalArgument(Boolean.class, FAST, "If true, it does not check if the sizes of the nested lists are coherent and it returns a shape based on the first nested lists at each level. Default to false.", false)
       .build();
 
     output = new ArgumentsBuilder()
-      .addListArgument(Long.class, SHAPE, "The shape of the input list.")
+      .addListArgument(Long.class, SHAPE, "The hull shape of the input list.")
       .build();
   }
 
   @Override
   protected WarpScriptStack apply(Map<String, Object> formattedArgs, WarpScriptStack stack) throws WarpScriptException {
     List list = (List) formattedArgs.get(LIST);
-    boolean fast = Boolean.TRUE.equals(formattedArgs.get(FAST));
-
-    List<Long> candidateShape = candidate_shape(list);
-
-    if (fast || CHECKSHAPE.recValidateShape(list, candidateShape)) {
-      stack.push(candidateShape);
-    } else {
-      throw new WarpScriptException(getName() + " expects that the sizes of the nested lists are coherent together to form a tensor (or multidimensional array).");
-    }
+    stack.push(recHullShape(list));
     return stack;
   }
 
-  static List<Long> candidate_shape(List list) {
-    List<Long> shape = new ArrayList<Long>();
-    Object l = list;
+  private List<Long> maximizeHull(List<Long> a, List<Long> b) {
+    List<Long> smaller = a.size() < b.size() ? a : b;
+    List<Long> taller = a.size() < b.size() ? b : a;
 
-    while(l instanceof List) {
-      shape.add((long) ((List) l).size());
-      l = ((List) l).get(0);
+    if (0 == smaller.size()) {
+      return taller;
     }
 
-    return shape;
+    List<Long> res = new ArrayList<Long>(taller.size());
+    while (smaller.size() > 0) {
+      Long x = smaller.remove(0);
+      Long y = taller.remove(0);
+      res.add(x > y ? x : y);
+    }
+
+    res.addAll(taller);
+    return res;
+  }
+
+  private List<Long> recHullShape(List list) {
+    List<Long> res = new ArrayList<Long>();
+    res.add((long) list.size());
+
+    List<Long> hull = new ArrayList<>();
+    for (Object el: list) {
+      if (el instanceof List) {
+        hull = maximizeHull(hull, recHullShape((List) el));
+      }
+    }
+
+    res.addAll(hull);
+    return res;
   }
 }
