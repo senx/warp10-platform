@@ -19,6 +19,7 @@ package io.warp10.continuum.gts;
 import io.warp10.CapacityExtractorOutputStream;
 import io.warp10.DoubleUtils;
 import io.warp10.WarpURLEncoder;
+import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.continuum.store.Constants;
@@ -5725,7 +5726,7 @@ public class GTSHelper {
     //
     //
     
-    Collection<GeoTimeSerie> allgts = new LinkedHashSet<GeoTimeSerie>();
+    Collection<GeoTimeSerie> allgts = new LinkedHashSet<GeoTimeSerie>(series.length);
 
     boolean hasNonSingleton = false;
     
@@ -5770,10 +5771,18 @@ public class GTSHelper {
       for (int i = 0; i < series.length; i++) {
         
         //
-        // Sort the 'series' so we can perform a binary search instead of using 'contains'
+        // We assume the GTS had their IDs set ahead of this method being called.
+        // We check it is indeed the case
         //
 
-        Collections.sort(series[i], METASORT.META_COMPARATOR);
+        for (GeoTimeSerie gts: series[i]) {
+          if (!gts.getMetadata().isSetClassId() || !gts.getMetadata().isSetLabelsId()) {
+            throw new RuntimeException("Unset class/labels id.");
+          }
+        }
+        
+        Collections.sort(series[i], GTSIdComparator.COMPARATOR);
+        //Collections.sort(series[i], METASORT.META_COMPARATOR);
 
         subseries[i] = new ArrayList<GeoTimeSerie>();
        
@@ -5787,12 +5796,14 @@ public class GTSHelper {
         } else {
           // The series appear in the order they are in the original list due to 'partition' using a List
           for (GeoTimeSerie serie: partition.get(partitionlabels)) {
-            if (Collections.binarySearch(series[i], serie, METASORT.META_COMPARATOR) >= 0) {
+            //if (Collections.binarySearch(series[i], serie, METASORT.META_COMPARATOR) >= 0) {
+            if (Collections.binarySearch(series[i], serie, GTSIdComparator.COMPARATOR) >= 0) {
               subseries[i].add(serie);
             }
           }          
-        }
+        }        
       }
+      
       //
       // Call the function
       //
