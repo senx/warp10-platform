@@ -5753,7 +5753,23 @@ public class GTSHelper {
     Map<Map<String,String>, List<GeoTimeSerie>> partition = GTSHelper.partition(allgts, bylabels);
     
     Map<Map<String,String>, List<GeoTimeSerie>> results = new LinkedHashMap<Map<String,String>,List<GeoTimeSerie>>();
-    
+
+    //
+    // We assume the GTS had their IDs set ahead of this method being called.
+    // We check it is indeed the case
+    //
+
+    for (int i = 0; i < series.length; i++) {
+      for (GeoTimeSerie gts: series[i]) {
+        if (!gts.getMetadata().isSetClassId() || !gts.getMetadata().isSetLabelsId()) {
+          throw new RuntimeException("Unset class/labels id.");
+        }
+      }
+      
+      Collections.sort(series[i], GTSIdComparator.COMPARATOR);      
+    }
+    //Collections.sort(series[i], METASORT.META_COMPARATOR);
+
     //
     // Loop on each partition
     //
@@ -5770,20 +5786,6 @@ public class GTSHelper {
       List<GeoTimeSerie>[] subseries = new List[series.length];
       for (int i = 0; i < series.length; i++) {
         
-        //
-        // We assume the GTS had their IDs set ahead of this method being called.
-        // We check it is indeed the case
-        //
-
-        for (GeoTimeSerie gts: series[i]) {
-          if (!gts.getMetadata().isSetClassId() || !gts.getMetadata().isSetLabelsId()) {
-            throw new RuntimeException("Unset class/labels id.");
-          }
-        }
-        
-        Collections.sort(series[i], GTSIdComparator.COMPARATOR);
-        //Collections.sort(series[i], METASORT.META_COMPARATOR);
-
         subseries[i] = new ArrayList<GeoTimeSerie>();
        
         //
