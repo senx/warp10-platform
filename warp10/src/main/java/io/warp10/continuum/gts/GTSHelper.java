@@ -5757,8 +5757,8 @@ public class GTSHelper {
     Map<Map<String,String>, List<GeoTimeSerie>> results = new LinkedHashMap<Map<String,String>,List<GeoTimeSerie>>();
 
     //
-    // We assume the GTS had their IDs set ahead of this method being called.
-    // We check it is indeed the case
+    // We force a dummy classId so we can easily perform a binary search
+    // on the lists of GTS    
     //
 
     long idx = 0L;
@@ -5803,6 +5803,7 @@ public class GTSHelper {
             // The series appear in the order they are in the original list due to 'partition' using a List
             for (GeoTimeSerie serie: partition.get(partitionlabels)) {
               //if (Collections.binarySearch(series[i], serie, METASORT.META_COMPARATOR) >= 0) {
+              // We perform a binary search to determine if the GTS 'serie' is in series[i]
               if (Collections.binarySearch(series[i], serie, GTSIdComparator.COMPARATOR) >= 0) {
                 subseries[i].add(serie);
               }
@@ -5860,7 +5861,7 @@ public class GTSHelper {
       
       return results;      
     } finally {
-      // Unset classId/labelsId since we modified them
+      // Unset classId/labelsId since we modified them for efficient binary search
       for (int i = 0; i < series.length; i++) {
         for (GeoTimeSerie gts: series[i]) {
           gts.getMetadata().unsetClassId();
