@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,9 @@
 
 package io.warp10.script.binary;
 
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GTSOpsHelper;
+import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptStack;
@@ -34,6 +37,13 @@ public abstract class CondShortCircuit extends NamedWarpScriptFunction implement
 
   protected final boolean triggerValue;
 
+  private final GTSOpsHelper.GTSBinaryOp op = new GTSOpsHelper.GTSBinaryOp() {
+    @Override
+    public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+      return operator(((boolean) GTSHelper.valueAtIndex(gtsa, idxa)) , ((boolean) GTSHelper.valueAtIndex(gtsb, idxb)));
+    }
+  };
+
   public abstract boolean operator(boolean bool1, boolean bool2);
 
   public CondShortCircuit(String name, boolean triggerValue) {
@@ -43,7 +53,7 @@ public abstract class CondShortCircuit extends NamedWarpScriptFunction implement
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    String exceptionMessage = getName() + " can only operate on two boolean values or a list of booleans or macros, each macro putting a single boolean on top of the stack.";
+    String exceptionMessage = getName() + " can only operate on two boolean values, or two boolean GTS, or a list of booleans or macros, each macro putting a single boolean on top of the stack.";
 
     Object top = stack.pop();
 
@@ -72,13 +82,31 @@ public abstract class CondShortCircuit extends NamedWarpScriptFunction implement
       stack.push(!triggerValue);
       return stack;
     } else {
-      // Simple case: both operands are booleans, do a || and push to the stack.
-      Object operand2 = top;
-      Object operand1 = stack.pop();
-
-      if (operand2 instanceof Boolean && operand1 instanceof Boolean) {
-        stack.push(operator((boolean) operand1, (boolean) operand2));
+      // two operands
+      Object op2 = top;
+      Object op1 = stack.pop();
+      if (op2 instanceof Boolean && op1 instanceof Boolean) {
+        // Simple case: both operands are booleans, do a || and push to the stack.
+        stack.push(operator((boolean) op1, (boolean) op2));
         return stack;
+      } else if (op1 instanceof GeoTimeSerie && op2 instanceof GeoTimeSerie) {
+        // logical operator between boolean GTS values
+        GeoTimeSerie gts1 = (GeoTimeSerie) op1;
+        GeoTimeSerie gts2 = (GeoTimeSerie) op2;
+        if (GeoTimeSerie.TYPE.BOOLEAN == gts1.getType() && GeoTimeSerie.TYPE.BOOLEAN == gts2.getType()) {
+          GeoTimeSerie result = new GeoTimeSerie(Math.max(GTSHelper.nvalues(gts1), GTSHelper.nvalues(gts2)));
+          result.setType(GeoTimeSerie.TYPE.BOOLEAN);
+          GTSOpsHelper.applyBinaryOp(result, gts1, gts2, this.op);
+          stack.push(result);
+          return stack;
+        } else if ((GeoTimeSerie.TYPE.UNDEFINED == gts1.getType() && GeoTimeSerie.TYPE.BOOLEAN == gts2.getType())
+                || (GeoTimeSerie.TYPE.UNDEFINED == gts2.getType() && GeoTimeSerie.TYPE.BOOLEAN == gts1.getType())) {
+          // gts1 or gts2 empty, return an empty gts
+          stack.push(new GeoTimeSerie());
+          return stack;
+        } else {
+          throw new WarpScriptException(getName() + " can only operate on long values or long GTS.");
+        }
       } else {
         throw new WarpScriptException(exceptionMessage);
       }
