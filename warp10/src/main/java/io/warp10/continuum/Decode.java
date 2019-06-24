@@ -65,9 +65,15 @@ public class Decode {
       
       while(decoder.next()) {
         long ts = decoder.getTimestamp();
-        String value = decoder.getValue().toString();
+        Object value = decoder.getBinaryValue();
         
-        byte[] bytes = OrderPreservingBase64.decode(value.getBytes(Charsets.UTF_8));
+        byte[] bytes;
+        
+        if (value instanceof byte[]) {
+          bytes = (byte[]) value;
+        } else {
+          bytes = OrderPreservingBase64.decode(value.toString().getBytes(Charsets.UTF_8));
+        }
         decoder = new GTSDecoder(ts, ByteBuffer.wrap(bytes));
         decoder.setMetadata(encoder.getMetadata());
 

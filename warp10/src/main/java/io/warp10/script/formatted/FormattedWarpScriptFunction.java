@@ -71,8 +71,28 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       return this;
     }
 
+    public ArgumentsBuilder addListArgument(Class<?> subClazz, String name, String doc) {
+      args.add(new ListSpecification(subClazz, name, doc));
+      return this;
+    }
+
+    public ArgumentsBuilder addMapArgument(Class<?> keyClass, Class<?> valueClass, String name, String doc) {
+      args.add(new MapSpecification(keyClass, valueClass, name, doc));
+      return this;
+    }
+
     public ArgumentsBuilder addOptionalArgument(Class<?> clazz, String name, String doc, Object defaultValue) {
       optArgs.add(new ArgumentSpecification(clazz, name, defaultValue, doc));
+      return this;
+    }
+
+    public ArgumentsBuilder addOptionalListArgument(Class<?> subClazz, String name, String doc, Object defaultValue) {
+      optArgs.add(new ListSpecification(subClazz, name, defaultValue, doc));
+      return this;
+    }
+
+    public ArgumentsBuilder addOptionalMapArgument(Class<?> keyClass, Class<?> valueClass, String name, String doc, Object defaultValue) {
+      args.add(new MapSpecification(keyClass, valueClass, name, defaultValue, doc));
       return this;
     }
 
@@ -178,12 +198,11 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     }
 
     //
-    // If there are possible optional arguments, check that last mandatory argument is not a Map so that there is no
-    // confusion
+    // Check that the first mandatory argument is not a Map so that there is no confusion
     //
 
-    if (args.size() > 1 && Map.class.isAssignableFrom(args.get(args.size() - 1).getClazz()) && optArgs.size() > 0) {
-      throw new WarpScriptException("The function " + getName() + " is a formatted WarpScript function. As such, it cannot expect a Map as its last non-optional argument. Its implementation must be modified.");
+    if (args.size() > 0 && Map.class.isAssignableFrom(args.get(0).getClazz())) {
+      throw new WarpScriptException("The function " + getName() + " is a formatted WarpScript function. As such, it cannot expect a Map as its first mandatory argument or that could be confused for when using optional arguments. Its implementation must be modified.");
     }
 
     //
@@ -273,6 +292,58 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       }
 
       //
+      // Check List and Map arguments sub types
+      //
+
+      List<ArgumentSpecification> both = new ArrayList<>();
+      both.addAll(args);
+      both.addAll(optArgs);
+
+      for (ArgumentSpecification arg: both) {
+
+        Object candidate = map.get(arg.getName());
+        if (null == candidate) {
+          continue;
+        }
+
+        //
+        // Check lists sub types
+        //
+
+        if (arg instanceof ListSpecification) {
+
+          for (Object elt: (List) candidate) {
+
+            if (!((ListSpecification) arg).getSubClazz().isInstance(elt)) {
+              throw new WarpScriptException(getClass().getSimpleName() + " expects the argument '" + arg.getName() + "' to be a LIST of " +
+                ((ListSpecification) arg).getSubClazz().getSimpleName() + ".");
+            }
+          }
+        }
+
+        //
+        // Check key and value sub types of maps
+        //
+
+        if (arg instanceof MapSpecification) {
+
+          for (Object key: ((Map) candidate).keySet()) {
+
+            if (!((MapSpecification) arg).getClassOfKey().isInstance(key)) {
+              throw new WarpScriptException(getClass().getSimpleName() + " expects the argument '" + arg.getName() + "' to be a MAP with keys of type " +
+                ((MapSpecification) arg).getClassOfKey().getSimpleName() + ".");
+            }
+
+            Object value = ((Map) candidate).get(key);
+            if (!((MapSpecification) arg).getClassOfValue().isInstance(value)) {
+              throw new WarpScriptException(getClass().getSimpleName() + " expects the argument '" + arg.getName() + "' to be a MAP with values of type " +
+                ((MapSpecification) arg).getClassOfValue().getSimpleName() + ".");
+            }
+          }
+        }
+      }
+
+      //
       // Consume the top of the stack
       //
 
@@ -300,6 +371,42 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
         if (!arg.getClazz().isInstance(candidate)) {
           throw new WarpScriptException(getClass().getSimpleName() + " expects to find a '" + arg.getName() + "' (a " +
             arg.WarpScriptType() + ") " + leveldenomination(i));
+        }
+
+        //
+        // Check lists sub types
+        //
+
+        if (arg instanceof ListSpecification) {
+
+          for (Object elt: (List) candidate) {
+
+            if (!((ListSpecification) arg).getSubClazz().isInstance(elt)) {
+              throw new WarpScriptException(getClass().getSimpleName() + " expects to find a '" + arg.getName() + "' (a LIST of " +
+                ((ListSpecification) arg).getSubClazz().getSimpleName() + ") " + leveldenomination(i));
+            }
+          }
+        }
+
+        //
+        // Check key and value sub types of maps
+        //
+
+        if (arg instanceof MapSpecification) {
+
+          for (Object key: ((Map) candidate).keySet()) {
+
+            if (!((MapSpecification) arg).getClassOfKey().isInstance(key)) {
+              throw new WarpScriptException(getClass().getSimpleName() + " expects to find a '" + arg.getName() + "' (a MAP with keys of type " +
+                ((MapSpecification) arg).getClassOfKey().getSimpleName() + ") " + leveldenomination(i));
+            }
+
+            Object value = ((Map) candidate).get(key);
+            if (!((MapSpecification) arg).getClassOfValue().isInstance(value)) {
+              throw new WarpScriptException(getClass().getSimpleName() + " expects to find a '" + arg.getName() + "' (a MAP with values of type " +
+                ((MapSpecification) arg).getClassOfValue().getSimpleName() + ") " + leveldenomination(i));
+            }
+          }
         }
       }
 

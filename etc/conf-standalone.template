@@ -32,12 +32,12 @@
 
 //
 // Maximum number of classes for which to report detailed stats in 'FINDSTATS'
-// 
+//
 directory.stats.class.maxcardinality = 100
 
 //
 // Maximum number of labels for which to report detailed stats in 'FINDSTATS'
-// 
+//
 directory.stats.labels.maxcardinality = 100
 
 //
@@ -53,47 +53,47 @@ directory.stats.labels.maxcardinality = 100
 //
 // 128 bits key for verifying class names, format is hex:hhhhh...hhhh
 //
-warp.hash.class = @key:128:warp.hash.class@
+warp.hash.class = ${warp.hash.class.secret}
 
 //
 // 128 bits key for verifying labels, format is hex:hhhhh...hhhh
 //
-warp.hash.labels = @key:128:warp.hash.labels@
+warp.hash.labels = ${warp.hash.labels.secret}
 
 //
 // 128 bits key for verifying index names, format is hex:hhhhh...hhhh
 //
-warp.hash.index = @key:128:warp.hash.index@
+warp.hash.index = ${warp.hash.index.secret}
 
 //
 // 128 bits key for verifying tokens, format is hex:hhhhh...hhhh
 //
-warp.hash.token = @key:128:warp.hash.token@
+warp.hash.token = ${warp.hash.token.secret}
 
 //
 // 128 bits key for verifying app names, format is hex:hhhhh...hhhh
 //
-warp.hash.app = @key:128:warp.hash.app@
+warp.hash.app = ${warp.hash.app.secret}
 
 //
 // 256 bits key for protecting tokens, format is hex:hhhh...hhhh
 //
-warp.aes.token = @key:256:warp.aes.token@
+warp.aes.token = ${warp.aes.token.secret}
 
 //
 // 256 bits key to generate secure scripts
 //
-warp.aes.scripts = @key:256:warp.aes.scripts@
+warp.aes.scripts = ${warp.aes.scripts.secret}
 
 //
 // AES key to wrap metasets
 //
-warp.aes.metasets = @key:256:warp.aes.metasets@
+warp.aes.metasets = ${warp.aes.metasets.secret}
 
 //
 // 256 bits key for protecting log messages, format is hex:hhhhh...hhhh
 //
-#warp.aes.logging = @key:256:warp.aes.logging@
+#warp.aes.logging = ${warp.aes.logging.secret}
 
 //
 // OSS Master Key, used to decrypt any 'wrapped:base64' key
@@ -977,6 +977,8 @@ runner.minperiod = 1000
 #http.queuesize = 8
 // Set to false to disable support for gzipped responses
 #http.gzip = false
+// Set to true to convert header names to lower case in the request map
+#http.lcheaders = true
 
 //
 // UDP Plugin

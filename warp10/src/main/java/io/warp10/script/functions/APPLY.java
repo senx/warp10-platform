@@ -93,7 +93,7 @@ public class APPLY extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     for (int i = 0; i < labelsidx; i++) {
       if (!(params.get(i) instanceof List)) {
-        throw new WarpScriptException(getName() + " expects lists of geo time series as first parameters.");
+        throw new WarpScriptException(getName() + " expects lists of Geo Time Series as first parameters.");
       }              
     }
       

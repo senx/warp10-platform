@@ -289,7 +289,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     String typelabel = (String) params.get(PARAM_TYPEATTR);
 
     if (null != typelabel) {
-      bases = new GeoTimeSerie[4];
+      bases = new GeoTimeSerie[5];
     }
     
     ReadToken rtoken = Tokens.extractReadToken(params.get(PARAM_TOKEN).toString());
@@ -471,10 +471,6 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
             
             if (null != typelabel) {
               
-              Map<String,String> labels = new HashMap<String,String>(decoder.getMetadata().getLabels());
-              labels.remove(Constants.PRODUCER_LABEL);
-              labels.remove(Constants.OWNER_LABEL);
-
               java.util.UUID uuid = null;
               
               if (showUUID) {
@@ -496,7 +492,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                 long ts = decoder.getTimestamp();
                 long location = decoder.getLocation();
                 long elevation = decoder.getElevation();
-                Object value = decoder.getValue();
+                Object value = decoder.getBinaryValue();
                 
                 int gtsidx = 0;
                 String typename = "DOUBLE";
@@ -510,6 +506,9 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                 } else if (value instanceof String) {
                   gtsidx = 3;
                   typename = "STRING";
+                } else if (value instanceof byte[]) {
+                  gtsidx = 4;
+                  typename = "BINARY";
                 }
                 
                 base = bases[gtsidx];
@@ -518,7 +517,14 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                   bases[gtsidx] = new GeoTimeSerie();
                   base = bases[gtsidx];
                   series.add(base);
-                  base.setLabels(decoder.getLabels());
+
+                  // Copy labels to GTS, removing producer and owner
+                  Map<String,String> labels = new HashMap<String, String>();
+                  labels.putAll(decoder.getMetadata().getLabels());
+                  labels.remove(Constants.PRODUCER_LABEL);
+                  labels.remove(Constants.OWNER_LABEL);
+                  base.setLabels(labels);
+
                   base.getMetadata().putToAttributes(typelabel, typename);
                   base.setName(decoder.getName());
                   if (null != uuid) {

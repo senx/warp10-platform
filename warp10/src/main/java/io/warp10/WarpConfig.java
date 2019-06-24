@@ -22,7 +22,11 @@ import io.warp10.script.WarpFleetMacroRepository;
 import io.warp10.script.WarpScriptJarRepository;
 import io.warp10.script.WarpScriptMacroRepository;
 
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
+
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,8 +34,10 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
@@ -39,36 +45,74 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class WarpConfig {
-  
+
   /**
    * Name of property used in various submodules to locate the Warp 10 configuration file
    */
   public static final String WARP10_CONFIG = "warp10.config";
-  
+
   /**
    * Name of environment variable used in various submodules to locate the Warp 10 configuration file
    */
   public static final String WARP10_CONFIG_ENV = "WARP10_CONFIG";
-  
+
   /**
    * Name of property used at various places to define BOOTSTRAP code.
    */
   public static final String WARPSCRIPT_BOOTSTRAP = "warpscript.bootstrap";
-  
+
   private static Properties properties = null;
-  
+
   public static void safeSetProperties(String file) throws IOException {
     if (null != properties) {
       return;
     }
-    
+
     if (null == file) {
       safeSetProperties((Reader) null);
-    } else {      
+    } else {
       safeSetProperties(new FileReader(file));
     }
   }
-  
+
+  public static void setProperties(String[] files) throws IOException {
+    if (null == files || 0 == files.length) {
+      setProperties((Reader) null);
+    } else {
+      //
+      // Read all files, in the order they were provided, in a String which
+      // will be fed to a StringReader
+      //
+      // If a file starts with '@', treat it as a file containing lists of files
+      //
+
+      List<String> filenames = new ArrayList<>(Arrays.asList(files));
+
+      StringBuilder sb = new StringBuilder();
+
+      while (!filenames.isEmpty()) {
+        String file = filenames.remove(0);
+
+        boolean atfile = '@' == file.charAt(0);
+
+        // Read content of file
+        List<String> lines = Files.readLines(new File(atfile ? file.substring(1) : file), Charsets.UTF_8);
+
+        // If 'file' starts with '@', add the lines as filenames
+        if (atfile) {
+          filenames.addAll(0, lines);
+        } else {
+          for (String line : lines) {
+            sb.append(line);
+            sb.append("\n");
+          }
+        }
+      }
+
+      setProperties(new StringReader(sb.toString()));
+    }
+  }
+
   public static void setProperties(String file) throws IOException {
     if (null == file) {
       setProperties((Reader) null);
@@ -76,24 +120,24 @@ public class WarpConfig {
       setProperties(new FileReader(file));
     }
   }
-  
+
   public static void safeSetProperties(Reader reader) throws IOException {
     if (null != properties) {
       return;
     }
-    
+
     setProperties(reader);
   }
-  
+
   public static boolean isPropertiesSet() {
     return null != properties;
   }
-  
+
   public static void setProperties(Reader reader) throws IOException {
     if (null != properties) {
       throw new RuntimeException("Properties already set.");
     }
-    
+
     if (null != reader) {
       properties = readConfig(reader, null);
     } else {
@@ -108,7 +152,7 @@ public class WarpConfig {
     //
     // Load tokens from file
     //
-    
+
     if (null != properties.getProperty(Configuration.WARP_TOKEN_FILE)) {
       Tokens.init(properties.getProperty(Configuration.WARP_TOKEN_FILE));
     }
@@ -116,71 +160,75 @@ public class WarpConfig {
     //
     // Initialize macro repository
     //
-    
+
     WarpScriptMacroRepository.init(properties);
-    
+
     //
     // Initialize jar repository
     //
-    
+
     WarpScriptJarRepository.init(properties);
-    
+
     //
     // Initialize WarpFleet repository
     //
-    
+
     WarpFleetMacroRepository.init(properties);
   }
-  
+
   private static Properties readConfig(InputStream file, Properties properties) throws IOException {
     return readConfig(new InputStreamReader(file), properties);
   }
-  
-  static Properties readConfig(Reader reader, Properties properties) throws IOException {
+
+  public static Properties readConfig(Reader reader, Properties properties) throws IOException {
+    return readConfig(reader, properties, true);
+  }
+
+  public static Properties readConfig(Reader reader, Properties properties, boolean expandVars) throws IOException {
     //
     // Read the properties in the config file
     //
-    
+
     if (null == properties) {
       properties = new Properties();
     }
-    
+
     BufferedReader br = new BufferedReader(reader);
-    
+
     int lineno = 0;
-    
+
     int errorcount = 0;
-    
+
     while (true) {
       String line = br.readLine();
-      
+
       if (null == line) {
         break;
       }
-      
+
       line = line.trim();
       lineno++;
-      
+
       // Skip comments and blank lines
       if ("".equals(line) || line.startsWith("//") || line.startsWith("#") || line.startsWith("--")) {
         continue;
       }
-      
+
       // Lines not containing an '=' will emit warnings
-      
+
       if (!line.contains("=")) {
         System.err.println("Line " + lineno + " is missing an '=' sign, skipping.");
         continue;
       }
-      
+
       String[] tokens = line.split("=");
-      
+
       if (tokens.length > 2) {
         System.err.println("Invalid syntax on line " + lineno + ", will force an abort.");
         errorcount++;
         continue;
       }
-      
+
       if (tokens.length < 2) {
         System.err.println("Empty value for property '" + tokens[0] + "', ignoring.");
         continue;
@@ -193,146 +241,148 @@ public class WarpConfig {
         }
         tokens[i] = tokens[i].trim();
       }
-      
+
       //
       // Ignore empty properties
       //
-      
+
       if ("".equals(tokens[1])) {
         continue;
       }
-      
+
       //
       // Set property
       //
-      
+
       properties.setProperty(tokens[0], tokens[1]);
     }
-    
+
     br.close();
-    
+
     if (errorcount > 0) {
       System.err.println("Aborting due to " + errorcount + " error" + (errorcount > 1 ? "s" : "") + ".");
       System.exit(-1);
     }
-    
-    //
-    // Now override properties with environment variables
-    //
-    
-    for (Entry<String, String> entry: System.getenv().entrySet()) {
-      String name = entry.getKey().toString();
-      String value = entry.getValue().toString();
 
-      try {
-        // URL Decode name/value if needed
-        if (name.contains("%")) {
-          name = URLDecoder.decode(name, "UTF-8");
-        }
-        if (value.contains("%")) {
-          value = URLDecoder.decode(value, "UTF-8");
-        }
-
-        // Override property
-        properties.setProperty(name, value);        
-      } catch (Exception e) {
-        System.err.println("Error decoding environment variable '" + entry.getKey().toString() + "' = '" + entry.getValue().toString() + "', using raw values.");
-        properties.setProperty(entry.getKey().toString(), entry.getValue().toString());
-      }
-    }
-
-    //
-    // Now override properties with system properties
-    //
-
-    Properties sysprops = System.getProperties();
-
-    for (Entry<Object, Object> entry : sysprops.entrySet()) {
-      String name = entry.getKey().toString();
-      String value = entry.getValue().toString();
-
-      try {
-        // URL Decode name/value if needed
-        if (name.contains("%")) {
-          name = URLDecoder.decode(name, "UTF-8");
-        }
-        if (value.contains("%")) {
-          value = URLDecoder.decode(value, "UTF-8");
-        }
-
-        // Override property
-        properties.setProperty(name, value);        
-      } catch (Exception e) {
-        System.err.println("Error decoding system property '" + entry.getKey().toString() + "' = '" + entry.getValue().toString() + "', using raw values.");
-        properties.setProperty(entry.getKey().toString(), entry.getValue().toString());
-      }
-    }
- 
-    //
-    // Now expand ${xxx} constructs
-    //
-    
-    Pattern VAR = Pattern.compile(".*\\$\\{([^}]+)\\}.*");
-    
-    Set<String> emptyProperties = new HashSet<String>();
-    
-    for (Entry<Object,Object> entry: properties.entrySet()) {
-      String name = entry.getKey().toString();
-      String value = entry.getValue().toString();
-      
+    if (expandVars) {
       //
-      // Replace '' with the empty string
+      // Now override properties with environment variables
       //
-      
-      if ("''".equals(value)) {
-        value = "";
-      }
-      
-      int loopcount = 0;
-      
-      while(true) {
-        Matcher m = VAR.matcher(value);
-        
-        if (m.matches()) {
-          String var = m.group(1);
-          
-          if (properties.containsKey(var)) {
-            value = value.replace("${" + var + "}", properties.getProperty(var));              
-          } else {
-            System.err.println("Property '" + var + "' referenced in property '" + name + "' is unset, unsetting '" + name + "'");
-            value = null;
+
+      for (Entry<String, String> entry : System.getenv().entrySet()) {
+        String name = entry.getKey();
+        String value = entry.getValue();
+
+        try {
+          // URL Decode name/value if needed
+          if (name.contains("%")) {
+            name = URLDecoder.decode(name, "UTF-8");
           }
-        } else {
-          break;
+          if (value.contains("%")) {
+            value = URLDecoder.decode(value, "UTF-8");
+          }
+
+          // Override property
+          properties.setProperty(name, value);
+        } catch (Exception e) {
+          System.err.println("Error decoding environment variable '" + entry.getKey() + "' = '" + entry.getValue() + "', using raw values.");
+          properties.setProperty(entry.getKey(), entry.getValue());
         }
-        
+      }
+
+      //
+      // Now override properties with system properties
+      //
+
+      Properties sysprops = System.getProperties();
+
+      for (Entry<Object, Object> entry : sysprops.entrySet()) {
+        String name = entry.getKey().toString();
+        String value = entry.getValue().toString();
+
+        try {
+          // URL Decode name/value if needed
+          if (name.contains("%")) {
+            name = URLDecoder.decode(name, "UTF-8");
+          }
+          if (value.contains("%")) {
+            value = URLDecoder.decode(value, "UTF-8");
+          }
+
+          // Override property
+          properties.setProperty(name, value);
+        } catch (Exception e) {
+          System.err.println("Error decoding system property '" + entry.getKey().toString() + "' = '" + entry.getValue().toString() + "', using raw values.");
+          properties.setProperty(entry.getKey().toString(), entry.getValue().toString());
+        }
+      }
+
+      //
+      // Now expand ${xxx} constructs
+      //
+
+      Pattern VAR = Pattern.compile(".*\\$\\{([^}]+)\\}.*");
+
+      Set<String> emptyProperties = new HashSet<String>();
+
+      for (Entry<Object, Object> entry : properties.entrySet()) {
+        String name = entry.getKey().toString();
+        String value = entry.getValue().toString();
+
+        //
+        // Replace '' with the empty string
+        //
+
+        if ("''".equals(value)) {
+          value = "";
+        }
+
+        int loopcount = 0;
+
+        while (true) {
+          Matcher m = VAR.matcher(value);
+
+          if (m.matches()) {
+            String var = m.group(1);
+
+            if (properties.containsKey(var)) {
+              value = value.replace("${" + var + "}", properties.getProperty(var));
+            } else {
+              System.err.println("Property '" + var + "' referenced in property '" + name + "' is unset, unsetting '" + name + "'");
+              value = null;
+            }
+          } else {
+            break;
+          }
+
+          if (null == value) {
+            break;
+          }
+
+          loopcount++;
+
+          if (loopcount > 100) {
+            System.err.println("Hmmm, that's embarrassing, but I've been dereferencing variables " + loopcount + " times trying to set a value for '" + name + "'.");
+            System.exit(-1);
+          }
+        }
+
         if (null == value) {
-          break;
-        }
-        
-        loopcount++;
-        
-        if (loopcount > 100) {
-          System.err.println("Hmmm, that's embarrassing, but I've been dereferencing variables " + loopcount + " times trying to set a value for '" + name + "'.");
-          System.exit(-1);
+          emptyProperties.add(name);
+        } else {
+          properties.setProperty(name, value);
         }
       }
-      
-      if (null == value) {
-        emptyProperties.add(name);
-      } else {
-        properties.setProperty(name, value);
+
+      //
+      // Remove empty properties
+      //
+
+      for (String property : emptyProperties) {
+        properties.remove(property);
       }
     }
-    
-    //
-    // Remove empty properties
-    //
-    
-    for (String property: emptyProperties) {
-      properties.remove(property);
-    }
-    
+
     return properties;
   }
 
@@ -342,7 +392,7 @@ public class WarpConfig {
     }
     return (Properties) properties.clone();
   }
-  
+
   public static String getProperty(String key) {
     if (null == properties) {
       throw new RuntimeException("Properties not set.");
@@ -356,14 +406,14 @@ public class WarpConfig {
       throw new RuntimeException("Properties not set.");
     } else {
       return properties.getProperty(key, defaultValue);
-    }    
+    }
   }
-  
-  public static Object setProperty(String key, String value) {    
+
+  public static Object setProperty(String key, String value) {
     if (null == properties) {
       return null;
     } else {
-      synchronized(properties) {
+      synchronized (properties) {
         // Set the new value
         if (null == value) {
           return properties.remove(key);
@@ -373,10 +423,10 @@ public class WarpConfig {
       }
     }
   }
-  
+
   public static void main(String... args) {
-    if (2 != args.length) {
-      System.err.println("2 arguments required: properties file and the property key");
+    if (2 > args.length) {
+      System.err.println("2 arguments minimum required: properties files and the property key");
       System.exit(-1);
     }
 
@@ -385,10 +435,11 @@ public class WarpConfig {
       System.exit(-1);
     }
 
-    String file = args[0];
-    String key = args[1];
+    String[] files = Arrays.copyOf(args, args.length - 1);
+    String key = args[args.length - 1];
     try {
-      properties = WarpConfig.readConfig(new FileReader(file), null);
+      WarpConfig.setProperties(files);
+      properties = WarpConfig.getProperties();
       System.out.println(key + "=" + WarpConfig.getProperty(key));
     } catch (Exception e) {
       e.printStackTrace();

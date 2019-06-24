@@ -61,7 +61,7 @@ else
   exit 1
 fi
 
-WARP10_CONFIG=${WARP10_HOME}/etc/conf-standalone.conf
+WARP10_CONFIG_DIR=${WARP10_HOME}/etc/conf.d
 # Snapshot directory, MUST be on the same device as LEVELDB_HOME so we can create hard links
 SNAPSHOT_DIR=${LEVELDB_HOME}/snapshots
 
@@ -225,4 +225,9 @@ fi
 mkdir ${SNAPSHOT_DIR}/${SNAPSHOT}/warp10-config
 # only warp10 user can have access to this config
 chmod 700 ${SNAPSHOT_DIR}/${SNAPSHOT}/warp10-config
-cp  ${WARP10_CONFIG} ${SNAPSHOT_DIR}/${SNAPSHOT}/warp10-config/
+cp -a ${WARP10_CONFIG_DIR} ${SNAPSHOT_DIR}/${SNAPSHOT}/warp10-config/
+
+
+if [[ -n "${WARP10_EXT_CONFIG_DIR}" && -d "${WARP10_EXT_CONFIG_DIR}" ]]; then
+  cp -r ${WARP10_EXT_CONFIG_DIR} ${SNAPSHOT_DIR}/${SNAPSHOT}/warp10-config/
+fi

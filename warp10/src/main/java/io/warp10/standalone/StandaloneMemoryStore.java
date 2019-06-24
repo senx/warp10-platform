@@ -229,7 +229,7 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
                 }
 
                 try {
-                  encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+                  encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
                   nvalues++;
                 } catch (IOException ioe) {                  
                 }
@@ -272,7 +272,7 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
                 while(dec.next()) {
                   if (dec.getTimestamp() >= lowerbound) {
                     try {
-                      encoder.addValue(dec.getTimestamp(), dec.getLocation(), dec.getElevation(), dec.getValue());
+                      encoder.addValue(dec.getTimestamp(), dec.getLocation(), dec.getElevation(), dec.getBinaryValue());
                     } catch (IOException ioe) {                      
                     }
                   }

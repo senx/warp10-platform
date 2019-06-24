@@ -45,7 +45,7 @@ public class LOCSTRINGS extends NamedWarpScriptFunction implements WarpScriptSta
     Object o = stack.pop();
     
     if (!(o instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " expects a geo time series on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a Geo Time Series on top of the stack.");
     }
 
     //
