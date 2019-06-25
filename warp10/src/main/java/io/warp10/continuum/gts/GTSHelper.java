@@ -2588,41 +2588,62 @@ public class GTSHelper {
         // Elements between two '/' can be empty
         
         GTSEncoder encoder = new GTSEncoder();
-        
-        int idx0 = 1;
+
+        // Start index of the token to parse. Will advance through the token to parse each slash-separated field.
+        int idxTokenStart = 1;
         
         boolean comp = true;
         // Handle the case where the value starts with [! which means to not compress the resulting encoder
         if ('!' == valuestr.charAt(1)) {
           comp = false;
-          idx0 = 2;
+          idxTokenStart = 2;
         }
         
-        int idx1 = 0;
+        int idxTokenSlash = 0; // Used to find '/' inside the token
+
+        // Last index (excluded) to be considered in valuestr
+        int idxValueEnd = valuestr.length() - 1;
+
+        // Find the last closing bracket which should match the opening bracket, ignoring trailing spaces.
+        while (idxValueEnd >= idxTokenStart) {
+          char c = valuestr.charAt(idxValueEnd);
+          if (']' == c) {
+            break;
+          } else if (' ' == c) {
+            idxValueEnd--;
+          } else {
+            throw new ParseException("Missing closing bracket.", 0);
+          }
+        }
+
+        if (idxValueEnd < idxTokenStart) {
+          throw new ParseException("Missing closing bracket.", 0);
+        }
         
-        while(idx0 < valuestr.length()) {
-          while(idx0 < valuestr.length() && (' ' == valuestr.charAt(idx0) || ']' == valuestr.charAt(idx0))) {
-            idx0++;
+        while(idxTokenStart < idxValueEnd) {
+          // Ignore leading spaces
+          while(idxTokenStart < idxValueEnd && ' ' == valuestr.charAt(idxTokenStart)) {
+            idxTokenStart++;
           }
 
-          if (idx0 >= valuestr.length()) {
+          if (idxTokenStart >= idxValueEnd) {
             break;
           }
           
           // Find end of current token
-          int idx2 = idx0 + 1;
+          int idxTokenEnd = idxTokenStart + 1;
           
-          while(idx2 < valuestr.length() && ' ' != valuestr.charAt(idx2)) {
-            idx2++;
+          while(idxTokenEnd < idxValueEnd && ' ' != valuestr.charAt(idxTokenEnd)) {
+            idxTokenEnd++;
           }
           
-          // Current token is between idx0 (included) and idx2 (excluded)
+          // Current token is between idxTokenStart (included) and idxTokenEnd (excluded)
           
           // Find out if there is a first '/'
-          idx1 = idx0 + 1;
+          idxTokenSlash = idxTokenStart + 1;
           
-          while(idx1 < idx2 && '/' != valuestr.charAt(idx1)) {
-            idx1++;
+          while(idxTokenSlash < idxTokenEnd && '/' != valuestr.charAt(idxTokenSlash)) {
+            idxTokenSlash++;
           }
           
           long ts;
@@ -2633,14 +2654,13 @@ public class GTSHelper {
           
           // No '/', we simply have a value, we'll store it at ts 0
           
-          if (idx1 == idx2) {
+          if (idxTokenSlash == idxTokenEnd) {
             ts = 0L;
             // Advance to the closing ']' if the value starts with '['
-            int offset = 0;
-            if ('[' == valuestr.charAt(idx0)) {
-              int closing = idx0 + 1;
+            if ('[' == valuestr.charAt(idxTokenStart)) {
+              int closing = idxTokenStart + 1;
               int opening = 1;
-              while(closing < valuestr.length() && opening > 0) {
+              while(closing < idxValueEnd && opening > 0) {
                 char lead = valuestr.charAt(closing);
                 if (']' == lead) {
                   opening--;
@@ -2649,39 +2669,36 @@ public class GTSHelper {
                 }
                 closing++;
               }
-              idx1 = closing;
-              idx2 = closing;
-              offset = 1;
+              idxTokenEnd = closing; // idxTokenEnd points to the character just after ']'
             }
             
-            val = GTSHelper.parseValue(valuestr.substring(idx0, idx2));
+            val = GTSHelper.parseValue(valuestr.substring(idxTokenStart, idxTokenEnd));
             encoder.addValue(ts, location, elevation, val);
-            idx0 = idx1 + offset;
+            idxTokenStart = idxTokenEnd + 1; // Token end is either a space or eol, the next token thus starts at end+1
             continue;
           }
           
           //
           // Parse the timestamp
           //
-          ts = Long.parseLong(valuestr.substring(idx0, idx1));
+          ts = Long.parseLong(valuestr.substring(idxTokenStart, idxTokenSlash));
           
-          // Advance idx1 after the first '/'
-          idx1++;
-          idx0 = idx1;
+          // Advance idxTokenSlash after the first '/'
+          idxTokenSlash++;
+          idxTokenStart = idxTokenSlash;
           
           // Identify a possible second '/'
-          while(idx1 < idx2 && '/' != valuestr.charAt(idx1)) {
-            idx1++;
+          while(idxTokenSlash < idxTokenEnd && '/' != valuestr.charAt(idxTokenSlash)) {
+            idxTokenSlash++;
           }
           
           // No second '/', we have TS/VALUE
-          if (idx1 == idx2) {
+          if (idxTokenSlash == idxTokenEnd) {
             // Advance to the closing ']' if the value starts with '['
-            int offset = 0;
-            if ('[' == valuestr.charAt(idx0)) {
-              int closing = idx0 + 1;
+            if ('[' == valuestr.charAt(idxTokenStart)) {
+              int closing = idxTokenStart + 1;
               int opening = 1;
-              while(closing < valuestr.length() && opening > 0) {
+              while(closing < idxValueEnd && opening > 0) {
                 char lead = valuestr.charAt(closing);
                 if (']' == lead) {
                   opening--;
@@ -2690,55 +2707,51 @@ public class GTSHelper {
                 }
                 closing++;
               }
-              idx1 = closing;
-              idx2 = closing;
-              offset = 1;
+              idxTokenEnd = closing; // idxTokenEnd points to the character just after ']'
             }
-            val = GTSHelper.parseValue(valuestr.substring(idx0, idx2));
+            val = GTSHelper.parseValue(valuestr.substring(idxTokenStart, idxTokenEnd));
             encoder.addValue(ts, location, elevation, val);
-            idx0 = idx1 + offset;
+            idxTokenStart = idxTokenEnd + 1; // Token end is either a space or eol, the next token thus starts at end+1
             continue;
           }
           
           // Parse lat:lon or HHCode
           // Identify ':'
           
-          int idx3 = idx0;
+          int idxTokenSemiCol = idxTokenStart;
           
-          // idx1 is the index of the second '/' we found
-          while(idx3 < idx1 && ':' != valuestr.charAt(idx3)) {
-            idx3++;
+          // idxTokenSlash is the index of the second '/' we found
+          while(idxTokenSemiCol < idxTokenSlash && ':' != valuestr.charAt(idxTokenSemiCol)) {
+            idxTokenSemiCol++;
           }
           
           // No ':', we have TS/HHCode/... or TS//...
-          if (idx3 == idx1) {
-            if (idx3 > idx0) {              
-              location = Long.parseLong(valuestr.substring(idx0, idx3));
+          if (idxTokenSemiCol == idxTokenSlash) {
+            if (idxTokenSemiCol > idxTokenStart) {
+              location = Long.parseLong(valuestr.substring(idxTokenStart, idxTokenSemiCol));
             }
           } else {       
             // Parse LAT:LON
-            double lat = Double.parseDouble(valuestr.substring(idx0, idx3));
-            double lon = Double.parseDouble(valuestr.substring(idx3 + 1, idx1));
+            double lat = Double.parseDouble(valuestr.substring(idxTokenStart, idxTokenSemiCol));
+            double lon = Double.parseDouble(valuestr.substring(idxTokenSemiCol + 1, idxTokenSlash));
             location = GeoXPLib.toGeoXPPoint(lat, lon);
           }
-          
-          idx0 = idx1 + 1;
-          
+
+          idxTokenSlash++;
+          idxTokenStart = idxTokenSlash;
+
           // Identify a possible third '/'
-          idx3 = idx0;
-          
-          while(idx3 < idx2 && '/' != valuestr.charAt(idx3)) {
-            idx3++;
+          while(idxTokenSlash < idxTokenEnd && '/' != valuestr.charAt(idxTokenSlash)) {
+            idxTokenSlash++;
           }
           
           // No '/', we have TS/LAT:LON/VALUE
-          if (idx3 == idx2) {
+          if (idxTokenSlash == idxTokenEnd) {
             // Advance to the closing ']' if the value starts with '['
-            int offset = 0;
-            if ('[' == valuestr.charAt(idx0)) {
-              int closing = idx0 + 1;
+            if ('[' == valuestr.charAt(idxTokenStart)) {
+              int closing = idxTokenStart + 1;
               int opening = 1;
-              while(closing < valuestr.length() && opening > 0) {
+              while(closing < idxValueEnd && opening > 0) {
                 char lead = valuestr.charAt(closing);
                 if (']' == lead) {
                   opening--;
@@ -2747,27 +2760,24 @@ public class GTSHelper {
                 }
                 closing++;
               }
-              idx3 = closing;
-              idx2 = closing;
-              offset = 1;
+              idxTokenEnd = closing; // idxTokenEnd points to the character just after ']'
             }
-            val = GTSHelper.parseValue(valuestr.substring(idx0, idx2));
+            val = GTSHelper.parseValue(valuestr.substring(idxTokenStart, idxTokenEnd));
             encoder.addValue(ts, location, elevation, val);
-            idx0 = idx3 + offset;
+            idxTokenStart = idxTokenEnd + 1; // Token end is either a space or eol, the next token thus starts at end+1
             continue;
           }
           
           // Extract elevation
-          if (idx3 > idx0) {
-            elevation = Long.parseLong(valuestr.substring(idx0, idx3));
+          if (idxTokenSlash > idxTokenStart) {
+            elevation = Long.parseLong(valuestr.substring(idxTokenStart, idxTokenSlash));
           }
           
           // Advance to the closing ']' if the value starts with '['
-          int offset = 0;
-          if ('[' == valuestr.charAt(idx3 + 1)) {
-            int closing = idx3 + 2;
+          if ('[' == valuestr.charAt(idxTokenSlash + 1)) {
+            int closing = idxTokenSlash + 2;
             int opening = 1;
-            while(closing < valuestr.length() && opening > 0) {
+            while(closing < idxValueEnd && opening > 0) {
               char lead = valuestr.charAt(closing);
               if (']' == lead) {
                 opening--;
@@ -2776,14 +2786,13 @@ public class GTSHelper {
               }
               closing++;
             }
-            idx2 = closing;
-            offset = 1;
+            idxTokenEnd = closing; // idxTokenEnd points to the character just after ']'
           }
 
-          val = GTSHelper.parseValue(valuestr.substring(idx3 + 1, idx2));          
+          val = GTSHelper.parseValue(valuestr.substring(idxTokenSlash + 1, idxTokenEnd));
           encoder.addValue(ts, location, elevation, val);
           
-          idx0 = idx2 + offset;
+          idxTokenStart = idxTokenEnd + 1;
         }
         
         // Wrap GTSEncoder and encode result, we don't set the count in the wrapper to save some
