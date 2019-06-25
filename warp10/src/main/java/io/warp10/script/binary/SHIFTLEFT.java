@@ -24,34 +24,15 @@ import io.warp10.script.WarpScriptStack;
 /**
  * Shift left the long below the top of the stack by the number of bits on top of the stack
  */
-public class SHIFTLEFT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class SHIFTLEFT extends BitwiseOperation {
 
   public SHIFTLEFT(String name) {
     super(name);
   }
-  
-  @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object top = stack.pop();
-    
-    if (!(top instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects a number of bits on top of the stack.");
-    }
-    
-    int nbits = ((Number) top).intValue();
-    
-    top = stack.pop();
-    
-    if (!(top instanceof Long)) {
-      throw new WarpScriptException(getName() + " operates on a LONG.");
-    }
-    
-    long v = ((Number) top).longValue();
 
-    v = v << nbits;
-    
-    stack.push(v);
-    
-    return stack;
+  @Override
+  public long operator(long op1, long op2) {
+    return op1 << op2;
   }
+
 }

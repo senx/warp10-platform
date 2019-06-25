@@ -14,21 +14,18 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.binary;
+package io.warp10.continuum.gts;
 
-/**
- * Checks the two operands on top of the stack for greater or equal
- */
-public class GE extends ComparisonOperation {
+import java.util.Comparator;
+
+public class GTSIdComparator implements Comparator<GeoTimeSerie> {
+
+  public static final GTSIdComparator COMPARATOR = new GTSIdComparator();
   
-  public GE(String name) {
-    super(name, false, true); // NaN NaN >= must return true in WarpScript
-  }
-  
+  private GTSIdComparator() {}
+
   @Override
-  public boolean operator(int op1, int op2) {
-    return op1 >= op2;
+  public int compare(GeoTimeSerie o1, GeoTimeSerie o2) {
+    return MetadataIdComparator.COMPARATOR.compare(o1.getMetadata(), o2.getMetadata());
   }
-  
 }
-

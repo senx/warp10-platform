@@ -19,6 +19,7 @@ package io.warp10.continuum.gts;
 import io.warp10.CapacityExtractorOutputStream;
 import io.warp10.DoubleUtils;
 import io.warp10.WarpURLEncoder;
+import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.continuum.store.Constants;
@@ -5708,7 +5709,9 @@ public class GTSHelper {
   
   /**
    * Apply a function or filter GTS and keep the results ventilated per equivalence class
-
+   * 
+   * This function has the side effect of unsetting classId/labelsId
+   *
    * @param function The function to apply, either an WarpScriptFilterFunction or WarpScriptNAryFunction
    * @param bylabels Labels to use for partitioning the GTS instances
    * @param series Set of GTS instances collections
@@ -5725,7 +5728,7 @@ public class GTSHelper {
     //
     //
     
-    Collection<GeoTimeSerie> allgts = new LinkedHashSet<GeoTimeSerie>();
+    Collection<GeoTimeSerie> allgts = new LinkedHashSet<GeoTimeSerie>(series.length);
 
     boolean hasNonSingleton = false;
     
@@ -5752,96 +5755,120 @@ public class GTSHelper {
     Map<Map<String,String>, List<GeoTimeSerie>> partition = GTSHelper.partition(allgts, bylabels);
     
     Map<Map<String,String>, List<GeoTimeSerie>> results = new LinkedHashMap<Map<String,String>,List<GeoTimeSerie>>();
-    
+
     //
-    // Loop on each partition
+    // We force a dummy classId so we can easily perform a binary search
+    // on the lists of GTS    
     //
+
+    long idx = 0L;
     
-    for (Map<String,String> partitionlabels: partition.keySet()) {
-      Map<String,String> commonlabels = Collections.unmodifiableMap(partitionlabels);
-      
-      List<GeoTimeSerie> result = new ArrayList<GeoTimeSerie>();
-
-      //
-      // Make N (cardinality of 'series') sublists of GTS instances.
-      //
-      
-      List<GeoTimeSerie>[] subseries = new List[series.length];
-      for (int i = 0; i < series.length; i++) {
-        
-        //
-        // Sort the 'series' so we can perform a binary search instead of using 'contains'
-        //
-
-        Collections.sort(series[i], METASORT.META_COMPARATOR);
-
-        subseries[i] = new ArrayList<GeoTimeSerie>();
-       
-        //
-        // Treat the case when the original series had a cardinality of 1
-        // as a special case by adding the original series unconditionally
-        //
-        
-        if (1 == series[i].size()) {
-          subseries[i].add(series[i].iterator().next());
-        } else {
-          // The series appear in the order they are in the original list due to 'partition' using a List
-          for (GeoTimeSerie serie: partition.get(partitionlabels)) {
-            if (Collections.binarySearch(series[i], serie, METASORT.META_COMPARATOR) >= 0) {
-              subseries[i].add(serie);
-            }
-          }          
-        }
-      }
-      //
-      // Call the function
-      //
-      
-      if (function instanceof WarpScriptFilterFunction) {
-        List<GeoTimeSerie> filtered = ((WarpScriptFilterFunction) function).filter(commonlabels, subseries);
-        if (null != filtered) {
-          result.addAll(filtered);
-        }
-      } else if (function instanceof WarpScriptNAryFunction) {
-        //
-        // If we have a stack and a validator, push the commonlabels and the list of subseries onto the stack,
-        // call the validator and check if it left true or false onto the stack.
-        //
-        
-        boolean proceed = true;
-        
-        if (null != stack && null != validator) {
-          stack.push(Arrays.asList(subseries));
-          stack.push(commonlabels);
-          stack.exec(validator);
-          if (!Boolean.TRUE.equals(stack.pop())) {
-            proceed = false;
-          }
-        }
-        
-        if (proceed) {
-          result.add(GTSHelper.applyNAryFunction((WarpScriptNAryFunction) function, commonlabels, subseries));
-        }
-      } else {
-        throw new WarpScriptException("Invalid function to apply.");
+    for (int i = 0; i < series.length; i++) {
+      for (GeoTimeSerie gts: series[i]) {
+        gts.getMetadata().setClassId(idx++);
+        gts.getMetadata().setLabelsId(0L);
       }
       
-      results.put(commonlabels, result);
+      Collections.sort(series[i], GTSIdComparator.COMPARATOR);      
     }
-    
-    //
-    // Check that all resulting GTS instances were in allgts
-    //
+    //Collections.sort(series[i], METASORT.META_COMPARATOR);
 
-    //if (function instanceof WarpScriptFilterFunction) {
-    //  for (GeoTimeSerie gts: result) {
-    //    if (!allgts.contains(gts)) {
-    //      throw new WarpScriptException("Some filtered Geo Time Series were not in the original set.");
-    //    }
-    //  }      
-    //}
-    
-    return results;
+    try {
+      //
+      // Loop on each partition
+      //
+      
+      for (Map<String,String> partitionlabels: partition.keySet()) {
+        Map<String,String> commonlabels = Collections.unmodifiableMap(partitionlabels);
+        
+        List<GeoTimeSerie> result = new ArrayList<GeoTimeSerie>();
+
+        //
+        // Make N (cardinality of 'series') sublists of GTS instances.
+        //
+        
+        List<GeoTimeSerie>[] subseries = new List[series.length];
+        for (int i = 0; i < series.length; i++) {
+          
+          subseries[i] = new ArrayList<GeoTimeSerie>();
+         
+          //
+          // Treat the case when the original series had a cardinality of 1
+          // as a special case by adding the original series unconditionally
+          //
+          
+          if (1 == series[i].size()) {
+            subseries[i].add(series[i].iterator().next());
+          } else {
+            // The series appear in the order they are in the original list due to 'partition' using a List
+            for (GeoTimeSerie serie: partition.get(partitionlabels)) {
+              //if (Collections.binarySearch(series[i], serie, METASORT.META_COMPARATOR) >= 0) {
+              // We perform a binary search to determine if the GTS 'serie' is in series[i]
+              if (Collections.binarySearch(series[i], serie, GTSIdComparator.COMPARATOR) >= 0) {
+                subseries[i].add(serie);
+              }
+            }          
+          }        
+        }
+        
+        //
+        // Call the function
+        //
+        
+        if (function instanceof WarpScriptFilterFunction) {
+          List<GeoTimeSerie> filtered = ((WarpScriptFilterFunction) function).filter(commonlabels, subseries);
+          if (null != filtered) {
+            result.addAll(filtered);
+          }
+        } else if (function instanceof WarpScriptNAryFunction) {
+          //
+          // If we have a stack and a validator, push the commonlabels and the list of subseries onto the stack,
+          // call the validator and check if it left true or false onto the stack.
+          //
+          
+          boolean proceed = true;
+          
+          if (null != stack && null != validator) {
+            stack.push(Arrays.asList(subseries));
+            stack.push(commonlabels);
+            stack.exec(validator);
+            if (!Boolean.TRUE.equals(stack.pop())) {
+              proceed = false;
+            }
+          }
+          
+          if (proceed) {
+            result.add(GTSHelper.applyNAryFunction((WarpScriptNAryFunction) function, commonlabels, subseries));
+          }
+        } else {
+          throw new WarpScriptException("Invalid function to apply.");
+        }
+        
+        results.put(commonlabels, result);
+      }
+      
+      //
+      // Check that all resulting GTS instances were in allgts
+      //
+
+      //if (function instanceof WarpScriptFilterFunction) {
+      //  for (GeoTimeSerie gts: result) {
+      //    if (!allgts.contains(gts)) {
+      //      throw new WarpScriptException("Some filtered Geo Time Series were not in the original set.");
+      //    }
+      //  }      
+      //}
+      
+      return results;      
+    } finally {
+      // Unset classId/labelsId since we modified them for efficient binary search
+      for (int i = 0; i < series.length; i++) {
+        for (GeoTimeSerie gts: series[i]) {
+          gts.getMetadata().unsetClassId();
+          gts.getMetadata().unsetLabelsId();
+        }
+      }
+    }
   }
 
   @SafeVarargs
@@ -10641,5 +10668,13 @@ public class GTSHelper {
   
   public static double skewness(GeoTimeSerie gts, boolean bessel) throws WarpScriptException {
     return standardizedMoment(3, gts, bessel);
+  }
+
+  public static void booleanNot(GeoTimeSerie gts) throws WarpScriptException {
+    if (GeoTimeSerie.TYPE.BOOLEAN == gts.getType()) {
+      gts.booleanValues.flip(0, gts.booleanValues.length());
+    } else {
+      throw new WarpScriptException("Non boolean Geo Time Series.");
+    }
   }
 }

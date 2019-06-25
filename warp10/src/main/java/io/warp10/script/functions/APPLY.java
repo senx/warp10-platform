@@ -43,7 +43,7 @@ public class APPLY extends NamedWarpScriptFunction implements WarpScriptStackFun
   
   public APPLY(String name, boolean flatten) {
     super(name);
-    this.flatten = flatten;
+    this.flatten = flatten;    
   }
   
   @Override
@@ -95,8 +95,7 @@ public class APPLY extends NamedWarpScriptFunction implements WarpScriptStackFun
       if (!(params.get(i) instanceof List)) {
         throw new WarpScriptException(getName() + " expects lists of Geo Time Series as first parameters.");
       }              
-    }
-      
+    }      
       
     List<GeoTimeSerie>[] colls = new List[labelsidx];
     Collection<String> bylabels = (Collection<String>) params.get(labelsidx);
@@ -105,7 +104,7 @@ public class APPLY extends NamedWarpScriptFunction implements WarpScriptStackFun
       colls[i] = new ArrayList<GeoTimeSerie>();
       colls[i].addAll((Collection<GeoTimeSerie>) params.get(i));
     }
-
+    
     Macro validator = null;
         
     if (opidx < params.size() - 1) {
@@ -118,7 +117,8 @@ public class APPLY extends NamedWarpScriptFunction implements WarpScriptStackFun
       stack.push(GTSHelper.partitionAndApply(params.get(opidx), stack, validator, bylabels, colls));
     } else {
       stack.push(GTSHelper.partitionAndApplyUnflattened(params.get(opidx), stack, validator, bylabels, colls));
-    }
+    }      
+    
     return stack;
   }
 }
