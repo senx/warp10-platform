@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -35,19 +35,34 @@ public class GTSWrapperHelper {
    */
   public static final double DEFAULT_COMP_RATIO_THRESHOLD = 100.0D;
   
-  public static GTSDecoder fromGTSWrapperToGTSDecoder(GTSWrapper wrapper) {
-    
+  public static GTSDecoder fromGTSWrapperToGTSDecoder(GTSWrapper wrapper) {    
     byte[] unwrapped = unwrapEncoded(wrapper);
     
     GTSDecoder decoder = new GTSDecoder(wrapper.getBase(), ByteBuffer.wrap(unwrapped).order(ByteOrder.BIG_ENDIAN));
     if (wrapper.isSetMetadata()) {
       decoder.setMetadata(wrapper.getMetadata());
     } else {
-      decoder.setMetadata(new Metadata());
+      decoder.safeSetMetadata(new Metadata());
     }
     decoder.setCount(wrapper.getCount());
     
     return decoder;
+  }
+  
+  public static GTSEncoder fromGTSWrapperToGTSEncoder(GTSWrapper wrapper) throws IOException {  
+    if (wrapper.getEncoded().length > 0) {
+      GTSDecoder decoder = fromGTSWrapperToGTSDecoder(wrapper);
+      decoder.next();
+      return decoder.getEncoder(true);
+    } else {
+      GTSEncoder encoder = new GTSEncoder(wrapper.getBase());
+      if (wrapper.isSetMetadata()) {
+        encoder.setMetadata(wrapper.getMetadata());
+      } else {
+        encoder.safeSetMetadata(new Metadata());
+      }
+      return encoder;
+    }
   }
   
   /**

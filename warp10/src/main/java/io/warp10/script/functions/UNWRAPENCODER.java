@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ import org.apache.thrift.protocol.TCompactProtocol;
 
 import com.google.common.base.Charsets;
 
-import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.crypto.OrderPreservingBase64;
@@ -55,15 +54,10 @@ public class UNWRAPENCODER extends NamedWarpScriptFunction implements WarpScript
     TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
     
     try {
-      GTSWrapper wrapper = new GTSWrapper();
-      
+      GTSWrapper wrapper = new GTSWrapper();      
       deser.deserialize(wrapper, bytes);
 
-      GTSDecoder decoder = GTSWrapperHelper.fromGTSWrapperToGTSDecoder(wrapper);
-      
-      decoder.next();
-      
-      stack.push(decoder.getEncoder(true));
+      stack.push(GTSWrapperHelper.fromGTSWrapperToGTSEncoder(wrapper));      
     } catch (TException te) {
       throw new WarpScriptException(getName() + " failed to unwrap encoder.", te);
     } catch (IOException ioe) {
