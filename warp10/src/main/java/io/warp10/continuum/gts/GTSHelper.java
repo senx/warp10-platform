@@ -2590,6 +2590,14 @@ public class GTSHelper {
         GTSEncoder encoder = new GTSEncoder();
         
         int idx0 = 1;
+        
+        boolean comp = true;
+        // Handle the case where the value starts with [! which means to not compress the resulting encoder
+        if ('!' == valuestr.charAt(1)) {
+          comp = false;
+          idx0 = 2;
+        }
+        
         int idx1 = 0;
         
         while(idx0 < valuestr.length()) {
@@ -2780,7 +2788,7 @@ public class GTSHelper {
         
         // Wrap GTSEncoder and encode result, we don't set the count in the wrapper to save some
         // space
-        GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true, GTSWrapperHelper.DEFAULT_COMP_RATIO_THRESHOLD, Integer.MAX_VALUE, false);
+        GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, comp, GTSWrapperHelper.DEFAULT_COMP_RATIO_THRESHOLD, Integer.MAX_VALUE, false);
         
         TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
         
