@@ -1902,10 +1902,15 @@ public class Configuration {
   public static final String REPOSITORY_ONDEMAND = "warpscript.repository.ondemand";
 
   /**
-   * Comma separated list of default WarpFleet™ repositories
+   * Comma separated list of configured WarpFleet™ repositories
    */
   public static final String WARPFLEET_MACROS_REPOS = "warpfleet.macros.repos";
   
+  /**
+   * Default value for warpfleet.macros.repos if it is not set
+   */
+  public static final String WARPFLEET_MACROS_REPOS_DEFAULT = "https://warpfleet.senx.io/macros";
+
   /**
    * Configure this property to 'true' to disable the function WF.GETREPOS. This is useful when some of your repo URLs have sensitive information.
    */
