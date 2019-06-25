@@ -78,7 +78,8 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
   private static final String CONF_HTTP_IDLE_TIMEOUT = "http.idle.timeout";
   private static final String CONF_HTTP_QUEUESIZE = "http.queuesize";
   private static final String CONF_HTTP_GZIP = "http.gzip";
-    
+  private static final String CONF_HTTP_LCHEADERS = "http.lcheaders";
+
   /**
    * Default scanning period in ms
    */
@@ -122,6 +123,11 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
   private Map<String, Integer> sizes = new HashMap<String, Integer>();
 
   private boolean gzip = true;
+  
+  /**
+   * Should we convert header names to lower case in the request map
+   */
+  private boolean lcheaders = false;
   
   public HTTPWarp10Plugin() {
     super();
@@ -336,7 +342,8 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
       queue = new BlockingArrayQueue<>(Integer.parseInt(properties.getProperty(CONF_HTTP_QUEUESIZE)));
     }
 
-    gzip = !"false".equals(properties.get(CONF_HTTP_GZIP));
+    gzip = !"false".equals(properties.get(CONF_HTTP_GZIP));    
+    lcheaders = "true".equals(properties.get(CONF_HTTP_LCHEADERS));
     
     Thread t = new Thread(this);
     t.setDaemon(true);
@@ -372,6 +379,10 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
 
   public boolean isParsePayload(String uri) {
     return this.parsePayloads.get(uri);
+  }
+  
+  public boolean isLcHeaders() {
+    return this.lcheaders;
   }
 
 }

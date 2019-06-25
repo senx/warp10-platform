@@ -20,8 +20,10 @@ public class GTSOpsHelper {
   public static interface GTSBinaryOp {
     public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb);
   }
-    
   public static void applyBinaryOp(GeoTimeSerie result, GeoTimeSerie gts1, GeoTimeSerie gts2, GTSBinaryOp op) {
+    applyBinaryOp(result, gts1, gts2, op,false);
+  }
+  public static void applyBinaryOp(GeoTimeSerie result, GeoTimeSerie gts1, GeoTimeSerie gts2, GTSBinaryOp op, boolean copyGts1Location) {
     //
     // Determine if result should be bucketized or not
     //
@@ -49,7 +51,7 @@ public class GTSOpsHelper {
     // Sweeping line over the timestamps
     int idxa = 0;
     int idxb = 0;
-             
+    
     int na = GTSHelper.nvalues(gts1);
     int nb = GTSHelper.nvalues(gts2);
     
@@ -62,7 +64,7 @@ public class GTSOpsHelper {
     if (idxb < na) {
       tsb = GTSHelper.tickAtIndex(gts2, idxb);
     }
-
+    
     while(idxa < na || idxb < nb) {
       if (idxa >= na) {
         tsa = null;
@@ -74,7 +76,11 @@ public class GTSOpsHelper {
         // We have values at the current index for both GTS
         if (0 == tsa.compareTo(tsb)) {
           // Both indices indicate the same timestamp
-          GTSHelper.setValue(result, tsa, op.op(gts1, gts2, idxa, idxb));
+          if (copyGts1Location) {
+            GTSHelper.setValue(result, tsa,GTSHelper.locationAtIndex(gts1,idxa),GTSHelper.elevationAtIndex(gts1,idxa),op.op(gts1, gts2, idxa, idxb),false);
+          } else {
+            GTSHelper.setValue(result, tsa, op.op(gts1, gts2, idxa, idxb));
+          }
           // Advance both indices
           idxa++;
           idxb++;

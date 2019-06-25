@@ -229,7 +229,7 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
                 }
 
                 try {
-                  encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+                  encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
                   nvalues++;
                 } catch (IOException ioe) {                  
                 }
@@ -272,7 +272,7 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
                 while(dec.next()) {
                   if (dec.getTimestamp() >= lowerbound) {
                     try {
-                      encoder.addValue(dec.getTimestamp(), dec.getLocation(), dec.getElevation(), dec.getValue());
+                      encoder.addValue(dec.getTimestamp(), dec.getLocation(), dec.getElevation(), dec.getBinaryValue());
                     } catch (IOException ioe) {                      
                     }
                   }
@@ -653,7 +653,8 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
         gts++;
         Metadata metadata = this.directoryClient.getMetadataById(entry.getKey());
 
-        GTSWrapper wrapper = new GTSWrapper(metadata);        
+        GTSWrapper wrapper = new GTSWrapper();
+        wrapper.setMetadata(metadata);        
         
         GTSEncoder encoder = entry.getValue();
 
@@ -748,10 +749,14 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
         encoder.setCount(wrapper.getCount());
         
         bytes += value.getLength() + key.getLength();
-        encoder.safeSetMetadata(wrapper.getMetadata());
+        if (wrapper.isSetMetadata()) {
+          encoder.safeSetMetadata(wrapper.getMetadata());
+        } else {
+          encoder.safeSetMetadata(new Metadata());
+        }
         store(encoder);
         if (null != this.directoryClient) {
-          this.directoryClient.register(wrapper.getMetadata());
+          this.directoryClient.register(encoder.getMetadata());
         }
       }
     } catch (FileNotFoundException fnfe) {

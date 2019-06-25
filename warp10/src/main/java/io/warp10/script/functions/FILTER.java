@@ -61,7 +61,7 @@ public class FILTER extends NamedWarpScriptFunction implements WarpScriptStackFu
     
     for (int i = 0; i < params.size() - 2; i++) {
       if (!(params.get(i) instanceof List) && !(params.get(i) instanceof List)) {
-        throw new WarpScriptException(getName() + " expects lists of geo time series as first parameters.");
+        throw new WarpScriptException(getName() + " expects lists of Geo Time Series as first parameters.");
       }              
     }
       
@@ -94,6 +94,7 @@ public class FILTER extends NamedWarpScriptFunction implements WarpScriptStackFu
     } else {
       stack.push(GTSHelper.partitionAndApplyUnflattened(params.get(params.size() - 1), null, null, bylabels, colls));
     }
+
     return stack;
   }
 }

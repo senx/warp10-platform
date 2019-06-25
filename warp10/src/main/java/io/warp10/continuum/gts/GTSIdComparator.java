@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,16 @@
 
 package io.warp10.continuum.gts;
 
-public class FASTDTW {
+import java.util.Comparator;
 
+public class GTSIdComparator implements Comparator<GeoTimeSerie> {
+
+  public static final GTSIdComparator COMPARATOR = new GTSIdComparator();
+  
+  private GTSIdComparator() {}
+
+  @Override
+  public int compare(GeoTimeSerie o1, GeoTimeSerie o2) {
+    return MetadataIdComparator.COMPARATOR.compare(o1.getMetadata(), o2.getMetadata());
+  }
 }

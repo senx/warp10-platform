@@ -364,7 +364,7 @@ public class WarpFleetMacroRepository {
   }
   
   public static void init(Properties properties) {
-    String repostr = properties.getProperty(Configuration.WARPFLEET_MACROS_REPOS);
+    String repostr = properties.getProperty(Configuration.WARPFLEET_MACROS_REPOS, Configuration.WARPFLEET_MACROS_REPOS_DEFAULT);
     
     if (null != repostr) {
       String[] repos = repostr.split(",");

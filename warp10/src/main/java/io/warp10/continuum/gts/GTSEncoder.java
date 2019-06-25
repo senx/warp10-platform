@@ -103,6 +103,8 @@ public class GTSEncoder {
   static final byte FLAGS_TYPE_DOUBLE = 0x10;
   static final byte FLAGS_TYPE_STRING = 0x18;
 
+  static final byte FLAGS_STRING_BINARY = 0x02;
+  
   //
   // Where to store boolean values, we need two different bits because
   // the ENCRYPTED flag is 0x00 so we would not be able to differentiate a
@@ -173,6 +175,11 @@ public class GTSEncoder {
    */
   private String lastStringValue = null;
 
+  /**
+   * Holder for binary data
+   */
+  private String binaryString = null;
+  
   //
   // The following 7 fields are initial values which are needed
   // to decode delta encoded values when creating an encoder from
@@ -376,6 +383,12 @@ public class GTSEncoder {
     } else if (value instanceof String) {
       tsTypeFlag |= FLAGS_TYPE_STRING;
       if (((String) value).equals(lastStringValue)) {
+        tsTypeFlag |= FLAGS_VALUE_IDENTICAL;
+      }
+    } else if (value instanceof byte[]) {
+      tsTypeFlag |= FLAGS_TYPE_STRING | FLAGS_STRING_BINARY;
+      binaryString = new String((byte[]) value, Charsets.ISO_8859_1);
+      if (binaryString.equals(lastStringValue)) {
         tsTypeFlag |= FLAGS_VALUE_IDENTICAL;
       }
     } else if (value instanceof Double || value instanceof Float) {
@@ -618,17 +631,25 @@ public class GTSEncoder {
     switch (tsTypeFlag & FLAGS_MASK_TYPE) {
       case FLAGS_TYPE_STRING:
         if (FLAGS_VALUE_IDENTICAL != (tsTypeFlag & FLAGS_VALUE_IDENTICAL)) {
-          // Convert String to UTF8 byte array
-          byte[] utf8 = ((String) value).getBytes(Charsets.UTF_8);
-          // Store encoded byte array length as zig zag varint
-          //BUF10 this.stream.write(Varint.encodeUnsignedLong(utf8.length));
-          int l = Varint.encodeUnsignedLongInBuf(utf8.length, buf10);
-          this.stream.write(buf10, 0, l);
-          // Store UTF8 bytes
-          this.stream.write(utf8);
+          if (FLAGS_STRING_BINARY == (tsTypeFlag & FLAGS_STRING_BINARY)) {
+            byte[] bytes = (byte[]) value;
+            int l = Varint.encodeUnsignedLongInBuf(bytes.length, buf10);
+            this.stream.write(buf10, 0, l);
+            this.stream.write(bytes);
+            lastStringValue = binaryString;
+          } else {
+            // Convert String to UTF8 byte array
+            byte[] utf8 = ((String) value).getBytes(Charsets.UTF_8);
+            // Store encoded byte array length as zig zag varint
+            //BUF10 this.stream.write(Varint.encodeUnsignedLong(utf8.length));
+            int l = Varint.encodeUnsignedLongInBuf(utf8.length, buf10);
+            this.stream.write(buf10, 0, l);
+            // Store UTF8 bytes
+            this.stream.write(utf8);
 
-          // Keep track of last value
-          lastStringValue = (String) value;
+            // Keep track of last value
+            lastStringValue = (String) value;            
+          }
         }
         break;
 
@@ -1025,7 +1046,7 @@ public class GTSEncoder {
 
     int size = size();
     
-    if (target >= size) {
+    if (target > size) {
       ByteArrayOutputStream out = new ByteArrayOutputStream(target);
       this.stream.writeTo(out);
       this.stream = out;
@@ -1075,7 +1096,7 @@ public class GTSEncoder {
       GTSDecoder decoder = encoder.getDecoder(true);
 
       while (decoder.next()) {
-        this.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+        this.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
       }      
     } else {
       //

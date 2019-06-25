@@ -85,7 +85,6 @@ public class Warp extends WarpDist implements Runnable {
     Configuration.PLASMA_FRONTEND_WEBSOCKET_MAXMESSAGESIZE,
     Configuration.WARP_HASH_CLASS,
     Configuration.WARP_HASH_LABELS,
-    Configuration.CONTINUUM_HASH_INDEX,
     Configuration.WARP_HASH_TOKEN,
     Configuration.WARP_HASH_APP,
     Configuration.WARP_AES_TOKEN,
@@ -112,7 +111,7 @@ public class Warp extends WarpDist implements Runnable {
     labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "standalone");
     Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);
 
-    setProperties(args[0]);
+    setProperties(args);
     
     Properties properties = getProperties();
     
@@ -178,8 +177,6 @@ public class Warp extends WarpDist implements Runnable {
     keystore.setKey(KeyStore.SIPHASH_CLASS_SECONDARY, CryptoUtils.invert(keystore.getKey(KeyStore.SIPHASH_CLASS)));
     keystore.setKey(KeyStore.SIPHASH_LABELS_SECONDARY, CryptoUtils.invert(keystore.getKey(KeyStore.SIPHASH_LABELS)));        
     
-    keystore.setKey(KeyStore.SIPHASH_INDEX, keystore.decodeKey(properties.getProperty(Configuration.CONTINUUM_HASH_INDEX)));
-    Preconditions.checkArgument(16 == keystore.getKey(KeyStore.SIPHASH_INDEX).length, Configuration.CONTINUUM_HASH_INDEX + " MUST be 128 bits long.");
     keystore.setKey(KeyStore.SIPHASH_TOKEN, keystore.decodeKey(properties.getProperty(Configuration.WARP_HASH_TOKEN)));
     Preconditions.checkArgument(16 == keystore.getKey(KeyStore.SIPHASH_TOKEN).length, Configuration.WARP_HASH_TOKEN + " MUST be 128 bits long.");
     keystore.setKey(KeyStore.SIPHASH_APPID, keystore.decodeKey(properties.getProperty(Configuration.WARP_HASH_APP)));
@@ -541,15 +538,7 @@ public class Warp extends WarpDist implements Runnable {
       Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.LEVELDB_DATA_AES + " MUST be 128, 192 or 256 bits long.");
       keystore.setKey(KeyStore.AES_LEVELDB_DATA, key);
     }
-    
-    keyspec = props.getProperty(Configuration.LEVELDB_INDEX_AES);
-    
-    if (null != keyspec) {
-      byte[] key = keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.LEVELDB_INDEX_AES + " MUST be 128, 192 or 256 bits long.");
-      keystore.setKey(KeyStore.AES_LEVELDB_INDEX, key);
-    }
-    
+            
     if (null != props.getProperty(Configuration.CONFIG_FETCH_PSK)) {
       keystore.setKey(KeyStore.SIPHASH_FETCH_PSK, keystore.decodeKey(props.getProperty(Configuration.CONFIG_FETCH_PSK)));
       Preconditions.checkArgument((16 == keystore.getKey(KeyStore.SIPHASH_FETCH_PSK).length), Configuration.CONFIG_FETCH_PSK + " MUST be 128 bits long.");            
