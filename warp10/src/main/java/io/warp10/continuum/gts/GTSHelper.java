@@ -2669,12 +2669,13 @@ public class GTSHelper {
                 }
                 closing++;
               }
-              idxTokenEnd = closing; // idxTokenEnd points to the character just after ']'
+              idxTokenEnd = closing; // idxTokenEnd points to the character just after ']' or after the last character of valuestr if opening > 0.
+              // In that latter case, the parsing will fail when recursively calling GTSHelper.parseValue because at one time it will be given a token without closing bracket at the end.
             }
             
             val = GTSHelper.parseValue(valuestr.substring(idxTokenStart, idxTokenEnd));
             encoder.addValue(ts, location, elevation, val);
-            idxTokenStart = idxTokenEnd + 1; // Token end is either a space or eol, the next token thus starts at end+1
+            idxTokenStart = idxTokenEnd;
             continue;
           }
           
@@ -2707,11 +2708,12 @@ public class GTSHelper {
                 }
                 closing++;
               }
-              idxTokenEnd = closing; // idxTokenEnd points to the character just after ']'
+              idxTokenEnd = closing; // idxTokenEnd points to the character just after ']' or after the last character of valuestr if opening > 0.
+              // In that latter case, the parsing will fail when recursively calling GTSHelper.parseValue because at one time it will be given a token without closing bracket at the end.
             }
             val = GTSHelper.parseValue(valuestr.substring(idxTokenStart, idxTokenEnd));
             encoder.addValue(ts, location, elevation, val);
-            idxTokenStart = idxTokenEnd + 1; // Token end is either a space or eol, the next token thus starts at end+1
+            idxTokenStart = idxTokenEnd;
             continue;
           }
           
@@ -2760,11 +2762,12 @@ public class GTSHelper {
                 }
                 closing++;
               }
-              idxTokenEnd = closing; // idxTokenEnd points to the character just after ']'
+              idxTokenEnd = closing; // idxTokenEnd points to the character just after ']' or after the last character of valuestr if opening > 0.
+              // In that latter case, the parsing will fail when recursively calling GTSHelper.parseValue because at one time it will be given a token without closing bracket at the end.
             }
             val = GTSHelper.parseValue(valuestr.substring(idxTokenStart, idxTokenEnd));
             encoder.addValue(ts, location, elevation, val);
-            idxTokenStart = idxTokenEnd + 1; // Token end is either a space or eol, the next token thus starts at end+1
+            idxTokenStart = idxTokenEnd;
             continue;
           }
           
@@ -2786,7 +2789,8 @@ public class GTSHelper {
               }
               closing++;
             }
-            idxTokenEnd = closing; // idxTokenEnd points to the character just after ']'
+            idxTokenEnd = closing; // idxTokenEnd points to the character just after ']' or after the last character of valuestr if opening > 0.
+            // In that latter case, the parsing will fail when recursively calling GTSHelper.parseValue because at one time it will be given a token without closing bracket at the end.
           }
 
           val = GTSHelper.parseValue(valuestr.substring(idxTokenSlash + 1, idxTokenEnd));
