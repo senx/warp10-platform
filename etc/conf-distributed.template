@@ -1863,6 +1863,7 @@ throttling.manager.period = 1000
 // Number of Jetty selectors to use (defaults to 4)
 #http.selectors = 4
 // Number of threads Jetty should use (defaults to 1 + acceptors + acceptors * selectors which is the minimum)
+// All selectors/acceptors (with and without SSL support, see http.ssl.selectors/http.ssl.acceptors) must be considered
 #http.maxthreads = 11
 // Timeout (in ms) when expecting a HTTP request (defaults to 30000 ms)
 #http.idle.timeout = 30000
@@ -2004,8 +2005,10 @@ throttling.manager.period = 1000
 # Port the SSL endpoint should bind to
 #http.ssl.port =
 # Number of Jetty acceptors (defaults to 2)
+# Adapt value of http.maxthreads accordingly
 #http.ssl.acceptors =
 # Number of Jetty selectors (defaults to 4)
+# Adapt value of http.maxthreads accordingly
 #http.ssl.selectors =
 # Jetty idle timeout in ms
 #http.ssl.idletimeout =

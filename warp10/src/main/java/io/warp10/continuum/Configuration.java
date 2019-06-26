@@ -16,8 +16,6 @@
 
 package io.warp10.continuum;
 
-import org.eclipse.jetty.util.ssl.SslContextFactory;
-
 public class Configuration {
 
   public static final String OSS_MASTER_KEY = "oss.master.key";

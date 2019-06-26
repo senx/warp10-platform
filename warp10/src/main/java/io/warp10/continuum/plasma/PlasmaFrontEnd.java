@@ -325,7 +325,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
       connectors.add(connector);
     }
     
-    server.setConnectors(connectors.toArray(new Connector[0]));
+    server.setConnectors(connectors.toArray(new Connector[connectors.size()]));
 
     server.setHandler(this);
     

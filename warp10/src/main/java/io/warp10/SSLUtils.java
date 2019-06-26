@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -28,10 +28,10 @@ public class SSLUtils {
   private static final String DEFAULT_SSL_SELECTORS = "4";
   
   public static ServerConnector getConnector(Server server, String prefix) {
-    int sslAcceptors = Integer.valueOf(WarpConfig.getProperty(prefix + Configuration._SSL_ACCEPTORS, DEFAULT_SSL_ACCEPTORS));
-    int sslSelectors = Integer.valueOf(WarpConfig.getProperty(prefix + Configuration._SSL_SELECTORS, DEFAULT_SSL_SELECTORS));
+    int sslAcceptors = Integer.parseInt(WarpConfig.getProperty(prefix + Configuration._SSL_ACCEPTORS, DEFAULT_SSL_ACCEPTORS));
+    int sslSelectors = Integer.parseInt(WarpConfig.getProperty(prefix + Configuration._SSL_SELECTORS, DEFAULT_SSL_SELECTORS));
 
-    int sslPort = Integer.valueOf(WarpConfig.getProperty(prefix + Configuration._SSL_PORT));
+    int sslPort = Integer.parseInt(WarpConfig.getProperty(prefix + Configuration._SSL_PORT));
     String sslHost = WarpConfig.getProperty(prefix + Configuration._SSL_HOST);
 
     SslContextFactory sslContextFactory = new SslContextFactory();

@@ -91,7 +91,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
   private int port = -1;
   private int acceptors = 2;
   private int selectors = 4;
-  private int maxthreads = 1 + acceptors + acceptors * selectors;
+  private int maxthreads = -1;
   private int idleTimeout = 30000;
   private BlockingQueue<Runnable> queue = null;
 
@@ -140,9 +140,13 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
     // Start Jetty server
     //
 
+    if (-1 == maxthreads) {
+      maxthreads =  1 + acceptors + acceptors * selectors;
+    }
+    
     Server server = new Server(new QueuedThreadPool(maxthreads, 8, idleTimeout, queue));
 
-    boolean useHttp = true;
+    int minthreads = 1;
     
     if (-1 != this.port) {
       ServerConnector connector = new ServerConnector(server, acceptors, selectors);
@@ -151,14 +155,20 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
       connector.setHost(host);
       connector.setName("Warp 10 HTTP Plugin Jetty HTTP Connector");
       server.addConnector(connector);
+      minthreads += acceptors + acceptors * selectors;
     }
 
     if (-1 != this.sslport) {
       ServerConnector connector = SSLUtils.getConnector(server, "http");
       connector.setName("Warp 10 HTTP Plugin Jetty HTTPS Connector");
       server.addConnector(connector);
+      minthreads += connector.getAcceptors() + connector.getAcceptors() * connector.getSelectorManager().getSelectorCount();
     }
 
+    if (maxthreads < minthreads) {
+      throw new RuntimeException(CONF_HTTP_MAXTHREADS + " should be >= " + minthreads);
+    }
+    
     WarpScriptHandler handler = new WarpScriptHandler(this);
 
     if (this.gzip) {
@@ -332,11 +342,11 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
     }
     
     host = properties.getProperty(CONF_HTTP_HOST, null);
-    acceptors = Integer.valueOf(properties.getProperty(CONF_HTTP_ACCEPTORS, String.valueOf(acceptors)));
-    selectors = Integer.valueOf(properties.getProperty(CONF_HTTP_SELECTORS, String.valueOf(selectors)));
-    idleTimeout = Integer.valueOf(properties.getProperty(CONF_HTTP_IDLE_TIMEOUT, String.valueOf(idleTimeout)));      
+    acceptors = Integer.parseInt(properties.getProperty(CONF_HTTP_ACCEPTORS, String.valueOf(acceptors)));
+    selectors = Integer.parseInt(properties.getProperty(CONF_HTTP_SELECTORS, String.valueOf(selectors)));
+    idleTimeout = Integer.parseInt(properties.getProperty(CONF_HTTP_IDLE_TIMEOUT, String.valueOf(idleTimeout)));      
 
-    maxthreads = Integer.valueOf(properties.getProperty(CONF_HTTP_MAXTHREADS, String.valueOf(maxthreads)));
+    maxthreads = Integer.parseInt(properties.getProperty(CONF_HTTP_MAXTHREADS, String.valueOf(maxthreads)));
 
     if (properties.containsKey(CONF_HTTP_QUEUESIZE)) {
       queue = new BlockingArrayQueue<>(Integer.parseInt(properties.getProperty(CONF_HTTP_QUEUESIZE)));

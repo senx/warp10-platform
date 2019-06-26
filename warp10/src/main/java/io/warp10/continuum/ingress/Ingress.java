@@ -550,7 +550,7 @@ public class Ingress extends AbstractHandler implements Runnable {
       connectors.add(connector);
     }
     
-    server.setConnectors(connectors.toArray(new Connector[0]));
+    server.setConnectors(connectors.toArray(new Connector[connectors.size()]));
 
     HandlerList handlers = new HandlerList();
     

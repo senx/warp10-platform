@@ -310,7 +310,7 @@ public class Warp extends WarpDist implements Runnable {
       connectors.add(httpsConnector);
     }
     
-    server.setConnectors(connectors.toArray(new Connector[0]));
+    server.setConnectors(connectors.toArray(new Connector[connectors.size()]));
 
     HandlerList handlers = new HandlerList();
     
@@ -461,7 +461,12 @@ public class Warp extends WarpDist implements Runnable {
     AbstractWarp10Plugin.registerPlugins();
 
     try {
-      System.out.println("#### standalone.endpoint " + InetAddress.getByName(host) + ":" + port);
+      if (useHTTP) {
+        System.out.println("#### standalone.endpoint " + InetAddress.getByName(host) + ":" + port);
+      }
+      if (useHTTPS) {
+        System.out.println("#### standalone.ssl.endpoint " + InetAddress.getByName(httpsConnector.getHost()) + ":" + httpsConnector.getPort());
+      }
       server.start();
     } catch (Exception e) {
       throw new RuntimeException(e);

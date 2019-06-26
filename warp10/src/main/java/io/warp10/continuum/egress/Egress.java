@@ -98,8 +98,8 @@ public class Egress {
     // Extract parameters from 'props'
     //
     
-    boolean useHttp = null != props.getProperty(Configuration.EGRESS_PORT);
-    boolean useHttps = null != props.getProperty(Configuration.EGRESS_PREFIX + Configuration._SSL_PORT);
+    boolean useHttp = (null != props.getProperty(Configuration.EGRESS_PORT));
+    boolean useHttps = (null != props.getProperty(Configuration.EGRESS_PREFIX + Configuration._SSL_PORT));
 
     List<Connector> connectors = new ArrayList<Connector>();
     
@@ -136,7 +136,7 @@ public class Egress {
     // Start Jetty server
     //
                 
-    server.setConnectors(connectors.toArray(new Connector[0]));
+    server.setConnectors(connectors.toArray(new Connector[connectors.size()]));
 
     HandlerList handlers = new HandlerList();
     
