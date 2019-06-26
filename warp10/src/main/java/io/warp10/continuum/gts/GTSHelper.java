@@ -2813,9 +2813,11 @@ public class GTSHelper {
       } else if ('h' == firstChar && valuestr.startsWith("hex:")) {
         value = Hex.decodeHex(valuestr.substring(4).toCharArray());
       } else {
-        boolean likelydouble = UnsafeString.isDouble(valuestr);
+        //boolean likelydouble = UnsafeString.isDouble(valuestr);
+        boolean likelylong = UnsafeString.isLong(valuestr);
         
-        if (!likelydouble) {
+        //if (!likelydouble) {
+        if (likelylong) {
           value = Long.parseLong(valuestr);
         } else {
           //
