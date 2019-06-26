@@ -133,6 +133,10 @@ public class GTSWrapperHelper {
   }
   
   public static GTSWrapper fromGTSEncoderToGTSWrapper(GTSEncoder encoder, boolean compress, double compratio, int maxpasses) {
+    return fromGTSEncoderToGTSWrapper(encoder, compress, compratio, maxpasses, true);
+  }
+  
+  public static GTSWrapper fromGTSEncoderToGTSWrapper(GTSEncoder encoder, boolean compress, double compratio, int maxpasses, boolean setCount) {
 
     if (compratio < 1.0D) {
       compratio = 1.0D;
@@ -204,7 +208,10 @@ public class GTSWrapperHelper {
       // Consider setting the count only when not generating an optimized wrapper
       //
       
-      wrapper.setCount(encoder.getCount());
+      if (setCount) {
+        wrapper.setCount(encoder.getCount());
+      }
+      
       Metadata meta = encoder.getMetadata();
       
       // Only set Metadata if one of the fields was set
