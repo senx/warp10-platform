@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -28,23 +28,23 @@ import java.util.List;
 
 /**
  * Produces a list which is the result of the application of 'macro' on each element of 'list'
- * 
+ * <p>
  * 2: list
  * 1: macro
  * LMAP
- * 
+ * <p>
  * macro and list are popped out of the stack
  * macro if called for each element of 'list' with the index of the current element and the element itself on the stack
  */
 public class LMAP extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-
+  
   public LMAP(String name) {
     super(name);
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-
+    
     Object macro = stack.pop();
     
     if (!WarpScriptLib.isMacro(macro)) {
@@ -56,10 +56,9 @@ public class LMAP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     if (!(list instanceof List)) {
       throw new WarpScriptException(getName() + " expects a list below the macro on top of the stack.");
     }
-
-    ArrayList<Object> result = new ArrayList<Object>();
     
     int n = ((List) list).size();
+    ArrayList<Object> result = new ArrayList<Object>(n);
     
     for (int i = 0; i < n; i++) {
       stack.push(((List) list).get(i));
@@ -69,7 +68,7 @@ public class LMAP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
     
     stack.push(result);
-
+    
     return stack;
   }
 }
