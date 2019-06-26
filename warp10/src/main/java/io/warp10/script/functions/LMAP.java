@@ -57,7 +57,7 @@ public class LMAP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       throw new WarpScriptException(getName() + " expects a list below the macro on top of the stack.");
     }
 
-    ArrayList<Object> result = new ArrayList<Object>();
+    ArrayList<Object> result = new ArrayList<Object>(((List) list).size());
     
     int n = ((List) list).size();
     
