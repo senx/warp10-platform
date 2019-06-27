@@ -25,6 +25,7 @@ import java.awt.Image;
 import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
 import javax.swing.ImageIcon;
+
 import org.apache.commons.codec.binary.Base64;
 import processing.core.PImage;
 
@@ -43,9 +44,7 @@ public class Pdecode extends NamedWarpScriptFunction implements WarpScriptStackF
     
     byte[] bytes;
     if ((top instanceof String) && ((String) top).startsWith("data:image/")) {
-      String data = top.toString();
-      data = data.substring(data.indexOf(",") + 1);
-      bytes = Base64.decodeBase64(data);
+      bytes = Base64.decodeBase64(((String) top).substring(((String) top).indexOf(",") + 1));
     } else if (top instanceof byte[]) {
       bytes = (byte[]) top;
     } else {
