@@ -966,6 +966,7 @@ runner.minperiod = 1000
 // Number of Jetty selectors to use (defaults to 4)
 #http.selectors = 4
 // Number of threads Jetty should use (defaults to 1 + acceptors + acceptors * selectors which is the minimum)
+// All selectors/acceptors (with and without SSL support, see http.ssl.selectors/http.ssl.acceptors) must be considered
 #http.maxthreads = 11
 // Timeout (in ms) when expecting a HTTP request (defaults to 30000 ms)
 #http.idle.timeout = 30000
@@ -1032,3 +1033,50 @@ runner.minperiod = 1000
 #warpscript.urlfetch.maxsize.hard =
 // List of patterns to include/exclude for hosts, works the same way as webcall.host.patterns. Defaults to the value of webcall.host.patterns.
 #warpscript.urlfetch.host.patterns =
+
+//
+// SSL Configuration
+//
+
+# Host/IP Address to bind to for the SSL endpoint
+#standalone.ssl.host =
+# Port the SSL endpoint should bind to
+#standalone.ssl.port =
+# Number of Jetty acceptors (defaults to 2)
+#standalone.ssl.acceptors =
+# Number of Jetty selectors (defaults to 4)
+#standalone.ssl.selectors =
+# Jetty idle timeout in ms
+#standalone.ssl.idletimeout =
+# Path to the JKS keystore file
+#standalone.ssl.keystore.path =
+# Password for accessing the keystore file
+#standalone.ssl.keystore.password =
+# Alias associated with the SSL X.509 certificate
+#standalone.ssl.cert.alias =
+# Password for accessing the X.509 certificate
+#standalone.ssl.keymanager.password =
+
+## HTTP Plugin
+
+# Host/IP Address to bind to for the SSL endpoint
+#http.ssl.host =
+# Port the SSL endpoint should bind to
+#http.ssl.port =
+# Number of Jetty acceptors (defaults to 2)
+# Adapt value of http.maxthreads accordingly
+#http.ssl.acceptors =
+# Number of Jetty selectors (defaults to 4)
+# Adapt value of http.maxthreads accordingly
+#http.ssl.selectors =
+# Jetty idle timeout in ms
+#http.ssl.idletimeout =
+# Path to the JKS keystore file
+#http.ssl.keystore.path =
+# Password for accessing the keystore file
+#http.ssl.keystore.password =
+# Alias associated with the SSL X.509 certificate
+#http.ssl.cert.alias =
+# Password for accessing the X.509 certificate
+#http.ssl.keymanager.password =
+

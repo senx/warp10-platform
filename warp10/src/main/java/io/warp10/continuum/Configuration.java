@@ -2047,5 +2047,58 @@ public class Configuration {
    * Name of header containing the name of the symbol in which to expose the request headers
    */
   public static String HTTP_HEADER_EXPOSE_HEADERS = "http.header.exposeheaders";
+
+  /**
+   * SSL Port
+   */
+  public static final String _SSL_PORT = ".ssl.port";
+
+  /**
+   * SSL Host
+   */
+  public static final String _SSL_HOST = ".ssl.host";
+
+  /**
+   * SSL Acceptors
+   */
+  public static final String _SSL_ACCEPTORS = ".ssl.acceptors";
   
+  /**
+   * SSL Selectors
+   */
+  public static final String _SSL_SELECTORS = ".ssl.selectors";
+
+  /**
+   * SSL KeyStore path
+   */
+  public static final String _SSL_KEYSTORE_PATH = ".ssl.keystore.path";
+  
+  /**
+   * SSL KeyStore password
+   */
+  public static final String _SSL_KEYSTORE_PASSWORD = ".ssl.keystore.password";
+
+  /**
+   * Alias associated with the certificate to use
+   */
+  public static final String _SSL_CERT_ALIAS = ".ssl.cert.alias";
+  
+  /**
+   * SSL KeyManager password
+   */
+  public static final String _SSL_KEYMANAGER_PASSWORD = ".ssl.keymanager.password";
+
+  /**
+   * SSL Idle timeout
+   */
+  public static final String _SSL_IDLE_TIMEOUT = ".ssl.idle.timeout";
+  
+  //
+  // Prefixes for the SSL configs
+  //
+  
+  public static final String STANDALONE_PREFIX = "standalone";
+  public static final String EGRESS_PREFIX = "egress";
+  public static final String INGRESS_PREFIX = "ingress";
+  public static final String PLASMA_FRONTEND_PREFIX = "plasma.frontend";
 }
