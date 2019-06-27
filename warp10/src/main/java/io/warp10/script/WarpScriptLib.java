@@ -968,6 +968,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new UNWRAP("UNWRAPEMPTY", true));
     addNamedWarpScriptFunction(new UNWRAPSIZE("UNWRAPSIZE"));
     addNamedWarpScriptFunction(new UNWRAPENCODER(UNWRAPENCODER));
+    addNamedWarpScriptFunction(new TOMVSTRING("->MVSTRING"));
     
     //
     // Outlier detection
