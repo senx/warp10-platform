@@ -63,7 +63,7 @@ public class Pdecode extends NamedWarpScriptFunction implements WarpScriptStackF
     
     PImage image = new PImage(awtImage);
     
-    //The transparency test in Pimage(awtImage) is not working correctly: set format to ARGB is mandatory to keep transparency.
+    //The transparency test in processing lib is not working correctly: set format to ARGB is mandatory to keep transparency.
     // setting it on Jpeg or non transparent image has no impact, so it is better to set it by default, as every PGraphics objects.
     image.format = PImage.ARGB;
     
