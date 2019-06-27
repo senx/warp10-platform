@@ -23,6 +23,7 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.List;
 
@@ -52,43 +53,45 @@ public class TOLONGBYTES extends NamedWarpScriptFunction implements WarpScriptSt
         }
       } else if (o instanceof List && nbBytes > 0 && nbBytes <= 8) {
         try {
-          ByteBuffer bytes = ByteBuffer.allocate(nbBytes * ((List) o).size());
+          byte[] b = new byte[nbBytes * ((List) o).size()];
+          ByteBuffer bytes = ByteBuffer.wrap(b);
+          bytes.order(ByteOrder.BIG_ENDIAN);
           if (8 == nbBytes) {
-            for (Object el : (List) o) {
+            for (Object el: (List) o) {
               bytes.putLong((Long) el);
             }
           } else if (4 == nbBytes) {
-            for (Object el : (List) o) {
+            for (Object el: (List) o) {
               bytes.putInt(((Long) el).intValue());
             }
           } else if (2 == nbBytes) {
-            for (Object el : (List) o) {
+            for (Object el: (List) o) {
               bytes.putShort(((Long) el).shortValue());
             }
           } else if (1 == nbBytes) {
-            for (Object el : (List) o) {
+            for (Object el: (List) o) {
               bytes.put(((Long) el).byteValue());
             }
           } else {
             // weird length are not optimized
             long v;
-            for (Object el : (List) o) {
+            for (Object el: (List) o) {
               v = ((Long) el).longValue() << (8 - nbBytes) * 8;
-              for (int i = nbBytes - 1; i >= 0; i--) {
-                bytes.put((byte) ((v & 0xff00000000000000L) >> 56));
+              for (int i = 0; i < nbBytes; i++) {
+                bytes.put((byte) (v >> 56));
                 v <<= 8;
               }
             }
           }
-          stack.push(bytes.array());
+          stack.push(b);
         } catch (Exception e) {
-          throw new WarpScriptException(getName() + " operates on a LONG or a list of LONG and expects a number of output bytes between 1 and 8 on top of the stack.");
+          throw new WarpScriptException(getName() + " operates on a LONG or a list of LONG and expects a number of output bytes per LONG between 1 and 8 on top of the stack.");
         }
       } else {
-        throw new WarpScriptException(getName() + " operates on a LONG or a list of LONG and expects a number of output bytes between 1 and 8 on top of the stack.");
+        throw new WarpScriptException(getName() + " operates on a LONG or a list of LONG and expects a number of output bytes per LONG between 1 and 8 on top of the stack.");
       }
     } else {
-      throw new WarpScriptException(getName() + " operates on a LONG or a list of LONG and expects a number of output bytes between 1 and 8 on top of the stack.");
+      throw new WarpScriptException(getName() + " operates on a LONG or a list of LONG and expects a number of output bytes per LONG between 1 and 8 on top of the stack.");
     }
     
     return stack;
