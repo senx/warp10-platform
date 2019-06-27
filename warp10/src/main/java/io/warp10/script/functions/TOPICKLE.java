@@ -16,6 +16,8 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.continuum.gts.GTSPickler;
+import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -23,6 +25,7 @@ import io.warp10.script.WarpScriptStackFunction;
 
 import java.io.IOException;
 
+import net.razorvine.pickle.Pickler;
 import net.razorvine.pyro.serializer.PickleSerializer;
 
 /**
@@ -39,6 +42,10 @@ public class TOPICKLE extends NamedWarpScriptFunction implements WarpScriptStack
     Object o = stack.pop();
     
     try {
+      // register picler for custom classes
+      Pickler.registerCustomPickler(GeoTimeSerie.class, new GTSPickler());
+
+      // pickle
       PickleSerializer serializer = new PickleSerializer();
       byte[] data = serializer.serializeData(o);
       stack.push(data);
