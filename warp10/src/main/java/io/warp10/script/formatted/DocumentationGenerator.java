@@ -16,6 +16,7 @@
 
 package io.warp10.script.formatted;
 
+import com.google.common.collect.Lists;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.functions.SNAPSHOT;
 
@@ -61,7 +62,7 @@ public class DocumentationGenerator {
 
     List<List<List<Object>>> sig = new ArrayList<>();
     List<Object> output = new ArrayList<>();
-    for (ArgumentSpecification arg: outputs) {
+    for (ArgumentSpecification arg: Lists.reverse(outputs)) {
       output.add(arg.getName() + ":" + arg.WarpScriptType());
     }
 
@@ -76,7 +77,7 @@ public class DocumentationGenerator {
       input1.add(new LinkedHashMap<>());
     }
 
-    for (ArgumentSpecification arg: args) {
+    for (ArgumentSpecification arg: Lists.reverse(args)) {
       input1.add(arg.getName() + ":" + arg.WarpScriptType());
     }
 
@@ -92,11 +93,11 @@ public class DocumentationGenerator {
     List<Object> input2 = new ArrayList<>();
     LinkedHashMap<String, String> optMap = new LinkedHashMap<>();
 
-    for (ArgumentSpecification arg: args) {
+    for (ArgumentSpecification arg: Lists.reverse(optArgs)) {
       optMap.put(arg.getName(), arg.getName() + ":" + arg.WarpScriptType());
     }
 
-    for (ArgumentSpecification arg: optArgs) {
+    for (ArgumentSpecification arg: Lists.reverse(args)) {
       optMap.put(arg.getName(), arg.getName() + ":" + arg.WarpScriptType());
     }
 
@@ -112,13 +113,13 @@ public class DocumentationGenerator {
     //
 
     LinkedHashMap<String, String> params = new LinkedHashMap<>();
-    for (ArgumentSpecification arg: args) {
+    for (ArgumentSpecification arg: Lists.reverse(optArgs)) {
       params.put(arg.getName(), arg.getDoc());
     }
-    for (ArgumentSpecification arg: optArgs) {
+    for (ArgumentSpecification arg: Lists.reverse(args)) {
       params.put(arg.getName(), arg.getDoc());
     }
-    for (ArgumentSpecification arg: outputs) {
+    for (ArgumentSpecification arg: Lists.reverse(outputs)) {
       params.put(arg.getName(), arg.getDoc());
     }
 
