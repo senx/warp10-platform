@@ -16,31 +16,33 @@
 
 package io.warp10.script.functions;
 
+import com.google.common.primitives.Longs;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Arrays;
-
-import com.google.common.primitives.Longs;
+import java.util.List;
 
 /**
  * Converts a LONG to a byte array
  */
 public class TOLONGBYTES extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-
+  
   public TOLONGBYTES(String name) {
     super(name);
   }
-
+  
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-
+    
     Object o = stack.pop();
-
+    
     if (o instanceof Long) {
-      long nbBytes = ((Long) o).longValue();
+      int nbBytes = ((Long) o).intValue();
       o = stack.pop();
       if (o instanceof Long && nbBytes > 0 && nbBytes <= 8) {
         //truncate the result to nbBytes when needed
@@ -49,13 +51,49 @@ public class TOLONGBYTES extends NamedWarpScriptFunction implements WarpScriptSt
         } else {
           stack.push(Longs.toByteArray(((Long) o).longValue()));
         }
+      } else if (o instanceof List && nbBytes > 0 && nbBytes <= 8) {
+        try {
+          byte[] b = new byte[nbBytes * ((List) o).size()];
+          ByteBuffer bytes = ByteBuffer.wrap(b);
+          bytes.order(ByteOrder.BIG_ENDIAN);
+          if (8 == nbBytes) {
+            for (Object el: (List) o) {
+              bytes.putLong((Long) el);
+            }
+          } else if (4 == nbBytes) {
+            for (Object el: (List) o) {
+              bytes.putInt(((Long) el).intValue());
+            }
+          } else if (2 == nbBytes) {
+            for (Object el: (List) o) {
+              bytes.putShort(((Long) el).shortValue());
+            }
+          } else if (1 == nbBytes) {
+            for (Object el: (List) o) {
+              bytes.put(((Long) el).byteValue());
+            }
+          } else {
+            // weird length are not optimized
+            long v;
+            for (Object el: (List) o) {
+              v = ((Long) el).longValue() << (8 - nbBytes) * 8;
+              for (int i = 0; i < nbBytes; i++) {
+                bytes.put((byte) (v >> 56));
+                v <<= 8;
+              }
+            }
+          }
+          stack.push(b);
+        } catch (Exception e) {
+          throw new WarpScriptException(getName() + " operates on a LONG or a list of LONG and expects a number of output bytes per LONG between 1 and 8 on top of the stack.");
+        }
       } else {
-        throw new WarpScriptException(getName() + " operates on a LONG and expects a number of output bytes between 1 and 8 on top of the stack.");
+        throw new WarpScriptException(getName() + " operates on a LONG or a list of LONG and expects a number of output bytes per LONG between 1 and 8 on top of the stack.");
       }
     } else {
-      throw new WarpScriptException(getName() + " operates on a LONG and expects a number of output bytes between 1 and 8 on top of the stack.");
+      throw new WarpScriptException(getName() + " operates on a LONG or a list of LONG and expects a number of output bytes per LONG between 1 and 8 on top of the stack.");
     }
-
+    
     return stack;
   }
 }
