@@ -150,7 +150,10 @@ public class DocumentationGenerator {
     mc2.append(" 'infomap' STORE" + System.lineSeparator());
     mc2.append(MACRO_START + System.lineSeparator());
     mc2.append("!$infomap INFO" + System.lineSeparator());
-    mc2.append(function.getName() + System.lineSeparator());
+    mc2.append(MACRO_START + System.lineSeparator());
+    mc2.append("'" + function.getName() + "' EVAL" + System.lineSeparator());
+    mc2.append(MACRO_END + System.lineSeparator());
+    mc2.append(MACRO_START + " " + MACRO_END + " " + MACRO_START + " " + MACRO_END + " TRY" + System.lineSeparator());
     mc2.append(MACRO_END + System.lineSeparator());
     mc2.append("'macro' STORE" + System.lineSeparator());
     mc2.append("// Unit tests" + System.lineSeparator());
