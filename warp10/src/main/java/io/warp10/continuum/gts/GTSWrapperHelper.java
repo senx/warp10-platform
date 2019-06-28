@@ -237,8 +237,12 @@ public class GTSWrapperHelper {
   public static GTSWrapper fromGTSToGTSWrapper(GeoTimeSerie gts, boolean compress, double compratio) {
     return fromGTSToGTSWrapper(gts, compress, compratio, false);
   }
-  
+
   public static GTSWrapper fromGTSToGTSWrapper(GeoTimeSerie gts, boolean compress, double compratio, boolean optimized) {
+    return fromGTSToGTSWrapper(gts, compress, compratio, Integer.MAX_VALUE, optimized, true);
+  }
+  
+  public static GTSWrapper fromGTSToGTSWrapper(GeoTimeSerie gts, boolean compress, double compratio, int maxpasses, boolean optimized, boolean setCount) {
 
     GTSEncoder encoder = new GTSEncoder(0L);
     encoder.setMetadata(gts.getMetadata());
@@ -252,7 +256,7 @@ public class GTSWrapperHelper {
     } catch (IOException ioe) {      
     }
 
-    GTSWrapper wrapper = fromGTSEncoderToGTSWrapper(encoder, compress, compratio);
+    GTSWrapper wrapper = fromGTSEncoderToGTSWrapper(encoder, compress, compratio, maxpasses, setCount);
     
     if (GTSHelper.isBucketized(gts)) {
       wrapper.setBucketcount(gts.bucketcount);
