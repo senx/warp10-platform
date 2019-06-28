@@ -147,7 +147,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
         return ("X-" + c.getSimpleName().toUpperCase());
       }
     } else {
-      return (c.getCanonicalName());
+      return (c.getSimpleName().toUpperCase());
     }
   }
 
