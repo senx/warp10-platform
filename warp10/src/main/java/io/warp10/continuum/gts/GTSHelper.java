@@ -4798,6 +4798,19 @@ public class GTSHelper {
     return indexed;
   }
   
+  public static GTSEncoder tickindex(GTSEncoder encoder) throws IOException {
+    long index = 0;
+    
+    GTSDecoder decoder = encoder.getDecoder(true);
+    GTSEncoder newencoder = new GTSEncoder(0L);
+    
+    while(decoder.next()) {
+      newencoder.addValue(index++, decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
+    }
+    
+    return newencoder;
+  }
+  
   /**
    * Removes all values from a GTS instance by setting its value count to 0
    * and its type to UNDEFINED
