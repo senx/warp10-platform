@@ -56,8 +56,10 @@ public class Py4JEntryPoint {
       StringReader reader = new StringReader(sb.toString());
       WarpConfig.safeSetProperties(reader);
       WarpScriptLib.registerExtensions();
-     }
-     this.nolimits = "true".equals(WarpConfig.getProperty(CONFIG_PY4J_STACK_NOLIMITS));
+    } else if (props.size() > 0) {
+      throw new IOException("Initial properties have already been set in this gateway. Use instead io.warp10.WarpConfig.setProperty(key, value), or launch another gateway.");
+    }
+    this.nolimits = "true".equals(WarpConfig.getProperty(CONFIG_PY4J_STACK_NOLIMITS));
   }
 
   public Py4JEntryPoint() {
