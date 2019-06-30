@@ -553,7 +553,7 @@ standalone.idle.timeout = 30000
 standalone.selectors = 4
 
 //
-// Maximum encoder size (in bytes) for internal data transfers. Use values from 64k to 512k
+// Maximum encoder size (in bytes) for internal data transfers. Typical values from 64k to 512k, but any value will do. Lower ones will increase the number of array re-allocations.
 //
 standalone.max.encoder.size = 100000
 
