@@ -72,188 +72,225 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
     
     if (top instanceof List) {
       
+      boolean gtslist = true;
+      
+      // Check of it is a list of GTS or GTSEncoders
       for (Object elt: (List) top) {
-        if (elt instanceof Long) {
-          ticks.add((Long) elt);
-          if (0L == (Long) elt) {
-            includeZero = true;
-          }
-        } else if (elt instanceof List) {
-          if (2 != ((List) elt).size()) {
-            throw new WarpScriptException(getName() + " expects ticks or ranges of ticks (LONGs).");
-          }
-          if (!(((List) elt).get(0) instanceof Long)
-              || !(((List) elt).get(1) instanceof Long)) {
-            throw new WarpScriptException(getName() + " expects ticks or ranges of ticks (LONGs).");
-          }
-          Pair<Long,Long> range = Pair.of((Long) ((List) elt).get(0), (Long) ((List) elt).get(1));
-          
-          if (range.getLeft() > range.getRight()) {
-            range = Pair.of(range.getRight(), range.getLeft());
-          }
-          
-          ranges.add(range);
-        } else {
-          throw new WarpScriptException(getName() + " expects ticks or ranges of ticks (LONGs).");
+        if (!(elt instanceof GeoTimeSerie) && !(elt instanceof GTSEncoder)) {
+          gtslist = false;
+          break;
         }
       }
-      check = true;
-      top = stack.pop();
+      
+      if (!gtslist) {
+        for (Object elt: (List) top) {
+          if (elt instanceof Long) {
+            ticks.add((Long) elt);
+            if (0L == (Long) elt) {
+              includeZero = true;
+            }
+          } else if (elt instanceof List) {
+            if (2 != ((List) elt).size()) {
+              throw new WarpScriptException(getName() + " expects ticks or ranges of ticks (LONGs).");
+            }
+            if (!(((List) elt).get(0) instanceof Long)
+                || !(((List) elt).get(1) instanceof Long)) {
+              throw new WarpScriptException(getName() + " expects ticks or ranges of ticks (LONGs).");
+            }
+            Pair<Long,Long> range = Pair.of((Long) ((List) elt).get(0), (Long) ((List) elt).get(1));
+            
+            if (range.getLeft() > range.getRight()) {
+              range = Pair.of(range.getRight(), range.getLeft());
+            }
+            
+            ranges.add(range);
+          } else {
+            throw new WarpScriptException(getName() + " expects ticks or ranges of ticks (LONGs).");
+          }
+        }
+        check = true;
+        top = stack.pop();        
+      }
     } else {
       includeZero = true;
     }
-
-    boolean isencoder = false;
     
-    GTSDecoder decoder = null;
-    GeoTimeSerie gts = null;
+    List<Object> inputs = null;
+    boolean listinput = false;
     
-    if (top instanceof GTSEncoder) {
-      isencoder = true;
-      decoder = ((GTSEncoder) top).getDecoder(true);
-    } else if (top instanceof GeoTimeSerie) {
-      isencoder = false;
-      gts = ((GeoTimeSerie) top);
+    if (top instanceof GTSEncoder || top instanceof GeoTimeSerie) {
+      inputs = new ArrayList<Object>(1);
+      inputs.add(top);
+    } else if (top instanceof List) {
+      inputs = (List) top;
+      listinput = true;
     } else {
-      throw new WarpScriptException(getName() + " operates on Geo Time Series™ or ENCODER.");
+      throw new WarpScriptException(getName() + " operates on Geo Time Series™ or ENCODER or a list thereof.");
     }
-    
-    Map<Long,GTSEncoder> encoders = new HashMap<Long, GTSEncoder>();
-    
-    int idx = 0;
     
     TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
     GTSWrapper wrapper = new GTSWrapper();
-    
-    try {
-      // Iterate over the datapoints of the input GTS or encoder
-      int nvalues = !isencoder ? GTSHelper.nvalues(gts) : 0;
-      while((isencoder && decoder.next()) || (!isencoder && idx < nvalues)) {
-        long ts;
-        long location;
-        long elevation;
-        Object value;
-        
-        if (isencoder) {
-          ts = decoder.getTimestamp();
-          location = decoder.getLocation();
-          elevation = decoder.getElevation();
-          value = decoder.getBinaryValue();
-          
-          // If the value is a byte array or STRING, attempt to deserialize it
-          if (value instanceof byte[]) {
-            try {
-              deser.deserialize(wrapper, (byte[]) value);
-              value = wrapper;
-            } catch (TException te) {            
-            }
-          } else if (value instanceof String) {
-            try {
-              byte[] bytes = value.toString().getBytes(Charsets.ISO_8859_1);
-              deser.deserialize(wrapper, bytes);
-              value = wrapper;
-            } catch (TException te) {   
-            }          
-          }
-        } else {
-          ts = GTSHelper.tickAtIndex(gts, idx);
-          location = GTSHelper.locationAtIndex(gts, idx);
-          elevation = GTSHelper.elevationAtIndex(gts, idx);
-          value = GTSHelper.valueAtIndex(gts, idx);
-          
-          // Check if a STRING is a wrapper
-          if (value instanceof String) {
-            try {
-              byte[] bytes = value.toString().getBytes(Charsets.ISO_8859_1);
-              deser.deserialize(wrapper, bytes);
-              value = wrapper;
-            } catch (TException te) {   
-            }          
-          }
-        }
-        
-        if (value instanceof GTSWrapper) {
-          GTSDecoder deco = GTSWrapperHelper.fromGTSWrapperToGTSDecoder(wrapper);
-          
-          long index = 0;
-          
-          while(deco.next()) {
-            long dts = deco.getTimestamp();
-            long dlocation = deco.getLocation();
-            long delevation = deco.getElevation();
-            Object dvalue = deco.getBinaryValue();
-            
-            if (bytick) {
-              index = dts;
-            }
-            
-            boolean skip = false;
+    Map<Long,GTSEncoder> encoders = new HashMap<Long, GTSEncoder>();
 
-            // Check if we should include the element
-            if (check) {
-              skip = true;
-              if (!ticks.isEmpty() && ticks.contains(index)) {
-                skip = false;
+    List<List<GTSEncoder>> outputs = new ArrayList<List<GTSEncoder>>(inputs.size());
+    
+    for (Object input: inputs) {
+
+      boolean isencoder = false;
+      
+      GTSDecoder decoder = null;
+      GeoTimeSerie gts = null;
+
+      if (input instanceof GTSEncoder) {
+        isencoder = true;
+        decoder = ((GTSEncoder) input).getDecoder(true);
+      } else if (input instanceof GeoTimeSerie) {
+        isencoder = false;
+        gts = ((GeoTimeSerie) input);
+      } else {
+        throw new WarpScriptException(getName() + " operates on Geo Time Series™ or ENCODER or a list thereof.");
+      }
+      
+      encoders.clear();
+      
+      int idx = 0;
+            
+      try {
+        // Iterate over the datapoints of the input GTS or encoder
+        int nvalues = !isencoder ? GTSHelper.nvalues(gts) : 0;
+        while((isencoder && decoder.next()) || (!isencoder && idx < nvalues)) {
+          long ts;
+          long location;
+          long elevation;
+          Object value;
+          
+          if (isencoder) {
+            ts = decoder.getTimestamp();
+            location = decoder.getLocation();
+            elevation = decoder.getElevation();
+            value = decoder.getBinaryValue();
+            
+            // If the value is a byte array or STRING, attempt to deserialize it
+            if (value instanceof byte[]) {
+              try {
+                deser.deserialize(wrapper, (byte[]) value);
+                value = wrapper;
+              } catch (TException te) {            
               }
-              if (skip && !ranges.isEmpty()) {
-                for (Pair<Long,Long> range: ranges) {
-                  if (index >= range.getLeft() && index <= range.getRight()) {
-                    skip = false;
-                    break;
+            } else if (value instanceof String) {
+              try {
+                byte[] bytes = value.toString().getBytes(Charsets.ISO_8859_1);
+                deser.deserialize(wrapper, bytes);
+                value = wrapper;
+              } catch (TException te) {   
+              }          
+            }
+          } else {
+            ts = GTSHelper.tickAtIndex(gts, idx);
+            location = GTSHelper.locationAtIndex(gts, idx);
+            elevation = GTSHelper.elevationAtIndex(gts, idx);
+            value = GTSHelper.valueAtIndex(gts, idx);
+            
+            // Check if a STRING is a wrapper
+            if (value instanceof String) {
+              try {
+                byte[] bytes = value.toString().getBytes(Charsets.ISO_8859_1);
+                deser.deserialize(wrapper, bytes);
+                value = wrapper;
+              } catch (TException te) {   
+              }          
+            }
+          }
+          
+          if (value instanceof GTSWrapper) {
+            GTSDecoder deco = GTSWrapperHelper.fromGTSWrapperToGTSDecoder(wrapper);
+            
+            long index = 0;
+            
+            while(deco.next()) {
+              long dts = deco.getTimestamp();
+              long dlocation = deco.getLocation();
+              long delevation = deco.getElevation();
+              Object dvalue = deco.getBinaryValue();
+              
+              if (bytick) {
+                index = dts;
+              }
+              
+              boolean skip = false;
+
+              // Check if we should include the element
+              if (check) {
+                skip = true;
+                if (!ticks.isEmpty() && ticks.contains(index)) {
+                  skip = false;
+                }
+                if (skip && !ranges.isEmpty()) {
+                  for (Pair<Long,Long> range: ranges) {
+                    if (index >= range.getLeft() && index <= range.getRight()) {
+                      skip = false;
+                      break;
+                    }
                   }
                 }
               }
-            }
-            
-            if (!skip) {              
-              GTSEncoder encoder = encoders.get(index);
-              if (null == encoder) {
-                encoder = new GTSEncoder(0L);
-                encoder.setMetadata(null != decoder ? decoder.getMetadata() : gts.getMetadata());
-                encoders.put(index, encoder);              
+              
+              if (!skip) {              
+                GTSEncoder encoder = encoders.get(index);
+                if (null == encoder) {
+                  encoder = new GTSEncoder(0L);
+                  encoder.setMetadata(null != decoder ? decoder.getMetadata() : gts.getMetadata());
+                  encoders.put(index, encoder);              
+                }
+                encoder.addValue(ts,
+                  GeoTimeSerie.NO_LOCATION != dlocation ? dlocation : location,
+                  GeoTimeSerie.NO_ELEVATION != delevation ? delevation : elevation,
+                  dvalue);
               }
-              encoder.addValue(ts,
-                GeoTimeSerie.NO_LOCATION != dlocation ? dlocation : location,
-                GeoTimeSerie.NO_ELEVATION != delevation ? delevation : elevation,
-                dvalue);
+              
+              index++;
             }
-            
-            index++;
+          } else if (includeZero) {
+            // We only have a single value, assume timestamp is 0 with no location/elevation
+            GTSEncoder encoder = encoders.get(0L);
+            if (null == encoder) {
+              encoder = new GTSEncoder(0L);
+              encoder.setMetadata(null != decoder ? decoder.getMetadata() : gts.getMetadata());
+              encoders.put(0L, encoder);
+            }        
+            encoder.addValue(ts, location, elevation, value);
           }
-        } else if (includeZero) {
-          // We only have a single value, assume timestamp is 0 with no location/elevation
-          GTSEncoder encoder = encoders.get(0L);
-          if (null == encoder) {
-            encoder = new GTSEncoder(0L);
-            encoder.setMetadata(null != decoder ? decoder.getMetadata() : gts.getMetadata());
-            encoders.put(0L, encoder);
-          }        
-          encoder.addValue(ts, location, elevation, value);
-        }
-        
-        idx++;
-      }      
-    } catch (IOException ioe) {
-      throw new WarpScriptException(getName() + " encountered an error while splitting input.");
-    }
-    
-    // Now rename the encoders
-    GeoTimeSerie g = new GeoTimeSerie();
-    for (Entry<Long,GTSEncoder> entry: encoders.entrySet()) {
-      String name = renamingMap.get(entry.getKey());
-      
-      if (null == name) {
-        entry.getValue().setName(entry.getValue().getName() + ":" + entry.getKey());
-      } else {
-        g.safeSetMetadata(entry.getValue().getMetadata());
-        GTSHelper.rename(g, name);
+          
+          idx++;
+        }      
+      } catch (IOException ioe) {
+        throw new WarpScriptException(getName() + " encountered an error while splitting input.");
       }
-    }
+      
+      // Now rename the encoders
+      GeoTimeSerie g = new GeoTimeSerie();
+      for (Entry<Long,GTSEncoder> entry: encoders.entrySet()) {
+        String name = renamingMap.get(entry.getKey());
+        
+        if (null == name) {
+          entry.getValue().setName(entry.getValue().getName() + ":" + entry.getKey());
+        } else {
+          g.safeSetMetadata(entry.getValue().getMetadata());
+          GTSHelper.rename(g, name);
+        }
+      }
+      
+      // Now build a list of extracted encoders
+      List<GTSEncoder> results = new ArrayList<GTSEncoder>(encoders.size());
+      results.addAll(encoders.values());
+      outputs.add(results);
+    }  
     
-    // Now build a list of extracted encoders
-    List<GTSEncoder> results = new ArrayList<GTSEncoder>(encoders.size());
-    results.addAll(encoders.values());
-    stack.push(results);
+    if (listinput) {
+      stack.push(outputs);
+    } else {
+      stack.push(outputs.get(0));
+    }
     
     return stack;
   }
