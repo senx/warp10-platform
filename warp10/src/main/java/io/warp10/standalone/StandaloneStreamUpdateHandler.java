@@ -512,8 +512,6 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
       this.sensisionLabels.clear();
       this.sensisionLabels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
 
-      long count = 0;
-      
       if (null == producer || null == owner) {
         throw new IOException("Invalid token.");
       }
