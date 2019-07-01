@@ -19,9 +19,11 @@ package io.warp10.continuum.gts;
 import io.warp10.CapacityExtractorOutputStream;
 import io.warp10.DoubleUtils;
 import io.warp10.WarpURLEncoder;
+import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
@@ -78,6 +80,8 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.fitting.PolynomialCurveFitter;
 import org.apache.commons.math3.fitting.WeightedObservedPoint;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TCompactProtocol;
 import org.boon.json.JsonParser;
 import org.boon.json.JsonParserFactory;
 
@@ -2573,14 +2577,248 @@ public class GTSHelper {
         }
         
         value = TOQUATERNION.toQuaternion(q[0], q[1], q[2], q[3]);
+      } else if ('[' == valuestr.charAt(0)) {        
+        
+        // Value is a nested set of lists, each one being a space separated list of tokens of the form enclosed in [ ... ]
+        // VALUE
+        // TS/VALUE
+        // TS/LAT:LON/VALUE
+        // TS//ELEV/VALUE
+        // TS/LAT:LON/ELEV/VALUE
+        //
+        // Elements between two '/' can be empty
+        
+        GTSEncoder encoder = new GTSEncoder();
+
+        // Start index of the token to parse. Will advance through the token to parse each slash-separated field.
+        int idxTokenStart = 1;
+        
+        boolean comp = true;
+        // Handle the case where the value starts with [! which means to not compress the resulting encoder
+        if ('!' == valuestr.charAt(1)) {
+          comp = false;
+          idxTokenStart = 2;
+        }
+        
+        int idxTokenSlash = 0; // Used to find '/' inside the token
+
+        // Last index (excluded) to be considered in valuestr
+        int idxValueEnd = valuestr.length() - 1;
+
+        // Find the last closing bracket which should match the opening bracket, ignoring trailing spaces.
+        while (idxValueEnd >= idxTokenStart) {
+          char c = valuestr.charAt(idxValueEnd);
+          if (']' == c) {
+            break;
+          } else if (' ' == c) {
+            idxValueEnd--;
+          } else {
+            throw new ParseException("Missing closing bracket.", 0);
+          }
+        }
+
+        if (idxValueEnd < idxTokenStart) {
+          throw new ParseException("Missing closing bracket.", 0);
+        }
+        
+        while(idxTokenStart < idxValueEnd) {
+          // Ignore leading spaces
+          while(idxTokenStart < idxValueEnd && ' ' == valuestr.charAt(idxTokenStart)) {
+            idxTokenStart++;
+          }
+
+          if (idxTokenStart >= idxValueEnd) {
+            break;
+          }
+          
+          // Find end of current token
+          int idxTokenEnd = idxTokenStart + 1;
+          
+          while(idxTokenEnd < idxValueEnd && ' ' != valuestr.charAt(idxTokenEnd)) {
+            idxTokenEnd++;
+          }
+          
+          // Current token is between idxTokenStart (included) and idxTokenEnd (excluded)
+          
+          // Find out if there is a first '/'
+          idxTokenSlash = idxTokenStart + 1;
+          
+          while(idxTokenSlash < idxTokenEnd && '/' != valuestr.charAt(idxTokenSlash)) {
+            idxTokenSlash++;
+          }
+          
+          long ts;
+          long location = GeoTimeSerie.NO_LOCATION;
+          long elevation = GeoTimeSerie.NO_ELEVATION;
+              
+          Object val;
+          
+          // No '/', we simply have a value, we'll store it at ts 0
+          
+          if (idxTokenSlash == idxTokenEnd) {
+            ts = 0L;
+            // Advance to the closing ']' if the value starts with '['
+            if ('[' == valuestr.charAt(idxTokenStart)) {
+              int closing = idxTokenStart + 1;
+              int opening = 1;
+              while(closing < idxValueEnd && opening > 0) {
+                char lead = valuestr.charAt(closing);
+                if (']' == lead) {
+                  opening--;
+                } else if ('[' == lead) {
+                  opening++;
+                }
+                closing++;
+              }
+              idxTokenEnd = closing; // idxTokenEnd points to the character just after ']' or after the last character of valuestr if opening > 0.
+              // In that latter case, the parsing will fail when recursively calling GTSHelper.parseValue because at one time it will be given a token without closing bracket at the end.
+            }
+            
+            val = GTSHelper.parseValue(valuestr.substring(idxTokenStart, idxTokenEnd));
+            encoder.addValue(ts, location, elevation, val);
+            idxTokenStart = idxTokenEnd;
+            continue;
+          }
+          
+          //
+          // Parse the timestamp
+          //
+          ts = Long.parseLong(valuestr.substring(idxTokenStart, idxTokenSlash));
+          
+          // Advance idxTokenSlash after the first '/'
+          idxTokenSlash++;
+          idxTokenStart = idxTokenSlash;
+          
+          // Identify a possible second '/'
+          while(idxTokenSlash < idxTokenEnd && '/' != valuestr.charAt(idxTokenSlash)) {
+            idxTokenSlash++;
+          }
+          
+          // No second '/', we have TS/VALUE
+          if (idxTokenSlash == idxTokenEnd) {
+            // Advance to the closing ']' if the value starts with '['
+            if ('[' == valuestr.charAt(idxTokenStart)) {
+              int closing = idxTokenStart + 1;
+              int opening = 1;
+              while(closing < idxValueEnd && opening > 0) {
+                char lead = valuestr.charAt(closing);
+                if (']' == lead) {
+                  opening--;
+                } else if ('[' == lead) {
+                  opening++;
+                }
+                closing++;
+              }
+              idxTokenEnd = closing; // idxTokenEnd points to the character just after ']' or after the last character of valuestr if opening > 0.
+              // In that latter case, the parsing will fail when recursively calling GTSHelper.parseValue because at one time it will be given a token without closing bracket at the end.
+            }
+            val = GTSHelper.parseValue(valuestr.substring(idxTokenStart, idxTokenEnd));
+            encoder.addValue(ts, location, elevation, val);
+            idxTokenStart = idxTokenEnd;
+            continue;
+          }
+          
+          // Parse lat:lon or HHCode
+          // Identify ':'
+          
+          int idxTokenSemiCol = idxTokenStart;
+          
+          // idxTokenSlash is the index of the second '/' we found
+          while(idxTokenSemiCol < idxTokenSlash && ':' != valuestr.charAt(idxTokenSemiCol)) {
+            idxTokenSemiCol++;
+          }
+          
+          // No ':', we have TS/HHCode/... or TS//...
+          if (idxTokenSemiCol == idxTokenSlash) {
+            if (idxTokenSemiCol > idxTokenStart) {
+              location = Long.parseLong(valuestr.substring(idxTokenStart, idxTokenSemiCol));
+            }
+          } else {       
+            // Parse LAT:LON
+            double lat = Double.parseDouble(valuestr.substring(idxTokenStart, idxTokenSemiCol));
+            double lon = Double.parseDouble(valuestr.substring(idxTokenSemiCol + 1, idxTokenSlash));
+            location = GeoXPLib.toGeoXPPoint(lat, lon);
+          }
+
+          idxTokenSlash++;
+          idxTokenStart = idxTokenSlash;
+
+          // Identify a possible third '/'
+          while(idxTokenSlash < idxTokenEnd && '/' != valuestr.charAt(idxTokenSlash)) {
+            idxTokenSlash++;
+          }
+          
+          // No '/', we have TS/LAT:LON/VALUE
+          if (idxTokenSlash == idxTokenEnd) {
+            // Advance to the closing ']' if the value starts with '['
+            if ('[' == valuestr.charAt(idxTokenStart)) {
+              int closing = idxTokenStart + 1;
+              int opening = 1;
+              while(closing < idxValueEnd && opening > 0) {
+                char lead = valuestr.charAt(closing);
+                if (']' == lead) {
+                  opening--;
+                } else if ('[' == lead) {
+                  opening++;
+                }
+                closing++;
+              }
+              idxTokenEnd = closing; // idxTokenEnd points to the character just after ']' or after the last character of valuestr if opening > 0.
+              // In that latter case, the parsing will fail when recursively calling GTSHelper.parseValue because at one time it will be given a token without closing bracket at the end.
+            }
+            val = GTSHelper.parseValue(valuestr.substring(idxTokenStart, idxTokenEnd));
+            encoder.addValue(ts, location, elevation, val);
+            idxTokenStart = idxTokenEnd;
+            continue;
+          }
+          
+          // Extract elevation
+          if (idxTokenSlash > idxTokenStart) {
+            elevation = Long.parseLong(valuestr.substring(idxTokenStart, idxTokenSlash));
+          }
+          
+          // Advance to the closing ']' if the value starts with '['
+          if ('[' == valuestr.charAt(idxTokenSlash + 1)) {
+            int closing = idxTokenSlash + 2;
+            int opening = 1;
+            while(closing < idxValueEnd && opening > 0) {
+              char lead = valuestr.charAt(closing);
+              if (']' == lead) {
+                opening--;
+              } else if ('[' == lead) {
+                opening++;
+              }
+              closing++;
+            }
+            idxTokenEnd = closing; // idxTokenEnd points to the character just after ']' or after the last character of valuestr if opening > 0.
+            // In that latter case, the parsing will fail when recursively calling GTSHelper.parseValue because at one time it will be given a token without closing bracket at the end.
+          }
+
+          val = GTSHelper.parseValue(valuestr.substring(idxTokenSlash + 1, idxTokenEnd));
+          encoder.addValue(ts, location, elevation, val);
+          
+          idxTokenStart = idxTokenEnd + 1;
+        }
+        
+        // Wrap GTSEncoder and encode result, we don't set the count in the wrapper to save some
+        // space
+        GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, comp, GTSWrapperHelper.DEFAULT_COMP_RATIO_THRESHOLD, Integer.MAX_VALUE, false);
+        
+        TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+        
+        byte[] ser = serializer.serialize(wrapper);
+        
+        return ser;
       } else if ('b' == firstChar && valuestr.startsWith("b64:")) {
         value = Base64.decodeBase64(valuestr.substring(4));
       } else if ('h' == firstChar && valuestr.startsWith("hex:")) {
         value = Hex.decodeHex(valuestr.substring(4).toCharArray());
       } else {
-        boolean likelydouble = UnsafeString.isDouble(valuestr);
+        //boolean likelydouble = UnsafeString.isDouble(valuestr);
+        boolean likelylong = UnsafeString.isLong(valuestr);
         
-        if (!likelydouble) {
+        //if (!likelydouble) {
+        if (likelylong) {
           value = Long.parseLong(valuestr);
         } else {
           //
@@ -2601,7 +2839,9 @@ public class GTSHelper {
         }
       }      
     } catch (Exception e) {
-      throw new ParseException(valuestr, 0);
+      ParseException pe = new ParseException(valuestr, 0);
+      pe.initCause(e);
+      throw pe;
     }
     
     return value;
@@ -4558,6 +4798,19 @@ public class GTSHelper {
     return indexed;
   }
   
+  public static GTSEncoder tickindex(GTSEncoder encoder) throws IOException {
+    long index = 0;
+    
+    GTSDecoder decoder = encoder.getDecoder(true);
+    GTSEncoder newencoder = new GTSEncoder(0L);
+    
+    while(decoder.next()) {
+      newencoder.addValue(index++, decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
+    }
+    
+    return newencoder;
+  }
+  
   /**
    * Removes all values from a GTS instance by setting its value count to 0
    * and its type to UNDEFINED
@@ -5708,7 +5961,9 @@ public class GTSHelper {
   
   /**
    * Apply a function or filter GTS and keep the results ventilated per equivalence class
-
+   * 
+   * This function has the side effect of unsetting classId/labelsId
+   *
    * @param function The function to apply, either an WarpScriptFilterFunction or WarpScriptNAryFunction
    * @param bylabels Labels to use for partitioning the GTS instances
    * @param series Set of GTS instances collections
@@ -5725,7 +5980,7 @@ public class GTSHelper {
     //
     //
     
-    Collection<GeoTimeSerie> allgts = new LinkedHashSet<GeoTimeSerie>();
+    Collection<GeoTimeSerie> allgts = new LinkedHashSet<GeoTimeSerie>(series.length);
 
     boolean hasNonSingleton = false;
     
@@ -5752,96 +6007,120 @@ public class GTSHelper {
     Map<Map<String,String>, List<GeoTimeSerie>> partition = GTSHelper.partition(allgts, bylabels);
     
     Map<Map<String,String>, List<GeoTimeSerie>> results = new LinkedHashMap<Map<String,String>,List<GeoTimeSerie>>();
-    
+
     //
-    // Loop on each partition
+    // We force a dummy classId so we can easily perform a binary search
+    // on the lists of GTS    
     //
+
+    long idx = 0L;
     
-    for (Map<String,String> partitionlabels: partition.keySet()) {
-      Map<String,String> commonlabels = Collections.unmodifiableMap(partitionlabels);
-      
-      List<GeoTimeSerie> result = new ArrayList<GeoTimeSerie>();
-
-      //
-      // Make N (cardinality of 'series') sublists of GTS instances.
-      //
-      
-      List<GeoTimeSerie>[] subseries = new List[series.length];
-      for (int i = 0; i < series.length; i++) {
-        
-        //
-        // Sort the 'series' so we can perform a binary search instead of using 'contains'
-        //
-
-        Collections.sort(series[i], METASORT.META_COMPARATOR);
-
-        subseries[i] = new ArrayList<GeoTimeSerie>();
-       
-        //
-        // Treat the case when the original series had a cardinality of 1
-        // as a special case by adding the original series unconditionally
-        //
-        
-        if (1 == series[i].size()) {
-          subseries[i].add(series[i].iterator().next());
-        } else {
-          // The series appear in the order they are in the original list due to 'partition' using a List
-          for (GeoTimeSerie serie: partition.get(partitionlabels)) {
-            if (Collections.binarySearch(series[i], serie, METASORT.META_COMPARATOR) >= 0) {
-              subseries[i].add(serie);
-            }
-          }          
-        }
-      }
-      //
-      // Call the function
-      //
-      
-      if (function instanceof WarpScriptFilterFunction) {
-        List<GeoTimeSerie> filtered = ((WarpScriptFilterFunction) function).filter(commonlabels, subseries);
-        if (null != filtered) {
-          result.addAll(filtered);
-        }
-      } else if (function instanceof WarpScriptNAryFunction) {
-        //
-        // If we have a stack and a validator, push the commonlabels and the list of subseries onto the stack,
-        // call the validator and check if it left true or false onto the stack.
-        //
-        
-        boolean proceed = true;
-        
-        if (null != stack && null != validator) {
-          stack.push(Arrays.asList(subseries));
-          stack.push(commonlabels);
-          stack.exec(validator);
-          if (!Boolean.TRUE.equals(stack.pop())) {
-            proceed = false;
-          }
-        }
-        
-        if (proceed) {
-          result.add(GTSHelper.applyNAryFunction((WarpScriptNAryFunction) function, commonlabels, subseries));
-        }
-      } else {
-        throw new WarpScriptException("Invalid function to apply.");
+    for (int i = 0; i < series.length; i++) {
+      for (GeoTimeSerie gts: series[i]) {
+        gts.getMetadata().setClassId(idx++);
+        gts.getMetadata().setLabelsId(0L);
       }
       
-      results.put(commonlabels, result);
+      Collections.sort(series[i], GTSIdComparator.COMPARATOR);      
     }
-    
-    //
-    // Check that all resulting GTS instances were in allgts
-    //
+    //Collections.sort(series[i], METASORT.META_COMPARATOR);
 
-    //if (function instanceof WarpScriptFilterFunction) {
-    //  for (GeoTimeSerie gts: result) {
-    //    if (!allgts.contains(gts)) {
-    //      throw new WarpScriptException("Some filtered Geo Time Series were not in the original set.");
-    //    }
-    //  }      
-    //}
-    
-    return results;
+    try {
+      //
+      // Loop on each partition
+      //
+      
+      for (Map<String,String> partitionlabels: partition.keySet()) {
+        Map<String,String> commonlabels = Collections.unmodifiableMap(partitionlabels);
+        
+        List<GeoTimeSerie> result = new ArrayList<GeoTimeSerie>();
+
+        //
+        // Make N (cardinality of 'series') sublists of GTS instances.
+        //
+        
+        List<GeoTimeSerie>[] subseries = new List[series.length];
+        for (int i = 0; i < series.length; i++) {
+          
+          subseries[i] = new ArrayList<GeoTimeSerie>();
+         
+          //
+          // Treat the case when the original series had a cardinality of 1
+          // as a special case by adding the original series unconditionally
+          //
+          
+          if (1 == series[i].size()) {
+            subseries[i].add(series[i].iterator().next());
+          } else {
+            // The series appear in the order they are in the original list due to 'partition' using a List
+            for (GeoTimeSerie serie: partition.get(partitionlabels)) {
+              //if (Collections.binarySearch(series[i], serie, METASORT.META_COMPARATOR) >= 0) {
+              // We perform a binary search to determine if the GTS 'serie' is in series[i]
+              if (Collections.binarySearch(series[i], serie, GTSIdComparator.COMPARATOR) >= 0) {
+                subseries[i].add(serie);
+              }
+            }          
+          }        
+        }
+        
+        //
+        // Call the function
+        //
+        
+        if (function instanceof WarpScriptFilterFunction) {
+          List<GeoTimeSerie> filtered = ((WarpScriptFilterFunction) function).filter(commonlabels, subseries);
+          if (null != filtered) {
+            result.addAll(filtered);
+          }
+        } else if (function instanceof WarpScriptNAryFunction) {
+          //
+          // If we have a stack and a validator, push the commonlabels and the list of subseries onto the stack,
+          // call the validator and check if it left true or false onto the stack.
+          //
+          
+          boolean proceed = true;
+          
+          if (null != stack && null != validator) {
+            stack.push(Arrays.asList(subseries));
+            stack.push(commonlabels);
+            stack.exec(validator);
+            if (!Boolean.TRUE.equals(stack.pop())) {
+              proceed = false;
+            }
+          }
+          
+          if (proceed) {
+            result.add(GTSHelper.applyNAryFunction((WarpScriptNAryFunction) function, commonlabels, subseries));
+          }
+        } else {
+          throw new WarpScriptException("Invalid function to apply.");
+        }
+        
+        results.put(commonlabels, result);
+      }
+      
+      //
+      // Check that all resulting GTS instances were in allgts
+      //
+
+      //if (function instanceof WarpScriptFilterFunction) {
+      //  for (GeoTimeSerie gts: result) {
+      //    if (!allgts.contains(gts)) {
+      //      throw new WarpScriptException("Some filtered Geo Time Series were not in the original set.");
+      //    }
+      //  }      
+      //}
+      
+      return results;      
+    } finally {
+      // Unset classId/labelsId since we modified them for efficient binary search
+      for (int i = 0; i < series.length; i++) {
+        for (GeoTimeSerie gts: series[i]) {
+          gts.getMetadata().unsetClassId();
+          gts.getMetadata().unsetLabelsId();
+        }
+      }
+    }
   }
 
   @SafeVarargs
@@ -10641,5 +10920,13 @@ public class GTSHelper {
   
   public static double skewness(GeoTimeSerie gts, boolean bessel) throws WarpScriptException {
     return standardizedMoment(3, gts, bessel);
+  }
+
+  public static void booleanNot(GeoTimeSerie gts) throws WarpScriptException {
+    if (GeoTimeSerie.TYPE.BOOLEAN == gts.getType()) {
+      gts.booleanValues.flip(0, gts.booleanValues.length());
+    } else {
+      throw new WarpScriptException("Non boolean Geo Time Series.");
+    }
   }
 }

@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.plasma;
 
+import io.warp10.SSLUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.KafkaOffsetCounters;
@@ -37,9 +38,11 @@ import io.warp10.standalone.StandalonePlasmaHandler;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -302,13 +305,27 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
     
     Server server = new Server();
     
-    ServerConnector connector = new ServerConnector(server, Integer.parseInt(properties.getProperty(Configuration.PLASMA_FRONTEND_ACCEPTORS)), Integer.parseInt(properties.getProperty(Configuration.PLASMA_FRONTEND_SELECTORS)));
-    connector.setIdleTimeout(Long.parseLong(properties.getProperty(Configuration.PLASMA_FRONTEND_IDLE_TIMEOUT)));    
-    connector.setPort(Integer.parseInt(properties.getProperty(Configuration.PLASMA_FRONTEND_PORT)));
-    connector.setHost(properties.getProperty(Configuration.PLASMA_FRONTEND_HOST));
-    connector.setName("Continuum Plasma Front End");
+    boolean useHttp = null != properties.getProperty(Configuration.PLASMA_FRONTEND_PORT);
+    boolean useHttps = null != properties.getProperty(Configuration.PLASMA_FRONTEND_PREFIX + Configuration._SSL_PORT);
     
-    server.setConnectors(new Connector[] { connector });
+    List<ServerConnector> connectors = new ArrayList<ServerConnector>();
+    
+    if (useHttp) {
+      ServerConnector connector = new ServerConnector(server, Integer.parseInt(properties.getProperty(Configuration.PLASMA_FRONTEND_ACCEPTORS)), Integer.parseInt(properties.getProperty(Configuration.PLASMA_FRONTEND_SELECTORS)));
+      connector.setIdleTimeout(Long.parseLong(properties.getProperty(Configuration.PLASMA_FRONTEND_IDLE_TIMEOUT)));    
+      connector.setPort(Integer.parseInt(properties.getProperty(Configuration.PLASMA_FRONTEND_PORT)));
+      connector.setHost(properties.getProperty(Configuration.PLASMA_FRONTEND_HOST));
+      connector.setName("Continuum Plasma Front End HTTP");
+      connectors.add(connector);
+    }
+    
+    if (useHttps) {
+      ServerConnector connector = SSLUtils.getConnector(server, Configuration.PLASMA_FRONTEND_PREFIX);
+      connector.setName("Continuum Plasma Front End HTTPS");
+      connectors.add(connector);
+    }
+    
+    server.setConnectors(connectors.toArray(new Connector[connectors.size()]));
 
     server.setHandler(this);
     

@@ -32,12 +32,12 @@
 
 //
 // Maximum number of classes for which to report detailed stats in 'FINDSTATS'
-// 
+//
 directory.stats.class.maxcardinality = 100
 
 //
 // Maximum number of labels for which to report detailed stats in 'FINDSTATS'
-// 
+//
 directory.stats.labels.maxcardinality = 100
 
 //
@@ -53,47 +53,47 @@ directory.stats.labels.maxcardinality = 100
 //
 // 128 bits key for verifying class names, format is hex:hhhhh...hhhh
 //
-warp.hash.class = @key:128:warp.hash.class@
+warp.hash.class = ${warp.hash.class.secret}
 
 //
 // 128 bits key for verifying labels, format is hex:hhhhh...hhhh
 //
-warp.hash.labels = @key:128:warp.hash.labels@
+warp.hash.labels = ${warp.hash.labels.secret}
 
 //
 // 128 bits key for verifying index names, format is hex:hhhhh...hhhh
 //
-warp.hash.index = @key:128:warp.hash.index@
+warp.hash.index = ${warp.hash.index.secret}
 
 //
 // 128 bits key for verifying tokens, format is hex:hhhhh...hhhh
 //
-warp.hash.token = @key:128:warp.hash.token@
+warp.hash.token = ${warp.hash.token.secret}
 
 //
 // 128 bits key for verifying app names, format is hex:hhhhh...hhhh
 //
-warp.hash.app = @key:128:warp.hash.app@
+warp.hash.app = ${warp.hash.app.secret}
 
 //
 // 256 bits key for protecting tokens, format is hex:hhhh...hhhh
 //
-warp.aes.token = @key:256:warp.aes.token@
+warp.aes.token = ${warp.aes.token.secret}
 
 //
 // 256 bits key to generate secure scripts
 //
-warp.aes.scripts = @key:256:warp.aes.scripts@
+warp.aes.scripts = ${warp.aes.scripts.secret}
 
 //
 // AES key to wrap metasets
 //
-warp.aes.metasets = @key:256:warp.aes.metasets@
+warp.aes.metasets = ${warp.aes.metasets.secret}
 
 //
 // 256 bits key for protecting log messages, format is hex:hhhhh...hhhh
 //
-#warp.aes.logging = @key:256:warp.aes.logging@
+#warp.aes.logging = ${warp.aes.logging.secret}
 
 //
 // OSS Master Key, used to decrypt any 'wrapped:base64' key
@@ -565,7 +565,7 @@ standalone.idle.timeout = 30000
 standalone.selectors = 4
 
 //
-// Maximum encoder size (in bytes) for internal data transfers. Use values from 64k to 512k
+// Maximum encoder size (in bytes) for internal data transfers. Typical values from 64k to 512k, but any value will do. Lower ones will increase the number of array re-allocations.
 //
 standalone.max.encoder.size = 100000
 
@@ -1003,6 +1003,7 @@ runner.minperiod = 1000
 // Number of Jetty selectors to use (defaults to 4)
 #http.selectors = 4
 // Number of threads Jetty should use (defaults to 1 + acceptors + acceptors * selectors which is the minimum)
+// All selectors/acceptors (with and without SSL support, see http.ssl.selectors/http.ssl.acceptors) must be considered
 #http.maxthreads = 11
 // Timeout (in ms) when expecting a HTTP request (defaults to 30000 ms)
 #http.idle.timeout = 30000
@@ -1069,3 +1070,50 @@ runner.minperiod = 1000
 #warpscript.urlfetch.maxsize.hard =
 // List of patterns to include/exclude for hosts, works the same way as webcall.host.patterns. Defaults to the value of webcall.host.patterns.
 #warpscript.urlfetch.host.patterns =
+
+//
+// SSL Configuration
+//
+
+# Host/IP Address to bind to for the SSL endpoint
+#standalone.ssl.host =
+# Port the SSL endpoint should bind to
+#standalone.ssl.port =
+# Number of Jetty acceptors (defaults to 2)
+#standalone.ssl.acceptors =
+# Number of Jetty selectors (defaults to 4)
+#standalone.ssl.selectors =
+# Jetty idle timeout in ms
+#standalone.ssl.idletimeout =
+# Path to the JKS keystore file
+#standalone.ssl.keystore.path =
+# Password for accessing the keystore file
+#standalone.ssl.keystore.password =
+# Alias associated with the SSL X.509 certificate
+#standalone.ssl.cert.alias =
+# Password for accessing the X.509 certificate
+#standalone.ssl.keymanager.password =
+
+## HTTP Plugin
+
+# Host/IP Address to bind to for the SSL endpoint
+#http.ssl.host =
+# Port the SSL endpoint should bind to
+#http.ssl.port =
+# Number of Jetty acceptors (defaults to 2)
+# Adapt value of http.maxthreads accordingly
+#http.ssl.acceptors =
+# Number of Jetty selectors (defaults to 4)
+# Adapt value of http.maxthreads accordingly
+#http.ssl.selectors =
+# Jetty idle timeout in ms
+#http.ssl.idletimeout =
+# Path to the JKS keystore file
+#http.ssl.keystore.path =
+# Password for accessing the keystore file
+#http.ssl.keystore.password =
+# Alias associated with the SSL X.509 certificate
+#http.ssl.cert.alias =
+# Password for accessing the X.509 certificate
+#http.ssl.keymanager.password =
+

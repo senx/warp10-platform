@@ -28,7 +28,6 @@ public class Configuration {
   
   public static final String WARP_HASH_CLASS = "warp.hash.class";
   public static final String WARP_HASH_LABELS = "warp.hash.labels";
-  public static final String CONTINUUM_HASH_INDEX = "warp.hash.index";
   public static final String WARP_HASH_TOKEN = "warp.hash.token";
   public static final String WARP_HASH_APP = "warp.hash.app";
   public static final String WARP_AES_TOKEN = "warp.aes.token";
@@ -1343,12 +1342,6 @@ public class Configuration {
   public static final String LEVELDB_DATA_AES = "leveldb.data.aes";
   
   /**
-   * @deprecated
-   * AES key to use for storing index details in leveldb
-   */
-  public static final String LEVELDB_INDEX_AES = "leveldb.index.aes";
-  
-  /**
    * Cache size for leveldb (in bytes)
    */
   public static final String LEVELDB_CACHE_SIZE = "leveldb.cache.size";
@@ -1931,10 +1924,15 @@ public class Configuration {
   public static final String REPOSITORY_ONDEMAND = "warpscript.repository.ondemand";
 
   /**
-   * Comma separated list of default WarpFleet™ repositories
+   * Comma separated list of configured WarpFleet™ repositories
    */
   public static final String WARPFLEET_MACROS_REPOS = "warpfleet.macros.repos";
   
+  /**
+   * Default value for warpfleet.macros.repos if it is not set
+   */
+  public static final String WARPFLEET_MACROS_REPOS_DEFAULT = "https://warpfleet.senx.io/macros";
+
   /**
    * Configure this property to 'true' to disable the function WF.GETREPOS. This is useful when some of your repo URLs have sensitive information.
    */
@@ -2071,5 +2069,58 @@ public class Configuration {
    * Name of header containing the name of the symbol in which to expose the request headers
    */
   public static String HTTP_HEADER_EXPOSE_HEADERS = "http.header.exposeheaders";
+
+  /**
+   * SSL Port
+   */
+  public static final String _SSL_PORT = ".ssl.port";
+
+  /**
+   * SSL Host
+   */
+  public static final String _SSL_HOST = ".ssl.host";
+
+  /**
+   * SSL Acceptors
+   */
+  public static final String _SSL_ACCEPTORS = ".ssl.acceptors";
   
+  /**
+   * SSL Selectors
+   */
+  public static final String _SSL_SELECTORS = ".ssl.selectors";
+
+  /**
+   * SSL KeyStore path
+   */
+  public static final String _SSL_KEYSTORE_PATH = ".ssl.keystore.path";
+  
+  /**
+   * SSL KeyStore password
+   */
+  public static final String _SSL_KEYSTORE_PASSWORD = ".ssl.keystore.password";
+
+  /**
+   * Alias associated with the certificate to use
+   */
+  public static final String _SSL_CERT_ALIAS = ".ssl.cert.alias";
+  
+  /**
+   * SSL KeyManager password
+   */
+  public static final String _SSL_KEYMANAGER_PASSWORD = ".ssl.keymanager.password";
+
+  /**
+   * SSL Idle timeout
+   */
+  public static final String _SSL_IDLE_TIMEOUT = ".ssl.idle.timeout";
+  
+  //
+  // Prefixes for the SSL configs
+  //
+  
+  public static final String STANDALONE_PREFIX = "standalone";
+  public static final String EGRESS_PREFIX = "egress";
+  public static final String INGRESS_PREFIX = "ingress";
+  public static final String PLASMA_FRONTEND_PREFIX = "plasma.frontend";
 }

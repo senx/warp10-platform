@@ -479,7 +479,12 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
               long count = 0;
               
-              Metadata decoderMeta = decoder.getMetadata();
+              Metadata decoderMeta = new Metadata(decoder.getMetadata());
+              // Remove producer/owner labels
+              decoderMeta.getLabels().remove(Constants.PRODUCER_LABEL);
+              decoderMeta.getLabels().remove(Constants.OWNER_LABEL);
+              
+              // Remove producer/owner
               
               while(decoder.next()) {
                 
@@ -517,16 +522,11 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                   bases[gtsidx] = new GeoTimeSerie();
                   base = bases[gtsidx];
                   series.add(base);
-
-                  // Copy labels to GTS, removing producer and owner
-                  Map<String,String> labels = new HashMap<String, String>();
-                  labels.putAll(decoder.getMetadata().getLabels());
-                  labels.remove(Constants.PRODUCER_LABEL);
-                  labels.remove(Constants.OWNER_LABEL);
-                  base.setLabels(labels);
-
+                  // Copy labels to GTS, producer and owner have already been removed
+                  base.setMetadata(decoderMeta);
+                  
+                  // Force type attribute
                   base.getMetadata().putToAttributes(typelabel, typename);
-                  base.setName(decoder.getName());
                   if (null != uuid) {
                     base.getMetadata().putToAttributes(Constants.UUID_ATTRIBUTE, uuid.toString());
                   }

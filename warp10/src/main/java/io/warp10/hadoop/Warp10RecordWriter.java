@@ -114,7 +114,13 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
       throw new IOException(te);
     }
 
-    Metadata metadataChunk = new Metadata(gtsWrapper.getMetadata());
+    Metadata metadataChunk;
+    
+    if (gtsWrapper.isSetMetadata()) {
+      metadataChunk = new Metadata(gtsWrapper.getMetadata());
+    } else {
+      metadataChunk = new Metadata();
+    }
 
     GTSDecoder decoder = GTSWrapperHelper.fromGTSWrapperToGTSDecoder(gtsWrapper);
 

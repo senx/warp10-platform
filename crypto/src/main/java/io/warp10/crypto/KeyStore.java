@@ -41,11 +41,6 @@ public interface KeyStore {
   public static final String SIPHASH_LABELS_SECONDARY = "warp.siphash.labels.secondary";
 
   /**
-   * Name of key for index Ids
-   */
-  public static final String SIPHASH_INDEX = "warp.siphash.index";
-
-  /**
    * Name of key for application Ids
    */
   public static final String SIPHASH_APPID = "warp.siphash.appid";
@@ -64,11 +59,6 @@ public interface KeyStore {
    * Name of key for wrapping data (readings)
    */
   public static final String AES_HBASE_DATA = "warp.aes.hbase.data";
-
-  /**
-   * Name of key for wrapping index specs
-   */
-  public static final String AES_HBASE_INDEX = "warp.aes.hbase.index";
 
   /**
    * Name of key for wrapping Tokens
@@ -94,11 +84,6 @@ public interface KeyStore {
    * Name of key for computing MAC for kafka metadata messages
    */
   public static final String SIPHASH_KAFKA_METADATA = "warp.siphash.kafka.metadata";
-
-  /**
-   * Name of key for computing MAC for kafka index messages
-   */
-  public static final String SIPHASH_KAFKA_INDEX = "warp.siphash.kafka.index";
 
   /**
    * Name of key for computing MAC for kafka messages consumed by plasma backends
@@ -151,11 +136,6 @@ public interface KeyStore {
   public static final String AES_KAFKA_METADATA = "warp.aes.kafka.metadata";
 
   /**
-   * Name of key for wrapping kafka index messages
-   */
-  public static final String AES_KAFKA_INDEX = "warp.aes.kafka.index";
-
-  /**
    * Name of key for wrapping kafka messages consumed by plasma backends
    */
   public static final String AES_KAFKA_PLASMA_BACKEND_IN = "warp.aes.kafka.plasma.backend.in";
@@ -194,11 +174,6 @@ public interface KeyStore {
    * Name of key for wrapping data (readings)
    */
   public static final String AES_LEVELDB_DATA = "warp.aes.leveldb.data";
-
-  /**
-   * Name of key for wrapping index specs
-   */
-  public static final String AES_LEVELDB_INDEX = "warp.aes.leveldb.index";
 
   /**
    * Key for wrapping secure scripts

@@ -819,6 +819,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOENCODER("->ENCODER"));
     addNamedWarpScriptFunction(new ENCODERTO("ENCODER->"));
     addNamedWarpScriptFunction(new TOGTS("->GTS"));
+    addNamedWarpScriptFunction(new TOENCODERS("->ENCODERS"));
     addNamedWarpScriptFunction(new OPTIMIZE("OPTIMIZE"));
     addNamedWarpScriptFunction(new NEWGTS(NEWGTS));
     addNamedWarpScriptFunction(new MAKEGTS("MAKEGTS"));
@@ -905,7 +906,10 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new LOCATIONOFFSET("LOCATIONOFFSET"));
     addNamedWarpScriptFunction(new FLATTEN("FLATTEN"));
     addNamedWarpScriptFunction(new RESHAPE("RESHAPE"));
+    addNamedWarpScriptFunction(new PERMUTE("PERMUTE"));
+    addNamedWarpScriptFunction(new CHECKSHAPE("CHECKSHAPE"));
     addNamedWarpScriptFunction(new SHAPE("SHAPE"));
+    addNamedWarpScriptFunction(new HULLSHAPE("HULLSHAPE"));
     addNamedWarpScriptFunction(new CORRELATE.Builder("CORRELATE"));
     addNamedWarpScriptFunction(new SORT("SORT"));
     addNamedWarpScriptFunction(new SORTBY("SORTBY"));
@@ -966,6 +970,10 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new UNWRAP("UNWRAPEMPTY", true));
     addNamedWarpScriptFunction(new UNWRAPSIZE("UNWRAPSIZE"));
     addNamedWarpScriptFunction(new UNWRAPENCODER(UNWRAPENCODER));
+    addNamedWarpScriptFunction(new TOMVSTRING("->MVSTRING"));
+    addNamedWarpScriptFunction(new MVSPLIT("MVTICKSPLIT", true));
+    addNamedWarpScriptFunction(new MVSPLIT("MVINDEXSPLIT", false));
+    addNamedWarpScriptFunction(new PARSEVALUE("PARSEVALUE"));
     
     //
     // Outlier detection

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,30 +16,40 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.script.GTSStackFunction;
+import io.warp10.script.ElementOrListStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
-import java.util.Map;
-
 /**
- * Apply tickindex on GTS instances
+ * Apply tickindex on GTS or encoder instances
  */
-public class TICKINDEX extends GTSStackFunction {
+public class TICKINDEX extends ElementOrListStackFunction {
+  
+  private static final ElementStackFunction CONVERTER = new ElementStackFunction() {
+    @Override
+    public Object applyOnElement(Object element) throws WarpScriptException {
+      try {
+        if (element instanceof GeoTimeSerie) {
+          return GTSHelper.tickindex((GeoTimeSerie) element);
+        } else if (element instanceof GTSEncoder) {
+          return GTSHelper.tickindex((GTSEncoder) element);
+        }
+        throw new WarpScriptException("Can only operate on Geo Time Series™ or GTS Encoder instances.");
+      } catch (Exception e) {
+        throw new WarpScriptException("Caught an exception while converting encoder.",e);
+      }
+    }  
+  };
   
   public TICKINDEX(String name) {
     super(name);
   }
 
   @Override
-  protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
-    return null;
-  }
-
-  @Override
-  protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
-    return GTSHelper.tickindex(gts);
+  public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {
+    return CONVERTER;
   }
 }

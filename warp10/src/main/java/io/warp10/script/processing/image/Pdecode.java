@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -24,25 +24,10 @@ import io.warp10.script.WarpScriptStack;
 import java.awt.Image;
 import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.regex.Pattern;
-
-import javax.imageio.IIOImage;
-import javax.imageio.ImageIO;
-import javax.imageio.ImageWriteParam;
-import javax.imageio.ImageWriter;
-import javax.imageio.metadata.IIOMetadata;
 import javax.swing.ImageIcon;
 
 import org.apache.commons.codec.binary.Base64;
-
-import processing.awt.PGraphicsJava2D;
-import processing.core.PApplet;
 import processing.core.PImage;
-import processing.opengl.PGraphics3D;
 
 /**
  * Decode a base64 encoded image content into a PImage instance
@@ -56,16 +41,15 @@ public class Pdecode extends NamedWarpScriptFunction implements WarpScriptStackF
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-
-    String data = top.toString();
-
-    if (!(top instanceof String) || !data.startsWith("data:image/")) {
-      throw new WarpScriptException(getName() + " expects a base64 data URI on top of the stack.");
-    }
-        
-    data = data.substring(data.indexOf(",") + 1);
     
-    byte[] bytes = Base64.decodeBase64(data);
+    byte[] bytes;
+    if ((top instanceof String) && ((String) top).startsWith("data:image/")) {
+      bytes = Base64.decodeBase64(((String) top).substring(((String) top).indexOf(",") + 1));
+    } else if (top instanceof byte[]) {
+      bytes = (byte[]) top;
+    } else {
+      throw new WarpScriptException(getName() + " expects a base64 data URI or a byte array on top of the stack.");
+    }
     
     Image awtImage = new ImageIcon(bytes).getImage();
     
@@ -79,21 +63,10 @@ public class Pdecode extends NamedWarpScriptFunction implements WarpScriptStackF
     
     PImage image = new PImage(awtImage);
     
-    //
-    // Check transparency
-    //
+    //The transparency test in processing lib is not working correctly: set format to ARGB is mandatory to keep transparency.
+    // setting it on Jpeg or non transparent image has no impact, so it is better to set it by default, as every PGraphics objects.
+    image.format = PImage.ARGB;
     
-    if (null != image.pixels) {
-      for (int i = 0; i < image.pixels.length; i++) {
-        // since transparency is often at corners, hopefully this
-        // will find a non-transparent pixel quickly and exit
-        if ((image.pixels[i] & 0xff000000) != 0xff000000) {
-          image.format = PImage.ARGB;
-          break;
-        }
-      }      
-    }
-
     stack.push(image);
     
     return stack;

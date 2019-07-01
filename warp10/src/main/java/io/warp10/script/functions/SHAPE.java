@@ -18,36 +18,62 @@ package io.warp10.script.functions;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
-import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.formatted.FormattedWarpScriptFunction;
 
-public class SHAPE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class SHAPE extends FormattedWarpScriptFunction {
+
+  public static final String LIST = "list";
+  public static final String FAST = "fast";
+  public static final String SHAPE = "shape";
+
+  private final Arguments args;
+  private final Arguments output;
+  protected Arguments getArguments() { return args; }
+  protected Arguments getOutput() { return output; }
+
   public SHAPE(String name) {
     super(name);
+
+    getDocstring().append("Return the shape of an input list if it could be a tensor (or multidimensional array), or raise an Exception.");
+
+    args = new ArgumentsBuilder()
+      .addArgument(List.class, LIST, "The input list.")
+      .addOptionalArgument(Boolean.class, FAST, "If true, it does not check if the sizes of the nested lists are coherent and it returns a shape based on the first nested lists at each level. Default to false.", false)
+      .build();
+
+    output = new ArgumentsBuilder()
+      .addListArgument(Long.class, SHAPE, "The shape of the input list.")
+      .build();
   }
 
   @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object top = stack.pop();
-    
-    if (!(top instanceof List)) {
-      throw new WarpScriptException(getName() + " operates on a list.");
+  protected WarpScriptStack apply(Map<String, Object> formattedArgs, WarpScriptStack stack) throws WarpScriptException {
+    List list = (List) formattedArgs.get(LIST);
+    boolean fast = Boolean.TRUE.equals(formattedArgs.get(FAST));
+
+    List<Long> candidateShape = candidate_shape(list);
+
+    if (fast || CHECKSHAPE.recValidateShape(list, candidateShape)) {
+      stack.push(candidateShape);
+    } else {
+      throw new WarpScriptException(getName() + " expects that the sizes of the nested lists are coherent together to form a tensor (or multidimensional array).");
     }
-    
-    List<Object> shape = new ArrayList<Object>();
-    
-    Object l = top;
-    
+    return stack;
+  }
+
+  static List<Long> candidate_shape(List list) {
+    List<Long> shape = new ArrayList<Long>();
+    Object l = list;
+
     while(l instanceof List) {
-      shape.add(((List) l).size());
+      shape.add((long) ((List) l).size());
       l = ((List) l).get(0);
     }
-    
-    stack.push(shape);
-    
-    return stack;
+
+    return shape;
   }
 }

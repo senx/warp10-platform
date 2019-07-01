@@ -19,11 +19,15 @@ package io.warp10.standalone;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
+
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -35,6 +39,8 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.server.handler.gzip.GzipHandler;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.fusesource.leveldbjni.JniDBFactory;
 import org.iq80.leveldb.CompressionType;
 import org.iq80.leveldb.Options;
 
@@ -42,6 +48,7 @@ import com.google.common.base.Preconditions;
 
 import io.warp10.Revision;
 import io.warp10.WarpConfig;
+import io.warp10.SSLUtils;
 import io.warp10.WarpDist;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
@@ -68,7 +75,10 @@ import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.AbstractWarp10Plugin;
 
 public class Warp extends WarpDist implements Runnable {
-    
+
+  private static final String DEFAULT_HTTP_ACCEPTORS = "2";
+  private static final String DEFAULT_HTTP_SELECTORS = "4";
+  
   private static final String NULL = "null";
         
   private static WarpDB db;
@@ -82,14 +92,10 @@ public class Warp extends WarpDist implements Runnable {
   private static Set<Path> datalogSrcDirs = Collections.unmodifiableSet(new HashSet<Path>()); 
   
   private static final String[] REQUIRED_PROPERTIES = {
-    Configuration.STANDALONE_PORT,
-    Configuration.STANDALONE_ACCEPTORS,
-    Configuration.STANDALONE_SELECTORS,
     Configuration.INGRESS_WEBSOCKET_MAXMESSAGESIZE,
     Configuration.PLASMA_FRONTEND_WEBSOCKET_MAXMESSAGESIZE,
     Configuration.WARP_HASH_CLASS,
     Configuration.WARP_HASH_LABELS,
-    Configuration.CONTINUUM_HASH_INDEX,
     Configuration.WARP_HASH_TOKEN,
     Configuration.WARP_HASH_APP,
     Configuration.WARP_AES_TOKEN,
@@ -182,8 +188,6 @@ public class Warp extends WarpDist implements Runnable {
     keystore.setKey(KeyStore.SIPHASH_CLASS_SECONDARY, CryptoUtils.invert(keystore.getKey(KeyStore.SIPHASH_CLASS)));
     keystore.setKey(KeyStore.SIPHASH_LABELS_SECONDARY, CryptoUtils.invert(keystore.getKey(KeyStore.SIPHASH_LABELS)));        
     
-    keystore.setKey(KeyStore.SIPHASH_INDEX, keystore.decodeKey(properties.getProperty(Configuration.CONTINUUM_HASH_INDEX)));
-    Preconditions.checkArgument(16 == keystore.getKey(KeyStore.SIPHASH_INDEX).length, Configuration.CONTINUUM_HASH_INDEX + " MUST be 128 bits long.");
     keystore.setKey(KeyStore.SIPHASH_TOKEN, keystore.decodeKey(properties.getProperty(Configuration.WARP_HASH_TOKEN)));
     Preconditions.checkArgument(16 == keystore.getKey(KeyStore.SIPHASH_TOKEN).length, Configuration.WARP_HASH_TOKEN + " MUST be 128 bits long.");
     keystore.setKey(KeyStore.SIPHASH_APPID, keystore.decodeKey(properties.getProperty(Configuration.WARP_HASH_APP)));
@@ -274,28 +278,50 @@ public class Warp extends WarpDist implements Runnable {
     
     Server server = new Server();
 
-    int acceptors = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_ACCEPTORS));
-    int selectors = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_SELECTORS));
-    port = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_PORT));
-    host = properties.getProperty(Configuration.STANDALONE_HOST);
+    boolean useHTTPS = null != properties.getProperty(Configuration.STANDALONE_PREFIX + Configuration._SSL_PORT);
+    boolean useHTTP = null != properties.getProperty(Configuration.STANDALONE_PORT);
     
-    ServerConnector connector = new ServerConnector(server, acceptors, selectors);
+    ServerConnector httpConnector = null;
+    ServerConnector httpsConnector = null;
+    
+    if (!useHTTPS && !useHTTP ) {
+      throw new RuntimeException("Missing '" + Configuration.STANDALONE_PORT + "' or '" + Configuration.STANDALONE_PREFIX + Configuration._SSL_PORT + "' configuration");
+    }
+    
+    List<Connector> connectors = new ArrayList<Connector>();
+    
+    if (useHTTP) {
+      int acceptors = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_ACCEPTORS, DEFAULT_HTTP_ACCEPTORS));
+      int selectors = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_SELECTORS, DEFAULT_HTTP_SELECTORS));
+      port = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_PORT));
+      host = properties.getProperty(Configuration.STANDALONE_HOST, "0.0.0.0");
+      
+      httpConnector = new ServerConnector(server, acceptors, selectors);
+      
+      httpConnector.setPort(port);
+      
+      if (null != host) {
+        httpConnector.setHost(host);
+      }
+      
+      String idle = properties.getProperty(Configuration.STANDALONE_IDLE_TIMEOUT);
+      
+      if (null != idle) {
+        httpConnector.setIdleTimeout(Long.parseLong(idle));
+      }
+      
+      httpConnector.setName("Warp 10 Standalone HTTP Endpoint");
+      
+      connectors.add(httpConnector);
+    }
 
-    connector.setPort(port);
-    
-    if (null != host) {
-      connector.setHost(host);
+    if (useHTTPS) {
+      httpsConnector = SSLUtils.getConnector(server, Configuration.STANDALONE_PREFIX);
+      httpsConnector.setName("Warp 10 Standalone HTTPS Endpoint");      
+      connectors.add(httpsConnector);
     }
     
-    String idle = properties.getProperty(Configuration.STANDALONE_IDLE_TIMEOUT);
-    
-    if (null != idle) {
-      connector.setIdleTimeout(Long.parseLong(idle));
-    }
-    
-    connector.setName("Continuum Standalone Egress");
-    
-    server.setConnectors(new Connector[] { connector });
+    server.setConnectors(connectors.toArray(new Connector[connectors.size()]));
 
     HandlerList handlers = new HandlerList();
     
@@ -480,14 +506,21 @@ public class Warp extends WarpDist implements Runnable {
     AbstractWarp10Plugin.registerPlugins();
 
     try {
-      System.out.println("#### standalone.endpoint " + InetAddress.getByName(host) + ":" + port);
+      if (useHTTP) {
+        System.out.println("#### standalone.endpoint " + InetAddress.getByName(host) + ":" + port);
+      }
+      if (useHTTPS) {
+        System.out.println("#### standalone.ssl.endpoint " + InetAddress.getByName(httpsConnector.getHost()) + ":" + httpsConnector.getPort());
+      }
       server.start();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
     
     // Retrieve actual local port
-    port = connector.getLocalPort();
+    if (null != httpConnector) {
+      port = httpConnector.getLocalPort();
+    }
 
     // Indicate standalone mode is on
     standaloneMode = true;
@@ -555,15 +588,7 @@ public class Warp extends WarpDist implements Runnable {
       Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.LEVELDB_DATA_AES + " MUST be 128, 192 or 256 bits long.");
       keystore.setKey(KeyStore.AES_LEVELDB_DATA, key);
     }
-    
-    keyspec = props.getProperty(Configuration.LEVELDB_INDEX_AES);
-    
-    if (null != keyspec) {
-      byte[] key = keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.LEVELDB_INDEX_AES + " MUST be 128, 192 or 256 bits long.");
-      keystore.setKey(KeyStore.AES_LEVELDB_INDEX, key);
-    }
-    
+            
     if (null != props.getProperty(Configuration.CONFIG_FETCH_PSK)) {
       keystore.setKey(KeyStore.SIPHASH_FETCH_PSK, keystore.decodeKey(props.getProperty(Configuration.CONFIG_FETCH_PSK)));
       Preconditions.checkArgument((16 == keystore.getKey(KeyStore.SIPHASH_FETCH_PSK).length), Configuration.CONFIG_FETCH_PSK + " MUST be 128 bits long.");            

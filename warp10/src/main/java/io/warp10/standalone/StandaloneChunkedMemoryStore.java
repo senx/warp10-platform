@@ -532,7 +532,8 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
         for (GTSDecoder decoder: decoders) {
           chunks++;
-          GTSWrapper wrapper = new GTSWrapper(metadata);        
+          GTSWrapper wrapper = new GTSWrapper();
+          wrapper.setMetadata(metadata);        
 
           wrapper.setBase(decoder.getBaseTimestamp());
           wrapper.setCount(decoder.getCount());
@@ -618,10 +619,14 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
         encoder.setCount(wrapper.getCount());
         datapoints += wrapper.getCount();
         bytes += value.getLength() + key.getLength();
-        encoder.safeSetMetadata(wrapper.getMetadata());
+        if (wrapper.isSetMetadata()) {
+          encoder.safeSetMetadata(wrapper.getMetadata());
+        } else {
+          encoder.safeSetMetadata(new Metadata());
+        }
         store(encoder);
         if (null != this.directoryClient) {
-          this.directoryClient.register(wrapper.getMetadata());
+          this.directoryClient.register(encoder.getMetadata());
         }
       }
     } catch (FileNotFoundException fnfe) {
