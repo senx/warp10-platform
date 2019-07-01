@@ -818,6 +818,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOENCODER("->ENCODER"));
     addNamedWarpScriptFunction(new ENCODERTO("ENCODER->"));
     addNamedWarpScriptFunction(new TOGTS("->GTS"));
+    addNamedWarpScriptFunction(new TOENCODERS("->ENCODERS"));
     addNamedWarpScriptFunction(new OPTIMIZE("OPTIMIZE"));
     addNamedWarpScriptFunction(new NEWGTS(NEWGTS));
     addNamedWarpScriptFunction(new MAKEGTS("MAKEGTS"));
@@ -969,6 +970,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new UNWRAPSIZE("UNWRAPSIZE"));
     addNamedWarpScriptFunction(new UNWRAPENCODER(UNWRAPENCODER));
     addNamedWarpScriptFunction(new TOMVSTRING("->MVSTRING"));
+    addNamedWarpScriptFunction(new MVSPLIT("MVTICKSPLIT", true));
+    addNamedWarpScriptFunction(new MVSPLIT("MVINDEXSPLIT", false));
     addNamedWarpScriptFunction(new PARSEVALUE("PARSEVALUE"));
     
     //
