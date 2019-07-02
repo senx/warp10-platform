@@ -972,7 +972,11 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOMVSTRING("->MVSTRING"));
     addNamedWarpScriptFunction(new MVSPLIT("MVTICKSPLIT", true));
     addNamedWarpScriptFunction(new MVSPLIT("MVINDEXSPLIT", false));
-    addNamedWarpScriptFunction(new MVVALUES("MVVALUES"));
+    addNamedWarpScriptFunction(new MVEXTRACT("MVVALUES", MVEXTRACT.ELEMENT.VALUE));
+    addNamedWarpScriptFunction(new MVEXTRACT("MVLOCATIONS", MVEXTRACT.ELEMENT.LATLON));
+    addNamedWarpScriptFunction(new MVEXTRACT("MVELEVATIONS", MVEXTRACT.ELEMENT.ELEVATION));
+    addNamedWarpScriptFunction(new MVEXTRACT("MVTICKS", MVEXTRACT.ELEMENT.TICK));
+    addNamedWarpScriptFunction(new MVEXTRACT("MVHHCODES", MVEXTRACT.ELEMENT.LOCATION));
     addNamedWarpScriptFunction(new PARSEVALUE("PARSEVALUE"));
     
     //
