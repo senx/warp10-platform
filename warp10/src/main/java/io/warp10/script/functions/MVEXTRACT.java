@@ -110,7 +110,14 @@ public class MVEXTRACT extends ElementOrListStackFunction implements ElementStac
       } else if (value instanceof byte[]) {
         try {
           deser.deserialize(wrapper, (byte[]) value);
-          values.add(mvextract(GTSWrapperHelper.fromGTSWrapperToGTSEncoder(wrapper)));
+          if (ELEMENT.VALUE == this.elementType) {
+            values.add(mvextract(GTSWrapperHelper.fromGTSWrapperToGTSEncoder(wrapper)));
+          } else {
+            List<Object> elt = new ArrayList<Object>();
+            elt.add(elt(decoder, gts, idx, value));
+            elt.add(mvextract(GTSWrapperHelper.fromGTSWrapperToGTSEncoder(wrapper)));
+            values.add(elt);
+          }
         } catch (IOException e) {
           throw new WarpScriptException("Error decoding.");
         } catch (TException te) {
@@ -125,7 +132,14 @@ public class MVEXTRACT extends ElementOrListStackFunction implements ElementStac
           try {
             byte[] bytes = value.toString().getBytes(Charsets.ISO_8859_1);
             deser.deserialize(wrapper, bytes);
-            values.add(mvextract(GTSWrapperHelper.fromGTSWrapperToGTSEncoder(wrapper)));
+            if (ELEMENT.VALUE == this.elementType) {
+              values.add(mvextract(GTSWrapperHelper.fromGTSWrapperToGTSEncoder(wrapper)));
+            } else {
+              List<Object> elt = new ArrayList<Object>();
+              elt.add(elt(decoder, gts, idx, value));
+              elt.add(mvextract(GTSWrapperHelper.fromGTSWrapperToGTSEncoder(wrapper)));
+              values.add(elt);
+            }
           } catch (IOException e) {
             throw new WarpScriptException("Error decoding.");
           } catch (TException te) {
