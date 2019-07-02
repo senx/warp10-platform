@@ -972,6 +972,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOMVSTRING("->MVSTRING"));
     addNamedWarpScriptFunction(new MVSPLIT("MVTICKSPLIT", true));
     addNamedWarpScriptFunction(new MVSPLIT("MVINDEXSPLIT", false));
+    addNamedWarpScriptFunction(new MVVALUES("MVVALUES"));
     addNamedWarpScriptFunction(new PARSEVALUE("PARSEVALUE"));
     
     //
