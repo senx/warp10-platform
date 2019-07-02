@@ -86,26 +86,28 @@ public class MVEXTRACT extends ElementOrListStackFunction implements ElementStac
       nvalues = GTSHelper.nvalues(gts);
     }
     
-    int idx = 0;
-    
-    boolean done = !(null == decoder ? idx < nvalues : decoder.next());
-    
+    int idx = -1;
+        
     TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
     GTSWrapper wrapper = new GTSWrapper();
 
-    while(!done) {
+    while(true) {
+      
+      boolean done = !(null == decoder ? ++idx < nvalues : decoder.next());
+
+      if (done) {
+        break;
+      }
+      
       Object value = null;
       
       if (null != decoder) {
         value = decoder.getBinaryValue();
-        done = !decoder.next();
       } else {
         value = GTSHelper.valueAtIndex(gts, idx);
-        idx++;
-        done = idx >= nvalues;
       }
       
-      if (value instanceof Long || value instanceof Double || value instanceof Boolean) {
+      if (value instanceof Number || value instanceof Boolean) {
         values.add(elt(decoder, gts, idx, value));
       } else if (value instanceof byte[]) {
         try {
