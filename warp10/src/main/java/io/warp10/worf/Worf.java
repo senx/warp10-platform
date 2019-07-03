@@ -66,7 +66,7 @@ public class Worf {
 
       Properties properties = new Properties();
       Properties templatedProperties = new Properties();
-      templatedProperties.put("worf.template", "true");
+      templatedProperties.setProperty("worf.template", "true");
 
       BufferedReader br = new BufferedReader(new FileReader(config));
 

@@ -495,7 +495,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       try {
         ClassLoader pluginCL = this.getClass().getClassLoader();
 
-        Class pluginClass = Class.forName((String)properties.get(io.warp10.continuum.Configuration.DIRECTORY_PLUGIN_CLASS), true, pluginCL);
+        Class pluginClass = Class.forName(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_PLUGIN_CLASS), true, pluginCL);
         this.plugin = (DirectoryPlugin) pluginClass.newInstance();
         
         //

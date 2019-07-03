@@ -1607,12 +1607,12 @@ public class WarpScriptLib {
       }
     }
     
-    for (Object key: props.keySet()) {
-      if (!key.toString().startsWith(Configuration.CONFIG_WARPSCRIPT_EXTENSION_PREFIX)) {
+    for (String key: props.stringPropertyNames()) {
+      if (!key.startsWith(Configuration.CONFIG_WARPSCRIPT_EXTENSION_PREFIX)) {
         continue;
       }
       
-      ext.add(props.get(key).toString().trim());
+      ext.add(props.getProperty(key).trim());
     }
     
     // Sort the extensions
