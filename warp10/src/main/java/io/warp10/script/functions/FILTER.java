@@ -60,7 +60,7 @@ public class FILTER extends NamedWarpScriptFunction implements WarpScriptStackFu
     }
     
     for (int i = 0; i < params.size() - 2; i++) {
-      if (!(params.get(i) instanceof List) && !(params.get(i) instanceof List)) {
+      if (!(params.get(i) instanceof List)) {
         throw new WarpScriptException(getName() + " expects lists of Geo Time Series as first parameters.");
       }              
     }
