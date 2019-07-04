@@ -419,21 +419,21 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
 
       datapoints = 0L;
       bytes = 0L;
-      
-      for (int idx = 0 ; idx < metadatas.size(); idx++) {
+
+      for (BigInteger metadata: metadatas) {
 
         //
         // Extract GTSEncoder
         //
-        
+
         GTSEncoder encoder;
 
         synchronized (this.series) {
-          encoder = this.series.get(metadatas.get(idx));
+          encoder = this.series.get(metadata);
         }
-        
+
         long now = TimeSource.getTime();
-        
+
         //
         // Check each encoder for the following conditions:
         //
@@ -445,16 +445,16 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
         // Reducing an encoder size means synchronizing on the given encoder, thus
         // blocking any possible update
         //
-              
+
         if (now - encoder.getLastTimestamp() > this.timespan) {
-          
+
           synchronized (encoder) {
             GTSDecoder decoder = encoder.getDecoder(true);
-            
+
             long skipped = 0;
-            
+
             boolean keeplastskipped = false;
-            
+
             while (decoder.next()) {
               skipped++;
               // Stop when reaching the first timestamp which is still within timespan
@@ -463,33 +463,33 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
                 break;
               }
             }
-            
+
             try {
               //
               // Only modify the encoder if we skipped values
               //
-              
+
               if (skipped > 0) {
                 if (!keeplastskipped) {
                   decoder.next();
                 } else {
                   skipped--;
-                }                
+                }
                 encoder.reset(decoder.getEncoder(true));
                 datapoints += skipped;
               }
-            } catch (IOException ioe) {            
+            } catch (IOException ioe) {
             }
           }
         } else if (encoder.size() > this.highwatermark) {
-          
+
           synchronized (encoder) {
             GTSDecoder decoder = encoder.getDecoder(true);
-            
+
             int skipped = 0;
-            
+
             boolean keeplastskipped = false;
-            
+
             while (decoder.next()) {
               skipped++;
               if (decoder.getTimestamp() > now - this.timespan) {
@@ -500,12 +500,12 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
                 break;
               }
             }
-            
+
             try {
               //
               // Only modify the encoder if we skipped values
               //
-              
+
               if (skipped > 0) {
                 if (!keeplastskipped) {
                   decoder.next();
@@ -515,30 +515,30 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
                 encoder.reset(decoder.getEncoder(true));
                 datapoints += skipped;
               }
-            } catch (IOException ioe) {            
+            } catch (IOException ioe) {
             }
           }
         }
-        
+
         bytes += encoder.size();
-        
+
         //
         // ATTENTION.... We have a double synchronized clause, we need to make sure
         // there is no other double synchronized with the reverse order, otherwise we
         // would deadlock. The 'synchronized' in 'store' are sequential, not enclosed, so
         // we're safe!
         //
-        
-        synchronized(encoder) {
+
+        synchronized (encoder) {
           if (0 == encoder.size()) {
-            synchronized(this.series) {
-              this.series.remove(this.series.get(metadatas.get(idx)));
+            synchronized (this.series) {
+              this.series.remove(this.series.get(metadata));
               // TODO(hbs): Still need to unregister properly the Metadata from the Directory. This is tricky since
               // the call to store is re-entrant but won't go through the register phase....
             }
           }
         }
-        
+
         //
         // TODO(hbs): remove the encoder if it's empty.
         // This is tricky to do since we might be storing data concurrently in an encoder
@@ -546,7 +546,7 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
         // We also need to remove the metadata from the Directory.
         // For now we'll tolerate to have dangling Metadata (i.e. with no associated non empty encoder)
         //
-        
+
         // Count empty encoders and report them as a Sensision metric.
       }
       

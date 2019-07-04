@@ -109,7 +109,9 @@ public class FilterByLabels extends NamedWarpScriptFunction implements WarpScrip
         Map<String,String> labels = gts.getMetadata().getLabels();        
         Map<String,String> attributes = gts.getMetadata().getAttributes();
         
-        for (String label: matchers.keySet()) {
+        for (Map.Entry<String, Matcher> labelAndMatcher: matchers.entrySet()) {
+          String label = labelAndMatcher.getKey();
+          Matcher matcher = labelAndMatcher.getValue();
           
           boolean hasLabel = false;
           
@@ -135,12 +137,12 @@ public class FilterByLabels extends NamedWarpScriptFunction implements WarpScrip
 
           // Now check the label or attribute value
           if (hasLabel && checkLabels) {
-            if (!matchers.get(label).reset(labels.get(label)).matches()) {
+            if (!matcher.reset(labels.get(label)).matches()) {
               matched = false;
               break;
             }            
           } else if (checkAttributes) {
-            if (!matchers.get(label).reset(attributes.get(label)).matches()) {
+            if (!matcher.reset(attributes.get(label)).matches()) {
               matched = false;
               break;
             }

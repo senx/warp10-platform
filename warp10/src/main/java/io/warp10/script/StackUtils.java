@@ -113,18 +113,18 @@ public class StackUtils {
     } else if (o instanceof Map) {
       out.print("{");
       boolean first = true;
-      for (Object key: ((Map) o).keySet()) {
+      for (Map.Entry keyAndValue: ((Map<?,?>) o).entrySet()) {
         if (!first) {
           out.print(",");
         }
-        if (null != key) {
+        if (null != keyAndValue.getKey()) {
           //out.print(gson.toJson(key.toString()));
-          out.print(serializer.serialize(key.toString()));
+          out.print(serializer.serialize(keyAndValue.getKey().toString()));
         } else {
           out.print("null");
         }
         out.print(":");
-        objectToJSON(serializer, out, ((Map) o).get(key), recursionLevel, strictJSON);
+        objectToJSON(serializer, out, (keyAndValue.getValue(), recursionLevel, strictJSON);
         first = false;
       }
       out.print("}");

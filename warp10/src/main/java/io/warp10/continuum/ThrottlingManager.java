@@ -917,11 +917,9 @@ public class ThrottlingManager {
           TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
               
           if (System.currentTimeMillis() - now > rampup) {
-            List<String> keys = new ArrayList<String>();
-            keys.addAll(producerHLLPEstimators.keySet());
-
-            for (String key: keys) {
-              HyperLogLogPlus hllp = producerHLLPEstimators.get(key);
+            for (Map.Entry<String, HyperLogLogPlus> keyAndHllp: producerHLLPEstimators.entrySet()) {
+              String key = keyAndHllp.getKey();
+              HyperLogLogPlus hllp = keyAndHllp.getValue();
               
               if (null == hllp) {
                 continue;
@@ -944,12 +942,10 @@ public class ThrottlingManager {
               }
             }
             
-            keys.clear();
-            keys.addAll(applicationHLLPEstimators.keySet());
-            
-            for (String key: keys) {
-              HyperLogLogPlus hllp = applicationHLLPEstimators.get(key);
-              
+            for (Map.Entry<String, HyperLogLogPlus> keyAndHllp: applicationHLLPEstimators.entrySet()) {
+              String key = keyAndHllp.getKey();
+              HyperLogLogPlus hllp = keyAndHllp.getValue();
+
               if (null == hllp) {
                 continue;
               }
@@ -1099,7 +1095,7 @@ public class ThrottlingManager {
         
         Set<String> keys = producerHLLPEstimators.keySet();
         keys.addAll(producerRateLimiters.keySet());
-        
+
         for (String key: keys) {
           pw.print(key);
           pw.print(":");

@@ -5083,11 +5083,9 @@ public class GTSHelper {
           } else if (res instanceof Map) {
             stack.drop();
 
-            Set<Object> keys = ((Map) res).keySet();
-
-            for (Object key : keys) {
-              Object[] ores2 = MACROMAPPER.listToObjects((List) ((Map) res).get(key));
-              ((Map) res).put(key, ores2);
+            for (Map.Entry<Object, Object> keyAndValue: ((Map<Object, Object>) res).entrySet()) {
+              Object[] ores2 = MACROMAPPER.listToObjects((List) keyAndValue.getValue());
+              ((Map) res).put(keyAndValue.getKey(), ores2);
             }
 
             mapResult = res;
@@ -5278,8 +5276,9 @@ public class GTSHelper {
       labels.putAll(metadata.getLabels());
     }
     
-    for (String name: newlabels.keySet()) {
-      String value = newlabels.get(name);
+    for (Entry<String, String> nameAndValue: newlabels.entrySet()) {
+      String name = nameAndValue.getKey();
+      String value = nameAndValue.getValue();
       if (null == value || "".equals(value)) {
         labels.remove(name);
         continue;
@@ -5382,8 +5381,9 @@ public class GTSHelper {
         
         Map<String,String> gtsLabels = gts.getMetadata().getLabels();
         
-        for (String label: labelsbyclass.get(eqcls).keySet()) {
-          if (!labelsbyclass.get(eqcls).get(label).equals(gtsLabels.get(label))) {
+        for (Entry<String, String> labelAndValue: labelsbyclass.get(eqcls).entrySet()) {
+          String label = labelAndValue.getKey();
+          if (!labelAndValue.getValue().equals(gtsLabels.get(label))) {
             labelstoremove.add(label);
           }
         }
@@ -5396,8 +5396,8 @@ public class GTSHelper {
     
     Map<Map<String,String>, List<GeoTimeSerie>> partition = new HashMap<Map<String,String>, List<GeoTimeSerie>>();
     
-    for (Map<String,String> key: classes.keySet()) {
-      partition.put(labelsbyclass.get(key), classes.get(key));
+    for (Entry<Map<String, String>, List<GeoTimeSerie>> keyAndValue: classes.entrySet()) {
+      partition.put(labelsbyclass.get(keyAndValue.getKey()), keyAndValue.getValue());
     }
     return partition;
   }
@@ -6030,8 +6030,9 @@ public class GTSHelper {
       // Loop on each partition
       //
       
-      for (Map<String,String> partitionlabels: partition.keySet()) {
-        Map<String,String> commonlabels = Collections.unmodifiableMap(partitionlabels);
+      for (Entry<Map<String, String>, List<GeoTimeSerie>> partitionlabelsAndGtss: partition.entrySet()) {
+
+        Map<String,String> commonlabels = Collections.unmodifiableMap(partitionlabelsAndGtss.getKey());
         
         List<GeoTimeSerie> result = new ArrayList<GeoTimeSerie>();
 
@@ -6053,7 +6054,7 @@ public class GTSHelper {
             subseries[i].add(series[i].iterator().next());
           } else {
             // The series appear in the order they are in the original list due to 'partition' using a List
-            for (GeoTimeSerie serie: partition.get(partitionlabels)) {
+            for (GeoTimeSerie serie: partitionlabelsAndGtss.getValue()) {
               //if (Collections.binarySearch(series[i], serie, METASORT.META_COMPARATOR) >= 0) {
               // We perform a binary search to determine if the GTS 'serie' is in series[i]
               if (Collections.binarySearch(series[i], serie, GTSIdComparator.COMPARATOR) >= 0) {
@@ -6691,10 +6692,10 @@ public class GTSHelper {
     Map<Map<String,String>,List<GeoTimeSerie>> results = new LinkedHashMap<Map<String,String>, List<GeoTimeSerie>>();
     
     
-    for (Map<String,String> partitionLabels: partitions.keySet()) {
+    for (Entry<Map<String, String>, List<GeoTimeSerie>> partitionLabelsAndGtss: partitions.entrySet()) {
       boolean singleGTSResult = false;
 
-      List<GeoTimeSerie> partitionSeries = partitions.get(partitionLabels);
+      List<GeoTimeSerie> partitionSeries = partitionLabelsAndGtss.getValue();
       
       //
       // Extract labels and common labels
@@ -6706,7 +6707,7 @@ public class GTSHelper {
         partlabels[i] = partitionSeries.get(i).getLabels();
       }
       
-      partlabels[partitionSeries.size()] = Collections.unmodifiableMap(partitionLabels);
+      partlabels[partitionSeries.size()] = Collections.unmodifiableMap(partitionLabelsAndGtss.getKey());
       
       //
       // Determine if result should be bucketized or not.
