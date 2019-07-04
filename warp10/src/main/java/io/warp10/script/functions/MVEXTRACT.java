@@ -17,6 +17,7 @@
 package io.warp10.script.functions;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -157,6 +158,9 @@ public class MVEXTRACT extends ElementOrListStackFunction implements ElementStac
   private Object elt(GTSDecoder decoder, GeoTimeSerie gts, int idx, Object value) {
     switch (this.elementType) {
       case VALUE:
+        if (value instanceof BigDecimal) {
+          value = ((BigDecimal) value).doubleValue();
+        }
         return value;
       case TICK:
         return null != decoder ? decoder.getTimestamp() : GTSHelper.tickAtIndex(gts, idx);
