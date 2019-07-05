@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -42,45 +42,19 @@ public class WRAP extends ElementOrListStackFunction {
   private final ElementStackFunction function;
 
   public WRAP(String name) {
-    this(name, false);
+    this(name, false, true, false, false);
   }
 
   public WRAP(String name, boolean opt) {
-    super(name);
-    this.opt = opt;
-    this.compress = true;
-    this.raw = false;
-    this.mv = false;
-    
-    function = generateFunctionOnce();
+    this(name, opt, true, false, false);
   }
 
   public WRAP(String name, boolean opt, boolean compress) {
-    super(name);
-    this.opt = opt;
-    this.compress = compress;
-    this.raw = false;
-    this.mv = false;
-    
-    if (this.opt && !this.compress) {
-      throw new RuntimeException("Invalid combination of opt and compress.");
-    }
-
-    function = generateFunctionOnce();
+    this(name, opt, compress, false, false);
   }
   
   public WRAP(String name, boolean opt, boolean compress, boolean raw) {
-    super(name);
-    this.opt = opt;
-    this.compress = compress;
-    this.raw = raw;
-    this.mv = false;
-    
-    if (this.opt && !this.compress) {
-      throw new RuntimeException("Invalid combination of opt and compress.");
-    }
-
-    function = generateFunctionOnce();
+    this(name, opt, compress, raw, false);
   }
 
   public WRAP(String name, boolean opt, boolean compress, boolean raw, boolean mv) {
