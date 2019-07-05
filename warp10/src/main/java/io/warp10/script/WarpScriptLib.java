@@ -961,14 +961,15 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TICKLIST("TICKLIST"));
     addNamedWarpScriptFunction(new COMMONTICKS("COMMONTICKS"));
     addNamedWarpScriptFunction(new WRAP("WRAP"));
-    addNamedWarpScriptFunction(new WRAPRAW("WRAPRAW"));
-    addNamedWarpScriptFunction(new WRAPRAW("WRAPFAST", false, false));
+    addNamedWarpScriptFunction(new WRAP("WRAPRAW", false, true, true));
+    addNamedWarpScriptFunction(new WRAP("WRAPFAST", false, false, true));
     addNamedWarpScriptFunction(new WRAP("WRAPOPT", true));
-    addNamedWarpScriptFunction(new WRAPRAW("WRAPRAWOPT", true));
+    addNamedWarpScriptFunction(new WRAP("WRAPRAWOPT", true, true, true));
     addNamedWarpScriptFunction(new UNWRAP(UNWRAP));
     addNamedWarpScriptFunction(new UNWRAP("UNWRAPEMPTY", true));
     addNamedWarpScriptFunction(new UNWRAPSIZE("UNWRAPSIZE"));
     addNamedWarpScriptFunction(new UNWRAPENCODER(UNWRAPENCODER));
+    addNamedWarpScriptFunction(new WRAP("WRAPMV", true, true, true, true));
     addNamedWarpScriptFunction(new TOMVSTRING("->MVSTRING"));
     addNamedWarpScriptFunction(new MVSPLIT("MVTICKSPLIT", true));
     addNamedWarpScriptFunction(new MVSPLIT("MVINDEXSPLIT", false));
