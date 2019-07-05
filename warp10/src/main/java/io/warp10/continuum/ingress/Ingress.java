@@ -834,8 +834,10 @@ public class Ingress extends AbstractHandler implements Runnable {
             Long val = this.metadataCache.getOrDefault(metadataCacheKey, NO_LAST_ACTIVITY);
 
             if (NO_LAST_ACTIVITY.equals(val)) {
+              // Metadata are unknown
               pushMeta = true;
             } else if (activityTracking && updateActivity) {
+              // The tracking window is set
               Long lastActivity = val;
               
               if (null == lastActivity) {
@@ -845,6 +847,11 @@ public class Ingress extends AbstractHandler implements Runnable {
               }
             }
             
+            // If attributes were set, push the metadata
+            if (parseAttributes) {
+              pushMeta = pushMeta || hadAttributes.get();
+            }
+            
             if (pushMeta) {
               // Build metadata object to push
               Metadata metadata = new Metadata();
@@ -852,6 +859,10 @@ public class Ingress extends AbstractHandler implements Runnable {
               metadata.setSource(Configuration.INGRESS_METADATA_SOURCE);
               metadata.setName(encoder.getMetadata().getName());
               metadata.setLabels(encoder.getMetadata().getLabels());
+              
+              if (null != encoder.getMetadata().getAttributes()) {
+                metadata.setAttributes(encoder.getMetadata().getAttributes());
+              }
               
               if (this.activityTracking && updateActivity) {
                 metadata.setLastActivity(nowms);

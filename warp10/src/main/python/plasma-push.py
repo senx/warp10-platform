@@ -16,6 +16,10 @@
 #
 
 
+import logging
+from ws4py import configure_logger
+configure_logger(level=logging.DEBUG)
+
 import time
 import random
 
@@ -43,9 +47,9 @@ class PlasmaPushClient(WebSocketClient):
 # Usage: python plasma-push.py
 #
 if __name__ == '__main__':
-  WRITE_TOKEN = 'WRITE'
+  WRITE_TOKEN = 'lJEeOiABLwtYqGCtoRBi47yOvJCZDfceIHiYwluWgt9SNMn2KCdQaNv.1AfJzCNX53cRumWQIPA_.QZTsN_yIQOfrH4DVN5d3JmprtI4G4FQ42oCSD2p0Q6ZuD2WdU8JWWMvgSyxZEHPtHdpx5RIYqFKl___MtWOz5y3xgG38ma.HXd6O4eMc.jOqbg2IYsMs_INM7PBsBmd9IiVioRYDRLnnUWKfvAW'
   try:
-    ws = PlasmaPushClient('ws://127.0.0.1:8080/api/v0/streamupdate', protocols=['http-only', 'chat'], token=WRITE_TOKEN)
+    ws = PlasmaPushClient('wss://sandbox.senx.io/api/v0/streamupdate', protocols=['http-only', 'chat'], token=WRITE_TOKEN)
     ws.connect()
     while True:
       time.sleep(2)

@@ -236,6 +236,10 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
                     }
                   }
                   
+                  if (this.handler.ingress.parseAttributes) {
+                    pushMeta = pushMeta || hadAttributes.get();
+                  }
+                  
                   if (pushMeta) {
                     Metadata metadata = new Metadata(encoder.getMetadata());
                     metadata.setSource(Configuration.INGRESS_METADATA_SOURCE);
