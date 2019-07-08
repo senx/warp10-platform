@@ -86,6 +86,11 @@ public class StandaloneSplitsHandler extends AbstractHandler {
     //
     
     ReadToken rtoken;
+
+    if (null == token) {
+      response.sendError(HttpServletResponse.SC_FORBIDDEN, "Missing token.");
+      return;
+    }
     
     try {
       rtoken = Tokens.extractReadToken(token);
@@ -95,11 +100,6 @@ public class StandaloneSplitsHandler extends AbstractHandler {
       }
     } catch (WarpScriptException ee) {
       throw new IOException(ee);
-    }
-
-    if (null == rtoken) {
-      response.sendError(HttpServletResponse.SC_FORBIDDEN, "Missing token.");
-      return;
     }
 
     //
