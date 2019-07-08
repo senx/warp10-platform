@@ -16,34 +16,6 @@
 
 package io.warp10.continuum.gts;
 
-import io.warp10.CapacityExtractorOutputStream;
-import io.warp10.DoubleUtils;
-import io.warp10.WarpURLEncoder;
-import io.warp10.continuum.MetadataUtils;
-import io.warp10.continuum.TimeSource;
-import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.thrift.data.GTSWrapper;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.crypto.SipHashInline;
-import io.warp10.script.SAXUtils;
-import io.warp10.script.WarpScriptAggregatorFunction;
-import io.warp10.script.WarpScriptBinaryOp;
-import io.warp10.script.WarpScriptBucketizerFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptFillerFunction;
-import io.warp10.script.WarpScriptFilterFunction;
-import io.warp10.script.WarpScriptLib;
-import io.warp10.script.WarpScriptMapperFunction;
-import io.warp10.script.WarpScriptNAryFunction;
-import io.warp10.script.WarpScriptReducerFunction;
-import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStack.Macro;
-import io.warp10.script.functions.MACROMAPPER;
-import io.warp10.script.functions.METASORT;
-import io.warp10.script.functions.TOQUATERNION;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
@@ -85,12 +57,37 @@ import org.apache.thrift.protocol.TCompactProtocol;
 import org.boon.json.JsonParser;
 import org.boon.json.JsonParserFactory;
 
-import sun.nio.cs.ArrayEncoder;
-
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
+
+import io.warp10.CapacityExtractorOutputStream;
+import io.warp10.DoubleUtils;
+import io.warp10.WarpURLEncoder;
+import io.warp10.continuum.TimeSource;
+import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.thrift.data.GTSWrapper;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.crypto.SipHashInline;
+import io.warp10.script.SAXUtils;
+import io.warp10.script.WarpScriptAggregatorFunction;
+import io.warp10.script.WarpScriptBinaryOp;
+import io.warp10.script.WarpScriptBucketizerFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptFillerFunction;
+import io.warp10.script.WarpScriptFilterFunction;
+import io.warp10.script.WarpScriptLib;
+import io.warp10.script.WarpScriptMapperFunction;
+import io.warp10.script.WarpScriptNAryFunction;
+import io.warp10.script.WarpScriptReducerFunction;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.functions.MACROMAPPER;
+import io.warp10.script.functions.TOQUATERNION;
+import sun.nio.cs.ArrayEncoder;
 
 
 /**

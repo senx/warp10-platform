@@ -309,27 +309,27 @@ public class Configuration {
   /**
    * Maximum number of classes for which to report detailed stats in 'stats'
    */
-  public static String DIRECTORY_STATS_CLASS_MAXCARDINALITY = "directory.stats.class.maxcardinality";
+  public static final String DIRECTORY_STATS_CLASS_MAXCARDINALITY = "directory.stats.class.maxcardinality";
   
   /**
    * Maximum number of labels for which to report detailed stats in 'stats'
    */
-  public static String DIRECTORY_STATS_LABELS_MAXCARDINALITY = "directory.stats.labels.maxcardinality";
+  public static final String DIRECTORY_STATS_LABELS_MAXCARDINALITY = "directory.stats.labels.maxcardinality";
   
   /**
    * Maximum size of Thrift frame for directory service
    */
-  public static String DIRECTORY_FRAME_MAXLEN = "directory.frame.maxlen";
+  public static final String DIRECTORY_FRAME_MAXLEN = "directory.frame.maxlen";
 
   /**
    * Maximum number of Metadata to return in find responses
    */
-  public static String DIRECTORY_FIND_MAXRESULTS = "directory.find.maxresults";
+  public static final String DIRECTORY_FIND_MAXRESULTS = "directory.find.maxresults";
 
   /**
    * Hard limit on number of find results. After this limit, the find request will fail.
    */
-  public static String DIRECTORY_FIND_MAXRESULTS_HARD = "directory.find.maxresults.hard";
+  public static final String DIRECTORY_FIND_MAXRESULTS_HARD = "directory.find.maxresults.hard";
   
   /**
    * Zookeeper ZK connect string for Kafka ('metadata' topic)
@@ -2053,22 +2053,22 @@ public class Configuration {
   /**
    * Name of header containing the signature of the token used for the fetch
    */
-  public static String HTTP_HEADER_FETCH_SIGNATURE = "http.header.fetch.signature";
+  public static final String HTTP_HEADER_FETCH_SIGNATURE = "http.header.fetch.signature";
 
   /**
    * Name of header containing the signature of the token used for the update
    */
-  public static String HTTP_HEADER_UPDATE_SIGNATURE = "http.header.update.signature";
+  public static final String HTTP_HEADER_UPDATE_SIGNATURE = "http.header.update.signature";
   
   /**
    * Name of header containing the signature of streaming directory requests
    */
-  public static String HTTP_HEADER_DIRECTORY_SIGNATURE = "http.header.directory.signature";  
+  public static final String HTTP_HEADER_DIRECTORY_SIGNATURE = "http.header.directory.signature";
 
   /**
    * Name of header containing the name of the symbol in which to expose the request headers
    */
-  public static String HTTP_HEADER_EXPOSE_HEADERS = "http.header.exposeheaders";
+  public static final String HTTP_HEADER_EXPOSE_HEADERS = "http.header.exposeheaders";
 
   /**
    * SSL Port

@@ -627,31 +627,12 @@ plasma.frontend.websocket.maxmessagesize = 1048576
 in.memory = false
 
 //
-// Depth of timestamps to retain (in ms)
+// Set to 'false' to use the deprecated non chunked in-memory store
 //
-//in.memory.depth = 
-
-//
-// High water mark in bytes. When memory goes above this threshold, attempts to remove expired datapoints will be
-// done until consumed memory goes below the low water mark (see below) or no more expired datapoints can be found.
-//
-//in.memory.highwatermark = 
-
-//
-// Low water mark in bytes for garbage collection (see above)
-//
-//in.memory.lowwatermark = 
-
-//
-// If set to true, then only the last recorded value of a GTS is kept
-//
-//in.memory.ephemeral = 
-
-//
-// Set to 'true' to use a chunked version of the in memory datastore
-// When this datastore is in effect, the depth of data retained is
+// When this is true, the depth of data retained is
 // configured using in.memory.chunk.count and in.memory.chunk.length
-// All other in.memory.* parameters are ignored
+// This configuration MUST be set starting with 2.1.
+// Set it to false if you are using the deprecated non chunked memory store.
 //
 //in.memory.chunked = true
 
