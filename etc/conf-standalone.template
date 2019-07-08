@@ -755,6 +755,17 @@ datalog.sync = true
 #datalog.id = datalog-0
 
 //
+// List of shards which are retained by this instance. Other shards will still be forwarded.
+// If this configuration key is not present, all data will be stored
+//
+#datalog.shards = MODULUS:REMAINDER, MODULUS:REMAINDER, ...
+
+//
+// Number of bits to shift the shard key to the right
+//
+#datalog.shardkey.shift = 0
+
+//
 // Set to false to disable logging the key used for sharding. This defaults to true when datalog is enabled.
 //
 #datalog.logshardkey = false

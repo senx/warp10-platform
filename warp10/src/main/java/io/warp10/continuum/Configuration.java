@@ -1434,6 +1434,17 @@ public class Configuration {
   public static final String DATALOG_ID = "datalog.id";
   
   /**
+   * Comma separated list of shards this Warp 10 instance should store. The format of each
+   * shard is MODULUS:REMAINDER
+   */
+  public static final String DATALOG_SHARDS = "datalog.shards";
+  
+  /**
+   * Number of bits to shift the default shard key
+   */
+  public static final String DATALOG_SHARDKEY_SHIFT = "datalog.shardkey.shift";
+  
+  /**
    * Set to true or false to log the sharding key in the datalog request files
    */
   public static final String DATALOG_LOGSHARDKEY = "datalog.logshardkey";

@@ -366,6 +366,11 @@ public class Warp extends WarpDist implements Runnable {
       scc = new StandaloneStoreClient(db, keystore, properties);
     }
         
+    if (null != WarpConfig.getProperty(Configuration.DATALOG_DIR) && null != WarpConfig.getProperty(Configuration.DATALOG_SHARDS)) {
+      sdc = new StandaloneShardedDirectoryClientWrapper(keystore, sdc);
+      scc = new StandaloneShardedStoreClientWrapper(keystore, scc);
+    }
+    
     if (ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
       scc = new StandaloneParallelStoreClientWrapper(scc);
     }
