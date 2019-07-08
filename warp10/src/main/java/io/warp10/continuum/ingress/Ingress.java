@@ -871,13 +871,6 @@ public class Ingress extends AbstractHandler implements Runnable {
             }
             
             if (null != lastencoder) {
-              Map<String,String> labels = new HashMap<String, String>();
-              //labels.put(SensisionConstants.SENSISION_LABEL_OWNER, owner);
-              labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
-              //if (null != application) {
-              //  labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
-              //}
-
               pushDataMessage(lastencoder);
                            
               if (parseAttributes && lastHadAttributes) {
@@ -918,13 +911,6 @@ public class Ingress extends AbstractHandler implements Runnable {
         } while (true); 
         
         if (null != lastencoder && lastencoder.size() > 0) {
-          Map<String,String> labels = new HashMap<String, String>();
-          //labels.put(SensisionConstants.SENSISION_LABEL_OWNER, owner);
-          labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
-          //if (null != application) {
-          //  labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
-          //}
-          
           ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
           ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
 
