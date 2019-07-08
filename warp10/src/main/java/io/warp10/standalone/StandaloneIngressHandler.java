@@ -307,6 +307,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
       long shardkey = 0L;
       FileDescriptor loggingFD = null;
       
+      boolean hasDatapoints = false;
+
       try {      
         if (null == producer || null == owner) {
           response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
@@ -502,7 +504,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
         //
         
         boolean lastHadAttributes = false;
-        
+                
         do {
         
           if (parseAttributes) {
@@ -628,6 +630,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
               loggingWriter.println(shardkey);
             }                         
             loggingWriter.println(line);
+            hasDatapoints = true;
           }
         } while (true); 
         
@@ -678,12 +681,14 @@ public class StandaloneIngressHandler extends AbstractHandler {
           loggingWriter.close();
           
           // Create hard links when multiple datalog forwarders are configured
-          for (Path srcDir: Warp.getDatalogSrcDirs()) {
-            try {
-              Files.createLink(new File(srcDir.toFile(), loggingFile.getName() + DatalogForwarder.DATALOG_SUFFIX).toPath(), loggingFile.toPath());              
-            } catch (Exception e) {
-              throw new RuntimeException("Encountered an error while attempting to link " + loggingFile + " to " + srcDir);
-            }
+          if (hasDatapoints) {
+            for (Path srcDir: Warp.getDatalogSrcDirs()) {
+              try {
+                Files.createLink(new File(srcDir.toFile(), loggingFile.getName() + DatalogForwarder.DATALOG_SUFFIX).toPath(), loggingFile.toPath());              
+              } catch (Exception e) {
+                throw new RuntimeException("Encountered an error while attempting to link " + loggingFile + " to " + srcDir);
+              }
+            }            
           }
           //loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
           loggingFile.delete();
