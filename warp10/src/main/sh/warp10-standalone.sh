@@ -376,7 +376,9 @@ start() {
   # Config file exists ?
   #
   if [ ! -e ${WARP10_CONFIG} ]; then
-    echo "Config file does not exist - Use 'bootstrap' command (it must be run as root)"
+    echo "Config file does not exist - Use 'bootstrap' command before the very first launch (it must be run as root)"
+    echo "WARNING: Since version 2.1.0, Warp 10 can use multiple configuration files. The files have to be present in ${WARP10_CONFIG_DIR}"
+    echo "WARNING: Default configuration file must be named ${WARP10_CONFIG}"
     exit 1
   fi
 
