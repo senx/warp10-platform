@@ -374,6 +374,7 @@ public class WarpScriptLib {
   public static final String RUN = "RUN";
   public static final String BOOTSTRAP = "BOOTSTRAP";
   public static final String NOOP = "NOOP";
+  public static final String JSONTO = "JSON->";
   
   public static final String MAP_START = "{";
   public static final String MAP_END = "}";
