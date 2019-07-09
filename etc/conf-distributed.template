@@ -55,8 +55,8 @@ warp.timeunits = us
 //
 #warpscript.plugins.xxx = package.class
 // Integrated plugins:
-// Quantum MUST be loaded using this line to make sure its jar is automatically added to the classpath
-#warp10.plugin.quantum = io.warp10.plugins.quantum.QuantumPlugin
+// WarpStudio MUST be loaded using this line to make sure its jar is automatically added to the classpath
+#warp10.plugin.warpstudio = io.warp10.plugins.warpstudio.WarpStudioPlugin
 #warp10.plugin.http = io.warp10.plugins.http.HTTPWarp10Plugin
 #warp10.plugin.udp = io.warp10.plugins.udp.UDPWarp10Plugin
 #warp10.plugin.tcp = io.warp10.plugins.tcp.TCPWarp10Plugin
