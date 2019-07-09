@@ -50,31 +50,29 @@ public class ERROR extends NamedWarpScriptFunction implements WarpScriptStackFun
       
       List<Object> trace = new ArrayList<Object>();
       
-      if (null != t) {
-        StackTraceElement[] st = t.getStackTrace();
+      StackTraceElement[] st = t.getStackTrace();
 
-        if (null != st) {
-          for (StackTraceElement elt: st) {
-            String className = elt.getClassName();
-            int lineNumber = elt.getLineNumber();
-            String methodName = elt.getMethodName();
-            String fileName = elt.getFileName();
-            
-            List<Object> elts = new ArrayList<Object>();
-            
-            elts.add(fileName);
-            elts.add(lineNumber);
-            elts.add(className);
-            elts.add(methodName);
-            
-            trace.add(elts);
-          }        
+      if (null != st) {
+        for (StackTraceElement elt: st) {
+          String className = elt.getClassName();
+          int lineNumber = elt.getLineNumber();
+          String methodName = elt.getMethodName();
+          String fileName = elt.getFileName();
+
+          List<Object> elts = new ArrayList<Object>();
+
+          elts.add(fileName);
+          elts.add(lineNumber);
+          elts.add(className);
+          elts.add(methodName);
+
+          trace.add(elts);
         }
-        
-        err.put("type", t.getClass().toString());
-        err.put("message", t.getMessage());
-        err.put("stacktrace", trace);      
       }
+
+      err.put("type", t.getClass().toString());
+      err.put("message", t.getMessage());
+      err.put("stacktrace", trace);
 
       throwables.add(t);
       
