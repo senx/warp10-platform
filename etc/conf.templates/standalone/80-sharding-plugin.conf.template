@@ -15,16 +15,16 @@
 //
 
 //
-// Comma separated list of Warp 10 plugins to instantiate.
+// Sharding Plugin
 //
-#warp10.plugins = packageW.classX,packageY.classZ
 
-//
-// Specific plugin loading
-//
-#warpscript.plugins.xxx = package.class
-// Integrated plugins:
-#warp10.plugin.http = io.warp10.plugins.http.HTTPWarp10Plugin
-#warp10.plugin.udp = io.warp10.plugins.udp.UDPWarp10Plugin
-#warp10.plugin.tcp = io.warp10.plugins.tcp.TCPWarp10Plugin
-#warp10.plugin.influxdb = io.warp10.plugins.influxdb.InfluxDBWarp10Plugin
+
+// Number of threads in the pool used for querying the shards, defaults to 4
+#sharding.poolsize = 4
+// Maximum number of threads used by a single request, defaults to the poolsize
+#sharding.maxthreadspercall = 2
+// WarpScript code used to process results on the shards prior to returning them, defaults to SNAPSHOT
+#sharding.snapshot = SNAPSHOT
+// Shard endpoints definition, format is sharding.endpoint.NAME.MODULUS:REMAINDER = https://..../api/v0/exec
+#sharding.endpoint.NAME.2:0 = ...
+#sharding.endpoint.NAME.2:1 = ...
