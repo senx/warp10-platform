@@ -113,7 +113,7 @@ WARP10_REVISION=@VERSION@
 export WARP10_USER=${WARP10_USER:=warp10}
 WARP10_GROUP=${WARP10_GROUP:=warp10}
 WARP10_CONFIG_DIR=${WARP10_HOME}/etc/conf.d
-WARP10_CONFIG=${WARP10_CONFIG_DIR}/00_warp10.conf
+WARP10_SECRETS=${WARP10_CONFIG_DIR}/00-secrets.conf
 WARP10_JAR=${WARP10_HOME}/bin/warp10-${WARP10_REVISION}.jar
 WARP10_CLASS=io.warp10.standalone.Warp
 WARP10_INIT=io.warp10.standalone.WarpInit
@@ -219,7 +219,8 @@ bootstrap() {
   #
   # If config file already exists then.. exit
   #
-  if [ -e ${WARP10_CONFIG} ]; then
+  getConfigFiles
+  if [[ ! -z "${CONFIG_FILES}" ]]; then
     echo "Config file already exists - Abort bootstrap..."
     exit 2
   fi
@@ -316,20 +317,24 @@ bootstrap() {
   LEVELDB_HOME_ESCAPED=$(echo ${LEVELDB_HOME_ESCAPED} | sed 's/\&/\\&/g' )    # Escape &
   LEVELDB_HOME_ESCAPED=$(echo ${LEVELDB_HOME_ESCAPED} | sed 's/|/\\|/g' )     # Escape | (separator for sed)
 
-  sed -i -e 's|^standalone\.home.*|standalone.home = '${WARP10_HOME_ESCAPED}'|' ${WARP10_HOME}/templates/conf-standalone.template
+  # Copy the template configuration file
+  for file in ${WARP10_HOME}/conf.templates/standalone/*.template
+  do
+    filename=`basename $file`
+    cp "${file}" ${WARP10_CONFIG_DIR}/${filename%.template}
+  done
+
+  sed -i -e 's|^standalone\.home.*|standalone.home = '${WARP10_HOME_ESCAPED}'|' ${WARP10_CONFIG_DIR}/*
   sed -i -e 's|^\(\s\{0,100\}\)WARP10_HOME=/opt/warp10-.*|\1WARP10_HOME='${WARP10_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
   sed -i -e 's|^\(\s\{0,100\}\)LEVELDB_HOME=${WARP10_HOME}/leveldb|\1LEVELDB_HOME='${LEVELDB_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
 
   sed -i -e 's|warpLog\.File=.*|warpLog.File='${WARP10_HOME_ESCAPED}'/logs/warp10.log|' ${WARP10_HOME}/etc/log4j.properties
   sed -i -e 's|warpscriptLog\.File=.*|warpscriptLog.File='${WARP10_HOME_ESCAPED}'/logs/warpscript.out|' ${WARP10_HOME}/etc/log4j.properties
 
-  # Copy the template configuration file
-  cp ${WARP10_HOME}/templates/conf-standalone.template ${WARP10_CONFIG}
-  chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_CONFIG}
-
   # Generate secrets
-  ${WARP10_HOME}/etc/generate_crypto_key.py > ${WARP10_CONFIG_DIR}/10_secrets.conf
-  chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_CONFIG_DIR}/10_secrets.conf
+  ${WARP10_HOME}/etc/generate_crypto_key.py ${WARP10_SECRETS}
+  chown -R ${WARP10_USER}:${WARP10_GROUP} ${WARP10_CONFIG_DIR}
+
 
   getConfigFiles
 
@@ -373,17 +378,18 @@ start() {
   fi
 
   #
-  # Config file exists ?
-  #
-  if [ ! -e ${WARP10_CONFIG} ]; then
-    echo "Config file does not exist - Use 'bootstrap' command (it must be run as root)"
-    exit 1
-  fi
-
-  #
   # Get all configurations files
   #
   getConfigFiles
+
+  #
+  # Config file exists ?
+  #
+  if [[ -z "${CONFIG_FILES}" ]]; then
+    echo "Config file does not exist - Use 'bootstrap' command before the very first launch (it must be run as root)"
+    echo "WARNING: Since version 2.1.0, Warp 10 can use multiple configuration files. The files have to be present in ${WARP10_CONFIG_DIR}"
+    exit 1
+  fi
 
   LEVELDB_HOME="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} 'leveldb.home' | grep 'leveldb.home' | sed -e 's/^.*=//'`"
 
@@ -568,7 +574,7 @@ worf() {
     echo "Usage: $0 $1 appName ttl(ms)"
     exit 1
   fi
-  ${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -puidg -t -a $2 -ttl $3
+  ${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_SECRETS} -puidg -t -a $2 -ttl $3
 }
 
 repair() {

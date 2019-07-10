@@ -50,8 +50,6 @@ mkdir -p ${WARP10_HOME}/macros
 mkdir -p ${WARP10_HOME}/templates
 mkdir -p ${WARP10_HOME}/warpscripts/test/60000
 
-#mkdir -p ${WARP10_HOME}/geodir
-
 # Get WarpStudio plugin
 URL_WARPSTUDIO_PLUGIN="https://dl.bintray.com/senx/maven/io/warp10/warp10-plugin-warpstudio/${WARPSTUDIO_VERSION}/warp10-plugin-warpstudio-${WARPSTUDIO_VERSION}.jar"
 
@@ -86,8 +84,8 @@ cp ../../etc/generate_crypto_key.py ${WARP10_HOME}/etc
 sed -e "s/@VERSION@/${VERSION}/g" ../../etc/log4j.properties >> ${WARP10_HOME}/etc/log4j.properties
 
 # Copy template configuration
-sed -e "s/@VERSION@/${VERSION}/g" ../../etc/conf-standalone.template > ${WARP10_HOME}/templates/conf-standalone.template
-sed -e "s/@VERSION@/${VERSION}/g" ../../etc/conf-distributed.template > ${WARP10_HOME}/templates/conf-distributed.template
+cp -r ../../etc/conf.templates ${WARP10_HOME}/
+sed -i -e "s/@VERSION@/${VERSION}/g" ${WARP10_HOME}/conf.templates/*/*
 cp  ../../etc/warp10-tokengen.mc2 ${WARP10_HOME}/templates/warp10-tokengen.mc2
 
 # Copy jars

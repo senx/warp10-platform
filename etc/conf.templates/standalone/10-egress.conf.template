@@ -14,17 +14,23 @@
 //   limitations under the License.
 //
 
+/////////////////////////////////////////////////////////////////////////////////////////
 //
-// Comma separated list of Warp 10 plugins to instantiate.
+// E G R E S S
 //
-#warp10.plugins = packageW.classX,packageY.classZ
+/////////////////////////////////////////////////////////////////////////////////////////
 
 //
-// Specific plugin loading
+// Key to use for encrypting GTSSplit instances
 //
-#warpscript.plugins.xxx = package.class
-// Integrated plugins:
-#warp10.plugin.http = io.warp10.plugins.http.HTTPWarp10Plugin
-#warp10.plugin.udp = io.warp10.plugins.udp.UDPWarp10Plugin
-#warp10.plugin.tcp = io.warp10.plugins.tcp.TCPWarp10Plugin
-#warp10.plugin.influxdb = io.warp10.plugins.influxdb.InfluxDBWarp10Plugin
+#egress.fetcher.aes =
+
+//
+// Maximum age of a valid GTSSplit (in ms)
+//
+#egress.fetcher.maxsplitage =
+
+//
+// Should the egress exec handler expose its store/directory clients?
+//
+egress.clients.expose = false

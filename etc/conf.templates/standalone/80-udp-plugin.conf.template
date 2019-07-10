@@ -15,16 +15,10 @@
 //
 
 //
-// Comma separated list of Warp 10 plugins to instantiate.
+// UDP Plugin
 //
-#warp10.plugins = packageW.classX,packageY.classZ
 
-//
-// Specific plugin loading
-//
-#warpscript.plugins.xxx = package.class
-// Integrated plugins:
-#warp10.plugin.http = io.warp10.plugins.http.HTTPWarp10Plugin
-#warp10.plugin.udp = io.warp10.plugins.udp.UDPWarp10Plugin
-#warp10.plugin.tcp = io.warp10.plugins.tcp.TCPWarp10Plugin
-#warp10.plugin.influxdb = io.warp10.plugins.influxdb.InfluxDBWarp10Plugin
+// Directory where UDP 'spec' files will be located
+#udp.dir = 
+// Period (in ms) at which to rescan 'udp.dir' for spec files changes (defaults to 60s)
+#udp.period = 60000
