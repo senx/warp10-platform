@@ -74,7 +74,7 @@ subprojects {
         warp10Version['crypto'] = commonVersion
         warp10Version['token'] = commonVersion
 
-        warpStudioVersion = 'v0.0.79'
+        warpStudioVersion = '0.0.80'
 
         stagingUser = project.hasProperty('stagingUser') ? project.property('stagingUser') : System.getenv('STAGING_USER')
         stagingURL = project.hasProperty('stagingURL') ? project.property('stagingURL') : System.getenv('STAGING_URL')

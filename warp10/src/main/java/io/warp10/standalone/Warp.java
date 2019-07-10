@@ -16,14 +16,22 @@
 
 package io.warp10.standalone;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
+
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
@@ -39,6 +47,7 @@ import org.iq80.leveldb.Options;
 import com.google.common.base.Preconditions;
 
 import io.warp10.Revision;
+import io.warp10.WarpConfig;
 import io.warp10.SSLUtils;
 import io.warp10.WarpDist;
 import io.warp10.continuum.Configuration;
@@ -79,6 +88,8 @@ public class Warp extends WarpDist implements Runnable {
   private static int port;
   
   private static String host;
+  
+  private static Set<Path> datalogSrcDirs = Collections.unmodifiableSet(new HashSet<Path>()); 
   
   private static final String[] REQUIRED_PROPERTIES = {
     Configuration.INGRESS_WEBSOCKET_MAXMESSAGESIZE,
@@ -355,6 +366,11 @@ public class Warp extends WarpDist implements Runnable {
       scc = new StandaloneStoreClient(db, keystore, properties);
     }
         
+    if (null != WarpConfig.getProperty(Configuration.DATALOG_DIR) && null != WarpConfig.getProperty(Configuration.DATALOG_SHARDS)) {
+      sdc = new StandaloneShardedDirectoryClientWrapper(keystore, sdc);
+      scc = new StandaloneShardedStoreClientWrapper(keystore, scc);
+    }
+    
     if (ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
       scc = new StandaloneParallelStoreClientWrapper(scc);
     }
@@ -372,11 +388,45 @@ public class Warp extends WarpDist implements Runnable {
     }
     
     //
-    // Start the Datalog Forwarder
+    // Start the Datalog Forwarders
     //
     
-    if (!analyticsEngineOnly && properties.containsKey(Configuration.DATALOG_FORWARDER_SRCDIR) && properties.containsKey(Configuration.DATALOG_FORWARDER_DSTDIR)) {
-      DatalogForwarder forwarder = new DatalogForwarder(keystore, properties);
+    if (!analyticsEngineOnly && properties.containsKey(Configuration.DATALOG_FORWARDERS)) {
+      // Extract the names of the forwarders and start them all, ensuring we only start each one once
+      String[] forwarders = properties.getProperty(Configuration.DATALOG_FORWARDERS).split(",");
+      
+      Set<String> names = new HashSet<String>();
+      for (String name: forwarders) {
+        names.add(name.trim());
+      }
+      
+      Set<Path> srcDirs = new HashSet<Path>();
+      
+      Path datalogdir = new File(properties.getProperty(Configuration.DATALOG_DIR)).toPath().toRealPath();
+      
+      for (String name: names) {
+        DatalogForwarder forwarder = new DatalogForwarder(name, keystore, properties);
+        
+        Path root = forwarder.getRootDir().toRealPath();
+        
+        if (datalogdir.equals(root)) {
+          throw new RuntimeException("Datalog directory '" + datalogdir + "' cannot be used as a forwarder source.");
+        }
+      
+        if (!srcDirs.add(root)) {
+          throw new RuntimeException("Duplicate datalog source directory '" + root + "'.");
+        }
+      }
+      
+      datalogSrcDirs = Collections.unmodifiableSet(srcDirs);
+      
+    } else if (!analyticsEngineOnly && properties.containsKey(Configuration.DATALOG_FORWARDER_SRCDIR) && properties.containsKey(Configuration.DATALOG_FORWARDER_DSTDIR)) {
+      Path datalogdir = new File(properties.getProperty(Configuration.DATALOG_DIR)).toPath().toRealPath();
+      DatalogForwarder forwarder = new DatalogForwarder(keystore, properties);      
+      Path root = forwarder.getRootDir().toRealPath();
+      if (datalogdir.equals(root)) {
+        throw new RuntimeException("Datalog directory '" + datalogdir + "' cannot be used as the source directory of a forwarder.");
+      }
     }
     
     //
@@ -563,5 +613,9 @@ public class Warp extends WarpDist implements Runnable {
 
   public static WarpDB getDB() {
     return db;
+  }
+  
+  public static Set<Path> getDatalogSrcDirs() {
+    return datalogSrcDirs;
   }
 }

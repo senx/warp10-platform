@@ -1452,6 +1452,11 @@ public class SensisionConstants {
    */
   public static final String SENSISION_LABEL_TABLE = "table";
   
+  /**
+   * Forwarder
+   */
+  public static final String SENSISION_LABEL_FORWARDER = "forwarder";
+  
   //
   // TTLs (in ms)
   //

@@ -1434,6 +1434,22 @@ public class Configuration {
   public static final String DATALOG_ID = "datalog.id";
   
   /**
+   * Comma separated list of shards this Warp 10 instance should store. The format of each
+   * shard is MODULUS:REMAINDER
+   */
+  public static final String DATALOG_SHARDS = "datalog.shards";
+  
+  /**
+   * Number of bits to shift the default shard key
+   */
+  public static final String DATALOG_SHARDKEY_SHIFT = "datalog.shardkey.shift";
+  
+  /**
+   * Set to true or false to log the sharding key in the datalog request files
+   */
+  public static final String DATALOG_LOGSHARDKEY = "datalog.logshardkey";
+  
+  /**
    * Pre-shared AES key to wrap datalog.id and datalog.timestamp header values
    */
   public static final String DATALOG_PSK = "datalog.psk";
@@ -1447,6 +1463,12 @@ public class Configuration {
    * Configuration key to modify the datalog header
    */
   public static final String HTTP_HEADER_DATALOG = "http.header.datalog";
+  
+  /**
+   * Comma separated list of forwarders. Configuration for each forwarder will be suffixed with
+   * '.name' except for datalog.psk which is common to all forwarders
+   */
+  public static final String DATALOG_FORWARDERS = "datalog.forwarders";
   
   /**
    * Comma separated list of ids which should be ignored by the forwarder. This is to prevent loops from
@@ -1511,6 +1533,17 @@ public class Configuration {
   public static final String DATALOG_FORWARDER_ENDPOINT_META = "datalog.forwarder.endpoint.meta";
   
   /**
+   * Comma separated list of shards to forward, each shard being specified as MODULUS:REMAINDER
+   */
+  public static final String DATALOG_FORWARDER_SHARDS = "datalog.forwarder.shards";
+  
+  /**
+   * Number of bits to right shift the shard key. If this is >= 24, then only the class id will be
+   * considered for sharding. 
+   */
+  public static final String DATALOG_FORWARDER_SHARDKEY_SHIFT = "datalog.forwarder.shardkey.shift";
+
+  /*
    * Set to a message indicating the reason why updates are disabled, they are enabled if this is not set
    */
   public static final String WARP_UPDATE_DISABLED = "warp.update.disabled";

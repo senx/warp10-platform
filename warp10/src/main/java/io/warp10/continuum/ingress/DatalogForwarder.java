@@ -63,6 +63,8 @@ import io.warp10.sensision.Sensision;
  * Forward UPDATA/META/DELETE requests to another Warp 10 instance
  */
 public class DatalogForwarder extends Thread {
+
+  private final String name;
   
   private static final Logger LOG = LoggerFactory.getLogger(DatalogForwarder.class);
   
@@ -76,6 +78,15 @@ public class DatalogForwarder extends Thread {
   private final Path rootdir;
   
   private final byte[] datalogPSK;
+  
+  private final long[] modulus;
+  private final long[] remainder;
+  
+  /**
+   * Number of bits to shift the shard key right.
+   * If this is 24, then only the class Id will be considered
+   */
+  private final long shardkeyshift;
   
   /**
    * URL for the UPDATE endpoint
@@ -152,11 +163,18 @@ public class DatalogForwarder extends Thread {
     
     private final DatalogForwarder forwarder;
         
+    private final String name;
+    
     public DatalogForwarderWorker(DatalogForwarder forwarder, LinkedBlockingDeque<DatalogAction> queue) {
+      this.name = forwarder.name;
       this.queue = queue;
       this.forwarder = forwarder;
       this.setDaemon(true);
-      this.setName("[Datalog Forwarder Worker]");
+      if (null != name) {
+        this.setName("[Datalog Forwarder Worker '" + this.name + "']");
+      } else {
+        this.setName("[Datalog Forwarder Worker]");
+      }
       this.start();
     }
     
@@ -268,6 +286,8 @@ public class DatalogForwarder extends Thread {
                 
         boolean first = true;
         
+        boolean include = false;
+
         while(true) {
           String line = br.readLine();
           if (null == line) {
@@ -278,7 +298,39 @@ public class DatalogForwarder extends Thread {
             first = false;
             continue;
           }
-          pw.println(line);
+
+          // If shards are defined, check the shard key          
+          if (null != forwarder.modulus && null != forwarder.remainder) {
+            if (line.length() >= 3 && '#' == line.charAt(0) && 'K' == line.charAt(1)) {
+              // Extract the shard key
+              long shardkey = Long.parseLong(line.substring(2));
+              
+              shardkey >>>= forwarder.shardkeyshift;
+              
+              include = false;
+              
+              // Check if one shard matches, in which case we print out the line and continue
+              for (int i = 0; i < forwarder.modulus.length; i++) {
+                if (shardkey % forwarder.modulus[i] == forwarder.remainder[i]) {
+                  include = true;
+                  break;
+                }
+              }
+              continue;
+            } else {
+              // Ignore line if shard is not included in those we forward
+              if (!include) {
+                continue;
+              }
+            }
+          } else {
+            // No shards defined, include everything
+            include = true;
+          }
+          
+          if (include) {
+            pw.println(line);
+          }
         }
         
         pw.close();
@@ -299,8 +351,14 @@ public class DatalogForwarder extends Thread {
         conn = null;
 
         Map<String,String> labels = new HashMap<String,String>();
+        
+        if (null != name) {
+          labels.put(SensisionConstants.SENSISION_LABEL_FORWARDER, name);
+        }
+
         labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
         labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.UPDATE.name());
+        
         if (success) {
           Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FORWARDED, labels, 1);
         } else {
@@ -308,8 +366,18 @@ public class DatalogForwarder extends Thread {
         }
 
         return success;
-      } catch (IOException ioe){
-        ioe.printStackTrace();
+      } catch (IOException ioe) {
+        Map<String,String> labels = new HashMap<String,String>();
+        
+        if (null != name) {
+          labels.put(SensisionConstants.SENSISION_LABEL_FORWARDER, name);
+        }
+
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.UPDATE.name());
+        
+        Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FAILED, labels, 1);
+
         return false;
       } finally {
         if (null != conn) {
@@ -354,8 +422,13 @@ public class DatalogForwarder extends Thread {
         conn = null;
 
         Map<String,String> labels = new HashMap<String,String>();
+        
+        if (null != name) {
+          labels.put(SensisionConstants.SENSISION_LABEL_FORWARDER, name);
+        }
+
         labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
-        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.UPDATE.name());
+        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.DELETE.name());
         if (success) {
           Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FORWARDED, labels, 1);
         } else {
@@ -363,7 +436,17 @@ public class DatalogForwarder extends Thread {
         }
         
         return success;
-      } catch (IOException ioe){
+      } catch (IOException ioe) {
+        Map<String,String> labels = new HashMap<String,String>();
+        
+        if (null != name) {
+          labels.put(SensisionConstants.SENSISION_LABEL_FORWARDER, name);
+        }
+
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.DELETE.name());
+        Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FAILED, labels, 1);
+
         return false;
       } finally {
         if (null != conn) {
@@ -447,8 +530,13 @@ public class DatalogForwarder extends Thread {
         conn = null;
 
         Map<String,String> labels = new HashMap<String,String>();
+        
+        if (null != name) {
+          labels.put(SensisionConstants.SENSISION_LABEL_FORWARDER, name);
+        }
+
         labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
-        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.UPDATE.name());
+        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.META.name());
         if (success) {
           Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FORWARDED, labels, 1);
         } else {
@@ -456,7 +544,17 @@ public class DatalogForwarder extends Thread {
         }
 
         return success;
-      } catch (IOException ioe){
+      } catch (IOException ioe) {
+        Map<String,String> labels = new HashMap<String,String>();
+        
+        if (null != name) {
+          labels.put(SensisionConstants.SENSISION_LABEL_FORWARDER, name);
+        }
+
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.META.name());
+        Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FAILED, labels, 1);
+
         return false;
       } finally {
         if (null != conn) {
@@ -469,60 +567,114 @@ public class DatalogForwarder extends Thread {
   }
   
   public DatalogForwarder(KeyStore keystore, Properties properties) throws Exception {
+    this(null, keystore, properties);
+  }
+  
+  public DatalogForwarder(String name, KeyStore keystore, Properties properties) throws Exception {
+  
+    this.name = name;
     
-    this.rootdir = new File(properties.getProperty(Configuration.DATALOG_FORWARDER_SRCDIR)).toPath();
+    String suffix = "";
     
+    if (null != name) {
+      suffix = "." + name;
+      LOG.info("Initializing datalog forwarder '" + name + "'.");
+    } else {
+      LOG.info("Initializing datalog forwarder.");
+    }
+    
+    this.rootdir = new File(properties.getProperty(Configuration.DATALOG_FORWARDER_SRCDIR + suffix)).toPath().toRealPath();
+    
+    if (!this.rootdir.toFile().isDirectory()) {
+      throw new RuntimeException("Invalid datalog forwarder source directory '" + this.rootdir + "'.");
+    }
+
     if (properties.containsKey(Configuration.DATALOG_PSK)) {
       this.datalogPSK = keystore.decodeKey(properties.getProperty(Configuration.DATALOG_PSK));
     } else {
       this.datalogPSK = null;
     }
     
-    this.period = Long.parseLong(properties.getProperty(Configuration.DATALOG_FORWARDER_PERIOD, DEFAULT_PERIOD));
+    this.period = Long.parseLong(properties.getProperty(Configuration.DATALOG_FORWARDER_PERIOD + suffix, DEFAULT_PERIOD));
     
-    this.compress = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_COMPRESS));
+    this.compress = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_COMPRESS + suffix));
     
-    this.actasclient = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_ACTASCLIENT));
+    this.actasclient = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_ACTASCLIENT + suffix));
     
     this.ignoredIds = new HashSet<String>();
     
-    if (properties.containsKey(Configuration.DATALOG_FORWARDER_IGNORED)) {
-      String[] ids = properties.getProperty(Configuration.DATALOG_FORWARDER_IGNORED).split(",");
+    if (properties.containsKey(Configuration.DATALOG_FORWARDER_IGNORED + suffix)) {
+      String[] ids = properties.getProperty(Configuration.DATALOG_FORWARDER_IGNORED + suffix).split(",");
       
       for (String id: ids) {
         ignoredIds.add(id.trim());
       }
     }
     
-    if (!properties.containsKey(Configuration.DATALOG_FORWARDER_DSTDIR)) {
-      throw new RuntimeException("Datalog forwarder target directory (" +  Configuration.DATALOG_FORWARDER_DSTDIR + ") not set.");
+    if (!properties.containsKey(Configuration.DATALOG_FORWARDER_DSTDIR + suffix)) {
+      throw new RuntimeException("Datalog forwarder target directory (" +  Configuration.DATALOG_FORWARDER_DSTDIR + suffix + ") not set.");
     }
 
-    this.targetDir = new File(properties.getProperty(Configuration.DATALOG_FORWARDER_DSTDIR));
+    this.targetDir = new File(properties.getProperty(Configuration.DATALOG_FORWARDER_DSTDIR + suffix));
 
     if (!this.targetDir.isDirectory()) {
-      throw new RuntimeException("Invalid datalog forwarder target directory.");
+      throw new RuntimeException("Invalid datalog forwarder target directory '" + this.targetDir + "'.");
     }
     
-    this.deleteForwarded = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_DELETEFORWARDED));
-    this.deleteIgnored = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_DELETEIGNORED));
+    this.deleteForwarded = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_DELETEFORWARDED + suffix));
+    this.deleteIgnored = "true".equals(properties.getProperty(Configuration.DATALOG_FORWARDER_DELETEIGNORED + suffix));
     
-    int nthreads = Integer.parseInt(properties.getProperty(Configuration.DATALOG_FORWARDER_NTHREADS, "1"));
+    int nthreads = Integer.parseInt(properties.getProperty(Configuration.DATALOG_FORWARDER_NTHREADS + suffix, "1"));
     
-    if (!properties.containsKey(Configuration.DATALOG_FORWARDER_ENDPOINT_UPDATE)) {
+    if (!properties.containsKey(Configuration.DATALOG_FORWARDER_ENDPOINT_UPDATE + suffix)) {
       throw new RuntimeException("Missing UPDATE endpoint.");
     }
-    this.updateUrl = new URL(properties.getProperty(Configuration.DATALOG_FORWARDER_ENDPOINT_UPDATE));
+    this.updateUrl = new URL(properties.getProperty(Configuration.DATALOG_FORWARDER_ENDPOINT_UPDATE + suffix));
 
-    if (!properties.containsKey(Configuration.DATALOG_FORWARDER_ENDPOINT_DELETE)) {
+    if (!properties.containsKey(Configuration.DATALOG_FORWARDER_ENDPOINT_DELETE + suffix)) {
       throw new RuntimeException("Missing DELETE endpoint.");
     }
-    this.deleteUrl = new URL(properties.getProperty(Configuration.DATALOG_FORWARDER_ENDPOINT_DELETE));
+    this.deleteUrl = new URL(properties.getProperty(Configuration.DATALOG_FORWARDER_ENDPOINT_DELETE + suffix));
 
-    if (!properties.containsKey(Configuration.DATALOG_FORWARDER_ENDPOINT_META)) {
+    if (!properties.containsKey(Configuration.DATALOG_FORWARDER_ENDPOINT_META + suffix)) {
       throw new RuntimeException("Missing META endpoint.");
     }
-    this.metaUrl = new URL(properties.getProperty(Configuration.DATALOG_FORWARDER_ENDPOINT_META));
+    this.metaUrl = new URL(properties.getProperty(Configuration.DATALOG_FORWARDER_ENDPOINT_META + suffix));
+
+    if (properties.containsKey(Configuration.DATALOG_FORWARDER_SHARDS + suffix)) {
+      
+      this.shardkeyshift = Long.parseLong(properties.getProperty(Configuration.DATALOG_FORWARDER_SHARDKEY_SHIFT + suffix, "0"));
+      
+      if (this.shardkeyshift >= 48 || this.shardkeyshift < 0) {
+        throw new RuntimeException("Invalid shard key shifting.");
+      }
+      
+      String[] shards = properties.getProperty(Configuration.DATALOG_FORWARDER_SHARDS + suffix).split(",");
+      
+      this.modulus = new long[shards.length];
+      this.remainder = new long[shards.length];
+        
+      int idx = 0;
+        
+      for (String shard: shards) {
+        String[] tokens = shard.trim().split(":");
+        if (2 != tokens.length) {
+          throw new RuntimeException("Invalid shard specification " + shard);
+        }
+        this.modulus[idx] = Long.parseLong(tokens[0]);
+        this.remainder[idx] = Long.parseLong(tokens[1]);
+          
+        if (this.modulus[idx] < 1 || this.remainder[idx] >= this.modulus[idx] || this.remainder[idx] < 0) {
+          throw new RuntimeException("Invalid shard specification " + shard);
+        }
+        
+        idx++;
+      }
+    } else {
+      this.modulus = null;
+      this.remainder = null;
+      this.shardkeyshift = 0;
+    }
 
     queues = new LinkedBlockingDeque[nthreads];
     
@@ -531,7 +683,11 @@ public class DatalogForwarder extends Thread {
       DatalogForwarderWorker forwarder = new DatalogForwarderWorker(this, queues[i]);
     }
     
-    this.setName("[Datalog Forwarder]");
+    if (null == name) {
+      this.setName("[Datalog Forwarder]");
+    } else {
+      this.setName("[Datalog Forwarder '" + name + "']");
+    }
     this.setDaemon(true);
     this.start();
   }
@@ -613,14 +769,22 @@ public class DatalogForwarder extends Thread {
         try {
           BufferedReader br = new BufferedReader(new FileReader(action.file));
           encoded = br.readLine();
+          
+          if ('#' == encoded.charAt(0)) {
+            encoded = encoded.substring(1);
+          }
+          
           br.close();          
         } catch (IOException ioe) {
           LOG.error("Error while reading Datalog Request", ioe);
           break;
         }
-                       
-        byte[] data = OrderPreservingBase64.decode(encoded.getBytes(Charsets.US_ASCII));
         
+        byte[] bytes = encoded.getBytes(Charsets.US_ASCII);
+        byte[] data = null;
+
+        data = OrderPreservingBase64.decode(bytes);          
+                
         if (null != this.datalogPSK) {
           data = CryptoUtils.unwrap(this.datalogPSK, data);
         }
@@ -660,15 +824,20 @@ public class DatalogForwarder extends Thread {
         String decodedId = new String(OrderPreservingBase64.decode(id.getBytes(Charsets.US_ASCII)), Charsets.UTF_8);
         if (this.ignoredIds.contains(decodedId)) {
           Map<String,String> labels = new HashMap<String,String>();
+          
+          if (null != name) {
+            labels.put(SensisionConstants.SENSISION_LABEL_FORWARDER, name);
+          }
+          
           labels.put(SensisionConstants.SENSISION_LABEL_ID, decodedId);
           labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.UPDATE.name());
           Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_IGNORED, labels, 1);
 
           // File should be ignored, move it directly to the target directory
-          if(this.deleteIgnored) {
-            action.file.renameTo(new File(this.targetDir, action.file.getName()));
-          } else {
+          if (this.deleteIgnored) {
             action.file.delete();
+          } else {
+            action.file.renameTo(new File(this.targetDir, action.file.getName()));
           }
           continue;
         }
@@ -709,5 +878,9 @@ public class DatalogForwarder extends Thread {
       
       LockSupport.parkNanos(this.period * 1000000L);
     }
+  }
+  
+  public Path getRootDir() {
+    return this.rootdir;
   }
 }
