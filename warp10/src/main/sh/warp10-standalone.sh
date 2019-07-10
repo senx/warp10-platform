@@ -93,16 +93,6 @@ PID_FILE=${WARP10_HOME}/logs/warp10.pid
 #
 FIRSTINIT_FILE=${WARP10_HOME}/logs/.firstinit
 
-#
-# WarpStudio plugin - Plugin embeds WarpStudio
-#
-# To inhibit/activate WarpStudio use 'warp10.plugins' attribute in the Warp 10 config
-WARPSTUDIO_REVISION=@WARPSTUDIO_VERSION@
-WARPSTUDIO_PLUGIN_JAR=${WARP10_HOME}/bin/warp10-plugin-warpstudio-${WARPSTUDIO_REVISION}.jar
-WARPSTUDIO_PLUGIN_NAME=io.warp10.plugins.warpstudio.WarpStudioPlugin
-# Is WarpStudio has been started ?
-# Note: do not use this parameter to inhibit/activate WarpStudio (use Warp 10 config)
-IS_WARPSTUDIO_STARTED=true
 
 IS_JAVA7=false
 
@@ -417,28 +407,6 @@ start() {
   WARP10_LISTENSTO="${WARP10_LISTENSTO_HOST}:${WARP10_LISTENSTO_PORT}"
 
   #
-  # Check if Warp10 WarpStudio plugin is defined
-  #
-  WARPSTUDIO_PLUGIN="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} 'warp10.plugin.warpstudio' | grep ${WARPSTUDIO_PLUGIN_NAME}`"
-
-  if [ "$WARPSTUDIO_PLUGIN" != "" ]; then
-    if [ "$IS_JAVA7" = false ]; then
-      IS_WARPSTUDIO_STARTED=true
-      # Add WarpStudio to WARP10_CP
-      WARP10_CP=${WARPSTUDIO_PLUGIN_JAR}:${WARP10_CP}
-      WARPSTUDIO_LISTENSTO_HOST="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} 'warpstudio.host' | grep 'warpstudio.host' | sed -e 's/^.*=//'`"
-      WARPSTUDIO_LISTENSTO_PORT="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} 'warpstudio.port' | grep 'warpstudio.port' | sed -e 's/^.*=//'`"
-      WARPSTUDIO_LISTENSTO="${WARPSTUDIO_LISTENSTO_HOST}:${WARPSTUDIO_LISTENSTO_PORT}"
-    else
-      echo "Start failed! - WarpStudio is only Java 1.8+ compliant - To start Warp 10 with Java7 comment out WarpStudio plugin in the Warp config file"
-      exit 1
-    fi
-  else
-    IS_WARPSTUDIO_STARTED=false
-    # Do not add WarpStudio to WARP10_CP
-  fi
-
-  #
   # Start Warp10 instance..
   #
   ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${CONFIG_FILES} >> ${WARP10_HOME}/logs/warp10.log 2>&1 &
@@ -461,10 +429,6 @@ start() {
   echo "##"
   echo "## Warp 10 listens on ${WARP10_LISTENSTO}"
   echo "##"
-  if [ "$IS_WARPSTUDIO_STARTED" = true ]; then
-    echo "## WarpStudio listens on ${WARPSTUDIO_LISTENSTO}"
-    echo "##"
-  fi
 
   if [ -e ${FIRSTINIT_FILE} ]; then
 
@@ -493,12 +457,6 @@ start() {
     echo "##"
     echo "##   curl http://${WARP10_LISTENSTO}/api/v0/exec --data-binary @path/to/WarpScriptFile"
     echo "##"
-    if [ "$IS_WARPSTUDIO_STARTED" = true ]; then
-      echo "## The alternative to command-line interaction is WarpStudio, a web application to interact with the platform in an user-friendly way:"
-      echo "##"
-      echo "##   http://${WARPSTUDIO_LISTENSTO}"
-      echo "##"
-    fi
     rm -f ${FIRSTINIT_FILE}
 
   fi
