@@ -219,7 +219,8 @@ bootstrap() {
   echo "Fix ownership.."
   echo "WARP10_HOME: ${WARP10_HOME}"
 
-  chown -R ${WARP10_USER}:${WARP10_GROUP} ${WARP10_HOME}
+  # Trailing slash is needed when ${WARP10_HOME} is a symlink
+  chown -R ${WARP10_USER}:${WARP10_GROUP} ${WARP10_HOME}/
 
   # Fix permissions
   echo "Fix permissions.."
@@ -415,7 +416,7 @@ start() {
 
   isStarted
   if [ $? -eq 1 ]; then
-    echo "Start failed! - See warp10.log and warplog.log for more details"
+    echo "Start failed! - See ${WARP10_HOME}/logs/warp10.log for more details"
     exit 1
   fi
 
@@ -465,7 +466,7 @@ start() {
   sleep 5
   isStarted
   if [ $? -eq 1 ]; then
-    echo "Start failed! - See warp10.log and warplog.log for more details"
+    echo "Start failed! - See ${WARP10_HOME}/logs/warp10.log for more details"
     exit 1
   fi
 
