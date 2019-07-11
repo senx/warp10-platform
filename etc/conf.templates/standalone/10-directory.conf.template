@@ -14,17 +14,18 @@
 //   limitations under the License.
 //
 
+/////////////////////////////////////////////////////////////////////////////////////////
 //
-// Comma separated list of Warp 10 plugins to instantiate.
+// D I R E C T O R Y
 //
-#warp10.plugins = packageW.classX,packageY.classZ
+/////////////////////////////////////////////////////////////////////////////////////////
 
 //
-// Specific plugin loading
+// Maximum number of classes for which to report detailed stats in 'FINDSTATS'
 //
-#warpscript.plugins.xxx = package.class
-// Integrated plugins:
-#warp10.plugin.http = io.warp10.plugins.http.HTTPWarp10Plugin
-#warp10.plugin.udp = io.warp10.plugins.udp.UDPWarp10Plugin
-#warp10.plugin.tcp = io.warp10.plugins.tcp.TCPWarp10Plugin
-#warp10.plugin.influxdb = io.warp10.plugins.influxdb.InfluxDBWarp10Plugin
+directory.stats.class.maxcardinality = 100
+
+//
+// Maximum number of labels for which to report detailed stats in 'FINDSTATS'
+//
+directory.stats.labels.maxcardinality = 100

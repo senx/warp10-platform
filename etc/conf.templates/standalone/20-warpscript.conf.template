@@ -52,27 +52,26 @@ warpscript.def.unshadow = false
 //
 
 // The path to a directory containing jar files from which UDFs can be loaded
-#warpscript.jars.directory = 
+warpscript.jars.directory = ${standalone.home}/jars
 
 // How often (in ms) should Warp 10 rescan the above directory
-#warpscript.jars.refresh = 60000
+warpscript.jars.refresh = 60000
 
 // Set to 'true' to allow loading the UDFs from the classpath when no directory is explicitely defined
-#warpscript.jars.fromclasspath = 
-
+warpscript.jars.fromclasspath = true 
 
 //
 // Default maximum number of operations a single WarpScript execution can do
 //
 warpscript.maxops = 1000
-warpscript.maxops.hard = 2000
+warpscript.maxops.hard = 20000
 
 //
 // Maximum number of buckets which can result of a call to BUCKETIZE
 // Can be modified by MAXBUCKETS up to the hard limit below
 //
 warpscript.maxbuckets = 1000000
-warpscript.maxbuckets.hard = 100000
+warpscript.maxbuckets.hard = 1000000
 
 //
 // Maximum number of cells in geographic shapes
@@ -86,7 +85,7 @@ warpscript.maxgeocells.hard = 100000
 // Can be modified by MAXDEPTH up to the hard limit below
 //
 warpscript.maxdepth = 1000
-warpscript.maxdepth.hard = 1000
+warpscript.maxdepth.hard = 2000
 
 //
 // Maximum number of datapoint which can be fetched during a WarpScript execution
@@ -127,48 +126,50 @@ warpscript.maxsymbols.hard = 256
 warpscript.maxpixels = 1000000
 warpscript.maxpixels.hard = 1000000
 
+//
+// WEBCALL limit per WarpScript
+//
 warpscript.maxwebcalls = 4
 
 //
 // CALL root directory property
 //
-#warpscript.call.directory =
-
-//   
-// Path of the 'bootstrap' WarpScript code    
-//    
-//warpscript.bootstrap.path = /opt/warp10/etc/hello.mc2
+warpscript.call.directory = ${standalone.home}/calls
 
 //
-// How often to reload the bootstrap code (in ms)
+// Path of the 'bootstrap' WarpScript code
 //
-//warpscript.bootstrap.period = 120000
+warpscript.bootstrap.path = ${standalone.home}/etc/bootstrap/egress.mc2
+
+//
+// How often to reload the bootstrap code (in ms) for Egress
+//
+warpscript.bootstrap.period = 120000
 
 //
 // URL for the 'update' endpoint
 //
-warpscript.update.endpoint = http://127.0.0.1:8080/api/v0/update
+warpscript.update.endpoint = http://${standalone.host}:${standalone.port}/api/v0/update
 
 //
 // URL for the 'meta' endpoint
 //
-warpscript.meta.endpoint = http://127.0.0.1:8080/api/v0/meta
+warpscript.meta.endpoint = http://${standalone.host}:${standalone.port}/api/v0/meta
 
 //
 // URL for the 'delete' endpoint
 //
-warpscript.delete.endpoint = http://127.0.0.1:8080/api/v0/delete
+warpscript.delete.endpoint = http://${standalone.host}:${standalone.port}/api/v0/delete
 
 //
-// Maximum number of subprogram instances which can be spawned
+// Maximum number of subprogram instances which can be spawned by CALL
 //
 //warpscript.call.maxcapacity = 1
-
 
 //
 // Path of the 'bootstrap' WarpScript code for Mobius
 //
-//warpscript.mobius.bootstrap.path = 
+warpscript.mobius.bootstrap.path = ${standalone.home}/etc/bootstrap/mobius.mc2
 
 //
 // Number of threads in the Mobius pool (those threads are used to execute the mobius macros)
@@ -178,17 +179,17 @@ warpscript.mobius.pool = 16
 //
 // How often to reload the bootstrap code (in ms) for Mobius
 //
-//warpscript.mobius.bootstrap.period = 
+warpscript.mobius.bootstrap.period = 120000
 
 //
 // Path of the 'bootstrap' WarpScript code for Runner
 //
-//warpscript.runner.bootstrap.path = 
+warpscript.runner.bootstrap.path = ${standalone.home}/etc/bootstrap/runner.mc2
 
 //
 // How often to reload the bootstrap code (in ms) for Runner
 //
-//warpscript.runner.bootstrap.period =
+warpscript.runner.bootstrap.period = 120000
 
 //
 // URLFETCH extension
@@ -202,4 +203,3 @@ warpscript.mobius.pool = 16
 #warpscript.urlfetch.maxsize.hard =
 // List of patterns to include/exclude for hosts, works the same way as webcall.host.patterns. Defaults to the value of webcall.host.patterns.
 #warpscript.urlfetch.host.patterns =
-

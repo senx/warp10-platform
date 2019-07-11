@@ -22,7 +22,6 @@
 VERSION=$1
 # Warp 10 root project path (../warp10)
 WARP_ROOT_PATH=$2
-WARPSTUDIO_VERSION=$3
 
 WARP10_HOME=warp10-${VERSION}
 
@@ -50,21 +49,6 @@ mkdir -p ${WARP10_HOME}/macros
 mkdir -p ${WARP10_HOME}/templates
 mkdir -p ${WARP10_HOME}/warpscripts/test/60000
 
-#mkdir -p ${WARP10_HOME}/geodir
-
-# Get WarpStudio plugin
-URL_WARPSTUDIO_PLUGIN="https://dl.bintray.com/senx/maven/io/warp10/warp10-plugin-warpstudio/${WARPSTUDIO_VERSION}/warp10-plugin-warpstudio-${WARPSTUDIO_VERSION}.jar"
-
-cd ${WARP10_HOME}/lib
-echo "curl -L ${URL_WARPSTUDIO_PLUGIN} -o warp10-plugin-warpstudio-${WARPSTUDIO_VERSION}.jar"
-curl -L ${URL_WARPSTUDIO_PLUGIN} -o warp10-plugin-warpstudio-${WARPSTUDIO_VERSION}.jar
-
-# test archive is ok
-unzip -t warp10-plugin-warpstudio-${WARPSTUDIO_VERSION}.jar > /dev/null
-if [ $? -ne 0 ]; then
-  echo "Error during WarpStudio download"
-  exit 1
-fi
 
 cd ${ARCHIVE}
 # Copy startup scripts
@@ -72,7 +56,6 @@ sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10.service >> ${WARP10_HOME
 sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10-standalone.init >> ${WARP10_HOME}/bin/warp10-standalone.init
 sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/snapshot.sh >> ${WARP10_HOME}/bin/snapshot.sh
 sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10-standalone.sh >> ${WARP10_HOME}/bin/warp10-standalone.sh
-sed -i -e "s/@WARPSTUDIO_VERSION@/${WARPSTUDIO_VERSION}/g" ${WARP10_HOME}/bin/warp10-standalone.sh
 
 # Copy log4j README, config, runner, bootstrap...
 cp ../../etc/bootstrap/*.mc2 ${WARP10_HOME}/etc/bootstrap
@@ -86,8 +69,8 @@ cp ../../etc/generate_crypto_key.py ${WARP10_HOME}/etc
 sed -e "s/@VERSION@/${VERSION}/g" ../../etc/log4j.properties >> ${WARP10_HOME}/etc/log4j.properties
 
 # Copy template configuration
-sed -e "s/@VERSION@/${VERSION}/g" ../../etc/conf-standalone.template > ${WARP10_HOME}/templates/conf-standalone.template
-sed -e "s/@VERSION@/${VERSION}/g" ../../etc/conf-distributed.template > ${WARP10_HOME}/templates/conf-distributed.template
+cp -r ../../etc/conf.templates ${WARP10_HOME}/
+sed -i -e "s/@VERSION@/${VERSION}/g" ${WARP10_HOME}/conf.templates/*/*
 cp  ../../etc/warp10-tokengen.mc2 ${WARP10_HOME}/templates/warp10-tokengen.mc2
 
 # Copy jars

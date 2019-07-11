@@ -93,16 +93,6 @@ PID_FILE=${WARP10_HOME}/logs/warp10.pid
 #
 FIRSTINIT_FILE=${WARP10_HOME}/logs/.firstinit
 
-#
-# WarpStudio plugin - Plugin embeds WarpStudio
-#
-# To inhibit/activate WarpStudio use 'warp10.plugins' attribute in the Warp 10 config
-WARPSTUDIO_REVISION=@WARPSTUDIO_VERSION@
-WARPSTUDIO_PLUGIN_JAR=${WARP10_HOME}/bin/warp10-plugin-warpstudio-${WARPSTUDIO_REVISION}.jar
-WARPSTUDIO_PLUGIN_NAME=io.warp10.plugins.warpstudio.WarpStudioPlugin
-# Is WarpStudio has been started ?
-# Note: do not use this parameter to inhibit/activate WarpStudio (use Warp 10 config)
-IS_WARPSTUDIO_STARTED=true
 
 IS_JAVA7=false
 
@@ -113,7 +103,7 @@ WARP10_REVISION=@VERSION@
 export WARP10_USER=${WARP10_USER:=warp10}
 WARP10_GROUP=${WARP10_GROUP:=warp10}
 WARP10_CONFIG_DIR=${WARP10_HOME}/etc/conf.d
-WARP10_CONFIG=${WARP10_CONFIG_DIR}/00_warp10.conf
+WARP10_SECRETS=${WARP10_CONFIG_DIR}/00-secrets.conf
 WARP10_JAR=${WARP10_HOME}/bin/warp10-${WARP10_REVISION}.jar
 WARP10_CLASS=io.warp10.standalone.Warp
 WARP10_INIT=io.warp10.standalone.WarpInit
@@ -219,7 +209,8 @@ bootstrap() {
   #
   # If config file already exists then.. exit
   #
-  if [ -e ${WARP10_CONFIG} ]; then
+  getConfigFiles
+  if [[ ! -z "${CONFIG_FILES}" ]]; then
     echo "Config file already exists - Abort bootstrap..."
     exit 2
   fi
@@ -228,7 +219,8 @@ bootstrap() {
   echo "Fix ownership.."
   echo "WARP10_HOME: ${WARP10_HOME}"
 
-  chown -R ${WARP10_USER}:${WARP10_GROUP} ${WARP10_HOME}
+  # Trailing slash is needed when ${WARP10_HOME} is a symlink
+  chown -R ${WARP10_USER}:${WARP10_GROUP} ${WARP10_HOME}/
 
   # Fix permissions
   echo "Fix permissions.."
@@ -316,20 +308,24 @@ bootstrap() {
   LEVELDB_HOME_ESCAPED=$(echo ${LEVELDB_HOME_ESCAPED} | sed 's/\&/\\&/g' )    # Escape &
   LEVELDB_HOME_ESCAPED=$(echo ${LEVELDB_HOME_ESCAPED} | sed 's/|/\\|/g' )     # Escape | (separator for sed)
 
-  sed -i -e 's|^standalone\.home.*|standalone.home = '${WARP10_HOME_ESCAPED}'|' ${WARP10_HOME}/templates/conf-standalone.template
+  # Copy the template configuration file
+  for file in ${WARP10_HOME}/conf.templates/standalone/*.template
+  do
+    filename=`basename $file`
+    cp "${file}" ${WARP10_CONFIG_DIR}/${filename%.template}
+  done
+
+  sed -i -e 's|^standalone\.home.*|standalone.home = '${WARP10_HOME_ESCAPED}'|' ${WARP10_CONFIG_DIR}/*
   sed -i -e 's|^\(\s\{0,100\}\)WARP10_HOME=/opt/warp10-.*|\1WARP10_HOME='${WARP10_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
   sed -i -e 's|^\(\s\{0,100\}\)LEVELDB_HOME=${WARP10_HOME}/leveldb|\1LEVELDB_HOME='${LEVELDB_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
 
   sed -i -e 's|warpLog\.File=.*|warpLog.File='${WARP10_HOME_ESCAPED}'/logs/warp10.log|' ${WARP10_HOME}/etc/log4j.properties
   sed -i -e 's|warpscriptLog\.File=.*|warpscriptLog.File='${WARP10_HOME_ESCAPED}'/logs/warpscript.out|' ${WARP10_HOME}/etc/log4j.properties
 
-  # Copy the template configuration file
-  cp ${WARP10_HOME}/templates/conf-standalone.template ${WARP10_CONFIG}
-  chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_CONFIG}
-
   # Generate secrets
-  ${WARP10_HOME}/etc/generate_crypto_key.py > ${WARP10_CONFIG_DIR}/10_secrets.conf
-  chown ${WARP10_USER}:${WARP10_GROUP} ${WARP10_CONFIG_DIR}/10_secrets.conf
+  ${WARP10_HOME}/etc/generate_crypto_key.py ${WARP10_SECRETS}
+  chown -R ${WARP10_USER}:${WARP10_GROUP} ${WARP10_CONFIG_DIR}
+
 
   getConfigFiles
 
@@ -373,17 +369,18 @@ start() {
   fi
 
   #
-  # Config file exists ?
-  #
-  if [ ! -e ${WARP10_CONFIG} ]; then
-    echo "Config file does not exist - Use 'bootstrap' command (it must be run as root)"
-    exit 1
-  fi
-
-  #
   # Get all configurations files
   #
   getConfigFiles
+
+  #
+  # Config file exists ?
+  #
+  if [[ -z "${CONFIG_FILES}" ]]; then
+    echo "Config file does not exist - Use 'bootstrap' command before the very first launch (it must be run as root)"
+    echo "WARNING: Since version 2.1.0, Warp 10 can use multiple configuration files. The files have to be present in ${WARP10_CONFIG_DIR}"
+    exit 1
+  fi
 
   LEVELDB_HOME="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} 'leveldb.home' | grep 'leveldb.home' | sed -e 's/^.*=//'`"
 
@@ -411,28 +408,6 @@ start() {
   WARP10_LISTENSTO="${WARP10_LISTENSTO_HOST}:${WARP10_LISTENSTO_PORT}"
 
   #
-  # Check if Warp10 WarpStudio plugin is defined
-  #
-  WARPSTUDIO_PLUGIN="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} 'warp10.plugin.warpstudio' | grep ${WARPSTUDIO_PLUGIN_NAME}`"
-
-  if [ "$WARPSTUDIO_PLUGIN" != "" ]; then
-    if [ "$IS_JAVA7" = false ]; then
-      IS_WARPSTUDIO_STARTED=true
-      # Add WarpStudio to WARP10_CP
-      WARP10_CP=${WARPSTUDIO_PLUGIN_JAR}:${WARP10_CP}
-      WARPSTUDIO_LISTENSTO_HOST="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} 'warpstudio.host' | grep 'warpstudio.host' | sed -e 's/^.*=//'`"
-      WARPSTUDIO_LISTENSTO_PORT="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} 'warpstudio.port' | grep 'warpstudio.port' | sed -e 's/^.*=//'`"
-      WARPSTUDIO_LISTENSTO="${WARPSTUDIO_LISTENSTO_HOST}:${WARPSTUDIO_LISTENSTO_PORT}"
-    else
-      echo "Start failed! - WarpStudio is only Java 1.8+ compliant - To start Warp 10 with Java7 comment out WarpStudio plugin in the Warp config file"
-      exit 1
-    fi
-  else
-    IS_WARPSTUDIO_STARTED=false
-    # Do not add WarpStudio to WARP10_CP
-  fi
-
-  #
   # Start Warp10 instance..
   #
   ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${CONFIG_FILES} >> ${WARP10_HOME}/logs/warp10.log 2>&1 &
@@ -441,7 +416,7 @@ start() {
 
   isStarted
   if [ $? -eq 1 ]; then
-    echo "Start failed! - See warp10.log and warplog.log for more details"
+    echo "Start failed! - See ${WARP10_HOME}/logs/warp10.log for more details"
     exit 1
   fi
 
@@ -455,10 +430,6 @@ start() {
   echo "##"
   echo "## Warp 10 listens on ${WARP10_LISTENSTO}"
   echo "##"
-  if [ "$IS_WARPSTUDIO_STARTED" = true ]; then
-    echo "## WarpStudio listens on ${WARPSTUDIO_LISTENSTO}"
-    echo "##"
-  fi
 
   if [ -e ${FIRSTINIT_FILE} ]; then
 
@@ -487,12 +458,6 @@ start() {
     echo "##"
     echo "##   curl http://${WARP10_LISTENSTO}/api/v0/exec --data-binary @path/to/WarpScriptFile"
     echo "##"
-    if [ "$IS_WARPSTUDIO_STARTED" = true ]; then
-      echo "## The alternative to command-line interaction is WarpStudio, a web application to interact with the platform in an user-friendly way:"
-      echo "##"
-      echo "##   http://${WARPSTUDIO_LISTENSTO}"
-      echo "##"
-    fi
     rm -f ${FIRSTINIT_FILE}
 
   fi
@@ -501,7 +466,7 @@ start() {
   sleep 5
   isStarted
   if [ $? -eq 1 ]; then
-    echo "Start failed! - See warp10.log and warplog.log for more details"
+    echo "Start failed! - See ${WARP10_HOME}/logs/warp10.log for more details"
     exit 1
   fi
 
@@ -568,7 +533,7 @@ worf() {
     echo "Usage: $0 $1 appName ttl(ms)"
     exit 1
   fi
-  ${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -puidg -t -a $2 -ttl $3
+  ${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_SECRETS} -puidg -t -a $2 -ttl $3
 }
 
 repair() {
