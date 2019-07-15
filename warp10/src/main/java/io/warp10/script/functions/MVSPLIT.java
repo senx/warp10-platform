@@ -129,7 +129,8 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
     }
     
     TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
-    GTSWrapper wrapper = null;
+    GTSWrapper wrapper = new GTSWrapper();
+
     Map<Long,GTSEncoder> encoders = new HashMap<Long, GTSEncoder>();
 
     List<List<GTSEncoder>> outputs = new ArrayList<List<GTSEncoder>>(inputs.size());
@@ -172,7 +173,7 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
             // If the value is a byte array or STRING, attempt to deserialize it
             if (value instanceof byte[]) {
               try {
-                wrapper = new GTSWrapper();
+                wrapper.clear();
                 deser.deserialize(wrapper, (byte[]) value);
                 value = wrapper;
               } catch (TException te) {            
@@ -180,7 +181,7 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
             } else if (value instanceof String) {
               try {
                 byte[] bytes = value.toString().getBytes(Charsets.ISO_8859_1);
-                wrapper = new GTSWrapper();
+                wrapper.clear();
                 deser.deserialize(wrapper, bytes);
                 value = wrapper;
               } catch (TException te) {   
@@ -196,7 +197,7 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
             if (value instanceof String) {
               try {
                 byte[] bytes = value.toString().getBytes(Charsets.ISO_8859_1);
-                wrapper = new GTSWrapper();
+                wrapper.clear();
                 deser.deserialize(wrapper, bytes);
                 value = wrapper;
               } catch (TException te) {   
