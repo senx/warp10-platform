@@ -90,7 +90,7 @@ public class MVEXTRACT extends ElementOrListStackFunction implements ElementStac
     int idx = -1;
         
     TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
-    GTSWrapper wrapper = new GTSWrapper();
+    GTSWrapper wrapper = null;
 
     while(true) {
       
@@ -112,6 +112,7 @@ public class MVEXTRACT extends ElementOrListStackFunction implements ElementStac
         values.add(elt(decoder, gts, idx, value));
       } else if (value instanceof byte[]) {
         try {
+          wrapper = new GTSWrapper();
           deser.deserialize(wrapper, (byte[]) value);
           if (ELEMENT.VALUE == this.elementType) {
             values.add(mvextract(GTSWrapperHelper.fromGTSWrapperToGTSEncoder(wrapper)));
@@ -134,6 +135,7 @@ public class MVEXTRACT extends ElementOrListStackFunction implements ElementStac
           // Attempt to decode a Wrapper
           try {
             byte[] bytes = value.toString().getBytes(Charsets.ISO_8859_1);
+            wrapper = new GTSWrapper();
             deser.deserialize(wrapper, bytes);
             if (ELEMENT.VALUE == this.elementType) {
               values.add(mvextract(GTSWrapperHelper.fromGTSWrapperToGTSEncoder(wrapper)));

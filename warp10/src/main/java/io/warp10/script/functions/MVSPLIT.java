@@ -129,13 +129,12 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
     }
     
     TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
-    GTSWrapper wrapper = new GTSWrapper();
+    GTSWrapper wrapper = null;
     Map<Long,GTSEncoder> encoders = new HashMap<Long, GTSEncoder>();
 
     List<List<GTSEncoder>> outputs = new ArrayList<List<GTSEncoder>>(inputs.size());
     
     for (Object input: inputs) {
-
       boolean isencoder = false;
       
       GTSDecoder decoder = null;
@@ -173,6 +172,7 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
             // If the value is a byte array or STRING, attempt to deserialize it
             if (value instanceof byte[]) {
               try {
+                wrapper = new GTSWrapper();
                 deser.deserialize(wrapper, (byte[]) value);
                 value = wrapper;
               } catch (TException te) {            
@@ -180,6 +180,7 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
             } else if (value instanceof String) {
               try {
                 byte[] bytes = value.toString().getBytes(Charsets.ISO_8859_1);
+                wrapper = new GTSWrapper();
                 deser.deserialize(wrapper, bytes);
                 value = wrapper;
               } catch (TException te) {   
@@ -195,13 +196,14 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
             if (value instanceof String) {
               try {
                 byte[] bytes = value.toString().getBytes(Charsets.ISO_8859_1);
+                wrapper = new GTSWrapper();
                 deser.deserialize(wrapper, bytes);
                 value = wrapper;
               } catch (TException te) {   
               }          
             }
           }
-          
+
           if (value instanceof GTSWrapper) {
             GTSDecoder deco = GTSWrapperHelper.fromGTSWrapperToGTSDecoder(wrapper);
             
