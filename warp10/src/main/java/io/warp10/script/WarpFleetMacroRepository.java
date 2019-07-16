@@ -136,8 +136,8 @@ public class WarpFleetMacroRepository {
       return null;
     }
     
-    // Reject names with relative path components in them
-    if (name.contains("/../") || name.contains("/./") || name.startsWith("../") || name.startsWith("./")) {
+    // Reject names with relative path components in them or starting with '/'
+    if (name.contains("/../") || name.contains("/./") || name.startsWith("../") || name.startsWith("./") || name.startsWith("/")) {
       return null;
     }
     
