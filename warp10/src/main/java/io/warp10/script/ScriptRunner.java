@@ -574,11 +574,13 @@ public class ScriptRunner extends Thread {
               
               Matcher m = VAR.matcher(line);
 
+              StringBuilder sb = new StringBuilder();
+              
               while(m.matches()) {
                 String pre = m.group(1);
                 String post = m.group(3);
                 String var = m.group(2);
-                String def = "";
+                String def = null;
                 
                 if (var.contains(":")) {                  
                   def = var.replaceAll("^.*:", "");
@@ -604,11 +606,26 @@ public class ScriptRunner extends Thread {
                   value = def;
                 }
                 
-                line = pre + value + post;
+                sb.append(line);
+                
+                if (null != value) {
+                  sb.append(value);
+                } else {
+                  sb.append("${");
+                  sb.append(var);
+                  sb.append("}");
+                }
+                
+                line = post;
                 
                 m.reset(line);
+                
+                if (!m.matches()) {
+                  sb.append(post);
+                  line = sb.toString();
+                }
               }
-              
+
               out.write(line.getBytes(Charsets.UTF_8));
             }
 

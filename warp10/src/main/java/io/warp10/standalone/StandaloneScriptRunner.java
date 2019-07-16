@@ -186,11 +186,13 @@ public class StandaloneScriptRunner extends ScriptRunner {
             // Remove the file extension
             rawpath = rawpath.substring(0, rawpath.length() - 4);
 
+            StringBuilder sb = new StringBuilder();
+            
             while(m.matches()) {
               String pre = m.group(1);
               String post = m.group(3);
               String var = m.group(2);
-              String def = "";
+              String def = null;
                 
               if (var.contains(":")) {                  
                 def = var.replaceAll("^.*:", "");
@@ -216,9 +218,24 @@ public class StandaloneScriptRunner extends ScriptRunner {
                 value = def;
               }
                 
-              mc2 = pre + value + post;
+              sb.append(pre);
               
-                m.reset(mc2);
+              if (null != value) {
+                sb.append(value);
+              } else {
+                sb.append("${");
+                sb.append(var);
+                sb.append("}");
+              }
+              
+              mc2 = post;
+              
+              m.reset(mc2);
+              
+              if (!m.matches()) {
+                sb.append(post);
+                mc2 = sb.toString();
+              }
             }
               
             stack.execMulti(mc2);
