@@ -75,19 +75,19 @@ public class REDUCE extends NamedWarpScriptFunction implements WarpScriptStackFu
     }
 
     if (null != params.get(labelsIndex) && !(params.get(labelsIndex) instanceof Collection<?>)) {
-      throw new WarpScriptException(getName() + " expects a list of label names or null as parameter number" + labelsIndex + 1 + ".");
+      throw new WarpScriptException(getName() + " expects a list of label names or null as parameter number " + (labelsIndex + 1) + ".");
     } else {
       if (null != params.get(labelsIndex)) {
         for (Object o: ((Collection<?>) params.get(labelsIndex))) {
           if (!(o instanceof String)) {
-            throw new WarpScriptException(getName() + " expects a list of label names as parameter number" + labelsIndex + 1 + ".");
+            throw new WarpScriptException(getName() + " expects a list of label names as parameter number " + (labelsIndex + 1) + ".");
           }
         }        
       }
     }
       
     if (!(params.get(reducerIndex) instanceof WarpScriptReducerFunction)) {
-      throw new WarpScriptException(getName() + " expects a function as parameter number" + reducerIndex + 1 + ".");
+      throw new WarpScriptException(getName() + " expects a function as parameter number " + (reducerIndex + 1) + ".");
     }
 
     Collection<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
