@@ -49,6 +49,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
@@ -118,6 +120,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
   
   private final String datalogId;
   
+  private final boolean logShardKey;
+  
   private final boolean logforwarded;
   
   private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
@@ -169,9 +173,15 @@ public class StandaloneIngressHandler extends AbstractHandler {
         datalogId = new String(OrderPreservingBase64.encode(id.getBytes(Charsets.UTF_8)), Charsets.US_ASCII);
       }
       
+      if ("false".equals(WarpConfig.getProperty(Configuration.DATALOG_LOGSHARDKEY))) {
+        logShardKey = false;
+      } else {
+        logShardKey = true;
+      }
     } else {
       loggingDir = null;
       datalogId = null;
+      logShardKey = false;
     }
 
     String pskDir = WarpConfig.getProperty(Configuration.DATALOG_PSK);
@@ -293,8 +303,12 @@ public class StandaloneIngressHandler extends AbstractHandler {
       
       File loggingFile = null;   
       PrintWriter loggingWriter = null;
+
+      long shardkey = 0L;
       FileDescriptor loggingFD = null;
       
+      boolean hasDatapoints = false;
+
       try {      
         if (null == producer || null == owner) {
           response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
@@ -464,7 +478,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
             // Write request
             //
             
-            loggingWriter.println(new String(encoded, Charsets.US_ASCII));          
+            loggingWriter.println("#" + new String(encoded, Charsets.US_ASCII));          
           }
           
           //
@@ -490,7 +504,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
         //
         
         boolean lastHadAttributes = false;
-        
+                
         do {
         
           if (parseAttributes) {
@@ -568,8 +582,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
               //nano6 += System.nanoTime() - nano0;
               this.directoryClient.register(metadata);
               //nano5 += System.nanoTime() - nano0;
+              
+              // Extract shardkey 128BITS
+              // Shard key is 48 bits, 24 upper from the class Id and 24 lower from the labels Id
+              shardkey =  (GTSHelper.classId(classKeyLongs, encoder.getMetadata().getName()) & 0xFFFFFF000000L) | (GTSHelper.labelsId(labelsKeyLongs, encoder.getMetadata().getLabels()) & 0xFFFFFFL);
             }
-
             
             if (null != lastencoder) {
               this.storeClient.store(lastencoder);
@@ -608,7 +625,12 @@ public class StandaloneIngressHandler extends AbstractHandler {
           //
           
           if (null != loggingWriter) {
-            loggingWriter.println(line);            
+            if (this.logShardKey && '=' != line.charAt(0)) {
+              loggingWriter.print("#K");
+              loggingWriter.println(shardkey);
+            }                         
+            loggingWriter.println(line);
+            hasDatapoints = true;
           }
         } while (true); 
         
@@ -655,8 +677,21 @@ public class StandaloneIngressHandler extends AbstractHandler {
             loggingWriter.flush();
             loggingFD.sync();
           }
+
           loggingWriter.close();
-          loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+          
+          // Create hard links when multiple datalog forwarders are configured
+          if (hasDatapoints) {
+            for (Path srcDir: Warp.getDatalogSrcDirs()) {
+              try {
+                Files.createLink(new File(srcDir.toFile(), loggingFile.getName() + DatalogForwarder.DATALOG_SUFFIX).toPath(), loggingFile.toPath());              
+              } catch (Exception e) {
+                throw new RuntimeException("Encountered an error while attempting to link " + loggingFile + " to " + srcDir);
+              }
+            }            
+          }
+          //loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+          loggingFile.delete();
         }
 
         //
@@ -931,7 +966,16 @@ public class StandaloneIngressHandler extends AbstractHandler {
           Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
 
           loggingWriter.close();
-          loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+          // Create hard links when multiple datalog forwarders are configured
+          for (Path srcDir: Warp.getDatalogSrcDirs()) {
+            try {
+              Files.createLink(new File(srcDir.toFile(), loggingFile.getName() + DatalogForwarder.DATALOG_SUFFIX).toPath(), loggingFile.toPath());              
+            } catch (Exception e) {
+              throw new RuntimeException("Encountered an error while attempting to link " + loggingFile + " to " + srcDir);
+            }
+          }
+          //loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+          loggingFile.delete();
         }
         this.directoryClient.register(null);
       }

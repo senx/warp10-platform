@@ -35,6 +35,7 @@ import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
@@ -48,6 +49,8 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.math.BigInteger;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -100,10 +103,14 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
   private final long maxValueSize;
   
   private final String datalogId;
+  private final boolean logShardKey;
   private final byte[] datalogPSK;
   private final boolean datalogSync;
   private final File loggingDir;
   
+  private final long[] classKeyLongs;
+  private final long[] labelsKeyLongs;
+
   private final boolean updateActivity;
   private final boolean parseAttributes;
   
@@ -203,6 +210,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
           PrintWriter loggingWriter = null;
           FileDescriptor loggingFD = null;
           DatalogRequest dr = null;
+
+          long shardkey = 0L;
           
           try {
             GTSEncoder lastencoder = null;
@@ -251,7 +260,16 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                     loggingFD.sync();
                   }
                   loggingWriter.close();
-                  loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+                  // Create hard links when multiple datalog forwarders are configured
+                  for (Path srcDir: Warp.getDatalogSrcDirs()) {
+                    try {
+                      Files.createLink(new File(srcDir.toFile(), loggingFile.getName() + DatalogForwarder.DATALOG_SUFFIX).toPath(), loggingFile.toPath());              
+                    } catch (Exception e) {
+                      throw new RuntimeException("Encountered an error while attempting to link " + loggingFile + " to " + srcDir);
+                    }
+                  }
+                  //loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+                  loggingFile.delete();
                   loggingFile = null;
                   loggingWriter = null;
                 }
@@ -367,12 +385,16 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                   
                   metadata.setSource(Configuration.INGRESS_METADATA_SOURCE);
                   this.handler.directoryClient.register(metadata);
+                  
+                  // Extract shardkey 128BITS
+                  // Shard key is 48 bits, 24 upper from the class Id and 24 lower from the labels Id
+                  shardkey =  (GTSHelper.classId(this.handler.classKeyLongs, encoder.getMetadata().getName()) & 0xFFFFFF000000L) | (GTSHelper.labelsId(this.handler.labelsKeyLongs, encoder.getMetadata().getLabels()) & 0xFFFFFFL);
                 }
 
                 if (null != lastencoder) {
                   // 128BITS
-                  lastencoder.setClassId(GTSHelper.classId(this.handler.keyStore.getKey(KeyStore.SIPHASH_CLASS), lastencoder.getName()));
-                  lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.keyStore.getKey(KeyStore.SIPHASH_LABELS), lastencoder.getLabels()));
+                  lastencoder.setClassId(GTSHelper.classId(this.handler.classKeyLongs, lastencoder.getName()));
+                  lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.labelsKeyLongs, lastencoder.getLabels()));
                   this.handler.storeClient.store(lastencoder);
                   count += lastencoder.getCount();
                   
@@ -408,6 +430,10 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               }
               
               if (null != loggingWriter) {
+                if (this.handler.logShardKey && '=' != line.charAt(0)) {
+                  loggingWriter.print("#K");
+                  loggingWriter.println(shardkey);
+                }                         
                 loggingWriter.println(line);
               }
             } while (true); 
@@ -426,8 +452,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
               ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
 
-              lastencoder.setClassId(GTSHelper.classId(this.handler.keyStore.getKey(KeyStore.SIPHASH_CLASS), lastencoder.getName()));
-              lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.keyStore.getKey(KeyStore.SIPHASH_LABELS), lastencoder.getLabels()));
+              lastencoder.setClassId(GTSHelper.classId(this.handler.classKeyLongs, lastencoder.getName()));
+              lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.labelsKeyLongs, lastencoder.getLabels()));
               this.handler.storeClient.store(lastencoder);
               count += lastencoder.getCount();
               
@@ -448,7 +474,16 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
 
               loggingWriter.close();
-              loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+              // Create hard links when multiple datalog forwarders are configured
+              for (Path srcDir: Warp.getDatalogSrcDirs()) {
+                try {
+                  Files.createLink(new File(srcDir.toFile(), loggingFile.getName() + DatalogForwarder.DATALOG_SUFFIX).toPath(), loggingFile.toPath());              
+                } catch (Exception e) {
+                  throw new RuntimeException("Encountered an error while attempting to link " + loggingFile + " to " + srcDir);
+                }
+              }
+              //loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+              loggingFile.delete();
               loggingFile = null;
               loggingWriter = null;
             }
@@ -512,8 +547,6 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
       this.sensisionLabels.clear();
       this.sensisionLabels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
 
-      long count = 0;
-      
       if (null == producer || null == owner) {
         throw new IOException("Invalid token.");
       }
@@ -547,6 +580,10 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     super(StandaloneStreamUpdateWebSocket.class);
 
     this.keyStore = keystore;
+    
+    this.classKeyLongs = SipHashInline.getKey(this.keyStore.getKey(KeyStore.SIPHASH_CLASS));    
+    this.labelsKeyLongs = SipHashInline.getKey(this.keyStore.getKey(KeyStore.SIPHASH_LABELS));
+
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
     this.properties = properties;
@@ -556,6 +593,12 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     
     this.parseAttributes = "true".equals(properties.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
     
+    if ("false".equals(properties.getProperty(Configuration.DATALOG_LOGSHARDKEY))) {
+      logShardKey = false;
+    } else {
+      logShardKey = true;
+    }
+
     if (properties.containsKey(Configuration.DATALOG_DIR)) {
       File dir = new File(properties.getProperty(Configuration.DATALOG_DIR));
       

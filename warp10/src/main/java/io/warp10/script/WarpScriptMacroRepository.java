@@ -326,6 +326,11 @@ public class WarpScriptMacroRepository extends Thread {
       return null;
     }
     
+    // Reject names with relative path components in them or starting with '/'
+    if (name.contains("/../") || name.contains("/./") || name.startsWith("../") || name.startsWith("./") || name.startsWith("/")) {
+      return null;
+    }
+
     // Name should contain "/" as macros should reside under a subdirectory
     if (!name.contains("/")) {
       return null;

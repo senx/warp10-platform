@@ -29,7 +29,7 @@ buildscript {
 }
 
 plugins {
-    id "com.jfrog.bintray" version "1.4"
+    id "com.jfrog.bintray" version "1.8.4"
     id "com.selesse.git.changelog" version "0.2.0"
 }
 
@@ -73,8 +73,6 @@ subprojects {
         warp10Version['hbaseFilters'] = commonVersion
         warp10Version['crypto'] = commonVersion
         warp10Version['token'] = commonVersion
-
-        quantumVersion = '3.0.7'
 
         stagingUser = project.hasProperty('stagingUser') ? project.property('stagingUser') : System.getenv('STAGING_USER')
         stagingURL = project.hasProperty('stagingURL') ? project.property('stagingURL') : System.getenv('STAGING_URL')

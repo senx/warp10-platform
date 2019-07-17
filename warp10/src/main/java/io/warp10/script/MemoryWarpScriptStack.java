@@ -1250,9 +1250,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     } else if (WarpScriptStack.ATTRIBUTE_MACRO_NAME.equals(key)) {
       this.macroName = value.toString();
     } else if (WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE.equals(key)) {
-      if (null != value) {
-        this.progressable = (Progressable) value;
-      }
+      // value is not null because it was checked on first line
+      this.progressable = (Progressable) value;
     }
 
     return this.attributes.put(key, value);

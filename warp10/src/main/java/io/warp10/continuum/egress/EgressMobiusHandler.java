@@ -95,13 +95,10 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
           return -1;
         }
       } else if (null == deadline2) {
-        if (null == deadline1) {
-          return 0;
-        } else {
-          return 1;
-        }
+        // we also have null != deadline1
+        return 1;
       } else {
-        return Long.signum((long) deadline1 - (long) deadline2);
+        return Long.compare(deadline1, deadline2);
       }
     }      
   };

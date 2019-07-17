@@ -374,6 +374,7 @@ public class WarpScriptLib {
   public static final String RUN = "RUN";
   public static final String BOOTSTRAP = "BOOTSTRAP";
   public static final String NOOP = "NOOP";
+  public static final String JSONTO = "JSON->";
   
   public static final String MAP_START = "{";
   public static final String MAP_END = "}";
@@ -818,6 +819,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOENCODER("->ENCODER"));
     addNamedWarpScriptFunction(new ENCODERTO("ENCODER->"));
     addNamedWarpScriptFunction(new TOGTS("->GTS"));
+    addNamedWarpScriptFunction(new TOENCODERS("->ENCODERS"));
     addNamedWarpScriptFunction(new OPTIMIZE("OPTIMIZE"));
     addNamedWarpScriptFunction(new NEWGTS(NEWGTS));
     addNamedWarpScriptFunction(new MAKEGTS("MAKEGTS"));
@@ -960,14 +962,24 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TICKLIST("TICKLIST"));
     addNamedWarpScriptFunction(new COMMONTICKS("COMMONTICKS"));
     addNamedWarpScriptFunction(new WRAP("WRAP"));
-    addNamedWarpScriptFunction(new WRAPRAW("WRAPRAW"));
-    addNamedWarpScriptFunction(new WRAPRAW("WRAPFAST", false, false));
+    addNamedWarpScriptFunction(new WRAP("WRAPRAW", false, true, true));
+    addNamedWarpScriptFunction(new WRAP("WRAPFAST", false, false, true));
     addNamedWarpScriptFunction(new WRAP("WRAPOPT", true));
-    addNamedWarpScriptFunction(new WRAPRAW("WRAPRAWOPT", true));
+    addNamedWarpScriptFunction(new WRAP("WRAPRAWOPT", true, true, true));
     addNamedWarpScriptFunction(new UNWRAP(UNWRAP));
     addNamedWarpScriptFunction(new UNWRAP("UNWRAPEMPTY", true));
     addNamedWarpScriptFunction(new UNWRAPSIZE("UNWRAPSIZE"));
     addNamedWarpScriptFunction(new UNWRAPENCODER(UNWRAPENCODER));
+    addNamedWarpScriptFunction(new WRAP("WRAPMV", true, true, true, true));
+    addNamedWarpScriptFunction(new TOMVSTRING("->MVSTRING"));
+    addNamedWarpScriptFunction(new MVSPLIT("MVTICKSPLIT", true));
+    addNamedWarpScriptFunction(new MVSPLIT("MVINDEXSPLIT", false));
+    addNamedWarpScriptFunction(new MVEXTRACT("MVVALUES", MVEXTRACT.ELEMENT.VALUE));
+    addNamedWarpScriptFunction(new MVEXTRACT("MVLOCATIONS", MVEXTRACT.ELEMENT.LATLON));
+    addNamedWarpScriptFunction(new MVEXTRACT("MVELEVATIONS", MVEXTRACT.ELEMENT.ELEVATION));
+    addNamedWarpScriptFunction(new MVEXTRACT("MVTICKS", MVEXTRACT.ELEMENT.TICK));
+    addNamedWarpScriptFunction(new MVEXTRACT("MVHHCODES", MVEXTRACT.ELEMENT.LOCATION));
+    addNamedWarpScriptFunction(new PARSEVALUE("PARSEVALUE"));
     
     //
     // Outlier detection
@@ -1597,12 +1609,12 @@ public class WarpScriptLib {
       }
     }
     
-    for (Object key: props.keySet()) {
-      if (!key.toString().startsWith(Configuration.CONFIG_WARPSCRIPT_EXTENSION_PREFIX)) {
+    for (String key: props.stringPropertyNames()) {
+      if (!key.startsWith(Configuration.CONFIG_WARPSCRIPT_EXTENSION_PREFIX)) {
         continue;
       }
       
-      ext.add(props.get(key).toString().trim());
+      ext.add(props.getProperty(key).trim());
     }
     
     // Sort the extensions

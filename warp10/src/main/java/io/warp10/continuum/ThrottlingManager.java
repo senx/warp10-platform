@@ -85,7 +85,7 @@ public class ThrottlingManager {
   /**
    * Minimal limit (1 per hour) because 0 is not acceptable by RateLimiter.
    */
-  public static double MINIMUM_RATE_LIMIT = 1.0D/3600.0D;
+  public static final double MINIMUM_RATE_LIMIT = 1.0D/3600.0D;
   
   /**
    * Default rate of datapoints per second per producer.

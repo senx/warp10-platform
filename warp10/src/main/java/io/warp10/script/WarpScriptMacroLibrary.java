@@ -194,7 +194,13 @@ public class WarpScriptMacroLibrary {
     }
   }
   
-  public static Macro find(String name) throws WarpScriptException {    
+  public static Macro find(String name) throws WarpScriptException { 
+    
+    // Reject names with relative path components in them or starting with '/'
+    if (name.contains("/../") || name.contains("/./") || name.startsWith("../") || name.startsWith("./") || name.startsWith("/")) {
+      return null;
+    }
+
     Macro macro = (Macro) macros.get(name);
     
     //

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -30,36 +30,45 @@ import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 
 /**
- * Wrap a GTS into a GTSWrapper
+ * Wrap GTS or Encoders into GTSWrappers
  */
 public class WRAP extends ElementOrListStackFunction {
 
   private final boolean opt;
   private final boolean compress;
+  private final boolean raw;
+  private final boolean mv;
+  
   private final ElementStackFunction function;
 
   public WRAP(String name) {
-    this(name, false);
+    this(name, false, true, false, false);
   }
 
   public WRAP(String name, boolean opt) {
-    super(name);
-    this.opt = opt;
-    this.compress = true;
-
-    function = generateFunctionOnce();
+    this(name, opt, true, false, false);
   }
 
   public WRAP(String name, boolean opt, boolean compress) {
+    this(name, opt, compress, false, false);
+  }
+  
+  public WRAP(String name, boolean opt, boolean compress, boolean raw) {
+    this(name, opt, compress, raw, false);
+  }
+
+  public WRAP(String name, boolean opt, boolean compress, boolean raw, boolean mv) {
     super(name);
     this.opt = opt;
     this.compress = compress;
-
+    this.raw = raw;
+    this.mv = mv;
+    
     if (this.opt && !this.compress) {
       throw new RuntimeException("Invalid combination of opt and compress.");
     }
 
-    function = generateFunctionOnce();
+    function = generateFunctionOnce();    
   }
 
   private ElementStackFunction generateFunctionOnce() {
@@ -80,15 +89,25 @@ public class WRAP extends ElementOrListStackFunction {
             wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper((GTSEncoder) element, compress);
           }
         } else {
-          throw new WarpScriptException(getName() + " expects a Geo Time Series of a GTSEncoder or a list on top of the stack");
+          throw new WarpScriptException(getName() + " expects a Geo Time Series™ of a GTSEncoder or a list on top of the stack");
         }
 
+        if (mv) {
+          // Remove metadata and count
+          wrapper.unsetMetadata();
+          wrapper.unsetCount();
+        }
+        
         TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
 
         try {
           byte[] bytes = serializer.serialize(wrapper);
 
-          return new String(OrderPreservingBase64.encode(bytes), Charsets.US_ASCII);
+          if (raw) {
+            return bytes;
+          } else {
+            return new String(OrderPreservingBase64.encode(bytes), Charsets.US_ASCII);
+          }
         } catch (TException te) {
           throw new WarpScriptException(getName() + " failed to wrap GTS.", te);
         }

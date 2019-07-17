@@ -191,31 +191,31 @@ public class Constants {
   /**
    * Name of header containing the signature of the token used for the fetch
    */
-  public static String HTTP_HEADER_FETCH_SIGNATURE_DEFAULT = "X-Warp10-Fetch-Signature";
+  public static final String HTTP_HEADER_FETCH_SIGNATURE_DEFAULT = "X-Warp10-Fetch-Signature";
 
   /**
    * Name of header containing the signature of the token used for the update
    */
-  public static String HTTP_HEADER_UPDATE_SIGNATURE_DEFAULT = "X-Warp10-Update-Signature";
+  public static final String HTTP_HEADER_UPDATE_SIGNATURE_DEFAULT = "X-Warp10-Update-Signature";
   
   /**
    * Name of header containing the signature of streaming directory requests
    */
-  public static String HTTP_HEADER_DIRECTORY_SIGNATURE_DEFAULT = "X-Warp10-Directory-Signature";
+  public static final String HTTP_HEADER_DIRECTORY_SIGNATURE_DEFAULT = "X-Warp10-Directory-Signature";
 
   /**
    * Name of header specifying the name of the symbol in which to expose the request headers
    */
-  public static String HTTP_HEADER_EXPOSE_HEADERS_DEFAULT = "X-Warp10-ExposeHeaders";
+  public static final String HTTP_HEADER_EXPOSE_HEADERS_DEFAULT = "X-Warp10-ExposeHeaders";
   
   /**
    * Name of header containing the wrapped Datalog request
    */
-  public static String HTTP_HEADER_DATALOG_DEFAULT = "X-Warp10-Datalog";
+  public static final String HTTP_HEADER_DATALOG_DEFAULT = "X-Warp10-Datalog";
   
-  public static String DATALOG_UPDATE = "UPDATE";
-  public static String DATALOG_META = "META";
-  public static String DATALOG_DELETE = "DELETE";
+  public static final String DATALOG_UPDATE = "UPDATE";
+  public static final String DATALOG_META = "META";
+  public static final String DATALOG_DELETE = "DELETE";
   
   /**
    * Empty column qualifier for HBase writes
