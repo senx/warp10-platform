@@ -62,7 +62,7 @@ public class StandaloneScriptRunner extends ScriptRunner {
 
   private final byte[] runnerPSK;
   
-  private static final Pattern VAR = Pattern.compile("(.*?)\\$\\{([^}]+)\\}(.*)", Pattern.DOTALL);
+  private static final Pattern VAR = Pattern.compile("\\$\\{([^}]+)\\}");
 
   public StandaloneScriptRunner(Properties properties, KeyStore keystore, StoreClient storeClient, DirectoryClient directoryClient, Properties props) throws IOException {
     super(keystore, props);
@@ -186,17 +186,16 @@ public class StandaloneScriptRunner extends ScriptRunner {
             // Remove the file extension
             rawpath = rawpath.substring(0, rawpath.length() - 4);
 
-            StringBuilder sb = new StringBuilder();
+            StringBuffer mc2WithReplacement = new StringBuffer();
             
-            while(m.matches()) {
-              String pre = m.group(1);
-              String post = m.group(3);
-              String var = m.group(2);
-              String def = null;
-                
-              if (var.contains(":")) {                  
-                def = var.replaceAll("^.*:", "");
-                var = var.substring(0, var.length() - def.length() - 1);
+            while(m.find()) {
+              String var = m.group(1);
+              String def = m.group(0);
+
+              int colonIndex = var.indexOf(':');
+              if (colonIndex >= 0) {
+                def = var.substring(colonIndex + 1);
+                var = var.substring(0, colonIndex);
               }
                 
               // Check in the configuration if we can find a matching key, i.e.
@@ -211,34 +210,19 @@ public class StandaloneScriptRunner extends ScriptRunner {
                 if (null != value) {
                   break;
                 }
-                suffix = suffix.replaceFirst("/[^/]+$", "");
+                suffix = suffix.substring(0, suffix.lastIndexOf('/'));
               }
                 
               if (null == value) {
                 value = def;
               }
                 
-              sb.append(pre);
-              
-              if (null != value) {
-                sb.append(value);
-              } else {
-                sb.append("${");
-                sb.append(var);
-                sb.append("}");
-              }
-              
-              mc2 = post;
-              
-              m.reset(mc2);
-              
-              if (!m.matches()) {
-                sb.append(post);
-                mc2 = sb.toString();
-              }
+              m.appendReplacement(mc2WithReplacement, Matcher.quoteReplacement(value));
             }
+
+            m.appendTail(mc2WithReplacement);
               
-            stack.execMulti(mc2);
+            stack.execMulti(mc2WithReplacement.toString());
           } catch (Exception e) {                
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, 1);
           } finally {
