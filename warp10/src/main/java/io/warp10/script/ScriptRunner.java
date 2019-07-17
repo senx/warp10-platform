@@ -197,7 +197,7 @@ public class ScriptRunner extends Thread {
 
   private final boolean runAtStartup;
 
-  private static final Pattern VAR = Pattern.compile("(.*?)\\$\\{([^}]+)\\}(.*)");
+  private static final Pattern VAR = Pattern.compile("\\$\\{([^}]+)\\}");
 
   public ScriptRunner(KeyStore keystore, Properties config) throws IOException {
 
@@ -574,59 +574,43 @@ public class ScriptRunner extends Thread {
               
               Matcher m = VAR.matcher(line);
 
-              StringBuilder sb = new StringBuilder();
-              
-              while(m.matches()) {
-                String pre = m.group(1);
-                String post = m.group(3);
-                String var = m.group(2);
-                String def = null;
-                
-                if (var.contains(":")) {                  
-                  def = var.replaceAll("^.*:", "");
-                  var = var.substring(0, var.length() - def.length() - 1);
+              StringBuffer mc2WithReplacement = new StringBuffer();
+
+              while(m.find()) {
+                String var = m.group(1);
+                String def = m.group(0);
+
+                int colonIndex = var.indexOf(':');
+                if (colonIndex >= 0) {
+                  def = var.substring(colonIndex + 1);
+                  var = var.substring(0, colonIndex);
                 }
-                
+
                 // Check in the configuration if we can find a matching key, i.e.
                 // name@/path/to/script (with the period omitted) or any shorter prefix
                 // of the path, i.e. name@/path/to or name@/path
                 String suffix = rawpath;
-                
+
                 String value = null;
-                
+
                 while (suffix.length() > 1) {
                   value = WarpConfig.getProperty(var + "@" + suffix);
                   if (null != value) {
                     break;
                   }
-                  suffix = suffix.replaceFirst("/[^/]+$", "");
+                  suffix = suffix.substring(0, suffix.lastIndexOf('/'));
                 }
-                
+
                 if (null == value) {
                   value = def;
                 }
-                
-                sb.append(line);
-                
-                if (null != value) {
-                  sb.append(value);
-                } else {
-                  sb.append("${");
-                  sb.append(var);
-                  sb.append("}");
-                }
-                
-                line = post;
-                
-                m.reset(line);
-                
-                if (!m.matches()) {
-                  sb.append(post);
-                  line = sb.toString();
-                }
+
+                m.appendReplacement(mc2WithReplacement, Matcher.quoteReplacement(value));
               }
 
-              out.write(line.getBytes(Charsets.UTF_8));
+              m.appendTail(mc2WithReplacement);
+
+              out.write(mc2WithReplacement.toString().getBytes(Charsets.UTF_8));
             }
 
             br.close();
