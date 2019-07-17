@@ -76,10 +76,10 @@ public class Warp10OutputFormat extends OutputFormat<Writable, Writable> {
     
     Configuration conf = context.getConfiguration();
     
-    props.put(Warp10RecordWriter.WARP10_GZIP, Warp10InputFormat.getProperty(conf, this.suffix, Warp10RecordWriter.WARP10_GZIP, "false"));
-    props.put(Warp10RecordWriter.WARP10_ENDPOINT, Warp10InputFormat.getProperty(conf, this.suffix, Warp10RecordWriter.WARP10_ENDPOINT, ""));
-    props.put(Warp10RecordWriter.WARP10_TOKEN, Warp10InputFormat.getProperty(conf, this.suffix, Warp10RecordWriter.WARP10_TOKEN, ""));
-    props.put(Warp10RecordWriter.WARP10_MAXRATE, Warp10InputFormat.getProperty(conf, this.suffix, Warp10RecordWriter.WARP10_MAXRATE, Long.toString(Long.MAX_VALUE)));
+    props.setProperty(Warp10RecordWriter.WARP10_GZIP, Warp10InputFormat.getProperty(conf, this.suffix, Warp10RecordWriter.WARP10_GZIP, "false"));
+    props.setProperty(Warp10RecordWriter.WARP10_ENDPOINT, Warp10InputFormat.getProperty(conf, this.suffix, Warp10RecordWriter.WARP10_ENDPOINT, ""));
+    props.setProperty(Warp10RecordWriter.WARP10_TOKEN, Warp10InputFormat.getProperty(conf, this.suffix, Warp10RecordWriter.WARP10_TOKEN, ""));
+    props.setProperty(Warp10RecordWriter.WARP10_MAXRATE, Warp10InputFormat.getProperty(conf, this.suffix, Warp10RecordWriter.WARP10_MAXRATE, Long.toString(Long.MAX_VALUE)));
     
     return new Warp10RecordWriter(props);
   }

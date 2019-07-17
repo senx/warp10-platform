@@ -352,8 +352,8 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
       queue = new BlockingArrayQueue<>(Integer.parseInt(properties.getProperty(CONF_HTTP_QUEUESIZE)));
     }
 
-    gzip = !"false".equals(properties.get(CONF_HTTP_GZIP));    
-    lcheaders = "true".equals(properties.get(CONF_HTTP_LCHEADERS));
+    gzip = !"false".equals(properties.getProperty(CONF_HTTP_GZIP));
+    lcheaders = "true".equals(properties.getProperty(CONF_HTTP_LCHEADERS));
     
     Thread t = new Thread(this);
     t.setDaemon(true);
