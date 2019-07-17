@@ -16,11 +16,13 @@
 
 package io.warp10.script;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -46,6 +48,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.thrift.TException;
@@ -61,6 +65,7 @@ import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.framework.recipes.leader.LeaderLatch;
 import com.netflix.curator.retry.RetryNTimes;
 
+import io.warp10.WarpConfig;
 import io.warp10.WarpDist;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.KafkaProducerPool;
@@ -191,6 +196,8 @@ public class ScriptRunner extends Thread {
   private final byte[] runnerPSK;
 
   private final boolean runAtStartup;
+
+  private static final Pattern VAR = Pattern.compile("\\$\\{([^}]+)\\}");
 
   public ScriptRunner(KeyStore keystore, Properties config) throws IOException {
 
@@ -494,8 +501,7 @@ public class ScriptRunner extends Thread {
 
             OutputStream out = conn.getOutputStream();
 
-            byte[] buf = new byte[1024];
-
+ 
             //
             // Push the script parameters
             //
@@ -550,16 +556,65 @@ public class ScriptRunner extends Thread {
               out.write('\n');
             }
 
-            while (true) {
-              int len = in.read(buf);
+            BufferedReader br = new BufferedReader(new InputStreamReader(in));
 
-              if (len < 0) {
+            // Strip the period out of the path and add a leading '/'
+            String rawpath = "/" + path.replaceFirst("/" + Long.toString(periodicity) + "/", "/");
+            // Remove the file extension
+            rawpath = rawpath.substring(0, rawpath.length() - 4);
+            
+            while (true) {
+              String line = br.readLine();
+              
+              if (null == line) {
                 break;
               }
+              
+              // Replace ${name} and ${name:default} constructs
+              
+              Matcher m = VAR.matcher(line);
 
-              out.write(buf, 0, len);
+              StringBuffer mc2WithReplacement = new StringBuffer();
+
+              while(m.find()) {
+                String var = m.group(1);
+                String def = m.group(0);
+
+                int colonIndex = var.indexOf(':');
+                if (colonIndex >= 0) {
+                  def = var.substring(colonIndex + 1);
+                  var = var.substring(0, colonIndex);
+                }
+
+                // Check in the configuration if we can find a matching key, i.e.
+                // name@/path/to/script (with the period omitted) or any shorter prefix
+                // of the path, i.e. name@/path/to or name@/path
+                String suffix = rawpath;
+
+                String value = null;
+
+                while (suffix.length() > 1) {
+                  value = WarpConfig.getProperty(var + "@" + suffix);
+                  if (null != value) {
+                    break;
+                  }
+                  suffix = suffix.substring(0, suffix.lastIndexOf('/'));
+                }
+
+                if (null == value) {
+                  value = def;
+                }
+
+                m.appendReplacement(mc2WithReplacement, Matcher.quoteReplacement(value));
+              }
+
+              m.appendTail(mc2WithReplacement);
+
+              out.write(mc2WithReplacement.toString().getBytes(Charsets.UTF_8));
             }
 
+            br.close();
+            
             // Add a 'CLEAR' at the end of the script so we don't return anything
             out.write(CLEAR);
 
