@@ -164,10 +164,11 @@ isUser() {
 #
 isStarted() {
   # Don't use 'ps -p' for docker compatibility
-  if [ -e ${PID_FILE} ] && ps -Ao pid | grep "^\s*$(cat ${PID_FILE})$" > /dev/null; then
-    return 0
+  if [[ -e ${PID_FILE} ]] && ps -Ao pid | grep "^\s*$(cat ${PID_FILE})$" > /dev/null; then
+    true
+  else
+    false
   fi
-  return 1
 }
 
 CONFIG_FILES=
@@ -416,8 +417,7 @@ start() {
 
   echo $! > ${PID_FILE}
 
-  isStarted
-  if [ $? -eq 1 ]; then
+  if ! isStarted; then
     echo "Start failed! - See ${WARP10_HOME}/logs/warp10.log for more details"
     exit 1
   fi
@@ -466,8 +466,7 @@ start() {
 
   # Check again 5s later (time for plugin load errors)
   sleep 5
-  isStarted
-  if [ $? -eq 1 ]; then
+  if ! isStarted; then
     echo "Start failed! - See ${WARP10_HOME}/logs/warp10.log for more details"
     exit 1
   fi

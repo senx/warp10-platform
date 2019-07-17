@@ -342,14 +342,14 @@ public class Warp extends WarpDist implements Runnable {
       
       if (!"false".equals(properties.getProperty(Configuration.IN_MEMORY_CHUNKED))) {
         scc = new StandaloneChunkedMemoryStore(properties, keystore);
-        ((StandaloneChunkedMemoryStore) scc).setDirectoryClient((StandaloneDirectoryClient) sdc);
+        ((StandaloneChunkedMemoryStore) scc).setDirectoryClient(sdc);
         ((StandaloneChunkedMemoryStore) scc).load();
       } else {
         scc = new StandaloneMemoryStore(keystore,
             Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_DEPTH, Long.toString(60 * 60 * 1000 * Constants.TIME_UNITS_PER_MS))),
             Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_HIGHWATERMARK, "100000")),
             Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_LOWWATERMARK, "80000")));
-        ((StandaloneMemoryStore) scc).setDirectoryClient((StandaloneDirectoryClient) sdc);
+        ((StandaloneMemoryStore) scc).setDirectoryClient(sdc);
         if ("true".equals(properties.getProperty(Configuration.IN_MEMORY_EPHEMERAL))) {
           ((StandaloneMemoryStore) scc).setEphemeral(true);
         }        
@@ -524,6 +524,7 @@ public class Warp extends WarpDist implements Runnable {
       }
       server.start();
     } catch (Exception e) {
+      server.stop();
       throw new RuntimeException(e);
     }
     
