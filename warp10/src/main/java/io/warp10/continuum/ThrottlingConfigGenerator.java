@@ -337,7 +337,9 @@ public class ThrottlingConfigGenerator {
     // Output per producer ThrottlingConfiguration
     //
     
-    for (String key: MADS.keySet()) {
+    for (Map.Entry<String, Long> keyAndMad: MADS.entrySet()) {
+      String key = keyAndMad.getKey();
+      Long mad = keyAndMad.getValue();
       // Skip per application detail for now
       if (key.charAt(0) == '+') {
         continue;
@@ -345,7 +347,7 @@ public class ThrottlingConfigGenerator {
       sb = new StringBuilder();
       sb.append(key);
       sb.append(":");
-      sb.append(MADS.get(key));
+      sb.append(mad);
       sb.append(":");
       if (DPS.containsKey(key)) {
         double rate = DPS.get(key);
@@ -374,7 +376,7 @@ public class ThrottlingConfigGenerator {
           if (l > max) { max = l; }
         }
         
-        if (max - min > 0.10 * max || max > 0.8 * MADS.get(key) || max * 1.25 < HLLP.get(key).cardinality()) {
+        if (max - min > 0.10 * max || max > 0.8 * mad || max * 1.25 < HLLP.get(key).cardinality()) {
           sb.append(new String(OrderPreservingBase64.encode(HLLP.get(key).toBytes()), Charsets.US_ASCII));
         }
       } else {
@@ -453,15 +455,17 @@ public class ThrottlingConfigGenerator {
     }
 
     br.close();
-    
-    for (String key: MADS.keySet()) {
+
+    for (Map.Entry<String, Long> keyAndMad: MADS.entrySet()) {
+      String key = keyAndMad.getKey();
+      Long mad = keyAndMad.getValue();
       if (key.charAt(0) != '+') {
         continue;
       }
       sb = new StringBuilder();
       sb.append(key);
       sb.append(":");
-      sb.append(MADS.get(key));
+      sb.append(mad);
       sb.append(":");
       if (DPS.containsKey(key)) {
         double rate = DPS.get(key);
@@ -489,7 +493,7 @@ public class ThrottlingConfigGenerator {
           if (l > max) { max = l; }
         }
         
-        if (max - min > 0.10 * max || max > 0.8 * MADS.get(key) || max * 1.25 < HLLP.get(key).cardinality()) {
+        if (max - min > 0.10 * max || max > 0.8 * mad || max * 1.25 < HLLP.get(key).cardinality()) {
           sb.append(new String(OrderPreservingBase64.encode(HLLP.get(key).toBytes()), Charsets.US_ASCII));
         }
       } else {

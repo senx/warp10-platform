@@ -1567,13 +1567,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     }
     
     //
-    // Scan the rules, from longest to shortest
+    // Scan the rules, from longest to shortest. We can do that because the underneath implementation
+    // is a TreeMap and TreeMap.entrySet returns the entries in ascending key order.
     //
     
-    List<String> prefixes = new ArrayList<String>(rules.keySet()); 
-    
-    for (String prefix: prefixes) {
-      String substitute = rules.get(prefix);
+    for (Map.Entry<String, String> prefixAndSubstitute: rules.entrySet()) {
+      String prefix = prefixAndSubstitute.getKey();
+      String substitute = prefixAndSubstitute.getValue();
       
       if (symbol.startsWith(prefix)) {
         symbol = substitute + symbol.substring(prefix.length());

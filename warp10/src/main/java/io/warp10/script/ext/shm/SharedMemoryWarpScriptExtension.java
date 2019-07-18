@@ -154,15 +154,14 @@ public class SharedMemoryWarpScriptExtension extends WarpScriptExtension impleme
         LockSupport.parkNanos(Math.min(60000000000L, ttl * 500000L));
         
         synchronized(locks) {
-          Set<String> symbols = new HashSet<String>(shmobjects.keySet());
-          
           long now = System.currentTimeMillis();
           
-          for (String symbol: symbols) {
+          for (Map.Entry<String, Object> symbolAndObject: shmobjects.entrySet()) {
+            String symbol = symbolAndObject.getKey();
             // If SHM Object was not used for more than ttl, clear it
             // if its mutex is not currently held
             if (now - shmobjectUses.get(symbol) > ttl) {
-              ReentrantLock lock = locks.get(shmobjectLocks.get(symbol));
+              ReentrantLock lock = locks.get(symbolAndObject.getValue());
               if (!lock.isLocked()) {
                 shmobjects.remove(symbol);
                 shmobjectLocks.remove(symbol);
@@ -171,14 +170,12 @@ public class SharedMemoryWarpScriptExtension extends WarpScriptExtension impleme
             }
           }
           
-          Set<String> mutices = new HashSet<String>(locks.keySet());
-                    
-          for (String mutex: mutices) {
+          for (Map.Entry<String, ReentrantLock> mutexAndLock: locks.entrySet()) {
+            String mutex = mutexAndLock.getKey();
             // If lock has not been requested for over ttl, it is not associated with any shm object
             // and it is not currently held, clear it.
             if (now - lockUses.get(mutex) > ttl && !shmobjectLocks.containsValue(mutex)) {
-              ReentrantLock lock = locks.get(mutex);
-              if (!lock.isLocked()) {
+              if (!mutexAndLock.getValue().isLocked()) {
                 locks.remove(mutex);
                 lockUses.remove(mutex);                
               }                

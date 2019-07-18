@@ -113,7 +113,8 @@ public class StackUtils {
     } else if (o instanceof Map) {
       out.print("{");
       boolean first = true;
-      for (Object key: ((Map) o).keySet()) {
+      for (Map.Entry keyAndValue: ((Map<?, ?>) o).entrySet()) {
+        Object key = keyAndValue.getKey();
         if (!first) {
           out.print(",");
         }
@@ -124,7 +125,7 @@ public class StackUtils {
           out.print("null");
         }
         out.print(":");
-        objectToJSON(serializer, out, ((Map) o).get(key), recursionLevel, strictJSON);
+        objectToJSON(serializer, out, keyAndValue.getValue(), recursionLevel, strictJSON);
         first = false;
       }
       out.print("}");
