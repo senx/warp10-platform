@@ -42,7 +42,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh './gradlew clean crypto:install token:install build -x test'
+                sh './gradlew clean build -x test'
                 sh 'node changelog.js > CHANGELOG.md'
             }
         }

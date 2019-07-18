@@ -35,7 +35,7 @@ dependencies {
     testCompile 'org.slf4j:slf4j-log4j12:1.7.21'
 
     // WARP10 DEPENDENCIES
-    compile "io.warp10:crypto:${warp10Version['crypto']}"
+    compile project(':crypto')
     compile 'io.warp10:sensision:1.0.17'
 
     compile 'org.apache.thrift:libthrift:0.11.0'
