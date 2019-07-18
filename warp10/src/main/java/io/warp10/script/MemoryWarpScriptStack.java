@@ -1568,7 +1568,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     }
     
     //
-    // Scan the rules, from longest to shortest
+    // Scan the rules, from longest to shortest. We can do that because the underneath implementation
+    // is a TreeMap and TreeMap.entrySet returns the entries in ascending key order.
     //
     
     for (Map.Entry<String, String> prefixAndSubstitute: rules.entrySet()) {

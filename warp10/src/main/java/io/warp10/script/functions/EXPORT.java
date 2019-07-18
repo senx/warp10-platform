@@ -42,7 +42,7 @@ public class EXPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
     
     Set symbols = null;
     
-    if (osymbols instanceof Set) {
+    if (null != osymbols && osymbols instanceof Set) {
       symbols = (Set) osymbols;
     }
     

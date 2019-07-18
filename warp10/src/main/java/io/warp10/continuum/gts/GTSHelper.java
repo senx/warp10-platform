@@ -5083,7 +5083,7 @@ public class GTSHelper {
           } else if (res instanceof Map) {
             stack.drop();
 
-            for (Map.Entry<Object, Object> keyAndValue: ((Map<Object, Object>) res).entrySet()) {
+            for (Map.Entry<?, ?> keyAndValue: ((Map<?, ?>) res).entrySet()) {
               Object[] ores2 = MACROMAPPER.listToObjects((List) keyAndValue.getValue());
               ((Map) res).put(keyAndValue.getKey(), ores2);
             }
@@ -6695,6 +6695,7 @@ public class GTSHelper {
     for (Entry<Map<String, String>, List<GeoTimeSerie>> partitionLabelsAndGtss: partitions.entrySet()) {
       boolean singleGTSResult = false;
 
+      Map<String, String> partitionLabels = partitionLabelsAndGtss.getKey();
       List<GeoTimeSerie> partitionSeries = partitionLabelsAndGtss.getValue();
       
       //

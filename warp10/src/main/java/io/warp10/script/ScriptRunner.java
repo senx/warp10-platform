@@ -406,13 +406,13 @@ public class ScriptRunner extends Thread {
         // If script has no scheduled run yet or should run immediately, select it
         //
         String script = scriptAndPeriod.getKey();
-        Long period = scriptAndPeriod.getValue();
         Long schedule = nextrun.get(script);
 
         if (null == schedule) {
           if (runAtStartup) {
             runnables.add(script);
           } else {
+            Long period = scriptAndPeriod.getValue();
             long schedat = System.currentTimeMillis();
 
             if (0 != schedat % period) {

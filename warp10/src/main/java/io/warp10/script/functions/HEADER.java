@@ -45,7 +45,7 @@ public class HEADER extends NamedWarpScriptFunction implements WarpScriptStackFu
     
     top = stack.pop();
     
-    if (!(top instanceof String)) {
+    if (!(top instanceof String) || null == top) {
       throw new WarpScriptException(getName() + " expects a header name (a string) below the header value.");
     }
         
