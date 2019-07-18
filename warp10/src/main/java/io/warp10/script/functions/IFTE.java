@@ -23,8 +23,6 @@ import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 
-import java.util.List;
-
 /**
  * Implements 'If-Then-Else' conditional
  * 
@@ -46,51 +44,51 @@ public class IFTE extends NamedWarpScriptFunction implements WarpScriptStackFunc
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
-    Object[] macros = new Object[3];
-    macros[0] = stack.pop(); // ELSE-macro
-    macros[1] = stack.pop(); // THEN-macro
-    macros[2] = stack.pop(); // IF-macro
+    Object elseMacro = stack.pop(); // ELSE-macro
+    Object thenMacro = stack.pop(); // THEN-macro
+    Object ifMacro = stack.pop(); // IF-macro
     
     //
-    // Check that what we popped are macros
+    // Check that thenMacro and elseMacro are macros, ifMacro will be checked later
     //
-    
-    for (int i = 0; i < 2; i++) {
-      if (2 == i && !WarpScriptLib.isMacro(macros[i]) && !(macros[i] instanceof Boolean)) {
-        throw new WarpScriptException(getName() + " expects three macros or two macros and a boolean on top of the stack.");
-      } else if (!WarpScriptLib.isMacro(macros[i])) {
-        throw new WarpScriptException(getName() + " expects three macros or two macros and a boolean on top of the stack.");
-      }      
+
+    if (!WarpScriptLib.isMacro(elseMacro) && !WarpScriptLib.isMacro(thenMacro)) {
+      throw new WarpScriptException(getName() + " expects three macros or two macros and a boolean on top of the stack.");
     }
-    
+
     //
     // Execute IF-macro
     //
-    
-    if (WarpScriptLib.isMacro(macros[2])) {
-      stack.exec((Macro) macros[2]);
+
+    boolean ifResult;
+
+    if (WarpScriptLib.isMacro(ifMacro)) {
+      // Execute the IF macro
+      stack.exec((Macro) ifMacro);
+
+      // Check that the top of the stack is a boolean
+      Object top = stack.pop();
+      if (!(top instanceof Boolean)) {
+        throw new WarpScriptException(getName() + " expects its 'IF' macro to leave a boolean on top of the stack.");
+      }
+
+      // Store the result of the macro execution, which is a boolean.
+      ifResult = Boolean.TRUE.equals(top);
+    } else if (ifMacro instanceof Boolean) {
+      // IF is already a boolean, store it.
+      ifResult = Boolean.TRUE.equals(ifMacro);
     } else {
-      stack.push(macros[2]);
+      throw new WarpScriptException(getName() + " expects three macros or two macros and a boolean on top of the stack.");
     }
     
     //
-    // Check that the top of the stack is a boolean
+    // If IF is 'true', execute the THEN-macro, otherwise execute the ELSE-macro
     //
     
-    Object top = stack.pop();
-    
-    if (! (top instanceof Boolean)) {
-      throw new WarpScriptException(getName() + " expects its 'IF' macro to leave a boolean on top of the stack.");
-    }
-    
-    //
-    // If IF-macro left 'true' on top of the stack, execute the THEN-macro, otherwise execute the ELSE-macro
-    //
-    
-    if (Boolean.TRUE.equals(top)) {
-      stack.exec((Macro) macros[1]);
+    if (ifResult) {
+      stack.exec((Macro) thenMacro);
     } else {
-      stack.exec((Macro) macros[0]);
+      stack.exec((Macro) elseMacro);
     }
 
     return stack;
