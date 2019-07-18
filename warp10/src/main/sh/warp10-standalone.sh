@@ -194,17 +194,27 @@ bootstrap() {
 
   # warp10 user ?
   if ! id -u "${WARP10_USER}" >/dev/null 2>&1; then
-    echo "User '${WARP10_USER}'' does not exist - Creating it.."
+    echo "User '${WARP10_USER}' does not exist - Creating it.."
     # Create user warp10
-    if [ "`which useradd`" = "" ]; then
-      if [ "`which adduser`" != "" ]; then
-        adduser -D -s -H -h ${WARP10_HOME} -s /bin/bash ${WARP10_USER}
-      else
-        echo "Cannot create the ${WARP10_USER} user with home directory ${WARP10_HOME}. Create it manually then run the script again."
-        exit 1
+    if [[ $(command -v useradd || true) ]]; then
+      groupadd -f ${WARP10_GROUP}
+      useradd --system --home-dir ${WARP10_HOME} --no-create-home --shell /bin/bash --gid ${WARP10_GROUP} ${WARP10_USER}
+    elif [[ $(command -v adduser || true) ]]; then
+      [[ $(getent group ${WARP10_GROUP}) ]] || addgroup ${WARP10_GROUP}
+      adduser --system --home ${WARP10_HOME} --no-create-home --shell /bin/bash --ingroup ${WARP10_GROUP} ${WARP10_USER}
+    elif [[ $(command -v dscl || true) ]]; then
+      if [[ ! $(grep -q "^${WARP10_GROUP}:" /etc/group || true) ]]; then
+        dscl . -create /Groups/${WARP10_GROUP}
+        dscl . -create /Groups/${WARP10_GROUP} gid 10042
       fi
+      gid=$(dscl . -read /Groups/${WARP10_GROUP} | awk '($1 == "PrimaryGroupID:") { print $2 }')
+      dscl . -create /Users/${WARP10_USER}
+      dscl . -create /Users/${WARP10_USER} UniqueID 10042
+      dscl . -create /Users/${WARP10_USER} PrimaryGroupID ${gid}
+      dscl . -create /Users/${WARP10_USER} UserShell /bin/bash
     else
-      useradd -d ${WARP10_HOME} -M -r ${WARP10_USER} -s /bin/bash
+      echo "Cannot create the ${WARP10_USER} user with home directory ${WARP10_HOME}. Create it manually then run the script again."
+      exit 1
     fi
   fi
 
