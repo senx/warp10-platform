@@ -48,7 +48,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
 
   static {
     //
-    // Here register the extensions you want to included, for example:
+    // Here register the extensions you want to include, for example:
     //
 
     //WarpScriptLib.register(new ForecastExtension());
