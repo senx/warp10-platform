@@ -29,8 +29,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
-import static io.warp10.script.formatted.DocumentationGenerator.generateWarpScriptDoc;
-
 /**
  * Generate initial .mc2 doc files of instances of FormattedWarpScriptFunction
  * Execute this file to perform its Unit tests
@@ -167,7 +165,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
 
         try {
 
-          mc2 = generateWarpScriptDoc((FormattedWarpScriptFunction) function, SINCE, DEPRECATED, DELETED, VERSION,
+          mc2 = DocumentationGenerator.generateWarpScriptDoc((FormattedWarpScriptFunction) function, SINCE, DEPRECATED, DELETED, VERSION,
             tags, related, examples, CONF, output);
 
           boolean caught = false;
