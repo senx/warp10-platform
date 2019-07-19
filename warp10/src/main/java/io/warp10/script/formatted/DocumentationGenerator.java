@@ -28,7 +28,7 @@ import java.util.Map;
 
 import static io.warp10.script.WarpScriptStack.MACRO_END;
 import static io.warp10.script.WarpScriptStack.MACRO_START;
-import static io.warp10.script.functions.SNAPSHOT.addElement;
+import io.warp10.script.functions.SNAPSHOT;
 
 public class DocumentationGenerator {
 
@@ -164,7 +164,6 @@ public class DocumentationGenerator {
                                              List<ArgumentSpecification> outputs) throws WarpScriptException {
 
     StringBuilder mc2 = new StringBuilder();
-    //addElement(mc2, generateInfo(function, since, deprecated, deleted, version, tags, related, examples, conf, outputs));
     customMapSnaphot(mc2, generateInfo(function, since, deprecated, deleted, version, tags, related, examples, conf, outputs), 0);
 
     mc2.append(" 'infomap' STORE" + System.lineSeparator());
@@ -195,10 +194,10 @@ public class DocumentationGenerator {
       customMapSnaphot(sb, (Map<String, Object>) o, indent);
     } else if (o instanceof String) {
       sb.append("'");
-      sb.append((String) o);
+      sb.append(o);
       sb.append("' ");
     } else {
-      addElement(sb, o);
+      SNAPSHOT.addElement(sb, o);
     }
   }
   
@@ -206,7 +205,7 @@ public class DocumentationGenerator {
 
     sb.append(WarpScriptLib.LIST_START);
     sb.append(" ");
-    for (Object oo : o) {
+    for (Object oo: o) {
       customAddElement(sb, oo, indent);
     }
     sb.append(WarpScriptLib.LIST_END);
@@ -218,9 +217,9 @@ public class DocumentationGenerator {
     sb.append(WarpScriptLib.MAP_START);
     sb.append(System.lineSeparator());
     indent = indent + 2;
-    for (Map.Entry<String, Object> entry : o.entrySet()) {
+    for (Map.Entry<String, Object> entry: o.entrySet()) {
       sb.append(StringUtils.repeat(" ", indent));
-      addElement(sb, entry.getKey());
+      SNAPSHOT.addElement(sb, entry.getKey());
       customAddElement(sb, entry.getValue(), indent);
       sb.append(System.lineSeparator());
     }

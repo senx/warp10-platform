@@ -27,7 +27,7 @@ import io.warp10.script.functions.FLATTEN;
 
 public class RESHAPE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  private static final io.warp10.script.functions.FLATTEN FLATTEN = new FLATTEN("FLATTEN");
+  private static final FLATTEN FLATTEN = new FLATTEN("FLATTEN");
   
   public RESHAPE(String name) {
     super(name);
