@@ -58,17 +58,21 @@ public class RunAndGenerateDocumentationWithUnitTests {
   private static List<String> TAGS = new ArrayList<>();
   static {
     //
-    // Tags that are common to all functions for which the documentation is written
+    // Tags that are common to all functions for which the documentation is being written, for example:
     //
 
-    TAGS.add("lists");
-    TAGS.add("tensors");
+    //TAGS.add("lists");
+    //TAGS.add("tensors");
   }
   private static boolean MAKE_FUNCTIONS_RELATED_WITHIN_SAME_PACKAGE = true;
   private static String SINCE = "2.1";
   private static String DEPRECATED = "";
   private static String DELETED = "";
   private static List<String> CONF = new ArrayList<>();
+
+  //
+  // outputs, examples, tags and related are retrieved in each instance of FormattedWarpScriptFunction if they were set
+  //
 
   @BeforeClass
   public static void beforeClass() throws Exception {
