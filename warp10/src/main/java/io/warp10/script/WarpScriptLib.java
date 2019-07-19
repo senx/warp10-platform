@@ -333,6 +333,7 @@ import io.warp10.script.unary.TOLONG;
 import io.warp10.script.unary.TOSTRING;
 import io.warp10.script.unary.TOTIMESTAMP;
 import io.warp10.script.unary.UNIT;
+import io.warp10.script.functions.shape.*;
 import io.warp10.warp.sdk.WarpScriptExtension;
 
 /**

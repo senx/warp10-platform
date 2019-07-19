@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.functions;
+package io.warp10.script.functions.shape;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,10 +23,11 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.functions.FLATTEN;
 
 public class RESHAPE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  private static final FLATTEN FLATTEN = new FLATTEN("FLATTEN");
+  private static final io.warp10.script.functions.FLATTEN FLATTEN = new FLATTEN("FLATTEN");
   
   public RESHAPE(String name) {
     super(name);
