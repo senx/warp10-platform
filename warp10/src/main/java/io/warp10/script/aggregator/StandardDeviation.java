@@ -64,7 +64,7 @@ public class StandardDeviation extends NamedWarpScriptFunction implements WarpSc
   public Object apply(Object[] args) throws io.warp10.script.WarpScriptException {
     Object[] var = (Object[]) variance.apply(args); 
     
-    if (4 != var.length || null == var[3] || !(var[3] instanceof Number)) {
+    if (4 != var.length || !(var[3] instanceof Number)) {
       return new Object[] { Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null };
     }
     

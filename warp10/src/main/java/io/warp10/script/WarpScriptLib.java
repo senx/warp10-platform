@@ -1749,20 +1749,6 @@ public class WarpScriptLib {
   public static List<String> extensions() {
     return new ArrayList<String>(extloaded);
   }
-  
-  /**
-   * Check whether or not an object is castable to a macro
-   * @param o
-   * @return
-   */
-  public static boolean isMacro(Object o) {
-    
-    if (null == o) {
-      return false;
-    }
-    
-    return o instanceof Macro;
-  }
 
   public static ArrayList getFunctionNames() {
 

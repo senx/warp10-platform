@@ -62,7 +62,7 @@ public class MapperKernelSmoother extends NamedWarpScriptFunction implements War
     for (int i = 0; i < ticks.length; i++) {
       int idx = (int) (Math.abs(ticks[i] - tick) / step);
       
-      if (idx < this.weights.length && null != values[i] && values[i] instanceof Number) {
+      if (idx < this.weights.length && values[i] instanceof Number) {
         weightedValue += this.weights[idx] * ((Number) values[i]).doubleValue();
         valueDividend += this.weights[idx];
         

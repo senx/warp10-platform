@@ -19,7 +19,6 @@ package io.warp10.script.functions;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 
@@ -50,7 +49,7 @@ public class IFT extends NamedWarpScriptFunction implements WarpScriptStackFunct
     // Check than thenMacro is a macro, ifMacro will be checked later.
     //
     
-    if (!WarpScriptLib.isMacro(thenMacro)) {
+    if (!(thenMacro instanceof Macro)) {
       throw new WarpScriptException(getName() + " expects a *THEN* macro on top of the stack.");
     }
     
@@ -60,7 +59,7 @@ public class IFT extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
     boolean ifResult;
 
-    if (WarpScriptLib.isMacro(ifMacro)) {
+    if (ifMacro instanceof Macro) {
       stack.exec((Macro) ifMacro);
 
       // Check that the top of the stack is a boolean
