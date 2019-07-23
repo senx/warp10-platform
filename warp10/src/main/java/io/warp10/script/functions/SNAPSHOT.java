@@ -195,10 +195,14 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
   }
 
   public static void addElement(StringBuilder sb, Object o) throws WarpScriptException {
-    addElement(null, sb, o);
+    addElement(null, sb, o, false);
   }
 
   public static void addElement(SNAPSHOT snapshot, StringBuilder sb, Object o) throws WarpScriptException {
+    addElement(snapshot, sb, o, false);
+  }
+  
+  public static void addElement(SNAPSHOT snapshot, StringBuilder sb, Object o, boolean readable) throws WarpScriptException {
 
     AtomicInteger depth = null;
 
@@ -261,45 +265,86 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         }
         sb.append(" ");
       } else if (o instanceof Vector) {
-        sb.append(WarpScriptLib.LIST_START);
-        sb.append(WarpScriptLib.LIST_END);
-        sb.append(" ");
-        for (Object oo : (Vector) o) {
-          addElement(snapshot, sb, oo);
-          sb.append(WarpScriptLib.INPLACEADD);
+        if (readable) {
+          sb.append(WarpScriptLib.LIST_START);
           sb.append(" ");
+          for (Object oo : (Vector) o) {
+            addElement(snapshot, sb, oo, readable);
+          }
+          sb.append(WarpScriptLib.LIST_END);
+          sb.append(" ");          
+        } else {
+          sb.append(WarpScriptLib.LIST_START);
+          sb.append(WarpScriptLib.LIST_END);
+          sb.append(" ");
+          for (Object oo : (Vector) o) {
+            addElement(snapshot, sb, oo, readable);
+            sb.append(WarpScriptLib.INPLACEADD);
+            sb.append(" ");
+          }
         }
         sb.append(WarpScriptLib.TO_VECTOR);
-        sb.append(" ");
+        sb.append(" ");          
       } else if (o instanceof List) {
-        sb.append(WarpScriptLib.LIST_START);
-        sb.append(WarpScriptLib.LIST_END);
-        sb.append(" ");
-        for (Object oo : (List) o) {
-          addElement(snapshot, sb, oo);
-          sb.append(WarpScriptLib.INPLACEADD);
+        if (readable) {
+          sb.append(WarpScriptLib.LIST_START);
           sb.append(" ");
+          for (Object oo : (List) o) {
+            addElement(snapshot, sb, oo, readable);
+          }          
+          sb.append(WarpScriptLib.LIST_END);
+          sb.append(" ");          
+        } else {
+          sb.append(WarpScriptLib.LIST_START);
+          sb.append(WarpScriptLib.LIST_END);
+          sb.append(" ");
+          for (Object oo : (List) o) {
+            addElement(snapshot, sb, oo, readable);
+            sb.append(WarpScriptLib.INPLACEADD);
+            sb.append(" ");
+          }          
         }
       } else if (o instanceof Set) {
-        sb.append(WarpScriptLib.LIST_START);
-        sb.append(WarpScriptLib.LIST_END);
-        sb.append(" ");
-        for (Object oo : (Set) o) {
-          addElement(snapshot, sb, oo);
-          sb.append(WarpScriptLib.INPLACEADD);
+        if (readable) {
+          sb.append(WarpScriptLib.LIST_START);
           sb.append(" ");
+          for (Object oo : (Set) o) {
+            addElement(snapshot, sb, oo, readable);
+          }
+          sb.append(WarpScriptLib.LIST_END);
+          sb.append(" ");          
+        } else {
+          sb.append(WarpScriptLib.LIST_START);
+          sb.append(WarpScriptLib.LIST_END);
+          sb.append(" ");
+          for (Object oo : (Set) o) {
+            addElement(snapshot, sb, oo, readable);
+            sb.append(WarpScriptLib.INPLACEADD);
+            sb.append(" ");
+          }
         }
         sb.append(WarpScriptLib.TO_SET);
-        sb.append(" ");
+        sb.append(" ");          
       } else if (o instanceof Map) {
-        sb.append(WarpScriptLib.MAP_START);
-        sb.append(WarpScriptLib.MAP_END);
-        sb.append(" ");
-        for (Entry<Object, Object> entry : ((Map<Object, Object>) o).entrySet()) {
-          addElement(snapshot, sb, entry.getValue());
-          addElement(snapshot, sb, entry.getKey());
-          sb.append(WarpScriptLib.PUT);
+        if (readable) {
+          sb.append(WarpScriptLib.MAP_START);
           sb.append(" ");
+          for (Entry<Object, Object> entry : ((Map<Object, Object>) o).entrySet()) {
+            addElement(snapshot, sb, entry.getKey(), readable);
+            addElement(snapshot, sb, entry.getValue(), readable);
+          }                    
+          sb.append(WarpScriptLib.MAP_END);
+          sb.append(" ");
+        } else {
+          sb.append(WarpScriptLib.MAP_START);
+          sb.append(WarpScriptLib.MAP_END);
+          sb.append(" ");
+          for (Entry<Object, Object> entry : ((Map<Object, Object>) o).entrySet()) {
+            addElement(snapshot, sb, entry.getValue(), readable);
+            addElement(snapshot, sb, entry.getKey(), readable);
+            sb.append(WarpScriptLib.PUT);
+            sb.append(" ");
+          }          
         }
       } else if (o instanceof BitSet) {
         sb.append("'");
