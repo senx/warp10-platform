@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -43,12 +44,21 @@ public class TOHHCODE extends NamedWarpScriptFunction implements WarpScriptStack
     Object lon = stack.pop();
     Object lat = stack.pop();
     
-    if (!(lon instanceof Number) && !(lat instanceof Number)) {
+    if (!(lon instanceof Number) || !(lat instanceof Number)) {
       throw new WarpScriptException(getName() + " expects a latitude and a longitude on the stack.");
     }
-    
-    long geoxppoint = GeoXPLib.toGeoXPPoint(((Number) lat).doubleValue(), ((Number) lon).doubleValue());
-    
+
+    double latDouble = ((Number) lat).doubleValue();
+    double lonDouble = ((Number) lon).doubleValue();
+
+    long geoxppoint = GeoTimeSerie.NO_LOCATION;
+
+    if (Double.isNaN(latDouble) != Double.isNaN(lonDouble)) {
+      throw new WarpScriptException(getName() + " expects latitude and longitude to both be NaN or both be not NaN");
+    } else if (!Double.isNaN(latDouble)) { // also !Double.isNaN(lonDouble)
+      geoxppoint = GeoXPLib.toGeoXPPoint(latDouble, lonDouble);
+    }
+
     if (this.tostring) {
       String hhcode = Hex.encodeHexString(Longs.toByteArray(geoxppoint));
     
