@@ -325,7 +325,7 @@ public class EgressExecHandler extends AbstractHandler {
       
       Object exported = stack.getAttribute(WarpScriptStack.ATTRIBUTE_EXPORTED_SYMBOLS);
       
-      if (null != exported && exported instanceof Set && !((Set) exported).isEmpty()) {
+      if (exported instanceof Set && !((Set) exported).isEmpty()) {
         Map<String,Object> exports = new HashMap<String,Object>();
         Map<String,Object> symtable = stack.getSymbolTable();
         for (Object symbol: (Set) exported) {
@@ -382,7 +382,7 @@ public class EgressExecHandler extends AbstractHandler {
       
       Object exported = stack.getAttribute(WarpScriptStack.ATTRIBUTE_EXPORTED_SYMBOLS);
       
-      if (null != exported && exported instanceof Set && !((Set) exported).isEmpty()) {
+      if (exported instanceof Set && !((Set) exported).isEmpty()) {
         Map<String,Object> exports = new HashMap<String,Object>();
         Map<String,Object> symtable = stack.getSymbolTable();
         for (Object symbol: (Set) exported) {
