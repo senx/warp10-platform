@@ -941,6 +941,8 @@ public class WarpScriptLib {
       addNamedWarpScriptFunction(new FAIL("TOTIMESTAMP", "Requires JAVA 1.8+"));
     }
 
+    addNamedWarpScriptFunction(new STRINGFORMAT("STRINGFORMAT"));
+
     addNamedWarpScriptFunction(new DISCORDS("DISCORDS", true));
     addNamedWarpScriptFunction(new DISCORDS("ZDISCORDS", false));
     addNamedWarpScriptFunction(new INTEGRATE("INTEGRATE"));
