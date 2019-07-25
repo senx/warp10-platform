@@ -198,6 +198,10 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
     addElement(null, sb, o, false);
   }
 
+  public static void addElement(StringBuilder sb, Object o, boolean readable) throws WarpScriptException {
+    addElement(null, sb, o, readable);
+  }
+
   public static void addElement(SNAPSHOT snapshot, StringBuilder sb, Object o) throws WarpScriptException {
     addElement(snapshot, sb, o, false);
   }
@@ -230,10 +234,14 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(" ");
       } else if (o instanceof String) {
         sb.append("'");
-        try {
-          sb.append(WarpURLEncoder.encode(o.toString(), "UTF-8"));
-        } catch (UnsupportedEncodingException uee) {
-          throw new WarpScriptException(uee);
+        if (readable) {
+          sb.append(o);
+        } else {
+          try {
+            sb.append(WarpURLEncoder.encode(o.toString(), "UTF-8"));
+          } catch (UnsupportedEncodingException uee) {
+            throw new WarpScriptException(uee);
+          }
         }
         sb.append("' ");
       } else if (o instanceof Boolean) {
@@ -328,10 +336,11 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
       } else if (o instanceof Map) {
         if (readable) {
           sb.append(WarpScriptLib.MAP_START);
-          sb.append(" ");
+          sb.append(System.lineSeparator());
           for (Entry<Object, Object> entry : ((Map<Object, Object>) o).entrySet()) {
             addElement(snapshot, sb, entry.getKey(), readable);
             addElement(snapshot, sb, entry.getValue(), readable);
+            sb.append(System.lineSeparator());
           }                    
           sb.append(WarpScriptLib.MAP_END);
           sb.append(" ");
