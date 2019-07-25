@@ -19,66 +19,47 @@ package io.warp10.script.functions;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.script.GTSStackFunction;
+import io.warp10.script.ElementOrListStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-
 /**
- * Apply rename on GTS instances
- * 
+ * Apply rename on GTS or Encoder instance or list thereof.
+ * <p>
  * RENAME expects the following parameters on the stack:
- * 
+ * <p>
  * 1: name The new name
  */
-public class RENAME extends GTSStackFunction  {
-  
-  private static final String NAME = "name";
+public class RENAME extends ElementOrListStackFunction {
 
   public RENAME(String name) {
     super(name);
   }
-  
-  @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    if (!(stack.get(1) instanceof GTSEncoder)) {
-      return super.apply(stack);
-    }
-    
-    Map<String,Object> params = retrieveParameters(stack);
-    
-    GTSEncoder encoder = (GTSEncoder) stack.peek();
-    
-    GeoTimeSerie gts = new GeoTimeSerie();
-    gts.setMetadata(encoder.getMetadata());
-    
-    gts = (GeoTimeSerie) gtsOp(params, gts);
-    
-    encoder.setMetadata(gts.getMetadata());  
-    
-    return stack;
-  }
-  
-  @Override
-  protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
-
-    Object top = stack.pop();
-
-    Map<String,Object> params = new HashMap<String, Object>();
-    
-    params.put(NAME, top.toString());
-
-    return params;
-  }
 
   @Override
-  protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
+  public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {
+    final Object top = stack.pop();
 
-    String name = (String) params.get(NAME);
-    return GTSHelper.rename(gts ,name);
+    return new ElementStackFunction() {
+      @Override
+      public Object applyOnElement(Object element) throws WarpScriptException {
+        if (element instanceof GeoTimeSerie) {
+          return GTSHelper.rename((GeoTimeSerie) element, top.toString());
+        } else if (element instanceof GTSEncoder) {
+          GTSEncoder encoder = (GTSEncoder) element;
+
+          GeoTimeSerie gts = new GeoTimeSerie();
+          gts.setMetadata(encoder.getMetadata());
+
+          gts = GTSHelper.rename(gts, top.toString());
+
+          encoder.setMetadata(gts.getMetadata());
+
+          return encoder;
+        } else {
+          throw new WarpScriptException(getName() + " expects a GeoTimeSeries, a GTSEncoder or a list thereof under the new name.");
+        }
+      }
+    };
   }
 }

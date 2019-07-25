@@ -946,6 +946,8 @@ public class WarpScriptLib {
       addNamedWarpScriptFunction(new FAIL("TOTIMESTAMP", "Requires JAVA 1.8+"));
     }
 
+    addNamedWarpScriptFunction(new STRINGFORMAT("STRINGFORMAT"));
+
     addNamedWarpScriptFunction(new DISCORDS("DISCORDS", true));
     addNamedWarpScriptFunction(new DISCORDS("ZDISCORDS", false));
     addNamedWarpScriptFunction(new INTEGRATE("INTEGRATE"));
@@ -1753,20 +1755,6 @@ public class WarpScriptLib {
   
   public static List<String> extensions() {
     return new ArrayList<String>(extloaded);
-  }
-  
-  /**
-   * Check whether or not an object is castable to a macro
-   * @param o
-   * @return
-   */
-  public static boolean isMacro(Object o) {
-    
-    if (null == o) {
-      return false;
-    }
-    
-    return o instanceof Macro;
   }
 
   public static ArrayList getFunctionNames() {

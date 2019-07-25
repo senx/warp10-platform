@@ -19,7 +19,6 @@ package io.warp10.script.functions;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 
@@ -47,7 +46,7 @@ public class LMAP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     
     Object macro = stack.pop();
     
-    if (!WarpScriptLib.isMacro(macro)) {
+    if (!(macro instanceof Macro)) {
       throw new WarpScriptException(getName() + " expects a macro on top of the stack.");
     }
     

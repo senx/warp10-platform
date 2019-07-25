@@ -19,7 +19,6 @@ package io.warp10.script.functions;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 
@@ -52,7 +51,7 @@ public class IFTE extends NamedWarpScriptFunction implements WarpScriptStackFunc
     // Check that thenMacro and elseMacro are macros, ifMacro will be checked later
     //
 
-    if (!WarpScriptLib.isMacro(elseMacro) && !WarpScriptLib.isMacro(thenMacro)) {
+    if (!(elseMacro instanceof Macro) || !(thenMacro instanceof Macro)) {
       throw new WarpScriptException(getName() + " expects three macros or two macros and a boolean on top of the stack.");
     }
 
@@ -62,7 +61,7 @@ public class IFTE extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     boolean ifResult;
 
-    if (WarpScriptLib.isMacro(ifMacro)) {
+    if (ifMacro instanceof Macro) {
       // Execute the IF macro
       stack.exec((Macro) ifMacro);
 

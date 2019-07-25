@@ -276,10 +276,6 @@ changelog {
     // Default value: see commitFormat
     html {
         commitFormat = '%s'
-
-        // The Groovy HTML template used to generate the HTML changelog.
-        // See http://docs.groovy-lang.org/latest/html/documentation/template-engines.html
-        //    template = file("$projectDir/htmlTemplate").text
     }
 
     // A closure that returns 'true' if the line should be included in the changelog.
