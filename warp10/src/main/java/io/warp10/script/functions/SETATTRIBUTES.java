@@ -18,7 +18,7 @@ package io.warp10.script.functions;
 
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.script.GTSStackFunction;
+import io.warp10.script.ElementOrListStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
@@ -27,90 +27,81 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 /**
- * Set attributes on GTS
- * 
+ * Set attributes on GTS, Encoders or list thereof
+ * <p>
  * SETATTRIBUTES expects the following parameters on the stack:
- * 
+ * <p>
  * 1: a map of attributes
- * 
- * If a null key exists, then the attributes will be overriden, otherwise
- * they will be modified. If an attribute has an empty or null assocaited value,
+ * <p>
+ * If a null key exists, then the attributes will be overridden, otherwise
+ * they will be modified. If an attribute has an empty or null associated value,
  * the attribute will be removed.
  */
-public class SETATTRIBUTES extends GTSStackFunction  {
-
-  private static final String ATTRIBUTES = "attributes";
+public class SETATTRIBUTES extends ElementOrListStackFunction {
 
   public SETATTRIBUTES(String name) {
     super(name);
   }
 
   @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    if (!(stack.get(1) instanceof GTSEncoder)) {
-      return super.apply(stack);
-    }
-    
-    Map<String,Object> params = retrieveParameters(stack);
-    
-    GTSEncoder encoder = (GTSEncoder) stack.peek();
-    
-    GeoTimeSerie gts = new GeoTimeSerie();
-    gts.setMetadata(encoder.getMetadata());
-    
-    gts = (GeoTimeSerie) gtsOp(params, gts);
-    
-    encoder.setMetadata(gts.getMetadata());  
-    
-    return stack;
-  }
-  
-  @Override
-  protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
+  public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {
 
     Object top = stack.pop();
-    
+
     if (!(top instanceof Map)) {
       throw new WarpScriptException(getName() + " expects a map of attributes as parameter.");
     }
-        
-    Map<String,Object> params = new HashMap<String, Object>();
-    
-    Map<String,String> attr = (Map<String,String>) top;
-    
-    params.put(ATTRIBUTES, attr);
 
-    return params;
+    final Map<?, ?> attributesUpdate = (Map<?, ?>) top;
+
+    return new ElementStackFunction() {
+      @Override
+      public Object applyOnElement(Object element) throws WarpScriptException {
+        if (element instanceof GeoTimeSerie) {
+          GeoTimeSerie gts = (GeoTimeSerie) element;
+
+          Map<String, String> newAttributes = updateAttribute(gts.getMetadata().getAttributes(), attributesUpdate);
+
+          gts.getMetadata().setAttributes(newAttributes);
+
+          return gts;
+        } else if (element instanceof GTSEncoder) {
+          GTSEncoder encoder = (GTSEncoder) element;
+
+          Map<String, String> newAttributes = updateAttribute(encoder.getMetadata().getAttributes(), attributesUpdate);
+
+          encoder.getMetadata().setAttributes(newAttributes);
+
+          return encoder;
+        } else {
+          throw new WarpScriptException(getName() + " expects a GeoTimeSeries, a GTSEncoder or a list thereof under the attribute map.");
+        }
+      }
+    };
   }
 
-  @Override
-  protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
-    Map<String,String> attributes = (Map<String,String>) params.get(ATTRIBUTES);    
 
-    Map<String,String> attr = new HashMap<String, String>();
+  private Map<String, String> updateAttribute(Map<String, String> originalAttributes, Map<?, ?> attributesUpdate) throws WarpScriptException {
+    HashMap<String, String> newAttributes = new HashMap<String, String>();
 
-    if (!attributes.containsKey(null)) {
-      if (gts.getMetadata().getAttributesSize() > 0) {
-        attr.putAll(gts.getMetadata().getAttributes());
-      }
+    if (!attributesUpdate.containsKey(null) && originalAttributes.size() > 0) {
+      newAttributes.putAll(originalAttributes);
     }
-    
-    for (Entry<String, String> entry: attributes.entrySet()) {
+
+    for (Entry<?, ?> entry: attributesUpdate.entrySet()) {
       if (null == entry.getKey()) {
         continue;
       }
       if (!(entry.getKey() instanceof String) || !(entry.getValue() instanceof String)) {
         throw new WarpScriptException(getName() + " attribute key and value MUST be of type String.");
       }
-      if (null == entry.getValue() || "".equals(entry.getValue())) {
-        attr.remove(entry.getKey());
+      if ("".equals(entry.getValue())) {
+        newAttributes.remove(entry.getKey());
       } else {
-        attr.put(entry.getKey(), entry.getValue());
+        newAttributes.put((String) entry.getKey(), (String) entry.getValue());
       }
     }
-    
-    gts.getMetadata().setAttributes(attr);
-    
-    return gts;
+
+    return newAttributes;
   }
 }
