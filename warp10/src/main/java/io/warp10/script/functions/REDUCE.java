@@ -94,9 +94,9 @@ public class REDUCE extends NamedWarpScriptFunction implements WarpScriptStackFu
     Collection<String> bylabels = (Collection<String>) params.get(labelsIndex);
 
     for (int i = 0; i < labelsIndex; i++) {
-      for(Object o: (List)params.get(i)){
-        if(o instanceof GeoTimeSerie){
-          series.add((GeoTimeSerie)o);
+      for (Object o: (List) params.get(i)) {
+        if (o instanceof GeoTimeSerie) {
+          series.add((GeoTimeSerie) o);
         } else {
           throw new WarpScriptException(getName() + " expects lists of Geo Time Series as first parameter.");
         }

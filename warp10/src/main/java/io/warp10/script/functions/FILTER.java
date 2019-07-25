@@ -87,9 +87,9 @@ public class FILTER extends NamedWarpScriptFunction implements WarpScriptStackFu
     for (int i = 0; i < params.size() - 2; i++) {
       colls[i] = new ArrayList<GeoTimeSerie>();
 
-      for(Object o: (List)params.get(i)){
-        if(o instanceof GeoTimeSerie){
-          colls[i].add((GeoTimeSerie)o);
+      for (Object o: (List) params.get(i)) {
+        if (o instanceof GeoTimeSerie) {
+          colls[i].add((GeoTimeSerie) o);
         } else {
           throw new WarpScriptException(getName() + " expects lists of Geo Time Series as first parameters.");
         }
