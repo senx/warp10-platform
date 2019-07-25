@@ -18,8 +18,6 @@ package io.warp10.script.formatted;
 
 import com.google.common.collect.Lists;
 import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptLib;
-import org.apache.commons.lang.StringUtils;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -164,9 +162,9 @@ public class DocumentationGenerator {
                                              List<ArgumentSpecification> outputs) throws WarpScriptException {
 
     StringBuilder mc2 = new StringBuilder();
-    customMapSnaphot(mc2, generateInfo(function, since, deprecated, deleted, version, tags, related, examples, conf, outputs), 0);
+    SNAPSHOT.addElement(mc2, generateInfo(function, since, deprecated, deleted, version, tags, related, examples, conf, outputs), true);
 
-    mc2.append(" 'infomap' STORE" + System.lineSeparator());
+    mc2.append("'infomap' STORE" + System.lineSeparator());
     mc2.append(MACRO_START + System.lineSeparator());
     mc2.append("!$infomap INFO" + System.lineSeparator());
     mc2.append(MACRO_START + System.lineSeparator());
@@ -184,48 +182,5 @@ public class DocumentationGenerator {
     mc2.append("$macro" + System.lineSeparator());
 
     return mc2.toString();
-  }
-
-  public  static void customAddElement(StringBuilder sb, Object o, int indent) throws WarpScriptException {
-
-    if (o instanceof List) {
-      customListSnapshot(sb, (List<Object>) o, indent);
-    } else if (o instanceof Map) {
-      customMapSnaphot(sb, (Map<String, Object>) o, indent);
-    } else if (o instanceof String) {
-      sb.append("'");
-      sb.append(o);
-      sb.append("' ");
-    } else {
-      SNAPSHOT.addElement(sb, o);
-    }
-  }
-  
-  public static void customListSnapshot(StringBuilder sb, List<Object> o, int indent) throws WarpScriptException {
-
-    sb.append(WarpScriptLib.LIST_START);
-    sb.append(" ");
-    for (Object oo: o) {
-      customAddElement(sb, oo, indent);
-    }
-    sb.append(WarpScriptLib.LIST_END);
-    sb.append(" ");
-  }
-  
-  public static void customMapSnaphot(StringBuilder sb, Map<String, Object> o, int indent) throws WarpScriptException {
-
-    sb.append(WarpScriptLib.MAP_START);
-    sb.append(System.lineSeparator());
-    indent = indent + 2;
-    for (Map.Entry<String, Object> entry: o.entrySet()) {
-      sb.append(StringUtils.repeat(" ", indent));
-      SNAPSHOT.addElement(sb, entry.getKey());
-      customAddElement(sb, entry.getValue(), indent);
-      sb.append(System.lineSeparator());
-    }
-    indent = indent - 2;
-    sb.append(StringUtils.repeat(" ", indent));
-    sb.append(WarpScriptLib.MAP_END);
-    sb.append(" ");
   }
 }
