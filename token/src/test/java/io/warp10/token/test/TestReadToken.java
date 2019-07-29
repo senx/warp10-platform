@@ -101,7 +101,7 @@ public class TestReadToken extends TokenTestCase {
 
     final QuasarTokenFilter tokenFilter = new QuasarTokenFilter(getConfig(), getKeyStore());
 
-    Thread.sleep(20);
+    Thread.sleep(40);
 
     try {
       tokenFilter.getReadToken(readToken);
