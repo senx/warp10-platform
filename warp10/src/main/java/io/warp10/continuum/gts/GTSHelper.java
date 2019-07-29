@@ -7892,11 +7892,15 @@ public class GTSHelper {
   public static String buildSelector(Metadata metadata) {
     StringBuilder sb = new StringBuilder();
 
-    char nameFirstChar = metadata.getName().charAt(0);
-    if ('=' == nameFirstChar || '~' == nameFirstChar) {
-      sb.append("%3D"); // Prepend '=' for the special character not to be interpreted
+    String name = metadata.getName();
+
+    if(name.length() > 0) {
+      char nameFirstChar = name.charAt(0);
+      if ('=' == nameFirstChar || '~' == nameFirstChar) {
+        sb.append("="); // Prepend '=' for the special character not to be interpreted
+      }
     }
-    encodeName(sb, metadata.getName());
+    encodeName(sb, name);
 
     sb.append("{");
     TreeMap<String,String> labels = new TreeMap<String,String>(metadata.getLabels());
