@@ -933,9 +933,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     List<Object> stmts = macro.statements();
     int n = macro.size();
     
-    String macroname = this.macroName;
+    String macroname = this.macroName;    
     this.macroName = macro.getName();
-
+    
     try {
       
       recurseIn();

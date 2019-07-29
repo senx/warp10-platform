@@ -184,7 +184,7 @@ public class WarpScriptMacroLibrary {
       
       Macro macro = (Macro) stack.pop();
       macro.setSecure(true);
-      macro.setName(name);
+      macro.setNameRecursive(name);
       
       return macro;
     } catch (IOException ioe) {
