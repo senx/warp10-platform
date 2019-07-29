@@ -31,9 +31,16 @@ import com.google.common.primitives.Longs;
  * Convert a GeoHash to lat/lon
  */
 public class HHCODETO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  private final boolean useGtsConvention;
   
   public HHCODETO(String name) {
+    this(name, false);
+  }
+
+  public HHCODETO(String name, boolean useGtsConvention) {
     super(name);
+    this.useGtsConvention = useGtsConvention;
   }
   
   @Override
@@ -60,7 +67,7 @@ public class HHCODETO extends NamedWarpScriptFunction implements WarpScriptStack
       throw new WarpScriptException(getName() + " expects a long, a string or a byte array.");
     }
 
-    if (GeoTimeSerie.NO_LOCATION == hh) {
+    if (useGtsConvention && GeoTimeSerie.NO_LOCATION == hh) {
       stack.push(Double.NaN);
       stack.push(Double.NaN);
     } else {
