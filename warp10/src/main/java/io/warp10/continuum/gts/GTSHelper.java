@@ -7891,7 +7891,17 @@ public class GTSHelper {
   
   public static String buildSelector(Metadata metadata) {
     StringBuilder sb = new StringBuilder();
-    encodeName(sb, metadata.getName());
+
+    String name = metadata.getName();
+
+    if(name.length() > 0) {
+      char nameFirstChar = name.charAt(0);
+      if ('=' == nameFirstChar || '~' == nameFirstChar) {
+        sb.append("="); // Prepend '=' for the special character not to be interpreted
+      }
+    }
+    encodeName(sb, name);
+
     sb.append("{");
     TreeMap<String,String> labels = new TreeMap<String,String>(metadata.getLabels());
     boolean first = true;
@@ -7901,7 +7911,7 @@ public class GTSHelper {
       }
       encodeName(sb, entry.getKey());
       sb.append("=");
-      encodeName(sb,entry.getValue());
+      encodeName(sb, entry.getValue());
       first = false;
     }
     sb.append("}");
