@@ -1133,7 +1133,10 @@ public class WarpScriptLib {
     
     addNamedWarpScriptFunction(new TOHHCODE("->HHCODE", true));
     addNamedWarpScriptFunction(new TOHHCODE("->HHCODELONG", false));
+    addNamedWarpScriptFunction(new TOHHCODE("->GTSHHCODE", true, true));
+    addNamedWarpScriptFunction(new TOHHCODE("->GTSHHCODELONG", false, true));
     addNamedWarpScriptFunction(new HHCODETO("HHCODE->"));
+    addNamedWarpScriptFunction(new HHCODETO("GTSHHCODE->", true));
     addNamedWarpScriptFunction(new GEOREGEXP("GEO.REGEXP"));
     addNamedWarpScriptFunction(new GeoWKT(GEO_WKT, false));
     addNamedWarpScriptFunction(new GeoWKT(GEO_WKT_UNIFORM, true));
