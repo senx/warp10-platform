@@ -609,8 +609,8 @@ public class ScriptRunner extends Thread {
               }
 
               m.appendTail(mc2WithReplacement);
-
               out.write(mc2WithReplacement.toString().getBytes(Charsets.UTF_8));
+              out.write('\n');
             }
 
             br.close();

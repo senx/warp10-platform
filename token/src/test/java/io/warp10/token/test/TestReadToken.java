@@ -95,13 +95,13 @@ public class TestReadToken extends TokenTestCase {
 
   @Test
   public void testTokenExpired() throws InterruptedException, TException {
-    // token with a validity of 1ms, its quite short
+    // token with a validity of 20ms, its quite short
     String uuid = UUID.randomUUID().toString();
-    final String readToken = tokenEncoder.deliverReadToken("app", uuid, uuid, new ArrayList<String>(Arrays.asList("app")), 1, getKeyStore());
+    final String readToken = tokenEncoder.deliverReadToken("app", uuid, uuid, new ArrayList<String>(Arrays.asList("app")), 20, getKeyStore());
 
     final QuasarTokenFilter tokenFilter = new QuasarTokenFilter(getConfig(), getKeyStore());
 
-    Thread.sleep(1);
+    Thread.sleep(40);
 
     try {
       tokenFilter.getReadToken(readToken);

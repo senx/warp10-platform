@@ -358,6 +358,29 @@ public interface WarpScriptStack {
       this.name = name;
     }
     
+    /**
+     * Set the name of the current macro and set the same name for
+     * all included macros which do not have a name
+     * 
+     * @param name
+     */
+    public void setNameRecursive(String name) {
+      List<Macro> macros = new ArrayList<Macro>();
+      macros.add(this);
+      
+      while(!macros.isEmpty()) {
+        Macro m = macros.remove(0);
+        if (null == m.getName()) {
+          m.setName(name);
+          for (Object stmt: m.statements) {
+            if (stmt instanceof Macro) {
+              macros.add((Macro) stmt);
+            }
+          }
+        }
+      }
+    }
+    
     public String getName() {
       return this.name;
     }
