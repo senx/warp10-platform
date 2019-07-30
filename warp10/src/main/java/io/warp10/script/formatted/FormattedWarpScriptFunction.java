@@ -264,13 +264,14 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
         }
       }
 
-      Map<String, Object> map = (Map) stack.peek();
+      // use this map as function's parameters
+      formattedArgs = (Map) ((HashMap<String, Object>) stack.peek()).clone();
 
       //
       // Check that the map does not contain unrecognized argument
       //
 
-      for (String key: map.keySet()) {
+      for (String key: formattedArgs.keySet()) {
         boolean found = false;
 
         for (ArgumentSpecification arg: args) {
@@ -302,7 +303,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
 
       for (ArgumentSpecification arg: args) {
 
-        Object value = map.get(arg.getName());
+        Object value = formattedArgs.get(arg.getName());
 
         if (null == value) {
 
@@ -328,7 +329,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
                 " be a " + firstArg.WarpScriptSubType() + " or a list of " + firstArg.WarpScriptSubType() + ".");
             }
 
-            map.put(arg.getName(), value);
+            formattedArgs.put(arg.getName(), value);
           }
         }
 
@@ -349,7 +350,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
 
       for (ArgumentSpecification arg: optArgs) {
 
-        Object value = map.get(arg.getName());
+        Object value = formattedArgs.get(arg.getName());
 
         if (null != value && !arg.getClazz().isInstance(value)) {
 
@@ -368,7 +369,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
 
       for (ArgumentSpecification arg: both) {
 
-        Object candidate = map.get(arg.getName());
+        Object candidate = formattedArgs.get(arg.getName());
         if (null == candidate) {
           continue;
         }
@@ -411,10 +412,10 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       }
 
       //
-      // Consume the top of the stack
+      // Removes the top of the stack
       //
 
-      formattedArgs = new HashMap<String, Object> ((Map) stack.pop());
+      stack.pop();
 
     } else {
 
@@ -557,7 +558,19 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
         stack.push(list);
 
         return stack;
+
+      } else if (1 == firstArg.size()) {
+
+        formattedArgs.put(args.get(0).getName(), firstArg.get(0));
+        return apply(formattedArgs, stack);
+
+      } else {
+
+        // first arg list is empty so result is empty
+        stack.push(new ArrayList<>());
+        return stack;
       }
+
     }
 
     return apply(formattedArgs, stack);

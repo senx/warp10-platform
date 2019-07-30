@@ -70,7 +70,7 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
     // test positional arguments
     StringBuilder test1 = new StringBuilder();
     test1.append("NEWGTS 3 0.5 EXAMPLE 'res' STORE" + System.lineSeparator());
-    test1.append("$res '1st arg' GET DUP SIZE 1 == ASSERT 0 GET TYPEOF 'GTS' == ASSERT" + System.lineSeparator());
+    test1.append("$res '1st arg' GET TYPEOF 'GTS' == ASSERT" + System.lineSeparator());
     test1.append("$res '2nd arg' GET 3 == ASSERT" + System.lineSeparator());
     test1.append("$res '3rd arg' GET 0.5 == ASSERT" + System.lineSeparator());
     test1.append("$res SIZE 5 == ASSERT" + System.lineSeparator());
@@ -81,7 +81,7 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
     // test map arguments
     StringBuilder test2 = new StringBuilder();
     test2.append("{ '1st arg' NEWGTS '2nd arg' 3 '3rd arg' 0.5 } EXAMPLE 'res' STORE" + System.lineSeparator());
-    test2.append("$res '1st arg' GET 0 GET TYPEOF 'GTS' == ASSERT" + System.lineSeparator());
+    test2.append("$res '1st arg' GET TYPEOF 'GTS' == ASSERT" + System.lineSeparator());
     test2.append("$res '2nd arg' GET 3 == ASSERT" + System.lineSeparator());
     test2.append("$res '3rd arg' GET 0.5 == ASSERT" + System.lineSeparator());
     test2.append("$res SIZE 5 == ASSERT" + System.lineSeparator());
@@ -91,7 +91,7 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
     // test map arguments with optional ones
     StringBuilder test3 = new StringBuilder();
     test3.append("{ '1st arg' NEWGTS '2nd arg' 3 '3rd arg' 0.5 '1st opt arg' 'hi' } EXAMPLE 'res' STORE" + System.lineSeparator());
-    test3.append("$res '1st arg' GET 0 GET TYPEOF 'GTS' == ASSERT" + System.lineSeparator());
+    test3.append("$res '1st arg' GET TYPEOF 'GTS' == ASSERT" + System.lineSeparator());
     test3.append("$res '2nd arg' GET 3 == ASSERT" + System.lineSeparator());
     test3.append("$res '3rd arg' GET 0.5 == ASSERT" + System.lineSeparator());
     test3.append("$res '1st opt arg' GET 'hi' == ASSERT" + System.lineSeparator());
@@ -101,12 +101,23 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
     // test ListSpecification
     StringBuilder test4 = new StringBuilder();
     test4.append("{ '1st arg' NEWGTS '2nd arg' 3 '3rd arg' 0.5 '2nd opt arg' [ 1 2 ] } EXAMPLE 'res' STORE" + System.lineSeparator());
-    test4.append("$res '1st arg' GET 0 GET TYPEOF 'GTS' == ASSERT" + System.lineSeparator());
+    test4.append("$res '1st arg' GET TYPEOF 'GTS' == ASSERT" + System.lineSeparator());
     test4.append("$res '2nd arg' GET 3 == ASSERT" + System.lineSeparator());
     test4.append("$res '3rd arg' GET 0.5 == ASSERT" + System.lineSeparator());
     test4.append("$res '2nd opt arg' GET LIST-> 2 == ASSERT 2 == ASSERT 1 == ASSERT" + System.lineSeparator());
     test4.append("$res SIZE 5 == ASSERT");
     unitTests.add(test4.toString());
+
+
+    // test expanded first arg
+    StringBuilder test5 = new StringBuilder();
+    test5.append("[ NEWGTS NEWGTS NEWGTS ] 3 0.5 EXAMPLE 'res' STORE" + System.lineSeparator());
+    test5.append("$res DUP TYPEOF 'LIST' == ASSERT SIZE 3 == ASSERT" + System.lineSeparator());
+    test5.append("$res <% '1st arg' GET TYPEOF 'GTS' == ASSERT %> FOREACH" + System.lineSeparator());
+    test5.append("$res <% '2nd arg' GET 3 == ASSERT %> FOREACH" + System.lineSeparator());
+    test5.append("$res <% '3rd arg' GET 0.5 == ASSERT %> FOREACH" + System.lineSeparator());
+    test5.append("$res <% SIZE 5 == ASSERT %> FOREACH");
+    unitTests.add(test5.toString());
   }
 
   //
@@ -161,6 +172,13 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
 
     stack.execMulti(getUnitTests().get(3));
+  }
+
+  @Test
+  public void testExpandedFirstArg() throws Exception {
+    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
+
+    stack.execMulti(getUnitTests().get(4));
   }
 
   @Test
