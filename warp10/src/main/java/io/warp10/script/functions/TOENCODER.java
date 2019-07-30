@@ -21,15 +21,22 @@ import java.util.List;
 
 import com.geoxp.GeoXPLib;
 
+import com.google.common.base.Charsets;
 import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.continuum.store.thrift.data.GTSWrapper;
+import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TException;
+import org.apache.thrift.protocol.TCompactProtocol;
 
 /**
- * Builds an encoder from a list of tick,lat,lon,elev,value
+ * Builds an encoder from a list of tick,lat,lon,elev,value or GTSs.
  */
 public class TOENCODER extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
@@ -50,6 +57,39 @@ public class TOENCODER extends NamedWarpScriptFunction implements WarpScriptStac
     GTSEncoder encoder = new GTSEncoder(0L);
     
     for (Object element: elements) {
+      // If we encounter a GTS, a wrap or raw wrap, add all of it to the encoder
+
+      // If wrap, convert to raw wrap
+      if (element instanceof String) {
+        element = OrderPreservingBase64.decode(element.toString().getBytes(Charsets.US_ASCII));
+      }
+
+      // If raw wrap, convert to GTS
+      if (element instanceof byte[]) {
+        TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+
+        try {
+          GTSWrapper wrapper = new GTSWrapper();
+
+          deser.deserialize(wrapper, (byte[]) element);
+
+          element = GTSWrapperHelper.fromGTSWrapperToGTS(wrapper);
+        } catch (TException te) {
+          throw new WarpScriptException(getName() + " failed to unwrap encoder.", te);
+        }
+      }
+
+      // If GTS, add it all to the encoder
+      if(element instanceof GeoTimeSerie){
+        try {
+          encoder.encode((GeoTimeSerie) element);
+        } catch (IOException ioe) {
+          throw new WarpScriptException(getName() + " was unable to add Geo Time Series™", ioe);
+        }
+        continue;
+      }
+
+      // If not a GTS, it should be a list of tick,lat,lon,elev,value.
       if (!(element instanceof List)) {
         throw new WarpScriptException(getName() + " encountered an invalid element.");
       }
@@ -117,7 +157,7 @@ public class TOENCODER extends NamedWarpScriptFunction implements WarpScriptStac
       try {
         encoder.addValue((long) tick, location, elevation, value);
       } catch (IOException ioe) {
-        throw new WarpScriptException(getName() + " unable to add value.", ioe);
+        throw new WarpScriptException(getName() + " was unable to add value.", ioe);
       }
     }
     

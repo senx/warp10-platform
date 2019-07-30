@@ -819,6 +819,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOENCODER("->ENCODER"));
     addNamedWarpScriptFunction(new ENCODERTO("ENCODER->"));
     addNamedWarpScriptFunction(new TOGTS("->GTS"));
+    addNamedWarpScriptFunction(new GTSTO("GTS->"));
     addNamedWarpScriptFunction(new TOENCODERS("->ENCODERS"));
     addNamedWarpScriptFunction(new OPTIMIZE("OPTIMIZE"));
     addNamedWarpScriptFunction(new NEWGTS(NEWGTS));
