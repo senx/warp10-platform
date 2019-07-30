@@ -337,7 +337,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         if (readable) {
           sb.append(WarpScriptLib.MAP_START);
           sb.append(System.lineSeparator());
-          for (Entry<Object, Object> entry : ((Map<Object, Object>) o).entrySet()) {
+          for (Entry<Object, Object> entry: ((Map<Object, Object>) o).entrySet()) {
             addElement(snapshot, sb, entry.getKey(), readable);
             addElement(snapshot, sb, entry.getValue(), readable);
             sb.append(System.lineSeparator());
@@ -348,7 +348,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.MAP_START);
           sb.append(WarpScriptLib.MAP_END);
           sb.append(" ");
-          for (Entry<Object, Object> entry : ((Map<Object, Object>) o).entrySet()) {
+          for (Entry<Object, Object> entry: ((Map<Object, Object>) o).entrySet()) {
             addElement(snapshot, sb, entry.getValue(), readable);
             addElement(snapshot, sb, entry.getKey(), readable);
             sb.append(WarpScriptLib.PUT);
