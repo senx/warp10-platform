@@ -710,9 +710,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
       }
 
       response.setStatus(HttpServletResponse.SC_OK);      
-    } catch (Exception e) {
+    } catch (Throwable t) { // Catch everything else this handler could return 200 on a OOM exception
       if (!response.isCommitted()) {
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, t.getMessage());
         return;
       }
     }
