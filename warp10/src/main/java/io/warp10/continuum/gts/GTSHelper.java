@@ -7771,6 +7771,27 @@ public class GTSHelper {
   }
   
   /**
+   * Build an occurrence count by value for the given GTS Encoder.
+   */
+  public static Map<Object,Long> valueHistogram(GTSEncoder encoder) {
+    Map<Object, Long> occurrences = new HashMap<Object, Long>();
+
+    GTSDecoder decoder = encoder.getDecoder();
+    
+    while(decoder.next()) {
+      Object value = decoder.getValue();
+      
+      if (!occurrences.containsKey(value)) {
+        occurrences.put(value, 1L);
+      } else {        
+        occurrences.put(value, 1L + occurrences.get(value));        
+      }
+    }
+    
+    return occurrences;
+  }
+  
+  /**
    * Detect patterns in a Geo Time Serie instance. Return a modified version of the original
    * GTS instance where only the values which are part of one of the provided patterns are kept.
    * 
@@ -7891,7 +7912,17 @@ public class GTSHelper {
   
   public static String buildSelector(Metadata metadata) {
     StringBuilder sb = new StringBuilder();
-    encodeName(sb, metadata.getName());
+
+    String name = metadata.getName();
+
+    if(name.length() > 0) {
+      char nameFirstChar = name.charAt(0);
+      if ('=' == nameFirstChar || '~' == nameFirstChar) {
+        sb.append("="); // Prepend '=' for the special character not to be interpreted
+      }
+    }
+    encodeName(sb, name);
+
     sb.append("{");
     TreeMap<String,String> labels = new TreeMap<String,String>(metadata.getLabels());
     boolean first = true;
@@ -7901,7 +7932,7 @@ public class GTSHelper {
       }
       encodeName(sb, entry.getKey());
       sb.append("=");
-      encodeName(sb,entry.getValue());
+      encodeName(sb, entry.getValue());
       first = false;
     }
     sb.append("}");
