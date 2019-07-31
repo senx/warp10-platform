@@ -91,9 +91,9 @@ public class PIVOT extends NamedWarpScriptFunction implements WarpScriptStackFun
         throw new WarpScriptException(getName() + " operates on non empty Geo Time Series™.");
       }
       
-      for (Entry<String,String> entry: g.getLabels().entrySet()) {
-        if (classes.contains(entry.getKey())) {
-          throw new WarpScriptException(getName() + " labeling class '" + entry.getKey() + "' is already a label of a Geo Time Series™ to label.");
+      for (String key: g.getLabels().keySet()) {
+        if (classes.contains(key)) {
+          throw new WarpScriptException(getName() + " labeling class '" + key + "' is already a label of a Geo Time Series™ to label.");
         }
       }
     }
@@ -155,10 +155,7 @@ public class PIVOT extends NamedWarpScriptFunction implements WarpScriptStackFun
         
         if (skip) {
           continue;
-        }    
-        
-        // Increase the index of the first labeling GTS
-        labelingIndices[0]++;
+        }            
       } else {
         // Nothing to do for the non synchronous case
       }
@@ -258,6 +255,9 @@ public class PIVOT extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
       
       if (synchronous) {
+        // Increase the index of the first labeling GTS
+        labelingIndices[0]++;
+
         if (labelingIndices[0] >= GTSHelper.nvalues((GeoTimeSerie) labeling.get(0))) {
           done = true;
         } else {
@@ -284,6 +284,16 @@ public class PIVOT extends NamedWarpScriptFunction implements WarpScriptStackFun
           }
         }
         
+        if (done) {
+          // We consider we are done because we consumed all the ticks from the labeling GTS
+          // We will reconsider being done if there are still some ticks to process in some GTS of gts
+          for (int i = 0; i < gtsIndices.length; i++) {
+            if (gtsIndices[i] < GTSHelper.nvalues((GeoTimeSerie) gts.get(i))) {
+              done = false;
+              break;
+            }
+          }
+        }
         commonts = newcommonts;
       }
     }
