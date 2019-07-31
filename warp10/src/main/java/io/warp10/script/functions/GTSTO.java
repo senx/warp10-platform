@@ -62,8 +62,11 @@ public class GTSTO extends ElementOrListStackFunction {
       // If GTS, convert to an encoder
       if (element instanceof GeoTimeSerie) {
         try {
+          GeoTimeSerie gts = (GeoTimeSerie) element;
+
           GTSEncoder encoder = new GTSEncoder();
-          encoder.encodeOptimized((GeoTimeSerie) element);
+          encoder.encodeOptimized(gts);
+          encoder.setMetadata(gts.getMetadata());
 
           return encoder;
         } catch (IOException ioe) {
