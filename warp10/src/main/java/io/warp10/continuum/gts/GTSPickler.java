@@ -10,34 +10,45 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Pickler for Geo Time Series
  */
 public class GTSPickler implements IObjectPickler {
 
+  private static String CLASSNAME_KEY = "classname";
+  private static String LABELS_KEY = "labels";
+  private static String ATTRIBUTES_KEY = "attributes";
+  private static String TIMESTAMPS_KEY = "timestamp";
+  private static String VALUES_KEY = "value";
+  private static String LATITUDE_KEY = "latitude";
+  private static String LONGITUDE_KEY = "longitude";
+  private static String ELEVATION_KEY = "elevation";
+
   public void pickle(Object o, OutputStream out, Pickler currentPickler) throws PickleException, IOException {
     GeoTimeSerie gts = (GeoTimeSerie) o;
 
-    HashMap<String, Object> gtsAsMap = new HashMap<>();
-    gtsAsMap.put("c", gts.getName());
-    gtsAsMap.put("l", gts.getMetadata().getAttributes());
+    Map<String, Object> gtsAsMap = new HashMap<>();
+    gtsAsMap.put(CLASSNAME_KEY, gts.getName());
+    gtsAsMap.put(LABELS_KEY, gts.getMetadata().getLabels());
+    gtsAsMap.put(ATTRIBUTES_KEY, gts.getMetadata().getAttributes());
 
     List<Long> ticks = new ArrayList<Long>(gts.values);
     for (int i = 0; i < gts.values; i++) {
       ticks.add(gts.ticks[i]);
     }
-    gtsAsMap.put("t", ticks);
+    gtsAsMap.put(TIMESTAMPS_KEY, ticks);
 
     if (0 == gts.values) {
-      gtsAsMap.put("v", new long[0]);
+      gtsAsMap.put(VALUES_KEY, new long[0]);
     } else {
       List<Object> values = new ArrayList<Object>(gts.values);
 
       for (int i = 0; i < gts.values; i++) {
         values.add(GTSHelper.valueAtIndex(gts, i));
       }
-      gtsAsMap.put("v", values);
+      gtsAsMap.put(VALUES_KEY, values);
     }
 
     if (gts.hasLocations()) {
@@ -51,8 +62,8 @@ public class GTSPickler implements IObjectPickler {
         lons.add(latlon[1]);
       }
 
-      gtsAsMap.put("lat", lats);
-      gtsAsMap.put("lon", lons);
+      gtsAsMap.put(LATITUDE_KEY, lats);
+      gtsAsMap.put(LONGITUDE_KEY, lons);
     }
 
     if (gts.hasElevations()) {
@@ -60,7 +71,7 @@ public class GTSPickler implements IObjectPickler {
       for (int i = 0; i < gts.values; i++) {
         elevs.add(gts.elevations[i]);
       }
-      gtsAsMap.put("elev", elevs);
+      gtsAsMap.put(ELEVATION_KEY, elevs);
     }
 
     currentPickler.save(gtsAsMap);
