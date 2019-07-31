@@ -73,9 +73,16 @@ public class GTSPickler implements IObjectPickler {
       List<Double> lons = new ArrayList<Double>();
 
       for (int i = 0; i < gts.values; i++) {
-        double[] latlon = GeoXPLib.fromGeoXPPoint(locations[i]);
-        lats.add(latlon[0]);
-        lons.add(latlon[1]);
+
+        if (GeoTimeSerie.NO_LOCATION == locations[i]) {
+          lats.add(Double.NaN);
+          lons.add(Double.NaN);
+
+        } else {
+          double[] latlon = GeoXPLib.fromGeoXPPoint(locations[i]);
+          lats.add(latlon[0]);
+          lons.add(latlon[1]);
+        }
       }
 
       gtsAsMap.put(LATITUDE_KEY, lats);
@@ -85,7 +92,7 @@ public class GTSPickler implements IObjectPickler {
     if (gts.hasElevations()) {
       List<Long> elevs = new ArrayList<Long>(gts.values);
       for (int i = 0; i < gts.values; i++) {
-        elevs.add(gts.elevations[i]);
+        elevs.add(gts.elevations[i]); // no elevation is Long.MIN_VALUE
       }
       gtsAsMap.put(ELEVATION_KEY, elevs);
     }
