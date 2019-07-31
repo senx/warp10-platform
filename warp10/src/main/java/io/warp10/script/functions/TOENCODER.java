@@ -22,6 +22,7 @@ import java.util.List;
 import com.geoxp.GeoXPLib;
 
 import com.google.common.base.Charsets;
+import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
@@ -73,10 +74,17 @@ public class TOENCODER extends NamedWarpScriptFunction implements WarpScriptStac
 
           deser.deserialize(wrapper, (byte[]) element);
 
-          element = GTSWrapperHelper.fromGTSWrapperToGTS(wrapper);
+          GTSDecoder decoder = GTSWrapperHelper.fromGTSWrapperToGTSDecoder(wrapper);
+          decoder.next();
+          encoder.merge(decoder.getEncoder(true));
         } catch (TException te) {
           throw new WarpScriptException(getName() + " failed to unwrap encoder.", te);
+        } catch (IOException ioe) {
+          throw new WarpScriptException(getName() + " cannot get encoder from wrapper.", ioe);
         }
+
+        // Wrap all added to encoder, next.
+        continue;
       }
 
       // If GTS, add it all to the encoder
@@ -87,6 +95,8 @@ public class TOENCODER extends NamedWarpScriptFunction implements WarpScriptStac
         } catch (IOException ioe) {
           throw new WarpScriptException(getName() + " was unable to add Geo Time Series™", ioe);
         }
+
+        // Geo Time Series all added to encoder, next.
         continue;
       }
 

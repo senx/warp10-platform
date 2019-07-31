@@ -34,7 +34,7 @@ import java.io.IOException;
 /**
  * Create a GTSEncoder for each instance of GTS, wrapped GTS or raw wrapped GTS.
  */
-public class GTSTO extends ElementOrListStackFunction {
+public class ASENCODER extends ElementOrListStackFunction {
 
   private final ElementStackFunction gtstoFunction = new ElementStackFunction() {
     @Override
@@ -78,7 +78,7 @@ public class GTSTO extends ElementOrListStackFunction {
     }
   };
 
-  public GTSTO(String name) {
+  public ASENCODER(String name) {
     super(name);
   }
 

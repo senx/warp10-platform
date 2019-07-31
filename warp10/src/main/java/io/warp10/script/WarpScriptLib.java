@@ -47,7 +47,6 @@ import io.warp10.continuum.gts.IFFT;
 import io.warp10.continuum.gts.INTERPOLATE;
 import io.warp10.continuum.gts.LOCATIONOFFSET;
 import io.warp10.continuum.gts.ZIP;
-import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.aggregator.And;
 import io.warp10.script.aggregator.Argminmax;
 import io.warp10.script.aggregator.CircularMean;
@@ -819,7 +818,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOENCODER("->ENCODER"));
     addNamedWarpScriptFunction(new ENCODERTO("ENCODER->"));
     addNamedWarpScriptFunction(new TOGTS("->GTS"));
-    addNamedWarpScriptFunction(new GTSTO("GTS->"));
+    addNamedWarpScriptFunction(new ASENCODER("ASENCODER"));
     addNamedWarpScriptFunction(new TOENCODERS("->ENCODERS"));
     addNamedWarpScriptFunction(new OPTIMIZE("OPTIMIZE"));
     addNamedWarpScriptFunction(new NEWGTS(NEWGTS));
