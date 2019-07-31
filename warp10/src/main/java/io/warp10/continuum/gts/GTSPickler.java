@@ -43,6 +43,10 @@ public class GTSPickler implements IObjectPickler {
   private static String ELEVATION_KEY = "elevations";
 
   public void pickle(Object o, OutputStream out, Pickler currentPickler) throws PickleException, IOException {
+    if (!(o instanceof GeoTimeSerie)) {
+      throw new IllegalArgumentException("Invalid type for first argument. It must be a GeoTimeSerie.");
+    }
+
     GeoTimeSerie gts = (GeoTimeSerie) o;
 
     Map<String, Object> gtsAsMap = new HashMap<String, Object>();
