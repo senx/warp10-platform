@@ -1294,6 +1294,8 @@ public class GTSEncoder {
     if (null != this.wrappingKey) {
       encoder.setWrappingKey(Arrays.copyOf(this.wrappingKey, this.wrappingKey.length));
     }
+
+    encoder.setMetadata(this.getMetadata());
     
     return encoder;
   }

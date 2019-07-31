@@ -52,7 +52,7 @@ public class MACROCONFIGSECRET extends NamedWarpScriptFunction implements WarpSc
     // pop the new secret to use
     top = stack.pop();
     
-    if (null == top || !(top instanceof String)) {
+    if (!(top instanceof String)) {
       throw new WarpScriptException(getName() + " expects a new secret which is a non null string.");
     }
     

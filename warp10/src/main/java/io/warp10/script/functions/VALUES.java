@@ -20,63 +20,60 @@ import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.script.GTSStackFunction;
+import io.warp10.script.ElementOrListStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
- * Extract the values from the parameter GTS instances and push them onto the stack.
- * 
+ * Extract the values from the parameter GTS or Encoder instances or list thereof and push them onto the stack.
+ * <p>
  * Only the ticks with actual values are returned
  */
-public class VALUES extends GTSStackFunction {
-  
+public class VALUES extends ElementOrListStackFunction {
+
+  private final ElementStackFunction valuesFunction = new ElementStackFunction() {
+    @Override
+    public Object applyOnElement(Object element) throws WarpScriptException {
+      if (element instanceof GeoTimeSerie) {
+        GeoTimeSerie gts = (GeoTimeSerie) element;
+
+        int nvalues = GTSHelper.nvalues(gts);
+
+        List<Object> values = new ArrayList<Object>(nvalues);
+
+        for (int i = 0; i < nvalues; i++) {
+          values.add(GTSHelper.valueAtIndex(gts, i));
+        }
+        return values;
+      } else if (element instanceof GTSEncoder) {
+        GTSEncoder encoder = (GTSEncoder) element;
+
+        int nvalues = (int) encoder.getCount();
+
+        List<Object> values = new ArrayList<Object>(nvalues);
+
+        GTSDecoder decoder = encoder.getDecoder(true);
+
+        while (decoder.next()) {
+          values.add(decoder.getBinaryValue());
+        }
+
+        return values;
+      } else {
+        throw new WarpScriptException(getName() + " expects a GeoTimeSeries, a GTSEncoder or a list thereof on top of the stack.");
+      }
+    }
+  };
+
   public VALUES(String name) {
     super(name);
   }
 
   @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    if (!(stack.peek() instanceof GTSEncoder)) {
-      return super.apply(stack);
-    }
-
-    GTSEncoder encoder = (GTSEncoder) stack.pop();
-    
-    int n = (int) encoder.getCount();
-
-    List<Object> values = new ArrayList<Object>(n);
-    
-    GTSDecoder decoder = encoder.getDecoder(true);
-    
-    while(decoder.next()) {
-      values.add(decoder.getBinaryValue());
-    }
-    
-    stack.push(values);
-    
-    return stack;
-  }
-  
-  
-  @Override
-  protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
-    return null;
-  }
-
-  @Override
-  protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
-    int nvalues = GTSHelper.nvalues(gts);
-
-    List<Object> values = new ArrayList<Object>(nvalues);
-
-    for (int i = 0; i < nvalues; i++) {
-      values.add(GTSHelper.valueAtIndex(gts, i));
-    }
-    return values;
+  public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {
+    return valuesFunction;
   }
 }

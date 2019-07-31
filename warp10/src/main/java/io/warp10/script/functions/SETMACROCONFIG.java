@@ -40,7 +40,7 @@ public class SETMACROCONFIG extends NamedWarpScriptFunction implements WarpScrip
     
     Object top = stack.pop();
     
-    if (null == top || !(top instanceof String)) {
+    if (!(top instanceof String)) {
       throw new WarpScriptException(getName() + " expects the macroconfig secret on top of the stack.");
     }
     

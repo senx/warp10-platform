@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Arrays;
 
 /**
  * Do the extraction of arguments from the stack in a formatted manner.
@@ -39,13 +40,31 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
   private final StringBuilder docstring;
   private final List<String> unitTests;
 
+  //
+  // Argument of formatted WarpScript functions are instances of Arguments, which are built by ArgumentsBuilder
+  //
+
   public static class Arguments {
+
+    //
+    // args: list of arguments
+    // optArgs: list of optional arguments
+    //
+
     private final List<ArgumentSpecification> args;
     private final List<ArgumentSpecification> optArgs;
 
-    private Arguments(List<ArgumentSpecification> args, List<ArgumentSpecification> optArgs) {
+    //
+    // listExpandable: whether the first argument of the WarpScript function can be a list or not.
+    // In that case, the result would be a list of results
+    //
+
+    private final boolean listExpandable;
+
+    private Arguments(List<ArgumentSpecification> args, List<ArgumentSpecification> optArgs, boolean listExpandable) {
       this.args = args;
       this.optArgs = optArgs;
+      this.listExpandable = listExpandable;
     }
 
     public List<ArgumentSpecification> getArgsCopy() {
@@ -55,15 +74,21 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     public List<ArgumentSpecification> getOptArgsCopy() {
       return new ArrayList<>(optArgs);
     }
+
+    public boolean isListExpandable() {
+      return listExpandable;
+    }
   }
 
   public static class ArgumentsBuilder {
     private final List<ArgumentSpecification> args;
     private final List<ArgumentSpecification> optArgs;
+    private boolean listExpandable;
 
     public ArgumentsBuilder() {
       args = new ArrayList<>();
       optArgs = new ArrayList<>();
+      listExpandable = false;
     }
 
     public ArgumentsBuilder addArgument(Class<?> clazz, String name, String doc) {
@@ -96,8 +121,16 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       return this;
     }
 
+    public ArgumentsBuilder firstArgIsListExpandable() {
+      listExpandable = true;
+      ArgumentSpecification firstArgs = args.remove(0);
+      args.add(0, new ListSpecification(firstArgs.getClazz(), firstArgs.getName(), firstArgs.getDoc()));
+
+      return this;
+    }
+
     public Arguments build() {
-      return new Arguments(args, optArgs);
+      return new Arguments(args, optArgs, listExpandable);
     }
   }
 
@@ -181,6 +214,14 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       }
     }
 
+    if (getArguments().isListExpandable() && ((ListSpecification) args.get(0)).getSubClazz() == List.class) {
+      throw new WarpScriptException(getClass().getSimpleName() + " implementation error: a list argument can not be list-expandable.");
+    }
+
+    if (getArguments().isListExpandable() && args.size() == 0) {
+      throw new WarpScriptException(getClass().getSimpleName() + " implementation error: a function with 0 argument can not be list-expandable.");
+    }
+
     //
     // If args and opt args are empty, should expect nothing on top
     // If args is empty but opt args is not, should expect a map (possibly empty) on top
@@ -223,13 +264,14 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
         }
       }
 
-      Map<String, Object> map = (Map) stack.peek();
+      // use this map as function's parameters
+      formattedArgs = (Map) ((HashMap<String, Object>) stack.peek()).clone();
 
       //
       // Check that the map does not contain unrecognized argument
       //
 
-      for (String key: map.keySet()) {
+      for (String key: formattedArgs.keySet()) {
         boolean found = false;
 
         for (ArgumentSpecification arg: args) {
@@ -261,13 +303,39 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
 
       for (ArgumentSpecification arg: args) {
 
-        Object value = map.get(arg.getName());
+        Object value = formattedArgs.get(arg.getName());
 
         if (null == value) {
 
           throw new WarpScriptException("The MAP that is on top of the stack does not have the argument '" + arg.getName() +
             "' (of type "  + arg.WarpScriptType() + ") that is required by " + getName());
         }
+
+        //
+        // If first argument is list-expandable, put it in a singleton list if it is not expanded
+        //
+
+        if (getArguments().isListExpandable() && arg == args.get(0)) {
+
+          if (!List.class.isInstance(value)) {
+            Object value_ = value;
+            value = new ArrayList<Object>();
+            ((ArrayList<Object>) value).add(value_);
+
+            ListSpecification firstArg = (ListSpecification) arg;
+            if (!firstArg.getSubClazz().isInstance(value_)) {
+
+              throw new WarpScriptException(getClass().getSimpleName() + " expects the argument '" + firstArg.getName() + "' to" +
+                " be a " + firstArg.WarpScriptSubType() + " or a list of " + firstArg.WarpScriptSubType() + ".");
+            }
+
+            formattedArgs.put(arg.getName(), value);
+          }
+        }
+
+        //
+        // Check type
+        //
 
         if (!arg.getClazz().isInstance(value)) {
 
@@ -282,7 +350,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
 
       for (ArgumentSpecification arg: optArgs) {
 
-        Object value = map.get(arg.getName());
+        Object value = formattedArgs.get(arg.getName());
 
         if (null != value && !arg.getClazz().isInstance(value)) {
 
@@ -301,7 +369,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
 
       for (ArgumentSpecification arg: both) {
 
-        Object candidate = map.get(arg.getName());
+        Object candidate = formattedArgs.get(arg.getName());
         if (null == candidate) {
           continue;
         }
@@ -344,10 +412,10 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       }
 
       //
-      // Consume the top of the stack
+      // Removes the top of the stack
       //
 
-      formattedArgs = new HashMap<String, Object> ((Map) stack.pop());
+      stack.pop();
 
     } else {
 
@@ -358,6 +426,36 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       if (stack.depth() < args.size()) {
         throw new WarpScriptException(getClass().getSimpleName() + " expects to find " + args.size() + " arguments" +
           " off the top of the stack, but the stack contains only " + stack.depth() + " levels.");
+      }
+
+      //
+      // If first argument is list-expandable and is not a list, replace it with a singleton list that contains it
+      //
+
+      if (getArguments().isListExpandable()) {
+        Object first = stack.get(args.size() - 1);
+
+        if (!List.class.isInstance(first)) {
+
+          stack.push(args.size() - 1);
+          Object[] cache = stack.popn();
+          List<Object> arr = new ArrayList<>();
+          arr.add(stack.pop());
+          stack.push(arr);
+          for (Object o: cache) {
+            stack.push(o);
+          }
+
+          ListSpecification firstArg = (ListSpecification) args.get(0);
+          if (!firstArg.getSubClazz().isInstance(first)) {
+
+            System.out.println(first);
+            System.out.println(firstArg.getSubClazz());
+
+            throw new WarpScriptException(getClass().getSimpleName() + " expects the first argument to" +
+              " be a " + firstArg.WarpScriptSubType() + " or a list of " + firstArg.WarpScriptSubType() + ".");
+          }
+        }
       }
 
       //
@@ -431,6 +529,48 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       if (null == formattedArgs.get(arg.getName())) {
         formattedArgs.put(arg.getName(), arg.getDefaultValue());
       }
+    }
+
+    //
+    // Apply child's apply
+    //
+
+    if (getArguments().isListExpandable()) {
+
+      List<Object> firstArg = (List) formattedArgs.get(args.get(0).getName());
+
+      if (firstArg.size() > 1) {
+
+        int initial_depth = stack.depth();
+        for (Object o : firstArg) {
+
+          // clone arguments in case child's apply is messing with the parameter map
+          Map<String, Object> subFormattedArgs = (Map) ((HashMap<String, Object>) formattedArgs).clone();
+
+          subFormattedArgs.put(args.get(0).getName(), o);
+          stack = apply(subFormattedArgs, stack);
+        }
+
+        stack.push(stack.depth() - initial_depth);
+        Object[] elements = stack.popn();
+        List<Object> list = new ArrayList<Object>();
+        list.addAll(Arrays.asList(elements));
+        stack.push(list);
+
+        return stack;
+
+      } else if (1 == firstArg.size()) {
+
+        formattedArgs.put(args.get(0).getName(), firstArg.get(0));
+        return apply(formattedArgs, stack);
+
+      } else {
+
+        // first arg list is empty so result is empty
+        stack.push(new ArrayList<>());
+        return stack;
+      }
+
     }
 
     return apply(formattedArgs, stack);

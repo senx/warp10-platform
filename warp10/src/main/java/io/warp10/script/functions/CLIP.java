@@ -16,76 +16,90 @@
 
 package io.warp10.script.functions;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.ElementOrListStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
- * Clip a Geo Time Series according to a series of limits
+ * Clip Geo Time Series, GTSEncoder or a list thereof according to a series of limits
  */
-public class CLIP extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+public class CLIP extends ElementOrListStackFunction {
+
   public CLIP(String name) {
     super(name);
   }
-  
+
   @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+  public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-    
+
     if (!(top instanceof List)) {
       throw new WarpScriptException(getName() + " expects a list of limit pairs on top of the stack.");
     }
-    
-    List<Object> limits = (List<Object>) top;
-    
-    top = stack.pop();
-    
-    if (!(top instanceof GeoTimeSerie) && !(top instanceof GTSEncoder)) {
-      throw new WarpScriptException(getName() + " operates on a Geo Time Series or encoder.");
-    }
-     
-    GeoTimeSerie gts = top instanceof GeoTimeSerie ? (GeoTimeSerie) top : null;
-    GTSEncoder encoder = top instanceof GTSEncoder ? (GTSEncoder) top: null;
 
-    List<Object> clipped = new ArrayList<Object>();
-    
+    final List<Object> limits = (List<Object>) top;
+
+    // Check that limits contains pair of ordered numeric bounds
     for (Object o: limits) {
       if (!(o instanceof List)) {
         throw new WarpScriptException(getName() + " expects a list of limit pairs on top of the stack.");
       }
-      
+
       List<Object> pair = (List<Object>) o;
-      
+
       if (2 != pair.size()) {
         throw new WarpScriptException(getName() + " expects a list of limit pairs on top of the stack.");
       }
-      
+
+      if (!(pair.get(0) instanceof Number) || !(pair.get(1) instanceof Number)) {
+        throw new WarpScriptException(getName() + " expects the limits to be numeric.");
+      }
+
       long lower = ((Number) pair.get(0)).longValue();
       long upper = ((Number) pair.get(1)).longValue();
-      
+
       if (lower > upper) {
-        long tmp = lower;
-        lower = upper;
-        upper = tmp;
-      }
-      
-      if (null != gts) {
-        clipped.add(GTSHelper.timeclip(gts, lower, upper));
-      } else {
-        clipped.add(GTSHelper.timeclip(encoder, lower, upper));
+        Collections.swap(pair, 0, 1);
       }
     }
-    
-    stack.push(clipped);
-    
-    return stack;
+
+    return new ElementStackFunction() {
+      @Override
+      public Object applyOnElement(Object element) throws WarpScriptException {
+
+        List<Object> clipped = new ArrayList<Object>();
+
+        if (element instanceof GeoTimeSerie) {
+          for (Object o: limits) {
+            List<Object> pair = (List<Object>) o;
+
+            long lower = ((Number) pair.get(0)).longValue();
+            long upper = ((Number) pair.get(1)).longValue();
+
+            clipped.add(GTSHelper.timeclip((GeoTimeSerie) element, lower, upper));
+          }
+        } else if (element instanceof GTSEncoder) {
+          for (Object o: limits) {
+            List<Object> pair = (List<Object>) o;
+
+            long lower = ((Number) pair.get(0)).longValue();
+            long upper = ((Number) pair.get(1)).longValue();
+
+            clipped.add(GTSHelper.timeclip((GTSEncoder) element, lower, upper));
+          }
+        } else {
+          throw new WarpScriptException(getName() + " expects a GeoTimeSeries, a GTSEncoder or a list thereof under the list of limit.");
+        }
+
+        return clipped;
+      }
+    };
   }
 }

@@ -73,9 +73,9 @@ public abstract class AbstractWarp10Plugin {
       }
     }
 
-    for (Object key: props.keySet()) {
-      if (key.toString().startsWith(Configuration.WARP10_PLUGIN_PREFIX)) {
-        plugs.add(props.getProperty(key.toString()).toString().trim());
+    for (String key: props.stringPropertyNames()) {
+      if (key.startsWith(Configuration.WARP10_PLUGIN_PREFIX)) {
+        plugs.add(props.getProperty(key).trim());
       }
     }
     

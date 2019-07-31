@@ -279,7 +279,7 @@ public class WarpFleetMacroRepository {
             macro.setExpiry(System.currentTimeMillis() + ttl);
           }
 
-          macro.setName(name);
+          macro.setNameRecursive(name);
           
           synchronized(macros) {
             macros.put(macroURL, macro);

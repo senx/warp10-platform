@@ -19,7 +19,6 @@ package io.warp10.script.functions;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptLoopBreakException;
 import io.warp10.script.WarpScriptLoopContinueException;
 import io.warp10.script.WarpScriptStack;
@@ -68,7 +67,7 @@ public class FORSTEP extends NamedWarpScriptFunction implements WarpScriptStackF
     Object to = stack.pop(); // TO
     Object from = stack.pop(); // FROM
     
-    if (!WarpScriptLib.isMacro(macroRun) || !WarpScriptLib.isMacro(macroStep)) {
+    if (!(macroRun instanceof Macro) || !(macroStep instanceof Macro)) {
       throw new WarpScriptException(getName() + " expects two macros on top of the stack.");
     }
     
