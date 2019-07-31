@@ -58,6 +58,8 @@ public class TOPICKLE extends NamedWarpScriptFunction implements WarpScriptStack
       PickleSerializer serializer = new PickleSerializer();
       byte[] data = serializer.serializeData(o);
       stack.push(data);
+    } catch (IllegalArgumentException iae) {
+      throw new WarpScriptException(iae);
     } catch (IOException ioe) {
       throw new WarpScriptException(ioe);
     }
