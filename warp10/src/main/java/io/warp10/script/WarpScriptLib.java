@@ -1158,6 +1158,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new BBOX("BBOX"));
     addNamedWarpScriptFunction(new TOGEOHASH("->GEOHASH"));
     addNamedWarpScriptFunction(new GEOHASHTO("GEOHASH->"));
+    addNamedWarpScriptFunction(new GEOCOVER("GEO.COVER", false));
+    addNamedWarpScriptFunction(new GEOCOVER("GEO.COVER.RL", true));
     
     //
     // Counters
