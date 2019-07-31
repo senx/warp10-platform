@@ -23,6 +23,8 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.WarpScriptLib;
+
 
 import java.io.IOException;
 
@@ -34,8 +36,6 @@ import net.razorvine.pyro.serializer.PickleSerializer;
  */
 public class TOPICKLE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private static final TOGTS TOGTS = new TOGTS("TOGTS");
-  
   public TOPICKLE(String name) {
     super(name);
   }
@@ -45,7 +45,7 @@ public class TOPICKLE extends NamedWarpScriptFunction implements WarpScriptStack
     Object o = stack.peek();
 
     if (o instanceof GTSEncoder) {
-      stack = (WarpScriptStack) TOGTS.apply(stack);
+      ((TOGTS) WarpScriptLib.getFunction(WarpScriptLib.TOGTS)).apply(stack);
     }
 
     o = stack.pop();

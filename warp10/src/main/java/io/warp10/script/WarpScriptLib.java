@@ -440,6 +440,8 @@ public class WarpScriptLib {
   public static final String TRY = "TRY";
   public static final String RETHROW = "RETHROW";
 
+  public static final String TOGTS = "->GTS";
+
   static {
 
     addNamedWarpScriptFunction(new REV("REV"));
@@ -818,7 +820,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new CHUNKENCODER("CHUNKENCODER", true));
     addNamedWarpScriptFunction(new TOENCODER("->ENCODER"));
     addNamedWarpScriptFunction(new ENCODERTO("ENCODER->"));
-    addNamedWarpScriptFunction(new TOGTS("->GTS"));
+    addNamedWarpScriptFunction(new TOGTS(TOGTS));
     addNamedWarpScriptFunction(new TOENCODERS("->ENCODERS"));
     addNamedWarpScriptFunction(new OPTIMIZE("OPTIMIZE"));
     addNamedWarpScriptFunction(new NEWGTS(NEWGTS));
