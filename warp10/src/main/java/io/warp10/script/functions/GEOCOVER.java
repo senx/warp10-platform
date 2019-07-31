@@ -97,7 +97,7 @@ public class GEOCOVER extends ElementOrListStackFunction {
           }
         } else if (element instanceof GTSEncoder) {          
           if (rhumblines) {
-            throw new WarpScriptException(getName() + " hmm weird, we should never end here!");
+            // Can't happen
           } else {
             GTSDecoder decoder = ((GTSEncoder) element).getDecoder();
 
@@ -109,6 +109,8 @@ public class GEOCOVER extends ElementOrListStackFunction {
               }
             }            
           }
+        } else {
+          throw new WarpScriptException(getName() + " can only operate on Geo Time Series™ or GTS Encoders.");
         }
         
         GeoXPShape shape = GeoXPLib.fromCells(cells);
