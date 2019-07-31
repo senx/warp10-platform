@@ -60,8 +60,8 @@ public class PicklingTest {
     stack.exec("$map 'classname' GET 'gts' == ASSERT" + System.lineSeparator());
     stack.exec("$map 'labels' GET ->JSON $gts LABELS ->JSON == ASSERT" + System.lineSeparator());
     stack.exec("$map 'attributes' GET ->JSON $gts ATTRIBUTES ->JSON == ASSERT" + System.lineSeparator());
-    stack.exec("$map 'timestamp' GET ->JSON $gts TICKS ->JSON == ASSERT" + System.lineSeparator());
-    stack.exec("$map 'value' GET ->JSON $gts VALUES ->JSON == ASSERT" + System.lineSeparator());
+    stack.exec("$map 'timestamps' GET ->JSON $gts TICKS ->JSON == ASSERT" + System.lineSeparator());
+    stack.exec("$map 'values' GET ->JSON $gts VALUES ->JSON == ASSERT" + System.lineSeparator());
     stack.exec("DEPTH 0 == ASSERT");
   }
 
@@ -82,10 +82,10 @@ public class PicklingTest {
     stack.exec("$map 'classname' GET 'gts' == ASSERT" + System.lineSeparator());
     stack.exec("$map 'labels' GET ->JSON $gts LABELS ->JSON == ASSERT" + System.lineSeparator());
     stack.exec("$map 'attributes' GET ->JSON $gts ATTRIBUTES ->JSON == ASSERT" + System.lineSeparator());
-    stack.exec("$map 'timestamp' GET ->JSON $gts TICKS ->JSON == ASSERT" + System.lineSeparator());
-    stack.exec("$map 'value' GET ->JSON $gts VALUES ->JSON == ASSERT" + System.lineSeparator());
-    stack.exec("$map 'latitude' GET ->JSON $gts LOCATIONS DROP ->JSON == ASSERT" + System.lineSeparator());
-    stack.exec("$map 'longitude' GET ->JSON $gts LOCATIONS SWAP DROP ->JSON == ASSERT" + System.lineSeparator());
+    stack.exec("$map 'timestamps' GET ->JSON $gts TICKS ->JSON == ASSERT" + System.lineSeparator());
+    stack.exec("$map 'values' GET ->JSON $gts VALUES ->JSON == ASSERT" + System.lineSeparator());
+    stack.exec("$map 'latitudes' GET ->JSON $gts LOCATIONS DROP ->JSON == ASSERT" + System.lineSeparator());
+    stack.exec("$map 'longitudes' GET ->JSON $gts LOCATIONS SWAP DROP ->JSON == ASSERT" + System.lineSeparator());
     stack.exec("DEPTH 0 == ASSERT");
   }
 
@@ -106,11 +106,11 @@ public class PicklingTest {
     stack.exec("$map 'classname' GET 'gts' == ASSERT" + System.lineSeparator());
     stack.exec("$map 'labels' GET ->JSON $gts LABELS ->JSON == ASSERT" + System.lineSeparator());
     stack.exec("$map 'attributes' GET ->JSON $gts ATTRIBUTES ->JSON == ASSERT" + System.lineSeparator());
-    stack.exec("$map 'timestamp' GET ->JSON $gts TICKS ->JSON == ASSERT" + System.lineSeparator());
-    stack.exec("$map 'value' GET ->JSON $gts VALUES ->JSON == ASSERT" + System.lineSeparator());
-    stack.exec("$map 'latitude' GET ->JSON $gts LOCATIONS DROP ->JSON == ASSERT" + System.lineSeparator());
-    stack.exec("$map 'longitude' GET ->JSON $gts LOCATIONS SWAP DROP ->JSON == ASSERT" + System.lineSeparator());
-    stack.exec("$map 'elevation' GET ->JSON $gts ELEVATIONS ->JSON == ASSERT" + System.lineSeparator());
+    stack.exec("$map 'timestamps' GET ->JSON $gts TICKS ->JSON == ASSERT" + System.lineSeparator());
+    stack.exec("$map 'values' GET ->JSON $gts VALUES ->JSON == ASSERT" + System.lineSeparator());
+    stack.exec("$map 'latitudes' GET ->JSON $gts LOCATIONS DROP ->JSON == ASSERT" + System.lineSeparator());
+    stack.exec("$map 'longitudes' GET ->JSON $gts LOCATIONS SWAP DROP ->JSON == ASSERT" + System.lineSeparator());
+    stack.exec("$map 'elevations' GET ->JSON $gts ELEVATIONS ->JSON == ASSERT" + System.lineSeparator());
     stack.exec("DEPTH 0 == ASSERT");
   }
 }

@@ -36,16 +36,16 @@ public class GTSPickler implements IObjectPickler {
   private static String CLASSNAME_KEY = "classname";
   private static String LABELS_KEY = "labels";
   private static String ATTRIBUTES_KEY = "attributes";
-  private static String TIMESTAMPS_KEY = "timestamp";
-  private static String VALUES_KEY = "value";
-  private static String LATITUDE_KEY = "latitude";
-  private static String LONGITUDE_KEY = "longitude";
-  private static String ELEVATION_KEY = "elevation";
+  private static String TIMESTAMPS_KEY = "timestamps";
+  private static String VALUES_KEY = "values";
+  private static String LATITUDE_KEY = "latitudes";
+  private static String LONGITUDE_KEY = "longitudes";
+  private static String ELEVATION_KEY = "elevations";
 
   public void pickle(Object o, OutputStream out, Pickler currentPickler) throws PickleException, IOException {
     GeoTimeSerie gts = (GeoTimeSerie) o;
 
-    Map<String, Object> gtsAsMap = new HashMap<>();
+    Map<String, Object> gtsAsMap = new HashMap<String, Object>();
     gtsAsMap.put(CLASSNAME_KEY, gts.getName());
     gtsAsMap.put(LABELS_KEY, gts.getMetadata().getLabels());
     gtsAsMap.put(ATTRIBUTES_KEY, gts.getMetadata().getAttributes());
