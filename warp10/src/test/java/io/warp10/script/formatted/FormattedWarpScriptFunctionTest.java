@@ -47,7 +47,7 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
 
     args = new ArgumentsBuilder()
       .addArgument(GeoTimeSerie.class, "1st arg","A Geo Time Series™.")
-      .firstArgIsListExpandable()
+      .firstArgIsListExpandable(true)
       .addArgument(Long.class, "2nd arg","A LONG.")
       .addArgument(Double.class, "3rd arg","A DOUBLE.")
       .addOptionalArgument(String.class, "1st opt arg", "A STRING.", "The default value.")
@@ -111,12 +111,15 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
 
     // test expanded first arg
     StringBuilder test5 = new StringBuilder();
-    test5.append("[ NEWGTS NEWGTS NEWGTS ] 3 0.5 EXAMPLE 'res' STORE" + System.lineSeparator());
+    test5.append("[ NEWGTS '1' RENAME NEWGTS '2' RENAME NEWGTS '3' RENAME ] 3 0.5 EXAMPLE 'res' STORE" + System.lineSeparator());
     test5.append("$res DUP TYPEOF 'LIST' == ASSERT SIZE 3 == ASSERT" + System.lineSeparator());
     test5.append("$res <% '1st arg' GET TYPEOF 'GTS' == ASSERT %> FOREACH" + System.lineSeparator());
     test5.append("$res <% '2nd arg' GET 3 == ASSERT %> FOREACH" + System.lineSeparator());
     test5.append("$res <% '3rd arg' GET 0.5 == ASSERT %> FOREACH" + System.lineSeparator());
-    test5.append("$res <% SIZE 5 == ASSERT %> FOREACH");
+    test5.append("$res <% SIZE 5 == ASSERT %> FOREACH" + System.lineSeparator());
+    test5.append("$res 0 GET '1st arg' GET NAME '1' == ASSERT" + System.lineSeparator());
+    test5.append("$res 1 GET '1st arg' GET NAME '2' == ASSERT" + System.lineSeparator());
+    test5.append("$res 2 GET '1st arg' GET NAME '3' == ASSERT" + System.lineSeparator());
     unitTests.add(test5.toString());
   }
 

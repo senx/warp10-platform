@@ -20,12 +20,19 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.MemoryWarpScriptStack;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Arrays;
+
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * Do the extraction of arguments from the stack in a formatted manner.
@@ -61,10 +68,17 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
 
     private final boolean listExpandable;
 
-    private Arguments(List<ArgumentSpecification> args, List<ArgumentSpecification> optArgs, boolean listExpandable) {
+    //
+    // allowMT: whether multi-threading is allowed on list-expandable argument (to be set to false if apply() is not thread-safe)
+    //
+
+    private final boolean allowMT;
+
+    private Arguments(List<ArgumentSpecification> args, List<ArgumentSpecification> optArgs, boolean listExpandable, boolean allowMT) {
       this.args = args;
       this.optArgs = optArgs;
       this.listExpandable = listExpandable;
+      this.allowMT = allowMT;
     }
 
     public List<ArgumentSpecification> getArgsCopy() {
@@ -78,12 +92,17 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     public boolean isListExpandable() {
       return listExpandable;
     }
+
+    public boolean doesAllowMT() {
+      return allowMT;
+    }
   }
 
   public static class ArgumentsBuilder {
     private final List<ArgumentSpecification> args;
     private final List<ArgumentSpecification> optArgs;
     private boolean listExpandable;
+    private boolean allowMT;
 
     public ArgumentsBuilder() {
       args = new ArrayList<>();
@@ -121,16 +140,21 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       return this;
     }
 
-    public ArgumentsBuilder firstArgIsListExpandable() {
+    public ArgumentsBuilder firstArgIsListExpandable(boolean allowMT) {
       listExpandable = true;
+      this.allowMT = allowMT;
       ArgumentSpecification firstArgs = args.remove(0);
       args.add(0, new ListSpecification(firstArgs.getClazz(), firstArgs.getName(), firstArgs.getDoc()));
 
       return this;
     }
 
+    public ArgumentsBuilder firstArgIsListExpandable() {
+      return firstArgIsListExpandable(false);
+    }
+
     public Arguments build() {
-      return new Arguments(args, optArgs, listExpandable);
+      return new Arguments(args, optArgs, listExpandable, allowMT);
     }
   }
 
@@ -541,23 +565,95 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
 
       if (firstArg.size() > 1) {
 
-        int initial_depth = stack.depth();
-        for (Object o : firstArg) {
+        if (getArguments().allowMT) {
 
-          // clone arguments in case child's apply is messing with the parameter map
-          Map<String, Object> subFormattedArgs = (Map) ((HashMap<String, Object>) formattedArgs).clone();
+          ExecutorService e = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+          List<Callable<Object[]>> callables = new ArrayList<Callable<Object[]>>();
 
-          subFormattedArgs.put(args.get(0).getName(), o);
-          stack = apply(subFormattedArgs, stack);
+          for (Object o: firstArg) {
+
+            //
+            // Use a different subStack per thread in case apply() would push and pop objects
+            //
+
+            final MemoryWarpScriptStack subStack;
+            stack.save();
+            Object context = stack.pop();
+
+            if (stack instanceof MemoryWarpScriptStack) {
+              subStack = ((MemoryWarpScriptStack) stack).getSubStack();
+            } else {
+              subStack = new MemoryWarpScriptStack(stack.getStoreClient(), stack.getDirectoryClient());
+            }
+
+            subStack.push(context);
+            subStack.restore();
+
+            //
+            // Also use a different parameter map
+            //
+
+            final Map<String, Object> subFormattedArgs = (Map) ((HashMap<String, Object>) formattedArgs).clone();
+            subFormattedArgs.put(args.get(0).getName(), o);
+
+            //
+            // Create the callable
+            //
+
+            callables.add(new Callable<Object[]>() {
+              @Override
+              public Object[] call() throws Exception {
+
+                // apply function
+                apply(subFormattedArgs, subStack);
+
+                // retrieve results
+                subStack.push(subStack.depth());
+                return subStack.popn();
+              }
+            });
+          }
+
+          //
+          // Execute and push back results
+          //
+
+          List<Object> list = new ArrayList<>();
+          try {
+            List<Future<Object[]>> futures = e.invokeAll(callables);
+            for (Future<Object[]> future: futures) {
+              list.addAll(Arrays.asList(future.get()));
+            }
+
+          } catch (InterruptedException ie) {
+            throw new WarpScriptException(ie);
+
+          } catch (ExecutionException ee) {
+            throw  new WarpScriptException(ee);
+          }
+
+          stack.push(list);
+          return stack;
+
+        } else {
+          int initial_depth = stack.depth();
+          for (Object o: firstArg) {
+
+            // clone arguments in case child's apply is messing with the parameter map
+            Map<String, Object> subFormattedArgs = (Map) ((HashMap<String, Object>) formattedArgs).clone();
+
+            subFormattedArgs.put(args.get(0).getName(), o);
+            stack = apply(subFormattedArgs, stack);
+          }
+
+          stack.push(stack.depth() - initial_depth);
+          Object[] elements = stack.popn();
+          List<Object> list = new ArrayList<Object>();
+          list.addAll(Arrays.asList(elements));
+          stack.push(list);
+
+          return stack;
         }
-
-        stack.push(stack.depth() - initial_depth);
-        Object[] elements = stack.popn();
-        List<Object> list = new ArrayList<Object>();
-        list.addAll(Arrays.asList(elements));
-        stack.push(list);
-
-        return stack;
 
       } else if (1 == firstArg.size()) {
 
