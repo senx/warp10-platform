@@ -633,7 +633,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
           throw new WarpScriptException(ie);
 
         } catch (ExecutionException ee) {
-          throw  new WarpScriptException(ee);
+          throw new WarpScriptException(ee);
         }
 
         stack.push(list);
