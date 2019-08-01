@@ -36,6 +36,11 @@ import net.razorvine.pyro.serializer.PickleSerializer;
  */
 public class TOPICKLE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
+  // register pickler for custom classes
+  static {
+    Pickler.registerCustomPickler(GeoTimeSerie.class, new GTSPickler());
+  }
+
   public TOPICKLE(String name) {
     super(name);
   }
@@ -51,13 +56,12 @@ public class TOPICKLE extends NamedWarpScriptFunction implements WarpScriptStack
     o = stack.pop();
     
     try {
-      // register pickler for custom classes
-      Pickler.registerCustomPickler(GeoTimeSerie.class, new GTSPickler());
 
       // pickle
       PickleSerializer serializer = new PickleSerializer();
       byte[] data = serializer.serializeData(o);
       stack.push(data);
+
     } catch (IllegalArgumentException iae) {
       throw new WarpScriptException(iae);
     } catch (IOException ioe) {
