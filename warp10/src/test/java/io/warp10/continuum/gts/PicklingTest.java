@@ -84,8 +84,9 @@ public class PicklingTest {
     stack.exec("$map 'attributes' GET ->JSON $gts ATTRIBUTES ->JSON == ASSERT" );
     stack.exec("$map 'timestamps' GET ->JSON $gts TICKS ->JSON == ASSERT" );
     stack.exec("$map 'values' GET ->JSON $gts VALUES ->JSON == ASSERT" );
-    stack.exec("$map 'latitudes' GET ->JSON $gts LOCATIONS DROP ->JSON == ASSERT" );
-    stack.exec("$map 'longitudes' GET ->JSON $gts LOCATIONS SWAP DROP ->JSON == ASSERT" );
+    stack.exec("1e-5 'precision' STORE");
+    stack.exec("[ $map 'latitudes' GET $gts LOCATIONS DROP ] ZIP <% LIST-> DROP - ABS $precision < ASSERT %> FOREACH " );
+    stack.exec("[ $map 'longitudes' GET $gts LOCATIONS SWAP DROP ] ZIP <% LIST-> DROP - ABS $precision < ASSERT %> FOREACH " );
     stack.exec("DEPTH 0 == ASSERT");
   }
 
@@ -108,8 +109,9 @@ public class PicklingTest {
     stack.exec("$map 'attributes' GET ->JSON $gts ATTRIBUTES ->JSON == ASSERT" );
     stack.exec("$map 'timestamps' GET ->JSON $gts TICKS ->JSON == ASSERT" );
     stack.exec("$map 'values' GET ->JSON $gts VALUES ->JSON == ASSERT" );
-    stack.exec("$map 'latitudes' GET ->JSON $gts LOCATIONS DROP ->JSON == ASSERT" );
-    stack.exec("$map 'longitudes' GET ->JSON $gts LOCATIONS SWAP DROP ->JSON == ASSERT" );
+    stack.exec("1e-5 'precision' STORE");
+    stack.exec("[ $map 'latitudes' GET $gts LOCATIONS DROP ] ZIP <% LIST-> DROP - ABS $precision < ASSERT %> FOREACH " );
+    stack.exec("[ $map 'longitudes' GET $gts LOCATIONS SWAP DROP ] ZIP <% LIST-> DROP - ABS $precision < ASSERT %> FOREACH " );
     stack.exec("$map 'elevations' GET ->JSON $gts ELEVATIONS ->JSON == ASSERT" );
     stack.exec("DEPTH 0 == ASSERT");
   }

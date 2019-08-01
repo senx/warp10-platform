@@ -73,19 +73,19 @@ public class GTSPickler implements IObjectPickler {
 
     if (gts.hasLocations()) {
       long[] locations = gts.locations;
-      List<Double> lats = new ArrayList<Double>();
-      List<Double> lons = new ArrayList<Double>();
+      List<Float> lats = new ArrayList<Float>();
+      List<Float> lons = new ArrayList<Float>();
 
       for (int i = 0; i < gts.values; i++) {
 
         if (GeoTimeSerie.NO_LOCATION == locations[i]) {
-          lats.add(Double.NaN);
-          lons.add(Double.NaN);
+          lats.add(Float.NaN);
+          lons.add(Float.NaN);
 
         } else {
           double[] latlon = GeoXPLib.fromGeoXPPoint(locations[i]);
-          lats.add(latlon[0]);
-          lons.add(latlon[1]);
+          lats.add((float) latlon[0]);
+          lons.add((float) latlon[1]);
         }
       }
 
