@@ -36,6 +36,8 @@ import net.razorvine.pyro.serializer.PickleSerializer;
  */
 public class TOPICKLE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
+  private static final TOGTS TOGTS = new TOGTS(WarpScriptLib.TOGTS);
+
   // register pickler for custom classes
   static {
     Pickler.registerCustomPickler(GeoTimeSerie.class, new GTSPickler());
@@ -50,7 +52,7 @@ public class TOPICKLE extends NamedWarpScriptFunction implements WarpScriptStack
     Object o = stack.peek();
 
     if (o instanceof GTSEncoder) {
-      ((TOGTS) WarpScriptLib.getFunction(WarpScriptLib.TOGTS)).apply(stack);
+      TOGTS.apply(stack);
     }
 
     o = stack.pop();

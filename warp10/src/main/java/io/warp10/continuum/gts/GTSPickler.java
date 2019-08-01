@@ -44,7 +44,7 @@ public class GTSPickler implements IObjectPickler {
 
   public void pickle(Object o, OutputStream out, Pickler currentPickler) throws PickleException, IOException {
     if (!(o instanceof GeoTimeSerie)) {
-      throw new IllegalArgumentException("Invalid type for first argument. It must be a GeoTimeSerie.");
+      throw new IllegalArgumentException("Invalid type for first argument. It must be a GeoTimeSerie™.");
     }
 
     GeoTimeSerie gts = (GeoTimeSerie) o;
