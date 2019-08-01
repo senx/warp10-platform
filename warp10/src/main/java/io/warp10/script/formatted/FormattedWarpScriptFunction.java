@@ -565,95 +565,79 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
 
       if (firstArg.size() > 1) {
 
+        ExecutorService executor;
         if (getArguments().allowMT) {
-
-          ExecutorService e = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-          List<Callable<Object[]>> callables = new ArrayList<Callable<Object[]>>();
-
-          for (Object o: firstArg) {
-
-            //
-            // Use a different subStack per thread in case apply() would push and pop objects
-            //
-
-            final MemoryWarpScriptStack subStack;
-            stack.save();
-            Object context = stack.pop();
-
-            if (stack instanceof MemoryWarpScriptStack) {
-              subStack = ((MemoryWarpScriptStack) stack).getSubStack();
-            } else {
-              subStack = new MemoryWarpScriptStack(stack.getStoreClient(), stack.getDirectoryClient());
-            }
-
-            subStack.push(context);
-            subStack.restore();
-
-            //
-            // Also use a different parameter map
-            //
-
-            final Map<String, Object> subFormattedArgs = (Map) ((HashMap<String, Object>) formattedArgs).clone();
-            subFormattedArgs.put(args.get(0).getName(), o);
-
-            //
-            // Create the callable
-            //
-
-            callables.add(new Callable<Object[]>() {
-              @Override
-              public Object[] call() throws Exception {
-
-                // apply function
-                apply(subFormattedArgs, subStack);
-
-                // retrieve results
-                subStack.push(subStack.depth());
-                return subStack.popn();
-              }
-            });
-          }
-
-          //
-          // Execute and push back results
-          //
-
-          List<Object> list = new ArrayList<>();
-          try {
-            List<Future<Object[]>> futures = e.invokeAll(callables);
-            for (Future<Object[]> future: futures) {
-              list.addAll(Arrays.asList(future.get()));
-            }
-
-          } catch (InterruptedException ie) {
-            throw new WarpScriptException(ie);
-
-          } catch (ExecutionException ee) {
-            throw  new WarpScriptException(ee);
-          }
-
-          stack.push(list);
-          return stack;
-
+          executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         } else {
-          int initial_depth = stack.depth();
-          for (Object o: firstArg) {
+          executor = Executors.newSingleThreadExecutor();
+        }
 
-            // clone arguments in case child's apply is messing with the parameter map
-            Map<String, Object> subFormattedArgs = (Map) ((HashMap<String, Object>) formattedArgs).clone();
+        List<Callable<Object[]>> callables = new ArrayList<Callable<Object[]>>();
 
-            subFormattedArgs.put(args.get(0).getName(), o);
-            stack = apply(subFormattedArgs, stack);
+        for (Object o: firstArg) {
+
+          //
+          // Use a different subStack per thread in case apply() would push and pop objects
+          //
+
+          final MemoryWarpScriptStack subStack;
+          stack.save();
+          Object context = stack.pop();
+
+          if (stack instanceof MemoryWarpScriptStack) {
+            subStack = ((MemoryWarpScriptStack) stack).getSubStack();
+          } else {
+            subStack = new MemoryWarpScriptStack(stack.getStoreClient(), stack.getDirectoryClient());
           }
 
-          stack.push(stack.depth() - initial_depth);
-          Object[] elements = stack.popn();
-          List<Object> list = new ArrayList<Object>();
-          list.addAll(Arrays.asList(elements));
-          stack.push(list);
+          subStack.push(context);
+          subStack.restore();
 
-          return stack;
+          //
+          // Also use a different parameter map
+          //
+
+          final Map<String, Object> subFormattedArgs = (Map) ((HashMap<String, Object>) formattedArgs).clone();
+          subFormattedArgs.put(args.get(0).getName(), o);
+
+          //
+          // Create the callable
+          //
+
+          callables.add(new Callable<Object[]>() {
+            @Override
+            public Object[] call() throws Exception {
+
+              // apply function
+              apply(subFormattedArgs, subStack);
+
+              // retrieve results
+              subStack.push(subStack.depth());
+              return subStack.popn();
+            }
+          });
         }
+
+        //
+        // Execute and push back results
+        //
+
+        List<Object> list = new ArrayList<>();
+        try {
+          List<Future<Object[]>> futures = executor.invokeAll(callables);
+          for (Future<Object[]> future: futures) {
+            list.addAll(Arrays.asList(future.get()));
+          }
+
+        } catch (InterruptedException ie) {
+          throw new WarpScriptException(ie);
+
+        } catch (ExecutionException ee) {
+          throw  new WarpScriptException(ee);
+        }
+
+        stack.push(list);
+        return stack;
 
       } else if (1 == firstArg.size()) {
 
@@ -666,7 +650,6 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
         stack.push(new ArrayList<>());
         return stack;
       }
-
     }
 
     return apply(formattedArgs, stack);
