@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -440,6 +440,8 @@ public class WarpScriptLib {
   public static final String TRY = "TRY";
   public static final String RETHROW = "RETHROW";
 
+  public static final String TOGTS = "->GTS";
+
   static {
 
     addNamedWarpScriptFunction(new REV("REV"));
@@ -818,7 +820,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new CHUNKENCODER("CHUNKENCODER", true));
     addNamedWarpScriptFunction(new TOENCODER("->ENCODER"));
     addNamedWarpScriptFunction(new ENCODERTO("ENCODER->"));
-    addNamedWarpScriptFunction(new TOGTS("->GTS"));
+    addNamedWarpScriptFunction(new TOGTS(TOGTS));
     addNamedWarpScriptFunction(new TOENCODERS("->ENCODERS"));
     addNamedWarpScriptFunction(new OPTIMIZE("OPTIMIZE"));
     addNamedWarpScriptFunction(new NEWGTS(NEWGTS));
@@ -1045,7 +1047,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new APPLY("PAPPLY", false));
     addNamedWarpScriptFunction(new REDUCE("REDUCE", true));
     addNamedWarpScriptFunction(new REDUCE("PREDUCE", false));
-        
+    addNamedWarpScriptFunction(new PIVOT("PIVOT", false));
+    addNamedWarpScriptFunction(new PIVOT("PIVOTSTRICT", true));    
     addNamedWarpScriptFunction(new MaxTickSlidingWindow("max.tick.sliding.window"));
     addNamedWarpScriptFunction(new MaxTimeSlidingWindow("max.time.sliding.window"));
     addNamedWarpScriptFunction(new NULL(NULL));
@@ -1158,6 +1161,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new BBOX("BBOX"));
     addNamedWarpScriptFunction(new TOGEOHASH("->GEOHASH"));
     addNamedWarpScriptFunction(new GEOHASHTO("GEOHASH->"));
+    addNamedWarpScriptFunction(new GEOCOVER("GEO.COVER", false));
+    addNamedWarpScriptFunction(new GEOCOVER("GEO.COVER.RL", true));
     
     //
     // Counters
