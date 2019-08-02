@@ -34,7 +34,7 @@ import java.io.IOException;
 /**
  * Create a GTSEncoder for each instance of GTS, wrapped GTS or raw wrapped GTS.
  */
-public class ASENCODER extends ElementOrListStackFunction {
+public class ASENCODERS extends ElementOrListStackFunction {
 
   private final ElementStackFunction gtstoFunction = new ElementStackFunction() {
     @Override
@@ -53,9 +53,11 @@ public class ASENCODER extends ElementOrListStackFunction {
 
           deser.deserialize(wrapper, (byte[]) element);
 
-          element = GTSWrapperHelper.fromGTSWrapperToGTS(wrapper);
+          return GTSWrapperHelper.fromGTSWrapperToGTSEncoder(wrapper);
         } catch (TException te) {
           throw new WarpScriptException(getName() + " failed to unwrap encoder.", te);
+        } catch (IOException ioe) {
+          throw new WarpScriptException(getName() + " failed to convert wrapper to encoder.", ioe);
         }
       }
 
@@ -78,7 +80,7 @@ public class ASENCODER extends ElementOrListStackFunction {
     }
   };
 
-  public ASENCODER(String name) {
+  public ASENCODERS(String name) {
     super(name);
   }
 
