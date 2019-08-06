@@ -16,6 +16,8 @@
 
 package io.warp10.script.formatted;
 
+import io.warp10.script.functions.TYPEOF;
+
 import java.util.List;
 
 public class ListSpecification extends ArgumentSpecification {
@@ -41,5 +43,9 @@ public class ListSpecification extends ArgumentSpecification {
   public ListSpecification(Class clazz, String name) {
     super(List.class, name);
     subClazz = clazz;
+  }
+
+  public String WarpScriptSubType() {
+    return TYPEOF.typeof(subClazz);
   }
 }

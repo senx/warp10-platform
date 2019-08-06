@@ -92,10 +92,10 @@ public class SETATTRIBUTES extends ElementOrListStackFunction {
       if (null == entry.getKey()) {
         continue;
       }
-      if (!(entry.getKey() instanceof String) || !(entry.getValue() instanceof String)) {
+      if (!(entry.getKey() instanceof String) || (null != entry.getValue() && !(entry.getValue() instanceof String))) {
         throw new WarpScriptException(getName() + " attribute key and value MUST be of type String.");
       }
-      if ("".equals(entry.getValue())) {
+      if (null == entry.getValue() || "".equals(entry.getValue())) {
         newAttributes.remove(entry.getKey());
       } else {
         newAttributes.put((String) entry.getKey(), (String) entry.getValue());
