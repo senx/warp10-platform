@@ -22,6 +22,7 @@ import com.google.common.base.Charsets;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.continuum.gts.UnsafeString;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -235,7 +236,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
       } else if (o instanceof String) {
         sb.append("'");
         if (readable) {
-          sb.append(o);
+          sb.append(processString(o.toString()));
         } else {
           try {
             sb.append(WarpURLEncoder.encode(o.toString(), "UTF-8"));
@@ -419,5 +420,48 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         recursionDepth.remove();
       }
     }
+  }
+
+  //
+  // Process a string to make it readable and compatible in WarpScript code
+  //
+
+  private static String processString(String s) {
+
+    char[] chars = UnsafeString.getChars(s);
+
+    StringBuilder sb = null;
+
+    int lastIdx = 0;
+    int idx = 0;
+
+    //
+    // Replace anything below 32 and ' by %## (invalid character)
+    //
+
+    while(idx < chars.length) {
+      if ("'".charAt(0) == chars[idx] || chars[idx] < 32) {
+
+        if (null == sb) {
+          sb = new StringBuilder(s.length() + 2);
+        }
+
+        sb.append(chars, lastIdx, idx - lastIdx);
+        sb.append("%##");
+        lastIdx = ++idx;
+      } else {
+        idx++;
+      }
+    }
+
+    if (null == sb) {
+      return s;
+    }
+
+    if (idx > lastIdx) {
+      sb.append(chars, lastIdx, idx - lastIdx);
+    }
+
+    return sb.toString();
   }
 }
