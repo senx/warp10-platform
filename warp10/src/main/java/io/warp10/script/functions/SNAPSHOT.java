@@ -236,7 +236,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
       } else if (o instanceof String) {
         sb.append("'");
         if (readable) {
-          sb.append(processString(o.toString()));
+          appendProcessedString(sb, o.toString());
         } else {
           try {
             sb.append(WarpURLEncoder.encode(o.toString(), "UTF-8"));
@@ -426,11 +426,9 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
   // Process a string to make it readable and compatible in WarpScript code
   //
 
-  private static String processString(String s) {
+  private static void appendProcessedString(StringBuilder sb, String s) {
 
     char[] chars = UnsafeString.getChars(s);
-
-    StringBuilder sb = null;
 
     int lastIdx = 0;
     int idx = 0;
@@ -442,26 +440,16 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
     while(idx < chars.length) {
       if ('\'' == chars[idx] || chars[idx] < ' ') {
 
-        if (null == sb) {
-          sb = new StringBuilder(s.length() + 2);
-        }
-
         sb.append(chars, lastIdx, idx - lastIdx);
-        sb.append("%" + Integer.toHexString((int) chars[idx]));
+        sb.append("%" + (chars[idx] >>> 4) + (chars[idx] & 0xF));
         lastIdx = ++idx;
       } else {
         idx++;
       }
     }
 
-    if (null == sb) {
-      return s;
-    }
-
     if (idx > lastIdx) {
       sb.append(chars, lastIdx, idx - lastIdx);
     }
-
-    return sb.toString();
   }
 }
