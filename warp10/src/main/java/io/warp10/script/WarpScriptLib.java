@@ -89,6 +89,7 @@ import io.warp10.script.binary.GT;
 import io.warp10.script.binary.INPLACEADD;
 import io.warp10.script.binary.LE;
 import io.warp10.script.binary.LT;
+import io.warp10.script.binary.MACROBINARYOP;
 import io.warp10.script.binary.MOD;
 import io.warp10.script.binary.MUL;
 import io.warp10.script.binary.NE;
@@ -690,6 +691,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new BitwiseOR("|"));
     addNamedWarpScriptFunction(new BitwiseXOR("^"));
     addNamedWarpScriptFunction(new ALMOSTEQ("~="));
+    addNamedWarpScriptFunction(new MACROBINARYOP("MACROBINARYOP"));
 
     // Bitset ops
     addNamedWarpScriptFunction(new BITGET("BITGET"));

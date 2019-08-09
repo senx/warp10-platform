@@ -16,14 +16,16 @@
 
 package io.warp10.continuum.gts;
 
+import io.warp10.script.WarpScriptException;
+
 public class GTSOpsHelper {
   public static interface GTSBinaryOp {
-    public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb);
+    public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) throws WarpScriptException;
   }
-  public static void applyBinaryOp(GeoTimeSerie result, GeoTimeSerie gts1, GeoTimeSerie gts2, GTSBinaryOp op) {
+  public static void applyBinaryOp(GeoTimeSerie result, GeoTimeSerie gts1, GeoTimeSerie gts2, GTSBinaryOp op) throws WarpScriptException {
     applyBinaryOp(result, gts1, gts2, op,false);
   }
-  public static void applyBinaryOp(GeoTimeSerie result, GeoTimeSerie gts1, GeoTimeSerie gts2, GTSBinaryOp op, boolean copyGts1Location) {
+  public static void applyBinaryOp(GeoTimeSerie result, GeoTimeSerie gts1, GeoTimeSerie gts2, GTSBinaryOp op, boolean copyGts1Location) throws WarpScriptException {
     //
     // Determine if result should be bucketized or not
     //
