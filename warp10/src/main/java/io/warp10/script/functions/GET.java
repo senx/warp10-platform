@@ -100,7 +100,7 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
     return index;
   }
 
-  static Object nestedGet(List<Object> nestedList, List<Long> indexList) throws WarpScriptException {
+  public static Object nestedGet(List<Object> nestedList, List<Long> indexList) throws WarpScriptException {
     Object res = nestedList;
 
     for (int i = 0; i < indexList.size(); i++) {
