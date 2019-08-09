@@ -49,7 +49,7 @@ public class MACROBINARYOP extends FormattedWarpScriptFunction {
 
     StringBuilder equalTest = new StringBuilder();
     equalTest.append("[ 1 100 <% %> FOR ] [] [] [] [ 1 100 <% RAND %> FOR ] MAKEGTS 'a' STORE" + System.lineSeparator());
-    equalTest.append("$a $a <% == ASSERT 1.0 %> " + getName() + " DROP");
+    equalTest.append("$a $a <% == ASSERT NULL %> " + getName() + " DROP");
     getUnitTests().add(equalTest.toString());
 
     //
