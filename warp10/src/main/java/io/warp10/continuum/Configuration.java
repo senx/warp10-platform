@@ -1446,6 +1446,11 @@ public class Configuration {
   public static final String STANDALONE_SNAPSHOT_SIGNAL = "standalone.snapshot.signal";
   
   /**
+   * Set to 'true' to ignore timestamp limits (maxpast/maxfuture) when receiving data via datalog.
+   */
+  public static final String DATALOG_IGNORE_TIMESTAMPLIMITS = "datalog.ignore.timestamplimits";
+  
+  /**
    * Directory where data requests should be logged. This directory should be in 700 to protect sensitive token infos.
    */
   public static final String DATALOG_DIR = "datalog.dir";

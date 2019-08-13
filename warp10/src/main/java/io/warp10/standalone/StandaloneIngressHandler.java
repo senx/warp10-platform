@@ -400,6 +400,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
           maxfuture = now + Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE));
         }
 
+        if (null != dr && "true".equals(WarpConfig.getProperty(Configuration.DATALOG_IGNORE_TIMESTAMPLIMITS))) {
+          maxfuture = null;
+          maxpast = null;
+        }
         
         //
         // Check the value of the 'now' header
