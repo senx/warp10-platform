@@ -393,6 +393,12 @@ public class Constants {
   public static final String TOKEN_ATTR_NOUPDATE = ".noupdate";
   public static final String TOKEN_ATTR_NOMETA = ".nometa";
   
+  /**
+   * Timestamp limitis for WRITE tokens (expressed in ms delta from current time)
+   */
+  public static final String TOKEN_ATTR_MAXFUTURE = ".maxfuture";
+  public static final String TOKEN_ATTR_MAXPAST = ".maxpast";
+  
   static {
     String tu = WarpConfig.getProperty(Configuration.WARP_TIME_UNITS);
     

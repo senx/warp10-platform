@@ -84,6 +84,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 
 import io.warp10.SSLUtils;
+import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
@@ -717,6 +718,43 @@ public class Ingress extends AbstractHandler implements Runnable {
         Long now = TimeSource.getTime();
 
         //
+        // Extract time limits
+        //
+        
+        Long maxpast = null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT) ? (now - Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT))) : null;
+        Long maxfuture = null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT) ? (now + Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT))) : null;
+        
+        if (writeToken.getAttributesSize() > 0) {
+          String deltastr = writeToken.getAttributes().get(Constants.TOKEN_ATTR_MAXPAST);
+
+          if (null != deltastr) {
+            long delta = Long.parseLong(deltastr);
+            if (delta < 0) {
+              throw new WarpScriptException("Invalid '" + Constants.TOKEN_ATTR_MAXPAST + "' token attribute, MUST be positive.");
+            }
+            maxpast = now - Constants.TIME_UNITS_PER_MS * delta;
+          }
+          
+          deltastr = writeToken.getAttributes().get(Constants.TOKEN_ATTR_MAXFUTURE);
+          
+          if (null != deltastr) {
+            long delta = Long.parseLong(deltastr);
+            if (delta < 0) {
+              throw new WarpScriptException("Invalid '" + Constants.TOKEN_ATTR_MAXFUTURE + "' token attribute, MUST be positive.");
+            }
+            maxfuture = now + Constants.TIME_UNITS_PER_MS * delta;
+          }          
+        }
+
+        if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE)) {
+          maxpast = now - Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE));
+        }
+
+        if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE)) {
+          maxfuture = now + Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE));
+        }
+
+        //
         // Check the value of the 'now' header
         //
         // The following values are supported:
@@ -801,7 +839,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           }
                     
           try {
-            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, hadAttributes);
+            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, hadAttributes, maxpast, maxfuture);
             count++;
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_PARSEERRORS, sensisionLabels, 1);

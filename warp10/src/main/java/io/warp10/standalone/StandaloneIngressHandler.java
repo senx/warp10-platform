@@ -364,6 +364,44 @@ public class StandaloneIngressHandler extends AbstractHandler {
         Long now = TimeSource.getTime();
 
         //
+        // Extract time limits
+        //
+        
+        Long maxpast = null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT) ? (now - Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT))) : null;
+        Long maxfuture = null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT) ? (now + Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT))) : null;
+        
+        if (writeToken.getAttributesSize() > 0) {
+          String deltastr = writeToken.getAttributes().get(Constants.TOKEN_ATTR_MAXPAST);
+
+          if (null != deltastr) {
+            long delta = Long.parseLong(deltastr);
+            if (delta < 0) {
+              throw new WarpScriptException("Invalid '" + Constants.TOKEN_ATTR_MAXPAST + "' token attribute, MUST be positive.");
+            }
+            maxpast = now - Constants.TIME_UNITS_PER_MS * delta;
+          }
+          
+          deltastr = writeToken.getAttributes().get(Constants.TOKEN_ATTR_MAXFUTURE);
+          
+          if (null != deltastr) {
+            long delta = Long.parseLong(deltastr);
+            if (delta < 0) {
+              throw new WarpScriptException("Invalid '" + Constants.TOKEN_ATTR_MAXFUTURE + "' token attribute, MUST be positive.");
+            }
+            maxfuture = now + Constants.TIME_UNITS_PER_MS * delta;
+          }          
+        }
+        
+        if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE)) {
+          maxpast = now - Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE));
+        }
+
+        if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE)) {
+          maxfuture = now + Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE));
+        }
+
+        
+        //
         // Check the value of the 'now' header
         //
         // The following values are supported:
@@ -546,11 +584,15 @@ public class StandaloneIngressHandler extends AbstractHandler {
           count++;
 
           try {
-            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, hadAttributes);
+            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, hadAttributes, maxpast, maxfuture);
             //nano2 += System.nanoTime() - nano0;
           } catch (ParseException pe) {
-            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_PARSEERRORS, sensisionLabels, 1);            
-            throw new IOException("Parse error at '" + line + "'", pe);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_PARSEERRORS, sensisionLabels, 1);
+            if (null != pe.getMessage()) {
+              throw new IOException("Parse error at '" + line + "' (" + pe.getMessage() + ")", pe);
+            } else {
+              throw new IOException("Parse error at '" + line + "'", pe);
+            }
           }
 
           if (encoder != lastencoder || lastencoder.size() > ENCODER_SIZE_THRESHOLD) {

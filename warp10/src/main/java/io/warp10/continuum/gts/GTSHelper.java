@@ -2273,6 +2273,10 @@ public class GTSHelper {
   }
   
   public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes) throws ParseException, IOException {
+    return parse(encoder, str, extraLabels, now, maxValueSize, parsedAttributes, null, null);
+  }
+  
+  public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes, Long maxpast, Long maxfuture) throws ParseException, IOException {
 
     int idx = 0;
     
@@ -2307,6 +2311,12 @@ public class GTSHelper {
       }
     }
 
+    if (null != maxpast && timestamp < maxpast) {
+      throw new ParseException("Timestamp " + timestamp + " is too far in the past.", idx);
+    } else if (null != maxfuture && timestamp > maxfuture) {
+      throw new ParseException("Timestamp " + timestamp + " is too far in the future.", idx);
+    }
+    
     // Advance past the '/'
     idx++;
     

@@ -545,7 +545,35 @@ public class Configuration {
   // I N G R E S S
   //
   /////////////////////////////////////////////////////////////////////////////////////////
+
+  /**
+   * Default maximum age of datapoints pushed to Warp 10, in ms. Any timestamp older than
+   * 'now' - this value will be rejected.
+   * The maxpast value from the token will have precedence over this one
+   */
+  public static final String INGRESS_MAXPAST_DEFAULT = "ingress.maxpast.default";
   
+  /**
+   * Default maximum timestamp delta in the future for datapoints pushed to Warp 10, in ms.
+   * Any timestamp more than this value past 'now' will be rejected
+   * The maxfuture value from the token will have precedence over this one
+   */
+  public static final String INGRESS_MAXFUTURE_DEFAULT = "ingress.maxfuture.default";
+  
+  /**
+   * Absolute maximum age of datapoints pushed to Warp 10, in ms. Any timestamp older than
+   * 'now' - this value will be rejected.
+   * This value overrides both the default and token value for maxpast. 
+   */
+  public static final String INGRESS_MAXPAST_OVERRIDE = "ingress.maxpast.override";
+  
+  /**
+   * Absolute maximum timestamp delta in the future for datapoints pushed to Warp 10, in ms.
+   * Any timestamp more than this value past 'now' will be rejected
+   * This value overrides both the default and token value for maxfuture
+   */
+  public static final String INGRESS_MAXFUTURE_OVERRIDE = "ingress.maxfuture.override";
+
   /**
    * Length of the activity window in ms. If this parameter is set then GTS activity will
    * be monitored according to the configured activity events.

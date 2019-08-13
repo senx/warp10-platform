@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.ingress;
 
+import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.ThrottlingManager;
@@ -81,6 +82,9 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
     private long seqno = 0L;
     
     private WriteToken wtoken;
+    
+    private Long maxpastdelta = null;
+    private Long maxfuturedelta = null;
 
     private Map<String,String> sensisionLabels = new HashMap<String,String>();
     
@@ -144,7 +148,30 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
           
           long now = TimeSource.getTime();
           long nowms = System.currentTimeMillis();
+
+          //
+          // Extract time limits
+          //
           
+          Long maxpast = null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT) ? (now - Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT))) : null;
+          Long maxfuture = null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT) ? (now + Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT))) : null;
+
+          if (null != this.maxpastdelta) {
+            maxpast = now - Constants.TIME_UNITS_PER_MS * this.maxpastdelta;
+          }
+
+          if (null != this.maxfuturedelta) {
+            maxfuture = now + Constants.TIME_UNITS_PER_MS * this.maxfuturedelta;
+          }
+
+          if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE)) {
+            maxpast = now - Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE));
+          }
+
+          if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE)) {
+            maxfuture = now + Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE));
+          }
+
           // Atomic boolean to track if attributes were parsed
           AtomicBoolean hadAttributes = this.handler.ingress.parseAttributes ? new AtomicBoolean(false) : null;
 
@@ -184,7 +211,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
               }
 
               try {
-                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.handler.ingress.maxValueSize, hadAttributes);
+                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.handler.ingress.maxValueSize, hadAttributes, maxpast, maxfuture);
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
                 throw new IOException("Parse error at '" + line + "'", pe);
@@ -368,6 +395,31 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
         throw new IOException("Token cannot be used for updating data.");
       }
       
+      this.maxpastdelta = null;
+      this.maxfuturedelta = null;
+      
+      if (wtoken.getAttributesSize() > 0) {
+        String deltastr = wtoken.getAttributes().get(Constants.TOKEN_ATTR_MAXPAST);
+
+        if (null != deltastr) {
+          long delta = Long.parseLong(deltastr);
+          if (delta < 0) {
+            throw new IOException("Invalid '" + Constants.TOKEN_ATTR_MAXPAST + "' token attribute, MUST be positive.");
+          }
+          maxpastdelta = delta;
+        }
+        
+        deltastr = wtoken.getAttributes().get(Constants.TOKEN_ATTR_MAXFUTURE);
+        
+        if (null != deltastr) {
+          long delta = Long.parseLong(deltastr);
+          if (delta < 0) {
+            throw new IOException("Invalid '" + Constants.TOKEN_ATTR_MAXFUTURE + "' token attribute, MUST be positive.");
+          }
+          maxfuturedelta = delta;
+        }          
+      }
+
       String application = wtoken.getAppName();
       String producer = Tokens.getUUID(wtoken.getProducerId());
       String owner = Tokens.getUUID(wtoken.getOwnerId());

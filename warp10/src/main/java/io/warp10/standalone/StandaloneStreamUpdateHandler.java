@@ -129,6 +129,9 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     
     private WriteToken wtoken;
 
+    private Long maxpastdelta = null;
+    private Long maxfuturedelta = null;
+    
     private String encodedToken;
     
     /**
@@ -206,6 +209,29 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
           
           long now = TimeSource.getTime();
           
+          //
+          // Extract time limits
+          //
+          
+          Long maxpast = null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT) ? (now - Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT))) : null;
+          Long maxfuture = null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT) ? (now + Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT))) : null;
+
+          if (null != this.maxpastdelta) {
+            maxpast = now - Constants.TIME_UNITS_PER_MS * this.maxpastdelta;
+          }
+
+          if (null != this.maxfuturedelta) {
+            maxfuture = now + Constants.TIME_UNITS_PER_MS * this.maxfuturedelta;
+          }
+          
+          if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE)) {
+            maxpast = now - Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE));
+          }
+
+          if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE)) {
+            maxfuture = now + Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE));
+          }
+
           File loggingFile = null;   
           PrintWriter loggingWriter = null;
           FileDescriptor loggingFD = null;
@@ -345,7 +371,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               }
 
               try {
-                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.handler.maxValueSize, hadAttributes);
+                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.handler.maxValueSize, hadAttributes, maxpast, maxfuture);
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
                 throw new IOException("Parse error at '" + line + "'", pe);
@@ -538,6 +564,31 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
 
       if (wtoken.getAttributesSize() > 0 && wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_NOUPDATE)) {
         throw new IOException("Token cannot be used for updating data.");
+      }
+
+      this.maxpastdelta = null;
+      this.maxfuturedelta = null;
+      
+      if (wtoken.getAttributesSize() > 0) {
+        String deltastr = wtoken.getAttributes().get(Constants.TOKEN_ATTR_MAXPAST);
+
+        if (null != deltastr) {
+          long delta = Long.parseLong(deltastr);
+          if (delta < 0) {
+            throw new IOException("Invalid '" + Constants.TOKEN_ATTR_MAXPAST + "' token attribute, MUST be positive.");
+          }
+          maxpastdelta = delta;
+        }
+        
+        deltastr = wtoken.getAttributes().get(Constants.TOKEN_ATTR_MAXFUTURE);
+        
+        if (null != deltastr) {
+          long delta = Long.parseLong(deltastr);
+          if (delta < 0) {
+            throw new IOException("Invalid '" + Constants.TOKEN_ATTR_MAXFUTURE + "' token attribute, MUST be positive.");
+          }
+          maxfuturedelta = delta;
+        }          
       }
 
       String application = wtoken.getAppName();
