@@ -217,23 +217,56 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
           // Extract time limits
           //
           
-          Long maxpast = null != this.handler.maxpastDefault ? (now - Constants.TIME_UNITS_PER_MS * this.handler.maxpastDefault) : null;
-          Long maxfuture = null != this.handler.maxfutureDefault ? (now + Constants.TIME_UNITS_PER_MS * this.handler.maxfutureDefault) : null;
+          Long maxpast = null;
+          
+          if (null != this.handler.maxpastDefault) {
+            try {
+              maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.maxpastDefault));
+            } catch (ArithmeticException ae) {
+              maxpast = null;
+            }
+          }
+          
+          Long maxfuture = null;
+          
+          if (null != this.handler.maxfutureDefault) {
+            try {
+              maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.maxfutureDefault));
+            } catch (ArithmeticException ae) {
+              maxfuture = null;
+            }
+          }
 
           if (null != this.maxpastdelta) {
-            maxpast = now - Constants.TIME_UNITS_PER_MS * this.maxpastdelta;
+            try {
+              maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.maxpastdelta));
+            } catch (ArithmeticException ae) {
+              maxpast = null;
+            }
           }
 
           if (null != this.maxfuturedelta) {
-            maxfuture = now + Constants.TIME_UNITS_PER_MS * this.maxfuturedelta;
+            try {
+              maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.maxfuturedelta));
+            } catch (ArithmeticException ae) {
+              maxfuture = null;
+            }
           }
           
           if (null != this.handler.maxpastOverride) {
-            maxpast = now - Constants.TIME_UNITS_PER_MS * this.handler.maxpastOverride;
+            try {
+              maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.maxpastOverride));
+            } catch (ArithmeticException ae) {
+              maxpast = null;
+            }
           }
 
           if (null != this.handler.maxfutureOverride) {
-            maxfuture = now + Constants.TIME_UNITS_PER_MS * this.handler.maxfutureOverride;
+            try {
+              maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.maxfutureOverride));
+            } catch (ArithmeticException ae) {
+              maxfuture = null;
+            }
           }
 
           File loggingFile = null;   

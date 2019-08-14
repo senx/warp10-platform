@@ -761,8 +761,23 @@ public class Ingress extends AbstractHandler implements Runnable {
         // Extract time limits
         //
         
-        Long maxpast = null != maxpastDefault ? (now - Constants.TIME_UNITS_PER_MS * maxpastDefault) : null;
-        Long maxfuture = null != maxfutureDefault ? (now + Constants.TIME_UNITS_PER_MS * maxfutureDefault) : null;
+        Long maxpast = null;
+        if (null != maxpastDefault) {
+          try {
+            maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, maxpastDefault));            
+          } catch (ArithmeticException ae) {
+            maxpast = null;
+          }
+        }
+        
+        Long maxfuture = null;
+        if (null != maxfutureDefault) {
+          try {
+            maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, maxfutureDefault));
+          } catch (ArithmeticException ae) {
+            maxfuture = null;
+          }
+        }
         
         if (writeToken.getAttributesSize() > 0) {
           String deltastr = writeToken.getAttributes().get(Constants.TOKEN_ATTR_MAXPAST);
@@ -772,7 +787,11 @@ public class Ingress extends AbstractHandler implements Runnable {
             if (delta < 0) {
               throw new WarpScriptException("Invalid '" + Constants.TOKEN_ATTR_MAXPAST + "' token attribute, MUST be positive.");
             }
-            maxpast = now - Constants.TIME_UNITS_PER_MS * delta;
+            try {
+              maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, delta));
+            } catch (ArithmeticException ae) {
+              maxpast = null;
+            }
           }
           
           deltastr = writeToken.getAttributes().get(Constants.TOKEN_ATTR_MAXFUTURE);
@@ -782,16 +801,28 @@ public class Ingress extends AbstractHandler implements Runnable {
             if (delta < 0) {
               throw new WarpScriptException("Invalid '" + Constants.TOKEN_ATTR_MAXFUTURE + "' token attribute, MUST be positive.");
             }
-            maxfuture = now + Constants.TIME_UNITS_PER_MS * delta;
+            try {
+              maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, delta));
+            } catch (ArithmeticException ae) {
+              maxfuture = null;
+            }
           }          
         }
 
         if (null != maxpastOverride) {
-          maxpast = now - Constants.TIME_UNITS_PER_MS * maxpastOverride;
+          try {
+            maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, maxpastOverride));
+          } catch (ArithmeticException ae) {
+            maxpast = null;
+          }
         }
 
         if (null != maxfutureOverride) {
-          maxfuture = now + Constants.TIME_UNITS_PER_MS * maxfutureOverride;
+          try {
+            maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, maxfutureOverride));
+          } catch (ArithmeticException ae) {
+            maxfuture = null;
+          }
         }
 
         //

@@ -153,23 +153,55 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
           // Extract time limits
           //
           
-          Long maxpast = null != this.handler.ingress.maxpastDefault ? (now - Constants.TIME_UNITS_PER_MS * this.handler.ingress.maxpastDefault) : null;
-          Long maxfuture = null != this.handler.ingress.maxfutureDefault ? (now + Constants.TIME_UNITS_PER_MS * this.handler.ingress.maxfutureDefault) : null;
+          Long maxpast = null;
+          
+          if (null != this.handler.ingress.maxpastDefault) {
+            try {
+              maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.ingress.maxpastDefault));
+            } catch (ArithmeticException ae) {
+              maxpast = null;
+            }
+          }
+          Long maxfuture = null;
+          
+          if (null != this.handler.ingress.maxfutureDefault) {
+            try {
+              maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.ingress.maxfutureDefault));
+            } catch (ArithmeticException ae) {
+              maxfuture = null;
+            }
+          }
 
           if (null != this.maxpastdelta) {
-            maxpast = now - Constants.TIME_UNITS_PER_MS * this.maxpastdelta;
+            try {
+              maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.maxpastdelta));
+            } catch (ArithmeticException ae) {
+              maxpast = null;
+            }
           }
 
           if (null != this.maxfuturedelta) {
-            maxfuture = now + Constants.TIME_UNITS_PER_MS * this.maxfuturedelta;
+            try {
+              maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.maxfuturedelta));
+            } catch (ArithmeticException ae) {
+              maxfuture = null;
+            }
           }
 
           if (null != this.handler.ingress.maxpastOverride) {
-            maxpast = now - Constants.TIME_UNITS_PER_MS * this.handler.ingress.maxpastOverride;
+            try {
+              maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.ingress.maxpastOverride));
+            } catch (ArithmeticException ae) {
+              maxpast = null;
+            }
           }
 
           if (null != this.handler.ingress.maxfutureOverride) {
-            maxfuture = now + Constants.TIME_UNITS_PER_MS * this.handler.ingress.maxfutureOverride;
+            try {
+              maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.ingress.maxfutureOverride));
+            } catch (ArithmeticException ae) {
+              maxfuture = null;
+            }
           }
 
           // Atomic boolean to track if attributes were parsed
