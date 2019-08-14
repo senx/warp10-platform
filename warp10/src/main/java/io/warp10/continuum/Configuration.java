@@ -766,7 +766,9 @@ public class Configuration {
   public static final String INGRESS_KAFKA_DATA_AES = "ingress.kafka.data.aes";
   
   /**
-   * Maximum message size for the 'data' topic
+   * Maximum message size for the 'data' topic, this value should be less than 2/3 the maximum Kafka message size
+   * minus 64 to ensure all parsed data can be sent without error.
+   * The maximum value size will be capped to half this value minus 64
    */
   public static final String INGRESS_KAFKA_DATA_MAXSIZE = "ingress.kafka.data.maxsize";
   

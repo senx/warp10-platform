@@ -291,6 +291,12 @@ public class StandaloneIngressHandler extends AbstractHandler {
         throw new IOException(ee);
       }
       
+      long maxsize = maxValueSize;
+      
+      if (writeToken.getAttributesSize() > 0 && null != writeToken.getAttributes().get(Constants.TOKEN_ATTR_MAXSIZE)) {
+        maxsize = Long.parseLong(writeToken.getAttributes().get(Constants.TOKEN_ATTR_MAXSIZE));
+      }
+      
       String application = writeToken.getAppName();
       String producer = Tokens.getUUID(writeToken.getProducerId());
       String owner = Tokens.getUUID(writeToken.getOwnerId());
@@ -546,7 +552,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
           count++;
 
           try {
-            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, hadAttributes);
+            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxsize, hadAttributes);
             //nano2 += System.nanoTime() - nano0;
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_PARSEERRORS, sensisionLabels, 1);            

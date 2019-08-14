@@ -393,6 +393,11 @@ public class Constants {
   public static final String TOKEN_ATTR_NOUPDATE = ".noupdate";
   public static final String TOKEN_ATTR_NOMETA = ".nometa";
   
+  /**
+   * Attribute to specify the maximum value size
+   */
+  public static final String TOKEN_ATTR_MAXSIZE = ".maxsize";
+  
   static {
     String tu = WarpConfig.getProperty(Configuration.WARP_TIME_UNITS);
     
