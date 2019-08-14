@@ -113,6 +113,10 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
 
   private final boolean updateActivity;
   private final boolean parseAttributes;
+  private final Long maxpastDefault;
+  private final Long maxfutureDefault;
+  private final Long maxpastOverride;
+  private final Long maxfutureOverride;
   
   private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
 
@@ -213,8 +217,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
           // Extract time limits
           //
           
-          Long maxpast = null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT) ? (now - Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT))) : null;
-          Long maxfuture = null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT) ? (now + Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT))) : null;
+          Long maxpast = null != this.handler.maxpastDefault ? (now - Constants.TIME_UNITS_PER_MS * this.handler.maxpastDefault) : null;
+          Long maxfuture = null != this.handler.maxfutureDefault ? (now + Constants.TIME_UNITS_PER_MS * this.handler.maxfutureDefault) : null;
 
           if (null != this.maxpastdelta) {
             maxpast = now - Constants.TIME_UNITS_PER_MS * this.maxpastdelta;
@@ -224,12 +228,12 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
             maxfuture = now + Constants.TIME_UNITS_PER_MS * this.maxfuturedelta;
           }
           
-          if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE)) {
-            maxpast = now - Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE));
+          if (null != this.handler.maxpastOverride) {
+            maxpast = now - Constants.TIME_UNITS_PER_MS * this.handler.maxpastOverride;
           }
 
-          if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE)) {
-            maxfuture = now + Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE));
+          if (null != this.handler.maxfutureOverride) {
+            maxfuture = now + Constants.TIME_UNITS_PER_MS * this.handler.maxfutureOverride;
           }
 
           File loggingFile = null;   
@@ -643,6 +647,42 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     this.maxValueSize = Long.parseLong(properties.getProperty(Configuration.STANDALONE_VALUE_MAXSIZE, StandaloneIngressHandler.DEFAULT_VALUE_MAXSIZE));
     
     this.parseAttributes = "true".equals(properties.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
+    
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT)) {
+      this.maxpastDefault = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT));
+      if (this.maxpastDefault < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXPAST_DEFAULT + "' MUST be positive.");
+      }
+    } else {
+      this.maxpastDefault = null;
+    }
+    
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT)) {
+      this.maxfutureDefault = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT));
+      if (this.maxfutureDefault < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXFUTURE_DEFAULT + "' MUST be positive.");
+      }
+    } else {
+      this.maxfutureDefault = null;
+    }
+
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE)) {
+      this.maxpastOverride = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE));
+      if (this.maxpastOverride < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXPAST_OVERRIDE + "' MUST be positive.");
+      }
+    } else {
+      this.maxpastOverride = null;
+    }
+    
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE)) {
+      this.maxfutureOverride = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE));
+      if (this.maxfutureOverride < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXFUTURE_OVERRIDE + "' MUST be positive.");
+      }
+    } else {
+      this.maxfutureOverride = null;
+    }
     
     if ("false".equals(properties.getProperty(Configuration.DATALOG_LOGSHARDKEY))) {
       logShardKey = false;

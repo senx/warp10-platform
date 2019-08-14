@@ -153,8 +153,8 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
           // Extract time limits
           //
           
-          Long maxpast = null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT) ? (now - Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT))) : null;
-          Long maxfuture = null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT) ? (now + Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT))) : null;
+          Long maxpast = null != this.handler.ingress.maxpastDefault ? (now - Constants.TIME_UNITS_PER_MS * this.handler.ingress.maxpastDefault) : null;
+          Long maxfuture = null != this.handler.ingress.maxfutureDefault ? (now + Constants.TIME_UNITS_PER_MS * this.handler.ingress.maxfutureDefault) : null;
 
           if (null != this.maxpastdelta) {
             maxpast = now - Constants.TIME_UNITS_PER_MS * this.maxpastdelta;
@@ -164,12 +164,12 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
             maxfuture = now + Constants.TIME_UNITS_PER_MS * this.maxfuturedelta;
           }
 
-          if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE)) {
-            maxpast = now - Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE));
+          if (null != this.handler.ingress.maxpastOverride) {
+            maxpast = now - Constants.TIME_UNITS_PER_MS * this.handler.ingress.maxpastOverride;
           }
 
-          if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE)) {
-            maxfuture = now + Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE));
+          if (null != this.handler.ingress.maxfutureOverride) {
+            maxfuture = now + Constants.TIME_UNITS_PER_MS * this.handler.ingress.maxfutureOverride;
           }
 
           // Atomic boolean to track if attributes were parsed

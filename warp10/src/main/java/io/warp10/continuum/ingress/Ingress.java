@@ -281,7 +281,11 @@ public class Ingress extends AbstractHandler implements Runnable {
   private final boolean metaActivity;
   final long activityWindow;
   public final boolean parseAttributes;
-  
+  final Long maxpastDefault;
+  final Long maxfutureDefault;
+  final Long maxpastOverride;
+  final Long maxfutureOverride;
+
   public Ingress(KeyStore keystore, Properties props) {
 
     //
@@ -347,6 +351,42 @@ public class Ingress extends AbstractHandler implements Runnable {
     this.sendMetadataOnStore = Boolean.parseBoolean(props.getProperty(Configuration.INGRESS_STORE_METADATA_INCLUDE, "false"));
 
     this.parseAttributes = "true".equals(props.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
+    
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT)) {
+      maxpastDefault = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT));
+      if (maxpastDefault < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXPAST_DEFAULT + "' MUST be positive.");
+      }
+    } else {
+      maxpastDefault = null;
+    }
+    
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT)) {
+      maxfutureDefault = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT));
+      if (maxfutureDefault < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXFUTURE_DEFAULT + "' MUST be positive.");
+      }
+    } else {
+      maxfutureDefault = null;
+    }
+
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE)) {
+      maxpastOverride = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE));
+      if (maxpastOverride < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXPAST_OVERRIDE + "' MUST be positive.");
+      }
+    } else {
+      maxpastOverride = null;
+    }
+    
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE)) {
+      maxfutureOverride = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE));
+      if (maxfutureOverride < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXFUTURE_OVERRIDE + "' MUST be positive.");
+      }
+    } else {
+      maxfutureOverride = null;
+    }
     
     //
     // Prepare meta, data and delete producers
@@ -721,8 +761,8 @@ public class Ingress extends AbstractHandler implements Runnable {
         // Extract time limits
         //
         
-        Long maxpast = null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT) ? (now - Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT))) : null;
-        Long maxfuture = null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT) ? (now + Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT))) : null;
+        Long maxpast = null != maxpastDefault ? (now - Constants.TIME_UNITS_PER_MS * maxpastDefault) : null;
+        Long maxfuture = null != maxfutureDefault ? (now + Constants.TIME_UNITS_PER_MS * maxfutureDefault) : null;
         
         if (writeToken.getAttributesSize() > 0) {
           String deltastr = writeToken.getAttributes().get(Constants.TOKEN_ATTR_MAXPAST);
@@ -746,12 +786,12 @@ public class Ingress extends AbstractHandler implements Runnable {
           }          
         }
 
-        if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE)) {
-          maxpast = now - Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE));
+        if (null != maxpastOverride) {
+          maxpast = now - Constants.TIME_UNITS_PER_MS * maxpastOverride;
         }
 
-        if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE)) {
-          maxfuture = now + Constants.TIME_UNITS_PER_MS * Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE));
+        if (null != maxfutureOverride) {
+          maxfuture = now + Constants.TIME_UNITS_PER_MS * maxfutureOverride;
         }
 
         //
