@@ -6,6 +6,7 @@ Type=forking
 User=warp10
 ExecStart=/opt/warp10-@VERSION@/bin/warp10-standalone.sh start
 ExecStop=/opt/warp10-@VERSION@/bin/warp10-standalone.sh stop
+SuccessExitStatus=143
 RestartSec=10s
 TimeoutStartSec=60s
 #If you do not want systemd to monitor and restart Warp&nbsp;10™ automatically, comment out this line:
