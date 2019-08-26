@@ -33,16 +33,12 @@ public class WarpManager {
   
   private static final Map<String,Object> attributes = new HashMap<String,Object>();
     
-  private static final Properties properties;
-  
   static {
-    properties = WarpConfig.getProperties();
-        
-    attributes.put(UPDATE_DISABLED, properties.getProperty(Configuration.WARP_UPDATE_DISABLED));
-    attributes.put(META_DISABLED, properties.getProperty(Configuration.WARP_META_DISABLED));
-    attributes.put(DELETE_DISABLED, properties.getProperty(Configuration.WARP_DELETE_DISABLED));
+    attributes.put(UPDATE_DISABLED, WarpConfig.getProperty(Configuration.WARP_UPDATE_DISABLED));
+    attributes.put(META_DISABLED, WarpConfig.getProperty(Configuration.WARP_META_DISABLED));
+    attributes.put(DELETE_DISABLED, WarpConfig.getProperty(Configuration.WARP_DELETE_DISABLED));
     
-    MANAGER_SECRET = properties.getProperty(Configuration.WARP10_MANAGER_SECRET);
+    MANAGER_SECRET = WarpConfig.getProperty(Configuration.WARP10_MANAGER_SECRET);
   }
   
   public static Object getAttribute(String attr) {

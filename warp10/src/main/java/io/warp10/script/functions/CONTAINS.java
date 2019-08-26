@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -37,11 +37,15 @@ public class CONTAINS extends NamedWarpScriptFunction implements WarpScriptStack
     Object elt = stack.pop();    
     Object coll = stack.peek();
 
-    if (!(coll instanceof Collection)) {
-      throw new WarpScriptException(getName() + " operates on a list or set.");
+    if (coll instanceof Collection) {
+      stack.push(((Collection) coll).contains(elt));      
+    } else if (coll instanceof String) {
+      stack.pop();
+      stack.push(coll.toString().contains(elt.toString()));
+    } else {
+      throw new WarpScriptException(getName() + " operates on a list, set or STRING.");
     }
     
-    stack.push(((Collection) coll).contains(elt));
 
     return stack;
   }

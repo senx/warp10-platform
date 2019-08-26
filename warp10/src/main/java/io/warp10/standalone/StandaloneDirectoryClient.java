@@ -120,21 +120,25 @@ public class StandaloneDirectoryClient implements DirectoryClient {
 
   private long activityWindow = 0L;
   
+  public static interface ShardFilter {
+    public boolean exclude(long classId, long labelsId);
+  }
+  
   public StandaloneDirectoryClient(DB db, final KeyStore keystore) {
-    
-    Properties props = WarpConfig.getProperties();
-    
-    if (props.containsKey(io.warp10.continuum.Configuration.DIRECTORY_STATS_CLASS_MAXCARDINALITY)) {
-      this.LIMIT_CLASS_CARDINALITY = Long.parseLong(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STATS_CLASS_MAXCARDINALITY));
+
+    String classMaxCardinalityProp = WarpConfig.getProperty(Configuration.DIRECTORY_STATS_CLASS_MAXCARDINALITY);
+    if (null != classMaxCardinalityProp) {
+      this.LIMIT_CLASS_CARDINALITY = Long.parseLong(classMaxCardinalityProp);
     }
 
-    if (props.containsKey(io.warp10.continuum.Configuration.DIRECTORY_STATS_LABELS_MAXCARDINALITY)) {
-      this.LIMIT_LABELS_CARDINALITY = Long.parseLong(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STATS_LABELS_MAXCARDINALITY));
+    String labelsMaxCardinalityProp = WarpConfig.getProperty(Configuration.DIRECTORY_STATS_LABELS_MAXCARDINALITY);
+    if (null != labelsMaxCardinalityProp) {
+      this.LIMIT_LABELS_CARDINALITY = Long.parseLong(labelsMaxCardinalityProp);
     }
 
-    this.activityWindow = Long.parseLong(props.getProperty(io.warp10.continuum.Configuration.INGRESS_ACTIVITY_WINDOW, "0"));
+    this.activityWindow = Long.parseLong(WarpConfig.getProperty(io.warp10.continuum.Configuration.INGRESS_ACTIVITY_WINDOW, "0"));
 
-    this.initNThreads = Integer.parseInt(props.getProperty(Configuration.DIRECTORY_INIT_NTHREADS, DIRECTORY_INIT_NTHREADS_DEFAULT));
+    this.initNThreads = Integer.parseInt(WarpConfig.getProperty(Configuration.DIRECTORY_INIT_NTHREADS, DIRECTORY_INIT_NTHREADS_DEFAULT));
 
     this.db = db;
     this.keystore = keystore;
@@ -146,7 +150,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     this.labelsKey = this.keystore.getKey(KeyStore.SIPHASH_LABELS);
     this.labelsLongs = SipHashInline.getKey(this.labelsKey);
     
-    syncrate = Math.min(1.0D, Math.max(0.0D, Double.parseDouble(props.getProperty(Configuration.LEVELDB_DIRECTORY_SYNCRATE, "1.0"))));
+    syncrate = Math.min(1.0D, Math.max(0.0D, Double.parseDouble(WarpConfig.getProperty(Configuration.LEVELDB_DIRECTORY_SYNCRATE, "1.0"))));
     syncwrites = 0.0 < syncrate && syncrate < 1.0;
 
     //
@@ -728,7 +732,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     
     boolean written = false;
     
-    WriteOptions options = new WriteOptions().sync(1.0 == syncrate);
+    WriteOptions options = new WriteOptions().sync(null == key || null == value || 1.0 == syncrate);
     
     try {
       if (null != key && null != value) {
@@ -738,7 +742,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       
       if (null == key || null == value || size.get() > MAX_BATCH_SIZE) {
         
-        if (syncwrites) {
+        if (syncwrites && !options.sync()) {
           options = new WriteOptions().sync(Math.random() < syncrate);
         }
         
@@ -850,9 +854,13 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   public Metadata getMetadataById(BigInteger id) {
     return this.metadatasById.get(id);
   }
-    
+
   @Override
   public Map<String,Object> stats(DirectoryRequest dr) throws IOException {
+    return stats(dr, null);
+  }
+  
+  public Map<String,Object> stats(DirectoryRequest dr, ShardFilter filter) throws IOException {
     final DirectoryStatsRequest request = new DirectoryStatsRequest();
     request.setTimestamp(System.currentTimeMillis());
     request.setClassSelector(dr.getClassSelectors());
@@ -888,6 +896,10 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   }
   
   private DirectoryStatsResponse stats(DirectoryStatsRequest request) throws TException {
+    return stats(request, null);
+  }
+  
+  private DirectoryStatsResponse stats(DirectoryStatsRequest request, ShardFilter filter) throws TException {
     try {
       DirectoryStatsResponse response = new DirectoryStatsResponse();
       
@@ -1084,6 +1096,15 @@ public class StandaloneDirectoryClient implements DirectoryClient {
               // Compute classId/labelsId
               long classId = GTSHelper.classId(classLongs, metadata.getName());
               long labelsId = GTSHelper.labelsId(labelsLongs, metadata.getLabels());
+              
+              //
+              // Apply the shard filter to exclude Metadata which do not belong to the
+              // shards we handle
+              //
+              
+              if (null != filter && filter.exclude(classId, labelsId)) {
+                continue;
+              }
               
               // Compute gtsId, we use the GTS Id String from which we extract the 16 bytes
               byte[] data = GTSHelper.gtsIdToString(classId, labelsId).getBytes(Charsets.UTF_16BE);

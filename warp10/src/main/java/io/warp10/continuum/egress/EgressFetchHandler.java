@@ -80,6 +80,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -269,8 +270,6 @@ public class EgressFetchHandler extends AbstractHandler {
           
           ISOPeriodFormat.standard().getParser().parseInto(period, timespanParam, 0, Locale.US);
 
-          System.out.println(period);
-          
           Period p = period.toPeriod();
           
           if (p.getMonths() != 0 || p.getYears() != 0) {
@@ -889,7 +888,7 @@ public class EgressFetchHandler extends AbstractHandler {
         GTSEncoder enc = new GTSEncoder();
         enc.safeSetMetadata(decoder.getMetadata());
         while(decoder.next() && toDecodeCount > 0) {
-          enc.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+          enc.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
           toDecodeCount--;
         }
         encoder = enc;
@@ -961,7 +960,7 @@ public class EgressFetchHandler extends AbstractHandler {
         GTSEncoder enc = new GTSEncoder();
         enc.safeSetMetadata(decoder.getMetadata());
         while(decoder.next() && toDecodeCount > 0) {
-          enc.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+          enc.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
           toDecodeCount--;
         }
         encoder = enc;
@@ -1038,7 +1037,11 @@ public class EgressFetchHandler extends AbstractHandler {
       //
 
       labels.clear();
-      labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, wrapper.getMetadata().getLabels().get(Constants.APPLICATION_LABEL));
+      if (wrapper.isSetMetadata()) {
+        labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, wrapper.getMetadata().getLabels().get(Constants.APPLICATION_LABEL));
+      } else {
+        labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, "");
+      }
 
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPERS, Sensision.EMPTY_LABELS, 1);
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPERS_PERAPP, labels, 1);
@@ -1183,7 +1186,7 @@ public class EgressFetchHandler extends AbstractHandler {
         
         long newLocation = decoder.getLocation();
         long newElevation = decoder.getElevation();
-        Object newValue = decoder.getValue();
+        Object newValue = decoder.getBinaryValue();
         
         dup = true;
         
@@ -1206,6 +1209,10 @@ public class EgressFetchHandler extends AbstractHandler {
               if (!((Boolean) newValue).equals(value)) {
                 dup = false;
               }
+            } else if (newValue instanceof byte[]) {
+              if (!(value instanceof byte[]) || 0 != Bytes.compareTo((byte[]) newValue, (byte[]) value)) {
+                dup = false;
+              }
             }
           }          
         }
@@ -1225,7 +1232,7 @@ public class EgressFetchHandler extends AbstractHandler {
           // Display the name only if we have at least one value to display
           // We force 'dup' to be false when we must show the name
           if (displayName) {
-            pw.println(GTSHelper.tickToString(sb, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue()));
+            pw.println(GTSHelper.tickToString(sb, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue()));
             displayName = false;
             dup = false;
           } else {
@@ -1272,7 +1279,7 @@ public class EgressFetchHandler extends AbstractHandler {
     lastCount.set(currentCount);
   }
 
-  private static void jsonDump(PrintWriter pw, GTSDecoderIterator iter, long now, long timespan, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount) throws IOException {
+  static void jsonDump(PrintWriter pw, Iterator<GTSDecoder> iter, long now, long timespan, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount) throws IOException {
     
     String name = null;
     Map<String,String> labels = null;
@@ -1387,10 +1394,10 @@ public class EgressFetchHandler extends AbstractHandler {
           sb.append("}");
           sb.append(",\"i\":\"");
           sb.append(decoder.getLabelsId() & mask);
-          sb.append(",\"la\":");
+          sb.append("\",\"la\":");
           sb.append(decoder.getMetadata().getLastActivity());
 
-          sb.append("\",\"v\":[");
+          sb.append(",\"v\":[");
         }
         
         long decoded = 0L;
@@ -1443,6 +1450,8 @@ public class EgressFetchHandler extends AbstractHandler {
             pw.print(decoder.getElevation());
           }
           pw.print(",");
+          // For JSON representation we do not extract the binary value as byte[] cannot be
+          // represented in JSON
           Object value = decoder.getValue();
           
           if (value instanceof Number) {
@@ -1616,7 +1625,7 @@ public class EgressFetchHandler extends AbstractHandler {
         
         long newLocation = decoder.getLocation();
         long newElevation = decoder.getElevation();
-        Object newValue = decoder.getValue();
+        Object newValue = decoder.getBinaryValue();
         
         dup = true;
         
@@ -1633,6 +1642,10 @@ public class EgressFetchHandler extends AbstractHandler {
               }
             } else if (newValue instanceof String) {
               if (!((String) newValue).equals(value)) {
+                dup = false;
+              }
+            } else if (newValue instanceof byte[]) {
+              if (!(value instanceof byte[]) || 0 != Bytes.compareTo((byte[]) value, (byte[]) newValue)) {
                 dup = false;
               }
             } else if (newValue instanceof Boolean) {
@@ -1895,7 +1908,7 @@ public class EgressFetchHandler extends AbstractHandler {
         GTSEncoder enc = new GTSEncoder();
         enc.safeSetMetadata(decoder.getMetadata());
         while(decoder.next() && toDecodeCount > 0) {
-          enc.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+          enc.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
           toDecodeCount--;
         }
         encoder = enc;
@@ -1936,7 +1949,7 @@ public class EgressFetchHandler extends AbstractHandler {
          
           lastchunk = chunk;
           
-          chunkenc.addValue(ts, chunkdec.getLocation(), chunkdec.getElevation(), chunkdec.getValue());
+          chunkenc.addValue(ts, chunkdec.getLocation(), chunkdec.getElevation(), chunkdec.getBinaryValue());
         }        
       }
             
@@ -1993,7 +2006,7 @@ public class EgressFetchHandler extends AbstractHandler {
             GTSDecoder deco = encoder.getDecoder(true);
             
             while(deco.next()) {
-              split.addValue(deco.getTimestamp(), deco.getLocation(), deco.getElevation(), deco.getValue());
+              split.addValue(deco.getTimestamp(), deco.getLocation(), deco.getElevation(), deco.getBinaryValue());
               if (split.size() > threshold) {
                 split = new GTSEncoder(0L);
                 splits.add(split);

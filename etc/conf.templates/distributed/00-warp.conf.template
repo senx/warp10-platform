@@ -1,0 +1,108 @@
+//
+//   Copyright 2019  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
+/////////////////////////////////////////////////////////////////////////////////////////
+//
+// D I S T R I B U T E D
+//
+/////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// FYI you can reference attributes to avoid duplication and make configuration easy to update
+//
+// kafka.data.topic = data
+// ingress.kafka.data.topic = ${kafka.data.topic}
+//
+
+//
+// Time units of the platform
+// ns means we store nanoseconds
+// us means we store microseconds
+// ms means we store milliseconds
+//
+warp.timeunits = us
+
+
+//
+// Comma separated list of headers to return in Access-Control-Allow-Headers on top of the token header.
+// This applies to all HTTP endpoints.
+//
+#cors.headers =
+
+//
+// Maximum size for encoders exchanged within Warp 10.
+// Make sure this value is less than the maximum size of
+// a Kafka message.
+//
+max.encoder.size = 100000
+
+//
+// Comma separated list of components to run in distributed mode
+// Valid values are 'ingress', 'directory', 'store', 'egress', 'fetch', 'plasmaFE', 'plasmaBE', 'runner'
+//
+warp.components =
+
+//
+// How often (in ms) should we refetch the region start/end keys
+//
+#warp.hbase.regionkeys.updateperiod = 
+
+//
+// String returned by the IDENT function
+//
+#warp.ident = 
+
+//
+// Token file
+//
+#warp.token.file = 
+
+//
+// Root directory where trl files are stored
+//
+#warp.trl.dir =
+
+//
+// Set to true to disable plasma
+//
+#warp.plasma.disable =
+
+//
+// Set to true to disable mobius
+//
+#warp.mobius.disable =
+
+//
+// Set to true to disable streaming updates
+//
+#warp.streamupdate.disable =
+
+//
+// Set to a message indicating the reason why updates are disabled, they are enabled if this is not set
+//
+#warp.update.disabled = Updates are momentarily disabled
+ 
+//  
+// Set to a message indicating the reason why deletes are disabled, they are enabled if this is not set
+//
+#warp.delete.disabled = Deletes are momentarily disabled
+ 
+//
+// Set to a message indicating the reason why meta updates are disabled, they are enabled if this is not set
+//
+#warp.meta.disabled = Meta updates are momentarily disabled
+
+

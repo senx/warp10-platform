@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,9 @@
 
 package io.warp10.script.binary;
 
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GTSOpsHelper;
+import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -24,23 +27,15 @@ import io.warp10.script.WarpScriptStack;
 /**
  * Bitwise OR of the two operands on top of the stack
  */
-public class BitwiseOR extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class BitwiseOR extends BitwiseOperation {
 
   public BitwiseOR(String name) {
     super(name);
   }
-  
+
   @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object op2 = stack.pop();
-    Object op1 = stack.pop();
-    
-    if (op2 instanceof Long && op1 instanceof Long) {
-      stack.push(((Long) op1).longValue() | ((Long) op2).longValue());
-    } else {
-      throw new WarpScriptException(getName() + " can only operate on long values.");
-    }
-    
-    return stack;
+  public long operator(long op1, long op2) {
+    return op1 | op2;
   }
+
 }

@@ -43,9 +43,9 @@ dependencies {
     //
     // io.warp10 dependencies
     //
-    compile "io.warp10:crypto:${warp10Version['crypto']}"
-    compile "io.warp10:token:${warp10Version['token']}"
-    compile 'io.warp10:sensision:1.0.17'
+    compile project(':crypto')
+    compile project(':token')
+    compile 'io.warp10:sensision:1.0.19'
 
     //compile 'org.xerial.snappy:snappy-java:1.0.4.1'
     compile 'joda-time:joda-time:2.2'
@@ -118,7 +118,7 @@ dependencies {
     //
     //compile 'leveldb:leveldb:0.7-SNAPSHOT-uber'
     compile 'org.fusesource.leveldbjni:leveldbjni-all:1.7'
-    compile 'org.iq80.leveldb:leveldb:0.11:uber'
+    compile 'org.iq80.leveldb:leveldb:0.12:uber'
     compile 'org.xerial.snappy:snappy-java:1.0.5'
     compile 'org.iq80.snappy:snappy:0.3'
 
@@ -213,7 +213,7 @@ task pack(type: Jar) {
 
 task createTarArchive(type: Exec, dependsOn: pack) {
     workingDir = '.'
-    commandLine = ["${workingDir}/src/main/sh/package.sh", getVersionName(warp10Version['warp10']), "${buildDir}/..", "${quantumVersion}"]
+    commandLine = ["${workingDir}/src/main/sh/package.sh", getVersionName(warp10Version['warp10']), "${buildDir}/.."]
 }
 
 publishing {
@@ -297,10 +297,6 @@ changelog {
     // Default value: see commitFormat
     html {
         commitFormat = '%s'
-
-        // The Groovy HTML template used to generate the HTML changelog.
-        // See http://docs.groovy-lang.org/latest/html/documentation/template-engines.html
-        //    template = file("$projectDir/htmlTemplate").text
     }
 
     // A closure that returns 'true' if the line should be included in the changelog.

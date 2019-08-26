@@ -153,11 +153,15 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
     HttpURLConnection conn = null;
 
     try {
-
       if (null == url) {
-        if (WarpConfig.getProperties().containsKey(Configuration.CONFIG_WARPSCRIPT_UPDATE_ENDPOINT)) {
-          this.url = new URL(WarpConfig.getProperties().getProperty(Configuration.CONFIG_WARPSCRIPT_UPDATE_ENDPOINT));
-          url = this.url;
+        String url_property = WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_UPDATE_ENDPOINT);
+        if (null != url_property) {
+          try {
+            this.url = new URL(url_property);
+            url = this.url;
+          } catch (MalformedURLException mue) {
+            throw new WarpScriptException(getName() + " configuration parameter '" + Configuration.CONFIG_WARPSCRIPT_UPDATE_ENDPOINT + "' does not define a valid URL.");
+          }
         } else {
           throw new WarpScriptException(getName() + " configuration parameter '" + Configuration.CONFIG_WARPSCRIPT_UPDATE_ENDPOINT + "' not set.");
         }

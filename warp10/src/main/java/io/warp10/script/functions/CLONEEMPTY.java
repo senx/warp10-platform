@@ -16,46 +16,39 @@
 
 package io.warp10.script.functions;
 
-import java.util.Map;
-
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.script.GTSStackFunction;
+import io.warp10.script.ElementOrListStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
 /**
- * Produce an empty clone of the parameter GTS instances 
- * 
+ * Produce an empty clone of the parameter GTS or Encoder instance or list thereof.
+ * <p>
  * CLONEEMPTY expects no other parameter on the stack than the GTS instances
  */
-public class CLONEEMPTY extends GTSStackFunction {
+public class CLONEEMPTY extends ElementOrListStackFunction {
+
+  private final ElementStackFunction cloneemptyFunction = new ElementStackFunction() {
+    @Override
+    public Object applyOnElement(Object element) throws WarpScriptException {
+      if (element instanceof GeoTimeSerie) {
+        return ((GeoTimeSerie) element).cloneEmpty();
+      } else if (element instanceof GTSEncoder) {
+        return ((GTSEncoder) element).cloneEmpty();
+      } else {
+        throw new WarpScriptException(getName() + " expects a GeoTimeSeries, a GTSEncoder or a list thereof on top of the stack.");
+      }
+    }
+  };
 
   public CLONEEMPTY(String name) {
     super(name);
   }
 
   @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    if (!(stack.peek() instanceof GTSEncoder)) {
-      return super.apply(stack);      
-    }
-    
-    GTSEncoder encoder = (GTSEncoder) stack.pop();
-    
-    stack.push(encoder.cloneEmpty());
-    
-    return stack;
+  public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {
+    return cloneemptyFunction;
   }
 
-  @Override
-  protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
-    return null;
-  }
-
-   @Override
-  protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
-    return gts.cloneEmpty();  
-  }  
 }

@@ -22,6 +22,7 @@ import com.google.common.base.Charsets;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.continuum.gts.UnsafeString;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -195,10 +196,18 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
   }
 
   public static void addElement(StringBuilder sb, Object o) throws WarpScriptException {
-    addElement(null, sb, o);
+    addElement(null, sb, o, false);
+  }
+
+  public static void addElement(StringBuilder sb, Object o, boolean readable) throws WarpScriptException {
+    addElement(null, sb, o, readable);
   }
 
   public static void addElement(SNAPSHOT snapshot, StringBuilder sb, Object o) throws WarpScriptException {
+    addElement(snapshot, sb, o, false);
+  }
+  
+  public static void addElement(SNAPSHOT snapshot, StringBuilder sb, Object o, boolean readable) throws WarpScriptException {
 
     AtomicInteger depth = null;
 
@@ -226,10 +235,14 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(" ");
       } else if (o instanceof String) {
         sb.append("'");
-        try {
-          sb.append(WarpURLEncoder.encode(o.toString(), "UTF-8"));
-        } catch (UnsupportedEncodingException uee) {
-          throw new WarpScriptException(uee);
+        if (readable) {
+          appendProcessedString(sb, o.toString());
+        } else {
+          try {
+            sb.append(WarpURLEncoder.encode(o.toString(), "UTF-8"));
+          } catch (UnsupportedEncodingException uee) {
+            throw new WarpScriptException(uee);
+          }
         }
         sb.append("' ");
       } else if (o instanceof Boolean) {
@@ -261,45 +274,87 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         }
         sb.append(" ");
       } else if (o instanceof Vector) {
-        sb.append(WarpScriptLib.LIST_START);
-        sb.append(WarpScriptLib.LIST_END);
-        sb.append(" ");
-        for (Object oo : (Vector) o) {
-          addElement(snapshot, sb, oo);
-          sb.append(WarpScriptLib.INPLACEADD);
+        if (readable) {
+          sb.append(WarpScriptLib.LIST_START);
           sb.append(" ");
+          for (Object oo : (Vector) o) {
+            addElement(snapshot, sb, oo, readable);
+          }
+          sb.append(WarpScriptLib.LIST_END);
+          sb.append(" ");          
+        } else {
+          sb.append(WarpScriptLib.LIST_START);
+          sb.append(WarpScriptLib.LIST_END);
+          sb.append(" ");
+          for (Object oo : (Vector) o) {
+            addElement(snapshot, sb, oo, readable);
+            sb.append(WarpScriptLib.INPLACEADD);
+            sb.append(" ");
+          }
         }
         sb.append(WarpScriptLib.TO_VECTOR);
-        sb.append(" ");
+        sb.append(" ");          
       } else if (o instanceof List) {
-        sb.append(WarpScriptLib.LIST_START);
-        sb.append(WarpScriptLib.LIST_END);
-        sb.append(" ");
-        for (Object oo : (List) o) {
-          addElement(snapshot, sb, oo);
-          sb.append(WarpScriptLib.INPLACEADD);
+        if (readable) {
+          sb.append(WarpScriptLib.LIST_START);
           sb.append(" ");
+          for (Object oo : (List) o) {
+            addElement(snapshot, sb, oo, readable);
+          }          
+          sb.append(WarpScriptLib.LIST_END);
+          sb.append(" ");          
+        } else {
+          sb.append(WarpScriptLib.LIST_START);
+          sb.append(WarpScriptLib.LIST_END);
+          sb.append(" ");
+          for (Object oo : (List) o) {
+            addElement(snapshot, sb, oo, readable);
+            sb.append(WarpScriptLib.INPLACEADD);
+            sb.append(" ");
+          }          
         }
       } else if (o instanceof Set) {
-        sb.append(WarpScriptLib.LIST_START);
-        sb.append(WarpScriptLib.LIST_END);
-        sb.append(" ");
-        for (Object oo : (Set) o) {
-          addElement(snapshot, sb, oo);
-          sb.append(WarpScriptLib.INPLACEADD);
+        if (readable) {
+          sb.append(WarpScriptLib.LIST_START);
           sb.append(" ");
+          for (Object oo : (Set) o) {
+            addElement(snapshot, sb, oo, readable);
+          }
+          sb.append(WarpScriptLib.LIST_END);
+          sb.append(" ");          
+        } else {
+          sb.append(WarpScriptLib.LIST_START);
+          sb.append(WarpScriptLib.LIST_END);
+          sb.append(" ");
+          for (Object oo : (Set) o) {
+            addElement(snapshot, sb, oo, readable);
+            sb.append(WarpScriptLib.INPLACEADD);
+            sb.append(" ");
+          }
         }
         sb.append(WarpScriptLib.TO_SET);
-        sb.append(" ");
+        sb.append(" ");          
       } else if (o instanceof Map) {
-        sb.append(WarpScriptLib.MAP_START);
-        sb.append(WarpScriptLib.MAP_END);
-        sb.append(" ");
-        for (Entry<Object, Object> entry : ((Map<Object, Object>) o).entrySet()) {
-          addElement(snapshot, sb, entry.getValue());
-          addElement(snapshot, sb, entry.getKey());
-          sb.append(WarpScriptLib.PUT);
+        if (readable) {
+          sb.append(WarpScriptLib.MAP_START);
+          sb.append(System.lineSeparator());
+          for (Entry<Object, Object> entry: ((Map<Object, Object>) o).entrySet()) {
+            addElement(snapshot, sb, entry.getKey(), readable);
+            addElement(snapshot, sb, entry.getValue(), readable);
+            sb.append(System.lineSeparator());
+          }                    
+          sb.append(WarpScriptLib.MAP_END);
           sb.append(" ");
+        } else {
+          sb.append(WarpScriptLib.MAP_START);
+          sb.append(WarpScriptLib.MAP_END);
+          sb.append(" ");
+          for (Entry<Object, Object> entry: ((Map<Object, Object>) o).entrySet()) {
+            addElement(snapshot, sb, entry.getValue(), readable);
+            addElement(snapshot, sb, entry.getKey(), readable);
+            sb.append(WarpScriptLib.PUT);
+            sb.append(" ");
+          }          
         }
       } else if (o instanceof BitSet) {
         sb.append("'");
@@ -364,6 +419,37 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
       if (null != depth && 0 == depth.addAndGet(-1)) {
         recursionDepth.remove();
       }
+    }
+  }
+
+  //
+  // Process a string to make it readable and compatible in WarpScript code
+  //
+
+  private static void appendProcessedString(StringBuilder sb, String s) {
+
+    char[] chars = UnsafeString.getChars(s);
+
+    int lastIdx = 0;
+    int idx = 0;
+
+    //
+    // Replace anything below 32 and ' by %## (invalid character)
+    //
+
+    while(idx < chars.length) {
+      if ('\'' == chars[idx] || chars[idx] < ' ') {
+
+        sb.append(chars, lastIdx, idx - lastIdx);
+        sb.append("%" + (chars[idx] >>> 4) + Integer.toHexString(chars[idx] & 0xF));
+        lastIdx = ++idx;
+      } else {
+        idx++;
+      }
+    }
+
+    if (idx > lastIdx) {
+      sb.append(chars, lastIdx, idx - lastIdx);
     }
   }
 }

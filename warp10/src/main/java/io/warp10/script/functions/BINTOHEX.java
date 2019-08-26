@@ -16,79 +16,35 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.continuum.gts.UnsafeString;
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStackFunction;
-
 /**
- * Decode a String in binary and immediately encode it as hexadecimal
+ * Decode a binary representation as a String and convert it to an hexadecimal representation as a String.
  */
-public class BINTOHEX extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class BINTOHEX extends BINTOx {
+
+  private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
 
   public BINTOHEX(String name) {
     super(name);
   }
 
   @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object o = stack.pop();
-
-    if (!(o instanceof String)) {
-      throw new WarpScriptException(getName() + " operates on a String.");
-    }
-
-    String bin = o.toString();
-
-    if (bin.length() % 8 != 0) {
-      bin = "0000000".substring(7 - (bin.length() % 8)) + bin;
-    }
-
-    char[] chars = UnsafeString.getChars(bin);
-
-    StringBuilder sb = new StringBuilder();
-
-    for (int i = 0; i < bin.length(); i += 4) {
-      String nibble = new String(chars, i, 4);
-
-      if ("0000".equals(nibble)) {
-        sb.append("0");
-      } else if ("0001".equals(nibble)) {
-        sb.append("1");
-      } else if ("0010".equals(nibble)) {
-        sb.append("2");
-      } else if ("0011".equals(nibble)) {
-        sb.append("3");
-      } else if ("0100".equals(nibble)) {
-        sb.append("4");
-      } else if ("0101".equals(nibble)) {
-        sb.append("5");
-      } else if ("0110".equals(nibble)) {
-        sb.append("6");
-      } else if ("0111".equals(nibble)) {
-        sb.append("7");
-      } else if ("1000".equals(nibble)) {
-        sb.append("8");
-      } else if ("1001".equals(nibble)) {
-        sb.append("9");
-      } else if ("1010".equals(nibble)) {
-        sb.append("A");
-      } else if ("1011".equals(nibble)) {
-        sb.append("B");
-      } else if ("1100".equals(nibble)) {
-        sb.append("C");
-      } else if ("1101".equals(nibble)) {
-        sb.append("D");
-      } else if ("1110".equals(nibble)) {
-        sb.append("E");
-      } else if ("1111".equals(nibble)) {
-        sb.append("F");
-      }
-    }
-
-    stack.push(sb.toString());
-
-    return stack;
+  public Object initData(int numberOfBits) {
+    // 2 characters for each byte, so 1 character for 4 bits.
+    // Structure is an array of chars which will be converted to a String at the end.
+    return new char[numberOfBits / 4];
   }
+
+  @Override
+  public void updateData(Object data, int byteIndex, byte currentByte) {
+    // Bit-mask the first 4 bits and the last 4 bits and find the corresponding character in hexArray.
+    ((char[]) data)[byteIndex * 2] = hexArray[(currentByte & 0xF0) >>> 4]; // first 4 bits, & 0xF0 is necessary
+    ((char[]) data)[byteIndex * 2 + 1] = hexArray[currentByte & 0x0F]; // last 4 bits
+  }
+
+  @Override
+  public Object generateResult(Object data) {
+    // Convert the char array to a String.
+    return new String((char[]) data);
+  }
+
 }

@@ -933,9 +933,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     List<Object> stmts = macro.statements();
     int n = macro.size();
     
-    String macroname = this.macroName;
+    String macroname = this.macroName;    
     this.macroName = macro.getName();
-
+    
     try {
       
       recurseIn();
@@ -978,8 +978,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       if (macro.isSecure()) {
         throw ee;
       } else {
+        String name = macro.getName();
         String section = (String) this.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME);
-        throw new WarpScriptException("Exception at statement '" + (i < n ? macro.get(i).toString() : "") + "' in section '" + section + "' (" + ee.getMessage() + ")", ee);
+        if (null == name) {
+          throw new WarpScriptException("Exception at statement '" + (i < n ? macro.get(i).toString() : "") + "' in section '" + section + "' (" + ee.getMessage() + ")", ee);
+        } else {
+          throw new WarpScriptException("Exception at statement '" + (i < n ? macro.get(i).toString() : "") + "' in section '" + section + "' called from macro '" + name + "' (" + ee.getMessage() + ")", ee);
+        }
       }
     } finally {
       //this.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, secure);
@@ -1250,9 +1255,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     } else if (WarpScriptStack.ATTRIBUTE_MACRO_NAME.equals(key)) {
       this.macroName = value.toString();
     } else if (WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE.equals(key)) {
-      if (null != value) {
-        this.progressable = (Progressable) value;
-      }
+      // value is not null because it was checked on first line
+      this.progressable = (Progressable) value;
     }
 
     return this.attributes.put(key, value);
@@ -1568,13 +1572,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     }
     
     //
-    // Scan the rules, from longest to shortest
+    // Scan the rules, from longest to shortest. We can do that because the underneath implementation
+    // is a TreeMap and TreeMap.entrySet returns the entries in ascending key order.
     //
     
-    List<String> prefixes = new ArrayList<String>(rules.keySet()); 
-    
-    for (String prefix: prefixes) {
-      String substitute = rules.get(prefix);
+    for (Map.Entry<String, String> prefixAndSubstitute: rules.entrySet()) {
+      String prefix = prefixAndSubstitute.getKey();
+      String substitute = prefixAndSubstitute.getValue();
       
       if (symbol.startsWith(prefix)) {
         symbol = substitute + symbol.substring(prefix.length());

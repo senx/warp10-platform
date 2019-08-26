@@ -18,106 +18,85 @@ package io.warp10.script.functions;
 
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.script.GTSStackFunction;
+import io.warp10.script.ElementOrListStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Generate a quantified version of GTS
- * 
+ * <p>
  * QUANTIZE expects the following parameters on the stack:
- * 
- * 2: bounds a list of N bounds definining N + 1 intervals for quantification
+ * <p>
+ * 2: bounds a list of N bounds defining N + 1 intervals for quantification
  * 1: values a list of N+1 values or an empty list
  */
-public class QUANTIZE extends GTSStackFunction  {
-
-  private static final String BOUNDS = "bounds";
-  private static final String VALUES = "values";
-  
+public class QUANTIZE extends ElementOrListStackFunction {
 
   public QUANTIZE(String name) {
     super(name);
   }
 
   @Override
-  protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
-
+  public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-  
+
     if (!(top instanceof List)) {
       throw new WarpScriptException(getName() + " expects a list of target values on top of the stack.");
     }
 
     List<Object> rankToValue = (List) top;
-    
+
     top = stack.pop();
-    
+
     if (!(top instanceof List)) {
       throw new WarpScriptException(getName() + " expects a list of bounds under the top of the stack.");
     }
-    
-    //
-    // Put bounds into an array
-    //
-    
-    double[] bounds = new double[((List) top).size()];
+
+    // Create array to copy bounds into.
+    final double[] bounds = new double[((List) top).size()];
 
     //
-    // Check that we have enough values
+    // Check that we have enough values according to the number of bounds
     //
-    
+
     if (!rankToValue.isEmpty() && (rankToValue.size() != bounds.length + 1)) {
       throw new WarpScriptException(getName() + " expected " + (bounds.length + 1) + " values but got " + rankToValue.size());
     }
-        
+
+    //
+    // Put bounds into an array and make sure bounds are sorted and finite
+    //
+
     for (int i = 0; i < bounds.length; i++) {
       bounds[i] = ((Number) ((List) top).get(i)).doubleValue();
-    }
-    
-    //
-    // Sort bounds
-    //
-    
-    Arrays.sort(bounds);
-    
-    //
-    // Make sure we don't have duplicate bounds
-    //
-    
-    for (int i = 1; i < bounds.length; i++) {
-      if (bounds[i] == bounds[i - 1]) {
-        throw new WarpScriptException(getName() + " identified duplicate bounds.");
+      if (!Double.isFinite(bounds[i])) {
+        throw new WarpScriptException(getName() + " expects the bounds to be finite.");
+      } else if (i > 0 && bounds[i] <= bounds[i - 1]) {
+        throw new WarpScriptException(getName() + " identified unordered or duplicate bounds.");
       }
     }
-    
-    
-    Map<String,Object> params = new HashMap<String, Object>();
 
-    if (!rankToValue.isEmpty()) {
-      params.put(VALUES, rankToValue.toArray());      
-    }
-    
-    params.put(BOUNDS, bounds);
-    
-    return params;
-  }
+    final Object[] rankToValueArray;
 
-  @Override
-  protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
-
-    double[] bounds = (double[]) params.get(BOUNDS);    
-
-    if (params.containsKey(VALUES)) {
-      return GTSHelper.quantize(gts, bounds, (Object[]) params.get(VALUES));
+    if (rankToValue.isEmpty()) {
+      // The the array to null for GTSHelper.quantize to fall back to rank
+      rankToValueArray = null;
     } else {
-      return GTSHelper.quantize(gts, bounds, null);
+      rankToValueArray = rankToValue.toArray();
     }
-    
+
+    return new ElementStackFunction() {
+      @Override
+      public Object applyOnElement(Object element) throws WarpScriptException {
+        if (element instanceof GeoTimeSerie) {
+          GeoTimeSerie gts = (GeoTimeSerie) element;
+          return GTSHelper.quantize(gts, bounds, rankToValueArray);
+        } else {
+          throw new WarpScriptException(getName() + " expects a Geo Time Series instance or a list thereof.");
+        }
+      }
+    };
   }
 }

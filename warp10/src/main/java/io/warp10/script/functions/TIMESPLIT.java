@@ -18,8 +18,10 @@ package io.warp10.script.functions;
 
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.script.ElementOrListStackFunction;
 import io.warp10.script.GTSStackFunction;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptLoopContinueException;
 import io.warp10.script.WarpScriptStack;
 
 import java.util.HashMap;
@@ -35,28 +37,19 @@ import java.util.Map;
  * 2: minValues A minimum number of values
  * 1: label The name of the label which will hold the sequence
  */
-public class TIMESPLIT extends GTSStackFunction {
-
-  private static final String QUIETPERIOD = "quietPeriod";
-  private static final String MINVALUES = "minValues";
-  private static final String LABEL = "label";
+public class TIMESPLIT extends ElementOrListStackFunction {
 
   public TIMESPLIT(String name) {
     super(name);
   }
 
   @Override
-  protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
-    Object top = stack.pop();
-
-
+  public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {Object top = stack.pop();
     if (!(top instanceof String)) {
       throw new WarpScriptException(getName() + " expects a label on top of the stack.");
     }
 
-    Map<String,Object> params = new HashMap<String, Object>();
-
-    params.put(LABEL, (String) top);
+    final String label = (String) top;
 
     top = stack.pop();
 
@@ -64,7 +57,7 @@ public class TIMESPLIT extends GTSStackFunction {
       throw new WarpScriptException(getName() + " expects a minimum number of values under the label.");
     }
 
-    params.put(MINVALUES, (long) top);
+    final int minValues = ((Number) top).intValue();
 
     top = stack.pop();
 
@@ -72,19 +65,17 @@ public class TIMESPLIT extends GTSStackFunction {
       throw new WarpScriptException(getName() + " expects a quiet period under the minimum number of values.");
     }
 
-    params.put(QUIETPERIOD, (long) top);
+    final long quietPeriod = (long) top;
 
-    return params;
-  }
-
-  @Override
-  protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
-    long quietPeriod = (long) params.get(QUIETPERIOD);
-    int minvalues = ((Number) params.get(MINVALUES)).intValue();
-    String label = (String) params.get(LABEL);
-
-    List<GeoTimeSerie> result = GTSHelper.timesplit(gts, quietPeriod, minvalues, label);
-
-    return result;
+    return new ElementStackFunction() {
+      @Override
+      public Object applyOnElement(Object element) throws WarpScriptException {
+        if(element instanceof GeoTimeSerie){
+          return GTSHelper.timesplit((GeoTimeSerie)element, quietPeriod, minValues, label);
+        } else {
+          throw new WarpScriptException(getName()+ " expects a Geo Time Series or a list thereof under the label, minimum values and the quiet period parameters.");
+        }
+      }
+    };
   }
 }

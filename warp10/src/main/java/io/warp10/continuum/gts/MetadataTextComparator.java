@@ -16,12 +16,12 @@
 
 package io.warp10.continuum.gts;
 
-import io.warp10.continuum.store.thrift.data.Metadata;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+
+import io.warp10.continuum.store.thrift.data.Metadata;
 
 /**
  * Sort Metadata according to text order (on name then on labels)
@@ -41,7 +41,7 @@ public class MetadataTextComparator implements Comparator<Metadata> {
     if (null != this.fields && !this.fields.isEmpty()) {
       return compareWithFields(o1, o2);
     }
-    
+        
     if (null == o1) {
       return -1;
     }
@@ -83,10 +83,10 @@ public class MetadataTextComparator implements Comparator<Metadata> {
     // Names are identical, compare labels
     //
     
-    List<String> labels1 = new ArrayList<String>();
+    List<String> labels1 = new ArrayList<String>(o1.getLabelsSize());
     labels1.addAll(o1.getLabels().keySet());
     
-    List<String> labels2 = new ArrayList<String>();
+    List<String> labels2 = new ArrayList<String>(o2.getLabelsSize());
     labels2.addAll(o2.getLabels().keySet());
     
     Collections.sort(labels1);
@@ -138,7 +138,7 @@ public class MetadataTextComparator implements Comparator<Metadata> {
     
     for (String field: this.fields) {
       //
-      // Extract field fro both o1 and o2
+      // Extract field from both o1 and o2
       // Field 'null' is the GTS name
       //
       

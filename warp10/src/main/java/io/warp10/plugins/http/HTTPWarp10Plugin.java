@@ -15,17 +15,6 @@
 //
 package io.warp10.plugins.http;
 
-import com.google.common.base.Charsets;
-import io.warp10.script.MemoryWarpScriptStack;
-import io.warp10.script.WarpScriptStack.Macro;
-import io.warp10.warp.sdk.AbstractWarp10Plugin;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.util.BlockingArrayQueue;
-import org.eclipse.jetty.util.thread.QueuedThreadPool;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -44,6 +33,22 @@ import java.util.TreeSet;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Predicate;
+
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.handler.gzip.GzipHandler;
+import org.eclipse.jetty.util.BlockingArrayQueue;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Charsets;
+
+import io.warp10.SSLUtils;
+import io.warp10.continuum.Configuration;
+import io.warp10.script.MemoryWarpScriptStack;
+import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.warp.sdk.AbstractWarp10Plugin;
 
 public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
 
@@ -72,7 +77,8 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
   private static final String CONF_HTTP_MAXTHREADS = "http.maxthreads";
   private static final String CONF_HTTP_IDLE_TIMEOUT = "http.idle.timeout";
   private static final String CONF_HTTP_QUEUESIZE = "http.queuesize";
-
+  private static final String CONF_HTTP_GZIP = "http.gzip";
+  private static final String CONF_HTTP_LCHEADERS = "http.lcheaders";
 
   /**
    * Default scanning period in ms
@@ -82,12 +88,14 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
   private String dir;
   private long period;
   private String host;
-  private int port;
+  private int port = -1;
   private int acceptors = 2;
   private int selectors = 4;
-  private int maxthreads = 1 + acceptors + acceptors * selectors;
+  private int maxthreads = -1;
   private int idleTimeout = 30000;
   private BlockingQueue<Runnable> queue = null;
+
+  private int sslport = -1;
 
   /**
    * Map of uri to macros
@@ -114,6 +122,13 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
    */
   private Map<String, Integer> sizes = new HashMap<String, Integer>();
 
+  private boolean gzip = true;
+  
+  /**
+   * Should we convert header names to lower case in the request map
+   */
+  private boolean lcheaders = false;
+  
   public HTTPWarp10Plugin() {
     super();
   }
@@ -125,17 +140,46 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
     // Start Jetty server
     //
 
+    if (-1 == maxthreads) {
+      maxthreads =  1 + acceptors + acceptors * selectors;
+    }
+    
     Server server = new Server(new QueuedThreadPool(maxthreads, 8, idleTimeout, queue));
 
-    ServerConnector connector = new ServerConnector(server, acceptors, selectors);
-    connector.setIdleTimeout(idleTimeout);
-    connector.setPort(port);
-    connector.setHost(host);
-    connector.setName("Warp 10 HTTP Plugin Jetty Connector");
+    int minthreads = 1;
+    
+    if (-1 != this.port) {
+      ServerConnector connector = new ServerConnector(server, acceptors, selectors);
+      connector.setIdleTimeout(idleTimeout);
+      connector.setPort(port);
+      connector.setHost(host);
+      connector.setName("Warp 10 HTTP Plugin Jetty HTTP Connector");
+      server.addConnector(connector);
+      minthreads += acceptors + acceptors * selectors;
+    }
 
-    server.addConnector(connector);
+    if (-1 != this.sslport) {
+      ServerConnector connector = SSLUtils.getConnector(server, "http");
+      connector.setName("Warp 10 HTTP Plugin Jetty HTTPS Connector");
+      server.addConnector(connector);
+      minthreads += connector.getAcceptors() + connector.getAcceptors() * connector.getSelectorManager().getSelectorCount();
+    }
 
-    server.setHandler(new WarpScriptHandler(this));
+    if (maxthreads < minthreads) {
+      throw new RuntimeException(CONF_HTTP_MAXTHREADS + " should be >= " + minthreads);
+    }
+    
+    WarpScriptHandler handler = new WarpScriptHandler(this);
+
+    if (this.gzip) {
+      GzipHandler gzip = new GzipHandler();
+      gzip.setHandler(handler);
+      gzip.setMinGzipSize(0);
+      gzip.addIncludedMethods("GET","POST");
+      server.setHandler(gzip);
+    } else {
+      server.setHandler(handler);
+    }
 
     try {
       server.start();
@@ -207,7 +251,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
           this.macros.remove(uri);
           this.parsePayloads.remove(uri);
           this.prefixes.remove(uri);
-        }
+        }        
       } catch (Throwable t) {
         t.printStackTrace();
       }
@@ -288,24 +332,29 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
     }
 
     this.period = Long.parseLong(properties.getProperty(CONF_HTTP_PERIOD, Long.toString(DEFAULT_PERIOD)));
-    if (!properties.containsKey(CONF_HTTP_HOST)) {
-      throw new RuntimeException("Missing " + CONF_HTTP_HOST + " configuration.");
-    }
-    this.host = properties.getProperty(CONF_HTTP_HOST);
-    if (!properties.containsKey(CONF_HTTP_PORT)) {
-      throw new RuntimeException("Missing " + CONF_HTTP_PORT + " configuration.");
-    }
-    this.port = Integer.parseInt(properties.getProperty(CONF_HTTP_PORT));
+    
+    
+    this.port = Integer.parseInt(properties.getProperty(CONF_HTTP_PORT, "-1"));
+    this.sslport = Integer.parseInt(properties.getProperty("http" + Configuration._SSL_PORT, "-1"));
 
-    acceptors = Integer.valueOf(properties.getProperty(CONF_HTTP_ACCEPTORS, String.valueOf(acceptors)));
-    selectors = Integer.valueOf(properties.getProperty(CONF_HTTP_SELECTORS, String.valueOf(selectors)));
-    maxthreads = Integer.valueOf(properties.getProperty(CONF_HTTP_MAXTHREADS, String.valueOf(maxthreads)));
-    idleTimeout = Integer.valueOf(properties.getProperty(CONF_HTTP_IDLE_TIMEOUT, String.valueOf(idleTimeout)));
+    if (-1 == this.port && -1 == this.sslport) {
+      throw new RuntimeException("Either '" + CONF_HTTP_PORT + "' or 'http." + Configuration._SSL_PORT + "' must be set.");
+    }
+    
+    host = properties.getProperty(CONF_HTTP_HOST, null);
+    acceptors = Integer.parseInt(properties.getProperty(CONF_HTTP_ACCEPTORS, String.valueOf(acceptors)));
+    selectors = Integer.parseInt(properties.getProperty(CONF_HTTP_SELECTORS, String.valueOf(selectors)));
+    idleTimeout = Integer.parseInt(properties.getProperty(CONF_HTTP_IDLE_TIMEOUT, String.valueOf(idleTimeout)));      
+
+    maxthreads = Integer.parseInt(properties.getProperty(CONF_HTTP_MAXTHREADS, String.valueOf(maxthreads)));
 
     if (properties.containsKey(CONF_HTTP_QUEUESIZE)) {
       queue = new BlockingArrayQueue<>(Integer.parseInt(properties.getProperty(CONF_HTTP_QUEUESIZE)));
     }
 
+    gzip = !"false".equals(properties.getProperty(CONF_HTTP_GZIP));
+    lcheaders = "true".equals(properties.getProperty(CONF_HTTP_LCHEADERS));
+    
     Thread t = new Thread(this);
     t.setDaemon(true);
     t.setName("[Warp 10 HTTP Plugin " + this.dir + "]");
@@ -316,15 +365,21 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
     // Seek longest match
     int prefixLength = 0;
     String foundPrefix = uri; // Return uri if no prefix found
-
+    
+    // Is there an exact match?
+    if (null != this.macros.get(uri)) {
+      return uri;
+    }
+    
     for (String prefix: this.prefixes) {
       // Check if prefix is a prefix of uri (in term of path) and longer than previously found
-      if (uri.startsWith(prefix) && (uri.length() == prefix.length() || '/' == uri.charAt(prefix.length())) && prefix.length() > prefixLength) {
+      if (uri.startsWith(prefix)
+          && (uri.length() == prefix.length() || (prefix.endsWith("/") || '/' == uri.charAt(prefix.length())))
+          && prefix.length() > prefixLength) {
         foundPrefix = prefix;
         prefixLength = prefix.length();
       }
     }
-
     return foundPrefix;
   }
 
@@ -334,6 +389,10 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
 
   public boolean isParsePayload(String uri) {
     return this.parsePayloads.get(uri);
+  }
+  
+  public boolean isLcHeaders() {
+    return this.lcheaders;
   }
 
 }

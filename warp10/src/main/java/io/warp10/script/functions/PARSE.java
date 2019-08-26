@@ -58,6 +58,8 @@ public class PARSE extends NamedWarpScriptFunction implements WarpScriptStackFun
     List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
 
     try {
+      AtomicBoolean hadAttributes = new AtomicBoolean(false);
+
       while(true) {
         String line = br.readLine();
         
@@ -65,7 +67,12 @@ public class PARSE extends NamedWarpScriptFunction implements WarpScriptStackFun
           break;
         }
         
-        AtomicBoolean hadAttributes = new AtomicBoolean(false);
+        line = line.trim();
+        
+        // Ignore empty lines and comments
+        if (0 == line.length() || '#' == line.charAt(0)) {
+          continue;
+        }
         
         encoder = GTSHelper.parse(lastencoder, line, null, null, Long.MAX_VALUE, hadAttributes);
 

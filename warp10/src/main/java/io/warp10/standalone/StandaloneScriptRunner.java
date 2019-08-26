@@ -27,11 +27,14 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.geoxp.oss.CryptoHelper;
 import com.google.common.base.Charsets;
 import com.google.common.primitives.Longs;
 
+import io.warp10.WarpConfig;
 import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.TimeSource;
@@ -59,6 +62,8 @@ public class StandaloneScriptRunner extends ScriptRunner {
 
   private final byte[] runnerPSK;
   
+  private static final Pattern VAR = Pattern.compile("\\$\\{([^}]+)\\}");
+
   public StandaloneScriptRunner(Properties properties, KeyStore keystore, StoreClient storeClient, DirectoryClient directoryClient, Properties props) throws IOException {
     super(keystore, props);
 
@@ -92,6 +97,8 @@ public class StandaloneScriptRunner extends ScriptRunner {
       this.executor.submit(new Runnable() {            
         @Override
         public void run() {
+          String name = currentThread().getName();
+          currentThread().setName(script);
           
           long nowts = System.currentTimeMillis();
 
@@ -168,10 +175,58 @@ public class StandaloneScriptRunner extends ScriptRunner {
               stack.store(Constants.RUNNER_NONCE, new String(OrderPreservingBase64.encode(nonce), Charsets.US_ASCII));              
             }
             
-            stack.execMulti(new String(baos.toByteArray(), Charsets.UTF_8));
+            String mc2 = new String(baos.toByteArray(), Charsets.UTF_8);
+            
+            // Replace ${name} and ${name:default} constructs
+              
+            Matcher m = VAR.matcher(mc2);
+
+            // Strip the period out of the path and add a leading '/'
+            String rawpath = "/" + path.replaceFirst("/" + Long.toString(periodicity) + "/", "/");
+            // Remove the file extension
+            rawpath = rawpath.substring(0, rawpath.length() - 4);
+
+            StringBuffer mc2WithReplacement = new StringBuffer();
+            
+            while(m.find()) {
+              String var = m.group(1);
+              String def = m.group(0);
+
+              int colonIndex = var.indexOf(':');
+              if (colonIndex >= 0) {
+                def = var.substring(colonIndex + 1);
+                var = var.substring(0, colonIndex);
+              }
+                
+              // Check in the configuration if we can find a matching key, i.e.
+              // name@/path/to/script (with the period omitted) or any shorter prefix
+              // of the path, i.e. name@/path/to or name@/path
+              String suffix = rawpath;
+                
+              String value = null;
+                
+              while (suffix.length() > 1) {
+                value = WarpConfig.getProperty(var + "@" + suffix);
+                if (null != value) {
+                  break;
+                }
+                suffix = suffix.substring(0, suffix.lastIndexOf('/'));
+              }
+                
+              if (null == value) {
+                value = def;
+              }
+                
+              m.appendReplacement(mc2WithReplacement, Matcher.quoteReplacement(value));
+            }
+
+            m.appendTail(mc2WithReplacement);
+              
+            stack.execMulti(mc2WithReplacement.toString());
           } catch (Exception e) {                
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, 1);
           } finally {
+            currentThread().setName(name);
             nextrun.put(script, nowts + periodicity);
             nano = System.nanoTime() - nano;
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, ttl, (long) (nano / 1000L));

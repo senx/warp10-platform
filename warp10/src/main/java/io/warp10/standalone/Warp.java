@@ -16,12 +16,22 @@
 
 package io.warp10.standalone;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
+
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
@@ -29,12 +39,16 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.server.handler.gzip.GzipHandler;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.fusesource.leveldbjni.JniDBFactory;
 import org.iq80.leveldb.CompressionType;
 import org.iq80.leveldb.Options;
 
 import com.google.common.base.Preconditions;
 
 import io.warp10.Revision;
+import io.warp10.WarpConfig;
+import io.warp10.SSLUtils;
 import io.warp10.WarpDist;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
@@ -61,7 +75,10 @@ import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.AbstractWarp10Plugin;
 
 public class Warp extends WarpDist implements Runnable {
-    
+
+  private static final String DEFAULT_HTTP_ACCEPTORS = "2";
+  private static final String DEFAULT_HTTP_SELECTORS = "4";
+  
   private static final String NULL = "null";
         
   private static WarpDB db;
@@ -72,15 +89,13 @@ public class Warp extends WarpDist implements Runnable {
   
   private static String host;
   
+  private static Set<Path> datalogSrcDirs = Collections.unmodifiableSet(new HashSet<Path>()); 
+  
   private static final String[] REQUIRED_PROPERTIES = {
-    Configuration.STANDALONE_PORT,
-    Configuration.STANDALONE_ACCEPTORS,
-    Configuration.STANDALONE_SELECTORS,
     Configuration.INGRESS_WEBSOCKET_MAXMESSAGESIZE,
     Configuration.PLASMA_FRONTEND_WEBSOCKET_MAXMESSAGESIZE,
     Configuration.WARP_HASH_CLASS,
     Configuration.WARP_HASH_LABELS,
-    Configuration.CONTINUUM_HASH_INDEX,
     Configuration.WARP_HASH_TOKEN,
     Configuration.WARP_HASH_APP,
     Configuration.WARP_AES_TOKEN,
@@ -107,7 +122,7 @@ public class Warp extends WarpDist implements Runnable {
     labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "standalone");
     Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);
 
-    setProperties(args[0]);
+    setProperties(args);
     
     Properties properties = getProperties();
     
@@ -173,8 +188,6 @@ public class Warp extends WarpDist implements Runnable {
     keystore.setKey(KeyStore.SIPHASH_CLASS_SECONDARY, CryptoUtils.invert(keystore.getKey(KeyStore.SIPHASH_CLASS)));
     keystore.setKey(KeyStore.SIPHASH_LABELS_SECONDARY, CryptoUtils.invert(keystore.getKey(KeyStore.SIPHASH_LABELS)));        
     
-    keystore.setKey(KeyStore.SIPHASH_INDEX, keystore.decodeKey(properties.getProperty(Configuration.CONTINUUM_HASH_INDEX)));
-    Preconditions.checkArgument(16 == keystore.getKey(KeyStore.SIPHASH_INDEX).length, Configuration.CONTINUUM_HASH_INDEX + " MUST be 128 bits long.");
     keystore.setKey(KeyStore.SIPHASH_TOKEN, keystore.decodeKey(properties.getProperty(Configuration.WARP_HASH_TOKEN)));
     Preconditions.checkArgument(16 == keystore.getKey(KeyStore.SIPHASH_TOKEN).length, Configuration.WARP_HASH_TOKEN + " MUST be 128 bits long.");
     keystore.setKey(KeyStore.SIPHASH_APPID, keystore.decodeKey(properties.getProperty(Configuration.WARP_HASH_APP)));
@@ -265,28 +278,50 @@ public class Warp extends WarpDist implements Runnable {
     
     Server server = new Server();
 
-    int acceptors = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_ACCEPTORS));
-    int selectors = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_SELECTORS));
-    port = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_PORT));
-    host = properties.getProperty(Configuration.STANDALONE_HOST);
+    boolean useHTTPS = null != properties.getProperty(Configuration.STANDALONE_PREFIX + Configuration._SSL_PORT);
+    boolean useHTTP = null != properties.getProperty(Configuration.STANDALONE_PORT);
     
-    ServerConnector connector = new ServerConnector(server, acceptors, selectors);
+    ServerConnector httpConnector = null;
+    ServerConnector httpsConnector = null;
+    
+    if (!useHTTPS && !useHTTP ) {
+      throw new RuntimeException("Missing '" + Configuration.STANDALONE_PORT + "' or '" + Configuration.STANDALONE_PREFIX + Configuration._SSL_PORT + "' configuration");
+    }
+    
+    List<Connector> connectors = new ArrayList<Connector>();
+    
+    if (useHTTP) {
+      int acceptors = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_ACCEPTORS, DEFAULT_HTTP_ACCEPTORS));
+      int selectors = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_SELECTORS, DEFAULT_HTTP_SELECTORS));
+      port = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_PORT));
+      host = properties.getProperty(Configuration.STANDALONE_HOST, "0.0.0.0");
+      
+      httpConnector = new ServerConnector(server, acceptors, selectors);
+      
+      httpConnector.setPort(port);
+      
+      if (null != host) {
+        httpConnector.setHost(host);
+      }
+      
+      String idle = properties.getProperty(Configuration.STANDALONE_IDLE_TIMEOUT);
+      
+      if (null != idle) {
+        httpConnector.setIdleTimeout(Long.parseLong(idle));
+      }
+      
+      httpConnector.setName("Warp 10 Standalone HTTP Endpoint");
+      
+      connectors.add(httpConnector);
+    }
 
-    connector.setPort(port);
-    
-    if (null != host) {
-      connector.setHost(host);
+    if (useHTTPS) {
+      httpsConnector = SSLUtils.getConnector(server, Configuration.STANDALONE_PREFIX);
+      httpsConnector.setName("Warp 10 Standalone HTTPS Endpoint");      
+      connectors.add(httpsConnector);
     }
     
-    String idle = properties.getProperty(Configuration.STANDALONE_IDLE_TIMEOUT);
-    
-    if (null != idle) {
-      connector.setIdleTimeout(Long.parseLong(idle));
-    }
-    
-    connector.setName("Continuum Standalone Egress");
-    
-    server.setConnectors(new Connector[] { connector });
+    server.setConnectors(connectors.toArray(new Connector[connectors.size()]));
 
     HandlerList handlers = new HandlerList();
     
@@ -300,16 +335,21 @@ public class Warp extends WarpDist implements Runnable {
       sdc = new StandaloneDirectoryClient(null, keystore);
       
       sdc.setActivityWindow(Long.parseLong(properties.getProperty(Configuration.INGRESS_ACTIVITY_WINDOW, "0")));
-      if ("true".equals(properties.getProperty(Configuration.IN_MEMORY_CHUNKED))) {
+      
+      if (null == properties.getProperty(Configuration.IN_MEMORY_CHUNKED)) {
+        throw new RuntimeException("Configuration key '" + Configuration.IN_MEMORY_CHUNKED + "' MUST now explicitely be set to 'true' or 'false' (if you wish to use the now deprecated non chunked memory store).");
+      }
+      
+      if (!"false".equals(properties.getProperty(Configuration.IN_MEMORY_CHUNKED))) {
         scc = new StandaloneChunkedMemoryStore(properties, keystore);
-        ((StandaloneChunkedMemoryStore) scc).setDirectoryClient((StandaloneDirectoryClient) sdc);
+        ((StandaloneChunkedMemoryStore) scc).setDirectoryClient(sdc);
         ((StandaloneChunkedMemoryStore) scc).load();
       } else {
         scc = new StandaloneMemoryStore(keystore,
             Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_DEPTH, Long.toString(60 * 60 * 1000 * Constants.TIME_UNITS_PER_MS))),
             Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_HIGHWATERMARK, "100000")),
             Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_LOWWATERMARK, "80000")));
-        ((StandaloneMemoryStore) scc).setDirectoryClient((StandaloneDirectoryClient) sdc);
+        ((StandaloneMemoryStore) scc).setDirectoryClient(sdc);
         if ("true".equals(properties.getProperty(Configuration.IN_MEMORY_EPHEMERAL))) {
           ((StandaloneMemoryStore) scc).setEphemeral(true);
         }        
@@ -326,6 +366,11 @@ public class Warp extends WarpDist implements Runnable {
       scc = new StandaloneStoreClient(db, keystore, properties);
     }
         
+    if (null != WarpConfig.getProperty(Configuration.DATALOG_DIR) && null != WarpConfig.getProperty(Configuration.DATALOG_SHARDS)) {
+      sdc = new StandaloneShardedDirectoryClientWrapper(keystore, sdc);
+      scc = new StandaloneShardedStoreClientWrapper(keystore, scc);
+    }
+    
     if (ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
       scc = new StandaloneParallelStoreClientWrapper(scc);
     }
@@ -343,11 +388,45 @@ public class Warp extends WarpDist implements Runnable {
     }
     
     //
-    // Start the Datalog Forwarder
+    // Start the Datalog Forwarders
     //
     
-    if (!analyticsEngineOnly && properties.containsKey(Configuration.DATALOG_FORWARDER_SRCDIR) && properties.containsKey(Configuration.DATALOG_FORWARDER_DSTDIR)) {
-      DatalogForwarder forwarder = new DatalogForwarder(keystore, properties);
+    if (!analyticsEngineOnly && properties.containsKey(Configuration.DATALOG_FORWARDERS)) {
+      // Extract the names of the forwarders and start them all, ensuring we only start each one once
+      String[] forwarders = properties.getProperty(Configuration.DATALOG_FORWARDERS).split(",");
+      
+      Set<String> names = new HashSet<String>();
+      for (String name: forwarders) {
+        names.add(name.trim());
+      }
+      
+      Set<Path> srcDirs = new HashSet<Path>();
+      
+      Path datalogdir = new File(properties.getProperty(Configuration.DATALOG_DIR)).toPath().toRealPath();
+      
+      for (String name: names) {
+        DatalogForwarder forwarder = new DatalogForwarder(name, keystore, properties);
+        
+        Path root = forwarder.getRootDir().toRealPath();
+        
+        if (datalogdir.equals(root)) {
+          throw new RuntimeException("Datalog directory '" + datalogdir + "' cannot be used as a forwarder source.");
+        }
+      
+        if (!srcDirs.add(root)) {
+          throw new RuntimeException("Duplicate datalog source directory '" + root + "'.");
+        }
+      }
+      
+      datalogSrcDirs = Collections.unmodifiableSet(srcDirs);
+      
+    } else if (!analyticsEngineOnly && properties.containsKey(Configuration.DATALOG_FORWARDER_SRCDIR) && properties.containsKey(Configuration.DATALOG_FORWARDER_DSTDIR)) {
+      Path datalogdir = new File(properties.getProperty(Configuration.DATALOG_DIR)).toPath().toRealPath();
+      DatalogForwarder forwarder = new DatalogForwarder(keystore, properties);      
+      Path root = forwarder.getRootDir().toRealPath();
+      if (datalogdir.equals(root)) {
+        throw new RuntimeException("Datalog directory '" + datalogdir + "' cannot be used as the source directory of a forwarder.");
+      }
     }
     
     //
@@ -437,14 +516,22 @@ public class Warp extends WarpDist implements Runnable {
     AbstractWarp10Plugin.registerPlugins();
 
     try {
-      System.out.println("#### standalone.endpoint " + InetAddress.getByName(host) + ":" + port);
+      if (useHTTP) {
+        System.out.println("#### standalone.endpoint " + InetAddress.getByName(host) + ":" + port);
+      }
+      if (useHTTPS) {
+        System.out.println("#### standalone.ssl.endpoint " + InetAddress.getByName(httpsConnector.getHost()) + ":" + httpsConnector.getPort());
+      }
       server.start();
     } catch (Exception e) {
+      server.stop();
       throw new RuntimeException(e);
     }
     
     // Retrieve actual local port
-    port = connector.getLocalPort();
+    if (null != httpConnector) {
+      port = httpConnector.getLocalPort();
+    }
 
     // Indicate standalone mode is on
     standaloneMode = true;
@@ -512,15 +599,7 @@ public class Warp extends WarpDist implements Runnable {
       Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.LEVELDB_DATA_AES + " MUST be 128, 192 or 256 bits long.");
       keystore.setKey(KeyStore.AES_LEVELDB_DATA, key);
     }
-    
-    keyspec = props.getProperty(Configuration.LEVELDB_INDEX_AES);
-    
-    if (null != keyspec) {
-      byte[] key = keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.LEVELDB_INDEX_AES + " MUST be 128, 192 or 256 bits long.");
-      keystore.setKey(KeyStore.AES_LEVELDB_INDEX, key);
-    }
-    
+            
     if (null != props.getProperty(Configuration.CONFIG_FETCH_PSK)) {
       keystore.setKey(KeyStore.SIPHASH_FETCH_PSK, keystore.decodeKey(props.getProperty(Configuration.CONFIG_FETCH_PSK)));
       Preconditions.checkArgument((16 == keystore.getKey(KeyStore.SIPHASH_FETCH_PSK).length), Configuration.CONFIG_FETCH_PSK + " MUST be 128 bits long.");            
@@ -535,5 +614,9 @@ public class Warp extends WarpDist implements Runnable {
 
   public static WarpDB getDB() {
     return db;
+  }
+  
+  public static Set<Path> getDatalogSrcDirs() {
+    return datalogSrcDirs;
   }
 }

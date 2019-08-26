@@ -46,7 +46,7 @@ public class TOMAP extends NamedWarpScriptFunction implements WarpScriptStackFun
       throw new WarpScriptException("Odd number of elements, cannot create map.");
     }
     
-    Map<Object, Object> map = new LinkedHashMap<Object, Object>();
+    Map<Object, Object> map = new LinkedHashMap<Object, Object>(elements.length / 2);
     
     for (int i = 0; i < elements.length; i+=2) {
       //if (! (elements[i] instanceof String)) {

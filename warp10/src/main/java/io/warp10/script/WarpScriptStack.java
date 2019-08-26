@@ -80,11 +80,6 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_LINENO = "lineno";
   
   /**
-   * Prefix for tracing push/pop
-   */
-  public static final String ATTRIBUTE_TRACE_PREFIX = "trace.prefix";
-  
-  /**
    * PrintWriter instance for the REL (Read Execute Loop)
    */
   public static final String ATTRIBUTE_INTERACTIVE_WRITER = "interactive.writer";
@@ -361,6 +356,29 @@ public interface WarpScriptStack {
     
     public void setName(String name) {
       this.name = name;
+    }
+    
+    /**
+     * Set the name of the current macro and set the same name for
+     * all included macros which do not have a name
+     * 
+     * @param name
+     */
+    public void setNameRecursive(String name) {
+      List<Macro> macros = new ArrayList<Macro>();
+      macros.add(this);
+      
+      while(!macros.isEmpty()) {
+        Macro m = macros.remove(0);
+        if (null == m.getName()) {
+          m.setName(name);
+          for (Object stmt: m.statements) {
+            if (stmt instanceof Macro) {
+              macros.add((Macro) stmt);
+            }
+          }
+        }
+      }
     }
     
     public String getName() {

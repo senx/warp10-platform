@@ -25,6 +25,7 @@ import io.warp10.script.WarpScriptLib;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -72,9 +73,9 @@ public abstract class AbstractWarp10Plugin {
       }
     }
 
-    for (Object key: props.keySet()) {
-      if (key.toString().startsWith(Configuration.WARP10_PLUGIN_PREFIX)) {
-        plugs.add(props.getProperty(key.toString()).toString().trim());
+    for (String key: props.stringPropertyNames()) {
+      if (key.startsWith(Configuration.WARP10_PLUGIN_PREFIX)) {
+        plugs.add(props.getProperty(key).trim());
       }
     }
     
@@ -84,6 +85,15 @@ public abstract class AbstractWarp10Plugin {
     
     boolean failedPlugin = false;
       
+    List<String> failed = new ArrayList<String>();
+    
+    //
+    // Sort the plugins by prefix
+    //
+    
+    List<String> sorted = new ArrayList<String>(plugs);
+    sorted.sort(null);
+    
     //
     // Determine the possible jar from which we were loaded
     //
@@ -94,8 +104,14 @@ public abstract class AbstractWarp10Plugin {
       wsljar = wslurl.toString().replaceAll("!/.*", "").replaceAll("jar:file:", "");
     }
       
-    for (String plugin: plugs) {
-      try {
+    for (String plugin: sorted) {
+      try {        
+        // If the plugin name contains '#', remove everything up to the last '#', this was used as a sorting prefix
+        
+        if (plugin.contains("#")) {
+          plugin = plugin.replaceAll("^.*#", "");
+        }
+
         //
         // Locate the class using the current class loader
         //
@@ -105,6 +121,7 @@ public abstract class AbstractWarp10Plugin {
         if (null == url) {
           LOG.error("Unable to load plugin '" + plugin + "', make sure it is in the class path.");
           failedPlugin = true;
+          failed.add(plugin);
           continue;
         }
         
@@ -141,8 +158,8 @@ public abstract class AbstractWarp10Plugin {
       }
     }
       
-    if (failedPlugin) {
-      throw new RuntimeException("Some WarpScript plugins could not be loaded, aborting.");
+    if (failedPlugin) {      
+      throw new RuntimeException("Some WarpScript plugins could not be loaded, aborting. " + failed.toString());
     }
   }
   

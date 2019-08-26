@@ -69,7 +69,6 @@ public class WarpDist {
     Configuration.WARP_COMPONENTS,
     Configuration.WARP_HASH_CLASS,
     Configuration.WARP_HASH_LABELS,
-    Configuration.CONTINUUM_HASH_INDEX,
     Configuration.WARP_HASH_TOKEN,
     Configuration.WARP_HASH_APP,
     Configuration.WARP_AES_TOKEN,
@@ -92,6 +91,12 @@ public class WarpDist {
     }
     
     properties = props;
+  }
+ 
+  public static void setProperties(String[] files) throws IOException {
+    WarpConfig.setProperties(files);
+    
+    properties = WarpConfig.getProperties();    
   }
   
   public static void setProperties(String file) throws IOException {
@@ -117,7 +122,7 @@ public class WarpDist {
     System.setProperty("java.awt.headless", "true");
     
     if (args.length > 0) {
-      setProperties(args[0]);
+      setProperties(args);
     } else if (null != System.getenv(WarpConfig.WARP10_CONFIG_ENV)) {
       setProperties(System.getenv(WarpConfig.WARP10_CONFIG_ENV));
     } else if (null != System.getProperty(WarpConfig.WARP10_CONFIG)) {
@@ -181,8 +186,6 @@ public class WarpDist {
     keystore.setKey(KeyStore.SIPHASH_CLASS_SECONDARY, CryptoUtils.invert(keystore.getKey(KeyStore.SIPHASH_CLASS)));
     keystore.setKey(KeyStore.SIPHASH_LABELS_SECONDARY, CryptoUtils.invert(keystore.getKey(KeyStore.SIPHASH_LABELS)));    
     
-    keystore.setKey(KeyStore.SIPHASH_INDEX, keystore.decodeKey(properties.getProperty(Configuration.CONTINUUM_HASH_INDEX)));
-    Preconditions.checkArgument(16 == keystore.getKey(KeyStore.SIPHASH_INDEX).length, Configuration.CONTINUUM_HASH_INDEX + " MUST be 128 bits long.");
     keystore.setKey(KeyStore.SIPHASH_TOKEN, keystore.decodeKey(properties.getProperty(Configuration.WARP_HASH_TOKEN)));
     Preconditions.checkArgument(16 == keystore.getKey(KeyStore.SIPHASH_TOKEN).length, Configuration.WARP_HASH_TOKEN + " MUST be 128 bits long.");
     keystore.setKey(KeyStore.SIPHASH_APPID, keystore.decodeKey(properties.getProperty(Configuration.WARP_HASH_APP)));

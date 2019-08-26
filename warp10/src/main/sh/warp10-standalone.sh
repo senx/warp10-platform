@@ -25,18 +25,20 @@
 # Description:       Warp stores sensor data
 ### END INIT INFO
 
+set -euo pipefail
+
 # Source function library.
-if [ -e /lib/lsb/init-functions ]; then
+if [[ -e /lib/lsb/init-functions ]]; then
   . /lib/lsb/init-functions
 fi
 
 #JAVA_HOME=/opt/java8
 #WARP10_HOME=/opt/warp10-@VERSION@
-
+JMX_PORT=1098
 
 # Strongly inspired by gradlew
 # Determine the Java command to use to start the JVM.
-if [ -n "$JAVA_HOME" ] ; then
+if [ -n "${JAVA_HOME:-}" ] ; then
     if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
         # IBM's JDK on AIX uses strange locations for the executables
         JAVACMD="$JAVA_HOME/jre/sh/java"
@@ -68,7 +70,7 @@ if [ "$CHECK_JAVA" == "" ]; then
 fi
 
 # If WARP10_HOME is not defined, set it to the parent directory
-if [ -z "${WARP10_HOME}" ]; then
+if [[ -z "${WARP10_HOME:-}" ]]; then
   WARP10_HOME=`cd $(dirname $0); cd $(pwd -P)/..; pwd -P`
 fi
 
@@ -79,7 +81,7 @@ export WARP10_HOME
 #
 #WARP10_DATA_DIR=/data
 
-if [ -z "${WARP10_DATA_DIR}" ]; then
+if [[ -z "${WARP10_DATA_DIR:-}" ]]; then
   WARP10_DATA_DIR=${WARP10_HOME}
 fi
 
@@ -93,18 +95,6 @@ PID_FILE=${WARP10_HOME}/logs/warp10.pid
 #
 FIRSTINIT_FILE=${WARP10_HOME}/logs/.firstinit
 
-#
-# Quantum plugin - Plugin embeds Quantum
-#
-# To inhibit/activate Quantum use 'warp10.plugins' attribute in the Warp 10 config
-QUANTUM_REVISION=@QUANTUM_VERSION@
-QUANTUM_PLUGIN_JAR=${WARP10_HOME}/bin/warp10-quantum-plugin-${QUANTUM_REVISION}.jar
-QUANTUM_PLUGIN_NAME=io.warp10.plugins.quantum.QuantumPlugin
-# Is Quantum has been started ?
-# Note: do not use this parameter to inhibit/activate Quantum (use Warp 10 config)
-IS_QUANTUM_STARTED=true
-
-IS_JAVA7=false
 
 #
 # Classpath
@@ -112,7 +102,8 @@ IS_JAVA7=false
 WARP10_REVISION=@VERSION@
 export WARP10_USER=${WARP10_USER:=warp10}
 WARP10_GROUP=${WARP10_GROUP:=warp10}
-WARP10_CONFIG=${WARP10_HOME}/etc/conf-standalone.conf
+WARP10_CONFIG_DIR=${WARP10_HOME}/etc/conf.d
+WARP10_SECRETS=${WARP10_CONFIG_DIR}/00-secrets.conf
 WARP10_JAR=${WARP10_HOME}/bin/warp10-${WARP10_REVISION}.jar
 WARP10_CLASS=io.warp10.standalone.Warp
 WARP10_INIT=io.warp10.standalone.WarpInit
@@ -120,9 +111,8 @@ WARP10_INIT=io.warp10.standalone.WarpInit
 # The lib directory is dedicated to user libraries except of UDF(jars directory): extensions;..
 #
 WARP10_CP=${WARP10_HOME}/etc:${WARP10_JAR}:${WARP10_HOME}/lib/*
-WARP10_HEAP=1g
-WARP10_HEAP_MAX=1g
-INITCONFIG=false
+WARP10_HEAP=${WARP10_HEAP:-1g}
+WARP10_HEAP_MAX=${WARP10_HEAP_MAX:-1g}
 
 LEVELDB_HOME=${WARP10_DATA_DIR}/leveldb
 
@@ -137,18 +127,20 @@ LOG4J_CONF=${WARP10_HOME}/etc/log4j.properties
 JAVA_HEAP_DUMP=${WARP10_HOME}/logs/java.heapdump
 # you can specialize your metrics for this instance of Warp10
 #SENSISION_DEFAULT_LABELS=-Dsensision.default.labels=instance=warp10-test,env=dev
-JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC"
+JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS:-} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC"
 export MALLOC_ARENA_MAX=1
 
+# Sed suffix allows compatibility between Linux and MacOS
+SED_SUFFIX=".bak"
 
 moveDir() {
   dir=$1
-  if [ -e ${WARP10_DATA_DIR}/${dir} ]; then
+  if [[ -e ${WARP10_DATA_DIR}/${dir} ]]; then
       echo "Error: ${WARP10_DATA_DIR}/${dir} already exists"
       exit 1
   fi
   su ${WARP10_USER} -c "mv ${WARP10_HOME}/${dir} ${WARP10_DATA_DIR}/ 2>&1"
-  if [ $? != 0 ]; then
+  if [[ $? != 0 ]]; then
     echo "ERROR: move ${WARP10_HOME}/${dir} to ${WARP10_DATA_DIR}"
     exit 1
   fi
@@ -172,10 +164,24 @@ isUser() {
 #
 isStarted() {
   # Don't use 'ps -p' for docker compatibility
-  if [ -e ${PID_FILE} ] && ps -Ao pid | grep "^\s*$(cat ${PID_FILE})$" > /dev/null; then
-    return 0
+  if [[ -e ${PID_FILE} ]] && ps -Ao pid | grep "^\s*$(cat ${PID_FILE})$" > /dev/null; then
+    true
+  else
+    false
   fi
-  return 1
+}
+
+CONFIG_FILES=
+getConfigFiles() {
+  # Get standard configuration directory
+  if [[ -d "${WARP10_CONFIG_DIR}" ]]; then
+    CONFIG_FILES=`find ${WARP10_CONFIG_DIR} -not -path "*/\.*" -name "*.conf" | sort | tr '\n' ' ' 2> /dev/null`
+  fi
+
+  # Get additional configuration directory
+  if [[  -d "${WARP10_EXT_CONFIG_DIR:-}" ]]; then
+    CONFIG_FILES="${CONFIG_FILES} `find ${WARP10_EXT_CONFIG_DIR} -not -path "*/\.*" -name "*.conf" | sort | tr '\n' ' ' 2> /dev/null`"
+  fi
 }
 
 bootstrap() {
@@ -188,24 +194,35 @@ bootstrap() {
 
   # warp10 user ?
   if ! id -u "${WARP10_USER}" >/dev/null 2>&1; then
-    echo "User '${WARP10_USER}'' does not exist - Creating it.."
+    echo "User '${WARP10_USER}' does not exist - Creating it.."
     # Create user warp10
-    if [ "`which useradd`" = "" ]; then
-      if [ "`which adduser`" != "" ]; then
-        adduser -D -s -H -h ${WARP10_HOME} -s /bin/bash ${WARP10_USER}
-      else
-        echo "Cannot create the ${WARP10_USER} user with home directory ${WARP10_HOME}. Create it manually then run the script again."
-        exit 1
+    if [[ $(command -v useradd || true) ]]; then
+      groupadd -f ${WARP10_GROUP}
+      useradd --system --home-dir ${WARP10_HOME} --no-create-home --shell /bin/bash --gid ${WARP10_GROUP} ${WARP10_USER}
+    elif [[ $(command -v adduser || true) ]]; then
+      [[ $(getent group ${WARP10_GROUP}) ]] || addgroup ${WARP10_GROUP}
+      adduser --system --home ${WARP10_HOME} --no-create-home --shell /bin/bash --ingroup ${WARP10_GROUP} ${WARP10_USER}
+    elif [[ $(command -v dscl || true) ]]; then
+      if [[ ! $(grep -q "^${WARP10_GROUP}:" /etc/group || true) ]]; then
+        dscl . -create /Groups/${WARP10_GROUP}
+        dscl . -create /Groups/${WARP10_GROUP} gid 10042
       fi
+      gid=$(dscl . -read /Groups/${WARP10_GROUP} | awk '($1 == "PrimaryGroupID:") { print $2 }')
+      dscl . -create /Users/${WARP10_USER}
+      dscl . -create /Users/${WARP10_USER} UniqueID 10042
+      dscl . -create /Users/${WARP10_USER} PrimaryGroupID ${gid}
+      dscl . -create /Users/${WARP10_USER} UserShell /bin/bash
     else
-      useradd -d ${WARP10_HOME} -M -r ${WARP10_USER} -s /bin/bash
+      echo "Cannot create the ${WARP10_USER} user with home directory ${WARP10_HOME}. Create it manually then run the script again."
+      exit 1
     fi
   fi
 
   #
   # If config file already exists then.. exit
   #
-  if [ -e ${WARP10_CONFIG} ]; then
+  getConfigFiles
+  if [[ ! -z "${CONFIG_FILES}" ]]; then
     echo "Config file already exists - Abort bootstrap..."
     exit 2
   fi
@@ -214,7 +231,8 @@ bootstrap() {
   echo "Fix ownership.."
   echo "WARP10_HOME: ${WARP10_HOME}"
 
-  chown -R ${WARP10_USER}:${WARP10_GROUP} ${WARP10_HOME}
+  # Trailing slash is needed when ${WARP10_HOME} is a symlink
+  chown -R ${WARP10_USER}:${WARP10_GROUP} ${WARP10_HOME}/
 
   # Fix permissions
   echo "Fix permissions.."
@@ -302,18 +320,46 @@ bootstrap() {
   LEVELDB_HOME_ESCAPED=$(echo ${LEVELDB_HOME_ESCAPED} | sed 's/\&/\\&/g' )    # Escape &
   LEVELDB_HOME_ESCAPED=$(echo ${LEVELDB_HOME_ESCAPED} | sed 's/|/\\|/g' )     # Escape | (separator for sed)
 
-  sed -i -e 's|^standalone\.home.*|standalone.home = '${WARP10_HOME_ESCAPED}'|' ${WARP10_HOME}/templates/conf-standalone.template
-  sed -i -e 's|^\(\s\{0,100\}\)WARP10_HOME=/opt/warp10-.*|\1WARP10_HOME='${WARP10_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
-  sed -i -e 's|^\(\s\{0,100\}\)LEVELDB_HOME=${WARP10_HOME}/leveldb|\1LEVELDB_HOME='${LEVELDB_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
+  # Copy the template configuration file
+  for file in ${WARP10_HOME}/conf.templates/standalone/*.template
+  do
+    filename=`basename $file`
+    cp "${file}" ${WARP10_CONFIG_DIR}/${filename%.template}
+  done
 
-  sed -i -e 's|warpLog\.File=.*|warpLog.File='${WARP10_HOME_ESCAPED}'/logs/warp10.log|' ${WARP10_HOME}/etc/log4j.properties
-  sed -i -e 's|warpscriptLog\.File=.*|warpscriptLog.File='${WARP10_HOME_ESCAPED}'/logs/warpscript.out|' ${WARP10_HOME}/etc/log4j.properties
+  sed -i${SED_SUFFIX} -e 's|^standalone\.home.*|standalone.home = '${WARP10_HOME_ESCAPED}'|' ${WARP10_CONFIG_DIR}/*
+  rm ${WARP10_CONFIG_DIR}/*${SED_SUFFIX}
 
-  # Generate the configuration file with Worf
+  sed -i${SED_SUFFIX} -e 's|^\(\s\{0,100\}\)WARP10_HOME=/opt/warp10-.*|\1WARP10_HOME='${WARP10_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
+  sed -i${SED_SUFFIX} -e 's|^\(\s\{0,100\}\)LEVELDB_HOME=${WARP10_HOME}/leveldb|\1LEVELDB_HOME='${LEVELDB_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
+  rm ${WARP10_HOME}/bin/snapshot.sh${SED_SUFFIX}
+
+  sed -i${SED_SUFFIX} -e 's|warpLog\.File=.*|warpLog.File='${WARP10_HOME_ESCAPED}'/logs/warp10.log|' ${WARP10_HOME}/etc/log4j.properties
+  sed -i${SED_SUFFIX} -e 's|warpscriptLog\.File=.*|warpscriptLog.File='${WARP10_HOME_ESCAPED}'/logs/warpscript.out|' ${WARP10_HOME}/etc/log4j.properties
+  rm ${WARP10_HOME}/etc/log4j.properties${SED_SUFFIX}
+
+  # Generate secrets
+  ${WARP10_HOME}/etc/generate_crypto_key.py ${WARP10_SECRETS}
+  chown -R ${WARP10_USER}:${WARP10_GROUP} ${WARP10_CONFIG_DIR}
+
+
+  getConfigFiles
+
+  # Edit the warp10-tokengen.mc2 to use or not the secret
+  secret=`su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} 'token.secret' | grep 'token.secret' | sed -e 's/^.*=//'"`
+  if [[ "${secret}"  != "null" ]]; then
+    sed -i${SED_SUFFIX} -e "s|^{{secret}}|'"${secret}"'|" ${WARP10_HOME}/templates/warp10-tokengen.mc2
+  else
+    sed -i${SED_SUFFIX} -e "s|^{{secret}}||" ${WARP10_HOME}/templates/warp10-tokengen.mc2
+  fi
+  rm ${WARP10_HOME}/templates/warp10-tokengen.mc2${SED_SUFFIX}
+
   # Generate read/write tokens valid for a period of 100 years. We use 'io.warp10.bootstrap' as application name.
-  su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf -q -a io.warp10.bootstrap -puidg -t -ttl 3153600000000 ${WARP10_HOME}/templates/conf-standalone.template -o ${WARP10_CONFIG}" >> ${WARP10_HOME}/etc/initial.tokens
+  su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.TokenGen ${CONFIG_FILES} ${WARP10_HOME}/templates/warp10-tokengen.mc2 ${WARP10_HOME}/etc/initial.tokens"
+  sed -i${SED_SUFFIX} 's/^.\{1\}//;$ s/.$//' ${WARP10_HOME}/etc/initial.tokens # Remove first and last character
+  rm "${WARP10_HOME}/etc/initial.tokens${SED_SUFFIX}"
 
-  echo "Warp 10 config has been generated here: ${WARP10_CONFIG}"
+  echo "Warp 10 config has been generated here: ${WARP10_CONFIG_DIR}"
 
   touch ${FIRSTINIT_FILE}
 
@@ -326,13 +372,8 @@ start() {
   #
   isUser ${WARP10_USER}
 
-  CHECK_JAVA7="`${JAVACMD} -version 2>&1 | head -n 1 | grep '.*\\"1.7.*'`"
-  if [ "$CHECK_JAVA7" != "" ]; then
-    IS_JAVA7=true
-  fi
-
-  if [ -f ${JAVA_HEAP_DUMP} ]; then
-    mv ${JAVA_HEAP_DUMP} ${JAVA_HEAP_DUMP}-`date +%s`
+  if [[ -f ${JAVA_HEAP_DUMP} ]]; then
+    mv "${JAVA_HEAP_DUMP}" "${JAVA_HEAP_DUMP}-`date +%s`"
   fi
 
   if isStarted; then
@@ -341,14 +382,20 @@ start() {
   fi
 
   #
+  # Get all configurations files
+  #
+  getConfigFiles
+
+  #
   # Config file exists ?
   #
-  if [ ! -e ${WARP10_CONFIG} ]; then
-    echo "Config file does not exist - Use 'bootstrap' command (it must be run as root)"
+  if [[ -z "${CONFIG_FILES}" ]]; then
+    echo "Config file does not exist - Use 'bootstrap' command before the very first launch (it must be run as root)"
+    echo "WARNING: Since version 2.1.0, Warp 10 can use multiple configuration files. The files have to be present in ${WARP10_CONFIG_DIR}"
     exit 1
   fi
 
-  LEVELDB_HOME="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'leveldb.home' | grep 'leveldb.home' | sed -e 's/^.*=//'`"
+  LEVELDB_HOME="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} 'leveldb.home' | grep 'leveldb.home' | sed -e 's/^.*=//'`"
 
   #
   # Leveldb exists ?
@@ -369,42 +416,19 @@ start() {
     ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${LEVELDB_HOME} >> ${WARP10_HOME}/logs/warp10.log 2>&1
   fi
 
-  WARP10_LISTENSTO_HOST="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'standalone.host' | grep 'standalone.host' | sed -e 's/^.*=//'`"
-  WARP10_LISTENSTO_PORT="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'standalone.port' | grep 'standalone.port' | sed -e 's/^.*=//'`"
+  WARP10_LISTENSTO_HOST="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} 'standalone.host' | grep 'standalone.host' | sed -e 's/^.*=//'`"
+  WARP10_LISTENSTO_PORT="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} 'standalone.port' | grep 'standalone.port' | sed -e 's/^.*=//'`"
   WARP10_LISTENSTO="${WARP10_LISTENSTO_HOST}:${WARP10_LISTENSTO_PORT}"
-
-  #
-  # Check if Warp10 Quantum plugin is defined
-  #
-  QUANTUM_PLUGIN="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'warp10.plugin.quantum' | grep ${QUANTUM_PLUGIN_NAME}`"
-
-  if [ "$QUANTUM_PLUGIN" != "" ]; then
-    if [ "$IS_JAVA7" = false ]; then
-      IS_QUANTUM_STARTED=true
-      # Add Quantum to WARP10_CP
-      WARP10_CP=${QUANTUM_PLUGIN_JAR}:${WARP10_CP}
-      QUANTUM_LISTENSTO_HOST="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.host' | grep 'quantum.host' | sed -e 's/^.*=//'`"
-      QUANTUM_LISTENSTO_PORT="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${WARP10_CONFIG} 'quantum.port' | grep 'quantum.port' | sed -e 's/^.*=//'`"
-      QUANTUM_LISTENSTO="${QUANTUM_LISTENSTO_HOST}:${QUANTUM_LISTENSTO_PORT}"
-    else
-      echo "Start failed! - Quantum is only Java 1.8+ compliant - To start Warp 10 with Java7 comment out Quantum plugin in the Warp config file"
-      exit 1
-    fi
-  else
-    IS_QUANTUM_STARTED=false
-    # Do not add Quantum to WARP10_CP
-  fi
 
   #
   # Start Warp10 instance..
   #
-  ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${WARP10_CONFIG} >> ${WARP10_HOME}/logs/warp10.log 2>&1 &
+  ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${CONFIG_FILES} >> ${WARP10_HOME}/logs/warp10.log 2>&1 &
 
   echo $! > ${PID_FILE}
 
-  isStarted
-  if [ $? -eq 1 ]; then
-    echo "Start failed! - See warp10.log and warplog.log for more details"
+  if ! isStarted; then
+    echo "Start failed! - See ${WARP10_HOME}/logs/warp10.log for more details"
     exit 1
   fi
 
@@ -418,10 +442,6 @@ start() {
   echo "##"
   echo "## Warp 10 listens on ${WARP10_LISTENSTO}"
   echo "##"
-  if [ "$IS_QUANTUM_STARTED" = true ]; then
-    echo "## Quantum listens on ${QUANTUM_LISTENSTO}"
-    echo "##"
-  fi
 
   if [ -e ${FIRSTINIT_FILE} ]; then
 
@@ -450,21 +470,14 @@ start() {
     echo "##"
     echo "##   curl http://${WARP10_LISTENSTO}/api/v0/exec --data-binary @path/to/WarpScriptFile"
     echo "##"
-    if [ "$IS_QUANTUM_STARTED" = true ]; then
-      echo "## The alternative to command-line interaction is Quantum, a web application to interact with the platform in an user-friendly way:"
-      echo "##"
-      echo "##   http://${QUANTUM_LISTENSTO}"
-      echo "##"
-    fi
     rm -f ${FIRSTINIT_FILE}
 
   fi
 
   # Check again 5s later (time for plugin load errors)
   sleep 5
-  isStarted
-  if [ $? -eq 1 ]; then
-    echo "Start failed! - See warp10.log and warplog.log for more details"
+  if ! isStarted; then
+    echo "Start failed! - See ${WARP10_HOME}/logs/warp10.log for more details"
     exit 1
   fi
 
@@ -480,6 +493,11 @@ stop() {
   if isStarted; then
     echo "Stop Warp 10..."
     kill $(cat ${PID_FILE})
+    echo "Wait for Warp 10 to stop..."
+    while $(kill -0 $(cat ${PID_FILE}) 2>/dev/null); do
+      sleep 2
+    done
+    echo "Warp 10 stopped..."
     rm -f ${PID_FILE}
   else
     echo "No instance of Warp 10 is currently running"
@@ -515,11 +533,6 @@ snapshot() {
   fi
 }
 
-worfcli() {
-  echo ${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -i
-  ${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -i
-}
-
 worf() {
 
   #
@@ -531,7 +544,7 @@ worf() {
     echo "Usage: $0 $1 appName ttl(ms)"
     exit 1
   fi
-  ${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_CONFIG} -puidg -t -a $2 -ttl $3
+  ${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_SECRETS} -puidg -t -a $2 -ttl $3
 }
 
 repair() {
@@ -558,6 +571,11 @@ case "$1" in
   start)
   start
   ;;
+  jmxstart)
+  JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=${JMX_PORT}"
+  echo "## WARNING: JMX is enabled on port ${JMX_PORT}"
+  start
+  ;;
   stop)
   stop
   ;;
@@ -567,6 +585,13 @@ case "$1" in
   restart)
   stop
   sleep 2
+  start
+  ;;
+  jmxrestart)
+  stop
+  sleep 2
+  JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=${JMX_PORT}"
+  echo "## WARNING: JMX is enabled on port ${JMX_PORT}"
   start
   ;;
   worfcli)
@@ -582,7 +607,7 @@ case "$1" in
   repair
   ;;
   *)
-  echo $"Usage: $0 {bootstrap|start|stop|status|worfcli|worf appName ttl(ms)|snapshot 'snapshot_name'|repair}"
+  echo $"Usage: $0 {bootstrap|start|jmxstart|stop|status|worf appName ttl(ms)|snapshot 'snapshot_name'|repair|restart|jmxrestart}"
   exit 2
 esac
 

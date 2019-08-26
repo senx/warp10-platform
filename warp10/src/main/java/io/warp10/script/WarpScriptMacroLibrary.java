@@ -55,7 +55,7 @@ public class WarpScriptMacroLibrary {
   
   private static void addJar(String path, String resource) throws WarpScriptException {
     //
-    // Exract basename of path
+    // Extract basename of path
     //
     
     File f = new File(path);
@@ -184,7 +184,7 @@ public class WarpScriptMacroLibrary {
       
       Macro macro = (Macro) stack.pop();
       macro.setSecure(true);
-      macro.setName(name);
+      macro.setNameRecursive(name);
       
       return macro;
     } catch (IOException ioe) {
@@ -194,7 +194,13 @@ public class WarpScriptMacroLibrary {
     }
   }
   
-  public static Macro find(String name) throws WarpScriptException {    
+  public static Macro find(String name) throws WarpScriptException { 
+    
+    // Reject names with relative path components in them or starting with '/'
+    if (name.contains("/../") || name.contains("/./") || name.startsWith("../") || name.startsWith("./") || name.startsWith("/")) {
+      return null;
+    }
+
     Macro macro = (Macro) macros.get(name);
     
     //

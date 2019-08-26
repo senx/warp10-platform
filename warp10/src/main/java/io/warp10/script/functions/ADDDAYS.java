@@ -70,7 +70,7 @@ public class ADDDAYS extends NamedWarpScriptFunction implements WarpScriptStackF
         tz = "UTC";
       }
 
-      DateTimeZone dtz = DateTimeZone.forID(null == tz ? "UTC" : tz);
+      DateTimeZone dtz = DateTimeZone.forID(tz);
     
       DateTime dt = new DateTime(instant / Constants.TIME_UNITS_PER_MS, dtz);
     

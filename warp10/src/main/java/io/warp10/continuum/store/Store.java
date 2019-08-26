@@ -850,7 +850,6 @@ public class Store extends Thread {
                   //
                   
                   try {
-                    Object[] results = new Object[puts.size()];
                     long nanos = System.nanoTime();
                     if (!store.SKIP_WRITE) {
                       if (LOG.isDebugEnabled()) {
@@ -860,13 +859,16 @@ public class Store extends Thread {
                       // TODO(hbs): consider switching to streaming Puts???, i.e. setAutoFlush(false), then series of
                       // calls to Table.put and finally a call to flushCommits to trigger the Kafka commit.
                       //
-                      ht.batch(puts, results);
-                      // Check results for nulls
-                      for (Object o: results) {
-                        if (null == o) {
-                          throw new IOException("At least one Put failed.");
-                        }
-                      }    
+                      if (puts.size() > 0) {
+                        Object[] results = new Object[puts.size()];
+                        ht.batch(puts, results);
+                        // Check results for nulls
+                        for (Object o: results) {
+                          if (null == o) {
+                            throw new IOException("At least one Put failed.");
+                          }
+                        }                            
+                      }
                     }
                     
                     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_PUTS_COMMITTED, Sensision.EMPTY_LABELS, puts.size());
@@ -1253,7 +1255,7 @@ public class Store extends Thread {
         // FIXME(hbs): allow for encrypting readings
         long basets = decoder.getTimestamp();
         GTSEncoder encoder = new GTSEncoder(basets, hbaseAESKey);
-        encoder.addValue(basets, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+        encoder.addValue(basets, decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
         
         // Prefix + classId + labelsId + timestamp
         // 128 bits

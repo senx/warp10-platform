@@ -328,7 +328,7 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
                 if (writeTimestamp) {
                   encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), cell.getTimestamp() * Constants.TIME_UNITS_PER_MS);
                 } else {
-                  encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+                  encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
                 }
                 nvalues--;
               } catch (IOException ioe) {

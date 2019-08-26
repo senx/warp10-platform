@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.egress;
 
+import io.warp10.SSLUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.store.DirectoryClient;
@@ -23,6 +24,8 @@ import io.warp10.continuum.store.StoreClient;
 import io.warp10.crypto.KeyStore;
 import io.warp10.quasar.filter.QuasarTokenFilter;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 import org.eclipse.jetty.server.Connector;
@@ -87,7 +90,7 @@ public class Egress {
           continue;
         }
       }
-
+      
       Preconditions.checkNotNull(props.getProperty(required), "Missing configuration parameter '%s'.", required);          
     }
 
@@ -95,12 +98,35 @@ public class Egress {
     // Extract parameters from 'props'
     //
     
-    int port = Integer.valueOf(props.getProperty(Configuration.EGRESS_PORT));
-    String host = props.getProperty(Configuration.EGRESS_HOST);
-    int acceptors = Integer.valueOf(props.getProperty(Configuration.EGRESS_ACCEPTORS));
-    int selectors = Integer.valueOf(props.getProperty(Configuration.EGRESS_SELECTORS));
-    long idleTimeout = Long.parseLong(props.getProperty(Configuration.EGRESS_IDLE_TIMEOUT));
+    boolean useHttp = (null != props.getProperty(Configuration.EGRESS_PORT));
+    boolean useHttps = (null != props.getProperty(Configuration.EGRESS_PREFIX + Configuration._SSL_PORT));
+
+    List<Connector> connectors = new ArrayList<Connector>();
     
+    server = new Server();
+
+    if (useHttp) {
+      int port = Integer.valueOf(props.getProperty(Configuration.EGRESS_PORT));
+      String host = props.getProperty(Configuration.EGRESS_HOST);
+      int acceptors = Integer.valueOf(props.getProperty(Configuration.EGRESS_ACCEPTORS));
+      int selectors = Integer.valueOf(props.getProperty(Configuration.EGRESS_SELECTORS));
+      long idleTimeout = Long.parseLong(props.getProperty(Configuration.EGRESS_IDLE_TIMEOUT));
+
+      ServerConnector connector = new ServerConnector(server, acceptors, selectors);
+      connector.setIdleTimeout(idleTimeout);
+      connector.setPort(port);
+      connector.setHost(host);
+      connector.setName("Continuum Egress HTTP");
+      
+      connectors.add(connector);
+    }
+    
+    if (useHttps) {
+      ServerConnector connector = SSLUtils.getConnector(server, Configuration.EGRESS_PREFIX);
+      connector.setName("Continuum Egress HTTPS");
+      connectors.add(connector);
+    }
+        
     boolean enableMobius = !("true".equals(props.getProperty(Configuration.WARP_MOBIUS_DISABLE)));
     boolean enableREL = !("true".equals(properties.getProperty(Configuration.WARP_INTERACTIVE_DISABLE)));
     
@@ -109,15 +135,8 @@ public class Egress {
     //
     // Start Jetty server
     //
-    
-    server = new Server();
-    ServerConnector connector = new ServerConnector(server, acceptors, selectors);
-    connector.setIdleTimeout(idleTimeout);
-    connector.setPort(port);
-    connector.setHost(host);
-    connector.setName("Continuum Egress");
-    
-    server.setConnectors(new Connector[] { connector });
+                
+    server.setConnectors(connectors.toArray(new Connector[connectors.size()]));
 
     HandlerList handlers = new HandlerList();
     

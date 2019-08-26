@@ -87,6 +87,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 
+import io.warp10.SSLUtils;
 import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
@@ -262,6 +263,7 @@ public class Ingress extends AbstractHandler implements Runnable {
   private final long[] siphashDataKey;
 
   private final boolean sendMetadataOnDelete;
+  private final boolean sendMetadataOnStore;
 
   private final KafkaSynchronizedConsumerPool  pool;
   
@@ -316,12 +318,6 @@ public class Ingress extends AbstractHandler implements Runnable {
       this.cacheDumpPath = null;
     }
     
-    int port = Integer.valueOf(props.getProperty(Configuration.INGRESS_PORT));
-    String host = props.getProperty(Configuration.INGRESS_HOST);
-    int acceptors = Integer.valueOf(props.getProperty(Configuration.INGRESS_ACCEPTORS));
-    int selectors = Integer.valueOf(props.getProperty(Configuration.INGRESS_SELECTORS));
-    long idleTimeout = Long.parseLong(props.getProperty(Configuration.INGRESS_IDLE_TIMEOUT));
-    
     if (null != props.getProperty(Configuration.INGRESS_METADATA_CACHE_SIZE)) {
       this.METADATA_CACHE_SIZE = Integer.valueOf(props.getProperty(Configuration.INGRESS_METADATA_CACHE_SIZE));
     }
@@ -346,6 +342,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     this.siphashDataKey = SipHashInline.getKey(this.keystore.getKey(KeyStore.SIPHASH_KAFKA_DATA));    
 
     this.sendMetadataOnDelete = Boolean.parseBoolean(props.getProperty(Configuration.INGRESS_DELETE_METADATA_INCLUDE, "false"));
+    this.sendMetadataOnStore = Boolean.parseBoolean(props.getProperty(Configuration.INGRESS_STORE_METADATA_INCLUDE, "false"));
 
     this.parseAttributes = "true".equals(props.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
     
@@ -523,14 +520,36 @@ public class Ingress extends AbstractHandler implements Runnable {
       queue = new BlockingArrayQueue<Runnable>(queuesize);
     }
     
-    Server server = new Server(new QueuedThreadPool(maxThreads,8, (int) idleTimeout, queue));
-    ServerConnector connector = new ServerConnector(server, acceptors, selectors);
-    connector.setIdleTimeout(idleTimeout);
-    connector.setPort(port);
-    connector.setHost(host);
-    connector.setName("Continuum Ingress");
+    Server server = new Server(new QueuedThreadPool(maxThreads,8, 60000, queue));
     
-    server.setConnectors(new Connector[] { connector });
+    List<Connector> connectors = new ArrayList<Connector>();
+
+    boolean useHttp = null != props.getProperty(Configuration.INGRESS_PORT);
+    boolean useHttps = null != props.getProperty(Configuration.INGRESS_PREFIX + Configuration._SSL_PORT);
+    
+    if (useHttp) {
+      int port = Integer.valueOf(props.getProperty(Configuration.INGRESS_PORT));
+      String host = props.getProperty(Configuration.INGRESS_HOST);
+      int acceptors = Integer.valueOf(props.getProperty(Configuration.INGRESS_ACCEPTORS));
+      int selectors = Integer.valueOf(props.getProperty(Configuration.INGRESS_SELECTORS));
+      long idleTimeout = Long.parseLong(props.getProperty(Configuration.INGRESS_IDLE_TIMEOUT));
+      
+      ServerConnector connector = new ServerConnector(server, acceptors, selectors);
+      connector.setIdleTimeout(idleTimeout);
+      connector.setPort(port);
+      connector.setHost(host);
+      connector.setName("Continuum Ingress HTTP");
+      
+      connectors.add(connector);
+    }
+    
+    if (useHttps) {
+      ServerConnector connector = SSLUtils.getConnector(server, Configuration.INGRESS_PREFIX);
+      connector.setName("Continuum Ingress HTTPS");
+      connectors.add(connector);
+    }
+    
+    server.setConnectors(connectors.toArray(new Connector[connectors.size()]));
 
     HandlerList handlers = new HandlerList();
     
@@ -604,6 +623,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     if (null != WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)) {
       response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)));
+      return;
     }
     
     long nowms = System.currentTimeMillis();
@@ -629,6 +649,9 @@ public class Ingress extends AbstractHandler implements Runnable {
       
       try {
         writeToken = Tokens.extractWriteToken(token);
+        if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NOUPDATE)) {
+          throw new WarpScriptException("Token cannot be used for updating data.");
+        }
       } catch (WarpScriptException ee) {
         throw new IOException(ee);
       }
@@ -847,13 +870,6 @@ public class Ingress extends AbstractHandler implements Runnable {
             }
             
             if (null != lastencoder) {
-              Map<String,String> labels = new HashMap<String, String>();
-              //labels.put(SensisionConstants.SENSISION_LABEL_OWNER, owner);
-              labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
-              //if (null != application) {
-              //  labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
-              //}
-
               pushDataMessage(lastencoder);
                            
               if (parseAttributes && lastHadAttributes) {
@@ -894,13 +910,6 @@ public class Ingress extends AbstractHandler implements Runnable {
         } while (true); 
         
         if (null != lastencoder && lastencoder.size() > 0) {
-          Map<String,String> labels = new HashMap<String, String>();
-          //labels.put(SensisionConstants.SENSISION_LABEL_OWNER, owner);
-          labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
-          //if (null != application) {
-          //  labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
-          //}
-          
           ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
           ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
 
@@ -956,6 +965,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     if (null != WarpManager.getAttribute(WarpManager.META_DISABLED)) {
       response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.META_DISABLED)));
+      return;
     }
 
     //
@@ -982,6 +992,9 @@ public class Ingress extends AbstractHandler implements Runnable {
     try {
       try {
         writeToken = Tokens.extractWriteToken(token);
+        if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NOMETA)) {
+          throw new WarpScriptException("Token cannot be used for updating metadata.");
+        }
       } catch (WarpScriptException ee) {
         throw new IOException(ee);
       }
@@ -1126,8 +1139,9 @@ public class Ingress extends AbstractHandler implements Runnable {
       throw new IOException(Constants.API_ENDPOINT_DELETE + " endpoint is not activated.");
     }
     
-    if (null != WarpManager.getAttribute(WarpManager.META_DISABLED)) {
-      response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.META_DISABLED)));
+    if (null != WarpManager.getAttribute(WarpManager.DELETE_DISABLED)) {
+      response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.DELETE_DISABLED)));
+      return;
     }
 
     //
@@ -1148,13 +1162,13 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     try {
       writeToken = Tokens.extractWriteToken(token);
+      if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NODELETE)) {
+        throw new WarpScriptException("Token cannot be used for deletions.");
+      }
     } catch (WarpScriptException ee) {
       throw new IOException(ee);
     }
     
-    if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NODELETE)) {
-      throw new IOException("Token cannot be used for deletions.");
-    }
     
     String application = writeToken.getAppName();
     String producer = Tokens.getUUID(writeToken.getProducerId());
@@ -1798,6 +1812,10 @@ public class Ingress extends AbstractHandler implements Runnable {
       msg.setData(encoder.getBytes());
       msg.setClassId(encoder.getClassId());
       msg.setLabelsId(encoder.getLabelsId());
+
+      if (this.sendMetadataOnStore) {
+        msg.setMetadata(encoder.getMetadata());
+      }
 
       sendDataMessage(msg);
     } else {

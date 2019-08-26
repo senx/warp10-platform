@@ -114,7 +114,13 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
       throw new IOException(te);
     }
 
-    Metadata metadataChunk = new Metadata(gtsWrapper.getMetadata());
+    Metadata metadataChunk;
+    
+    if (gtsWrapper.isSetMetadata()) {
+      metadataChunk = new Metadata(gtsWrapper.getMetadata());
+    } else {
+      metadataChunk = new Metadata();
+    }
 
     GTSDecoder decoder = GTSWrapperHelper.fromGTSWrapperToGTSDecoder(gtsWrapper);
 
@@ -130,9 +136,9 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
 
       if (!first) {
         this.pw.print("=");
-        this.pw.println(GTSHelper.tickToString(null, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue()));
+        this.pw.println(GTSHelper.tickToString(null, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue()));
       } else {
-        pw.println(GTSHelper.tickToString(metasb, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue()));
+        pw.println(GTSHelper.tickToString(metasb, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue()));
         first = false;
       }
       count++;

@@ -19,8 +19,13 @@ package io.warp10.script.functions;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TCompactProtocol;
+
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
@@ -67,8 +72,13 @@ public class ADDVALUE extends NamedWarpScriptFunction implements WarpScriptStack
       elevation = (long) array[2];
       value = array[3];
     } else {
-      if (!(o instanceof Number) && !(o instanceof String) && !(o instanceof Boolean)) {
-        throw new WarpScriptException(getName() + " expects a LONG, DOUBLE, STRING or BOOLEAN value.");
+      if (!(o instanceof Number)
+          && !(o instanceof String)
+          && !(o instanceof Boolean)
+          && !(o instanceof byte[])
+          && !(o instanceof GeoTimeSerie)
+          && !(o instanceof GTSEncoder)) {
+        throw new WarpScriptException(getName() + " expects a LONG, DOUBLE, STRING, byte array or BOOLEAN value or a Geo Time Series™ or ENCODER.");
       }
       
       value = o;
@@ -116,6 +126,26 @@ public class ADDVALUE extends NamedWarpScriptFunction implements WarpScriptStack
     
     if (!(o instanceof GeoTimeSerie) && !(o instanceof GTSEncoder)) {
       throw new WarpScriptException(getName() + " operates on a single Geo Time Series or GTS Encoder.");
+    }
+    
+    //
+    // Convert GTS and GTSEncoder values to Wrappers
+    // 
+    
+    if (value instanceof GeoTimeSerie) {
+      TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+      try {
+        value = ser.serialize(GTSWrapperHelper.fromGTSToGTSWrapper((GeoTimeSerie) value, true, GTSWrapperHelper.DEFAULT_COMP_RATIO_THRESHOLD, Integer.MAX_VALUE, false, false));
+      } catch (TException te) {
+        throw new WarpScriptException(getName() + " encountered an error while serializing the Geo Time Series™.");
+      }
+    } else if (value instanceof GTSEncoder) {
+      TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+      try {
+        value = ser.serialize(GTSWrapperHelper.fromGTSEncoderToGTSWrapper((GTSEncoder) value, true, GTSWrapperHelper.DEFAULT_COMP_RATIO_THRESHOLD, Integer.MAX_VALUE, false));
+      } catch (TException te) {
+        throw new WarpScriptException(getName() + " encountered an error while serializing the GTS Encoder.");
+      }
     }
     
     if (o instanceof GeoTimeSerie) {

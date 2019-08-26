@@ -16,6 +16,7 @@
 
 package io.warp10.script.ext.urlfetch;
 
+import io.warp10.WarpConfig;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -23,6 +24,8 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WebAccessController;
 import io.warp10.standalone.StandaloneWebCallService;
 import org.apache.commons.codec.binary.Base64;
+
+import com.google.common.base.Charsets;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -48,7 +51,7 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
   public URLFETCH(String name) {
     super(name);
 
-    String patternConf = UrlFetchWarpScriptExtension.warpProperties.getProperty(UrlFetchWarpScriptExtension.WARPSCRIPT_URLFETCH_HOST_PATTERNS);
+    String patternConf = WarpConfig.getProperty(UrlFetchWarpScriptExtension.WARPSCRIPT_URLFETCH_HOST_PATTERNS);
 
     // If not defined, use already existing StandaloneWebCallService webAccessController which uses Configuration.WEBCALL_HOST_PATTERNS
     if (null == patternConf) {
@@ -142,6 +145,12 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
 
       try {
         conn = (HttpURLConnection) url.openConnection();
+        
+        if (null != url.getUserInfo()) {
+          String basicAuth = "Basic " + new String(Base64.encodeBase64String(url.getUserInfo().getBytes(Charsets.UTF_8)));
+          conn.setRequestProperty ("Authorization", basicAuth);
+        }
+        
         conn.setDoInput(true);
         conn.setDoOutput(false);
         conn.setRequestMethod("GET");

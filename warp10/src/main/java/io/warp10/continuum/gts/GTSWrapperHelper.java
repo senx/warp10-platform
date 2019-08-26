@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -35,15 +35,34 @@ public class GTSWrapperHelper {
    */
   public static final double DEFAULT_COMP_RATIO_THRESHOLD = 100.0D;
   
-  public static GTSDecoder fromGTSWrapperToGTSDecoder(GTSWrapper wrapper) {
-    
+  public static GTSDecoder fromGTSWrapperToGTSDecoder(GTSWrapper wrapper) {    
     byte[] unwrapped = unwrapEncoded(wrapper);
     
     GTSDecoder decoder = new GTSDecoder(wrapper.getBase(), ByteBuffer.wrap(unwrapped).order(ByteOrder.BIG_ENDIAN));
-    decoder.setMetadata(wrapper.getMetadata());
+    if (wrapper.isSetMetadata()) {
+      decoder.setMetadata(wrapper.getMetadata());
+    } else {
+      decoder.safeSetMetadata(new Metadata());
+    }
     decoder.setCount(wrapper.getCount());
     
     return decoder;
+  }
+  
+  public static GTSEncoder fromGTSWrapperToGTSEncoder(GTSWrapper wrapper) throws IOException {  
+    if (wrapper.getEncoded().length > 0) {
+      GTSDecoder decoder = fromGTSWrapperToGTSDecoder(wrapper);
+      decoder.next();
+      return decoder.getEncoder(true);
+    } else {
+      GTSEncoder encoder = new GTSEncoder(wrapper.getBase());
+      if (wrapper.isSetMetadata()) {
+        encoder.setMetadata(wrapper.getMetadata());
+      } else {
+        encoder.safeSetMetadata(new Metadata());
+      }
+      return encoder;
+    }
   }
   
   /**
@@ -114,6 +133,10 @@ public class GTSWrapperHelper {
   }
   
   public static GTSWrapper fromGTSEncoderToGTSWrapper(GTSEncoder encoder, boolean compress, double compratio, int maxpasses) {
+    return fromGTSEncoderToGTSWrapper(encoder, compress, compratio, maxpasses, true);
+  }
+  
+  public static GTSWrapper fromGTSEncoderToGTSWrapper(GTSEncoder encoder, boolean compress, double compratio, int maxpasses, boolean setCount) {
 
     if (compratio < 1.0D) {
       compratio = 1.0D;
@@ -174,15 +197,27 @@ public class GTSWrapperHelper {
             // Only store number of passes if it is > 1 as 1 is the default value
             wrapper.setCompressionPasses(pass);
           }
-        } else {
-          wrapper.setCompressed(false);
-        }
+        } // false is the default value
       }
       
-      wrapper.setBase(encoder.getBaseTimestamp());
-      wrapper.setCount(encoder.getCount());
-      wrapper.setMetadata(encoder.getMetadata());
-
+      if (0 != encoder.getBaseTimestamp()) {
+        wrapper.setBase(encoder.getBaseTimestamp());
+      }
+      
+      //
+      // Consider setting the count only when not generating an optimized wrapper
+      //
+      
+      if (setCount) {
+        wrapper.setCount(encoder.getCount());
+      }
+      
+      Metadata meta = encoder.getMetadata();
+      
+      // Only set Metadata if one of the fields was set
+      if (null != meta && ((meta.isSetName() && !"".equals(meta.getName())) || (meta.isSetLabels() && meta.getLabelsSize() > 0) || (meta.isSetAttributes() && meta.getAttributesSize() > 0) || meta.isSetClassId() || meta.isSetLabelsId() || meta.isSetSource() || meta.isSetLastActivity())) {
+        wrapper.setMetadata(encoder.getMetadata());
+      }
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -202,8 +237,12 @@ public class GTSWrapperHelper {
   public static GTSWrapper fromGTSToGTSWrapper(GeoTimeSerie gts, boolean compress, double compratio) {
     return fromGTSToGTSWrapper(gts, compress, compratio, false);
   }
-  
+
   public static GTSWrapper fromGTSToGTSWrapper(GeoTimeSerie gts, boolean compress, double compratio, boolean optimized) {
+    return fromGTSToGTSWrapper(gts, compress, compratio, Integer.MAX_VALUE, optimized, true);
+  }
+  
+  public static GTSWrapper fromGTSToGTSWrapper(GeoTimeSerie gts, boolean compress, double compratio, int maxpasses, boolean optimized, boolean setCount) {
 
     GTSEncoder encoder = new GTSEncoder(0L);
     encoder.setMetadata(gts.getMetadata());
@@ -217,7 +256,7 @@ public class GTSWrapperHelper {
     } catch (IOException ioe) {      
     }
 
-    GTSWrapper wrapper = fromGTSEncoderToGTSWrapper(encoder, compress, compratio);
+    GTSWrapper wrapper = fromGTSEncoderToGTSWrapper(encoder, compress, compratio, maxpasses, setCount);
     
     if (GTSHelper.isBucketized(gts)) {
       wrapper.setBucketcount(gts.bucketcount);
@@ -242,7 +281,7 @@ public class GTSWrapperHelper {
     while(decoder.next()) {
       if (decoder.getTimestamp() >= from && decoder.getTimestamp() <= to) {
         try {
-          encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+          encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
         } catch (IOException ioe) {
           return null;
         }
@@ -256,7 +295,9 @@ public class GTSWrapperHelper {
     clipped.setCount(encoder.getCount());
     clipped.setEncoded(encoder.getBytes());
     clipped.setLastbucket(wrapper.getLastbucket());
-    clipped.setMetadata(new Metadata(wrapper.getMetadata()));
+    if (wrapper.isSetMetadata()) {
+      clipped.setMetadata(new Metadata(wrapper.getMetadata()));
+    }
     if (wrapper.isSetKey()) {
       clipped.setKey(wrapper.getKey());
     }
@@ -320,6 +361,10 @@ public class GTSWrapperHelper {
    */
   public static byte[] getId(GTSWrapper wrapper) {
     byte[] id = new byte[16];
+    
+    if (!wrapper.isSetMetadata()) {
+      return id;
+    }
     
     long classId = wrapper.getMetadata().getClassId();
     long labelsId = wrapper.getMetadata().getLabelsId();
