@@ -56,6 +56,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPInputStream;
 
 import javax.servlet.ServletException;
@@ -137,6 +138,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
   private final Long maxfutureDefault;
   private final Long maxpastOverride;
   private final Long maxfutureOverride;
+  private final boolean ignoreOutOfRange;
   
   public StandaloneIngressHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
     this.keyStore = keystore;
@@ -195,6 +197,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
     } else {
       maxfutureOverride = null;
     }
+
+    this.ignoreOutOfRange = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_OUTOFRANGE_IGNORE));
 
     String dirProp = WarpConfig.getProperty(Configuration.DATALOG_DIR);
     if (null != dirProp) {
@@ -623,7 +627,13 @@ public class StandaloneIngressHandler extends AbstractHandler {
         //
         
         boolean lastHadAttributes = false;
-                
+           
+        AtomicLong ignoredCount = null;
+        
+        if (ignoreOutOfRange) {
+          ignoredCount = new AtomicLong(0L);
+        }
+        
         do {
         
           if (parseAttributes) {
@@ -665,7 +675,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
           count++;
 
           try {
-            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, hadAttributes, maxpast, maxfuture);
+            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, hadAttributes, maxpast, maxfuture, ignoredCount);
             //nano2 += System.nanoTime() - nano0;
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_PARSEERRORS, sensisionLabels, 1);

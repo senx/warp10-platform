@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -215,6 +216,12 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
             
             boolean lastHadAttributes = false;
             
+            AtomicLong ignoredCount = null;
+            
+            if (this.handler.ingress.ignoreOutOfRange) {
+              ignoredCount = new AtomicLong(0L);
+            }
+            
             do {
               
               if (this.handler.ingress.parseAttributes) {
@@ -243,7 +250,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
               }
 
               try {
-                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.handler.ingress.maxValueSize, hadAttributes, maxpast, maxfuture);
+                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.handler.ingress.maxValueSize, hadAttributes, maxpast, maxfuture, ignoredCount);
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
                 throw new IOException("Parse error at '" + line + "'", pe);

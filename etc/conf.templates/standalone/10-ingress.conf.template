@@ -70,4 +70,8 @@ ingress.websocket.maxmessagesize = 1048576
 //
 #ingress.maxfuture.override =
 
-
+//
+// Set to true to silently ignore datapoints whose timestamp is outside the permitted time range (as configured via maxpast/maxfuture)
+// If this is not set or set to anything but 'true', datapoints with timestamps outside the permitted range will trigger an error
+//
+#ingress.outofrange.ignore = true

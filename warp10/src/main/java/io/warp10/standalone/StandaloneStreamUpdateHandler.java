@@ -57,6 +57,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -117,6 +118,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
   private final Long maxfutureDefault;
   private final Long maxpastOverride;
   private final Long maxfutureOverride;
+  private final boolean ignoreOutOfRange;
   
   private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
 
@@ -275,6 +277,12 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
           DatalogRequest dr = null;
 
           long shardkey = 0L;
+
+          AtomicLong ignoredCount = null;
+          
+          if (this.handler.ignoreOutOfRange) {
+            ignoredCount = new AtomicLong(0L);            
+          }
           
           try {
             GTSEncoder lastencoder = null;
@@ -408,7 +416,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               }
 
               try {
-                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.handler.maxValueSize, hadAttributes, maxpast, maxfuture);
+                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.handler.maxValueSize, hadAttributes, maxpast, maxfuture, ignoredCount);
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
                 throw new IOException("Parse error at '" + line + "'", pe);
@@ -716,6 +724,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     } else {
       this.maxfutureOverride = null;
     }
+    
+    this.ignoreOutOfRange = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_OUTOFRANGE_IGNORE));
     
     if ("false".equals(properties.getProperty(Configuration.DATALOG_LOGSHARDKEY))) {
       logShardKey = false;

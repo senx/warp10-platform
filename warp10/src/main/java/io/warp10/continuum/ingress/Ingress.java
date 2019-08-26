@@ -286,6 +286,8 @@ public class Ingress extends AbstractHandler implements Runnable {
   final Long maxpastOverride;
   final Long maxfutureOverride;
 
+  final boolean ignoreOutOfRange;
+  
   public Ingress(KeyStore keystore, Properties props) {
 
     //
@@ -388,6 +390,8 @@ public class Ingress extends AbstractHandler implements Runnable {
       maxfutureOverride = null;
     }
     
+    this.ignoreOutOfRange = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_OUTOFRANGE_IGNORE));
+
     //
     // Prepare meta, data and delete producers
     //
@@ -886,6 +890,12 @@ public class Ingress extends AbstractHandler implements Runnable {
 
         boolean lastHadAttributes = false;
 
+        AtomicLong ignoredCount = null;
+        
+        if (this.ignoreOutOfRange) {
+          ignoredCount = new AtomicLong(0L);
+        }
+        
         do {
           
           // We copy the current value of hadAttributes
@@ -910,7 +920,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           }
                     
           try {
-            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, hadAttributes, maxpast, maxfuture);
+            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, hadAttributes, maxpast, maxfuture, ignoredCount);
             count++;
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_PARSEERRORS, sensisionLabels, 1);

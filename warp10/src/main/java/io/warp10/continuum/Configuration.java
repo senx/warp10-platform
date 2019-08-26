@@ -575,6 +575,11 @@ public class Configuration {
   public static final String INGRESS_MAXFUTURE_OVERRIDE = "ingress.maxfuture.override";
 
   /**
+   * Set to true to silently ignore values which are outside the allowed time range
+   */
+  public static final String INGRESS_OUTOFRANGE_IGNORE = "ingress.outofrange.ignore";
+  
+  /**
    * Length of the activity window in ms. If this parameter is set then GTS activity will
    * be monitored according to the configured activity events.
    */
