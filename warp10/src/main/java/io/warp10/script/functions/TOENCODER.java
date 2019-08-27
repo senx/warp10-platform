@@ -88,7 +88,7 @@ public class TOENCODER extends NamedWarpScriptFunction implements WarpScriptStac
       }
 
       // If GTS, add it all to the encoder
-      if(element instanceof GeoTimeSerie){
+      if (element instanceof GeoTimeSerie) {
         try {
           encoder.encode((GeoTimeSerie) element);
           // GTS metadata is lost in the process
