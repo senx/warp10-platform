@@ -1945,6 +1945,18 @@ public class GTSHelper {
     if (0 == bucketspan) {
       throw new WarpScriptException("Undefined bucket span, check your GTS timestamps.");
     }
+
+    //
+    // If the bucketizer is null, it only sets lastbucket, bucketcount and bucketspan
+    //
+
+    if (null == aggregator) {
+      gts.lastbucket = lastbucket;
+      gts.bucketcount = bucketcount;
+      gts.bucketspan = bucketspan;
+
+      return gts;
+    }
     
     //
     // Create the target Geo Time Serie (bucketized)
