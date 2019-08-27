@@ -83,6 +83,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
     private long seqno = 0L;
     
     private WriteToken wtoken;
+    private Boolean ignoor = null;
     
     private Long maxpastdelta = null;
     private Long maxfuturedelta = null;
@@ -218,7 +219,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
             
             AtomicLong ignoredCount = null;
             
-            if (this.handler.ingress.ignoreOutOfRange) {
+            if ((this.handler.ingress.ignoreOutOfRange && !Boolean.FALSE.equals(this.ignoor)) || Boolean.TRUE.equals(this.ignoor)) {
               ignoredCount = new AtomicLong(0L);
             }
             
@@ -437,7 +438,19 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
       this.maxpastdelta = null;
       this.maxfuturedelta = null;
       
+      Boolean ignoor = null;
+      
       if (wtoken.getAttributesSize() > 0) {
+        
+        if (wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_IGNOOR)) {
+          String v = wtoken.getAttributes().get(Constants.TOKEN_ATTR_IGNOOR).toLowerCase();
+          if ("true".equals(v) || "t".equals(v)) {
+            ignoor = Boolean.TRUE;
+          } else if ("false".equals(v) || "f".equals(v)) {
+            ignoor = Boolean.FALSE;
+          }
+        }
+        
         String deltastr = wtoken.getAttributes().get(Constants.TOKEN_ATTR_MAXPAST);
 
         if (null != deltastr) {
@@ -492,6 +505,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
         sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
       }
 
+      this.ignoor = ignoor;
       this.wtoken = wtoken;      
     }
   }

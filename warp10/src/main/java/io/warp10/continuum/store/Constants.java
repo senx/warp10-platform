@@ -398,6 +398,7 @@ public class Constants {
    */
   public static final String TOKEN_ATTR_MAXFUTURE = ".maxfuture";
   public static final String TOKEN_ATTR_MAXPAST = ".maxpast";
+  public static final String TOKEN_ATTR_IGNOOR = ".ignoor";
   
   static {
     String tu = WarpConfig.getProperty(Configuration.WARP_TIME_UNITS);

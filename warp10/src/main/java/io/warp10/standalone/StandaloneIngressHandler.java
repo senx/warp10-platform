@@ -435,7 +435,19 @@ public class StandaloneIngressHandler extends AbstractHandler {
           }
         }
         
+        Boolean ignoor = null;
+        
         if (writeToken.getAttributesSize() > 0) {
+          
+          if (writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_IGNOOR)) {
+            String v = writeToken.getAttributes().get(Constants.TOKEN_ATTR_IGNOOR).toLowerCase();
+            if ("true".equals(v) || "t".equals(v)) {
+              ignoor = Boolean.TRUE;
+            } else if ("false".equals(v) || "f".equals(v)) {
+              ignoor = Boolean.FALSE;
+            }
+          }
+          
           String deltastr = writeToken.getAttributes().get(Constants.TOKEN_ATTR_MAXPAST);
 
           if (null != deltastr) {
@@ -630,7 +642,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
            
         AtomicLong ignoredCount = null;
         
-        if (ignoreOutOfRange) {
+        if ((ignoreOutOfRange && !Boolean.FALSE.equals(ignoor)) || Boolean.TRUE.equals(ignoor)) {
           ignoredCount = new AtomicLong(0L);
         }
         
