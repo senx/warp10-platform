@@ -103,10 +103,10 @@ public class RunAndGenerateDocumentationWithUnitTests {
 
   @Test
   public void generate() throws Exception {
-    protected_generate(WarpScriptLib.getFunctionNames());
+    generate(WarpScriptLib.getFunctionNames());
   }
 
-  final protected void protected_generate(List<String> functionNames) throws Exception {
+  final protected void generate(List<String> functionNames) throws Exception {
 
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
     stack.maxLimits();
