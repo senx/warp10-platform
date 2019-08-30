@@ -1081,6 +1081,14 @@ public class WarpScriptLib {
   public static final String MATTO = "MAT->";
   public static final String VECTO = "VEC->";
 
+  public static final String GEO_REGEXP = "GEO.REGEXP";
+  public static final String GEO_OPTIMIZE = "GEO.OPTIMIZE";
+  public static final String GEO_WITHIN = "GEO.WITHIN";
+  public static final String GEO_INTERSECTS = "GEO.INTERSECTS";
+  public static final String GEO_COVER = "GEO.COVER";
+  public static final String GEO_COVER_RL = "GEO.COVER.RL";
+
+  
   static {
 
     addNamedWarpScriptFunction(new REV(REV));
@@ -1779,17 +1787,17 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOHHCODE(TOGTSHHCODELONG, false, true));
     addNamedWarpScriptFunction(new HHCODETO(HHCODETO));
     addNamedWarpScriptFunction(new HHCODETO(GTSHHCODETO, true));
-    addNamedWarpScriptFunction(new GEOREGEXP("GEO.REGEXP"));
+    addNamedWarpScriptFunction(new GEOREGEXP(GEO_REGEXP));
     addNamedWarpScriptFunction(new GeoWKT(GEO_WKT, false));
     addNamedWarpScriptFunction(new GeoWKT(GEO_WKT_UNIFORM, true));
     addNamedWarpScriptFunction(new GeoJSON(GEO_JSON, false));
     addNamedWarpScriptFunction(new GeoJSON(GEO_JSON_UNIFORM, true));
-    addNamedWarpScriptFunction(new GEOOPTIMIZE("GEO.OPTIMIZE"));
+    addNamedWarpScriptFunction(new GEOOPTIMIZE(GEO_OPTIMIZE));
     addNamedWarpScriptFunction(new GeoIntersection(GEO_INTERSECTION));
     addNamedWarpScriptFunction(new GeoUnion(GEO_UNION));
     addNamedWarpScriptFunction(new GeoSubtraction(GEO_DIFFERENCE));
-    addNamedWarpScriptFunction(new GEOWITHIN("GEO.WITHIN"));
-    addNamedWarpScriptFunction(new GEOINTERSECTS("GEO.INTERSECTS"));
+    addNamedWarpScriptFunction(new GEOWITHIN(GEO_WITHIN));
+    addNamedWarpScriptFunction(new GEOINTERSECTS(GEO_INTERSECTS));
     addNamedWarpScriptFunction(new HAVERSINE(HAVERSINE));
     addNamedWarpScriptFunction(new GEOPACK(GEOPACK));
     addNamedWarpScriptFunction(new GEOUNPACK(GEOUNPACK));
@@ -1800,8 +1808,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new BBOX(BBOX));
     addNamedWarpScriptFunction(new TOGEOHASH(TOGEOHASH));
     addNamedWarpScriptFunction(new GEOHASHTO(GEOHASHTO));
-    addNamedWarpScriptFunction(new GEOCOVER("GEO.COVER", false));
-    addNamedWarpScriptFunction(new GEOCOVER("GEO.COVER.RL", true));
+    addNamedWarpScriptFunction(new GEOCOVER(GEO_COVER, false));
+    addNamedWarpScriptFunction(new GEOCOVER(GEO_COVER_RL, true));
     
     //
     // Counters
