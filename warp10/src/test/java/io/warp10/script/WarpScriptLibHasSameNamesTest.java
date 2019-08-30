@@ -35,6 +35,7 @@ import org.apache.commons.lang3.SystemUtils;
 import org.bouncycastle.crypto.digests.MD5Digest;
 import org.bouncycastle.crypto.digests.SHA1Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -349,18 +350,6 @@ import io.warp10.warp.sdk.WarpScriptExtension;
  */
 public class WarpScriptLibHasSameNamesTest {
 
-  static {
-    StringBuilder props = new StringBuilder();
-
-    props.append("warp.timeunits=us");
-
-    try {
-      WarpConfig.safeSetProperties(new StringReader(props.toString()));
-    } catch (IOException ioe) {
-      throw new RuntimeException(ioe);
-    }
-  }
-
   @Test
   public void compareNames() {
 
@@ -476,7 +465,15 @@ public class WarpScriptLibHasSameNamesTest {
 
   public static final String TOGTS = "->GTS";
 
-  static {
+  
+  @BeforeClass
+  public static void beforeClass() throws Exception {
+    StringBuilder props = new StringBuilder();
+
+    props.append("warp.timeunits=us");
+
+    WarpConfig.safeSetProperties(new StringReader(props.toString()));
+
 
     addNamedWarpScriptFunction(new REV("REV"));
     addNamedWarpScriptFunction(new REPORT("REPORT"));
