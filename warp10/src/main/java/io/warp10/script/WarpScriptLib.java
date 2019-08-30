@@ -1034,6 +1034,32 @@ public class WarpScriptLib {
   public static final String VARS = "VARS";
   public static final String ASREGS = "ASREGS";
 
+  public static final String TOLIST = "->LIST";
+  public static final String TOMAP = "->MAP";
+  public static final String TOJSON = "->JSON";
+  public static final String TOPICKLE = "->PICKLE";
+  public static final String TOLONGBYTES = "->LONGBYTES";
+  public static final String TODOUBLEBITS = "->DOUBLEBITS";
+  public static final String TOFLOATBITS = "->FLOATBITS";
+  public static final String TOBYTES = "->BYTES";
+  public static final String TOBIN_ = "->BIN";
+  public static final String TOHEX_ = "->HEX";
+  public static final String TOB64 = "->B64";
+  public static final String TOB64URL = "->B64URL";
+  public static final String TOENCODER = "->ENCODER";
+  public static final String TOENCODERS = "->ENCODERS";
+  public static final String TOMVSTRING = "->MVSTRING";
+  public static final String TOQ = "->Q";
+  public static final String TOTSELEMENTS = "->TSELEMENTS";
+  public static final String TOHHCODE = "->HHCODE";
+  public static final String TOHHCODELONG = "->HHCODELONG";
+  public static final String TOGTSHHCODE = "->GTSHHCODE";
+  public static final String TOGTSHHCODELONG = "->GTSHHCODELONG";
+  public static final String TOGEOHASH = "->GEOHASH";
+  public static final String TOZ = "->Z";
+  public static final String TOMAT = "->MAT";
+  public static final String TOVEC = "->VEC";
+
   static {
 
     addNamedWarpScriptFunction(new REV(REV));
@@ -1071,7 +1097,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new CHRONOSTART(CHRONOSTART));
     addNamedWarpScriptFunction(new CHRONOEND(CHRONOEND));
     addNamedWarpScriptFunction(new CHRONOSTATS(CHRONOSTATS));
-    addNamedWarpScriptFunction(new TOLIST("->LIST"));
+    addNamedWarpScriptFunction(new TOLIST(TOLIST));
     addNamedWarpScriptFunction(new LISTTO("LIST->"));
     addNamedWarpScriptFunction(new UNLIST(UNLIST));
     addNamedWarpScriptFunction(new TOSET(TO_SET));
@@ -1081,13 +1107,13 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new UNION(UNION));
     addNamedWarpScriptFunction(new INTERSECTION(INTERSECTION));
     addNamedWarpScriptFunction(new DIFFERENCE(DIFFERENCE));
-    addNamedWarpScriptFunction(new TOMAP("->MAP"));
+    addNamedWarpScriptFunction(new TOMAP(TOMAP));
     addNamedWarpScriptFunction(new MAPTO("MAP->"));
     addNamedWarpScriptFunction(new UNMAP(UNMAP));
     addNamedWarpScriptFunction(new MAPID(MAPID));
-    addNamedWarpScriptFunction(new TOJSON("->JSON"));
+    addNamedWarpScriptFunction(new TOJSON(TOJSON));
     addNamedWarpScriptFunction(new JSONTO("JSON->"));
-    addNamedWarpScriptFunction(new TOPICKLE("->PICKLE"));
+    addNamedWarpScriptFunction(new TOPICKLE(TOPICKLE));
     addNamedWarpScriptFunction(new PICKLETO("PICKLE->"));
     addNamedWarpScriptFunction(new GET(GET));
     addNamedWarpScriptFunction(new SET(SET));
@@ -1300,10 +1326,10 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FROMBIN(FROMBIN));
     addNamedWarpScriptFunction(new TOBITS(TOBITS, false));
     addNamedWarpScriptFunction(new FROMBITS(FROMBITS, false));
-    addNamedWarpScriptFunction(new TOLONGBYTES("->LONGBYTES"));
-    addNamedWarpScriptFunction(new TOBITS("->DOUBLEBITS", false));
+    addNamedWarpScriptFunction(new TOLONGBYTES(TOLONGBYTES));
+    addNamedWarpScriptFunction(new TOBITS(TODOUBLEBITS, false));
     addNamedWarpScriptFunction(new FROMBITS("DOUBLEBITS->", false));
-    addNamedWarpScriptFunction(new TOBITS("->FLOATBITS", true));
+    addNamedWarpScriptFunction(new TOBITS(TOFLOATBITS, true));
     addNamedWarpScriptFunction(new FROMBITS("FLOATBITS->", true));
     addNamedWarpScriptFunction(new TOKENINFO(TOKENINFO));
     addNamedWarpScriptFunction(new GETHOOK(GETHOOK));
@@ -1366,11 +1392,11 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new B64URLTO("B64URL->"));
     addNamedWarpScriptFunction(new BYTESTO(BYTESTO));
 
-    addNamedWarpScriptFunction(new TOBYTES("->BYTES"));
-    addNamedWarpScriptFunction(new io.warp10.script.functions.TOBIN("->BIN"));
-    addNamedWarpScriptFunction(new io.warp10.script.functions.TOHEX("->HEX"));
-    addNamedWarpScriptFunction(new TOB64("->B64"));
-    addNamedWarpScriptFunction(new TOB64URL("->B64URL"));
+    addNamedWarpScriptFunction(new TOBYTES(TOBYTES));
+    addNamedWarpScriptFunction(new io.warp10.script.functions.TOBIN(TOBIN_));
+    addNamedWarpScriptFunction(new io.warp10.script.functions.TOHEX(TOHEX_));
+    addNamedWarpScriptFunction(new TOB64(TOB64));
+    addNamedWarpScriptFunction(new TOB64URL(TOB64URL));
     addNamedWarpScriptFunction(new TOOPB64(TOOPB64));
     addNamedWarpScriptFunction(new OPB64TO(OPB64TO));
     addNamedWarpScriptFunction(new OPB64TOHEX(OPB64TOHEX));
@@ -1410,10 +1436,10 @@ public class WarpScriptLib {
     
     addNamedWarpScriptFunction(new NEWENCODER(NEWENCODER));
     addNamedWarpScriptFunction(new CHUNKENCODER(CHUNKENCODER, true));
-    addNamedWarpScriptFunction(new TOENCODER("->ENCODER"));
+    addNamedWarpScriptFunction(new TOENCODER(TOENCODER));
     addNamedWarpScriptFunction(new ENCODERTO("ENCODER->"));
     addNamedWarpScriptFunction(new TOGTS(TOGTS));
-    addNamedWarpScriptFunction(new TOENCODERS("->ENCODERS"));
+    addNamedWarpScriptFunction(new TOENCODERS(TOENCODERS));
     addNamedWarpScriptFunction(new OPTIMIZE(OPTIMIZE));
     addNamedWarpScriptFunction(new NEWGTS(NEWGTS));
     addNamedWarpScriptFunction(new MAKEGTS(MAKEGTS));
@@ -1567,7 +1593,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new UNWRAPSIZE(UNWRAPSIZE));
     addNamedWarpScriptFunction(new UNWRAPENCODER(UNWRAPENCODER));
     addNamedWarpScriptFunction(new WRAP(WRAPMV, true, true, true, true));
-    addNamedWarpScriptFunction(new TOMVSTRING("->MVSTRING"));
+    addNamedWarpScriptFunction(new TOMVSTRING(TOMVSTRING));
     addNamedWarpScriptFunction(new MVSPLIT(MVTICKSPLIT, true));
     addNamedWarpScriptFunction(new MVSPLIT(MVINDEXSPLIT, false));
     addNamedWarpScriptFunction(new MVEXTRACT(MVVALUES, MVEXTRACT.ELEMENT.VALUE));
@@ -1593,7 +1619,7 @@ public class WarpScriptLib {
     // Quaternion related functions
     //
     
-    addNamedWarpScriptFunction(new TOQUATERNION("->Q"));
+    addNamedWarpScriptFunction(new TOQUATERNION(TOQ));
     addNamedWarpScriptFunction(new QUATERNIONTO("Q->"));
     addNamedWarpScriptFunction(new QCONJUGATE(QCONJUGATE));
     addNamedWarpScriptFunction(new QDIVIDE(QDIVIDE));
@@ -1614,7 +1640,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new NOTBEFORE(NOTBEFORE));
     addNamedWarpScriptFunction(new NOTAFTER(NOTAFTER));
     addNamedWarpScriptFunction(new TSELEMENTS(TSELEMENTS));
-    addNamedWarpScriptFunction(new TSELEMENTS("->TSELEMENTS"));
+    addNamedWarpScriptFunction(new TSELEMENTS(TOTSELEMENTS));
     addNamedWarpScriptFunction(new FROMTSELEMENTS("TSELEMENTS->"));
     addNamedWarpScriptFunction(new ADDDAYS(ADDDAYS));
     addNamedWarpScriptFunction(new ADDMONTHS(ADDMONTHS));
@@ -1726,10 +1752,10 @@ public class WarpScriptLib {
     // Geo Manipulation functions
     //
     
-    addNamedWarpScriptFunction(new TOHHCODE("->HHCODE", true));
-    addNamedWarpScriptFunction(new TOHHCODE("->HHCODELONG", false));
-    addNamedWarpScriptFunction(new TOHHCODE("->GTSHHCODE", true, true));
-    addNamedWarpScriptFunction(new TOHHCODE("->GTSHHCODELONG", false, true));
+    addNamedWarpScriptFunction(new TOHHCODE(TOHHCODE, true));
+    addNamedWarpScriptFunction(new TOHHCODE(TOHHCODELONG, false));
+    addNamedWarpScriptFunction(new TOHHCODE(TOGTSHHCODE, true, true));
+    addNamedWarpScriptFunction(new TOHHCODE(TOGTSHHCODELONG, false, true));
     addNamedWarpScriptFunction(new HHCODETO("HHCODE->"));
     addNamedWarpScriptFunction(new HHCODETO("GTSHHCODE->", true));
     addNamedWarpScriptFunction(new GEOREGEXP("GEO.REGEXP"));
@@ -1751,7 +1777,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MapperGeoApproximate.Builder("mapper.geo.approximate"));
     addNamedWarpScriptFunction(new COPYGEO(COPYGEO));
     addNamedWarpScriptFunction(new BBOX(BBOX));
-    addNamedWarpScriptFunction(new TOGEOHASH("->GEOHASH"));
+    addNamedWarpScriptFunction(new TOGEOHASH(TOGEOHASH));
     addNamedWarpScriptFunction(new GEOHASHTO("GEOHASH->"));
     addNamedWarpScriptFunction(new GEOCOVER("GEO.COVER", false));
     addNamedWarpScriptFunction(new GEOCOVER("GEO.COVER.RL", true));
@@ -1787,7 +1813,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new LR(LR));
     addNamedWarpScriptFunction(new MODE(MODE));
     
-    addNamedWarpScriptFunction(new TOZ("->Z"));
+    addNamedWarpScriptFunction(new TOZ(TOZ));
     addNamedWarpScriptFunction(new ZTO("Z->"));
     addNamedWarpScriptFunction(new PACK(PACK));
     addNamedWarpScriptFunction(new UNPACK(UNPACK));
@@ -1796,13 +1822,13 @@ public class WarpScriptLib {
     // Linear Algebra
     //
     
-    addNamedWarpScriptFunction(new TOMAT("->MAT"));
+    addNamedWarpScriptFunction(new TOMAT(TOMAT));
     addNamedWarpScriptFunction(new MATTO("MAT->"));
     addNamedWarpScriptFunction(new TR(TR));
     addNamedWarpScriptFunction(new TRANSPOSE(TRANSPOSE));
     addNamedWarpScriptFunction(new DET(DET));
     addNamedWarpScriptFunction(new INV(INV));
-    addNamedWarpScriptFunction(new TOVEC("->VEC"));
+    addNamedWarpScriptFunction(new TOVEC(TOVEC));
     addNamedWarpScriptFunction(new VECTO("VEC->"));
 
     addNamedWarpScriptFunction(new COS(COS));
