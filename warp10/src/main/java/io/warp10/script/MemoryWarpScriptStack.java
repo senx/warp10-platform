@@ -900,6 +900,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_TIME_US, labels, (System.nanoTime() - nano) / 1000L);
             }
           }
+        } catch (WarpScriptATCException e) {
+          throw e;
         } catch (WarpScriptException e) {
           String scriptLine = "";
           for (int stc = 0; stc < statements.length; stc++) {
