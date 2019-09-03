@@ -528,8 +528,8 @@ public class WarpScriptLib {
   public static final String REDEFS = "REDEFS";
   public static final String DEFINEDMACRO = "DEFINEDMACRO";
   public static final String CHECKMACRO = "CHECKMACRO";
-  public static final String NaN = "NaN";
-  public static final String ISNaN = "ISNaN";
+  public static final String NAN = "NaN";
+  public static final String ISNAN = "ISNaN";
   public static final String TYPEOF = "TYPEOF";
   public static final String EXTLOADED = "EXTLOADED";
   public static final String ASSERT = "ASSERT";
@@ -933,104 +933,104 @@ public class WarpScriptLib {
   public static final String NEXTDOWN = "NEXTDOWN";
   public static final String GETEXPONENT = "GETEXPONENT";
   public static final String IDENT = "IDENT";
-  public static final String Pencode = "Pencode";
-  public static final String PpushStyle = "PpushStyle";
-  public static final String PpopStyle = "PpopStyle";
-  public static final String Parc = "Parc";
-  public static final String Pellipse = "Pellipse";
-  public static final String Ppoint = "Ppoint";
-  public static final String Pline = "Pline";
-  public static final String Ptriangle = "Ptriangle";
-  public static final String Prect = "Prect";
-  public static final String Pquad = "Pquad";
-  public static final String Pbezier = "Pbezier";
-  public static final String PbezierPoint = "PbezierPoint";
-  public static final String PbezierTangent = "PbezierTangent";
-  public static final String PbezierDetail = "PbezierDetail";
-  public static final String Pcurve = "Pcurve";
-  public static final String PcurvePoint = "PcurvePoint";
-  public static final String PcurveTangent = "PcurveTangent";
-  public static final String PcurveDetail = "PcurveDetail";
-  public static final String PcurveTightness = "PcurveTightness";
-  public static final String Pbox = "Pbox";
-  public static final String Psphere = "Psphere";
-  public static final String PsphereDetail = "PsphereDetail";
-  public static final String PellipseMode = "PellipseMode";
-  public static final String PrectMode = "PrectMode";
-  public static final String PstrokeCap = "PstrokeCap";
-  public static final String PstrokeJoin = "PstrokeJoin";
-  public static final String PstrokeWeight = "PstrokeWeight";
-  public static final String PbeginShape = "PbeginShape";
-  public static final String PendShape = "PendShape";
-  public static final String PloadShape = "PloadShape";
-  public static final String PbeginContour = "PbeginContour";
-  public static final String PendContour = "PendContour";
-  public static final String Pvertex = "Pvertex";
-  public static final String PcurveVertex = "PcurveVertex";
-  public static final String PbezierVertex = "PbezierVertex";
-  public static final String PquadraticVertex = "PquadraticVertex";
-  public static final String PshapeMode = "PshapeMode";
-  public static final String Pshape = "Pshape";
-  public static final String PpushMatrix = "PpushMatrix";
-  public static final String PpopMatrix = "PpopMatrix";
-  public static final String PresetMatrix = "PresetMatrix";
-  public static final String Protate = "Protate";
-  public static final String ProtateX = "ProtateX";
-  public static final String ProtateY = "ProtateY";
-  public static final String ProtateZ = "ProtateZ";
-  public static final String Pscale = "Pscale";
-  public static final String PshearX = "PshearX";
-  public static final String PshearY = "PshearY";
-  public static final String Ptranslate = "Ptranslate";
-  public static final String Pbackground = "Pbackground";
-  public static final String PcolorMode = "PcolorMode";
-  public static final String Pclear = "Pclear";
-  public static final String Pfill = "Pfill";
-  public static final String PnoFill = "PnoFill";
-  public static final String Pstroke = "Pstroke";
-  public static final String PnoStroke = "PnoStroke";
-  public static final String Palpha = "Palpha";
-  public static final String Pblue = "Pblue";
-  public static final String Pbrightness = "Pbrightness";
-  public static final String Pcolor = "Pcolor";
-  public static final String Pgreen = "Pgreen";
-  public static final String Phue = "Phue";
-  public static final String PlerpColor = "PlerpColor";
-  public static final String Pred = "Pred";
-  public static final String Psaturation = "Psaturation";
-  public static final String Pdecode = "Pdecode";
-  public static final String Pimage = "Pimage";
-  public static final String PimageMode = "PimageMode";
-  public static final String Ptint = "Ptint";
-  public static final String PnoTint = "PnoTint";
-  public static final String Ppixels = "Ppixels";
-  public static final String PupdatePixels = "PupdatePixels";
-  public static final String PtoImage = "PtoImage";
-  public static final String Pblend = "Pblend";
-  public static final String Pcopy = "Pcopy";
-  public static final String Pget = "Pget";
-  public static final String Pset = "Pset";
-  public static final String Pfilter = "Pfilter";
-  public static final String PblendMode = "PblendMode";
-  public static final String Pclip = "Pclip";
-  public static final String PnoClip = "PnoClip";
-  public static final String PGraphics = "PGraphics";
-  public static final String PcreateFont = "PcreateFont";
-  public static final String Ptext = "Ptext";
-  public static final String PtextAlign = "PtextAlign";
-  public static final String PtextAscent = "PtextAscent";
-  public static final String PtextDescent = "PtextDescent";
-  public static final String PtextFont = "PtextFont";
-  public static final String PtextLeading = "PtextLeading";
-  public static final String PtextMode = "PtextMode";
-  public static final String PtextSize = "PtextSize";
-  public static final String PtextWidth = "PtextWidth";
-  public static final String Pconstrain = "Pconstrain";
-  public static final String Pdist = "Pdist";
-  public static final String Plerp = "Plerp";
-  public static final String Pmag = "Pmag";
-  public static final String Pmap = "Pmap";
-  public static final String Pnorm = "Pnorm";
+  public static final String PENCODE = "Pencode";
+  public static final String PPUSHSTYLE = "PpushStyle";
+  public static final String PPOPSTYLE = "PpopStyle";
+  public static final String PARC = "Parc";
+  public static final String PELLIPSE = "Pellipse";
+  public static final String PPOINT = "Ppoint";
+  public static final String PLINE = "Pline";
+  public static final String PTRIANGLE = "Ptriangle";
+  public static final String PRECT = "Prect";
+  public static final String PQUAD = "Pquad";
+  public static final String PBEZIER = "Pbezier";
+  public static final String PBEZIERPOINT = "PbezierPoint";
+  public static final String PBEZIERTANGENT = "PbezierTangent";
+  public static final String PBEZIERDETAIL = "PbezierDetail";
+  public static final String PCURVE = "Pcurve";
+  public static final String PCURVEPOINT = "PcurvePoint";
+  public static final String PCURVETANGENT = "PcurveTangent";
+  public static final String PCURVEDETAIL = "PcurveDetail";
+  public static final String PCURVETIGHTNESS = "PcurveTightness";
+  public static final String PBOX = "Pbox";
+  public static final String PSPHERE = "Psphere";
+  public static final String PSPHEREDETAIL = "PsphereDetail";
+  public static final String PELLIPSEMODE = "PellipseMode";
+  public static final String PRECTMODE = "PrectMode";
+  public static final String PSTROKECAP = "PstrokeCap";
+  public static final String PSTROKEJOIN = "PstrokeJoin";
+  public static final String PSTROKEWEIGHT = "PstrokeWeight";
+  public static final String PBEGINSHAPE = "PbeginShape";
+  public static final String PENDSHAPE = "PendShape";
+  public static final String PLOADSHAPE = "PloadShape";
+  public static final String PBEGINCONTOUR = "PbeginContour";
+  public static final String PENDCONTOUR = "PendContour";
+  public static final String PVERTEX = "Pvertex";
+  public static final String PCURVEVERTEX = "PcurveVertex";
+  public static final String PBEZIERVERTEX = "PbezierVertex";
+  public static final String PQUADRATICVERTEX = "PquadraticVertex";
+  public static final String PSHAPEMODE = "PshapeMode";
+  public static final String PSHAPE = "Pshape";
+  public static final String PPUSHMATRIX = "PpushMatrix";
+  public static final String PPOPMATRIX = "PpopMatrix";
+  public static final String PRESETMATRIX = "PresetMatrix";
+  public static final String PROTATE = "Protate";
+  public static final String PROTATEX = "ProtateX";
+  public static final String PROTATEY = "ProtateY";
+  public static final String PROTATEZ = "ProtateZ";
+  public static final String PSCALE = "Pscale";
+  public static final String PSHEARX = "PshearX";
+  public static final String PSHEARY = "PshearY";
+  public static final String PTRANSLATE = "Ptranslate";
+  public static final String PBACKGROUND = "Pbackground";
+  public static final String PCOLORMODE = "PcolorMode";
+  public static final String PCLEAR = "Pclear";
+  public static final String PFILL = "Pfill";
+  public static final String PNOFILL = "PnoFill";
+  public static final String PSTROKE = "Pstroke";
+  public static final String PNOSTROKE = "PnoStroke";
+  public static final String PALPHA = "Palpha";
+  public static final String PBLUE = "Pblue";
+  public static final String PBRIGHTNESS = "Pbrightness";
+  public static final String PCOLOR = "Pcolor";
+  public static final String PGREEN = "Pgreen";
+  public static final String PHUE = "Phue";
+  public static final String PLERPCOLOR = "PlerpColor";
+  public static final String PRED = "Pred";
+  public static final String PSATURATION = "Psaturation";
+  public static final String PDECODE = "Pdecode";
+  public static final String PIMAGE = "Pimage";
+  public static final String PIMAGEMODE = "PimageMode";
+  public static final String PTINT = "Ptint";
+  public static final String PNOTINT = "PnoTint";
+  public static final String PPIXELS = "Ppixels";
+  public static final String PUPDATEPIXELS = "PupdatePixels";
+  public static final String PTOIMAGE = "PtoImage";
+  public static final String PBLEND = "Pblend";
+  public static final String PCOPY = "Pcopy";
+  public static final String PGET = "Pget";
+  public static final String PSET = "Pset";
+  public static final String PFILTER_ = "Pfilter";
+  public static final String PBLENDMODE = "PblendMode";
+  public static final String PCLIP = "Pclip";
+  public static final String PNOCLIP = "PnoClip";
+  public static final String PGRAPHICS = "PGraphics";
+  public static final String PCREATEFONT = "PcreateFont";
+  public static final String PTEXT = "Ptext";
+  public static final String PTEXTALIGN = "PtextAlign";
+  public static final String PTEXTASCENT = "PtextAscent";
+  public static final String PTEXTDESCENT = "PtextDescent";
+  public static final String PTEXTFONT = "PtextFont";
+  public static final String PTEXTLEADING = "PtextLeading";
+  public static final String PTEXTMODE = "PtextMode";
+  public static final String PTEXTSIZE = "PtextSize";
+  public static final String PTEXTWIDTH = "PtextWidth";
+  public static final String PCONSTRAIN = "Pconstrain";
+  public static final String PDIST = "Pdist";
+  public static final String PLERP = "Plerp";
+  public static final String PMAG = "Pmag";
+  public static final String PMAP = "Pmap";
+  public static final String PNORM = "Pnorm";
   public static final String VARS = "VARS";
   public static final String ASREGS = "ASREGS";
 
@@ -1205,8 +1205,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new REDEFS(REDEFS));
     addNamedWarpScriptFunction(new DEFINEDMACRO(DEFINEDMACRO));
     addNamedWarpScriptFunction(new DEFINEDMACRO(CHECKMACRO, true));
-    addNamedWarpScriptFunction(new NaN(NaN));
-    addNamedWarpScriptFunction(new ISNaN(ISNaN));
+    addNamedWarpScriptFunction(new NaN(NAN));
+    addNamedWarpScriptFunction(new ISNaN(ISNAN));
     addNamedWarpScriptFunction(new TYPEOF(TYPEOF));
     addNamedWarpScriptFunction(new EXTLOADED(EXTLOADED));
     addNamedWarpScriptFunction(new ASSERT(ASSERT));
@@ -1923,144 +1923,144 @@ public class WarpScriptLib {
     // Processing
     //
 
-    addNamedWarpScriptFunction(new Pencode(Pencode));
+    addNamedWarpScriptFunction(new Pencode(PENCODE));
 
     // Structure
     
-    addNamedWarpScriptFunction(new PpushStyle(PpushStyle));
-    addNamedWarpScriptFunction(new PpopStyle(PpopStyle));
+    addNamedWarpScriptFunction(new PpushStyle(PPUSHSTYLE));
+    addNamedWarpScriptFunction(new PpopStyle(PPOPSTYLE));
 
     // Environment
     
     
     // Shape
     
-    addNamedWarpScriptFunction(new Parc(Parc));
-    addNamedWarpScriptFunction(new Pellipse(Pellipse));
-    addNamedWarpScriptFunction(new Ppoint(Ppoint));
-    addNamedWarpScriptFunction(new Pline(Pline));
-    addNamedWarpScriptFunction(new Ptriangle(Ptriangle));
-    addNamedWarpScriptFunction(new Prect(Prect));
-    addNamedWarpScriptFunction(new Pquad(Pquad));
+    addNamedWarpScriptFunction(new Parc(PARC));
+    addNamedWarpScriptFunction(new Pellipse(PELLIPSE));
+    addNamedWarpScriptFunction(new Ppoint(PPOINT));
+    addNamedWarpScriptFunction(new Pline(PLINE));
+    addNamedWarpScriptFunction(new Ptriangle(PTRIANGLE));
+    addNamedWarpScriptFunction(new Prect(PRECT));
+    addNamedWarpScriptFunction(new Pquad(PQUAD));
     
-    addNamedWarpScriptFunction(new Pbezier(Pbezier));
-    addNamedWarpScriptFunction(new PbezierPoint(PbezierPoint));
-    addNamedWarpScriptFunction(new PbezierTangent(PbezierTangent));
-    addNamedWarpScriptFunction(new PbezierDetail(PbezierDetail));
+    addNamedWarpScriptFunction(new Pbezier(PBEZIER));
+    addNamedWarpScriptFunction(new PbezierPoint(PBEZIERPOINT));
+    addNamedWarpScriptFunction(new PbezierTangent(PBEZIERTANGENT));
+    addNamedWarpScriptFunction(new PbezierDetail(PBEZIERDETAIL));
     
-    addNamedWarpScriptFunction(new Pcurve(Pcurve));
-    addNamedWarpScriptFunction(new PcurvePoint(PcurvePoint));
-    addNamedWarpScriptFunction(new PcurveTangent(PcurveTangent));
-    addNamedWarpScriptFunction(new PcurveDetail(PcurveDetail));
-    addNamedWarpScriptFunction(new PcurveTightness(PcurveTightness));
+    addNamedWarpScriptFunction(new Pcurve(PCURVE));
+    addNamedWarpScriptFunction(new PcurvePoint(PCURVEPOINT));
+    addNamedWarpScriptFunction(new PcurveTangent(PCURVETANGENT));
+    addNamedWarpScriptFunction(new PcurveDetail(PCURVEDETAIL));
+    addNamedWarpScriptFunction(new PcurveTightness(PCURVETIGHTNESS));
 
-    addNamedWarpScriptFunction(new Pbox(Pbox));
-    addNamedWarpScriptFunction(new Psphere(Psphere));
-    addNamedWarpScriptFunction(new PsphereDetail(PsphereDetail));
+    addNamedWarpScriptFunction(new Pbox(PBOX));
+    addNamedWarpScriptFunction(new Psphere(PSPHERE));
+    addNamedWarpScriptFunction(new PsphereDetail(PSPHEREDETAIL));
     
-    addNamedWarpScriptFunction(new PellipseMode(PellipseMode));
-    addNamedWarpScriptFunction(new PrectMode(PrectMode));
-    addNamedWarpScriptFunction(new PstrokeCap(PstrokeCap));
-    addNamedWarpScriptFunction(new PstrokeJoin(PstrokeJoin));
-    addNamedWarpScriptFunction(new PstrokeWeight(PstrokeWeight));
+    addNamedWarpScriptFunction(new PellipseMode(PELLIPSEMODE));
+    addNamedWarpScriptFunction(new PrectMode(PRECTMODE));
+    addNamedWarpScriptFunction(new PstrokeCap(PSTROKECAP));
+    addNamedWarpScriptFunction(new PstrokeJoin(PSTROKEJOIN));
+    addNamedWarpScriptFunction(new PstrokeWeight(PSTROKEWEIGHT));
     
-    addNamedWarpScriptFunction(new PbeginShape(PbeginShape));
-    addNamedWarpScriptFunction(new PendShape(PendShape));
-    addNamedWarpScriptFunction(new PloadShape(PloadShape));
-    addNamedWarpScriptFunction(new PbeginContour(PbeginContour));
-    addNamedWarpScriptFunction(new PendContour(PendContour));
-    addNamedWarpScriptFunction(new Pvertex(Pvertex));
-    addNamedWarpScriptFunction(new PcurveVertex(PcurveVertex));
-    addNamedWarpScriptFunction(new PbezierVertex(PbezierVertex));
-    addNamedWarpScriptFunction(new PquadraticVertex(PquadraticVertex));
+    addNamedWarpScriptFunction(new PbeginShape(PBEGINSHAPE));
+    addNamedWarpScriptFunction(new PendShape(PENDSHAPE));
+    addNamedWarpScriptFunction(new PloadShape(PLOADSHAPE));
+    addNamedWarpScriptFunction(new PbeginContour(PBEGINCONTOUR));
+    addNamedWarpScriptFunction(new PendContour(PENDCONTOUR));
+    addNamedWarpScriptFunction(new Pvertex(PVERTEX));
+    addNamedWarpScriptFunction(new PcurveVertex(PCURVEVERTEX));
+    addNamedWarpScriptFunction(new PbezierVertex(PBEZIERVERTEX));
+    addNamedWarpScriptFunction(new PquadraticVertex(PQUADRATICVERTEX));
     
     // TODO(hbs): support PShape (need to support PbeginShape etc applied to PShape instances)
-    addNamedWarpScriptFunction(new PshapeMode(PshapeMode));
-    addNamedWarpScriptFunction(new Pshape(Pshape));
+    addNamedWarpScriptFunction(new PshapeMode(PSHAPEMODE));
+    addNamedWarpScriptFunction(new Pshape(PSHAPE));
     
     // Transform
     
-    addNamedWarpScriptFunction(new PpushMatrix(PpushMatrix));
-    addNamedWarpScriptFunction(new PpopMatrix(PpopMatrix));
-    addNamedWarpScriptFunction(new PresetMatrix(PresetMatrix));
-    addNamedWarpScriptFunction(new Protate(Protate));
-    addNamedWarpScriptFunction(new ProtateX(ProtateX));
-    addNamedWarpScriptFunction(new ProtateY(ProtateY));
-    addNamedWarpScriptFunction(new ProtateZ(ProtateZ));
-    addNamedWarpScriptFunction(new Pscale(Pscale));
-    addNamedWarpScriptFunction(new PshearX(PshearX));
-    addNamedWarpScriptFunction(new PshearY(PshearY));
-    addNamedWarpScriptFunction(new Ptranslate(Ptranslate));
+    addNamedWarpScriptFunction(new PpushMatrix(PPUSHMATRIX));
+    addNamedWarpScriptFunction(new PpopMatrix(PPOPMATRIX));
+    addNamedWarpScriptFunction(new PresetMatrix(PRESETMATRIX));
+    addNamedWarpScriptFunction(new Protate(PROTATE));
+    addNamedWarpScriptFunction(new ProtateX(PROTATEX));
+    addNamedWarpScriptFunction(new ProtateY(PROTATEY));
+    addNamedWarpScriptFunction(new ProtateZ(PROTATEZ));
+    addNamedWarpScriptFunction(new Pscale(PSCALE));
+    addNamedWarpScriptFunction(new PshearX(PSHEARX));
+    addNamedWarpScriptFunction(new PshearY(PSHEARY));
+    addNamedWarpScriptFunction(new Ptranslate(PTRANSLATE));
     
     // Color
     
-    addNamedWarpScriptFunction(new Pbackground(Pbackground));
-    addNamedWarpScriptFunction(new PcolorMode(PcolorMode));
-    addNamedWarpScriptFunction(new Pclear(Pclear));
-    addNamedWarpScriptFunction(new Pfill(Pfill));
-    addNamedWarpScriptFunction(new PnoFill(PnoFill));
-    addNamedWarpScriptFunction(new Pstroke(Pstroke));
-    addNamedWarpScriptFunction(new PnoStroke(PnoStroke));
+    addNamedWarpScriptFunction(new Pbackground(PBACKGROUND));
+    addNamedWarpScriptFunction(new PcolorMode(PCOLORMODE));
+    addNamedWarpScriptFunction(new Pclear(PCLEAR));
+    addNamedWarpScriptFunction(new Pfill(PFILL));
+    addNamedWarpScriptFunction(new PnoFill(PNOFILL));
+    addNamedWarpScriptFunction(new Pstroke(PSTROKE));
+    addNamedWarpScriptFunction(new PnoStroke(PNOSTROKE));
     
-    addNamedWarpScriptFunction(new Palpha(Palpha));
-    addNamedWarpScriptFunction(new Pblue(Pblue));
-    addNamedWarpScriptFunction(new Pbrightness(Pbrightness));
-    addNamedWarpScriptFunction(new Pcolor(Pcolor));
-    addNamedWarpScriptFunction(new Pgreen(Pgreen));
-    addNamedWarpScriptFunction(new Phue(Phue));
-    addNamedWarpScriptFunction(new PlerpColor(PlerpColor));
-    addNamedWarpScriptFunction(new Pred(Pred));
-    addNamedWarpScriptFunction(new Psaturation(Psaturation));
+    addNamedWarpScriptFunction(new Palpha(PALPHA));
+    addNamedWarpScriptFunction(new Pblue(PBLUE));
+    addNamedWarpScriptFunction(new Pbrightness(PBRIGHTNESS));
+    addNamedWarpScriptFunction(new Pcolor(PCOLOR));
+    addNamedWarpScriptFunction(new Pgreen(PGREEN));
+    addNamedWarpScriptFunction(new Phue(PHUE));
+    addNamedWarpScriptFunction(new PlerpColor(PLERPCOLOR));
+    addNamedWarpScriptFunction(new Pred(PRED));
+    addNamedWarpScriptFunction(new Psaturation(PSATURATION));
     
     // Image
     
-    addNamedWarpScriptFunction(new Pdecode(Pdecode));
-    addNamedWarpScriptFunction(new Pimage(Pimage));
-    addNamedWarpScriptFunction(new PimageMode(PimageMode));
-    addNamedWarpScriptFunction(new Ptint(Ptint));
-    addNamedWarpScriptFunction(new PnoTint(PnoTint));
-    addNamedWarpScriptFunction(new Ppixels(Ppixels));
-    addNamedWarpScriptFunction(new PupdatePixels(PupdatePixels));
-    addNamedWarpScriptFunction(new PtoImage(PtoImage));
+    addNamedWarpScriptFunction(new Pdecode(PDECODE));
+    addNamedWarpScriptFunction(new Pimage(PIMAGE));
+    addNamedWarpScriptFunction(new PimageMode(PIMAGEMODE));
+    addNamedWarpScriptFunction(new Ptint(PTINT));
+    addNamedWarpScriptFunction(new PnoTint(PNOTINT));
+    addNamedWarpScriptFunction(new Ppixels(PPIXELS));
+    addNamedWarpScriptFunction(new PupdatePixels(PUPDATEPIXELS));
+    addNamedWarpScriptFunction(new PtoImage(PTOIMAGE));
     
     // TODO(hbs): support texture related functions?
     
-    addNamedWarpScriptFunction(new Pblend(Pblend));
-    addNamedWarpScriptFunction(new Pcopy(Pcopy));
-    addNamedWarpScriptFunction(new Pget(Pget));
-    addNamedWarpScriptFunction(new Pset(Pset));
-    addNamedWarpScriptFunction(new Pfilter(Pfilter));
+    addNamedWarpScriptFunction(new Pblend(PBLEND));
+    addNamedWarpScriptFunction(new Pcopy(PCOPY));
+    addNamedWarpScriptFunction(new Pget(PGET));
+    addNamedWarpScriptFunction(new Pset(PSET));
+    addNamedWarpScriptFunction(new Pfilter(PFILTER_));
 
     // Rendering
     
-    addNamedWarpScriptFunction(new PblendMode(PblendMode));
-    addNamedWarpScriptFunction(new Pclip(Pclip));
-    addNamedWarpScriptFunction(new PnoClip(PnoClip));
-    addNamedWarpScriptFunction(new PGraphics(PGraphics));
+    addNamedWarpScriptFunction(new PblendMode(PBLENDMODE));
+    addNamedWarpScriptFunction(new Pclip(PCLIP));
+    addNamedWarpScriptFunction(new PnoClip(PNOCLIP));
+    addNamedWarpScriptFunction(new PGraphics(PGRAPHICS));
 
     // TODO(hbs): support shaders?
     
     // Typography
     
-    addNamedWarpScriptFunction(new PcreateFont(PcreateFont));
-    addNamedWarpScriptFunction(new Ptext(Ptext));
-    addNamedWarpScriptFunction(new PtextAlign(PtextAlign));
-    addNamedWarpScriptFunction(new PtextAscent(PtextAscent));
-    addNamedWarpScriptFunction(new PtextDescent(PtextDescent));
-    addNamedWarpScriptFunction(new PtextFont(PtextFont));
-    addNamedWarpScriptFunction(new PtextLeading(PtextLeading));
-    addNamedWarpScriptFunction(new PtextMode(PtextMode));
-    addNamedWarpScriptFunction(new PtextSize(PtextSize));
-    addNamedWarpScriptFunction(new PtextWidth(PtextWidth));
+    addNamedWarpScriptFunction(new PcreateFont(PCREATEFONT));
+    addNamedWarpScriptFunction(new Ptext(PTEXT));
+    addNamedWarpScriptFunction(new PtextAlign(PTEXTALIGN));
+    addNamedWarpScriptFunction(new PtextAscent(PTEXTASCENT));
+    addNamedWarpScriptFunction(new PtextDescent(PTEXTDESCENT));
+    addNamedWarpScriptFunction(new PtextFont(PTEXTFONT));
+    addNamedWarpScriptFunction(new PtextLeading(PTEXTLEADING));
+    addNamedWarpScriptFunction(new PtextMode(PTEXTMODE));
+    addNamedWarpScriptFunction(new PtextSize(PTEXTSIZE));
+    addNamedWarpScriptFunction(new PtextWidth(PTEXTWIDTH));
     
     // Math
     
-    addNamedWarpScriptFunction(new Pconstrain(Pconstrain));
-    addNamedWarpScriptFunction(new Pdist(Pdist));
-    addNamedWarpScriptFunction(new Plerp(Plerp));
-    addNamedWarpScriptFunction(new Pmag(Pmag));
-    addNamedWarpScriptFunction(new Pmap(Pmap));
-    addNamedWarpScriptFunction(new Pnorm(Pnorm));
+    addNamedWarpScriptFunction(new Pconstrain(PCONSTRAIN));
+    addNamedWarpScriptFunction(new Pdist(PDIST));
+    addNamedWarpScriptFunction(new Plerp(PLERP));
+    addNamedWarpScriptFunction(new Pmag(PMAG));
+    addNamedWarpScriptFunction(new Pmap(PMAP));
+    addNamedWarpScriptFunction(new Pnorm(PNORM));
     
     ////////////////////////////////////////////////////////////////////////////
     
