@@ -615,15 +615,15 @@ public class WarpScriptLib {
   public static final String FROMBITS = "FROMBITS";
   public static final String TOKENINFO = "TOKENINFO";
   public static final String GETHOOK = "GETHOOK";
-  public static final String w = "w";
-  public static final String d = "d";
-  public static final String h = "h";
-  public static final String m = "m";
-  public static final String s = "s";
-  public static final String ms = "ms";
-  public static final String us = "us";
-  public static final String ns = "ns";
-  public static final String ps = "ps";
+  public static final String W = "w";
+  public static final String D = "d";
+  public static final String H = "h";
+  public static final String M = "m";
+  public static final String S = "s";
+  public static final String MS = "ms";
+  public static final String US = "us";
+  public static final String NS = "ns";
+  public static final String PS = "ps";
   public static final String HASH = "HASH";
   public static final String MD5 = "MD5";
   public static final String SHA1 = "SHA1";
@@ -865,9 +865,9 @@ public class WarpScriptLib {
   public static final String BBOX = "BBOX";
   public static final String COUNTERVALUE = "COUNTERVALUE";
   public static final String COUNTERDELTA = "COUNTERDELTA";
-  public static final String pi = "pi";
+  public static final String PI_LOWERCASE = "pi";
   public static final String PI = "PI";
-  public static final String e = "e";
+  public static final String E_LOWERCASE = "e";
   public static final String E = "E";
   public static final String MINLONG = "MINLONG";
   public static final String MAXLONG = "MAXLONG";
@@ -1364,15 +1364,15 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new GETHOOK(GETHOOK));
     
     // Unit converters
-    addNamedWarpScriptFunction(new UNIT(w, 7 * 24 * 60 * 60 * 1000));
-    addNamedWarpScriptFunction(new UNIT(d, 24 * 60 * 60 * 1000));
-    addNamedWarpScriptFunction(new UNIT(h, 60 * 60 * 1000));
-    addNamedWarpScriptFunction(new UNIT(m, 60 * 1000));
-    addNamedWarpScriptFunction(new UNIT(s,  1000));
-    addNamedWarpScriptFunction(new UNIT(ms, 1));
-    addNamedWarpScriptFunction(new UNIT(us, 0.001));
-    addNamedWarpScriptFunction(new UNIT(ns, 0.000001));
-    addNamedWarpScriptFunction(new UNIT(ps, 0.000000001));
+    addNamedWarpScriptFunction(new UNIT(W, 7 * 24 * 60 * 60 * 1000));
+    addNamedWarpScriptFunction(new UNIT(D, 24 * 60 * 60 * 1000));
+    addNamedWarpScriptFunction(new UNIT(H, 60 * 60 * 1000));
+    addNamedWarpScriptFunction(new UNIT(M, 60 * 1000));
+    addNamedWarpScriptFunction(new UNIT(S,  1000));
+    addNamedWarpScriptFunction(new UNIT(MS, 1));
+    addNamedWarpScriptFunction(new UNIT(US, 0.001));
+    addNamedWarpScriptFunction(new UNIT(NS, 0.000001));
+    addNamedWarpScriptFunction(new UNIT(PS, 0.000000001));
     
     // Crypto functions
     addNamedWarpScriptFunction(new HASH(HASH));
@@ -1824,9 +1824,9 @@ public class WarpScriptLib {
     // Math functions
     //
     
-    addNamedWarpScriptFunction(new Pi(pi));
+    addNamedWarpScriptFunction(new Pi(PI_LOWERCASE));
     addNamedWarpScriptFunction(new Pi(PI));
-    addNamedWarpScriptFunction(new E(e));
+    addNamedWarpScriptFunction(new E(E_LOWERCASE));
     addNamedWarpScriptFunction(new E(E));
     addNamedWarpScriptFunction(new MINLONG(MINLONG));
     addNamedWarpScriptFunction(new MAXLONG(MAXLONG));
