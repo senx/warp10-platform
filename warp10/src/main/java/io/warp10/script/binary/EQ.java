@@ -22,6 +22,10 @@ import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Checks the two operands on top of the stack for equality
@@ -43,7 +47,8 @@ public class EQ extends ComparisonOperation {
     Object op1 = stack.pop();
     
     if (op1 instanceof Boolean || op1 instanceof String
-        || op1 instanceof RealVector || op1 instanceof RealMatrix) {
+        || op1 instanceof RealVector || op1 instanceof RealMatrix
+        || op1 instanceof List || op1 instanceof Map || op1 instanceof Set) {
       stack.push(op1.equals(op2));
     } else {
       // gts and numbers
@@ -59,15 +64,9 @@ public class EQ extends ComparisonOperation {
     
     if (a instanceof Double && b instanceof Double) {
       return ((Double) a).compareTo((Double) b);
-    } else if ((a instanceof Long && b instanceof Long) || ((a instanceof Long || a instanceof Integer || a instanceof Short || a instanceof Byte)
-        && (b instanceof Long || b instanceof Integer || b instanceof Short || b instanceof Byte))) {
-      if (a.longValue() < b.longValue()) {
-        return -1;
-      } else if (a.longValue() > b.longValue()) {
-        return 1;
-      } else {
-        return 0;
-      }
+    } else if (((a instanceof Long || a instanceof Integer || a instanceof Short || a instanceof Byte || a instanceof AtomicLong)
+        && (b instanceof Long || b instanceof Integer || b instanceof Short || b instanceof Byte || a instanceof AtomicLong))) {
+      return Long.compare(a.longValue(), b.longValue());
     } else {
       // If the equals function fails and the types do not permit direct number comparison,
       // we test again with BigDecimal comparison for type abstraction
@@ -75,22 +74,18 @@ public class EQ extends ComparisonOperation {
       BigDecimal bda;
       BigDecimal bdb;
       
-      if (a instanceof Double) {
-        bda = new BigDecimal(((Number) a).doubleValue());
-      } else if (a instanceof Float) {
-        bda = new BigDecimal(((Number) a).floatValue());
+      if (a instanceof Double || a instanceof Float) {
+        bda = new BigDecimal(a.doubleValue());
       } else if (a instanceof Long || a instanceof Integer || a instanceof Short || a instanceof Byte) {
-        bda = new BigDecimal(((Number) a).longValue());
+        bda = new BigDecimal(a.longValue());
       } else {
         bda = new BigDecimal(a.toString());
       }
       
-      if (b instanceof Double) {
-        bdb = new BigDecimal(((Number) b).doubleValue());
-      } else if (a instanceof Float) {
-        bdb = new BigDecimal(((Number) b).floatValue());
+      if (b instanceof Double || a instanceof Float) {
+        bdb = new BigDecimal(b.doubleValue());
       } else if (b instanceof Long || b instanceof Integer || b instanceof Short || b instanceof Byte) {
-        bdb = new BigDecimal(((Number) b).longValue());
+        bdb = new BigDecimal(b.longValue());
       } else {
         bdb = new BigDecimal(b.toString());
       }
