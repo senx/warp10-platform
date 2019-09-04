@@ -16,6 +16,7 @@
 
 package io.warp10.standalone;
 
+import io.warp10.JsonUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.egress.EgressFetchHandler;
@@ -67,8 +68,6 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TCompactProtocol.Factory;
-import org.boon.json.JsonSerializer;
-import org.boon.json.JsonSerializerFactory;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.UpgradeRequest;
@@ -570,9 +569,6 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
     
       GTSHelper.metadataToString(metasb, metadata.getName(), metadata.getLabels());
       
-      //Gson gson = null;
-      JsonSerializer serializer = new JsonSerializerFactory().create();
-      
       Set<Entry<Session, Set<BigInteger>>> subs = subscriptions.entrySet();
       
       for (Entry<Session, Set<BigInteger>> entry: subs) {
@@ -706,7 +702,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
                 } else {
                   sb.append(",");                
                 }
-                sb.append(serializer.serialize(json).toString());
+                sb.append(JsonUtils.ObjectToJson(json, true));
                 
                 first = false;
               } else {

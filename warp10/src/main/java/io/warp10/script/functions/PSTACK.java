@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -61,7 +62,11 @@ public class PSTACK extends NamedWarpScriptFunction implements WarpScriptStackFu
       AtomicInteger recursionLevel = new AtomicInteger();
       StringWriter sw = new StringWriter();
       PrintWriter pw = new PrintWriter(sw);
-      StackUtils.objectToJSON(null, pw, o, recursionLevel, false);
+      try {
+        StackUtils.objectToJSON(pw, o, recursionLevel, false);
+      } catch (IOException ioe) {
+        throw new WarpScriptException(ioe);
+      }
       pw.close();
       out.println("/* " + (level + 1) + " */ " + sw.toString());
     } else {

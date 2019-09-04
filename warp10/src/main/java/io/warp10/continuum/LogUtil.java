@@ -16,6 +16,7 @@
 
 package io.warp10.continuum;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -24,6 +25,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import io.warp10.JsonUtils;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.CryptoUtils;
@@ -34,8 +36,6 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.boon.json.JsonSerializer;
-import org.boon.json.JsonSerializerFactory;
 
 import com.google.common.base.Charsets;
 
@@ -78,8 +78,11 @@ public class LogUtil {
     event = ensureLoggingEvent(event);
     
     if (null != name && null != value) {
-      JsonSerializer ser = new JsonSerializerFactory().create();    
-      event.putToAttributes(name, ser.serialize(value).toString());
+      try {
+        event.putToAttributes(name, JsonUtils.ObjectToJson(value, true));
+      } catch (IOException e) {
+        event.putToAttributes(name, "Could not JSONify: " + value);
+      }
     }
     
     return event;
@@ -166,10 +169,12 @@ public class LogUtil {
     if (null == event) {
       event = new LoggingEvent();
     }
-    
-    JsonSerializer ser = new JsonSerializerFactory().create();    
 
-    event.putToAttributes(name, ser.serialize(stacktrace).toString());
+    try{
+      event.putToAttributes(name, JsonUtils.ObjectToJson(stacktrace, true));
+    } catch (IOException e) {
+      event.putToAttributes(name, "Could not JSONify: " + stacktrace);
+    }
     
     return event;
   }
@@ -239,9 +244,11 @@ public class LogUtil {
     }
     
     if (!headerMap.isEmpty()) {
-      JsonSerializer ser = new JsonSerializerFactory().create();    
-
-      event.putToAttributes(LogUtil.HTTP_HEADERS, ser.serialize(headerMap).toString());
+      try {
+      event.putToAttributes(LogUtil.HTTP_HEADERS, JsonUtils.ObjectToJson(headerMap, true));
+      } catch (IOException e) {
+        event.putToAttributes(LogUtil.HTTP_HEADERS, "Could not JSONify: " + headerMap);
+      }
     }
     
     return event;

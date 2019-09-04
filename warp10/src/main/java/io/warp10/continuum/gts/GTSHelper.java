@@ -47,6 +47,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.warp10.JsonUtils;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.ArrayUtils;
@@ -54,8 +55,6 @@ import org.apache.commons.math3.fitting.PolynomialCurveFitter;
 import org.apache.commons.math3.fitting.WeightedObservedPoint;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.boon.json.JsonParser;
-import org.boon.json.JsonParserFactory;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
@@ -2192,13 +2191,9 @@ public class GTSHelper {
     return encoder;
   }
 
-  private static JsonParserFactory jpf = new JsonParserFactory();
-
   public static GTSEncoder parseJSON(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now) throws IOException, ParseException {
     
-    JsonParser parser = jpf.createFastParser();
-
-    Map<String,Object> o = (Map<String,Object>) parser.parse(str);
+    Map<String,Object> o = (Map<String,Object>) JsonUtils.JsonToObject(str, true);
     
     String name = (String) o.get("c");
     Map<String,String> labels = (Map<String,String>) o.get("l");

@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.egress;
 
+import io.warp10.JsonUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
@@ -85,8 +86,6 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.boon.json.JsonSerializer;
-import org.boon.json.JsonSerializerFactory;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.joda.time.Duration;
@@ -1294,8 +1293,6 @@ public class EgressFetchHandler extends AbstractHandler {
     try {
       StringBuilder sb = new StringBuilder();
       
-      JsonSerializer serializer = new JsonSerializerFactory().create();
-      
       boolean firstgts = true;
       
       long mask = (long) (Math.random() * Long.MAX_VALUE);
@@ -1342,8 +1339,7 @@ public class EgressFetchHandler extends AbstractHandler {
           
           sb.append("{\"c\":");
       
-          //sb.append(gson.toJson(name));
-          sb.append(serializer.serialize(name));
+          sb.append(JsonUtils.ObjectToJson(name, true));
 
           boolean first = true;
           
@@ -1366,11 +1362,9 @@ public class EgressFetchHandler extends AbstractHandler {
               sb.append(",");
             }
             
-            //sb.append(gson.toJson(entry.getKey()));
-            sb.append(serializer.serialize(entry.getKey()));
+            sb.append(JsonUtils.ObjectToJson(entry.getKey(), true));
             sb.append(":");
-            //sb.append(gson.toJson(entry.getValue()));
-            sb.append(serializer.serialize(entry.getValue()));
+            sb.append(JsonUtils.ObjectToJson(entry.getValue(), true));
             first = false;
           }
           sb.append("}");
@@ -1383,11 +1377,9 @@ public class EgressFetchHandler extends AbstractHandler {
               sb.append(",");
             }
             
-            //sb.append(gson.toJson(entry.getKey()));
-            sb.append(serializer.serialize(entry.getKey()));
+            sb.append(JsonUtils.ObjectToJson(entry.getKey(), true));
             sb.append(":");
-            //sb.append(gson.toJson(entry.getValue()));
-            sb.append(serializer.serialize(entry.getValue()));
+            sb.append(JsonUtils.ObjectToJson(entry.getValue(), true));
             first = false;
           }
           
@@ -1460,7 +1452,7 @@ public class EgressFetchHandler extends AbstractHandler {
             pw.print(Boolean.TRUE.equals(value) ? "true" : "false");
           } else {
             //pw.print(gson.toJson(value.toString()));
-            pw.print(serializer.serialize(value.toString()));
+            pw.print(JsonUtils.ObjectToJson(value.toString(), true));
           }
           pw.print("]");
         } while (decoder.next());        

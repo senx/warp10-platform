@@ -17,6 +17,7 @@
 package io.warp10.script;
 
 import io.warp10.FloatUtils;
+import io.warp10.JsonUtils;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -44,16 +45,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.boon.json.JsonSerializer;
-import org.boon.json.JsonSerializerFactory;
-
 import com.geoxp.GeoXPLib;
 
 public class StackUtils {
-  
-  //private static final GsonBuilder GSON_BUILDER = new GsonBuilder().serializeSpecialFloatingPointValues();
-  private static final JsonSerializerFactory BOON_FACTORY = new JsonSerializerFactory();
-  
+
   public static void toJSON(PrintWriter out, WarpScriptStack stack, int maxdepth) throws WarpScriptException {
     
     boolean strictJSON = Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_JSON_STRICT));
@@ -66,8 +61,6 @@ public class StackUtils {
     
     boolean first = true;
     
-    JsonSerializer serializer = getSerializer();
-    
     for (int i = 0; i < depth; i++) {
       
       if (!first) {
@@ -78,8 +71,8 @@ public class StackUtils {
       try {
         Object o = stack.get(i);
         
-        objectToJSON(serializer, out, o, recursionLevel, strictJSON);
-      } catch (WarpScriptException ee) {
+        objectToJSON(out, o, recursionLevel, strictJSON);
+      } catch (WarpScriptException | IOException ee) {
       }
     }
     
@@ -90,17 +83,12 @@ public class StackUtils {
     toJSON(out, stack, Integer.MAX_VALUE);
   }
   
-  public static void objectToJSON(JsonSerializer serializer, PrintWriter out, Object o, AtomicInteger recursionLevel, boolean strictJSON) {
+  public static void objectToJSON(PrintWriter out, Object o, AtomicInteger recursionLevel, boolean strictJSON) throws IOException {
     
     if (recursionLevel.addAndGet(1) > WarpScriptStack.DEFAULT_MAX_RECURSION_LEVEL && ((o instanceof Map) || (o instanceof List) || (o instanceof Macro))) {
       out.write(" ...NESTED_CONTENT_REMOVED... ");
       recursionLevel.addAndGet(-1);
       return;
-    }
-    
-    //Gson gson = GSON_BUILDER.create();
-    if (null == serializer) {
-      serializer = getSerializer();
     }
 
     if (strictJSON && (o instanceof Double && (Double.isNaN((double) o) || Double.isInfinite((double) o)))) {
@@ -109,7 +97,7 @@ public class StackUtils {
       out.print("null");
     } else if (o instanceof Number || o instanceof String || o instanceof Boolean) {
       //out.print(gson.toJson(o));
-      out.print(serializer.serialize(o));
+      out.print(JsonUtils.ObjectToJson(o, strictJSON));
     } else if (o instanceof Map) {
       out.print("{");
       boolean first = true;
@@ -120,12 +108,12 @@ public class StackUtils {
         }
         if (null != key) {
           //out.print(gson.toJson(key.toString()));
-          out.print(serializer.serialize(key.toString()));
+          out.print(JsonUtils.ObjectToJson(key.toString(), strictJSON));
         } else {
           out.print("null");
         }
         out.print(":");
-        objectToJSON(serializer, out, keyAndValue.getValue(), recursionLevel, strictJSON);
+        objectToJSON(out, keyAndValue.getValue(), recursionLevel, strictJSON);
         first = false;
       }
       out.print("}");
@@ -136,7 +124,7 @@ public class StackUtils {
         if (!first) {
           out.print(",");
         }
-        objectToJSON(serializer, out, elt, recursionLevel, strictJSON);
+        objectToJSON(out, elt, recursionLevel, strictJSON);
         first = false;
       }
       out.print("]");    
@@ -148,13 +136,13 @@ public class StackUtils {
       if (null == name) {
         name = "";
       }
-      out.print(serializer.serialize(name));
+      out.print(JsonUtils.ObjectToJson(name, strictJSON));
       out.print(",\"l\":");
-      objectToJSON(serializer, out, ((GeoTimeSerie) o).getMetadata().getLabels(), recursionLevel, strictJSON);
+      objectToJSON(out, ((GeoTimeSerie) o).getMetadata().getLabels(), recursionLevel, strictJSON);
       out.print(",\"a\":");
-      objectToJSON(serializer, out, ((GeoTimeSerie) o).getMetadata().getAttributes(), recursionLevel, strictJSON);
+      objectToJSON(out, ((GeoTimeSerie) o).getMetadata().getAttributes(), recursionLevel, strictJSON);
       out.print(",\"la\":");
-      objectToJSON(serializer, out, ((GeoTimeSerie) o).getMetadata().getLastActivity(), recursionLevel, strictJSON);
+      objectToJSON(out, ((GeoTimeSerie) o).getMetadata().getLastActivity(), recursionLevel, strictJSON);
       out.print(",\"v\":[");
       boolean first = true;
       for (int i = 0; i < ((GeoTimeSerie) o).size(); i++) {
@@ -179,11 +167,11 @@ public class StackUtils {
           out.print(elevation);
         }
         out.print(",");
-        //out.print(gson.toJson(v));    
+        //out.print(gson.toJson(v));
         if (strictJSON && (v instanceof Double) && (Double.isNaN((double) v) || Double.isInfinite((double) v))) {
           out.print("null");
         } else {
-          out.print(serializer.serialize(v));
+          out.print(JsonUtils.ObjectToJson(v, strictJSON));
         }
         out.print("]");
         first = false;
@@ -198,11 +186,11 @@ public class StackUtils {
       if (null == name) {
         name = "";
       }
-      out.print(serializer.serialize(name));
+      out.print(JsonUtils.ObjectToJson(name, strictJSON));
       out.print(",\"l\":");
-      objectToJSON(serializer, out, ((GTSEncoder) o).getMetadata().getLabels(), recursionLevel, strictJSON);
+      objectToJSON(out, ((GTSEncoder) o).getMetadata().getLabels(), recursionLevel, strictJSON);
       out.print(",\"a\":");
-      objectToJSON(serializer, out, ((GTSEncoder) o).getMetadata().getAttributes(), recursionLevel, strictJSON);
+      objectToJSON(out, ((GTSEncoder) o).getMetadata().getAttributes(), recursionLevel, strictJSON);
       out.print(",\"v\":[");
       boolean first = true;
       GTSDecoder decoder = ((GTSEncoder) o).getUnsafeDecoder(false);
@@ -229,11 +217,11 @@ public class StackUtils {
           out.print(elevation);
         }
         out.print(",");
-        //out.print(gson.toJson(v));    
+        //out.print(gson.toJson(v));
         if (strictJSON && (v instanceof Double) && (Double.isNaN((double) v) || Double.isInfinite((double) v))) {
           out.print("null");
         } else {
-          out.print(serializer.serialize(v));
+          out.print(JsonUtils.ObjectToJson(v, strictJSON));
         }
         out.print("]");
         first = false;
@@ -244,17 +232,17 @@ public class StackUtils {
     } else if (o instanceof Metadata) {
       out.print("{");
       out.print("\"c\":");
-      out.print(serializer.serialize(((Metadata) o).getName()));
+      out.print(JsonUtils.ObjectToJson(((Metadata) o).getName(), strictJSON));
       out.print(",\"l\":");
-      objectToJSON(serializer, out, ((Metadata) o).getLabels(), recursionLevel, strictJSON);
+      objectToJSON(out, ((Metadata) o).getLabels(), recursionLevel, strictJSON);
       out.print(",\"a\":");
-      objectToJSON(serializer, out, ((Metadata) o).getAttributes(), recursionLevel, strictJSON);
+      objectToJSON(out, ((Metadata) o).getAttributes(), recursionLevel, strictJSON);
       out.print("}");
     //} else if (o instanceof JsonArray || o instanceof JsonElement || o instanceof JsonBuilder) {
     //  out.print(o.toString());
     } else if (o instanceof Macro) {
       //out.print(gson.toJson(o.toString()));
-      out.print(serializer.serialize(o.toString()));
+      out.print(JsonUtils.ObjectToJson(o.toString(), strictJSON));
     } else if (o instanceof NamedWarpScriptFunction) {
       StringBuilder sb = new StringBuilder();
       sb.append(WarpScriptStack.MACRO_START);
@@ -265,7 +253,7 @@ public class StackUtils {
       sb.append(" ");
       sb.append(WarpScriptLib.EVAL);
       //out.print(gson.toJson(sb.toString()));
-      out.print(serializer.serialize(sb.toString()));
+      out.print(JsonUtils.ObjectToJson(sb.toString(), strictJSON));
     } else {
       out.print("null");
     }
@@ -695,7 +683,4 @@ public class StackUtils {
     return sb.toString();
   }
   
-  public static JsonSerializer getSerializer() {
-    return BOON_FACTORY.create();
-  }
 }

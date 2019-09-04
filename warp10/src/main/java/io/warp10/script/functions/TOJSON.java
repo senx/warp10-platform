@@ -16,13 +16,13 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.JsonUtils;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import org.boon.json.JsonSerializer;
-import org.boon.json.JsonSerializerFactory;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,8 +33,6 @@ import java.util.Map.Entry;
  */
 public class TOJSON extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private static final JsonSerializerFactory BOON_SERIALIZER_FACTORY = new JsonSerializerFactory();
-
   public TOJSON(String name) {
     super(name);
   }
@@ -42,8 +40,6 @@ public class TOJSON extends NamedWarpScriptFunction implements WarpScriptStackFu
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
-
-    JsonSerializer parser = BOON_SERIALIZER_FACTORY.create();
 
     //
     // Only allow the serialization of simple lists and maps, otherwise JSON might
@@ -54,7 +50,12 @@ public class TOJSON extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException(getName() + " can only serialize structures containing numbers, strings, booleans, lists and maps which do not reference the same list/map multiple times.");
     }
 
-    String json = parser.serialize(o).toString();
+    String json = null;
+    try {
+      json = JsonUtils.ObjectToJson(o, false);
+    } catch (IOException ioe) {
+      throw new WarpScriptException(getName() + " failed with to convert to JSON.", ioe);
+    }
 
     stack.push(json);
 

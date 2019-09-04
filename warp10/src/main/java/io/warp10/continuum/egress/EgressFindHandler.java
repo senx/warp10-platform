@@ -49,7 +49,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.boon.json.JsonSerializer;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.slf4j.Logger;
@@ -186,12 +185,6 @@ public class EgressFindHandler extends AbstractHandler {
             request.setQuietAfter(quietAfter);
           }
 
-          JsonSerializer serializer = null;
-          
-          if (json) {
-            serializer = StackUtils.getSerializer();
-          }
-          
           try (MetadataIterator iterator = directoryClient.iterator(request)) {
             while(iterator.hasNext()) {
               if (limit <= 0) {
@@ -220,7 +213,7 @@ public class EgressFindHandler extends AbstractHandler {
                 } else {
                   first = false;
                 }
-                StackUtils.objectToJSON(serializer, pw, metadata, level, true);
+                StackUtils.objectToJSON(pw, metadata, level, true);
                 continue;
               }
               
