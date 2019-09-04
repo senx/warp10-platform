@@ -1033,6 +1033,7 @@ public class WarpScriptLib {
   public static final String PNORM = "Pnorm";
   public static final String VARS = "VARS";
   public static final String ASREGS = "ASREGS";
+  public static final String ASENCODERS = "ASENCODERS";
 
   public static final String TOLIST = "->LIST";
   public static final String TOMAP = "->MAP";
@@ -1468,6 +1469,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOENCODER(TOENCODER));
     addNamedWarpScriptFunction(new ENCODERTO(ENCODERTO));
     addNamedWarpScriptFunction(new TOGTS(TOGTS));
+    addNamedWarpScriptFunction(new ASENCODERS(ASENCODERS));
     addNamedWarpScriptFunction(new TOENCODERS(TOENCODERS));
     addNamedWarpScriptFunction(new OPTIMIZE(OPTIMIZE));
     addNamedWarpScriptFunction(new NEWGTS(NEWGTS));
