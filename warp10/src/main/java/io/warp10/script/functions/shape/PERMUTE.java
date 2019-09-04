@@ -14,11 +14,14 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.functions;
+package io.warp10.script.functions.shape;
 
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.formatted.FormattedWarpScriptFunction;
+import io.warp10.script.functions.GET;
+import io.warp10.script.functions.shape.CHECKSHAPE;
+import io.warp10.script.functions.shape.SHAPE;
 
 import java.util.ArrayList;
 import java.util.HashSet;

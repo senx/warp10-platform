@@ -1945,6 +1945,18 @@ public class GTSHelper {
     if (0 == bucketspan) {
       throw new WarpScriptException("Undefined bucket span, check your GTS timestamps.");
     }
+
+    //
+    // If the bucketizer is null, it only sets lastbucket, bucketcount and bucketspan
+    //
+
+    if (null == aggregator) {
+      gts.lastbucket = lastbucket;
+      gts.bucketcount = bucketcount;
+      gts.bucketspan = bucketspan;
+
+      return gts;
+    }
     
     //
     // Create the target Geo Time Serie (bucketized)
@@ -7771,6 +7783,27 @@ public class GTSHelper {
   }
   
   /**
+   * Build an occurrence count by value for the given GTS Encoder.
+   */
+  public static Map<Object,Long> valueHistogram(GTSEncoder encoder) {
+    Map<Object, Long> occurrences = new HashMap<Object, Long>();
+
+    GTSDecoder decoder = encoder.getDecoder();
+    
+    while(decoder.next()) {
+      Object value = decoder.getValue();
+      
+      if (!occurrences.containsKey(value)) {
+        occurrences.put(value, 1L);
+      } else {        
+        occurrences.put(value, 1L + occurrences.get(value));        
+      }
+    }
+    
+    return occurrences;
+  }
+  
+  /**
    * Detect patterns in a Geo Time Serie instance. Return a modified version of the original
    * GTS instance where only the values which are part of one of the provided patterns are kept.
    * 
@@ -10376,7 +10409,7 @@ public class GTSHelper {
         while(idx[i] < serie.values && serie.ticks[idx[i]] < target) {
           idx[i]++;
         }
-        
+                
         //
         // We've reached the end of one of the GTS, we know we're done
         //
@@ -10407,19 +10440,32 @@ public class GTSHelper {
       }
       
       //
-      // We have a march of all the ticks, add the current datapoint to the resulting GTS
+      // We have a match of all the ticks, add the datapoints with the current tick to the resulting GTS
       //
       
-      if (match) {
+      if (match) {        
         for (int i = 0; i < series.size(); i++) {
           GeoTimeSerie serie = series.get(i);
-          GTSHelper.setValue(result.get(i),
-            GTSHelper.tickAtIndex(serie, idx[i]),
-            GTSHelper.locationAtIndex(serie, idx[i]),
-            GTSHelper.elevationAtIndex(serie, idx[i]),
-            GTSHelper.valueAtIndex(serie, idx[i]),
-            false);
-        }   
+          
+          int tidx = idx[i];
+          
+          while (tidx < serie.values && target == serie.ticks[tidx]) {
+            GTSHelper.setValue(result.get(i),
+                GTSHelper.tickAtIndex(serie, tidx),
+                GTSHelper.locationAtIndex(serie, tidx),
+                GTSHelper.elevationAtIndex(serie, tidx),
+                GTSHelper.valueAtIndex(serie, tidx),
+                false);
+            tidx++;
+          }
+          
+          if (tidx < serie.values) {
+            tidx--;
+          }
+          
+          idx[i] = tidx;
+        }
+        
         idx[leader]++;
         if (idx[leader] >= leadergts.values) {
           return result;

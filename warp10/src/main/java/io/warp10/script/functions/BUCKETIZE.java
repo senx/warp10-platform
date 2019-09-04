@@ -57,8 +57,8 @@ public class BUCKETIZE extends NamedWarpScriptFunction implements WarpScriptStac
       }      
     }
     
-    if (!(params.get(params.size() - 4) instanceof WarpScriptBucketizerFunction) && !(params.get(params.size() - 4) instanceof Macro)) {
-      throw new WarpScriptException(getName() + " expects a bucketizer function or macro as fourth to last parameter.");
+    if (!(params.get(params.size() - 4) instanceof WarpScriptBucketizerFunction) && !(params.get(params.size() - 4) instanceof Macro) && null != params.get(params.size() - 4)) {
+      throw new WarpScriptException(getName() + " expects a bucketizer function, a macro, or NULL as fourth to last parameter.");
     }
     
     if (!(params.get(params.size() - 3) instanceof Long) || !(params.get(params.size() - 2) instanceof Long) || !(params.get(params.size() - 1) instanceof Long)) {

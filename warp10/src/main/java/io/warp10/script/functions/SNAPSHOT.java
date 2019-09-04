@@ -22,6 +22,7 @@ import com.google.common.base.Charsets;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.continuum.gts.UnsafeString;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -198,6 +199,10 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
     addElement(null, sb, o, false);
   }
 
+  public static void addElement(StringBuilder sb, Object o, boolean readable) throws WarpScriptException {
+    addElement(null, sb, o, readable);
+  }
+
   public static void addElement(SNAPSHOT snapshot, StringBuilder sb, Object o) throws WarpScriptException {
     addElement(snapshot, sb, o, false);
   }
@@ -230,10 +235,14 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(" ");
       } else if (o instanceof String) {
         sb.append("'");
-        try {
-          sb.append(WarpURLEncoder.encode(o.toString(), "UTF-8"));
-        } catch (UnsupportedEncodingException uee) {
-          throw new WarpScriptException(uee);
+        if (readable) {
+          appendProcessedString(sb, o.toString());
+        } else {
+          try {
+            sb.append(WarpURLEncoder.encode(o.toString(), "UTF-8"));
+          } catch (UnsupportedEncodingException uee) {
+            throw new WarpScriptException(uee);
+          }
         }
         sb.append("' ");
       } else if (o instanceof Boolean) {
@@ -328,10 +337,11 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
       } else if (o instanceof Map) {
         if (readable) {
           sb.append(WarpScriptLib.MAP_START);
-          sb.append(" ");
-          for (Entry<Object, Object> entry : ((Map<Object, Object>) o).entrySet()) {
+          sb.append(System.lineSeparator());
+          for (Entry<Object, Object> entry: ((Map<Object, Object>) o).entrySet()) {
             addElement(snapshot, sb, entry.getKey(), readable);
             addElement(snapshot, sb, entry.getValue(), readable);
+            sb.append(System.lineSeparator());
           }                    
           sb.append(WarpScriptLib.MAP_END);
           sb.append(" ");
@@ -339,7 +349,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.MAP_START);
           sb.append(WarpScriptLib.MAP_END);
           sb.append(" ");
-          for (Entry<Object, Object> entry : ((Map<Object, Object>) o).entrySet()) {
+          for (Entry<Object, Object> entry: ((Map<Object, Object>) o).entrySet()) {
             addElement(snapshot, sb, entry.getValue(), readable);
             addElement(snapshot, sb, entry.getKey(), readable);
             sb.append(WarpScriptLib.PUT);
@@ -409,6 +419,37 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
       if (null != depth && 0 == depth.addAndGet(-1)) {
         recursionDepth.remove();
       }
+    }
+  }
+
+  //
+  // Process a string to make it readable and compatible in WarpScript code
+  //
+
+  private static void appendProcessedString(StringBuilder sb, String s) {
+
+    char[] chars = UnsafeString.getChars(s);
+
+    int lastIdx = 0;
+    int idx = 0;
+
+    //
+    // Replace anything below 32 and ' by %## (invalid character)
+    //
+
+    while(idx < chars.length) {
+      if ('\'' == chars[idx] || chars[idx] < ' ') {
+
+        sb.append(chars, lastIdx, idx - lastIdx);
+        sb.append("%" + (chars[idx] >>> 4) + Integer.toHexString(chars[idx] & 0xF));
+        lastIdx = ++idx;
+      } else {
+        idx++;
+      }
+    }
+
+    if (idx > lastIdx) {
+      sb.append(chars, lastIdx, idx - lastIdx);
     }
   }
 }
