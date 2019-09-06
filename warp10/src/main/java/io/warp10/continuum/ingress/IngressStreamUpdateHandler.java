@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.ingress;
 
+import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.ThrottlingManager;
@@ -39,6 +40,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -81,6 +83,10 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
     private long seqno = 0L;
     
     private WriteToken wtoken;
+    private Boolean ignoor = null;
+    
+    private Long maxpastdelta = null;
+    private Long maxfuturedelta = null;
 
     private Map<String,String> sensisionLabels = new HashMap<String,String>();
     
@@ -144,7 +150,62 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
           
           long now = TimeSource.getTime();
           long nowms = System.currentTimeMillis();
+
+          //
+          // Extract time limits
+          //
           
+          Long maxpast = null;
+          
+          if (null != this.handler.ingress.maxpastDefault) {
+            try {
+              maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.ingress.maxpastDefault));
+            } catch (ArithmeticException ae) {
+              maxpast = null;
+            }
+          }
+          Long maxfuture = null;
+          
+          if (null != this.handler.ingress.maxfutureDefault) {
+            try {
+              maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.ingress.maxfutureDefault));
+            } catch (ArithmeticException ae) {
+              maxfuture = null;
+            }
+          }
+
+          if (null != this.maxpastdelta) {
+            try {
+              maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.maxpastdelta));
+            } catch (ArithmeticException ae) {
+              maxpast = null;
+            }
+          }
+
+          if (null != this.maxfuturedelta) {
+            try {
+              maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.maxfuturedelta));
+            } catch (ArithmeticException ae) {
+              maxfuture = null;
+            }
+          }
+
+          if (null != this.handler.ingress.maxpastOverride) {
+            try {
+              maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.ingress.maxpastOverride));
+            } catch (ArithmeticException ae) {
+              maxpast = null;
+            }
+          }
+
+          if (null != this.handler.ingress.maxfutureOverride) {
+            try {
+              maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.ingress.maxfutureOverride));
+            } catch (ArithmeticException ae) {
+              maxfuture = null;
+            }
+          }
+
           // Atomic boolean to track if attributes were parsed
           AtomicBoolean hadAttributes = this.handler.ingress.parseAttributes ? new AtomicBoolean(false) : null;
 
@@ -155,6 +216,12 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
             BufferedReader br = new BufferedReader(new StringReader(message));
             
             boolean lastHadAttributes = false;
+            
+            AtomicLong ignoredCount = null;
+            
+            if ((this.handler.ingress.ignoreOutOfRange && !Boolean.FALSE.equals(this.ignoor)) || Boolean.TRUE.equals(this.ignoor)) {
+              ignoredCount = new AtomicLong(0L);
+            }
             
             do {
               
@@ -184,7 +251,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
               }
 
               try {
-                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.handler.ingress.maxValueSize, hadAttributes);
+                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.handler.ingress.maxValueSize, hadAttributes, maxpast, maxfuture, ignoredCount);
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
                 throw new IOException("Parse error at '" + line + "'", pe);
@@ -368,6 +435,43 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
         throw new IOException("Token cannot be used for updating data.");
       }
       
+      this.maxpastdelta = null;
+      this.maxfuturedelta = null;
+      
+      Boolean ignoor = null;
+      
+      if (wtoken.getAttributesSize() > 0) {
+        
+        if (wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_IGNOOR)) {
+          String v = wtoken.getAttributes().get(Constants.TOKEN_ATTR_IGNOOR).toLowerCase();
+          if ("true".equals(v) || "t".equals(v)) {
+            ignoor = Boolean.TRUE;
+          } else if ("false".equals(v) || "f".equals(v)) {
+            ignoor = Boolean.FALSE;
+          }
+        }
+        
+        String deltastr = wtoken.getAttributes().get(Constants.TOKEN_ATTR_MAXPAST);
+
+        if (null != deltastr) {
+          long delta = Long.parseLong(deltastr);
+          if (delta < 0) {
+            throw new IOException("Invalid '" + Constants.TOKEN_ATTR_MAXPAST + "' token attribute, MUST be positive.");
+          }
+          maxpastdelta = delta;
+        }
+        
+        deltastr = wtoken.getAttributes().get(Constants.TOKEN_ATTR_MAXFUTURE);
+        
+        if (null != deltastr) {
+          long delta = Long.parseLong(deltastr);
+          if (delta < 0) {
+            throw new IOException("Invalid '" + Constants.TOKEN_ATTR_MAXFUTURE + "' token attribute, MUST be positive.");
+          }
+          maxfuturedelta = delta;
+        }          
+      }
+
       String application = wtoken.getAppName();
       String producer = Tokens.getUUID(wtoken.getProducerId());
       String owner = Tokens.getUUID(wtoken.getOwnerId());
@@ -401,6 +505,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
         sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
       }
 
+      this.ignoor = ignoor;
       this.wtoken = wtoken;      
     }
   }
