@@ -57,6 +57,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -113,6 +114,11 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
 
   private final boolean updateActivity;
   private final boolean parseAttributes;
+  private final Long maxpastDefault;
+  private final Long maxfutureDefault;
+  private final Long maxpastOverride;
+  private final Long maxfutureOverride;
+  private final boolean ignoreOutOfRange;
   
   private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
 
@@ -129,6 +135,11 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     
     private WriteToken wtoken;
 
+    private Boolean ignoor = null;
+    
+    private Long maxpastdelta = null;
+    private Long maxfuturedelta = null;
+    
     private String encodedToken;
     
     /**
@@ -206,12 +217,74 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
           
           long now = TimeSource.getTime();
           
+          //
+          // Extract time limits
+          //
+          
+          Long maxpast = null;
+          
+          if (null != this.handler.maxpastDefault) {
+            try {
+              maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.maxpastDefault));
+            } catch (ArithmeticException ae) {
+              maxpast = null;
+            }
+          }
+          
+          Long maxfuture = null;
+          
+          if (null != this.handler.maxfutureDefault) {
+            try {
+              maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.maxfutureDefault));
+            } catch (ArithmeticException ae) {
+              maxfuture = null;
+            }
+          }
+
+          if (null != this.maxpastdelta) {
+            try {
+              maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.maxpastdelta));
+            } catch (ArithmeticException ae) {
+              maxpast = null;
+            }
+          }
+
+          if (null != this.maxfuturedelta) {
+            try {
+              maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.maxfuturedelta));
+            } catch (ArithmeticException ae) {
+              maxfuture = null;
+            }
+          }
+          
+          if (null != this.handler.maxpastOverride) {
+            try {
+              maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.maxpastOverride));
+            } catch (ArithmeticException ae) {
+              maxpast = null;
+            }
+          }
+
+          if (null != this.handler.maxfutureOverride) {
+            try {
+              maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.maxfutureOverride));
+            } catch (ArithmeticException ae) {
+              maxfuture = null;
+            }
+          }
+
           File loggingFile = null;   
           PrintWriter loggingWriter = null;
           FileDescriptor loggingFD = null;
           DatalogRequest dr = null;
 
           long shardkey = 0L;
+
+          AtomicLong ignoredCount = null;
+          
+          if ((this.handler.ignoreOutOfRange && !Boolean.FALSE.equals(ignoor)) || Boolean.TRUE.equals(ignoor)) {
+            ignoredCount = new AtomicLong(0L);            
+          }
           
           try {
             GTSEncoder lastencoder = null;
@@ -345,7 +418,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               }
 
               try {
-                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.handler.maxValueSize, hadAttributes);
+                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.handler.maxValueSize, hadAttributes, maxpast, maxfuture, ignoredCount);
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
                 throw new IOException("Parse error at '" + line + "'", pe);
@@ -540,6 +613,43 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
         throw new IOException("Token cannot be used for updating data.");
       }
 
+      this.maxpastdelta = null;
+      this.maxfuturedelta = null;
+      
+      Boolean ignoor = null;
+      
+      if (wtoken.getAttributesSize() > 0) {
+        
+        if (wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_IGNOOR)) {
+          String v = wtoken.getAttributes().get(Constants.TOKEN_ATTR_IGNOOR).toLowerCase();
+          if ("true".equals(v) || "t".equals(v)) {
+            ignoor = Boolean.TRUE;
+          } else if ("false".equals(v) || "f".equals(v)) {
+            ignoor = Boolean.FALSE;
+          }
+        }
+        
+        String deltastr = wtoken.getAttributes().get(Constants.TOKEN_ATTR_MAXPAST);
+
+        if (null != deltastr) {
+          long delta = Long.parseLong(deltastr);
+          if (delta < 0) {
+            throw new IOException("Invalid '" + Constants.TOKEN_ATTR_MAXPAST + "' token attribute, MUST be positive.");
+          }
+          maxpastdelta = delta;
+        }
+        
+        deltastr = wtoken.getAttributes().get(Constants.TOKEN_ATTR_MAXFUTURE);
+        
+        if (null != deltastr) {
+          long delta = Long.parseLong(deltastr);
+          if (delta < 0) {
+            throw new IOException("Invalid '" + Constants.TOKEN_ATTR_MAXFUTURE + "' token attribute, MUST be positive.");
+          }
+          maxfuturedelta = delta;
+        }          
+      }
+
       String application = wtoken.getAppName();
       String producer = Tokens.getUUID(wtoken.getProducerId());
       String owner = Tokens.getUUID(wtoken.getOwnerId());
@@ -571,6 +681,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
         sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
       }
 
+      this.ignoor = ignoor;
       this.wtoken = wtoken;
       this.encodedToken = token;
     }
@@ -592,6 +703,44 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     this.maxValueSize = Long.parseLong(properties.getProperty(Configuration.STANDALONE_VALUE_MAXSIZE, StandaloneIngressHandler.DEFAULT_VALUE_MAXSIZE));
     
     this.parseAttributes = "true".equals(properties.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
+    
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT)) {
+      this.maxpastDefault = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT));
+      if (this.maxpastDefault < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXPAST_DEFAULT + "' MUST be positive.");
+      }
+    } else {
+      this.maxpastDefault = null;
+    }
+    
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT)) {
+      this.maxfutureDefault = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT));
+      if (this.maxfutureDefault < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXFUTURE_DEFAULT + "' MUST be positive.");
+      }
+    } else {
+      this.maxfutureDefault = null;
+    }
+
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE)) {
+      this.maxpastOverride = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE));
+      if (this.maxpastOverride < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXPAST_OVERRIDE + "' MUST be positive.");
+      }
+    } else {
+      this.maxpastOverride = null;
+    }
+    
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE)) {
+      this.maxfutureOverride = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE));
+      if (this.maxfutureOverride < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXFUTURE_OVERRIDE + "' MUST be positive.");
+      }
+    } else {
+      this.maxfutureOverride = null;
+    }
+    
+    this.ignoreOutOfRange = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_OUTOFRANGE_IGNORE));
     
     if ("false".equals(properties.getProperty(Configuration.DATALOG_LOGSHARDKEY))) {
       logShardKey = false;

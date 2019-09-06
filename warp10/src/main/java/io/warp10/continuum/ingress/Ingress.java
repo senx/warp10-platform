@@ -88,6 +88,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 
 import io.warp10.SSLUtils;
+import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
@@ -279,6 +280,12 @@ public class Ingress extends AbstractHandler implements Runnable {
   private final boolean metaActivity;
   final long activityWindow;
   public final boolean parseAttributes;
+  final Long maxpastDefault;
+  final Long maxfutureDefault;
+  final Long maxpastOverride;
+  final Long maxfutureOverride;
+
+  final boolean ignoreOutOfRange;
   
   public Ingress(KeyStore keystore, Properties props) {
 
@@ -346,6 +353,44 @@ public class Ingress extends AbstractHandler implements Runnable {
 
     this.parseAttributes = "true".equals(props.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
     
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT)) {
+      maxpastDefault = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT));
+      if (maxpastDefault < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXPAST_DEFAULT + "' MUST be positive.");
+      }
+    } else {
+      maxpastDefault = null;
+    }
+    
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT)) {
+      maxfutureDefault = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT));
+      if (maxfutureDefault < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXFUTURE_DEFAULT + "' MUST be positive.");
+      }
+    } else {
+      maxfutureDefault = null;
+    }
+
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE)) {
+      maxpastOverride = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE));
+      if (maxpastOverride < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXPAST_OVERRIDE + "' MUST be positive.");
+      }
+    } else {
+      maxpastOverride = null;
+    }
+    
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE)) {
+      maxfutureOverride = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE));
+      if (maxfutureOverride < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXFUTURE_OVERRIDE + "' MUST be positive.");
+      }
+    } else {
+      maxfutureOverride = null;
+    }
+    
+    this.ignoreOutOfRange = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_OUTOFRANGE_IGNORE));
+
     //
     // Prepare meta, data and delete producers
     //
@@ -716,6 +761,86 @@ public class Ingress extends AbstractHandler implements Runnable {
         Long now = TimeSource.getTime();
 
         //
+        // Extract time limits
+        //
+        
+        Long maxpast = null;
+        if (null != maxpastDefault) {
+          try {
+            maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, maxpastDefault));            
+          } catch (ArithmeticException ae) {
+            maxpast = null;
+          }
+        }
+        
+        Long maxfuture = null;
+        if (null != maxfutureDefault) {
+          try {
+            maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, maxfutureDefault));
+          } catch (ArithmeticException ae) {
+            maxfuture = null;
+          }
+        }
+ 
+        Boolean ignoor = null;
+        
+        if (writeToken.getAttributesSize() > 0) {
+          
+          if (writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_IGNOOR)) {
+            String v = writeToken.getAttributes().get(Constants.TOKEN_ATTR_IGNOOR).toLowerCase();
+            if ("true".equals(v) || "t".equals(v)) {
+              ignoor = Boolean.TRUE;
+            } else if ("false".equals(v) || "f".equals(v)) {
+              ignoor = Boolean.FALSE;
+            }
+          }
+
+          String deltastr = writeToken.getAttributes().get(Constants.TOKEN_ATTR_MAXPAST);
+
+          if (null != deltastr) {
+            long delta = Long.parseLong(deltastr);
+            if (delta < 0) {
+              throw new WarpScriptException("Invalid '" + Constants.TOKEN_ATTR_MAXPAST + "' token attribute, MUST be positive.");
+            }
+            try {
+              maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, delta));
+            } catch (ArithmeticException ae) {
+              maxpast = null;
+            }
+          }
+          
+          deltastr = writeToken.getAttributes().get(Constants.TOKEN_ATTR_MAXFUTURE);
+          
+          if (null != deltastr) {
+            long delta = Long.parseLong(deltastr);
+            if (delta < 0) {
+              throw new WarpScriptException("Invalid '" + Constants.TOKEN_ATTR_MAXFUTURE + "' token attribute, MUST be positive.");
+            }
+            try {
+              maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, delta));
+            } catch (ArithmeticException ae) {
+              maxfuture = null;
+            }
+          }          
+        }
+
+        if (null != maxpastOverride) {
+          try {
+            maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, maxpastOverride));
+          } catch (ArithmeticException ae) {
+            maxpast = null;
+          }
+        }
+
+        if (null != maxfutureOverride) {
+          try {
+            maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, maxfutureOverride));
+          } catch (ArithmeticException ae) {
+            maxfuture = null;
+          }
+        }
+
+        //
         // Check the value of the 'now' header
         //
         // The following values are supported:
@@ -776,6 +901,12 @@ public class Ingress extends AbstractHandler implements Runnable {
 
         boolean lastHadAttributes = false;
 
+        AtomicLong ignoredCount = null;
+        
+        if ((this.ignoreOutOfRange && !Boolean.FALSE.equals(ignoor)) || Boolean.TRUE.equals(ignoor)) {
+          ignoredCount = new AtomicLong(0L);
+        }
+        
         do {
           
           // We copy the current value of hadAttributes
@@ -800,7 +931,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           }
                     
           try {
-            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, hadAttributes);
+            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, hadAttributes, maxpast, maxfuture, ignoredCount);
             count++;
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_PARSEERRORS, sensisionLabels, 1);

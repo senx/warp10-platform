@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,36 +14,31 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.functions;
+package io.warp10.script.mapper;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.aggregator.FirstEQ;
+import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.aggregator.CompareTo;
 
-public class MAPPEREQ extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
-  public MAPPEREQ(String name) {
+public class MapperCompareTo extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  private final CompareTo.Compared compared;
+  private final CompareTo.Comparison comparison;
+
+  public MapperCompareTo(String name, CompareTo.Compared compared, CompareTo.Comparison comparison) {
     super(name);
+    this.compared = compared;
+    this.comparison = comparison;
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
-    
-    if (o instanceof Long) {
-      stack.push(new FirstEQ(getName(), (long) o));
-    } else if (o instanceof Double) {
-      stack.push(new FirstEQ(getName(), (double) o));
-    } else if (o instanceof Boolean) {
-      stack.push(new FirstEQ(getName(), (boolean) o));
-    } else if (o instanceof String) {
-      stack.push(new FirstEQ(getName(), (String) o));
-    } else {
-      throw new WarpScriptException("Can only accept a valid GTS type.");
-    }
-    
+
+    stack.push(new CompareTo(getName(), o, compared, comparison));
+
     return stack;
   }
 }

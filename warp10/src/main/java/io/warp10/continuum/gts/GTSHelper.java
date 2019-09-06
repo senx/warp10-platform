@@ -44,6 +44,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -1945,6 +1946,18 @@ public class GTSHelper {
     if (0 == bucketspan) {
       throw new WarpScriptException("Undefined bucket span, check your GTS timestamps.");
     }
+
+    //
+    // If the bucketizer is null, it only sets lastbucket, bucketcount and bucketspan
+    //
+
+    if (null == aggregator) {
+      gts.lastbucket = lastbucket;
+      gts.bucketcount = bucketcount;
+      gts.bucketspan = bucketspan;
+
+      return gts;
+    }
     
     //
     // Create the target Geo Time Serie (bucketized)
@@ -2273,6 +2286,10 @@ public class GTSHelper {
   }
   
   public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes) throws ParseException, IOException {
+    return parse(encoder, str, extraLabels, now, maxValueSize, parsedAttributes, null, null, null);
+  }
+  
+  public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes, Long maxpast, Long maxfuture, AtomicLong ignoredCount) throws ParseException, IOException {
 
     int idx = 0;
     
@@ -2307,6 +2324,22 @@ public class GTSHelper {
       }
     }
 
+    boolean ignored = false;
+    
+    if (null != maxpast && timestamp < maxpast) {
+      if (null == ignoredCount) {
+        throw new ParseException("Timestamp " + timestamp + " is too far in the past.", idx);
+      } else {
+        ignored = true;
+      }
+    } else if (null != maxfuture && timestamp > maxfuture) {
+      if (null == ignoredCount) {
+        throw new ParseException("Timestamp " + timestamp + " is too far in the future.", idx);
+      } else {
+        ignored = true;
+      }
+    }
+    
     // Advance past the '/'
     idx++;
     
@@ -2508,7 +2541,11 @@ public class GTSHelper {
       encoder.getMetadata().setAttributes(attributes);
     }
 
-    encoder.addValue(timestamp, location, elevation, value);
+    if (!ignored) {
+      encoder.addValue(timestamp, location, elevation, value);
+    } else {
+      ignoredCount.addAndGet(1);
+    }
     
     return encoder;
   }

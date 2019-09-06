@@ -136,8 +136,7 @@ public class WarpDB extends Thread implements DB {
     this.setDaemon(true);
     this.start();
 
-    this.open(nativedisabled, javadisabled, home, options);
-    
+    this.open(nativedisabled, javadisabled, home, options);    
   }
   
   private synchronized void open(boolean nativedisabled, boolean javadisabled, String home, Options options) throws IOException {
