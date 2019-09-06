@@ -2134,4 +2134,19 @@ public class Configuration {
   public static final String EGRESS_PREFIX = "egress";
   public static final String INGRESS_PREFIX = "ingress";
   public static final String PLASMA_FRONTEND_PREFIX = "plasma.frontend";
+  
+  //
+  // Hadoop Integration Configurations
+  //
+  
+  /**
+   * Set to 'true' to throw an error when a Writable that the WritableUtils cannot convert is encountered.
+   * If this is not set, the unknown Writable will be returned as is.
+   */
+  public static final String CONFIG_WARPSCRIPT_HADOOP_STRICTWRITABLES = "warpscript.hadoop.strictwritables";
+  
+  /**
+   * Set to 'true' to return Writable instances as is in WarpScriptInputFormat
+   */
+  public static final String CONFIG_WARPSCRIPT_HADOOP_RAWWRITABLES = "warpscript.hadoop.rawwritables";  
 }
