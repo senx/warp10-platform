@@ -56,6 +56,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPInputStream;
 
 import javax.servlet.ServletException;
@@ -132,6 +133,13 @@ public class StandaloneIngressHandler extends AbstractHandler {
   private final boolean metaActivity;
   private final boolean parseAttributes;
   
+  private final boolean datalogIgnoreTimelimits;
+  private final Long maxpastDefault;
+  private final Long maxfutureDefault;
+  private final Long maxpastOverride;
+  private final Long maxfutureOverride;
+  private final boolean ignoreOutOfRange;
+  
   public StandaloneIngressHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
     this.keyStore = keystore;
     this.storeClient = storeClient;
@@ -151,6 +159,46 @@ public class StandaloneIngressHandler extends AbstractHandler {
     metaActivity = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_ACTIVITY_META));
     
     this.parseAttributes = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
+
+    this.datalogIgnoreTimelimits = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_IGNORE_TIMESTAMPLIMITS));
+    
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT)) {
+      maxpastDefault = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT));
+      if (maxpastDefault < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXPAST_DEFAULT + "' MUST be positive.");
+      }
+    } else {
+      maxpastDefault = null;
+    }
+    
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT)) {
+      maxfutureDefault = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT));
+      if (maxfutureDefault < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXFUTURE_DEFAULT + "' MUST be positive.");
+      }
+    } else {
+      maxfutureDefault = null;
+    }
+
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE)) {
+      maxpastOverride = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE));
+      if (maxpastOverride < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXPAST_OVERRIDE + "' MUST be positive.");
+      }
+    } else {
+      maxpastOverride = null;
+    }
+    
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE)) {
+      maxfutureOverride = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE));
+      if (maxfutureOverride < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXFUTURE_OVERRIDE + "' MUST be positive.");
+      }
+    } else {
+      maxfutureOverride = null;
+    }
+
+    this.ignoreOutOfRange = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_OUTOFRANGE_IGNORE));
 
     String dirProp = WarpConfig.getProperty(Configuration.DATALOG_DIR);
     if (null != dirProp) {
@@ -364,6 +412,93 @@ public class StandaloneIngressHandler extends AbstractHandler {
         Long now = TimeSource.getTime();
 
         //
+        // Extract time limits
+        //
+        
+        Long maxpast = null;
+        
+        if (null != maxpastDefault) {
+          try {
+            maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, maxpastDefault));
+          } catch (ArithmeticException ae) {
+            maxpast = null;
+          }
+        }
+        
+        Long maxfuture = null;
+        
+        if (null != maxfutureDefault) {
+          try {
+            maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, maxfutureDefault));
+          } catch (ArithmeticException ae) {
+            maxfuture = null;
+          }
+        }
+        
+        Boolean ignoor = null;
+        
+        if (writeToken.getAttributesSize() > 0) {
+          
+          if (writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_IGNOOR)) {
+            String v = writeToken.getAttributes().get(Constants.TOKEN_ATTR_IGNOOR).toLowerCase();
+            if ("true".equals(v) || "t".equals(v)) {
+              ignoor = Boolean.TRUE;
+            } else if ("false".equals(v) || "f".equals(v)) {
+              ignoor = Boolean.FALSE;
+            }
+          }
+          
+          String deltastr = writeToken.getAttributes().get(Constants.TOKEN_ATTR_MAXPAST);
+
+          if (null != deltastr) {
+            long delta = Long.parseLong(deltastr);
+            if (delta < 0) {
+              throw new WarpScriptException("Invalid '" + Constants.TOKEN_ATTR_MAXPAST + "' token attribute, MUST be positive.");
+            }
+            try {
+              maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, delta));
+            } catch (ArithmeticException ae) {
+              maxpast = null;
+            }
+          }
+          
+          deltastr = writeToken.getAttributes().get(Constants.TOKEN_ATTR_MAXFUTURE);
+          
+          if (null != deltastr) {
+            long delta = Long.parseLong(deltastr);
+            if (delta < 0) {
+              throw new WarpScriptException("Invalid '" + Constants.TOKEN_ATTR_MAXFUTURE + "' token attribute, MUST be positive.");
+            }
+            try {
+              maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, delta));
+            } catch (ArithmeticException ae) {
+              maxfuture = null;
+            }
+          }          
+        }
+        
+        if (null != maxpastOverride) {
+          try {
+            maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, maxpastOverride));
+          } catch (ArithmeticException ae) {
+            maxpast = null;
+          }
+        }
+
+        if (null != maxfutureOverride) {
+          try {
+            maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, maxfutureOverride));
+          } catch (ArithmeticException ae) {
+            maxfuture = null;
+          }
+        }
+
+        if (null != dr && datalogIgnoreTimelimits) {
+          maxfuture = null;
+          maxpast = null;
+        }
+        
+        //
         // Check the value of the 'now' header
         //
         // The following values are supported:
@@ -504,7 +639,13 @@ public class StandaloneIngressHandler extends AbstractHandler {
         //
         
         boolean lastHadAttributes = false;
-                
+           
+        AtomicLong ignoredCount = null;
+        
+        if ((ignoreOutOfRange && !Boolean.FALSE.equals(ignoor)) || Boolean.TRUE.equals(ignoor)) {
+          ignoredCount = new AtomicLong(0L);
+        }
+        
         do {
         
           if (parseAttributes) {
@@ -546,11 +687,15 @@ public class StandaloneIngressHandler extends AbstractHandler {
           count++;
 
           try {
-            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, hadAttributes);
+            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, hadAttributes, maxpast, maxfuture, ignoredCount);
             //nano2 += System.nanoTime() - nano0;
           } catch (ParseException pe) {
-            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_PARSEERRORS, sensisionLabels, 1);            
-            throw new IOException("Parse error at '" + line + "'", pe);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_PARSEERRORS, sensisionLabels, 1);
+            if (null != pe.getMessage()) {
+              throw new IOException("Parse error at '" + line + "' (" + pe.getMessage() + ")", pe);
+            } else {
+              throw new IOException("Parse error at '" + line + "'", pe);
+            }
           }
 
           if (encoder != lastencoder || lastencoder.size() > ENCODER_SIZE_THRESHOLD) {
