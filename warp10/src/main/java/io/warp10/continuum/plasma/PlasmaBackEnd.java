@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -408,10 +408,10 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     // Update number of subscriptions per topic
     //
     
-    for (String topic: subsbytopic.keySet()) {
+    for (Map.Entry<String, Set<BigInteger>> topicAndSubs: subsbytopic.entrySet()) {
       Map<String,String> labels = new HashMap<String, String>();
-      labels.put(SensisionConstants.SENSISION_LABEL_TOPIC, topic);
-      Sensision.set(SensisionConstants.SENSISION_CLASS_PLASMA_BACKEND_SUBSCRIPTIONS, labels, subsbytopic.get(topic).size());
+      labels.put(SensisionConstants.SENSISION_LABEL_TOPIC, topicAndSubs.getKey());
+      Sensision.set(SensisionConstants.SENSISION_CLASS_PLASMA_BACKEND_SUBSCRIPTIONS, labels, topicAndSubs.getValue().size());
     }    
 
     // Reset number of subscriptions per topic absent from 'subsbytopic'
@@ -581,7 +581,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
               data = CryptoUtils.unwrap(inAESKey, data);
             }
             
-            // Skip data that was not unwrapped successfuly
+            // Skip data that was not unwrapped successfully
             if (null == data) {
               Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_BACKEND_KAFKA_IN_INVALIDCIPHERS, Sensision.EMPTY_LABELS, 1);
               continue;
@@ -656,8 +656,10 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     
     Map<String,String> labels = new HashMap<String, String>();
     
-    for (String topic: subs.keySet()) {
-      if (!subs.get(topic).contains(id)) {
+    for (Map.Entry<String, Set<BigInteger>> topicAndSubs: subs.entrySet()) {
+      String topic = topicAndSubs.getKey();
+
+      if (!topicAndSubs.getValue().contains(id)) {
         continue;
       }
 

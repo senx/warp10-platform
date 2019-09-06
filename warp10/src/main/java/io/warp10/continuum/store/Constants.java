@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,6 +26,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+
+import com.google.common.base.Charsets;
 
 public class Constants {
   
@@ -189,31 +191,31 @@ public class Constants {
   /**
    * Name of header containing the signature of the token used for the fetch
    */
-  public static String HTTP_HEADER_FETCH_SIGNATURE_DEFAULT = "X-Warp10-Fetch-Signature";
+  public static final String HTTP_HEADER_FETCH_SIGNATURE_DEFAULT = "X-Warp10-Fetch-Signature";
 
   /**
    * Name of header containing the signature of the token used for the update
    */
-  public static String HTTP_HEADER_UPDATE_SIGNATURE_DEFAULT = "X-Warp10-Update-Signature";
+  public static final String HTTP_HEADER_UPDATE_SIGNATURE_DEFAULT = "X-Warp10-Update-Signature";
   
   /**
    * Name of header containing the signature of streaming directory requests
    */
-  public static String HTTP_HEADER_DIRECTORY_SIGNATURE_DEFAULT = "X-Warp10-Directory-Signature";
+  public static final String HTTP_HEADER_DIRECTORY_SIGNATURE_DEFAULT = "X-Warp10-Directory-Signature";
 
   /**
    * Name of header specifying the name of the symbol in which to expose the request headers
    */
-  public static String HTTP_HEADER_EXPOSE_HEADERS_DEFAULT = "X-Warp10-ExposeHeaders";
+  public static final String HTTP_HEADER_EXPOSE_HEADERS_DEFAULT = "X-Warp10-ExposeHeaders";
   
   /**
    * Name of header containing the wrapped Datalog request
    */
-  public static String HTTP_HEADER_DATALOG_DEFAULT = "X-Warp10-Datalog";
+  public static final String HTTP_HEADER_DATALOG_DEFAULT = "X-Warp10-Datalog";
   
-  public static String DATALOG_UPDATE = "UPDATE";
-  public static String DATALOG_META = "META";
-  public static String DATALOG_DELETE = "DELETE";
+  public static final String DATALOG_UPDATE = "UPDATE";
+  public static final String DATALOG_META = "META";
+  public static final String DATALOG_DELETE = "DELETE";
   
   /**
    * Empty column qualifier for HBase writes
@@ -286,6 +288,11 @@ public class Constants {
   public static final String API_ENDPOINT_MOBIUS = "/api/v0/mobius";
 
   /**
+   * Read Execute Loop endpoint
+   */
+  public static final String API_ENDPOINT_INTERACTIVE = "/api/v0/interactive";
+  
+  /**
    * Meta endpoint
    */
   public static final String API_ENDPOINT_META = "/api/v0/meta";
@@ -357,6 +364,8 @@ public class Constants {
   public static final String HTTP_PARAM_SUFFIX = "suffix";
   public static final String HTTP_PARAM_UNPACK = "unpack";
   public static final String HTTP_PARAM_CHUNKSIZE = "chunksize";
+  public static final String HTTP_PARAM_ACTIVEAFTER = "activeafter";
+  public static final String HTTP_PARAM_QUIETAFTER = "quietafter";
   public static final String HTTP_PARAM_LIMIT = "limit";
   
   public static final String DEFAULT_PACKED_CLASS_SUFFIX = ":packed";
@@ -373,17 +382,26 @@ public class Constants {
   
   private static final int DEFAULT_MAX_ENCODER_SIZE = 100000;
   
+  //
+  // Token Attributes
+  //
+  
+  /**
+   * Attribute used to specify a WRITE token cannot be used for delete
+   */
+  public static final String TOKEN_ATTR_NODELETE = ".nodelete";
+  public static final String TOKEN_ATTR_NOUPDATE = ".noupdate";
+  public static final String TOKEN_ATTR_NOMETA = ".nometa";
+  
+  /**
+   * Timestamp limits for WRITE tokens (expressed in ms delta from current time)
+   */
+  public static final String TOKEN_ATTR_MAXFUTURE = ".maxfuture";
+  public static final String TOKEN_ATTR_MAXPAST = ".maxpast";
+  public static final String TOKEN_ATTR_IGNOOR = ".ignoor";
+  
   static {
-
-    Properties props = null;
-
-    try {
-      props = WarpConfig.getProperties();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-
-    String tu = props.getProperty(Configuration.WARP_TIME_UNITS);
+    String tu = WarpConfig.getProperty(Configuration.WARP_TIME_UNITS);
     
     if (null == tu) {
       throw new RuntimeException("Missing time units.");
@@ -400,12 +418,8 @@ public class Constants {
     TIME_UNITS_PER_S =  1000L * TIME_UNITS_PER_MS;
     NS_PER_TIME_UNIT = 1000000L / TIME_UNITS_PER_MS;
     //DEFAULT_MODULUS = 600L * TIME_UNITS_PER_S;
-    
-    if (props.containsKey(Configuration.MAX_ENCODER_SIZE)) {
-      MAX_ENCODER_SIZE = Integer.parseInt(props.getProperty(Configuration.MAX_ENCODER_SIZE));
-    } else {
-      MAX_ENCODER_SIZE = DEFAULT_MAX_ENCODER_SIZE;
-    }
+
+    MAX_ENCODER_SIZE = Integer.parseInt(WarpConfig.getProperty(Configuration.MAX_ENCODER_SIZE, Integer.toString(DEFAULT_MAX_ENCODER_SIZE)));
     
     if (null == System.getProperty(Configuration.WARP10_QUIET)) {
       System.out.println("########[ Initialized with " + TIME_UNITS_PER_MS + " time units per millisecond ]########");
@@ -415,24 +429,24 @@ public class Constants {
     // Initialize headers
     //
     
-    HEADERS.put(Configuration.HTTP_HEADER_WEBCALL_UUIDX, props.getProperty(Configuration.HTTP_HEADER_WEBCALL_UUIDX, HTTP_HEADER_WEBCALL_UUID_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_ELAPSEDX, props.getProperty(Configuration.HTTP_HEADER_ELAPSEDX, HTTP_HEADER_ELAPSED_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_OPSX, props.getProperty(Configuration.HTTP_HEADER_OPSX, HTTP_HEADER_OPS_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_FETCHEDX, props.getProperty(Configuration.HTTP_HEADER_FETCHEDX, HTTP_HEADER_FETCHED_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_ERROR_LINEX, props.getProperty(Configuration.HTTP_HEADER_ERROR_LINEX, HTTP_HEADER_ERROR_LINE_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_ERROR_MESSAGEX, props.getProperty(Configuration.HTTP_HEADER_ERROR_MESSAGEX, HTTP_HEADER_ERROR_MESSAGE_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_TOKENX, props.getProperty(Configuration.HTTP_HEADER_TOKENX, HTTP_HEADER_TOKEN_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_META_TOKENX, props.getProperty(Configuration.HTTP_HEADER_META_TOKENX, HTTP_HEADER_META_TOKEN_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_DELETE_TOKENX, props.getProperty(Configuration.HTTP_HEADER_DELETE_TOKENX, HTTP_HEADER_DELETE_TOKEN_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_UPDATE_TOKENX, props.getProperty(Configuration.HTTP_HEADER_UPDATE_TOKENX, HTTP_HEADER_UPDATE_TOKEN_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_NOW_HEADERX, props.getProperty(Configuration.HTTP_HEADER_NOW_HEADERX, HTTP_HEADER_NOW_HEADER_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_TIMESPAN_HEADERX, props.getProperty(Configuration.HTTP_HEADER_TIMESPAN_HEADERX, HTTP_HEADER_TIMESPAN_HEADER_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_SHOW_ERRORS_HEADERX, props.getProperty(Configuration.HTTP_HEADER_SHOW_ERRORS_HEADERX, HTTP_HEADER_SHOW_ERRORS_HEADER_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_FETCH_SIGNATURE, props.getProperty(Configuration.HTTP_HEADER_FETCH_SIGNATURE, HTTP_HEADER_FETCH_SIGNATURE_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_UPDATE_SIGNATURE, props.getProperty(Configuration.HTTP_HEADER_UPDATE_SIGNATURE, HTTP_HEADER_UPDATE_SIGNATURE_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE, props.getProperty(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE, HTTP_HEADER_DIRECTORY_SIGNATURE_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_EXPOSE_HEADERS, props.getProperty(Configuration.HTTP_HEADER_EXPOSE_HEADERS, HTTP_HEADER_EXPOSE_HEADERS_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_DATALOG, props.getProperty(Configuration.HTTP_HEADER_DATALOG, HTTP_HEADER_DATALOG_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_WEBCALL_UUIDX, WarpConfig.getProperty(Configuration.HTTP_HEADER_WEBCALL_UUIDX, HTTP_HEADER_WEBCALL_UUID_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_ELAPSEDX, WarpConfig.getProperty(Configuration.HTTP_HEADER_ELAPSEDX, HTTP_HEADER_ELAPSED_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_OPSX, WarpConfig.getProperty(Configuration.HTTP_HEADER_OPSX, HTTP_HEADER_OPS_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_FETCHEDX, WarpConfig.getProperty(Configuration.HTTP_HEADER_FETCHEDX, HTTP_HEADER_FETCHED_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_ERROR_LINEX, WarpConfig.getProperty(Configuration.HTTP_HEADER_ERROR_LINEX, HTTP_HEADER_ERROR_LINE_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_ERROR_MESSAGEX, WarpConfig.getProperty(Configuration.HTTP_HEADER_ERROR_MESSAGEX, HTTP_HEADER_ERROR_MESSAGE_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_TOKENX, WarpConfig.getProperty(Configuration.HTTP_HEADER_TOKENX, HTTP_HEADER_TOKEN_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_META_TOKENX, WarpConfig.getProperty(Configuration.HTTP_HEADER_META_TOKENX, HTTP_HEADER_META_TOKEN_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_DELETE_TOKENX, WarpConfig.getProperty(Configuration.HTTP_HEADER_DELETE_TOKENX, HTTP_HEADER_DELETE_TOKEN_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_UPDATE_TOKENX, WarpConfig.getProperty(Configuration.HTTP_HEADER_UPDATE_TOKENX, HTTP_HEADER_UPDATE_TOKEN_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_NOW_HEADERX, WarpConfig.getProperty(Configuration.HTTP_HEADER_NOW_HEADERX, HTTP_HEADER_NOW_HEADER_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_TIMESPAN_HEADERX, WarpConfig.getProperty(Configuration.HTTP_HEADER_TIMESPAN_HEADERX, HTTP_HEADER_TIMESPAN_HEADER_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_SHOW_ERRORS_HEADERX, WarpConfig.getProperty(Configuration.HTTP_HEADER_SHOW_ERRORS_HEADERX, HTTP_HEADER_SHOW_ERRORS_HEADER_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_FETCH_SIGNATURE, WarpConfig.getProperty(Configuration.HTTP_HEADER_FETCH_SIGNATURE, HTTP_HEADER_FETCH_SIGNATURE_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_UPDATE_SIGNATURE, WarpConfig.getProperty(Configuration.HTTP_HEADER_UPDATE_SIGNATURE, HTTP_HEADER_UPDATE_SIGNATURE_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE, WarpConfig.getProperty(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE, HTTP_HEADER_DIRECTORY_SIGNATURE_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_EXPOSE_HEADERS, WarpConfig.getProperty(Configuration.HTTP_HEADER_EXPOSE_HEADERS, HTTP_HEADER_EXPOSE_HEADERS_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_DATALOG, WarpConfig.getProperty(Configuration.HTTP_HEADER_DATALOG, HTTP_HEADER_DATALOG_DEFAULT));
   }
   
   public static String getHeader(String name) {
@@ -454,4 +468,14 @@ public class Constants {
     
     return false;
   }
+
+  /**
+   * row key prefix for metadata
+   */
+  public static final byte[] HBASE_METADATA_KEY_PREFIX = "M".getBytes(Charsets.UTF_8);
+
+  /**
+   * Prefix for 'raw' (individual datapoints) data
+   */
+  public static final byte[] HBASE_RAW_DATA_KEY_PREFIX = "R".getBytes(Charsets.UTF_8);
 }

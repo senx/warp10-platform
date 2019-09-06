@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ public interface GTSDirectory {
   /**
    * Register the given Geo Time Serie under the specified classId/labelsId.
    * 
-   * classId and labelsId are passed as parameters so as to leave the responsability
+   * classId and labelsId are passed as parameters so as to leave the responsibility
    * of choosing hash keys to external entities or to avoid recomputing them
    * if they have been previously computed.
    * 

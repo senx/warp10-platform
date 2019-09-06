@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.LogUtil;
 import io.warp10.continuum.TimeSource;
-import io.warp10.continuum.geo.GeoDirectoryClient;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
@@ -33,6 +32,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStopException;
+import io.warp10.script.functions.AUTHENTICATE;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptStack.StackContext;
@@ -81,15 +81,13 @@ public class EgressExecHandler extends AbstractHandler {
   private final KeyStore keyStore;
   private final StoreClient storeClient;
   private final DirectoryClient directoryClient;
-  private final GeoDirectoryClient geoDirectoryClient;
-
+  
   private final BootstrapManager bootstrapManager;
   
-  public EgressExecHandler(KeyStore keyStore, Properties properties, DirectoryClient directoryClient, GeoDirectoryClient geoDirectoryClient, StoreClient storeClient) {
+  public EgressExecHandler(KeyStore keyStore, Properties properties, DirectoryClient directoryClient, StoreClient storeClient) {
     this.keyStore = keyStore;
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
-    this.geoDirectoryClient = geoDirectoryClient;
     
     //
     // Check if we have a 'bootstrap' property
@@ -139,12 +137,6 @@ public class EgressExecHandler extends AbstractHandler {
     UUID uuid = UUID.randomUUID();
     
     //
-    // Create EinsteinExecutionReport
-    //
-    
-    //EinsteinExecutionReport report = new EinsteinExecutionReport();
-    
-    //
     // FIXME(hbs): Make sure we have at least one valid token
     //
     
@@ -152,7 +144,7 @@ public class EgressExecHandler extends AbstractHandler {
     // Create the stack to use
     //
     
-    WarpScriptStack stack = new MemoryWarpScriptStack(this.storeClient, this.directoryClient, this.geoDirectoryClient);
+    WarpScriptStack stack = new MemoryWarpScriptStack(this.storeClient, this.directoryClient);
 
     Throwable t = null;
 
@@ -274,7 +266,7 @@ public class EgressExecHandler extends AbstractHandler {
         long nano = System.nanoTime();
         
         try {
-          if (Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_LINENO)) && !((MemoryWarpScriptStack) stack).inMultiline()) {
+          if (Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_LINENO)) && !((MemoryWarpScriptStack) stack).isInMultiline()) {
             // We call 'exec' so statements are correctly put in macros if we are currently building one
             stack.exec("'[Line #" + Long.toString(lineno) + "]'");
             stack.exec(WarpScriptLib.SECTION);
@@ -333,7 +325,7 @@ public class EgressExecHandler extends AbstractHandler {
       
       Object exported = stack.getAttribute(WarpScriptStack.ATTRIBUTE_EXPORTED_SYMBOLS);
       
-      if (null != exported && exported instanceof Set && !((Set) exported).isEmpty()) {
+      if (exported instanceof Set && !((Set) exported).isEmpty()) {
         Map<String,Object> exports = new HashMap<String,Object>();
         Map<String,Object> symtable = stack.getSymbolTable();
         for (Object symbol: (Set) exported) {
@@ -382,7 +374,7 @@ public class EgressExecHandler extends AbstractHandler {
       resp.addHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX) + "," + Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX));
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX), Long.toString(lineno));
       String section = (String) stack.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME);
-      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX), "in section '" + section + "': " + t.getMessage());
+      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX), "in section '" + section + "': " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : ""));
       
       //
       // Output the exported symbols in a map
@@ -390,7 +382,7 @@ public class EgressExecHandler extends AbstractHandler {
       
       Object exported = stack.getAttribute(WarpScriptStack.ATTRIBUTE_EXPORTED_SYMBOLS);
       
-      if (null != exported && exported instanceof Set && !((Set) exported).isEmpty()) {
+      if (exported instanceof Set && !((Set) exported).isEmpty()) {
         Map<String,Object> exports = new HashMap<String,Object>();
         Map<String,Object> symtable = stack.getSymbolTable();
         for (Object symbol: (Set) exported) {
@@ -423,27 +415,27 @@ public class EgressExecHandler extends AbstractHandler {
       }
     } finally {
       // Clear this metric in case there was an exception
-      Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_REQUESTS, Sensision.EMPTY_LABELS, 1);
-      Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_TIME_US, Sensision.EMPTY_LABELS, (long) ((System.nanoTime() - now) / 1000));
-      Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_OPS, Sensision.EMPTY_LABELS, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS));
+      Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_REQUESTS, Sensision.EMPTY_LABELS, 1);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_TIME_US, Sensision.EMPTY_LABELS, (long) ((System.nanoTime() - now) / 1000));
+      Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_OPS, Sensision.EMPTY_LABELS, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS));
       
       //
       // Record the JVM free memory
       //
       
-      Sensision.set(SensisionConstants.SENSISION_CLASS_EINSTEIN_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
+      Sensision.set(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
       
       LoggingEvent event = LogUtil.setLoggingEventAttribute(null, LogUtil.WARPSCRIPT_SCRIPT, scriptSB.toString());
       
       event = LogUtil.setLoggingEventAttribute(event, LogUtil.WARPSCRIPT_TIMES, times);
       
       if (stack.isAuthenticated()) {
-        event = LogUtil.setLoggingEventAttribute(event, WarpScriptStack.ATTRIBUTE_TOKEN, stack.getAttribute(WarpScriptStack.ATTRIBUTE_TOKEN).toString());        
+        event = LogUtil.setLoggingEventAttribute(event, WarpScriptStack.ATTRIBUTE_TOKEN, AUTHENTICATE.unhide(stack.getAttribute(WarpScriptStack.ATTRIBUTE_TOKEN).toString()));
       }
       
       if (null != t) {
         event = LogUtil.setLoggingEventStackTrace(event, LogUtil.STACK_TRACE, t);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_EINSTEIN_ERRORS, Sensision.EMPTY_LABELS, 1);
+        Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_ERRORS, Sensision.EMPTY_LABELS, 1);
       }
       
       LogUtil.addHttpHeaders(event, req);

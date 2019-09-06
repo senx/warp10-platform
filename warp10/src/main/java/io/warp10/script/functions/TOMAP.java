@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ public class TOMAP extends NamedWarpScriptFunction implements WarpScriptStackFun
       throw new WarpScriptException("Odd number of elements, cannot create map.");
     }
     
-    Map<Object, Object> map = new LinkedHashMap<Object, Object>();
+    Map<Object, Object> map = new LinkedHashMap<Object, Object>(elements.length / 2);
     
     for (int i = 0; i < elements.length; i+=2) {
       //if (! (elements[i] instanceof String)) {

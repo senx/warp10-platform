@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -109,7 +109,9 @@ public class FilterByLabels extends NamedWarpScriptFunction implements WarpScrip
         Map<String,String> labels = gts.getMetadata().getLabels();        
         Map<String,String> attributes = gts.getMetadata().getAttributes();
         
-        for (String label: matchers.keySet()) {
+        for (Map.Entry<String, Matcher> labelAndMatcher: matchers.entrySet()) {
+          String label = labelAndMatcher.getKey();
+          Matcher matcher = labelAndMatcher.getValue();
           
           boolean hasLabel = false;
           
@@ -120,7 +122,7 @@ public class FilterByLabels extends NamedWarpScriptFunction implements WarpScrip
             }
           }
           
-          // If the GTS does not have the named label, check if it has a named attribtue
+          // If the GTS does not have the named label, check if it has a named attribute
           if (!hasLabel && checkAttributes) {
             if (!attributes.containsKey(label)) {
               matched = false;
@@ -135,12 +137,12 @@ public class FilterByLabels extends NamedWarpScriptFunction implements WarpScrip
 
           // Now check the label or attribute value
           if (hasLabel && checkLabels) {
-            if (!matchers.get(label).reset(labels.get(label)).matches()) {
+            if (!matcher.reset(labels.get(label)).matches()) {
               matched = false;
               break;
             }            
           } else if (checkAttributes) {
-            if (!matchers.get(label).reset(attributes.get(label)).matches()) {
+            if (!matcher.reset(attributes.get(label)).matches()) {
               matched = false;
               break;
             }

@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ public class PARTITION extends NamedWarpScriptFunction implements WarpScriptStac
     try {
       bylabels = (List<String>) top;
     } catch (ClassCastException cce) {
-      throw new WarpScriptException(getName() + " expects a list of labels or null on the top of the stack.");      
+      throw new WarpScriptException(getName() + " expects a list of labels or null on the top of the stack.", cce);
     }
     
     top = stack.pop();
@@ -65,7 +65,7 @@ public class PARTITION extends NamedWarpScriptFunction implements WarpScriptStac
     try {
       params = (List<Object>) top;
     } catch (ClassCastException cce) {
-      throw new WarpScriptException(getName() + " expects a list of geo time series instances under the top of the stack.");      
+      throw new WarpScriptException(getName() + " expects a list of Geo Time Series instances under the top of the stack.", cce);
     }
 
     List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
@@ -76,7 +76,7 @@ public class PARTITION extends NamedWarpScriptFunction implements WarpScriptStac
       } else if (params.get(i) instanceof List) {
         for (Object o: (List) params.get(i)) {
           if (!(o instanceof GeoTimeSerie)) {
-            throw new WarpScriptException(getName() + " expects a list of geo time series as first parameter.");
+            throw new WarpScriptException(getName() + " expects a list of Geo Time Series as first parameter.");
           }
           series.add((GeoTimeSerie) o);
         }      

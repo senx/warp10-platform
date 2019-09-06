@@ -1,5 +1,5 @@
 //
-//   Copyright 2017  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -76,7 +76,7 @@ public class UNWRAPSIZE extends NamedWarpScriptFunction implements WarpScriptSta
 
         outputs.add(wrapper.getCount());
       } catch (TException te) {
-        throw new WarpScriptException(getName() + " failed to unwrap GTS.");
+        throw new WarpScriptException(getName() + " failed to unwrap GTS.", te);
       }      
     }
     

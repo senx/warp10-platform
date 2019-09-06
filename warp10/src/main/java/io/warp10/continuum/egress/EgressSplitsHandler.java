@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import io.warp10.continuum.Tokens;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.MetadataIterator;
-import io.warp10.continuum.store.Store;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.GTSSplit;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
@@ -87,6 +87,9 @@ public class EgressSplitsHandler extends AbstractHandler {
     String selector = request.getParameter(Constants.HTTP_PARAM_SELECTOR);
     String now = request.getParameter(Constants.HTTP_PARAM_NOW);
     
+    Long activeAfter = null == request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
+    Long quietAfter = null == request.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
+
     //
     // Validate token
     //
@@ -149,16 +152,27 @@ public class EgressSplitsHandler extends AbstractHandler {
     
     RegionLocator locator = this.storeClient.getRegionLocator();
     
-    try (MetadataIterator metadatas = directoryClient.iterator(clsSels, lblsSels)) {
+    DirectoryRequest drequest = new DirectoryRequest();
+    drequest.setClassSelectors(clsSels);
+    drequest.setLabelsSelectors(lblsSels);
+
+    if (null != activeAfter) {
+      drequest.setActiveAfter(activeAfter);
+    }
+    if (null != quietAfter) {
+      drequest.setQuietAfter(quietAfter);
+    }
+
+    try (MetadataIterator metadatas = directoryClient.iterator(drequest)) {
       
       //
       // We output a single split per Metadata, split combining is the
-      // responsability of the InputFormat
+      // responsibility of the InputFormat
       // 128bits
       //
         
-      byte[] row = new byte[Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
-      System.arraycopy(Store.HBASE_RAW_DATA_KEY_PREFIX, 0, row, 0, Store.HBASE_RAW_DATA_KEY_PREFIX.length);           
+      byte[] row = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
+      System.arraycopy(Constants.HBASE_RAW_DATA_KEY_PREFIX, 0, row, 0, Constants.HBASE_RAW_DATA_KEY_PREFIX.length);           
       
       PrintWriter pw = response.getWriter();
       
@@ -173,7 +187,7 @@ public class EgressSplitsHandler extends AbstractHandler {
         long classId = metadata.getClassId();
         long labelsId = metadata.getLabelsId();
         
-        int offset = Store.HBASE_RAW_DATA_KEY_PREFIX.length;
+        int offset = Constants.HBASE_RAW_DATA_KEY_PREFIX.length;
         
         // Add classId
         for (int i = 7; i >= 0; i--) {

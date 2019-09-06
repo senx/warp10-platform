@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -64,7 +64,7 @@ public class StandardDeviation extends NamedWarpScriptFunction implements WarpSc
   public Object apply(Object[] args) throws io.warp10.script.WarpScriptException {
     Object[] var = (Object[]) variance.apply(args); 
     
-    if (4 != var.length || null == var[3] || !(var[3] instanceof Number)) {
+    if (4 != var.length || !(var[3] instanceof Number)) {
       return new Object[] { Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null };
     }
     

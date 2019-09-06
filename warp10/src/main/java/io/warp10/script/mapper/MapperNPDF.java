@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import io.warp10.script.WarpScriptStack;
 import java.util.Map;
 
 /**
- * Mapper which returns the probability of a value wihin a gaussian distribution with given mu/sigma
+ * Mapper which returns the probability of a value within a gaussian distribution with given mu/sigma
  */
 public class MapperNPDF extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
 

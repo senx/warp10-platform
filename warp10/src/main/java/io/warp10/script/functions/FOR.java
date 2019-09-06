@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package io.warp10.script.functions;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptLoopBreakException;
 import io.warp10.script.WarpScriptLoopContinueException;
 import io.warp10.script.WarpScriptStack;
@@ -65,7 +64,7 @@ public class FOR extends NamedWarpScriptFunction implements WarpScriptStackFunct
     Object to = stack.pop(); // TO
     Object from = stack.pop(); // FROM
     
-    if (!WarpScriptLib.isMacro(macro)) {
+    if (!(macro instanceof Macro)) {
       throw new WarpScriptException(getName() + " expects a macro on top of the stack.");
     }
     

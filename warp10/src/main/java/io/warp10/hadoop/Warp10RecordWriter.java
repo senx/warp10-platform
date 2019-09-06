@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -69,6 +69,7 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
     try {
       if (null != pw) {
         pw.flush();
+        pw.close();
         int respcode = conn.getResponseCode();
         
         if (HttpURLConnection.HTTP_OK != respcode) {
@@ -113,7 +114,13 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
       throw new IOException(te);
     }
 
-    Metadata metadataChunk = new Metadata(gtsWrapper.getMetadata());
+    Metadata metadataChunk;
+    
+    if (gtsWrapper.isSetMetadata()) {
+      metadataChunk = new Metadata(gtsWrapper.getMetadata());
+    } else {
+      metadataChunk = new Metadata();
+    }
 
     GTSDecoder decoder = GTSWrapperHelper.fromGTSWrapperToGTSDecoder(gtsWrapper);
 
@@ -129,9 +136,9 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
 
       if (!first) {
         this.pw.print("=");
-        this.pw.println(GTSHelper.tickToString(null, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue()));
+        this.pw.println(GTSHelper.tickToString(null, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue()));
       } else {
-        pw.println(GTSHelper.tickToString(metasb, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue()));
+        pw.println(GTSHelper.tickToString(metasb, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue()));
         first = false;
       }
       count++;

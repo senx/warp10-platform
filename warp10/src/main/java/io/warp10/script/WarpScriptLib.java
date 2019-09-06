@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,15 +20,15 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.Properties;
 import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
 
-
+import io.warp10.script.aggregator.CompareTo;
+import io.warp10.script.mapper.MapperCompareTo;
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
 import org.bouncycastle.crypto.digests.MD5Digest;
@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import io.warp10.WarpClassLoader;
 import io.warp10.WarpConfig;
+import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.gts.CORRELATE;
 import io.warp10.continuum.gts.DISCORDS;
@@ -48,10 +49,8 @@ import io.warp10.continuum.gts.IFFT;
 import io.warp10.continuum.gts.INTERPOLATE;
 import io.warp10.continuum.gts.LOCATIONOFFSET;
 import io.warp10.continuum.gts.ZIP;
-import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.aggregator.And;
-import io.warp10.script.aggregator.Argmax;
-import io.warp10.script.aggregator.Argmin;
+import io.warp10.script.aggregator.Argminmax;
 import io.warp10.script.aggregator.CircularMean;
 import io.warp10.script.aggregator.Count;
 import io.warp10.script.aggregator.Delta;
@@ -69,8 +68,8 @@ import io.warp10.script.aggregator.Median;
 import io.warp10.script.aggregator.Min;
 import io.warp10.script.aggregator.Or;
 import io.warp10.script.aggregator.Percentile;
-import io.warp10.script.aggregator.Rate;
 import io.warp10.script.aggregator.RMS;
+import io.warp10.script.aggregator.Rate;
 import io.warp10.script.aggregator.ShannonEntropy;
 import io.warp10.script.aggregator.StandardDeviation;
 import io.warp10.script.aggregator.Sum;
@@ -98,12 +97,10 @@ import io.warp10.script.binary.POW;
 import io.warp10.script.binary.SHIFTLEFT;
 import io.warp10.script.binary.SHIFTRIGHT;
 import io.warp10.script.binary.SUB;
-import io.warp10.script.ext.groovy.GroovyWarpScriptExtension;
-import io.warp10.script.ext.js.JSWarpScriptExtension;
-import io.warp10.script.ext.lua.LUAWarpScriptExtension;
-import io.warp10.script.ext.python.PythonWarpScriptExtension;
-import io.warp10.script.ext.r.RWarpScriptExtension;
-import io.warp10.script.ext.ruby.RubyWarpScriptExtension;
+import io.warp10.script.filler.FillerInterpolate;
+import io.warp10.script.filler.FillerNext;
+import io.warp10.script.filler.FillerPrevious;
+import io.warp10.script.filler.FillerTrend;
 import io.warp10.script.filter.FilterByClass;
 import io.warp10.script.filter.FilterByLabels;
 import io.warp10.script.filter.FilterByMetadata;
@@ -115,6 +112,51 @@ import io.warp10.script.filter.FilterLastLT;
 import io.warp10.script.filter.FilterLastNE;
 import io.warp10.script.filter.LatencyFilter;
 import io.warp10.script.functions.*;
+import io.warp10.script.functions.math.ACOS;
+import io.warp10.script.functions.math.ADDEXACT;
+import io.warp10.script.functions.math.ASIN;
+import io.warp10.script.functions.math.ATAN;
+import io.warp10.script.functions.math.ATAN2;
+import io.warp10.script.functions.math.CBRT;
+import io.warp10.script.functions.math.CEIL;
+import io.warp10.script.functions.math.COPYSIGN;
+import io.warp10.script.functions.math.COS;
+import io.warp10.script.functions.math.COSH;
+import io.warp10.script.functions.math.DECREMENTEXACT;
+import io.warp10.script.functions.math.EXP;
+import io.warp10.script.functions.math.EXPM1;
+import io.warp10.script.functions.math.FLOOR;
+import io.warp10.script.functions.math.FLOORDIV;
+import io.warp10.script.functions.math.FLOORMOD;
+import io.warp10.script.functions.math.GETEXPONENT;
+import io.warp10.script.functions.math.HYPOT;
+import io.warp10.script.functions.math.IEEEREMAINDER;
+import io.warp10.script.functions.math.INCREMENTEXACT;
+import io.warp10.script.functions.math.LOG;
+import io.warp10.script.functions.math.LOG10;
+import io.warp10.script.functions.math.LOG1P;
+import io.warp10.script.functions.math.MAX;
+import io.warp10.script.functions.math.MIN;
+import io.warp10.script.functions.math.MULTIPLYEXACT;
+import io.warp10.script.functions.math.NEGATEEXACT;
+import io.warp10.script.functions.math.NEXTAFTER;
+import io.warp10.script.functions.math.NEXTDOWN;
+import io.warp10.script.functions.math.NEXTUP;
+import io.warp10.script.functions.math.RANDOM;
+import io.warp10.script.functions.math.RINT;
+import io.warp10.script.functions.math.ROUND;
+import io.warp10.script.functions.math.SCALB;
+import io.warp10.script.functions.math.SIGNUM;
+import io.warp10.script.functions.math.SIN;
+import io.warp10.script.functions.math.SINH;
+import io.warp10.script.functions.math.SQRT;
+import io.warp10.script.functions.math.SUBTRACTEXACT;
+import io.warp10.script.functions.math.TAN;
+import io.warp10.script.functions.math.TANH;
+import io.warp10.script.functions.math.TODEGREES;
+import io.warp10.script.functions.math.TOINTEXACT;
+import io.warp10.script.functions.math.TORADIANS;
+import io.warp10.script.functions.math.ULP;
 import io.warp10.script.mapper.MapperAbs;
 import io.warp10.script.mapper.MapperAdd;
 import io.warp10.script.mapper.MapperCeil;
@@ -198,6 +240,7 @@ import io.warp10.script.processing.color.Pstroke;
 import io.warp10.script.processing.image.Pblend;
 import io.warp10.script.processing.image.Pcopy;
 import io.warp10.script.processing.image.Pdecode;
+import io.warp10.script.processing.image.Pfilter;
 import io.warp10.script.processing.image.Pget;
 import io.warp10.script.processing.image.Pimage;
 import io.warp10.script.processing.image.PimageMode;
@@ -205,8 +248,8 @@ import io.warp10.script.processing.image.PnoTint;
 import io.warp10.script.processing.image.Ppixels;
 import io.warp10.script.processing.image.Pset;
 import io.warp10.script.processing.image.Ptint;
+import io.warp10.script.processing.image.PtoImage;
 import io.warp10.script.processing.image.PupdatePixels;
-import io.warp10.script.processing.image.Pfilter;
 import io.warp10.script.processing.math.Pconstrain;
 import io.warp10.script.processing.math.Pdist;
 import io.warp10.script.processing.math.Plerp;
@@ -291,6 +334,11 @@ import io.warp10.script.unary.TOLONG;
 import io.warp10.script.unary.TOSTRING;
 import io.warp10.script.unary.TOTIMESTAMP;
 import io.warp10.script.unary.UNIT;
+import io.warp10.script.functions.shape.CHECKSHAPE;
+import io.warp10.script.functions.shape.HULLSHAPE;
+import io.warp10.script.functions.shape.PERMUTE;
+import io.warp10.script.functions.shape.RESHAPE;
+import io.warp10.script.functions.shape.SHAPE;
 import io.warp10.warp.sdk.WarpScriptExtension;
 
 /**
@@ -303,21 +351,36 @@ public class WarpScriptLib {
   
   private static Map<String,Object> functions = new HashMap<String, Object>();
   
-  private static Set<String> extloaded = new HashSet<String>();
+  private static Set<String> extloaded = new LinkedHashSet<String>();
   
   /**
    * Static definition of name so it can be reused outside of WarpScriptLib
    */
   
   public static final String NULL = "NULL";
+
+  public static final String COUNTER = "COUNTER";
+  public static final String COUNTERSET = "COUNTERSET";
+  
+  
+  public static final String REF = "REF";
+  public static final String COMPILE = "COMPILE";
+  public static final String SAFECOMPILE = "SAFECOMPILE";
+  public static final String COMPILED = "COMPILED";
   
   public static final String EVAL = "EVAL";
   public static final String EVALSECURE = "EVALSECURE";
   public static final String SNAPSHOT = "SNAPSHOT";
   public static final String SNAPSHOTALL = "SNAPSHOTALL";
   public static final String LOAD = "LOAD";
+  public static final String POPR = "POPR";
+  public static final String CPOPR = "CPOPR";
+  public static final String PUSHR = "PUSHR";
+  public static final String CLEARREGS = "CLEARREGS";
   public static final String RUN = "RUN";
   public static final String BOOTSTRAP = "BOOTSTRAP";
+  public static final String NOOP = "NOOP";
+  public static final String JSONTO = "JSON->";
   
   public static final String MAP_START = "{";
   public static final String MAP_END = "}";
@@ -373,530 +436,1289 @@ public class WarpScriptLib {
   
   public static final String INPLACEADD = "+!";
   public static final String PUT = "PUT";
+
+  public static final String SAVE = "SAVE";
+  public static final String RESTORE = "RESTORE";
+
+  public static final String CHRONOSTART = "CHRONOSTART";
+  public static final String CHRONOEND = "CHRONOEND";
+
+  public static final String TRY = "TRY";
+  public static final String RETHROW = "RETHROW";
+
+  public static final String TOGTS = "->GTS";
+
+  public static final String REV = "REV";
+  public static final String REPORT = "REPORT";
+  public static final String MINREV = "MINREV";
+  public static final String UPDATEON = "UPDATEON";
+  public static final String UPDATEOFF = "UPDATEOFF";
+  public static final String METAON = "METAON";
+  public static final String METAOFF = "METAOFF";
+  public static final String DELETEON = "DELETEON";
+  public static final String DELETEOFF = "DELETEOFF";
+  public static final String RTFM = "RTFM";
+  public static final String MAN = "MAN";
+  public static final String PIGSCHEMA = "PIGSCHEMA";
+  public static final String CLEARTOMARK = "CLEARTOMARK";
+  public static final String COUNTTOMARK = "COUNTTOMARK";
+  public static final String AUTHENTICATE = "AUTHENTICATE";
+  public static final String ISAUTHENTICATED = "ISAUTHENTICATED";
+  public static final String STACKATTRIBUTE = "STACKATTRIBUTE";
+  public static final String EXPORT = "EXPORT";
+  public static final String TIMINGS = "TIMINGS";
+  public static final String NOTIMINGS = "NOTIMINGS";
+  public static final String ELAPSED = "ELAPSED";
+  public static final String TIMED = "TIMED";
+  public static final String CHRONOSTATS = "CHRONOSTATS";
+  public static final String UNLIST = "UNLIST";
+  public static final String UNION = "UNION";
+  public static final String INTERSECTION = "INTERSECTION";
+  public static final String DIFFERENCE = "DIFFERENCE";
+  public static final String UNMAP = "UNMAP";
+  public static final String MAPID = "MAPID";
+  public static final String GET = "GET";
+  public static final String SET = "SET";
+  public static final String SUBMAP = "SUBMAP";
+  public static final String SUBLIST = "SUBLIST";
+  public static final String KEYLIST = "KEYLIST";
+  public static final String VALUELIST = "VALUELIST";
+  public static final String SIZE = "SIZE";
+  public static final String SHRINK = "SHRINK";
+  public static final String REMOVE = "REMOVE";
+  public static final String UNIQUE = "UNIQUE";
+  public static final String CONTAINS = "CONTAINS";
+  public static final String CONTAINSKEY = "CONTAINSKEY";
+  public static final String CONTAINSVALUE = "CONTAINSVALUE";
+  public static final String REVERSE = "REVERSE";
+  public static final String CLONEREVERSE = "CLONEREVERSE";
+  public static final String DUP = "DUP";
+  public static final String DUPN = "DUPN";
+  public static final String DROP = "DROP";
+  public static final String CLEAR = "CLEAR";
+  public static final String CLEARDEFS = "CLEARDEFS";
+  public static final String CLEARSYMBOLS = "CLEARSYMBOLS";
+  public static final String DROPN = "DROPN";
+  public static final String ROT = "ROT";
+  public static final String ROLL = "ROLL";
+  public static final String ROLLD = "ROLLD";
+  public static final String PICK = "PICK";
+  public static final String DEPTH = "DEPTH";
+  public static final String MAXDEPTH = "MAXDEPTH";
+  public static final String RESET = "RESET";
+  public static final String MAXOPS = "MAXOPS";
+  public static final String MAXLOOP = "MAXLOOP";
+  public static final String MAXBUCKETS = "MAXBUCKETS";
+  public static final String MAXGEOCELLS = "MAXGEOCELLS";
+  public static final String MAXPIXELS = "MAXPIXELS";
+  public static final String MAXRECURSION = "MAXRECURSION";
+  public static final String OPS = "OPS";
+  public static final String MAXSYMBOLS = "MAXSYMBOLS";
+  public static final String NOW = "NOW";
+  public static final String AGO = "AGO";
+  public static final String MSTU = "MSTU";
+  public static final String STU = "STU";
+  public static final String APPEND = "APPEND";
+  public static final String CSTORE = "CSTORE";
+  public static final String IMPORT = "IMPORT";
+  public static final String DEF = "DEF";
+  public static final String UDF = "UDF";
+  public static final String CUDF = "CUDF";
+  public static final String CALL = "CALL";
+  public static final String FORGET = "FORGET";
+  public static final String DEFINED = "DEFINED";
+  public static final String REDEFS = "REDEFS";
+  public static final String DEFINEDMACRO = "DEFINEDMACRO";
+  public static final String CHECKMACRO = "CHECKMACRO";
+  public static final String NAN = "NaN";
+  public static final String ISNAN = "ISNaN";
+  public static final String TYPEOF = "TYPEOF";
+  public static final String EXTLOADED = "EXTLOADED";
+  public static final String ASSERT = "ASSERT";
+  public static final String ASSERTMSG = "ASSERTMSG";
+  public static final String FAIL = "FAIL";
+  public static final String STOP = "STOP";
+  public static final String ERROR = "ERROR";
+  public static final String TIMEBOX = "TIMEBOX";
+  public static final String JSONSTRICT = "JSONSTRICT";
+  public static final String JSONLOOSE = "JSONLOOSE";
+  public static final String DEBUGON = "DEBUGON";
+  public static final String NDEBUGON = "NDEBUGON";
+  public static final String DEBUGOFF = "DEBUGOFF";
+  public static final String LINEON = "LINEON";
+  public static final String LINEOFF = "LINEOFF";
+  public static final String LMAP = "LMAP";
+  public static final String NONNULL = "NONNULL";
+  public static final String LFLATMAP = "LFLATMAP";
+  public static final String STACKTOLIST = "STACKTOLIST";
+  public static final String IMMUTABLE = "IMMUTABLE";
+  public static final String SECUREKEY = "SECUREKEY";
+  public static final String SECURE = "SECURE";
+  public static final String UNSECURE = "UNSECURE";
+  public static final String DOC = "DOC";
+  public static final String DOCMODE = "DOCMODE";
+  public static final String INFO = "INFO";
+  public static final String INFOMODE = "INFOMODE";
+  public static final String GETSECTION = "GETSECTION";
+  public static final String SNAPSHOTTOMARK = "SNAPSHOTTOMARK";
+  public static final String SNAPSHOTALLTOMARK = "SNAPSHOTALLTOMARK";
+  public static final String SNAPSHOTCOPY = "SNAPSHOTCOPY";
+  public static final String SNAPSHOTCOPYALL = "SNAPSHOTCOPYALL";
+  public static final String SNAPSHOTCOPYTOMARK = "SNAPSHOTCOPYTOMARK";
+  public static final String SNAPSHOTCOPYALLTOMARK = "SNAPSHOTCOPYALLTOMARK";
+  public static final String SNAPSHOTN = "SNAPSHOTN";
+  public static final String SNAPSHOTCOPYN = "SNAPSHOTCOPYN";
+  public static final String HEADER = "HEADER";
+  public static final String ECHOON = "ECHOON";
+  public static final String ECHOOFF = "ECHOOFF";
+  public static final String JSONSTACK = "JSONSTACK";
+  public static final String WSSTACK = "WSSTACK";
+  public static final String PEEK = "PEEK";
+  public static final String PEEKN = "PEEKN";
+  public static final String NPEEK = "NPEEK";
+  public static final String PSTACK = "PSTACK";
+  public static final String TIMEON = "TIMEON";
+  public static final String TIMEOFF = "TIMEOFF";
+  public static final String MACROTTL = "MACROTTL";
+  public static final String WFON = "WFON";
+  public static final String WFOFF = "WFOFF";
+  public static final String SETMACROCONFIG = "SETMACROCONFIG";
+  public static final String MACROCONFIGSECRET = "MACROCONFIGSECRET";
+  public static final String MACROCONFIG = "MACROCONFIG";
+  public static final String MACROCONFIGDEFAULT = "MACROCONFIGDEFAULT";
+  public static final String MACROMAPPER = "MACROMAPPER";
+  public static final String MACROREDUCER = "MACROREDUCER";
+  public static final String MACROBUCKETIZER = "MACROBUCKETIZER";
+  public static final String MACROFILTER = "MACROFILTER";
+  public static final String MACROFILLER = "MACROFILLER";
+  public static final String STRICTMAPPER = "STRICTMAPPER";
+  public static final String STRICTREDUCER = "STRICTREDUCER";
+  public static final String TOSELECTOR = "TOSELECTOR";
+  public static final String PARSE = "PARSE";
+  public static final String SMARTPARSE = "SMARTPARSE";
+  public static final String DUMP = "DUMP";
+  public static final String AND = "AND";
+  public static final String OR = "OR";
+  public static final String BITGET = "BITGET";
+  public static final String BITCOUNT = "BITCOUNT";
+  public static final String BITSTOBYTES = "BITSTOBYTES";
+  public static final String REVBITS = "REVBITS";
+  public static final String NOT = "NOT";
+  public static final String ABS = "ABS";
+  public static final String TODOUBLE = "TODOUBLE";
+  public static final String TOBOOLEAN = "TOBOOLEAN";
+  public static final String TOLONG = "TOLONG";
+  public static final String TOSTRING = "TOSTRING";
+  public static final String TOHEX = "TOHEX";
+  public static final String TOBIN = "TOBIN";
+  public static final String FROMHEX = "FROMHEX";
+  public static final String FROMBIN = "FROMBIN";
+  public static final String TOBITS = "TOBITS";
+  public static final String FROMBITS = "FROMBITS";
+  public static final String TOKENINFO = "TOKENINFO";
+  public static final String GETHOOK = "GETHOOK";
+  public static final String W = "w";
+  public static final String D = "d";
+  public static final String H = "h";
+  public static final String M = "m";
+  public static final String S = "s";
+  public static final String MS = "ms";
+  public static final String US = "us";
+  public static final String NS = "ns";
+  public static final String PS = "ps";
+  public static final String HASH = "HASH";
+  public static final String MD5 = "MD5";
+  public static final String SHA1 = "SHA1";
+  public static final String SHA256 = "SHA256";
+  public static final String SHA256HMAC = "SHA256HMAC";
+  public static final String SHA1HMAC = "SHA1HMAC";
+  public static final String AESWRAP = "AESWRAP";
+  public static final String AESUNWRAP = "AESUNWRAP";
+  public static final String RUNNERNONCE = "RUNNERNONCE";
+  public static final String GZIP = "GZIP";
+  public static final String UNGZIP = "UNGZIP";
+  public static final String DEFLATE = "DEFLATE";
+  public static final String INFLATE = "INFLATE";
+  public static final String RSAGEN = "RSAGEN";
+  public static final String RSAENCRYPT = "RSAENCRYPT";
+  public static final String RSADECRYPT = "RSADECRYPT";
+  public static final String RSASIGN = "RSASIGN";
+  public static final String RSAVERIFY = "RSAVERIFY";
+  public static final String URLDECODE = "URLDECODE";
+  public static final String URLENCODE = "URLENCODE";
+  public static final String SPLIT = "SPLIT";
+  public static final String UUID = "UUID";
+  public static final String JOIN = "JOIN";
+  public static final String SUBSTRING = "SUBSTRING";
+  public static final String TOUPPER = "TOUPPER";
+  public static final String TOLOWER = "TOLOWER";
+  public static final String TRIM = "TRIM";
+  public static final String B64TOHEX = "B64TOHEX";
+  public static final String HEXTOB64 = "HEXTOB64";
+  public static final String BINTOHEX = "BINTOHEX";
+  public static final String HEXTOBIN = "HEXTOBIN";
+  public static final String OPB64TOHEX = "OPB64TOHEX";
+  public static final String IFT = "IFT";
+  public static final String IFTE = "IFTE";
+  public static final String SWITCH = "SWITCH";
+  public static final String WHILE = "WHILE";
+  public static final String UNTIL = "UNTIL";
+  public static final String FOR = "FOR";
+  public static final String FORSTEP = "FORSTEP";
+  public static final String FOREACH = "FOREACH";
+  public static final String BREAK = "BREAK";
+  public static final String CONTINUE = "CONTINUE";
+  public static final String EVERY = "EVERY";
+  public static final String RANGE = "RANGE";
+  public static final String RETURN = "RETURN";
+  public static final String NRETURN = "NRETURN";
+  public static final String NEWENCODER = "NEWENCODER";
+  public static final String CHUNKENCODER = "CHUNKENCODER";
+  public static final String OPTIMIZE = "OPTIMIZE";
+  public static final String MAKEGTS = "MAKEGTS";
+  public static final String ADDVALUE = "ADDVALUE";
+  public static final String SETVALUE = "SETVALUE";
+  public static final String REMOVETICK = "REMOVETICK";
+  public static final String FETCH = "FETCH";
+  public static final String FETCHLONG = "FETCHLONG";
+  public static final String FETCHDOUBLE = "FETCHDOUBLE";
+  public static final String FETCHSTRING = "FETCHSTRING";
+  public static final String FETCHBOOLEAN = "FETCHBOOLEAN";
+  public static final String LIMIT = "LIMIT";
+  public static final String MAXGTS = "MAXGTS";
+  public static final String FIND = "FIND";
+  public static final String FINDSETS = "FINDSETS";
+  public static final String METASET = "METASET";
+  public static final String FINDSTATS = "FINDSTATS";
+  public static final String DEDUP = "DEDUP";
+  public static final String ONLYBUCKETS = "ONLYBUCKETS";
+  public static final String VALUEDEDUP = "VALUEDEDUP";
+  public static final String CLONEEMPTY = "CLONEEMPTY";
+  public static final String COMPACT = "COMPACT";
+  public static final String RANGECOMPACT = "RANGECOMPACT";
+  public static final String STANDARDIZE = "STANDARDIZE";
+  public static final String NORMALIZE = "NORMALIZE";
+  public static final String ISONORMALIZE = "ISONORMALIZE";
+  public static final String ZSCORE = "ZSCORE";
+  public static final String FILL = "FILL";
+  public static final String FILLPREVIOUS = "FILLPREVIOUS";
+  public static final String FILLNEXT = "FILLNEXT";
+  public static final String FILLVALUE = "FILLVALUE";
+  public static final String FILLTICKS = "FILLTICKS";
+  public static final String INTERPOLATE = "INTERPOLATE";
+  public static final String FIRSTTICK = "FIRSTTICK";
+  public static final String LASTTICK = "LASTTICK";
+  public static final String MERGE = "MERGE";
+  public static final String RESETS = "RESETS";
+  public static final String MONOTONIC = "MONOTONIC";
+  public static final String TIMESPLIT = "TIMESPLIT";
+  public static final String TIMECLIP = "TIMECLIP";
+  public static final String CLIP = "CLIP";
+  public static final String TIMEMODULO = "TIMEMODULO";
+  public static final String CHUNK = "CHUNK";
+  public static final String FUSE = "FUSE";
+  public static final String SETATTRIBUTES = "SETATTRIBUTES";
+  public static final String CROP = "CROP";
+  public static final String TIMESHIFT = "TIMESHIFT";
+  public static final String TIMESCALE = "TIMESCALE";
+  public static final String TICKINDEX = "TICKINDEX";
+  public static final String FFT = "FFT";
+  public static final String FFTAP = "FFTAP";
+  public static final String IFFT = "IFFT";
+  public static final String FFTWINDOW = "FFTWINDOW";
+  public static final String FDWT = "FDWT";
+  public static final String IDWT = "IDWT";
+  public static final String DWTSPLIT = "DWTSPLIT";
+  public static final String EMPTY = "EMPTY";
+  public static final String NONEMPTY = "NONEMPTY";
+  public static final String PARTITION = "PARTITION";
+  public static final String STRICTPARTITION = "STRICTPARTITION";
+  public static final String ZIP = "ZIP";
+  public static final String PATTERNS = "PATTERNS";
+  public static final String PATTERNDETECTION = "PATTERNDETECTION";
+  public static final String ZPATTERNS = "ZPATTERNS";
+  public static final String ZPATTERNDETECTION = "ZPATTERNDETECTION";
+  public static final String DTW = "DTW";
+  public static final String OPTDTW = "OPTDTW";
+  public static final String ZDTW = "ZDTW";
+  public static final String RAWDTW = "RAWDTW";
+  public static final String VALUEHISTOGRAM = "VALUEHISTOGRAM";
+  public static final String PROBABILITY = "PROBABILITY";
+  public static final String PROB = "PROB";
+  public static final String CPROB = "CPROB";
+  public static final String RANDPDF = "RANDPDF";
+  public static final String SINGLEEXPONENTIALSMOOTHING = "SINGLEEXPONENTIALSMOOTHING";
+  public static final String DOUBLEEXPONENTIALSMOOTHING = "DOUBLEEXPONENTIALSMOOTHING";
+  public static final String LOWESS = "LOWESS";
+  public static final String RLOWESS = "RLOWESS";
+  public static final String STL = "STL";
+  public static final String LTTB = "LTTB";
+  public static final String TLTTB = "TLTTB";
+  public static final String LOCATIONOFFSET = "LOCATIONOFFSET";
+  public static final String FLATTEN = "FLATTEN";
+  public static final String RESHAPE = "RESHAPE";
+  public static final String PERMUTE = "PERMUTE";
+  public static final String CHECKSHAPE = "CHECKSHAPE";
+  public static final String SHAPE = "SHAPE";
+  public static final String HULLSHAPE = "HULLSHAPE";
+  public static final String CORRELATE = "CORRELATE";
+  public static final String SORT = "SORT";
+  public static final String SORTBY = "SORTBY";
+  public static final String RSORT = "RSORT";
+  public static final String LASTSORT = "LASTSORT";
+  public static final String METASORT = "METASORT";
+  public static final String VALUESORT = "VALUESORT";
+  public static final String RVALUESORT = "RVALUESORT";
+  public static final String LSORT = "LSORT";
+  public static final String SHUFFLE = "SHUFFLE";
+  public static final String MSORT = "MSORT";
+  public static final String GROUPBY = "GROUPBY";
+  public static final String FILTERBY = "FILTERBY";
+  public static final String UPDATE = "UPDATE";
+  public static final String META = "META";
+  public static final String DELETE = "DELETE";
+  public static final String WEBCALL = "WEBCALL";
+  public static final String MATCH = "MATCH";
+  public static final String MATCHER = "MATCHER";
+  public static final String REPLACE = "REPLACE";
+  public static final String REPLACEALL = "REPLACEALL";
+  public static final String REOPTALT = "REOPTALT";
+  public static final String TEMPLATE = "TEMPLATE";
+  public static final String TOTIMESTAMP = "TOTIMESTAMP";
+  public static final String STRINGFORMAT = "STRINGFORMAT";
+  public static final String DISCORDS = "DISCORDS";
+  public static final String ZDISCORDS = "ZDISCORDS";
+  public static final String INTEGRATE = "INTEGRATE";
+  public static final String BUCKETSPAN = "BUCKETSPAN";
+  public static final String BUCKETCOUNT = "BUCKETCOUNT";
+  public static final String UNBUCKETIZE = "UNBUCKETIZE";
+  public static final String LASTBUCKET = "LASTBUCKET";
+  public static final String NAME = "NAME";
+  public static final String LABELS = "LABELS";
+  public static final String ATTRIBUTES = "ATTRIBUTES";
+  public static final String LASTACTIVITY = "LASTACTIVITY";
+  public static final String TICKS = "TICKS";
+  public static final String LOCATIONS = "LOCATIONS";
+  public static final String LOCSTRINGS = "LOCSTRINGS";
+  public static final String ELEVATIONS = "ELEVATIONS";
+  public static final String VALUES = "VALUES";
+  public static final String VALUESPLIT = "VALUESPLIT";
+  public static final String TICKLIST = "TICKLIST";
+  public static final String COMMONTICKS = "COMMONTICKS";
+  public static final String WRAP = "WRAP";
+  public static final String WRAPRAW = "WRAPRAW";
+  public static final String WRAPFAST = "WRAPFAST";
+  public static final String WRAPOPT = "WRAPOPT";
+  public static final String WRAPRAWOPT = "WRAPRAWOPT";
+  public static final String UNWRAPEMPTY = "UNWRAPEMPTY";
+  public static final String UNWRAPSIZE = "UNWRAPSIZE";
+  public static final String WRAPMV = "WRAPMV";
+  public static final String MVTICKSPLIT = "MVTICKSPLIT";
+  public static final String MVINDEXSPLIT = "MVINDEXSPLIT";
+  public static final String MVVALUES = "MVVALUES";
+  public static final String MVLOCATIONS = "MVLOCATIONS";
+  public static final String MVELEVATIONS = "MVELEVATIONS";
+  public static final String MVTICKS = "MVTICKS";
+  public static final String MVHHCODES = "MVHHCODES";
+  public static final String PARSEVALUE = "PARSEVALUE";
+  public static final String THRESHOLDTEST = "THRESHOLDTEST";
+  public static final String ZSCORETEST = "ZSCORETEST";
+  public static final String GRUBBSTEST = "GRUBBSTEST";
+  public static final String ESDTEST = "ESDTEST";
+  public static final String STLESDTEST = "STLESDTEST";
+  public static final String HYBRIDTEST = "HYBRIDTEST";
+  public static final String HYBRIDTEST2 = "HYBRIDTEST2";
+  public static final String QCONJUGATE = "QCONJUGATE";
+  public static final String QDIVIDE = "QDIVIDE";
+  public static final String QMULTIPLY = "QMULTIPLY";
+  public static final String QROTATE = "QROTATE";
+  public static final String QROTATION = "QROTATION";
+  public static final String ROTATIONQ = "ROTATIONQ";
+  public static final String ATINDEX = "ATINDEX";
+  public static final String ATTICK = "ATTICK";
+  public static final String ATBUCKET = "ATBUCKET";
+  public static final String CLONE = "CLONE";
+  public static final String DURATION = "DURATION";
+  public static final String HUMANDURATION = "HUMANDURATION";
+  public static final String ISODURATION = "ISODURATION";
+  public static final String ISO8601 = "ISO8601";
+  public static final String NOTBEFORE = "NOTBEFORE";
+  public static final String NOTAFTER = "NOTAFTER";
+  public static final String TSELEMENTS = "TSELEMENTS";
+  public static final String ADDDAYS = "ADDDAYS";
+  public static final String ADDMONTHS = "ADDMONTHS";
+  public static final String ADDYEARS = "ADDYEARS";
+  public static final String QUANTIZE = "QUANTIZE";
+  public static final String NBOUNDS = "NBOUNDS";
+  public static final String LBOUNDS = "LBOUNDS";
+  public static final String BUCKETIZE = "BUCKETIZE";
+  public static final String MAP = "MAP";
+  public static final String FILTER = "FILTER";
+  public static final String APPLY = "APPLY";
+  public static final String PFILTER = "PFILTER";
+  public static final String PAPPLY = "PAPPLY";
+  public static final String REDUCE = "REDUCE";
+  public static final String PREDUCE = "PREDUCE";
+  public static final String PIVOT = "PIVOT";
+  public static final String PIVOTSTRICT = "PIVOTSTRICT";
+  public static final String ISNULL = "ISNULL";
+  public static final String HAVERSINE = "HAVERSINE";
+  public static final String COPYGEO = "COPYGEO";
+  public static final String BBOX = "BBOX";
+  public static final String COUNTERVALUE = "COUNTERVALUE";
+  public static final String COUNTERDELTA = "COUNTERDELTA";
+  public static final String PI_LOWERCASE = "pi";
+  public static final String PI = "PI";
+  public static final String E_LOWERCASE = "e";
+  public static final String E = "E";
+  public static final String MINLONG = "MINLONG";
+  public static final String MAXLONG = "MAXLONG";
+  public static final String RAND = "RAND";
+  public static final String PRNG = "PRNG";
+  public static final String SRAND = "SRAND";
+  public static final String NPDF = "NPDF";
+  public static final String MUSIGMA = "MUSIGMA";
+  public static final String KURTOSIS = "KURTOSIS";
+  public static final String SKEWNESS = "SKEWNESS";
+  public static final String NSUMSUMSQ = "NSUMSUMSQ";
+  public static final String LR = "LR";
+  public static final String MODE = "MODE";
+  public static final String PACK = "PACK";
+  public static final String UNPACK = "UNPACK";
+  public static final String TR = "TR";
+  public static final String TRANSPOSE = "TRANSPOSE";
+  public static final String DET = "DET";
+  public static final String INV = "INV";
+  public static final String COS = "COS";
+  public static final String COSH = "COSH";
+  public static final String ACOS = "ACOS";
+  public static final String SIN = "SIN";
+  public static final String SINH = "SINH";
+  public static final String ASIN = "ASIN";
+  public static final String TAN = "TAN";
+  public static final String TANH = "TANH";
+  public static final String ATAN = "ATAN";
+  public static final String SIGNUM = "SIGNUM";
+  public static final String FLOOR = "FLOOR";
+  public static final String CEIL = "CEIL";
+  public static final String ROUND = "ROUND";
+  public static final String RINT = "RINT";
+  public static final String NEXTUP = "NEXTUP";
+  public static final String ULP = "ULP";
+  public static final String SQRT = "SQRT";
+  public static final String CBRT = "CBRT";
+  public static final String EXP = "EXP";
+  public static final String EXPM1 = "EXPM1";
+  public static final String LOG_ = "LOG";
+  public static final String LOG10 = "LOG10";
+  public static final String LOG1P = "LOG1P";
+  public static final String TORADIANS = "TORADIANS";
+  public static final String TODEGREES = "TODEGREES";
+  public static final String MAX = "MAX";
+  public static final String MIN = "MIN";
+  public static final String COPYSIGN = "COPYSIGN";
+  public static final String HYPOT = "HYPOT";
+  public static final String IEEEREMAINDER = "IEEEREMAINDER";
+  public static final String NEXTAFTER = "NEXTAFTER";
+  public static final String ATAN2 = "ATAN2";
+  public static final String FLOORDIV = "FLOORDIV";
+  public static final String FLOORMOD = "FLOORMOD";
+  public static final String ADDEXACT = "ADDEXACT";
+  public static final String SUBTRACTEXACT = "SUBTRACTEXACT";
+  public static final String MULTIPLYEXACT = "MULTIPLYEXACT";
+  public static final String INCREMENTEXACT = "INCREMENTEXACT";
+  public static final String DECREMENTEXACT = "DECREMENTEXACT";
+  public static final String NEGATEEXACT = "NEGATEEXACT";
+  public static final String TOINTEXACT = "TOINTEXACT";
+  public static final String SCALB = "SCALB";
+  public static final String RANDOM = "RANDOM";
+  public static final String NEXTDOWN = "NEXTDOWN";
+  public static final String GETEXPONENT = "GETEXPONENT";
+  public static final String IDENT = "IDENT";
+  public static final String PENCODE = "Pencode";
+  public static final String PPUSHSTYLE = "PpushStyle";
+  public static final String PPOPSTYLE = "PpopStyle";
+  public static final String PARC = "Parc";
+  public static final String PELLIPSE = "Pellipse";
+  public static final String PPOINT = "Ppoint";
+  public static final String PLINE = "Pline";
+  public static final String PTRIANGLE = "Ptriangle";
+  public static final String PRECT = "Prect";
+  public static final String PQUAD = "Pquad";
+  public static final String PBEZIER = "Pbezier";
+  public static final String PBEZIERPOINT = "PbezierPoint";
+  public static final String PBEZIERTANGENT = "PbezierTangent";
+  public static final String PBEZIERDETAIL = "PbezierDetail";
+  public static final String PCURVE = "Pcurve";
+  public static final String PCURVEPOINT = "PcurvePoint";
+  public static final String PCURVETANGENT = "PcurveTangent";
+  public static final String PCURVEDETAIL = "PcurveDetail";
+  public static final String PCURVETIGHTNESS = "PcurveTightness";
+  public static final String PBOX = "Pbox";
+  public static final String PSPHERE = "Psphere";
+  public static final String PSPHEREDETAIL = "PsphereDetail";
+  public static final String PELLIPSEMODE = "PellipseMode";
+  public static final String PRECTMODE = "PrectMode";
+  public static final String PSTROKECAP = "PstrokeCap";
+  public static final String PSTROKEJOIN = "PstrokeJoin";
+  public static final String PSTROKEWEIGHT = "PstrokeWeight";
+  public static final String PBEGINSHAPE = "PbeginShape";
+  public static final String PENDSHAPE = "PendShape";
+  public static final String PLOADSHAPE = "PloadShape";
+  public static final String PBEGINCONTOUR = "PbeginContour";
+  public static final String PENDCONTOUR = "PendContour";
+  public static final String PVERTEX = "Pvertex";
+  public static final String PCURVEVERTEX = "PcurveVertex";
+  public static final String PBEZIERVERTEX = "PbezierVertex";
+  public static final String PQUADRATICVERTEX = "PquadraticVertex";
+  public static final String PSHAPEMODE = "PshapeMode";
+  public static final String PSHAPE = "Pshape";
+  public static final String PPUSHMATRIX = "PpushMatrix";
+  public static final String PPOPMATRIX = "PpopMatrix";
+  public static final String PRESETMATRIX = "PresetMatrix";
+  public static final String PROTATE = "Protate";
+  public static final String PROTATEX = "ProtateX";
+  public static final String PROTATEY = "ProtateY";
+  public static final String PROTATEZ = "ProtateZ";
+  public static final String PSCALE = "Pscale";
+  public static final String PSHEARX = "PshearX";
+  public static final String PSHEARY = "PshearY";
+  public static final String PTRANSLATE = "Ptranslate";
+  public static final String PBACKGROUND = "Pbackground";
+  public static final String PCOLORMODE = "PcolorMode";
+  public static final String PCLEAR = "Pclear";
+  public static final String PFILL = "Pfill";
+  public static final String PNOFILL = "PnoFill";
+  public static final String PSTROKE = "Pstroke";
+  public static final String PNOSTROKE = "PnoStroke";
+  public static final String PALPHA = "Palpha";
+  public static final String PBLUE = "Pblue";
+  public static final String PBRIGHTNESS = "Pbrightness";
+  public static final String PCOLOR = "Pcolor";
+  public static final String PGREEN = "Pgreen";
+  public static final String PHUE = "Phue";
+  public static final String PLERPCOLOR = "PlerpColor";
+  public static final String PRED = "Pred";
+  public static final String PSATURATION = "Psaturation";
+  public static final String PDECODE = "Pdecode";
+  public static final String PIMAGE = "Pimage";
+  public static final String PIMAGEMODE = "PimageMode";
+  public static final String PTINT = "Ptint";
+  public static final String PNOTINT = "PnoTint";
+  public static final String PPIXELS = "Ppixels";
+  public static final String PUPDATEPIXELS = "PupdatePixels";
+  public static final String PTOIMAGE = "PtoImage";
+  public static final String PBLEND = "Pblend";
+  public static final String PCOPY = "Pcopy";
+  public static final String PGET = "Pget";
+  public static final String PSET = "Pset";
+  public static final String PFILTER_ = "Pfilter";
+  public static final String PBLENDMODE = "PblendMode";
+  public static final String PCLIP = "Pclip";
+  public static final String PNOCLIP = "PnoClip";
+  public static final String PGRAPHICS = "PGraphics";
+  public static final String PCREATEFONT = "PcreateFont";
+  public static final String PTEXT = "Ptext";
+  public static final String PTEXTALIGN = "PtextAlign";
+  public static final String PTEXTASCENT = "PtextAscent";
+  public static final String PTEXTDESCENT = "PtextDescent";
+  public static final String PTEXTFONT = "PtextFont";
+  public static final String PTEXTLEADING = "PtextLeading";
+  public static final String PTEXTMODE = "PtextMode";
+  public static final String PTEXTSIZE = "PtextSize";
+  public static final String PTEXTWIDTH = "PtextWidth";
+  public static final String PCONSTRAIN = "Pconstrain";
+  public static final String PDIST = "Pdist";
+  public static final String PLERP = "Plerp";
+  public static final String PMAG = "Pmag";
+  public static final String PMAP = "Pmap";
+  public static final String PNORM = "Pnorm";
+  public static final String VARS = "VARS";
+  public static final String ASREGS = "ASREGS";
+  public static final String ASENCODERS = "ASENCODERS";
+
+  public static final String TOLIST = "->LIST";
+  public static final String TOMAP = "->MAP";
+  public static final String TOJSON = "->JSON";
+  public static final String TOPICKLE = "->PICKLE";
+  public static final String TOLONGBYTES = "->LONGBYTES";
+  public static final String TODOUBLEBITS = "->DOUBLEBITS";
+  public static final String TOFLOATBITS = "->FLOATBITS";
+  public static final String TOBYTES = "->BYTES";
+  public static final String TOBIN_ = "->BIN";
+  public static final String TOHEX_ = "->HEX";
+  public static final String TOB64 = "->B64";
+  public static final String TOB64URL = "->B64URL";
+  public static final String TOENCODER = "->ENCODER";
+  public static final String TOENCODERS = "->ENCODERS";
+  public static final String TOMVSTRING = "->MVSTRING";
+  public static final String TOQ = "->Q";
+  public static final String TOTSELEMENTS = "->TSELEMENTS";
+  public static final String TOHHCODE = "->HHCODE";
+  public static final String TOHHCODELONG = "->HHCODELONG";
+  public static final String TOGTSHHCODE = "->GTSHHCODE";
+  public static final String TOGTSHHCODELONG = "->GTSHHCODELONG";
+  public static final String TOGEOHASH = "->GEOHASH";
+  public static final String TOZ = "->Z";
+  public static final String TOMAT = "->MAT";
+  public static final String TOVEC = "->VEC";
+
+  public static final String LISTTO = "LIST->";
+  public static final String SETTO = "SET->";
+  public static final String VTO = "V->";
+  public static final String MAPTO = "MAP->";
+  public static final String PICKLETO = "PICKLE->";
+  public static final String DOUBLEBITSTO = "DOUBLEBITS->";
+  public static final String FLOATBITSTO = "FLOATBITS->";
+  public static final String BINTO = "BIN->";
+  public static final String HEXTO = "HEX->";
+  public static final String B64TO = "B64->";
+  public static final String B64URLTO = "B64URL->";
+  public static final String ENCODERTO = "ENCODER->";
+  public static final String QTO = "Q->";
+  public static final String TSELEMENTSTO = "TSELEMENTS->";
+  public static final String HHCODETO = "HHCODE->";
+  public static final String GTSHHCODETO = "GTSHHCODE->";
+  public static final String GEOHASHTO = "GEOHASH->";
+  public static final String ZTO = "Z->";
+  public static final String MATTO = "MAT->";
+  public static final String VECTO = "VEC->";
+
+  public static final String GEO_REGEXP = "GEO.REGEXP";
+  public static final String GEO_OPTIMIZE = "GEO.OPTIMIZE";
+  public static final String GEO_WITHIN = "GEO.WITHIN";
+  public static final String GEO_INTERSECTS = "GEO.INTERSECTS";
+  public static final String GEO_COVER = "GEO.COVER";
+  public static final String GEO_COVER_RL = "GEO.COVER.RL";
+
+  public static final String MAPPER_GT = "mapper.gt";
+  public static final String MAPPER_GE = "mapper.ge";
+  public static final String MAPPER_EQ = "mapper.eq";
+  public static final String MAPPER_NE = "mapper.ne";
+  public static final String MAPPER_LE = "mapper.le";
+  public static final String MAPPER_LT = "mapper.lt";
+  public static final String MAPPER_GT_TICK = "mapper.gt.tick";
+  public static final String MAPPER_GE_TICK = "mapper.ge.tick";
+  public static final String MAPPER_EQ_TICK = "mapper.eq.tick";
+  public static final String MAPPER_NE_TICK = "mapper.ne.tick";
+  public static final String MAPPER_LE_TICK = "mapper.le.tick";
+  public static final String MAPPER_LT_TICK = "mapper.lt.tick";
+  public static final String MAPPER_GT_LAT = "mapper.gt.lat";
+  public static final String MAPPER_GE_LAT = "mapper.ge.lat";
+  public static final String MAPPER_EQ_LAT = "mapper.eq.lat";
+  public static final String MAPPER_NE_LAT = "mapper.ne.lat";
+  public static final String MAPPER_LE_LAT = "mapper.le.lat";
+  public static final String MAPPER_LT_LAT = "mapper.lt.lat";
+  public static final String MAPPER_GT_LON = "mapper.gt.lon";
+  public static final String MAPPER_GE_LON = "mapper.ge.lon";
+  public static final String MAPPER_EQ_LON = "mapper.eq.lon";
+  public static final String MAPPER_NE_LON = "mapper.ne.lon";
+  public static final String MAPPER_LE_LON = "mapper.le.lon";
+  public static final String MAPPER_LT_LON = "mapper.lt.lon";
+  public static final String MAPPER_GT_HHCODE = "mapper.gt.hhcode";
+  public static final String MAPPER_GE_HHCODE = "mapper.ge.hhcode";
+  public static final String MAPPER_EQ_HHCODE = "mapper.eq.hhcode";
+  public static final String MAPPER_NE_HHCODE = "mapper.ne.hhcode";
+  public static final String MAPPER_LE_HHCODE = "mapper.le.hhcode";
+  public static final String MAPPER_LT_HHCODE = "mapper.lt.hhcode";
+  public static final String MAPPER_GT_ELEV = "mapper.gt.elev";
+  public static final String MAPPER_GE_ELEV = "mapper.ge.elev";
+  public static final String MAPPER_EQ_ELEV = "mapper.eq.elev";
+  public static final String MAPPER_NE_ELEV = "mapper.ne.elev";
+  public static final String MAPPER_LE_ELEV = "mapper.le.elev";
+  public static final String MAPPER_LT_ELEV = "mapper.lt.elev";
+
   
   static {
-    
-    functions.put("REV", new REV("REV"));
-    
-    functions.put(BOOTSTRAP, new NOOP(BOOTSTRAP));
 
-    functions.put("RTFM", new RTFM("RTFM"));
-    functions.put("MAN", new MAN("MAN"));
+    addNamedWarpScriptFunction(new REV(REV));
+    addNamedWarpScriptFunction(new REPORT(REPORT));
+    addNamedWarpScriptFunction(new MINREV(MINREV));
 
-    functions.put("REXEC", new REXEC("REXEC"));
-    functions.put("REXECZ", new REXEC("REXECZ", true));
+    addNamedWarpScriptFunction(new MANAGERONOFF(UPDATEON, WarpManager.UPDATE_DISABLED, true));   
+    addNamedWarpScriptFunction(new MANAGERONOFF(UPDATEOFF, WarpManager.UPDATE_DISABLED, false));   
+    addNamedWarpScriptFunction(new MANAGERONOFF(METAON, WarpManager.META_DISABLED, true));   
+    addNamedWarpScriptFunction(new MANAGERONOFF(METAOFF, WarpManager.META_DISABLED, false));   
+    addNamedWarpScriptFunction(new MANAGERONOFF(DELETEON, WarpManager.DELETE_DISABLED, true));   
+    addNamedWarpScriptFunction(new MANAGERONOFF(DELETEOFF, WarpManager.DELETE_DISABLED, false));
     
+    addNamedWarpScriptFunction(new NOOP(BOOTSTRAP));
+
+    addNamedWarpScriptFunction(new RTFM(RTFM));
+    addNamedWarpScriptFunction(new MAN(MAN));
+
     //
     // Stack manipulation functions
     //
     
-    functions.put("PIGSCHEMA", new PIGSCHEMA("PIGSCHEMA"));
-    functions.put(MARK, new MARK(MARK));
-    functions.put("CLEARTOMARK", new CLEARTOMARK("CLEARTOMARK"));
-    functions.put("COUNTTOMARK", new COUNTTOMARK("COUNTTOMARK"));
-    functions.put("AUTHENTICATE", new AUTHENTICATE("AUTHENTICATE"));
-    functions.put("ISAUTHENTICATED", new ISAUTHENTICATED("ISAUTHENTICATED"));
-    functions.put("STACKATTRIBUTE", new STACKATTRIBUTE("STACKATTRIBUTE")); // NOT TO BE DOCUMENTED
-    functions.put("EXPORT", new EXPORT("EXPORT"));
-    functions.put("TIMINGS", new TIMINGS("TIMINGS")); // NOT TO BE DOCUMENTED (YET)
-    functions.put("NOTIMINGS", new NOTIMINGS("NOTIMINGS")); // NOT TO BE DOCUMENTED (YET)
-    functions.put("ELAPSED", new ELAPSED("ELAPSED")); // NOT TO BE DOCUMENTED (YET)
-    functions.put("->LIST", new TOLIST("->LIST"));
-    functions.put("LIST->", new LISTTO("LIST->"));
-    functions.put("UNLIST", new UNLIST("UNLIST"));
-    functions.put(TO_SET, new TOSET(TO_SET));
-    functions.put("SET->", new SETTO("SET->"));
-    functions.put(TO_VECTOR, new TOVECTOR(TO_VECTOR));
-    functions.put("V->", new VECTORTO("V->"));
-    functions.put("UNION", new UNION("UNION"));
-    functions.put("INTERSECTION", new INTERSECTION("INTERSECTION"));
-    functions.put("DIFFERENCE", new DIFFERENCE("DIFFERENCE"));
-    functions.put("->MAP", new TOMAP("->MAP"));
-    functions.put("MAP->", new MAPTO("MAP->"));
-    functions.put("UNMAP", new UNMAP("UNMAP"));
-    functions.put("MAPID", new MAPID("MAPID"));
-    functions.put("->JSON", new TOJSON("->JSON"));      
-    functions.put("JSON->", new JSONTO("JSON->"));
-    functions.put("->PICKLE", new TOPICKLE("->PICKLE"));
-    functions.put("PICKLE->", new PICKLETO("PICKLE->"));
-    functions.put("GET", new GET("GET"));
-    functions.put("SET", new SET("SET"));
-    functions.put(PUT, new PUT(PUT));
-    functions.put("SUBMAP", new SUBMAP("SUBMAP"));
-    functions.put("SUBLIST", new SUBLIST("SUBLIST"));
-    functions.put("KEYLIST", new KEYLIST("KEYLIST"));
-    functions.put("VALUELIST", new VALUELIST("VALUELIST"));
-    functions.put("SIZE", new SIZE("SIZE"));
-    functions.put("SHRINK", new SHRINK("SHRINK"));
-    functions.put("REMOVE", new REMOVE("REMOVE"));
-    functions.put("UNIQUE", new UNIQUE("UNIQUE"));
-    functions.put("CONTAINS", new CONTAINS("CONTAINS"));
-    functions.put("CONTAINSKEY", new CONTAINSKEY("CONTAINSKEY"));
-    functions.put("CONTAINSVALUE", new CONTAINSVALUE("CONTAINSVALUE"));
-    functions.put("REVERSE", new REVERSE("REVERSE", true));
-    functions.put("CLONEREVERSE", new REVERSE("CLONEREVERSE", false));
-    functions.put("DUP", new DUP("DUP"));
-    functions.put("DUPN", new DUPN("DUPN"));
-    functions.put(SWAP, new SWAP(SWAP));
-    functions.put("DROP", new DROP("DROP"));
-    functions.put("SAVE", new SAVE("SAVE"));
-    functions.put("RESTORE", new RESTORE("RESTORE"));
-    functions.put("CLEAR", new CLEAR("CLEAR"));
-    functions.put("CLEARDEFS", new CLEARDEFS("CLEARDEFS"));
-    functions.put("CLEARSYMBOLS", new CLEARSYMBOLS("CLEARSYMBOLS"));
-    functions.put("DROPN", new DROPN("DROPN"));
-    functions.put("ROT", new ROT("ROT"));
-    functions.put("ROLL", new ROLL("ROLL"));
-    functions.put("ROLLD", new ROLLD("ROLLD"));
-    functions.put("PICK", new PICK("PICK"));
-    functions.put("DEPTH", new DEPTH("DEPTH"));
-    functions.put("MAXDEPTH", new MAXDEPTH("MAXDEPTH"));
-    functions.put("RESET", new RESET("RESET"));
-    functions.put("MAXOPS", new MAXOPS("MAXOPS"));
-    functions.put("MAXLOOP", new MAXLOOP("MAXLOOP"));
-    functions.put("MAXBUCKETS", new MAXBUCKETS("MAXBUCKETS"));
-    functions.put("MAXGEOCELLS", new MAXGEOCELLS("MAXGEOCELLS"));
-    functions.put("MAXPIXELS", new MAXPIXELS("MAXPIXELS"));
-    functions.put("MAXRECURSION", new MAXRECURSION("MAXRECURSION"));
-    functions.put("OPS", new OPS("OPS"));
-    functions.put("MAXSYMBOLS", new MAXSYMBOLS("MAXSYMBOLS"));
-    functions.put(EVAL, new EVAL(EVAL));
-    functions.put("NOW", new NOW("NOW"));
-    functions.put("AGO", new AGO("AGO"));
-    functions.put("MSTU", new MSTU("MSTU"));
-    functions.put("STU", new STU("STU"));
-    functions.put("APPEND", new APPEND("APPEND"));
-    functions.put(STORE, new STORE(STORE));
-    functions.put("CSTORE", new CSTORE("CSTORE"));
-    functions.put(LOAD, new LOAD(LOAD));
-    functions.put(RUN, new RUN(RUN));
-    functions.put("DEF", new DEF("DEF"));
-    functions.put("UDF", new UDF("UDF", false));
-    functions.put("CUDF", new UDF("CUDF", true));
-    functions.put("CALL", new CALL("CALL"));
-    functions.put("FORGET", new FORGET("FORGET"));    
-    functions.put("DEFINED", new DEFINED("DEFINED"));
-    functions.put("REDEFS", new REDEFS("REDEFS"));
-    functions.put("DEFINEDMACRO", new DEFINEDMACRO("DEFINEDMACRO"));
-    functions.put("NaN", new NaN("NaN"));
-    functions.put("ISNaN", new ISNaN("ISNaN"));
-    functions.put("TYPEOF", new TYPEOF("TYPEOF"));
-    functions.put("EXTLOADED", new EXTLOADED("EXTLOADED"));
-    functions.put("ASSERT", new ASSERT("ASSERT"));
-    functions.put("ASSERTMSG", new ASSERTMSG("ASSERTMSG"));
-    functions.put("FAIL", new FAIL("FAIL"));
-    functions.put(MSGFAIL, new MSGFAIL(MSGFAIL));
-    functions.put("STOP", new STOP("STOP"));
-    functions.put("TRY", new TRY("TRY"));
-    functions.put("RETHROW", new RETHROW("RETHROW"));
-    functions.put("ERROR", new ERROR("ERROR"));
-    functions.put("JSONSTRICT", new JSONSTRICT("JSONSTRICT"));
-    functions.put("JSONLOOSE", new JSONLOOSE("JSONLOOSE"));
-    functions.put("DEBUGON", new DEBUGON("DEBUGON"));
-    functions.put("NDEBUGON", new NDEBUGON("NDEBUGON"));
-    functions.put("DEBUGOFF", new DEBUGOFF("DEBUGOFF"));
-    functions.put("LINEON", new LINEON("LINEON"));
-    functions.put("LINEOFF", new LINEOFF("LINEOFF"));
-    functions.put("LMAP", new LMAP("LMAP"));
-    functions.put("NONNULL", new NONNULL("NONNULL"));
-    functions.put("LFLATMAP", new LFLATMAP("LFLATMAP"));
-    functions.put("[]", new EMPTYLIST("[]"));
-    functions.put(LIST_START, new MARK(LIST_START));
-    functions.put(LIST_END, new ENDLIST(LIST_END));
-    functions.put("STACKTOLIST", new STACKTOLIST("STACKTOLIST"));
-    functions.put(SET_START, new MARK(SET_START));
-    functions.put(SET_END, new ENDSET(SET_END));
-    functions.put("()", new EMPTYSET("()"));
-    functions.put(VECTOR_START, new MARK(VECTOR_START));
-    functions.put(VECTOR_END, new ENDVECTOR(VECTOR_END));
-    functions.put("[[]]", new EMPTYVECTOR("[[]]"));
-    functions.put("{}", new EMPTYMAP("{}"));
-    functions.put("IMMUTABLE", new IMMUTABLE("IMMUTABLE"));
-    functions.put(MAP_START, new MARK(MAP_START));
-    functions.put(MAP_END, new ENDMAP(MAP_END));
-    functions.put("SECUREKEY", new SECUREKEY("SECUREKEY"));
-    functions.put("SECURE", new SECURE("SECURE"));
-    functions.put("UNSECURE", new UNSECURE("UNSECURE", true));
-    functions.put(EVALSECURE, new EVALSECURE(EVALSECURE));
-    functions.put("NOOP", new NOOP("NOOP"));
-    functions.put("DOC", new DOC("DOC"));
-    functions.put("DOCMODE", new DOCMODE("DOCMODE"));
-    functions.put("INFO", new INFO("INFO"));
-    functions.put("INFOMODE", new INFOMODE("INFOMODE"));
-    functions.put(SECTION, new SECTION(SECTION));
-    functions.put("GETSECTION", new GETSECTION("GETSECTION"));
-    functions.put(SNAPSHOT, new SNAPSHOT(SNAPSHOT, false, false, true, false));
-    functions.put(SNAPSHOTALL, new SNAPSHOT(SNAPSHOTALL, true, false, true, false));
-    functions.put("SNAPSHOTTOMARK", new SNAPSHOT("SNAPSHOTTOMARK", false, true, true, false));
-    functions.put("SNAPSHOTALLTOMARK", new SNAPSHOT("SNAPSHOTALLTOMARK", true, true, true, false));
-    functions.put("SNAPSHOTCOPY", new SNAPSHOT("SNAPSHOTCOPY", false, false, false, false));
-    functions.put("SNAPSHOTCOPYALL", new SNAPSHOT("SNAPSHOTCOPYALL", true, false, false, false));
-    functions.put("SNAPSHOTCOPYTOMARK", new SNAPSHOT("SNAPSHOTCOPYTOMARK", false, true, false, false));
-    functions.put("SNAPSHOTCOPYALLTOMARK", new SNAPSHOT("SNAPSHOTCOPYALLTOMARK", true, true, false, false));
-    functions.put("SNAPSHOTN", new SNAPSHOT("SNAPSHOTN", false, false, true, true));
-    functions.put("SNAPSHOTCOPYN", new SNAPSHOT("SNAPSHOTCOPYN", false, false, false, true));
-    functions.put("HEADER", new HEADER("HEADER"));
+    addNamedWarpScriptFunction(new PIGSCHEMA(PIGSCHEMA));
+    addNamedWarpScriptFunction(new MARK(MARK));
+    addNamedWarpScriptFunction(new CLEARTOMARK(CLEARTOMARK));
+    addNamedWarpScriptFunction(new COUNTTOMARK(COUNTTOMARK));
+    addNamedWarpScriptFunction(new AUTHENTICATE(AUTHENTICATE));
+    addNamedWarpScriptFunction(new ISAUTHENTICATED(ISAUTHENTICATED));
+    addNamedWarpScriptFunction(new STACKATTRIBUTE(STACKATTRIBUTE)); // NOT TO BE DOCUMENTED
+    addNamedWarpScriptFunction(new EXPORT(EXPORT));
+    addNamedWarpScriptFunction(new TIMINGS(TIMINGS)); // NOT TO BE DOCUMENTED (YET)
+    addNamedWarpScriptFunction(new NOTIMINGS(NOTIMINGS)); // NOT TO BE DOCUMENTED (YET)
+    addNamedWarpScriptFunction(new ELAPSED(ELAPSED)); // NOT TO BE DOCUMENTED (YET)
+    addNamedWarpScriptFunction(new TIMED(TIMED));
+    addNamedWarpScriptFunction(new CHRONOSTART(CHRONOSTART));
+    addNamedWarpScriptFunction(new CHRONOEND(CHRONOEND));
+    addNamedWarpScriptFunction(new CHRONOSTATS(CHRONOSTATS));
+    addNamedWarpScriptFunction(new TOLIST(TOLIST));
+    addNamedWarpScriptFunction(new LISTTO(LISTTO));
+    addNamedWarpScriptFunction(new UNLIST(UNLIST));
+    addNamedWarpScriptFunction(new TOSET(TO_SET));
+    addNamedWarpScriptFunction(new SETTO(SETTO));
+    addNamedWarpScriptFunction(new TOVECTOR(TO_VECTOR));
+    addNamedWarpScriptFunction(new VECTORTO(VTO));
+    addNamedWarpScriptFunction(new UNION(UNION));
+    addNamedWarpScriptFunction(new INTERSECTION(INTERSECTION));
+    addNamedWarpScriptFunction(new DIFFERENCE(DIFFERENCE));
+    addNamedWarpScriptFunction(new TOMAP(TOMAP));
+    addNamedWarpScriptFunction(new MAPTO(MAPTO));
+    addNamedWarpScriptFunction(new UNMAP(UNMAP));
+    addNamedWarpScriptFunction(new MAPID(MAPID));
+    addNamedWarpScriptFunction(new TOJSON(TOJSON));
+    addNamedWarpScriptFunction(new JSONTO(JSONTO));
+    addNamedWarpScriptFunction(new TOPICKLE(TOPICKLE));
+    addNamedWarpScriptFunction(new PICKLETO(PICKLETO));
+    addNamedWarpScriptFunction(new GET(GET));
+    addNamedWarpScriptFunction(new SET(SET));
+    addNamedWarpScriptFunction(new PUT(PUT));
+    addNamedWarpScriptFunction(new SUBMAP(SUBMAP));
+    addNamedWarpScriptFunction(new SUBLIST(SUBLIST));
+    addNamedWarpScriptFunction(new KEYLIST(KEYLIST));
+    addNamedWarpScriptFunction(new VALUELIST(VALUELIST));
+    addNamedWarpScriptFunction(new SIZE(SIZE));
+    addNamedWarpScriptFunction(new SHRINK(SHRINK));
+    addNamedWarpScriptFunction(new REMOVE(REMOVE));
+    addNamedWarpScriptFunction(new UNIQUE(UNIQUE));
+    addNamedWarpScriptFunction(new CONTAINS(CONTAINS));
+    addNamedWarpScriptFunction(new CONTAINSKEY(CONTAINSKEY));
+    addNamedWarpScriptFunction(new CONTAINSVALUE(CONTAINSVALUE));
+    addNamedWarpScriptFunction(new REVERSE(REVERSE, true));
+    addNamedWarpScriptFunction(new REVERSE(CLONEREVERSE, false));
+    addNamedWarpScriptFunction(new DUP(DUP));
+    addNamedWarpScriptFunction(new DUPN(DUPN));
+    addNamedWarpScriptFunction(new SWAP(SWAP));
+    addNamedWarpScriptFunction(new DROP(DROP));
+    addNamedWarpScriptFunction(new SAVE(SAVE));
+    addNamedWarpScriptFunction(new RESTORE(RESTORE));
+    addNamedWarpScriptFunction(new CLEAR(CLEAR));
+    addNamedWarpScriptFunction(new CLEARDEFS(CLEARDEFS));
+    addNamedWarpScriptFunction(new CLEARSYMBOLS(CLEARSYMBOLS));
+    addNamedWarpScriptFunction(new DROPN(DROPN));
+    addNamedWarpScriptFunction(new ROT(ROT));
+    addNamedWarpScriptFunction(new ROLL(ROLL));
+    addNamedWarpScriptFunction(new ROLLD(ROLLD));
+    addNamedWarpScriptFunction(new PICK(PICK));
+    addNamedWarpScriptFunction(new DEPTH(DEPTH));
+    addNamedWarpScriptFunction(new MAXDEPTH(MAXDEPTH));
+    addNamedWarpScriptFunction(new RESET(RESET));
+    addNamedWarpScriptFunction(new MAXOPS(MAXOPS));
+    addNamedWarpScriptFunction(new MAXLOOP(MAXLOOP));
+    addNamedWarpScriptFunction(new MAXBUCKETS(MAXBUCKETS));
+    addNamedWarpScriptFunction(new MAXGEOCELLS(MAXGEOCELLS));
+    addNamedWarpScriptFunction(new MAXPIXELS(MAXPIXELS));
+    addNamedWarpScriptFunction(new MAXRECURSION(MAXRECURSION));
+    addNamedWarpScriptFunction(new OPS(OPS));
+    addNamedWarpScriptFunction(new MAXSYMBOLS(MAXSYMBOLS));
+    addNamedWarpScriptFunction(new EVAL(EVAL));
+    addNamedWarpScriptFunction(new NOW(NOW));
+    addNamedWarpScriptFunction(new AGO(AGO));
+    addNamedWarpScriptFunction(new MSTU(MSTU));
+    addNamedWarpScriptFunction(new STU(STU));
+    addNamedWarpScriptFunction(new APPEND(APPEND));
+    addNamedWarpScriptFunction(new STORE(STORE));
+    addNamedWarpScriptFunction(new CSTORE(CSTORE));
+    addNamedWarpScriptFunction(new LOAD(LOAD));
+    addNamedWarpScriptFunction(new IMPORT(IMPORT));
+    addNamedWarpScriptFunction(new RUN(RUN));
+    addNamedWarpScriptFunction(new DEF(DEF));
+    addNamedWarpScriptFunction(new UDF(UDF, false));
+    addNamedWarpScriptFunction(new UDF(CUDF, true));
+    addNamedWarpScriptFunction(new CALL(CALL));
+    addNamedWarpScriptFunction(new FORGET(FORGET));
+    addNamedWarpScriptFunction(new DEFINED(DEFINED));
+    addNamedWarpScriptFunction(new REDEFS(REDEFS));
+    addNamedWarpScriptFunction(new DEFINEDMACRO(DEFINEDMACRO));
+    addNamedWarpScriptFunction(new DEFINEDMACRO(CHECKMACRO, true));
+    addNamedWarpScriptFunction(new NaN(NAN));
+    addNamedWarpScriptFunction(new ISNaN(ISNAN));
+    addNamedWarpScriptFunction(new TYPEOF(TYPEOF));
+    addNamedWarpScriptFunction(new EXTLOADED(EXTLOADED));
+    addNamedWarpScriptFunction(new ASSERT(ASSERT));
+    addNamedWarpScriptFunction(new ASSERTMSG(ASSERTMSG));
+    addNamedWarpScriptFunction(new FAIL(FAIL));
+    addNamedWarpScriptFunction(new MSGFAIL(MSGFAIL));
+    addNamedWarpScriptFunction(new STOP(STOP));
+    addNamedWarpScriptFunction(new TRY(TRY));
+    addNamedWarpScriptFunction(new RETHROW(RETHROW));
+    addNamedWarpScriptFunction(new ERROR(ERROR));
+    addNamedWarpScriptFunction(new TIMEBOX(TIMEBOX));
+    addNamedWarpScriptFunction(new JSONSTRICT(JSONSTRICT));
+    addNamedWarpScriptFunction(new JSONLOOSE(JSONLOOSE));
+    addNamedWarpScriptFunction(new DEBUGON(DEBUGON));
+    addNamedWarpScriptFunction(new NDEBUGON(NDEBUGON));
+    addNamedWarpScriptFunction(new DEBUGOFF(DEBUGOFF));
+    addNamedWarpScriptFunction(new LINEON(LINEON));
+    addNamedWarpScriptFunction(new LINEOFF(LINEOFF));
+    addNamedWarpScriptFunction(new LMAP(LMAP));
+    addNamedWarpScriptFunction(new NONNULL(NONNULL));
+    addNamedWarpScriptFunction(new LFLATMAP(LFLATMAP));
+    addNamedWarpScriptFunction(new EMPTYLIST("[]"));
+    addNamedWarpScriptFunction(new MARK(LIST_START));
+    addNamedWarpScriptFunction(new ENDLIST(LIST_END));
+    addNamedWarpScriptFunction(new STACKTOLIST(STACKTOLIST));
+    addNamedWarpScriptFunction(new MARK(SET_START));
+    addNamedWarpScriptFunction(new ENDSET(SET_END));
+    addNamedWarpScriptFunction(new EMPTYSET("()"));
+    addNamedWarpScriptFunction(new MARK(VECTOR_START));
+    addNamedWarpScriptFunction(new ENDVECTOR(VECTOR_END));
+    addNamedWarpScriptFunction(new EMPTYVECTOR("[[]]"));
+    addNamedWarpScriptFunction(new EMPTYMAP("{}"));
+    addNamedWarpScriptFunction(new IMMUTABLE(IMMUTABLE));
+    addNamedWarpScriptFunction(new MARK(MAP_START));
+    addNamedWarpScriptFunction(new ENDMAP(MAP_END));
+    addNamedWarpScriptFunction(new SECUREKEY(SECUREKEY));
+    addNamedWarpScriptFunction(new SECURE(SECURE));
+    addNamedWarpScriptFunction(new UNSECURE(UNSECURE, true));
+    addNamedWarpScriptFunction(new EVALSECURE(EVALSECURE));
+    addNamedWarpScriptFunction(new NOOP(NOOP));
+    addNamedWarpScriptFunction(new DOC(DOC));
+    addNamedWarpScriptFunction(new DOCMODE(DOCMODE));
+    addNamedWarpScriptFunction(new INFO(INFO));
+    addNamedWarpScriptFunction(new INFOMODE(INFOMODE));
+    addNamedWarpScriptFunction(new SECTION(SECTION));
+    addNamedWarpScriptFunction(new GETSECTION(GETSECTION));
+    addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOT, false, false, true, false));
+    addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOTALL, true, false, true, false));
+    addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOTTOMARK, false, true, true, false));
+    addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOTALLTOMARK, true, true, true, false));
+    addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOTCOPY, false, false, false, false));
+    addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOTCOPYALL, true, false, false, false));
+    addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOTCOPYTOMARK, false, true, false, false));
+    addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOTCOPYALLTOMARK, true, true, false, false));
+    addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOTN, false, false, true, true));
+    addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOTCOPYN, false, false, false, true));
+    addNamedWarpScriptFunction(new HEADER(HEADER));
     
-    functions.put("MACROTTL", new MACROTTL("MACROTTL"));
-    functions.put("MACROMAPPER", new MACROMAPPER("MACROMAPPER"));
-    functions.put("MACROREDUCER", new MACROMAPPER("MACROREDUCER"));
-    functions.put("MACROBUCKETIZER", new MACROMAPPER("MACROBUCKETIZER"));
-    functions.put("MACROFILTER", new MACROFILTER("MACROFILTER"));
-    functions.put("STRICTMAPPER", new STRICTMAPPER("STRICTMAPPER"));
-    functions.put("STRICTREDUCER", new STRICTREDUCER("STRICTREDUCER"));
+    addNamedWarpScriptFunction(new ECHOON(ECHOON));
+    addNamedWarpScriptFunction(new ECHOOFF(ECHOOFF));
+    addNamedWarpScriptFunction(new JSONSTACK(JSONSTACK));
+    addNamedWarpScriptFunction(new WSSTACK(WSSTACK));
+    addNamedWarpScriptFunction(new PEEK(PEEK));
+    addNamedWarpScriptFunction(new PEEKN(PEEKN));
+    addNamedWarpScriptFunction(new NPEEK(NPEEK));
+    addNamedWarpScriptFunction(new PSTACK(PSTACK));
+    addNamedWarpScriptFunction(new TIMEON(TIMEON));
+    addNamedWarpScriptFunction(new TIMEOFF(TIMEOFF));
+
+    //
+    // Compilation related dummy functions
+    //
+    addNamedWarpScriptFunction(new FAIL(COMPILE, "Not supported"));
+    addNamedWarpScriptFunction(new NOOP(SAFECOMPILE));
+    addNamedWarpScriptFunction(new FAIL(COMPILED, "Not supported"));
+    addNamedWarpScriptFunction(new REF(REF));
+
+    addNamedWarpScriptFunction(new MACROTTL(MACROTTL));
+    addNamedWarpScriptFunction(new WFON(WFON));
+    addNamedWarpScriptFunction(new WFOFF(WFOFF));
+    addNamedWarpScriptFunction(new SETMACROCONFIG(SETMACROCONFIG));
+    addNamedWarpScriptFunction(new MACROCONFIGSECRET(MACROCONFIGSECRET));
+    addNamedWarpScriptFunction(new MACROCONFIG(MACROCONFIG, false));
+    addNamedWarpScriptFunction(new MACROCONFIG(MACROCONFIGDEFAULT, true));
+    addNamedWarpScriptFunction(new MACROMAPPER(MACROMAPPER));
+    addNamedWarpScriptFunction(new MACROMAPPER(MACROREDUCER));
+    addNamedWarpScriptFunction(new MACROMAPPER(MACROBUCKETIZER));
+    addNamedWarpScriptFunction(new MACROFILTER(MACROFILTER));
+    addNamedWarpScriptFunction(new MACROFILLER(MACROFILLER));
+    addNamedWarpScriptFunction(new STRICTMAPPER(STRICTMAPPER));
+    addNamedWarpScriptFunction(new STRICTREDUCER(STRICTREDUCER));
     
-    functions.put(PARSESELECTOR, new PARSESELECTOR(PARSESELECTOR));
-    functions.put("TOSELECTOR", new TOSELECTOR("TOSELECTOR"));
-    functions.put("PARSE", new PARSE("PARSE"));
-    functions.put("SMARTPARSE", new SMARTPARSE("SMARTPARSE"));
+    addNamedWarpScriptFunction(new PARSESELECTOR(PARSESELECTOR));
+    addNamedWarpScriptFunction(new TOSELECTOR(TOSELECTOR));
+    addNamedWarpScriptFunction(new PARSE(PARSE));
+    addNamedWarpScriptFunction(new SMARTPARSE(SMARTPARSE));
         
     // We do not expose DUMP, it might allocate too much memory
-    //functions.put("DUMP", new DUMP("DUMP"));
+    //addNamedWarpScriptFunction(new DUMP(DUMP));
     
     // Binary ops
-    functions.put("+", new ADD("+"));
-    functions.put(INPLACEADD, new INPLACEADD(INPLACEADD));
-    functions.put("-", new SUB("-"));
-    functions.put("/", new DIV("/"));
-    functions.put("*", new MUL("*"));
-    functions.put("**", new POW("**"));
-    functions.put("%", new MOD("%"));
-    functions.put("==", new EQ("=="));
-    functions.put("!=", new NE("!="));
-    functions.put("<", new LT("<"));
-    functions.put(">", new GT(">"));
-    functions.put("<=", new LE("<="));
-    functions.put(">=", new GE(">="));
-    functions.put("&&", new CondAND("&&"));
-    functions.put("AND", new CondAND("AND"));
-    functions.put("||", new CondOR("||"));
-    functions.put("OR", new CondOR("OR"));
-    functions.put("&", new BitwiseAND("&"));
-    functions.put(">>", new SHIFTRIGHT(">>", true));
-    functions.put(">>>", new SHIFTRIGHT(">>>", false));
-    functions.put("<<", new SHIFTLEFT("<<"));
-    functions.put("|", new BitwiseOR("|"));
-    functions.put("^", new BitwiseXOR("^"));
-    functions.put("~=", new ALMOSTEQ("~="));
+    addNamedWarpScriptFunction(new ADD("+"));
+    addNamedWarpScriptFunction(new INPLACEADD(INPLACEADD));
+    addNamedWarpScriptFunction(new SUB("-"));
+    addNamedWarpScriptFunction(new DIV("/"));
+    addNamedWarpScriptFunction(new MUL("*"));
+    addNamedWarpScriptFunction(new POW("**"));
+    addNamedWarpScriptFunction(new MOD("%"));
+    addNamedWarpScriptFunction(new EQ("=="));
+    addNamedWarpScriptFunction(new NE("!="));
+    addNamedWarpScriptFunction(new LT("<"));
+    addNamedWarpScriptFunction(new GT(">"));
+    addNamedWarpScriptFunction(new LE("<="));
+    addNamedWarpScriptFunction(new GE(">="));
+    addNamedWarpScriptFunction(new CondAND("&&"));
+    addNamedWarpScriptFunction(new CondAND(AND));
+    addNamedWarpScriptFunction(new CondOR("||"));
+    addNamedWarpScriptFunction(new CondOR(OR));
+    addNamedWarpScriptFunction(new BitwiseAND("&"));
+    addNamedWarpScriptFunction(new SHIFTRIGHT(">>", true));
+    addNamedWarpScriptFunction(new SHIFTRIGHT(">>>", false));
+    addNamedWarpScriptFunction(new SHIFTLEFT("<<"));
+    addNamedWarpScriptFunction(new BitwiseOR("|"));
+    addNamedWarpScriptFunction(new BitwiseXOR("^"));
+    addNamedWarpScriptFunction(new ALMOSTEQ("~="));
 
     // Bitset ops
-    functions.put("BITGET", new BITGET("BITGET"));
-    functions.put("BITCOUNT", new BITCOUNT("BITCOUNT"));
-    functions.put("BITSTOBYTES", new BITSTOBYTES("BITSTOBYTES"));
-    functions.put("BYTESTOBITS", new BYTESTOBITS("BYTESTOBITS"));
+    addNamedWarpScriptFunction(new BITGET(BITGET));
+    addNamedWarpScriptFunction(new BITCOUNT(BITCOUNT));
+    addNamedWarpScriptFunction(new BITSTOBYTES(BITSTOBYTES));
+    addNamedWarpScriptFunction(new BYTESTOBITS(BYTESTOBITS));
     
     // Unary ops    
-    functions.put("!", new NOT("!"));
-    functions.put("~", new COMPLEMENT("~"));
-    functions.put("REVBITS", new REVERSEBITS("REVBITS"));
-    functions.put("NOT", new NOT("NOT"));
-    functions.put("ABS", new ABS("ABS"));
-    functions.put("TODOUBLE", new TODOUBLE("TODOUBLE"));
-    functions.put("TOBOOLEAN", new TOBOOLEAN("TOBOOLEAN"));
-    functions.put("TOLONG", new TOLONG("TOLONG"));
-    functions.put("TOSTRING", new TOSTRING("TOSTRING"));
-    functions.put("TOHEX", new TOHEX("TOHEX"));
-    functions.put("TOBIN", new TOBIN("TOBIN"));
-    functions.put("FROMHEX", new FROMHEX("FROMHEX"));
-    functions.put("FROMBIN", new FROMBIN("FROMBIN"));
-    functions.put("TOBITS", new TOBITS("TOBITS", false));
-    functions.put("FROMBITS", new FROMBITS("FROMBITS", false));
-    functions.put("->DOUBLEBITS", new TOBITS("->DOUBLEBITS", false));
-    functions.put("DOUBLEBITS->", new FROMBITS("DOUBLEBITS->", false));
-    functions.put("->FLOATBITS", new TOBITS("->FLOATBITS", true));
-    functions.put("FLOATBITS->", new FROMBITS("FLOATBITS->", true));
-    functions.put("TOKENINFO", new TOKENINFO("TOKENINFO"));
-    functions.put("GETHOOK", new GETHOOK("GETHOOK"));
+    addNamedWarpScriptFunction(new NOT("!"));
+    addNamedWarpScriptFunction(new COMPLEMENT("~"));
+    addNamedWarpScriptFunction(new REVERSEBITS(REVBITS));
+    addNamedWarpScriptFunction(new NOT(NOT));
+    addNamedWarpScriptFunction(new ABS(ABS));
+    addNamedWarpScriptFunction(new TODOUBLE(TODOUBLE));
+    addNamedWarpScriptFunction(new TOBOOLEAN(TOBOOLEAN));
+    addNamedWarpScriptFunction(new TOLONG(TOLONG));
+    addNamedWarpScriptFunction(new TOSTRING(TOSTRING));
+    addNamedWarpScriptFunction(new TOHEX(TOHEX));
+    addNamedWarpScriptFunction(new TOBIN(TOBIN));
+    addNamedWarpScriptFunction(new FROMHEX(FROMHEX));
+    addNamedWarpScriptFunction(new FROMBIN(FROMBIN));
+    addNamedWarpScriptFunction(new TOBITS(TOBITS, false));
+    addNamedWarpScriptFunction(new FROMBITS(FROMBITS, false));
+    addNamedWarpScriptFunction(new TOLONGBYTES(TOLONGBYTES));
+    addNamedWarpScriptFunction(new TOBITS(TODOUBLEBITS, false));
+    addNamedWarpScriptFunction(new FROMBITS(DOUBLEBITSTO, false));
+    addNamedWarpScriptFunction(new TOBITS(TOFLOATBITS, true));
+    addNamedWarpScriptFunction(new FROMBITS(FLOATBITSTO, true));
+    addNamedWarpScriptFunction(new TOKENINFO(TOKENINFO));
+    addNamedWarpScriptFunction(new GETHOOK(GETHOOK));
     
     // Unit converters
-    functions.put("w", new UNIT("w", 7 * 24 * 60 * 60 * 1000));
-    functions.put("d", new UNIT("d", 24 * 60 * 60 * 1000));
-    functions.put("h", new UNIT("h", 60 * 60 * 1000));
-    functions.put("m", new UNIT("m", 60 * 1000));
-    functions.put("s",  new UNIT("s",  1000));
-    functions.put("ms", new UNIT("ms", 1));
-    functions.put("us", new UNIT("us", 0.001));
-    functions.put("ns", new UNIT("ns", 0.000001));
-    functions.put("ps", new UNIT("ps", 0.000000001));
+    addNamedWarpScriptFunction(new UNIT(W, 7 * 24 * 60 * 60 * 1000));
+    addNamedWarpScriptFunction(new UNIT(D, 24 * 60 * 60 * 1000));
+    addNamedWarpScriptFunction(new UNIT(H, 60 * 60 * 1000));
+    addNamedWarpScriptFunction(new UNIT(M, 60 * 1000));
+    addNamedWarpScriptFunction(new UNIT(S,  1000));
+    addNamedWarpScriptFunction(new UNIT(MS, 1));
+    addNamedWarpScriptFunction(new UNIT(US, 0.001));
+    addNamedWarpScriptFunction(new UNIT(NS, 0.000001));
+    addNamedWarpScriptFunction(new UNIT(PS, 0.000000001));
     
     // Crypto functions
-    functions.put("HASH", new HASH("HASH"));
-    functions.put("MD5", new DIGEST("MD5", MD5Digest.class));
-    functions.put("SHA1", new DIGEST("SHA1", SHA1Digest.class));
-    functions.put("SHA256", new DIGEST("SHA256", SHA256Digest.class));
-    functions.put("SHA256HMAC", new HMAC("SHA256HMAC", SHA256Digest.class));
-    functions.put("SHA1HMAC", new HMAC("SHA1HMAC", SHA1Digest.class));
-    functions.put("AESWRAP", new AESWRAP("AESWRAP"));
-    functions.put("AESUNWRAP", new AESUNWRAP("AESUNWRAP"));
-    functions.put("RUNNERNONCE", new RUNNERNONCE("RUNNERNONCE"));
-    functions.put("GZIP", new GZIP("GZIP"));
-    functions.put("UNGZIP", new UNGZIP("UNGZIP"));
-    functions.put("RSAGEN", new RSAGEN("RSAGEN"));
-    functions.put(RSAPUBLIC, new RSAPUBLIC(RSAPUBLIC));
-    functions.put(RSAPRIVATE, new RSAPRIVATE(RSAPRIVATE));
-    functions.put("RSAENCRYPT", new RSAENCRYPT("RSAENCRYPT"));
-    functions.put("RSADECRYPT", new RSADECRYPT("RSADECRYPT"));
-    functions.put("RSASIGN", new RSASIGN("RSASIGN"));
-    functions.put("RSAVERIFY", new RSAVERIFY("RSAVERIFY"));
+    addNamedWarpScriptFunction(new HASH(HASH));
+    addNamedWarpScriptFunction(new DIGEST(MD5, MD5Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(SHA1, SHA1Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(SHA256, SHA256Digest.class));
+    addNamedWarpScriptFunction(new HMAC(SHA256HMAC, SHA256Digest.class));
+    addNamedWarpScriptFunction(new HMAC(SHA1HMAC, SHA1Digest.class));
+    addNamedWarpScriptFunction(new AESWRAP(AESWRAP));
+    addNamedWarpScriptFunction(new AESUNWRAP(AESUNWRAP));
+    addNamedWarpScriptFunction(new RUNNERNONCE(RUNNERNONCE));
+    addNamedWarpScriptFunction(new GZIP(GZIP));
+    addNamedWarpScriptFunction(new UNGZIP(UNGZIP));
+    addNamedWarpScriptFunction(new DEFLATE(DEFLATE));
+    addNamedWarpScriptFunction(new INFLATE(INFLATE));
+    addNamedWarpScriptFunction(new RSAGEN(RSAGEN));
+    addNamedWarpScriptFunction(new RSAPUBLIC(RSAPUBLIC));
+    addNamedWarpScriptFunction(new RSAPRIVATE(RSAPRIVATE));
+    addNamedWarpScriptFunction(new RSAENCRYPT(RSAENCRYPT));
+    addNamedWarpScriptFunction(new RSADECRYPT(RSADECRYPT));
+    addNamedWarpScriptFunction(new RSASIGN(RSASIGN));
+    addNamedWarpScriptFunction(new RSAVERIFY(RSAVERIFY));
 
     //
     // String functions
     //
     
-    functions.put("URLDECODE", new URLDECODE("URLDECODE"));
-    functions.put("URLENCODE", new URLENCODE("URLENCODE"));
-    functions.put("SPLIT", new SPLIT("SPLIT"));
-    functions.put("UUID", new UUID("UUID"));
-    functions.put("JOIN", new JOIN("JOIN"));
-    functions.put("SUBSTRING", new SUBSTRING("SUBSTRING"));
-    functions.put("TOUPPER", new TOUPPER("TOUPPER"));
-    functions.put("TOLOWER", new TOLOWER("TOLOWER"));
-    functions.put("TRIM", new TRIM("TRIM"));
+    addNamedWarpScriptFunction(new URLDECODE(URLDECODE));
+    addNamedWarpScriptFunction(new URLENCODE(URLENCODE));
+    addNamedWarpScriptFunction(new SPLIT(SPLIT));
+    addNamedWarpScriptFunction(new UUID(UUID));
+    addNamedWarpScriptFunction(new JOIN(JOIN));
+    addNamedWarpScriptFunction(new SUBSTRING(SUBSTRING));
+    addNamedWarpScriptFunction(new TOUPPER(TOUPPER));
+    addNamedWarpScriptFunction(new TOLOWER(TOLOWER));
+    addNamedWarpScriptFunction(new TRIM(TRIM));
     
-    functions.put("B64TOHEX", new B64TOHEX("B64TOHEX"));
-    functions.put("HEXTOB64", new HEXTOB64("HEXTOB64"));
-    functions.put("BINTOHEX", new BINTOHEX("BINTOHEX"));
-    functions.put("HEXTOBIN", new HEXTOBIN("HEXTOBIN"));
+    addNamedWarpScriptFunction(new B64TOHEX(B64TOHEX));
+    addNamedWarpScriptFunction(new HEXTOB64(HEXTOB64));
+    addNamedWarpScriptFunction(new BINTOHEX(BINTOHEX));
+    addNamedWarpScriptFunction(new HEXTOBIN(HEXTOBIN));
     
-    functions.put("BIN->", new BINTO("BIN->"));
-    functions.put("HEX->", new HEXTO("HEX->"));
-    functions.put("B64->", new B64TO("B64->"));
-    functions.put("B64URL->", new B64URLTO("B64URL->"));
-    functions.put(BYTESTO, new BYTESTO(BYTESTO));
+    addNamedWarpScriptFunction(new BINTO(BINTO));
+    addNamedWarpScriptFunction(new HEXTO(HEXTO));
+    addNamedWarpScriptFunction(new B64TO(B64TO));
+    addNamedWarpScriptFunction(new B64URLTO(B64URLTO));
+    addNamedWarpScriptFunction(new BYTESTO(BYTESTO));
 
-    functions.put("->BYTES", new TOBYTES("->BYTES"));
-    functions.put("->BIN", new io.warp10.script.functions.TOBIN("->BIN"));
-    functions.put("->HEX", new io.warp10.script.functions.TOHEX("->HEX"));
-    functions.put("->B64", new TOB64("->B64"));
-    functions.put("->B64URL", new TOB64URL("->B64URL"));
-    functions.put(TOOPB64, new TOOPB64(TOOPB64));
-    functions.put(OPB64TO, new OPB64TO(OPB64TO));
-    functions.put("OPB64TOHEX", new OPB64TOHEX("OPB64TOHEX"));    
+    addNamedWarpScriptFunction(new TOBYTES(TOBYTES));
+    addNamedWarpScriptFunction(new io.warp10.script.functions.TOBIN(TOBIN_));
+    addNamedWarpScriptFunction(new io.warp10.script.functions.TOHEX(TOHEX_));
+    addNamedWarpScriptFunction(new TOB64(TOB64));
+    addNamedWarpScriptFunction(new TOB64URL(TOB64URL));
+    addNamedWarpScriptFunction(new TOOPB64(TOOPB64));
+    addNamedWarpScriptFunction(new OPB64TO(OPB64TO));
+    addNamedWarpScriptFunction(new OPB64TOHEX(OPB64TOHEX));
     
     //
     // Conditionals
     //
     
-    functions.put("IFT", new IFT("IFT"));
-    functions.put("IFTE", new IFTE("IFTE"));
-    functions.put("SWITCH", new SWITCH("SWITCH"));
+    addNamedWarpScriptFunction(new IFT(IFT));
+    addNamedWarpScriptFunction(new IFTE(IFTE));
+    addNamedWarpScriptFunction(new SWITCH(SWITCH));
     
     //
     // Loops
     //
     
-    functions.put("WHILE", new WHILE("WHILE"));
-    functions.put("UNTIL", new UNTIL("UNTIL"));
-    functions.put("FOR", new FOR("FOR"));
-    functions.put("FORSTEP", new FORSTEP("FORSTEP"));
-    functions.put("FOREACH", new FOREACH("FOREACH"));
-    functions.put("BREAK", new BREAK("BREAK"));
-    functions.put("CONTINUE", new CONTINUE("CONTINUE"));
-    functions.put("EVERY", new EVERY("EVERY"));
-    functions.put("RANGE", new RANGE("RANGE"));
+    addNamedWarpScriptFunction(new WHILE(WHILE));
+    addNamedWarpScriptFunction(new UNTIL(UNTIL));
+    addNamedWarpScriptFunction(new FOR(FOR));
+    addNamedWarpScriptFunction(new FORSTEP(FORSTEP));
+    addNamedWarpScriptFunction(new FOREACH(FOREACH));
+    addNamedWarpScriptFunction(new BREAK(BREAK));
+    addNamedWarpScriptFunction(new CONTINUE(CONTINUE));
+    addNamedWarpScriptFunction(new EVERY(EVERY));
+    addNamedWarpScriptFunction(new RANGE(RANGE));
     
     //
     // Macro end
     //
     
-    functions.put("RETURN", new RETURN("RETURN"));
-    functions.put("NRETURN", new NRETURN("NRETURN"));
+    addNamedWarpScriptFunction(new RETURN(RETURN));
+    addNamedWarpScriptFunction(new NRETURN(NRETURN));
     
     //
     // GTS standalone functions
     //
     
-    functions.put("NEWENCODER", new NEWENCODER("NEWENCODER"));
-    functions.put("CHUNKENCODER", new CHUNKENCODER("CHUNKENCODER", true));
-    functions.put("->ENCODER", new TOENCODER("->ENCODER"));
-    functions.put("ENCODER->", new ENCODERTO("ENCODER->"));
-    functions.put("->GTS", new TOGTS("->GTS"));
-    functions.put("OPTIMIZE", new OPTIMIZE("OPTIMIZE"));
-    functions.put(NEWGTS, new NEWGTS(NEWGTS));
-    functions.put("MAKEGTS", new MAKEGTS("MAKEGTS"));
-    functions.put("ADDVALUE", new ADDVALUE("ADDVALUE", false));
-    functions.put("SETVALUE", new ADDVALUE("SETVALUE", true));
-    functions.put("REMOVETICK", new REMOVETICK("REMOVETICK"));
-    functions.put("FETCH", new FETCH("FETCH", false, null));
-    functions.put("FETCHLONG", new FETCH("FETCHLONG", false, TYPE.LONG));
-    functions.put("FETCHDOUBLE", new FETCH("FETCHDOUBLE", false, TYPE.DOUBLE));
-    functions.put("FETCHSTRING", new FETCH("FETCHSTRING", false, TYPE.STRING));
-    functions.put("FETCHBOOLEAN", new FETCH("FETCHBOOLEAN", false, TYPE.BOOLEAN));
-    functions.put("LIMIT", new LIMIT("LIMIT"));
-    functions.put("MAXGTS", new MAXGTS("MAXGTS"));
-    functions.put("FIND", new FIND("FIND", false));
-    functions.put("FINDSETS", new FIND("FINDSETS", true));
-    functions.put("METASET", new FIND("METASET", false, true));
-    functions.put("FINDSTATS", new FINDSTATS("FINDSTATS"));
-    functions.put("DEDUP", new DEDUP("DEDUP"));
-    functions.put("ONLYBUCKETS", new ONLYBUCKETS("ONLYBUCKETS"));
-    functions.put("VALUEDEDUP", new VALUEDEDUP("VALUEDEDUP"));
-    functions.put("CLONEEMPTY", new CLONEEMPTY("CLONEEMPTY"));
-    functions.put("COMPACT", new COMPACT("COMPACT"));
-    functions.put("RANGECOMPACT", new RANGECOMPACT("RANGECOMPACT"));
-    functions.put("STANDARDIZE", new STANDARDIZE("STANDARDIZE"));
-    functions.put("NORMALIZE", new NORMALIZE("NORMALIZE"));
-    functions.put("ISONORMALIZE", new ISONORMALIZE("ISONORMALIZE"));
-    functions.put("ZSCORE", new ZSCORE("ZSCORE"));
-    functions.put("FILLPREVIOUS", new FILLPREVIOUS("FILLPREVIOUS"));
-    functions.put("FILLNEXT", new FILLNEXT("FILLNEXT"));
-    functions.put("FILLVALUE", new FILLVALUE("FILLVALUE"));
-    functions.put("FILLTICKS", new FILLTICKS("FILLTICKS"));
-    functions.put("INTERPOLATE", new INTERPOLATE("INTERPOLATE"));
-    functions.put("FIRSTTICK", new FIRSTTICK("FIRSTTICK"));
-    functions.put("LASTTICK", new LASTTICK("LASTTICK"));
-    functions.put("MERGE", new MERGE("MERGE"));
-    functions.put("RESETS", new RESETS("RESETS"));
-    functions.put("MONOTONIC", new MONOTONIC("MONOTONIC"));
-    functions.put("TIMESPLIT", new TIMESPLIT("TIMESPLIT"));
-    functions.put("TIMECLIP", new TIMECLIP("TIMECLIP"));
-    functions.put("CLIP", new CLIP("CLIP"));
-    functions.put("TIMEMODULO", new TIMEMODULO("TIMEMODULO"));
-    functions.put("CHUNK", new CHUNK("CHUNK", true));
-    functions.put("FUSE", new FUSE("FUSE"));
-    functions.put(RENAME, new RENAME(RENAME));
-    functions.put(RELABEL, new RELABEL(RELABEL));
-    functions.put("SETATTRIBUTES", new SETATTRIBUTES("SETATTRIBUTES"));
-    functions.put("CROP", new CROP("CROP"));
-    functions.put("TIMESHIFT", new TIMESHIFT("TIMESHIFT"));
-    functions.put("TIMESCALE", new TIMESCALE("TIMESCALE"));
-    functions.put("TICKINDEX", new TICKINDEX("TICKINDEX"));
-    functions.put("FFT", new FFT.Builder("FFT", true));
-    functions.put("FFTAP", new FFT.Builder("FFT", false));
-    functions.put("IFFT", new IFFT.Builder("IFFT"));
-    functions.put("FFTWINDOW", new FFTWINDOW("FFTWINDOW"));
-    functions.put("FDWT", new FDWT("FDWT"));
-    functions.put("IDWT", new IDWT("IDWT"));
-    functions.put("DWTSPLIT", new DWTSPLIT("DWTSPLIT"));
-    functions.put("EMPTY", new EMPTY("EMPTY"));
-    functions.put("NONEMPTY", new NONEMPTY("NONEMPTY"));
-    functions.put("PARTITION", new PARTITION("PARTITION"));
-    functions.put("STRICTPARTITION", new PARTITION("STRICTPARTITION", true));
-    functions.put("ZIP", new ZIP("ZIP"));
-    functions.put("PATTERNS", new PATTERNS("PATTERNS", true));
-    functions.put("PATTERNDETECTION", new PATTERNDETECTION("PATTERNDETECTION", true));
-    functions.put("ZPATTERNS", new PATTERNS("ZPATTERNS", false));
-    functions.put("ZPATTERNDETECTION", new PATTERNDETECTION("ZPATTERNDETECTION", false));
-    functions.put("DTW", new DTW("DTW", true, false));
-    functions.put("OPTDTW", new OPTDTW("OPTDTW"));
-    functions.put("ZDTW", new DTW("ZDTW", true, true));
-    functions.put("RAWDTW", new DTW("RAWDTW", false, false));
-    functions.put("VALUEHISTOGRAM", new VALUEHISTOGRAM("VALUEHISTORGRAM"));
-    functions.put("PROBABILITY", new PROBABILITY.Builder("PROBABILITY"));
-    functions.put("PROB", new PROB("PROB"));
-    functions.put("CPROB", new CPROB("CPROB"));
-    functions.put("RANDPDF", new RANDPDF.Builder("RANDPDF"));
-    functions.put("SINGLEEXPONENTIALSMOOTHING", new SINGLEEXPONENTIALSMOOTHING("SINGLEEXPONENTIALSMOOTHING"));
-    functions.put("DOUBLEEXPONENTIALSMOOTHING", new DOUBLEEXPONENTIALSMOOTHING("DOUBLEEXPONENTIALSMOOTHING"));
-    functions.put("LOWESS", new LOWESS("LOWESS"));
-    functions.put("RLOWESS", new RLOWESS("RLOWESS"));
-    functions.put("STL", new STL("STL"));
-    functions.put("LTTB", new LTTB("LTTB", false));
-    functions.put("TLTTB", new LTTB("TLTTB", true));
-    functions.put("LOCATIONOFFSET", new LOCATIONOFFSET("LOCATIONOFFSET"));
-    functions.put("FLATTEN", new FLATTEN("FLATTEN"));
-    functions.put("CORRELATE", new CORRELATE.Builder("CORRELATE"));
-    functions.put("SORT", new SORT("SORT"));
-    functions.put("SORTBY", new SORTBY("SORTBY"));
-    functions.put("RSORT", new RSORT("RSORT"));
-    functions.put("LASTSORT", new LASTSORT("LASTSORT"));
-    functions.put("METASORT", new METASORT("METASORT"));
-    functions.put("VALUESORT", new VALUESORT("VALUESORT"));
-    functions.put("RVALUESORT", new RVALUESORT("RVALUESORT"));
-    functions.put("LSORT", new LSORT("LSORT"));
-    functions.put("MSORT", new MSORT("MSORT"));
-    functions.put("UPDATE", new UPDATE("UPDATE"));
-    functions.put("META", new META("META"));
-    functions.put("DELETE", new DELETE("DELETE"));
-    functions.put("WEBCALL", new WEBCALL("WEBCALL"));
-    functions.put("MATCH", new MATCH("MATCH"));
-    functions.put("MATCHER", new MATCHER("MATCHER"));
-    functions.put("REPLACE", new REPLACE("REPLACE", false));
-    functions.put("REPLACEALL", new REPLACE("REPLACEALL", true));
-    functions.put("REOPTALT", new REOPTALT("REOPTALT"));
+    addNamedWarpScriptFunction(new NEWENCODER(NEWENCODER));
+    addNamedWarpScriptFunction(new CHUNKENCODER(CHUNKENCODER, true));
+    addNamedWarpScriptFunction(new TOENCODER(TOENCODER));
+    addNamedWarpScriptFunction(new ENCODERTO(ENCODERTO));
+    addNamedWarpScriptFunction(new TOGTS(TOGTS));
+    addNamedWarpScriptFunction(new ASENCODERS(ASENCODERS));
+    addNamedWarpScriptFunction(new TOENCODERS(TOENCODERS));
+    addNamedWarpScriptFunction(new OPTIMIZE(OPTIMIZE));
+    addNamedWarpScriptFunction(new NEWGTS(NEWGTS));
+    addNamedWarpScriptFunction(new MAKEGTS(MAKEGTS));
+    addNamedWarpScriptFunction(new ADDVALUE(ADDVALUE, false));
+    addNamedWarpScriptFunction(new ADDVALUE(SETVALUE, true));
+    addNamedWarpScriptFunction(new REMOVETICK(REMOVETICK));
+    addNamedWarpScriptFunction(new FETCH(FETCH, false, null));
+    addNamedWarpScriptFunction(new FETCH(FETCHLONG, false, TYPE.LONG));
+    addNamedWarpScriptFunction(new FETCH(FETCHDOUBLE, false, TYPE.DOUBLE));
+    addNamedWarpScriptFunction(new FETCH(FETCHSTRING, false, TYPE.STRING));
+    addNamedWarpScriptFunction(new FETCH(FETCHBOOLEAN, false, TYPE.BOOLEAN));
+    addNamedWarpScriptFunction(new LIMIT(LIMIT));
+    addNamedWarpScriptFunction(new MAXGTS(MAXGTS));
+    addNamedWarpScriptFunction(new FIND(FIND, false));
+    addNamedWarpScriptFunction(new FIND(FINDSETS, true));
+    addNamedWarpScriptFunction(new FIND(METASET, false, true));
+    addNamedWarpScriptFunction(new FINDSTATS(FINDSTATS));
+    addNamedWarpScriptFunction(new DEDUP(DEDUP));
+    addNamedWarpScriptFunction(new ONLYBUCKETS(ONLYBUCKETS));
+    addNamedWarpScriptFunction(new VALUEDEDUP(VALUEDEDUP));
+    addNamedWarpScriptFunction(new CLONEEMPTY(CLONEEMPTY));
+    addNamedWarpScriptFunction(new COMPACT(COMPACT));
+    addNamedWarpScriptFunction(new RANGECOMPACT(RANGECOMPACT));
+    addNamedWarpScriptFunction(new STANDARDIZE(STANDARDIZE));
+    addNamedWarpScriptFunction(new NORMALIZE(NORMALIZE));
+    addNamedWarpScriptFunction(new ISONORMALIZE(ISONORMALIZE));
+    addNamedWarpScriptFunction(new ZSCORE(ZSCORE));
+    addNamedWarpScriptFunction(new FILL(FILL));
+    addNamedWarpScriptFunction(new FILLPREVIOUS(FILLPREVIOUS));
+    addNamedWarpScriptFunction(new FILLNEXT(FILLNEXT));
+    addNamedWarpScriptFunction(new FILLVALUE(FILLVALUE));
+    addNamedWarpScriptFunction(new FILLTICKS(FILLTICKS));
+    addNamedWarpScriptFunction(new INTERPOLATE(INTERPOLATE));
+    addNamedWarpScriptFunction(new FIRSTTICK(FIRSTTICK));
+    addNamedWarpScriptFunction(new LASTTICK(LASTTICK));
+    addNamedWarpScriptFunction(new MERGE(MERGE));
+    addNamedWarpScriptFunction(new RESETS(RESETS));
+    addNamedWarpScriptFunction(new MONOTONIC(MONOTONIC));
+    addNamedWarpScriptFunction(new TIMESPLIT(TIMESPLIT));
+    addNamedWarpScriptFunction(new TIMECLIP(TIMECLIP));
+    addNamedWarpScriptFunction(new CLIP(CLIP));
+    addNamedWarpScriptFunction(new TIMEMODULO(TIMEMODULO));
+    addNamedWarpScriptFunction(new CHUNK(CHUNK, true));
+    addNamedWarpScriptFunction(new FUSE(FUSE));
+    addNamedWarpScriptFunction(new RENAME(RENAME));
+    addNamedWarpScriptFunction(new RELABEL(RELABEL));
+    addNamedWarpScriptFunction(new SETATTRIBUTES(SETATTRIBUTES));
+    addNamedWarpScriptFunction(new CROP(CROP));
+    addNamedWarpScriptFunction(new TIMESHIFT(TIMESHIFT));
+    addNamedWarpScriptFunction(new TIMESCALE(TIMESCALE));
+    addNamedWarpScriptFunction(new TICKINDEX(TICKINDEX));
+    addNamedWarpScriptFunction(new FFT.Builder(FFT, true));
+    addNamedWarpScriptFunction(new FFT.Builder(FFTAP, false));
+    addNamedWarpScriptFunction(new IFFT.Builder(IFFT));
+    addNamedWarpScriptFunction(new FFTWINDOW(FFTWINDOW));
+    addNamedWarpScriptFunction(new FDWT(FDWT));
+    addNamedWarpScriptFunction(new IDWT(IDWT));
+    addNamedWarpScriptFunction(new DWTSPLIT(DWTSPLIT));
+    addNamedWarpScriptFunction(new EMPTY(EMPTY));
+    addNamedWarpScriptFunction(new NONEMPTY(NONEMPTY));
+    addNamedWarpScriptFunction(new PARTITION(PARTITION));
+    addNamedWarpScriptFunction(new PARTITION(STRICTPARTITION, true));
+    addNamedWarpScriptFunction(new ZIP(ZIP));
+    addNamedWarpScriptFunction(new PATTERNS(PATTERNS, true));
+    addNamedWarpScriptFunction(new PATTERNDETECTION(PATTERNDETECTION, true));
+    addNamedWarpScriptFunction(new PATTERNS(ZPATTERNS, false));
+    addNamedWarpScriptFunction(new PATTERNDETECTION(ZPATTERNDETECTION, false));
+    addNamedWarpScriptFunction(new DTW(DTW, true, false));
+    addNamedWarpScriptFunction(new OPTDTW(OPTDTW));
+    addNamedWarpScriptFunction(new DTW(ZDTW, true, true));
+    addNamedWarpScriptFunction(new DTW(RAWDTW, false, false));
+    addNamedWarpScriptFunction(new VALUEHISTOGRAM(VALUEHISTOGRAM));
+    addNamedWarpScriptFunction(new PROBABILITY.Builder(PROBABILITY));
+    addNamedWarpScriptFunction(new PROB(PROB));
+    addNamedWarpScriptFunction(new CPROB(CPROB));
+    addNamedWarpScriptFunction(new RANDPDF.Builder(RANDPDF));
+    addNamedWarpScriptFunction(new SINGLEEXPONENTIALSMOOTHING(SINGLEEXPONENTIALSMOOTHING));
+    addNamedWarpScriptFunction(new DOUBLEEXPONENTIALSMOOTHING(DOUBLEEXPONENTIALSMOOTHING));
+    addNamedWarpScriptFunction(new LOWESS(LOWESS));
+    addNamedWarpScriptFunction(new RLOWESS(RLOWESS));
+    addNamedWarpScriptFunction(new STL(STL));
+    addNamedWarpScriptFunction(new LTTB(LTTB, false));
+    addNamedWarpScriptFunction(new LTTB(TLTTB, true));
+    addNamedWarpScriptFunction(new LOCATIONOFFSET(LOCATIONOFFSET));
+    addNamedWarpScriptFunction(new FLATTEN(FLATTEN));
+    addNamedWarpScriptFunction(new RESHAPE(RESHAPE));
+    addNamedWarpScriptFunction(new PERMUTE(PERMUTE));
+    addNamedWarpScriptFunction(new CHECKSHAPE(CHECKSHAPE));
+    addNamedWarpScriptFunction(new SHAPE(SHAPE));
+    addNamedWarpScriptFunction(new HULLSHAPE(HULLSHAPE));
+    addNamedWarpScriptFunction(new CORRELATE.Builder(CORRELATE));
+    addNamedWarpScriptFunction(new SORT(SORT));
+    addNamedWarpScriptFunction(new SORTBY(SORTBY));
+    addNamedWarpScriptFunction(new RSORT(RSORT));
+    addNamedWarpScriptFunction(new LASTSORT(LASTSORT));
+    addNamedWarpScriptFunction(new METASORT(METASORT));
+    addNamedWarpScriptFunction(new VALUESORT(VALUESORT));
+    addNamedWarpScriptFunction(new RVALUESORT(RVALUESORT));
+    addNamedWarpScriptFunction(new LSORT(LSORT));
+    addNamedWarpScriptFunction(new SHUFFLE(SHUFFLE));
+    addNamedWarpScriptFunction(new MSORT(MSORT));
+    addNamedWarpScriptFunction(new GROUPBY(GROUPBY));
+    addNamedWarpScriptFunction(new FILTERBY(FILTERBY));
+    addNamedWarpScriptFunction(new UPDATE(UPDATE));
+    addNamedWarpScriptFunction(new META(META));
+    addNamedWarpScriptFunction(new DELETE(DELETE));
+    addNamedWarpScriptFunction(new WEBCALL(WEBCALL));
+    addNamedWarpScriptFunction(new MATCH(MATCH));
+    addNamedWarpScriptFunction(new MATCHER(MATCHER));
+    addNamedWarpScriptFunction(new REPLACE(REPLACE, false));
+    addNamedWarpScriptFunction(new REPLACE(REPLACEALL, true));
+    addNamedWarpScriptFunction(new REOPTALT(REOPTALT));
     
     if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-      functions.put("TEMPLATE", new TEMPLATE("TEMPLATE"));
-      functions.put("TOTIMESTAMP", new TOTIMESTAMP("TOTIMESTAMP"));
+      addNamedWarpScriptFunction(new TEMPLATE(TEMPLATE));
+      addNamedWarpScriptFunction(new TOTIMESTAMP(TOTIMESTAMP));
     } else {
-      functions.put("TEMPLATE", new FAIL("TEMPLATE requires JAVA 1.8+"));
-      functions.put("TOTIMESTAMP", new FAIL("TOTIMESTAMP requires JAVA 1.8+"));
+      addNamedWarpScriptFunction(new FAIL(TEMPLATE, "Requires JAVA 1.8+"));
+      addNamedWarpScriptFunction(new FAIL(TOTIMESTAMP, "Requires JAVA 1.8+"));
     }
 
-    functions.put("DISCORDS", new DISCORDS("DISCORDS", true));
-    functions.put("ZDISCORDS", new DISCORDS("ZDISCORDS", false));
-    functions.put("INTEGRATE", new INTEGRATE("INTEGRATE"));
+    addNamedWarpScriptFunction(new STRINGFORMAT(STRINGFORMAT));
+
+    addNamedWarpScriptFunction(new DISCORDS(DISCORDS, true));
+    addNamedWarpScriptFunction(new DISCORDS(ZDISCORDS, false));
+    addNamedWarpScriptFunction(new INTEGRATE(INTEGRATE));
     
-    functions.put("BUCKETSPAN", new BUCKETSPAN("BUCKETSPAN"));
-    functions.put("BUCKETCOUNT", new BUCKETCOUNT("BUCKETCOUNT"));
-    functions.put("UNBUCKETIZE", new UNBUCKETIZE("UNBUCKETIZE"));
-    functions.put("LASTBUCKET", new LASTBUCKET("LASTBUCKET"));
-    functions.put("NAME", new NAME("NAME"));
-    functions.put("LABELS", new LABELS("LABELS"));
-    functions.put("ATTRIBUTES", new ATTRIBUTES("ATTRIBUTES"));
-    functions.put("TICKS", new TICKS("TICKS"));
-    functions.put("LOCATIONS", new LOCATIONS("LOCATIONS"));
-    functions.put("LOCSTRINGS", new LOCSTRINGS("LOCSTRINGS"));
-    functions.put("ELEVATIONS", new ELEVATIONS("ELEVATIONS"));
-    functions.put("VALUES", new VALUES("VALUES"));
-    functions.put("VALUESPLIT", new VALUESPLIT("VALUESPLIT"));
-    functions.put("TICKLIST", new TICKLIST("TICKLIST"));
-    functions.put("COMMONTICKS", new COMMONTICKS("COMMONTICKS"));
-    functions.put("WRAP", new WRAP("WRAP"));
-    functions.put("WRAPRAW", new WRAPRAW("WRAPRAW"));
-    functions.put("WRAPOPT", new WRAP("WRAPOPT", true));
-    functions.put("WRAPRAWOPT", new WRAPRAW("WRAPRAWOPT", true));
-    functions.put(UNWRAP, new UNWRAP(UNWRAP));
-    functions.put("UNWRAPEMPTY", new UNWRAP("UNWRAPEMPTY", true));
-    functions.put("UNWRAPSIZE", new UNWRAPSIZE("UNWRAPSIZE"));
-    functions.put(UNWRAPENCODER, new UNWRAPENCODER(UNWRAPENCODER));
+    addNamedWarpScriptFunction(new BUCKETSPAN(BUCKETSPAN));
+    addNamedWarpScriptFunction(new BUCKETCOUNT(BUCKETCOUNT));
+    addNamedWarpScriptFunction(new UNBUCKETIZE(UNBUCKETIZE));
+    addNamedWarpScriptFunction(new LASTBUCKET(LASTBUCKET));
+    addNamedWarpScriptFunction(new NAME(NAME));
+    addNamedWarpScriptFunction(new LABELS(LABELS));
+    addNamedWarpScriptFunction(new ATTRIBUTES(ATTRIBUTES));
+    addNamedWarpScriptFunction(new LASTACTIVITY(LASTACTIVITY));
+    addNamedWarpScriptFunction(new TICKS(TICKS));
+    addNamedWarpScriptFunction(new LOCATIONS(LOCATIONS));
+    addNamedWarpScriptFunction(new LOCSTRINGS(LOCSTRINGS));
+    addNamedWarpScriptFunction(new ELEVATIONS(ELEVATIONS));
+    addNamedWarpScriptFunction(new VALUES(VALUES));
+    addNamedWarpScriptFunction(new VALUESPLIT(VALUESPLIT));
+    addNamedWarpScriptFunction(new TICKLIST(TICKLIST));
+    addNamedWarpScriptFunction(new COMMONTICKS(COMMONTICKS));
+    addNamedWarpScriptFunction(new WRAP(WRAP));
+    addNamedWarpScriptFunction(new WRAP(WRAPRAW, false, true, true));
+    addNamedWarpScriptFunction(new WRAP(WRAPFAST, false, false, true));
+    addNamedWarpScriptFunction(new WRAP(WRAPOPT, true));
+    addNamedWarpScriptFunction(new WRAP(WRAPRAWOPT, true, true, true));
+    addNamedWarpScriptFunction(new UNWRAP(UNWRAP));
+    addNamedWarpScriptFunction(new UNWRAP(UNWRAPEMPTY, true));
+    addNamedWarpScriptFunction(new UNWRAPSIZE(UNWRAPSIZE));
+    addNamedWarpScriptFunction(new UNWRAPENCODER(UNWRAPENCODER));
+    addNamedWarpScriptFunction(new WRAP(WRAPMV, true, true, true, true));
+    addNamedWarpScriptFunction(new TOMVSTRING(TOMVSTRING));
+    addNamedWarpScriptFunction(new MVSPLIT(MVTICKSPLIT, true));
+    addNamedWarpScriptFunction(new MVSPLIT(MVINDEXSPLIT, false));
+    addNamedWarpScriptFunction(new MVEXTRACT(MVVALUES, MVEXTRACT.ELEMENT.VALUE));
+    addNamedWarpScriptFunction(new MVEXTRACT(MVLOCATIONS, MVEXTRACT.ELEMENT.LATLON));
+    addNamedWarpScriptFunction(new MVEXTRACT(MVELEVATIONS, MVEXTRACT.ELEMENT.ELEVATION));
+    addNamedWarpScriptFunction(new MVEXTRACT(MVTICKS, MVEXTRACT.ELEMENT.TICK));
+    addNamedWarpScriptFunction(new MVEXTRACT(MVHHCODES, MVEXTRACT.ELEMENT.LOCATION));
+    addNamedWarpScriptFunction(new PARSEVALUE(PARSEVALUE));
     
     //
     // Outlier detection
     //
     
-    functions.put("THRESHOLDTEST", new THRESHOLDTEST("THRESHOLDTEST"));
-    functions.put("ZSCORETEST", new ZSCORETEST("ZSCORETEST"));
-    functions.put("GRUBBSTEST", new GRUBBSTEST("GRUBBSTEST"));
-    functions.put("ESDTEST", new ESDTEST("ESDTEST"));
-    functions.put("STLESDTEST", new STLESDTEST("STLESDTEST"));
-    functions.put("HYBRIDTEST", new HYBRIDTEST("HYBRIDTEST"));
-    functions.put("HYBRIDTEST2", new HYBRIDTEST2("HYBRIDTEST2"));
+    addNamedWarpScriptFunction(new THRESHOLDTEST(THRESHOLDTEST));
+    addNamedWarpScriptFunction(new ZSCORETEST(ZSCORETEST));
+    addNamedWarpScriptFunction(new GRUBBSTEST(GRUBBSTEST));
+    addNamedWarpScriptFunction(new ESDTEST(ESDTEST));
+    addNamedWarpScriptFunction(new STLESDTEST(STLESDTEST));
+    addNamedWarpScriptFunction(new HYBRIDTEST(HYBRIDTEST));
+    addNamedWarpScriptFunction(new HYBRIDTEST2(HYBRIDTEST2));
     
     //
     // Quaternion related functions
     //
     
-    functions.put("->Q", new TOQUATERNION("->Q"));
-    functions.put("Q->", new QUATERNIONTO("Q->"));
-    functions.put("QCONJUGATE", new QCONJUGATE("QCONJUGATE"));
-    functions.put("QDIVIDE", new QDIVIDE("QDIVIDE"));
-    functions.put("QMULTIPLY", new QMULTIPLY("QMULTIPLY"));
-    functions.put("QROTATE", new QROTATE("QROTATE"));
-    functions.put("QROTATION", new QROTATION("QROTATION"));
-    functions.put("ROTATIONQ", new ROTATIONQ("ROTATIONQ"));
+    addNamedWarpScriptFunction(new TOQUATERNION(TOQ));
+    addNamedWarpScriptFunction(new QUATERNIONTO(QTO));
+    addNamedWarpScriptFunction(new QCONJUGATE(QCONJUGATE));
+    addNamedWarpScriptFunction(new QDIVIDE(QDIVIDE));
+    addNamedWarpScriptFunction(new QMULTIPLY(QMULTIPLY));
+    addNamedWarpScriptFunction(new QROTATE(QROTATE));
+    addNamedWarpScriptFunction(new QROTATION(QROTATION));
+    addNamedWarpScriptFunction(new ROTATIONQ(ROTATIONQ));
     
-    functions.put("ATINDEX", new ATINDEX("ATINDEX"));
-    functions.put("ATTICK", new ATTICK("ATTICK"));
-    functions.put("ATBUCKET", new ATBUCKET("ATBUCKET"));
+    addNamedWarpScriptFunction(new ATINDEX(ATINDEX));
+    addNamedWarpScriptFunction(new ATTICK(ATTICK));
+    addNamedWarpScriptFunction(new ATBUCKET(ATBUCKET));
     
-    functions.put("CLONE", new CLONE("CLONE"));
-    functions.put("DURATION", new DURATION("DURATION"));
-    functions.put("HUMANDURATION", new HUMANDURATION("HUMANDURATION"));
-    functions.put("ISODURATION", new ISODURATION("ISODURATION"));
-    functions.put("ISO8601", new ISO8601("ISO8601"));
-    functions.put("NOTBEFORE", new NOTBEFORE("NOTBEFORE"));
-    functions.put("NOTAFTER", new NOTAFTER("NOTAFTER"));
-    functions.put("TSELEMENTS", new TSELEMENTS("TSELEMENTS"));
-    functions.put("->TSELEMENTS", new TSELEMENTS("->TSELEMENTS"));
-    functions.put("TSELEMENTS->", new FROMTSELEMENTS("TSELEMENTS->"));
-    functions.put("ADDDAYS", new ADDDAYS("ADDDAYS"));
-    functions.put("ADDMONTHS", new ADDMONTHS("ADDMONTHS"));
-    functions.put("ADDYEARS", new ADDYEARS("ADDYEARS"));
+    addNamedWarpScriptFunction(new CLONE(CLONE));
+    addNamedWarpScriptFunction(new DURATION(DURATION));
+    addNamedWarpScriptFunction(new HUMANDURATION(HUMANDURATION));
+    addNamedWarpScriptFunction(new ISODURATION(ISODURATION));
+    addNamedWarpScriptFunction(new ISO8601(ISO8601));
+    addNamedWarpScriptFunction(new NOTBEFORE(NOTBEFORE));
+    addNamedWarpScriptFunction(new NOTAFTER(NOTAFTER));
+    addNamedWarpScriptFunction(new TSELEMENTS(TSELEMENTS));
+    addNamedWarpScriptFunction(new TSELEMENTS(TOTSELEMENTS));
+    addNamedWarpScriptFunction(new FROMTSELEMENTS(TSELEMENTSTO));
+    addNamedWarpScriptFunction(new ADDDAYS(ADDDAYS));
+    addNamedWarpScriptFunction(new ADDMONTHS(ADDMONTHS));
+    addNamedWarpScriptFunction(new ADDYEARS(ADDYEARS));
     
-    functions.put("QUANTIZE", new QUANTIZE("QUANTIZE"));
-    functions.put("NBOUNDS", new NBOUNDS("NBOUNDS"));
-    functions.put("LBOUNDS", new LBOUNDS("LBOUNDS"));
+    addNamedWarpScriptFunction(new QUANTIZE(QUANTIZE));
+    addNamedWarpScriptFunction(new NBOUNDS(NBOUNDS));
+    addNamedWarpScriptFunction(new LBOUNDS(LBOUNDS));
     
     //NFIRST -> Retain at most the N first values
     //NLAST -> Retain at most the N last values
@@ -905,354 +1727,411 @@ public class WarpScriptLib {
     // GTS manipulation frameworks
     //
     
-    functions.put("BUCKETIZE", new BUCKETIZE("BUCKETIZE"));
-    functions.put("MAP", new MAP("MAP"));
-    functions.put("FILTER", new FILTER("FILTER", true));
-    functions.put("APPLY", new APPLY("APPLY", true));
-    functions.put("PFILTER", new FILTER("FILTER", false));
-    functions.put("PAPPLY", new APPLY("PAPPLY", false));
-    functions.put("REDUCE", new REDUCE("REDUCE", true));
-    functions.put("PREDUCE", new REDUCE("PREDUCE", false));
-    
-    functions.put("max.tick.sliding.window", new MaxTickSlidingWindow("max.tick.sliding.window"));
-    functions.put("max.time.sliding.window", new MaxTimeSlidingWindow("max.time.sliding.window"));
-    functions.put(NULL, new NULL(NULL));
-    functions.put("ISNULL", new ISNULL("ISNULL"));
-    functions.put("mapper.replace", new MapperReplace.Builder("mapper.replace"));
-    functions.put("mapper.gt", new MAPPERGT("mapper.gt"));
-    functions.put("mapper.ge", new MAPPERGE("mapper.ge"));
-    functions.put("mapper.eq", new MAPPEREQ("mapper.eq"));
-    functions.put("mapper.ne", new MAPPERNE("mapper.ne"));
-    functions.put("mapper.le", new MAPPERLE("mapper.le"));
-    functions.put("mapper.lt", new MAPPERLT("mapper.lt"));
-    functions.put("mapper.add", new MapperAdd.Builder("mapper.add"));
-    functions.put("mapper.mul", new MapperMul.Builder("mapper.mul"));
-    functions.put("mapper.pow", new MapperPow.Builder("mapper.pow"));
+    addNamedWarpScriptFunction(new BUCKETIZE(BUCKETIZE));
+    addNamedWarpScriptFunction(new MAP(MAP));
+    addNamedWarpScriptFunction(new FILTER(FILTER, true));
+    addNamedWarpScriptFunction(new APPLY(APPLY, true));
+    addNamedWarpScriptFunction(new FILTER(PFILTER, false));
+    addNamedWarpScriptFunction(new APPLY(PAPPLY, false));
+    addNamedWarpScriptFunction(new REDUCE(REDUCE, true));
+    addNamedWarpScriptFunction(new REDUCE(PREDUCE, false));
+    addNamedWarpScriptFunction(new PIVOT(PIVOT, false));
+    addNamedWarpScriptFunction(new PIVOT(PIVOTSTRICT, true));    
+    addNamedWarpScriptFunction(new MaxTickSlidingWindow("max.tick.sliding.window"));
+    addNamedWarpScriptFunction(new MaxTimeSlidingWindow("max.time.sliding.window"));
+    addNamedWarpScriptFunction(new NULL(NULL));
+    addNamedWarpScriptFunction(new ISNULL(ISNULL));
+    addNamedWarpScriptFunction(new MapperReplace.Builder("mapper.replace"));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_GT, CompareTo.Compared.VALUE, CompareTo.Comparison.GT));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_GE, CompareTo.Compared.VALUE, CompareTo.Comparison.GE));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_EQ, CompareTo.Compared.VALUE, CompareTo.Comparison.EQ));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_NE, CompareTo.Compared.VALUE, CompareTo.Comparison.NE));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_LE, CompareTo.Compared.VALUE, CompareTo.Comparison.LE));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_LT, CompareTo.Compared.VALUE, CompareTo.Comparison.LT));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_GT_TICK, CompareTo.Compared.TICK, CompareTo.Comparison.GT));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_GE_TICK, CompareTo.Compared.TICK, CompareTo.Comparison.GE));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_EQ_TICK, CompareTo.Compared.TICK, CompareTo.Comparison.EQ));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_NE_TICK, CompareTo.Compared.TICK, CompareTo.Comparison.NE));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_LE_TICK, CompareTo.Compared.TICK, CompareTo.Comparison.LE));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_LT_TICK, CompareTo.Compared.TICK, CompareTo.Comparison.LT));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_GT_LAT, CompareTo.Compared.LAT, CompareTo.Comparison.GT));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_GE_LAT, CompareTo.Compared.LAT, CompareTo.Comparison.GE));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_EQ_LAT, CompareTo.Compared.LAT, CompareTo.Comparison.EQ));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_NE_LAT, CompareTo.Compared.LAT, CompareTo.Comparison.NE));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_LE_LAT, CompareTo.Compared.LAT, CompareTo.Comparison.LE));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_LT_LAT, CompareTo.Compared.LAT, CompareTo.Comparison.LT));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_GT_LON, CompareTo.Compared.LON, CompareTo.Comparison.GT));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_GE_LON, CompareTo.Compared.LON, CompareTo.Comparison.GE));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_EQ_LON, CompareTo.Compared.LON, CompareTo.Comparison.EQ));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_NE_LON, CompareTo.Compared.LON, CompareTo.Comparison.NE));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_LE_LON, CompareTo.Compared.LON, CompareTo.Comparison.LE));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_LT_LON, CompareTo.Compared.LON, CompareTo.Comparison.LT));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_GT_HHCODE, CompareTo.Compared.HHCODE, CompareTo.Comparison.GT));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_GE_HHCODE, CompareTo.Compared.HHCODE, CompareTo.Comparison.GE));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_EQ_HHCODE, CompareTo.Compared.HHCODE, CompareTo.Comparison.EQ));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_NE_HHCODE, CompareTo.Compared.HHCODE, CompareTo.Comparison.NE));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_LE_HHCODE, CompareTo.Compared.HHCODE, CompareTo.Comparison.LE));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_LT_HHCODE, CompareTo.Compared.HHCODE, CompareTo.Comparison.LT));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_GT_ELEV, CompareTo.Compared.ELEV, CompareTo.Comparison.GT));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_GE_ELEV, CompareTo.Compared.ELEV, CompareTo.Comparison.GE));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_EQ_ELEV, CompareTo.Compared.ELEV, CompareTo.Comparison.EQ));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_NE_ELEV, CompareTo.Compared.ELEV, CompareTo.Comparison.NE));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_LE_ELEV, CompareTo.Compared.ELEV, CompareTo.Comparison.LE));
+    addNamedWarpScriptFunction(new MapperCompareTo(MAPPER_LT_ELEV, CompareTo.Compared.ELEV, CompareTo.Comparison.LT));
+    addNamedWarpScriptFunction(new MapperAdd.Builder("mapper.add"));
+    addNamedWarpScriptFunction(new MapperMul.Builder("mapper.mul"));
+    addNamedWarpScriptFunction(new MapperPow.Builder("mapper.pow"));
     try {
-      functions.put("mapper.sqrt", new MapperPow("mapper.sqrt", 0.5D));
+      addNamedWarpScriptFunction(new MapperPow("mapper.sqrt", 0.5D));
     } catch (WarpScriptException wse) {
       throw new RuntimeException(wse);
     }
-    functions.put("mapper.exp", new MapperExp.Builder("mapper.exp"));
-    functions.put("mapper.log", new MapperLog.Builder("mapper.log"));
-    functions.put("mapper.min.x", new MapperMinX.Builder("mapper.min.x"));          
-    functions.put("mapper.max.x", new MapperMaxX.Builder("mapper.max.x"));          
-    functions.put("mapper.parsedouble", new MapperParseDouble.Builder("mapper.parsedouble"));
+    addNamedWarpScriptFunction(new MapperExp.Builder("mapper.exp"));
+    addNamedWarpScriptFunction(new MapperLog.Builder("mapper.log"));
+    addNamedWarpScriptFunction(new MapperMinX.Builder("mapper.min.x"));
+    addNamedWarpScriptFunction(new MapperMaxX.Builder("mapper.max.x"));
+    addNamedWarpScriptFunction(new MapperParseDouble.Builder("mapper.parsedouble"));
     
-    functions.put("mapper.tick", new MapperTick.Builder("mapper.tick"));
-    functions.put("mapper.year", new MapperYear.Builder("mapper.year"));
-    functions.put("mapper.month", new MapperMonthOfYear.Builder("mapper.month"));
-    functions.put("mapper.day", new MapperDayOfMonth.Builder("mapper.day"));
-    functions.put("mapper.weekday", new MapperDayOfWeek.Builder("mapper.weekday"));
-    functions.put("mapper.hour", new MapperHourOfDay.Builder("mapper.hour"));
-    functions.put("mapper.minute", new MapperMinuteOfHour.Builder("mapper.minute"));
-    functions.put("mapper.second", new MapperSecondOfMinute.Builder("mapper.second"));
+    addNamedWarpScriptFunction(new MapperTick.Builder("mapper.tick"));
+    addNamedWarpScriptFunction(new MapperYear.Builder("mapper.year"));
+    addNamedWarpScriptFunction(new MapperMonthOfYear.Builder("mapper.month"));
+    addNamedWarpScriptFunction(new MapperDayOfMonth.Builder("mapper.day"));
+    addNamedWarpScriptFunction(new MapperDayOfWeek.Builder("mapper.weekday"));
+    addNamedWarpScriptFunction(new MapperHourOfDay.Builder("mapper.hour"));
+    addNamedWarpScriptFunction(new MapperMinuteOfHour.Builder("mapper.minute"));
+    addNamedWarpScriptFunction(new MapperSecondOfMinute.Builder("mapper.second"));
 
-    functions.put("mapper.npdf", new MapperNPDF.Builder("mapper.npdf"));
-    functions.put("mapper.dotproduct", new MapperDotProduct.Builder("mapper.dotproduct"));
+    addNamedWarpScriptFunction(new MapperNPDF.Builder("mapper.npdf"));
+    addNamedWarpScriptFunction(new MapperDotProduct.Builder("mapper.dotproduct"));
 
-    functions.put("mapper.dotproduct.tanh", new MapperDotProductTanh.Builder("mapper.dotproduct.tanh"));
-    functions.put("mapper.dotproduct.sigmoid", new MapperDotProductSigmoid.Builder("mapper.dotproduct.sigmoid"));
-    functions.put("mapper.dotproduct.positive", new MapperDotProductPositive.Builder("mapper.dotproduct.positive"));
+    addNamedWarpScriptFunction(new MapperDotProductTanh.Builder("mapper.dotproduct.tanh"));
+    addNamedWarpScriptFunction(new MapperDotProductSigmoid.Builder("mapper.dotproduct.sigmoid"));
+    addNamedWarpScriptFunction(new MapperDotProductPositive.Builder("mapper.dotproduct.positive"));
 
     // Kernel mappers
-    functions.put("mapper.kernel.cosine", new MapperKernelCosine("mapper.kernel.cosine"));
-    functions.put("mapper.kernel.epanechnikov", new MapperKernelEpanechnikov("mapper.kernel.epanechnikov"));
-    functions.put("mapper.kernel.gaussian", new MapperKernelGaussian("mapper.kernel.gaussian"));
-    functions.put("mapper.kernel.logistic", new MapperKernelLogistic("mapper.kernel.logistic"));
-    functions.put("mapper.kernel.quartic", new MapperKernelQuartic("mapper.kernel.quartic"));
-    functions.put("mapper.kernel.silverman", new MapperKernelSilverman("mapper.kernel.silverman"));
-    functions.put("mapper.kernel.triangular", new MapperKernelTriangular("mapper.kernel.triangular"));
-    functions.put("mapper.kernel.tricube", new MapperKernelTricube("mapper.kernel.tricube"));
-    functions.put("mapper.kernel.triweight", new MapperKernelTriweight("mapper.kernel.triweight"));
-    functions.put("mapper.kernel.uniform", new MapperKernelUniform("mapper.kernel.uniform"));
+    addNamedWarpScriptFunction(new MapperKernelCosine("mapper.kernel.cosine"));
+    addNamedWarpScriptFunction(new MapperKernelEpanechnikov("mapper.kernel.epanechnikov"));
+    addNamedWarpScriptFunction(new MapperKernelGaussian("mapper.kernel.gaussian"));
+    addNamedWarpScriptFunction(new MapperKernelLogistic("mapper.kernel.logistic"));
+    addNamedWarpScriptFunction(new MapperKernelQuartic("mapper.kernel.quartic"));
+    addNamedWarpScriptFunction(new MapperKernelSilverman("mapper.kernel.silverman"));
+    addNamedWarpScriptFunction(new MapperKernelTriangular("mapper.kernel.triangular"));
+    addNamedWarpScriptFunction(new MapperKernelTricube("mapper.kernel.tricube"));
+    addNamedWarpScriptFunction(new MapperKernelTriweight("mapper.kernel.triweight"));
+    addNamedWarpScriptFunction(new MapperKernelUniform("mapper.kernel.uniform"));
         
-    functions.put("mapper.percentile", new Percentile.Builder("mapper.percentile"));
+    addNamedWarpScriptFunction(new Percentile.Builder("mapper.percentile"));
     
     //functions.put("mapper.abscissa", new MapperSAX.Builder());
     
-    functions.put("filter.byclass", new FilterByClass.Builder("filter.byclass"));
-    functions.put("filter.bylabels", new FilterByLabels.Builder("filter.bylabels", true, false));
-    functions.put("filter.byattr", new FilterByLabels.Builder("filter.byattr", false, true));
-    functions.put("filter.bylabelsattr", new FilterByLabels.Builder("filter.bylabelsattr", true, true));
-    functions.put("filter.bymetadata", new FilterByMetadata.Builder("filter.bymetadata"));
+    addNamedWarpScriptFunction(new FilterByClass.Builder("filter.byclass"));
+    addNamedWarpScriptFunction(new FilterByLabels.Builder("filter.bylabels", true, false));
+    addNamedWarpScriptFunction(new FilterByLabels.Builder("filter.byattr", false, true));
+    addNamedWarpScriptFunction(new FilterByLabels.Builder("filter.bylabelsattr", true, true));
+    addNamedWarpScriptFunction(new FilterByMetadata.Builder("filter.bymetadata"));
 
-    functions.put("filter.last.eq", new FilterLastEQ.Builder("filter.last.eq"));
-    functions.put("filter.last.ge", new FilterLastGE.Builder("filter.last.ge"));
-    functions.put("filter.last.gt", new FilterLastGT.Builder("filter.last.gt"));
-    functions.put("filter.last.le", new FilterLastLE.Builder("filter.last.le"));
-    functions.put("filter.last.lt", new FilterLastLT.Builder("filter.last.lt"));
-    functions.put("filter.last.ne", new FilterLastNE.Builder("filter.last.ne"));
+    addNamedWarpScriptFunction(new FilterLastEQ.Builder("filter.last.eq"));
+    addNamedWarpScriptFunction(new FilterLastGE.Builder("filter.last.ge"));
+    addNamedWarpScriptFunction(new FilterLastGT.Builder("filter.last.gt"));
+    addNamedWarpScriptFunction(new FilterLastLE.Builder("filter.last.le"));
+    addNamedWarpScriptFunction(new FilterLastLT.Builder("filter.last.lt"));
+    addNamedWarpScriptFunction(new FilterLastNE.Builder("filter.last.ne"));
 
-    functions.put("filter.latencies", new LatencyFilter.Builder("filter.latencies"));
+    addNamedWarpScriptFunction(new LatencyFilter.Builder("filter.latencies"));
     
+    //
+    // Fillers
+    //
+    
+    addNamedWarpScriptFunction(new FillerNext("filler.next"));
+    addNamedWarpScriptFunction(new FillerPrevious("filler.previous"));
+    addNamedWarpScriptFunction(new FillerInterpolate("filler.interpolate"));
+    addNamedWarpScriptFunction(new FillerTrend("filler.trend"));
+ 
     //
     // Geo Manipulation functions
     //
     
-    functions.put("->HHCODE", new TOHHCODE("->HHCODE", true));
-    functions.put("->HHCODELONG", new TOHHCODE("->HHCODELONG", false));
-    functions.put("HHCODE->", new HHCODETO("HHCODE->"));
-    functions.put("GEO.REGEXP", new GEOREGEXP("GEO.REGEXP"));
-    functions.put(GEO_WKT, new GeoWKT(GEO_WKT, false));
-    functions.put(GEO_WKT_UNIFORM, new GeoWKT(GEO_WKT, true));
-    functions.put(GEO_JSON, new GeoJSON(GEO_JSON, false));
-    functions.put(GEO_JSON_UNIFORM, new GeoJSON(GEO_JSON, true));
-    functions.put("GEO.OPTIMIZE", new GEOOPTIMIZE("GEO.OPTIMIZE"));
-    functions.put(GEO_INTERSECTION, new GeoIntersection(GEO_INTERSECTION));
-    functions.put(GEO_UNION, new GeoUnion(GEO_UNION));
-    functions.put(GEO_DIFFERENCE, new GeoSubtraction(GEO_DIFFERENCE));
-    functions.put("GEO.WITHIN", new GEOWITHIN("GEO.WITHIN"));
-    functions.put("GEO.INTERSECTS", new GEOINTERSECTS("GEO.INTERSECTS"));
-    functions.put("HAVERSINE", new HAVERSINE("HAVERSINE"));
-    functions.put(GEOPACK, new GEOPACK(GEOPACK));
-    functions.put(GEOUNPACK, new GEOUNPACK(GEOUNPACK));
-    functions.put("mapper.geo.within", new MapperGeoWithin.Builder("mapper.geo.within"));
-    functions.put("mapper.geo.outside", new MapperGeoOutside.Builder("mapper.geo.outside"));
-    functions.put("mapper.geo.approximate", new MapperGeoApproximate.Builder("mapper.geo.approximate"));
-    functions.put("COPYGEO", new COPYGEO("COPYGEO"));
-    functions.put("BBOX", new BBOX("BBOX"));
-    functions.put("->GEOHASH", new TOGEOHASH("->GEOHASH"));
-    functions.put("GEOHASH->", new GEOHASHTO("GEOHASH->"));
+    addNamedWarpScriptFunction(new TOHHCODE(TOHHCODE, true));
+    addNamedWarpScriptFunction(new TOHHCODE(TOHHCODELONG, false));
+    addNamedWarpScriptFunction(new TOHHCODE(TOGTSHHCODE, true, true));
+    addNamedWarpScriptFunction(new TOHHCODE(TOGTSHHCODELONG, false, true));
+    addNamedWarpScriptFunction(new HHCODETO(HHCODETO));
+    addNamedWarpScriptFunction(new HHCODETO(GTSHHCODETO, true));
+    addNamedWarpScriptFunction(new GEOREGEXP(GEO_REGEXP));
+    addNamedWarpScriptFunction(new GeoWKT(GEO_WKT, false));
+    addNamedWarpScriptFunction(new GeoWKT(GEO_WKT_UNIFORM, true));
+    addNamedWarpScriptFunction(new GeoJSON(GEO_JSON, false));
+    addNamedWarpScriptFunction(new GeoJSON(GEO_JSON_UNIFORM, true));
+    addNamedWarpScriptFunction(new GEOOPTIMIZE(GEO_OPTIMIZE));
+    addNamedWarpScriptFunction(new GeoIntersection(GEO_INTERSECTION));
+    addNamedWarpScriptFunction(new GeoUnion(GEO_UNION));
+    addNamedWarpScriptFunction(new GeoSubtraction(GEO_DIFFERENCE));
+    addNamedWarpScriptFunction(new GEOWITHIN(GEO_WITHIN));
+    addNamedWarpScriptFunction(new GEOINTERSECTS(GEO_INTERSECTS));
+    addNamedWarpScriptFunction(new HAVERSINE(HAVERSINE));
+    addNamedWarpScriptFunction(new GEOPACK(GEOPACK));
+    addNamedWarpScriptFunction(new GEOUNPACK(GEOUNPACK));
+    addNamedWarpScriptFunction(new MapperGeoWithin.Builder("mapper.geo.within"));
+    addNamedWarpScriptFunction(new MapperGeoOutside.Builder("mapper.geo.outside"));
+    addNamedWarpScriptFunction(new MapperGeoApproximate.Builder("mapper.geo.approximate"));
+    addNamedWarpScriptFunction(new COPYGEO(COPYGEO));
+    addNamedWarpScriptFunction(new BBOX(BBOX));
+    addNamedWarpScriptFunction(new TOGEOHASH(TOGEOHASH));
+    addNamedWarpScriptFunction(new GEOHASHTO(GEOHASHTO));
+    addNamedWarpScriptFunction(new GEOCOVER(GEO_COVER, false));
+    addNamedWarpScriptFunction(new GEOCOVER(GEO_COVER_RL, true));
     
     //
     // Counters
     //
     
-    functions.put("COUNTER", new COUNTER("COUNTER"));
-    functions.put("COUNTERVALUE", new COUNTERVALUE("COUNTERVALUE"));
-    functions.put("COUNTERDELTA", new COUNTERDELTA("COUNTERDELTA"));
-    
+    addNamedWarpScriptFunction(new COUNTER(COUNTER));
+    addNamedWarpScriptFunction(new COUNTERVALUE(COUNTERVALUE));
+    addNamedWarpScriptFunction(new COUNTERDELTA(COUNTERDELTA));
+    addNamedWarpScriptFunction(new COUNTERSET(COUNTERSET));
+
     //
     // Math functions
     //
     
-    functions.put("pi", new Pi("pi"));
-    functions.put("PI", new Pi("PI"));
-    functions.put("e", new E("e"));
-    functions.put("E", new E("E"));
-    functions.put("MINLONG", new MINLONG("MINLONG"));
-    functions.put("MAXLONG", new MAXLONG("MAXLONG"));
-    functions.put("RAND", new RAND("RAND"));
-    functions.put("PRNG", new PRNG("PRNG"));
-    functions.put("SRAND", new SRAND("SRAND"));
+    addNamedWarpScriptFunction(new Pi(PI_LOWERCASE));
+    addNamedWarpScriptFunction(new Pi(PI));
+    addNamedWarpScriptFunction(new E(E_LOWERCASE));
+    addNamedWarpScriptFunction(new E(E));
+    addNamedWarpScriptFunction(new MINLONG(MINLONG));
+    addNamedWarpScriptFunction(new MAXLONG(MAXLONG));
+    addNamedWarpScriptFunction(new RAND(RAND));
+    addNamedWarpScriptFunction(new PRNG(PRNG));
+    addNamedWarpScriptFunction(new SRAND(SRAND));
 
-    functions.put("NPDF", new NPDF.Builder("NPDF"));
-    functions.put("MUSIGMA", new MUSIGMA("MUSIGMA"));
-    functions.put("KURTOSIS", new KURTOSIS("KURTOSIS"));
-    functions.put("SKEWNESS", new SKEWNESS("SKEWNESS"));
-    functions.put("NSUMSUMSQ", new NSUMSUMSQ("NSUMSUMSQ"));
-    functions.put("LR", new LR("LR"));
-    functions.put("MODE", new MODE("MODE"));
+    addNamedWarpScriptFunction(new NPDF.Builder(NPDF));
+    addNamedWarpScriptFunction(new MUSIGMA(MUSIGMA));
+    addNamedWarpScriptFunction(new KURTOSIS(KURTOSIS));
+    addNamedWarpScriptFunction(new SKEWNESS(SKEWNESS));
+    addNamedWarpScriptFunction(new NSUMSUMSQ(NSUMSUMSQ));
+    addNamedWarpScriptFunction(new LR(LR));
+    addNamedWarpScriptFunction(new MODE(MODE));
     
-    functions.put("->Z", new TOZ("->Z"));
-    functions.put("Z->", new ZTO("Z->"));
-    functions.put("PACK", new PACK("PACK"));
-    functions.put("UNPACK", new UNPACK("UNPACK"));
+    addNamedWarpScriptFunction(new TOZ(TOZ));
+    addNamedWarpScriptFunction(new ZTO(ZTO));
+    addNamedWarpScriptFunction(new PACK(PACK));
+    addNamedWarpScriptFunction(new UNPACK(UNPACK));
     
     //
     // Linear Algebra
     //
     
-    functions.put("->MAT", new TOMAT("->MAT"));
-    functions.put("MAT->", new MATTO("MAT->"));
-    functions.put("TR", new TR("TR"));
-    functions.put("TRANSPOSE", new TRANSPOSE("TRANSPOSE"));
-    functions.put("DET", new DET("DET"));
-    functions.put("INV", new INV("INV"));
-    functions.put("->VEC", new TOVEC("->VEC"));
-    functions.put("VEC->", new VECTO("VEC->"));
+    addNamedWarpScriptFunction(new TOMAT(TOMAT));
+    addNamedWarpScriptFunction(new MATTO(MATTO));
+    addNamedWarpScriptFunction(new TR(TR));
+    addNamedWarpScriptFunction(new TRANSPOSE(TRANSPOSE));
+    addNamedWarpScriptFunction(new DET(DET));
+    addNamedWarpScriptFunction(new INV(INV));
+    addNamedWarpScriptFunction(new TOVEC(TOVEC));
+    addNamedWarpScriptFunction(new VECTO(VECTO));
+
+    addNamedWarpScriptFunction(new COS(COS));
+    addNamedWarpScriptFunction(new COSH(COSH));
+    addNamedWarpScriptFunction(new ACOS(ACOS));
+
+    addNamedWarpScriptFunction(new SIN(SIN));
+    addNamedWarpScriptFunction(new SINH(SINH));
+    addNamedWarpScriptFunction(new ASIN(ASIN));
+
+    addNamedWarpScriptFunction(new TAN(TAN));
+    addNamedWarpScriptFunction(new TANH(TANH));
+    addNamedWarpScriptFunction(new ATAN(ATAN));
+
+    addNamedWarpScriptFunction(new SIGNUM(SIGNUM));
+    addNamedWarpScriptFunction(new FLOOR(FLOOR));
+    addNamedWarpScriptFunction(new CEIL(CEIL));
+    addNamedWarpScriptFunction(new ROUND(ROUND));
+
+    addNamedWarpScriptFunction(new RINT(RINT));
+    addNamedWarpScriptFunction(new NEXTUP(NEXTUP));
+    addNamedWarpScriptFunction(new ULP(ULP));
+
+    addNamedWarpScriptFunction(new SQRT(SQRT));
+    addNamedWarpScriptFunction(new CBRT(CBRT));
+    addNamedWarpScriptFunction(new EXP(EXP));
+    addNamedWarpScriptFunction(new EXPM1(EXPM1));
+    addNamedWarpScriptFunction(new LOG(LOG_));
+    addNamedWarpScriptFunction(new LOG10(LOG10));
+    addNamedWarpScriptFunction(new LOG1P(LOG1P));
+
+    addNamedWarpScriptFunction(new TORADIANS(TORADIANS));
+    addNamedWarpScriptFunction(new TODEGREES(TODEGREES));
+
+    addNamedWarpScriptFunction(new MAX(MAX));
+    addNamedWarpScriptFunction(new MIN(MIN));
+
+    addNamedWarpScriptFunction(new COPYSIGN(COPYSIGN));
+    addNamedWarpScriptFunction(new HYPOT(HYPOT));
+    addNamedWarpScriptFunction(new IEEEREMAINDER(IEEEREMAINDER));
+    addNamedWarpScriptFunction(new NEXTAFTER(NEXTAFTER));
+    addNamedWarpScriptFunction(new ATAN2(ATAN2));
+
+    addNamedWarpScriptFunction(new FLOORDIV(FLOORDIV));
+    addNamedWarpScriptFunction(new FLOORMOD(FLOORMOD));
+
+    addNamedWarpScriptFunction(new ADDEXACT(ADDEXACT));
+    addNamedWarpScriptFunction(new SUBTRACTEXACT(SUBTRACTEXACT));
+    addNamedWarpScriptFunction(new MULTIPLYEXACT(MULTIPLYEXACT));
+    addNamedWarpScriptFunction(new INCREMENTEXACT(INCREMENTEXACT));
+    addNamedWarpScriptFunction(new DECREMENTEXACT(DECREMENTEXACT));
+    addNamedWarpScriptFunction(new NEGATEEXACT(NEGATEEXACT));
+    addNamedWarpScriptFunction(new TOINTEXACT(TOINTEXACT));
+
+    addNamedWarpScriptFunction(new SCALB(SCALB));
+    addNamedWarpScriptFunction(new RANDOM(RANDOM));
+    addNamedWarpScriptFunction(new NEXTDOWN(NEXTDOWN));
+    addNamedWarpScriptFunction(new GETEXPONENT(GETEXPONENT));
     
-    try {
-
-      functions.put("COS", new MATH("COS", "cos"));
-      functions.put("COSH", new MATH("COSH", "cosh"));
-      functions.put("ACOS", new MATH("ACOS", "acos"));
-      
-      functions.put("SIN", new MATH("SIN", "sin"));
-      functions.put("SINH", new MATH("SINH", "sinh"));
-      functions.put("ASIN", new MATH("ASIN", "asin"));
-
-      functions.put("TAN", new MATH("TAN", "tan"));
-      functions.put("TANH", new MATH("TANH", "tanh"));
-      functions.put("ATAN", new MATH("ATAN", "atan"));
-
-      functions.put("SIGNUM", new MATH("SIGNUM", "signum"));
-      functions.put("FLOOR", new MATH("FLOOR", "floor"));
-      functions.put("CEIL", new MATH("CEIL", "ceil"));
-      functions.put("ROUND", new MATH("ROUND", "round"));
-
-      functions.put("RINT", new MATH("RINT", "rint"));
-      functions.put("NEXTUP", new MATH("NEXTUP", "nextUp"));
-      functions.put("ULP", new MATH("ULP", "ulp"));
-
-      functions.put("SQRT", new MATH("SQRT", "sqrt"));
-      functions.put("CBRT", new MATH("CBRT", "cbrt"));
-      functions.put("EXP", new MATH("EXP", "exp"));
-      functions.put("EXPM1", new MATH("EXPM1", "expm1"));
-      functions.put("LOG", new MATH("LOG", "log"));
-      functions.put("LOG10", new MATH("LOG10", "log10"));
-      functions.put("LOG1P", new MATH("LOG1P", "log1p"));
-
-      functions.put("TORADIANS", new MATH("TORADIANS", "toRadians"));
-      functions.put("TODEGREES", new MATH("TODEGREES", "toDegrees"));
-
-      functions.put("MAX", new MATH2("MAX", "max"));
-      functions.put("MIN", new MATH2("MIN", "min"));
-
-      functions.put("COPYSIGN", new MATH2("COPYSIGN", "copySign"));
-      functions.put("HYPOT", new MATH2("HYPOT", "hypot"));
-      functions.put("IEEEREMAINDER", new MATH2("IEEEREMAINDER", "IEEEremainder"));
-      functions.put("NEXTAFTER", new MATH2("NEXTAFTER", "nextAfter"));
-      functions.put("ATAN2", new MATH2("ATAN2", "atan2"));
-      
-    } catch (WarpScriptException ee) {
-      throw new RuntimeException(ee);
-    }
-    
-    functions.put("IDENT", new IDENT("IDENT"));
+    addNamedWarpScriptFunction(new IDENT(IDENT));
     
     //
     // Processing
     //
-    
-    functions.put("Pencode", new Pencode("Pencode"));
-    
+
+    addNamedWarpScriptFunction(new Pencode(PENCODE));
+
     // Structure
     
-    functions.put("PpushStyle", new PpushStyle("PpushStyle"));
-    functions.put("PpopStyle", new PpopStyle("PpopStyle"));
+    addNamedWarpScriptFunction(new PpushStyle(PPUSHSTYLE));
+    addNamedWarpScriptFunction(new PpopStyle(PPOPSTYLE));
 
     // Environment
     
     
     // Shape
     
-    functions.put("Parc", new Parc("Parc"));
-    functions.put("Pellipse", new Pellipse("Pellipse"));
-    functions.put("Ppoint", new Ppoint("Ppoint"));
-    functions.put("Pline", new Pline("Pline"));
-    functions.put("Ptriangle", new Ptriangle("Ptriangle"));
-    functions.put("Prect", new Prect("Prect"));
-    functions.put("Pquad", new Pquad("Pquad"));
+    addNamedWarpScriptFunction(new Parc(PARC));
+    addNamedWarpScriptFunction(new Pellipse(PELLIPSE));
+    addNamedWarpScriptFunction(new Ppoint(PPOINT));
+    addNamedWarpScriptFunction(new Pline(PLINE));
+    addNamedWarpScriptFunction(new Ptriangle(PTRIANGLE));
+    addNamedWarpScriptFunction(new Prect(PRECT));
+    addNamedWarpScriptFunction(new Pquad(PQUAD));
     
-    functions.put("Pbezier", new Pbezier("Pbezier"));
-    functions.put("PbezierPoint", new PbezierPoint("PbezierPoint"));
-    functions.put("PbezierTangent", new PbezierTangent("PbezierTangent"));
-    functions.put("PbezierDetail", new PbezierDetail("PbezierDetail"));
+    addNamedWarpScriptFunction(new Pbezier(PBEZIER));
+    addNamedWarpScriptFunction(new PbezierPoint(PBEZIERPOINT));
+    addNamedWarpScriptFunction(new PbezierTangent(PBEZIERTANGENT));
+    addNamedWarpScriptFunction(new PbezierDetail(PBEZIERDETAIL));
     
-    functions.put("Pcurve", new Pcurve("Pcurve"));
-    functions.put("PcurvePoint", new PcurvePoint("PcurvePoint"));
-    functions.put("PcurveTangent", new PcurveTangent("PcurveTangent"));
-    functions.put("PcurveDetail", new PcurveDetail("PcurveDetail"));
-    functions.put("PcurveTightness", new PcurveTightness("PcurveTightness"));
+    addNamedWarpScriptFunction(new Pcurve(PCURVE));
+    addNamedWarpScriptFunction(new PcurvePoint(PCURVEPOINT));
+    addNamedWarpScriptFunction(new PcurveTangent(PCURVETANGENT));
+    addNamedWarpScriptFunction(new PcurveDetail(PCURVEDETAIL));
+    addNamedWarpScriptFunction(new PcurveTightness(PCURVETIGHTNESS));
 
-    functions.put("Pbox", new Pbox("Pbox"));
-    functions.put("Psphere", new Psphere("Psphere"));
-    functions.put("PsphereDetail", new PsphereDetail("PsphereDetail"));
+    addNamedWarpScriptFunction(new Pbox(PBOX));
+    addNamedWarpScriptFunction(new Psphere(PSPHERE));
+    addNamedWarpScriptFunction(new PsphereDetail(PSPHEREDETAIL));
     
-    functions.put("PellipseMode", new PellipseMode("PellipseMode"));
-    functions.put("PrectMode", new PrectMode("PrectMode"));
-    functions.put("PstrokeCap", new PstrokeCap("PstrokeCap"));
-    functions.put("PstrokeJoin", new PstrokeJoin("PstrokeJoin"));
-    functions.put("PstrokeWeight", new PstrokeWeight("PstrokeWeight"));
+    addNamedWarpScriptFunction(new PellipseMode(PELLIPSEMODE));
+    addNamedWarpScriptFunction(new PrectMode(PRECTMODE));
+    addNamedWarpScriptFunction(new PstrokeCap(PSTROKECAP));
+    addNamedWarpScriptFunction(new PstrokeJoin(PSTROKEJOIN));
+    addNamedWarpScriptFunction(new PstrokeWeight(PSTROKEWEIGHT));
     
-    functions.put("PbeginShape", new PbeginShape("PbeginShape"));
-    functions.put("PendShape", new PendShape("PendShape"));
-    functions.put("PloadShape", new PloadShape("PloadShape"));
-    functions.put("PbeginContour", new PbeginContour("PbeginContour"));
-    functions.put("PendContour", new PendContour("PendContour"));
-    functions.put("Pvertex", new Pvertex("Pvertex"));
-    functions.put("PcurveVertex", new PcurveVertex("PcurveVertex"));
-    functions.put("PbezierVertex", new PbezierVertex("PbezierVertex"));
-    functions.put("PquadraticVertex", new PquadraticVertex("PquadraticVertex"));
+    addNamedWarpScriptFunction(new PbeginShape(PBEGINSHAPE));
+    addNamedWarpScriptFunction(new PendShape(PENDSHAPE));
+    addNamedWarpScriptFunction(new PloadShape(PLOADSHAPE));
+    addNamedWarpScriptFunction(new PbeginContour(PBEGINCONTOUR));
+    addNamedWarpScriptFunction(new PendContour(PENDCONTOUR));
+    addNamedWarpScriptFunction(new Pvertex(PVERTEX));
+    addNamedWarpScriptFunction(new PcurveVertex(PCURVEVERTEX));
+    addNamedWarpScriptFunction(new PbezierVertex(PBEZIERVERTEX));
+    addNamedWarpScriptFunction(new PquadraticVertex(PQUADRATICVERTEX));
     
     // TODO(hbs): support PShape (need to support PbeginShape etc applied to PShape instances)
-    functions.put("PshapeMode", new PshapeMode("PshapeMode"));
-    functions.put("Pshape", new Pshape("Pshape"));
+    addNamedWarpScriptFunction(new PshapeMode(PSHAPEMODE));
+    addNamedWarpScriptFunction(new Pshape(PSHAPE));
     
     // Transform
     
-    functions.put("PpushMatrix", new PpushMatrix("PpushMatrix"));
-    functions.put("PpopMatrix", new PpopMatrix("PpopMatrix"));
-    functions.put("PresetMatrix", new PresetMatrix("PresetMatrix"));
-    functions.put("Protate", new Protate("Protate"));
-    functions.put("ProtateX", new ProtateX("ProtateX"));
-    functions.put("ProtateY", new ProtateY("ProtateY"));
-    functions.put("ProtateZ", new ProtateZ("ProtateZ"));
-    functions.put("Pscale", new Pscale("Pscale"));
-    functions.put("PshearX", new PshearX("PshearX"));
-    functions.put("PshearY", new PshearY("PshearY"));
-    functions.put("Ptranslate", new Ptranslate("Ptranslate"));
+    addNamedWarpScriptFunction(new PpushMatrix(PPUSHMATRIX));
+    addNamedWarpScriptFunction(new PpopMatrix(PPOPMATRIX));
+    addNamedWarpScriptFunction(new PresetMatrix(PRESETMATRIX));
+    addNamedWarpScriptFunction(new Protate(PROTATE));
+    addNamedWarpScriptFunction(new ProtateX(PROTATEX));
+    addNamedWarpScriptFunction(new ProtateY(PROTATEY));
+    addNamedWarpScriptFunction(new ProtateZ(PROTATEZ));
+    addNamedWarpScriptFunction(new Pscale(PSCALE));
+    addNamedWarpScriptFunction(new PshearX(PSHEARX));
+    addNamedWarpScriptFunction(new PshearY(PSHEARY));
+    addNamedWarpScriptFunction(new Ptranslate(PTRANSLATE));
     
     // Color
     
-    functions.put("Pbackground", new Pbackground("Pbackground"));
-    functions.put("PcolorMode", new PcolorMode("PcolorMode"));
-    functions.put("Pclear", new Pclear("Pclear"));
-    functions.put("Pfill", new Pfill("Pfill"));
-    functions.put("PnoFill", new PnoFill("PnoFill"));
-    functions.put("Pstroke", new Pstroke("Pstroke"));
-    functions.put("PnoStroke", new PnoStroke("PnoStroke"));
+    addNamedWarpScriptFunction(new Pbackground(PBACKGROUND));
+    addNamedWarpScriptFunction(new PcolorMode(PCOLORMODE));
+    addNamedWarpScriptFunction(new Pclear(PCLEAR));
+    addNamedWarpScriptFunction(new Pfill(PFILL));
+    addNamedWarpScriptFunction(new PnoFill(PNOFILL));
+    addNamedWarpScriptFunction(new Pstroke(PSTROKE));
+    addNamedWarpScriptFunction(new PnoStroke(PNOSTROKE));
     
-    functions.put("Palpha", new Palpha("Palpha"));
-    functions.put("Pblue", new Pblue("Pblue"));
-    functions.put("Pbrightness", new Pbrightness("Pbrightness"));
-    functions.put("Pcolor", new Pcolor("Pcolor"));
-    functions.put("Pgreen", new Pgreen("Pgreen"));
-    functions.put("Phue", new Phue("Phue"));
-    functions.put("PlerpColor", new PlerpColor("PlerpColor"));
-    functions.put("Pred", new Pred("Pred"));
-    functions.put("Psaturation", new Psaturation("Psaturation"));
+    addNamedWarpScriptFunction(new Palpha(PALPHA));
+    addNamedWarpScriptFunction(new Pblue(PBLUE));
+    addNamedWarpScriptFunction(new Pbrightness(PBRIGHTNESS));
+    addNamedWarpScriptFunction(new Pcolor(PCOLOR));
+    addNamedWarpScriptFunction(new Pgreen(PGREEN));
+    addNamedWarpScriptFunction(new Phue(PHUE));
+    addNamedWarpScriptFunction(new PlerpColor(PLERPCOLOR));
+    addNamedWarpScriptFunction(new Pred(PRED));
+    addNamedWarpScriptFunction(new Psaturation(PSATURATION));
     
     // Image
     
-    functions.put("Pdecode", new Pdecode("Pdecode"));
-    functions.put("Pimage", new Pimage("Pimage"));
-    functions.put("PimageMode", new PimageMode("PimageMode"));
-    functions.put("Ptint", new Ptint("Ptint"));
-    functions.put("PnoTint", new PnoTint("PnoTint"));
-    functions.put("Ppixels", new Ppixels("Ppixels"));
-    functions.put("PupdatePixels", new PupdatePixels("PupdatePixels"));
+    addNamedWarpScriptFunction(new Pdecode(PDECODE));
+    addNamedWarpScriptFunction(new Pimage(PIMAGE));
+    addNamedWarpScriptFunction(new PimageMode(PIMAGEMODE));
+    addNamedWarpScriptFunction(new Ptint(PTINT));
+    addNamedWarpScriptFunction(new PnoTint(PNOTINT));
+    addNamedWarpScriptFunction(new Ppixels(PPIXELS));
+    addNamedWarpScriptFunction(new PupdatePixels(PUPDATEPIXELS));
+    addNamedWarpScriptFunction(new PtoImage(PTOIMAGE));
     
     // TODO(hbs): support texture related functions?
     
-    functions.put("Pblend", new Pblend("Pblend"));
-    functions.put("Pcopy", new Pcopy("Pcopy"));
-    functions.put("Pget", new Pget("Pget"));
-    functions.put("Pset", new Pset("Pset"));
-    functions.put("Pfilter", new Pfilter("Pfilter"));
+    addNamedWarpScriptFunction(new Pblend(PBLEND));
+    addNamedWarpScriptFunction(new Pcopy(PCOPY));
+    addNamedWarpScriptFunction(new Pget(PGET));
+    addNamedWarpScriptFunction(new Pset(PSET));
+    addNamedWarpScriptFunction(new Pfilter(PFILTER_));
 
     // Rendering
     
-    functions.put("PblendMode", new PblendMode("PblendMode"));
-    functions.put("Pclip", new Pclip("Pclip"));
-    functions.put("PnoClip", new PnoClip("PnoClip"));
-    functions.put("PGraphics", new PGraphics("PGraphics"));
+    addNamedWarpScriptFunction(new PblendMode(PBLENDMODE));
+    addNamedWarpScriptFunction(new Pclip(PCLIP));
+    addNamedWarpScriptFunction(new PnoClip(PNOCLIP));
+    addNamedWarpScriptFunction(new PGraphics(PGRAPHICS));
 
     // TODO(hbs): support shaders?
     
     // Typography
     
-    functions.put("PcreateFont", new PcreateFont("PcreateFont"));
-    functions.put("Ptext", new Ptext("Ptext"));
-    functions.put("PtextAlign", new PtextAlign("PtextAlign"));
-    functions.put("PtextAscent", new PtextAscent("PtextAscent"));
-    functions.put("PtextDescent", new PtextDescent("PtextDescent"));
-    functions.put("PtextFont", new PtextFont("PtextFont"));
-    functions.put("PtextLeading", new PtextLeading("PtextLeading"));
-    functions.put("PtextMode", new PtextMode("PtextMode"));
-    functions.put("PtextSize", new PtextSize("PtextSize"));
-    functions.put("PtextWidth", new PtextWidth("PtextWidth"));
+    addNamedWarpScriptFunction(new PcreateFont(PCREATEFONT));
+    addNamedWarpScriptFunction(new Ptext(PTEXT));
+    addNamedWarpScriptFunction(new PtextAlign(PTEXTALIGN));
+    addNamedWarpScriptFunction(new PtextAscent(PTEXTASCENT));
+    addNamedWarpScriptFunction(new PtextDescent(PTEXTDESCENT));
+    addNamedWarpScriptFunction(new PtextFont(PTEXTFONT));
+    addNamedWarpScriptFunction(new PtextLeading(PTEXTLEADING));
+    addNamedWarpScriptFunction(new PtextMode(PTEXTMODE));
+    addNamedWarpScriptFunction(new PtextSize(PTEXTSIZE));
+    addNamedWarpScriptFunction(new PtextWidth(PTEXTWIDTH));
     
     // Math
     
-    functions.put("Pconstrain", new Pconstrain("Pconstrain"));
-    functions.put("Pdist", new Pdist("Pdist"));
-    functions.put("Plerp", new Plerp("Plert"));
-    functions.put("Pmag", new Pmag("Pmag"));
-    functions.put("Pmap", new Pmap("Pmap"));
-    functions.put("Pnorm", new Pnorm("Pnorm"));
+    addNamedWarpScriptFunction(new Pconstrain(PCONSTRAIN));
+    addNamedWarpScriptFunction(new Pdist(PDIST));
+    addNamedWarpScriptFunction(new Plerp(PLERP));
+    addNamedWarpScriptFunction(new Pmag(PMAG));
+    addNamedWarpScriptFunction(new Pmap(PMAP));
+    addNamedWarpScriptFunction(new Pnorm(PNORM));
     
     ////////////////////////////////////////////////////////////////////////////
     
@@ -1265,128 +2144,128 @@ public class WarpScriptLib {
     // Bucketizers
     //
 
-    functions.put("bucketizer.and", new And("bucketizer.and", false));
-    functions.put("bucketizer.first", new First("bucketizer.first"));
-    functions.put("bucketizer.last", new Last("bucketizer.last"));
-    functions.put("bucketizer.min", new Min("bucketizer.min", true));
-    functions.put("bucketizer.max", new Max("bucketizer.max", true));
-    functions.put("bucketizer.mean", new Mean("bucketizer.mean", false));
-    functions.put("bucketizer.median", new Median("bucketizer.median"));
-    functions.put("bucketizer.mad", new MAD("bucketizer.mad"));
-    functions.put("bucketizer.or", new Or("bucketizer.or", false));
-    functions.put("bucketizer.sum", new Sum("bucketizer.sum", true));
-    functions.put("bucketizer.join", new Join.Builder("bucketizer.join", true, false, null));
-    functions.put("bucketizer.count", new Count("bucketizer.count", false));
-    functions.put("bucketizer.percentile", new Percentile.Builder("bucketizer.percentile"));
-    functions.put("bucketizer.min.forbid-nulls", new Min("bucketizer.min.forbid-nulls", false));
-    functions.put("bucketizer.max.forbid-nulls", new Max("bucketizer.max.forbid-nulls", false));
-    functions.put("bucketizer.mean.exclude-nulls", new Mean("bucketizer.mean.exclude-nulls", true));
-    functions.put("bucketizer.sum.forbid-nulls", new Sum("bucketizer.sum.forbid-nulls", false));
-    functions.put("bucketizer.join.forbid-nulls", new Join.Builder("bucketizer.join.forbid-nulls", false, false, null));
-    functions.put("bucketizer.count.exclude-nulls", new Count("bucketizer.count.exclude-nulls", true));
-    functions.put("bucketizer.count.include-nulls", new Count("bucketizer.count.include-nulls", false));
-    functions.put("bucketizer.count.nonnull", new Count("bucketizer.count.nonnull", true));
-    functions.put("bucketizer.mean.circular", new CircularMean.Builder("bucketizer.mean.circular", true));
-    functions.put("bucketizer.mean.circular.exclude-nulls", new CircularMean.Builder("bucketizer.mean.circular.exclude-nulls", false));
-    functions.put("bucketizer.rms", new RMS("bucketizer.rms", false));
+    addNamedWarpScriptFunction(new And("bucketizer.and", false));
+    addNamedWarpScriptFunction(new First("bucketizer.first"));
+    addNamedWarpScriptFunction(new Last("bucketizer.last"));
+    addNamedWarpScriptFunction(new Min("bucketizer.min", true));
+    addNamedWarpScriptFunction(new Max("bucketizer.max", true));
+    addNamedWarpScriptFunction(new Mean("bucketizer.mean", false));
+    addNamedWarpScriptFunction(new Median("bucketizer.median"));
+    addNamedWarpScriptFunction(new MAD("bucketizer.mad"));
+    addNamedWarpScriptFunction(new Or("bucketizer.or", false));
+    addNamedWarpScriptFunction(new Sum("bucketizer.sum", true));
+    addNamedWarpScriptFunction(new Join.Builder("bucketizer.join", true, false, null));
+    addNamedWarpScriptFunction(new Count("bucketizer.count", false));
+    addNamedWarpScriptFunction(new Percentile.Builder("bucketizer.percentile"));
+    addNamedWarpScriptFunction(new Min("bucketizer.min.forbid-nulls", false));
+    addNamedWarpScriptFunction(new Max("bucketizer.max.forbid-nulls", false));
+    addNamedWarpScriptFunction(new Mean("bucketizer.mean.exclude-nulls", true));
+    addNamedWarpScriptFunction(new Sum("bucketizer.sum.forbid-nulls", false));
+    addNamedWarpScriptFunction(new Join.Builder("bucketizer.join.forbid-nulls", false, false, null));
+    addNamedWarpScriptFunction(new Count("bucketizer.count.exclude-nulls", true));
+    addNamedWarpScriptFunction(new Count("bucketizer.count.include-nulls", false));
+    addNamedWarpScriptFunction(new Count("bucketizer.count.nonnull", true));
+    addNamedWarpScriptFunction(new CircularMean.Builder("bucketizer.mean.circular", true));
+    addNamedWarpScriptFunction(new CircularMean.Builder("bucketizer.mean.circular.exclude-nulls", false));
+    addNamedWarpScriptFunction(new RMS("bucketizer.rms", false));
     //
     // Mappers
     //
 
-    functions.put("mapper.and", new And("mapper.and", false));
-    functions.put("mapper.count", new Count("mapper.count", false));
-    functions.put("mapper.first", new First("mapper.first"));
-    functions.put("mapper.last", new Last("mapper.last"));
-    functions.put(MAPPER_MIN, new Min(MAPPER_MIN, true));
-    functions.put(MAPPER_MAX, new Max(MAPPER_MAX, true));
-    functions.put("mapper.mean", new Mean("mapper.mean", false));
-    functions.put("mapper.median", new Median("mapper.median"));
-    functions.put("mapper.mad", new MAD("mapper.mad"));
-    functions.put("mapper.or", new Or("mapper.or", false));
-    functions.put(MAPPER_HIGHEST, new Highest(MAPPER_HIGHEST));
-    functions.put(MAPPER_LOWEST, new Lowest(MAPPER_LOWEST));
-    functions.put("mapper.sum", new Sum("mapper.sum", true));
-    functions.put("mapper.join", new Join.Builder("mapper.join", true, false, null));
-    functions.put("mapper.delta", new Delta("mapper.delta"));
-    functions.put("mapper.rate", new Rate("mapper.rate"));
-    functions.put("mapper.hspeed", new HSpeed("mapper.hspeed"));
-    functions.put("mapper.hdist", new HDist("mapper.hdist"));
-    functions.put("mapper.truecourse", new TrueCourse("mapper.truecourse"));
-    functions.put("mapper.vspeed", new VSpeed("mapper.vspeed"));
-    functions.put("mapper.vdist", new VDist("mapper.vdist"));
-    functions.put("mapper.var", new Variance.Builder("mapper.var", false));
-    functions.put("mapper.sd", new StandardDeviation.Builder("mapper.sd", false));
-    functions.put("mapper.abs", new MapperAbs("mapper.abs"));
-    functions.put("mapper.ceil", new MapperCeil("mapper.ceil"));
-    functions.put("mapper.floor", new MapperFloor("mapper.floor"));
-    functions.put("mapper.finite", new MapperFinite("mapper.finite"));
-    functions.put("mapper.round", new MapperRound("mapper.round"));
-    functions.put("mapper.toboolean", new MapperToBoolean("mapper.toboolean"));
-    functions.put("mapper.tolong", new MapperToLong("mapper.tolong"));
-    functions.put("mapper.todouble", new MapperToDouble("mapper.todouble"));
-    functions.put("mapper.tostring", new MapperToString("mapper.tostring"));
-    functions.put("mapper.tanh", new MapperTanh("mapper.tanh"));
-    functions.put("mapper.sigmoid", new MapperSigmoid("mapper.sigmoid"));
-    functions.put("mapper.product", new MapperProduct("mapper.product"));
-    functions.put("mapper.geo.clear", new MapperGeoClearPosition("mapper.geo.clear"));
-    functions.put("mapper.count.exclude-nulls", new Count("mapper.count.exclude-nulls", true));
-    functions.put("mapper.count.include-nulls", new Count("mapper.count.include-nulls", false));
-    functions.put("mapper.count.nonnull", new Count("mapper.count.nonnull", true));
-    functions.put("mapper.min.forbid-nulls", new Min("mapper.min.forbid-nulls", false));
-    functions.put("mapper.max.forbid-nulls", new Max("mapper.max.forbid-nulls", false));
-    functions.put("mapper.mean.exclude-nulls", new Mean("mapper.mean.exclude-nulls", true));
-    functions.put("mapper.sum.forbid-nulls", new Sum("mapper.sum.forbid-nulls", false));
-    functions.put("mapper.join.forbid-nulls", new Join.Builder("mapper.join.forbid-nulls", false, false, null));
-    functions.put("mapper.var.forbid-nulls", new Variance.Builder("mapper.var.forbid-nulls", true));
-    functions.put("mapper.sd.forbid-nulls", new StandardDeviation.Builder("mapper.sd.forbid-nulls", true));
-    functions.put("mapper.mean.circular", new CircularMean.Builder("mapper.mean.circular", true));
-    functions.put("mapper.mean.circular.exclude-nulls", new CircularMean.Builder("mapper.mean.circular.exclude-nulls", false));
-    functions.put("mapper.mod", new MapperMod.Builder("mapper.mod"));
-    functions.put("mapper.rms", new RMS("mapper.rms", false));
+    addNamedWarpScriptFunction(new And("mapper.and", false));
+    addNamedWarpScriptFunction(new Count("mapper.count", false));
+    addNamedWarpScriptFunction(new First("mapper.first"));
+    addNamedWarpScriptFunction(new Last("mapper.last"));
+    addNamedWarpScriptFunction(new Min(MAPPER_MIN, true));
+    addNamedWarpScriptFunction(new Max(MAPPER_MAX, true));
+    addNamedWarpScriptFunction(new Mean("mapper.mean", false));
+    addNamedWarpScriptFunction(new Median("mapper.median"));
+    addNamedWarpScriptFunction(new MAD("mapper.mad"));
+    addNamedWarpScriptFunction(new Or("mapper.or", false));
+    addNamedWarpScriptFunction(new Highest(MAPPER_HIGHEST));
+    addNamedWarpScriptFunction(new Lowest(MAPPER_LOWEST));
+    addNamedWarpScriptFunction(new Sum("mapper.sum", true));
+    addNamedWarpScriptFunction(new Join.Builder("mapper.join", true, false, null));
+    addNamedWarpScriptFunction(new Delta("mapper.delta"));
+    addNamedWarpScriptFunction(new Rate("mapper.rate"));
+    addNamedWarpScriptFunction(new HSpeed("mapper.hspeed"));
+    addNamedWarpScriptFunction(new HDist("mapper.hdist"));
+    addNamedWarpScriptFunction(new TrueCourse("mapper.truecourse"));
+    addNamedWarpScriptFunction(new VSpeed("mapper.vspeed"));
+    addNamedWarpScriptFunction(new VDist("mapper.vdist"));
+    addNamedWarpScriptFunction(new Variance.Builder("mapper.var", false));
+    addNamedWarpScriptFunction(new StandardDeviation.Builder("mapper.sd", false));
+    addNamedWarpScriptFunction(new MapperAbs("mapper.abs"));
+    addNamedWarpScriptFunction(new MapperCeil("mapper.ceil"));
+    addNamedWarpScriptFunction(new MapperFloor("mapper.floor"));
+    addNamedWarpScriptFunction(new MapperFinite("mapper.finite"));
+    addNamedWarpScriptFunction(new MapperRound("mapper.round"));
+    addNamedWarpScriptFunction(new MapperToBoolean("mapper.toboolean"));
+    addNamedWarpScriptFunction(new MapperToLong("mapper.tolong"));
+    addNamedWarpScriptFunction(new MapperToDouble("mapper.todouble"));
+    addNamedWarpScriptFunction(new MapperToString("mapper.tostring"));
+    addNamedWarpScriptFunction(new MapperTanh("mapper.tanh"));
+    addNamedWarpScriptFunction(new MapperSigmoid("mapper.sigmoid"));
+    addNamedWarpScriptFunction(new MapperProduct("mapper.product"));
+    addNamedWarpScriptFunction(new MapperGeoClearPosition("mapper.geo.clear"));
+    addNamedWarpScriptFunction(new Count("mapper.count.exclude-nulls", true));
+    addNamedWarpScriptFunction(new Count("mapper.count.include-nulls", false));
+    addNamedWarpScriptFunction(new Count("mapper.count.nonnull", true));
+    addNamedWarpScriptFunction(new Min("mapper.min.forbid-nulls", false));
+    addNamedWarpScriptFunction(new Max("mapper.max.forbid-nulls", false));
+    addNamedWarpScriptFunction(new Mean("mapper.mean.exclude-nulls", true));
+    addNamedWarpScriptFunction(new Sum("mapper.sum.forbid-nulls", false));
+    addNamedWarpScriptFunction(new Join.Builder("mapper.join.forbid-nulls", false, false, null));
+    addNamedWarpScriptFunction(new Variance.Builder("mapper.var.forbid-nulls", true));
+    addNamedWarpScriptFunction(new StandardDeviation.Builder("mapper.sd.forbid-nulls", true));
+    addNamedWarpScriptFunction(new CircularMean.Builder("mapper.mean.circular", true));
+    addNamedWarpScriptFunction(new CircularMean.Builder("mapper.mean.circular.exclude-nulls", false));
+    addNamedWarpScriptFunction(new MapperMod.Builder("mapper.mod"));
+    addNamedWarpScriptFunction(new RMS("mapper.rms", false));
 
     //
     // Reducers
     //
 
-    functions.put("reducer.and", new And("reducer.and", false));
-    functions.put("reducer.and.exclude-nulls", new And("reducer.and.exclude-nulls", true));
-    functions.put("reducer.min", new Min("reducer.min", true));
-    functions.put("reducer.min.forbid-nulls", new Min("reducer.min.forbid-nulls", false));
-    functions.put("reducer.min.nonnull", new Min("reducer.min.nonnull", false));
-    functions.put("reducer.max", new Max("reducer.max", true));
-    functions.put("reducer.max.forbid-nulls", new Max("reducer.max.forbid-nulls", false));
-    functions.put("reducer.max.nonnull", new Max("reducer.max.nonnull", false));
-    functions.put("reducer.mean", new Mean("reducer.mean", false));
-    functions.put("reducer.mean.exclude-nulls", new Mean("reducer.mean.exclude-nulls", true));
-    functions.put("reducer.median", new Median("reducer.median"));
-    functions.put("reducer.mad", new MAD("reducer.mad"));
-    functions.put("reducer.or", new Or("reducer.or", false));
-    functions.put("reducer.or.exclude-nulls", new Or("reducer.or.exclude-nulls", true));
-    functions.put("reducer.sum", new Sum("reducer.sum", true));
-    functions.put("reducer.sum.forbid-nulls", new Sum("reducer.sum.forbid-nulls", false));
-    functions.put("reducer.sum.nonnull", new Sum("reducer.sum.nonnull", false));
-    functions.put("reducer.join", new Join.Builder("reducer.join", true, false, null));
-    functions.put("reducer.join.forbid-nulls", new Join.Builder("reducer.join.forbid-nulls", false, false, null));
-    functions.put("reducer.join.nonnull", new Join.Builder("reducer.join.nonnull", false, false, null));
-    functions.put("reducer.join.urlencoded", new Join.Builder("reducer.join.urlencoded", false, true, ""));
-    functions.put("reducer.var", new Variance.Builder("reducer.var", false));
-    functions.put("reducer.var.forbid-nulls", new Variance.Builder("reducer.var.forbid-nulls", false));
-    functions.put("reducer.sd", new StandardDeviation.Builder("reducer.sd", false));
-    functions.put("reducer.sd.forbid-nulls", new StandardDeviation.Builder("reducer.sd.forbid-nulls", false));
-    functions.put("reducer.argmin", new Argmin.Builder("reducer.argmin"));
-    functions.put("reducer.argmax", new Argmax.Builder("reducer.argmax"));
-    functions.put("reducer.product", new MapperProduct("reducer.product"));
-    functions.put("reducer.count", new Count("reducer.count", false));
-    functions.put("reducer.count.include-nulls", new Count("reducer.count.include-nulls", false));
-    functions.put("reducer.count.exclude-nulls", new Count("reducer.count.exclude-nulls", true));
-    functions.put("reducer.count.nonnull", new Count("reducer.count.nonnull", true));
-    functions.put("reducer.shannonentropy.0", new ShannonEntropy("reducer.shannonentropy.0", false));
-    functions.put("reducer.shannonentropy.1", new ShannonEntropy("reducer.shannonentropy.1", true));
-    functions.put("reducer.percentile", new Percentile.Builder("reducer.percentile"));
-    functions.put("reducer.mean.circular", new CircularMean.Builder("reducer.mean.circular", true));
-    functions.put("reducer.mean.circular.exclude-nulls", new CircularMean.Builder("reducer.mean.circular.exclude-nulls", false));
-    functions.put("reducer.rms", new RMS("reducer.rms", false));
-    functions.put("reducer.rms.exclude-nulls", new RMS("reducer.rms.exclude-nulls", true));
+    addNamedWarpScriptFunction(new And("reducer.and", false));
+    addNamedWarpScriptFunction(new And("reducer.and.exclude-nulls", true));
+    addNamedWarpScriptFunction(new Min("reducer.min", true));
+    addNamedWarpScriptFunction(new Min("reducer.min.forbid-nulls", false));
+    addNamedWarpScriptFunction(new Min("reducer.min.nonnull", false));
+    addNamedWarpScriptFunction(new Max("reducer.max", true));
+    addNamedWarpScriptFunction(new Max("reducer.max.forbid-nulls", false));
+    addNamedWarpScriptFunction(new Max("reducer.max.nonnull", false));
+    addNamedWarpScriptFunction(new Mean("reducer.mean", false));
+    addNamedWarpScriptFunction(new Mean("reducer.mean.exclude-nulls", true));
+    addNamedWarpScriptFunction(new Median("reducer.median"));
+    addNamedWarpScriptFunction(new MAD("reducer.mad"));
+    addNamedWarpScriptFunction(new Or("reducer.or", false));
+    addNamedWarpScriptFunction(new Or("reducer.or.exclude-nulls", true));
+    addNamedWarpScriptFunction(new Sum("reducer.sum", true));
+    addNamedWarpScriptFunction(new Sum("reducer.sum.forbid-nulls", false));
+    addNamedWarpScriptFunction(new Sum("reducer.sum.nonnull", false));
+    addNamedWarpScriptFunction(new Join.Builder("reducer.join", true, false, null));
+    addNamedWarpScriptFunction(new Join.Builder("reducer.join.forbid-nulls", false, false, null));
+    addNamedWarpScriptFunction(new Join.Builder("reducer.join.nonnull", false, false, null));
+    addNamedWarpScriptFunction(new Join.Builder("reducer.join.urlencoded", false, true, ""));
+    addNamedWarpScriptFunction(new Variance.Builder("reducer.var", false));
+    addNamedWarpScriptFunction(new Variance.Builder("reducer.var.forbid-nulls", false));
+    addNamedWarpScriptFunction(new StandardDeviation.Builder("reducer.sd", false));
+    addNamedWarpScriptFunction(new StandardDeviation.Builder("reducer.sd.forbid-nulls", false));
+    addNamedWarpScriptFunction(new Argminmax.Builder("reducer.argmin", true));
+    addNamedWarpScriptFunction(new Argminmax.Builder("reducer.argmax", false));
+    addNamedWarpScriptFunction(new MapperProduct("reducer.product"));
+    addNamedWarpScriptFunction(new Count("reducer.count", false));
+    addNamedWarpScriptFunction(new Count("reducer.count.include-nulls", false));
+    addNamedWarpScriptFunction(new Count("reducer.count.exclude-nulls", true));
+    addNamedWarpScriptFunction(new Count("reducer.count.nonnull", true));
+    addNamedWarpScriptFunction(new ShannonEntropy("reducer.shannonentropy.0", false));
+    addNamedWarpScriptFunction(new ShannonEntropy("reducer.shannonentropy.1", true));
+    addNamedWarpScriptFunction(new Percentile.Builder("reducer.percentile"));
+    addNamedWarpScriptFunction(new CircularMean.Builder("reducer.mean.circular", true));
+    addNamedWarpScriptFunction(new CircularMean.Builder("reducer.mean.circular.exclude-nulls", false));
+    addNamedWarpScriptFunction(new RMS("reducer.rms", false));
+    addNamedWarpScriptFunction(new RMS("reducer.rms.exclude-nulls", true));
 
     //
     // Filters
@@ -1396,57 +2275,41 @@ public class WarpScriptLib {
     // N-ary ops
     //
     
-    functions.put("op.add", new OpAdd("op.add", true));
-    functions.put("op.add.ignore-nulls", new OpAdd("op.add.ignore-nulls", false));
-    functions.put("op.sub", new OpSub("op.sub"));
-    functions.put("op.mul", new OpMul("op.mul", true));
-    functions.put("op.mul.ignore-nulls", new OpMul("op.mul.ignore-nulls", false));
-    functions.put("op.div", new OpDiv("op.div"));
-    functions.put("op.mask", new OpMask("op.mask", false));
-    functions.put("op.negmask", new OpMask("op.negmask", true)); 
-    functions.put("op.ne", new OpNE("op.ne"));
-    functions.put("op.eq", new OpEQ("op.eq"));
-    functions.put("op.lt", new OpLT("op.lt"));
-    functions.put("op.gt", new OpGT("op.gt"));
-    functions.put("op.le", new OpLE("op.le"));
-    functions.put("op.ge", new OpGE("op.ge"));
-    functions.put("op.and.ignore-nulls", new OpAND("op.and.ignore-nulls", false));
-    functions.put("op.and", new OpAND("op.and", true));
-    functions.put("op.or.ignore-nulls", new OpOR("op.or.ignore-nulls", false));
-    functions.put("op.or", new OpOR("op.or", true));
+    addNamedWarpScriptFunction(new OpAdd("op.add", true));
+    addNamedWarpScriptFunction(new OpAdd("op.add.ignore-nulls", false));
+    addNamedWarpScriptFunction(new OpSub("op.sub"));
+    addNamedWarpScriptFunction(new OpMul("op.mul", true));
+    addNamedWarpScriptFunction(new OpMul("op.mul.ignore-nulls", false));
+    addNamedWarpScriptFunction(new OpDiv("op.div"));
+    addNamedWarpScriptFunction(new OpMask("op.mask", false));
+    addNamedWarpScriptFunction(new OpMask("op.negmask", true));
+    addNamedWarpScriptFunction(new OpNE("op.ne"));
+    addNamedWarpScriptFunction(new OpEQ("op.eq"));
+    addNamedWarpScriptFunction(new OpLT("op.lt"));
+    addNamedWarpScriptFunction(new OpGT("op.gt"));
+    addNamedWarpScriptFunction(new OpLE("op.le"));
+    addNamedWarpScriptFunction(new OpGE("op.ge"));
+    addNamedWarpScriptFunction(new OpAND("op.and.ignore-nulls", false));
+    addNamedWarpScriptFunction(new OpAND("op.and", true));
+    addNamedWarpScriptFunction(new OpOR("op.or.ignore-nulls", false));
+    addNamedWarpScriptFunction(new OpOR("op.or", true));
 
     /////////////////////////
-    
 
-    Properties props = WarpConfig.getProperties();
-      
-    if (null != props && props.containsKey(Configuration.CONFIG_WARPSCRIPT_LANGUAGES)) {
-      String[] languages = props.getProperty(Configuration.CONFIG_WARPSCRIPT_LANGUAGES).split(",");
-      Set<String> lang = new HashSet<String>();
-      
-      for (String language: languages) {
-        lang.add(language.toUpperCase());
-      }
-      
-      if (lang.contains("R")) {
-        register(new RWarpScriptExtension());
-      }      
-      if (lang.contains("JS")) {
-        register(new JSWarpScriptExtension());
-      }      
-      if (lang.contains("GROOVY")) {
-        register(new GroovyWarpScriptExtension());
-      }      
-      if (lang.contains("LUA")) {
-        register(new LUAWarpScriptExtension());
-      }      
-      if (lang.contains("RUBY")) {
-        register(new RubyWarpScriptExtension());
-      }
-      if (lang.contains("PYTHON")) {
-        register(new PythonWarpScriptExtension());
-      }
-    }    
+    int nregs = Integer.parseInt(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_REGISTERS, String.valueOf(WarpScriptStack.DEFAULT_REGISTERS)));
+
+    addNamedWarpScriptFunction(new CLEARREGS(CLEARREGS));
+    addNamedWarpScriptFunction(new VARS(VARS));
+    addNamedWarpScriptFunction(new ASREGS(ASREGS));
+    for (int i = 0; i < nregs; i++) {
+      addNamedWarpScriptFunction(new POPR(POPR + i, i));
+      addNamedWarpScriptFunction(new POPR(CPOPR + i, i, true));
+      addNamedWarpScriptFunction(new PUSHR(PUSHR + i, i));
+    }
+  }
+
+  public static void addNamedWarpScriptFunction(NamedWarpScriptFunction namedFunction) {
+    functions.put(namedFunction.getName(), namedFunction);
   }
   
   public static Object getFunction(String name) {
@@ -1474,12 +2337,12 @@ public class WarpScriptLib {
       }
     }
     
-    for (Object key: props.keySet()) {
-      if (!key.toString().startsWith(Configuration.CONFIG_WARPSCRIPT_EXTENSION_PREFIX)) {
+    for (String key: props.stringPropertyNames()) {
+      if (!key.startsWith(Configuration.CONFIG_WARPSCRIPT_EXTENSION_PREFIX)) {
         continue;
       }
       
-      ext.add(props.get(key).toString().trim());
+      ext.add(props.getProperty(key).trim());
     }
     
     // Sort the extensions
@@ -1534,7 +2397,7 @@ public class WarpScriptLib {
           ClassLoader cl = WarpScriptLib.class.getClassLoader();
           
           // If the jar differs from that from which WarpScriptLib was loaded, create a dedicated class loader
-          if (!jarfile.equals(wsljar)) {
+          if (!jarfile.equals(wsljar) && !"true".equals(props.getProperty(Configuration.CONFIG_WARPSCRIPT_DEFAULTCL_PREFIX + extension))) {
             cl = new WarpClassLoader(jarfile, WarpScriptLib.class.getClassLoader());
           }
         
@@ -1547,16 +2410,14 @@ public class WarpScriptLib {
         WarpScriptExtension wse = (WarpScriptExtension) cls.newInstance();          
         wse.register();
         
-        System.out.print("LOADED extension '" + extension  + "'");
-        
         String namespace = props.getProperty(Configuration.CONFIG_WARPSCRIPT_NAMESPACE_PREFIX + wse.getClass().getName(), "").trim(); 
         if (null != namespace && !"".equals(namespace)) {
           if (namespace.contains("%")) {
             namespace = URLDecoder.decode(namespace, "UTF-8");
           }
-          System.out.println(" under namespace '" + namespace + "'.");
+          LOG.info("LOADED extension '" + extension + "'" + " under namespace '" + namespace + "'.");
         } else {
-          System.out.println();
+          LOG.info("LOADED extension '" + extension + "'");
         }
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -1571,18 +2432,13 @@ public class WarpScriptLib {
         sb.append(extension);
         sb.append("'");
       }
+      LOG.error(sb.toString());
       throw new RuntimeException(sb.toString());
     }
   }
   
   public static void register(WarpScriptExtension extension) {
-    Properties props = WarpConfig.getProperties();
-    
-    if (null == props) {
-      return;
-    }
-
-    String namespace = props.getProperty(Configuration.CONFIG_WARPSCRIPT_NAMESPACE_PREFIX + extension.getClass().getName(), "").trim();
+    String namespace = WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_NAMESPACE_PREFIX + extension.getClass().getName(), "").trim();
         
     if (namespace.contains("%")) {
       try {
@@ -1618,18 +2474,8 @@ public class WarpScriptLib {
     return extloaded.contains(name);
   }
   
-  /**
-   * Check whether or not an object is castable to a macro
-   * @param o
-   * @return
-   */
-  public static boolean isMacro(Object o) {
-    
-    if (null == o) {
-      return false;
-    }
-    
-    return o instanceof Macro;
+  public static List<String> extensions() {
+    return new ArrayList<String>(extloaded);
   }
 
   public static ArrayList getFunctionNames() {

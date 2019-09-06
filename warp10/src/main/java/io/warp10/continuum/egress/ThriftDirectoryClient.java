@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.thrift.data.DirectoryFindRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryFindResponse;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
 import io.warp10.continuum.store.thrift.data.Metadata;
@@ -318,7 +319,7 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
   }
   
   @Override
-  public List<Metadata> find(List<String> classSelector, List<Map<String,String>> labelsSelectors) throws IOException {
+  public List<Metadata> find(DirectoryRequest request) throws IOException {
     
     throw new IOException("USE ITERATOR");
     
@@ -495,12 +496,15 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
   }
   
   @Override
-  public Map<String,Object> stats(List<String> classSelector, List<Map<String, String>> labelsSelectors) throws IOException {
+  public Map<String,Object> stats(DirectoryRequest request) throws IOException {
     //return statsThrift(classSelector, labelsSelectors);
-    return statsHttp(classSelector, labelsSelectors);
+    return statsHttp(request);
   }
     
-  public Map<String,Object> statsHttp(List<String> classSelector, List<Map<String, String>> labelsSelectors) throws IOException {
+  public Map<String,Object> statsHttp(DirectoryRequest req) throws IOException {
+    
+    List<String> classSelector = req.getClassSelectors();
+    List<Map<String, String>> labelsSelectors = req.getLabelsSelectors();
     
     //
     // Extract the URLs we will use to retrieve the Metadata
@@ -760,7 +764,7 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
     return mergeStatsResponses(responses);
   }
   
-  private Map<String,Object> mergeStatsResponses(Iterable<Future<DirectoryStatsResponse>> responses) throws IOException {
+  public static Map<String,Object> mergeStatsResponses(Iterable<Future<DirectoryStatsResponse>> responses) throws IOException {
     //
     // Consolidate the results
     //
@@ -914,8 +918,11 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
    * Return an iterator on Metadata which accesses the streaming endpoints of directories
    */
   @Override
-  public MetadataIterator iterator(final List<String> classSelectors, final List<Map<String,String>> labelsSelectors) throws IOException {
+  public MetadataIterator iterator(DirectoryRequest request) throws IOException {
 
+    final List<String> classSelectors = request.getClassSelectors();
+    final List<Map<String,String>> labelsSelectors = request.getLabelsSelectors();
+    
     //
     // Extract the URLs we will use to retrieve the Metadata
     //
@@ -974,6 +981,6 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
       called.add(remainder.get(entry.getKey()));
     }
     
-    return new StreamingMetadataIterator(SIPHASH_PSK, classSelectors, labelsSelectors, urls, this.noProxy);    
+    return new StreamingMetadataIterator(SIPHASH_PSK, request, urls, this.noProxy);    
   }
 }

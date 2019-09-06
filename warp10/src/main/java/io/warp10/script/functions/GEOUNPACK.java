@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -50,11 +50,15 @@ public class GEOUNPACK extends NamedWarpScriptFunction implements WarpScriptStac
     
     Object o = stack.pop();
     
-    if (!(o instanceof String)) {
-      throw new WarpScriptException(getName() + " expects a packed shape on top of the stack.");
-    }
+    byte[] serialized;
     
-    byte[] serialized = OrderPreservingBase64.decode(o.toString().getBytes(Charsets.US_ASCII));
+    if (o instanceof String) {
+      serialized = OrderPreservingBase64.decode(o.toString().getBytes(Charsets.US_ASCII));
+    } else if (o instanceof byte[]) {
+      serialized = (byte[]) o;
+    } else {
+      throw new WarpScriptException(getName() + " expects a packed shape on top of the stack.");      
+    }
     
     TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
     
@@ -74,6 +78,7 @@ public class GEOUNPACK extends NamedWarpScriptFunction implements WarpScriptStac
     
     while(idx < cells.length && decoder.next()) {
       long cell = decoder.getTimestamp();
+      // We do not call getBinaryValue because we expect booleans anyway
       Object value = decoder.getValue();
       
       if (!Boolean.TRUE.equals(value)) {

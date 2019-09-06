@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -44,14 +44,8 @@ public class LOCATIONS extends NamedWarpScriptFunction implements WarpScriptStac
     Object o = stack.pop();
     
     if (!(o instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " expects a geo time series on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a Geo Time Series on top of the stack.");
     }
-
-    //
-    // Sort GTS
-    //
-    
-    GTSHelper.sort((GeoTimeSerie) o);
 
     List<Object> latitudes = new ArrayList<Object>();
     List<Object> longitudes = new ArrayList<Object>();
@@ -70,7 +64,8 @@ public class LOCATIONS extends NamedWarpScriptFunction implements WarpScriptStac
         longitudes.add(latlon[1]);
       }
     }
-    
+
+    // TODO(tce): should return a list of 2 lists to be able to extend this class from GTSStackFunction. Or a zip of these lists.
     stack.push(latitudes);
     stack.push(longitudes);
     

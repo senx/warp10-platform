@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,57 +18,47 @@ package io.warp10.script.functions;
 
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.GTSStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import com.geoxp.GeoXPLib;
+import java.util.Map;
 
 /**
  * Extract the elevations of a GTS and push them onto the stack.
- * 
+ *
  * Only the ticks with actual values are returned
  */
-public class ELEVATIONS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+public class ELEVATIONS extends GTSStackFunction {
+
   public ELEVATIONS(String name) {
     super(name);
   }
-  
+
   @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object o = stack.pop();
-    
-    if (!(o instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " expects a geo time series on top of the stack.");
-    }
-
-    //
-    // Sort GTS
-    //
-    
-    GTSHelper.sort((GeoTimeSerie) o);
-
+  protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
     List<Object> elevations = new ArrayList<Object>();
-    
-    int nvalues = GTSHelper.nvalues((GeoTimeSerie) o);
-    
+
+    int nvalues = GTSHelper.nvalues(gts);
+
     for (int i = 0; i < nvalues; i++) {
-      long elevation = GTSHelper.elevationAtIndex((GeoTimeSerie) o, i);
-      
+      long elevation = GTSHelper.elevationAtIndex(gts, i);
+
       if (GeoTimeSerie.NO_ELEVATION == elevation) {
         elevations.add(Double.NaN);
       } else {
         elevations.add(elevation);
       }
     }
-    
-    stack.push(elevations);
-    
-    return stack;
+
+    return elevations;
   }
+
+  @Override
+  protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
+    return null;
+  }
+
 }

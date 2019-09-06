@@ -1,3 +1,18 @@
+//
+//   Copyright 2018  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
 package io.warp10.hadoop;
 
 import java.io.IOException;
@@ -8,13 +23,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.hadoop.io.ArrayPrimitiveWritable;
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.BooleanWritable;
 import org.apache.hadoop.io.ByteWritable;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.EnumSetWritable;
 import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.GenericWritable;
 import org.apache.hadoop.io.IntWritable;
@@ -29,13 +42,38 @@ import org.apache.hadoop.io.VIntWritable;
 import org.apache.hadoop.io.VLongWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
-import org.apache.hadoop.mapreduce.lib.join.TupleWritable;
+
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
 
 /**
  * Utility class to convert to/from Writables
  */
 public class WritableUtils {
-  public static Object fromWritable(Writable w) throws IOException {
+  
+  private static final boolean strictWritables;
+  private static final boolean rawWritables;
+  
+  static {
+    if ("true".equals(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_HADOOP_STRICTWRITABLES))) {
+      strictWritables = true;
+    } else {
+      strictWritables = false;
+    }
+    
+    if ("true".equals(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_HADOOP_RAWWRITABLES))) {
+      rawWritables = true;
+    } else {
+      rawWritables = false;
+    }  
+  }
+  
+  public static Object fromWritable(Object w) throws IOException {
+    
+    if (!(w instanceof Writable) || rawWritables) {
+      return w;
+    }
+  
     if (w instanceof Text) {
       return ((Text) w).toString();
     } else if (w instanceof BytesWritable) {
@@ -69,6 +107,8 @@ public class WritableUtils {
         map.put(fromWritable(entry.getKey()), fromWritable(entry.getValue()));
       }
       return map;
+    } else if (w instanceof ObjectWritable) {
+      return ((ObjectWritable) w).get();
     } else if (w instanceof GenericWritable) {
       return fromWritable(((GenericWritable) w).get());
     } else if (w instanceof SortedMapWritable) {
@@ -82,7 +122,11 @@ public class WritableUtils {
     } else if (w instanceof VLongWritable) {
       return ((VLongWritable) w).get();
     } else {
-      throw new IOException("Unsupported Writable implementation " + w.getClass());
+      if (strictWritables) {
+        throw new IOException("Unsupported Writable implementation " + w.getClass());
+      } else {
+        return w;
+      }
     }  
   }
   
@@ -120,7 +164,11 @@ public class WritableUtils {
     } else if (null == o) {
       return NullWritable.get();
     } else {
-      throw new IOException("Unsupported type " + o.getClass());
-    }
+      ObjectWritable ow = new ObjectWritable();
+      ow.set(o);
+      return ow;
+    }// else {
+    //  throw new IOException("Unsupported type " + o.getClass());
+    //}
   }
 }

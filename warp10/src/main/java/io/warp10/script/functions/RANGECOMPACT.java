@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Replace multiple contigual identical value/location/elevation by a single one or a pair if compacting a range
+ * Replace multiple contiguous identical value/location/elevation by a single one or a pair if compacting a range
  */
 public class RANGECOMPACT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
@@ -48,14 +48,14 @@ public class RANGECOMPACT extends NamedWarpScriptFunction implements WarpScriptS
       for (Object o: (List<Object>) top) {
         if (! (o instanceof GeoTimeSerie)) {
           stack.push(top);
-          throw new WarpScriptException(getName() + " can only operate on geo time serie instances.");
+          throw new WarpScriptException(getName() + " can only operate on Geo Time Series instances.");
         }
         series.add(GTSHelper.compact((GeoTimeSerie) o, true));
       }
       stack.push(series);
     } else {
       stack.push(top);
-      throw new WarpScriptException(getName() + " can only operate on geo time serie instances.");
+      throw new WarpScriptException(getName() + " can only operate on Geo Time Series instances.");
     }
     
     return stack;

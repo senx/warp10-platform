@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -24,40 +24,21 @@ import io.warp10.script.WarpScriptStack;
 /**
  * Shift right the long below the top of the stack by the number of bits on top of the stack
  */
-public class SHIFTRIGHT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class SHIFTRIGHT extends BitwiseOperation {
 
   private final boolean signed;
   public SHIFTRIGHT(String name, boolean signed) {
     super(name);
     this.signed = signed;
   }
-  
+
   @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object top = stack.pop();
-    
-    if (!(top instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects a number of bits on top of the stack.");
-    }
-    
-    int nbits = ((Number) top).intValue();
-    
-    top = stack.pop();
-    
-    if (!(top instanceof Long)) {
-      throw new WarpScriptException(getName() + " operates on a LONG.");
-    }
-    
-    long v = ((Number) top).longValue();
-    
+  public long operator(long op1, long op2) {
     if (this.signed) {
-      v = v >> nbits;
+      return op1 >> op2;
     } else {
-      v = v >>> nbits;
+      return op1 >>> op2;
     }
-    
-    stack.push(v);
-    
-    return stack;
   }
+
 }

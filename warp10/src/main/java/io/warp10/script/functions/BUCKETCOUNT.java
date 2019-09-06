@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ public class BUCKETCOUNT extends NamedWarpScriptFunction implements WarpScriptSt
     Object o = stack.pop();
     
     if (!(o instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " expects a Geo Time Serie on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a Geo Time Series on top of the stack.");
     } else {
       if (!GTSHelper.isBucketized((GeoTimeSerie) o)) {
         stack.push(0L);

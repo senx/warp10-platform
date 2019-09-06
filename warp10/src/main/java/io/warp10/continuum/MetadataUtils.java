@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package io.warp10.continuum;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.UnsafeString;
 import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.Store;
 import io.warp10.continuum.store.thrift.data.Metadata;
 
 import java.io.UnsupportedEncodingException;
@@ -245,12 +244,12 @@ public class MetadataUtils {
   
   public static byte[] HBaseRowKeyPrefix(Metadata meta) {
     // 128bits
-    byte[] rowkey = new byte[Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
+    byte[] rowkey = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
 
-    System.arraycopy(Store.HBASE_RAW_DATA_KEY_PREFIX, 0, rowkey, 0, Store.HBASE_RAW_DATA_KEY_PREFIX.length);
+    System.arraycopy(Constants.HBASE_RAW_DATA_KEY_PREFIX, 0, rowkey, 0, Constants.HBASE_RAW_DATA_KEY_PREFIX.length);
     // Copy classId/labelsId
-    System.arraycopy(Longs.toByteArray(meta.getClassId()), 0, rowkey, Store.HBASE_RAW_DATA_KEY_PREFIX.length, 8);
-    System.arraycopy(Longs.toByteArray(meta.getLabelsId()), 0, rowkey, Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8, 8);
+    System.arraycopy(Longs.toByteArray(meta.getClassId()), 0, rowkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length, 8);
+    System.arraycopy(Longs.toByteArray(meta.getLabelsId()), 0, rowkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8, 8);
     
     return rowkey;
   }

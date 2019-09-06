@@ -1,3 +1,18 @@
+//
+//   Copyright 2018  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
 package io.warp10.plugins.influxdb;
 
 import io.warp10.continuum.JettyUtil;
@@ -41,7 +56,7 @@ public class InfluxDBWarp10Plugin extends AbstractWarp10Plugin implements Runnab
   
   @Override
   public void run() {
-    Server server = new Server(new QueuedThreadPool(maxThreads, 9, (int) idleTimeout, queue));
+    Server server = new Server(new QueuedThreadPool(maxThreads, 8, idleTimeout, queue));
     ServerConnector connector = new ServerConnector(server, acceptors, selectors);
     connector.setIdleTimeout(idleTimeout);
     connector.setPort(port);
@@ -72,7 +87,7 @@ public class InfluxDBWarp10Plugin extends AbstractWarp10Plugin implements Runnab
   public void init(Properties properties) {
     this.acceptors = Integer.parseInt(properties.getProperty(CONF_INFLUXDB_ACCEPTORS, "4"));
     this.selectors = Integer.parseInt(properties.getProperty(CONF_INFLUXDB_SELECTORS, "2"));
-    this.maxThreads = Integer.parseInt(properties.getProperty(CONF_INFLUXDB_JETTY_THREADPOOL, "9"));
+    this.maxThreads = Integer.parseInt(properties.getProperty(CONF_INFLUXDB_JETTY_THREADPOOL, Integer.toString(1 + acceptors + acceptors * selectors)));
     this.idleTimeout = Integer.parseInt(properties.getProperty(CONF_INFLUXDB_IDLE_TIMEOUT, "30000"));
     this.port = Integer.parseInt(properties.getProperty(CONF_INFLUXDB_PORT, "8086"));
     this.host = properties.getProperty(CONF_INFLUXDB_HOST, "127.0.0.1");

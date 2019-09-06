@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ public class PARSESELECTOR extends NamedWarpScriptFunction implements WarpScript
       stack.push(result[0]);
       stack.push(result[1]);      
     } catch (WarpScriptException ee) {
-      throw new WarpScriptException(getName() + ee.getMessage());
+      throw new WarpScriptException(ee);
     }
         
     return stack;

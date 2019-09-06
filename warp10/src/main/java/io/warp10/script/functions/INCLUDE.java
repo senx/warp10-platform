@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 /**
- * Reads a file and execute it as Einstein code.
+ * Reads a file and execute it as WarpScript code.
  * This function is not intended to be used outside of Macro Repositories and Macro libraries
  */
 public class INCLUDE extends NamedWarpScriptFunction implements WarpScriptStackFunction {

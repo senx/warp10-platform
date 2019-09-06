@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -40,7 +40,8 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
   private static final String PARAM_POSTWINDOW = "post";
   private static final String PARAM_OCCURENCES = "occurences";
   private static final String PARAM_STEP = "step";
-  private static final String PARAM_OVERRIDE = "override";  
+  private static final String PARAM_OVERRIDE = "override";
+  private static final String PARAM_OUTPUTTICKS = "ticks";
   
   public MAP(String name) {
     super(name);
@@ -144,6 +145,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     int occurrences = !params.containsKey(PARAM_OCCURENCES) ? 0 : (int) ((long) params.get(PARAM_OCCURENCES));
     int step = !params.containsKey(PARAM_STEP) ? 1 : (int) ((long) params.get(PARAM_STEP));
     boolean overrideTick = !params.containsKey(PARAM_OVERRIDE) ? false : (boolean) params.get(PARAM_OVERRIDE);
+    Object outputTicks = params.get(PARAM_OUTPUTTICKS);
     
     // Handle gts and nested list of gts
     
@@ -187,7 +189,9 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     List<Object> mapped = new ArrayList<Object>();
     
     for (GeoTimeSerie gts: series) {
-      List<GeoTimeSerie> res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), occurrences < 0 ? true : false, step, overrideTick, mapper instanceof Macro ? stack : null);
+      List<GeoTimeSerie> res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), occurrences < 0 ? true : false, step, overrideTick, mapper instanceof Macro ? stack : null,
+              (List<Long>) outputTicks);
+
       if (res.size() < 2) {
         mapped.addAll(res);
       } else {

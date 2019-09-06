@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -311,7 +311,7 @@ C------------------------------------------------------------------
   public static double erfcx(double d){ return calerf(d, 2); }
 
 /* ****************************************************
- * Refining algorytm is based on Halley rational method
+ * Refining algorithm is based on Halley rational method
  * for finding roots of equations as described at:
  * http://www.math.uio.no/~jacklam/notes/invnorm/index.html
  * by:

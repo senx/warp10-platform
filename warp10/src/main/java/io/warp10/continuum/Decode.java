@@ -1,5 +1,5 @@
 //
-//   Copyright 2017  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -65,9 +65,15 @@ public class Decode {
       
       while(decoder.next()) {
         long ts = decoder.getTimestamp();
-        String value = decoder.getValue().toString();
+        Object value = decoder.getBinaryValue();
         
-        byte[] bytes = OrderPreservingBase64.decode(value.getBytes(Charsets.UTF_8));
+        byte[] bytes;
+        
+        if (value instanceof byte[]) {
+          bytes = (byte[]) value;
+        } else {
+          bytes = OrderPreservingBase64.decode(value.toString().getBytes(Charsets.UTF_8));
+        }
         decoder = new GTSDecoder(ts, ByteBuffer.wrap(bytes));
         decoder.setMetadata(encoder.getMetadata());
 

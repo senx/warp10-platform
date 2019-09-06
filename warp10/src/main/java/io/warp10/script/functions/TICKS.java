@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ public class TICKS extends NamedWarpScriptFunction implements WarpScriptStackFun
     Object o = stack.pop();
     
     if (!(o instanceof GeoTimeSerie) && !(o instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a geo time series or a list thereof on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a Geo Time Series or a list thereof on top of the stack.");
     }
 
     Set<Long> ticks = new HashSet<Long>();
@@ -59,7 +59,7 @@ public class TICKS extends NamedWarpScriptFunction implements WarpScriptStackFun
     } else {
       for (Object oo: (List) o) {
         if (!(oo instanceof GeoTimeSerie)) {
-          throw new WarpScriptException(getName() + " expects a geo time series or a list thereof on top of the stack.");
+          throw new WarpScriptException(getName() + " expects a Geo Time Series or a list thereof on top of the stack.");
         }
         
         int nvalues = GTSHelper.nvalues((GeoTimeSerie) oo);

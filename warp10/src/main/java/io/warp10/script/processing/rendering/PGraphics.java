@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ public class PGraphics extends NamedWarpScriptFunction implements WarpScriptStac
           pg.smooth(Integer.parseInt(String.valueOf(top).substring(2)));
         }
       } catch (Throwable t) {
-        throw new WarpScriptException(getName() + " unable to create 3D container.");
+        throw new WarpScriptException(getName() + " unable to create 3D container.", t);
       }
     } else {
       throw new WarpScriptException(getName() + " expects a type ('2D' or '3D') on top of the stack.");

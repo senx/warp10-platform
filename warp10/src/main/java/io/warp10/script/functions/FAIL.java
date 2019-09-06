@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,12 +26,21 @@ import io.warp10.script.WarpScriptStack;
  */
 public class FAIL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
+  private static final String DEFAULT_MESSAGE = "failed";
+  private final String message;
+  
   public FAIL(String name) {
     super(name);
+    this.message = DEFAULT_MESSAGE;
+  }
+  
+  public FAIL(String name, String message) {
+    super(name);
+    this.message = message;
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    throw new WarpScriptException(getName() + " failed.");
+    throw new WarpScriptException(getName() + " " + this.message + ".");
   }
 }

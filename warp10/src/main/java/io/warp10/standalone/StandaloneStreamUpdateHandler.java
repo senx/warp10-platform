@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 package io.warp10.standalone;
 
+import io.warp10.WarpConfig;
+import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.ThrottlingManager;
 import io.warp10.continuum.TimeSource;
@@ -33,20 +35,29 @@ import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
+import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.math.BigInteger;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -90,10 +101,24 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
   private final Properties properties;
   private final StoreClient storeClient;
   private final StandaloneDirectoryClient directoryClient;
+  private final long maxValueSize;
   
   private final String datalogId;
+  private final boolean logShardKey;
   private final byte[] datalogPSK;
+  private final boolean datalogSync;
   private final File loggingDir;
+  
+  private final long[] classKeyLongs;
+  private final long[] labelsKeyLongs;
+
+  private final boolean updateActivity;
+  private final boolean parseAttributes;
+  private final Long maxpastDefault;
+  private final Long maxfutureDefault;
+  private final Long maxpastOverride;
+  private final Long maxfutureOverride;
+  private final boolean ignoreOutOfRange;
   
   private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
 
@@ -110,6 +135,11 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     
     private WriteToken wtoken;
 
+    private Boolean ignoor = null;
+    
+    private Long maxpastdelta = null;
+    private Long maxfuturedelta = null;
+    
     private String encodedToken;
     
     /**
@@ -136,6 +166,11 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     public void onWebSocketMessage(Session session, String message) throws Exception {
       
       try {
+            
+        if (null != WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)) {
+          throw new IOException(String.valueOf(WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)));
+        }
+
         //
         // Split message on whitespace boundary if the message starts by a known verb
         //
@@ -182,17 +217,93 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
           
           long now = TimeSource.getTime();
           
+          //
+          // Extract time limits
+          //
+          
+          Long maxpast = null;
+          
+          if (null != this.handler.maxpastDefault) {
+            try {
+              maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.maxpastDefault));
+            } catch (ArithmeticException ae) {
+              maxpast = null;
+            }
+          }
+          
+          Long maxfuture = null;
+          
+          if (null != this.handler.maxfutureDefault) {
+            try {
+              maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.maxfutureDefault));
+            } catch (ArithmeticException ae) {
+              maxfuture = null;
+            }
+          }
+
+          if (null != this.maxpastdelta) {
+            try {
+              maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.maxpastdelta));
+            } catch (ArithmeticException ae) {
+              maxpast = null;
+            }
+          }
+
+          if (null != this.maxfuturedelta) {
+            try {
+              maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.maxfuturedelta));
+            } catch (ArithmeticException ae) {
+              maxfuture = null;
+            }
+          }
+          
+          if (null != this.handler.maxpastOverride) {
+            try {
+              maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.maxpastOverride));
+            } catch (ArithmeticException ae) {
+              maxpast = null;
+            }
+          }
+
+          if (null != this.handler.maxfutureOverride) {
+            try {
+              maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.maxfutureOverride));
+            } catch (ArithmeticException ae) {
+              maxfuture = null;
+            }
+          }
+
           File loggingFile = null;   
           PrintWriter loggingWriter = null;
+          FileDescriptor loggingFD = null;
           DatalogRequest dr = null;
+
+          long shardkey = 0L;
+
+          AtomicLong ignoredCount = null;
+          
+          if ((this.handler.ignoreOutOfRange && !Boolean.FALSE.equals(ignoor)) || Boolean.TRUE.equals(ignoor)) {
+            ignoredCount = new AtomicLong(0L);            
+          }
           
           try {
             GTSEncoder lastencoder = null;
             GTSEncoder encoder = null;
 
             BufferedReader br = new BufferedReader(new StringReader(message));
+
+            // Atomic boolean to track if attributes were parsed
+            AtomicBoolean hadAttributes = this.handler.parseAttributes ? new AtomicBoolean(false) : null;
+
+            boolean lastHadAttributes = false;
             
             do {
+              
+              if (this.handler.parseAttributes) {
+                lastHadAttributes = lastHadAttributes || hadAttributes.get();
+                hadAttributes.set(false);
+              }
+              
               String line = br.readLine();
               
               if (null == line) {
@@ -217,8 +328,21 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                   labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
                   Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
 
+                  if (handler.datalogSync) {
+                    loggingWriter.flush();
+                    loggingFD.sync();
+                  }
                   loggingWriter.close();
-                  loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+                  // Create hard links when multiple datalog forwarders are configured
+                  for (Path srcDir: Warp.getDatalogSrcDirs()) {
+                    try {
+                      Files.createLink(new File(srcDir.toFile(), loggingFile.getName() + DatalogForwarder.DATALOG_SUFFIX).toPath(), loggingFile.toPath());              
+                    } catch (Exception e) {
+                      throw new RuntimeException("Encountered an error while attempting to link " + loggingFile + " to " + srcDir);
+                    }
+                  }
+                  //loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+                  loggingFile.delete();
                   loggingFile = null;
                   loggingWriter = null;
                 }
@@ -280,7 +404,11 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                 encoded = OrderPreservingBase64.encode(encoded);
                         
                 loggingFile = new File(handler.loggingDir, sb.toString());
-                loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
+                
+                FileOutputStream fos = new FileOutputStream(loggingFile);
+                loggingFD = fos.getFD();
+                OutputStreamWriter osw = new OutputStreamWriter(fos, Charsets.UTF_8);
+                loggingWriter = new PrintWriter(osw);
                 
                 //
                 // Write request
@@ -290,7 +418,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               }
 
               try {
-                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now);
+                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.handler.maxValueSize, hadAttributes, maxpast, maxfuture, ignoredCount);
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
                 throw new IOException("Parse error at '" + line + "'", pe);
@@ -323,20 +451,42 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                 
                 if (encoder != lastencoder) {
                   Metadata metadata = new Metadata(encoder.getMetadata());
+                  
+                  if (this.handler.updateActivity) {
+                    metadata.setLastActivity(System.currentTimeMillis());
+                  }
+                  
                   metadata.setSource(Configuration.INGRESS_METADATA_SOURCE);
                   this.handler.directoryClient.register(metadata);
+                  
+                  // Extract shardkey 128BITS
+                  // Shard key is 48 bits, 24 upper from the class Id and 24 lower from the labels Id
+                  shardkey =  (GTSHelper.classId(this.handler.classKeyLongs, encoder.getMetadata().getName()) & 0xFFFFFF000000L) | (GTSHelper.labelsId(this.handler.labelsKeyLongs, encoder.getMetadata().getLabels()) & 0xFFFFFFL);
                 }
 
                 if (null != lastencoder) {
                   // 128BITS
-                  lastencoder.setClassId(GTSHelper.classId(this.handler.keyStore.getKey(KeyStore.SIPHASH_CLASS), lastencoder.getName()));
-                  lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.keyStore.getKey(KeyStore.SIPHASH_LABELS), lastencoder.getLabels()));
+                  lastencoder.setClassId(GTSHelper.classId(this.handler.classKeyLongs, lastencoder.getName()));
+                  lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.labelsKeyLongs, lastencoder.getLabels()));
                   this.handler.storeClient.store(lastencoder);
                   count += lastencoder.getCount();
+                  
+                  
+                  if (this.handler.parseAttributes && lastHadAttributes) {
+                    // We need to push lastencoder's metadata update as they were updated since the last
+                    // metadata update message sent
+                    Metadata meta = new Metadata(lastencoder.getMetadata());
+                    meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                    this.handler.directoryClient.register(meta);
+                    lastHadAttributes = false;
+                  }
                 }
                 
                 if (encoder != lastencoder) {
                   lastencoder = encoder;
+                  
+                  // This is the case when we just parsed either the first input line or one for a different
+                  // GTS than the previous one.
                 } else {
                   //lastencoder = null
                   //
@@ -346,10 +496,17 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                   Metadata metadata = lastencoder.getMetadata();
                   lastencoder = new GTSEncoder(0L);
                   lastencoder.setMetadata(metadata);
+                  
+                  // This is the case when lastencoder and encoder are identical, but lastencoder was too big and needed
+                  // to be flushed
                 }
               }
               
               if (null != loggingWriter) {
+                if (this.handler.logShardKey && '=' != line.charAt(0)) {
+                  loggingWriter.print("#K");
+                  loggingWriter.println(shardkey);
+                }                         
                 loggingWriter.println(line);
               }
             } while (true); 
@@ -368,11 +525,20 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
               ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
 
-              lastencoder.setClassId(GTSHelper.classId(this.handler.keyStore.getKey(KeyStore.SIPHASH_CLASS), lastencoder.getName()));
-              lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.keyStore.getKey(KeyStore.SIPHASH_LABELS), lastencoder.getLabels()));
+              lastencoder.setClassId(GTSHelper.classId(this.handler.classKeyLongs, lastencoder.getName()));
+              lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.labelsKeyLongs, lastencoder.getLabels()));
               this.handler.storeClient.store(lastencoder);
               count += lastencoder.getCount();
-            }
+              
+              if (this.handler.parseAttributes && lastHadAttributes) {
+                // Push a metadata UPDATE message so attributes are stored
+                // Build metadata object to push
+                Metadata meta = new Metadata(lastencoder.getMetadata());
+                // Set source to indicate we
+                meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                this.handler.directoryClient.register(meta);
+              }
+            }              
           } finally {
             if (null != loggingWriter) {              
               Map<String,String> labels = new HashMap<String,String>();
@@ -381,7 +547,16 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
 
               loggingWriter.close();
-              loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+              // Create hard links when multiple datalog forwarders are configured
+              for (Path srcDir: Warp.getDatalogSrcDirs()) {
+                try {
+                  Files.createLink(new File(srcDir.toFile(), loggingFile.getName() + DatalogForwarder.DATALOG_SUFFIX).toPath(), loggingFile.toPath());              
+                } catch (Exception e) {
+                  throw new RuntimeException("Encountered an error while attempting to link " + loggingFile + " to " + srcDir);
+                }
+              }
+              //loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
+              loggingFile.delete();
               loggingFile = null;
               loggingWriter = null;
             }
@@ -434,6 +609,47 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
         throw new IOException("Invalid token.");
       }
 
+      if (wtoken.getAttributesSize() > 0 && wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_NOUPDATE)) {
+        throw new IOException("Token cannot be used for updating data.");
+      }
+
+      this.maxpastdelta = null;
+      this.maxfuturedelta = null;
+      
+      Boolean ignoor = null;
+      
+      if (wtoken.getAttributesSize() > 0) {
+        
+        if (wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_IGNOOR)) {
+          String v = wtoken.getAttributes().get(Constants.TOKEN_ATTR_IGNOOR).toLowerCase();
+          if ("true".equals(v) || "t".equals(v)) {
+            ignoor = Boolean.TRUE;
+          } else if ("false".equals(v) || "f".equals(v)) {
+            ignoor = Boolean.FALSE;
+          }
+        }
+        
+        String deltastr = wtoken.getAttributes().get(Constants.TOKEN_ATTR_MAXPAST);
+
+        if (null != deltastr) {
+          long delta = Long.parseLong(deltastr);
+          if (delta < 0) {
+            throw new IOException("Invalid '" + Constants.TOKEN_ATTR_MAXPAST + "' token attribute, MUST be positive.");
+          }
+          maxpastdelta = delta;
+        }
+        
+        deltastr = wtoken.getAttributes().get(Constants.TOKEN_ATTR_MAXFUTURE);
+        
+        if (null != deltastr) {
+          long delta = Long.parseLong(deltastr);
+          if (delta < 0) {
+            throw new IOException("Invalid '" + Constants.TOKEN_ATTR_MAXFUTURE + "' token attribute, MUST be positive.");
+          }
+          maxfuturedelta = delta;
+        }          
+      }
+
       String application = wtoken.getAppName();
       String producer = Tokens.getUUID(wtoken.getProducerId());
       String owner = Tokens.getUUID(wtoken.getOwnerId());
@@ -441,8 +657,6 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
       this.sensisionLabels.clear();
       this.sensisionLabels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
 
-      long count = 0;
-      
       if (null == producer || null == owner) {
         throw new IOException("Invalid token.");
       }
@@ -467,6 +681,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
         sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
       }
 
+      this.ignoor = ignoor;
       this.wtoken = wtoken;
       this.encodedToken = token;
     }
@@ -476,10 +691,63 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     super(StandaloneStreamUpdateWebSocket.class);
 
     this.keyStore = keystore;
+    
+    this.classKeyLongs = SipHashInline.getKey(this.keyStore.getKey(KeyStore.SIPHASH_CLASS));    
+    this.labelsKeyLongs = SipHashInline.getKey(this.keyStore.getKey(KeyStore.SIPHASH_LABELS));
+
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
     this.properties = properties;
+    this.updateActivity = "true".equals(properties.getProperty(Configuration.INGRESS_ACTIVITY_UPDATE));
+
+    this.maxValueSize = Long.parseLong(properties.getProperty(Configuration.STANDALONE_VALUE_MAXSIZE, StandaloneIngressHandler.DEFAULT_VALUE_MAXSIZE));
     
+    this.parseAttributes = "true".equals(properties.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
+    
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT)) {
+      this.maxpastDefault = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT));
+      if (this.maxpastDefault < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXPAST_DEFAULT + "' MUST be positive.");
+      }
+    } else {
+      this.maxpastDefault = null;
+    }
+    
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT)) {
+      this.maxfutureDefault = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT));
+      if (this.maxfutureDefault < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXFUTURE_DEFAULT + "' MUST be positive.");
+      }
+    } else {
+      this.maxfutureDefault = null;
+    }
+
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE)) {
+      this.maxpastOverride = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE));
+      if (this.maxpastOverride < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXPAST_OVERRIDE + "' MUST be positive.");
+      }
+    } else {
+      this.maxpastOverride = null;
+    }
+    
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE)) {
+      this.maxfutureOverride = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE));
+      if (this.maxfutureOverride < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXFUTURE_OVERRIDE + "' MUST be positive.");
+      }
+    } else {
+      this.maxfutureOverride = null;
+    }
+    
+    this.ignoreOutOfRange = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_OUTOFRANGE_IGNORE));
+    
+    if ("false".equals(properties.getProperty(Configuration.DATALOG_LOGSHARDKEY))) {
+      logShardKey = false;
+    } else {
+      logShardKey = true;
+    }
+
     if (properties.containsKey(Configuration.DATALOG_DIR)) {
       File dir = new File(properties.getProperty(Configuration.DATALOG_DIR));
       
@@ -504,7 +772,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
       loggingDir = null;
       datalogId = null;
     }
-    
+
+    this.datalogSync = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_SYNC));
     if (properties.containsKey(Configuration.DATALOG_PSK)) {
       this.datalogPSK = this.keyStore.decodeKey(properties.getProperty(Configuration.DATALOG_PSK));
     } else {

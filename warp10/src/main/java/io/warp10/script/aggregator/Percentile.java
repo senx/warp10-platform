@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptAgg
     public Object apply(WarpScriptStack stack) throws WarpScriptException {
       Object value = stack.pop();
       
-      if (!(value instanceof Double)) {
+      if (!(value instanceof Number)) {
         throw new WarpScriptException("Invalid parameter for " + getName());
       }
       
@@ -103,16 +103,16 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptAgg
         @Override
         public int compare(Integer idx1, Integer idx2) {
           if (values[idx1] instanceof Double) {
-            return (int) (((Number) values[idx1]).doubleValue() - ((Number) values[idx2]).doubleValue());
+            return Double.compare(((Number) values[idx1]).doubleValue(), ((Number) values[idx2]).doubleValue());
           } else if (values[idx1] instanceof Long) {
-            return (int) (((Number) values[idx1]).longValue() - ((Number) values[idx2]).longValue());
+            return Long.compare(((Number) values[idx1]).longValue(), ((Number) values[idx2]).longValue());
           } else {
             throw new RuntimeException("PERCENTILE can only operate on numeric Geo Time Series.");
           }
         }
       });      
     } catch (RuntimeException re) {
-      throw new WarpScriptException(re.getMessage());
+      throw new WarpScriptException(re);
     }
     
     //

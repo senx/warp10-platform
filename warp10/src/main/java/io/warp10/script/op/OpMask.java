@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ public class OpMask extends NamedWarpScriptFunction implements WarpScriptNAryFun
     Object[] values = (Object[]) args[6];
     
     if (2 != ticks.length || ticks[0] == ticks[1]) {
-      throw new WarpScriptException("op.mask can only be applied to pairs of geo time series, the first one being boolean.");
+      throw new WarpScriptException("op.mask can only be applied to pairs of Geo Time Series, the first one being boolean.");
     }
     
     Object value = null;

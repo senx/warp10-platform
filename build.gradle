@@ -1,7 +1,5 @@
-import java.text.SimpleDateFormat
-
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +14,8 @@ import java.text.SimpleDateFormat
 //   limitations under the License.
 //
 
+import java.text.SimpleDateFormat
+
 buildscript {
     repositories {
         jcenter()
@@ -29,7 +29,7 @@ buildscript {
 }
 
 plugins {
-    id "com.jfrog.bintray" version "1.4"
+    id "com.jfrog.bintray" version "1.8.4"
     id "com.selesse.git.changelog" version "0.2.0"
 }
 
@@ -43,14 +43,13 @@ allprojects {
 
     // List of dependencies required by Warpscript
     ext.requiredLibsMc2 = [ 'warpscript', 'libthrift', 'bcprov-jdk16', 'boon', 'commons-io', 'commons-codec', 'commons-lang', 'commons-lang3', 'commons-math3', 'commons-math4', 'compiler', 'core', 'curator-x-discovery', 'geoxplib', 'guava', \
-     'hadoop-common', 'hadoop-mapreduce-client-core', 'java-merge-sort', 'jetty-servlets', 'joda-time', 'jruby-complete', 'jtransforms', 'jts', 'junit', 'jython', 'kafka_2.11', \
-     'luaj-jse', 'oss-client', 'renjin-script-engine', 'sensision', 'slf4j-api', 'trove4j' ]
+     'hadoop-common', 'hadoop-mapreduce-client-core', 'java-merge-sort', 'jetty-servlets', 'joda-time', 'jtransforms', 'jts', 'junit', 'kafka_2.11', \
+     'oss-client', 'sensision', 'slf4j-api', 'trove4j', 'pyrolite' ]
 
 }
 
 subprojects {
     apply plugin: 'java'
-    apply plugin: 'groovy'
     apply plugin: 'eclipse'
     apply plugin: 'idea'
     apply plugin: 'maven'
@@ -73,8 +72,6 @@ subprojects {
         warp10Version['hbaseFilters'] = commonVersion
         warp10Version['crypto'] = commonVersion
         warp10Version['token'] = commonVersion
-
-        quantumVersion = '3.0.5'
 
         stagingUser = project.hasProperty('stagingUser') ? project.property('stagingUser') : System.getenv('STAGING_USER')
         stagingURL = project.hasProperty('stagingURL') ? project.property('stagingURL') : System.getenv('STAGING_URL')
@@ -126,25 +123,13 @@ subprojects {
         maven {
             url "http://maven.twttr.com"
         }
-        // bedatadriven - http://www.renjin.org/#downloads
-        maven {
-            url "http://nexus.bedatadriven.com/content/groups/public/"
-        }
-        maven {
-            url "http://repo.opengeo.org/"
-        }
-
         maven {
             url 'https://dl.bintray.com/hbs/maven'
         }
 
         maven {
-            url 'https://dl.bintray.com/cityzendata/maven'
+            url 'https://dl.bintray.com/senx/maven'
         }
-
-        //maven {
-        //  url "https://repository.apache.org/content/repositories/orgapachehbase-1065"
-        //}
     }
 
     //
@@ -221,7 +206,7 @@ subprojects {
             ext.file = relativePath(it)
             exec {
                 executable = (null != System.getenv('THRIFT_HOME')) ? System.getenv('THRIFT_HOME') + '/bin/thrift' : 'thrift'
-                args = ['--gen', 'java:hashcode,private-members', '-o', thriftOutputDir, ext.file]
+                args = ['--gen', 'java:private-members', '-o', thriftOutputDir, ext.file]
             }
         }
     })
@@ -253,8 +238,9 @@ subprojects {
         pkg {
             repo = 'maven'
             name = 'warp10'
+            userOrg = 'senx'
             licenses = ['Apache-2.0']
-            vcsUrl = 'https://github.com/cityzendata/warp10-platform.git'
+            vcsUrl = 'https://github.com/senx/warp10-platform.git'
             version {
                 name = getVersionName('')
                 released  = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZZ").format(new Date())
@@ -288,12 +274,8 @@ def updateRevision(String revision) {
     //
     // update Revision File
     //
-    File versionFile = new File(rootProject.projectDir, "warp10/src/main/java/io/warp10/Revision.java")
-    String fileContent = versionFile.text
-    String newContent = fileContent.replaceAll(/(REVISION = ")(.*)(";)/){
-        fullMatch, varName, oldVersion, endLine -> return "$varName$revision$endLine"
-    }
-    versionFile.write(newContent)
+    File versionFile = new File(rootProject.projectDir, "warp10/src/main/resources/REVISION")
+    versionFile.write(revision)
 
     return revision
 }

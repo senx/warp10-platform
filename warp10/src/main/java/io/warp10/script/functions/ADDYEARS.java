@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ public class ADDYEARS extends NamedWarpScriptFunction implements WarpScriptStack
         tz = "UTC";
       }
       
-      DateTimeZone dtz = DateTimeZone.forID(null == tz ? "UTC" : tz);
+      DateTimeZone dtz = DateTimeZone.forID(tz);
       
       DateTime dt = new DateTime(instant / Constants.TIME_UNITS_PER_MS, dtz);
       
@@ -86,7 +86,7 @@ public class ADDYEARS extends NamedWarpScriptFunction implements WarpScriptStack
       
       elts.set(0, (long) year);
       
-      // Now check if we are in ferbuary and if this is coherent with
+      // Now check if we are in february and if this is coherent with
       // a possibly non leap year
       
       if (elts.size() > 2) {

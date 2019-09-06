@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ import com.google.common.base.Charsets;
 /**
  * Utility class used to create Geo Time Series
  */
-public class GTSEncoder {
+public class GTSEncoder implements Cloneable {
   
   /**
    * Mask to extract encryption flag.
@@ -103,10 +103,12 @@ public class GTSEncoder {
   static final byte FLAGS_TYPE_DOUBLE = 0x10;
   static final byte FLAGS_TYPE_STRING = 0x18;
 
+  static final byte FLAGS_STRING_BINARY = 0x02;
+  
   //
   // Where to store boolean values, we need two different bits because
-  // the ENCRYPTED flag is 0x00 so we would not be able to differenciate a
-  // 'false' from the ENCRYPTED flag if we don't explicitely set a bit for false
+  // the ENCRYPTED flag is 0x00 so we would not be able to differentiate a
+  // 'false' from the ENCRYPTED flag if we don't explicitly set a bit for false
   //
   
   static final byte FLAGS_BOOLEAN_VALUE_TRUE = 0x04;
@@ -173,6 +175,11 @@ public class GTSEncoder {
    */
   private String lastStringValue = null;
 
+  /**
+   * Holder for binary data
+   */
+  private String binaryString = null;
+  
   //
   // The following 7 fields are initial values which are needed
   // to decode delta encoded values when creating an encoder from
@@ -378,6 +385,12 @@ public class GTSEncoder {
       if (((String) value).equals(lastStringValue)) {
         tsTypeFlag |= FLAGS_VALUE_IDENTICAL;
       }
+    } else if (value instanceof byte[]) {
+      tsTypeFlag |= FLAGS_TYPE_STRING | FLAGS_STRING_BINARY;
+      binaryString = new String((byte[]) value, Charsets.ISO_8859_1);
+      if (binaryString.equals(lastStringValue)) {
+        tsTypeFlag |= FLAGS_VALUE_IDENTICAL;
+      }
     } else if (value instanceof Double || value instanceof Float) {
       tsTypeFlag |= FLAGS_TYPE_DOUBLE;
       // Only compare to the previous double value if the last floating point value was NOT encoded as a BigDecimal
@@ -447,7 +460,7 @@ public class GTSEncoder {
           }
         }
       } else {
-        // Do nothing, implicitely we will encode location as raw GeoXPPoint
+        // Do nothing, implicitly we will encode location as raw GeoXPPoint
         noDeltaMetaLocation = false;
       }
     } else {
@@ -618,17 +631,25 @@ public class GTSEncoder {
     switch (tsTypeFlag & FLAGS_MASK_TYPE) {
       case FLAGS_TYPE_STRING:
         if (FLAGS_VALUE_IDENTICAL != (tsTypeFlag & FLAGS_VALUE_IDENTICAL)) {
-          // Convert String to UTF8 byte array
-          byte[] utf8 = ((String) value).getBytes(Charsets.UTF_8);
-          // Store encoded byte array length as zig zag varint
-          //BUF10 this.stream.write(Varint.encodeUnsignedLong(utf8.length));
-          int l = Varint.encodeUnsignedLongInBuf(utf8.length, buf10);
-          this.stream.write(buf10, 0, l);
-          // Store UTF8 bytes
-          this.stream.write(utf8);
+          if (FLAGS_STRING_BINARY == (tsTypeFlag & FLAGS_STRING_BINARY)) {
+            byte[] bytes = (byte[]) value;
+            int l = Varint.encodeUnsignedLongInBuf(bytes.length, buf10);
+            this.stream.write(buf10, 0, l);
+            this.stream.write(bytes);
+            lastStringValue = binaryString;
+          } else {
+            // Convert String to UTF8 byte array
+            byte[] utf8 = ((String) value).getBytes(Charsets.UTF_8);
+            // Store encoded byte array length as zig zag varint
+            //BUF10 this.stream.write(Varint.encodeUnsignedLong(utf8.length));
+            int l = Varint.encodeUnsignedLongInBuf(utf8.length, buf10);
+            this.stream.write(buf10, 0, l);
+            // Store UTF8 bytes
+            this.stream.write(utf8);
 
-          // Keep track of last value
-          lastStringValue = (String) value;
+            // Keep track of last value
+            lastStringValue = (String) value;            
+          }
         }
         break;
 
@@ -1025,7 +1046,7 @@ public class GTSEncoder {
 
     int size = size();
     
-    if (target >= size) {
+    if (target > size) {
       ByteArrayOutputStream out = new ByteArrayOutputStream(target);
       this.stream.writeTo(out);
       this.stream = out;
@@ -1075,7 +1096,7 @@ public class GTSEncoder {
       GTSDecoder decoder = encoder.getDecoder(true);
 
       while (decoder.next()) {
-        this.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+        this.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
       }      
     } else {
       //
@@ -1273,7 +1294,55 @@ public class GTSEncoder {
     if (null != this.wrappingKey) {
       encoder.setWrappingKey(Arrays.copyOf(this.wrappingKey, this.wrappingKey.length));
     }
+
+    encoder.setMetadata(this.getMetadata());
     
     return encoder;
+  }
+
+  public GTSEncoder clone() {
+    GTSEncoder clone = cloneEmpty();
+
+    // Do not clone readonly because it is only to protect encoders which metadata and byte array are referenced by
+    // an unsafe decoder. As we clone this encoder, no unsafe decoder references this clone.
+
+    clone.lastTimestamp = this.lastTimestamp;
+    clone.lastGeoXPPoint = this.lastGeoXPPoint;
+    clone.lastElevation = this.lastElevation;
+    clone.lastLongValue = this.lastLongValue;
+    // BigDecimals are immutable, so this is OK
+    clone.lastBDValue = this.lastBDValue;
+    clone.lastDoubleValue = this.lastDoubleValue;
+    // Strings are immutable, so this is OK
+    clone.lastStringValue = this.lastStringValue;
+
+    // Strings are immutable, so this is OK
+    clone.binaryString = this.binaryString;
+
+    clone.initialTimestamp = this.initialTimestamp;
+    clone.initialGeoXPPoint = this.initialGeoXPPoint;
+    clone.initialElevation = this.initialElevation;
+    clone.initialLongValue = this.initialLongValue;
+    clone.initialDoubleValue = this.initialDoubleValue;
+    // BigDecimals are immutable, so this is OK
+    clone.initialBDValue = this.initialBDValue;
+    // Strings are immutable, so this is OK
+    clone.initialStringValue = this.initialStringValue;
+
+    try {
+      this.stream.writeTo(clone.stream);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
+    clone.count = this.count;
+
+    clone.noDeltaMetaTimestamp = this.noDeltaMetaTimestamp;
+    clone.noDeltaMetaLocation = this.noDeltaMetaLocation;
+    clone.noDeltaMetaElevation = this.noDeltaMetaElevation;
+
+    clone.noDeltaValue = this.noDeltaValue;
+
+    return clone;
   }
 }

@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ public class MSORT extends NamedWarpScriptFunction implements WarpScriptStackFun
     Collections.sort((List) lkeys);
     
     //
-    // Build a linked hash masp with the ordered entries
+    // Build a linked hash map with the ordered entries
     //
     
     LinkedHashMap<Object,Object> entries = new LinkedHashMap<Object,Object>();

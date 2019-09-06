@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,88 +17,85 @@
 package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
+import org.boon.json.JsonSerializer;
+import org.boon.json.JsonSerializerFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import org.boon.json.JsonSerializer;
-import org.boon.json.JsonSerializerFactory;
 
 /**
  * Converts the object on top of the stack to a JSON representation
  */
 public class TOJSON extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   private static final JsonSerializerFactory BOON_SERIALIZER_FACTORY = new JsonSerializerFactory();
 
   public TOJSON(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
-    
+
     JsonSerializer parser = BOON_SERIALIZER_FACTORY.create();
-    
+
     //
     // Only allow the serialization of simple lists and maps, otherwise JSON might
     // expose internals
     //
-    
+
     if (!validate(o)) {
       throw new WarpScriptException(getName() + " can only serialize structures containing numbers, strings, booleans, lists and maps which do not reference the same list/map multiple times.");
     }
 
     String json = parser.serialize(o).toString();
-    
+
     stack.push(json);
-    
+
     return stack;
   }
-  
+
   /**
    * Validate an object for serialization.
    * We only allow Number/String/Booleans and Lists/Map containing those elements or List/Map
-   * 
+   *
    * @return true if the object is validated, false otherwise
    */
   private static boolean validate(Object o) {
-    
+
     // Allocate a list for elements, we need to ensure there are
     // no loops in the object we try to serialize so we enforce
     // a more stringent rule which forces lists/maps to not be
     // referenced several times in the structure we attempt to
     // serialize
-    
+
     List<Object> elements = new ArrayList<Object>();
-    
+
     int idx = 0;
-    
-    
-    if (o instanceof Number || o instanceof String || o instanceof Boolean) {
+
+
+    if (null == o || o instanceof Number || o instanceof String || o instanceof Boolean) {
       return true;
     }
-    
+
     elements.add(o);
-    
-    while(idx < elements.size()) {
+
+    while (idx < elements.size()) {
       Object obj = elements.get(idx++);
-      
+
       if (obj instanceof Number || obj instanceof String || obj instanceof Boolean) {
         continue;
       }
 
       if (obj instanceof List) {
         for (Object elt: (List) obj) {
-          if (elt instanceof Number || elt instanceof String || elt instanceof Boolean) {
+          if (null == elt || elt instanceof Number || elt instanceof String || elt instanceof Boolean) {
             continue;
           } else if (elt instanceof List || elt instanceof Map) {
             // Check that the given list/map is not already in the structure
@@ -111,9 +108,10 @@ public class TOJSON extends NamedWarpScriptFunction implements WarpScriptStackFu
           }
         }
       } else if (obj instanceof Map) {
-        for (Entry<Object,Object> entry: ((Map<Object,Object>) obj).entrySet()) {
+        for (Entry<Object, Object> entry: ((Map<Object, Object>) obj).entrySet()) {
           Object elt = entry.getKey();
-          if (elt instanceof Number || elt instanceof String || elt instanceof Boolean) {
+          // TODO(tce): be careful with null keys as they are converted to empty strings with boon but may not for other libraries
+          if (null == elt || elt instanceof Number || elt instanceof String || elt instanceof Boolean) {
             // Ignore keys which are atomic like types
           } else if (elt instanceof List || elt instanceof Map) {
             // Check that the given list/map is not already in the structure
@@ -125,7 +123,7 @@ public class TOJSON extends NamedWarpScriptFunction implements WarpScriptStackFu
             return false;
           }
           elt = entry.getValue();
-          if (elt instanceof Number || elt instanceof String || elt instanceof Boolean) {
+          if (null == elt || elt instanceof Number || elt instanceof String || elt instanceof Boolean) {
             continue;
           } else if (elt instanceof List || elt instanceof Map) {
             // Check that the given list/map is not already in the structure
@@ -141,13 +139,13 @@ public class TOJSON extends NamedWarpScriptFunction implements WarpScriptStackFu
         return false;
       }
     }
-    
+
     return true;
   }
-  
+
   /**
    * Check if an actual object reference is already in a list
-
+   *
    * @param list
    * @param element
    * @return
@@ -158,7 +156,7 @@ public class TOJSON extends NamedWarpScriptFunction implements WarpScriptStackFu
         return true;
       }
     }
-    
+
     return false;
   }
 }

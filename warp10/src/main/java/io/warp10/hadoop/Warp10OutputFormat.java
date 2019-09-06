@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -76,10 +76,10 @@ public class Warp10OutputFormat extends OutputFormat<Writable, Writable> {
     
     Configuration conf = context.getConfiguration();
     
-    props.put(Warp10RecordWriter.WARP10_GZIP, Warp10InputFormat.getProperty(conf, this.suffix, Warp10RecordWriter.WARP10_GZIP, "false"));
-    props.put(Warp10RecordWriter.WARP10_ENDPOINT, Warp10InputFormat.getProperty(conf, this.suffix, Warp10RecordWriter.WARP10_ENDPOINT, ""));
-    props.put(Warp10RecordWriter.WARP10_TOKEN, Warp10InputFormat.getProperty(conf, this.suffix, Warp10RecordWriter.WARP10_TOKEN, ""));
-    props.put(Warp10RecordWriter.WARP10_MAXRATE, Warp10InputFormat.getProperty(conf, this.suffix, Warp10RecordWriter.WARP10_MAXRATE, Long.toString(Long.MAX_VALUE)));
+    props.setProperty(Warp10RecordWriter.WARP10_GZIP, Warp10InputFormat.getProperty(conf, this.suffix, Warp10RecordWriter.WARP10_GZIP, "false"));
+    props.setProperty(Warp10RecordWriter.WARP10_ENDPOINT, Warp10InputFormat.getProperty(conf, this.suffix, Warp10RecordWriter.WARP10_ENDPOINT, ""));
+    props.setProperty(Warp10RecordWriter.WARP10_TOKEN, Warp10InputFormat.getProperty(conf, this.suffix, Warp10RecordWriter.WARP10_TOKEN, ""));
+    props.setProperty(Warp10RecordWriter.WARP10_MAXRATE, Warp10InputFormat.getProperty(conf, this.suffix, Warp10RecordWriter.WARP10_MAXRATE, Long.toString(Long.MAX_VALUE)));
     
     return new Warp10RecordWriter(props);
   }

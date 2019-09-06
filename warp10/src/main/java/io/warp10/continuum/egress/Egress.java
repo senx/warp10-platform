@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,15 +16,16 @@
 
 package io.warp10.continuum.egress;
 
+import io.warp10.SSLUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
-import io.warp10.continuum.geo.GeoDirectoryClient;
-import io.warp10.continuum.geo.GeoDirectoryThriftClient;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.crypto.KeyStore;
 import io.warp10.quasar.filter.QuasarTokenFilter;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 import org.eclipse.jetty.server.Connector;
@@ -89,7 +90,7 @@ public class Egress {
           continue;
         }
       }
-
+      
       Preconditions.checkNotNull(props.getProperty(required), "Missing configuration parameter '%s'.", required);          
     }
 
@@ -97,28 +98,45 @@ public class Egress {
     // Extract parameters from 'props'
     //
     
-    int port = Integer.valueOf(props.getProperty(Configuration.EGRESS_PORT));
-    String host = props.getProperty(Configuration.EGRESS_HOST);
-    int acceptors = Integer.valueOf(props.getProperty(Configuration.EGRESS_ACCEPTORS));
-    int selectors = Integer.valueOf(props.getProperty(Configuration.EGRESS_SELECTORS));
-    long idleTimeout = Long.parseLong(props.getProperty(Configuration.EGRESS_IDLE_TIMEOUT));
-    
-    boolean enableMobius = !("true".equals(props.getProperty(Configuration.WARP_MOBIUS_DISABLE)));
+    boolean useHttp = (null != props.getProperty(Configuration.EGRESS_PORT));
+    boolean useHttps = (null != props.getProperty(Configuration.EGRESS_PREFIX + Configuration._SSL_PORT));
 
+    List<Connector> connectors = new ArrayList<Connector>();
+    
+    server = new Server();
+
+    if (useHttp) {
+      int port = Integer.valueOf(props.getProperty(Configuration.EGRESS_PORT));
+      String host = props.getProperty(Configuration.EGRESS_HOST);
+      int acceptors = Integer.valueOf(props.getProperty(Configuration.EGRESS_ACCEPTORS));
+      int selectors = Integer.valueOf(props.getProperty(Configuration.EGRESS_SELECTORS));
+      long idleTimeout = Long.parseLong(props.getProperty(Configuration.EGRESS_IDLE_TIMEOUT));
+
+      ServerConnector connector = new ServerConnector(server, acceptors, selectors);
+      connector.setIdleTimeout(idleTimeout);
+      connector.setPort(port);
+      connector.setHost(host);
+      connector.setName("Continuum Egress HTTP");
+      
+      connectors.add(connector);
+    }
+    
+    if (useHttps) {
+      ServerConnector connector = SSLUtils.getConnector(server, Configuration.EGRESS_PREFIX);
+      connector.setName("Continuum Egress HTTPS");
+      connectors.add(connector);
+    }
+        
+    boolean enableMobius = !("true".equals(props.getProperty(Configuration.WARP_MOBIUS_DISABLE)));
+    boolean enableREL = !("true".equals(properties.getProperty(Configuration.WARP_INTERACTIVE_DISABLE)));
+    
     extractKeys(props);
     
     //
     // Start Jetty server
     //
-    
-    server = new Server();
-    ServerConnector connector = new ServerConnector(server, acceptors, selectors);
-    connector.setIdleTimeout(idleTimeout);
-    connector.setPort(port);
-    connector.setHost(host);
-    connector.setName("Continuum Egress");
-    
-    server.setConnectors(new Connector[] { connector });
+                
+    server.setConnectors(connectors.toArray(new Connector[connectors.size()]));
 
     HandlerList handlers = new HandlerList();
     
@@ -130,10 +148,9 @@ public class Egress {
     
     if (!fetcher) {
       DirectoryClient directoryClient = new ThriftDirectoryClient(this.keystore, this.properties);
-      GeoDirectoryClient geoDirectoryClient = new GeoDirectoryThriftClient(keystore, this.properties);
 
       GzipHandler gzip = new GzipHandler();
-      EgressExecHandler egressExecHandler = new EgressExecHandler(this.keystore, this.properties, directoryClient, geoDirectoryClient, storeClient);
+      EgressExecHandler egressExecHandler = new EgressExecHandler(this.keystore, this.properties, directoryClient, storeClient);
       gzip.setHandler(egressExecHandler);
       gzip.setMinGzipSize(0);
       gzip.addIncludedMethods("POST");
@@ -161,6 +178,11 @@ public class Egress {
         EgressMobiusHandler mobiusHandler = new EgressMobiusHandler(storeClient, directoryClient, this.properties);
         handlers.addHandler(mobiusHandler);
       }
+      
+      if (enableREL) {
+        EgressInteractiveHandler erel = new EgressInteractiveHandler(keystore, properties, directoryClient, storeClient);
+        handlers.addHandler(erel);
+      }           
     } else {
       GzipHandler gzip = new GzipHandler();
       gzip.setHandler(new EgressFetchHandler(this.keystore, this.properties, null, storeClient));

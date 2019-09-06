@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,10 +21,8 @@ import io.warp10.continuum.KafkaOffsetCounters;
 import io.warp10.continuum.KafkaSynchronizedConsumerPool;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
-import io.warp10.continuum.geo.GeoDirectory;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.continuum.thrift.data.GeoDirectorySubscriptions;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.sensision.Sensision;
@@ -98,7 +96,7 @@ public class IngressMetadataConsumerFactory implements ConsumerFactory {
                 data = CryptoUtils.unwrap(ingress.AES_KAFKA_META, data);
               }
               
-              // Skip data that was not unwrapped successfuly
+              // Skip data that was not unwrapped successfully
               if (null == data) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_WARP_INGRESS_KAFKA_META_IN_INVALIDCIPHERS, Sensision.EMPTY_LABELS, 1);
                 continue;
@@ -126,8 +124,6 @@ public class IngressMetadataConsumerFactory implements ConsumerFactory {
               // We treat those two types of updates the same way, by removing the cache entry
               // for the corresponding Metadata. By doing so we simplify handling
               //
-              // TODO(hbs): update metadata cache when receiving Metadata from '/meta'?
-              //
               
               if (Configuration.INGRESS_METADATA_DELETE_SOURCE.equals(metadata.getSource())) {
                 //
@@ -140,11 +136,9 @@ public class IngressMetadataConsumerFactory implements ConsumerFactory {
                 continue;
               } else if (Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
                 //
-                // //Update cache with new metadata
                 // Remove entry from Metadata cache
                 //
                 
-                //ingress.metadataCache.put(clslblsId, metadata);
                 synchronized(ingress.metadataCache) {
                   ingress.metadataCache.remove(clslblsId);
                 }

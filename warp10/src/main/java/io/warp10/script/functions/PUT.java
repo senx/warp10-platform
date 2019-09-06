@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,31 +21,38 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
+import java.util.List;
 import java.util.Map;
 
 /**
- * Pushes a value into a map. Modifies the map on the stack.
+ * Pushes a value into a map or list. Modifies the map or list on the stack.
  */
 public class PUT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public PUT(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object key = stack.pop();
-    Object value = stack.pop();    
-    
+    Object value = stack.pop();
+
     Object maporlist = stack.peek();
 
-    if (!(maporlist instanceof Map)) {
-      throw new WarpScriptException(getName() + " operates on a map.");
+    if (maporlist instanceof Map) {
+      ((Map) maporlist).put(key, value);
+    } else if (maporlist instanceof List) {
+      if (!(key instanceof Long)) {
+        throw new WarpScriptException(getName() + " expects a key which is an integer when operating on a list.");
+      }
+
+      ((List) maporlist).set(((Long) key).intValue(), value);
+    } else {
+      throw new WarpScriptException(getName() + " operates on a map or list.");
     }
 
-    ((Map) maporlist).put(key, value);
-    
     return stack;
   }
 }

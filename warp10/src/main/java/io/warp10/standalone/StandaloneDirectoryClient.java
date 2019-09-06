@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,15 +19,22 @@ package io.warp10.standalone;
 import io.warp10.SmartPattern;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
+import io.warp10.continuum.DirectoryUtil;
+import io.warp10.continuum.egress.ThriftDirectoryClient;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.Directory;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
+import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
+import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.SipHashInline;
+import io.warp10.script.HyperLogLogPlus;
 import io.warp10.sensision.Sensision;
 
 import java.io.IOException;
@@ -45,8 +52,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
@@ -98,18 +108,37 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   private final boolean syncwrites;
   private final double syncrate;
   
+  private long LIMIT_CLASS_CARDINALITY = 100;
+  private long LIMIT_LABELS_CARDINALITY = 100;
+  
   /**
    * Maps of class name to labelsId to metadata
    */
   // 128BITS
   private static final Map<String,Map<Long,Metadata>> metadatas = new MapMaker().concurrencyLevel(64).makeMap();
   private static final Map<BigInteger,Metadata> metadatasById = new MapMaker().concurrencyLevel(64).makeMap();
+
+  private long activityWindow = 0L;
+  
+  public static interface ShardFilter {
+    public boolean exclude(long classId, long labelsId);
+  }
   
   public StandaloneDirectoryClient(DB db, final KeyStore keystore) {
-    
-    Properties props = WarpConfig.getProperties();
-    
-    this.initNThreads = Integer.parseInt(props.getProperty(Configuration.DIRECTORY_INIT_NTHREADS, DIRECTORY_INIT_NTHREADS_DEFAULT));
+
+    String classMaxCardinalityProp = WarpConfig.getProperty(Configuration.DIRECTORY_STATS_CLASS_MAXCARDINALITY);
+    if (null != classMaxCardinalityProp) {
+      this.LIMIT_CLASS_CARDINALITY = Long.parseLong(classMaxCardinalityProp);
+    }
+
+    String labelsMaxCardinalityProp = WarpConfig.getProperty(Configuration.DIRECTORY_STATS_LABELS_MAXCARDINALITY);
+    if (null != labelsMaxCardinalityProp) {
+      this.LIMIT_LABELS_CARDINALITY = Long.parseLong(labelsMaxCardinalityProp);
+    }
+
+    this.activityWindow = Long.parseLong(WarpConfig.getProperty(io.warp10.continuum.Configuration.INGRESS_ACTIVITY_WINDOW, "0"));
+
+    this.initNThreads = Integer.parseInt(WarpConfig.getProperty(Configuration.DIRECTORY_INIT_NTHREADS, DIRECTORY_INIT_NTHREADS_DEFAULT));
 
     this.db = db;
     this.keystore = keystore;
@@ -121,7 +150,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     this.labelsKey = this.keystore.getKey(KeyStore.SIPHASH_LABELS);
     this.labelsLongs = SipHashInline.getKey(this.labelsKey);
     
-    syncrate = Math.min(1.0D, Math.max(0.0D, Double.parseDouble(props.getProperty(Configuration.LEVELDB_DIRECTORY_SYNCRATE, "1.0"))));
+    syncrate = Math.min(1.0D, Math.max(0.0D, Double.parseDouble(WarpConfig.getProperty(Configuration.LEVELDB_DIRECTORY_SYNCRATE, "1.0"))));
     syncwrites = 0.0 < syncrate && syncrate < 1.0;
 
     //
@@ -332,7 +361,17 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     }
   }
   
-  public List<Metadata> find(List<String> classExpr, List<Map<String,String>> labelsExpr) {
+  @Override
+  public List<Metadata> find(DirectoryRequest request) {
+    
+    List<String> classExpr = request.getClassSelectors();
+    List<Map<String,String>> labelsExpr = request.getLabelsSelectors();
+    
+    boolean hasActiveAfter = request.isSetActiveAfter();
+    long activeAfter = request.getActiveAfter();
+    
+    boolean hasQuietAfter = request.isSetQuietAfter();
+    long quietAfter = request.getQuietAfter();
     
     //
     // Build patterns from expressions
@@ -439,6 +478,20 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         
         if (classSmartPattern.matches(className)) {
           for (Metadata metadata: this.metadatas.get(className).values()) {
+            
+            //
+            // Check activity
+            //
+            
+            if (hasActiveAfter && metadata.getLastActivity() < activeAfter) {
+              continue;
+            }
+            
+            if (hasQuietAfter && metadata.getLastActivity() >= quietAfter) {
+              continue;
+            }
+            
+            
             boolean exclude = false;
             
             int idx = 0;
@@ -508,6 +561,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
               meta.setLabelsId(GTSHelper.labelsId(labelsKey, meta.getLabels()));
             }
             
+            meta.setLastActivity(metadata.getLastActivity());
             metadatas.add(meta);
           }
         }
@@ -546,10 +600,27 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       long labelsId = GTSHelper.labelsId(this.labelsLongs, metadata.getLabels());
       
       if (!metadatas.get(metadata.getName()).containsKey(labelsId)) {
+        // Metadata is unknown so we know the Metadata should be stored
         store(metadata);
-      } else if (!metadatas.get(metadata.getName()).get(labelsId).getLabels().equals(metadata.getLabels())) {
-        LOG.warn("LabelsId collision under class '" + metadata.getName() + "' " + metadata.getLabels() + " and " + metadatas.get(metadata.getName()).get(labelsId).getLabels());
-        Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_LABELS_COLLISIONS, Sensision.EMPTY_LABELS, 1);
+      } else {
+        // Check that we do not have a collision
+        if (!metadatas.get(metadata.getName()).get(labelsId).getLabels().equals(metadata.getLabels())) {
+          LOG.warn("LabelsId collision under class '" + metadata.getName() + "' " + metadata.getLabels() + " and " + metadatas.get(metadata.getName()).get(labelsId).getLabels());
+          Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_LABELS_COLLISIONS, Sensision.EMPTY_LABELS, 1);
+        }
+
+        //
+        // Check activity of the GTS, storing it if the activity window has passed
+        if (activityWindow > 0) {
+          //
+          // If the currently stored lastactivity is more than 'activityWindow' before the one in 'metadata',
+          // store the metadata
+          //
+          long currentLastActivity = metadatas.get(metadata.getName()).get(labelsId).getLastActivity();
+          if (metadata.getLastActivity() - currentLastActivity >= activityWindow) {
+            store(metadata);
+          }
+        }
       }
     } else if (!Configuration.INGRESS_METADATA_SOURCE.equals(metadata.getSource())) {
       //
@@ -562,6 +633,12 @@ public class StandaloneDirectoryClient implements DirectoryClient {
           // 128BITS
           long labelsId = GTSHelper.labelsId(this.labelsLongs, metadata.getLabels());
           if (metadatas.get(metadata.getName()).containsKey(labelsId)) {
+            // Check the activity so we only increase it
+            // 128 bits
+            long currentLastActivity = metadatas.get(metadata.getName()).get(labelsId).getLastActivity();
+            if (metadata.getLastActivity() < currentLastActivity) {
+              metadata.setLastActivity(currentLastActivity);
+            }
             store(metadata);
           }
         }
@@ -655,7 +732,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     
     boolean written = false;
     
-    WriteOptions options = new WriteOptions().sync(1.0 == syncrate);
+    WriteOptions options = new WriteOptions().sync(null == key || null == value || 1.0 == syncrate);
     
     try {
       if (null != key && null != value) {
@@ -665,7 +742,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       
       if (null == key || null == value || size.get() > MAX_BATCH_SIZE) {
         
-        if (syncwrites) {
+        if (syncwrites && !options.sync()) {
           options = new WriteOptions().sync(Math.random() < syncrate);
         }
         
@@ -718,8 +795,24 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     metadata.setClassId(classId);
     metadata.setLabelsId(labelsId);
     
-    if (null == metadata.getAttributes()) {
+    if (null == metadata.getAttributes() || !Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
       metadata.setAttributes(new HashMap<String,String>());
+      
+      // If we are not updating the attributes, copy the attributes from the directory as we are probably
+      // registering the GTS due to its recent activity.
+      if (!Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
+        Metadata oldmeta = null;
+        // Copy the attributes if the Metadata is already known, which can happen when
+        // tracking the activity
+        synchronized(metadatas) {
+          if (metadatas.containsKey(metadata.getName())) {
+            oldmeta = metadatas.get(metadata.getName()).get(labelsId);        
+          }        
+        }
+        if (null != oldmeta && oldmeta.getAttributesSize() > 0) {
+          metadata.getAttributes().putAll(oldmeta.getAttributes());
+        }        
+      }
     }
     
     TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
@@ -735,6 +828,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         //this.db.put(bytes, serialized);
         store(bytes, serialized);
       }
+      
       synchronized (metadatas) {
         if (!metadatas.containsKey(metadata.getName())) {
           metadatas.put(metadata.getName(), (Map) new MapMaker().concurrencyLevel(64).makeMap());
@@ -760,15 +854,388 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   public Metadata getMetadataById(BigInteger id) {
     return this.metadatasById.get(id);
   }
-  
+
   @Override
-  public Map<String,Object> stats(List<String> classSelector, List<Map<String, String>> labelsSelectors) throws IOException {
-    throw new IOException("stats is not available in standalone mode.");
+  public Map<String,Object> stats(DirectoryRequest dr) throws IOException {
+    return stats(dr, null);
+  }
+  
+  public Map<String,Object> stats(DirectoryRequest dr, ShardFilter filter) throws IOException {
+    final DirectoryStatsRequest request = new DirectoryStatsRequest();
+    request.setTimestamp(System.currentTimeMillis());
+    request.setClassSelector(dr.getClassSelectors());
+    request.setLabelsSelectors(dr.getLabelsSelectors());
+    
+    try {
+      final DirectoryStatsResponse response = stats(request);
+
+      List<Future<DirectoryStatsResponse>> responses = new ArrayList<Future<DirectoryStatsResponse>>();
+      Future<DirectoryStatsResponse> f = new Future<DirectoryStatsResponse>() {
+        @Override
+        public DirectoryStatsResponse get() throws InterruptedException, ExecutionException {
+          return response;
+        }
+        @Override
+        public DirectoryStatsResponse get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+          return response;
+        }
+        @Override
+        public boolean isDone() { return true; }
+        @Override
+        public boolean isCancelled() { return false; }
+        @Override
+        public boolean cancel(boolean mayInterruptIfRunning) { return false; }
+      };
+      
+      responses.add(f);
+
+      return ThriftDirectoryClient.mergeStatsResponses(responses);
+    } catch (TException te) {
+      throw new IOException(te);
+    }
+  }
+  
+  private DirectoryStatsResponse stats(DirectoryStatsRequest request) throws TException {
+    return stats(request, null);
+  }
+  
+  private DirectoryStatsResponse stats(DirectoryStatsRequest request, ShardFilter filter) throws TException {
+    try {
+      DirectoryStatsResponse response = new DirectoryStatsResponse();
+      
+      //
+      // Build patterns from expressions
+      //
+      
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_STATS_REQUESTS, Sensision.EMPTY_LABELS, 1);
+
+      SmartPattern classSmartPattern;
+      
+      Collection<Metadata> metas;
+      
+      //
+      // Allocate a set if there is more than one class selector as we may have
+      // duplicate results
+      //
+      
+      if (request.getClassSelectorSize() > 1) {
+        metas = new HashSet<Metadata>();
+      } else {
+        metas = new ArrayList<Metadata>();
+      }
+            
+      HyperLogLogPlus gtsCount = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+      Map<String,HyperLogLogPlus> perClassCardinality = new HashMap<String,HyperLogLogPlus>();
+      Map<String,HyperLogLogPlus> perLabelValueCardinality = new HashMap<String,HyperLogLogPlus>();
+      HyperLogLogPlus labelNamesCardinality = null;
+      HyperLogLogPlus labelValuesCardinality = null;
+      HyperLogLogPlus classCardinality = null;
+      
+      for (int i = 0; i < request.getClassSelectorSize(); i++) {
+        String exactClassName = null;
+        
+        if (request.getClassSelector().get(i).startsWith("=") || !request.getClassSelector().get(i).startsWith("~")) {
+          exactClassName = request.getClassSelector().get(i).startsWith("=") ? request.getClassSelector().get(i).substring(1) : request.getClassSelector().get(i);
+          classSmartPattern = new SmartPattern(exactClassName);
+        } else {
+          classSmartPattern = new SmartPattern(Pattern.compile(request.getClassSelector().get(i).substring(1)));
+        }
+        
+        Map<String,SmartPattern> labelPatterns = new HashMap<String,SmartPattern>();
+        
+        if (null != request.getLabelsSelectors()) {
+          for (Entry<String,String> entry: request.getLabelsSelectors().get(i).entrySet()) {
+            String label = entry.getKey();
+            String expr = entry.getValue();
+            SmartPattern pattern;
+            
+            if (expr.startsWith("=") || !expr.startsWith("~")) {
+              //pattern = Pattern.compile(Pattern.quote(expr.startsWith("=") ? expr.substring(1) : expr));
+              pattern = new SmartPattern(expr.startsWith("=") ? expr.substring(1) : expr);
+            } else {
+              pattern = new SmartPattern(Pattern.compile(expr.substring(1)));
+            }
+            
+            //labelPatterns.put(label,  pattern.matcher(""));
+            labelPatterns.put(label,  pattern);
+          }      
+        }
+              
+        //
+        // Loop over the class names to find matches
+        //
+
+        Collection<String> classNames = new ArrayList<String>();
+        
+        if (null != exactClassName) {
+          // If the class name is an exact match, check if it is known, if not, skip to the next selector
+          if(!this.metadatas.containsKey(exactClassName)) {
+            continue;
+          }
+          classNames.add(exactClassName);
+        } else {
+//          //
+//          // Extract per owner classes if owner selector exists
+//          //
+//          
+//          if (request.getLabelsSelectors().get(i).size() > 0) {
+//            String ownersel = request.getLabelsSelectors().get(i).get(Constants.OWNER_LABEL);
+//            
+//            if (null != ownersel && ownersel.startsWith("=")) {
+//              classNames = classesPerOwner.get(ownersel.substring(1));
+//            } else {
+//              classNames = this.classNames.values();
+//            }
+//          } else {
+//            classNames = this.classNames.values();
+//          }
+          classNames.addAll(metadatas.keySet());
+        }
+        
+        List<String> labelNames = new ArrayList<String>(labelPatterns.size());
+        List<SmartPattern> labelSmartPatterns = new ArrayList<SmartPattern>(labelPatterns.size());
+        List<String> labelValues = new ArrayList<String>(labelPatterns.size());
+        
+        //
+        // Put producer/app/owner first
+        //
+        
+        if (labelPatterns.containsKey(Constants.PRODUCER_LABEL)) {
+          labelNames.add(Constants.PRODUCER_LABEL);
+          labelSmartPatterns.add(labelPatterns.get(Constants.PRODUCER_LABEL));
+          labelPatterns.remove(Constants.PRODUCER_LABEL);   
+          labelValues.add(null);
+        }
+        if (labelPatterns.containsKey(Constants.APPLICATION_LABEL)) {
+          labelNames.add(Constants.APPLICATION_LABEL);
+          labelSmartPatterns.add(labelPatterns.get(Constants.APPLICATION_LABEL));
+          labelPatterns.remove(Constants.APPLICATION_LABEL);
+          labelValues.add(null);
+        }
+        if (labelPatterns.containsKey(Constants.OWNER_LABEL)) {
+          labelNames.add(Constants.OWNER_LABEL);
+          labelSmartPatterns.add(labelPatterns.get(Constants.OWNER_LABEL));
+          labelPatterns.remove(Constants.OWNER_LABEL);
+          labelValues.add(null);
+        }
+        
+        //
+        // Now add the other labels
+        //
+        
+        for(Entry<String,SmartPattern> entry: labelPatterns.entrySet()) {
+          labelNames.add(entry.getKey());
+          labelSmartPatterns.add(entry.getValue());
+          labelValues.add(null);
+        }
+
+        for (String className: classNames) {
+          
+          //
+          // If class matches, check all labels for matches
+          //
+          
+          if (classSmartPattern.matches(className)) {
+            Map<Long,Metadata> classMetadatas = this.metadatas.get(className);
+            if (null == classMetadatas) {
+              continue;
+            }
+            for (Metadata metadata: classMetadatas.values()) {
+              
+              boolean exclude = false;
+              
+              int idx = 0;
+        
+              for (String labelName: labelNames) {
+                //
+                // Immediately exclude metadata which do not contain one of the
+                // labels for which we have patterns either in labels or in attributes
+                //
+
+                String labelValue = metadata.getLabels().get(labelName);
+                
+                if (null == labelValue) {
+                  labelValue = metadata.getAttributes().get(labelName);
+                  if (null == labelValue) {
+                    exclude = true;
+                    break;
+                  }
+                }
+                
+                labelValues.set(idx++, labelValue);
+              }
+              
+              // If we did not collect enough label/attribute values, exclude the GTS
+              if (idx < labelNames.size()) {
+                exclude = true;
+              }
+              
+              if (exclude) {
+                continue;
+              }
+              
+              //
+              // Check if the label value matches, if not, exclude the GTS
+              //
+              
+              for (int j = 0; j < labelNames.size(); j++) {
+                if (!labelSmartPatterns.get(j).matches(labelValues.get(j))) {
+                  exclude = true;
+                  break;
+                }
+              }
+              
+              if (exclude) {
+                continue;
+              }
+
+              //
+              // We have a match, update estimators
+              //
+
+              // Compute classId/labelsId
+              long classId = GTSHelper.classId(classLongs, metadata.getName());
+              long labelsId = GTSHelper.labelsId(labelsLongs, metadata.getLabels());
+              
+              //
+              // Apply the shard filter to exclude Metadata which do not belong to the
+              // shards we handle
+              //
+              
+              if (null != filter && filter.exclude(classId, labelsId)) {
+                continue;
+              }
+              
+              // Compute gtsId, we use the GTS Id String from which we extract the 16 bytes
+              byte[] data = GTSHelper.gtsIdToString(classId, labelsId).getBytes(Charsets.UTF_16BE);
+              long gtsId = SipHashInline.hash24(classLongs[0], classLongs[1], data, 0, data.length);
+              
+              gtsCount.aggregate(gtsId);
+              
+              if (null != perClassCardinality) {              
+                HyperLogLogPlus count = perClassCardinality.get(metadata.getName());
+                if (null == count) {
+                  count = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+                  perClassCardinality.put(metadata.getName(), count);
+                }
+                                
+                count.aggregate(gtsId);
+                
+                // If we reached the limit in detailed number of classes, we fallback to a simple estimator
+                if (perClassCardinality.size() >= LIMIT_CLASS_CARDINALITY) {
+                  classCardinality = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+                  for (String cls: perClassCardinality.keySet()) {
+                    data = cls.getBytes(Charsets.UTF_8);
+                    classCardinality.aggregate(SipHashInline.hash24(classLongs[0], classLongs[1], data, 0, data.length, false));
+                    perClassCardinality = null;
+                  }
+                }
+              } else {
+                data = metadata.getName().getBytes(Charsets.UTF_8);
+                classCardinality.aggregate(SipHashInline.hash24(classLongs[0], classLongs[1], data, 0, data.length, false));
+              }
+              
+              if (null != perLabelValueCardinality) {
+                if (metadata.getLabelsSize() > 0) {
+                  for (Entry<String,String> entry: metadata.getLabels().entrySet()) {
+                    HyperLogLogPlus estimator = perLabelValueCardinality.get(entry.getKey());
+                    if (null == estimator) {
+                      estimator = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+                      perLabelValueCardinality.put(entry.getKey(), estimator);
+                    }
+                    data = entry.getValue().getBytes(Charsets.UTF_8);
+                    long siphash = SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false);
+                    estimator.aggregate(siphash);
+                  }
+                }
+
+                if (metadata.getAttributesSize() > 0) {
+                  for (Entry<String,String> entry: metadata.getAttributes().entrySet()) {
+                    HyperLogLogPlus estimator = perLabelValueCardinality.get(entry.getKey());
+                    if (null == estimator) {
+                      estimator = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+                      perLabelValueCardinality.put(entry.getKey(), estimator);
+                    }
+                    data = entry.getValue().getBytes(Charsets.UTF_8);
+                    estimator.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
+                  }
+                }
+
+                if (perLabelValueCardinality.size() >= LIMIT_LABELS_CARDINALITY) {
+                  labelNamesCardinality = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+                  labelValuesCardinality = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+                  for (Entry<String,HyperLogLogPlus> entry: perLabelValueCardinality.entrySet()) {
+                    data = entry.getKey().getBytes(Charsets.UTF_8);
+                    labelNamesCardinality.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
+                    labelValuesCardinality.fuse(entry.getValue());
+                  }
+                  perLabelValueCardinality = null;
+                }
+              } else {
+                if (metadata.getLabelsSize() > 0) {
+                  for (Entry<String,String> entry: metadata.getLabels().entrySet()) {
+                    data = entry.getKey().getBytes(Charsets.UTF_8);
+                    labelValuesCardinality.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
+                    data = entry.getValue().getBytes(Charsets.UTF_8);
+                    labelValuesCardinality.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
+                  }
+                }
+                if (metadata.getAttributesSize() > 0) {
+                  for (Entry<String,String> entry: metadata.getAttributes().entrySet()) {
+                    data = entry.getKey().getBytes(Charsets.UTF_8);
+                    labelValuesCardinality.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
+                    data = entry.getValue().getBytes(Charsets.UTF_8);
+                    labelValuesCardinality.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
+                  }
+                }
+              }            
+            }
+          }
+        }      
+      }
+
+      response.setGtsCount(gtsCount.toBytes());
+      
+      if (null != perClassCardinality) {
+        classCardinality = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+        for (Entry<String,HyperLogLogPlus> entry: perClassCardinality.entrySet()) {
+          response.putToPerClassCardinality(entry.getKey(), ByteBuffer.wrap(entry.getValue().toBytes()));
+          byte[] data = entry.getKey().getBytes(Charsets.UTF_8);
+          classCardinality.aggregate(SipHashInline.hash24(classLongs[0], classLongs[1], data, 0, data.length, false));        
+        }
+      }
+      
+      response.setClassCardinality(classCardinality.toBytes());
+      
+      if (null != perLabelValueCardinality) {
+        HyperLogLogPlus estimator = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+        HyperLogLogPlus nameEstimator = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+        for (Entry<String,HyperLogLogPlus> entry: perLabelValueCardinality.entrySet()) {
+          byte[] data = entry.getKey().getBytes(Charsets.UTF_8);
+          nameEstimator.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
+          estimator.fuse(entry.getValue());
+          response.putToPerLabelValueCardinality(entry.getKey(), ByteBuffer.wrap(entry.getValue().toBytes()));
+        }
+        response.setLabelNamesCardinality(nameEstimator.toBytes());
+        response.setLabelValuesCardinality(estimator.toBytes());
+      } else {
+        response.setLabelNamesCardinality(labelNamesCardinality.toBytes());
+        response.setLabelValuesCardinality(labelValuesCardinality.toBytes());
+      }
+      
+      return response;   
+    } catch (IOException ioe) {
+      ioe.printStackTrace();
+      throw new TException(ioe);
+    } catch (Exception e) {
+      e.printStackTrace();
+      throw new TException(e);
+    }
   }
   
   @Override
-  public MetadataIterator iterator(List<String> classSelector, List<Map<String, String>> labelsSelectors) throws IOException {
-    List<Metadata> metadatas = find(classSelector, labelsSelectors);
+  public MetadataIterator iterator(DirectoryRequest request) throws IOException {
+    List<Metadata> metadatas = find(request);
 
     final Iterator<Metadata> iter = metadatas.iterator();
 
@@ -782,5 +1249,9 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       @Override
       public Metadata next() { return iter.next(); }
     };
+  }
+  
+  public void setActivityWindow(long activityWindow) {
+    this.activityWindow = activityWindow;
   }
 }

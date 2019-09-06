@@ -1,3 +1,18 @@
+//
+//   Copyright 2018  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
 package io.warp10.hadoop;
 
 import java.io.IOException;
@@ -5,26 +20,29 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.ObjectWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptExecutor;
 import io.warp10.script.WarpScriptExecutor.StackSemantics;
 
-public class WarpScriptRecordReader extends RecordReader<Writable, Writable> {
+public class WarpScriptRecordReader extends RecordReader<Object, Object> {
 
   private final RecordReader reader;
   
-  private Writable key = null;
-  private Writable value = null;
+  private Object key = null;
+  private Object value = null;
   
   /**
    * List of pending records not yet returned
    */
-  private List<List<Writable>> records = new ArrayList<List<Writable>>();
+  private List<List<Object>> records = new ArrayList<List<Object>>();
   
   private int recordidx = 0;
   
@@ -48,11 +66,11 @@ public class WarpScriptRecordReader extends RecordReader<Writable, Writable> {
   }
   
   @Override
-  public Writable getCurrentKey() throws IOException, InterruptedException {
+  public Object getCurrentKey() throws IOException, InterruptedException {
     return key;
   }
   @Override
-  public Writable getCurrentValue() throws IOException, InterruptedException {
+  public Object getCurrentValue() throws IOException, InterruptedException {
     return value;
   }
   @Override
@@ -65,11 +83,18 @@ public class WarpScriptRecordReader extends RecordReader<Writable, Writable> {
     // Initialize wrapped reader
     reader.initialize(split, context);
     
-    String code = Warp10InputFormat.getProperty(context.getConfiguration(), this.suffix, WarpScriptInputFormat.WARPSCRIPT_INPUTFORMAT_SCRIPT, null);
-    // Initialize WarpScriptExecutor
+    Configuration conf = context.getConfiguration();
     
+    String code = Warp10InputFormat.getProperty(conf, this.suffix, WarpScriptInputFormat.WARPSCRIPT_INPUTFORMAT_SCRIPT, null);
+
+    // Record the current path in the configuration if the split is a FileSplit
+    if (split instanceof FileSplit) {
+      conf.set(WarpScriptInputFormat.PATH_CONFIG_KEY, ((FileSplit) split).getPath().toString());      
+    }
+    
+    // Initialize WarpScriptExecutor
     try {
-      this.executor = inputFormat.getWarpScriptExecutor(context.getConfiguration(), code);
+      this.executor = inputFormat.getWarpScriptExecutor(conf, code);
     } catch (WarpScriptException wse) {
       throw new IOException("Error while instatiating WarpScript executor", wse);
     }
@@ -81,7 +106,7 @@ public class WarpScriptRecordReader extends RecordReader<Writable, Writable> {
   public boolean nextKeyValue() throws IOException, InterruptedException {
     // If we have pending records, get the next one and return true
     if (!records.isEmpty()) {
-      List<Writable> kv = records.get(recordidx++);
+      List<Object> kv = records.get(recordidx++);
       if (records.size() == recordidx) {
         records.clear();
         recordidx = 0;
@@ -107,8 +132,8 @@ public class WarpScriptRecordReader extends RecordReader<Writable, Writable> {
       boolean nkv = this.reader.nextKeyValue();
       
       if (nkv) {
-        Writable k = (Writable) this.reader.getCurrentKey();
-        Writable v = (Writable) this.reader.getCurrentValue();
+        Object k = this.reader.getCurrentKey();
+        Object v = this.reader.getCurrentValue();
         
         List<Object> input = new ArrayList<Object>();
         
@@ -133,7 +158,7 @@ public class WarpScriptRecordReader extends RecordReader<Writable, Writable> {
             if (!(result instanceof List) || 2 != ((List) result).size()) {
               throw new IOException("Invalid WarpScript™ output, expected a [ key value ] pair, got a " + result.getClass());
             }
-            List<Writable> record = new ArrayList<Writable>();
+            List<Object> record = new ArrayList<Object>();
             record.add(WritableUtils.toWritable(((List) result).get(0)));
             record.add(WritableUtils.toWritable(((List) result).get(1)));
             records.add(record);
@@ -170,7 +195,7 @@ public class WarpScriptRecordReader extends RecordReader<Writable, Writable> {
             if (!(result instanceof List) && 2 != ((List) result).size()) {
               throw new IOException("Invalid WarpScript™ output, expected [ key value ] pairs, got a " + result.getClass());
             }
-            List<Writable> record = new ArrayList<Writable>();
+            List<Object> record = new ArrayList<Object>();
             record.add(WritableUtils.toWritable(((List) result).get(0)));
             record.add(WritableUtils.toWritable(((List) result).get(1)));
             records.add(record);

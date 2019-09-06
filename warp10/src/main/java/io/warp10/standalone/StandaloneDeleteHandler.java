@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package io.warp10.standalone;
 
 import io.warp10.WarpConfig;
+import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.LogUtil;
 import io.warp10.continuum.TimeSource;
@@ -29,6 +30,7 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.DatalogRequest;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.CryptoUtils;
@@ -40,9 +42,14 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
 
 import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.URLDecoder;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -96,6 +103,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
   
   private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
 
+  private final boolean datalogSync;
+  
   private final File loggingDir;
   
   private final String datalogId;
@@ -116,11 +125,10 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     
     this.labelsKey = this.keyStore.getKey(KeyStore.SIPHASH_LABELS);
     this.labelsKeyLongs = SipHashInline.getKey(this.labelsKey);
-    
-    Properties props = WarpConfig.getProperties();
-    
-    if (props.containsKey(Configuration.DATALOG_DIR)) {
-      File dir = new File(props.getProperty(Configuration.DATALOG_DIR));
+
+    String dirProp = WarpConfig.getProperty(Configuration.DATALOG_DIR);
+    if (null != dirProp) {
+      File dir = new File(dirProp);
       
       if (!dir.exists()) {
         throw new RuntimeException("Data logging target '" + dir + "' does not exist.");
@@ -130,7 +138,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         loggingDir = dir;
       }
       
-      String id = props.getProperty(Configuration.DATALOG_ID);
+      String id = WarpConfig.getProperty(Configuration.DATALOG_ID);
       
       if (null == id) {
         throw new RuntimeException("Property '" + Configuration.DATALOG_ID + "' MUST be set to a unique value for this instance.");
@@ -141,16 +149,17 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       loggingDir = null;
       datalogId = null;
     }
-    
-    if (props.containsKey(Configuration.DATALOG_PSK)) {
-      this.datalogPSK = this.keyStore.decodeKey(props.getProperty(Configuration.DATALOG_PSK));
+
+    String pskProp = WarpConfig.getProperty(Configuration.DATALOG_PSK);
+    if (null != pskProp) {
+      this.datalogPSK = this.keyStore.decodeKey(pskProp);
     } else {
       this.datalogPSK = null;
     }
         
-    this.logforwarded = "true".equals(props.getProperty(Configuration.DATALOG_LOGFORWARDED));
-    
-    this.disabled = "true".equals(props.getProperty(Configuration.STANDALONE_DELETE_DISABLE));
+    this.logforwarded = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_LOGFORWARDED));
+    this.datalogSync = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_SYNC));        
+    this.disabled = "true".equals(WarpConfig.getProperty(Configuration.STANDALONE_DELETE_DISABLE));
   }
   
   @Override
@@ -163,6 +172,11 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     
     if (disabled) {
       response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Delete endpoint is disabled by configuration.");
+      return;
+    }
+    
+    if (null != WarpManager.getAttribute(WarpManager.DELETE_DISABLED)) {
+      response.sendError(HttpServletResponse.SC_FORBIDDEN, String.valueOf(WarpManager.getAttribute(WarpManager.DELETE_DISABLED)));
       return;
     }
     
@@ -205,7 +219,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, te.getMessage());
         return;
       }
-      
+    
       Map<String,String> labels = new HashMap<String,String>();
       labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
       labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
@@ -238,6 +252,9 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     
     try {
       writeToken = Tokens.extractWriteToken(token);
+      if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NODELETE)) {
+        throw new WarpScriptException("Token cannot be used for deletions.");
+      }
     } catch (WarpScriptException ee) {
       ee.printStackTrace();
       response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ee.getMessage());
@@ -292,6 +309,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     
     File loggingFile = null;
     PrintWriter loggingWriter = null;
+    FileDescriptor loggingFD = null;
     
     //
     // Open the logging file if logging is enabled
@@ -346,7 +364,11 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         encoded = OrderPreservingBase64.encode(encoded);
                 
         loggingFile = new File(loggingDir, sb.toString());
-        loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
+        
+        FileOutputStream fos = new FileOutputStream(loggingFile);
+        loggingFD = fos.getFD();
+        OutputStreamWriter osw = new OutputStreamWriter(fos, Charsets.UTF_8);
+        loggingWriter = new PrintWriter(osw);
         
         //
         // Write request
@@ -369,6 +391,15 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       //
       
       Map<String,String> extraLabels = new HashMap<String,String>();
+      
+      // Add extra labels, remove producer,owner,app
+      if (writeToken.getLabelsSize() > 0) {
+        extraLabels.putAll(writeToken.getLabels());
+        extraLabels.remove(Constants.PRODUCER_LABEL);
+        extraLabels.remove(Constants.OWNER_LABEL);
+        extraLabels.remove(Constants.APPLICATION_LABEL);
+      }
+
       //
       // Only set owner and potentially app, producer may vary
       //      
@@ -472,8 +503,12 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       clsSels.add(classSelector);
       lblsSels.add(labelsSelectors);
       
-      metadatas = directoryClient.find(clsSels, lblsSels);
+      DirectoryRequest drequest = new DirectoryRequest();
+      drequest.setClassSelectors(clsSels);
+      drequest.setLabelsSelectors(lblsSels);
 
+      metadatas = directoryClient.find(drequest);
+      
       response.setStatus(HttpServletResponse.SC_OK);
       response.setContentType("text/plain");
       
@@ -555,12 +590,23 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
         Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
 
+        if (datalogSync) {
+          loggingWriter.flush();
+          loggingFD.sync();
+        }
         loggingWriter.close();
         if (validated) {
-          loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
-        } else {
-          loggingFile.delete();
+          // Create hard links when multiple datalog forwarders are configured
+          for (Path srcDir: Warp.getDatalogSrcDirs()) {
+            try {
+              Files.createLink(new File(srcDir.toFile(), loggingFile.getName() + DatalogForwarder.DATALOG_SUFFIX).toPath(), loggingFile.toPath());              
+            } catch (Exception e) {
+              throw new RuntimeException("Encountered an error while attempting to link " + loggingFile + " to " + srcDir);
+            }
+          }
+          //loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
         }
+        loggingFile.delete();
       }      
 
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_REQUESTS, sensisionLabels, 1);

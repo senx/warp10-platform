@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -72,7 +72,7 @@ public class OpGE extends NamedWarpScriptFunction implements WarpScriptNAryFunct
           return new Object[] { tick, location, elevation, false };
         }
       } else {
-        throw new WarpScriptException(getName() + " can only be applied to geo time series of the same type.");
+        throw new WarpScriptException(getName() + " can only be applied to Geo Time Series of the same type.");
       }
     }
     

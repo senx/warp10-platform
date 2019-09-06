@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -25,6 +26,9 @@ import io.warp10.script.WarpScriptStackFunction;
 
 import java.util.Collection;
 import java.util.Map;
+
+import com.geoxp.GeoXPLib;
+import com.geoxp.GeoXPLib.GeoXPShape;
 
 /**
  * Pushes on the stack the size of an object (map, list or GTS). Consumes the object.
@@ -44,12 +48,16 @@ public class SIZE extends NamedWarpScriptFunction implements WarpScriptStackFunc
     } else if (obj instanceof Collection) {
       stack.push((long) ((Collection) obj).size());
     } else if (obj instanceof GeoTimeSerie) {
-      // Return the number of values, not nticks whichi would return the number of buckets
+      // Return the number of values, not nticks which would return the number of buckets
       stack.push((long) GTSHelper.nvalues((GeoTimeSerie) obj));
+    } else if (obj instanceof GTSEncoder) {
+      stack.push(((GTSEncoder) obj).getCount());
     } else if (obj instanceof String) {
       stack.push((long) obj.toString().length());
     } else if (obj instanceof byte[]) {
       stack.push(((byte[]) obj).length);
+    } else if (obj instanceof GeoXPShape) {
+      stack.push(GeoXPLib.getCells((GeoXPShape) obj).length);
     } else {
       throw new WarpScriptException(getName() + " operates on a map, a collection, a string, a byte array or a GTS.");
     }

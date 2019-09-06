@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -53,12 +53,12 @@ public class BUCKETIZE extends NamedWarpScriptFunction implements WarpScriptStac
     
     for (int i = 0; i < params.size() - 4; i++) {
       if (!(params.get(i) instanceof GeoTimeSerie) && !(params.get(i) instanceof List)) {
-        throw new WarpScriptException(getName() + " expects a list of geo time series as first parameter.");
+        throw new WarpScriptException(getName() + " expects a list of Geo Time Series as first parameter.");
       }      
     }
     
-    if (!(params.get(params.size() - 4) instanceof WarpScriptBucketizerFunction) && !(params.get(params.size() - 4) instanceof Macro)) {
-      throw new WarpScriptException(getName() + " expects a bucketizer function or macro as fourth to last parameter.");
+    if (!(params.get(params.size() - 4) instanceof WarpScriptBucketizerFunction) && !(params.get(params.size() - 4) instanceof Macro) && null != params.get(params.size() - 4)) {
+      throw new WarpScriptException(getName() + " expects a bucketizer function, a macro, or NULL as fourth to last parameter.");
     }
     
     if (!(params.get(params.size() - 3) instanceof Long) || !(params.get(params.size() - 2) instanceof Long) || !(params.get(params.size() - 1) instanceof Long)) {
@@ -74,7 +74,7 @@ public class BUCKETIZE extends NamedWarpScriptFunction implements WarpScriptStac
       } else if (params.get(i) instanceof List) {
         for (Object o: (List) params.get(i)) {
           if (!(o instanceof GeoTimeSerie)) {
-            throw new WarpScriptException(getName() + " expects a list of geo time series as first parameter.");
+            throw new WarpScriptException(getName() + " expects a list of Geo Time Series as first parameter.");
           }
           series.add((GeoTimeSerie) o);
         }      

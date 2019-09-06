@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ public class APPLY extends NamedWarpScriptFunction implements WarpScriptStackFun
   
   public APPLY(String name, boolean flatten) {
     super(name);
-    this.flatten = flatten;
+    this.flatten = flatten;    
   }
   
   @Override
@@ -93,19 +93,25 @@ public class APPLY extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     for (int i = 0; i < labelsidx; i++) {
       if (!(params.get(i) instanceof List)) {
-        throw new WarpScriptException(getName() + " expects lists of geo time series as first parameters.");
+        throw new WarpScriptException(getName() + " expects lists of Geo Time Series as first parameters.");
       }              
-    }
-      
+    }      
       
     List<GeoTimeSerie>[] colls = new List[labelsidx];
     Collection<String> bylabels = (Collection<String>) params.get(labelsidx);
         
     for (int i = 0; i < labelsidx; i++) {
       colls[i] = new ArrayList<GeoTimeSerie>();
-      colls[i].addAll((Collection<GeoTimeSerie>) params.get(i));
-    }
 
+      for (Object o: (List) params.get(i)) {
+        if (o instanceof GeoTimeSerie) {
+          colls[i].add((GeoTimeSerie) o);
+        } else {
+          throw new WarpScriptException(getName() + " expects lists of Geo Time Series as first parameters.");
+        }
+      }
+    }
+    
     Macro validator = null;
         
     if (opidx < params.size() - 1) {
@@ -118,7 +124,8 @@ public class APPLY extends NamedWarpScriptFunction implements WarpScriptStackFun
       stack.push(GTSHelper.partitionAndApply(params.get(opidx), stack, validator, bylabels, colls));
     } else {
       stack.push(GTSHelper.partitionAndApplyUnflattened(params.get(opidx), stack, validator, bylabels, colls));
-    }
+    }      
+    
     return stack;
   }
 }

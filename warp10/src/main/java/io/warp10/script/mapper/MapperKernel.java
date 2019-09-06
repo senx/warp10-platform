@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,11 +17,11 @@
 package io.warp10.script.mapper;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
-public abstract class MapperKernel extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public abstract class MapperKernel extends NamedWarpScriptFunction implements WarpScriptStackFunction {    
   public MapperKernel(String name) {
     super(name);
   }
@@ -48,7 +48,7 @@ public abstract class MapperKernel extends NamedWarpScriptFunction implements Wa
     
     long step = ((Number) top).longValue();
     
-    MapperKernelSmoother smoother = new MapperKernelSmoother(getName(), step, getWeights(step, width));
+    MapperKernelSmoother smoother = new MapperKernelSmoother(getName(), step, width, getWeights(step, width));
     
     stack.push(smoother);
     

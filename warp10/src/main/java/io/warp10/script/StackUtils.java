@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -113,7 +113,8 @@ public class StackUtils {
     } else if (o instanceof Map) {
       out.print("{");
       boolean first = true;
-      for (Object key: ((Map) o).keySet()) {
+      for (Map.Entry keyAndValue: ((Map<?, ?>) o).entrySet()) {
+        Object key = keyAndValue.getKey();
         if (!first) {
           out.print(",");
         }
@@ -124,7 +125,7 @@ public class StackUtils {
           out.print("null");
         }
         out.print(":");
-        objectToJSON(serializer, out, ((Map) o).get(key), recursionLevel, strictJSON);
+        objectToJSON(serializer, out, keyAndValue.getValue(), recursionLevel, strictJSON);
         first = false;
       }
       out.print("}");
@@ -152,6 +153,8 @@ public class StackUtils {
       objectToJSON(serializer, out, ((GeoTimeSerie) o).getMetadata().getLabels(), recursionLevel, strictJSON);
       out.print(",\"a\":");
       objectToJSON(serializer, out, ((GeoTimeSerie) o).getMetadata().getAttributes(), recursionLevel, strictJSON);
+      out.print(",\"la\":");
+      objectToJSON(serializer, out, ((GeoTimeSerie) o).getMetadata().getLastActivity(), recursionLevel, strictJSON);
       out.print(",\"v\":[");
       boolean first = true;
       for (int i = 0; i < ((GeoTimeSerie) o).size(); i++) {
@@ -210,6 +213,7 @@ public class StackUtils {
         long ts = decoder.getTimestamp();
         long location = decoder.getLocation();
         long elevation = decoder.getElevation();
+        // We do not call getBinaryValue because JSON cannot represent byte arrays
         Object v = decoder.getValue();
         out.print("[");
         out.print(ts);
@@ -563,8 +567,8 @@ public class StackUtils {
       
       if (null != inGTS.booleanValues) {
         type = TYPE.BOOLEAN;
-        if (inGTS.booleanValues.size() != len) {
-          throw new WarpScriptException("Incoherent size for boolean values (" + inGTS.booleanValues.size() + "), expected " + len);
+        if (inGTS.booleanValues.size() < len) {  // .size() gives the number of bits the implementation uses
+          throw new WarpScriptException("Incoherent size for boolean values (" + inGTS.booleanValues.size() + "), or less expected " + len);
         }
       }
       

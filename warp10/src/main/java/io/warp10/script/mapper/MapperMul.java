@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -111,7 +111,11 @@ public class MapperMul extends NamedWarpScriptFunction implements WarpScriptMapp
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append(StackUtils.toString(TYPE.LONG == this.type ? lvalue : dvalue));
+    if (TYPE.LONG == this.type) {
+      sb.append(StackUtils.toString(lvalue));      
+    } else {
+      sb.append(StackUtils.toString(dvalue));            
+    }
     sb.append(" ");
     sb.append(this.getName());
     return sb.toString();

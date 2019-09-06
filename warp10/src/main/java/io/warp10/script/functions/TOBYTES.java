@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -27,36 +27,36 @@ import java.io.UnsupportedEncodingException;
  * Converts a string into its bytes given a charset
  */
 public class TOBYTES extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public TOBYTES(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
-    
+
     if (!(o instanceof String)) {
       throw new WarpScriptException(getName() + " operates on a String and expects a charset name on top of the stack.");
     }
-    
+
     String charset = o.toString();
-    
+
     o = stack.pop();
-    
+
     if (!(o instanceof String)) {
       throw new WarpScriptException(getName() + " operates on a String.");
     }
-    
+
     String str = o.toString();
-    
+
     try {
       byte[] bytes = str.getBytes(charset);
       stack.push(bytes);
     } catch (UnsupportedEncodingException uee) {
-      throw new WarpScriptException(getName() + " unsupported encoding '" + charset + "'");
+      throw new WarpScriptException(getName() + " unsupported encoding '" + charset + "'", uee);
     }
-    
+
     return stack;
   }
 }

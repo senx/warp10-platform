@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Charsets;
@@ -52,6 +51,16 @@ public class WarpScriptMacroRepository extends Thread {
    */
   private static final long DEFAULT_DELAY = 3600000L;
 
+  /**
+   * Default TTL for macros loaded on demand
+   */
+  private static final long DEFAULT_MACRO_TTL = 600000L;
+  
+  /**
+   * Default TTL for macros which failed loading
+   */
+  private static final long DEFAULT_FAILED_MACRO_TTL = 10000L;
+  
   private static long[] SIP_KEYS = { 31232312312312L, 543534535435L };
   
   public static final String WARPSCRIPT_FILE_EXTENSION = ".mc2";
@@ -67,12 +76,22 @@ public class WarpScriptMacroRepository extends Thread {
   private static long delay = DEFAULT_DELAY;
   
   /**
-   * Counter to avoid recursive calls to loadMacro
+   * Default TTL for loaded macros
    */
-  private static ThreadLocal<AtomicInteger> loading = new ThreadLocal<AtomicInteger>() {
+  private static long ttl = DEFAULT_MACRO_TTL;
+  
+  /**
+   * Default TTL for failed macros
+   */
+  private static long failedTtl = DEFAULT_FAILED_MACRO_TTL;
+  
+  /**
+   * List of macro names to avoid loops in macro loading
+   */
+  private static ThreadLocal<List<String>> loading = new ThreadLocal<List<String>>() {
     @Override
-    protected AtomicInteger initialValue() {
-      return new AtomicInteger(0);
+    protected List<String> initialValue() {
+      return new ArrayList<String>();
     }
   };
   
@@ -86,7 +105,7 @@ public class WarpScriptMacroRepository extends Thread {
    */
   private final static Map<String,Macro> macros = new HashMap<String,Macro>();
  
-  private WarpScriptMacroRepository() {
+  private WarpScriptMacroRepository() {       
     this.setName("[Warp Macro Repository (" + directory + ")");
     this.setDaemon(true);
     this.start();
@@ -169,7 +188,7 @@ public class WarpScriptMacroRepository extends Thread {
       // Update macro count
       //
       
-      Sensision.set(SensisionConstants.SENSISION_CLASS_EINSTEIN_REPOSITORY_MACROS, Sensision.EMPTY_LABELS, newmacros.size());
+      Sensision.set(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_REPOSITORY_MACROS, Sensision.EMPTY_LABELS, newmacros.size());
       
       //
       // Sleep a while
@@ -287,6 +306,9 @@ public class WarpScriptMacroRepository extends Thread {
     directory = dir;
     delay = refreshDelay;
     
+    ttl = Long.parseLong(properties.getProperty(Configuration.REPOSITORY_TTL, Long.toString(DEFAULT_MACRO_TTL)));
+    failedTtl = Long.parseLong(properties.getProperty(Configuration.REPOSITORY_TTL_FAILED, Long.toString(DEFAULT_FAILED_MACRO_TTL)));
+
     ondemand = !"false".equals(properties.getProperty(Configuration.REPOSITORY_ONDEMAND));
     new WarpScriptMacroRepository();
   }
@@ -304,6 +326,11 @@ public class WarpScriptMacroRepository extends Thread {
       return null;
     }
     
+    // Reject names with relative path components in them or starting with '/'
+    if (name.contains("/../") || name.contains("/./") || name.startsWith("../") || name.startsWith("./") || name.startsWith("/")) {
+      return null;
+    }
+
     // Name should contain "/" as macros should reside under a subdirectory
     if (!name.contains("/")) {
       return null;
@@ -342,11 +369,24 @@ public class WarpScriptMacroRepository extends Thread {
     
     try {
       
-      if (loading.get().get() > 0) {
-        throw new WarpScriptException("Invalid recursive macro loading.");
+      if (loading.get().contains(name)) {
+        // Build the macro loading sequence
+        StringBuilder seq = new StringBuilder();
+        for(String macname: loading.get()) {
+          if (seq.length() > 0) {
+            seq.append(" >>> ");
+          }
+          seq.append("@");
+          seq.append(macname);
+        }
+        throw new WarpScriptException("Invalid recursive macro loading (" + seq.toString() + ")");
       }
       
-      loading.get().addAndGet(1);
+      loading.get().add(name);
+      
+      if (!file.exists()) {
+        return null;
+      }
       
       FileInputStream in = new FileInputStream(file);
       ByteArrayOutputStream out = new ByteArrayOutputStream((int) file.length());
@@ -382,7 +422,8 @@ public class WarpScriptMacroRepository extends Thread {
       
       MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
       stack.maxLimits();
-
+      stack.setAttribute(WarpScriptStack.ATTRIBUTE_MACRO_NAME, name);
+      
       //
       // Add 'INCLUDE', 'enabled' will disable 'INCLUDE' after we've used it when loading 
       //
@@ -402,14 +443,14 @@ public class WarpScriptMacroRepository extends Thread {
         public java.util.List<Object> statements() { return new ArrayList<Object>() {{ add(include); }}; }
         }
       );
-      
+            
       //
       // Execute the code
       //
       stack.execMulti(sb.toString());
       
       //
-      // Disable 'INCLUDE'
+      // Disable INCLUDE
       //
       
       enabled.set(false);
@@ -432,15 +473,19 @@ public class WarpScriptMacroRepository extends Thread {
       
       Macro macro = (Macro) stack.pop();
                 
-      // Set expiration if ondemand is set and an expiration date was set
-      if (ondemand && null != stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_EXPIRY)) {
-        macro.setExpiry((long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_EXPIRY));
+      // Set expiration if ondemand is set and a ttl was specified
+      if (ondemand && null != stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL)) {
+        macro.setExpiry(System.currentTimeMillis() + (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL));
+      } else if (ondemand) {
+        macro.setExpiry(System.currentTimeMillis() + ttl);
       }
       
       macro.setFingerprint(hash);
       
       // Make macro a secure one
       macro.setSecure(true);
+      
+      macro.setNameRecursive(name);
       
       return macro;
     } catch(Exception e) {
@@ -450,12 +495,12 @@ public class WarpScriptMacroRepository extends Thread {
       macro.add(MSGFAIL_FUNC);
       // Set the expiry to half the refresh interval if ondemand is true so we get a chance to load a newly provided file
       if (ondemand) {
-        macro.setExpiry(System.currentTimeMillis() + Math.max(delay / 2, 10000));
+        macro.setExpiry(System.currentTimeMillis() + Math.max(delay / 2, failedTtl));
       }
       macro.setFingerprint(0L);
       return macro;
     } finally {
-      loading.get().addAndGet(-1);
+      loading.get().remove(loading.get().size() - 1);
     }
   }
 }

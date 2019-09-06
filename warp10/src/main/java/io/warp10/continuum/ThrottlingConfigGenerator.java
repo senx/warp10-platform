@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -125,7 +125,7 @@ public class ThrottlingConfigGenerator {
 //        "\n" + 
 //        "$token\n" +
 //        //"'ZYcRABCkn+CLO/GUWmrvelLOnvAqO9PEmo8PQtOM1tJ5o'\n" + 
-//        "'~com.cityzendata.continuum.*datapoints.raw'\n" + 
+//        "'~warp.*datapoints.raw'\n" + 
 //        "'cell' $cell 2 ->MAP\n" + 
 //        "NOW DUP 86400000000 % -\n" + 
 //        "86400000000 +\n" + 
@@ -305,7 +305,7 @@ public class ThrottlingConfigGenerator {
       GTSDecoder decoder = encoder.getDecoder();
 
       if (decoder.next()) {        
-        //HyperLogLogPlus estimator = HyperLogLogPlus.fromBytes(OrderPreservingBase64.decode(decoder.getValue().toString().getBytes(Charsets.US_ASCII)));
+        // We don't call getBinaryValue because we know the value was stored as OPB64
         HyperLogLogPlus estimator = HyperLogLogPlus.fromBytes(OrderPreservingBase64.decode(decoder.getValue().toString().getBytes(Charsets.US_ASCII)));
         
         if (estimator.hasExpired()) {
@@ -337,7 +337,9 @@ public class ThrottlingConfigGenerator {
     // Output per producer ThrottlingConfiguration
     //
     
-    for (String key: MADS.keySet()) {
+    for (Map.Entry<String, Long> keyAndMad: MADS.entrySet()) {
+      String key = keyAndMad.getKey();
+      Long mad = keyAndMad.getValue();
       // Skip per application detail for now
       if (key.charAt(0) == '+') {
         continue;
@@ -345,7 +347,7 @@ public class ThrottlingConfigGenerator {
       sb = new StringBuilder();
       sb.append(key);
       sb.append(":");
-      sb.append(MADS.get(key));
+      sb.append(mad);
       sb.append(":");
       if (DPS.containsKey(key)) {
         double rate = DPS.get(key);
@@ -374,7 +376,7 @@ public class ThrottlingConfigGenerator {
           if (l > max) { max = l; }
         }
         
-        if (max - min > 0.10 * max || max > 0.8 * MADS.get(key) || max * 1.25 < HLLP.get(key).cardinality()) {
+        if (max - min > 0.10 * max || max > 0.8 * mad || max * 1.25 < HLLP.get(key).cardinality()) {
           sb.append(new String(OrderPreservingBase64.encode(HLLP.get(key).toBytes()), Charsets.US_ASCII));
         }
       } else {
@@ -423,7 +425,8 @@ public class ThrottlingConfigGenerator {
       
       GTSDecoder decoder = encoder.getDecoder();
 
-      if (decoder.next()) {        
+      if (decoder.next()) {
+        // We don't call getBinaryValue because we know the value was stored as OPB64
         HyperLogLogPlus estimator = HyperLogLogPlus.fromBytes(OrderPreservingBase64.decode(decoder.getValue().toString().getBytes(Charsets.US_ASCII)));
         
         if (estimator.hasExpired()) {
@@ -452,15 +455,17 @@ public class ThrottlingConfigGenerator {
     }
 
     br.close();
-    
-    for (String key: MADS.keySet()) {
+
+    for (Map.Entry<String, Long> keyAndMad: MADS.entrySet()) {
+      String key = keyAndMad.getKey();
+      Long mad = keyAndMad.getValue();
       if (key.charAt(0) != '+') {
         continue;
       }
       sb = new StringBuilder();
       sb.append(key);
       sb.append(":");
-      sb.append(MADS.get(key));
+      sb.append(mad);
       sb.append(":");
       if (DPS.containsKey(key)) {
         double rate = DPS.get(key);
@@ -488,7 +493,7 @@ public class ThrottlingConfigGenerator {
           if (l > max) { max = l; }
         }
         
-        if (max - min > 0.10 * max || max > 0.8 * MADS.get(key) || max * 1.25 < HLLP.get(key).cardinality()) {
+        if (max - min > 0.10 * max || max > 0.8 * mad || max * 1.25 < HLLP.get(key).cardinality()) {
           sb.append(new String(OrderPreservingBase64.encode(HLLP.get(key).toBytes()), Charsets.US_ASCII));
         }
       } else {

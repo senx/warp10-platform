@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ public class MERGE extends NamedWarpScriptFunction implements WarpScriptStackFun
           } else if (o instanceof GTSEncoder) {
             encoders.add((GTSEncoder) o);
           } else {
-            throw new WarpScriptException(getName() + " expects a list of geo time series or encoders as first parameter.");
+            throw new WarpScriptException(getName() + " expects a list of Geo Time Series or encoders as first parameter.");
           }
         }      
       }      

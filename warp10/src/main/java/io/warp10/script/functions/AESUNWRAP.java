@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import io.warp10.script.WarpScriptStackFunction;
 import java.util.Arrays;
 
 /**
- * Unwraps a byte array which was AESWRAPped
+ * Unwraps a byte array which was AESWRAPed
  */
 public class AESUNWRAP extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   

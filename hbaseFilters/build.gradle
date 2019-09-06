@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -52,8 +52,9 @@ bintray {
     pkg {
         repo = 'generic'
         name = 'hbaseFilters'
+        userOrg = 'senx'
         licenses = ['Apache-2.0']
-        vcsUrl = 'https://github.com/cityzendata/warp10-platform.git'
+        vcsUrl = 'https://github.com/senx/warp10-platform.git'
         version {
             name = getVersionName(warp10Version['hbaseFilters'])
             released = new Date()

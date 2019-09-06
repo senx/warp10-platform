@@ -1,5 +1,5 @@
 //
-//   Copyright 2017  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -95,7 +95,7 @@ public class ENCODERTO extends NamedWarpScriptFunction implements WarpScriptStac
       } else {
         element.add(elevation);
       }
-      element.add(decoder.getValue());
+      element.add(decoder.getBinaryValue());
       elements.add(element);
     }
     

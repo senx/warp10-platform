@@ -1,3 +1,18 @@
+//
+//   Copyright 2018  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
 package io.warp10.continuum.store;
 
 import io.warp10.continuum.Tokens;
@@ -82,7 +97,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
    * This works great for a single or a few time series but might prove underperforming for
    * a large number.
    * 
-   * Other strategies coulb be attempted.
+   * Other strategies could be attempted.
    * 
    * Fewer scans but with filters.
    * AsyncHBase
@@ -140,11 +155,11 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     // are reversed so the most recent (end) appears first (startkey)
     //
     
-    byte[] startkey = new byte[Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
+    byte[] startkey = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
     byte[] endkey = new byte[startkey.length];
     
     ByteBuffer bb = ByteBuffer.wrap(startkey).order(ByteOrder.BIG_ENDIAN);
-    bb.put(Store.HBASE_RAW_DATA_KEY_PREFIX);
+    bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
     bb.putLong(metadata.getClassId());
     bb.putLong(metadata.getLabelsId());
     // FIXME(hbs): modulus should be extracted from metadata as it depends on GTS and auth
@@ -153,7 +168,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     bb.putLong(Long.MAX_VALUE - modulus);
     
     bb = ByteBuffer.wrap(endkey).order(ByteOrder.BIG_ENDIAN);
-    bb.put(Store.HBASE_RAW_DATA_KEY_PREFIX);
+    bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
     bb.putLong(metadata.getClassId());
     bb.putLong(metadata.getLabelsId());
     //
@@ -275,7 +290,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
           if (1 == Constants.DEFAULT_MODULUS) {
             byte[] data = cell.getRowArray();
             int offset = cell.getRowOffset();
-            offset += Store.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8; // Add 'prefix' + 'classId' + 'labelsId' to row key offset
+            offset += Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8; // Add 'prefix' + 'classId' + 'labelsId' to row key offset
             long delta = data[offset] & 0xFF;
             delta <<= 8; delta |= (data[offset + 1] & 0xFFL);
             delta <<= 8; delta |= (data[offset + 2] & 0xFFL);
@@ -314,7 +329,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
                 if (writeTimestamp) {
                   encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), cell.getTimestamp() * Constants.TIME_UNITS_PER_MS);
                 } else {
-                  encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+                  encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
                 }
                 
                 //

@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ public class OpSub extends NamedWarpScriptFunction implements WarpScriptNAryFunc
     //
     
     if (2 != values.length) {
-      //throw new WarpScriptException("op.sub can only be applied to two geo time series.");
+      //throw new WarpScriptException("op.sub can only be applied to two Geo Time Series.");
       return new Object[] { tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null };
     }
 

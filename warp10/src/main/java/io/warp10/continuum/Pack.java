@@ -1,3 +1,18 @@
+//
+//   Copyright 2018  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
 package io.warp10.continuum;
 
 import io.warp10.WarpConfig;
@@ -112,7 +127,7 @@ public class Pack {
         }        
       }
 
-      chunkEncoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+      chunkEncoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
       
       if (ts > maxTS) {
         maxTS = ts;
@@ -234,7 +249,7 @@ public class Pack {
         long splitmax = Long.MIN_VALUE;
         
         while(deco.next()) {
-          split.addValue(deco.getTimestamp(), deco.getLocation(), deco.getElevation(), deco.getValue());
+          split.addValue(deco.getTimestamp(), deco.getLocation(), deco.getElevation(), deco.getBinaryValue());
           
           if (deco.getTimestamp() > splitmax) {
             splitmax = deco.getTimestamp();

@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ public class TOBITS extends NamedWarpScriptFunction implements WarpScriptStackFu
     Object op = stack.pop();
     
     if (!(op instanceof Number) && !(op instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " operates on a DOUBLE, LONG or Geo Time Serie thereof.");
+      throw new WarpScriptException(getName() + " operates on a DOUBLE, LONG or Geo Time Series thereof.");
     }
     
     if (op instanceof Number) {

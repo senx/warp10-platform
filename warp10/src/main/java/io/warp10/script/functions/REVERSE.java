@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.geoxp.oss.jarjar.org.bouncycastle.util.Arrays;
+
 /**
  * Reverse the order of the elements in a list, either by copying the list or reversing it in place 
  */
@@ -43,25 +45,23 @@ public class REVERSE extends NamedWarpScriptFunction implements WarpScriptStackF
     
     Object top = stack.pop();
     
-    if (!(top instanceof List) && !(top instanceof String)) {
-      throw new WarpScriptException(getName() + " operates on a list or String.");
+    if (!(top instanceof List) && !(top instanceof String) && !(top instanceof byte[])) {
+      throw new WarpScriptException(getName() + " operates on a list, byte array or String.");
     }
 
-    if (!this.stable) {      
-      if (top instanceof List) {
+    if (top instanceof List) {
+      if (!this.stable) {
         List l = new ArrayList<Object>();
         l.addAll((List) top);
-        Collections.reverse(l);
-        top = l;        
-      } else {
-        top = top.toString();
+        top = l;                
       }
-    } else if (top instanceof List) {
-      Collections.reverse((List) top); 
-    }
-
-    if (top instanceof String) {
-      char[] chars = top.toString();
+      Collections.reverse((List) top);
+      stack.push(top);
+    } else if (top instanceof String) {
+      if (!this.stable) {
+        top = new String(UnsafeString.getChars(top.toString()));
+      }
+      char[] chars = UnsafeString.getChars(top.toString());
       int i = 0;
       int j = chars.length - 1;
       
@@ -73,11 +73,26 @@ public class REVERSE extends NamedWarpScriptFunction implements WarpScriptStackF
         j--;
       }
       
-      top = new String(chars);
+      stack.push(top);
+    } else if (top instanceof byte[]) {
+      byte[] data = (byte[]) top; 
+      if (!this.stable) {
+        data = Arrays.copyOf(data, data.length);
+      }
+      int i = 0;
+      int j = data.length - 1;
+      
+      while (i < j) {
+        byte tmp = data[i];
+        data[i] = data[j];
+        data[j] = tmp;
+        i++;
+        j--;
+      }
+      
+      stack.push(data);
     }
-    
-    stack.push(top);
-    
+        
     return stack;
   }
 }

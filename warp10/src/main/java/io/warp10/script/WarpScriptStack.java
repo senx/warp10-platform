@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 package io.warp10.script;
 
-import io.warp10.continuum.geo.GeoDirectoryClient;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.script.functions.SNAPSHOT;
@@ -24,17 +23,18 @@ import io.warp10.script.functions.SNAPSHOT.Snapshotable;
 import io.warp10.warp.sdk.WarpScriptJavaFunction;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EmptyStackException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * The Einstein Geo Time Serie manipulation environment
+ * The WarpScript Geo Time Serie manipulation environment
  * usually uses a stack to operate.
  * 
  * There may be multiple implementations of stacks that
- * Einstein can use, including some that persist to a
+ * WarpScript can use, including some that persist to a
  * cache or that may spill to disk.
  * 
  * All those implementations MUST implement this interface.
@@ -53,8 +53,7 @@ public interface WarpScriptStack {
   public static final int DEFAULT_MAX_SYMBOLS = 64;
   public static final int DEFAULT_MAX_WEBCALLS = 4;
   public static final long DEFAULT_MAX_PIXELS = 1000000L;
-  public static final long DEFAULT_URLFETCH_LIMIT = 64;
-  public static final long DEFAULT_URLFETCH_MAXSIZE = 1000000L;
+  public static final long DEFAULT_REGISTERS = 256;
   
   public static final String MACRO_START = "<%";
   public static final String MACRO_END = "%>";
@@ -71,19 +70,44 @@ public interface WarpScriptStack {
   public static final String TOP_LEVEL_SECTION = "[TOP]";
   
   /**
+   * Name of attribute for storing macro import rules
+   */
+  public static final String ATTRIBUTE_IMPORT_RULES = "import.rules";
+  
+  /**
    * Flag indicating whether or not to set section with the current line number
    */
   public static final String ATTRIBUTE_LINENO = "lineno";
   
   /**
-   * Prefix for traceing push/pop
+   * PrintWriter instance for the REL (Read Execute Loop)
    */
-  public static final String ATTRIBUTE_TRACE_PREFIX = "trace.prefix";
+  public static final String ATTRIBUTE_INTERACTIVE_WRITER = "interactive.writer";
+  
+  /**
+   * Should the REL display the stack levels as JSON?
+   */
+  public static final String ATTRIBUTE_INTERACTIVE_JSON = "interactive.json";
+  
+  /**
+   * Should the interactive mode display the top of the stack after each command?
+   */
+  public static final String ATTRIBUTE_INTERACTIVE_ECHO = "interactive.echo";
+  
+  /**
+   * Flag indicating whether or not to display timing information after each command.
+   */
+  public static final String ATTRIBUTE_INTERACTIVE_TIME = "interactive.time";
   
   /**
    * Name of current code section, null is unnamed
    */
   public static final String ATTRIBUTE_SECTION_NAME = "section.name";
+  
+  /**
+   * Name of the current macro, or null if not in a macro or in an anonymous one
+   */
+  public static final String ATTRIBUTE_MACRO_NAME = "macro.name";
   
   /**
    * Flag indicating whether or not the stack is currently in documentation mode
@@ -127,28 +151,6 @@ public interface WarpScriptStack {
    * Number of GTS retrieved so far in the session
    */
   public static final String ATTRIBUTE_GTS_COUNT = "gts.count";
-
-  /**
-   * Maximum number of calls to URLFETCH in a session
-   */
-  public static final String ATTRIBUTE_URLFETCH_LIMIT = "urlfetch.limit";
-  public static final String ATTRIBUTE_URLFETCH_LIMIT_HARD = "urlfetch.limit.hard";
-
-  /**
-   * Number of calls to URLFETCH so far in the sessions
-   */
-  public static final String ATTRIBUTE_URLFETCH_COUNT = "urlfetch.count";
-  
-  /**
-   * Maximum size of content retrieved via calls to URLFETCH in a session
-   */
-  public static final String ATTRIBUTE_URLFETCH_MAXSIZE = "urlfetch.maxsize";
-  public static final String ATTRIBUTE_URLFETCH_MAXSIZE_HARD = "urlfetch.maxsize.hard";
-
-  /**
-   * Current  URLFETCH so far in the sessions
-   */
-  public static final String ATTRIBUTE_URLFETCH_SIZE = "urlfetch.size";
   
   /**
    * List of elapsed times (in ns) per line
@@ -244,9 +246,9 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_IN_SECURE_MACRO = "in.secure.macro";
   
   /**
-   * Expiration date (in ms since the epoch) of a macro
+   * TTL (in ms since the epoch) of a macro
    */
-  public static final String ATTRIBUTE_MACRO_EXPIRY = "macro.expiry";
+  public static final String ATTRIBUTE_MACRO_TTL = "macro.ttl";
   
   /**
    * List of symbols to export upon script termination as a map of symbol name
@@ -282,58 +284,54 @@ public interface WarpScriptStack {
     
     private long fingerprint;
     
+    private String name = null;
+    
     /**
      * Timestamp at which the macro expired, or LONG.MIN_VALUE if no expiry date was set
      */
     private long expiry = Long.MIN_VALUE;
     
-    private ArrayList<Object> statements = new ArrayList<Object>();
+    private int size = 0;
+    private Object[] statements = new Object[16];
     
     public boolean isExpired() {
       return (Long.MIN_VALUE != this.expiry) && (this.expiry < System.currentTimeMillis());
     }
     
-    public String toString() {
-      StringBuilder sb = new StringBuilder();
-      
-      sb.append(MACRO_START);
-      sb.append(" ");
-
-      if (!secure) {
-        for (Object o: this.statements()) {
-          sb.append(StackUtils.toString(o));
-          sb.append(" ");        
-        }
-      } else {
-        sb.append(WarpScriptStack.COMMENT_START);
-        sb.append(" Secure Macro ");
-        sb.append(WarpScriptStack.COMMENT_END);
-        sb.append(" ");
-      }
-      
-      sb.append(MACRO_END);
-      
-      return sb.toString();
+    public String toString() {      
+      return snapshot();
     }
     
     public void add(Object o) {
-      this.statements().add(o);
+      ensureCapacity(1);
+      statements[size++] = o;
     }
     
     public Object get(int idx) {
-      return this.statements().get(idx);
+      return statements[idx];
     }
     
     public int size() {
-      return this.statements().size();
+      return size;
     }
     
+    public void setSize(int size) {
+      if (size < this.size && size >= 0) {
+        this.size = size;
+      }
+    }
+
     public List<Object> statements() {
-      return this.statements;
+      return Arrays.asList(this.statements).subList(0, size);
     }
     
     public void addAll(Macro macro) {
-      this.statements().addAll(macro.statements());
+      int n = macro.size;
+      
+      ensureCapacity(n);
+      
+      System.arraycopy(macro.statements, 0, this.statements, size, n);
+      size += n;
     }
     
     public void setSecure(boolean secure) {
@@ -354,6 +352,37 @@ public interface WarpScriptStack {
     
     public void setExpiry(long expiry) {
       this.expiry = expiry;
+    }
+    
+    public void setName(String name) {
+      this.name = name;
+    }
+    
+    /**
+     * Set the name of the current macro and set the same name for
+     * all included macros which do not have a name
+     * 
+     * @param name
+     */
+    public void setNameRecursive(String name) {
+      List<Macro> macros = new ArrayList<Macro>();
+      macros.add(this);
+      
+      while(!macros.isEmpty()) {
+        Macro m = macros.remove(0);
+        if (null == m.getName()) {
+          m.setName(name);
+          for (Object stmt: m.statements) {
+            if (stmt instanceof Macro) {
+              macros.add((Macro) stmt);
+            }
+          }
+        }
+      }
+    }
+    
+    public String getName() {
+      return this.name;
     }
     
     @Override
@@ -385,6 +414,15 @@ public interface WarpScriptStack {
       
       return sb.toString();
     }
+    
+    private void ensureCapacity(int n) {
+      if (size + n < this.statements.length) {
+        return;
+      }
+      
+      int newlen = n + this.statements.length + (this.statements.length >> 1);
+      this.statements = Arrays.copyOf(this.statements, newlen);
+    }
   }
   
   /**
@@ -398,12 +436,6 @@ public interface WarpScriptStack {
    * @return
    */
   public DirectoryClient getDirectoryClient();
-  
-  /**
-   * Retrieve the GeoDirectoryClient instance associated with this stack
-   * @return
-   */
-  public GeoDirectoryClient getGeoDirectoryClient();
   
   /**
    * Push an object onto the stack
@@ -643,6 +675,21 @@ public interface WarpScriptStack {
   public void store(String symbol, Object value) throws WarpScriptException;
   
   /**
+   * Return the content associated with the given register
+   * @param regidx Index of the register to read
+   * @return The content of the given register or null if the register is not set or does not exist
+   */
+  public Object load(int regidx) throws WarpScriptException;
+  
+  /**
+   * Stores the given value in register 'regidx'
+   * @param regidx
+   * @param value
+   * @throws WarpScriptException
+   */
+  public void store(int regidx, Object value) throws WarpScriptException;
+  
+  /**
    * Forget the given symbol
    * 
    * @param symbol Name of the symbol to forget.
@@ -657,13 +704,20 @@ public interface WarpScriptStack {
   public Map<String,Object> getSymbolTable();
   
   /**
+   * Return the current registers.
+   * 
+   * @return
+   */
+  public Object[] getRegisters();
+  
+  /**
    * Return the current map of redefined functions
    * @return
    */
   public Map<String,WarpScriptStackFunction> getDefined();
   
   /**
-   * Return a UUID for the instance of EinsteinStack
+   * Return a UUID for the instance of WarpScriptStack
    * @return
    */
   public String getUUID();
@@ -682,7 +736,7 @@ public interface WarpScriptStack {
    * 
    * @param key Name of the attribute to retrieve.
    * 
-   * @return The value store unded 'key' or null
+   * @return The value associated with 'key' or null
    */
   public Object getAttribute(String key);
   

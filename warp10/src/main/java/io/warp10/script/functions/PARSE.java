@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import java.io.StringReader;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Parse a string matching the format fed into the update endpoint
@@ -57,6 +58,8 @@ public class PARSE extends NamedWarpScriptFunction implements WarpScriptStackFun
     List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
 
     try {
+      AtomicBoolean hadAttributes = new AtomicBoolean(false);
+
       while(true) {
         String line = br.readLine();
         
@@ -64,7 +67,14 @@ public class PARSE extends NamedWarpScriptFunction implements WarpScriptStackFun
           break;
         }
         
-        encoder = GTSHelper.parse(lastencoder, line, null, null, Long.MAX_VALUE, true);
+        line = line.trim();
+        
+        // Ignore empty lines and comments
+        if (0 == line.length() || '#' == line.charAt(0)) {
+          continue;
+        }
+        
+        encoder = GTSHelper.parse(lastencoder, line, null, null, Long.MAX_VALUE, hadAttributes);
 
         if (null != lastencoder && lastencoder != encoder) {
           series.add(lastencoder.getDecoder(true).decode());

@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -39,34 +39,36 @@ public class FILLNEXT extends NamedWarpScriptFunction implements WarpScriptStack
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
 
-    if (!(top instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a list as input.");
-    }
-    
-    List<Object> params = (List<Object>) top;
-    
-    List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
+    if (top instanceof List) {
+      List<Object> params = (List<Object>) top;
 
-    for (int i = 0; i < params.size(); i++) {      
-      if (params.get(i) instanceof GeoTimeSerie) {
-        series.add((GeoTimeSerie) params.get(i));
-      } else if (params.get(i) instanceof List) {
-        for (Object o: (List) params.get(i)) {
-          if (!(o instanceof GeoTimeSerie)) {
-            throw new WarpScriptException(getName() + " expects a list of geo time series as first parameter.");
+      List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
+
+      for (int i = 0; i < params.size(); i++) {
+        if (params.get(i) instanceof GeoTimeSerie) {
+          series.add((GeoTimeSerie) params.get(i));
+        } else if (params.get(i) instanceof List) {
+          for (Object o: (List) params.get(i)) {
+            if (!(o instanceof GeoTimeSerie)) {
+              throw new WarpScriptException(getName() + " expects a LIST or a Geo Time Series™ as input.");
+            }
+            series.add((GeoTimeSerie) o);
           }
-          series.add((GeoTimeSerie) o);
-        }      
-      }      
+        }
+      }
+
+      List<GeoTimeSerie> result = new ArrayList<GeoTimeSerie>();
+
+      for (GeoTimeSerie gts: series) {
+        result.add(GTSHelper.fillnext(gts));
+      }
+      stack.push(result);
+    } else if (top instanceof GeoTimeSerie) {
+      stack.push(GTSHelper.fillnext((GeoTimeSerie) top));
+    } else {
+      throw new WarpScriptException(getName() + " expects a LIST or a Geo Time Series™ as input.");
     }
-    
-    List<GeoTimeSerie> result = new ArrayList<GeoTimeSerie>();
-    
-    for (GeoTimeSerie gts: series) {
-      result.add(GTSHelper.fillnext(gts));
-    }
-    
-    stack.push(result);
+
     return stack;
   }
 }

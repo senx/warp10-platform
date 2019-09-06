@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -105,7 +105,7 @@ public class HEXTOBIN extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append("1111");
           break;
         default:
-          throw new WarpScriptException(getName() + " encountered an invalid hex character '" + c[i] + "'.");
+          throw new WarpScriptException(getName() + " encountered an invalid hex character '" + s.charAt(i) + "'.");
       }          
     }
 

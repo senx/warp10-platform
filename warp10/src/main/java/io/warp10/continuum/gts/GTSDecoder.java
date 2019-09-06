@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ import java.util.Map.Entry;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.bouncycastle.crypto.CipherParameters;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.AESWrapEngine;
@@ -106,7 +107,8 @@ public class GTSDecoder {
    * Last String retrieved from decoder (post call to 'next')
    */
   private String lastStringValue = null;
-
+  private boolean lastStringBinary = false;
+  
   private long previousLastTimestamp = lastTimestamp;
   private long previousLastGeoXPPoint = lastGeoXPPoint;
   private long previousLastElevation = lastElevation;
@@ -426,7 +428,8 @@ public class GTSDecoder {
             int scale = buffer.get();
             long unscaled = Varint.decodeSignedLong(buffer);
             previousLastBDValue = lastBDValue;
-            lastBDValue = new BigDecimal(BigInteger.valueOf(unscaled), scale);
+            //lastBDValue = new BigDecimal(BigInteger.valueOf(unscaled), scale);
+            lastBDValue = BigDecimal.valueOf(unscaled, scale);
           }
         } else {
           previousLastDoubleValue = lastDoubleValue;
@@ -445,13 +448,16 @@ public class GTSDecoder {
             throw new RuntimeException("Invalid string length.");
           }
           
-          byte[] utf8 = new byte[(int) len];
-          // Read String UTF8 representation
-          buffer.get(utf8);
+          byte[] bytes = new byte[(int) len];
+          // Read String bytes
+          buffer.get(bytes);
           previousLastStringValue = lastStringValue;
-          lastStringValue = new String(utf8, Charsets.UTF_8);
+          boolean binary = GTSEncoder.FLAGS_STRING_BINARY == (tsTypeFlag & GTSEncoder.FLAGS_STRING_BINARY);
+          lastStringValue = new String(bytes, binary ? Charsets.ISO_8859_1 : Charsets.UTF_8);
+          lastStringBinary = binary;
         } else {
-          previousLastStringValue = lastStringValue;          
+          previousLastStringValue = lastStringValue;
+          lastStringBinary = GTSEncoder.FLAGS_STRING_BINARY == (tsTypeFlag & GTSEncoder.FLAGS_STRING_BINARY);
         }
         break;
         
@@ -504,6 +510,19 @@ public class GTSDecoder {
         return lastStringValue;
       default:
         return null;
+    }
+  }
+  
+  public boolean isBinary() {
+    return TYPE.STRING.equals(lastType) && lastStringBinary;
+  }
+  
+  public Object getBinaryValue() {
+    Object val = getValue();
+    if (val instanceof String && lastStringBinary) {
+      return ((String) val).getBytes(Charsets.ISO_8859_1);
+    } else {
+      return val;
     }
   }
   
@@ -746,7 +765,7 @@ public class GTSDecoder {
         
         location = this.getLocation();
         elevation = this.getElevation();
-        value = this.getValue();
+        value = this.getBinaryValue();
         
         dedupped.addValue(timestamp, location, elevation, value);
         continue;
@@ -755,7 +774,7 @@ public class GTSDecoder {
       long newTimestamp = this.getTimestamp();
       long newloc = this.getLocation();
       long newelev = this.getElevation();
-      Object newValue = this.getValue();
+      Object newValue = this.getBinaryValue();
             
       if (location != newloc || elevation != newelev) {
         dup = false;
@@ -775,6 +794,14 @@ public class GTSDecoder {
           }
         } else if (value instanceof Boolean) {
           if (!((Boolean) value).equals(newValue)) {
+            dup = false;
+          }
+        } else if (value instanceof byte[]) {
+          if (newValue instanceof byte[]) {
+            if (0 != Bytes.compareTo((byte[]) value, (byte[]) newValue)) {
+              dup = false;
+            }
+          } else {
             dup = false;
           }
         }
@@ -838,6 +865,7 @@ public class GTSDecoder {
     decoder.lastStringValue = this.lastStringValue;
     decoder.lastBooleanValue = this.lastBooleanValue;
     decoder.lastType = this.lastType;
+    decoder.lastStringBinary = this.lastStringBinary;
 
     return decoder;
   }
@@ -890,7 +918,7 @@ public class GTSDecoder {
         pw.print(" ");
       }
       sb.setLength(0);
-      GTSHelper.encodeValue(sb, getValue());
+      GTSHelper.encodeValue(sb, getBinaryValue());
       pw.print(sb.toString());
       pw.print("\r\n");
     }

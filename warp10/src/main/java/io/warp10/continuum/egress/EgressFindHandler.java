@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
 import io.warp10.quasar.token.thrift.data.ReadToken;
@@ -116,6 +117,9 @@ public class EgressFindHandler extends AbstractHandler {
       boolean showAttr = !("false".equals(req.getParameter(Constants.HTTP_PARAM_SHOWATTR)));
       boolean sortMeta = "true".equals(req.getParameter(Constants.HTTP_PARAM_SORTMETA));
 
+      Long activeAfter = null == req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
+      Long quietAfter = null == req.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
+
       ReadToken rtoken;
       
       try {
@@ -171,13 +175,24 @@ public class EgressFindHandler extends AbstractHandler {
           clsSels.add(classSelector);
           lblsSels.add(labelsSelector);
 
+          DirectoryRequest request = new DirectoryRequest();
+          request.setClassSelectors(clsSels);
+          request.setLabelsSelectors(lblsSels);
+
+          if (null != activeAfter) {
+            request.setActiveAfter(activeAfter);
+          }
+          if (null != quietAfter) {
+            request.setQuietAfter(quietAfter);
+          }
+
           JsonSerializer serializer = null;
           
           if (json) {
             serializer = StackUtils.getSerializer();
           }
           
-          try (MetadataIterator iterator = directoryClient.iterator(clsSels, lblsSels)) {
+          try (MetadataIterator iterator = directoryClient.iterator(request)) {
             while(iterator.hasNext()) {
               if (limit <= 0) {
                 break;

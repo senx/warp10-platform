@@ -1,5 +1,5 @@
 //
-//   Copyright 2016  Cityzen Data
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@
 package io.warp10.script.binary;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Compute the modulo of the two operands on top of the stack
@@ -29,18 +29,22 @@ public class MOD extends NamedWarpScriptFunction implements WarpScriptStackFunct
   public MOD(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object op2 = stack.pop();
     Object op1 = stack.pop();
-    
-    if (op2 instanceof Number && op1 instanceof Number) {
-      stack.push(((Number) op1).longValue() % ((Number) op2).longValue());        
-    } else {
-      throw new WarpScriptException(getName() + " can only operate on numeric long values.");
+
+    if (!(op2 instanceof Number) || !(op1 instanceof Number)) {
+      throw new WarpScriptException(getName() + " operates on numeric arguments.");
     }
-    
+
+    if ((op2 instanceof Long || op2 instanceof Integer) && (op1 instanceof Long || op1 instanceof Integer)) {
+      stack.push(((Number) op1).longValue() % ((Number) op2).longValue());
+    } else {
+      stack.push(((Number) op1).doubleValue() % ((Number) op2).doubleValue());
+    }
+
     return stack;
   }
 }

@@ -1,3 +1,18 @@
+//
+//   Copyright 2018  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
 /*
  * SearchWindow.java   Jul 14, 2004
  *
@@ -89,7 +104,7 @@ abstract public class SearchWindow {
   }
 
   // PROTECTED FUNCTIONS
-  // Expands the current window by a s pecified radius.
+  // Expands the current window by a specified radius.
   protected final void expandWindow(int radius) {
     if (radius > 0) {
       // Expand the search window by one before expanding by the remainder of
@@ -273,13 +288,13 @@ abstract public class SearchWindow {
       minValues[col] = row;
       maxValues[col] = row;
       this.size++;
-      modCount++; // stucture has been changed
+      modCount++; // structure has been changed
       // return true;
     } else if (minValues[col] > row) // minimum range in the column is expanded
     {
       this.size += minValues[col] - row;
       minValues[col] = row;
-      modCount++; // stucture has been changed
+      modCount++; // structure has been changed
     } else if (maxValues[col] < row) // maximum range in the column is expanded
     {
       this.size += row - maxValues[col];
@@ -299,7 +314,7 @@ abstract public class SearchWindow {
 
     // CONSTRUCTOR
     private SearchWindowIterator(SearchWindow w) {
-      // Intiialize values
+      // Initialize values
       window = w;
       hasMoreElements = window.size() > 0;
       currentI = window.minI();
