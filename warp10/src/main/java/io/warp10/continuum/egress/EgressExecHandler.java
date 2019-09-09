@@ -16,18 +16,17 @@
 
 package io.warp10.continuum.egress;
 
+import io.warp10.ThrowableUtils;
 import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.LogUtil;
 import io.warp10.continuum.TimeSource;
-import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.KeyStore;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
@@ -39,12 +38,9 @@ import io.warp10.script.WarpScriptStack.StackContext;
 import io.warp10.sensision.Sensision;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.EmptyStackException;
@@ -374,7 +370,7 @@ public class EgressExecHandler extends AbstractHandler {
       resp.addHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX) + "," + Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX));
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX), Long.toString(lineno));
       String section = (String) stack.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME);
-      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX), "in section '" + section + "': " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : ""));
+      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX), "in section '" + section + "': " + ThrowableUtils.getErrorMessage(t));
       
       //
       // Output the exported symbols in a map
@@ -402,14 +398,17 @@ public class EgressExecHandler extends AbstractHandler {
         try {
           // Set max stack depth to max int value - 1 so we can push our error message
           stack.setAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH, Integer.MAX_VALUE - 1);
-          stack.push("ERROR line #" + lineno + " in section '" + section + "': " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : "")); if (debugDepth < Integer.MAX_VALUE) { debugDepth++; }
+          stack.push("ERROR line #" + lineno + " in section '" + section + "': " + ThrowableUtils.getErrorMessage(t));
+          if (debugDepth < Integer.MAX_VALUE) {
+            debugDepth++;
+          }
         } catch (WarpScriptException ee) {
         }
 
         try { StackUtils.toJSON(pw, stack, debugDepth); } catch (WarpScriptException ee) {}
 
       } else {
-        String msg = "ERROR line #" + lineno + " in section '" + section + "': " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : "");
+        String msg = "ERROR line #" + lineno + " in section '" + section + "': " + ThrowableUtils.getErrorMessage(t);
         resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
       }

@@ -16,6 +16,7 @@
 
 package io.warp10.standalone;
 
+import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
@@ -25,7 +26,6 @@ import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.ingress.DatalogForwarder;
-import io.warp10.continuum.ingress.Ingress;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
@@ -37,7 +37,6 @@ import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
-import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
 
 import java.io.BufferedReader;
@@ -63,14 +62,11 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.io.output.FileWriterWithEncoding;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.UpgradeRequest;
-import org.eclipse.jetty.websocket.api.UpgradeResponse;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
@@ -573,7 +569,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
         }        
       } catch (Throwable t) {
         if (this.errormsg) {
-          session.getRemote().sendString("ERROR " + t.getMessage());
+          String msg = "ERROR " + ThrowableUtils.getErrorMessage(t);
+          session.getRemote().sendString(msg);
         } else {
           throw t;
         }
