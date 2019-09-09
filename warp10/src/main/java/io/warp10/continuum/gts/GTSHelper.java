@@ -341,6 +341,9 @@ public class GTSHelper {
   
   public static final GeoTimeSerie valueSort(GeoTimeSerie gts, boolean reversed) {
     quicksortByValue(gts, 0, gts.values - 1, reversed);
+
+    gts.sorted = false;
+
     return gts;
   }
 
@@ -809,6 +812,9 @@ public class GTSHelper {
 
   public static GeoTimeSerie locationSort(GeoTimeSerie gts) {
     quicksortByLocation(gts,0,gts.values - 1,false);
+
+    gts.sorted = false;
+
     return gts;
   }
 
