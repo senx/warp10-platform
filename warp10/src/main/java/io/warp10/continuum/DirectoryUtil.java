@@ -21,6 +21,7 @@ import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
 import io.warp10.crypto.SipHashInline;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -28,7 +29,6 @@ import java.util.TreeMap;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
 
-import com.google.common.base.Charsets;
 import com.google.common.primitives.Longs;
 
 public class DirectoryUtil {
@@ -62,7 +62,7 @@ public class DirectoryUtil {
       
       if (null != classSelectors) {
         for (String classSelector: classSelectors) {
-          baos.write(classSelector.getBytes(Charsets.UTF_8));
+          baos.write(classSelector.getBytes(StandardCharsets.UTF_8));
         }
       }
       
@@ -71,8 +71,8 @@ public class DirectoryUtil {
           TreeMap<String,String> tm = new TreeMap<String, String>();
           tm.putAll(map);
           for (Entry<String,String> entry: tm.entrySet()) {
-            baos.write(entry.getKey().getBytes(Charsets.UTF_8));
-            baos.write(entry.getValue().getBytes(Charsets.UTF_8));
+            baos.write(entry.getKey().getBytes(StandardCharsets.UTF_8));
+            baos.write(entry.getValue().getBytes(StandardCharsets.UTF_8));
           }
         }
       }      

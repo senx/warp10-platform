@@ -18,8 +18,7 @@ package io.warp10.continuum.gts;
 
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 
-import com.google.common.base.Charsets;
-
+import java.nio.charset.StandardCharsets;
 
 /**
  * Utility class to convert back and forth between DNA sequences
@@ -130,6 +129,6 @@ public class DNAUtils {
       }
     }
     
-    return new String(seq, Charsets.UTF_8);
+    return new String(seq, StandardCharsets.UTF_8);
   }
 }

@@ -23,6 +23,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
@@ -185,7 +186,7 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
       value = new BytesWritable();
     }
 
-    byte[] wrapper = OrderPreservingBase64.decode(tokens[2].getBytes("US-ASCII"));
+    byte[] wrapper = OrderPreservingBase64.decode(tokens[2].getBytes(StandardCharsets.US_ASCII));
 
     value.setCapacity(wrapper.length);
     value.set(wrapper, 0, wrapper.length);

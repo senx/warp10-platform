@@ -17,12 +17,11 @@
 package io.warp10.script.functions;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
-
-import com.google.common.base.Charsets;
 
 import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
@@ -49,7 +48,7 @@ public class UNWRAPENCODER extends NamedWarpScriptFunction implements WarpScript
       throw new WarpScriptException(getName() + " operates on a string or byte array.");
     }
     
-    byte[] bytes = top instanceof String ? OrderPreservingBase64.decode(top.toString().getBytes(Charsets.US_ASCII)) : (byte[]) top;
+    byte[] bytes = top instanceof String ? OrderPreservingBase64.decode(top.toString().getBytes(StandardCharsets.US_ASCII)) : (byte[]) top;
     
     TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
     

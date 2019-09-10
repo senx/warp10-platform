@@ -22,7 +22,7 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
-import com.google.common.base.Charsets;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Compute a SipHash of its input converted to String
@@ -61,7 +61,7 @@ public class HASH extends NamedWarpScriptFunction implements WarpScriptStackFunc
     byte[] data = null;
     
     if (o instanceof String) {
-      data = o.toString().getBytes(Charsets.UTF_8);
+      data = o.toString().getBytes(StandardCharsets.UTF_8);
     } else if (o instanceof byte[]) {
       data = (byte[]) o;
     } else {

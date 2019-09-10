@@ -18,6 +18,7 @@ package io.warp10.standalone;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -31,8 +32,6 @@ import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
-
-import com.google.common.base.Charsets;
 
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.store.Constants;
@@ -201,7 +200,7 @@ public class StandaloneSplitsHandler extends AbstractHandler {
         // 128 bits
         pw.print(Long.toHexString(classId));
         pw.print(" ");
-        pw.println(new String(OrderPreservingBase64.encode(data), Charsets.US_ASCII));
+        pw.println(new String(OrderPreservingBase64.encode(data), StandardCharsets.US_ASCII));
       }
     } catch (Exception e) {
       throw new IOException(e);

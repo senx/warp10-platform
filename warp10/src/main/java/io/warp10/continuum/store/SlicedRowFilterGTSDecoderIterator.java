@@ -26,6 +26,7 @@ import io.warp10.sensision.Sensision;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -46,7 +47,6 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Charsets;
 import com.google.common.primitives.Longs;
 
 /**
@@ -137,7 +137,7 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
       byte[] lower = keys[0];
       byte[] upper = keys[1];
       
-      this.metadatas.put(new String(Arrays.copyOfRange(lower, prefix.length, prefix.length + 16), Charsets.ISO_8859_1), metadata);
+      this.metadatas.put(new String(Arrays.copyOfRange(lower, prefix.length, prefix.length + 16), StandardCharsets.ISO_8859_1), metadata);
       
       Pair<byte[],byte[]> range = new Pair<byte[],byte[]>(lower, upper);
       
@@ -250,7 +250,7 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
 
       // Encode this in ISO_8859_1 so we are sure every possible byte sequence is valid
       // FIXME(hbs): instead of doing a Arrays.copyOfRange, use new String(byte[],offset,len,charset)
-      String classlabelsid = new String(Arrays.copyOfRange(result.getRow(), Constants.HBASE_RAW_DATA_KEY_PREFIX.length, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 16), Charsets.ISO_8859_1);
+      String classlabelsid = new String(Arrays.copyOfRange(result.getRow(), Constants.HBASE_RAW_DATA_KEY_PREFIX.length, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 16), StandardCharsets.ISO_8859_1);
     
       Metadata metadata = this.metadatas.get(classlabelsid);
 

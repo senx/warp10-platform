@@ -16,7 +16,6 @@
 
 package io.warp10.script.functions;
 
-import com.google.common.base.Charsets;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
@@ -30,6 +29,7 @@ import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Create a GTSEncoder for each instance of GTS, wrapped GTS or raw wrapped GTS.
@@ -41,7 +41,7 @@ public class ASENCODERS extends ElementOrListStackFunction {
     public Object applyOnElement(Object element) throws WarpScriptException {
       // If wrap, convert to raw wrap
       if (element instanceof String) {
-        element = OrderPreservingBase64.decode(element.toString().getBytes(Charsets.US_ASCII));
+        element = OrderPreservingBase64.decode(element.toString().getBytes(StandardCharsets.US_ASCII));
       }
 
       // If raw wrap, convert to GTS

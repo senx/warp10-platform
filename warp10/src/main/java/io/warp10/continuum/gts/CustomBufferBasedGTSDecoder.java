@@ -24,6 +24,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,8 +35,6 @@ import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.AESWrapEngine;
 import org.bouncycastle.crypto.paddings.PKCS7Padding;
 import org.bouncycastle.crypto.params.KeyParameter;
-
-import com.google.common.base.Charsets;
 
 /**
  * Class for decoding an encoded time serie.
@@ -422,7 +421,7 @@ public class CustomBufferBasedGTSDecoder extends GTSDecoder {
           // Read String UTF8 representation
           buffer.get(utf8);
           previousLastStringValue = lastStringValue;
-          lastStringValue = new String(utf8, Charsets.UTF_8);
+          lastStringValue = new String(utf8, StandardCharsets.UTF_8);
         }
         break;
         

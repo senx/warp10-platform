@@ -21,6 +21,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 
 import com.fasterxml.sort.DataReader;
@@ -28,8 +29,6 @@ import com.fasterxml.sort.DataReaderFactory;
 import com.fasterxml.sort.SortConfig;
 import com.fasterxml.sort.Sorter;
 import com.fasterxml.sort.std.RawTextLineWriter;
-import com.google.common.base.Charsets;
-
 public class TextFileShuffler extends Sorter<byte[]> {
   
   public static class CustomReader<T> extends DataReader<T> {
@@ -47,7 +46,7 @@ public class TextFileShuffler extends Sorter<byte[]> {
       if (null == line) {
         return null;
       } else {
-        return (T) line.getBytes(Charsets.UTF_8);
+        return (T) line.getBytes(StandardCharsets.UTF_8);
       }
     }
     
