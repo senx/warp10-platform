@@ -848,21 +848,16 @@ public class GTSEncoder implements Cloneable {
   }
 
   public static Object optimizeValue(Object value) {
-    StringBuilder sb = new StringBuilder();
-    
-    char[] chars = null;
 
     if ((value instanceof Double) && Double.isFinite((double) value)) {
-      sb.setLength(0);
+      StringBuilder sb = new StringBuilder();
+      
+      char[] chars = null;
+
       BinaryToASCIIConverter btoa = FloatingDecimal.getBinaryToASCIIConverter((double) value);
       btoa.appendTo(sb);
-      if (null == chars || chars.length < sb.length()) {
-        chars = new char[sb.length()];
-      }
       
-      sb.getChars(0, sb.length(), chars, 0);
-      
-      value = new BigDecimal(chars, 0, sb.length());
+      value = new BigDecimal(sb.toString());
     }
     
     return value;

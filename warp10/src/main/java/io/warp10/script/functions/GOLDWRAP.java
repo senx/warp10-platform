@@ -1,29 +1,40 @@
+//
+//   Copyright 2019  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
 package io.warp10.script.functions;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 
-import com.google.common.base.Charsets;
-
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.ElementOrListStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.ElementOrListStackFunction.ElementStackFunction;
 
 public class GOLDWRAP extends ElementOrListStackFunction {
   
@@ -52,7 +63,7 @@ public class GOLDWRAP extends ElementOrListStackFunction {
             byte[] bytes;
             
             if (element instanceof String) {
-              bytes = OrderPreservingBase64.decode(element.toString().getBytes(Charsets.US_ASCII));
+              bytes = OrderPreservingBase64.decode(element.toString().getBytes(StandardCharsets.US_ASCII));
             } else {
               bytes = (byte[]) element;
             }
@@ -78,7 +89,7 @@ public class GOLDWRAP extends ElementOrListStackFunction {
           GTSDecoder decoder = encoder.getDecoder();
           
           // Populate the 5 GTS
-          while(decoder.next()) {
+          while (decoder.next()) {
             long ts = decoder.getTimestamp();
             long location = decoder.getLocation();
             long elevation = decoder.getElevation();
@@ -121,7 +132,7 @@ public class GOLDWRAP extends ElementOrListStackFunction {
                 continue;
               }
               long tick = GTSHelper.tickAtIndex(gts[i], idx[i]);
-              if (tick < ts) {
+              if (-1 == gtsidx || tick < ts) {
                 gtsidx = i;
                 ts = tick;
               }
@@ -131,15 +142,13 @@ public class GOLDWRAP extends ElementOrListStackFunction {
               break;
             }
             
-            long tick = ts;
-            
             do {
               long location = GTSHelper.locationAtIndex(gts[gtsidx], idx[gtsidx]);
               long elevation = GTSHelper.elevationAtIndex(gts[gtsidx], idx[gtsidx]);
               Object value = GTSHelper.valueAtIndex(gts[gtsidx], idx[gtsidx]);
               
               if (4 == gtsidx) { // BINARY
-                value = value.toString().getBytes(Charsets.ISO_8859_1);
+                value = value.toString().getBytes(StandardCharsets.ISO_8859_1);
               } else if (2 == gtsidx) { // DOUBLE
                 // Attempt to optimize the value
                 value = GTSEncoder.optimizeValue(value);
@@ -148,7 +157,7 @@ public class GOLDWRAP extends ElementOrListStackFunction {
               enc.addValue(ts, location, elevation, value);
               
               idx[gtsidx]++;
-            } while(idx[gtsidx] < GTSHelper.nvalues(gts[gtsidx]) && GTSHelper.tickAtIndex(gts[gtsidx], idx[gtsidx]) == ts);            
+            } while (idx[gtsidx] < GTSHelper.nvalues(gts[gtsidx]) && GTSHelper.tickAtIndex(gts[gtsidx], idx[gtsidx]) == ts);            
           }         
           GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(enc, true, 1.0D, Integer.MAX_VALUE);
           TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
