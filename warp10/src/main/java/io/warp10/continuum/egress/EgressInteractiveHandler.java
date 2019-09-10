@@ -27,6 +27,7 @@ import java.io.PipedOutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -116,7 +117,7 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
     @OnWebSocketMessage
     public void onWebSocketMessage(Session session, String message) throws Exception {
       message = message + "\n";
-      this.processor.pipe(message.getBytes("UTF-8"));
+      this.processor.pipe(message.getBytes(StandardCharsets.UTF_8));
     }
     
     @OnWebSocketClose    
@@ -452,7 +453,7 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
           stack.exec(WarpScriptLib.BOOTSTRAP);
         } catch (Throwable t) {
           out.print("// ERROR ");
-          out.println(WarpURLEncoder.encode(t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : ""), "UTF-8").replaceAll("%20", " ").replaceAll("%27", "'"));
+          out.println(WarpURLEncoder.encode(t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : ""), StandardCharsets.UTF_8).replaceAll("%20", " ").replaceAll("%27", "'"));
           
           if (null != this.socket) {
             this.socket.close();
@@ -512,7 +513,7 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
           } catch (Throwable te) {
             t = te;
             out.print("// ERROR ");
-            out.println(WarpURLEncoder.encode(t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : ""), "UTF-8").replaceAll("%20", " ").replaceAll("%27", "'"));            
+            out.println(WarpURLEncoder.encode(t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : ""), StandardCharsets.UTF_8).replaceAll("%20", " ").replaceAll("%27", "'"));
           } finally {
             times.clear();
             times.add(System.nanoTime() - nano);

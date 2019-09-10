@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,8 +46,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 import java.util.zip.GZIPInputStream;
-
-import com.google.common.base.Charsets;
 
 import io.warp10.WarpConfig;
 import io.warp10.continuum.store.Constants;
@@ -80,7 +79,7 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
   private static JSONTO JSONTO;
   
   static {    
-    snapshot = WarpConfig.getProperty(ShardingWarpScriptExtension.SHARDING_SNAPSHOT, WarpScriptLib.SNAPSHOT).trim().getBytes(Charsets.UTF_8);
+    snapshot = WarpConfig.getProperty(ShardingWarpScriptExtension.SHARDING_SNAPSHOT, WarpScriptLib.SNAPSHOT).trim().getBytes(StandardCharsets.UTF_8);
     
     int poolsize = Integer.parseInt(WarpConfig.getProperty(ShardingWarpScriptExtension.SHARDING_POOLSIZE, "4"));
     maxThreadsPerRequest = Integer.parseInt(WarpConfig.getProperty(ShardingWarpScriptExtension.SHARDING_MAXTHREADSPERCALL, Integer.toString(poolsize)));
@@ -252,7 +251,7 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
               OutputStream connout = conn.getOutputStream();
               OutputStream out = connout;
               
-              out.write(params.getBytes(Charsets.UTF_8));
+              out.write(params.getBytes(StandardCharsets.UTF_8));
               out.write('\n');
               out.write(snapshot);
               out.write('\n');
@@ -284,7 +283,7 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
 
               byte[] bytes = baos.toByteArray();
               
-              String result = new String(bytes, Charsets.UTF_8);
+              String result = new String(bytes, StandardCharsets.UTF_8);
               
               return result;
             } catch (IOException ioe) {

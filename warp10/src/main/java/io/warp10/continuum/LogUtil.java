@@ -16,6 +16,7 @@
 
 package io.warp10.continuum;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -36,8 +37,6 @@ import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.boon.json.JsonSerializer;
 import org.boon.json.JsonSerializerFactory;
-
-import com.google.common.base.Charsets;
 
 public class LogUtil {
   
@@ -108,7 +107,7 @@ public class LogUtil {
       serialized = CryptoUtils.wrap(loggingAESKey, serialized);
     }
     
-    return new String(OrderPreservingBase64.encode(serialized), Charsets.US_ASCII); 
+    return new String(OrderPreservingBase64.encode(serialized), StandardCharsets.US_ASCII);
   }
   
   public static final LoggingEvent setLoggingEventStackTrace(LoggingEvent event, String name, Throwable t) {
@@ -188,7 +187,7 @@ public class LogUtil {
   
   public static final LoggingEvent unwrapLog(byte[] key, String logmsg) {    
     try {
-      byte[] data = OrderPreservingBase64.decode(logmsg.getBytes(Charsets.US_ASCII));
+      byte[] data = OrderPreservingBase64.decode(logmsg.getBytes(StandardCharsets.US_ASCII));
       
       if (null == data) {
         return null;      

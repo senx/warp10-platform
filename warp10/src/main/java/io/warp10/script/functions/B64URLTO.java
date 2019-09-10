@@ -21,7 +21,6 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
-import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
 
 /**

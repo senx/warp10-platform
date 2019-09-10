@@ -19,9 +19,8 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
-
-import com.google.common.base.Charsets;
 
 import io.warp10.continuum.Configuration;
 import io.warp10.script.MemoryWarpScriptStack;
@@ -53,7 +52,7 @@ public class WarpRun {
       BufferedReader br;
       
       if ("-".equals(args[0])) {
-        br = new BufferedReader(new InputStreamReader(System.in, Charsets.UTF_8));
+        br = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
       } else {
         br = new BufferedReader(new FileReader(args[0]));
       }

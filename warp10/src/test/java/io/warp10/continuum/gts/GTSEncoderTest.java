@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import org.bouncycastle.crypto.engines.AESWrapEngine;
@@ -37,8 +38,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.geoxp.GeoXPLib;
-import com.google.common.base.Charsets;
-
 public class GTSEncoderTest {
   
   @Test
@@ -621,14 +620,14 @@ public class GTSEncoderTest {
   public void testBINARY() throws Exception {
     GTSEncoder encoder = new GTSEncoder(0L);
     
-    encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "é".getBytes(Charsets.ISO_8859_1));
-    encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "é".getBytes(Charsets.ISO_8859_1));
+    encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "é".getBytes(StandardCharsets.ISO_8859_1));
+    encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "é".getBytes(StandardCharsets.ISO_8859_1));
     
     byte[] bytes = encoder.getBytes();
     Assert.assertEquals(4, bytes.length);
     
     encoder.reset(0L);
-    encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "é".getBytes(Charsets.ISO_8859_1));
+    encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "é".getBytes(StandardCharsets.ISO_8859_1));
 
     bytes = encoder.getBytes();
     Assert.assertEquals(3, bytes.length);
@@ -647,9 +646,9 @@ public class GTSEncoderTest {
     Assert.assertEquals("é", decoder.getValue());        
     
     encoder = new GTSEncoder(0L);
-    encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "@".getBytes(Charsets.ISO_8859_1));
+    encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "@".getBytes(StandardCharsets.ISO_8859_1));
     encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "@");
-    encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "@".getBytes(Charsets.ISO_8859_1));
+    encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "@".getBytes(StandardCharsets.ISO_8859_1));
     
     bytes = encoder.getBytes();
     Assert.assertEquals(5, bytes.length);
@@ -671,8 +670,8 @@ public class GTSEncoderTest {
   public void testResetBINARY() throws Exception {
     GTSEncoder encoder = new GTSEncoder(0L);
     
-    encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "é".getBytes(Charsets.ISO_8859_1));
-    encoder.addValue(1L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "è".getBytes(Charsets.ISO_8859_1));
+    encoder.addValue(0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "é".getBytes(StandardCharsets.ISO_8859_1));
+    encoder.addValue(1L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, "è".getBytes(StandardCharsets.ISO_8859_1));
     
     GTSDecoder decoder = encoder.getDecoder();
     decoder.next();
@@ -725,12 +724,12 @@ public class GTSEncoderTest {
     decoder.next();
     Assert.assertTrue(decoder.getBinaryValue() instanceof byte[]);
     Assert.assertTrue(decoder.isBinary());
-    Assert.assertArrayEquals("é".getBytes(Charsets.ISO_8859_1), (byte[]) decoder.getBinaryValue());
+    Assert.assertArrayEquals("é".getBytes(StandardCharsets.ISO_8859_1), (byte[]) decoder.getBinaryValue());
     Assert.assertEquals("é", decoder.getValue());
     decoder.next();
     Assert.assertTrue(decoder.getBinaryValue() instanceof byte[]);
     Assert.assertTrue(decoder.isBinary());
-    Assert.assertArrayEquals("@AB".getBytes(Charsets.ISO_8859_1), (byte[]) decoder.getBinaryValue());
+    Assert.assertArrayEquals("@AB".getBytes(StandardCharsets.ISO_8859_1), (byte[]) decoder.getBinaryValue());
     Assert.assertEquals("@AB", decoder.getValue());
 
   }

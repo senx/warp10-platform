@@ -18,6 +18,7 @@ package io.warp10.continuum.gts;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -86,7 +87,7 @@ public class Dedupper {
     // If the last value was more than 'heartbeat' us ago or
     // this is the first value for this class+labels,
     if (null == lastts || (timestamp - lastts) > heartbeat || !locelevvalue.equals(lastLocationElevationValue.get(class_labels))) {
-      os.write(line.getBytes("UTF-8"));
+      os.write(line.getBytes(StandardCharsets.UTF_8));
       os.write('\n');
       lastTimestamp.put(class_labels, timestamp);
       lastLocationElevationValue.put(class_labels, locelevvalue);
@@ -99,7 +100,7 @@ public class Dedupper {
   
   public void flush() throws IOException {
     for (String line: lastDiscardedLine.values()) {
-      os.write(line.getBytes("UTF-8"));
+      os.write(line.getBytes(StandardCharsets.UTF_8));
       os.write('\n');
     }
   }

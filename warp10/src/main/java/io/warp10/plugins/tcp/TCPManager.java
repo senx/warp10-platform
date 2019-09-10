@@ -15,7 +15,6 @@
 //
 package io.warp10.plugins.tcp;
 
-import com.google.common.base.Charsets;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStopException;
@@ -31,6 +30,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,7 +51,7 @@ public class TCPManager extends Thread {
   private static final int DEFAULT_QSIZE = 1024;
   private static final int DEFAULT_MAXMESSAGES = 1;
   private static final int DEFAULT_MAXCONNECTIONS = 1;
-  private static final String DEFAULT_CHARSET = "UTF-8";
+  private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
 
   private static final String PARAM_MODE = "mode";
   private static final String PARAM_RETRY = "retry";
@@ -112,7 +113,7 @@ public class TCPManager extends Thread {
 
     in.close();
 
-    warpscript = new String(baos.toByteArray(), Charsets.UTF_8);
+    warpscript = new String(baos.toByteArray(), StandardCharsets.UTF_8);
     stack = new MemoryWarpScriptStack(null, null, new Properties());
     stack.maxLimits();
 
@@ -145,7 +146,7 @@ public class TCPManager extends Thread {
     timeout = ((Number) config.getOrDefault(PARAM_TIMEOUT, 0L)).longValue();
     maxMessages = ((Number) config.getOrDefault(PARAM_MAXMESSAGES, DEFAULT_MAXMESSAGES)).intValue();
     maxConnections = ((Number) config.getOrDefault(PARAM_MAXCONNECTIONS, DEFAULT_MAXCONNECTIONS)).intValue();
-    charset = String.valueOf(config.getOrDefault(PARAM_CHARSET, DEFAULT_CHARSET));
+    charset = String.valueOf(config.getOrDefault(PARAM_CHARSET, DEFAULT_CHARSET.name()));
 
     int qsize = ((Number) config.getOrDefault(PARAM_QSIZE, DEFAULT_QSIZE)).intValue();
 

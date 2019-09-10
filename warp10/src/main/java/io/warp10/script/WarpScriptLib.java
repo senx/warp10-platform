@@ -18,6 +18,7 @@ package io.warp10.script;
 
 import java.net.URL;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -2415,7 +2416,7 @@ public class WarpScriptLib {
         String namespace = props.getProperty(Configuration.CONFIG_WARPSCRIPT_NAMESPACE_PREFIX + wse.getClass().getName(), "").trim(); 
         if (null != namespace && !"".equals(namespace)) {
           if (namespace.contains("%")) {
-            namespace = URLDecoder.decode(namespace, "UTF-8");
+            namespace = URLDecoder.decode(namespace, StandardCharsets.UTF_8.name());
           }
           LOG.info("LOADED extension '" + extension + "'" + " under namespace '" + namespace + "'.");
         } else {
@@ -2444,7 +2445,7 @@ public class WarpScriptLib {
         
     if (namespace.contains("%")) {
       try {
-        namespace = URLDecoder.decode(namespace, "UTF-8");
+        namespace = URLDecoder.decode(namespace, StandardCharsets.UTF_8.name());
       } catch (Exception e) {
         throw new RuntimeException(e);
       }

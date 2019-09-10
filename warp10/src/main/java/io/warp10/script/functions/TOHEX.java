@@ -23,7 +23,7 @@ import io.warp10.script.WarpScriptStack;
 
 import org.bouncycastle.util.encoders.Hex;
 
-import com.google.common.base.Charsets;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Encode a String in hexadecimal
@@ -39,9 +39,9 @@ public class TOHEX extends NamedWarpScriptFunction implements WarpScriptStackFun
     Object o = stack.pop();
     
     if (o instanceof String) {
-      stack.push(new String(Hex.encode(o.toString().getBytes(Charsets.UTF_8)), Charsets.UTF_8));
+      stack.push(new String(Hex.encode(o.toString().getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8));
     } else if (o instanceof byte[]) {
-      stack.push(new String(Hex.encode((byte[]) o), Charsets.UTF_8));
+      stack.push(new String(Hex.encode((byte[]) o), StandardCharsets.UTF_8));
     } else {
       throw new WarpScriptException(getName() + " operates on a String or a byte array.");
     }

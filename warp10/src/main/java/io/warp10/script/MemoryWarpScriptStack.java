@@ -35,6 +35,7 @@ import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EmptyStackException;
@@ -641,7 +642,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               secureScript.append(" ");
               secureScript.append("'");
               try {
-                secureScript.append(WarpURLEncoder.encode(mlcontent, "UTF-8"));
+                secureScript.append(WarpURLEncoder.encode(mlcontent, StandardCharsets.UTF_8));
               } catch (UnsupportedEncodingException uee) {
               }
               secureScript.append("'");
@@ -735,7 +736,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               if (-1 != UnsafeString.indexOf(str, '%')) {
                 // replace occurrences of '+' with '%2B'
                 str = str.replaceAll("\\+", "%2B");
-                str = URLDecoder.decode(str, "UTF-8");
+                str = URLDecoder.decode(str, StandardCharsets.UTF_8.name());
               }
 
               if (macros.isEmpty()) {
