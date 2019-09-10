@@ -23,13 +23,13 @@ import io.warp10.continuum.store.thrift.data.Metadata;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.common.base.Charsets;
 import com.google.common.primitives.Longs;
 
 public class MetadataUtils {
@@ -79,7 +79,7 @@ public class MetadataUtils {
     }
     
     try {
-      String name = URLDecoder.decode(m.group(1), "UTF-8");
+      String name = URLDecoder.decode(m.group(1), StandardCharsets.UTF_8.name());
       
       Map<String,String> labels = GTSHelper.parseLabels(m.group(2));
       Map<String,String> attributes = GTSHelper.parseLabels(m.group(3));

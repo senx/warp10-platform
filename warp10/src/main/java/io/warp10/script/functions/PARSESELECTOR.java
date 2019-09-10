@@ -25,6 +25,7 @@ import io.warp10.script.WarpScriptStack;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -77,7 +78,7 @@ public class PARSESELECTOR extends NamedWarpScriptFunction implements WarpScript
     String classSelector = null;
     
     try {
-      classSelector = URLDecoder.decode(m.group(1), "UTF-8");
+      classSelector = URLDecoder.decode(m.group(1), StandardCharsets.UTF_8.name());
     } catch (UnsupportedEncodingException uee) {
       // Can't happen, we're using UTF-8
     }

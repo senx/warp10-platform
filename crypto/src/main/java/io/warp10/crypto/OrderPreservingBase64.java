@@ -19,9 +19,8 @@ package io.warp10.crypto;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-
-import com.google.common.base.Charsets;
 
 /**
  * This class implements a Base64 like encoding which preserves the lexicographic order of the
@@ -39,7 +38,7 @@ public class OrderPreservingBase64 {
   /**
    * Alphabet preserving the ASCII lexicographic ordering.
    */
-  private static final byte[] ALPHABET = ".0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz".getBytes(Charsets.US_ASCII);
+  private static final byte[] ALPHABET = ".0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz".getBytes(StandardCharsets.US_ASCII);
 
   private static final byte[] TEBAHPLA = new byte[256];
 

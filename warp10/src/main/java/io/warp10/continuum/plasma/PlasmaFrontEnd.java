@@ -38,6 +38,7 @@ import io.warp10.standalone.StandalonePlasmaHandler;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -60,7 +61,6 @@ import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
@@ -437,7 +437,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
       // To notify the backend, update the subscription's zone data
       //
       
-      byte[] randomData = (this.topic + "." + System.currentTimeMillis()).getBytes(Charsets.UTF_8);
+      byte[] randomData = (this.topic + "." + System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8);
       
       try {
         this.subscriptionCuratorFramework.setData().forPath(this.znoderoot, randomData);

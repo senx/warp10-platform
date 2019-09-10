@@ -33,6 +33,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.Proxy;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -40,8 +41,6 @@ import java.util.Map.Entry;
 
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-
-import com.google.common.base.Charsets;
 
 public class StreamingMetadataIterator extends MetadataIterator {
   
@@ -122,7 +121,7 @@ public class StreamingMetadataIterator extends MetadataIterator {
       // Rebuild selector
       
       StringBuilder selector = new StringBuilder();
-      selector.append(WarpURLEncoder.encode(directoryRequest.getClassSelectors().get(idx), "UTF-8"));
+      selector.append(WarpURLEncoder.encode(directoryRequest.getClassSelectors().get(idx), StandardCharsets.UTF_8));
       selector.append("{");
       
       boolean first = true;
@@ -134,13 +133,13 @@ public class StreamingMetadataIterator extends MetadataIterator {
         selector.append(entry.getKey());
         if (entry.getValue().startsWith("=")) {
           selector.append("=");
-          selector.append(WarpURLEncoder.encode(entry.getValue().substring(1), "UTF-8"));          
+          selector.append(WarpURLEncoder.encode(entry.getValue().substring(1), StandardCharsets.UTF_8));
         } else if (entry.getValue().startsWith("~")) {
           selector.append("~");
-          selector.append(WarpURLEncoder.encode(entry.getValue().substring(1), "UTF-8"));
+          selector.append(WarpURLEncoder.encode(entry.getValue().substring(1), StandardCharsets.UTF_8));
         } else {
           selector.append("=");
-          selector.append(WarpURLEncoder.encode(entry.getValue(), "UTF-8"));
+          selector.append(WarpURLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8));
         }
         first = false;
       }
@@ -149,14 +148,14 @@ public class StreamingMetadataIterator extends MetadataIterator {
 
       String tssel = now + ":" + selector.toString();
 
-      byte[] data = tssel.getBytes(Charsets.UTF_8);
+      byte[] data = tssel.getBytes(StandardCharsets.UTF_8);
       long hash = SipHashInline.hash24(SIPHASH_PSK[0], SIPHASH_PSK[1], data, 0, data.length);
       
       String signature = Long.toHexString(now) + ":" + Long.toHexString(hash);
       
       // Open connection
       
-      String qs = Constants.HTTP_PARAM_SELECTOR + "=" + new String(OrderPreservingBase64.encode(selector.toString().getBytes(Charsets.UTF_8)), Charsets.US_ASCII);
+      String qs = Constants.HTTP_PARAM_SELECTOR + "=" + new String(OrderPreservingBase64.encode(selector.toString().getBytes(StandardCharsets.UTF_8)), StandardCharsets.US_ASCII);
 
       if (directoryRequest.isSetActiveAfter()) {
         qs = qs + "&" + Constants.HTTP_PARAM_ACTIVEAFTER + "=" + Long.toString(directoryRequest.getActiveAfter());
@@ -178,7 +177,7 @@ public class StreamingMetadataIterator extends MetadataIterator {
       conn.setDoOutput(true);
       
       OutputStream out = conn.getOutputStream();
-      out.write(qs.getBytes(Charsets.US_ASCII));
+      out.write(qs.getBytes(StandardCharsets.US_ASCII));
       out.flush();
       
       reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));          
@@ -203,7 +202,7 @@ public class StreamingMetadataIterator extends MetadataIterator {
     // Decode Metadata
     //
     
-    byte[] bytes = OrderPreservingBase64.decode(line.getBytes(Charsets.US_ASCII));
+    byte[] bytes = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
     
     TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
     

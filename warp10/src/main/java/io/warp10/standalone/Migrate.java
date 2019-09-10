@@ -24,6 +24,7 @@ import java.io.File;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -92,7 +93,7 @@ public class Migrate {
     DBIterator iter = indb.iterator();
     
     // Seek start of metadata
-    iter.seek("M".getBytes("UTF-8"));
+    iter.seek("M".getBytes(StandardCharsets.UTF_8));
     
     Map<BigInteger, byte[]> metadatas = new HashMap<BigInteger, byte[]>();
     
@@ -146,7 +147,7 @@ public class Migrate {
     // Read/Store readings
     //
     
-    iter.seek("R".getBytes("UTF-8"));
+    iter.seek("R".getBytes(StandardCharsets.UTF_8));
     
     long ndata = 0;
     

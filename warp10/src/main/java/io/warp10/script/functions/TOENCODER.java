@@ -17,11 +17,11 @@
 package io.warp10.script.functions;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import com.geoxp.GeoXPLib;
 
-import com.google.common.base.Charsets;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSWrapperHelper;
@@ -62,7 +62,7 @@ public class TOENCODER extends NamedWarpScriptFunction implements WarpScriptStac
 
       // If wrap, convert to raw wrap
       if (element instanceof String) {
-        element = OrderPreservingBase64.decode(element.toString().getBytes(Charsets.US_ASCII));
+        element = OrderPreservingBase64.decode(element.toString().getBytes(StandardCharsets.US_ASCII));
       }
 
       // If raw wrap, convert to GTS

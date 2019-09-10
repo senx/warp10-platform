@@ -23,7 +23,7 @@ import io.warp10.script.WarpScriptStack;
 
 import org.bouncycastle.util.encoders.Hex;
 
-import com.google.common.base.Charsets;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Encode a String in binary
@@ -48,7 +48,7 @@ public class TOBIN extends NamedWarpScriptFunction implements WarpScriptStackFun
     byte[] data = null;
     
     if (o instanceof String) {
-      data = o.toString().getBytes(Charsets.UTF_8);
+      data = o.toString().getBytes(StandardCharsets.UTF_8);
     } else if (o instanceof byte[]) {
       data = (byte[]) o;
     }

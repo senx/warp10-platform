@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -36,8 +37,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
-
-import com.google.common.base.Charsets;
 
 /**
  * Call a subprogram
@@ -176,7 +175,7 @@ public class CALL extends NamedWarpScriptFunction implements WarpScriptStackFunc
         // Output the URLencoded string to the subprogram
         //
         
-        proc.getOutputStream().write(WarpURLEncoder.encode(args.toString(), "UTF-8").getBytes(Charsets.UTF_8));
+        proc.getOutputStream().write(WarpURLEncoder.encode(args.toString(), StandardCharsets.UTF_8).getBytes(StandardCharsets.UTF_8));
         proc.getOutputStream().write('\n');
         proc.getOutputStream().flush();
         
@@ -195,10 +194,10 @@ public class CALL extends NamedWarpScriptFunction implements WarpScriptStackFunc
         //
         
         if (ret.startsWith(" ")) {
-          throw new WarpScriptException(URLDecoder.decode(ret.substring(1), "UTF-8"));
+          throw new WarpScriptException(URLDecoder.decode(ret.substring(1), StandardCharsets.UTF_8.name()));
         }
         
-        stack.push(URLDecoder.decode(ret, "UTF-8"));
+        stack.push(URLDecoder.decode(ret, StandardCharsets.UTF_8.name()));
         
         break;
       } catch (IOException ioe) {

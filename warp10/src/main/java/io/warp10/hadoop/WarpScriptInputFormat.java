@@ -21,6 +21,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,8 +39,6 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-
-import com.google.common.base.Charsets;
 
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptExecutor;
@@ -212,7 +211,7 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
     try {      
       fis = getWarpScriptInputStream(filepath);
       
-      br = new BufferedReader(new InputStreamReader(fis, Charsets.UTF_8));
+      br = new BufferedReader(new InputStreamReader(fis, StandardCharsets.UTF_8));
 
       while (true) {
         String line = br.readLine();

@@ -24,6 +24,7 @@ import java.io.PrintWriter;
 import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,8 +44,6 @@ import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Charsets;
 
 import io.warp10.SortedPathIterator;
 import io.warp10.continuum.Configuration;
@@ -356,7 +355,7 @@ public class DatalogForwarder extends Thread {
           labels.put(SensisionConstants.SENSISION_LABEL_FORWARDER, name);
         }
 
-        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
         labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.UPDATE.name());
         
         if (success) {
@@ -373,7 +372,7 @@ public class DatalogForwarder extends Thread {
           labels.put(SensisionConstants.SENSISION_LABEL_FORWARDER, name);
         }
 
-        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
         labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.UPDATE.name());
         
         Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FAILED, labels, 1);
@@ -427,7 +426,7 @@ public class DatalogForwarder extends Thread {
           labels.put(SensisionConstants.SENSISION_LABEL_FORWARDER, name);
         }
 
-        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
         labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.DELETE.name());
         if (success) {
           Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FORWARDED, labels, 1);
@@ -443,7 +442,7 @@ public class DatalogForwarder extends Thread {
           labels.put(SensisionConstants.SENSISION_LABEL_FORWARDER, name);
         }
 
-        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
         labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.DELETE.name());
         Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FAILED, labels, 1);
 
@@ -535,7 +534,7 @@ public class DatalogForwarder extends Thread {
           labels.put(SensisionConstants.SENSISION_LABEL_FORWARDER, name);
         }
 
-        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
         labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.META.name());
         if (success) {
           Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FORWARDED, labels, 1);
@@ -551,7 +550,7 @@ public class DatalogForwarder extends Thread {
           labels.put(SensisionConstants.SENSISION_LABEL_FORWARDER, name);
         }
 
-        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(action.request.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
         labels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogActionType.META.name());
         Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FAILED, labels, 1);
 
@@ -780,7 +779,7 @@ public class DatalogForwarder extends Thread {
           break;
         }
         
-        byte[] bytes = encoded.getBytes(Charsets.US_ASCII);
+        byte[] bytes = encoded.getBytes(StandardCharsets.US_ASCII);
         byte[] data = null;
 
         data = OrderPreservingBase64.decode(bytes);          
@@ -821,7 +820,7 @@ public class DatalogForwarder extends Thread {
         // Check if id should be ignored
         //
         
-        String decodedId = new String(OrderPreservingBase64.decode(id.getBytes(Charsets.US_ASCII)), Charsets.UTF_8);
+        String decodedId = new String(OrderPreservingBase64.decode(id.getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8);
         if (this.ignoredIds.contains(decodedId)) {
           Map<String,String> labels = new HashMap<String,String>();
           

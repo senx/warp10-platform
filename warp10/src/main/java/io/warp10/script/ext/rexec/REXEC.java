@@ -22,10 +22,9 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.SocketTimeoutException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-
-import com.google.common.base.Charsets;
 
 import io.warp10.WarpConfig;
 import io.warp10.continuum.store.Constants;
@@ -120,11 +119,11 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
         out = new GZIPOutputStream(out);
       }
 
-      out.write(warpscript.getBytes(Charsets.UTF_8));
+      out.write(warpscript.getBytes(StandardCharsets.UTF_8));
       out.write('\n');
-      out.write(WarpScriptLib.SNAPSHOT.getBytes(Charsets.UTF_8));      
+      out.write(WarpScriptLib.SNAPSHOT.getBytes(StandardCharsets.UTF_8));
       out.write('\n');
-      out.write(WarpScriptLib.TOOPB64.getBytes(Charsets.UTF_8));
+      out.write(WarpScriptLib.TOOPB64.getBytes(StandardCharsets.UTF_8));
       out.write('\n');
       
       if (this.compress) {
@@ -158,12 +157,12 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
       byte[] bytes = baos.toByteArray();
       
       // Strip '[ ' ' ]'
-      String result = new String(bytes, 2, bytes.length - 4, Charsets.US_ASCII);
+      String result = new String(bytes, 2, bytes.length - 4, StandardCharsets.US_ASCII);
       
       stack.push(result);
       
       stack.exec(WarpScriptLib.OPB64TO);
-      stack.push("UTF-8");
+      stack.push(StandardCharsets.UTF_8.name());
       stack.exec(WarpScriptLib.BYTESTO);
       stack.exec(WarpScriptLib.EVAL);
       
