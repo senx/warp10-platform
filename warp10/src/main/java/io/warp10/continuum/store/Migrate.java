@@ -24,6 +24,7 @@ import io.warp10.crypto.OSSKeyStore;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,8 +53,6 @@ import org.bouncycastle.crypto.params.KeyParameter;
 
 import com.geoxp.oss.jarjar.org.bouncycastle.util.Arrays;
 import com.geoxp.oss.jarjar.org.bouncycastle.util.encoders.Hex;
-import com.google.common.base.Charsets;
-
 /**
  * This class implements a migration tool to move data or metadata
  * from one state (HBase cluster, table, colfam, encryption) to another.
@@ -128,7 +127,7 @@ public class Migrate {
       } else if ("--fromtable".equals(args[i])) {
         fromtable = args[++i];
       } else if ("--fromcf".equals(args[i])) {
-        fromcf = args[++i].getBytes(Charsets.UTF_8);
+        fromcf = args[++i].getBytes(StandardCharsets.UTF_8);
       } else if ("--fromkey".equals(args[i])) {
         fromkey = args[++i];
       } else if ("--tohbase".equals(args[i])) {
@@ -136,13 +135,13 @@ public class Migrate {
       } else if ("--totable".equals(args[i])) {
         totable = args[++i];
       } else if ("--tocf".equals(args[i])) {
-        tocf = args[++i].getBytes(Charsets.UTF_8);
+        tocf = args[++i].getBytes(StandardCharsets.UTF_8);
       } else if ("--tokey".equals(args[i])) {
         tokey = args[++i];
       } else if ("--start".equals(args[i])) {
-        start = URLDecoder.decode(args[++i], "ISO-8859-1");
+        start = URLDecoder.decode(args[++i], StandardCharsets.ISO_8859_1.name());
       } else if ("--end".equals(args[i])) {
-        end = URLDecoder.decode(args[++i], "ISO-8859-1");
+        end = URLDecoder.decode(args[++i], StandardCharsets.ISO_8859_1.name());
       } else if ("--encryptedonly".equals(args[i])) {
         encdataonly = true;
       } else if ("--data".equals(args[i])) {
@@ -242,8 +241,8 @@ public class Migrate {
     Scan scan = new Scan();
     // Retrieve the whole column family
     scan.addFamily(fromcolfam);
-    scan.setStartRow(start.getBytes(Charsets.UTF_8));
-    scan.setStopRow(end.getBytes(Charsets.UTF_8));
+    scan.setStartRow(start.getBytes(StandardCharsets.UTF_8));
+    scan.setStopRow(end.getBytes(StandardCharsets.UTF_8));
 
     scan.setBatch(1000000);
     scan.setCaching(1000000);

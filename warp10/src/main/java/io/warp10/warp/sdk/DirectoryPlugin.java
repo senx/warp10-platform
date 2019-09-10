@@ -19,6 +19,7 @@ package io.warp10.warp.sdk;
 import io.warp10.WarpURLEncoder;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -124,7 +125,7 @@ public abstract class DirectoryPlugin {
     
     private void encode(StringBuilder sb, String str) {
       try {
-        String encoded = WarpURLEncoder.encode(str, "UTF-8");
+        String encoded = WarpURLEncoder.encode(str, StandardCharsets.UTF_8);
         sb.append(encoded);
       } catch (UnsupportedEncodingException uee) {        
       }

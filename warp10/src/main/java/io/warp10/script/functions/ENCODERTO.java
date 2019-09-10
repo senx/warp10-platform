@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,8 +25,6 @@ import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 
 import com.geoxp.GeoXPLib;
-import com.google.common.base.Charsets;
-
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSWrapperHelper;
@@ -62,7 +61,7 @@ public class ENCODERTO extends NamedWarpScriptFunction implements WarpScriptStac
       decoder = ((GTSEncoder) top).getDecoder(true);
     } else {
       try {
-        byte[] bytes = top instanceof String ? OrderPreservingBase64.decode(top.toString().getBytes(Charsets.US_ASCII)) : (byte[]) top;
+        byte[] bytes = top instanceof String ? OrderPreservingBase64.decode(top.toString().getBytes(StandardCharsets.US_ASCII)) : (byte[]) top;
         
         TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
         

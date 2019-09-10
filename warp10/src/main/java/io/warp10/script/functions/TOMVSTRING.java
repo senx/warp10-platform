@@ -17,6 +17,7 @@
 package io.warp10.script.functions;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.thrift.TDeserializer;
@@ -24,8 +25,6 @@ import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 
 import com.geoxp.GeoXPLib;
-import com.google.common.base.Charsets;
-
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -58,7 +57,7 @@ public class TOMVSTRING extends NamedWarpScriptFunction implements WarpScriptSta
       GTSWrapper wrapper = GTSWrapperHelper.fromGTSToGTSWrapper((GeoTimeSerie) top, false);
       stack.push(wrapperToString(null, wrapper).toString());
     } else {
-      byte[] bytes = (top instanceof byte[]) ? (byte[]) top: OrderPreservingBase64.decode(top.toString().getBytes(Charsets.US_ASCII));
+      byte[] bytes = (top instanceof byte[]) ? (byte[]) top: OrderPreservingBase64.decode(top.toString().getBytes(StandardCharsets.US_ASCII));
 
       StringBuilder sb = bytesToString(null, bytes);
       
@@ -119,7 +118,7 @@ public class TOMVSTRING extends NamedWarpScriptFunction implements WarpScriptSta
       } else if (value instanceof String) {
         sb.append("'");
         try {
-          sb.append(WarpURLEncoder.encode(value.toString(), "UTF-8"));
+          sb.append(WarpURLEncoder.encode(value.toString(), StandardCharsets.UTF_8));
         } catch (UnsupportedEncodingException uee) {        
         }
         sb.append("'");

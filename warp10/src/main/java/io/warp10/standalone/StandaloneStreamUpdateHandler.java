@@ -49,6 +49,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.ParseException;
@@ -84,8 +85,6 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Charsets;
 
 /**
  * WebSocket handler which handles streaming updates
@@ -324,7 +323,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                 
                 if (null != loggingWriter) {
                   Map<String,String> labels = new HashMap<String,String>();
-                  labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+                  labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
                   labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
                   Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
 
@@ -407,14 +406,14 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                 
                 FileOutputStream fos = new FileOutputStream(loggingFile);
                 loggingFD = fos.getFD();
-                OutputStreamWriter osw = new OutputStreamWriter(fos, Charsets.UTF_8);
+                OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
                 loggingWriter = new PrintWriter(osw);
                 
                 //
                 // Write request
                 //
                 
-                loggingWriter.println(new String(encoded, Charsets.US_ASCII));
+                loggingWriter.println(new String(encoded, StandardCharsets.US_ASCII));
               }
 
               try {
@@ -542,7 +541,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
           } finally {
             if (null != loggingWriter) {              
               Map<String,String> labels = new HashMap<String,String>();
-              labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+              labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
               labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
               Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
 
@@ -765,7 +764,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
       if (null == id) {
         throw new RuntimeException("Property '" + Configuration.DATALOG_ID + "' MUST be set to a unique value for this instance.");
       } else {
-        datalogId = new String(OrderPreservingBase64.encode(id.getBytes(Charsets.UTF_8)), Charsets.US_ASCII);
+        datalogId = new String(OrderPreservingBase64.encode(id.getBytes(StandardCharsets.UTF_8)), StandardCharsets.US_ASCII);
       }
       
     } else {

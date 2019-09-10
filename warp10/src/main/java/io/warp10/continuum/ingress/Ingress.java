@@ -31,6 +31,7 @@ import java.io.StringWriter;
 import java.math.BigInteger;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -79,7 +80,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.sort.SortConfig;
-import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 
@@ -1440,7 +1440,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         return;
       }
       
-      String classSelector = URLDecoder.decode(m.group(1), "UTF-8");
+      String classSelector = URLDecoder.decode(m.group(1), StandardCharsets.UTF_8.name());
       String labelsSelection = m.group(2);
       
       Map<String,String> labelsSelectors;
@@ -1586,7 +1586,7 @@ public class Ingress extends AbstractHandler implements Runnable {
                 done = true;
                 return false;
               }
-              byte[] raw = OrderPreservingBase64.decode(line.getBytes(Charsets.US_ASCII));
+              byte[] raw = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
               // Apply one time pad
               int padidx = 0;
 
@@ -1732,7 +1732,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         t.printStackTrace(pw2);
         pw2.close();
         sw.flush();
-        String error = URLEncoder.encode(sw.toString(), "UTF-8");
+        String error = URLEncoder.encode(sw.toString(), StandardCharsets.UTF_8.name());
         pw.println(Constants.INGRESS_DELETE_ERROR_PREFIX + error);
       }
       if (!response.isCommitted()) {

@@ -31,6 +31,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 /**
@@ -156,7 +157,7 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
       qsurl.append("&");
       qsurl.append(Constants.HTTP_PARAM_SELECTOR);
       qsurl.append("=");
-      qsurl.append(WarpURLEncoder.encode(selector, "UTF-8"));
+      qsurl.append(WarpURLEncoder.encode(selector, StandardCharsets.UTF_8));
 
       //
       // Issue the dryrun request

@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -165,7 +166,7 @@ public class StandaloneWebCallService extends Thread {
       if (WebCallMethod.POST == request.getMethod()) {
         OutputStream os = conn.getOutputStream();
         
-        os.write(request.getBody().getBytes("UTF-8"));
+        os.write(request.getBody().getBytes(StandardCharsets.UTF_8));
         os.close();
       }
       

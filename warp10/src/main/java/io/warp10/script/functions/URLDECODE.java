@@ -22,6 +22,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Decode a URL Encoded string using UTF-8 as the encoding.
@@ -41,7 +42,7 @@ public class URLDECODE extends NamedWarpScriptFunction implements WarpScriptStac
     }
     
     try {
-      stack.push(URLDecoder.decode(o.toString(), "UTF-8"));
+      stack.push(URLDecoder.decode(o.toString(), StandardCharsets.UTF_8.name()));
     } catch (Exception e) {
       throw new WarpScriptException(e);
     }

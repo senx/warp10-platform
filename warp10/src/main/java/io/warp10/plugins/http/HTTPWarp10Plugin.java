@@ -19,6 +19,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -41,8 +42,6 @@ import org.eclipse.jetty.util.BlockingArrayQueue;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Charsets;
 
 import io.warp10.SSLUtils;
 import io.warp10.continuum.Configuration;
@@ -289,7 +288,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
       }
 
 
-      String warpscript = new String(baos.toByteArray(), Charsets.UTF_8);
+      String warpscript = new String(baos.toByteArray(), StandardCharsets.UTF_8);
       MemoryWarpScriptStack stack = new MemoryWarpScriptStack(getExposedStoreClient(), getExposedDirectoryClient(), new Properties());
       stack.maxLimits();
 

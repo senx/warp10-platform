@@ -18,14 +18,13 @@ package io.warp10.script.functions;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Charsets;
 
 import io.warp10.Revision;
 import io.warp10.WarpConfig;
@@ -141,7 +140,7 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
         sb.append("\n");
       }
       
-      byte[] data = sb.toString().getBytes(Charsets.UTF_8);
+      byte[] data = sb.toString().getBytes(StandardCharsets.UTF_8);
       
       int lines = 0;
       for (byte b: data) {

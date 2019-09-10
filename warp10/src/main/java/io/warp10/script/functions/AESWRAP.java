@@ -22,10 +22,9 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Arrays;
-
-import com.google.common.base.Charsets;
 
 /**
  * AES wraps a byte array
@@ -61,7 +60,7 @@ public class AESWRAP extends NamedWarpScriptFunction implements WarpScriptStackF
     }
     
     if (o instanceof String) {
-      o = o.toString().getBytes(Charsets.UTF_8);
+      o = o.toString().getBytes(StandardCharsets.UTF_8);
     }
     
     byte[] data = new byte[NONCE_LEN];

@@ -28,6 +28,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -202,7 +203,7 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     sb.append("?");
     sb.append(Constants.HTTP_PARAM_SELECTOR);
     sb.append("=");
-    sb.append(WarpURLEncoder.encode(getProperty(context, PROPERTY_WARP10_SPLITS_SELECTOR), "UTF-8"));
+    sb.append(WarpURLEncoder.encode(getProperty(context, PROPERTY_WARP10_SPLITS_SELECTOR), StandardCharsets.UTF_8));
     sb.append("&");
     sb.append(Constants.HTTP_PARAM_TOKEN);
     sb.append("=");

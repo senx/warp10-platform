@@ -17,6 +17,7 @@ package io.warp10;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Iterator;
 
@@ -24,8 +25,6 @@ import com.fasterxml.sort.DataReader;
 import com.fasterxml.sort.SortConfig;
 import com.fasterxml.sort.Sorter;
 import com.fasterxml.sort.std.TextFileSorter;
-import com.google.common.base.Charsets;
-
 public class SortedPathIterator implements Iterator<Path> {
   
   private final Iterator<byte[]> sortedIter;
@@ -40,7 +39,7 @@ public class SortedPathIterator implements Iterator<Path> {
         if (!iter.hasNext()) {
           return null;
         }
-        return iter.next().toString().getBytes(Charsets.UTF_8);
+        return iter.next().toString().getBytes(StandardCharsets.UTF_8);
       }
       @Override
       public void close() throws IOException {}
@@ -58,7 +57,7 @@ public class SortedPathIterator implements Iterator<Path> {
   
   @Override
   public Path next() {
-    File f = new File(new String(this.sortedIter.next(), Charsets.UTF_8));
+    File f = new File(new String(this.sortedIter.next(), StandardCharsets.UTF_8));
     return f.toPath();
   }  
  }

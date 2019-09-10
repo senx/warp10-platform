@@ -25,8 +25,9 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 import com.geoxp.oss.CryptoHelper;
-import com.google.common.base.Charsets;
 import com.google.common.primitives.Longs;
+
+import java.nio.charset.StandardCharsets;
 
 /**
  * Extract the content of a Runner Nonce
@@ -59,7 +60,7 @@ public class RUNNERNONCE extends NamedWarpScriptFunction implements WarpScriptSt
 
     if (null != runnerPSK) {
       // Unwrap the blob
-      byte[] wrapped = OrderPreservingBase64.decode(o.toString().getBytes(Charsets.US_ASCII));
+      byte[] wrapped = OrderPreservingBase64.decode(o.toString().getBytes(StandardCharsets.US_ASCII));
       byte[] raw = CryptoHelper.unwrapBlob(runnerPSK, wrapped);
       
       if (null == raw) {

@@ -22,10 +22,9 @@ import io.warp10.crypto.SipHashInline;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 import com.geoxp.oss.jarjar.org.bouncycastle.util.encoders.Hex;
-import com.google.common.base.Charsets;
-
 public class Fetch {
   public static void main(String[] args) throws Exception {
     URL url = new URL(args[0]);
@@ -43,7 +42,7 @@ public class Fetch {
       StringBuilder sb = new StringBuilder(Long.toHexString(now));
       sb.append(":");
       byte[] fetchKey = Hex.decode(psk);
-      long hash = SipHashInline.hash24(fetchKey, (Long.toString(now) + ":" + token).getBytes(Charsets.ISO_8859_1));
+      long hash = SipHashInline.hash24(fetchKey, (Long.toString(now) + ":" + token).getBytes(StandardCharsets.ISO_8859_1));
       sb.append(Long.toHexString(hash));
       conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_FETCH_SIGNATURE), sb.toString());      
     }
