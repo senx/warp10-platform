@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EmptyStackException;
 import java.util.Enumeration;
@@ -203,8 +204,8 @@ public class EgressExecHandler extends AbstractHandler {
         for (String token: tokens) {
           String[] subtokens = token.split("=");
           
-          subtokens[0] = URLDecoder.decode(subtokens[0], "UTF-8");
-          subtokens[1] = URLDecoder.decode(subtokens[1], "UTF-8");        
+          subtokens[0] = URLDecoder.decode(subtokens[0], StandardCharsets.UTF_8.name());
+          subtokens[1] = URLDecoder.decode(subtokens[1], StandardCharsets.UTF_8.name());
           
           //
           // Execute values[0] so we can interpret it prior to storing it in the symbol table
@@ -313,7 +314,7 @@ public class EgressExecHandler extends AbstractHandler {
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_FETCHEDX), stack.getAttribute(WarpScriptStack.ATTRIBUTE_FETCH_COUNT).toString());
       
       //resp.setContentType("application/json");
-      //resp.setCharacterEncoding("UTF-8");
+      //resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
       
       //
       // Output the exported symbols in a map

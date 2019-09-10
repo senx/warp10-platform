@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -32,8 +33,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.geoxp.oss.jarjar.org.bouncycastle.util.encoders.Hex;
-import com.google.common.base.Charsets;
-
 public class GTSDecoderTest {
   
   @Test
@@ -408,7 +407,7 @@ public class GTSDecoderTest {
   @Test
   public void testDecoder_duplicateBinary() throws Exception {
     GTSEncoder encoder = new GTSEncoder(0L);
-    encoder.addValue(0L, 0L, 0L, "@".getBytes(Charsets.ISO_8859_1));
+    encoder.addValue(0L, 0L, 0L, "@".getBytes(StandardCharsets.ISO_8859_1));
     encoder.addValue(0L, 0L, 0L, "@");
     
     GTSDecoder decoder = encoder.getDecoder();
@@ -437,7 +436,7 @@ public class GTSDecoderTest {
     encoder.addValue(1L, 0L, 0L, 1L);
     encoder.addValue(2L, 0L, 0L, 2.0D);
     encoder.addValue(3L, 0L, 0L, "3");
-    encoder.addValue(4L, 0L, 0L, "é".getBytes(Charsets.ISO_8859_1));
+    encoder.addValue(4L, 0L, 0L, "é".getBytes(StandardCharsets.ISO_8859_1));
     
     StringWriter sw = new StringWriter();
     PrintWriter pw = new PrintWriter(sw);

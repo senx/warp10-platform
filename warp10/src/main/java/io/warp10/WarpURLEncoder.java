@@ -19,8 +19,15 @@ import io.warp10.continuum.gts.UnsafeString;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
 
 public class WarpURLEncoder {
+
+
+  public static final String encode(String input, Charset encoding) throws UnsupportedEncodingException {
+    return encode(input, encoding.name());
+  }
+
   public static final String encode(String input, String encoding) throws UnsupportedEncodingException {
     String encoded = URLEncoder.encode(input, encoding);
     

@@ -31,7 +31,8 @@ import org.apache.thrift.protocol.TCompactProtocol;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
-import com.google.common.base.Charsets;
+
+import java.nio.charset.StandardCharsets;
 
 /**
  * Unpack a GeoXPShape
@@ -53,7 +54,7 @@ public class GEOUNPACK extends NamedWarpScriptFunction implements WarpScriptStac
     byte[] serialized;
     
     if (o instanceof String) {
-      serialized = OrderPreservingBase64.decode(o.toString().getBytes(Charsets.US_ASCII));
+      serialized = OrderPreservingBase64.decode(o.toString().getBytes(StandardCharsets.US_ASCII));
     } else if (o instanceof byte[]) {
       serialized = (byte[]) o;
     } else {

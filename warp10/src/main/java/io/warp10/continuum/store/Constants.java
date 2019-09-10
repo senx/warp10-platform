@@ -19,6 +19,7 @@ package io.warp10.continuum.store;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,8 +27,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-
-import com.google.common.base.Charsets;
 
 public class Constants {
   
@@ -472,10 +471,10 @@ public class Constants {
   /**
    * row key prefix for metadata
    */
-  public static final byte[] HBASE_METADATA_KEY_PREFIX = "M".getBytes(Charsets.UTF_8);
+  public static final byte[] HBASE_METADATA_KEY_PREFIX = "M".getBytes(StandardCharsets.UTF_8);
 
   /**
    * Prefix for 'raw' (individual datapoints) data
    */
-  public static final byte[] HBASE_RAW_DATA_KEY_PREFIX = "R".getBytes(Charsets.UTF_8);
+  public static final byte[] HBASE_RAW_DATA_KEY_PREFIX = "R".getBytes(StandardCharsets.UTF_8);
 }

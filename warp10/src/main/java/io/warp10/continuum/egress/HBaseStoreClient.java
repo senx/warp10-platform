@@ -40,6 +40,7 @@ import io.warp10.standalone.StandalonePlasmaHandlerInterface;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -59,8 +60,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
-
-import com.google.common.base.Charsets;
 
 public class HBaseStoreClient implements StoreClient {
   
@@ -157,7 +156,7 @@ public class HBaseStoreClient implements StoreClient {
     
     HBaseRegionKeys.getRegionKeys(conn, tableName);
     
-    this.colfam = properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_COLFAM).getBytes(Charsets.UTF_8);
+    this.colfam = properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_COLFAM).getBytes(StandardCharsets.UTF_8);
   }
   
   @Override

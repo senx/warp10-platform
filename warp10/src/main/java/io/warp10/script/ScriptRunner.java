@@ -27,6 +27,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -57,7 +58,6 @@ import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 
 import com.geoxp.oss.CryptoHelper;
-import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 import com.netflix.curator.framework.CuratorFramework;
@@ -118,7 +118,7 @@ public class ScriptRunner extends Thread {
     }
   }
 
-  protected static final byte[] CLEAR = "\nCLEAR\n".getBytes(Charsets.UTF_8);
+  protected static final byte[] CLEAR = "\nCLEAR\n".getBytes(StandardCharsets.UTF_8);
 
   protected ExecutorService executor;
 
@@ -506,33 +506,33 @@ public class ScriptRunner extends Thread {
             // Push the script parameters
             //
 
-            out.write(Long.toString(periodicity).getBytes(Charsets.UTF_8));
+            out.write(Long.toString(periodicity).getBytes(StandardCharsets.UTF_8));
             out.write(' ');
             out.write('\'');
-            out.write(URLEncoder.encode(Constants.RUNNER_PERIODICITY, "UTF-8").replaceAll("\\+", "%20").getBytes(Charsets.US_ASCII));
+            out.write(URLEncoder.encode(Constants.RUNNER_PERIODICITY, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20").getBytes(StandardCharsets.US_ASCII));
             out.write('\'');
             out.write(' ');
-            out.write(WarpScriptLib.STORE.getBytes(Charsets.UTF_8));
+            out.write(WarpScriptLib.STORE.getBytes(StandardCharsets.UTF_8));
             out.write('\n');
 
             out.write('\'');
-            out.write(URLEncoder.encode(path, "UTF-8").replaceAll("\\+", "%20").getBytes(Charsets.US_ASCII));
+            out.write(URLEncoder.encode(path, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20").getBytes(StandardCharsets.US_ASCII));
             out.write('\'');
             out.write(' ');
             out.write('\'');
-            out.write(URLEncoder.encode(Constants.RUNNER_PATH, "UTF-8").replaceAll("\\+", "%20").getBytes(Charsets.US_ASCII));
+            out.write(URLEncoder.encode(Constants.RUNNER_PATH, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20").getBytes(StandardCharsets.US_ASCII));
             out.write('\'');
             out.write(' ');
-            out.write(WarpScriptLib.STORE.getBytes(Charsets.UTF_8));
+            out.write(WarpScriptLib.STORE.getBytes(StandardCharsets.UTF_8));
             out.write('\n');
 
-            out.write(Long.toString(scheduledat).getBytes(Charsets.UTF_8));
+            out.write(Long.toString(scheduledat).getBytes(StandardCharsets.UTF_8));
             out.write(' ');
             out.write('\'');
-            out.write(URLEncoder.encode(Constants.RUNNER_SCHEDULEDAT, "UTF-8").replaceAll("\\+", "%20").getBytes(Charsets.US_ASCII));
+            out.write(URLEncoder.encode(Constants.RUNNER_SCHEDULEDAT, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20").getBytes(StandardCharsets.US_ASCII));
             out.write('\'');
             out.write(' ');
-            out.write(WarpScriptLib.STORE.getBytes(Charsets.UTF_8));
+            out.write(WarpScriptLib.STORE.getBytes(StandardCharsets.UTF_8));
             out.write('\n');
 
             //
@@ -549,10 +549,10 @@ public class ScriptRunner extends Thread {
               out.write('\'');
               out.write(' ');
               out.write('\'');
-              out.write(URLEncoder.encode(Constants.RUNNER_NONCE, "UTF-8").replaceAll("\\+", "%20").getBytes(Charsets.US_ASCII));
+              out.write(URLEncoder.encode(Constants.RUNNER_NONCE, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20").getBytes(StandardCharsets.US_ASCII));
               out.write('\'');
               out.write(' ');
-              out.write(WarpScriptLib.STORE.getBytes(Charsets.UTF_8));
+              out.write(WarpScriptLib.STORE.getBytes(StandardCharsets.UTF_8));
               out.write('\n');
             }
 
@@ -609,7 +609,7 @@ public class ScriptRunner extends Thread {
               }
 
               m.appendTail(mc2WithReplacement);
-              out.write(mc2WithReplacement.toString().getBytes(Charsets.UTF_8));
+              out.write(mc2WithReplacement.toString().getBytes(StandardCharsets.UTF_8));
               out.write('\n');
             }
 
@@ -731,7 +731,7 @@ public class ScriptRunner extends Thread {
     Producer<byte[], byte[]> producer = null;
 
     // Use the script path as the scheduling key so the same script ends up in the same partition
-    byte[] key = path.getBytes(Charsets.UTF_8);
+    byte[] key = path.getBytes(StandardCharsets.UTF_8);
     KeyedMessage<byte[], byte[]> message = new KeyedMessage<byte[], byte[]>(this.topic, key, content);
 
     try {

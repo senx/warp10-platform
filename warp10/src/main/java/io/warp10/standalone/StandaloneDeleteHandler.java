@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.ParseException;
@@ -77,8 +78,6 @@ import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Charsets;
 
 public class StandaloneDeleteHandler extends AbstractHandler {
   
@@ -143,7 +142,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       if (null == id) {
         throw new RuntimeException("Property '" + Configuration.DATALOG_ID + "' MUST be set to a unique value for this instance.");
       } else {
-        datalogId = new String(OrderPreservingBase64.encode(id.getBytes(Charsets.UTF_8)), Charsets.US_ASCII);
+        datalogId = new String(OrderPreservingBase64.encode(id.getBytes(StandardCharsets.UTF_8)), StandardCharsets.US_ASCII);
       }
     } else {
       loggingDir = null;
@@ -199,7 +198,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     boolean forwarded = false;
     
     if (null != datalogHeader) {
-      byte[] bytes = OrderPreservingBase64.decode(datalogHeader.getBytes(Charsets.US_ASCII));
+      byte[] bytes = OrderPreservingBase64.decode(datalogHeader.getBytes(StandardCharsets.US_ASCII));
       
       if (null != datalogPSK) {
         bytes = CryptoUtils.unwrap(datalogPSK, bytes);
@@ -221,7 +220,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       }
     
       Map<String,String> labels = new HashMap<String,String>();
-      labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+      labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
       labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
       Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_RECEIVED, labels, 1);
 
@@ -367,14 +366,14 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         
         FileOutputStream fos = new FileOutputStream(loggingFile);
         loggingFD = fos.getFD();
-        OutputStreamWriter osw = new OutputStreamWriter(fos, Charsets.UTF_8);
+        OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
         loggingWriter = new PrintWriter(osw);
         
         //
         // Write request
         //
         
-        loggingWriter.println(new String(encoded, Charsets.US_ASCII));        
+        loggingWriter.println(new String(encoded, StandardCharsets.US_ASCII));
       }
     }
 
@@ -476,7 +475,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         return;
       }
       
-      String classSelector = URLDecoder.decode(m.group(1), "UTF-8");
+      String classSelector = URLDecoder.decode(m.group(1), StandardCharsets.UTF_8.name());
       String labelsSelection = m.group(2);
       
       Map<String,String> labelsSelectors;
@@ -586,7 +585,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     } finally {
       if (null != loggingWriter) {
         Map<String,String> labels = new HashMap<String,String>();
-        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
         labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
         Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
 

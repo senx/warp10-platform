@@ -7,6 +7,7 @@ import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -35,8 +36,8 @@ public class EgressFetchHandlerTest {
                                     new AtomicReference<Metadata>(null), new AtomicLong(0));
     }
 
-    String json = buf.toString("UTF-8");
-    String expect = IOUtils.toString(CL.getResourceAsStream("EgressFetchHandlerTest_1.json"), "UTF-8");
+    String json = buf.toString(StandardCharsets.UTF_8.name());
+    String expect = IOUtils.toString(CL.getResourceAsStream("EgressFetchHandlerTest_1.json"), StandardCharsets.UTF_8);
 
     assertEquals(expect.trim(), json);
   }

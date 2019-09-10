@@ -49,6 +49,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.ParseException;
@@ -73,8 +74,6 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Charsets;
 
 public class StandaloneIngressHandler extends AbstractHandler {
   
@@ -217,7 +216,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
       if (null == id) {
         throw new RuntimeException("Property '" + Configuration.DATALOG_ID + "' MUST be set to a unique value for this instance.");
       } else {
-        datalogId = new String(OrderPreservingBase64.encode(id.getBytes(Charsets.UTF_8)), Charsets.US_ASCII);
+        datalogId = new String(OrderPreservingBase64.encode(id.getBytes(StandardCharsets.UTF_8)), StandardCharsets.US_ASCII);
       }
       
       if ("false".equals(WarpConfig.getProperty(Configuration.DATALOG_LOGSHARDKEY))) {
@@ -288,7 +287,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
       boolean forwarded = false;
       
       if (null != datalogHeader) {
-        byte[] bytes = OrderPreservingBase64.decode(datalogHeader.getBytes(Charsets.US_ASCII));
+        byte[] bytes = OrderPreservingBase64.decode(datalogHeader.getBytes(StandardCharsets.US_ASCII));
         
         if (null != datalogPSK) {
           bytes = CryptoUtils.unwrap(datalogPSK, bytes);
@@ -313,7 +312,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
         token = dr.getToken();
         
         Map<String,String> labels = new HashMap<String,String>();
-        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
         labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
         Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_RECEIVED, labels, 1);
         forwarded = true;
@@ -605,14 +604,14 @@ public class StandaloneIngressHandler extends AbstractHandler {
             
             FileOutputStream fos = new FileOutputStream(loggingFile);
             loggingFD = fos.getFD();
-            OutputStreamWriter osw = new OutputStreamWriter(fos, Charsets.UTF_8);
+            OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
             loggingWriter = new PrintWriter(osw);
             
             //
             // Write request
             //
             
-            loggingWriter.println("#" + new String(encoded, Charsets.US_ASCII));          
+            loggingWriter.println("#" + new String(encoded, StandardCharsets.US_ASCII));
           }
           
           //
@@ -813,7 +812,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
               
         if (null != loggingWriter) {
           Map<String,String> labels = new HashMap<String,String>();
-          labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+          labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
           labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
           Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
 
@@ -898,7 +897,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
       boolean forwarded = false;
       
       if (null != datalogHeader) {
-        byte[] bytes = OrderPreservingBase64.decode(datalogHeader.getBytes(Charsets.US_ASCII));
+        byte[] bytes = OrderPreservingBase64.decode(datalogHeader.getBytes(StandardCharsets.US_ASCII));
         
         if (null != datalogPSK) {
           bytes = CryptoUtils.unwrap(datalogPSK, bytes);
@@ -921,7 +920,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
         lastActivity = dr.getTimestamp() / 1000000L;
 
         Map<String,String> labels = new HashMap<String,String>();
-        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
         labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
         Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_RECEIVED, labels, 1);
         
@@ -1030,13 +1029,13 @@ public class StandaloneIngressHandler extends AbstractHandler {
           encoded = OrderPreservingBase64.encode(encoded);
                   
           loggingFile = new File(loggingDir, sb.toString());
-          loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, Charsets.UTF_8));
+          loggingWriter = new PrintWriter(new FileWriterWithEncoding(loggingFile, StandardCharsets.UTF_8));
           
           //
           // Write request
           //
           
-          loggingWriter.println(new String(encoded, Charsets.US_ASCII));        
+          loggingWriter.println(new String(encoded, StandardCharsets.US_ASCII));
         }
       }
 
@@ -1106,7 +1105,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
       } finally {
         if (null != loggingWriter) {
           Map<String,String> labels = new HashMap<String,String>();
-          labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+          labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
           labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
           Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
 

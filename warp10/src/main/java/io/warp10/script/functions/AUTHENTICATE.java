@@ -16,11 +16,10 @@
 
 package io.warp10.script.functions;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Random;
 
 import com.geoxp.oss.CryptoHelper;
-import com.google.common.base.Charsets;
-
 import io.warp10.continuum.Tokens;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.quasar.token.thrift.data.ReadToken;
@@ -71,16 +70,16 @@ public class AUTHENTICATE extends NamedWarpScriptFunction implements WarpScriptS
   }
 
   public static String hide(String token) {
-    byte[] bytes = token.getBytes(Charsets.UTF_8);
+    byte[] bytes = token.getBytes(StandardCharsets.UTF_8);
     bytes = CryptoHelper.wrapBlob(KEY, bytes);
     bytes = OrderPreservingBase64.encode(bytes);
-    return new String(bytes, Charsets.US_ASCII);
+    return new String(bytes, StandardCharsets.US_ASCII);
   }
 
   public static String unhide(String hidden) {
-    byte[] bytes = hidden.getBytes(Charsets.US_ASCII);
+    byte[] bytes = hidden.getBytes(StandardCharsets.US_ASCII);
     bytes = OrderPreservingBase64.decode(bytes);
     bytes = CryptoHelper.unwrapBlob(KEY, bytes);
-    return new String(bytes, Charsets.UTF_8);
+    return new String(bytes, StandardCharsets.UTF_8);
   }
 }

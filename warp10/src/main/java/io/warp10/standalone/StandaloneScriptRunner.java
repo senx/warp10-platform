@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -31,7 +32,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.geoxp.oss.CryptoHelper;
-import com.google.common.base.Charsets;
 import com.google.common.primitives.Longs;
 
 import io.warp10.WarpConfig;
@@ -172,10 +172,10 @@ public class StandaloneScriptRunner extends ScriptRunner {
               
               byte[] nonce = CryptoHelper.wrapBlob(runnerPSK, now);
               
-              stack.store(Constants.RUNNER_NONCE, new String(OrderPreservingBase64.encode(nonce), Charsets.US_ASCII));              
+              stack.store(Constants.RUNNER_NONCE, new String(OrderPreservingBase64.encode(nonce), StandardCharsets.US_ASCII));
             }
             
-            String mc2 = new String(baos.toByteArray(), Charsets.UTF_8);
+            String mc2 = new String(baos.toByteArray(), StandardCharsets.UTF_8);
             
             // Replace ${name} and ${name:default} constructs
               

@@ -17,14 +17,13 @@
 package io.warp10.script.functions;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
-
-import com.google.common.base.Charsets;
 
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -63,7 +62,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
       decoder = ((GTSEncoder) top).getUnsafeDecoder(false);
     } else {
       try {
-        byte[] bytes = top instanceof String ? OrderPreservingBase64.decode(top.toString().getBytes(Charsets.US_ASCII)) : (byte[]) top;
+        byte[] bytes = top instanceof String ? OrderPreservingBase64.decode(top.toString().getBytes(StandardCharsets.US_ASCII)) : (byte[]) top;
         
         TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
         
