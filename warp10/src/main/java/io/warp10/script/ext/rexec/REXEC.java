@@ -131,15 +131,20 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
       
       connout.flush();
+
+      if (HttpURLConnection.HTTP_OK != conn.getResponseCode()) {
+        String errorMessage = conn.getHeaderField(Constants.getHeader(Constants.HTTP_HEADER_ERROR_MESSAGE_DEFAULT));
+        if (null != errorMessage) {
+          throw new WarpScriptException(getName() + " remote execution failed: " + errorMessage);
+        } else {
+          throw new WarpScriptException(getName() + " remote execution failed with HTTP code " + conn.getResponseCode() + ".'");
+        }
+      }
       
       InputStream in = conn.getInputStream();
       
       if ("gzip".equals(conn.getContentEncoding())) {
         in = new GZIPInputStream(in);
-      }
-      
-      if (HttpURLConnection.HTTP_OK != conn.getResponseCode()) {
-        throw new WarpScriptException(getName() + " remote execution encountered an error: " + conn.getHeaderField(Constants.getHeader(Constants.HTTP_HEADER_ERROR_MESSAGE_DEFAULT)));
       }
       
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -169,7 +174,7 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
     } catch (WarpScriptException e) {
       throw e;
     } catch(SocketTimeoutException e) {
-      throw new WarpScriptException(getName() + " Timeout: check configurations " + WARPSCRIPT_REXEC_CONNECT_TIMEOUT + " and " + WARPSCRIPT_REXEC_READ_TIMEOUT);
+      throw new WarpScriptException(getName() + " Timeout: check configurations " + WARPSCRIPT_REXEC_CONNECT_TIMEOUT + " and " + WARPSCRIPT_REXEC_READ_TIMEOUT, e);
     } catch (Exception e) {
       throw new WarpScriptException(e);
     } finally {
