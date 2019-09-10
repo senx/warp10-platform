@@ -39,6 +39,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.warp10.ThrowableUtils;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
@@ -453,8 +454,8 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
           stack.exec(WarpScriptLib.BOOTSTRAP);
         } catch (Throwable t) {
           out.print("// ERROR ");
-          out.println(WarpURLEncoder.encode(t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : ""), StandardCharsets.UTF_8).replaceAll("%20", " ").replaceAll("%27", "'"));
-          
+          out.println(WarpURLEncoder.encode(ThrowableUtils.getErrorMessage(t), StandardCharsets.UTF_8).replaceAll("%20", " ").replaceAll("%27", "'"));
+
           if (null != this.socket) {
             this.socket.close();
           }
@@ -513,7 +514,7 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
           } catch (Throwable te) {
             t = te;
             out.print("// ERROR ");
-            out.println(WarpURLEncoder.encode(t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : ""), StandardCharsets.UTF_8).replaceAll("%20", " ").replaceAll("%27", "'"));
+            out.println(WarpURLEncoder.encode(ThrowableUtils.getErrorMessage(t), StandardCharsets.UTF_8).replaceAll("%20", " ").replaceAll("%27", "'"));
           } finally {
             times.clear();
             times.add(System.nanoTime() - nano);

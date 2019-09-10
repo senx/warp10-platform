@@ -16,6 +16,7 @@
 
 package io.warp10.standalone;
 
+import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
@@ -46,7 +47,6 @@ import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
@@ -55,7 +55,6 @@ import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPInputStream;
@@ -856,7 +855,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
       response.setStatus(HttpServletResponse.SC_OK);      
     } catch (Throwable t) { // Catch everything else this handler could return 200 on a OOM exception
       if (!response.isCommitted()) {
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, t.getMessage());
+        String msg = "Error when updating data: " + ThrowableUtils.getErrorMessage(t);
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
       }
     }
@@ -1125,9 +1125,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
       }
       
       response.setStatus(HttpServletResponse.SC_OK);      
-    } catch (Exception e) {
+    } catch (Throwable t) { // Catch everything else this handler could return 200 on a OOM exception
       if (!response.isCommitted()) {
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+        String msg = "Error when updating meta: " + ThrowableUtils.getErrorMessage(t);
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
       }
     }

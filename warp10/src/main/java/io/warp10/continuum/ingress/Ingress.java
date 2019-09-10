@@ -58,6 +58,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.warp10.ThrowableUtils;
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.util.ShutdownHookManager;
@@ -1073,9 +1074,10 @@ public class Ingress extends AbstractHandler implements Runnable {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_TIME_US, sensisionLabels, micros);
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_TIME_US_GLOBAL, Sensision.EMPTY_LABELS, micros);      
       }      
-    } catch (Exception e) {
+    } catch (Throwable t) { // Catch everything else this handler could return 200 on a OOM exception
       if (!response.isCommitted()) {
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+        String msg = "Error when updating data: " + ThrowableUtils.getErrorMessage(t);
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
       }
     }
@@ -1244,9 +1246,10 @@ public class Ingress extends AbstractHandler implements Runnable {
       }
 
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_META_RECORDS, sensisionLabels, count);
-    } catch (IOException ioe) {
+    } catch (Throwable t) { // Catch everything else this handler could return 200 on a OOM exception
       if (!response.isCommitted()) {
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ioe.getMessage());
+        String msg = "Error when updating meta: " + ThrowableUtils.getErrorMessage(t);
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
       }
     } finally {

@@ -16,7 +16,7 @@
 
 package io.warp10.continuum.ingress;
 
-import io.warp10.WarpConfig;
+import io.warp10.ThrowableUtils;
 import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.ThrottlingManager;
@@ -37,7 +37,6 @@ import java.io.StringReader;
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -46,13 +45,8 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.thrift.TException;
-import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.UpgradeRequest;
-import org.eclipse.jetty.websocket.api.UpgradeResponse;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
@@ -395,7 +389,8 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
         }        
       } catch (Throwable t) {
         if (this.errormsg) {
-          session.getRemote().sendString("ERROR " + t.getMessage());
+          String msg = "ERROR " + ThrowableUtils.getErrorMessage(t);
+          session.getRemote().sendString(msg);
         } else {
           throw t;
         }
