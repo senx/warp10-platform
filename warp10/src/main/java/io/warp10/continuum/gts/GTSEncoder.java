@@ -847,6 +847,27 @@ public class GTSEncoder implements Cloneable {
     }
   }
 
+  public static Object optimizeValue(Object value) {
+    StringBuilder sb = new StringBuilder();
+    
+    char[] chars = null;
+
+    if ((value instanceof Double) && Double.isFinite((double) value)) {
+      sb.setLength(0);
+      BinaryToASCIIConverter btoa = FloatingDecimal.getBinaryToASCIIConverter((double) value);
+      btoa.appendTo(sb);
+      if (null == chars || chars.length < sb.length()) {
+        chars = new char[sb.length()];
+      }
+      
+      sb.getChars(0, sb.length(), chars, 0);
+      
+      value = new BigDecimal(chars, 0, sb.length());
+    }
+    
+    return value;
+  }
+  
   /**
    * Return a decoder instance capable of decoding the encoded content of this
    * encoder.

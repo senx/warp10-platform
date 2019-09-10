@@ -805,6 +805,7 @@ public class WarpScriptLib {
   public static final String VALUESPLIT = "VALUESPLIT";
   public static final String TICKLIST = "TICKLIST";
   public static final String COMMONTICKS = "COMMONTICKS";
+  public static final String GOLDWRAP = "GOLDWRAP";
   public static final String WRAP = "WRAP";
   public static final String WRAPRAW = "WRAPRAW";
   public static final String WRAPFAST = "WRAPFAST";
@@ -1653,6 +1654,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new VALUESPLIT(VALUESPLIT));
     addNamedWarpScriptFunction(new TICKLIST(TICKLIST));
     addNamedWarpScriptFunction(new COMMONTICKS(COMMONTICKS));
+    addNamedWarpScriptFunction(new GOLDWRAP(GOLDWRAP));
     addNamedWarpScriptFunction(new WRAP(WRAP));
     addNamedWarpScriptFunction(new WRAP(WRAPRAW, false, true, true));
     addNamedWarpScriptFunction(new WRAP(WRAPFAST, false, false, true));
