@@ -212,7 +212,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
         }
 
         if (WRITE()) {
-          String path = OUTPUT_FOLDER() + name + ".mc2";
+          String path = OUTPUT_FOLDER() + WarpScriptLib.getFunction(name).getClass().getSimpleName().toUpperCase() + ".mc2";
           File file = new File(path);
           if (OVERWRITE() || !file.exists()) {
             try {
