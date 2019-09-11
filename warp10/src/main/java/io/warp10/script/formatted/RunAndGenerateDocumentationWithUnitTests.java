@@ -16,10 +16,7 @@
 
 package io.warp10.script.formatted;
 
-import io.warp10.WarpConfig;
 import io.warp10.script.*;
-import org.junit.BeforeClass;
-import org.junit.Test;
 import io.warp10.script.formatted.FormattedWarpScriptFunction.Arguments;
 
 import java.io.*;
@@ -92,19 +89,6 @@ public class RunAndGenerateDocumentationWithUnitTests {
   //
   // Tests
   //
-
-  @BeforeClass
-  final public static void beforeClass() throws Exception {
-    StringBuilder props = new StringBuilder();
-
-    props.append("warp.timeunits=us");
-    WarpConfig.safeSetProperties(new StringReader(props.toString()));
-  }
-
-  @Test
-  public void generate() throws Exception {
-    generate(WarpScriptLib.getFunctionNames());
-  }
 
   final protected void generate(List<String> functionNames) throws Exception {
 
