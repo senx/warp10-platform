@@ -16,25 +16,55 @@
 
 package io.warp10.script.formatted;
 
-import io.warp10.WarpConfig;
 import io.warp10.script.WarpScriptLib;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
 
-public class UnitTestAndDocGenerationTest extends RunAndGenerateDocumentationWithUnitTests {
+/**
+ * Generate .mc2 documentation and run warpscript unit tests
+ */
+public class UnitTestAndDocGenerationExample extends RunAndGenerateDocumentationWithUnitTests {
 
-  @BeforeClass
-  final public static void beforeClass() throws Exception {
-    StringBuilder props = new StringBuilder();
+  //
+  // Overridden test run parameters
+  //
 
-    props.append("warp.timeunits=us");
-    WarpConfig.safeSetProperties(new StringReader(props.toString()));
+  protected boolean WRITE() {
+    return false;
   }
+
+  protected String OUTPUT_FOLDER() {
+    return "/my/output/folder/";
+  }
+
+  protected boolean OVERWRITE() {
+    return false;
+  }
+
+  protected List<String> TAGS() {
+    List<String> tags = new ArrayList<>();
+    //tags.add("some tag");
+    return tags;
+  }
+
+  //
+  // Register extension
+  //
+
+  static {
+    // for example:
+    // WarpScriptLib.register(new ArrowExtension());
+  }
+
+  //
+  // Run test
+  //
 
   @Test
   public void generate() throws Exception {
     generate(WarpScriptLib.getFunctionNames());
   }
+
 }
