@@ -24,6 +24,7 @@ import java.util.List;
 
 /**
  * Generate .mc2 documentation and run warpscript unit tests
+ * for functions that extends FormattedWarpScriptFunction.
  */
 public class UnitTestAndDocGenerationExample extends RunAndGenerateDocumentationWithUnitTests {
 
