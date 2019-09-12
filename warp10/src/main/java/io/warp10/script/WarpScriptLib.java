@@ -1131,6 +1131,8 @@ public class WarpScriptLib {
   public static final String MAPPER_LE_ELEV = "mapper.le.elev";
   public static final String MAPPER_LT_ELEV = "mapper.lt.elev";
 
+  public static final String EQ = "==";
+
   
   static {
 
@@ -1358,7 +1360,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MUL("*"));
     addNamedWarpScriptFunction(new POW("**"));
     addNamedWarpScriptFunction(new MOD("%"));
-    addNamedWarpScriptFunction(new EQ("=="));
+    addNamedWarpScriptFunction(new EQ(EQ));
     addNamedWarpScriptFunction(new NE("!="));
     addNamedWarpScriptFunction(new LT("<"));
     addNamedWarpScriptFunction(new GT(">"));
