@@ -547,6 +547,20 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
 
   /**
+   * Default datapoint cell TTL (in ms) to enforce. If this is not set, then the TTL will be that
+   * of the columns family. A value of -1 disables the use of cell TTLs.
+   * This can be overridden by the '.ttl' WriteToken attribute.
+   */
+  public static final String INGRESS_HBASE_CELLTTL = "ingress.hbase.cellttl";
+  
+  /**
+   * Flag indicating whether to use the DataPoint TimeStamp instead of the write timestamp
+   * for the data stored in HBase.
+   * This can be overridden by the '.dpts' WriteToken attribute.
+   */
+  public static final String INGRESS_HBASE_DPTS = "ingress.hbase.dpts";
+  
+  /**
    * Default maximum age of datapoints pushed to Warp 10, in ms. Any timestamp older than
    * 'now' - this value will be rejected.
    * The maxpast value from the token will have precedence over this one

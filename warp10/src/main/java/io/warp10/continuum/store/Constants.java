@@ -399,6 +399,24 @@ public class Constants {
   public static final String TOKEN_ATTR_MAXPAST = ".maxpast";
   public static final String TOKEN_ATTR_IGNOOR = ".ignoor";
   
+  /**
+   * TTL for the written data (in ms)
+   */
+  public static final String TOKEN_ATTR_TTL = ".ttl";
+  
+  /**
+   * Use the timestamp of the datapoints as the HBase cell timestamp.
+   * Use of this attribute has no effect on a standalone version of Warp 10
+   */
+  public static final String TOKEN_ATTR_DPTS = ".dpts";
+  
+  //
+  // KafkaMessage Store attributes
+  //
+  
+  public static final String STORE_ATTR_TTL = "ttl";
+  public static final String STORE_ATTR_USEDATAPOINTTS = "dpts";
+  
   static {
     String tu = WarpConfig.getProperty(Configuration.WARP_TIME_UNITS);
     

@@ -1196,6 +1196,19 @@ public class Store extends Thread {
       
       long datapoints = 0L;
       
+      //
+      // Extract message attributes
+      //
+      
+      long ttl = -1L;
+      boolean useDatapointTs = false;
+      
+      if (msg.getAttributesSize() > 0) {
+        ttl = Long.parseLong(msg.getAttributes().getOrDefault(Constants.STORE_ATTR_TTL, Long.toString(ttl)));
+        String attr = msg.getAttributes().get(Constants.STORE_ATTR_USEDATAPOINTTS);
+        useDatapointTs = "true".equals(attr) || "t".equals(attr);       
+      }
+      
       // We will store each reading separately, this makes readings storage idempotent
       // If BLOCK_ENCODING is enabled, prefix encoding will be used to shrink column qualifiers
       
@@ -1227,7 +1240,17 @@ public class Store extends Thread {
           //
           // If the modulus is 1, we don't use a column qualifier
           //
-          put.addColumn(store.colfam, null, bytes);
+          if (useDatapointTs) {
+            // Use the timestamp of the datapoint as the timestamp of the HBase cell
+            put.addColumn(store.colfam, null, basets / Constants.TIME_UNITS_PER_MS, bytes);
+          } else {
+            put.addColumn(store.colfam, null, bytes);
+          }
+          
+          // Force the ttl if set
+          if (-1L != ttl) {
+            put.setTTL(ttl);
+          }
         } else {
           System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - (basets - (basets % Constants.DEFAULT_MODULUS))), 0, rowkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 16, 8);
           put = new Put(rowkey);
