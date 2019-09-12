@@ -765,6 +765,7 @@ public class WarpScriptLib {
   public static final String CORRELATE = "CORRELATE";
   public static final String SORT = "SORT";
   public static final String SORTBY = "SORTBY";
+  public static final String SORTWITH = "SORTWITH";
   public static final String RSORT = "RSORT";
   public static final String LASTSORT = "LASTSORT";
   public static final String METASORT = "METASORT";
@@ -1605,6 +1606,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new CORRELATE.Builder(CORRELATE));
     addNamedWarpScriptFunction(new SORT(SORT));
     addNamedWarpScriptFunction(new SORTBY(SORTBY));
+    addNamedWarpScriptFunction(new SORTWITH(SORTWITH));
     addNamedWarpScriptFunction(new RSORT(RSORT));
     addNamedWarpScriptFunction(new LASTSORT(LASTSORT));
     addNamedWarpScriptFunction(new METASORT(METASORT));
