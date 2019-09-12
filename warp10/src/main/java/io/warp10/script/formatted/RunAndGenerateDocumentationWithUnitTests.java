@@ -19,6 +19,7 @@ package io.warp10.script.formatted;
 import io.warp10.WarpConfig;
 import io.warp10.script.*;
 import io.warp10.script.formatted.FormattedWarpScriptFunction.Arguments;
+import io.warp10.script.functions.TYPEOF;
 import org.junit.BeforeClass;
 
 import java.io.*;
@@ -110,7 +111,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
 
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
     stack.maxLimits();
-    stack.exec("INFOMODE");
+    stack.exec(WarpScriptLib.INFOMODE);
 
     Collections.sort(functionNames);
 
@@ -199,7 +200,8 @@ public class RunAndGenerateDocumentationWithUnitTests {
             // Pass warpscript unit tests and push info map
             //
 
-            stack.execMulti(mc2 + " EVAL");
+            stack.execMulti(mc2);
+            stack.exec(WarpScriptLib.EVAL);
           }
           catch (WarpScriptStopException wse) {
 
@@ -208,7 +210,16 @@ public class RunAndGenerateDocumentationWithUnitTests {
             //
 
             caught = true;
-            stack.exec(" DEPTH 1 == ASSERT TYPEOF 'MAP' == ASSERT");
+
+            stack.exec(WarpScriptLib.DEPTH);
+            stack.push(1L);
+            stack.exec(WarpScriptLib.EQ);
+            stack.exec(WarpScriptLib.ASSERT);
+            
+            stack.exec(WarpScriptLib.TYPEOF);
+            stack.push(TYPEOF.typeof(Map.class));
+            stack.exec(WarpScriptLib.EQ);
+            stack.exec(WarpScriptLib.ASSERT);
           }
           if (!caught) {
             throw new WarpScriptException("Infomode failed to stop.");
