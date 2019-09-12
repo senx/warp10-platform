@@ -25,8 +25,18 @@ import java.util.Comparator;
 import java.util.EmptyStackException;
 import java.util.List;
 
+/**
+ * Sorts a list using a comparator macro.
+ * The comparator macro is given:
+ * TOP: b
+ * 2:   a
+ * And should push a negative Long if a less than b, a positive one if a more than b or 0L if there are equal.
+ * This Long must be within the bounds of a 32-bit integer.
+ */
 public class SORTWITH extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
+  // Unchecked exception to wrap checked ones, thus allowing Compare.compare to throw it.
+  // Also nicely formats the error message for unchecked exceptions thrown during the comparison.
   private class ComparisonException extends RuntimeException {
 
     public ComparisonException(Exception e) {
@@ -68,17 +78,18 @@ public class SORTWITH extends NamedWarpScriptFunction implements WarpScriptStack
             Object topComp = stack.pop();
 
             if (!(topComp instanceof Long)) {
-              throw new WarpScriptException(getName() + " was given a macro which did not returned an Integer.");
+              throw new WarpScriptException(getName() + " was given a macro which doesn't return a LONG. This LONG must be within the bounds of a 32-bit integer.");
             }
 
             return Math.toIntExact((Long) topComp);
           } catch (WarpScriptException | ArithmeticException | EmptyStackException e) {
+            // Wrap in a unchecked exception for Comparator.compare to be able to throw it.
             throw new ComparisonException(e);
           }
         }
       });
     } catch (ComparisonException ce) {
-      throw new WarpScriptException(getName() + " encountered an error with comparator: " + ce.getCause().getMessage());
+      throw new WarpScriptException(getName() + " encountered an error with comparator: " + ce.getCause().getMessage(), ce);
     }
 
     stack.push(list);
