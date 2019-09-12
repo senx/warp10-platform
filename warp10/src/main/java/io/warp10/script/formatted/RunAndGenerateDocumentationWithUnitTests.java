@@ -37,11 +37,13 @@ import java.util.*;
  */
 public class RunAndGenerateDocumentationWithUnitTests {
 
+  protected static final String OUTPUT_FOLDER_KEY = "generated.documentation.output.folder";
+
   //
   // Set WRITE to false if only for unit tests
   //
 
-  protected static final boolean WRITE = false;
+  private static final boolean WRITE = false;
   private static final String OUTPUT_FOLDER = "my/output/folder";
   private static final boolean OVERWRITE = false;
 
@@ -78,7 +80,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
   //
 
   protected boolean WRITE() {return WRITE;}
-  protected String OUTPUT_FOLDER() {return OUTPUT_FOLDER;}
+  protected String OUTPUT_FOLDER() {return WarpConfig.getProperty(OUTPUT_FOLDER_KEY);}
   protected boolean OVERWRITE() {return OVERWRITE;}
   protected String VERSION() {return VERSION;}
   protected List<String> TAGS() {return TAGS;}
@@ -101,6 +103,10 @@ public class RunAndGenerateDocumentationWithUnitTests {
   }
 
   final protected void generate(List<String> functionNames) throws Exception {
+
+    if (null == OUTPUT_FOLDER()) {
+      WarpConfig.setProperty(OUTPUT_FOLDER_KEY, OUTPUT_FOLDER);
+    }
 
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
     stack.maxLimits();

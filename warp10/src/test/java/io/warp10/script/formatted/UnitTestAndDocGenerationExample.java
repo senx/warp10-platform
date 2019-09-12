@@ -16,6 +16,7 @@
 
 package io.warp10.script.formatted;
 
+import io.warp10.WarpConfig;
 import io.warp10.script.WarpScriptLib;
 import org.junit.Test;
 
@@ -29,15 +30,15 @@ import java.util.List;
 public class UnitTestAndDocGenerationExample extends RunAndGenerateDocumentationWithUnitTests {
 
   //
-  // Overridden test run parameters
+  // Overridden some test run parameters
+  // WRITE(), OVERWRITE(), TAGS(), VERSION(), SINCE(), DEPRECATED(), DELETED(),
+  // CONF(), MAKE_FUNCTIONS_RELATED_WITHIN_SAME_PACKAGE(), OUTPUT_FOLDER().
   //
+
+  private static final String OUTPUT_FOLDER = "/my/output/folder/";
 
   protected boolean WRITE() {
     return false;
-  }
-
-  protected String OUTPUT_FOLDER() {
-    return "/my/output/folder/";
   }
 
   protected boolean OVERWRITE() {
@@ -65,6 +66,7 @@ public class UnitTestAndDocGenerationExample extends RunAndGenerateDocumentation
 
   @Test
   public void generate() throws Exception {
+    WarpConfig.setProperty(OUTPUT_FOLDER_KEY, OUTPUT_FOLDER);
     generate(WarpScriptLib.getFunctionNames());
   }
 
