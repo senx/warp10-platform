@@ -25,6 +25,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,12 +41,10 @@ import org.bouncycastle.crypto.params.KeyParameter;
 import sun.misc.FloatingDecimal;
 import sun.misc.FloatingDecimal.BinaryToASCIIConverter;
 
-import com.google.common.base.Charsets;
-
 /**
  * Utility class used to create Geo Time Series
  */
-public class GTSEncoder {
+public class GTSEncoder implements Cloneable {
   
   /**
    * Mask to extract encryption flag.
@@ -387,7 +386,7 @@ public class GTSEncoder {
       }
     } else if (value instanceof byte[]) {
       tsTypeFlag |= FLAGS_TYPE_STRING | FLAGS_STRING_BINARY;
-      binaryString = new String((byte[]) value, Charsets.ISO_8859_1);
+      binaryString = new String((byte[]) value, StandardCharsets.ISO_8859_1);
       if (binaryString.equals(lastStringValue)) {
         tsTypeFlag |= FLAGS_VALUE_IDENTICAL;
       }
@@ -639,7 +638,7 @@ public class GTSEncoder {
             lastStringValue = binaryString;
           } else {
             // Convert String to UTF8 byte array
-            byte[] utf8 = ((String) value).getBytes(Charsets.UTF_8);
+            byte[] utf8 = ((String) value).getBytes(StandardCharsets.UTF_8);
             // Store encoded byte array length as zig zag varint
             //BUF10 this.stream.write(Varint.encodeUnsignedLong(utf8.length));
             int l = Varint.encodeUnsignedLongInBuf(utf8.length, buf10);
@@ -847,6 +846,22 @@ public class GTSEncoder {
     }
   }
 
+  public static Object optimizeValue(Object value) {
+
+    if ((value instanceof Double) && Double.isFinite((double) value)) {
+      StringBuilder sb = new StringBuilder();
+      
+      char[] chars = null;
+
+      BinaryToASCIIConverter btoa = FloatingDecimal.getBinaryToASCIIConverter((double) value);
+      btoa.appendTo(sb);
+      
+      value = new BigDecimal(sb.toString());
+    }
+    
+    return value;
+  }
+  
   /**
    * Return a decoder instance capable of decoding the encoded content of this
    * encoder.
@@ -1298,5 +1313,51 @@ public class GTSEncoder {
     encoder.setMetadata(this.getMetadata());
     
     return encoder;
+  }
+
+  public GTSEncoder clone() {
+    GTSEncoder clone = cloneEmpty();
+
+    // Do not clone readonly because it is only to protect encoders which metadata and byte array are referenced by
+    // an unsafe decoder. As we clone this encoder, no unsafe decoder references this clone.
+
+    clone.lastTimestamp = this.lastTimestamp;
+    clone.lastGeoXPPoint = this.lastGeoXPPoint;
+    clone.lastElevation = this.lastElevation;
+    clone.lastLongValue = this.lastLongValue;
+    // BigDecimals are immutable, so this is OK
+    clone.lastBDValue = this.lastBDValue;
+    clone.lastDoubleValue = this.lastDoubleValue;
+    // Strings are immutable, so this is OK
+    clone.lastStringValue = this.lastStringValue;
+
+    // Strings are immutable, so this is OK
+    clone.binaryString = this.binaryString;
+
+    clone.initialTimestamp = this.initialTimestamp;
+    clone.initialGeoXPPoint = this.initialGeoXPPoint;
+    clone.initialElevation = this.initialElevation;
+    clone.initialLongValue = this.initialLongValue;
+    clone.initialDoubleValue = this.initialDoubleValue;
+    // BigDecimals are immutable, so this is OK
+    clone.initialBDValue = this.initialBDValue;
+    // Strings are immutable, so this is OK
+    clone.initialStringValue = this.initialStringValue;
+
+    try {
+      this.stream.writeTo(clone.stream);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
+    clone.count = this.count;
+
+    clone.noDeltaMetaTimestamp = this.noDeltaMetaTimestamp;
+    clone.noDeltaMetaLocation = this.noDeltaMetaLocation;
+    clone.noDeltaMetaElevation = this.noDeltaMetaElevation;
+
+    clone.noDeltaValue = this.noDeltaValue;
+
+    return clone;
   }
 }

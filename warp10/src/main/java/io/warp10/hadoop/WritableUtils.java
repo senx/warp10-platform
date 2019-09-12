@@ -43,16 +43,37 @@ import org.apache.hadoop.io.VLongWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
+
 /**
  * Utility class to convert to/from Writables
  */
 public class WritableUtils {
-  public static Object fromWritable(Object w) throws IOException {
-    
-    if (!(w instanceof Writable)) {
-      return w;
+  
+  private static final boolean strictWritables;
+  private static final boolean rawWritables;
+  
+  static {
+    if ("true".equals(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_HADOOP_STRICTWRITABLES))) {
+      strictWritables = true;
+    } else {
+      strictWritables = false;
     }
     
+    if ("true".equals(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_HADOOP_RAWWRITABLES))) {
+      rawWritables = true;
+    } else {
+      rawWritables = false;
+    }  
+  }
+  
+  public static Object fromWritable(Object w) throws IOException {
+    
+    if (!(w instanceof Writable) || rawWritables) {
+      return w;
+    }
+  
     if (w instanceof Text) {
       return ((Text) w).toString();
     } else if (w instanceof BytesWritable) {
@@ -101,7 +122,11 @@ public class WritableUtils {
     } else if (w instanceof VLongWritable) {
       return ((VLongWritable) w).get();
     } else {
-      throw new IOException("Unsupported Writable implementation " + w.getClass());
+      if (strictWritables) {
+        throw new IOException("Unsupported Writable implementation " + w.getClass());
+      } else {
+        return w;
+      }
     }  
   }
   

@@ -29,6 +29,7 @@ import io.warp10.script.thrift.data.SecureScript;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -36,8 +37,6 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-
-import com.google.common.base.Charsets;
 
 /**
  * Unwraps a secure script
@@ -70,7 +69,7 @@ public class UNSECURE extends NamedWarpScriptFunction implements WarpScriptStack
     }
     
     // Retrieve raw bytes
-    byte[] raw = OrderPreservingBase64.decode(o.toString().getBytes(Charsets.US_ASCII));
+    byte[] raw = OrderPreservingBase64.decode(o.toString().getBytes(StandardCharsets.US_ASCII));
     
     // Unwrap
     
@@ -134,7 +133,7 @@ public class UNSECURE extends NamedWarpScriptFunction implements WarpScriptStack
     }
     
     // Convert bytes to String
-    String script = new String(sscript.getScript(), Charsets.UTF_8);
+    String script = new String(sscript.getScript(), StandardCharsets.UTF_8);
 
     stack.push(script);
     

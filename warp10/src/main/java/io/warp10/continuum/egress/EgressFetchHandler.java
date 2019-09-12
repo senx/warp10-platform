@@ -53,6 +53,7 @@ import java.io.StringWriter;
 import java.math.BigInteger;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -101,7 +102,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.geoxp.GeoXPLib;
-import com.google.common.base.Charsets;
 import com.google.common.primitives.Longs;
 
 public class EgressFetchHandler extends AbstractHandler {
@@ -334,7 +334,7 @@ public class EgressFetchHandler extends AbstractHandler {
           
           String tstoken = Long.toString(sigts) + ":" + token;
           
-          long checkedhash = SipHashInline.hash24(fetchPSK, tstoken.getBytes(Charsets.ISO_8859_1));
+          long checkedhash = SipHashInline.hash24(fetchPSK, tstoken.getBytes(StandardCharsets.ISO_8859_1));
           
           if (checkedhash != sighash) {
             throw new IOException("Corrupted fetch signature");
@@ -400,7 +400,7 @@ public class EgressFetchHandler extends AbstractHandler {
             return;
           }
           
-          String classSelector = URLDecoder.decode(m.group(1), "UTF-8");
+          String classSelector = URLDecoder.decode(m.group(1), StandardCharsets.UTF_8.name());
           String labelsSelection = m.group(2);
           
           Map<String,String> labelsSelectors;
@@ -532,7 +532,7 @@ public class EgressFetchHandler extends AbstractHandler {
             // Decode/Unwrap/Deserialize the split
             //
             
-            byte[] data = OrderPreservingBase64.decode(line.getBytes(Charsets.US_ASCII));
+            byte[] data = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
             if (null != fetchAES) {
               data = CryptoUtils.unwrap(fetchAES, data);
             }
@@ -666,7 +666,7 @@ public class EgressFetchHandler extends AbstractHandler {
               done = true;
               return false;
             }
-            byte[] raw = OrderPreservingBase64.decode(line.getBytes(Charsets.US_ASCII));
+            byte[] raw = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
             // Apply one time pad
             for (int i = 0; i < raw.length; i++) {
               raw[i] = (byte) (raw[i] ^ onetimepad[padidx++]);
@@ -767,7 +767,7 @@ public class EgressFetchHandler extends AbstractHandler {
                 t.printStackTrace(pw2);
                 pw2.close();
                 sw.flush();
-                String error = URLEncoder.encode(sw.toString(), "UTF-8");
+                String error = URLEncoder.encode(sw.toString(), StandardCharsets.UTF_8.name());
                 pw.println(Constants.EGRESS_FETCH_ERROR_PREFIX + error);
               }
               throw new IOException(t);

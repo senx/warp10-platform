@@ -545,6 +545,39 @@ public class Configuration {
   // I N G R E S S
   //
   /////////////////////////////////////////////////////////////////////////////////////////
+
+  /**
+   * Default maximum age of datapoints pushed to Warp 10, in ms. Any timestamp older than
+   * 'now' - this value will be rejected.
+   * The maxpast value from the token will have precedence over this one
+   */
+  public static final String INGRESS_MAXPAST_DEFAULT = "ingress.maxpast.default";
+  
+  /**
+   * Default maximum timestamp delta in the future for datapoints pushed to Warp 10, in ms.
+   * Any timestamp more than this value past 'now' will be rejected
+   * The maxfuture value from the token will have precedence over this one
+   */
+  public static final String INGRESS_MAXFUTURE_DEFAULT = "ingress.maxfuture.default";
+  
+  /**
+   * Absolute maximum age of datapoints pushed to Warp 10, in ms. Any timestamp older than
+   * 'now' - this value will be rejected.
+   * This value overrides both the default and token value for maxpast. 
+   */
+  public static final String INGRESS_MAXPAST_OVERRIDE = "ingress.maxpast.override";
+  
+  /**
+   * Absolute maximum timestamp delta in the future for datapoints pushed to Warp 10, in ms.
+   * Any timestamp more than this value past 'now' will be rejected
+   * This value overrides both the default and token value for maxfuture
+   */
+  public static final String INGRESS_MAXFUTURE_OVERRIDE = "ingress.maxfuture.override";
+
+  /**
+   * Set to true to silently ignore values which are outside the allowed time range
+   */
+  public static final String INGRESS_OUTOFRANGE_IGNORE = "ingress.outofrange.ignore";
   
   /**
    * Length of the activity window in ms. If this parameter is set then GTS activity will
@@ -1420,6 +1453,11 @@ public class Configuration {
   public static final String STANDALONE_SNAPSHOT_SIGNAL = "standalone.snapshot.signal";
   
   /**
+   * Set to 'true' to ignore timestamp limits (maxpast/maxfuture) when receiving data via datalog.
+   */
+  public static final String DATALOG_IGNORE_TIMESTAMPLIMITS = "datalog.ignore.timestamplimits";
+  
+  /**
    * Directory where data requests should be logged. This directory should be in 700 to protect sensitive token infos.
    */
   public static final String DATALOG_DIR = "datalog.dir";
@@ -2136,4 +2174,19 @@ public class Configuration {
   public static final String EGRESS_PREFIX = "egress";
   public static final String INGRESS_PREFIX = "ingress";
   public static final String PLASMA_FRONTEND_PREFIX = "plasma.frontend";
+  
+  //
+  // Hadoop Integration Configurations
+  //
+  
+  /**
+   * Set to 'true' to throw an error when a Writable that the WritableUtils cannot convert is encountered.
+   * If this is not set, the unknown Writable will be returned as is.
+   */
+  public static final String CONFIG_WARPSCRIPT_HADOOP_STRICTWRITABLES = "warpscript.hadoop.strictwritables";
+  
+  /**
+   * Set to 'true' to return Writable instances as is in WarpScriptInputFormat
+   */
+  public static final String CONFIG_WARPSCRIPT_HADOOP_RAWWRITABLES = "warpscript.hadoop.rawwritables";  
 }

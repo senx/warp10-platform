@@ -18,6 +18,7 @@ package io.warp10.script.functions;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -27,8 +28,6 @@ import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 
 import com.geoxp.GeoXPLib;
-import com.google.common.base.Charsets;
-
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
@@ -134,7 +133,7 @@ public class MVEXTRACT extends ElementOrListStackFunction implements ElementStac
         } else {
           // Attempt to decode a Wrapper
           try {
-            byte[] bytes = value.toString().getBytes(Charsets.ISO_8859_1);
+            byte[] bytes = value.toString().getBytes(StandardCharsets.ISO_8859_1);
             wrapper.clear();
             deser.deserialize(wrapper, bytes);
             if (ELEMENT.VALUE == this.elementType) {

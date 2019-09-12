@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -60,7 +61,6 @@ import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Charsets;
 import com.google.common.util.concurrent.RateLimiter;
 
 /**
@@ -764,7 +764,7 @@ public class ThrottlingManager {
                   entity = uuid.toString().toLowerCase();
                 } else {
                   // Remove leading '+' and decode application name which may be URL encoded
-                  entity = URLDecoder.decode(entity.substring(1), "UTF-8");                  
+                  entity = URLDecoder.decode(entity.substring(1), StandardCharsets.UTF_8.name());
                 }
                 
                 if ("-".equals(estimator)) {
@@ -793,7 +793,7 @@ public class ThrottlingManager {
                     }
                   }
                 } else if (!"".equals(estimator)) {                  
-                  byte[] ser = OrderPreservingBase64.decode(estimator.getBytes(Charsets.US_ASCII));
+                  byte[] ser = OrderPreservingBase64.decode(estimator.getBytes(StandardCharsets.US_ASCII));
                   HyperLogLogPlus hllp = HyperLogLogPlus.fromBytes(ser);
                   
                   // Force mode to 'NORMAL', SPARSE is too slow as it calls merge repeatdly
@@ -931,7 +931,7 @@ public class ThrottlingManager {
               
               try {
                 byte[] bytes = hllp.toBytes();
-                String encoded = new String(OrderPreservingBase64.encode(bytes), Charsets.US_ASCII);
+                String encoded = new String(OrderPreservingBase64.encode(bytes), StandardCharsets.US_ASCII);
                 Map<String,String> labels = new HashMap<String, String>();
                 labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, key);
                 Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels, hllp.cardinality());              
@@ -956,7 +956,7 @@ public class ThrottlingManager {
               
               try {
                 byte[] bytes = hllp.toBytes();
-                String encoded = new String(OrderPreservingBase64.encode(bytes), Charsets.US_ASCII);
+                String encoded = new String(OrderPreservingBase64.encode(bytes), StandardCharsets.US_ASCII);
                 Map<String,String> labels = new HashMap<String, String>();
                 labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, key);
                 Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT_PER_APP, labels, hllp.cardinality());
@@ -1110,7 +1110,7 @@ public class ThrottlingManager {
           }
           pw.print(":");
           if (producerHLLPEstimators.containsKey(key)) {
-            pw.print(new String(OrderPreservingBase64.encode(producerHLLPEstimators.get(key).toBytes()), Charsets.US_ASCII));
+            pw.print(new String(OrderPreservingBase64.encode(producerHLLPEstimators.get(key).toBytes()), StandardCharsets.US_ASCII));
           }
           pw.println(":#");
         }
@@ -1120,7 +1120,7 @@ public class ThrottlingManager {
         
         for (String key: keys) {
           pw.print(APPLICATION_PREFIX_CHAR);
-          pw.print(URLEncoder.encode(key, "UTF-8"));
+          pw.print(URLEncoder.encode(key, StandardCharsets.UTF_8.name()));
           pw.print(":");
           Long limit = applicationMADSLimits.get(key);
           if (null != limit) {
@@ -1133,7 +1133,7 @@ public class ThrottlingManager {
           }
           pw.print(":");
           if (applicationHLLPEstimators.containsKey(key)) {
-            pw.print(new String(OrderPreservingBase64.encode(applicationHLLPEstimators.get(key).toBytes()), Charsets.US_ASCII));
+            pw.print(new String(OrderPreservingBase64.encode(applicationHLLPEstimators.get(key).toBytes()), StandardCharsets.US_ASCII));
           }
           pw.println(":#");
         }

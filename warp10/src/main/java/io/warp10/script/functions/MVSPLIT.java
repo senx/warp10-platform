@@ -17,6 +17,7 @@
 package io.warp10.script.functions;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,8 +30,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
-
-import com.google.common.base.Charsets;
 
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -180,7 +179,7 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
               }
             } else if (value instanceof String) {
               try {
-                byte[] bytes = value.toString().getBytes(Charsets.ISO_8859_1);
+                byte[] bytes = value.toString().getBytes(StandardCharsets.ISO_8859_1);
                 wrapper.clear();
                 deser.deserialize(wrapper, bytes);
                 value = wrapper;
@@ -196,7 +195,7 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
             // Check if a STRING is a wrapper
             if (value instanceof String) {
               try {
-                byte[] bytes = value.toString().getBytes(Charsets.ISO_8859_1);
+                byte[] bytes = value.toString().getBytes(StandardCharsets.ISO_8859_1);
                 wrapper.clear();
                 deser.deserialize(wrapper, bytes);
                 value = wrapper;

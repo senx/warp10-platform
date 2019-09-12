@@ -33,6 +33,8 @@ import java.util.*;
  * Generate initial .mc2 doc files of instances of FormattedWarpScriptFunction
  * Execute this file to perform its Unit tests
  * Assert that a map is returned in INFOMODE
+ *
+ * Can be extended by WarpScript extensions
  */
 public class RunAndGenerateDocumentationWithUnitTests {
 
@@ -40,7 +42,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
   // Set WRITE to false if only for unit tests
   //
 
-  private static final boolean WRITE = false;
+  protected static final boolean WRITE = false;
   private static final String OUTPUT_FOLDER = "my/output/folder";
   private static final boolean OVERWRITE = false;
 
@@ -72,22 +74,44 @@ public class RunAndGenerateDocumentationWithUnitTests {
   // outputs, examples, tags and related are retrieved in each instance of FormattedWarpScriptFunction if they were set
   //
 
+  //
+  // Getters that can be overridden by subclasses
+  //
+
+  protected boolean WRITE() {return WRITE;}
+  protected String OUTPUT_FOLDER() {return OUTPUT_FOLDER;}
+  protected boolean OVERWRITE() {return OVERWRITE;}
+  protected String VERSION() {return VERSION;}
+  protected List<String> TAGS() {return TAGS;}
+  protected boolean MAKE_FUNCTIONS_RELATED_WITHIN_SAME_PACKAGE() {return MAKE_FUNCTIONS_RELATED_WITHIN_SAME_PACKAGE;}
+  protected String SINCE() {return SINCE;}
+  protected String DEPRECATED() {return DEPRECATED;}
+  protected String DELETED() {return DELETED;}
+  protected List<String> CONF() {return CONF;}
+
+  //
+  // Tests
+  //
+
   @BeforeClass
-  public static void beforeClass() throws Exception {
+  final public static void beforeClass() throws Exception {
     StringBuilder props = new StringBuilder();
 
     props.append("warp.timeunits=us");
     WarpConfig.safeSetProperties(new StringReader(props.toString()));
   }
 
-  //@Ignore
   @Test
-  public void generate() throws Exception {;
+  public void generate() throws Exception {
+    generate(WarpScriptLib.getFunctionNames());
+  }
+
+  final protected void generate(List<String> functionNames) throws Exception {
+
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
     stack.maxLimits();
     stack.exec("INFOMODE");
 
-    List<String> functionNames = WarpScriptLib.getFunctionNames();
     Collections.sort(functionNames);
 
     for (String name : functionNames) {
@@ -129,7 +153,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
         }
 
         // tags
-        List<String> tags = new ArrayList<>(TAGS);
+        List<String> tags = new ArrayList<>(TAGS());
         for (Method m: function.getClass().getDeclaredMethods()) {
           if (m.getName().equals("getTags")) {
             m.setAccessible(true);
@@ -143,7 +167,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
 
         // related
         List<String> related = new ArrayList<>();
-        if (MAKE_FUNCTIONS_RELATED_WITHIN_SAME_PACKAGE) {
+        if (MAKE_FUNCTIONS_RELATED_WITHIN_SAME_PACKAGE()) {
           related = getRelatedClasses(function.getClass().getClassLoader(), function.getClass().getPackage().getName());
           related.remove("");
           related.remove(name);
@@ -165,8 +189,8 @@ public class RunAndGenerateDocumentationWithUnitTests {
 
         try {
 
-          mc2 = DocumentationGenerator.generateWarpScriptDoc((FormattedWarpScriptFunction) function, SINCE, DEPRECATED, DELETED, VERSION,
-            tags, related, examples, CONF, output);
+          mc2 = DocumentationGenerator.generateWarpScriptDoc((FormattedWarpScriptFunction) function, SINCE(), DEPRECATED(), DELETED(), VERSION(),
+            tags, related, examples, CONF(), output);
 
           boolean caught = false;
           try {
@@ -193,10 +217,10 @@ public class RunAndGenerateDocumentationWithUnitTests {
           e.printStackTrace();
         }
 
-        if (WRITE) {
-          String path = OUTPUT_FOLDER + name + ".mc2";
+        if (WRITE()) {
+          String path = OUTPUT_FOLDER() + name + ".mc2";
           File file = new File(path);
-          if (OVERWRITE || !file.exists()) {
+          if (OVERWRITE() || !file.exists()) {
             try {
               Files.write(Paths.get(path), mc2.getBytes());
             } catch (IOException e) {
