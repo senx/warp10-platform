@@ -765,6 +765,7 @@ public class WarpScriptLib {
   public static final String CORRELATE = "CORRELATE";
   public static final String SORT = "SORT";
   public static final String SORTBY = "SORTBY";
+  public static final String SORTWITH = "SORTWITH";
   public static final String RSORT = "RSORT";
   public static final String LASTSORT = "LASTSORT";
   public static final String METASORT = "METASORT";
@@ -1130,6 +1131,8 @@ public class WarpScriptLib {
   public static final String MAPPER_LE_ELEV = "mapper.le.elev";
   public static final String MAPPER_LT_ELEV = "mapper.lt.elev";
 
+  public static final String EQ = "==";
+
   
   static {
 
@@ -1357,7 +1360,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MUL("*"));
     addNamedWarpScriptFunction(new POW("**"));
     addNamedWarpScriptFunction(new MOD("%"));
-    addNamedWarpScriptFunction(new EQ("=="));
+    addNamedWarpScriptFunction(new EQ(EQ));
     addNamedWarpScriptFunction(new NE("!="));
     addNamedWarpScriptFunction(new LT("<"));
     addNamedWarpScriptFunction(new GT(">"));
@@ -1605,6 +1608,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new CORRELATE.Builder(CORRELATE));
     addNamedWarpScriptFunction(new SORT(SORT));
     addNamedWarpScriptFunction(new SORTBY(SORTBY));
+    addNamedWarpScriptFunction(new SORTWITH(SORTWITH));
     addNamedWarpScriptFunction(new RSORT(RSORT));
     addNamedWarpScriptFunction(new LASTSORT(LASTSORT));
     addNamedWarpScriptFunction(new METASORT(METASORT));

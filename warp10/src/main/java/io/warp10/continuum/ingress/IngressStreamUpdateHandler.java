@@ -76,6 +76,8 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
     
     private long seqno = 0L;
     
+    private long maxsize;
+    
     private WriteToken wtoken;
     private Boolean ignoor = null;
     private Map<String,String> kafkaDataMessageAttributes = null;
@@ -246,7 +248,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
               }
 
               try {
-                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.handler.ingress.maxValueSize, hadAttributes, maxpast, maxfuture, ignoredCount);
+                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.maxsize, hadAttributes, maxpast, maxfuture, ignoredCount);
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
                 throw new IOException("Parse error at '" + line + "'", pe);
@@ -431,6 +433,15 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
         throw new IOException("Token cannot be used for updating data.");
       }
       
+      this.maxsize = this.handler.ingress.maxValueSize;
+      
+      if (wtoken.getAttributesSize() > 0 && null != wtoken.getAttributes().get(Constants.TOKEN_ATTR_MAXSIZE)) {
+        this.maxsize = Long.parseLong(wtoken.getAttributes().get(Constants.TOKEN_ATTR_MAXSIZE));
+        if (this.maxsize > (this.handler.ingress.DATA_MESSAGES_THRESHOLD / 2) - 64) {
+          this.maxsize = (this.handler.ingress.DATA_MESSAGES_THRESHOLD / 2) - 64;
+        }
+      }
+
       this.maxpastdelta = null;
       this.maxfuturedelta = null;
       

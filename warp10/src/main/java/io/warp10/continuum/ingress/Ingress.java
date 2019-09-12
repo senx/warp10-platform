@@ -219,7 +219,7 @@ public class Ingress extends AbstractHandler implements Runnable {
    * 
    * This and METADATA_MESSAGES_THRESHOLD has to be lower than the configured Kafka max message size (message.max.bytes)
    */
-  private final long DATA_MESSAGES_THRESHOLD;
+  final long DATA_MESSAGES_THRESHOLD;
     
   /**
    * Kafka producer for readings
@@ -345,6 +345,10 @@ public class Ingress extends AbstractHandler implements Runnable {
     this.DATA_MESSAGES_THRESHOLD = Long.parseLong(props.getProperty(Configuration.INGRESS_KAFKA_DATA_MAXSIZE));
     this.METADATA_MESSAGES_THRESHOLD = Long.parseLong(props.getProperty(Configuration.INGRESS_KAFKA_METADATA_MAXSIZE));
     this.maxValueSize = Long.parseLong(props.getProperty(Configuration.INGRESS_VALUE_MAXSIZE));
+    
+    if (this.maxValueSize > (this.DATA_MESSAGES_THRESHOLD / 2) - 64) {
+      throw new RuntimeException("Value of '" + Configuration.INGRESS_VALUE_MAXSIZE + "' cannot exceed that half of '" + Configuration.INGRESS_KAFKA_DATA_MAXSIZE + "' minus 64.");
+    }
     
     extractKeys(this.keystore, props);
     
@@ -778,6 +782,15 @@ public class Ingress extends AbstractHandler implements Runnable {
           sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
         }
 
+        long maxsize = maxValueSize;
+        
+        if (writeToken.getAttributesSize() > 0 && null != writeToken.getAttributes().get(Constants.TOKEN_ATTR_MAXSIZE)) {
+          maxsize = Long.parseLong(writeToken.getAttributes().get(Constants.TOKEN_ATTR_MAXSIZE));
+          if (maxsize > (DATA_MESSAGES_THRESHOLD / 2) - 64) {
+            maxsize = (DATA_MESSAGES_THRESHOLD / 2) - 64;
+          }
+        }
+        
         //
         // Determine if content is gzipped
         //
@@ -971,7 +984,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           }
                     
           try {
-            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, hadAttributes, maxpast, maxfuture, ignoredCount);
+            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxsize, hadAttributes, maxpast, maxfuture, ignoredCount);
             count++;
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_PARSEERRORS, sensisionLabels, 1);
