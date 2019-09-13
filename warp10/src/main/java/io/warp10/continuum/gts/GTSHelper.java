@@ -258,7 +258,40 @@ public class GTSHelper {
    * @return a fully sorted GTS.
    */
   public static final GeoTimeSerie fullsort(GeoTimeSerie gts, boolean reversed) {
-    fullquicksort(gts, 0, gts.values - 1, reversed);
+    if (gts.sorted) {
+      // If the GTS is already sorted, we can only fullsort where ticks are equals.
+
+      if (gts.reversed != reversed) {
+        // This will effectively flip the GTS
+        sort(gts, reversed);
+      }
+
+      List<int[]> ranges = new ArrayList<int[]>();
+
+      // Start index of the current possible range.
+      int startIndex = 0;
+
+      for (int i = 1; i < gts.values; i++) {
+        if (gts.ticks[i] != gts.ticks[startIndex]) {
+          // End of range, check that it contains several indices.
+          if (i - 1 - startIndex > 0) {
+            // Valid range, add it.
+            ranges.add(new int[]{startIndex, i - 1});
+          }
+          startIndex = i;
+        }
+      }
+
+      // Check if the loop ended before adding the last range. This range ends with the last index.
+      if (startIndex < gts.values - 1) {
+        ranges.add(new int[]{startIndex, gts.values - 1});
+      }
+
+      // Sort using the computed ranges.
+      fullquicksort(gts, ranges, reversed);
+    } else {
+      fullquicksort(gts, 0, gts.values - 1, reversed);
+    }
 
     gts.sorted = true;
     gts.reversed = reversed;
@@ -906,6 +939,25 @@ public class GTSHelper {
     List<int[]> ranges = new ArrayList<int[]>();
 
     ranges.add(new int[]{low, high});
+
+    fullquicksort(gts, ranges, reversed);
+  }
+
+  /**
+   * Apply a quicksort on the given GTS instance using all the data at each tick to make the comparisons.
+   * Use natural ordering to first order according to ticks then values, then locations, then elevations.
+   * @param gts The GTS to be sorted, will be modified in place.
+   * @param ranges Ranges of indexes to sort in the GTS.
+   * @param reversed Whether to return a reversed GTS or not.
+   */
+  private static void fullquicksort(GeoTimeSerie gts, List<int[]> ranges, final boolean reversed) {
+
+    if (0 == gts.values) {
+      return;
+    }
+
+    int low;
+    int high;
 
     while (!ranges.isEmpty()) {
       int[] range = ranges.remove(0);
