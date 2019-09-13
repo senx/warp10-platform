@@ -165,6 +165,10 @@ public class Ingress extends AbstractHandler implements Runnable {
 
   final long maxValueSize;
 
+  final long ttl;
+  
+  final boolean useDatapointTs;
+  
   private final String cacheDumpPath;
   
   private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
@@ -311,6 +315,9 @@ public class Ingress extends AbstractHandler implements Runnable {
     //
     // Extract parameters from 'props'
     //
+    
+    this.ttl = Long.parseLong(props.getProperty(Configuration.INGRESS_HBASE_CELLTTL, "-1"));
+    this.useDatapointTs = "true".equals(props.getProperty(Configuration.INGRESS_HBASE_DPTS));
     
     this.doShuffle = "true".equals(props.getProperty(Configuration.INGRESS_DELETE_SHUFFLE));
     
@@ -716,13 +723,44 @@ public class Ingress extends AbstractHandler implements Runnable {
 
       long count = 0;
       
+      //
+      // Extract KafkaDataMessage attributes
+      //
+      
+      Map<String,String> kafkaDataMessageAttributes = null;
+      
+      if (-1 != ttl || useDatapointTs) {
+        kafkaDataMessageAttributes = new HashMap<String,String>();
+        if (-1 != ttl) {
+          kafkaDataMessageAttributes.put(Constants.STORE_ATTR_TTL, Long.toString(ttl));
+        }
+        if (useDatapointTs) {
+          kafkaDataMessageAttributes.put(Constants.STORE_ATTR_USEDATAPOINTTS, "t");
+        }
+      }
+      
+      if (writeToken.getAttributesSize() > 0) {
+        if (writeToken.getAttributes().containsKey(Constants.STORE_ATTR_TTL)
+            || writeToken.getAttributes().containsKey(Constants.STORE_ATTR_USEDATAPOINTTS)) {
+          if (null == kafkaDataMessageAttributes) {
+            kafkaDataMessageAttributes = new HashMap<String,String>();
+          }
+          if (writeToken.getAttributes().containsKey(Constants.STORE_ATTR_TTL)) {
+            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_TTL, writeToken.getAttributes().get(Constants.STORE_ATTR_TTL));
+          }
+          if (writeToken.getAttributes().containsKey(Constants.STORE_ATTR_USEDATAPOINTTS)) {
+            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_USEDATAPOINTTS, writeToken.getAttributes().get(Constants.STORE_ATTR_USEDATAPOINTTS));
+          }
+        }
+      }
+
       try {
         if (null == producer || null == owner) {
           Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_INVALIDTOKEN, Sensision.EMPTY_LABELS, 1);
           response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
           return;
         }
-        
+                
         //
         // Build extra labels
         //
@@ -1016,7 +1054,7 @@ public class Ingress extends AbstractHandler implements Runnable {
             }
             
             if (null != lastencoder) {
-              pushDataMessage(lastencoder);
+              pushDataMessage(lastencoder, kafkaDataMessageAttributes);
                            
               if (parseAttributes && lastHadAttributes) {
                 // We need to push lastencoder's metadata update as they were updated since the last
@@ -1059,7 +1097,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
           ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
 
-          pushDataMessage(lastencoder);
+          pushDataMessage(lastencoder, kafkaDataMessageAttributes);
           
           if (parseAttributes && lastHadAttributes) {
             // Push a metadata UPDATE message so attributes are stored
@@ -1077,7 +1115,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         //
         
         pushMetadataMessage(null, null);
-        pushDataMessage(null);
+        pushDataMessage(null, kafkaDataMessageAttributes);
 
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_DATAPOINTS_GLOBAL, Sensision.EMPTY_LABELS, count);
@@ -1934,7 +1972,7 @@ public class Ingress extends AbstractHandler implements Runnable {
    * 
    * @param encoder GTSEncoder to push to Kafka. It MUST have classId/labelsId set.
    */
-  void pushDataMessage(GTSEncoder encoder) throws IOException {    
+  void pushDataMessage(GTSEncoder encoder, Map<String,String> attributes) throws IOException {    
     if (null != encoder) {
       KafkaDataMessage msg = new KafkaDataMessage();
       msg.setType(KafkaDataMessageType.STORE);
@@ -1946,6 +1984,9 @@ public class Ingress extends AbstractHandler implements Runnable {
         msg.setMetadata(encoder.getMetadata());
       }
 
+      if (null != attributes && !attributes.isEmpty()) {
+        msg.setAttributes(new HashMap<String,String>(attributes));
+      }
       sendDataMessage(msg);
     } else {
       sendDataMessage(null);

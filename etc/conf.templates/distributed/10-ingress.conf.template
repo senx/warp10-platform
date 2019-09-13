@@ -311,3 +311,19 @@ ingress.kafka.metadata.maxsize = 900000
 // If this is not set or set to anything but 'true', datapoints with timestamps outside the permitted range will trigger an error
 //
 #ingress.outofrange.ignore = true
+
+//
+// Default datapoint cell TTL (in ms) to enforce. If this is not set, then the TTL will be that
+// of the columns family. A value of -1 disables the use of cell TTLs.
+// This can be overridden by the '.ttl' WriteToken attribute.
+// The default value is -1
+//
+#ingress.hbase.cellttl = -1
+  
+//
+// Flag indicating whether to use the DataPoint TimeStamp instead of the write timestamp
+// for the data stored in HBase.
+// This can be overridden by the '.dpts' WriteToken attribute.
+// The default value if false.
+//
+#ingress.hbase.dpts = false
