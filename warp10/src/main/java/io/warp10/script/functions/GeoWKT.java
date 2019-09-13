@@ -20,6 +20,7 @@ import com.geoxp.GeoXPLib;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
+
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -31,19 +32,19 @@ import io.warp10.script.WarpScriptStackFunction;
 public class GeoWKT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private final boolean uniform;
-  
+
   public GeoWKT(String name, boolean uniform) {
     super(name);
     this.uniform = uniform;
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object inside = stack.pop();
     Object pcterror = stack.pop();
     Object wkt = stack.pop();
-  
-    if (!(wkt instanceof String) || !(inside instanceof Boolean) || (!(pcterror instanceof Double) && !(pcterror instanceof Long))) { 
+
+    if (!(wkt instanceof String) || !(inside instanceof Boolean) || (!(pcterror instanceof Double) && !(pcterror instanceof Long))) {
       throw new WarpScriptException(getName() + " expects a WKT string, an error percentage or resolution (even number between 2 and 30) and a boolean as the top 3 elements of the stack.");
     }
 
@@ -58,36 +59,42 @@ public class GeoWKT extends NamedWarpScriptFunction implements WarpScriptStackFu
     //
     // Read WKT
     //
-    
-    WKTReader reader = new WKTReader();    
+
+    WKTReader reader = new WKTReader();
     Geometry geometry = null;
-    
+
     try {
       geometry = reader.read(wkt.toString());
     } catch (ParseException pe) {
       throw new WarpScriptException(pe);
     }
-    
+
     //
     // Convert Geometry to a GeoXPShape
     //
-    
+
     int maxcells = ((Number) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MAX_GEOCELLS)).intValue();
-    
+    Object shape = null;
+
     if (!this.uniform) {
       if (pcterror instanceof Double) {
-        stack.push(GeoXPLib.toGeoXPShape(geometry, ((Number) pcterror).doubleValue(), Boolean.TRUE.equals(inside), maxcells));
+        shape = GeoXPLib.toGeoXPShape(geometry, ((Number) pcterror).doubleValue(), Boolean.TRUE.equals(inside), maxcells);
       } else {
-        stack.push(GeoXPLib.toGeoXPShape(geometry, ((Number) pcterror).intValue(), Boolean.TRUE.equals(inside), maxcells));
+        shape = GeoXPLib.toGeoXPShape(geometry, ((Number) pcterror).intValue(), Boolean.TRUE.equals(inside), maxcells);
       }
     } else {
       if (pcterror instanceof Double) {
-        stack.push(GeoXPLib.toUniformGeoXPShape(geometry, ((Number) pcterror).doubleValue(), Boolean.TRUE.equals(inside), maxcells));
+        shape = GeoXPLib.toUniformGeoXPShape(geometry, ((Number) pcterror).doubleValue(), Boolean.TRUE.equals(inside), maxcells);
       } else {
-        stack.push(GeoXPLib.toUniformGeoXPShape(geometry, ((Number) pcterror).intValue(), Boolean.TRUE.equals(inside), maxcells));
+        shape = GeoXPLib.toUniformGeoXPShape(geometry, ((Number) pcterror).intValue(), Boolean.TRUE.equals(inside), maxcells);
       }
     }
-    
+
+    if (null == shape) {
+      throw new WarpScriptException("Maximum number of cells exceeded in a geographic shape (warpscript.maxgeocells=" + maxcells + ")");
+    }
+
+    stack.push(shape);
     return stack;
   }
 }
