@@ -437,7 +437,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
     //
 
     while(idx < chars.length) {
-      if ('\'' == chars[idx] || chars[idx] < ' ') {
+      if ('%' == chars[idx] || '\'' == chars[idx] || chars[idx] < ' ') {
 
         sb.append(chars, lastIdx, idx - lastIdx);
         sb.append("%" + (chars[idx] >>> 4) + Integer.toHexString(chars[idx] & 0xF));
