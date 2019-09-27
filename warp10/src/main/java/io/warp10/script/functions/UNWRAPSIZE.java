@@ -23,14 +23,13 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
-
-import com.google.common.base.Charsets;
 
 /**
  * Extract the size of a GTS from GTSWrapper
@@ -65,7 +64,7 @@ public class UNWRAPSIZE extends NamedWarpScriptFunction implements WarpScriptSta
     List<Object> outputs = new ArrayList<Object>();
     
     for (Object s: inputs) {
-      byte[] bytes = s instanceof String ? OrderPreservingBase64.decode(s.toString().getBytes(Charsets.US_ASCII)) : (byte[]) s;
+      byte[] bytes = s instanceof String ? OrderPreservingBase64.decode(s.toString().getBytes(StandardCharsets.US_ASCII)) : (byte[]) s;
       
       TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
       

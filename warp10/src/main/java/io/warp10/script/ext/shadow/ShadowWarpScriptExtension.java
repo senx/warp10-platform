@@ -65,11 +65,11 @@ public class ShadowWarpScriptExtension extends WarpScriptExtension {
     // Handle the renaming first
     //
     
-    for (Object key: properties.keySet()) {
-      if (key.toString().startsWith(SHADOW_RENAME)) {
-        final String f = key.toString().substring(SHADOW_RENAME.length());
+    for (String key: properties.stringPropertyNames()) {
+      if (key.startsWith(SHADOW_RENAME)) {
+        final String f = key.substring(SHADOW_RENAME.length());
 
-        String target = WarpConfig.getProperty(key.toString());
+        String target = WarpConfig.getProperty(key);
         
         Object from = WarpScriptLib.getFunction(f);
         
@@ -140,9 +140,9 @@ public class ShadowWarpScriptExtension extends WarpScriptExtension {
     // Generate the functions shadowed by specific macros
     //
     
-    for (Object key: properties.keySet()) {
-      if (key.toString().startsWith(SHADOW_MACRO + ".")) {
-        final String f = key.toString().substring(SHADOW_MACRO.length() + 1);
+    for (String key: properties.stringPropertyNames()) {
+      if (key.startsWith(SHADOW_MACRO + ".")) {
+        final String f = key.substring(SHADOW_MACRO.length() + 1);
         boolean globalUnsafe = "true".equals(WarpConfig.getProperty(SHADOW_UNSAFEMACRO));
                 
         boolean unsafe = globalUnsafe;
@@ -153,7 +153,7 @@ public class ShadowWarpScriptExtension extends WarpScriptExtension {
 
         final boolean finalUnsafe = unsafe;
 
-        final String macro = properties.getProperty(key.toString());
+        final String macro = properties.getProperty(key);
         
         WarpScriptStackFunction function = new ShadowFunction(f) {        
           @Override
@@ -231,11 +231,11 @@ public class ShadowWarpScriptExtension extends WarpScriptExtension {
     // Generate functions shadowed by a specific FAILMSG
     //
     
-    for (Object key: properties.keySet()) {
-      if (key.toString().startsWith(SHADOW_FAIL + ".")) {
-        final String f = key.toString().substring(SHADOW_FAIL.length() + 1);
+    for (String key: properties.stringPropertyNames()) {
+      if (key.startsWith(SHADOW_FAIL + ".")) {
+        final String f = key.substring(SHADOW_FAIL.length() + 1);
         
-        final String failmsg = properties.getProperty(key.toString());
+        final String failmsg = properties.getProperty(key);
         
         WarpScriptStackFunction function = new ShadowFunction(f) {        
           @Override

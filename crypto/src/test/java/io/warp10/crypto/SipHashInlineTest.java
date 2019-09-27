@@ -18,14 +18,13 @@ package io.warp10.crypto;
 
 import io.warp10.crypto.SipHashInline;
 
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Random;
 
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.google.common.base.Charsets;
 
 /**
  * Test class
@@ -78,8 +77,8 @@ public class SipHashInlineTest {
     long k0 = 0x0706050403020100L;
     long k1 = 0x0f0e0d0c0b0a0908L;
     
-    byte[] msg = "Too many secrets, Marty!".getBytes(Charsets.UTF_8);
-    byte[] rmsg = "!ytraM ,sterces ynam ooT".getBytes(Charsets.UTF_8);
+    byte[] msg = "Too many secrets, Marty!".getBytes(StandardCharsets.UTF_8);
+    byte[] rmsg = "!ytraM ,sterces ynam ooT".getBytes(StandardCharsets.UTF_8);
         
     long hash24 = SipHashInline.hash24(k0,k1,msg,0,msg.length,false);
     

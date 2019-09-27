@@ -22,7 +22,6 @@ import io.warp10.script.WarpFleetMacroRepository;
 import io.warp10.script.WarpScriptJarRepository;
 import io.warp10.script.WarpScriptMacroRepository;
 
-import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
 import java.io.BufferedReader;
@@ -34,6 +33,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -96,7 +96,7 @@ public class WarpConfig {
         boolean atfile = '@' == file.charAt(0);
 
         // Read content of file
-        List<String> lines = Files.readLines(new File(atfile ? file.substring(1) : file), Charsets.UTF_8);
+        List<String> lines = Files.readLines(new File(atfile ? file.substring(1) : file), StandardCharsets.UTF_8);
 
         // If 'file' starts with '@', add the lines as filenames
         if (atfile) {
@@ -237,7 +237,7 @@ public class WarpConfig {
       // Remove URL encoding if a '%' sign is present in the token
       for (int i = 0; i < tokens.length; i++) {
         if (tokens[i].contains("%")) {
-          tokens[i] = URLDecoder.decode(tokens[i], "UTF-8");
+          tokens[i] = URLDecoder.decode(tokens[i], StandardCharsets.UTF_8.name());
         }
         tokens[i] = tokens[i].trim();
       }
@@ -276,10 +276,10 @@ public class WarpConfig {
         try {
           // URL Decode name/value if needed
           if (name.contains("%")) {
-            name = URLDecoder.decode(name, "UTF-8");
+            name = URLDecoder.decode(name, StandardCharsets.UTF_8.name());
           }
           if (value.contains("%")) {
-            value = URLDecoder.decode(value, "UTF-8");
+            value = URLDecoder.decode(value, StandardCharsets.UTF_8.name());
           }
 
           // Override property
@@ -303,10 +303,10 @@ public class WarpConfig {
         try {
           // URL Decode name/value if needed
           if (name.contains("%")) {
-            name = URLDecoder.decode(name, "UTF-8");
+            name = URLDecoder.decode(name, StandardCharsets.UTF_8.name());
           }
           if (value.contains("%")) {
-            value = URLDecoder.decode(value, "UTF-8");
+            value = URLDecoder.decode(value, StandardCharsets.UTF_8.name());
           }
 
           // Override property

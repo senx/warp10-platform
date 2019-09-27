@@ -49,6 +49,7 @@ import java.net.Proxy;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -80,7 +81,6 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Charsets;
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.framework.state.ConnectionState;
@@ -630,7 +630,7 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
                     break;
                   }
                   
-                  byte[] data = OrderPreservingBase64.decode(line.getBytes(Charsets.US_ASCII));
+                  byte[] data = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
                   
                   TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
                                                           

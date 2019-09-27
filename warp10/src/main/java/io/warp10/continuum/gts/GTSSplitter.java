@@ -135,8 +135,9 @@ public class GTSSplitter {
         while(ngts > lwmratio*maxgts || totalsize > lwmratio*maxsize) {
           // Flush the first encoder
           // FIXME(hbs): should we use another heuristic, like the first one larger than the mean
-          for (long chunkid: encoders.keySet()) {
-            GTSEncoder enc = encoders.get(chunkid);            
+          for (Map.Entry<Long, GTSEncoder> chunkidAndEncoder: encoders.entrySet()) {
+            Long chunkid = chunkidAndEncoder.getKey();
+            GTSEncoder enc = chunkidAndEncoder.getValue();
             // Skip empty encoders
             if(0 == enc.size()) {
               emptyenc++;
@@ -161,9 +162,10 @@ public class GTSSplitter {
           
           if (ngts > maxgts) {
             List<Long> toremove = new ArrayList<Long>();
-            
-            for (long chunkid: encoders.keySet()) {
-              GTSEncoder enc = encoders.get(chunkid);
+
+            for (Map.Entry<Long, GTSEncoder> chunkidAndEncoder: encoders.entrySet()) {
+              Long chunkid = chunkidAndEncoder.getKey();
+              GTSEncoder enc = chunkidAndEncoder.getValue();
               if (0 == enc.size()) {
                 toremove.add(chunkid);
                 ngts--;

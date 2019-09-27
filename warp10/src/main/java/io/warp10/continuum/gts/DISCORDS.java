@@ -185,7 +185,7 @@ public class DISCORDS extends GTSStackFunction {
       
     symbolsByOccurrences.addAll(locationLists.keySet());
     
-    String[] rawSymbols = locationLists.keySet().toArray(new String[0]);
+    String[] rawSymbols = symbolsByOccurrences.toArray(new String[symbolsByOccurrences.size()]);
     
     Collections.sort(symbolsByOccurrences, new Comparator<String>() {
       @Override
@@ -203,8 +203,9 @@ public class DISCORDS extends GTSStackFunction {
     
     SortedMap<String,int[]> locations = new TreeMap<String,int[]>();
     
-    for (String symbol: locationLists.keySet()) {
-      List<Integer> ilocs = locationLists.get(symbol);
+    for (Map.Entry<String, List<Integer>> symbolAndIlocs: locationLists.entrySet()) {
+      String symbol = symbolAndIlocs.getKey();
+      List<Integer> ilocs = symbolAndIlocs.getValue();
       int[] locs = new int[ilocs.size()];
       Collections.sort(ilocs);
       for (int i = 0; i < locs.length; i++) {

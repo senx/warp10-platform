@@ -22,7 +22,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
-import com.google.common.base.Charsets;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Decode a String in order preserving base64
@@ -41,7 +41,7 @@ public class OPB64TO extends NamedWarpScriptFunction implements WarpScriptStackF
       throw new WarpScriptException(getName() + " operates on a String.");
     }
     
-    stack.push(OrderPreservingBase64.decode(o.toString().getBytes(Charsets.US_ASCII)));
+    stack.push(OrderPreservingBase64.decode(o.toString().getBytes(StandardCharsets.US_ASCII)));
     
     return stack;
   }

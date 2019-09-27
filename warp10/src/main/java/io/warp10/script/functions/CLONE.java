@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
@@ -57,8 +58,10 @@ public class CLONE extends NamedWarpScriptFunction implements WarpScriptStackFun
       stack.push(new LinkedHashMap<Object,Object>((Map<Object,Object>) o));
     } else if (o instanceof Set) {
       stack.push(new HashSet<Object>((Set<Object>) o));
+    } else if (o instanceof GTSEncoder) {
+      stack.push(((GTSEncoder) o).clone());
     } else {
-      throw new WarpScriptException(getName() + " operates on List, Map, Set, Vector or Geo Time Series.");      
+      throw new WarpScriptException(getName() + " operates on List, Map, Set, Vector, Geo Time Series or GTS Encoder.");
     }
     
     // Push the original element back onto the stack

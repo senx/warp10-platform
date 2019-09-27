@@ -18,7 +18,6 @@ package io.warp10.script.formatted;
 
 import com.google.common.collect.Lists;
 import io.warp10.script.WarpScriptException;
-import io.warp10.script.functions.SNAPSHOT;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -27,6 +26,7 @@ import java.util.Map;
 
 import static io.warp10.script.WarpScriptStack.MACRO_END;
 import static io.warp10.script.WarpScriptStack.MACRO_START;
+import io.warp10.script.functions.SNAPSHOT;
 
 public class DocumentationGenerator {
 
@@ -140,15 +140,31 @@ public class DocumentationGenerator {
     return generateWarpScriptDoc(function,"","","","", new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>(), outputs);
   }
 
+  /**
+   * Generate readable WarpScript .mc2 documentation file
+   *
+   * @param function
+   * @param since
+   * @param deprecated
+   * @param deleted
+   * @param version
+   * @param tags
+   * @param related
+   * @param examples
+   * @param conf
+   * @param outputs
+   * @return warpscript_code
+   * @throws WarpScriptException
+   */
   public static String generateWarpScriptDoc(FormattedWarpScriptFunction function,
                                              String since, String deprecated, String deleted, String version,
                                              List<String> tags, List<String> related, List<String> examples, List<String> conf,
                                              List<ArgumentSpecification> outputs) throws WarpScriptException {
 
     StringBuilder mc2 = new StringBuilder();
+    SNAPSHOT.addElement(mc2, generateInfo(function, since, deprecated, deleted, version, tags, related, examples, conf, outputs), true);
 
-    SNAPSHOT.addElement(mc2, generateInfo(function, since, deprecated, deleted, version, tags, related, examples, conf, outputs));
-    mc2.append(" 'infomap' STORE" + System.lineSeparator());
+    mc2.append("'infomap' STORE" + System.lineSeparator());
     mc2.append(MACRO_START + System.lineSeparator());
     mc2.append("!$infomap INFO" + System.lineSeparator());
     mc2.append(MACRO_START + System.lineSeparator());

@@ -17,7 +17,7 @@
 package io.warp10.script;
 
 import io.warp10.WarpConfig;
-import io.warp10.script.functions.RESHAPE;
+import io.warp10.script.functions.shape.RESHAPE;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;

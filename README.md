@@ -14,7 +14,6 @@ The Warp 10™ Platform provides a rich set of features to simplify your work ar
 * WarpScript™, a language dedicated to sensor data analysis with more than 800 functions and extension capabilities
 * Plasma and Mobius, streaming engines allowing to cascade the Warp 10 Platform with Complex Event Processing solutions and to build dynamic dashboards
 * Quasar, a fine grain access control and authorization mechanism
-* [Quantum](https://github.com/senx/warp10-quantum), a set of Web Components for visualizing the result of your analysis
 * Runner, a system for scheduling WarpScript program executions on the server side
 * [Sensision](https://github.com/senx/sensision), a framework for exposing metrics and pushing them into Warp 10
 * Standalone version running on a Raspberry Pi as well as on a beefy server, with no external dependencies

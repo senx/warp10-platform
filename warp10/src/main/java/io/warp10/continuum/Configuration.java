@@ -545,6 +545,53 @@ public class Configuration {
   // I N G R E S S
   //
   /////////////////////////////////////////////////////////////////////////////////////////
+
+  /**
+   * Default datapoint cell TTL (in ms) to enforce. If this is not set, then the TTL will be that
+   * of the columns family. A value of -1 disables the use of cell TTLs.
+   * This can be overridden by the '.ttl' WriteToken attribute.
+   */
+  public static final String INGRESS_HBASE_CELLTTL = "ingress.hbase.cellttl";
+  
+  /**
+   * Flag indicating whether to use the DataPoint TimeStamp instead of the write timestamp
+   * for the data stored in HBase.
+   * This can be overridden by the '.dpts' WriteToken attribute.
+   */
+  public static final String INGRESS_HBASE_DPTS = "ingress.hbase.dpts";
+  
+  /**
+   * Default maximum age of datapoints pushed to Warp 10, in ms. Any timestamp older than
+   * 'now' - this value will be rejected.
+   * The maxpast value from the token will have precedence over this one
+   */
+  public static final String INGRESS_MAXPAST_DEFAULT = "ingress.maxpast.default";
+  
+  /**
+   * Default maximum timestamp delta in the future for datapoints pushed to Warp 10, in ms.
+   * Any timestamp more than this value past 'now' will be rejected
+   * The maxfuture value from the token will have precedence over this one
+   */
+  public static final String INGRESS_MAXFUTURE_DEFAULT = "ingress.maxfuture.default";
+  
+  /**
+   * Absolute maximum age of datapoints pushed to Warp 10, in ms. Any timestamp older than
+   * 'now' - this value will be rejected.
+   * This value overrides both the default and token value for maxpast. 
+   */
+  public static final String INGRESS_MAXPAST_OVERRIDE = "ingress.maxpast.override";
+  
+  /**
+   * Absolute maximum timestamp delta in the future for datapoints pushed to Warp 10, in ms.
+   * Any timestamp more than this value past 'now' will be rejected
+   * This value overrides both the default and token value for maxfuture
+   */
+  public static final String INGRESS_MAXFUTURE_OVERRIDE = "ingress.maxfuture.override";
+
+  /**
+   * Set to true to silently ignore values which are outside the allowed time range
+   */
+  public static final String INGRESS_OUTOFRANGE_IGNORE = "ingress.outofrange.ignore";
   
   /**
    * Length of the activity window in ms. If this parameter is set then GTS activity will
@@ -766,7 +813,9 @@ public class Configuration {
   public static final String INGRESS_KAFKA_DATA_AES = "ingress.kafka.data.aes";
   
   /**
-   * Maximum message size for the 'data' topic
+   * Maximum message size for the 'data' topic, this value should be less than 2/3 the maximum Kafka message size
+   * minus 64 to ensure all parsed data can be sent without error.
+   * The maximum value size will be capped to half this value minus 64
    */
   public static final String INGRESS_KAFKA_DATA_MAXSIZE = "ingress.kafka.data.maxsize";
   
@@ -1418,6 +1467,11 @@ public class Configuration {
   public static final String STANDALONE_SNAPSHOT_SIGNAL = "standalone.snapshot.signal";
   
   /**
+   * Set to 'true' to ignore timestamp limits (maxpast/maxfuture) when receiving data via datalog.
+   */
+  public static final String DATALOG_IGNORE_TIMESTAMPLIMITS = "datalog.ignore.timestamplimits";
+  
+  /**
    * Directory where data requests should be logged. This directory should be in 700 to protect sensitive token infos.
    */
   public static final String DATALOG_DIR = "datalog.dir";
@@ -1434,6 +1488,22 @@ public class Configuration {
   public static final String DATALOG_ID = "datalog.id";
   
   /**
+   * Comma separated list of shards this Warp 10 instance should store. The format of each
+   * shard is MODULUS:REMAINDER
+   */
+  public static final String DATALOG_SHARDS = "datalog.shards";
+  
+  /**
+   * Number of bits to shift the default shard key
+   */
+  public static final String DATALOG_SHARDKEY_SHIFT = "datalog.shardkey.shift";
+  
+  /**
+   * Set to true or false to log the sharding key in the datalog request files
+   */
+  public static final String DATALOG_LOGSHARDKEY = "datalog.logshardkey";
+  
+  /**
    * Pre-shared AES key to wrap datalog.id and datalog.timestamp header values
    */
   public static final String DATALOG_PSK = "datalog.psk";
@@ -1447,6 +1517,12 @@ public class Configuration {
    * Configuration key to modify the datalog header
    */
   public static final String HTTP_HEADER_DATALOG = "http.header.datalog";
+  
+  /**
+   * Comma separated list of forwarders. Configuration for each forwarder will be suffixed with
+   * '.name' except for datalog.psk which is common to all forwarders
+   */
+  public static final String DATALOG_FORWARDERS = "datalog.forwarders";
   
   /**
    * Comma separated list of ids which should be ignored by the forwarder. This is to prevent loops from
@@ -1511,6 +1587,17 @@ public class Configuration {
   public static final String DATALOG_FORWARDER_ENDPOINT_META = "datalog.forwarder.endpoint.meta";
   
   /**
+   * Comma separated list of shards to forward, each shard being specified as MODULUS:REMAINDER
+   */
+  public static final String DATALOG_FORWARDER_SHARDS = "datalog.forwarder.shards";
+  
+  /**
+   * Number of bits to right shift the shard key. If this is >= 24, then only the class id will be
+   * considered for sharding. 
+   */
+  public static final String DATALOG_FORWARDER_SHARDKEY_SHIFT = "datalog.forwarder.shardkey.shift";
+
+  /*
    * Set to a message indicating the reason why updates are disabled, they are enabled if this is not set
    */
   public static final String WARP_UPDATE_DISABLED = "warp.update.disabled";
@@ -2101,4 +2188,19 @@ public class Configuration {
   public static final String EGRESS_PREFIX = "egress";
   public static final String INGRESS_PREFIX = "ingress";
   public static final String PLASMA_FRONTEND_PREFIX = "plasma.frontend";
+  
+  //
+  // Hadoop Integration Configurations
+  //
+  
+  /**
+   * Set to 'true' to throw an error when a Writable that the WritableUtils cannot convert is encountered.
+   * If this is not set, the unknown Writable will be returned as is.
+   */
+  public static final String CONFIG_WARPSCRIPT_HADOOP_STRICTWRITABLES = "warpscript.hadoop.strictwritables";
+  
+  /**
+   * Set to 'true' to return Writable instances as is in WarpScriptInputFormat
+   */
+  public static final String CONFIG_WARPSCRIPT_HADOOP_RAWWRITABLES = "warpscript.hadoop.rawwritables";  
 }

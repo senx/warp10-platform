@@ -31,6 +31,7 @@ import org.codehaus.jettison.json.JSONObject;
 import java.io.File;
 import java.io.PrintWriter;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -263,10 +264,10 @@ public class WorfCLI {
 
             // adds uuid to the list, fail otherwise
             for (String app : apps) {
-              authorizedApplications.add(URLDecoder.decode(app, "UTF-8"));
+              authorizedApplications.add(URLDecoder.decode(app, StandardCharsets.UTF_8.name()));
             }
 
-            appName = URLDecoder.decode(matcher.group(1), "UTF-8");
+            appName = URLDecoder.decode(matcher.group(1), StandardCharsets.UTF_8.name());
           }
 
           if (null == authorizedApplications || authorizedApplications.isEmpty()) {

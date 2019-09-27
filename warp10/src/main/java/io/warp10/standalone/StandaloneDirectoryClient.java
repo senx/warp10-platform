@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -78,7 +79,6 @@ import org.iq80.leveldb.WriteOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.MapMaker;
 
@@ -88,7 +88,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   
   private static final String DIRECTORY_INIT_NTHREADS_DEFAULT = "4";
   
-  private static final byte[] METADATA_PREFIX = "M".getBytes(Charsets.US_ASCII);
+  private static final byte[] METADATA_PREFIX = "M".getBytes(StandardCharsets.US_ASCII);
   
   private static final int MAX_BATCH_SIZE = 500000;
   
@@ -119,6 +119,10 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   private static final Map<BigInteger,Metadata> metadatasById = new MapMaker().concurrencyLevel(64).makeMap();
 
   private long activityWindow = 0L;
+  
+  public static interface ShardFilter {
+    public boolean exclude(long classId, long labelsId);
+  }
   
   public StandaloneDirectoryClient(DB db, final KeyStore keystore) {
 
@@ -161,7 +165,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     
     iter.seek(METADATA_PREFIX);
 
-    byte[] stop = "N".getBytes(Charsets.US_ASCII);
+    byte[] stop = "N".getBytes(StandardCharsets.US_ASCII);
     
     long count = 0;
     
@@ -850,9 +854,13 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   public Metadata getMetadataById(BigInteger id) {
     return this.metadatasById.get(id);
   }
-    
+
   @Override
   public Map<String,Object> stats(DirectoryRequest dr) throws IOException {
+    return stats(dr, null);
+  }
+  
+  public Map<String,Object> stats(DirectoryRequest dr, ShardFilter filter) throws IOException {
     final DirectoryStatsRequest request = new DirectoryStatsRequest();
     request.setTimestamp(System.currentTimeMillis());
     request.setClassSelector(dr.getClassSelectors());
@@ -888,6 +896,10 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   }
   
   private DirectoryStatsResponse stats(DirectoryStatsRequest request) throws TException {
+    return stats(request, null);
+  }
+  
+  private DirectoryStatsResponse stats(DirectoryStatsRequest request, ShardFilter filter) throws TException {
     try {
       DirectoryStatsResponse response = new DirectoryStatsResponse();
       
@@ -1085,8 +1097,17 @@ public class StandaloneDirectoryClient implements DirectoryClient {
               long classId = GTSHelper.classId(classLongs, metadata.getName());
               long labelsId = GTSHelper.labelsId(labelsLongs, metadata.getLabels());
               
+              //
+              // Apply the shard filter to exclude Metadata which do not belong to the
+              // shards we handle
+              //
+              
+              if (null != filter && filter.exclude(classId, labelsId)) {
+                continue;
+              }
+              
               // Compute gtsId, we use the GTS Id String from which we extract the 16 bytes
-              byte[] data = GTSHelper.gtsIdToString(classId, labelsId).getBytes(Charsets.UTF_16BE);
+              byte[] data = GTSHelper.gtsIdToString(classId, labelsId).getBytes(StandardCharsets.UTF_16BE);
               long gtsId = SipHashInline.hash24(classLongs[0], classLongs[1], data, 0, data.length);
               
               gtsCount.aggregate(gtsId);
@@ -1104,13 +1125,13 @@ public class StandaloneDirectoryClient implements DirectoryClient {
                 if (perClassCardinality.size() >= LIMIT_CLASS_CARDINALITY) {
                   classCardinality = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
                   for (String cls: perClassCardinality.keySet()) {
-                    data = cls.getBytes(Charsets.UTF_8);
+                    data = cls.getBytes(StandardCharsets.UTF_8);
                     classCardinality.aggregate(SipHashInline.hash24(classLongs[0], classLongs[1], data, 0, data.length, false));
                     perClassCardinality = null;
                   }
                 }
               } else {
-                data = metadata.getName().getBytes(Charsets.UTF_8);
+                data = metadata.getName().getBytes(StandardCharsets.UTF_8);
                 classCardinality.aggregate(SipHashInline.hash24(classLongs[0], classLongs[1], data, 0, data.length, false));
               }
               
@@ -1122,7 +1143,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
                       estimator = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
                       perLabelValueCardinality.put(entry.getKey(), estimator);
                     }
-                    data = entry.getValue().getBytes(Charsets.UTF_8);
+                    data = entry.getValue().getBytes(StandardCharsets.UTF_8);
                     long siphash = SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false);
                     estimator.aggregate(siphash);
                   }
@@ -1135,7 +1156,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
                       estimator = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
                       perLabelValueCardinality.put(entry.getKey(), estimator);
                     }
-                    data = entry.getValue().getBytes(Charsets.UTF_8);
+                    data = entry.getValue().getBytes(StandardCharsets.UTF_8);
                     estimator.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
                   }
                 }
@@ -1144,7 +1165,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
                   labelNamesCardinality = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
                   labelValuesCardinality = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
                   for (Entry<String,HyperLogLogPlus> entry: perLabelValueCardinality.entrySet()) {
-                    data = entry.getKey().getBytes(Charsets.UTF_8);
+                    data = entry.getKey().getBytes(StandardCharsets.UTF_8);
                     labelNamesCardinality.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
                     labelValuesCardinality.fuse(entry.getValue());
                   }
@@ -1153,17 +1174,17 @@ public class StandaloneDirectoryClient implements DirectoryClient {
               } else {
                 if (metadata.getLabelsSize() > 0) {
                   for (Entry<String,String> entry: metadata.getLabels().entrySet()) {
-                    data = entry.getKey().getBytes(Charsets.UTF_8);
+                    data = entry.getKey().getBytes(StandardCharsets.UTF_8);
                     labelValuesCardinality.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
-                    data = entry.getValue().getBytes(Charsets.UTF_8);
+                    data = entry.getValue().getBytes(StandardCharsets.UTF_8);
                     labelValuesCardinality.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
                   }
                 }
                 if (metadata.getAttributesSize() > 0) {
                   for (Entry<String,String> entry: metadata.getAttributes().entrySet()) {
-                    data = entry.getKey().getBytes(Charsets.UTF_8);
+                    data = entry.getKey().getBytes(StandardCharsets.UTF_8);
                     labelValuesCardinality.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
-                    data = entry.getValue().getBytes(Charsets.UTF_8);
+                    data = entry.getValue().getBytes(StandardCharsets.UTF_8);
                     labelValuesCardinality.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
                   }
                 }
@@ -1179,7 +1200,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         classCardinality = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
         for (Entry<String,HyperLogLogPlus> entry: perClassCardinality.entrySet()) {
           response.putToPerClassCardinality(entry.getKey(), ByteBuffer.wrap(entry.getValue().toBytes()));
-          byte[] data = entry.getKey().getBytes(Charsets.UTF_8);
+          byte[] data = entry.getKey().getBytes(StandardCharsets.UTF_8);
           classCardinality.aggregate(SipHashInline.hash24(classLongs[0], classLongs[1], data, 0, data.length, false));        
         }
       }
@@ -1190,7 +1211,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         HyperLogLogPlus estimator = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
         HyperLogLogPlus nameEstimator = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
         for (Entry<String,HyperLogLogPlus> entry: perLabelValueCardinality.entrySet()) {
-          byte[] data = entry.getKey().getBytes(Charsets.UTF_8);
+          byte[] data = entry.getKey().getBytes(StandardCharsets.UTF_8);
           nameEstimator.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
           estimator.fuse(entry.getValue());
           response.putToPerLabelValueCardinality(entry.getKey(), ByteBuffer.wrap(entry.getValue().toBytes()));

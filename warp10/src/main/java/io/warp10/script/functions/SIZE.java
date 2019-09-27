@@ -27,6 +27,9 @@ import io.warp10.script.WarpScriptStackFunction;
 import java.util.Collection;
 import java.util.Map;
 
+import com.geoxp.GeoXPLib;
+import com.geoxp.GeoXPLib.GeoXPShape;
+
 /**
  * Pushes on the stack the size of an object (map, list or GTS). Consumes the object.
  */
@@ -53,6 +56,8 @@ public class SIZE extends NamedWarpScriptFunction implements WarpScriptStackFunc
       stack.push((long) obj.toString().length());
     } else if (obj instanceof byte[]) {
       stack.push(((byte[]) obj).length);
+    } else if (obj instanceof GeoXPShape) {
+      stack.push(GeoXPLib.getCells((GeoXPShape) obj).length);
     } else {
       throw new WarpScriptException(getName() + " operates on a map, a collection, a string, a byte array or a GTS.");
     }

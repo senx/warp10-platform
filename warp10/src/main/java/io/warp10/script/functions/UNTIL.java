@@ -19,7 +19,6 @@ package io.warp10.script.functions;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptLoopBreakException;
 import io.warp10.script.WarpScriptLoopContinueException;
 import io.warp10.script.WarpScriptStack;
@@ -68,7 +67,7 @@ public class UNTIL extends NamedWarpScriptFunction implements WarpScriptStackFun
     //
     
     for (Object macro: macros) {
-      if (!WarpScriptLib.isMacro(macro)) {
+      if (!(macro instanceof Macro)) {
         throw new WarpScriptException(getName() + " expects two macros on top of the stack.");
       }
     }

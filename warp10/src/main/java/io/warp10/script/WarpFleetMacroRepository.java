@@ -23,6 +23,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,8 +33,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Charsets;
 
 import io.warp10.Revision;
 import io.warp10.continuum.Configuration;
@@ -136,8 +135,8 @@ public class WarpFleetMacroRepository {
       return null;
     }
     
-    // Reject names with relative path components in them
-    if (name.contains("/../") || name.contains("/./") || name.startsWith("../") || name.startsWith("./")) {
+    // Reject names with relative path components in them or starting with '/'
+    if (name.contains("/../") || name.contains("/./") || name.startsWith("../") || name.startsWith("./") || name.startsWith("/")) {
       return null;
     }
     
@@ -236,7 +235,7 @@ public class WarpFleetMacroRepository {
           
           StringBuilder sb = new StringBuilder();
           sb.append(" ");
-          sb.append(new String(data, Charsets.UTF_8));        
+          sb.append(new String(data, StandardCharsets.UTF_8));
           sb.append("\n");
           
           MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
@@ -279,7 +278,7 @@ public class WarpFleetMacroRepository {
             macro.setExpiry(System.currentTimeMillis() + ttl);
           }
 
-          macro.setName(name);
+          macro.setNameRecursive(name);
           
           synchronized(macros) {
             macros.put(macroURL, macro);

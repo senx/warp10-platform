@@ -16,18 +16,29 @@
 
 import binascii
 import os
+import re
+import sys
+
+filename = sys.argv[1]
 
 cryptokeys = {
-  "warp.hash.class.secret" : 128,
-  "warp.hash.labels.secret" : 128,
-  "warp.hash.index.secret" : 128,
-  "warp.hash.token.secret" : 128,
-  "warp.hash.app.secret" : 128,
-  "warp.aes.token.secret" : 256,
-  "warp.aes.scripts.secret" : 256,
-  "warp.aes.metasets.secret" : 256,
-  "warp.aes.logging.secret" : 256,
+    "warp.hash.class": 128,
+    "warp.hash.labels": 128,
+    "warp.hash.index": 128,
+    "warp.hash.token": 128,
+    "warp.hash.app": 128,
+    "warp.aes.token": 256,
+    "warp.aes.scripts": 256,
+    "warp.aes.metasets": 256,
+    "warp.aes.logging": 256,
 }
 
+s = open(filename).read()
+
 for key, value in cryptokeys.items():
-  print(key + " = hex:" + binascii.hexlify(os.urandom(int(value / 8))).decode("utf-8"))
+    s = re.sub(key + " = .*",
+               key + "= hex:" + binascii.hexlify(os.urandom(int(value / 8))).decode("utf-8"), s)
+
+f = open(filename, 'w')
+f.write(s)
+f.close()

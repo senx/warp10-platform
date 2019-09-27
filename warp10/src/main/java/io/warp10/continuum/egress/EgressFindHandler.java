@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -274,7 +275,7 @@ public class EgressFindHandler extends AbstractHandler {
           t.printStackTrace(pw2);
           pw2.close();
           sw.flush();
-          String error = URLEncoder.encode(sw.toString(), "UTF-8");
+          String error = URLEncoder.encode(sw.toString(), StandardCharsets.UTF_8.name());
           pw.println(Constants.EGRESS_FIND_ERROR_PREFIX + error);
         }
         throw new IOException(t);

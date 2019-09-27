@@ -19,13 +19,13 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 
-import com.google.common.base.Charsets;
-
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.store.GTSDecoderIterator;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.crypto.OrderPreservingBase64;
+
+import java.nio.charset.StandardCharsets;
 
 public class UnpackingGTSDecoderIterator extends GTSDecoderIterator {
   
@@ -84,7 +84,7 @@ public class UnpackingGTSDecoderIterator extends GTSDecoderIterator {
         if (value instanceof byte[]) {
           deser.deserialize(wrapper, (byte[]) value);
         } else {
-          deser.deserialize(wrapper, OrderPreservingBase64.decode(value.toString().getBytes(Charsets.US_ASCII)));
+          deser.deserialize(wrapper, OrderPreservingBase64.decode(value.toString().getBytes(StandardCharsets.US_ASCII)));
         }
       } catch (TException te) {
         throw new RuntimeException(te);

@@ -22,10 +22,9 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.SocketTimeoutException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-
-import com.google.common.base.Charsets;
 
 import io.warp10.WarpConfig;
 import io.warp10.continuum.store.Constants;
@@ -120,11 +119,11 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
         out = new GZIPOutputStream(out);
       }
 
-      out.write(warpscript.getBytes(Charsets.UTF_8));
+      out.write(warpscript.getBytes(StandardCharsets.UTF_8));
       out.write('\n');
-      out.write(WarpScriptLib.SNAPSHOT.getBytes(Charsets.UTF_8));      
+      out.write(WarpScriptLib.SNAPSHOT.getBytes(StandardCharsets.UTF_8));
       out.write('\n');
-      out.write(WarpScriptLib.TOOPB64.getBytes(Charsets.UTF_8));
+      out.write(WarpScriptLib.TOOPB64.getBytes(StandardCharsets.UTF_8));
       out.write('\n');
       
       if (this.compress) {
@@ -132,15 +131,20 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
       
       connout.flush();
+
+      if (HttpURLConnection.HTTP_OK != conn.getResponseCode()) {
+        String errorMessage = conn.getHeaderField(Constants.getHeader(Constants.HTTP_HEADER_ERROR_MESSAGE_DEFAULT));
+        if (null != errorMessage) {
+          throw new WarpScriptException(getName() + " remote execution failed: " + errorMessage);
+        } else {
+          throw new WarpScriptException(getName() + " remote execution failed with HTTP code " + conn.getResponseCode() + ".'");
+        }
+      }
       
       InputStream in = conn.getInputStream();
       
       if ("gzip".equals(conn.getContentEncoding())) {
         in = new GZIPInputStream(in);
-      }
-      
-      if (HttpURLConnection.HTTP_OK != conn.getResponseCode()) {
-        throw new WarpScriptException(getName() + " remote execution encountered an error: " + conn.getHeaderField(Constants.getHeader(Constants.HTTP_HEADER_ERROR_MESSAGE_DEFAULT)));
       }
       
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -158,19 +162,19 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
       byte[] bytes = baos.toByteArray();
       
       // Strip '[ ' ' ]'
-      String result = new String(bytes, 2, bytes.length - 4, Charsets.US_ASCII);
+      String result = new String(bytes, 2, bytes.length - 4, StandardCharsets.US_ASCII);
       
       stack.push(result);
       
       stack.exec(WarpScriptLib.OPB64TO);
-      stack.push("UTF-8");
+      stack.push(StandardCharsets.UTF_8.name());
       stack.exec(WarpScriptLib.BYTESTO);
       stack.exec(WarpScriptLib.EVAL);
       
     } catch (WarpScriptException e) {
       throw e;
     } catch(SocketTimeoutException e) {
-      throw new WarpScriptException(getName() + " Timeout: check configurations " + WARPSCRIPT_REXEC_CONNECT_TIMEOUT + " and " + WARPSCRIPT_REXEC_READ_TIMEOUT);
+      throw new WarpScriptException(getName() + " Timeout: check configurations " + WARPSCRIPT_REXEC_CONNECT_TIMEOUT + " and " + WARPSCRIPT_REXEC_READ_TIMEOUT, e);
     } catch (Exception e) {
       throw new WarpScriptException(e);
     } finally {
