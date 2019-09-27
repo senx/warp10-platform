@@ -1738,7 +1738,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 if (hasChanged) {
                   // We re-serialize metadata
                   TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-                  metadataBytes = serializer.serialize(meta);
+                  metadataBytes = serializer.serialize(metadata);
                 }                
               }
             }
