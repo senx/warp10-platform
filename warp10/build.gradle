@@ -48,7 +48,6 @@ dependencies {
     compile 'io.warp10:sensision:1.0.19'
 
     compile 'joda-time:joda-time:2.2'
-    compile 'com.google.inject:guice:3.0'
     compile 'org.apache.commons:commons-lang3:3.6'
     compile 'org.apache.commons:commons-math3:3.6'
     compile 'org.bouncycastle:bcprov-jdk16:1.46'
