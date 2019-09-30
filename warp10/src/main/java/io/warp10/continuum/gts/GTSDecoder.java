@@ -27,6 +27,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,8 +44,6 @@ import org.bouncycastle.crypto.paddings.PKCS7Padding;
 import org.bouncycastle.crypto.params.KeyParameter;
 
 import com.geoxp.GeoXPLib;
-import com.google.common.base.Charsets;
-
 /**
  * Class for decoding an encoded time serie.
  * 
@@ -453,7 +452,7 @@ public class GTSDecoder {
           buffer.get(bytes);
           previousLastStringValue = lastStringValue;
           boolean binary = GTSEncoder.FLAGS_STRING_BINARY == (tsTypeFlag & GTSEncoder.FLAGS_STRING_BINARY);
-          lastStringValue = new String(bytes, binary ? Charsets.ISO_8859_1 : Charsets.UTF_8);
+          lastStringValue = new String(bytes, binary ? StandardCharsets.ISO_8859_1 : StandardCharsets.UTF_8);
           lastStringBinary = binary;
         } else {
           previousLastStringValue = lastStringValue;
@@ -520,7 +519,7 @@ public class GTSDecoder {
   public Object getBinaryValue() {
     Object val = getValue();
     if (val instanceof String && lastStringBinary) {
-      return ((String) val).getBytes(Charsets.ISO_8859_1);
+      return ((String) val).getBytes(StandardCharsets.ISO_8859_1);
     } else {
       return val;
     }

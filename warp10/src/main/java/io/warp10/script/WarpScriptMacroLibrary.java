@@ -27,6 +27,7 @@ import java.net.JarURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -37,8 +38,6 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 import sun.net.www.protocol.file.FileURLConnection;
-
-import com.google.common.base.Charsets;
 
 /**
  * Macro library built by adding macros from various files, loaded from a root directory
@@ -137,7 +136,7 @@ public class WarpScriptMacroLibrary {
       sb.setLength(0);
       sb.append(" ");
 
-      sb.append(new String(data, Charsets.UTF_8));
+      sb.append(new String(data, StandardCharsets.UTF_8));
       
       sb.append("\n");
       
@@ -184,7 +183,7 @@ public class WarpScriptMacroLibrary {
       
       Macro macro = (Macro) stack.pop();
       macro.setSecure(true);
-      macro.setName(name);
+      macro.setNameRecursive(name);
       
       return macro;
     } catch (IOException ioe) {
@@ -194,7 +193,13 @@ public class WarpScriptMacroLibrary {
     }
   }
   
-  public static Macro find(String name) throws WarpScriptException {    
+  public static Macro find(String name) throws WarpScriptException { 
+    
+    // Reject names with relative path components in them or starting with '/'
+    if (name.contains("/../") || name.contains("/./") || name.startsWith("../") || name.startsWith("./") || name.startsWith("/")) {
+      return null;
+    }
+
     Macro macro = (Macro) macros.get(name);
     
     //

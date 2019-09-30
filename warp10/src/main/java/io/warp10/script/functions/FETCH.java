@@ -47,6 +47,7 @@ import io.warp10.sensision.Sensision;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -68,8 +69,6 @@ import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
 import com.geoxp.GeoXPLib.GeoXPShape;
-import com.google.common.base.Charsets;
-
 /**
  * Fetch GeoTimeSeries from continuum
  * FIXME(hbs): we need to retrieve an OAuth token, where do we put it?
@@ -684,7 +683,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       
       if (!(ms instanceof byte[])) {
         // Decode
-        byte[] decoded = OrderPreservingBase64.decode(ms.toString().getBytes(Charsets.US_ASCII));
+        byte[] decoded = OrderPreservingBase64.decode(ms.toString().getBytes(StandardCharsets.US_ASCII));
         
         // Decrypt
         byte[] decrypted = CryptoUtils.unwrap(AES_METASET, decoded);

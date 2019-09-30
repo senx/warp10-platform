@@ -24,7 +24,7 @@ import io.warp10.script.WarpScriptStackFunction;
 
 import org.bouncycastle.util.encoders.Hex;
 
-import com.google.common.base.Charsets;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Decode a String in order preserving b64 and immediately encode it as hexadecimal
@@ -43,7 +43,7 @@ public class OPB64TOHEX extends NamedWarpScriptFunction implements WarpScriptSta
       throw new WarpScriptException(getName() + " operates on a String.");
     }
 
-    stack.push(new String(Hex.encode(OrderPreservingBase64.decode(o.toString().getBytes(Charsets.US_ASCII))), Charsets.US_ASCII));
+    stack.push(new String(Hex.encode(OrderPreservingBase64.decode(o.toString().getBytes(StandardCharsets.US_ASCII))), StandardCharsets.US_ASCII));
 
     return stack;
   }

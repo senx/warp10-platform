@@ -17,14 +17,13 @@
 package io.warp10.script.ext.token;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.thrift.TBase;
-
-import com.google.common.base.Charsets;
 
 import io.warp10.continuum.Tokens;
 import io.warp10.crypto.KeyStore;
@@ -100,7 +99,7 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
     ReadToken rtoken = null;
     WriteToken wtoken = null;
     
-    byte[] token = OrderPreservingBase64.decode(tokenstr.getBytes(Charsets.UTF_8));
+    byte[] token = OrderPreservingBase64.decode(tokenstr.getBytes(StandardCharsets.UTF_8));
     
     try {
       rtoken = decoder.decodeReadToken(token);

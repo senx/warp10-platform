@@ -18,9 +18,8 @@ package io.warp10.script;
 
 import io.warp10.crypto.OrderPreservingBase64;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-
-import com.google.common.base.Charsets;
 
 /**
  * Class contains methods related to SAX representation of time series.
@@ -480,10 +479,10 @@ C------------------------------------------------------------------
         byte tmp = bSAX[len - 1];
         // Clear lower bits
         bSAX[len - 1] = (byte) (bSAX[len - 1] & (byte) ((0xff ^ ((1 << (8 - (nbits % 8)) - 1)))));
-        strings[i - 1] = new String(OrderPreservingBase64.encode(bSAX, 0, len), Charsets.US_ASCII);
+        strings[i - 1] = new String(OrderPreservingBase64.encode(bSAX, 0, len), StandardCharsets.US_ASCII);
         bSAX[len - 1] = tmp;
       } else {
-        strings[i - 1] = new String(OrderPreservingBase64.encode(bSAX, 0, len), Charsets.US_ASCII);
+        strings[i - 1] = new String(OrderPreservingBase64.encode(bSAX, 0, len), StandardCharsets.US_ASCII);
       }      
     }
     

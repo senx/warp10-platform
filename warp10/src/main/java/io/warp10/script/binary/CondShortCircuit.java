@@ -23,7 +23,7 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptLib;
+import io.warp10.script.WarpScriptStack.Macro;
 
 import java.util.List;
 
@@ -62,8 +62,8 @@ public abstract class CondShortCircuit extends NamedWarpScriptFunction implement
       // exiting, triggerValue() is putted on top of the stack.
       for (Object operand : (List) top) {
         // If a macro is found, execute it and use the result as the operand.
-        if (WarpScriptLib.isMacro(operand)) {
-          stack.exec((WarpScriptStack.Macro) operand);
+        if (operand instanceof Macro) {
+          stack.exec((Macro) operand);
           operand = stack.pop();
         }
 

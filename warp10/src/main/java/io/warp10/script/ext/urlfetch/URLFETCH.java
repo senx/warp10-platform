@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -143,6 +144,12 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
 
       try {
         conn = (HttpURLConnection) url.openConnection();
+        
+        if (null != url.getUserInfo()) {
+          String basicAuth = "Basic " + new String(Base64.encodeBase64String(url.getUserInfo().getBytes(StandardCharsets.UTF_8)));
+          conn.setRequestProperty ("Authorization", basicAuth);
+        }
+        
         conn.setDoInput(true);
         conn.setDoOutput(false);
         conn.setRequestMethod("GET");

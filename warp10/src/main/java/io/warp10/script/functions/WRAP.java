@@ -16,7 +16,6 @@
 
 package io.warp10.script.functions;
 
-import com.google.common.base.Charsets;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
@@ -28,6 +27,8 @@ import io.warp10.script.WarpScriptStack;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
+
+import java.nio.charset.StandardCharsets;
 
 /**
  * Wrap GTS or Encoders into GTSWrappers
@@ -106,7 +107,7 @@ public class WRAP extends ElementOrListStackFunction {
           if (raw) {
             return bytes;
           } else {
-            return new String(OrderPreservingBase64.encode(bytes), Charsets.US_ASCII);
+            return new String(OrderPreservingBase64.encode(bytes), StandardCharsets.US_ASCII);
           }
         } catch (TException te) {
           throw new WarpScriptException(getName() + " failed to wrap GTS.", te);

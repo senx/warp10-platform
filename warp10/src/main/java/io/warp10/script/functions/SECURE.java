@@ -28,13 +28,12 @@ import io.warp10.script.thrift.data.SecureScript;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-
-import com.google.common.base.Charsets;
 
 /**
  * Builds a SecureScript from the String on the stack and pushes it on the stack
@@ -70,7 +69,7 @@ public class SECURE extends NamedWarpScriptFunction implements WarpScriptStackFu
     sscript.setTimestamp(System.currentTimeMillis());
     sscript.setKey(key);
 
-    byte[] scriptBytes = script.getBytes(Charsets.UTF_8);
+    byte[] scriptBytes = script.getBytes(StandardCharsets.UTF_8);
     
     // Check if we should compress the script or not
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -114,7 +113,7 @@ public class SECURE extends NamedWarpScriptFunction implements WarpScriptStackFu
       
       byte[] wrapped = CryptoUtils.wrap(aesKey, serialized);
       
-      String encoded = new String(OrderPreservingBase64.encode(wrapped), Charsets.US_ASCII);
+      String encoded = new String(OrderPreservingBase64.encode(wrapped), StandardCharsets.US_ASCII);
       
       return encoded;
     } catch (TException te) {

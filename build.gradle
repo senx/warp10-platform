@@ -29,7 +29,7 @@ buildscript {
 }
 
 plugins {
-    id "com.jfrog.bintray" version "1.4"
+    id "com.jfrog.bintray" version "1.8.4"
     id "com.selesse.git.changelog" version "0.2.0"
 }
 
@@ -42,15 +42,14 @@ allprojects {
     ext.mc2DepsIndex = [] as Set
 
     // List of dependencies required by Warpscript
-    ext.requiredLibsMc2 = [ 'warpscript', 'libthrift', 'bcprov-jdk16', 'boon', 'commons-io', 'commons-codec', 'commons-lang', 'commons-lang3', 'commons-math3', 'commons-math4', 'compiler', 'core', 'curator-x-discovery', 'geoxplib', 'guava', \
-     'hadoop-common', 'hadoop-mapreduce-client-core', 'java-merge-sort', 'jetty-servlets', 'joda-time', 'jruby-complete', 'jtransforms', 'jts', 'junit', 'jython', 'kafka_2.11', \
-     'luaj-jse', 'oss-client', 'renjin-script-engine', 'sensision', 'slf4j-api', 'trove4j' ]
-
+    ext.requiredLibsMc2 = [ 'libthrift', 'bcprov-jdk16', 'boon', 'commons-io', 'commons-codec', 'commons-lang3', 'commons-math3',\
+                            'compiler', 'core', 'curator-x-discovery', 'geoxplib', 'guava', 'hadoop-common', 'hadoop-mapreduce-client-core',\
+                            'java-merge-sort','joda-time', 'jtransforms', 'jts', 'oss-client', 'sensision', 'slf4j-api', 'pyrolite',\
+                            'jts2geojson' ]
 }
 
 subprojects {
     apply plugin: 'java'
-    apply plugin: 'groovy'
     apply plugin: 'eclipse'
     apply plugin: 'idea'
     apply plugin: 'maven'

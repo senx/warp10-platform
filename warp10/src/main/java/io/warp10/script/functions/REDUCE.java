@@ -75,26 +75,32 @@ public class REDUCE extends NamedWarpScriptFunction implements WarpScriptStackFu
     }
 
     if (null != params.get(labelsIndex) && !(params.get(labelsIndex) instanceof Collection<?>)) {
-      throw new WarpScriptException(getName() + " expects a list of label names or null as parameter number" + labelsIndex + 1 + ".");
+      throw new WarpScriptException(getName() + " expects a list of label names or null as parameter number " + (labelsIndex + 1) + ".");
     } else {
       if (null != params.get(labelsIndex)) {
         for (Object o: ((Collection<?>) params.get(labelsIndex))) {
           if (!(o instanceof String)) {
-            throw new WarpScriptException(getName() + " expects a list of label names as parameter number" + labelsIndex + 1 + ".");
+            throw new WarpScriptException(getName() + " expects a list of label names as parameter number " + (labelsIndex + 1) + ".");
           }
         }        
       }
     }
       
     if (!(params.get(reducerIndex) instanceof WarpScriptReducerFunction)) {
-      throw new WarpScriptException(getName() + " expects a function as parameter number" + reducerIndex + 1 + ".");
+      throw new WarpScriptException(getName() + " expects a function as parameter number " + (reducerIndex + 1) + ".");
     }
 
     Collection<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
     Collection<String> bylabels = (Collection<String>) params.get(labelsIndex);
 
     for (int i = 0; i < labelsIndex; i++) {
-      series.addAll((Collection<GeoTimeSerie>) params.get(i));
+      for (Object o: (List) params.get(i)) {
+        if (o instanceof GeoTimeSerie) {
+          series.add((GeoTimeSerie) o);
+        } else {
+          throw new WarpScriptException(getName() + " expects lists of Geo Time Series as first parameter.");
+        }
+      }
     }    
 
     if (this.flatten) {

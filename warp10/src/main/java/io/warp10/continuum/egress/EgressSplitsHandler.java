@@ -33,6 +33,7 @@ import io.warp10.script.functions.PARSESELECTOR;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -49,8 +50,6 @@ import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
-
-import com.google.common.base.Charsets;
 
 /**
  * This handler will generate splits from a selector and a token, those
@@ -251,7 +250,7 @@ public class EgressSplitsHandler extends AbstractHandler {
         pw.print(" ");
         pw.print(loc.getRegionInfo().getEncodedName());
         pw.print(" ");
-        pw.println(new String(OrderPreservingBase64.encode(data), Charsets.US_ASCII));
+        pw.println(new String(OrderPreservingBase64.encode(data), StandardCharsets.US_ASCII));
       }
     } catch (Exception e) {
       throw new IOException(e);

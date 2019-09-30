@@ -140,7 +140,7 @@ public class WorfTemplate {
   }
 
   public String generateCryptoKey(String configKey) {
-    String value = (String) config.get(configKey);
+    String value = config.getProperty(configKey);
 
     Matcher templateMatcher = templatePattern.matcher(value);
 
@@ -167,7 +167,7 @@ public class WorfTemplate {
   }
 
   public String generateTokenKey(String tokenKey, String name, String owner, String producer, long ttl, WorfKeyMaster templateKeyMaster) throws WorfException {
-    String value = (String) config.get(tokenKey);
+    String value = config.getProperty(tokenKey);
     String tokenIdent = null;
     Matcher templateMatcher = templatePattern.matcher(value);
 

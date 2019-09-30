@@ -31,6 +31,7 @@ import java.io.StringWriter;
 import java.math.BigInteger;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,6 +58,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.warp10.ThrowableUtils;
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.util.ShutdownHookManager;
@@ -79,11 +81,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.sort.SortConfig;
-import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 
 import io.warp10.SSLUtils;
+import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
@@ -163,6 +165,10 @@ public class Ingress extends AbstractHandler implements Runnable {
 
   final long maxValueSize;
 
+  final long ttl;
+  
+  final boolean useDatapointTs;
+  
   private final String cacheDumpPath;
   
   private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
@@ -213,7 +219,7 @@ public class Ingress extends AbstractHandler implements Runnable {
    * 
    * This and METADATA_MESSAGES_THRESHOLD has to be lower than the configured Kafka max message size (message.max.bytes)
    */
-  private final long DATA_MESSAGES_THRESHOLD;
+  final long DATA_MESSAGES_THRESHOLD;
     
   /**
    * Kafka producer for readings
@@ -280,6 +286,12 @@ public class Ingress extends AbstractHandler implements Runnable {
   private final boolean metaActivity;
   final long activityWindow;
   public final boolean parseAttributes;
+  final Long maxpastDefault;
+  final Long maxfutureDefault;
+  final Long maxpastOverride;
+  final Long maxfutureOverride;
+
+  final boolean ignoreOutOfRange;
   
   public Ingress(KeyStore keystore, Properties props) {
 
@@ -303,6 +315,9 @@ public class Ingress extends AbstractHandler implements Runnable {
     //
     // Extract parameters from 'props'
     //
+    
+    this.ttl = Long.parseLong(props.getProperty(Configuration.INGRESS_HBASE_CELLTTL, "-1"));
+    this.useDatapointTs = "true".equals(props.getProperty(Configuration.INGRESS_HBASE_DPTS));
     
     this.doShuffle = "true".equals(props.getProperty(Configuration.INGRESS_DELETE_SHUFFLE));
     
@@ -331,6 +346,10 @@ public class Ingress extends AbstractHandler implements Runnable {
     this.METADATA_MESSAGES_THRESHOLD = Long.parseLong(props.getProperty(Configuration.INGRESS_KAFKA_METADATA_MAXSIZE));
     this.maxValueSize = Long.parseLong(props.getProperty(Configuration.INGRESS_VALUE_MAXSIZE));
     
+    if (this.maxValueSize > (this.DATA_MESSAGES_THRESHOLD / 2) - 64) {
+      throw new RuntimeException("Value of '" + Configuration.INGRESS_VALUE_MAXSIZE + "' cannot exceed that half of '" + Configuration.INGRESS_KAFKA_DATA_MAXSIZE + "' minus 64.");
+    }
+    
     extractKeys(this.keystore, props);
     
     this.classKey = SipHashInline.getKey(this.keystore.getKey(KeyStore.SIPHASH_CLASS));
@@ -347,6 +366,44 @@ public class Ingress extends AbstractHandler implements Runnable {
 
     this.parseAttributes = "true".equals(props.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
     
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT)) {
+      maxpastDefault = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT));
+      if (maxpastDefault < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXPAST_DEFAULT + "' MUST be positive.");
+      }
+    } else {
+      maxpastDefault = null;
+    }
+    
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT)) {
+      maxfutureDefault = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_DEFAULT));
+      if (maxfutureDefault < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXFUTURE_DEFAULT + "' MUST be positive.");
+      }
+    } else {
+      maxfutureDefault = null;
+    }
+
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE)) {
+      maxpastOverride = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_OVERRIDE));
+      if (maxpastOverride < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXPAST_OVERRIDE + "' MUST be positive.");
+      }
+    } else {
+      maxpastOverride = null;
+    }
+    
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE)) {
+      maxfutureOverride = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXFUTURE_OVERRIDE));
+      if (maxfutureOverride < 0) {
+        throw new RuntimeException("Value of '" + Configuration.INGRESS_MAXFUTURE_OVERRIDE + "' MUST be positive.");
+      }
+    } else {
+      maxfutureOverride = null;
+    }
+    
+    this.ignoreOutOfRange = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_OUTOFRANGE_IGNORE));
+
     //
     // Prepare meta, data and delete producers
     //
@@ -666,13 +723,44 @@ public class Ingress extends AbstractHandler implements Runnable {
 
       long count = 0;
       
+      //
+      // Extract KafkaDataMessage attributes
+      //
+      
+      Map<String,String> kafkaDataMessageAttributes = null;
+      
+      if (-1 != ttl || useDatapointTs) {
+        kafkaDataMessageAttributes = new HashMap<String,String>();
+        if (-1 != ttl) {
+          kafkaDataMessageAttributes.put(Constants.STORE_ATTR_TTL, Long.toString(ttl));
+        }
+        if (useDatapointTs) {
+          kafkaDataMessageAttributes.put(Constants.STORE_ATTR_USEDATAPOINTTS, "t");
+        }
+      }
+      
+      if (writeToken.getAttributesSize() > 0) {
+        if (writeToken.getAttributes().containsKey(Constants.STORE_ATTR_TTL)
+            || writeToken.getAttributes().containsKey(Constants.STORE_ATTR_USEDATAPOINTTS)) {
+          if (null == kafkaDataMessageAttributes) {
+            kafkaDataMessageAttributes = new HashMap<String,String>();
+          }
+          if (writeToken.getAttributes().containsKey(Constants.STORE_ATTR_TTL)) {
+            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_TTL, writeToken.getAttributes().get(Constants.STORE_ATTR_TTL));
+          }
+          if (writeToken.getAttributes().containsKey(Constants.STORE_ATTR_USEDATAPOINTTS)) {
+            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_USEDATAPOINTTS, writeToken.getAttributes().get(Constants.STORE_ATTR_USEDATAPOINTTS));
+          }
+        }
+      }
+
       try {
         if (null == producer || null == owner) {
           Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_INVALIDTOKEN, Sensision.EMPTY_LABELS, 1);
           response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
           return;
         }
-        
+                
         //
         // Build extra labels
         //
@@ -694,6 +782,15 @@ public class Ingress extends AbstractHandler implements Runnable {
           sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
         }
 
+        long maxsize = maxValueSize;
+        
+        if (writeToken.getAttributesSize() > 0 && null != writeToken.getAttributes().get(Constants.TOKEN_ATTR_MAXSIZE)) {
+          maxsize = Long.parseLong(writeToken.getAttributes().get(Constants.TOKEN_ATTR_MAXSIZE));
+          if (maxsize > (DATA_MESSAGES_THRESHOLD / 2) - 64) {
+            maxsize = (DATA_MESSAGES_THRESHOLD / 2) - 64;
+          }
+        }
+        
         //
         // Determine if content is gzipped
         //
@@ -715,6 +812,86 @@ public class Ingress extends AbstractHandler implements Runnable {
         }
         
         Long now = TimeSource.getTime();
+
+        //
+        // Extract time limits
+        //
+        
+        Long maxpast = null;
+        if (null != maxpastDefault) {
+          try {
+            maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, maxpastDefault));            
+          } catch (ArithmeticException ae) {
+            maxpast = null;
+          }
+        }
+        
+        Long maxfuture = null;
+        if (null != maxfutureDefault) {
+          try {
+            maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, maxfutureDefault));
+          } catch (ArithmeticException ae) {
+            maxfuture = null;
+          }
+        }
+ 
+        Boolean ignoor = null;
+        
+        if (writeToken.getAttributesSize() > 0) {
+          
+          if (writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_IGNOOR)) {
+            String v = writeToken.getAttributes().get(Constants.TOKEN_ATTR_IGNOOR).toLowerCase();
+            if ("true".equals(v) || "t".equals(v)) {
+              ignoor = Boolean.TRUE;
+            } else if ("false".equals(v) || "f".equals(v)) {
+              ignoor = Boolean.FALSE;
+            }
+          }
+
+          String deltastr = writeToken.getAttributes().get(Constants.TOKEN_ATTR_MAXPAST);
+
+          if (null != deltastr) {
+            long delta = Long.parseLong(deltastr);
+            if (delta < 0) {
+              throw new WarpScriptException("Invalid '" + Constants.TOKEN_ATTR_MAXPAST + "' token attribute, MUST be positive.");
+            }
+            try {
+              maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, delta));
+            } catch (ArithmeticException ae) {
+              maxpast = null;
+            }
+          }
+          
+          deltastr = writeToken.getAttributes().get(Constants.TOKEN_ATTR_MAXFUTURE);
+          
+          if (null != deltastr) {
+            long delta = Long.parseLong(deltastr);
+            if (delta < 0) {
+              throw new WarpScriptException("Invalid '" + Constants.TOKEN_ATTR_MAXFUTURE + "' token attribute, MUST be positive.");
+            }
+            try {
+              maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, delta));
+            } catch (ArithmeticException ae) {
+              maxfuture = null;
+            }
+          }          
+        }
+
+        if (null != maxpastOverride) {
+          try {
+            maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, maxpastOverride));
+          } catch (ArithmeticException ae) {
+            maxpast = null;
+          }
+        }
+
+        if (null != maxfutureOverride) {
+          try {
+            maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, maxfutureOverride));
+          } catch (ArithmeticException ae) {
+            maxfuture = null;
+          }
+        }
 
         //
         // Check the value of the 'now' header
@@ -777,6 +954,12 @@ public class Ingress extends AbstractHandler implements Runnable {
 
         boolean lastHadAttributes = false;
 
+        AtomicLong ignoredCount = null;
+        
+        if ((this.ignoreOutOfRange && !Boolean.FALSE.equals(ignoor)) || Boolean.TRUE.equals(ignoor)) {
+          ignoredCount = new AtomicLong(0L);
+        }
+        
         do {
           
           // We copy the current value of hadAttributes
@@ -801,7 +984,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           }
                     
           try {
-            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxValueSize, hadAttributes);
+            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxsize, hadAttributes, maxpast, maxfuture, ignoredCount);
             count++;
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_PARSEERRORS, sensisionLabels, 1);
@@ -871,7 +1054,7 @@ public class Ingress extends AbstractHandler implements Runnable {
             }
             
             if (null != lastencoder) {
-              pushDataMessage(lastencoder);
+              pushDataMessage(lastencoder, kafkaDataMessageAttributes);
                            
               if (parseAttributes && lastHadAttributes) {
                 // We need to push lastencoder's metadata update as they were updated since the last
@@ -914,7 +1097,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
           ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
 
-          pushDataMessage(lastencoder);
+          pushDataMessage(lastencoder, kafkaDataMessageAttributes);
           
           if (parseAttributes && lastHadAttributes) {
             // Push a metadata UPDATE message so attributes are stored
@@ -932,7 +1115,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         //
         
         pushMetadataMessage(null, null);
-        pushDataMessage(null);
+        pushDataMessage(null, kafkaDataMessageAttributes);
 
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_DATAPOINTS_GLOBAL, Sensision.EMPTY_LABELS, count);
@@ -942,9 +1125,10 @@ public class Ingress extends AbstractHandler implements Runnable {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_TIME_US, sensisionLabels, micros);
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_TIME_US_GLOBAL, Sensision.EMPTY_LABELS, micros);      
       }      
-    } catch (Exception e) {
+    } catch (Throwable t) { // Catch everything else this handler could return 200 on a OOM exception
       if (!response.isCommitted()) {
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+        String msg = "Error when updating data: " + ThrowableUtils.getErrorMessage(t);
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
       }
     }
@@ -1113,9 +1297,10 @@ public class Ingress extends AbstractHandler implements Runnable {
       }
 
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_META_RECORDS, sensisionLabels, count);
-    } catch (IOException ioe) {
+    } catch (Throwable t) { // Catch everything else this handler could return 200 on a OOM exception
       if (!response.isCommitted()) {
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ioe.getMessage());
+        String msg = "Error when updating meta: " + ThrowableUtils.getErrorMessage(t);
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
       }
     } finally {
@@ -1309,7 +1494,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         return;
       }
       
-      String classSelector = URLDecoder.decode(m.group(1), "UTF-8");
+      String classSelector = URLDecoder.decode(m.group(1), StandardCharsets.UTF_8.name());
       String labelsSelection = m.group(2);
       
       Map<String,String> labelsSelectors;
@@ -1455,7 +1640,7 @@ public class Ingress extends AbstractHandler implements Runnable {
                 done = true;
                 return false;
               }
-              byte[] raw = OrderPreservingBase64.decode(line.getBytes(Charsets.US_ASCII));
+              byte[] raw = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
               // Apply one time pad
               int padidx = 0;
 
@@ -1601,7 +1786,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         t.printStackTrace(pw2);
         pw2.close();
         sw.flush();
-        String error = URLEncoder.encode(sw.toString(), "UTF-8");
+        String error = URLEncoder.encode(sw.toString(), StandardCharsets.UTF_8.name());
         pw.println(Constants.INGRESS_DELETE_ERROR_PREFIX + error);
       }
       if (!response.isCommitted()) {
@@ -1787,7 +1972,7 @@ public class Ingress extends AbstractHandler implements Runnable {
    * 
    * @param encoder GTSEncoder to push to Kafka. It MUST have classId/labelsId set.
    */
-  void pushDataMessage(GTSEncoder encoder) throws IOException {    
+  void pushDataMessage(GTSEncoder encoder, Map<String,String> attributes) throws IOException {    
     if (null != encoder) {
       KafkaDataMessage msg = new KafkaDataMessage();
       msg.setType(KafkaDataMessageType.STORE);
@@ -1799,6 +1984,9 @@ public class Ingress extends AbstractHandler implements Runnable {
         msg.setMetadata(encoder.getMetadata());
       }
 
+      if (null != attributes && !attributes.isEmpty()) {
+        msg.setAttributes(new HashMap<String,String>(attributes));
+      }
       sendDataMessage(msg);
     } else {
       sendDataMessage(null);

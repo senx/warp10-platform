@@ -21,8 +21,9 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
-import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
+
+import java.nio.charset.StandardCharsets;
 
 /**
  * Encode a String in base64
@@ -38,7 +39,7 @@ public class TOB64 extends NamedWarpScriptFunction implements WarpScriptStackFun
     Object o = stack.pop();
     
     if (o instanceof String) {
-      stack.push(BaseEncoding.base64().encode(o.toString().getBytes(Charsets.UTF_8)));      
+      stack.push(BaseEncoding.base64().encode(o.toString().getBytes(StandardCharsets.UTF_8)));
     } else if (o instanceof byte[]) {
       stack.push(BaseEncoding.base64().encode((byte[]) o));      
     } else {

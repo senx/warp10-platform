@@ -26,6 +26,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CodingErrorAction;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,6 +45,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -59,7 +61,6 @@ import org.boon.json.JsonParserFactory;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
-import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
 
 import io.warp10.CapacityExtractorOutputStream;
@@ -257,7 +258,40 @@ public class GTSHelper {
    * @return a fully sorted GTS.
    */
   public static final GeoTimeSerie fullsort(GeoTimeSerie gts, boolean reversed) {
-    fullquicksort(gts, 0, gts.values - 1, reversed);
+    if (gts.sorted) {
+      // If the GTS is already sorted, we can only fullsort where ticks are equals.
+
+      if (gts.reversed != reversed) {
+        // This will effectively flip the GTS
+        sort(gts, reversed);
+      }
+
+      List<int[]> ranges = new ArrayList<int[]>();
+
+      // Start index of the current possible range.
+      int startIndex = 0;
+
+      for (int i = 1; i < gts.values; i++) {
+        if (gts.ticks[i] != gts.ticks[startIndex]) {
+          // End of range, check that it contains several indices.
+          if (i - 1 - startIndex > 0) {
+            // Valid range, add it.
+            ranges.add(new int[]{startIndex, i - 1});
+          }
+          startIndex = i;
+        }
+      }
+
+      // Check if the loop ended before adding the last range. This range ends with the last index.
+      if (startIndex < gts.values - 1) {
+        ranges.add(new int[]{startIndex, gts.values - 1});
+      }
+
+      // Sort using the computed ranges.
+      fullquicksort(gts, ranges, reversed);
+    } else {
+      fullquicksort(gts, 0, gts.values - 1, reversed);
+    }
 
     gts.sorted = true;
     gts.reversed = reversed;
@@ -339,7 +373,10 @@ public class GTSHelper {
   }
   
   public static final GeoTimeSerie valueSort(GeoTimeSerie gts, boolean reversed) {
+    gts.sorted = false;
+
     quicksortByValue(gts, 0, gts.values - 1, reversed);
+
     return gts;
   }
 
@@ -807,7 +844,10 @@ public class GTSHelper {
   }
 
   public static GeoTimeSerie locationSort(GeoTimeSerie gts) {
+    gts.sorted = false;
+    
     quicksortByLocation(gts,0,gts.values - 1,false);
+
     return gts;
   }
 
@@ -899,6 +939,25 @@ public class GTSHelper {
     List<int[]> ranges = new ArrayList<int[]>();
 
     ranges.add(new int[]{low, high});
+
+    fullquicksort(gts, ranges, reversed);
+  }
+
+  /**
+   * Apply a quicksort on the given GTS instance using all the data at each tick to make the comparisons.
+   * Use natural ordering to first order according to ticks then values, then locations, then elevations.
+   * @param gts The GTS to be sorted, will be modified in place.
+   * @param ranges Ranges of indexes to sort in the GTS.
+   * @param reversed Whether to return a reversed GTS or not.
+   */
+  private static void fullquicksort(GeoTimeSerie gts, List<int[]> ranges, final boolean reversed) {
+
+    if (0 == gts.values) {
+      return;
+    }
+
+    int low;
+    int high;
 
     while (!ranges.isEmpty()) {
       int[] range = ranges.remove(0);
@@ -1289,7 +1348,7 @@ public class GTSHelper {
     }
       
     if (value instanceof byte[]) {
-      value = new String((byte[]) value, Charsets.ISO_8859_1);
+      value = new String((byte[]) value, StandardCharsets.ISO_8859_1);
     }
     
     //
@@ -1945,6 +2004,18 @@ public class GTSHelper {
     if (0 == bucketspan) {
       throw new WarpScriptException("Undefined bucket span, check your GTS timestamps.");
     }
+
+    //
+    // If the bucketizer is null, it only sets lastbucket, bucketcount and bucketspan
+    //
+
+    if (null == aggregator) {
+      gts.lastbucket = lastbucket;
+      gts.bucketcount = bucketcount;
+      gts.bucketspan = bucketspan;
+
+      return gts;
+    }
     
     //
     // Create the target Geo Time Serie (bucketized)
@@ -2107,7 +2178,7 @@ public class GTSHelper {
     
     if (name.contains("%")) {
       try {      
-        name = URLDecoder.decode(name, "UTF-8");
+        name = URLDecoder.decode(name, StandardCharsets.UTF_8.name());
       } catch (UnsupportedEncodingException uee) {
         // Can't happen, we're using UTF-8
       }      
@@ -2273,6 +2344,10 @@ public class GTSHelper {
   }
   
   public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes) throws ParseException, IOException {
+    return parse(encoder, str, extraLabels, now, maxValueSize, parsedAttributes, null, null, null);
+  }
+  
+  public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes, Long maxpast, Long maxfuture, AtomicLong ignoredCount) throws ParseException, IOException {
 
     int idx = 0;
     
@@ -2307,6 +2382,22 @@ public class GTSHelper {
       }
     }
 
+    boolean ignored = false;
+    
+    if (null != maxpast && timestamp < maxpast) {
+      if (null == ignoredCount) {
+        throw new ParseException("Timestamp " + timestamp + " is too far in the past.", idx);
+      } else {
+        ignored = true;
+      }
+    } else if (null != maxfuture && timestamp > maxfuture) {
+      if (null == ignoredCount) {
+        throw new ParseException("Timestamp " + timestamp + " is too far in the future.", idx);
+      } else {
+        ignored = true;
+      }
+    }
+    
     // Advance past the '/'
     idx++;
     
@@ -2392,7 +2483,7 @@ public class GTSHelper {
       //if (name.contains("%")) {
       if (-1 != UnsafeString.indexOf(name, '%')) {
         try {      
-          name = URLDecoder.decode(name, "UTF-8");
+          name = URLDecoder.decode(name, StandardCharsets.UTF_8.name());
         } catch (UnsupportedEncodingException uee) {
           // Can't happen, we're using UTF-8
         }      
@@ -2508,7 +2599,11 @@ public class GTSHelper {
       encoder.getMetadata().setAttributes(attributes);
     }
 
-    encoder.addValue(timestamp, location, elevation, value);
+    if (!ignored) {
+      encoder.addValue(timestamp, location, elevation, value);
+    } else {
+      ignoredCount.addAndGet(1);
+    }
     
     return encoder;
   }
@@ -2529,7 +2624,7 @@ public class GTSHelper {
         value = valuestr.substring(1, valuestr.length() - 1);
         if (((String)value).contains("%")) {
           try {
-            value = URLDecoder.decode((String) value, "UTF-8");
+            value = URLDecoder.decode((String) value, StandardCharsets.UTF_8.name());
           } catch (UnsupportedEncodingException uee) {
             // Can't happen, we're using UTF-8
           }
@@ -2965,7 +3060,7 @@ public class GTSHelper {
   }
   
   public static final long classId(long k0, long k1, String name) {
-    CharsetEncoder ce = Charsets.UTF_8.newEncoder();
+    CharsetEncoder ce = StandardCharsets.UTF_8.newEncoder();
 
     ce.onMalformedInput(CodingErrorAction.REPLACE)
     .onUnmappableCharacter(CodingErrorAction.REPLACE)
@@ -3064,7 +3159,7 @@ public class GTSHelper {
     // Implementation is a sun.nio.cs.UTF_8$Encoder which implements ArrayEncoder
     //
     
-    CharsetEncoder ce = Charsets.UTF_8.newEncoder();
+    CharsetEncoder ce = StandardCharsets.UTF_8.newEncoder();
     
     //
     // Allocate arrays large enough for most cases
@@ -3187,8 +3282,8 @@ public class GTSHelper {
     long[] sipkey = SipHashInline.getKey(key);
     
     for (Entry<String, String> entry: labels.entrySet()) {
-      hashes[idx] = SipHashInline.hash24_palindromic(sipkey[0], sipkey[1], entry.getKey().getBytes(Charsets.UTF_8));
-      hashes[idx+1] = SipHashInline.hash24_palindromic(sipkey[0], sipkey[1], entry.getValue().getBytes(Charsets.UTF_8));
+      hashes[idx] = SipHashInline.hash24_palindromic(sipkey[0], sipkey[1], entry.getKey().getBytes(StandardCharsets.UTF_8));
+      hashes[idx+1] = SipHashInline.hash24_palindromic(sipkey[0], sipkey[1], entry.getValue().getBytes(StandardCharsets.UTF_8));
       idx+=2;
     }
     
@@ -3429,11 +3524,11 @@ public class GTSHelper {
       
       try {
         if (name.contains("%")) {
-          name = URLDecoder.decode(name, "UTF-8");
+          name = URLDecoder.decode(name, StandardCharsets.UTF_8.name());
         }
         
         if (value.contains("%")) {
-          value = URLDecoder.decode(value, "UTF-8");
+          value = URLDecoder.decode(value, StandardCharsets.UTF_8.name());
         }        
       } catch (UnsupportedEncodingException uee) {
         // Can't happen, we're using UTF-8 which is a standard JVM encoding.
@@ -3464,7 +3559,7 @@ public class GTSHelper {
     
     if (classSelector.contains("%")) {
       try {      
-        classSelector = URLDecoder.decode(classSelector, "UTF-8");
+        classSelector = URLDecoder.decode(classSelector, StandardCharsets.UTF_8.name());
       } catch (UnsupportedEncodingException uee) {
         // Can't happen, we're using UTF-8
       }      
@@ -3576,7 +3671,7 @@ public class GTSHelper {
     } else if (value instanceof String) {
       sb.append("'");
       try {
-        String encoded = WarpURLEncoder.encode((String) value, "UTF-8");
+        String encoded = WarpURLEncoder.encode((String) value, StandardCharsets.UTF_8);
         sb.append(encoded);
       } catch (UnsupportedEncodingException uee) {
         // Won't happen
@@ -3593,7 +3688,7 @@ public class GTSHelper {
       return;
     }
     try {
-      String encoded = WarpURLEncoder.encode(name, "UTF-8");
+      String encoded = WarpURLEncoder.encode(name, StandardCharsets.UTF_8);
       sb.append(encoded);
     } catch (UnsupportedEncodingException uee) {      
     }
@@ -5080,11 +5175,9 @@ public class GTSHelper {
           } else if (res instanceof Map) {
             stack.drop();
 
-            Set<Object> keys = ((Map) res).keySet();
-
-            for (Object key : keys) {
-              Object[] ores2 = MACROMAPPER.listToObjects((List) ((Map) res).get(key));
-              ((Map) res).put(key, ores2);
+            for (Map.Entry<?, ?> keyAndValue: ((Map<?, ?>) res).entrySet()) {
+              Object[] ores2 = MACROMAPPER.listToObjects((List) keyAndValue.getValue());
+              ((Map) res).put(keyAndValue.getKey(), ores2);
             }
 
             mapResult = res;
@@ -5275,8 +5368,9 @@ public class GTSHelper {
       labels.putAll(metadata.getLabels());
     }
     
-    for (String name: newlabels.keySet()) {
-      String value = newlabels.get(name);
+    for (Entry<String, String> nameAndValue: newlabels.entrySet()) {
+      String name = nameAndValue.getKey();
+      String value = nameAndValue.getValue();
       if (null == value || "".equals(value)) {
         labels.remove(name);
         continue;
@@ -5379,8 +5473,9 @@ public class GTSHelper {
         
         Map<String,String> gtsLabels = gts.getMetadata().getLabels();
         
-        for (String label: labelsbyclass.get(eqcls).keySet()) {
-          if (!labelsbyclass.get(eqcls).get(label).equals(gtsLabels.get(label))) {
+        for (Entry<String, String> labelAndValue: labelsbyclass.get(eqcls).entrySet()) {
+          String label = labelAndValue.getKey();
+          if (!labelAndValue.getValue().equals(gtsLabels.get(label))) {
             labelstoremove.add(label);
           }
         }
@@ -5393,8 +5488,8 @@ public class GTSHelper {
     
     Map<Map<String,String>, List<GeoTimeSerie>> partition = new HashMap<Map<String,String>, List<GeoTimeSerie>>();
     
-    for (Map<String,String> key: classes.keySet()) {
-      partition.put(labelsbyclass.get(key), classes.get(key));
+    for (Entry<Map<String, String>, List<GeoTimeSerie>> keyAndValue: classes.entrySet()) {
+      partition.put(labelsbyclass.get(keyAndValue.getKey()), keyAndValue.getValue());
     }
     return partition;
   }
@@ -6027,8 +6122,9 @@ public class GTSHelper {
       // Loop on each partition
       //
       
-      for (Map<String,String> partitionlabels: partition.keySet()) {
-        Map<String,String> commonlabels = Collections.unmodifiableMap(partitionlabels);
+      for (Entry<Map<String, String>, List<GeoTimeSerie>> partitionlabelsAndGtss: partition.entrySet()) {
+
+        Map<String,String> commonlabels = Collections.unmodifiableMap(partitionlabelsAndGtss.getKey());
         
         List<GeoTimeSerie> result = new ArrayList<GeoTimeSerie>();
 
@@ -6050,7 +6146,7 @@ public class GTSHelper {
             subseries[i].add(series[i].iterator().next());
           } else {
             // The series appear in the order they are in the original list due to 'partition' using a List
-            for (GeoTimeSerie serie: partition.get(partitionlabels)) {
+            for (GeoTimeSerie serie: partitionlabelsAndGtss.getValue()) {
               //if (Collections.binarySearch(series[i], serie, METASORT.META_COMPARATOR) >= 0) {
               // We perform a binary search to determine if the GTS 'serie' is in series[i]
               if (Collections.binarySearch(series[i], serie, GTSIdComparator.COMPARATOR) >= 0) {
@@ -6688,10 +6784,11 @@ public class GTSHelper {
     Map<Map<String,String>,List<GeoTimeSerie>> results = new LinkedHashMap<Map<String,String>, List<GeoTimeSerie>>();
     
     
-    for (Map<String,String> partitionLabels: partitions.keySet()) {
+    for (Entry<Map<String, String>, List<GeoTimeSerie>> partitionLabelsAndGtss: partitions.entrySet()) {
       boolean singleGTSResult = false;
 
-      List<GeoTimeSerie> partitionSeries = partitions.get(partitionLabels);
+      Map<String, String> partitionLabels = partitionLabelsAndGtss.getKey();
+      List<GeoTimeSerie> partitionSeries = partitionLabelsAndGtss.getValue();
       
       //
       // Extract labels and common labels
@@ -6703,7 +6800,7 @@ public class GTSHelper {
         partlabels[i] = partitionSeries.get(i).getLabels();
       }
       
-      partlabels[partitionSeries.size()] = Collections.unmodifiableMap(partitionLabels);
+      partlabels[partitionSeries.size()] = Collections.unmodifiableMap(partitionLabelsAndGtss.getKey());
       
       //
       // Determine if result should be bucketized or not.
@@ -7598,7 +7695,7 @@ public class GTSHelper {
       // Generate bSAX words
       //
       
-      String word = new String(OrderPreservingBase64.encode(SAXUtils.bSAX(levels, symbols)), Charsets.US_ASCII);
+      String word = new String(OrderPreservingBase64.encode(SAXUtils.bSAX(levels, symbols)), StandardCharsets.US_ASCII);
       
       GTSHelper.setValue(saxGTS, gts.ticks[i], word);      
     }
@@ -7769,6 +7866,27 @@ public class GTSHelper {
   }
   
   /**
+   * Build an occurrence count by value for the given GTS Encoder.
+   */
+  public static Map<Object,Long> valueHistogram(GTSEncoder encoder) {
+    Map<Object, Long> occurrences = new HashMap<Object, Long>();
+
+    GTSDecoder decoder = encoder.getDecoder();
+    
+    while(decoder.next()) {
+      Object value = decoder.getValue();
+      
+      if (!occurrences.containsKey(value)) {
+        occurrences.put(value, 1L);
+      } else {        
+        occurrences.put(value, 1L + occurrences.get(value));        
+      }
+    }
+    
+    return occurrences;
+  }
+  
+  /**
    * Detect patterns in a Geo Time Serie instance. Return a modified version of the original
    * GTS instance where only the values which are part of one of the provided patterns are kept.
    * 
@@ -7889,7 +8007,17 @@ public class GTSHelper {
   
   public static String buildSelector(Metadata metadata) {
     StringBuilder sb = new StringBuilder();
-    encodeName(sb, metadata.getName());
+
+    String name = metadata.getName();
+
+    if(name.length() > 0) {
+      char nameFirstChar = name.charAt(0);
+      if ('=' == nameFirstChar || '~' == nameFirstChar) {
+        sb.append("="); // Prepend '=' for the special character not to be interpreted
+      }
+    }
+    encodeName(sb, name);
+
     sb.append("{");
     TreeMap<String,String> labels = new TreeMap<String,String>(metadata.getLabels());
     boolean first = true;
@@ -7899,7 +8027,7 @@ public class GTSHelper {
       }
       encodeName(sb, entry.getKey());
       sb.append("=");
-      encodeName(sb,entry.getValue());
+      encodeName(sb, entry.getValue());
       first = false;
     }
     sb.append("}");
@@ -10364,7 +10492,7 @@ public class GTSHelper {
         while(idx[i] < serie.values && serie.ticks[idx[i]] < target) {
           idx[i]++;
         }
-        
+                
         //
         // We've reached the end of one of the GTS, we know we're done
         //
@@ -10395,19 +10523,32 @@ public class GTSHelper {
       }
       
       //
-      // We have a march of all the ticks, add the current datapoint to the resulting GTS
+      // We have a match of all the ticks, add the datapoints with the current tick to the resulting GTS
       //
       
-      if (match) {
+      if (match) {        
         for (int i = 0; i < series.size(); i++) {
           GeoTimeSerie serie = series.get(i);
-          GTSHelper.setValue(result.get(i),
-            GTSHelper.tickAtIndex(serie, idx[i]),
-            GTSHelper.locationAtIndex(serie, idx[i]),
-            GTSHelper.elevationAtIndex(serie, idx[i]),
-            GTSHelper.valueAtIndex(serie, idx[i]),
-            false);
-        }   
+          
+          int tidx = idx[i];
+          
+          while (tidx < serie.values && target == serie.ticks[tidx]) {
+            GTSHelper.setValue(result.get(i),
+                GTSHelper.tickAtIndex(serie, tidx),
+                GTSHelper.locationAtIndex(serie, tidx),
+                GTSHelper.elevationAtIndex(serie, tidx),
+                GTSHelper.valueAtIndex(serie, tidx),
+                false);
+            tidx++;
+          }
+          
+          if (tidx < serie.values) {
+            tidx--;
+          }
+          
+          idx[i] = tidx;
+        }
+        
         idx[leader]++;
         if (idx[leader] >= leadergts.values) {
           return result;

@@ -20,13 +20,12 @@ import io.warp10.crypto.OrderPreservingBase64;
 
 import java.io.ByteArrayOutputStream;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Random;
 
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.google.common.base.Charsets;
 
 public class OrderPreservingBase64Test {
   @Test
@@ -100,7 +99,7 @@ public class OrderPreservingBase64Test {
       rand.nextBytes(b);
       
       int bytecomp = compareTo(a, 0, a.length, b, 0, b.length);
-      int b64comp = new String(OrderPreservingBase64.encode(a), Charsets.US_ASCII).compareTo(new String(OrderPreservingBase64.encode(b), Charsets.US_ASCII));
+      int b64comp = new String(OrderPreservingBase64.encode(a), StandardCharsets.US_ASCII).compareTo(new String(OrderPreservingBase64.encode(b), StandardCharsets.US_ASCII));
       
       Assert.assertTrue((bytecomp == 0 && b64comp == 0) || (bytecomp * b64comp > 0));
     }
@@ -134,7 +133,7 @@ public class OrderPreservingBase64Test {
       Assert.assertArrayEquals(raw, baos.toByteArray());
       StringWriter sw = new StringWriter();
       OrderPreservingBase64.encodeToWriter(bytes, sw);
-      byte[] writer = sw.toString().getBytes(Charsets.US_ASCII);
+      byte[] writer = sw.toString().getBytes(StandardCharsets.US_ASCII);
       Assert.assertArrayEquals(raw, writer);
     }
   }

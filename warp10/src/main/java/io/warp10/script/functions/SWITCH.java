@@ -19,7 +19,6 @@ package io.warp10.script.functions;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 
@@ -66,7 +65,7 @@ public class SWITCH extends NamedWarpScriptFunction implements WarpScriptStackFu
     
     Object defaultMacro = stack.pop();
     
-    if (!WarpScriptLib.isMacro(defaultMacro)) {
+    if (!(defaultMacro instanceof Macro)) {
       throw new WarpScriptException(getName() + " expects a default macro after the number of cases.");
     }
     
@@ -76,7 +75,7 @@ public class SWITCH extends NamedWarpScriptFunction implements WarpScriptStackFu
       cases[i * 2 + 1] = stack.pop();
       cases[i * 2] = stack.pop();
       
-      if (!WarpScriptLib.isMacro(cases[i * 2 + 1]) || !WarpScriptLib.isMacro(cases[i * 2])) {
+      if (!(cases[i * 2 + 1] instanceof Macro) || !(cases[i * 2] instanceof Macro)) {
         throw new WarpScriptException(getName() + " expects each case to be a set of two macros, a conditional macro with an 'exec' macro on top of it.");
       }
     }

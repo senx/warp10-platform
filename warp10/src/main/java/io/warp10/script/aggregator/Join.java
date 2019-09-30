@@ -17,6 +17,7 @@
 package io.warp10.script.aggregator;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.gts.GeoTimeSerie;
@@ -130,7 +131,7 @@ public class Join extends NamedWarpScriptFunction implements WarpScriptAggregato
 
       if (urlencode) {
         try {
-          sb.append(WarpURLEncoder.encode(value.toString(), "UTF-8"));
+          sb.append(WarpURLEncoder.encode(value.toString(), StandardCharsets.UTF_8));
         } catch (UnsupportedEncodingException uee) {
           throw new WarpScriptException(uee);
         }

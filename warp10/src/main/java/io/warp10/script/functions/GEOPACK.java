@@ -27,6 +27,7 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -34,8 +35,6 @@ import org.apache.thrift.protocol.TCompactProtocol;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
-import com.google.common.base.Charsets;
-
 /**
  * Pack a GeoXPShape
  * 
@@ -84,7 +83,7 @@ public class GEOPACK extends NamedWarpScriptFunction implements WarpScriptStackF
     try {
       byte[] serialized = serializer.serialize(wrapper);
       
-      return new String(OrderPreservingBase64.encode(serialized, 0, serialized.length), Charsets.US_ASCII);      
+      return new String(OrderPreservingBase64.encode(serialized, 0, serialized.length), StandardCharsets.US_ASCII);
     } catch (TException te) {
       throw new WarpScriptException(te);
     }

@@ -545,6 +545,53 @@ public class Configuration {
   // I N G R E S S
   //
   /////////////////////////////////////////////////////////////////////////////////////////
+
+  /**
+   * Default datapoint cell TTL (in ms) to enforce. If this is not set, then the TTL will be that
+   * of the columns family. A value of -1 disables the use of cell TTLs.
+   * This can be overridden by the '.ttl' WriteToken attribute.
+   */
+  public static final String INGRESS_HBASE_CELLTTL = "ingress.hbase.cellttl";
+  
+  /**
+   * Flag indicating whether to use the DataPoint TimeStamp instead of the write timestamp
+   * for the data stored in HBase.
+   * This can be overridden by the '.dpts' WriteToken attribute.
+   */
+  public static final String INGRESS_HBASE_DPTS = "ingress.hbase.dpts";
+  
+  /**
+   * Default maximum age of datapoints pushed to Warp 10, in ms. Any timestamp older than
+   * 'now' - this value will be rejected.
+   * The maxpast value from the token will have precedence over this one
+   */
+  public static final String INGRESS_MAXPAST_DEFAULT = "ingress.maxpast.default";
+  
+  /**
+   * Default maximum timestamp delta in the future for datapoints pushed to Warp 10, in ms.
+   * Any timestamp more than this value past 'now' will be rejected
+   * The maxfuture value from the token will have precedence over this one
+   */
+  public static final String INGRESS_MAXFUTURE_DEFAULT = "ingress.maxfuture.default";
+  
+  /**
+   * Absolute maximum age of datapoints pushed to Warp 10, in ms. Any timestamp older than
+   * 'now' - this value will be rejected.
+   * This value overrides both the default and token value for maxpast. 
+   */
+  public static final String INGRESS_MAXPAST_OVERRIDE = "ingress.maxpast.override";
+  
+  /**
+   * Absolute maximum timestamp delta in the future for datapoints pushed to Warp 10, in ms.
+   * Any timestamp more than this value past 'now' will be rejected
+   * This value overrides both the default and token value for maxfuture
+   */
+  public static final String INGRESS_MAXFUTURE_OVERRIDE = "ingress.maxfuture.override";
+
+  /**
+   * Set to true to silently ignore values which are outside the allowed time range
+   */
+  public static final String INGRESS_OUTOFRANGE_IGNORE = "ingress.outofrange.ignore";
   
   /**
    * Length of the activity window in ms. If this parameter is set then GTS activity will
@@ -766,7 +813,9 @@ public class Configuration {
   public static final String INGRESS_KAFKA_DATA_AES = "ingress.kafka.data.aes";
   
   /**
-   * Maximum message size for the 'data' topic
+   * Maximum message size for the 'data' topic, this value should be less than 2/3 the maximum Kafka message size
+   * minus 64 to ensure all parsed data can be sent without error.
+   * The maximum value size will be capped to half this value minus 64
    */
   public static final String INGRESS_KAFKA_DATA_MAXSIZE = "ingress.kafka.data.maxsize";
   
@@ -1416,6 +1465,11 @@ public class Configuration {
    * Path to a file to use for signaling that compactions are suspended
    */
   public static final String STANDALONE_SNAPSHOT_SIGNAL = "standalone.snapshot.signal";
+  
+  /**
+   * Set to 'true' to ignore timestamp limits (maxpast/maxfuture) when receiving data via datalog.
+   */
+  public static final String DATALOG_IGNORE_TIMESTAMPLIMITS = "datalog.ignore.timestamplimits";
   
   /**
    * Directory where data requests should be logged. This directory should be in 700 to protect sensitive token infos.
@@ -2134,4 +2188,19 @@ public class Configuration {
   public static final String EGRESS_PREFIX = "egress";
   public static final String INGRESS_PREFIX = "ingress";
   public static final String PLASMA_FRONTEND_PREFIX = "plasma.frontend";
+  
+  //
+  // Hadoop Integration Configurations
+  //
+  
+  /**
+   * Set to 'true' to throw an error when a Writable that the WritableUtils cannot convert is encountered.
+   * If this is not set, the unknown Writable will be returned as is.
+   */
+  public static final String CONFIG_WARPSCRIPT_HADOOP_STRICTWRITABLES = "warpscript.hadoop.strictwritables";
+  
+  /**
+   * Set to 'true' to return Writable instances as is in WarpScriptInputFormat
+   */
+  public static final String CONFIG_WARPSCRIPT_HADOOP_RAWWRITABLES = "warpscript.hadoop.rawwritables";  
 }

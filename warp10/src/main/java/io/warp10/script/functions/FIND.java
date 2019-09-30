@@ -37,6 +37,7 @@ import io.warp10.script.WarpScriptStackFunction;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -52,8 +53,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-
-import com.google.common.base.Charsets;
 
 /**
  * Find Geo Time Series matching some criteria
@@ -461,7 +460,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
           byte[] wrapped = CryptoUtils.wrap(METASETS_KEY, compressed);
           
           // Encode it and push it on the stack
-          stack.push(new String(OrderPreservingBase64.encode(wrapped), Charsets.UTF_8));
+          stack.push(new String(OrderPreservingBase64.encode(wrapped), StandardCharsets.UTF_8));
         } catch (TException | IOException e) {
           throw new WarpScriptException(getName() + " unable to build MetaSet.", e);
         }

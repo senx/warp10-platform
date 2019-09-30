@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -30,9 +31,16 @@ import com.google.common.primitives.Longs;
  * Convert a GeoHash to lat/lon
  */
 public class HHCODETO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  private final boolean useGtsConvention;
   
   public HHCODETO(String name) {
+    this(name, false);
+  }
+
+  public HHCODETO(String name, boolean useGtsConvention) {
     super(name);
+    this.useGtsConvention = useGtsConvention;
   }
   
   @Override
@@ -40,10 +48,10 @@ public class HHCODETO extends NamedWarpScriptFunction implements WarpScriptStack
     
     Object hhcode = stack.pop();
     
-    double[] latlon = null;
+    long hh;
     
     if (hhcode instanceof Long) {
-      latlon = GeoXPLib.fromGeoXPPoint((long) hhcode);
+      hh = (long) hhcode;
     } else if (hhcode instanceof String) {
       String hhstr = hhcode.toString();
       if (hhstr.length() > 16) {
@@ -52,17 +60,21 @@ public class HHCODETO extends NamedWarpScriptFunction implements WarpScriptStack
         hhcode = new StringBuilder(hhstr).append("0000000000000000");
         ((StringBuilder) hhcode).setLength(16);
       }
-      long hh = new BigInteger(hhcode.toString(),16).longValue();
-      latlon = GeoXPLib.fromGeoXPPoint(hh);
+      hh = Long.parseUnsignedLong(hhcode.toString(), 16);
     } else if (hhcode instanceof byte[]) {
-      long hh = Longs.fromByteArray((byte[]) hhcode); 
-      latlon = GeoXPLib.fromGeoXPPoint(hh);
+      hh = Longs.fromByteArray((byte[]) hhcode);
     } else {
       throw new WarpScriptException(getName() + " expects a long, a string or a byte array.");
     }
-    
-    stack.push(latlon[0]);
-    stack.push(latlon[1]);
+
+    if (useGtsConvention && GeoTimeSerie.NO_LOCATION == hh) {
+      stack.push(Double.NaN);
+      stack.push(Double.NaN);
+    } else {
+      double[] latlon = GeoXPLib.fromGeoXPPoint(hh);
+      stack.push(latlon[0]);
+      stack.push(latlon[1]);
+    }
 
     return stack;
   }
