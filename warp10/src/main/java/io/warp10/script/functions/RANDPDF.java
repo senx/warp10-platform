@@ -49,7 +49,7 @@ public class RANDPDF extends NamedWarpScriptFunction implements WarpScriptStackF
 
     public Builder(String name, boolean seeded) {
       super(name);
-      this.seeded =seeded;
+      this.seeded = seeded;
     }
     
     @Override
