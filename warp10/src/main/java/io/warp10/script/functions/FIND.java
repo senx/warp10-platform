@@ -181,13 +181,20 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     if (mapparams) {
       top = stack.pop();
       Map<String,Object> params = paramsFromMap((Map) top);
+
+      token = (String) params.get(FETCH.PARAM_TOKEN);
+      ReadToken rtoken = Tokens.extractReadToken(token);
             
       if (params.containsKey(FETCH.PARAM_SELECTOR_PAIRS)) {
         List<Pair<Object, Object>> selectors = (List<Pair<Object, Object>>) params.get(FETCH.PARAM_SELECTOR_PAIRS);
         for (int i = 0; i < selectors.size(); i++) {
           String csel = (String) selectors.get(i).getLeft();
           Map<String,String> lsel = (Map<String,String>) selectors.get(i).getRight();
-          
+          lsel.remove(Constants.PRODUCER_LABEL);
+          lsel.remove(Constants.OWNER_LABEL);
+          lsel.remove(Constants.APPLICATION_LABEL);
+          lsel.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
+
           drequest = new DirectoryRequest();
           drequest.addToClassSelectors(csel);
           drequest.addToLabelsSelectors(lsel);
@@ -198,9 +205,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
       } else {
         throw new WarpScriptException(getName() + " missing parameters '" + FETCH.PARAM_CLASS + "', '" + FETCH.PARAM_LABELS + "', '" + FETCH.PARAM_SELECTOR + "' or '" + FETCH.PARAM_SELECTORS + "'.");
       }
-      
-      token = (String) params.get(FETCH.PARAM_TOKEN);
-            
+                  
       activeAfter = (Long) params.get(FETCH.PARAM_ACTIVE_AFTER);
       quietAfter = (Long) params.get(FETCH.PARAM_QUIET_AFTER);
     } else {

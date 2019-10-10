@@ -118,6 +118,9 @@ public class FINDSTATS extends NamedWarpScriptFunction implements WarpScriptStac
     
     ReadToken rtoken = Tokens.extractReadToken(token);
 
+    labelSelectors.remove(Constants.PRODUCER_LABEL);
+    labelSelectors.remove(Constants.OWNER_LABEL);
+    labelSelectors.remove(Constants.APPLICATION_LABEL);
     labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
     
     List<String> clsSels = new ArrayList<String>();
