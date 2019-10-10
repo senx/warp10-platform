@@ -8267,7 +8267,7 @@ public class GTSHelper {
       int count = 0;
       
       // Iterate over the elements, stopping when we reached the requested new size
-      while(count < newsize && decoder.next()) {
+      while (count < newsize && decoder.next()) {
         enc.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
         count++;
       }
