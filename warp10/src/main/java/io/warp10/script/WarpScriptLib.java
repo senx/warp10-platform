@@ -2178,7 +2178,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new CircularMean.Builder("bucketizer.mean.circular.exclude-nulls", false));
     addNamedWarpScriptFunction(new RMS("bucketizer.rms", false));
     addNamedWarpScriptFunction(new StandardDeviation.Builder("bucketizer.sd", false));
-    
+    addNamedWarpScriptFunction(new StandardDeviation.Builder("bucketizer.sd.forbid-nulls", true));
+
     //
     // Mappers
     //
