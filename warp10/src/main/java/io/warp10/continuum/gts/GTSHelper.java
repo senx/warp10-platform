@@ -299,6 +299,111 @@ public class GTSHelper {
     return gts;
   }
 
+  public static GTSEncoder fullsort(GTSEncoder encoder, boolean reversed) throws IOException {
+    return fullsort(encoder, reversed, encoder.getBaseTimestamp());
+  }
+  
+  /**
+   * Sort an encoder
+   *
+   * @param encoder
+   * @param reversed
+   * @param baseTimestamp
+   * @return
+   */
+  public static GTSEncoder fullsort(GTSEncoder encoder, boolean reversed, long baseTimestamp) throws IOException {
+    
+    GTSEncoder enc = null;
+    
+    //
+    // Split the encoder in 5 GTS, one per type, in this order:
+    //
+    // LONG, DOUBLE, BOOLEAN, STRING, BINARY
+    //
+    
+    GeoTimeSerie[] gts = new GeoTimeSerie[5];
+
+    for (int i = 0; i < gts.length; i++) {
+      gts[i] = new GeoTimeSerie();
+    }
+    
+    GTSDecoder decoder = encoder.getDecoder();
+    
+    // Populate the 5 GTS
+    while (decoder.next()) {
+      long ts = decoder.getTimestamp();
+      long location = decoder.getLocation();
+      long elevation = decoder.getElevation();
+      Object value = decoder.getBinaryValue();
+      
+      if (value instanceof Long) {
+        GTSHelper.setValue(gts[0], ts, location, elevation, value, false);
+      } else if (value instanceof Double || value instanceof BigDecimal) {
+        GTSHelper.setValue(gts[1], ts, location, elevation, value, false);          
+      } else if (value instanceof Boolean) {
+        GTSHelper.setValue(gts[2], ts, location, elevation, value, false);
+      } else if (value instanceof String) {
+        GTSHelper.setValue(gts[3], ts, location, elevation, value, false);
+      } else if (value instanceof byte[]) {
+        GTSHelper.setValue(gts[4], ts, location, elevation, value, false);
+      }
+    }
+    
+    // Sort the 5 GTS using fullsort so we get a deterministic order
+    // in the presence of duplicate ticks
+    
+    for (int i = 0; i < gts.length; i++) {
+      GTSHelper.fullsort(gts[i], reversed);
+    }
+    
+    // Now merge the GTS in time order with the type precedence of the 'gts' array
+    
+    enc = new GTSEncoder(baseTimestamp);
+    enc.setMetadata(encoder.getMetadata());
+    
+    int[] idx = new int[gts.length];
+    
+    while (true) {
+      // Determine the next GTS to add from its timestamp, lowest first
+      int gtsidx = -1;
+      
+      long ts = Long.MAX_VALUE;
+      for (int i = 0; i < gts.length; i++) {
+        if (idx[i] >= GTSHelper.nvalues(gts[i])) {
+          continue;
+        }
+        long tick = GTSHelper.tickAtIndex(gts[i], idx[i]);
+        if (-1 == gtsidx || tick < ts) {
+          gtsidx = i;
+          ts = tick;
+        }
+      }
+      
+      if (-1 == gtsidx) {
+        break;
+      }
+      
+      do {
+        long location = GTSHelper.locationAtIndex(gts[gtsidx], idx[gtsidx]);
+        long elevation = GTSHelper.elevationAtIndex(gts[gtsidx], idx[gtsidx]);
+        Object value = GTSHelper.valueAtIndex(gts[gtsidx], idx[gtsidx]);
+        
+        if (4 == gtsidx) { // BINARY
+          value = value.toString().getBytes(StandardCharsets.ISO_8859_1);
+        } else if (2 == gtsidx) { // DOUBLE
+          // Attempt to optimize the value
+          value = GTSEncoder.optimizeValue(value);
+        }
+        
+        enc.addValue(ts, location, elevation, value);
+        
+        idx[gtsidx]++;
+      } while (idx[gtsidx] < GTSHelper.nvalues(gts[gtsidx]) && GTSHelper.tickAtIndex(gts[gtsidx], idx[gtsidx]) == ts);            
+    }
+    
+    return enc;
+  }
+  
   /**
    * Option for the binarySearchTick function.
    * In case of duplicate ticks in a GTS, specify which index to return.
@@ -8138,6 +8243,39 @@ public class GTSHelper {
     }
     
     return gts;
+  }
+  
+  /**
+   * Shrink an encoder to at most a given number of values.
+   * @param encoder
+   * @param newsize
+   * @return
+   * @throws IOException
+   */
+  public static GTSEncoder shrinkTo(GTSEncoder encoder, int newsize) throws IOException {
+    GTSEncoder enc = null;
+        
+    // We cannot check the number of datapoints of the encoder as it might be false
+    // if the decoder was created from a buffer and not by adding values.
+    if (0 == newsize) {
+      return encoder.cloneEmpty();
+    } else if (newsize > 0) {
+      enc = encoder.cloneEmpty();
+      
+      GTSDecoder decoder = encoder.getDecoder(true);
+      
+      int count = 0;
+      
+      // Iterate over the elements, stopping when we reached the requested new size
+      while (count < newsize && decoder.next()) {
+        enc.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
+        count++;
+      }
+      
+      return enc;
+    } else {
+      return encoder;
+    }
   }
   
   /**
