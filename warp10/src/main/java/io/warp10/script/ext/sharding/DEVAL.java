@@ -48,6 +48,7 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.zip.GZIPInputStream;
 
 import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -266,7 +267,7 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
               }
               
               if (HttpURLConnection.HTTP_OK != conn.getResponseCode()) {
-                throw new WarpScriptException(getName() + " remote execution encountered an error: " + conn.getHeaderField(Constants.getHeader(Constants.HTTP_HEADER_ERROR_MESSAGE_DEFAULT)));
+                throw new WarpScriptException(getName() + " remote execution encountered an error: " + conn.getHeaderField(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX)));
               }
               
               ByteArrayOutputStream baos = new ByteArrayOutputStream();

@@ -27,6 +27,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -133,7 +134,7 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
       connout.flush();
 
       if (HttpURLConnection.HTTP_OK != conn.getResponseCode()) {
-        String errorMessage = conn.getHeaderField(Constants.getHeader(Constants.HTTP_HEADER_ERROR_MESSAGE_DEFAULT));
+        String errorMessage = conn.getHeaderField(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX));
         if (null != errorMessage) {
           throw new WarpScriptException(getName() + " remote execution failed: " + errorMessage);
         } else {

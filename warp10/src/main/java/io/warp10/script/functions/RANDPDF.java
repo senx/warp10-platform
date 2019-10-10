@@ -27,6 +27,7 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.TreeMap;
 
 /**
@@ -40,11 +41,15 @@ public class RANDPDF extends NamedWarpScriptFunction implements WarpScriptStackF
   private final Object[] values;
   private final double[] cumulativeProbability;
   private Map<Object,Double> probabilities;
+  private final boolean seeded;
   
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-    
-    public Builder(String name) {
+
+    private final boolean seeded;
+
+    public Builder(String name, boolean seeded) {
       super(name);
+      this.seeded = seeded;
     }
     
     @Override
@@ -67,18 +72,19 @@ public class RANDPDF extends NamedWarpScriptFunction implements WarpScriptStackF
         probabilities.put(entry.getKey(), entry.getValue().doubleValue() / total);
       }
 
-      stack.push(new RANDPDF(getName(), probabilities));
+      stack.push(new RANDPDF(getName(), probabilities, seeded));
       
       return stack;
     }
   }
 
-  public RANDPDF(String name, Map<Object,Double> probabilities) {
+  public RANDPDF(String name, Map<Object,Double> probabilities, boolean seeded) {
     super(name);
     
     this.probabilities = probabilities;
     this.values = new Object[probabilities.size()];
     this.cumulativeProbability = new double[probabilities.size()];
+    this.seeded = seeded;
     
     double cumulative = 0.0D;
     
@@ -98,8 +104,20 @@ public class RANDPDF extends NamedWarpScriptFunction implements WarpScriptStackF
     //
     // Generate a random number
     //
-    
-    double rand = sr.nextDouble();
+
+    double rand;
+    if (seeded) {
+      Random prng = (Random) stack.getAttribute(PRNG.ATTRIBUTE_SEEDED_PRNG);
+
+      if (null == prng) {
+        throw new WarpScriptException(getName() + " seeded PRNG was not initialized.");
+      }
+
+      rand = prng.nextDouble();
+
+    } else {
+      rand = sr.nextDouble();
+    }
     
     //
     // Check where rand would be inserted in the 'cumulativeProbability' array
