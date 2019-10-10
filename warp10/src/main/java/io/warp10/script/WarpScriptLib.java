@@ -748,6 +748,7 @@ public class WarpScriptLib {
   public static final String PROB = "PROB";
   public static final String CPROB = "CPROB";
   public static final String RANDPDF = "RANDPDF";
+  public static final String SRANDPDF = "SRANDPDF";
   public static final String SINGLEEXPONENTIALSMOOTHING = "SINGLEEXPONENTIALSMOOTHING";
   public static final String DOUBLEEXPONENTIALSMOOTHING = "DOUBLEEXPONENTIALSMOOTHING";
   public static final String LOWESS = "LOWESS";
@@ -1590,7 +1591,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new PROBABILITY.Builder(PROBABILITY));
     addNamedWarpScriptFunction(new PROB(PROB));
     addNamedWarpScriptFunction(new CPROB(CPROB));
-    addNamedWarpScriptFunction(new RANDPDF.Builder(RANDPDF));
+    addNamedWarpScriptFunction(new RANDPDF.Builder(RANDPDF, false));
+    addNamedWarpScriptFunction(new RANDPDF.Builder(SRANDPDF, true));
     addNamedWarpScriptFunction(new SINGLEEXPONENTIALSMOOTHING(SINGLEEXPONENTIALSMOOTHING));
     addNamedWarpScriptFunction(new DOUBLEEXPONENTIALSMOOTHING(DOUBLEEXPONENTIALSMOOTHING));
     addNamedWarpScriptFunction(new LOWESS(LOWESS));
