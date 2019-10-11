@@ -184,10 +184,10 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
             
       if (params.containsKey(FETCH.PARAM_SELECTOR_PAIRS)) {
         List<Pair<Object, Object>> selectors = (List<Pair<Object, Object>>) params.get(FETCH.PARAM_SELECTOR_PAIRS);
+        drequest = new DirectoryRequest();
         for (int i = 0; i < selectors.size(); i++) {
           String csel = (String) selectors.get(i).getLeft();
           Map<String,String> lsel = (Map<String,String>) selectors.get(i).getRight();
-          drequest = new DirectoryRequest();
           drequest.addToClassSelectors(csel);
           drequest.addToLabelsSelectors(lsel);
         }
