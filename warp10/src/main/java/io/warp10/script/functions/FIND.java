@@ -190,11 +190,6 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
         for (int i = 0; i < selectors.size(); i++) {
           String csel = (String) selectors.get(i).getLeft();
           Map<String,String> lsel = (Map<String,String>) selectors.get(i).getRight();
-          lsel.remove(Constants.PRODUCER_LABEL);
-          lsel.remove(Constants.OWNER_LABEL);
-          lsel.remove(Constants.APPLICATION_LABEL);
-          lsel.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
-
           drequest = new DirectoryRequest();
           drequest.addToClassSelectors(csel);
           drequest.addToLabelsSelectors(lsel);
