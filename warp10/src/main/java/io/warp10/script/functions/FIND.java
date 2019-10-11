@@ -181,9 +181,6 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     if (mapparams) {
       top = stack.pop();
       Map<String,Object> params = paramsFromMap((Map) top);
-
-      token = (String) params.get(FETCH.PARAM_TOKEN);
-      ReadToken rtoken = Tokens.extractReadToken(token);
             
       if (params.containsKey(FETCH.PARAM_SELECTOR_PAIRS)) {
         List<Pair<Object, Object>> selectors = (List<Pair<Object, Object>>) params.get(FETCH.PARAM_SELECTOR_PAIRS);
