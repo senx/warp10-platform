@@ -293,16 +293,17 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     
     ReadToken rtoken = Tokens.extractReadToken(token);
 
-    labelSelectors.remove(Constants.PRODUCER_LABEL);
-    labelSelectors.remove(Constants.OWNER_LABEL);
-    labelSelectors.remove(Constants.APPLICATION_LABEL);
-    labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
-    
     List<String> clsSels = new ArrayList<String>();
     List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
-    
-    clsSels.add(classSelector);
-    lblsSels.add(labelSelectors);
+
+    if (null != labelSelectors && null != classSelector) {
+      labelSelectors.remove(Constants.PRODUCER_LABEL);
+      labelSelectors.remove(Constants.OWNER_LABEL);
+      labelSelectors.remove(Constants.APPLICATION_LABEL);
+      labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));      
+      clsSels.add(classSelector);
+      lblsSels.add(labelSelectors);
+    }
 
     List<Metadata> metadatas = null;
 
