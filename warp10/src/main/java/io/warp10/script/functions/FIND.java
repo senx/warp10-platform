@@ -198,6 +198,8 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
         throw new WarpScriptException(getName() + " missing parameters '" + FETCH.PARAM_CLASS + "', '" + FETCH.PARAM_LABELS + "', '" + FETCH.PARAM_SELECTOR + "' or '" + FETCH.PARAM_SELECTORS + "'.");
       }
                   
+      token = (String) params.get(FETCH.PARAM_TOKEN);
+      
       activeAfter = (Long) params.get(FETCH.PARAM_ACTIVE_AFTER);
       quietAfter = (Long) params.get(FETCH.PARAM_QUIET_AFTER);
     } else {
