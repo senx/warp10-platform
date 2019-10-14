@@ -45,7 +45,7 @@ dependencies {
     //
     compile project(':crypto')
     compile project(':token')
-    compile 'io.warp10:sensision:1.0.19'
+    compile 'io.warp10:sensision:1.0.20'
 
     compile 'joda-time:joda-time:2.2'
     compile 'org.apache.commons:commons-lang3:3.6'
