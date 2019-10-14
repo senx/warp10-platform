@@ -277,12 +277,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   @Override
   public void drop() throws EmptyStackException {
     if (0 == size) {
-      throw new EmptyStackException() {
-        @Override
-        public String getMessage() {
-          return "Empty stack.";
-        }
-      };
+      throw new InformativeEmptyStackException();
     }
     
     size--;
@@ -305,12 +300,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   @Override
   public void dup() throws EmptyStackException {
     if (0 == size) {
-      throw new EmptyStackException() {
-        @Override
-        public String getMessage() {
-          return "Empty stack.";
-        }
-      };
+      throw new InformativeEmptyStackException();
     }
     
     Object element = elements[size - 1];
@@ -338,12 +328,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   @Override
   public Object pop() throws EmptyStackException {
     if (0 == size) {
-      throw new EmptyStackException() {
-        @Override
-        public String getMessage() {
-          return "Empty stack.";
-        }
-      };
+      throw new InformativeEmptyStackException();
     }
 
     Object element = elements[size - 1];
@@ -390,12 +375,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   @Override
   public void swap() throws WarpScriptException, EmptyStackException, IndexOutOfBoundsException {
     if (0 == size) {
-      throw new EmptyStackException() {
-        @Override
-        public String getMessage() {
-          return "Empty stack.";
-        }
-      };
+      throw new InformativeEmptyStackException();
     }
     
     if (size < 2) {
@@ -411,12 +391,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   @Override
   public Object peek() throws EmptyStackException {
     if (0 == size) {
-      throw new EmptyStackException() {
-        @Override
-        public String getMessage() {
-          return "Empty stack.";
-        }
-      };
+      throw new InformativeEmptyStackException();
     }
 
     return elements[size - 1];
@@ -426,12 +401,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   public void rot() throws EmptyStackException, IndexOutOfBoundsException {
     
     if (0 == size) {
-      throw new EmptyStackException() {
-        @Override
-        public String getMessage() {
-          return "Empty stack.";
-        }
-      };
+      throw new InformativeEmptyStackException();
     }
     
     if (size < 3) {
@@ -491,12 +461,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
    */
   private int getn() throws EmptyStackException, IndexOutOfBoundsException {
     if (0 == size) {
-      throw new EmptyStackException() {
-        @Override
-        public String getMessage() {
-          return "Empty stack.";
-        }
-      };
+      throw new InformativeEmptyStackException();
     }
     
     //
