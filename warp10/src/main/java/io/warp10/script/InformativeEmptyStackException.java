@@ -18,7 +18,7 @@ package io.warp10.script;
 
 import java.util.EmptyStackException;
 
-public class EmptyWarpScriptStackException extends EmptyStackException {
+public class InformativeEmptyStackException extends EmptyStackException {
 
   @Override
   public String getMessage() {
