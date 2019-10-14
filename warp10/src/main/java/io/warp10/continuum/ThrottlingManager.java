@@ -39,6 +39,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -917,54 +918,63 @@ public class ThrottlingManager {
           TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
               
           if (System.currentTimeMillis() - now > rampup) {
-            for (Map.Entry<String, HyperLogLogPlus> keyAndHllp: producerHLLPEstimators.entrySet()) {
-              String key = keyAndHllp.getKey();
-              HyperLogLogPlus hllp = keyAndHllp.getValue();
-              
-              if (null == hllp) {
-                continue;
+            try {
+              for (Map.Entry<String, HyperLogLogPlus> keyAndHllp: producerHLLPEstimators.entrySet()) {
+                String key = keyAndHllp.getKey();
+                HyperLogLogPlus hllp = keyAndHllp.getValue();
+                
+                if (null == hllp) {
+                  continue;
+                }
+                
+                if (hllp.hasExpired()) {
+                  Map<String,String> labels = new HashMap<String, String>();
+                  labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, key);
+                  Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels, 0, 24 * 3600 * 1000L);              
+                  continue;
+                }
+                
+                try {
+                  byte[] bytes = hllp.toBytes();
+                  String encoded = new String(OrderPreservingBase64.encode(bytes), StandardCharsets.US_ASCII);
+                  Map<String,String> labels = new HashMap<String, String>();
+                  labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, key);
+                  Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels, hllp.cardinality());              
+                  Sensision.event(0L, null, null, null, SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_ESTIMATOR, labels, encoded);
+                  broadcastEstimator(bytes);
+                } catch (IOException ioe) {
+                  // Ignore exception
+                }
               }
-              
-              if (hllp.hasExpired()) {
-                continue;
-              }
-              
-              try {
-                byte[] bytes = hllp.toBytes();
-                String encoded = new String(OrderPreservingBase64.encode(bytes), StandardCharsets.US_ASCII);
-                Map<String,String> labels = new HashMap<String, String>();
-                labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, key);
-                Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels, hllp.cardinality());              
-                Sensision.event(0L, null, null, null, SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_ESTIMATOR, labels, encoded);
-                broadcastEstimator(bytes);
-              } catch (IOException ioe) {
-                // Ignore exception
-              }
-            }
-            
-            for (Map.Entry<String, HyperLogLogPlus> keyAndHllp: applicationHLLPEstimators.entrySet()) {
-              String key = keyAndHllp.getKey();
-              HyperLogLogPlus hllp = keyAndHllp.getValue();
 
-              if (null == hllp) {
-                continue;
-              }
-              
-              if (hllp.hasExpired()) {
-                continue;
-              }
-              
-              try {
-                byte[] bytes = hllp.toBytes();
-                String encoded = new String(OrderPreservingBase64.encode(bytes), StandardCharsets.US_ASCII);
-                Map<String,String> labels = new HashMap<String, String>();
-                labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, key);
-                Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT_PER_APP, labels, hllp.cardinality());
-                Sensision.event(0L, null, null, null, SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_ESTIMATOR_PER_APP, labels, encoded);
-                broadcastEstimator(bytes);
-              } catch (IOException ioe) {
-                // Ignore exception
-              }
+              for (Map.Entry<String, HyperLogLogPlus> keyAndHllp: applicationHLLPEstimators.entrySet()) {
+                String key = keyAndHllp.getKey();
+                HyperLogLogPlus hllp = keyAndHllp.getValue();
+
+                if (null == hllp) {
+                  continue;
+                }
+                
+                if (hllp.hasExpired()) {
+                  Map<String,String> labels = new HashMap<String, String>();
+                  labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, key);
+                  Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT_PER_APP, labels, 0L, 24 * 3600 * 1000L);
+                  continue;
+                }
+                
+                try {
+                  byte[] bytes = hllp.toBytes();
+                  String encoded = new String(OrderPreservingBase64.encode(bytes), StandardCharsets.US_ASCII);
+                  Map<String,String> labels = new HashMap<String, String>();
+                  labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, key);
+                  Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT_PER_APP, labels, hllp.cardinality());
+                  Sensision.event(0L, null, null, null, SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_ESTIMATOR_PER_APP, labels, encoded);
+                  broadcastEstimator(bytes);
+                } catch (IOException ioe) {
+                  // Ignore exception
+                }
+              }            
+            } catch (ConcurrentModificationException cme) {              
             }            
           }
 
@@ -1052,8 +1062,14 @@ public class ThrottlingManager {
         synchronized(applicationHLLPEstimators) {
           applicationHLLPEstimators.put(hllp.getKey().substring(1), hllp);                      
         }
+        Map<String,String> labels = new HashMap<String,String>(1);
+        labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, hllp.getKey().substring(1));
+        Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT_PER_APP, labels, hllp.cardinality());
       } else {
         old.fuse(hllp);
+        Map<String,String> labels = new HashMap<String,String>(1);
+        labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, old.getKey().substring(1));
+        Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT_PER_APP, labels, old.cardinality());
       }      
     } else {
       HyperLogLogPlus old = producerHLLPEstimators.get(hllp.getKey());
@@ -1071,8 +1087,15 @@ public class ThrottlingManager {
         synchronized(producerHLLPEstimators) {
           producerHLLPEstimators.put(hllp.getKey(), hllp);                      
         }
+        
+        Map<String,String> labels = new HashMap<String,String>(1);
+        labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, hllp.getKey());
+        Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels, hllp.cardinality());
       } else {
         old.fuse(hllp);
+        Map<String,String> labels = new HashMap<String,String>(1);
+        labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, old.getKey());
+        Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels, old.cardinality());
       }                          
     }
   }
