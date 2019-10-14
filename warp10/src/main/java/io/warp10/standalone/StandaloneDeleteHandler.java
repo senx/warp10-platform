@@ -16,6 +16,7 @@
 
 package io.warp10.standalone;
 
+import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
@@ -573,14 +574,16 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, metadata.getLabels().get(Constants.APPLICATION_LABEL));
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_DATAPOINTS_PEROWNERAPP, labels, localCount);
       }
-    } catch (Exception e) {
-      t = e;
+    } catch (Throwable thr) {
+      t = thr;
       // If we have not yet written anything on the output stream, call sendError
-      if (0 == gts) {
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
-        return;
+      if (0 == gts && !response.isCommitted()) {
+        String prefix = "Error when deleting data: ";
+        // HTTP reason in Jetty is 1024 chars max
+        String msg = prefix + ThrowableUtils.getErrorMessage(thr, 1024 - prefix.length());
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
       } else {
-        throw new IOException(e);
+        throw new IOException(thr);
       }
     } finally {
       if (null != loggingWriter) {
