@@ -378,7 +378,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   @Override
   public void push(Object o) throws WarpScriptException {
     
-    if (size > this.maxdepth) {
+    if (size >= this.maxdepth) {
       Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_STACKDEPTH_EXCEEDED, Sensision.EMPTY_LABELS, 1);
       throw new WarpScriptException("Stack depth would exceed set limit of " + this.maxdepth);
     }
@@ -465,19 +465,15 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
   
   @Override
-  public Object peekn() throws EmptyStackException, IndexOutOfBoundsException {
+  public Object peekn() throws WarpScriptException {
     int n = getn();
     
-    if (size < n - 1 || n < 0) {
-      throw new IndexOutOfBoundsException("Index out of bound.");
-    }
-    
-    return elements[size - 1 - n];
+    return get(n);
   }
   
   @Override
   public Object get(int n) throws WarpScriptException {
-    if (size < n - 1 || n < 0) {
+    if (size - 1 < n || n < 0) {
       throw new WarpScriptException("Invalid level.");
     }
     

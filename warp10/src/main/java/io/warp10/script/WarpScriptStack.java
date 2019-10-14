@@ -486,7 +486,7 @@ public interface WarpScriptStack {
    * The object on top the stack is at distance 0.
    * 
    * @throws EmptyStackException if the stack is empty.
-   * @throws IndexOutOfBoundException if no valid 'distance' is on top of the stack or if the
+   * @throws WarpScriptException if no valid 'distance' is on top of the stack or if the
    *         requested distance is passed the bottom of the stack. 
    */
   public Object peekn() throws WarpScriptException;
