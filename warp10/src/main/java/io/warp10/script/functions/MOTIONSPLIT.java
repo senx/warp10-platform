@@ -23,13 +23,85 @@ import com.geoxp.GeoXPLib;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.store.Constants;
+import io.warp10.script.ElementOrListStackFunction;
+import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Split a GTS according to motion
  */
-public class MOTIONSPLIT {
+public class MOTIONSPLIT extends ElementOrListStackFunction {
 
+  public MOTIONSPLIT(String name) {
+    super(name);
+  }
+  
+  @Override
+  public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {
+    Object top = stack.pop();
+    
+    if (!(top instanceof Number)) {
+      throw new WarpScriptException(getName() + " expects a proximity zone speed in m/s.");
+    }
+    
+    final double proximityZoneSpeed = ((Number) top).doubleValue();
+    
+    top = stack.pop();
+    
+    if (!(top instanceof Long)) {
+      throw new WarpScriptException(getName() + " expects a proximity zone time in time units.");
+    }
+    
+    final long proximityZoneTime = ((Long) top).longValue();
+    
+    top = stack.pop();
+    
+    if (!(top instanceof Number)) {
+      throw new WarpScriptException(getName() + " expects a proximity zone radius in meters.");
+    }
+    
+    final double proximityZoneRadius = ((Number) top).doubleValue();
+    
+    top = stack.pop();
+    
+    if (!(top instanceof Number)) {
+      throw new WarpScriptException(getName() + " expects a distance threshold in meters.");
+    }
+    
+    final double distanceThreshold = ((Number) top).doubleValue();
+    
+    top = stack.pop();
+    
+    if (!(top instanceof Long)) {
+      throw new WarpScriptException(getName() + " expects a time threshold in time units.");
+    }
+    
+    final long timeThreshold = ((Long) top).longValue();
+    
+    top = stack.pop();
+    
+    if (!(top instanceof String)) {
+      throw new WarpScriptException(getName() + " expects a label name for splits.");
+    }
+    
+    final String label = top.toString();
+    
+    return new ElementStackFunction() {
+      @Override
+      public Object applyOnElement(Object element) throws WarpScriptException {
+        if (!(element instanceof GeoTimeSerie)) {
+          throw new WarpScriptException(getName() + " can only be applied on Geo Time Series.");
+        }
+        
+        GeoTimeSerie gts = (GeoTimeSerie) element;
+        
+        return motionSplit(gts, label, timeThreshold, distanceThreshold, proximityZoneRadius, proximityZoneSpeed, proximityZoneTime);
+      }
+    };
+  }
+  
   /**
    * Split a Geo Time Series according to motion.
    * 
@@ -50,7 +122,7 @@ public class MOTIONSPLIT {
    * @return
    * @throws WarpScriptException
    */
-  public static List<GeoTimeSerie> motionSplit(GeoTimeSerie gts, String label, long timeThreshold, long distanceThreshold, double proximityZoneRadius, double proximityZoneSpeed, long proximityZoneTime) throws WarpScriptException {
+  private static List<GeoTimeSerie> motionSplit(GeoTimeSerie gts, String label, long timeThreshold, double distanceThreshold, double proximityZoneRadius, double proximityZoneSpeed, long proximityZoneTime) throws WarpScriptException {
     //
     // Sort GTS according to timestamps
     //
