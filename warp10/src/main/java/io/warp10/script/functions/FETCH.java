@@ -342,11 +342,17 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         for (Pair<Object,Object> pair: (List<Pair<Object,Object>>) params.get(PARAM_SELECTOR_PAIRS)) {
           clsSels.add(pair.getLeft().toString());
           Map<String,String> labelSelectors = (Map<String,String>) pair.getRight();
+          labelSelectors.remove(Constants.PRODUCER_LABEL);
+          labelSelectors.remove(Constants.OWNER_LABEL);
+          labelSelectors.remove(Constants.APPLICATION_LABEL);
           labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
           lblsSels.add((Map<String,String>) labelSelectors);
         }
       } else {
         Map<String,String> labelSelectors = (Map<String,String>) params.get(PARAM_LABELS);
+        labelSelectors.remove(Constants.PRODUCER_LABEL);
+        labelSelectors.remove(Constants.OWNER_LABEL);
+        labelSelectors.remove(Constants.APPLICATION_LABEL);
         labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
         clsSels.add(params.get(PARAM_CLASS).toString());
         lblsSels.add(labelSelectors);
