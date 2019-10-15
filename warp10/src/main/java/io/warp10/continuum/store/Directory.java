@@ -1399,17 +1399,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         // TODO(hbs): allow setting of writeBufferSize
 
         MetadataID id = null;
-
-        // 'tracked' is used to know if we pushing metadata due to tracking.
-        // This allows to avoid incrementing the GTS/Classes perowner metrics.
-        boolean tracked;
         
         byte[] hbaseAESKey = directory.keystore.getKey(KeyStore.AES_HBASE_METADATA);
         
         while (iter.hasNext()) {
           Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
-          
-          tracked = false;
+
           //
           // Since the call to 'next' may block, we need to first
           // check that there is a message available, otherwise we
@@ -1673,8 +1668,6 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 
                 if (!directory.trackingActivity) {
                   continue;
-                } else {
-                  tracked = true;
                 }
                 
                 //
@@ -1867,9 +1860,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               // 128bits
               if (null == directory.metadatas.get(metadata.getName()).put(labelsId, metadata)) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, 1);
-                if (!tracked) {
-                  Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, 1);
-                }
+                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, 1);
               }
            
             } finally {
