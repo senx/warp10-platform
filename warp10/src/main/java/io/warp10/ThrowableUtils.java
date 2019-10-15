@@ -80,7 +80,12 @@ public class ThrowableUtils {
       message = simpleClassName;
     }
 
-    return message.substring(0, Math.min(message.length(), maxSize - 3)) + "...";
+    if (message.length() > maxSize) {
+      // Too long message, truncate. This case can only happen if the Throwable has no cause.
+      message = message.substring(0, maxSize - 3) + "...";
+    }
+
+    return message;
   }
 
 }
