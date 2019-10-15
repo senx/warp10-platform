@@ -1537,7 +1537,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       throw new WarpScriptException("Stack depth would exceed set limit of " + this.maxdepth);
     }
     
-    int newCapacity = elements.length + Math.min(this.maxdepth, (elements.length >> 1) + n);
+    int newCapacity = Math.min(this.maxdepth, elements.length + (elements.length >> 1) + n);
     elements = Arrays.copyOf(elements, newCapacity);
   }
   
