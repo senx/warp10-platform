@@ -695,11 +695,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
             //nano2 += System.nanoTime() - nano0;
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_PARSEERRORS, sensisionLabels, 1);
-            if (null != pe.getMessage()) {
-              throw new IOException("Parse error at '" + line + "' (" + pe.getMessage() + ")", pe);
-            } else {
-              throw new IOException("Parse error at '" + line + "'", pe);
-            }
+            throw new IOException("Parse error at '" + line + "'", pe);
           }
 
           if (encoder != lastencoder || lastencoder.size() > ENCODER_SIZE_THRESHOLD) {
@@ -861,7 +857,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
       response.setStatus(HttpServletResponse.SC_OK);      
     } catch (Throwable t) { // Catch everything else this handler could return 200 on a OOM exception
       if (!response.isCommitted()) {
-        String msg = "Error when updating data: " + ThrowableUtils.getErrorMessage(t);
+        String prefix = "Error when updating data: ";
+        String msg = prefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
       }
@@ -1133,7 +1130,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
       response.setStatus(HttpServletResponse.SC_OK);      
     } catch (Throwable t) { // Catch everything else this handler could return 200 on a OOM exception
       if (!response.isCommitted()) {
-        String msg = "Error when updating meta: " + ThrowableUtils.getErrorMessage(t);
+        String prefix = "Error when updating meta: ";
+        String msg = prefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
       }

@@ -21,7 +21,15 @@ import java.util.ArrayList;
 public class ThrowableUtils {
 
   public static String getErrorMessage(Throwable t) {
-    Throwable trueRoot = t;
+    return getErrorMessage(t, Integer.MAX_VALUE);
+  }
+
+  public static String getErrorMessage(Throwable t, int maxSize) {
+    String simpleClassName = t.getClass().getSimpleName();
+
+    if (maxSize <= 9) { // Not even enough for "... (...)"
+      return simpleClassName.substring(0, Math.min(maxSize, simpleClassName.length()));
+    }
 
     // Maintain a list of Throwable causes to avoid the unlikely case of a cycle in causes.
     final ArrayList<Throwable> throwables = new ArrayList<>();
@@ -43,7 +51,24 @@ public class ThrowableUtils {
         // If not, add the cause between braces to the root Throwable message.
         String causeMessage = t.getCause().getMessage();
         if (null != causeMessage && !"".equals(causeMessage)) {
-          message += " (" + causeMessage + ")";
+          String toAppend = " (" + causeMessage + ")";
+
+          // If the concatenation of message and addition is more than maxSize, truncate one of them or both.
+          if (message.length() + toAppend.length() > maxSize) {
+            if (message.length() <= maxSize / 2) {
+              // Only toAppend is too long, truncate it.
+              toAppend = toAppend.substring(0, maxSize - message.length() - 4) + "...)";
+            } else if (toAppend.length() <= maxSize / 2) {
+              // Only message is too long, truncate it.
+              message = message.substring(0, maxSize - toAppend.length() - 3) + "...";
+            } else {
+              // Both message and toAppend too long, truncate both.
+              toAppend = toAppend.substring(0, maxSize / 2 - 4) + "...)";
+              message = message.substring(0, maxSize - toAppend.length() - 3) + "...";
+            }
+          }
+
+          message += toAppend;
         }
         // The root and the direct cause messages are enough, stop here.
         break;
@@ -52,10 +77,15 @@ public class ThrowableUtils {
 
     if (null == message) {
       // In case no message has been found, display the Throwable "user-friendly" classname.
-      return trueRoot.getClass().getSimpleName();
-    } else {
-      return message;
+      message = simpleClassName;
     }
+
+    if (message.length() > maxSize) {
+      // Too long message, truncate. This case can only happen if the Throwable has no cause.
+      message = message.substring(0, maxSize - 3) + "...";
+    }
+
+    return message;
   }
 
 }
