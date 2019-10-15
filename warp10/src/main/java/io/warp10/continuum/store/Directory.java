@@ -678,6 +678,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 //
                 
                 String owner = metadata.getLabels().get(Constants.OWNER_LABEL);
+
+                String app = metadata.getLabels().get(Constants.APPLICATION_LABEL);
+                Map<String,String> sensisionLabels = new HashMap<String,String>();
+                sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, app);
                 
                 synchronized(classesPerOwner) {
                   Set<String> classes = classesPerOwner.get(owner);
@@ -690,6 +694,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   classes.add(metadata.getName());
                 }
 
+                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, 1);
                 Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_OWNERS, Sensision.EMPTY_LABELS, classesPerOwner.size());
 
                 synchronized(metadatas.get(metadata.getName())) {
@@ -1394,12 +1399,17 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         // TODO(hbs): allow setting of writeBufferSize
 
         MetadataID id = null;
+
+        // 'tracked' is used to know if we pushing metadata due to tracking.
+        // This allows to avoid incrementing the GTS/Classes perowner metrics.
+        boolean tracked;
         
         byte[] hbaseAESKey = directory.keystore.getKey(KeyStore.AES_HBASE_METADATA);
         
         while (iter.hasNext()) {
           Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
-
+          
+          tracked = false;
           //
           // Since the call to 'next' may block, we need to first
           // check that there is a message available, otherwise we
@@ -1498,6 +1508,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               continue;
             }
             
+            String app = metadata.getLabels().get(Constants.APPLICATION_LABEL);
+            Map<String,String> sensisionLabels = new HashMap<String,String>();
+            sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, app);
             
             //
             // Check the source of the metadata
@@ -1562,6 +1575,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                     }                    
                   }
                   Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, -1);
+                  Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, -1);
                 }
               }
 
@@ -1659,6 +1673,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 
                 if (!directory.trackingActivity) {
                   continue;
+                } else {
+                  tracked = true;
                 }
                 
                 //
@@ -1851,6 +1867,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               // 128bits
               if (null == directory.metadatas.get(metadata.getName()).put(labelsId, metadata)) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, 1);
+                if (!tracked) {
+                  Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, 1);
+                }
               }
            
             } finally {
