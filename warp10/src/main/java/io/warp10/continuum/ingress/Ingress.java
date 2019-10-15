@@ -1128,8 +1128,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     } catch (Throwable t) { // Catch everything else this handler could return 200 on a OOM exception
       if (!response.isCommitted()) {
         String prefix = "Error when updating data: ";
-        // HTTP reason in Jetty is 1024 chars max
-        String msg = prefix + ThrowableUtils.getErrorMessage(t, 1024 - prefix.length());
+        String msg = prefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
       }
@@ -1302,8 +1301,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     } catch (Throwable t) { // Catch everything else this handler could return 200 on a OOM exception
       if (!response.isCommitted()) {
         String prefix = "Error when updating meta: ";
-        // HTTP reason in Jetty is 1024 chars max
-        String msg = prefix + ThrowableUtils.getErrorMessage(t, 1024 - prefix.length());
+        String msg = prefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
       }
@@ -1795,8 +1793,7 @@ public class Ingress extends AbstractHandler implements Runnable {
       }
       if (!response.isCommitted()) {
         String prefix = "Error when deleting data: ";
-        // HTTP reason in Jetty is 1024 chars max
-        String msg = prefix + ThrowableUtils.getErrorMessage(t, 1024 - prefix.length());
+        String msg = prefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
       }
       return;

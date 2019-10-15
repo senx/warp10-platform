@@ -80,7 +80,7 @@ public class ThrowableUtils {
       message = simpleClassName;
     }
 
-    return message.substring(0, Math.min(message.length(), maxSize));
+    return message.substring(0, Math.min(message.length(), maxSize - 3)) + "...";
   }
 
 }
