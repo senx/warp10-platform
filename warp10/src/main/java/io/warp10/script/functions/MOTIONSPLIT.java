@@ -193,7 +193,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
       if (mustSplit) {
         split = gts.cloneEmpty();
         
-        gts.getLabels().put(label, Long.toString(timestamp));
+        split.getMetadata().putToLabels(label, Long.toString(timestamp));
         
         splits.add(split);
         mustSplit = false;
