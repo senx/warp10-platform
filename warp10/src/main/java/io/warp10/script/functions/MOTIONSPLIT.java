@@ -24,10 +24,8 @@ import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.ElementOrListStackFunction;
-import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Split a GTS according to motion
@@ -133,7 +131,6 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
     
     List<GeoTimeSerie> splits = new ArrayList<GeoTimeSerie>();
     
-    int splitStart = 0;
     int idx = 0;
     
     int n = GTSHelper.nvalues(gts);
@@ -145,7 +142,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
     
     long previousTimestamp = Long.MIN_VALUE;
     long previousLocation = GeoTimeSerie.NO_LOCATION;
-    long proximityZoneTraveledDistance = 0;
+    double proximityZoneTraveledDistance = 0.0D;
     
     while (idx < n) {
       long timestamp = GTSHelper.tickAtIndex(gts, idx);
@@ -155,36 +152,28 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
     
       //
       // If the previous tick was more than 'timeThreashold' ago, split now
-      //
-      
-      if (timestamp - previousTimestamp > timeThreshold) {
-        mustSplit = true;
-      }
-      
-      //
       // If the distance to the previous location is above distanceThreshold, split
       //
       
-      if (GeoTimeSerie.NO_LOCATION != previousLocation && GeoTimeSerie.NO_LOCATION != location && GeoXPLib.orthodromicDistance(location, previousLocation) > distanceThreshold) {
+      if (timestamp - previousTimestamp > timeThreshold
+          || (GeoTimeSerie.NO_LOCATION != previousLocation && GeoTimeSerie.NO_LOCATION != location && GeoXPLib.orthodromicDistance(location, previousLocation) > distanceThreshold)) {
         mustSplit = true;
       }
       
       //
-      // If the current point is farther away from the reference point than 'proximityDistance'
+      // If the current point is farther away from the reference point than 'proximityZoneRadius'
       // change the reference point and reset the traveled distance.
-      // If the distance traveled in the proximity zone is less than the proximityTrip and the time spent in the zone is above maxProximityTime force a split
+      // If the distance traveled in the proximity zone was traveled at less than proximityZoneSpeed and the time spent in the zone is above proximityZoneTime, force a split
       //
       
       if (GeoTimeSerie.NO_LOCATION != refLocation && GeoTimeSerie.NO_LOCATION != location && GeoXPLib.orthodromicDistance(refLocation, location) > proximityZoneRadius) {
-        if (timestamp - refTimestamp > proximityZoneTime && proximityZoneTraveledDistance / ((timestamp - refTimestamp) / Constants.TIME_UNITS_PER_S) < proximityZoneSpeed) {
+        if (previousTimestamp - refTimestamp > proximityZoneTime && proximityZoneTraveledDistance / ((previousTimestamp - refTimestamp) / Constants.TIME_UNITS_PER_S) < proximityZoneSpeed) {
           mustSplit = true;
         }
         refLocation = location;
         refTimestamp = timestamp;
-        proximityZoneTraveledDistance = 0;
-      }
-      
-      if (GeoTimeSerie.NO_LOCATION != refLocation && GeoTimeSerie.NO_LOCATION != location && GeoXPLib.orthodromicDistance(refLocation, location) <= proximityZoneRadius) {
+        proximityZoneTraveledDistance = 0.0D;
+      } else if (GeoTimeSerie.NO_LOCATION != refLocation && GeoTimeSerie.NO_LOCATION != location && GeoXPLib.orthodromicDistance(refLocation, location) <= proximityZoneRadius) {
         if (GeoTimeSerie.NO_LOCATION != previousLocation) {
           proximityZoneTraveledDistance += GeoXPLib.orthodromicDistance(previousLocation, location);
         }
@@ -198,15 +187,9 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
         splits.add(split);
         mustSplit = false;
         
-        if (GeoTimeSerie.NO_LOCATION != location) {
-          refLocation = location;
-          refTimestamp = timestamp;
-          proximityZoneTraveledDistance = 0;
-        } else {
-          refLocation = GeoTimeSerie.NO_LOCATION;
-          refTimestamp = timestamp;
-          proximityZoneTraveledDistance = 0;
-        }        
+        refLocation = location;
+        refTimestamp = timestamp;
+        proximityZoneTraveledDistance = 0.0D;
       }
       
       GTSHelper.setValue(split, timestamp, location, elevation, value, false);
