@@ -334,6 +334,10 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         } else {
           throw new WarpScriptException(getName() + " provided token is incompatible with '" + PARAM_GTS + "' parameter, expecting a single application.");
         }
+        
+        // Recompute IDs
+        m.setClassId(GTSHelper.classId(this.SIPHASH_CLASS, m.getName()));
+        m.setLabelsId(GTSHelper.labelsId(this.SIPHASH_LABELS, m.getLabels()));
       }
       
       iter = ((List<Metadata>) params.get(PARAM_GTS)).iterator();
