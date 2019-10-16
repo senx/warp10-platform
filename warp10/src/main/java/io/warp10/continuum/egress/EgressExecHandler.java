@@ -368,8 +368,10 @@ public class EgressExecHandler extends AbstractHandler {
       resp.addHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX) + "," + Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX));
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX), Long.toString(lineno));
       String section = (String) stack.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME);
-      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX), "in section '" + section + "': " + ThrowableUtils.getErrorMessage(t));
-      
+      String headerPrefix = "in section '" + section + "': ";
+      String headerErrorMsg = headerPrefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_HEADER_LENGTH - headerPrefix.length());
+      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX), headerErrorMsg);
+
       //
       // Output the exported symbols in a map
       //
@@ -406,7 +408,8 @@ public class EgressExecHandler extends AbstractHandler {
         try { StackUtils.toJSON(pw, stack, debugDepth); } catch (WarpScriptException ee) {}
 
       } else {
-        String msg = "ERROR line #" + lineno + " in section '" + section + "': " + ThrowableUtils.getErrorMessage(t);
+        String prefix = "ERROR line #" + lineno + " in section '" + section + "': ";
+        String msg = prefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
         resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
       }
