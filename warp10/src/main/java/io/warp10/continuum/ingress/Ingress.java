@@ -2183,7 +2183,15 @@ public class Ingress extends AbstractHandler implements Runnable {
       Set<BigInteger> bis = new HashSet<BigInteger>();
 
       synchronized(this.metadataCache) {
-        bis.addAll(this.metadataCache.keySet());
+        boolean error = false;
+        do {
+          try {
+            error = false;          
+            bis.addAll(this.metadataCache.keySet());
+          } catch (ConcurrentModificationException cme) {
+            error = true;
+          }
+        } while (error);
       }
       
       Iterator<BigInteger> iter = bis.iterator();
