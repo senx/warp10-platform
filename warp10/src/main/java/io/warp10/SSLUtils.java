@@ -33,6 +33,7 @@ public class SSLUtils {
 
     int sslPort = Integer.parseInt(WarpConfig.getProperty(prefix + Configuration._SSL_PORT));
     String sslHost = WarpConfig.getProperty(prefix + Configuration._SSL_HOST);
+    int sslTcpBacklog = Integer.parseInt(WarpConfig.getProperty(prefix + Configuration._SSL_TCP_BACKLOG, "0"));
 
     SslContextFactory sslContextFactory = new SslContextFactory();
     sslContextFactory.setKeyStorePath(WarpConfig.getProperty(prefix + Configuration._SSL_KEYSTORE_PATH));
@@ -48,6 +49,7 @@ public class SSLUtils {
     ServerConnector connector = new ServerConnector(server, sslAcceptors, sslSelectors, sslContextFactory);
     
     connector.setPort(sslPort);
+    connector.setAcceptQueueSize(sslTcpBacklog);
     
     if (null != sslHost) {
       connector.setHost(sslHost);

@@ -108,6 +108,7 @@ public class Egress {
     if (useHttp) {
       int port = Integer.valueOf(props.getProperty(Configuration.EGRESS_PORT));
       String host = props.getProperty(Configuration.EGRESS_HOST);
+      int tcpBacklog = Integer.valueOf(props.getProperty(Configuration.EGRESS_TCP_BACKLOG, "0"));
       int acceptors = Integer.valueOf(props.getProperty(Configuration.EGRESS_ACCEPTORS));
       int selectors = Integer.valueOf(props.getProperty(Configuration.EGRESS_SELECTORS));
       long idleTimeout = Long.parseLong(props.getProperty(Configuration.EGRESS_IDLE_TIMEOUT));
@@ -116,6 +117,7 @@ public class Egress {
       connector.setIdleTimeout(idleTimeout);
       connector.setPort(port);
       connector.setHost(host);
+      connector.setAcceptQueueSize(tcpBacklog);
       connector.setName("Continuum Egress HTTP");
       
       connectors.add(connector);

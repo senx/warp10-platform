@@ -22,6 +22,8 @@
 #standalone.ssl.host =
 # Port the SSL endpoint should bind to
 #standalone.ssl.port =
+# TCP Backlog for the SSL endpoint
+#standalone.ssl.tcp.backlog =
 # Number of Jetty acceptors (defaults to 2)
 #standalone.ssl.acceptors =
 # Number of Jetty selectors (defaults to 4)
@@ -43,6 +45,8 @@
 #http.ssl.host =
 # Port the SSL endpoint should bind to
 #http.ssl.port =
+# TCP Backlog for the SSL endpoint
+#http.ssl.tcp.backlog =
 # Number of Jetty acceptors (defaults to 2)
 # Adapt value of http.maxthreads accordingly
 #http.ssl.acceptors =

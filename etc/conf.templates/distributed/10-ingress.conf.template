@@ -71,6 +71,11 @@ ingress.host = 127.0.0.1
 ingress.port = 8882
 
 //
+// TCP Backlog applied to the ingress server listener
+//
+#ingress.tcp.backlog =
+
+//
 // Size of metadata cache in number of entries
 //
 ingress.metadata.cache.size = 10000000
