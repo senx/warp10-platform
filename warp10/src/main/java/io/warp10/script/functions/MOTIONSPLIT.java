@@ -110,7 +110,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
    * - time not moving, if datapoints stay within a certain area and no distance is traveled for a certain time, a split will happen
    * 
    * @param gts GTS to split
-   * @param label Name of label which will contain the start/end of the split
+   * @param label Name of label which will contain the start of the split
    * @param timeThreshold If the delay between two ticks goes beyond this value, force a split
    * @param distanceThreshold If we traveled more than distanceThreshold between two ticks, force a split
    * @param proximityZoneRadius Radius of the proximity zone in meters
