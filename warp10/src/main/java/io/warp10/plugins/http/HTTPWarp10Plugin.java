@@ -97,7 +97,6 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
   private BlockingQueue<Runnable> queue = null;
 
   private int sslport = -1;
-  private int tcpBacklog = 0;
 
   /**
    * Map of uri to macros
