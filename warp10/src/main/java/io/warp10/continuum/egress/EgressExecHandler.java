@@ -44,7 +44,6 @@ import java.io.PrintWriter;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.EmptyStackException;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
@@ -336,10 +335,6 @@ public class EgressExecHandler extends AbstractHandler {
     } catch (Throwable e) {
       t = e;      
 
-      if (t instanceof EmptyStackException) {
-        t = new WarpScriptException("Empty stack", t);
-      }
-      
       int debugDepth = (int) stack.getAttribute(WarpScriptStack.ATTRIBUTE_DEBUG_DEPTH);
 
       //
@@ -367,9 +362,7 @@ public class EgressExecHandler extends AbstractHandler {
 
       resp.addHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX) + "," + Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX));
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX), Long.toString(lineno));
-      String section = (String) stack.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME);
-      String headerPrefix = "in section '" + section + "': ";
-      String headerErrorMsg = headerPrefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_HEADER_LENGTH - headerPrefix.length());
+      String headerErrorMsg = ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_HEADER_LENGTH);
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX), headerErrorMsg);
 
       //
@@ -398,7 +391,7 @@ public class EgressExecHandler extends AbstractHandler {
         try {
           // Set max stack depth to max int value - 1 so we can push our error message
           stack.setAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH, Integer.MAX_VALUE - 1);
-          stack.push("ERROR line #" + lineno + " in section '" + section + "': " + ThrowableUtils.getErrorMessage(t));
+          stack.push("ERROR line #" + lineno + ": " + ThrowableUtils.getErrorMessage(t));
           if (debugDepth < Integer.MAX_VALUE) {
             debugDepth++;
           }
@@ -408,7 +401,7 @@ public class EgressExecHandler extends AbstractHandler {
         try { StackUtils.toJSON(pw, stack, debugDepth); } catch (WarpScriptException ee) {}
 
       } else {
-        String prefix = "ERROR line #" + lineno + " in section '" + section + "': ";
+        String prefix = "ERROR line #" + lineno + ": ";
         String msg = prefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
         resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
