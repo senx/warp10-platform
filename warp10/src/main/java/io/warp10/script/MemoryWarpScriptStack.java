@@ -858,16 +858,25 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           }
         } catch (WarpScriptATCException e) {
           throw e;
-        } catch (WarpScriptException e) {
-          String scriptLine = "";
-          for (int stc = 0; stc < statements.length; stc++) {
-            if (st == stc) {
-              scriptLine += "=>" + StringUtils.abbreviate(statements[stc].trim(), 30) + "<= ";
+        } catch (Exception e) {
+          StringBuilder errorMessage = new StringBuilder("Exception at '");
+          boolean nextStatement = false;
+          for (int stc = Math.max(0, st - 3); stc < Math.min(statements.length, st + 4); stc++) {
+            if (nextStatement) {
+              errorMessage.append(" ");
             } else {
-              scriptLine += StringUtils.abbreviate(statements[stc], 30) + " ";
+              nextStatement = true;
+            }
+
+            if (st == stc) {
+              errorMessage.append("=>").append(StringUtils.abbreviateMiddle(statements[stc].trim(), "...", 32)).append("<=");
+            } else {
+              errorMessage.append(StringUtils.abbreviateMiddle(statements[stc], "...", 32));
             }
           }
-          throw new WarpScriptException(" " + scriptLine + " : " + e.getMessage());
+          errorMessage.append("' in section " + sectionName);
+
+          throw new WarpScriptException(errorMessage.toString(), e);
         }
       }
       
@@ -898,8 +907,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     //
     
     //this.setAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO, !secure ? macro.isSecure() : secure);
-    this.inSecureMacro = !secure ? macro.isSecure() : secure;
-    
+    this.inSecureMacro = this.inSecureMacro || macro.isSecure();
+
     int i = 0;
     
     List<Object> stmts = macro.statements();
@@ -947,15 +956,15 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     } catch (WarpScriptATCException wsatce) {
       throw wsatce;
     } catch (Exception ee) {
-      if (macro.isSecure()) {
+      if (this.inSecureMacro) {
         throw ee;
       } else {
         String name = macro.getName();
         String section = (String) this.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME);
         if (null == name) {
-          throw new WarpScriptException("Exception at statement '" + (i < n ? macro.get(i).toString() : "") + "' in section '" + section + "' (" + ee.getMessage() + ")", ee);
+          throw new WarpScriptException("Exception" + (i < n ? (" at '" + macro.get(i).toString() + "'") : "") + " in section '" + section + "'", ee);
         } else {
-          throw new WarpScriptException("Exception at statement '" + (i < n ? macro.get(i).toString() : "") + "' in section '" + section + "' called from macro '" + name + "' (" + ee.getMessage() + ")", ee);
+          throw new WarpScriptException("Exception" + (i < n ? (" at '" + macro.get(i).toString() + "'") : "") + " in section '" + section + "' called from macro '" + name + "'", ee);
         }
       }
     } finally {

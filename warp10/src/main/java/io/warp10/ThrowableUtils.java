@@ -16,76 +16,119 @@
 
 package io.warp10;
 
+import org.apache.commons.lang.StringUtils;
+
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 public class ThrowableUtils {
+
+  /**
+   * Minimum size for a single message to be meaningful.
+   */
+  public static final int MIN_MESSAGE_SIZE = 32;
 
   public static String getErrorMessage(Throwable t) {
     return getErrorMessage(t, Integer.MAX_VALUE);
   }
 
+  /**
+   * Generates an error message composed of each message from the hierarchy of causes.
+   *
+   * @param t       The root throwable
+   * @param maxSize The maximum size of the generated message. Each message will be truncated in the middle if the generated message is longer than maxSize. Must be more than 3, else an IllegalArgumentException is thrown.
+   * @return The error message.
+   */
   public static String getErrorMessage(Throwable t, int maxSize) {
     String simpleClassName = t.getClass().getSimpleName();
 
-    if (maxSize <= 9) { // Not even enough for "... (...)"
-      return simpleClassName.substring(0, Math.min(maxSize, simpleClassName.length()));
-    }
-
     // Maintain a list of Throwable causes to avoid the unlikely case of a cycle in causes.
     final ArrayList<Throwable> throwables = new ArrayList<>();
-    throwables.add(t);
 
-    // First, simply get the message of the root Throwable
-    String message = t.getMessage();
+    List<String> messages = new ArrayList<String>();
 
-    // If there is a cause to this Throwable, find if adding it is a good option.
-    while (null != t.getCause() && !throwables.contains(t.getCause())) {
-      // Test if the message of the root Throwable is simply the toString of the cause or its message.
-      // The former happens when the cause Throwable has been passed as a parameter to the root Throwable.
-      if (null == message || message.equals(t.getCause().toString()) || message.equals(t.getCause().getMessage())) {
-        // In that case, consider the cause as the root and loop.
-        t = t.getCause();
-        throwables.add(t);
-        message = t.getMessage();
-      } else {
-        // If not, add the cause between braces to the root Throwable message.
-        String causeMessage = t.getCause().getMessage();
-        if (null != causeMessage && !"".equals(causeMessage)) {
-          String toAppend = " (" + causeMessage + ")";
+    while (null != t && !throwables.contains(t)) {
+      String message = t.getMessage();
 
-          // If the concatenation of message and addition is more than maxSize, truncate one of them or both.
-          if (message.length() + toAppend.length() > maxSize) {
-            if (message.length() <= maxSize / 2) {
-              // Only toAppend is too long, truncate it.
-              toAppend = toAppend.substring(0, maxSize - message.length() - 4) + "...)";
-            } else if (toAppend.length() <= maxSize / 2) {
-              // Only message is too long, truncate it.
-              message = message.substring(0, maxSize - toAppend.length() - 3) + "...";
-            } else {
-              // Both message and toAppend too long, truncate both.
-              toAppend = toAppend.substring(0, maxSize / 2 - 4) + "...)";
-              message = message.substring(0, maxSize - toAppend.length() - 3) + "...";
-            }
-          }
-
-          message += toAppend;
-        }
-        // The root and the direct cause messages are enough, stop here.
-        break;
+      if (null != message) {
+        messages.add(message);
       }
+
+      throwables.add(t);
+      t = t.getCause();
     }
 
-    if (null == message) {
-      // In case no message has been found, display the Throwable "user-friendly" classname.
-      message = simpleClassName;
+    String errorMessage = "";
+
+    if (messages.isEmpty() || maxSize < MIN_MESSAGE_SIZE) {
+      // In case no message has been found or maxSize is too short, display the Throwable "user-friendly" classname.
+      errorMessage = StringUtils.abbreviate(simpleClassName, maxSize);
+    } else {
+      // Build the message, without caring for maxSize, it will be checked later.
+      StringBuilder errorMessageBuilder = buildErrorMessage(messages);
+
+      // Check maxSize
+      if (errorMessageBuilder.length() > maxSize) {
+        // Check that all messages can be displayed, if not reduce the size of the list of messages
+        int maxMessages = maxSize / MIN_MESSAGE_SIZE;
+        if (messages.size() > maxMessages) {
+          messages = messages.subList(0, maxMessages - 1);
+          messages.add("...");
+        }
+
+        // Target size of each message, which is the rounded down mean.
+        int target = maxSize / messages.size() - 3; // Remove 3 for " ()"
+
+        // Number of character to remove
+        int excess = errorMessageBuilder.length() - maxSize;
+
+        // Truncate messages to target length from deeper to shallower, limiting to `excess` removed characters.
+        // This results in errors messages deeper in the Exception hierarchy to be truncated more harshly.
+        for (int i = messages.size() - 1; i >= 0 && excess > 0; i--) {
+          String originalMessage = messages.get(i);
+          // Truncate in the middle because the end of the message can be helpful.
+          // Ex: when using UPDATE with a very long string value, the root cause is given at the end of exception message returned by Ingress.
+          String newMessage = StringUtils.abbreviateMiddle(originalMessage, "...", Math.max(target, originalMessage.length() - excess));
+          messages.set(i, newMessage);
+          excess -= originalMessage.length() - newMessage.length();
+        }
+
+        // Rebuild the whole error message with truncated messages
+        errorMessageBuilder = buildErrorMessage(messages);
+      }
+
+      errorMessage = errorMessageBuilder.toString();
     }
 
-    if (message.length() > maxSize) {
-      // Too long message, truncate. This case can only happen if the Throwable has no cause.
-      message = message.substring(0, maxSize - 3) + "...";
-    }
-
-    return message;
+    // Abbreviate again in case
+    return errorMessage;
   }
 
+  /**
+   * Build an error message given a collection of messages using the following pattern: msg0 (msg1 (msg2 (msg3)))
+   *
+   * @param messages The collection of message to use for the generation
+   * @return The error message.
+   */
+  public static StringBuilder buildErrorMessage(Collection<String> messages) {
+    StringBuilder errorMessageBuilder = new StringBuilder();
+
+
+    boolean nextMessage = false;
+    for (String message: messages) {
+      if (nextMessage) {
+        errorMessageBuilder.append(" (");
+      } else {
+        nextMessage = true;
+      }
+      errorMessageBuilder.append(message);
+    }
+    // Close parentheses
+    for (int i = 0; i < messages.size() - 1; i++) {
+      errorMessageBuilder.append(")");
+    }
+
+    return errorMessageBuilder;
+  }
 }
