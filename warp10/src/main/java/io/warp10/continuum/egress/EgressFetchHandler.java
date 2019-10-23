@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.egress;
 
+import io.warp10.ThrowableUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
@@ -799,7 +800,7 @@ public class EgressFetchHandler extends AbstractHandler {
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_REQUESTS, labels, 1);      
     } catch (Exception e) {
       if (!resp.isCommitted()) {
-        resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+        resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ThrowableUtils.getErrorMessage(e, Constants.MAX_HTTP_REASON_LENGTH));
         return;
       }
     }

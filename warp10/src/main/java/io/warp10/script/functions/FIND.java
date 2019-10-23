@@ -184,11 +184,10 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
             
       if (params.containsKey(FETCH.PARAM_SELECTOR_PAIRS)) {
         List<Pair<Object, Object>> selectors = (List<Pair<Object, Object>>) params.get(FETCH.PARAM_SELECTOR_PAIRS);
+        drequest = new DirectoryRequest();
         for (int i = 0; i < selectors.size(); i++) {
           String csel = (String) selectors.get(i).getLeft();
           Map<String,String> lsel = (Map<String,String>) selectors.get(i).getRight();
-          
-          drequest = new DirectoryRequest();
           drequest.addToClassSelectors(csel);
           drequest.addToLabelsSelectors(lsel);
         }
@@ -198,9 +197,9 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
       } else {
         throw new WarpScriptException(getName() + " missing parameters '" + FETCH.PARAM_CLASS + "', '" + FETCH.PARAM_LABELS + "', '" + FETCH.PARAM_SELECTOR + "' or '" + FETCH.PARAM_SELECTORS + "'.");
       }
-      
+                  
       token = (String) params.get(FETCH.PARAM_TOKEN);
-            
+      
       activeAfter = (Long) params.get(FETCH.PARAM_ACTIVE_AFTER);
       quietAfter = (Long) params.get(FETCH.PARAM_QUIET_AFTER);
     } else {
@@ -288,16 +287,17 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     
     ReadToken rtoken = Tokens.extractReadToken(token);
 
-    labelSelectors.remove(Constants.PRODUCER_LABEL);
-    labelSelectors.remove(Constants.OWNER_LABEL);
-    labelSelectors.remove(Constants.APPLICATION_LABEL);
-    labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
-    
     List<String> clsSels = new ArrayList<String>();
     List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
-    
-    clsSels.add(classSelector);
-    lblsSels.add(labelSelectors);
+
+    if (null != labelSelectors && null != classSelector) {
+      labelSelectors.remove(Constants.PRODUCER_LABEL);
+      labelSelectors.remove(Constants.OWNER_LABEL);
+      labelSelectors.remove(Constants.APPLICATION_LABEL);
+      labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));      
+      clsSels.add(classSelector);
+      lblsSels.add(labelSelectors);
+    }
 
     List<Metadata> metadatas = null;
 

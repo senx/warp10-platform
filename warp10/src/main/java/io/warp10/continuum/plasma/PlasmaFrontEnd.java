@@ -307,6 +307,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
     
     boolean useHttp = null != properties.getProperty(Configuration.PLASMA_FRONTEND_PORT);
     boolean useHttps = null != properties.getProperty(Configuration.PLASMA_FRONTEND_PREFIX + Configuration._SSL_PORT);
+    int tcpBacklog = Integer.valueOf(properties.getProperty(Configuration.PLASMA_FRONTEND_TCP_BACKLOG, "0"));
     
     List<ServerConnector> connectors = new ArrayList<ServerConnector>();
     
@@ -315,7 +316,9 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
       connector.setIdleTimeout(Long.parseLong(properties.getProperty(Configuration.PLASMA_FRONTEND_IDLE_TIMEOUT)));    
       connector.setPort(Integer.parseInt(properties.getProperty(Configuration.PLASMA_FRONTEND_PORT)));
       connector.setHost(properties.getProperty(Configuration.PLASMA_FRONTEND_HOST));
+      connector.setAcceptQueueSize(tcpBacklog);
       connector.setName("Continuum Plasma Front End HTTP");
+
       connectors.add(connector);
     }
     

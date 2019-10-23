@@ -295,10 +295,12 @@ public class Warp extends WarpDist implements Runnable {
       int selectors = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_SELECTORS, DEFAULT_HTTP_SELECTORS));
       port = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_PORT));
       host = properties.getProperty(Configuration.STANDALONE_HOST, "0.0.0.0");
+      int tcpBacklog = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_TCP_BACKLOG, "0"));
       
       httpConnector = new ServerConnector(server, acceptors, selectors);
       
       httpConnector.setPort(port);
+      httpConnector.setAcceptQueueSize(tcpBacklog);
       
       if (null != host) {
         httpConnector.setHost(host);

@@ -588,6 +588,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     if (useHttp) {
       int port = Integer.valueOf(props.getProperty(Configuration.INGRESS_PORT));
       String host = props.getProperty(Configuration.INGRESS_HOST);
+      int tcpBacklog = Integer.valueOf(props.getProperty(Configuration.INGRESS_TCP_BACKLOG, "0"));
       int acceptors = Integer.valueOf(props.getProperty(Configuration.INGRESS_ACCEPTORS));
       int selectors = Integer.valueOf(props.getProperty(Configuration.INGRESS_SELECTORS));
       long idleTimeout = Long.parseLong(props.getProperty(Configuration.INGRESS_IDLE_TIMEOUT));
@@ -596,6 +597,7 @@ public class Ingress extends AbstractHandler implements Runnable {
       connector.setIdleTimeout(idleTimeout);
       connector.setPort(port);
       connector.setHost(host);
+      connector.setAcceptQueueSize(tcpBacklog);
       connector.setName("Continuum Ingress HTTP");
       
       connectors.add(connector);
@@ -1127,7 +1129,8 @@ public class Ingress extends AbstractHandler implements Runnable {
       }      
     } catch (Throwable t) { // Catch everything else this handler could return 200 on a OOM exception
       if (!response.isCommitted()) {
-        String msg = "Error when updating data: " + ThrowableUtils.getErrorMessage(t);
+        String prefix = "Error when updating data: ";
+        String msg = prefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
       }
@@ -1299,7 +1302,8 @@ public class Ingress extends AbstractHandler implements Runnable {
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_META_RECORDS, sensisionLabels, count);
     } catch (Throwable t) { // Catch everything else this handler could return 200 on a OOM exception
       if (!response.isCommitted()) {
-        String msg = "Error when updating meta: " + ThrowableUtils.getErrorMessage(t);
+        String prefix = "Error when updating meta: ";
+        String msg = prefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
       }
@@ -1790,7 +1794,9 @@ public class Ingress extends AbstractHandler implements Runnable {
         pw.println(Constants.INGRESS_DELETE_ERROR_PREFIX + error);
       }
       if (!response.isCommitted()) {
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, t.getMessage());
+        String prefix = "Error when deleting data: ";
+        String msg = prefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
       }
       return;
     } finally {
@@ -2183,7 +2189,15 @@ public class Ingress extends AbstractHandler implements Runnable {
       Set<BigInteger> bis = new HashSet<BigInteger>();
 
       synchronized(this.metadataCache) {
-        bis.addAll(this.metadataCache.keySet());
+        boolean error = false;
+        do {
+          try {
+            error = false;          
+            bis.addAll(this.metadataCache.keySet());
+          } catch (ConcurrentModificationException cme) {
+            error = true;
+          }
+        } while (error);
       }
       
       Iterator<BigInteger> iter = bis.iterator();

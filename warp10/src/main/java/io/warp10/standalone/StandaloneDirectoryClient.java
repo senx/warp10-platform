@@ -227,6 +227,10 @@ public class StandaloneDirectoryClient implements DirectoryClient {
 
               Metadata metadata = new Metadata();
               deserializer.deserialize(metadata, unpadded);
+
+              String app = metadata.getLabels().get(Constants.APPLICATION_LABEL);
+              Map<String,String> sensisionLabels = new HashMap<String,String>();
+              sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, app);
               
               //
               // Compute classId/labelsId and compare it to the values in the row key
@@ -279,6 +283,8 @@ public class StandaloneDirectoryClient implements DirectoryClient {
                   GTSHelper.fillGTSIds(bytes, 0, classId, labelsId);
                   BigInteger id = new BigInteger(bytes);
                   metadatasById.put(id, metadata);
+
+                  Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, 1);
 
                   continue;
                 }
@@ -662,6 +668,10 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       metadatas.remove(metadata.getName());
     }
 
+    String app = metadata.getLabels().get(Constants.APPLICATION_LABEL);
+    Map<String,String> sensisionLabels = new HashMap<String,String>();
+    sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, app);
+
     // 128BITS
     long classId = GTSHelper.classId(this.classLongs, metadata.getName());
 
@@ -676,6 +686,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     
     if (null == this.db) {
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, -1);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, -1);
       return;
     }
 
@@ -706,6 +717,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     this.db.delete(bytes);
     
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, -1);
+    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, -1);
   }
   
   private ThreadLocal<WriteBatch> perThreadWriteBatch = new ThreadLocal<WriteBatch>() {
@@ -763,6 +775,10 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     // 128BITS
     long classId = GTSHelper.classId(this.classLongs, metadata.getName());
     long labelsId = GTSHelper.labelsId(this.labelsLongs, metadata.getLabels());
+
+    String app = metadata.getLabels().get(Constants.APPLICATION_LABEL);
+    Map<String,String> sensisionLabels = new HashMap<String,String>();
+    sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, app);
     
     //ByteBuffer bb = ByteBuffer.wrap(new byte[1 + 8 + 8]).order(ByteOrder.BIG_ENDIAN);    
     //bb.put(METADATA_PREFIX);
@@ -835,6 +851,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         }
         if (null == metadatas.get(metadata.getName()).put(labelsId, metadata)) {
           Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, 1);
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, 1);
         }
       }
       //

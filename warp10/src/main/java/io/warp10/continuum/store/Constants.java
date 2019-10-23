@@ -421,7 +421,21 @@ public class Constants {
   
   public static final String STORE_ATTR_TTL = "ttl";
   public static final String STORE_ATTR_USEDATAPOINTTS = "dpts";
-  
+
+  /**
+   * Limit to the size of errors message returned as the HTTP reason. In Jetty, this is limited to 1024 character.
+   * See https://github.com/eclipse/jetty.project/blob/jetty-9.4.2.v20170220/jetty-http/src/main/java/org/eclipse/jetty/http/HttpGenerator.java#L624-L625
+   */
+  public static  final int MAX_HTTP_REASON_LENGTH = 1024;
+
+  /**
+   * Limit to the size of messages set in HTTP headers. In Jetty, the default limit is 8*1024 for all the headers.
+   * See https://github.com/eclipse/jetty.project/blob/jetty-9.4.2.v20170220/jetty-server/src/main/java/org/eclipse/jetty/server/HttpConfiguration.java#L56
+   * We set this limit to 1/8 of this value, expecting that this is highly unlikely that 8 values of this length will
+   * be added to the headers.
+   */
+  public static  final int MAX_HTTP_HEADER_LENGTH = 1024;
+
   static {
     String tu = WarpConfig.getProperty(Configuration.WARP_TIME_UNITS);
     

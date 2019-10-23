@@ -39,6 +39,11 @@ egress.clients.expose = false
 egress.port = 8881
 
 //
+// TCP Backlog applied to the egress server listener
+//
+#egress.tcp.backlog =
+
+//
 // Host onto which the egress server should listen
 //
 egress.host = 127.0.0.1

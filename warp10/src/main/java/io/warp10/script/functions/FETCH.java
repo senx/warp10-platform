@@ -334,6 +334,10 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         } else {
           throw new WarpScriptException(getName() + " provided token is incompatible with '" + PARAM_GTS + "' parameter, expecting a single application.");
         }
+        
+        // Recompute IDs
+        m.setClassId(GTSHelper.classId(this.SIPHASH_CLASS, m.getName()));
+        m.setLabelsId(GTSHelper.labelsId(this.SIPHASH_LABELS, m.getLabels()));
       }
       
       iter = ((List<Metadata>) params.get(PARAM_GTS)).iterator();
@@ -342,11 +346,17 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         for (Pair<Object,Object> pair: (List<Pair<Object,Object>>) params.get(PARAM_SELECTOR_PAIRS)) {
           clsSels.add(pair.getLeft().toString());
           Map<String,String> labelSelectors = (Map<String,String>) pair.getRight();
+          labelSelectors.remove(Constants.PRODUCER_LABEL);
+          labelSelectors.remove(Constants.OWNER_LABEL);
+          labelSelectors.remove(Constants.APPLICATION_LABEL);
           labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
           lblsSels.add((Map<String,String>) labelSelectors);
         }
       } else {
         Map<String,String> labelSelectors = (Map<String,String>) params.get(PARAM_LABELS);
+        labelSelectors.remove(Constants.PRODUCER_LABEL);
+        labelSelectors.remove(Constants.OWNER_LABEL);
+        labelSelectors.remove(Constants.APPLICATION_LABEL);
         labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
         clsSels.add(params.get(PARAM_CLASS).toString());
         lblsSels.add(labelSelectors);

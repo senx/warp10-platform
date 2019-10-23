@@ -202,6 +202,10 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
           return;
         }
         
+        labelsSelector.remove(Constants.PRODUCER_LABEL);
+        labelsSelector.remove(Constants.OWNER_LABEL);
+        labelsSelector.remove(Constants.APPLICATION_LABEL);
+
         labelsSelector.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
         
         List<String> clsSels = new ArrayList<String>();

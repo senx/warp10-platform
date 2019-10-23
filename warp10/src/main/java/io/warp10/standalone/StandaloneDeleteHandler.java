@@ -16,6 +16,7 @@
 
 package io.warp10.standalone;
 
+import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
@@ -215,7 +216,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         dr = new DatalogRequest();
         deser.deserialize(dr, bytes);
       } catch (TException te) {
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, te.getMessage());
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ThrowableUtils.getErrorMessage(te, Constants.MAX_HTTP_REASON_LENGTH));
         return;
       }
     
@@ -256,7 +257,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       }
     } catch (WarpScriptException ee) {
       ee.printStackTrace();
-      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ee.getMessage());
+      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ThrowableUtils.getErrorMessage(ee, Constants.MAX_HTTP_REASON_LENGTH));
       return;
     }
     
@@ -352,7 +353,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         try {
           encoded = ser.serialize(dr);
         } catch (TException te) {
-          response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, te.getMessage());
+          response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ThrowableUtils.getErrorMessage(te, Constants.MAX_HTTP_REASON_LENGTH));
           return;
         }
         
@@ -483,7 +484,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       try {
         labelsSelectors = GTSHelper.parseLabelsSelectors(labelsSelection);
       } catch (ParseException pe) {
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, pe.getMessage());
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ThrowableUtils.getErrorMessage(pe, Constants.MAX_HTTP_REASON_LENGTH));
         return;
       }
       
@@ -573,14 +574,15 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, metadata.getLabels().get(Constants.APPLICATION_LABEL));
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_DATAPOINTS_PEROWNERAPP, labels, localCount);
       }
-    } catch (Exception e) {
-      t = e;
+    } catch (Throwable thr) {
+      t = thr;
       // If we have not yet written anything on the output stream, call sendError
-      if (0 == gts) {
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
-        return;
+      if (0 == gts && !response.isCommitted()) {
+        String prefix = "Error when deleting data: ";
+        String msg = prefix + ThrowableUtils.getErrorMessage(thr, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
       } else {
-        throw new IOException(e);
+        throw new IOException(thr);
       }
     } finally {
       if (null != loggingWriter) {
