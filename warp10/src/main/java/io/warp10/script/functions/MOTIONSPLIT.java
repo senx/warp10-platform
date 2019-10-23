@@ -167,7 +167,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
       //
       
       if (GeoTimeSerie.NO_LOCATION != refLocation && GeoTimeSerie.NO_LOCATION != location && GeoXPLib.orthodromicDistance(refLocation, location) > proximityZoneRadius) {
-        if (previousTimestamp - refTimestamp > proximityZoneTime && proximityZoneTraveledDistance / ((previousTimestamp - refTimestamp) / Constants.TIME_UNITS_PER_S) < proximityZoneSpeed) {
+        if (previousTimestamp - refTimestamp > proximityZoneTime && proximityZoneTraveledDistance / ((double) (previousTimestamp - refTimestamp) / Constants.TIME_UNITS_PER_S) < proximityZoneSpeed) {
           mustSplit = true;
         }
         refLocation = location;
