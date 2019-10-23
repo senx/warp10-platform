@@ -90,6 +90,11 @@ standalone.host = 127.0.0.1
 standalone.port = 8080
 
 //
+// TCP Backlog applied to incoming connections listener.
+//
+#standalone.tcp.backlog =
+
+//
 // Number of Jetty acceptors
 //
 standalone.acceptors = 1

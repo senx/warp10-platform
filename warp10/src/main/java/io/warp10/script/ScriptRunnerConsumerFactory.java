@@ -24,6 +24,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.RejectedExecutionException;
@@ -194,33 +195,33 @@ public class ScriptRunnerConsumerFactory implements ConsumerFactory {
                         // Push the script parameters
                         //
                         
-                        out.write(Long.toString(request.getPeriodicity()).getBytes(Charsets.UTF_8));
+                        out.write(Long.toString(request.getPeriodicity()).getBytes(StandardCharsets.UTF_8));
                         out.write(' ');
                         out.write('\'');
-                        out.write(URLEncoder.encode(Constants.RUNNER_PERIODICITY, "UTF-8").replaceAll("\\+","%20").getBytes(Charsets.US_ASCII));            
+                        out.write(URLEncoder.encode(Constants.RUNNER_PERIODICITY, StandardCharsets.UTF_8.name()).replaceAll("\\+","%20").getBytes(StandardCharsets.US_ASCII));
                         out.write('\'');
                         out.write(' ');
-                        out.write(WarpScriptLib.STORE.getBytes(Charsets.UTF_8));
+                        out.write(WarpScriptLib.STORE.getBytes(StandardCharsets.UTF_8));
                         out.write('\n');
                         
                         out.write('\'');
-                        out.write(URLEncoder.encode(request.getPath(), "UTF-8").replaceAll("\\+","%20").getBytes(Charsets.US_ASCII));            
+                        out.write(URLEncoder.encode(request.getPath(), StandardCharsets.UTF_8.name()).replaceAll("\\+","%20").getBytes(StandardCharsets.US_ASCII));
                         out.write('\'');
                         out.write(' ');
                         out.write('\'');
-                        out.write(URLEncoder.encode(Constants.RUNNER_PATH, "UTF-8").replaceAll("\\+","%20").getBytes(Charsets.US_ASCII));            
+                        out.write(URLEncoder.encode(Constants.RUNNER_PATH, StandardCharsets.UTF_8.name()).replaceAll("\\+","%20").getBytes(StandardCharsets.US_ASCII));
                         out.write('\'');
                         out.write(' ');
-                        out.write(WarpScriptLib.STORE.getBytes(Charsets.UTF_8));
+                        out.write(WarpScriptLib.STORE.getBytes(StandardCharsets.UTF_8));
                         out.write('\n');
 
-                        out.write(Long.toString(request.getScheduledAt()).getBytes(Charsets.UTF_8));
+                        out.write(Long.toString(request.getScheduledAt()).getBytes(StandardCharsets.UTF_8));
                         out.write(' ');
                         out.write('\'');
-                        out.write(URLEncoder.encode(Constants.RUNNER_SCHEDULEDAT, "UTF-8").replaceAll("\\+","%20").getBytes(Charsets.US_ASCII));            
+                        out.write(URLEncoder.encode(Constants.RUNNER_SCHEDULEDAT, StandardCharsets.UTF_8.name()).replaceAll("\\+","%20").getBytes(StandardCharsets.US_ASCII));
                         out.write('\'');
                         out.write(' ');
-                        out.write(WarpScriptLib.STORE.getBytes(Charsets.UTF_8));
+                        out.write(WarpScriptLib.STORE.getBytes(StandardCharsets.UTF_8));
                         out.write('\n');
 
                         byte[] data = request.getContent();

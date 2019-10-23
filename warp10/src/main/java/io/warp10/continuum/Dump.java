@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -44,8 +45,6 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-
-import com.google.common.base.Charsets;
 
 public class Dump extends Configured implements Tool {
 
@@ -140,7 +139,7 @@ public class Dump extends Configured implements Tool {
       // Retrieve encoded datapoints
       //
       
-      byte[] datapoints = OrderPreservingBase64.decode(line.substring(line.indexOf('}') + 2).getBytes(Charsets.UTF_8));
+      byte[] datapoints = OrderPreservingBase64.decode(line.substring(line.indexOf('}') + 2).getBytes(StandardCharsets.UTF_8));
       
       writer.append(new BytesWritable(serializer.serialize(wrapper)), new BytesWritable(datapoints));
     }

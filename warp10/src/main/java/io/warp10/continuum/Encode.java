@@ -28,8 +28,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-
-import com.google.common.base.Charsets;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Reads individual GTS readings, produce GTSEncoders
@@ -62,7 +61,7 @@ public class Encode {
         sb.append(" ");
         GTSHelper.metadataToString(sb, lastencoder.getMetadata().getName(), lastencoder.getMetadata().getLabels());
         sb.append(" ");
-        sb.append(new String(OrderPreservingBase64.encode(lastencoder.getBytes()), Charsets.US_ASCII));
+        sb.append(new String(OrderPreservingBase64.encode(lastencoder.getBytes()), StandardCharsets.US_ASCII));
         pw.println(sb.toString());
         lastencoder = encoder;
       } else if (null == lastencoder) {
@@ -78,7 +77,7 @@ public class Encode {
       sb.append("// ");
       GTSHelper.metadataToString(sb, encoder.getMetadata().getName(), encoder.getMetadata().getLabels());
       sb.append(" ");
-      sb.append(new String(OrderPreservingBase64.encode(encoder.getBytes()), Charsets.US_ASCII));
+      sb.append(new String(OrderPreservingBase64.encode(encoder.getBytes()), StandardCharsets.US_ASCII));
       pw.println(sb.toString());      
     }        
     

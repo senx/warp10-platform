@@ -8,8 +8,6 @@ jdk:
 install: true
 
 script:
-  - gradle crypto:install
-  - gradle token:install
   - gradle warp10:pack
 
 

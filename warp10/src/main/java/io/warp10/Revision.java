@@ -16,10 +16,9 @@
 package io.warp10;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
-
-import com.google.common.base.Charsets;
 
 public class Revision {
   private static final String REVFILE = "REVISION";
@@ -40,7 +39,7 @@ public class Revision {
         baos.write(buf, 0, len);
       }
       is.close();
-      rev = new String(baos.toByteArray(), Charsets.UTF_8);      
+      rev = new String(baos.toByteArray(), StandardCharsets.UTF_8);
     } catch (Exception e) {
     }
     

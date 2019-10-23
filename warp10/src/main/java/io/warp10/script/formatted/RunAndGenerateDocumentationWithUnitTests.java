@@ -18,9 +18,9 @@ package io.warp10.script.formatted;
 
 import io.warp10.WarpConfig;
 import io.warp10.script.*;
-import org.junit.BeforeClass;
-import org.junit.Test;
 import io.warp10.script.formatted.FormattedWarpScriptFunction.Arguments;
+import io.warp10.script.functions.TYPEOF;
+import org.junit.BeforeClass;
 
 import java.io.*;
 import java.lang.reflect.Method;
@@ -38,11 +38,13 @@ import java.util.*;
  */
 public class RunAndGenerateDocumentationWithUnitTests {
 
+  protected static final String OUTPUT_FOLDER_KEY = "generated.documentation.output.folder";
+
   //
   // Set WRITE to false if only for unit tests
   //
 
-  protected static final boolean WRITE = false;
+  private static final boolean WRITE = false;
   private static final String OUTPUT_FOLDER = "my/output/folder";
   private static final boolean OVERWRITE = false;
 
@@ -79,7 +81,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
   //
 
   protected boolean WRITE() {return WRITE;}
-  protected String OUTPUT_FOLDER() {return OUTPUT_FOLDER;}
+  protected String OUTPUT_FOLDER() {return WarpConfig.getProperty(OUTPUT_FOLDER_KEY);}
   protected boolean OVERWRITE() {return OVERWRITE;}
   protected String VERSION() {return VERSION;}
   protected List<String> TAGS() {return TAGS;}
@@ -101,16 +103,15 @@ public class RunAndGenerateDocumentationWithUnitTests {
     WarpConfig.safeSetProperties(new StringReader(props.toString()));
   }
 
-  @Test
-  public void generate() throws Exception {
-    generate(WarpScriptLib.getFunctionNames());
-  }
-
   final protected void generate(List<String> functionNames) throws Exception {
+
+    if (null == OUTPUT_FOLDER()) {
+      WarpConfig.setProperty(OUTPUT_FOLDER_KEY, OUTPUT_FOLDER);
+    }
 
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
     stack.maxLimits();
-    stack.exec("INFOMODE");
+    stack.exec(WarpScriptLib.INFOMODE);
 
     Collections.sort(functionNames);
 
@@ -199,7 +200,8 @@ public class RunAndGenerateDocumentationWithUnitTests {
             // Pass warpscript unit tests and push info map
             //
 
-            stack.execMulti(mc2 + " EVAL");
+            stack.execMulti(mc2);
+            stack.exec(WarpScriptLib.EVAL);
           }
           catch (WarpScriptStopException wse) {
 
@@ -208,7 +210,16 @@ public class RunAndGenerateDocumentationWithUnitTests {
             //
 
             caught = true;
-            stack.exec(" DEPTH 1 == ASSERT TYPEOF 'MAP' == ASSERT");
+
+            stack.exec(WarpScriptLib.DEPTH);
+            stack.push(1L);
+            stack.exec(WarpScriptLib.EQ);
+            stack.exec(WarpScriptLib.ASSERT);
+            
+            stack.exec(WarpScriptLib.TYPEOF);
+            stack.push(TYPEOF.typeof(Map.class));
+            stack.exec(WarpScriptLib.EQ);
+            stack.exec(WarpScriptLib.ASSERT);
           }
           if (!caught) {
             throw new WarpScriptException("Infomode failed to stop.");
@@ -218,7 +229,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
         }
 
         if (WRITE()) {
-          String path = OUTPUT_FOLDER() + name + ".mc2";
+          String path = OUTPUT_FOLDER() + WarpScriptLib.getFunction(name).getClass().getSimpleName().toUpperCase() + ".mc2";
           File file = new File(path);
           if (OVERWRITE() || !file.exists()) {
             try {

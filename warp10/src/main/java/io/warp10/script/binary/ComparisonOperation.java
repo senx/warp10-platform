@@ -16,6 +16,8 @@
 
 package io.warp10.script.binary;
 
+import org.apache.hadoop.hbase.util.Bytes;
+
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GTSOpsHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
@@ -133,6 +135,8 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
       stack.push(operator(EQ.compare((Number) op1, (Number) op2), 0));
     } else if (op2 instanceof String && op1 instanceof String) {
       stack.push(operator(op1.toString().compareTo(op2.toString()), 0));
+    } else if (op1 instanceof byte[] && op2 instanceof byte[]) {
+      stack.push(operator(Bytes.compareTo((byte[]) op1, (byte[]) op2), 0));
     } else if (op1 instanceof GeoTimeSerie && op2 instanceof GeoTimeSerie) {
       // compare two GTS
       GeoTimeSerie gts1 = (GeoTimeSerie) op1;

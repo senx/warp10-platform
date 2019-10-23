@@ -29,6 +29,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -36,8 +37,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
-
-import com.google.common.base.Charsets;
 
 /**
  * Class which manages file based WarpScript macros from a directory
@@ -416,7 +415,7 @@ public class WarpScriptMacroRepository extends Thread {
         return old;
       }
             
-      sb.append(new String(data, Charsets.UTF_8));
+      sb.append(new String(data, StandardCharsets.UTF_8));
       
       sb.append("\n");
       

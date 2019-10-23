@@ -19,6 +19,7 @@ package io.warp10.script;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
@@ -47,7 +48,7 @@ public class WebAccessController {
       for (String pattern: subpatterns) {
         if (pattern.contains("%")) {
           try {
-            pattern = URLDecoder.decode(pattern, "UTF-8");
+            pattern = URLDecoder.decode(pattern, StandardCharsets.UTF_8.name());
           } catch (UnsupportedEncodingException uee) {
             throw new RuntimeException(uee);
           }

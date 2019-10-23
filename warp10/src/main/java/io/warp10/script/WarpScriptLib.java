@@ -18,6 +18,7 @@ package io.warp10.script;
 
 import java.net.URL;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -377,8 +378,6 @@ public class WarpScriptLib {
   public static final String CPOPR = "CPOPR";
   public static final String PUSHR = "PUSHR";
   public static final String CLEARREGS = "CLEARREGS";
-  public static final String CLEARSYMBOLS = "CLEARSYMBOLS";
-  public static final String CLEAR = "CLEAR";
   public static final String RUN = "RUN";
   public static final String BOOTSTRAP = "BOOTSTRAP";
   public static final String NOOP = "NOOP";
@@ -407,6 +406,8 @@ public class WarpScriptLib {
   
   public static final String GEO_WKT = "GEO.WKT";
   public static final String GEO_WKT_UNIFORM = "GEO.WKT.UNIFORM";
+  public static final String GEO_WKB = "GEO.WKB";
+  public static final String GEO_WKB_UNIFORM = "GEO.WKB.UNIFORM";
   
   public static final String GEO_JSON = "GEO.JSON";
   public static final String GEO_JSON_UNIFORM = "GEO.JSON.UNIFORM";
@@ -749,6 +750,7 @@ public class WarpScriptLib {
   public static final String PROB = "PROB";
   public static final String CPROB = "CPROB";
   public static final String RANDPDF = "RANDPDF";
+  public static final String SRANDPDF = "SRANDPDF";
   public static final String SINGLEEXPONENTIALSMOOTHING = "SINGLEEXPONENTIALSMOOTHING";
   public static final String DOUBLEEXPONENTIALSMOOTHING = "DOUBLEEXPONENTIALSMOOTHING";
   public static final String LOWESS = "LOWESS";
@@ -766,6 +768,7 @@ public class WarpScriptLib {
   public static final String CORRELATE = "CORRELATE";
   public static final String SORT = "SORT";
   public static final String SORTBY = "SORTBY";
+  public static final String SORTWITH = "SORTWITH";
   public static final String RSORT = "RSORT";
   public static final String LASTSORT = "LASTSORT";
   public static final String METASORT = "METASORT";
@@ -807,6 +810,7 @@ public class WarpScriptLib {
   public static final String VALUESPLIT = "VALUESPLIT";
   public static final String TICKLIST = "TICKLIST";
   public static final String COMMONTICKS = "COMMONTICKS";
+  public static final String GOLDWRAP = "GOLDWRAP";
   public static final String WRAP = "WRAP";
   public static final String WRAPRAW = "WRAPRAW";
   public static final String WRAPFAST = "WRAPFAST";
@@ -1130,6 +1134,8 @@ public class WarpScriptLib {
   public static final String MAPPER_LE_ELEV = "mapper.le.elev";
   public static final String MAPPER_LT_ELEV = "mapper.lt.elev";
 
+  public static final String EQ = "==";
+
   
   static {
 
@@ -1357,7 +1363,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MUL("*"));
     addNamedWarpScriptFunction(new POW("**"));
     addNamedWarpScriptFunction(new MOD("%"));
-    addNamedWarpScriptFunction(new EQ("=="));
+    addNamedWarpScriptFunction(new EQ(EQ));
     addNamedWarpScriptFunction(new NE("!="));
     addNamedWarpScriptFunction(new LT("<"));
     addNamedWarpScriptFunction(new GT(">"));
@@ -1587,7 +1593,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new PROBABILITY.Builder(PROBABILITY));
     addNamedWarpScriptFunction(new PROB(PROB));
     addNamedWarpScriptFunction(new CPROB(CPROB));
-    addNamedWarpScriptFunction(new RANDPDF.Builder(RANDPDF));
+    addNamedWarpScriptFunction(new RANDPDF.Builder(RANDPDF, false));
+    addNamedWarpScriptFunction(new RANDPDF.Builder(SRANDPDF, true));
     addNamedWarpScriptFunction(new SINGLEEXPONENTIALSMOOTHING(SINGLEEXPONENTIALSMOOTHING));
     addNamedWarpScriptFunction(new DOUBLEEXPONENTIALSMOOTHING(DOUBLEEXPONENTIALSMOOTHING));
     addNamedWarpScriptFunction(new LOWESS(LOWESS));
@@ -1605,6 +1612,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new CORRELATE.Builder(CORRELATE));
     addNamedWarpScriptFunction(new SORT(SORT));
     addNamedWarpScriptFunction(new SORTBY(SORTBY));
+    addNamedWarpScriptFunction(new SORTWITH(SORTWITH));
     addNamedWarpScriptFunction(new RSORT(RSORT));
     addNamedWarpScriptFunction(new LASTSORT(LASTSORT));
     addNamedWarpScriptFunction(new METASORT(METASORT));
@@ -1655,6 +1663,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new VALUESPLIT(VALUESPLIT));
     addNamedWarpScriptFunction(new TICKLIST(TICKLIST));
     addNamedWarpScriptFunction(new COMMONTICKS(COMMONTICKS));
+    addNamedWarpScriptFunction(new GOLDWRAP(GOLDWRAP));
     addNamedWarpScriptFunction(new WRAP(WRAP));
     addNamedWarpScriptFunction(new WRAP(WRAPRAW, false, true, true));
     addNamedWarpScriptFunction(new WRAP(WRAPFAST, false, false, true));
@@ -1863,6 +1872,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new GEOREGEXP(GEO_REGEXP));
     addNamedWarpScriptFunction(new GeoWKT(GEO_WKT, false));
     addNamedWarpScriptFunction(new GeoWKT(GEO_WKT_UNIFORM, true));
+    addNamedWarpScriptFunction(new GeoWKB(GEO_WKB, false));
+    addNamedWarpScriptFunction(new GeoWKB(GEO_WKB_UNIFORM, true));
     addNamedWarpScriptFunction(new GeoJSON(GEO_JSON, false));
     addNamedWarpScriptFunction(new GeoJSON(GEO_JSON_UNIFORM, true));
     addNamedWarpScriptFunction(new GEOOPTIMIZE(GEO_OPTIMIZE));
@@ -2170,6 +2181,9 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new CircularMean.Builder("bucketizer.mean.circular", true));
     addNamedWarpScriptFunction(new CircularMean.Builder("bucketizer.mean.circular.exclude-nulls", false));
     addNamedWarpScriptFunction(new RMS("bucketizer.rms", false));
+    addNamedWarpScriptFunction(new StandardDeviation.Builder("bucketizer.sd", false));
+    addNamedWarpScriptFunction(new StandardDeviation.Builder("bucketizer.sd.forbid-nulls", true));
+
     //
     // Mappers
     //
@@ -2415,7 +2429,7 @@ public class WarpScriptLib {
         String namespace = props.getProperty(Configuration.CONFIG_WARPSCRIPT_NAMESPACE_PREFIX + wse.getClass().getName(), "").trim(); 
         if (null != namespace && !"".equals(namespace)) {
           if (namespace.contains("%")) {
-            namespace = URLDecoder.decode(namespace, "UTF-8");
+            namespace = URLDecoder.decode(namespace, StandardCharsets.UTF_8.name());
           }
           LOG.info("LOADED extension '" + extension + "'" + " under namespace '" + namespace + "'.");
         } else {
@@ -2444,7 +2458,7 @@ public class WarpScriptLib {
         
     if (namespace.contains("%")) {
       try {
-        namespace = URLDecoder.decode(namespace, "UTF-8");
+        namespace = URLDecoder.decode(namespace, StandardCharsets.UTF_8.name());
       } catch (Exception e) {
         throw new RuntimeException(e);
       }

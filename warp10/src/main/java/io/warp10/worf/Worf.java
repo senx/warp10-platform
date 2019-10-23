@@ -29,6 +29,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
@@ -112,7 +113,7 @@ public class Worf {
         // Remove URL encoding if a '%' sign is present in the token
         for (int i = 0; i < tokens.length; i++) {
           if (tokens[i].contains("%")) {
-            tokens[i] = URLDecoder.decode(tokens[i], "UTF-8");
+            tokens[i] = URLDecoder.decode(tokens[i], StandardCharsets.UTF_8.name());
           }
           tokens[i] = tokens[i].trim();
         }
@@ -155,10 +156,10 @@ public class Worf {
 
         // URL Decode name/value if needed
         if (name.contains("%")) {
-          name = URLDecoder.decode(name, "UTF-8");
+          name = URLDecoder.decode(name, StandardCharsets.UTF_8.name());
         }
         if (value.contains("%")) {
-          value = URLDecoder.decode(value, "UTF-8");
+          value = URLDecoder.decode(value, StandardCharsets.UTF_8.name());
         }
 
         // Override property
