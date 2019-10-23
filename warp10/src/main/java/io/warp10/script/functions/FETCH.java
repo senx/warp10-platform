@@ -47,6 +47,7 @@ import io.warp10.sensision.Sensision;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -68,8 +69,6 @@ import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
 import com.geoxp.GeoXPLib.GeoXPShape;
-import com.google.common.base.Charsets;
-
 /**
  * Fetch GeoTimeSeries from continuum
  * FIXME(hbs): we need to retrieve an OAuth token, where do we put it?
@@ -335,6 +334,10 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         } else {
           throw new WarpScriptException(getName() + " provided token is incompatible with '" + PARAM_GTS + "' parameter, expecting a single application.");
         }
+        
+        // Recompute IDs
+        m.setClassId(GTSHelper.classId(this.SIPHASH_CLASS, m.getName()));
+        m.setLabelsId(GTSHelper.labelsId(this.SIPHASH_LABELS, m.getLabels()));
       }
       
       iter = ((List<Metadata>) params.get(PARAM_GTS)).iterator();
@@ -343,11 +346,17 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         for (Pair<Object,Object> pair: (List<Pair<Object,Object>>) params.get(PARAM_SELECTOR_PAIRS)) {
           clsSels.add(pair.getLeft().toString());
           Map<String,String> labelSelectors = (Map<String,String>) pair.getRight();
+          labelSelectors.remove(Constants.PRODUCER_LABEL);
+          labelSelectors.remove(Constants.OWNER_LABEL);
+          labelSelectors.remove(Constants.APPLICATION_LABEL);
           labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
           lblsSels.add((Map<String,String>) labelSelectors);
         }
       } else {
         Map<String,String> labelSelectors = (Map<String,String>) params.get(PARAM_LABELS);
+        labelSelectors.remove(Constants.PRODUCER_LABEL);
+        labelSelectors.remove(Constants.OWNER_LABEL);
+        labelSelectors.remove(Constants.APPLICATION_LABEL);
         labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
         clsSels.add(params.get(PARAM_CLASS).toString());
         lblsSels.add(labelSelectors);
@@ -684,7 +693,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       
       if (!(ms instanceof byte[])) {
         // Decode
-        byte[] decoded = OrderPreservingBase64.decode(ms.toString().getBytes(Charsets.US_ASCII));
+        byte[] decoded = OrderPreservingBase64.decode(ms.toString().getBytes(StandardCharsets.US_ASCII));
         
         // Decrypt
         byte[] decrypted = CryptoUtils.unwrap(AES_METASET, decoded);

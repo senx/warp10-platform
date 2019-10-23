@@ -30,6 +30,7 @@ import java.io.OutputStream;
 import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -38,8 +39,6 @@ import java.util.Set;
 import org.boon.core.value.ValueList;
 import org.boon.json.JsonParser;
 import org.boon.json.JsonParserFactory;
-
-import com.google.common.base.Charsets;
 
 /**
  * This class generates a Throttling configuration by merging a base configuration
@@ -113,12 +112,12 @@ public class ThrottlingConfigGenerator {
     // Compute the daily ingested datapoints for each producer/application
     //
     
-    String mc2 = "'" + WarpURLEncoder.encode(cell, "UTF-8") + "' '" + WarpURLEncoder.encode(token, "UTF-8") + "' @ops/throttling-ddp";
+    String mc2 = "'" + WarpURLEncoder.encode(cell, StandardCharsets.UTF_8) + "' '" + WarpURLEncoder.encode(token, StandardCharsets.UTF_8) + "' @ops/throttling-ddp";
 
     
 //    String mc2 = "" +
-//        "'" + URLEncoder.encode(cell, "UTF-8") + "' 'cell' STORE\n" +
-//        "'" + URLEncoder.encode(token, "UTF-8") + "' 'token' STORE\n" +
+//        "'" + URLEncoder.encode(cell, StandardCharsets.UTF_8.name()) + "' 'cell' STORE\n" +
+//        "'" + URLEncoder.encode(token, StandardCharsets.UTF_8.name()) + "' 'token' STORE\n" +
 //        "//\n" + 
 //        "// Retrieve raw datapoints ingestion metrics\n" + 
 //        "//\n" + 
@@ -219,7 +218,7 @@ public class ThrottlingConfigGenerator {
     
     OutputStream out = conn.getOutputStream();
     
-    out.write(mc2.getBytes(Charsets.UTF_8));
+    out.write(mc2.getBytes(StandardCharsets.UTF_8));
     
     br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
     
@@ -280,7 +279,7 @@ public class ThrottlingConfigGenerator {
     Map<String,Set<Long>> estimates = new HashMap<String,Set<Long>>();
     
     // We use /fetch so we know we can stream many values
-    url = new URL(warpEndPoint + "/fetch?format=fulltext&token=" + WarpURLEncoder.encode(token, "UTF-8") + "&selector=" + SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_ESTIMATOR + "{cell=" + WarpURLEncoder.encode(cell, "UTF-8") + "}&now=0&timespan=-1");
+    url = new URL(warpEndPoint + "/fetch?format=fulltext&token=" + WarpURLEncoder.encode(token, StandardCharsets.UTF_8) + "&selector=" + SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_ESTIMATOR + "{cell=" + WarpURLEncoder.encode(cell, StandardCharsets.UTF_8) + "}&now=0&timespan=-1");
     
     br = new BufferedReader(new InputStreamReader(url.openStream()));
     
@@ -306,7 +305,7 @@ public class ThrottlingConfigGenerator {
 
       if (decoder.next()) {        
         // We don't call getBinaryValue because we know the value was stored as OPB64
-        HyperLogLogPlus estimator = HyperLogLogPlus.fromBytes(OrderPreservingBase64.decode(decoder.getValue().toString().getBytes(Charsets.US_ASCII)));
+        HyperLogLogPlus estimator = HyperLogLogPlus.fromBytes(OrderPreservingBase64.decode(decoder.getValue().toString().getBytes(StandardCharsets.US_ASCII)));
         
         if (estimator.hasExpired()) {
           expired.add(producer);
@@ -377,7 +376,7 @@ public class ThrottlingConfigGenerator {
         }
         
         if (max - min > 0.10 * max || max > 0.8 * mad || max * 1.25 < HLLP.get(key).cardinality()) {
-          sb.append(new String(OrderPreservingBase64.encode(HLLP.get(key).toBytes()), Charsets.US_ASCII));
+          sb.append(new String(OrderPreservingBase64.encode(HLLP.get(key).toBytes()), StandardCharsets.US_ASCII));
         }
       } else {
         //
@@ -401,7 +400,7 @@ public class ThrottlingConfigGenerator {
     
     estimates.clear();
     
-    url = new URL(warpEndPoint + "/fetch?format=fulltext&token=" + WarpURLEncoder.encode(token, "UTF-8") + "&selector=" + SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_ESTIMATOR_PER_APP + "{cell=" + WarpURLEncoder.encode(cell, "UTF-8") + "}&now=0&timespan=-1");
+    url = new URL(warpEndPoint + "/fetch?format=fulltext&token=" + WarpURLEncoder.encode(token, StandardCharsets.UTF_8) + "&selector=" + SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_ESTIMATOR_PER_APP + "{cell=" + WarpURLEncoder.encode(cell, StandardCharsets.UTF_8) + "}&now=0&timespan=-1");
     
     br = new BufferedReader(new InputStreamReader(url.openStream()));
     
@@ -427,7 +426,7 @@ public class ThrottlingConfigGenerator {
 
       if (decoder.next()) {
         // We don't call getBinaryValue because we know the value was stored as OPB64
-        HyperLogLogPlus estimator = HyperLogLogPlus.fromBytes(OrderPreservingBase64.decode(decoder.getValue().toString().getBytes(Charsets.US_ASCII)));
+        HyperLogLogPlus estimator = HyperLogLogPlus.fromBytes(OrderPreservingBase64.decode(decoder.getValue().toString().getBytes(StandardCharsets.US_ASCII)));
         
         if (estimator.hasExpired()) {
           expired.add(app);
@@ -494,7 +493,7 @@ public class ThrottlingConfigGenerator {
         }
         
         if (max - min > 0.10 * max || max > 0.8 * mad || max * 1.25 < HLLP.get(key).cardinality()) {
-          sb.append(new String(OrderPreservingBase64.encode(HLLP.get(key).toBytes()), Charsets.US_ASCII));
+          sb.append(new String(OrderPreservingBase64.encode(HLLP.get(key).toBytes()), StandardCharsets.US_ASCII));
         }
       } else {
         //

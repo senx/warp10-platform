@@ -24,7 +24,6 @@ import io.warp10.script.WarpScriptStack;
 
 import org.bouncycastle.util.encoders.Hex;
 
-import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
 
 /**

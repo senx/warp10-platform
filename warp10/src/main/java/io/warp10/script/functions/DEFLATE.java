@@ -23,10 +23,9 @@ import io.warp10.script.WarpScriptStackFunction;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.GZIPOutputStream;
-
-import com.google.common.base.Charsets;
 
 /**
  * Compresses a byte array or String using ZLIB
@@ -46,7 +45,7 @@ public class DEFLATE extends NamedWarpScriptFunction implements WarpScriptStackF
     }
     
     if (o instanceof String) {
-      o = o.toString().getBytes(Charsets.UTF_8);
+      o = o.toString().getBytes(StandardCharsets.UTF_8);
     }
     
     byte[] data = (byte[]) o;

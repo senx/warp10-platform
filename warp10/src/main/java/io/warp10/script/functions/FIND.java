@@ -37,6 +37,7 @@ import io.warp10.script.WarpScriptStackFunction;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -52,8 +53,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-
-import com.google.common.base.Charsets;
 
 /**
  * Find Geo Time Series matching some criteria
@@ -185,11 +184,10 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
             
       if (params.containsKey(FETCH.PARAM_SELECTOR_PAIRS)) {
         List<Pair<Object, Object>> selectors = (List<Pair<Object, Object>>) params.get(FETCH.PARAM_SELECTOR_PAIRS);
+        drequest = new DirectoryRequest();
         for (int i = 0; i < selectors.size(); i++) {
           String csel = (String) selectors.get(i).getLeft();
           Map<String,String> lsel = (Map<String,String>) selectors.get(i).getRight();
-          
-          drequest = new DirectoryRequest();
           drequest.addToClassSelectors(csel);
           drequest.addToLabelsSelectors(lsel);
         }
@@ -199,9 +197,9 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
       } else {
         throw new WarpScriptException(getName() + " missing parameters '" + FETCH.PARAM_CLASS + "', '" + FETCH.PARAM_LABELS + "', '" + FETCH.PARAM_SELECTOR + "' or '" + FETCH.PARAM_SELECTORS + "'.");
       }
-      
+                  
       token = (String) params.get(FETCH.PARAM_TOKEN);
-            
+      
       activeAfter = (Long) params.get(FETCH.PARAM_ACTIVE_AFTER);
       quietAfter = (Long) params.get(FETCH.PARAM_QUIET_AFTER);
     } else {
@@ -289,16 +287,17 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     
     ReadToken rtoken = Tokens.extractReadToken(token);
 
-    labelSelectors.remove(Constants.PRODUCER_LABEL);
-    labelSelectors.remove(Constants.OWNER_LABEL);
-    labelSelectors.remove(Constants.APPLICATION_LABEL);
-    labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
-    
     List<String> clsSels = new ArrayList<String>();
     List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
-    
-    clsSels.add(classSelector);
-    lblsSels.add(labelSelectors);
+
+    if (null != labelSelectors && null != classSelector) {
+      labelSelectors.remove(Constants.PRODUCER_LABEL);
+      labelSelectors.remove(Constants.OWNER_LABEL);
+      labelSelectors.remove(Constants.APPLICATION_LABEL);
+      labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));      
+      clsSels.add(classSelector);
+      lblsSels.add(labelSelectors);
+    }
 
     List<Metadata> metadatas = null;
 
@@ -461,7 +460,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
           byte[] wrapped = CryptoUtils.wrap(METASETS_KEY, compressed);
           
           // Encode it and push it on the stack
-          stack.push(new String(OrderPreservingBase64.encode(wrapped), Charsets.UTF_8));
+          stack.push(new String(OrderPreservingBase64.encode(wrapped), StandardCharsets.UTF_8));
         } catch (TException | IOException e) {
           throw new WarpScriptException(getName() + " unable to build MetaSet.", e);
         }

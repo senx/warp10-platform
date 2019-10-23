@@ -123,7 +123,6 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
       }
       stack.push(result);      
     } catch (TException te) {
-      te.printStackTrace();
       throw new WarpScriptException("Error while generating token.", te);
     }
         
@@ -268,10 +267,14 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
 
       if (null != params.get(KEY_OWNER)) {
         wtoken.setOwnerId(encoder.toByteBuffer(params.get(KEY_OWNER).toString()));
+      } else {
+        throw new WarpScriptException(getName() + " missing '" + KEY_OWNER + "'.");
       }
       
       if (null != params.get(KEY_PRODUCER)) {
         wtoken.setProducerId(encoder.toByteBuffer(params.get(KEY_PRODUCER).toString()));
+      } else {
+        throw new WarpScriptException(getName() + " missing '" + KEY_PRODUCER + "'.");
       }
       
       if (null != params.get(KEY_ATTRIBUTES)) {

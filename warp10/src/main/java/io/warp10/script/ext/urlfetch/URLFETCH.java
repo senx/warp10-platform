@@ -25,14 +25,13 @@ import io.warp10.script.WebAccessController;
 import io.warp10.standalone.StandaloneWebCallService;
 import org.apache.commons.codec.binary.Base64;
 
-import com.google.common.base.Charsets;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -147,7 +146,7 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
         conn = (HttpURLConnection) url.openConnection();
         
         if (null != url.getUserInfo()) {
-          String basicAuth = "Basic " + new String(Base64.encodeBase64String(url.getUserInfo().getBytes(Charsets.UTF_8)));
+          String basicAuth = "Basic " + new String(Base64.encodeBase64String(url.getUserInfo().getBytes(StandardCharsets.UTF_8)));
           conn.setRequestProperty ("Authorization", basicAuth);
         }
         

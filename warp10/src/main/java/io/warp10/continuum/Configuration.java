@@ -440,11 +440,21 @@ public class Configuration {
    * Port on which the DirectoryService will listen
    */
   public static final String DIRECTORY_PORT = "directory.port";
-  
+
+  /**
+   * TCP Backlog applied to the DirectoryService listener
+   */
+  public static final String DIRECTORY_TCP_BACKLOG = "directory.tcp.backlog";
+
   /**
    * Port the streaming directory service listens to
    */
   public static final String DIRECTORY_STREAMING_PORT = "directory.streaming.port";
+
+  /**
+   * TCP Backlog applied to the streaming directory service listener
+   */
+  public static final String DIRECTORY_STREAMING_TCP_BACKLOG = "directory.streaming.tcp.backlog";
 
   /**
    * Should we ignore the proxy settings when doing a streaming request?
@@ -546,6 +556,20 @@ public class Configuration {
   //
   /////////////////////////////////////////////////////////////////////////////////////////
 
+  /**
+   * Default datapoint cell TTL (in ms) to enforce. If this is not set, then the TTL will be that
+   * of the columns family. A value of -1 disables the use of cell TTLs.
+   * This can be overridden by the '.ttl' WriteToken attribute.
+   */
+  public static final String INGRESS_HBASE_CELLTTL = "ingress.hbase.cellttl";
+  
+  /**
+   * Flag indicating whether to use the DataPoint TimeStamp instead of the write timestamp
+   * for the data stored in HBase.
+   * This can be overridden by the '.dpts' WriteToken attribute.
+   */
+  public static final String INGRESS_HBASE_DPTS = "ingress.hbase.dpts";
+  
   /**
    * Default maximum age of datapoints pushed to Warp 10, in ms. Any timestamp older than
    * 'now' - this value will be rejected.
@@ -658,6 +682,11 @@ public class Configuration {
    */
   public static final String INGRESS_PORT = "ingress.port";
   
+  /**
+   * TCP Backlog applied to the ingress server listener
+   */
+  public static final String INGRESS_TCP_BACKLOG = "ingress.tcp.backlog";
+
   /**
    * Size of metadata cache in number of entries
    */
@@ -799,7 +828,9 @@ public class Configuration {
   public static final String INGRESS_KAFKA_DATA_AES = "ingress.kafka.data.aes";
   
   /**
-   * Maximum message size for the 'data' topic
+   * Maximum message size for the 'data' topic, this value should be less than 2/3 the maximum Kafka message size
+   * minus 64 to ensure all parsed data can be sent without error.
+   * The maximum value size will be capped to half this value minus 64
    */
   public static final String INGRESS_KAFKA_DATA_MAXSIZE = "ingress.kafka.data.maxsize";
   
@@ -1092,7 +1123,12 @@ public class Configuration {
    * Port on which to listen
    */
   public static final String PLASMA_FRONTEND_PORT = "plasma.frontend.port";
-  
+
+  /**
+   * TCP Backlog applied to the Plasma listener
+   */
+  public static final String PLASMA_FRONTEND_TCP_BACKLOG = "plasma.frontend.tcp.backlog";
+
   /**
    * Number of acceptors
    */
@@ -1411,6 +1447,11 @@ public class Configuration {
   public static final String STANDALONE_PORT = "standalone.port";
 
   /**
+   * TCP Backlog applied to incoming connections listener.
+   */
+  public static final String STANDALONE_TCP_BACKLOG = "standalone.tcp.backlog";
+
+  /**
    * Number of Jetty acceptors
    */
   public static final String STANDALONE_ACCEPTORS = "standalone.acceptors";
@@ -1713,7 +1754,12 @@ public class Configuration {
    * Port onto which the egress server should listen
    */
   public static final String EGRESS_PORT = "egress.port";
-  
+
+  /**
+   * TCP Backlog applied to the egress server listener
+   */
+  public static final String EGRESS_TCP_BACKLOG = "egress.tcp.backlog";
+
   /**
    * Host onto which the egress server should listen
    */
@@ -2123,6 +2169,11 @@ public class Configuration {
    * SSL Port
    */
   public static final String _SSL_PORT = ".ssl.port";
+
+  /**
+   * SSL TCP Backlog
+   */
+  public static final String _SSL_TCP_BACKLOG = ".ssl.tcp.backlog";
 
   /**
    * SSL Host

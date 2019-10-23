@@ -23,8 +23,9 @@ import io.warp10.script.WarpScriptStack;
 
 import org.bouncycastle.util.encoders.Hex;
 
-import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
+
+import java.nio.charset.StandardCharsets;
 
 /**
  * Decode a String in base64 and immediately encode it as Hexadecimal
@@ -43,7 +44,7 @@ public class B64TOHEX extends NamedWarpScriptFunction implements WarpScriptStack
       throw new WarpScriptException(getName() + " operates on a String.");
     }
     
-    stack.push(new String(Hex.encode(BaseEncoding.base64().decode(o.toString())), Charsets.UTF_8));
+    stack.push(new String(Hex.encode(BaseEncoding.base64().decode(o.toString())), StandardCharsets.UTF_8));
     
     return stack;
   }

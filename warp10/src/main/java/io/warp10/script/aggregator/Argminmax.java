@@ -30,6 +30,7 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
 import java.util.Map;
 
@@ -191,7 +192,7 @@ public class Argminmax extends NamedWarpScriptFunction implements WarpScriptAggr
         }
         String lval = labels[i].get(this.label);
         try {
-          sb.append(WarpURLEncoder.encode(lval, "UTF-8"));
+          sb.append(WarpURLEncoder.encode(lval, StandardCharsets.UTF_8));
         } catch (UnsupportedEncodingException uee) {
           // Can't happen, we're using UTF-8 which is one of the 6 standard encodings of the JVM
         }

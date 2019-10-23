@@ -25,6 +25,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -39,8 +40,6 @@ import org.bouncycastle.crypto.params.KeyParameter;
 
 import sun.misc.FloatingDecimal;
 import sun.misc.FloatingDecimal.BinaryToASCIIConverter;
-
-import com.google.common.base.Charsets;
 
 /**
  * Utility class used to create Geo Time Series
@@ -387,7 +386,7 @@ public class GTSEncoder implements Cloneable {
       }
     } else if (value instanceof byte[]) {
       tsTypeFlag |= FLAGS_TYPE_STRING | FLAGS_STRING_BINARY;
-      binaryString = new String((byte[]) value, Charsets.ISO_8859_1);
+      binaryString = new String((byte[]) value, StandardCharsets.ISO_8859_1);
       if (binaryString.equals(lastStringValue)) {
         tsTypeFlag |= FLAGS_VALUE_IDENTICAL;
       }
@@ -639,7 +638,7 @@ public class GTSEncoder implements Cloneable {
             lastStringValue = binaryString;
           } else {
             // Convert String to UTF8 byte array
-            byte[] utf8 = ((String) value).getBytes(Charsets.UTF_8);
+            byte[] utf8 = ((String) value).getBytes(StandardCharsets.UTF_8);
             // Store encoded byte array length as zig zag varint
             //BUF10 this.stream.write(Varint.encodeUnsignedLong(utf8.length));
             int l = Varint.encodeUnsignedLongInBuf(utf8.length, buf10);
@@ -847,6 +846,22 @@ public class GTSEncoder implements Cloneable {
     }
   }
 
+  public static Object optimizeValue(Object value) {
+
+    if ((value instanceof Double) && Double.isFinite((double) value)) {
+      StringBuilder sb = new StringBuilder();
+      
+      char[] chars = null;
+
+      BinaryToASCIIConverter btoa = FloatingDecimal.getBinaryToASCIIConverter((double) value);
+      btoa.appendTo(sb);
+      
+      value = new BigDecimal(sb.toString());
+    }
+    
+    return value;
+  }
+  
   /**
    * Return a decoder instance capable of decoding the encoded content of this
    * encoder.

@@ -19,6 +19,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -42,8 +43,6 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Charsets;
-
 import io.warp10.SSLUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.script.MemoryWarpScriptStack;
@@ -61,6 +60,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
 
   private static final String CONF_HTTP_HOST = "http.host";
   private static final String CONF_HTTP_PORT = "http.port";
+  private static final String CONF_HTTP_TCP_BACKLOG = "http.tcp.backlog";
 
   /**
    * Directory where spec files are located
@@ -89,6 +89,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
   private long period;
   private String host;
   private int port = -1;
+  private int tcpBacklog = 0;
   private int acceptors = 2;
   private int selectors = 4;
   private int maxthreads = -1;
@@ -153,6 +154,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
       connector.setIdleTimeout(idleTimeout);
       connector.setPort(port);
       connector.setHost(host);
+      connector.setAcceptQueueSize(tcpBacklog);
       connector.setName("Warp 10 HTTP Plugin Jetty HTTP Connector");
       server.addConnector(connector);
       minthreads += acceptors + acceptors * selectors;
@@ -289,7 +291,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
       }
 
 
-      String warpscript = new String(baos.toByteArray(), Charsets.UTF_8);
+      String warpscript = new String(baos.toByteArray(), StandardCharsets.UTF_8);
       MemoryWarpScriptStack stack = new MemoryWarpScriptStack(getExposedStoreClient(), getExposedDirectoryClient(), new Properties());
       stack.maxLimits();
 
@@ -335,6 +337,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
     
     
     this.port = Integer.parseInt(properties.getProperty(CONF_HTTP_PORT, "-1"));
+    this.tcpBacklog = Integer.parseInt(properties.getProperty(CONF_HTTP_TCP_BACKLOG, "0"));
     this.sslport = Integer.parseInt(properties.getProperty("http" + Configuration._SSL_PORT, "-1"));
 
     if (-1 == this.port && -1 == this.sslport) {

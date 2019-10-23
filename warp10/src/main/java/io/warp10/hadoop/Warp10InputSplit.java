@@ -21,6 +21,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -64,7 +65,7 @@ public class Warp10InputSplit extends InputSplit implements Writable {
       out = new GZIPOutputStream(baos);
     }
     
-    out.write(entry.getBytes("US-ASCII"));
+    out.write(entry.getBytes(StandardCharsets.US_ASCII));
     out.write('\r');
     out.write('\n');
   }

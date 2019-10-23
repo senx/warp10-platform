@@ -50,9 +50,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
-import java.net.InetSocketAddress;
+import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -129,7 +131,6 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.MapMaker;
 import com.google.common.primitives.Longs;
@@ -221,7 +222,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   private final int remainder;
   private String host;
   private int port;
+  private int tcpBacklog;
   private int streamingport;
+  private int streamingTcpBacklog;
   private int streamingselectors;
   private int streamingacceptors;
     
@@ -475,7 +478,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     this.conn = ConnectionFactory.createConnection(conf);
 
     this.hbaseTable = TableName.valueOf(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_TABLE));
-    this.colfam = properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_COLFAM).getBytes(Charsets.UTF_8);
+    this.colfam = properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_COLFAM).getBytes(StandardCharsets.UTF_8);
     
     this.serviceNThreads = Integer.valueOf(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_SERVICE_NTHREADS));
     
@@ -678,6 +681,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 //
                 
                 String owner = metadata.getLabels().get(Constants.OWNER_LABEL);
+
+                String app = metadata.getLabels().get(Constants.APPLICATION_LABEL);
+                Map<String,String> sensisionLabels = new HashMap<String,String>();
+                sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, app);
                 
                 synchronized(classesPerOwner) {
                   Set<String> classes = classesPerOwner.get(owner);
@@ -690,6 +697,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   classes.add(metadata.getName());
                 }
 
+                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, 1);
                 Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_OWNERS, Sensision.EMPTY_LABELS, classesPerOwner.size());
 
                 synchronized(metadatas.get(metadata.getName())) {
@@ -744,7 +752,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               Scan scan = new Scan();
               scan.setStartRow(lastrow);
               // FIXME(hbs): we know the prefix is 'M', so we use 'N' as the stoprow
-              scan.setStopRow("N".getBytes(Charsets.UTF_8));
+              scan.setStopRow("N".getBytes(StandardCharsets.UTF_8));
               scan.addFamily(self.colfam);
               scan.setCaching(10000);
               scan.setBatch(10000);
@@ -846,7 +854,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     
     this.host = properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HOST);
     this.port = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_PORT));
+    this.tcpBacklog = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_TCP_BACKLOG, "0"));
     this.streamingport = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_PORT));
+    this.streamingTcpBacklog = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_TCP_BACKLOG, "0"));
     this.streamingacceptors = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_ACCEPTORS));
     this.streamingselectors = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_SELECTORS));
     
@@ -1034,6 +1044,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     connector.setIdleTimeout(idleTimeout);
     connector.setPort(this.streamingport);
     connector.setHost(host);
+    connector.setAcceptQueueSize(this.streamingTcpBacklog);
     connector.setName("Directory Streaming Service");
     
     server.setConnectors(new Connector[] { connector });
@@ -1093,8 +1104,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     ServiceInstance<Map> instance = null;
 
     try {
-      InetSocketAddress bindAddress = new InetSocketAddress(this.host, this.port);
-      TServerTransport transport = new TServerSocket(bindAddress);
+      InetAddress bindAddress = InetAddress.getByName(this.host);
+      TServerTransport transport = new TServerSocket(new ServerSocket(this.port, this.tcpBacklog, bindAddress));
       TThreadPoolServer.Args args = new TThreadPoolServer.Args(transport);
       args.processor(processor);
       //
@@ -1498,6 +1509,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               continue;
             }
             
+            String app = metadata.getLabels().get(Constants.APPLICATION_LABEL);
+            Map<String,String> sensisionLabels = new HashMap<String,String>();
+            sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, app);
             
             //
             // Check the source of the metadata
@@ -1562,6 +1576,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                     }                    
                   }
                   Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, -1);
+                  Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, -1);
                 }
               }
 
@@ -1738,7 +1753,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 if (hasChanged) {
                   // We re-serialize metadata
                   TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-                  metadataBytes = serializer.serialize(meta);
+                  metadataBytes = serializer.serialize(metadata);
                 }                
               }
             }
@@ -1851,6 +1866,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               // 128bits
               if (null == directory.metadatas.get(metadata.getName()).put(labelsId, metadata)) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, 1);
+                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, 1);
               }
            
             } finally {
@@ -2498,7 +2514,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               long labelsId = GTSHelper.labelsId(SIPHASH_LABELS_LONGS, metadata.getLabels());
               
               // Compute gtsId, we use the GTS Id String from which we extract the 16 bytes
-              byte[] data = GTSHelper.gtsIdToString(classId, labelsId).getBytes(Charsets.UTF_16BE);
+              byte[] data = GTSHelper.gtsIdToString(classId, labelsId).getBytes(StandardCharsets.UTF_16BE);
               long gtsId = SipHashInline.hash24(SIPHASH_CLASS_LONGS[0], SIPHASH_CLASS_LONGS[1], data, 0, data.length);
               
               gtsCount.aggregate(gtsId);
@@ -2516,13 +2532,13 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 if (perClassCardinality.size() >= LIMIT_CLASS_CARDINALITY) {
                   classCardinality = new HyperLogLogPlus(ESTIMATOR_P, ESTIMATOR_PPRIME);
                   for (String cls: perClassCardinality.keySet()) {
-                    data = cls.getBytes(Charsets.UTF_8);
+                    data = cls.getBytes(StandardCharsets.UTF_8);
                     classCardinality.aggregate(SipHashInline.hash24(SIPHASH_CLASS_LONGS[0], SIPHASH_CLASS_LONGS[1], data, 0, data.length, false));
                     perClassCardinality = null;
                   }
                 }
               } else {
-                data = metadata.getName().getBytes(Charsets.UTF_8);
+                data = metadata.getName().getBytes(StandardCharsets.UTF_8);
                 classCardinality.aggregate(SipHashInline.hash24(SIPHASH_CLASS_LONGS[0], SIPHASH_CLASS_LONGS[1], data, 0, data.length, false));
               }
               
@@ -2534,7 +2550,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                       estimator = new HyperLogLogPlus(ESTIMATOR_P, ESTIMATOR_PPRIME);
                       perLabelValueCardinality.put(entry.getKey(), estimator);
                     }
-                    data = entry.getValue().getBytes(Charsets.UTF_8);
+                    data = entry.getValue().getBytes(StandardCharsets.UTF_8);
                     long siphash = SipHashInline.hash24(SIPHASH_LABELS_LONGS[0], SIPHASH_LABELS_LONGS[1], data, 0, data.length, false);
                     estimator.aggregate(siphash);
                   }
@@ -2547,7 +2563,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                       estimator = new HyperLogLogPlus(ESTIMATOR_P, ESTIMATOR_PPRIME);
                       perLabelValueCardinality.put(entry.getKey(), estimator);
                     }
-                    data = entry.getValue().getBytes(Charsets.UTF_8);
+                    data = entry.getValue().getBytes(StandardCharsets.UTF_8);
                     estimator.aggregate(SipHashInline.hash24(SIPHASH_LABELS_LONGS[0], SIPHASH_LABELS_LONGS[1], data, 0, data.length, false));
                   }
                 }
@@ -2556,7 +2572,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   labelNamesCardinality = new HyperLogLogPlus(ESTIMATOR_P, ESTIMATOR_PPRIME);
                   labelValuesCardinality = new HyperLogLogPlus(ESTIMATOR_P, ESTIMATOR_PPRIME);
                   for (Entry<String,HyperLogLogPlus> entry: perLabelValueCardinality.entrySet()) {
-                    data = entry.getKey().getBytes(Charsets.UTF_8);
+                    data = entry.getKey().getBytes(StandardCharsets.UTF_8);
                     labelNamesCardinality.aggregate(SipHashInline.hash24(SIPHASH_LABELS_LONGS[0], SIPHASH_LABELS_LONGS[1], data, 0, data.length, false));
                     labelValuesCardinality.fuse(entry.getValue());
                   }
@@ -2565,17 +2581,17 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               } else {
                 if (metadata.getLabelsSize() > 0) {
                   for (Entry<String,String> entry: metadata.getLabels().entrySet()) {
-                    data = entry.getKey().getBytes(Charsets.UTF_8);
+                    data = entry.getKey().getBytes(StandardCharsets.UTF_8);
                     labelValuesCardinality.aggregate(SipHashInline.hash24(SIPHASH_LABELS_LONGS[0], SIPHASH_LABELS_LONGS[1], data, 0, data.length, false));
-                    data = entry.getValue().getBytes(Charsets.UTF_8);
+                    data = entry.getValue().getBytes(StandardCharsets.UTF_8);
                     labelValuesCardinality.aggregate(SipHashInline.hash24(SIPHASH_LABELS_LONGS[0], SIPHASH_LABELS_LONGS[1], data, 0, data.length, false));
                   }
                 }
                 if (metadata.getAttributesSize() > 0) {
                   for (Entry<String,String> entry: metadata.getAttributes().entrySet()) {
-                    data = entry.getKey().getBytes(Charsets.UTF_8);
+                    data = entry.getKey().getBytes(StandardCharsets.UTF_8);
                     labelValuesCardinality.aggregate(SipHashInline.hash24(SIPHASH_LABELS_LONGS[0], SIPHASH_LABELS_LONGS[1], data, 0, data.length, false));
-                    data = entry.getValue().getBytes(Charsets.UTF_8);
+                    data = entry.getValue().getBytes(StandardCharsets.UTF_8);
                     labelValuesCardinality.aggregate(SipHashInline.hash24(SIPHASH_LABELS_LONGS[0], SIPHASH_LABELS_LONGS[1], data, 0, data.length, false));
                   }
                 }
@@ -2591,7 +2607,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         classCardinality = new HyperLogLogPlus(ESTIMATOR_P, ESTIMATOR_PPRIME);
         for (Entry<String,HyperLogLogPlus> entry: perClassCardinality.entrySet()) {
           response.putToPerClassCardinality(entry.getKey(), ByteBuffer.wrap(entry.getValue().toBytes()));
-          byte[] data = entry.getKey().getBytes(Charsets.UTF_8);
+          byte[] data = entry.getKey().getBytes(StandardCharsets.UTF_8);
           classCardinality.aggregate(SipHashInline.hash24(SIPHASH_CLASS_LONGS[0], SIPHASH_CLASS_LONGS[1], data, 0, data.length, false));        
         }
       }
@@ -2602,7 +2618,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         HyperLogLogPlus estimator = new HyperLogLogPlus(ESTIMATOR_P, ESTIMATOR_PPRIME);
         HyperLogLogPlus nameEstimator = new HyperLogLogPlus(ESTIMATOR_P, ESTIMATOR_PPRIME);
         for (Entry<String,HyperLogLogPlus> entry: perLabelValueCardinality.entrySet()) {
-          byte[] data = entry.getKey().getBytes(Charsets.UTF_8);
+          byte[] data = entry.getKey().getBytes(StandardCharsets.UTF_8);
           nameEstimator.aggregate(SipHashInline.hash24(SIPHASH_LABELS_LONGS[0], SIPHASH_LABELS_LONGS[1], data, 0, data.length, false));
           estimator.fuse(entry.getValue());
           response.putToPerLabelValueCardinality(entry.getKey(), ByteBuffer.wrap(entry.getValue().toBytes()));
@@ -2652,7 +2668,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         break;
       }
       
-      byte[] raw = OrderPreservingBase64.decode(line.getBytes(Charsets.US_ASCII));
+      byte[] raw = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
 
       // Extract DirectoryStatsRequest
       TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
@@ -2701,7 +2717,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         
     // Decode selector
     
-    selector = new String(OrderPreservingBase64.decode(selector.getBytes(Charsets.US_ASCII)), Charsets.UTF_8);
+    selector = new String(OrderPreservingBase64.decode(selector.getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8);
     
     //
     // Check request signature
@@ -2738,7 +2754,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         
     String tssel = Long.toString(sigts) + ":" + selector;
         
-    byte[] bytes = tssel.getBytes(Charsets.UTF_8);
+    byte[] bytes = tssel.getBytes(StandardCharsets.UTF_8);
     long checkedhash = SipHashInline.hash24(SIPHASH_PSK_LONGS[0], SIPHASH_PSK_LONGS[1], bytes, 0, bytes.length);
         
     if (checkedhash != sighash) {

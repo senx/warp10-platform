@@ -16,6 +16,7 @@
 
 package io.warp10.standalone;
 
+import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
@@ -25,7 +26,6 @@ import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.ingress.DatalogForwarder;
-import io.warp10.continuum.ingress.Ingress;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
@@ -37,7 +37,6 @@ import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
-import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
 
 import java.io.BufferedReader;
@@ -49,6 +48,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.ParseException;
@@ -63,14 +63,11 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.io.output.FileWriterWithEncoding;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.UpgradeRequest;
-import org.eclipse.jetty.websocket.api.UpgradeResponse;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
@@ -84,8 +81,6 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Charsets;
 
 /**
  * WebSocket handler which handles streaming updates
@@ -133,6 +128,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     
     private long seqno = 0L;
     
+    private long maxsize;
     private WriteToken wtoken;
 
     private Boolean ignoor = null;
@@ -324,7 +320,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                 
                 if (null != loggingWriter) {
                   Map<String,String> labels = new HashMap<String,String>();
-                  labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+                  labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
                   labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
                   Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
 
@@ -407,18 +403,18 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                 
                 FileOutputStream fos = new FileOutputStream(loggingFile);
                 loggingFD = fos.getFD();
-                OutputStreamWriter osw = new OutputStreamWriter(fos, Charsets.UTF_8);
+                OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
                 loggingWriter = new PrintWriter(osw);
                 
                 //
                 // Write request
                 //
                 
-                loggingWriter.println(new String(encoded, Charsets.US_ASCII));
+                loggingWriter.println(new String(encoded, StandardCharsets.US_ASCII));
               }
 
               try {
-                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.handler.maxValueSize, hadAttributes, maxpast, maxfuture, ignoredCount);
+                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.maxsize, hadAttributes, maxpast, maxfuture, ignoredCount);
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
                 throw new IOException("Parse error at '" + line + "'", pe);
@@ -542,7 +538,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
           } finally {
             if (null != loggingWriter) {              
               Map<String,String> labels = new HashMap<String,String>();
-              labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+              labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
               labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
               Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
 
@@ -573,7 +569,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
         }        
       } catch (Throwable t) {
         if (this.errormsg) {
-          session.getRemote().sendString("ERROR " + t.getMessage());
+          String msg = "ERROR " + ThrowableUtils.getErrorMessage(t);
+          session.getRemote().sendString(msg);
         } else {
           throw t;
         }
@@ -611,6 +608,12 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
 
       if (wtoken.getAttributesSize() > 0 && wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_NOUPDATE)) {
         throw new IOException("Token cannot be used for updating data.");
+      }
+
+      this.maxsize = this.handler.maxValueSize;
+      
+      if (wtoken.getAttributesSize() > 0 && null != wtoken.getAttributes().get(Constants.TOKEN_ATTR_MAXSIZE)) {
+        maxsize = Long.parseLong(wtoken.getAttributes().get(Constants.TOKEN_ATTR_MAXSIZE));
       }
 
       this.maxpastdelta = null;
@@ -765,7 +768,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
       if (null == id) {
         throw new RuntimeException("Property '" + Configuration.DATALOG_ID + "' MUST be set to a unique value for this instance.");
       } else {
-        datalogId = new String(OrderPreservingBase64.encode(id.getBytes(Charsets.UTF_8)), Charsets.US_ASCII);
+        datalogId = new String(OrderPreservingBase64.encode(id.getBytes(StandardCharsets.UTF_8)), StandardCharsets.US_ASCII);
       }
       
     } else {
