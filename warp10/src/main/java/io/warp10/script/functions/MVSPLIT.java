@@ -56,10 +56,10 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
     
     Object top = stack.pop();
     
-    Map<Long,String> renamingMap = new HashMap<Long,String>();
+    Map<Object,Object> renamingMap = new HashMap<Object,Object>();
     
     if (top instanceof Map) {
-      renamingMap = (Map<Long,String>) top;
+      renamingMap = (Map<Object,Object>) top;
       top = stack.pop();
     }
     
@@ -272,13 +272,18 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
       // Now rename the encoders
       GeoTimeSerie g = new GeoTimeSerie();
       for (Entry<Long,GTSEncoder> entry: encoders.entrySet()) {
-        String name = renamingMap.get(entry.getKey());
+        Object name = renamingMap.get(entry.getKey());
+        
+        // If there was no name with the Long as the key, try with the String representation
+        if (null == name) {
+          name = renamingMap.get(entry.getKey().toString());
+        }
         
         if (null == name) {
           entry.getValue().setName(entry.getValue().getName() + ":" + entry.getKey());
         } else {
           g.safeSetMetadata(entry.getValue().getMetadata());
-          GTSHelper.rename(g, name);
+          GTSHelper.rename(g, name.toString());
         }
       }
       

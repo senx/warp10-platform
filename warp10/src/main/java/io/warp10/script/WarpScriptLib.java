@@ -406,6 +406,8 @@ public class WarpScriptLib {
   
   public static final String GEO_WKT = "GEO.WKT";
   public static final String GEO_WKT_UNIFORM = "GEO.WKT.UNIFORM";
+  public static final String GEO_WKB = "GEO.WKB";
+  public static final String GEO_WKB_UNIFORM = "GEO.WKB.UNIFORM";
   
   public static final String GEO_JSON = "GEO.JSON";
   public static final String GEO_JSON_UNIFORM = "GEO.JSON.UNIFORM";
@@ -748,6 +750,7 @@ public class WarpScriptLib {
   public static final String PROB = "PROB";
   public static final String CPROB = "CPROB";
   public static final String RANDPDF = "RANDPDF";
+  public static final String SRANDPDF = "SRANDPDF";
   public static final String SINGLEEXPONENTIALSMOOTHING = "SINGLEEXPONENTIALSMOOTHING";
   public static final String DOUBLEEXPONENTIALSMOOTHING = "DOUBLEEXPONENTIALSMOOTHING";
   public static final String LOWESS = "LOWESS";
@@ -1590,7 +1593,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new PROBABILITY.Builder(PROBABILITY));
     addNamedWarpScriptFunction(new PROB(PROB));
     addNamedWarpScriptFunction(new CPROB(CPROB));
-    addNamedWarpScriptFunction(new RANDPDF.Builder(RANDPDF));
+    addNamedWarpScriptFunction(new RANDPDF.Builder(RANDPDF, false));
+    addNamedWarpScriptFunction(new RANDPDF.Builder(SRANDPDF, true));
     addNamedWarpScriptFunction(new SINGLEEXPONENTIALSMOOTHING(SINGLEEXPONENTIALSMOOTHING));
     addNamedWarpScriptFunction(new DOUBLEEXPONENTIALSMOOTHING(DOUBLEEXPONENTIALSMOOTHING));
     addNamedWarpScriptFunction(new LOWESS(LOWESS));
@@ -1868,6 +1872,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new GEOREGEXP(GEO_REGEXP));
     addNamedWarpScriptFunction(new GeoWKT(GEO_WKT, false));
     addNamedWarpScriptFunction(new GeoWKT(GEO_WKT_UNIFORM, true));
+    addNamedWarpScriptFunction(new GeoWKB(GEO_WKB, false));
+    addNamedWarpScriptFunction(new GeoWKB(GEO_WKB_UNIFORM, true));
     addNamedWarpScriptFunction(new GeoJSON(GEO_JSON, false));
     addNamedWarpScriptFunction(new GeoJSON(GEO_JSON_UNIFORM, true));
     addNamedWarpScriptFunction(new GEOOPTIMIZE(GEO_OPTIMIZE));
@@ -2175,6 +2181,9 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new CircularMean.Builder("bucketizer.mean.circular", true));
     addNamedWarpScriptFunction(new CircularMean.Builder("bucketizer.mean.circular.exclude-nulls", false));
     addNamedWarpScriptFunction(new RMS("bucketizer.rms", false));
+    addNamedWarpScriptFunction(new StandardDeviation.Builder("bucketizer.sd", false));
+    addNamedWarpScriptFunction(new StandardDeviation.Builder("bucketizer.sd.forbid-nulls", true));
+
     //
     // Mappers
     //

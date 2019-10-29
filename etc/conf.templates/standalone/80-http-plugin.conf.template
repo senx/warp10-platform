@@ -22,6 +22,8 @@
 #http.host = 127.0.0.1
 // Port the HTTP plugin will listen on
 #http.port = 10080
+// TCP Backlog for the HTTP plugin listener
+#http.tcp.backlog =
 // Number of Jetty acceptors to use (defaults to 2)
 #http.acceptors = 2
 // Number of Jetty selectors to use (defaults to 4)

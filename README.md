@@ -1,17 +1,21 @@
-# Warp 10™ Platform
+# Warp 10 Platform [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Get%20The%20Most%20Advanced%20Time%20Series%20Platform&url=https://warp10.io/download&via=warp10io&hashtags=tsdb,database,timeseries,opensource)
+[![Build Status](https://www.travis-ci.org/senx/warp10-platform.svg?branch=master)](https://www.travis-ci.org/senx/warp10-platform)
+[![Download](https://api.bintray.com/packages/senx/generic/warp10/images/download.svg)](https://bintray.com/senx/generic/warp10/_latestVersion)
+
+<p align="center"><img src="https://blog.senx.io/wp-content/uploads/2018/10/warp10bySenx.png" alt="Warp 10 Logo" width="50%"></p>
 
 ## Introduction
 
-Warp 10™ is an Open Source Geo Time Series™ Platform designed to handle data coming from sensors, monitoring systems and the Internet of Things.
+Warp 10 is an Open Source Geo Time Series Platform designed to handle data coming from sensors, monitoring systems and the Internet of Things.
 
-Geo Time Series™ extend the notion of Time Series by merging the sequence of sensor readings with the sequence of sensor locations. If your data have no location information, Warp 10™ will handle them as regular Time Series.
+Geo Time Series extend the notion of Time Series by merging the sequence of sensor readings with the sequence of sensor locations. If your data have no location information, Warp 10 will handle them as regular Time Series.
 
 ## Features
 
-The Warp 10™ Platform provides a rich set of features to simplify your work around sensor data.
+The Warp 10 Platform provides a rich set of features to simplify your work around sensor data.
 
 * Continuum, our collection and storage layer, a Geo Time Series Database
-* WarpScript™, a language dedicated to sensor data analysis with more than 800 functions and extension capabilities
+* WarpScript, a language dedicated to sensor data analysis with more than 900 functions and extension capabilities
 * Plasma and Mobius, streaming engines allowing to cascade the Warp 10 Platform with Complex Event Processing solutions and to build dynamic dashboards
 * Quasar, a fine grain access control and authorization mechanism
 * Runner, a system for scheduling WarpScript program executions on the server side
@@ -22,11 +26,11 @@ The Warp 10™ Platform provides a rich set of features to simplify your work ar
 
 ## Getting Help
 
-The team has put lots of efforts into the [documentation](http://www.warp10.io/) of the Warp 10™ Platform, there are still some areas which may need improving, so we count on you to raise the overall quality.
+The team has put lots of efforts into the [documentation](http://www.warp10.io/) of the Warp 10 Platform, there are still some areas which may need improving, so we count on you to raise the overall quality.
 
-We understand that discovering all the features of the Warp 10™ Platform at once can be intimidating, that's why we've put together a [Google Group](https://groups.google.com/forum/#!forum/warp10-users) we recommend you subscribe to.
+We understand that discovering all the features of the Warp 10 Platform at once can be intimidating, that's why we've put together a [Google Group](https://groups.google.com/forum/#!forum/warp10-users) we recommend you subscribe to.
 
-Our goal is to build a large community of users to move our platform into territories we haven't explored yet and to make Warp 10™ and WarpScript™ the standards for sensor data and the IoT.
+Our goal is to build a large community of users to move our platform into territories we haven't explored yet and to make Warp 10 and WarpScript the standards for sensor data and the IoT.
 
 We also suggest you subscribe to our Twitter account [@warp10io](https://twitter.com/warp10io).
 
@@ -35,3 +39,7 @@ We also suggest you subscribe to our Twitter account [@warp10io](https://twitter
 Should you need commercial support for your projects, [SenX](https://senx.io/) offers support plans which will give you access to the core team developing the platform.
 
 Don't hesitate to contact us at [sales@senx.io](mailto:sales@senx.io) for all your enquiries.
+
+#### Trademarks
+
+Warp 10, WarpScript, WarpFleet, Geo Time Series and SenX are tradekarms of SenX S.A.S.

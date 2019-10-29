@@ -51,6 +51,7 @@ public class TCPManager extends Thread {
   private static final int DEFAULT_QSIZE = 1024;
   private static final int DEFAULT_MAXMESSAGES = 1;
   private static final int DEFAULT_MAXCONNECTIONS = 1;
+  private static final int DEFAULT_TCP_BACKLOG = 0;
   private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
 
   private static final String PARAM_MODE = "mode";
@@ -61,6 +62,7 @@ public class TCPManager extends Thread {
   private static final String PARAM_QSIZE = "qsize";
   private static final String PARAM_HOST = "host";
   private static final String PARAM_PORT = "port";
+  private static final String PARAM_TCP_BACKLOG = "tcpBacklog";
   private static final String PARAM_TIMEOUT = "timeout";
   private static final String PARAM_MAXMESSAGES = "maxMessages";
   private static final String PARAM_MAXCONNECTIONS = "maxConnections";
@@ -79,6 +81,7 @@ public class TCPManager extends Thread {
 
   private final int parallelism;
   private final int port;
+  private final int tcpBacklog;
 
   private Thread[] executors;
 
@@ -142,6 +145,7 @@ public class TCPManager extends Thread {
     partitioner = (Macro) config.get(PARAM_PARTITIONER);
     host = String.valueOf(config.get(PARAM_HOST));
     port = ((Number) config.get(PARAM_PORT)).intValue();
+    tcpBacklog = ((Number) config.getOrDefault(PARAM_TCP_BACKLOG, DEFAULT_TCP_BACKLOG)).intValue();
     parallelism = ((Number) config.getOrDefault(PARAM_PARALLELISM, 1)).intValue();
     timeout = ((Number) config.getOrDefault(PARAM_TIMEOUT, 0L)).longValue();
     maxMessages = ((Number) config.getOrDefault(PARAM_MAXMESSAGES, DEFAULT_MAXMESSAGES)).intValue();
@@ -164,7 +168,7 @@ public class TCPManager extends Thread {
 
     // Create server or client socket
     if ("server".equals(mode)) {
-      serverSocket = new ServerSocket(port, 50, InetAddress.getByName(host));
+      serverSocket = new ServerSocket(port, tcpBacklog, InetAddress.getByName(host));
     } else if (!"client".equals(mode)) {
       throw new RuntimeException("Mode must be either server or client.");
     }

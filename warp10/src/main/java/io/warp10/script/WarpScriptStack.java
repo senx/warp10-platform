@@ -24,7 +24,6 @@ import io.warp10.warp.sdk.WarpScriptJavaFunction;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EmptyStackException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -449,9 +448,9 @@ public interface WarpScriptStack {
    * 
    * @return The object on top of the stack
    * 
-   * @throws EmptyStackException if the stack is empty.
+   * @throws InformativeEmptyStackException if the stack is empty.
    */
-  public Object pop() throws EmptyStackException;
+  public Object pop() throws InformativeEmptyStackException;
   
   /**
    * Remove and return 'N' objects from the top of the
@@ -463,7 +462,7 @@ public interface WarpScriptStack {
    * 
    * @return An array of 'N' objects, the first being the deepest.
    *  
-   * @throws EmptyStackException if the stack is empty.
+   * @throws InformativeEmptyStackException if the stack is empty.
    * @throws IndexOutOfBoundsException If 'N' is not present or if
    *         'N' is invalid or if the stack is not deep enough.
    */
@@ -475,9 +474,9 @@ public interface WarpScriptStack {
    * 
    * @return The object on top of the stack
    * 
-   * @throws EmptyStackException if the stack is empty.
+   * @throws InformativeEmptyStackException if the stack is empty.
    */
-  public Object peek() throws EmptyStackException;
+  public Object peek() throws InformativeEmptyStackException;
   
   /**
    * Return the object at 'distance' from the top of the stack.
@@ -485,9 +484,9 @@ public interface WarpScriptStack {
    * 
    * The object on top the stack is at distance 0.
    * 
-   * @throws EmptyStackException if the stack is empty.
-   * @throws IndexOutOfBoundException if no valid 'distance' is on top of the stack or if the
-   *         requested distance is passed the bottom of the stack. 
+   * @throws InformativeEmptyStackException if the stack is empty.
+   * @throws WarpScriptException if no valid 'distance' is on top of the stack or if the
+   *         requested distance is passed the bottom of the stack.
    */
   public Object peekn() throws WarpScriptException;
   
@@ -506,7 +505,7 @@ public interface WarpScriptStack {
   /**
    * Swap the top 2 objects of the stack.
    * 
-   * @throws EmptyStackException if the stack is empty.
+   * @throws InformativeEmptyStackException if the stack is empty.
    * @throws IndexOutOfBoundsException if the stack is empty or
    *         contains a single element.
    */
@@ -521,7 +520,7 @@ public interface WarpScriptStack {
    *    B                     A
    *    A (top)               C (top)
    *    
-   * @throws EmptyStackException if the stack is empty.
+   * @throws InformativeEmptyStackException if the stack is empty.
    * @throws IndexOutOfBoundsException if the stack contains less than 3 objects
    */
   public void rot() throws WarpScriptException;
@@ -530,7 +529,7 @@ public interface WarpScriptStack {
    * Rotate up the top 'N' objects of the stack.
    * 'N' is on top of the stack and is consumed by 'roll'.
    * 
-   * @throws EmptyStackException if the stack is empty.
+   * @throws InformativeEmptyStackException if the stack is empty.
    * @throws IndexOutOfBoundsException if 'N' is not present on top of the stack,
    *         is not a number or if the stack does not have enough elements for the
    *         operation.
@@ -541,7 +540,7 @@ public interface WarpScriptStack {
    * Rotate down the top 'N' objects of the stack.
    * 'N' is on the top of the stack and is consumed by 'rolld'.
    * 
-   * @throws EmptyStackException if the stack is empty
+   * @throws InformativeEmptyStackException if the stack is empty
    * @throws IndexOutOfBoundsException if 'N' is not present on top of the stack,
    *         is not a number or if the stack does not have enough elements for the
    *         operation.
@@ -552,7 +551,7 @@ public interface WarpScriptStack {
    * Copy the object at level 'N' on top of the stack.
    * 'N' is on top of the stack and is consumed by the call to 'pick'.
    * 
-   * @throws EmptyStackException
+   * @throws InformativeEmptyStackException
    * @throws IndexOutOfBoundsException
    */
   public void pick() throws WarpScriptException;
@@ -560,14 +559,14 @@ public interface WarpScriptStack {
   /**
    * Remove the top of the stack.
    * 
-   * @throws EmptyStackException If the stack is empty.
+   * @throws InformativeEmptyStackException If the stack is empty.
    */
   public void drop() throws WarpScriptException;
   
   /**
    * Remove the top 'N' objects of the stack.
    * 
-   * @throws EmptyStackException if the stack is empty.
+   * @throws InformativeEmptyStackException if the stack is empty.
    * @throws IndexOutOfBoundsException If 'N' is not present on the top of the stack,
    *         is not a number
    *         or if the stack has fewer than 'N' objects after consuming 'N'.
@@ -577,7 +576,7 @@ public interface WarpScriptStack {
   /**
    * Duplicate the object on top of the stack.
    * 
-   * @throws EmptyStackException if the stack is empty.
+   * @throws InformativeEmptyStackException if the stack is empty.
    */
   public void dup() throws WarpScriptException;
   
@@ -585,7 +584,7 @@ public interface WarpScriptStack {
    * Duplicate the top 'N' objects of the stack.
    * 'N' is consumed at the top of the stack first.
    * 
-   * @throws EmptyStackException if the stack is empty.
+   * @throws InformativeEmptyStackException if the stack is empty.
    * @throws IndexOutOfBoundsException if the stack contains less than 'N' objects.
    */
   public void dupn() throws WarpScriptException;

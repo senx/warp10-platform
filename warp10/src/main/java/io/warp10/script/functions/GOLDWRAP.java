@@ -85,91 +85,7 @@ public class GOLDWRAP extends ElementOrListStackFunction {
             // as an optimized encoder, so take a fastpath!
             enc = encoder;
           } else {
-            //
-            // Split the encoder in 5 GTS, one per type, in this order:
-            //
-            // LONG, DOUBLE, BOOLEAN, STRING, BINARY
-            //
-            
-            GeoTimeSerie[] gts = new GeoTimeSerie[5];
-
-            for (int i = 0; i < gts.length; i++) {
-              gts[i] = new GeoTimeSerie();
-            }
-            
-            GTSDecoder decoder = encoder.getDecoder();
-            
-            // Populate the 5 GTS
-            while (decoder.next()) {
-              long ts = decoder.getTimestamp();
-              long location = decoder.getLocation();
-              long elevation = decoder.getElevation();
-              Object value = decoder.getBinaryValue();
-              
-              if (value instanceof Long) {
-                GTSHelper.setValue(gts[0], ts, location, elevation, value, false);
-              } else if (value instanceof Double || value instanceof BigDecimal) {
-                GTSHelper.setValue(gts[1], ts, location, elevation, value, false);          
-              } else if (value instanceof Boolean) {
-                GTSHelper.setValue(gts[2], ts, location, elevation, value, false);
-              } else if (value instanceof String) {
-                GTSHelper.setValue(gts[3], ts, location, elevation, value, false);
-              } else if (value instanceof byte[]) {
-                GTSHelper.setValue(gts[4], ts, location, elevation, value, false);
-              }
-            }
-            
-            // Sort the 5 GTS using fullsort so we get a deterministic order
-            // in the presence of duplicate ticks
-            
-            for (int i = 0; i < gts.length; i++) {
-              GTSHelper.fullsort(gts[i], false);
-            }
-            
-            // Now merge the GTS in time order with the type precedence of the 'gts' array
-            
-            enc = new GTSEncoder(0L);
-            enc.setMetadata(encoder.getMetadata());
-            
-            int[] idx = new int[gts.length];
-            
-            while (true) {
-              // Determine the next GTS to add from its timestamp, lowest first
-              int gtsidx = -1;
-              
-              long ts = Long.MAX_VALUE;
-              for (int i = 0; i < gts.length; i++) {
-                if (idx[i] >= GTSHelper.nvalues(gts[i])) {
-                  continue;
-                }
-                long tick = GTSHelper.tickAtIndex(gts[i], idx[i]);
-                if (-1 == gtsidx || tick < ts) {
-                  gtsidx = i;
-                  ts = tick;
-                }
-              }
-              
-              if (-1 == gtsidx) {
-                break;
-              }
-              
-              do {
-                long location = GTSHelper.locationAtIndex(gts[gtsidx], idx[gtsidx]);
-                long elevation = GTSHelper.elevationAtIndex(gts[gtsidx], idx[gtsidx]);
-                Object value = GTSHelper.valueAtIndex(gts[gtsidx], idx[gtsidx]);
-                
-                if (4 == gtsidx) { // BINARY
-                  value = value.toString().getBytes(StandardCharsets.ISO_8859_1);
-                } else if (2 == gtsidx) { // DOUBLE
-                  // Attempt to optimize the value
-                  value = GTSEncoder.optimizeValue(value);
-                }
-                
-                enc.addValue(ts, location, elevation, value);
-                
-                idx[gtsidx]++;
-              } while (idx[gtsidx] < GTSHelper.nvalues(gts[gtsidx]) && GTSHelper.tickAtIndex(gts[gtsidx], idx[gtsidx]) == ts);            
-            }                     
+            enc = GTSHelper.fullsort(encoder, false, 0L);
           }
           
           GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(enc, true, 1.0D, Integer.MAX_VALUE);
@@ -178,9 +94,9 @@ public class GOLDWRAP extends ElementOrListStackFunction {
           
           return bytes;
         } catch (TException te) {
-          throw new WarpScriptException(getName() + " encountered an error while deserializing GTS Wrapper.", te);
+          throw new WarpScriptException(getName() + " encountered an error while manipulating GTS Wrapper.", te);
         } catch (IOException ioe) {
-          throw new WarpScriptException(getName() + " encountered an error while deserializing GTS Wrapper.", ioe);
+          throw new WarpScriptException(getName() + " encountered an error while manipulating Encoder or GTS Wrapper.", ioe);
         }
       }
     };

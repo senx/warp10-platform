@@ -60,6 +60,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
 
   private static final String CONF_HTTP_HOST = "http.host";
   private static final String CONF_HTTP_PORT = "http.port";
+  private static final String CONF_HTTP_TCP_BACKLOG = "http.tcp.backlog";
 
   /**
    * Directory where spec files are located
@@ -88,6 +89,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
   private long period;
   private String host;
   private int port = -1;
+  private int tcpBacklog = 0;
   private int acceptors = 2;
   private int selectors = 4;
   private int maxthreads = -1;
@@ -152,6 +154,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
       connector.setIdleTimeout(idleTimeout);
       connector.setPort(port);
       connector.setHost(host);
+      connector.setAcceptQueueSize(tcpBacklog);
       connector.setName("Warp 10 HTTP Plugin Jetty HTTP Connector");
       server.addConnector(connector);
       minthreads += acceptors + acceptors * selectors;
@@ -334,6 +337,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
     
     
     this.port = Integer.parseInt(properties.getProperty(CONF_HTTP_PORT, "-1"));
+    this.tcpBacklog = Integer.parseInt(properties.getProperty(CONF_HTTP_TCP_BACKLOG, "0"));
     this.sslport = Integer.parseInt(properties.getProperty("http" + Configuration._SSL_PORT, "-1"));
 
     if (-1 == this.port && -1 == this.sslport) {

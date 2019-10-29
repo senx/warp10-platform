@@ -50,7 +50,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
-import java.net.InetSocketAddress;
+import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -221,7 +222,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   private final int remainder;
   private String host;
   private int port;
+  private int tcpBacklog;
   private int streamingport;
+  private int streamingTcpBacklog;
   private int streamingselectors;
   private int streamingacceptors;
     
@@ -678,6 +681,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 //
                 
                 String owner = metadata.getLabels().get(Constants.OWNER_LABEL);
+
+                String app = metadata.getLabels().get(Constants.APPLICATION_LABEL);
+                Map<String,String> sensisionLabels = new HashMap<String,String>();
+                sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, app);
                 
                 synchronized(classesPerOwner) {
                   Set<String> classes = classesPerOwner.get(owner);
@@ -690,6 +697,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   classes.add(metadata.getName());
                 }
 
+                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, 1);
                 Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_OWNERS, Sensision.EMPTY_LABELS, classesPerOwner.size());
 
                 synchronized(metadatas.get(metadata.getName())) {
@@ -846,7 +854,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     
     this.host = properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HOST);
     this.port = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_PORT));
+    this.tcpBacklog = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_TCP_BACKLOG, "0"));
     this.streamingport = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_PORT));
+    this.streamingTcpBacklog = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_TCP_BACKLOG, "0"));
     this.streamingacceptors = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_ACCEPTORS));
     this.streamingselectors = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_SELECTORS));
     
@@ -1034,6 +1044,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     connector.setIdleTimeout(idleTimeout);
     connector.setPort(this.streamingport);
     connector.setHost(host);
+    connector.setAcceptQueueSize(this.streamingTcpBacklog);
     connector.setName("Directory Streaming Service");
     
     server.setConnectors(new Connector[] { connector });
@@ -1093,8 +1104,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     ServiceInstance<Map> instance = null;
 
     try {
-      InetSocketAddress bindAddress = new InetSocketAddress(this.host, this.port);
-      TServerTransport transport = new TServerSocket(bindAddress);
+      InetAddress bindAddress = InetAddress.getByName(this.host);
+      TServerTransport transport = new TServerSocket(new ServerSocket(this.port, this.tcpBacklog, bindAddress));
       TThreadPoolServer.Args args = new TThreadPoolServer.Args(transport);
       args.processor(processor);
       //
@@ -1498,6 +1509,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               continue;
             }
             
+            String app = metadata.getLabels().get(Constants.APPLICATION_LABEL);
+            Map<String,String> sensisionLabels = new HashMap<String,String>();
+            sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, app);
             
             //
             // Check the source of the metadata
@@ -1562,6 +1576,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                     }                    
                   }
                   Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, -1);
+                  Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, -1);
                 }
               }
 
@@ -1851,6 +1866,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               // 128bits
               if (null == directory.metadatas.get(metadata.getName()).put(labelsId, metadata)) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, 1);
+                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, 1);
               }
            
             } finally {
