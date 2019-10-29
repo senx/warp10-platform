@@ -1,14 +1,17 @@
 sudo: required
-dist: trusty
+dist: xenial
+
+before_install:
+  - sudo apt-get install -y thrift-compiler
 
 language: java
 jdk:
-  - oraclejdk8
+  - openjdk8
 
 install: true
 
 script:
-  - gradle warp10:pack
+  - ./gradlew -Djava.security.egd=file:/dev/urandom warp10:pack
 
 
 notifications:
