@@ -177,6 +177,11 @@ plasma.frontend.websocket.maxmessagesize = 1048576
 #standalone.splits.enable = true
 
 //
+// Token file
+//
+#warp.token.file =
+
+//
 // TRL (TOKEN REVOCATION LIST)
 //
 /////////////////////////////////////////////////////////////////////////////////////////
