@@ -6,9 +6,9 @@
 
 ## Introduction
 
-Warp 10 is an Open Source Geo Time Series™ Platform designed to handle data coming from sensors, monitoring systems and the Internet of Things.
+Warp 10 is an Open Source Geo Time Series Platform designed to handle data coming from sensors, monitoring systems and the Internet of Things.
 
-Geo Time Series™ extend the notion of Time Series by merging the sequence of sensor readings with the sequence of sensor locations. If your data have no location information, Warp 10 will handle them as regular Time Series.
+Geo Time Series extend the notion of Time Series by merging the sequence of sensor readings with the sequence of sensor locations. If your data have no location information, Warp 10 will handle them as regular Time Series.
 
 ## Features
 
