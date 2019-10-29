@@ -1,4 +1,8 @@
-# Warp 10™ Platform
+# Warp 10™ Platform [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Get%20The%20Most%20Advanced%20Time%20Series%20Platform&url=https://warp10.io/download&via=warp10io&hashtags=tsdb,database,timeseries,opensource)
+[![Build Status](https://www.travis-ci.org/senx/warp10-platform.svg?branch=master)](https://www.travis-ci.org/senx/warp10-platform)
+[![Download](https://api.bintray.com/packages/senx/generic/warp10/images/download.svg)](https://bintray.com/senx/generic/warp10/_latestVersion)
+
+<p align="center"><img src="https://blog.senx.io/wp-content/uploads/2018/10/warp10bySenx.png" alt="Warp 10 Logo" width="50%"></p>
 
 ## Introduction
 
@@ -11,7 +15,7 @@ Geo Time Series™ extend the notion of Time Series by merging the sequence of s
 The Warp 10™ Platform provides a rich set of features to simplify your work around sensor data.
 
 * Continuum, our collection and storage layer, a Geo Time Series Database
-* WarpScript™, a language dedicated to sensor data analysis with more than 800 functions and extension capabilities
+* WarpScript™, a language dedicated to sensor data analysis with more than 900 functions and extension capabilities
 * Plasma and Mobius, streaming engines allowing to cascade the Warp 10 Platform with Complex Event Processing solutions and to build dynamic dashboards
 * Quasar, a fine grain access control and authorization mechanism
 * Runner, a system for scheduling WarpScript program executions on the server side
