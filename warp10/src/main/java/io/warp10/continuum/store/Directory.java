@@ -1644,7 +1644,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 // If we are doing a metadata update and the GTS is not known, skip the call to store.
                 //
                 
-                if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource()) && !directory.plugin.known(gts)) {
+                if ((io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource()) || io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) && !directory.plugin.known(gts)) {
                   continue;
                 }
 
@@ -1660,7 +1660,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_STORE_TIME_NANOS, Sensision.EMPTY_LABELS, nano);                  
               }
               
-            } else {
+            } else { // no directory plugin
               //
               // If Metadata comes from Ingress and it is already in the cache, do
               // nothing. Unless we are tracking activity in which case we need to check
@@ -1717,7 +1717,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               // If metadata is an update, only take it into consideration if the GTS is already known
               //
               
-              if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())
+              if ((io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())
+                  || io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource()))
                   && (!directory.metadatas.containsKey(metadata.getName())
                       || !directory.metadatas.get(metadata.getName()).containsKey(labelsId))) {
                 continue;
@@ -1728,9 +1729,37 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             // Clear the cache if it is an update
             //
             
-            if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
+            if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())
+                || io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) {
               id = MetadataUtils.id(metadata);
               directory.serializedMetadataCache.remove(id);
+              
+              //
+              // If this is a delta update of attributes, consolidate them
+              //
+              
+              if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) {
+                Metadata meta = directory.metadatas.get(metadata.getName()).get(labelsId);
+                
+                boolean hasChanged = false;
+                
+                for (Entry<String,String> attr: metadata.getAttributes().entrySet()) {
+                  hasChanged = true;
+                  if ("".equals(attr.getValue())) {
+                    meta.getAttributes().remove(attr.getKey());
+                  } else {
+                    meta.putToAttributes(attr.getKey(), attr.getValue());
+                  }
+                }
+                
+                if (hasChanged) {
+                  metadata.setAttributes(new HashMap<String,String>(meta.getAttributes()));
+                  
+                  // We re-serialize metadata
+                  TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+                  metadataBytes = serializer.serialize(metadata);                  
+                }
+              }
               
               //
               // Update the last activity
@@ -1749,7 +1778,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   metadata.setLastActivity(meta.getLastActivity());
                   hasChanged = true;
                 }
-                
+                                
                 if (hasChanged) {
                   // We re-serialize metadata
                   TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());

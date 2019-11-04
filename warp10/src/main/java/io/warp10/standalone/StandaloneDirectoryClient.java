@@ -634,17 +634,20 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       //
       
       // When it is a metadata update request, only store the metadata if the GTS is already known
-      if (Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
+      if (Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())
+          || Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) {
         if (metadatas.containsKey(metadata.getName())) {
           // 128BITS
           long labelsId = GTSHelper.labelsId(this.labelsLongs, metadata.getLabels());
           if (metadatas.get(metadata.getName()).containsKey(labelsId)) {
             // Check the activity so we only increase it
             // 128 bits
-            long currentLastActivity = metadatas.get(metadata.getName()).get(labelsId).getLastActivity();
+            Metadata meta = metadatas.get(metadata.getName()).get(labelsId);
+            long currentLastActivity = meta.getLastActivity();
             if (metadata.getLastActivity() < currentLastActivity) {
               metadata.setLastActivity(currentLastActivity);
             }
+            
             store(metadata);
           }
         }
@@ -811,7 +814,34 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     metadata.setClassId(classId);
     metadata.setLabelsId(labelsId);
     
-    if (null == metadata.getAttributes() || !Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
+    if (Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())){
+      // Update the attributes
+      Metadata oldmeta = null;
+      synchronized(metadatas) {
+        if (metadatas.containsKey(metadata.getName())) {
+          oldmeta = metadatas.get(metadata.getName()).get(labelsId);
+          
+          if (null != oldmeta && metadata.getAttributesSize() > 0) {
+            for (Entry<String,String> attr: metadata.getAttributes().entrySet()) {
+              if ("".equals(attr.getValue())) {
+                oldmeta.getAttributes().remove(attr.getKey());
+              } else {
+                oldmeta.putToAttributes(attr.getKey(), attr.getValue());
+              }
+            }
+            metadata.setAttributes(new HashMap<String,String>(oldmeta.getAttributes()));
+          } else if (metadata.getAttributesSize() > 0) {
+            // Remove the attributes with an empty value
+            Set<String> names = new HashSet<String>(metadata.getAttributes().keySet());
+            for (String name: names) {
+              if ("".equals(metadata.getAttributes().get(name))) {
+                metadata.getAttributes().remove(name);
+              }
+            }
+          }
+        }
+      }      
+    } else if (null == metadata.getAttributes() || !Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
       metadata.setAttributes(new HashMap<String,String>());
       
       // If we are not updating the attributes, copy the attributes from the directory as we are probably

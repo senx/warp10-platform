@@ -663,6 +663,11 @@ public class Configuration {
   public static final String INGRESS_METADATA_UPDATE_ENDPOINT = "ingress.metadata.update";
 
   /**
+   * Identification if Ingress Metadata Update endpoint source when doing a delta update of attributes
+   */
+  public static final String INGRESS_METADATA_UPDATE_DELTA_ENDPOINT = "ingress.metadata.update.delta";
+  
+  /**
    * Do we send Metadata in the Kafka message for delete operations?
    */
   public static final String INGRESS_DELETE_METADATA_INCLUDE = "ingress.delete.metadata.include";
@@ -2135,6 +2140,11 @@ public class Configuration {
    */
   public static final String HTTP_HEADER_NOW_HEADERX = "http.header.now";
 
+  /**
+   * HTTP Header for specifying attribute parsing type
+   */
+  public static final String HTTP_HEADER_ATTRIBUTES = "http.header.attributes";
+  
   /**
    * HTTP Header for specifying the timespan in /sfetch requests
    */

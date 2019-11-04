@@ -275,7 +275,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
       response.setHeader("Access-Control-Allow-Origin", "*");
       
       long nano = System.nanoTime();
-      
+
+      boolean deltaAttributes = "delta".equals(request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES)));
+
       //
       // Extract DatalogRequest if specified
       //
@@ -316,6 +318,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
         labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
         Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_RECEIVED, labels, 1);
         forwarded = true;
+        
+        deltaAttributes = dr.isDeltaAttributes();
       }
 
       //
@@ -572,6 +576,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
             dr.setType(Constants.DATALOG_UPDATE);
             dr.setId(datalogId);
             dr.setToken(token); 
+            dr.setDeltaAttributes(deltaAttributes);
             
             if (null == now) {
               //
@@ -691,7 +696,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
           count++;
 
           try {
-            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxsize, hadAttributes, maxpast, maxfuture, ignoredCount);
+            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxsize, hadAttributes, maxpast, maxfuture, ignoredCount, deltaAttributes);
             //nano2 += System.nanoTime() - nano0;
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_PARSEERRORS, sensisionLabels, 1);
@@ -740,7 +745,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
                 // We need to push lastencoder's metadata update as they were updated since the last
                 // metadata update message sent
                 Metadata meta = new Metadata(lastencoder.getMetadata());
-                meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                if (deltaAttributes) {
+                  meta.setSource(Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT);                  
+                } else {
+                  meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                }
                 this.directoryClient.register(meta);
                 lastHadAttributes = false;
               }
@@ -795,7 +804,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
             // Build metadata object to push
             Metadata meta = new Metadata(lastencoder.getMetadata());
             // Set source to indicate we
-            meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+            if (deltaAttributes) {
+              meta.setSource(Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT);
+            } else {
+              meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+            }
             this.directoryClient.register(meta);
           }
         }        
@@ -889,6 +902,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
       
       response.setHeader("Access-Control-Allow-Origin", "*");
 
+      boolean deltaAttributes = "delta".equals(request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES)));
+      
       //
       // Extract DatalogRequest if specified
       //
@@ -928,6 +943,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
         Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_RECEIVED, labels, 1);
         
         forwarded = true;
+        
+        deltaAttributes = dr.isDeltaAttributes();
       }
       
       //
@@ -1007,7 +1024,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
           dr.setTimestamp(nanos);
           dr.setType(Constants.DATALOG_META);
           dr.setId(datalogId);
-          dr.setToken(token);          
+          dr.setToken(token);
+          dr.setDeltaAttributes(deltaAttributes);
         }
         
         if (null != dr && (!forwarded || (forwarded && this.logforwarded))) {        
@@ -1089,7 +1107,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
             return;
           }
           
-          metadata.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+          if (deltaAttributes) {
+            metadata.setSource(Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT);            
+          } else {
+            metadata.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+          }
           
           if (metaActivity) {
             metadata.setLastActivity(lastActivity);

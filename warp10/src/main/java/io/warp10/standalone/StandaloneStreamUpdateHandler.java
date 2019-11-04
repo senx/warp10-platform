@@ -126,6 +126,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     
     private boolean errormsg = false;
     
+    private boolean deltaAttributes = false;
+    
     private long seqno = 0L;
     
     private long maxsize;
@@ -198,6 +200,10 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
             this.errormsg = false;
           }
           session.getRemote().sendString("OK " + (seqno++) + " ONERROR");
+        } else if ("DELTAON".equals(tokens[0])) {
+          this.deltaAttributes = true;
+        } else if ("DELTAOFF".equals(tokens[0])) {
+          this.deltaAttributes = false;
         } else {
           //
           // Anything else is considered a measurement
@@ -372,6 +378,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                 dr.setType(Constants.DATALOG_UPDATE);
                 dr.setId(handler.datalogId);
                 dr.setToken(encodedToken); 
+                dr.setDeltaAttributes(deltaAttributes);
                 
                 //
                 // Force 'now'
@@ -414,7 +421,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               }
 
               try {
-                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.maxsize, hadAttributes, maxpast, maxfuture, ignoredCount);
+                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.maxsize, hadAttributes, maxpast, maxfuture, ignoredCount, this.deltaAttributes);
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
                 throw new IOException("Parse error at '" + line + "'", pe);
@@ -472,7 +479,11 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                     // We need to push lastencoder's metadata update as they were updated since the last
                     // metadata update message sent
                     Metadata meta = new Metadata(lastencoder.getMetadata());
-                    meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                    if (this.deltaAttributes) {
+                      meta.setSource(Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT);                      
+                    } else {
+                      meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                    }
                     this.handler.directoryClient.register(meta);
                     lastHadAttributes = false;
                   }
@@ -531,7 +542,11 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                 // Build metadata object to push
                 Metadata meta = new Metadata(lastencoder.getMetadata());
                 // Set source to indicate we
-                meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                if (this.deltaAttributes) {
+                  meta.setSource(Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT);                  
+                } else {
+                  meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                }
                 this.handler.directoryClient.register(meta);
               }
             }              
