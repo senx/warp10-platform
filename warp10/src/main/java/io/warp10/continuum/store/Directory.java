@@ -351,6 +351,11 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   private ServiceInstance<Map> instance = null;
   
   /**
+   * Thread used as shutdown hook for deregistering instance
+   */
+  private Thread deregisterHook = null;
+  
+  /**
    * Should we initialize Directory upon startup by reading from HBase
    */
   private final boolean init;
@@ -1079,7 +1084,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     
     if (this.register) {
       final Directory self = this;
-      Runtime.getRuntime().addShutdownHook(new Thread() {
+      this.deregisterHook = new Thread() {
         @Override
         public void run() {
           try {
@@ -1091,7 +1096,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             LOG.error("Error while unregistering Directory.", e);
           }
         }
-      });
+      };
+      Runtime.getRuntime().addShutdownHook(deregisterHook);
     }
 
     //
@@ -1185,6 +1191,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         try {
           sd.unregisterService(instance);
         } catch (Exception e) {
+        }        
+      }
+      if (null != deregisterHook) {
+        try {
+          Runtime.getRuntime().removeShutdownHook(deregisterHook);
+        } catch (Exception e) {          
         }
       }
     }
