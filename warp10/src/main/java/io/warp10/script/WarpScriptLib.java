@@ -517,6 +517,7 @@ public class WarpScriptLib {
   public static final String MAXRECURSION = "MAXRECURSION";
   public static final String OPS = "OPS";
   public static final String MAXSYMBOLS = "MAXSYMBOLS";
+  public static final String SYMBOLS = "SYMBOLS";
   public static final String NOW = "NOW";
   public static final String AGO = "AGO";
   public static final String MSTU = "MSTU";
@@ -1233,6 +1234,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MAXRECURSION(MAXRECURSION));
     addNamedWarpScriptFunction(new OPS(OPS));
     addNamedWarpScriptFunction(new MAXSYMBOLS(MAXSYMBOLS));
+    addNamedWarpScriptFunction(new SYMBOLS(SYMBOLS));
     addNamedWarpScriptFunction(new EVAL(EVAL));
     addNamedWarpScriptFunction(new NOW(NOW));
     addNamedWarpScriptFunction(new AGO(AGO));
