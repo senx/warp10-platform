@@ -242,6 +242,12 @@ directory.register = true
 #directory.plugin.class = 
 
 //
+// Name of attribute which will be set to the source of the metadata update
+// so the plugin can process it accordingly
+//
+#directory.plugin.sourceattr =
+
+//
 // Boolean indicating whether or not we should use the HBase filter when initializing
 //
 directory.hbase.filter = false

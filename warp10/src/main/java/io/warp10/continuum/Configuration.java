@@ -537,6 +537,11 @@ public class Configuration {
   public static final String DIRECTORY_PLUGIN_CLASS = "directory.plugin.class";
   
   /**
+   * Attribute which will contain the source of the Metadata processed by the plugin
+   */
+  public static final String DIRECTORY_PLUGIN_SOURCEATTR = "directory.plugin.sourceattr";
+  
+  /**
    * Boolean indicating whether or not we should use the HBase filter when initializing
    */
   public static final String DIRECTORY_HBASE_FILTER = "directory.hbase.filter";

@@ -378,6 +378,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
    */
   private final DirectoryPlugin plugin;
   
+  private final String sourceAttribute;
+  
   private int METADATA_CACHE_SIZE = 1000000;
   
   /**
@@ -398,7 +400,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     SIPHASH_LABELS_LONGS = SipHashInline.getKey(this.keystore.getKey(KeyStore.SIPHASH_LABELS));
     
     this.properties = (Properties) props.clone();
-        
+  
+    this.sourceAttribute = props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_PLUGIN_SOURCEATTR);
+    
     //
     // Check mandatory parameters
     //
@@ -644,11 +648,18 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   long nano = 0;
                   
                   try {
+                    //
+                    // Directory plugins have no provision for delta attribute updates
+                    //
                     GTS gts = new GTS(
                         new UUID(metadata.getClassId(), metadata.getLabelsId()),
                         metadata.getName(),
                         metadata.getLabels(),
                         metadata.getAttributes());
+                    
+                    if (null != sourceAttribute) {
+                      gts.getAttributes().put(sourceAttribute, metadata.getSource());
+                    }
                     
                     nano = System.nanoTime();
                     
