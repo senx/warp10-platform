@@ -1089,7 +1089,6 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         public void run() {
           try {
             LOG.info("Unregistering from ZooKeeper.");
-            self.sd.unregisterService(self.instance);
             self.sd.close();
             LOG.info("Directory successfully unregistered from ZooKeeper.");
           } catch (Exception e) {
