@@ -628,6 +628,11 @@ public class Configuration {
    * Set to true to parse attributes in the data passed to /update.
    */
   public static final String INGRESS_PARSE_ATTRIBUTES = "ingress.parse.attributes";
+
+  /**
+   * Set to true to allow attributes to be interpreted as a delta update
+   */
+  public static final String INGRESS_ATTRIBUTES_ALLOWDELTA = "ingress.attributes.allowdelta";
   
   /**
    * Should we shuffle the GTS prior to issueing delete messages. Set to true or false.

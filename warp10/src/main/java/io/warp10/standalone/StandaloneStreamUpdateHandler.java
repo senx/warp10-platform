@@ -109,6 +109,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
 
   private final boolean updateActivity;
   private final boolean parseAttributes;
+  private final boolean allowDeltaAttributes;
   private final Long maxpastDefault;
   private final Long maxfutureDefault;
   private final Long maxpastOverride;
@@ -139,7 +140,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     private Long maxfuturedelta = null;
     
     private String encodedToken;
-    
+        
     /**
      * Cache used to determine if we should push metadata into Kafka or if it was previously seen.
      * Key is a BigInteger constructed from a byte array of classId+labelsId (we cannot use byte[] as map key)
@@ -201,6 +202,9 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
           }
           session.getRemote().sendString("OK " + (seqno++) + " ONERROR");
         } else if ("DELTAON".equals(tokens[0])) {
+          if (!this.handler.allowDeltaAttributes) {
+            throw new IOException("Delta update of attributes is disabled.");
+          }
           this.deltaAttributes = true;
         } else if ("DELTAOFF".equals(tokens[0])) {
           this.deltaAttributes = false;
@@ -721,7 +725,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     this.maxValueSize = Long.parseLong(properties.getProperty(Configuration.STANDALONE_VALUE_MAXSIZE, StandaloneIngressHandler.DEFAULT_VALUE_MAXSIZE));
     
     this.parseAttributes = "true".equals(properties.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
-    
+    this.allowDeltaAttributes = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_ATTRIBUTES_ALLOWDELTA));
+
     if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT)) {
       this.maxpastDefault = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT));
       if (this.maxpastDefault < 0) {

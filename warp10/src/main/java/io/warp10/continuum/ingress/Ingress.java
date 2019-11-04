@@ -293,6 +293,8 @@ public class Ingress extends AbstractHandler implements Runnable {
 
   final boolean ignoreOutOfRange;
   
+  final boolean allowDeltaAttributes;
+  
   public Ingress(KeyStore keystore, Properties props) {
 
     //
@@ -316,6 +318,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     // Extract parameters from 'props'
     //
     
+    this.allowDeltaAttributes = "true".equals(props.getProperty(Configuration.INGRESS_ATTRIBUTES_ALLOWDELTA));
     this.ttl = Long.parseLong(props.getProperty(Configuration.INGRESS_HBASE_CELLTTL, "-1"));
     this.useDatapointTs = "true".equals(props.getProperty(Configuration.INGRESS_HBASE_DPTS));
     
@@ -939,6 +942,10 @@ public class Ingress extends AbstractHandler implements Runnable {
         }
 
         boolean deltaAttributes = "delta".equals(request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES)));
+
+        if (deltaAttributes && !this.allowDeltaAttributes) {
+          throw new IOException("Delta update of attributes is disabled.");
+        }
         
         //
         // Loop on all lines
@@ -1181,6 +1188,10 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     boolean deltaAttributes = "delta".equals(request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES)));
 
+    if (deltaAttributes && !this.allowDeltaAttributes) {
+      throw new IOException("Delta update of attributes is disabled.");
+    }
+    
     //
     // TODO(hbs): Extract producer/owner from token
     //

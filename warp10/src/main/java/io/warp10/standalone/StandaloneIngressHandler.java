@@ -137,8 +137,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
   private final Long maxpastOverride;
   private final Long maxfutureOverride;
   private final boolean ignoreOutOfRange;
+  private final boolean allowDeltaAttributes;
   
   public StandaloneIngressHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
+    
     this.keyStore = keystore;
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
@@ -153,6 +155,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
     this.lkl0 = this.labelsKeyLongs[0];
     this.lkl1 = this.labelsKeyLongs[1];
     
+    this.allowDeltaAttributes = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_ATTRIBUTES_ALLOWDELTA));
+
     updateActivity = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_ACTIVITY_UPDATE));
     metaActivity = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_ACTIVITY_META));
     
@@ -277,6 +281,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
       long nano = System.nanoTime();
 
       boolean deltaAttributes = "delta".equals(request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES)));
+
+      if (deltaAttributes && !this.allowDeltaAttributes) {
+        throw new IOException("Delta update of attributes is disabled.");
+      }
 
       //
       // Extract DatalogRequest if specified
@@ -903,6 +911,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
       response.setHeader("Access-Control-Allow-Origin", "*");
 
       boolean deltaAttributes = "delta".equals(request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES)));
+      
+      if (deltaAttributes && !this.allowDeltaAttributes) {
+        throw new IOException("Delta update of attributes is disabled.");
+      }
       
       //
       // Extract DatalogRequest if specified
