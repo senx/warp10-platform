@@ -67,6 +67,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
     //TAGS.add("tensors");
   }
   private static boolean MAKE_FUNCTIONS_RELATED_WITHIN_SAME_PACKAGE = true;
+  private static List<String> RELATED = new ArrayList<>();
   private static String SINCE = "2.1";
   private static String DEPRECATED = "";
   private static String DELETED = "";
@@ -86,6 +87,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
   protected String VERSION() {return VERSION;}
   protected List<String> TAGS() {return TAGS;}
   protected boolean MAKE_FUNCTIONS_RELATED_WITHIN_SAME_PACKAGE() {return MAKE_FUNCTIONS_RELATED_WITHIN_SAME_PACKAGE;}
+  protected List<String> RELATED() {return RELATED;}
   protected String SINCE() {return SINCE;}
   protected String DEPRECATED() {return DEPRECATED;}
   protected String DELETED() {return DELETED;}
@@ -167,12 +169,13 @@ public class RunAndGenerateDocumentationWithUnitTests {
         }
 
         // related
-        List<String> related = new ArrayList<>();
+        List<String> related;
         if (MAKE_FUNCTIONS_RELATED_WITHIN_SAME_PACKAGE()) {
           related = getRelatedClasses(function.getClass().getClassLoader(), function.getClass().getPackage().getName());
-          related.remove("");
-          related.remove(name);
+        } else {
+          related = RELATED();
         }
+        related.remove(name);
         for (Method m: function.getClass().getDeclaredMethods()) {
           if (m.getName().equals("getRelated")) {
             m.setAccessible(true);
@@ -244,7 +247,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
     }
   }
 
-  private static List<String> getRelatedClasses(ClassLoader cl, String pack) throws Exception{
+  public static List<String> getRelatedClasses(ClassLoader cl, String pack) throws Exception {
 
     String dottedPackage = pack.replaceAll("[/]", ".");
     List<String> classNames = new ArrayList<>();
@@ -254,7 +257,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
     DataInputStream dis = new DataInputStream((InputStream) upackage.getContent());
     String line = null;
     while ((line = dis.readLine()) != null) {
-      if(line.endsWith(".class")) {
+      if(line.endsWith(".class") && !line.contains("$")) {
         classNames.add(Class.forName(dottedPackage+"."+line.substring(0,line.lastIndexOf('.'))).getSimpleName());
       }
     }
