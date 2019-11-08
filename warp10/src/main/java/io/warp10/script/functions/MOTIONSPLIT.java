@@ -327,7 +327,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
           long stopTimestamp = GTSHelper.lasttick(split) - timeStopped;
           if (stopTimestamp != GTSHelper.firsttick(split)) {
             GeoTimeSerie moving = GTSHelper.timeclip(split, Long.MIN_VALUE, stopTimestamp);
-            GeoTimeSerie stopped = GTSHelper.timeclip(split, stopTimestamp, Long.MAX_VALUE);
+            GeoTimeSerie stopped = GTSHelper.timeclip(split, stopTimestamp + 1, Long.MAX_VALUE);
             if (null != splitTypeLabel) {
               moving.getMetadata().putToLabels(splitTypeLabel, SPLIT_TYPE_MOVING);
             }
@@ -378,7 +378,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
           if (proximityZoneSplit) {
             long stopTimestamp = GTSHelper.lasttick(split) - timeStopped;
             GeoTimeSerie moving = GTSHelper.timeclip(split, Long.MIN_VALUE, stopTimestamp);
-            GeoTimeSerie stopped = GTSHelper.timeclip(split, stopTimestamp, Long.MAX_VALUE);
+            GeoTimeSerie stopped = GTSHelper.timeclip(split, stopTimestamp + 1, Long.MAX_VALUE);
             if (null != splitTypeLabel) {
               moving.getMetadata().putToLabels(splitTypeLabel, SPLIT_TYPE_MOVING);
             }
