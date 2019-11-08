@@ -176,7 +176,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
 
         GeoTimeSerie gts = (GeoTimeSerie) element;
 
-        return motionSplit(gts, fsplitNumberLabel, ftimeThreshold, fdistanceThreshold, fproximityZoneRadius, fproximityZoneMaxSpeed, fproximityZoneTime, fproximityInZoneMaxMeanSpeed, fsplitTypeLabel, fstoppedTimeLabel,fproximityZoneSplit);
+        return motionSplit(gts, fsplitNumberLabel, ftimeThreshold, fdistanceThreshold, fproximityZoneRadius, fproximityZoneMaxSpeed, fproximityZoneTime, fproximityInZoneMaxMeanSpeed, fsplitTypeLabel, fstoppedTimeLabel, fproximityZoneSplit);
       }
     };
   }
@@ -191,7 +191,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
    * - time not moving, if datapoints stay within a certain area and no distance is traveled for a certain time, a split will happen
    *
    * @param gts                         GTS to split
-   * @param splitNumberLabel                  If set, add a label which will contain the start of the split
+   * @param splitNumberLabel            If set, add a label which will contain the start of the split
    * @param timeThreshold               If the delay between two ticks goes beyond this value, force a split
    * @param distanceThreshold           If we traveled more than distanceThreshold between two ticks, force a split
    * @param proximityZoneRadius         Radius of the proximity zone in meters.
@@ -280,7 +280,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
       // If the distance traveled in the proximity zone was traveled at less than proximityInZoneMaxMeanSpeed and the time spent in the zone is above proximityZoneTime, force a split
       //
       long timeStopped = previousTimestamp - refTimestamp;
-      if (GeoTimeSerie.NO_LOCATION != refLocation && GeoTimeSerie.NO_LOCATION != location ) {
+      if (GeoTimeSerie.NO_LOCATION != refLocation && GeoTimeSerie.NO_LOCATION != location) {
 
         double currentSpeed = 0.0D;
         if (GeoTimeSerie.NO_LOCATION != previousLocation && timestamp != previousTimestamp) {
@@ -325,18 +325,20 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
         //
         if (proximityZoneSplit && null != split && splitReason == SPLIT_TYPE_STOPPED) {
           long stopTimestamp = GTSHelper.lasttick(split) - timeStopped;
-          GeoTimeSerie moving = GTSHelper.timeclip(split,Long.MIN_VALUE,stopTimestamp);
-          GeoTimeSerie stopped = GTSHelper.timeclip(split,stopTimestamp,Long.MAX_VALUE);
-          if (null != splitTypeLabel) {
-            moving.getMetadata().putToLabels(splitTypeLabel, SPLIT_TYPE_MOVING);
+          if (stopTimestamp != GTSHelper.firsttick(split)) {
+            GeoTimeSerie moving = GTSHelper.timeclip(split, Long.MIN_VALUE, stopTimestamp);
+            GeoTimeSerie stopped = GTSHelper.timeclip(split, stopTimestamp, Long.MAX_VALUE);
+            if (null != splitTypeLabel) {
+              moving.getMetadata().putToLabels(splitTypeLabel, SPLIT_TYPE_MOVING);
+            }
+            if (null != splitNumberLabel) {
+              stopped.getMetadata().putToLabels(splitNumberLabel, Long.toString(gtsid));
+              gtsid++;
+            }
+            splits.remove(splits.size() - 1);
+            splits.add(moving);
+            splits.add(stopped);
           }
-          if (null != splitNumberLabel) {
-            stopped.getMetadata().putToLabels(splitNumberLabel, Long.toString(gtsid));
-            gtsid++;
-          }
-          splits.remove(splits.size() - 1);
-          splits.add(moving);
-          splits.add(stopped);
         }
 
         split = gts.cloneEmpty();
@@ -375,8 +377,8 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
           //
           if (proximityZoneSplit) {
             long stopTimestamp = GTSHelper.lasttick(split) - timeStopped;
-            GeoTimeSerie moving = GTSHelper.timeclip(split,Long.MIN_VALUE,stopTimestamp);
-            GeoTimeSerie stopped = GTSHelper.timeclip(split,stopTimestamp,Long.MAX_VALUE);
+            GeoTimeSerie moving = GTSHelper.timeclip(split, Long.MIN_VALUE, stopTimestamp);
+            GeoTimeSerie stopped = GTSHelper.timeclip(split, stopTimestamp, Long.MAX_VALUE);
             if (null != splitTypeLabel) {
               moving.getMetadata().putToLabels(splitTypeLabel, SPLIT_TYPE_MOVING);
             }
