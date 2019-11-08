@@ -216,6 +216,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
     long previousTimestamp = Long.MIN_VALUE;
     long previousLocation = GeoTimeSerie.NO_LOCATION;
     double proximityZoneTraveledDistance = 0.0D;
+    String splitReason = SPLIT_TYPE_END;
 
     while (idx < n) {
       long timestamp = GTSHelper.tickAtIndex(gts, idx);
@@ -235,9 +236,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
       // If the previous tick was more than 'timeThreshold' ago, split now
       //
       if (timestamp - previousTimestamp > timeThreshold) {
-        if (null != splitTypeLabel) {
-          split.getMetadata().putToLabels(splitTypeLabel, SPLIT_TYPE_TIME);
-        }
+        splitReason = SPLIT_TYPE_TIME;
         mustSplit = true;
       }
 
@@ -245,9 +244,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
       // If the distance to the previous location is above distanceThreshold, split
       //
       if (GeoTimeSerie.NO_LOCATION != previousLocation && GeoTimeSerie.NO_LOCATION != location && GeoXPLib.orthodromicDistance(location, previousLocation) > distanceThreshold) {
-        if (null != splitTypeLabel) {
-          split.getMetadata().putToLabels(splitTypeLabel, SPLIT_TYPE_DISTANCE);
-        }
+        splitReason = SPLIT_TYPE_DISTANCE;
         mustSplit = true;
       }
 
@@ -257,26 +254,24 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
       // If the distance traveled in the proximity zone was traveled at less than proximityInZoneMaxMeanSpeed and the time spent in the zone is above proximityZoneTime, force a split
       //
       long timeStopped = previousTimestamp - refTimestamp;
-      if (GeoTimeSerie.NO_LOCATION != refLocation && GeoTimeSerie.NO_LOCATION != location && null != split) {
+      if (GeoTimeSerie.NO_LOCATION != refLocation && GeoTimeSerie.NO_LOCATION != location ) {
 
         double currentSpeed = 0.0D;
         if (GeoTimeSerie.NO_LOCATION != previousLocation && timestamp != previousTimestamp) {
           currentSpeed = GeoXPLib.orthodromicDistance(previousLocation, location) / ((double) (timestamp - previousTimestamp) / Constants.TIME_UNITS_PER_S);
         }
 
-        // quit the radius, or speed greater than min speed.
+        // quit the radius, or speed greater than max stopped speed.
         if (GeoXPLib.orthodromicDistance(refLocation, location) > proximityZoneRadius || currentSpeed > proximityZoneMaxSpeed) {
           double zoneMeanSpeed = 0.0D;
           if (previousTimestamp != refTimestamp) {
             zoneMeanSpeed = proximityZoneTraveledDistance / ((double) (previousTimestamp - refTimestamp) / Constants.TIME_UNITS_PER_S);
           }
           if (timeStopped > proximityZoneTime && zoneMeanSpeed < proximityInZoneMaxMeanSpeed) {
+            splitReason = SPLIT_TYPE_STOPPED;
             mustSplit = true;
             if (null != stoppedTimeLabel) {
               split.getMetadata().putToLabels(stoppedTimeLabel, Long.toString(timeStopped));
-            }
-            if (null != splitTypeLabel) {
-              split.getMetadata().putToLabels(splitTypeLabel, SPLIT_TYPE_STOPPED);
             }
           }
           refLocation = location;
@@ -293,8 +288,16 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
       // mustSplit is also true on the first iteration
       //
       if (mustSplit) {
+        //
+        // End the previous split (could be null on the first iteration), add optional labels.
+        //
+        if (null != splitTypeLabel && null != split) {
+          split.getMetadata().putToLabels(splitTypeLabel, splitReason);
+        }
         split = gts.cloneEmpty();
-
+        //
+        // Start of the split, add optional labels.
+        //
         if (null != startLabel) {
           split.getMetadata().putToLabels(startLabel, Long.toString(timestamp));
         }
@@ -312,15 +315,15 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
       // On the last iteration, also manage the split type label (end or stopped)
       //
       if (idx == n - 1) {
-        String splitType = SPLIT_TYPE_END;
+        splitReason = SPLIT_TYPE_END;
         if ((previousTimestamp - refTimestamp) > proximityZoneTime) {
-          splitType = SPLIT_TYPE_STOPPED;
+          splitReason = SPLIT_TYPE_STOPPED;
           if (null != stoppedTimeLabel) {
             split.getMetadata().putToLabels(stoppedTimeLabel, Long.toString(timeStopped));
           }
         }
         if (null != splitTypeLabel) {
-          split.getMetadata().putToLabels(splitTypeLabel, splitType);
+          split.getMetadata().putToLabels(splitTypeLabel, splitReason);
         }
       }
 
