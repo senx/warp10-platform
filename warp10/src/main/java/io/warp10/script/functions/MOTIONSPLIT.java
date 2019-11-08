@@ -34,7 +34,7 @@ import io.warp10.script.WarpScriptStack;
 public class MOTIONSPLIT extends ElementOrListStackFunction {
 
   public static final String PARAM_TIMESPLIT = "timesplit";
-  public static final String PARAM_START_LABEL = "label.split.start";
+  public static final String PARAM_SPLIT_NUMBER_LABEL = "label.split.number";
   public static final String PARAM_PROXIMITY_IN_ZONE_TIME_LABEL = "label.stopped.time";
   public static final String PARAM_SPLIT_TYPE_LABEL = "label.split.type";
   public static final String PARAM_DISTANCETHRESHOLD = "distance.split";
@@ -42,12 +42,13 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
   public static final String PARAM_PROXIMITY_ZONE_SPEED = "stopped.max.speed";
   public static final String PARAM_PROXIMITY_ZONE_RADIUS = "stopped.max.radius";
   public static final String PARAM_PROXIMITY_IN_ZONE_MAX_SPEED = "stopped.max.mean.speed";
+  public static final String PARAM_PROXIMITY_SPLIT_STOPPED = "stopped.split";
 
   public static final String SPLIT_TYPE_TIME = "timesplit";
   public static final String SPLIT_TYPE_DISTANCE = "distancesplit";
   public static final String SPLIT_TYPE_END = "end";
   public static final String SPLIT_TYPE_STOPPED = "stopped";
-
+  public static final String SPLIT_TYPE_MOVING = "moving";
 
   public MOTIONSPLIT(String name) {
     super(name);
@@ -74,13 +75,13 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
       timeThreshold = ((Number) o).longValue();
     }
 
-    String startLabel = null;
-    if (params.containsKey(PARAM_START_LABEL)) {
-      Object o = params.get((PARAM_START_LABEL));
+    String splitNumberLabel = null;
+    if (params.containsKey(PARAM_SPLIT_NUMBER_LABEL)) {
+      Object o = params.get((PARAM_SPLIT_NUMBER_LABEL));
       if (!(o instanceof String)) {
-        throw new WarpScriptException(getName() + " " + PARAM_START_LABEL + " must be a string.");
+        throw new WarpScriptException(getName() + " " + PARAM_SPLIT_NUMBER_LABEL + " must be a string.");
       }
-      startLabel = o.toString();
+      splitNumberLabel = o.toString();
     }
 
     String splitTypeLabel = null;
@@ -146,7 +147,16 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
       proximityZoneRadius = ((Number) o).doubleValue();
     }
 
-    final String fstartLabel = startLabel;
+    boolean proximityZoneSplit = false;
+    if (params.containsKey(PARAM_PROXIMITY_SPLIT_STOPPED)) {
+      Object o = params.get((PARAM_PROXIMITY_SPLIT_STOPPED));
+      if (!(o instanceof Boolean)) {
+        throw new WarpScriptException(getName() + " " + PARAM_PROXIMITY_SPLIT_STOPPED + " must be a boolean.");
+      }
+      proximityZoneSplit = ((Boolean) o).booleanValue();
+    }
+
+    final String fsplitNumberLabel = splitNumberLabel;
     final long ftimeThreshold = timeThreshold;
     final double fdistanceThreshold = distanceThreshold;
     final double fproximityZoneRadius = proximityZoneRadius;
@@ -155,6 +165,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
     final double fproximityInZoneMaxMeanSpeed = proximityInZoneMaxMeanSpeed;
     final String fsplitTypeLabel = splitTypeLabel;
     final String fstoppedTimeLabel = stoppedTimeLabel;
+    final boolean fproximityZoneSplit = proximityZoneSplit;
 
     return new ElementStackFunction() {
       @Override
@@ -165,7 +176,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
 
         GeoTimeSerie gts = (GeoTimeSerie) element;
 
-        return motionSplit(gts, fstartLabel, ftimeThreshold, fdistanceThreshold, fproximityZoneRadius, fproximityZoneMaxSpeed, fproximityZoneTime, fproximityInZoneMaxMeanSpeed, fsplitTypeLabel, fstoppedTimeLabel);
+        return motionSplit(gts, fsplitNumberLabel, ftimeThreshold, fdistanceThreshold, fproximityZoneRadius, fproximityZoneMaxSpeed, fproximityZoneTime, fproximityInZoneMaxMeanSpeed, fsplitTypeLabel, fstoppedTimeLabel,fproximityZoneSplit);
       }
     };
   }
@@ -180,7 +191,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
    * - time not moving, if datapoints stay within a certain area and no distance is traveled for a certain time, a split will happen
    *
    * @param gts                         GTS to split
-   * @param startLabel                  If set, add a label which will contain the start of the split
+   * @param splitNumberLabel                  If set, add a label which will contain the start of the split
    * @param timeThreshold               If the delay between two ticks goes beyond this value, force a split
    * @param distanceThreshold           If we traveled more than distanceThreshold between two ticks, force a split
    * @param proximityZoneRadius         Radius of the proximity zone in meters.
@@ -192,8 +203,8 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
    * @return
    * @throws WarpScriptException
    */
-  private static List<GeoTimeSerie> motionSplit(GeoTimeSerie gts, String startLabel, long timeThreshold, double distanceThreshold, double proximityZoneRadius, double proximityZoneMaxSpeed,
-                                                long proximityZoneTime, double proximityInZoneMaxMeanSpeed, String splitTypeLabel, String stoppedTimeLabel) throws WarpScriptException {
+  private static List<GeoTimeSerie> motionSplit(GeoTimeSerie gts, String splitNumberLabel, long timeThreshold, double distanceThreshold, double proximityZoneRadius, double proximityZoneMaxSpeed,
+                                                long proximityZoneTime, double proximityInZoneMaxMeanSpeed, String splitTypeLabel, String stoppedTimeLabel, boolean proximityZoneSplit) throws WarpScriptException {
     //
     // Sort GTS according to timestamps
     //
@@ -205,7 +216,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
     List<GeoTimeSerie> splits = new ArrayList<GeoTimeSerie>();
 
     int idx = 0;
-
+    int gtsid = 1;
     int n = GTSHelper.nvalues(gts);
 
     boolean mustSplit = true;
@@ -217,6 +228,21 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
     long previousLocation = GeoTimeSerie.NO_LOCATION;
     double proximityZoneTraveledDistance = 0.0D;
     String splitReason = SPLIT_TYPE_END;
+
+    //
+    // empty gts, or gts with only one value, returns a clone + extra labels when set
+    //
+    if (n <= 1) {
+      GeoTimeSerie result = gts.clone();
+      if (null != splitTypeLabel) {
+        result.getMetadata().putToLabels(splitTypeLabel, SPLIT_TYPE_END);
+      }
+      if (null != splitNumberLabel) {
+        result.getMetadata().putToLabels(splitNumberLabel, "1");
+      }
+      splits.add(result);
+      return splits;
+    }
 
     while (idx < n) {
       long timestamp = GTSHelper.tickAtIndex(gts, idx);
@@ -270,7 +296,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
           if (timeStopped > proximityZoneTime && zoneMeanSpeed < proximityInZoneMaxMeanSpeed) {
             splitReason = SPLIT_TYPE_STOPPED;
             mustSplit = true;
-            if (null != stoppedTimeLabel) {
+            if (null != stoppedTimeLabel && null != split) {
               split.getMetadata().putToLabels(stoppedTimeLabel, Long.toString(timeStopped));
             }
           }
@@ -294,12 +320,32 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
         if (null != splitTypeLabel && null != split) {
           split.getMetadata().putToLabels(splitTypeLabel, splitReason);
         }
+        //
+        // Split again the current split if proximityZoneSplit is set
+        //
+        if (proximityZoneSplit && null != split && splitReason == SPLIT_TYPE_STOPPED) {
+          long stopTimestamp = GTSHelper.lasttick(split) - timeStopped;
+          GeoTimeSerie moving = GTSHelper.timeclip(split,Long.MIN_VALUE,stopTimestamp);
+          GeoTimeSerie stopped = GTSHelper.timeclip(split,stopTimestamp,Long.MAX_VALUE);
+          if (null != splitTypeLabel) {
+            moving.getMetadata().putToLabels(splitTypeLabel, SPLIT_TYPE_MOVING);
+          }
+          if (null != splitNumberLabel) {
+            stopped.getMetadata().putToLabels(splitNumberLabel, Long.toString(gtsid));
+            gtsid++;
+          }
+          splits.remove(splits.size() - 1);
+          splits.add(moving);
+          splits.add(stopped);
+        }
+
         split = gts.cloneEmpty();
         //
         // Start of the split, add optional labels.
         //
-        if (null != startLabel) {
-          split.getMetadata().putToLabels(startLabel, Long.toString(timestamp));
+        if (null != splitNumberLabel) {
+          split.getMetadata().putToLabels(splitNumberLabel, Long.toString(gtsid));
+          gtsid++;
         }
         splits.add(split);
         mustSplit = false;
@@ -312,7 +358,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
       GTSHelper.setValue(split, timestamp, location, elevation, value, false);
 
       //
-      // On the last iteration, also manage the split type label (end or stopped)
+      // On the last iteration, also manage the split type label (end or stopped), and split again if needed
       //
       if (idx == n - 1) {
         splitReason = SPLIT_TYPE_END;
@@ -321,9 +367,26 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
           if (null != stoppedTimeLabel) {
             split.getMetadata().putToLabels(stoppedTimeLabel, Long.toString(timeStopped));
           }
-        }
-        if (null != splitTypeLabel) {
-          split.getMetadata().putToLabels(splitTypeLabel, splitReason);
+          if (null != splitTypeLabel) {
+            split.getMetadata().putToLabels(splitTypeLabel, splitReason);
+          }
+          //
+          // Split again the current split if proximityZoneSplit is set
+          //
+          if (proximityZoneSplit) {
+            long stopTimestamp = GTSHelper.lasttick(split) - timeStopped;
+            GeoTimeSerie moving = GTSHelper.timeclip(split,Long.MIN_VALUE,stopTimestamp);
+            GeoTimeSerie stopped = GTSHelper.timeclip(split,stopTimestamp,Long.MAX_VALUE);
+            if (null != splitTypeLabel) {
+              moving.getMetadata().putToLabels(splitTypeLabel, SPLIT_TYPE_MOVING);
+            }
+            if (null != splitNumberLabel) {
+              stopped.getMetadata().putToLabels(splitNumberLabel, Long.toString(gtsid));
+            }
+            splits.remove(splits.size() - 1);
+            splits.add(moving);
+            splits.add(stopped);
+          }
         }
       }
 
