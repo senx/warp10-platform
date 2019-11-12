@@ -325,7 +325,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
         //
         // Split again the current split if proximityZoneSplit is set
         //
-        if (proximityZoneSplit && null != split && splitReason == SPLIT_TYPE_STOPPED) {
+        if (proximityZoneSplit && null != split && SPLIT_TYPE_STOPPED.equals(splitReason)) {
           long stopTimestamp = GTSHelper.lasttick(split) - timeStopped;
           if (stopTimestamp != GTSHelper.firsttick(split)) {
             GeoTimeSerie moving = GTSHelper.timeclip(split, Long.MIN_VALUE, stopTimestamp);
