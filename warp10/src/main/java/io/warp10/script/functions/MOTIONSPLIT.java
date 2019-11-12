@@ -365,7 +365,6 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
       // On the last iteration, also manage the split type label (end or stopped), and split again if needed
       //
       if (idx == n - 1) {
-        splitReason = SPLIT_TYPE_END;
         if ((previousTimestamp - refTimestamp) > proximityZoneTime) {
           splitReason = SPLIT_TYPE_STOPPED;
           if (null != stoppedTimeLabel) {
@@ -390,6 +389,10 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
             splits.remove(splits.size() - 1);
             splits.add(moving);
             splits.add(stopped);
+          }
+        } else {
+          if (null != splitTypeLabel) {
+            split.getMetadata().putToLabels(splitTypeLabel, SPLIT_TYPE_END);
           }
         }
       }
