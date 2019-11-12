@@ -258,29 +258,13 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
         refTimestamp = timestamp;
       }
 
-      //
-      // If the previous tick was more than 'timeThreshold' ago, split now
-      //
-      if (timestamp - previousTimestamp > timeThreshold) {
-        splitReason = SPLIT_TYPE_TIME;
-        mustSplit = true;
-      }
-
-      //
-      // If the distance to the previous location is above distanceThreshold, split
-      //
-      if (GeoTimeSerie.NO_LOCATION != previousLocation && GeoTimeSerie.NO_LOCATION != location && GeoXPLib.orthodromicDistance(location, previousLocation) > distanceThreshold) {
-        splitReason = SPLIT_TYPE_DISTANCE;
-        mustSplit = true;
-      }
-
-      //
+      // highest priority: if proximity detection is activated, test proximity first.
       // If the current point is farther away from the reference point than 'proximityZoneRadius', or the instant speed is greater than proximityZoneSpeed
       // change the reference point and reset the traveled distance.
       // If the distance traveled in the proximity zone was traveled at less than proximityInZoneMaxMeanSpeed and the time spent in the zone is above proximityZoneTime, force a split
       //
       long timeStopped = previousTimestamp - refTimestamp;
-      if (GeoTimeSerie.NO_LOCATION != refLocation && GeoTimeSerie.NO_LOCATION != location) {
+      if (proximityZoneRadius < Double.MAX_VALUE && proximityZoneTime < Double.MAX_VALUE && GeoTimeSerie.NO_LOCATION != refLocation && GeoTimeSerie.NO_LOCATION != location) {
 
         double currentSpeed = 0.0D;
         if (GeoTimeSerie.NO_LOCATION != previousLocation && timestamp != previousTimestamp) {
@@ -307,6 +291,24 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
           if (GeoTimeSerie.NO_LOCATION != previousLocation) {
             proximityZoneTraveledDistance += GeoXPLib.orthodromicDistance(previousLocation, location);
           }
+        }
+      }
+
+      if (!mustSplit) {
+        //
+        // priority 2: if no stop detection, test for distance
+        // If the distance to the previous location is above distanceThreshold, split
+        //
+        if (GeoTimeSerie.NO_LOCATION != previousLocation && GeoTimeSerie.NO_LOCATION != location && GeoXPLib.orthodromicDistance(location, previousLocation) > distanceThreshold) {
+          splitReason = SPLIT_TYPE_DISTANCE;
+          mustSplit = true;
+        } else if (timestamp - previousTimestamp > timeThreshold) {
+          //
+          // priority 3: if no stop detection and no distance detection, test time split.
+          // If the previous tick was more than 'timeThreshold' ago, split now
+          //
+          splitReason = SPLIT_TYPE_TIME;
+          mustSplit = true;
         }
       }
 
