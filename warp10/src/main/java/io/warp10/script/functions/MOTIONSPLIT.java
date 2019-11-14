@@ -392,7 +392,11 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
           }
         } else {
           if (null != splitTypeLabel) {
-            split.getMetadata().putToLabels(splitTypeLabel, SPLIT_TYPE_END);
+            if (proximityZoneSplit) {
+              split.getMetadata().putToLabels(splitTypeLabel, SPLIT_TYPE_MOVING);
+            } else {
+              split.getMetadata().putToLabels(splitTypeLabel, SPLIT_TYPE_END);
+            }
           }
         }
       }
