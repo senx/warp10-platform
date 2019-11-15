@@ -110,7 +110,9 @@ public class Warp extends WarpDist implements Runnable {
   }
   
   public static void main(String[] args) throws Exception {
-    
+    // Indicate standalone mode is on
+    standaloneMode = true;
+
     System.setProperty("java.awt.headless", "true");
     
     System.out.println();
@@ -534,9 +536,6 @@ public class Warp extends WarpDist implements Runnable {
     if (null != httpConnector) {
       port = httpConnector.getLocalPort();
     }
-
-    // Indicate standalone mode is on
-    standaloneMode = true;
 
     WarpDist.setInitialized(true);
     

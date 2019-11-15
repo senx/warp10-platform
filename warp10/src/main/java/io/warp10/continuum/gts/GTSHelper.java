@@ -1825,6 +1825,7 @@ public class GTSHelper {
       
       if (copyLabels) {
         subgts.setLabels(gts.getLabels());
+        subgts.getMetadata().setAttributes(new HashMap<String,String>(gts.getMetadata().getAttributes()));
       }
     } else {
       GTSHelper.reset(subgts);
