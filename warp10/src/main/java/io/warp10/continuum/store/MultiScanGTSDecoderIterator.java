@@ -51,7 +51,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
   long nvalues = Long.MAX_VALUE;
   
   private final Table htable;
-  
+
   private ResultScanner scanner = null;
   
   private Iterator<Result> scaniter = null;
@@ -229,6 +229,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     nvalues = timespan < 0 ? -timespan : Long.MAX_VALUE;
 
     Scan scan = new Scan();
+    
     // Retrieve the whole column family
     scan.addFamily(colfam);
     
@@ -255,28 +256,35 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     //
     // FIXME(hbs): when using the HBase >= 0.96, use setMaxResultSize instead, and use setPrefetching
     
-    if (postBoundaryScan) {
-      scan.setMaxResultSize(postBoundary);
-    } else if (preBoundaryScan) {
-      scan.setMaxResultSize(preBoundary);
-    } else if (timespan > 0) {      
-      scan.setMaxResultSize(1000000L);
-    }
+    // 1MB max result size
+    scan.setMaxResultSize(1000000L);
     
     // Setting 'batch' too high when DEFAULT_MODULUS is != 1 will decrease performance when no filter is in use as extraneous cells may be fetched per row
     // Setting it too low will increase the number of roundtrips. A good heuristic is to set it to -timespan if timespan is < 0
     if (postBoundaryScan) {
-      scan.setBatch(Math.min(postBoundary, 100000));
+      //scan.setBatch(Math.min(postBoundary, 100000));
+      // Best performance seems to be attained when adding 1 to the boundary size for caching
+      // Don't ask me why!
+      scan.setCaching(Math.min(postBoundary + 1, 100000));
+      if (postBoundary < 100) {
+        scan.setSmall(true);
+      }
     } else if (preBoundaryScan) {
-      scan.setBatch(Math.min(preBoundary, 100000));
+      //scan.setBatch(Math.min(preBoundary , 100000));
+      scan.setCaching(Math.min(preBoundary + 1, 100000));
+      if (preBoundary < 100) {
+        scan.setSmall(true);
+      }
     } else {
       // Default value of 100000 might be too much
       scan.setBatch((int) (timespan < 0 ? Math.min(-timespan, 100000) : 100000));
+      // Number of rows to cache can be set arbitrarily high as the end row will stop the scanner caching anyway
+      scan.setCaching((int) (timespan < 0 ? Math.min(-timespan, 100000) : 100000));
+      if (timespan < 0 && -timespan < 100) {
+        scan.setSmall(true);
+      }
     }
-    
-    // Number of rows to cache can be set arbitrarily high as the end row will stop the scanner caching anyway
-    scan.setCaching((int) (timespan < 0 ? Math.min(-timespan, 100000) : 100000));
-    
+        
     if (this.useBlockcache) {
       scan.setCacheBlocks(true);
     } else {
