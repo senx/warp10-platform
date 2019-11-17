@@ -160,7 +160,7 @@ public class HBaseStoreClient implements StoreClient {
   }
   
   @Override
-  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long timespan, final boolean fromArchive, final boolean writeTimestamp) throws IOException {
+  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long timespan, final boolean fromArchive, final boolean writeTimestamp, final int preBoundary, final int postBoundary) throws IOException {
 
     if (fromArchive) {
       throw new RuntimeException("ARCHIVE MODE NOT IMPLEMENTED.");
@@ -209,15 +209,20 @@ public class HBaseStoreClient implements StoreClient {
       optimized = true;
     }
 
+    // When fetching boundaries, the optimized scanners cannot be used
+    if (preBoundary > 0 || postBoundary > 0) {
+      optimized = false;
+    }
+    
     if (metadatas.size() < ParallelGTSDecoderIteratorWrapper.getMinGTSPerScanner() || !ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
       if (optimized) {
         //return new SlicedRowFilterGTSDecoderIterator(now, timespan, metadatas, this.conn, this.tableName, this.colfam, this.keystore, metadatas.size() <= blockcacheThreshold);
         return new OptimizedSlicedRowFilterGTSDecoderIterator(now, timespan, metadatas, this.conn, this.tableName, this.colfam, writeTimestamp, this.keystore, metadatas.size() <= blockcacheThreshold);
       } else {
-        return new MultiScanGTSDecoderIterator(fromArchive, token, now, timespan, metadatas, this.conn, this.tableName, colfam, writeTimestamp, this.keystore, metadatas.size() < blockcacheThreshold);      
+        return new MultiScanGTSDecoderIterator(fromArchive, token, now, timespan, metadatas, this.conn, this.tableName, colfam, writeTimestamp, this.keystore, metadatas.size() < blockcacheThreshold, preBoundary, postBoundary);      
       }      
     } else {
-      return new ParallelGTSDecoderIteratorWrapper(optimized, fromArchive, token, now, timespan, metadatas, keystore, this.conn, this.tableName, this.colfam, writeTimestamp, metadatas.size() < blockcacheThreshold);
+      return new ParallelGTSDecoderIteratorWrapper(optimized, fromArchive, token, now, timespan, metadatas, keystore, this.conn, this.tableName, this.colfam, writeTimestamp, metadatas.size() < blockcacheThreshold, preBoundary, postBoundary);
     }
   }
 

@@ -134,8 +134,12 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
   }
   
   @Override
-  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long timespan, boolean fromArchive, boolean writeTimestamp) {
-  
+  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long timespan, boolean fromArchive, boolean writeTimestamp, final int preBoundary, final int postBoundary) {
+
+    if (0 != preBoundary || 0 != postBoundary) {
+      throw new RuntimeException("Boundary retrieval is not supported by the current data store.");
+    }
+    
     GTSDecoderIterator iterator = new GTSDecoderIterator() {
 
       private int idx = 0;
