@@ -167,6 +167,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
       // Reset the type of scan we do
       postBoundaryScan = 0 != this.postBoundary;
       preBoundaryScan = false;
+      postBoundaryCount = this.postBoundary;
     }
             
     //
@@ -276,11 +277,10 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
         scan.setSmall(true);
       }
     } else {
-      // Default value of 100000 might be too much
-      scan.setBatch((int) (timespan < 0 ? Math.min(-timespan, 100000) : 100000));
       // Number of rows to cache can be set arbitrarily high as the end row will stop the scanner caching anyway
       scan.setCaching((int) (timespan < 0 ? Math.min(-timespan, 100000) : 100000));
       if (timespan < 0 && -timespan < 100) {
+        // setSmall and setBatch are not compatible, good, we are not using setBatch!
         scan.setSmall(true);
       }
     }
@@ -294,7 +294,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     try {
       this.scanner = htable.getScanner(scan);
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_SCANNERS, Sensision.EMPTY_LABELS, 1);
-      this.scaniter = this.scanner.iterator();          
+      this.scaniter = this.scanner.iterator();
     } catch (IOException ioe) {
       //
       // If we caught an exception, we skip to the next metadata
@@ -320,7 +320,6 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
   
   @Override
   public GTSDecoder next() {
-    
     if (null == scaniter) {
       return null;
     }
