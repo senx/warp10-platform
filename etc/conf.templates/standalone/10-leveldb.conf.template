@@ -85,3 +85,12 @@ leveldb.compression.type = SNAPPY
 // Maximum number of open files to use for LevelDB
 //
 //leveldb.maxopenfiles =
+
+//
+// Geo Time Series count above which block caching will be disabled for LevelDB.
+// The goal is to limit the cache pollution when scanning large chunks of data.
+// Note that this limit is per fetch call to the backend, which means that in the case of parallel scanners it is for each parallel fetch attempt.
+// Defaults to 0, meaning never disable the block cache
+//
+leveldb.blockcache.gts.threshold = 0
+

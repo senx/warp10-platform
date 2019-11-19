@@ -347,6 +347,16 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   private final boolean register;
   
   /**
+   * Service instance
+   */
+  private ServiceInstance<Map> instance = null;
+  
+  /**
+   * Thread used as shutdown hook for deregistering instance
+   */
+  private Thread deregisterHook = null;
+  
+  /**
    * Should we initialize Directory upon startup by reading from HBase
    */
   private final boolean init;
@@ -1085,6 +1095,27 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   public void run() {
     
     //
+    // Add a shutdown hook to unregister Directory
+    //
+    
+    if (this.register) {
+      final Directory self = this;
+      this.deregisterHook = new Thread() {
+        @Override
+        public void run() {
+          try {
+            LOG.info("Unregistering from ZooKeeper.");
+            self.sd.close();
+            LOG.info("Directory successfully unregistered from ZooKeeper.");
+          } catch (Exception e) {
+            LOG.error("Error while unregistering Directory.", e);
+          }
+        }
+      };
+      Runtime.getRuntime().addShutdownHook(deregisterHook);
+    }
+
+    //
     // Wait until cache has been populated
     //
     
@@ -1102,8 +1133,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     Runtime.getRuntime().gc();
     nano = System.nanoTime() - nano;
     LOG.info("GC performed in " + (nano / 1000000.0D) + " ms.");
-    
-    
+        
     this.fullyInitialized.set(true);
     
     Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
@@ -1114,7 +1144,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         
     DirectoryService.Processor processor = new DirectoryService.Processor(this);
     
-    ServiceInstance<Map> instance = null;
+    this.instance = null;
 
     try {
       InetAddress bindAddress = InetAddress.getByName(this.host);
@@ -1158,7 +1188,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       }
       builder.payload(payload);
 
-      instance = builder.build();
+      this.instance = builder.build();
 
       if (this.register) {
         sd.start();
@@ -1176,6 +1206,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         try {
           sd.unregisterService(instance);
         } catch (Exception e) {
+        }        
+      }
+      if (null != deregisterHook) {
+        try {
+          Runtime.getRuntime().removeShutdownHook(deregisterHook);
+        } catch (Exception e) {          
         }
       }
     }

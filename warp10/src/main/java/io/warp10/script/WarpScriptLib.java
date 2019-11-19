@@ -760,6 +760,7 @@ public class WarpScriptLib {
   public static final String LTTB = "LTTB";
   public static final String TLTTB = "TLTTB";
   public static final String LOCATIONOFFSET = "LOCATIONOFFSET";
+  public static final String MOTIONSPLIT = "MOTIONSPLIT";
   public static final String FLATTEN = "FLATTEN";
   public static final String RESHAPE = "RESHAPE";
   public static final String PERMUTE = "PERMUTE";
@@ -1605,6 +1606,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new LTTB(LTTB, false));
     addNamedWarpScriptFunction(new LTTB(TLTTB, true));
     addNamedWarpScriptFunction(new LOCATIONOFFSET(LOCATIONOFFSET));
+    addNamedWarpScriptFunction(new MOTIONSPLIT(MOTIONSPLIT));
     addNamedWarpScriptFunction(new FLATTEN(FLATTEN));
     addNamedWarpScriptFunction(new RESHAPE(RESHAPE));
     addNamedWarpScriptFunction(new PERMUTE(PERMUTE));

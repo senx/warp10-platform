@@ -16,6 +16,25 @@
 
 package io.warp10.standalone;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.hadoop.hbase.util.Bytes;
+import org.iq80.leveldb.DB;
+import org.iq80.leveldb.DBIterator;
+import org.iq80.leveldb.ReadOptions;
+import org.iq80.leveldb.WriteBatch;
+import org.iq80.leveldb.WriteOptions;
+
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSDecoder;
@@ -32,24 +51,6 @@ import io.warp10.crypto.KeyStore;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.sensision.Sensision;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.hadoop.hbase.util.Bytes;
-import org.iq80.leveldb.DB;
-import org.iq80.leveldb.DBIterator;
-import org.iq80.leveldb.WriteBatch;
-import org.iq80.leveldb.WriteOptions;
 
 public class StandaloneStoreClient implements StoreClient {
   
@@ -71,13 +72,14 @@ public class StandaloneStoreClient implements StoreClient {
 
   private final boolean syncwrites;
   private final double syncrate;
+  private final int blockcacheThreshold;
   
   public StandaloneStoreClient(DB db, KeyStore keystore, Properties properties) {
     this.db = db;
     this.keystore = keystore;
     this.properties = properties;
     this.plasmaHandlers = new ArrayList<StandalonePlasmaHandlerInterface>();
-    
+    this.blockcacheThreshold = Integer.parseInt(properties.getProperty(Configuration.LEVELDB_BLOCKCACHE_GTS_THRESHOLD, "0"));
     MAX_ENCODER_SIZE = Long.valueOf(properties.getProperty(Configuration.STANDALONE_MAX_ENCODER_SIZE, DEFAULT_MAX_ENCODER_SIZE));
     MAX_DELETE_BATCHSIZE = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_MAX_DELETE_BATCHSIZE, Integer.toString(DEFAULT_MAX_DELETE_BATCHSIZE)));
     
@@ -96,7 +98,16 @@ public class StandaloneStoreClient implements StoreClient {
       throw new RuntimeException("No support for write timestamp retrieval.");
     }
     
-    final DBIterator iterator = db.iterator();
+    ReadOptions options = new ReadOptions().fillCache(true);
+    
+    if (this.blockcacheThreshold > 0) {
+      if (metadatas.size() >= this.blockcacheThreshold) {
+        options = new ReadOptions();
+        options.fillCache(false);
+      }
+    }
+    
+    final DBIterator iterator = db.iterator(options);
 
     Map<String,String> labels = new HashMap<String,String>();
     
