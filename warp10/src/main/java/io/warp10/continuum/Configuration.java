@@ -1367,6 +1367,13 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
+   * Geo Time Series count above which block caching will be disabled for LevelDB.
+   * The goal is to limit the cache pollution when scanning large chunks of data.
+   * Note that this limit is per fetch call to the backend, which means that in the case of parallel scanners it is for each parallel fetch attempt.
+   */
+  public static final String LEVELDB_BLOCKCACHE_GTS_THRESHOLD = "leveldb.blockcache.gts.threshold";
+
+  /**
    * Rate of synchronous writes for the datapoints (update/deletes).
    * This is a double between 0.0 (all writes asynchronous) and 1.0 (all writes synchronous).
    * The default value is 1.0 (all writes are synchronous)
@@ -1882,6 +1889,7 @@ public class Configuration {
   /**
    * Geo Time Series count threshold above which block caching will be disabled for HBase scanners.
    * The goal is to limit the cache pollution when scanning large chunks of data.
+   * Note that this limit is per fetch call to the backend, which means that in the case of parallel scanners it is for each parallel fetch attempt.
    */
   public static final String EGRESS_HBASE_DATA_BLOCKCACHE_GTS_THRESHOLD = "egress.hbase.data.blockcache.gts.threshold";
   

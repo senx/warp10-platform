@@ -195,8 +195,13 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
         }
         
       } catch (Throwable t) {
-        this.errorFlag.set(true);
-        this.errorThrowable.set(t);
+        // Only set the error if we are not done, this is to prevent
+        // the call to close to trigger an error if the thread is
+        // interrupted while in a call to acquire for example
+        if (!done) {
+          this.errorFlag.set(true);
+          this.errorThrowable.set(t);
+        }
       } finally {
         if (0 != held) {
           this.sem.release(held);
