@@ -2712,7 +2712,8 @@ public class GTSHelper {
     }
     
     // Check labels/attributes sizes, subtract 6 to account for '// {} '
-    if (str.length() - 6 > MetadataUtils.SIZE_THRESHOLD && !MetadataUtils.validateMetadata(encoder.getMetadata())) {
+    // Subtract value length
+    if (str.length() - 6 - valuestr.length() > MetadataUtils.SIZE_THRESHOLD && !MetadataUtils.validateMetadata(encoder.getMetadata())) {
       throw new ParseException("Invalid metadata", 0);
     }
     
