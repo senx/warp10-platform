@@ -62,8 +62,7 @@ fi
 # Check java version
 #
 JAVA_VERSION="`${JAVACMD} -version 2>&1 | head -n 1`"
-CHECK_JAVA="`echo ${JAVA_VERSION} | egrep '.*\"1\.(7|8).*'`"
-if [ "$CHECK_JAVA" == "" ]; then
+if [ "`echo ${JAVA_VERSION} | egrep '.*\"1\.(7|8).*'`" == "" ]; then
   echo "You are using a non compatible java version: ${JAVA_VERSION}"
   echo "We recommend the latest update of OpenJDK 1.8"
   exit 1

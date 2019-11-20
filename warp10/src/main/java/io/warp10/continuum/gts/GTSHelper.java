@@ -66,6 +66,7 @@ import com.google.common.collect.ImmutableMap;
 import io.warp10.CapacityExtractorOutputStream;
 import io.warp10.DoubleUtils;
 import io.warp10.WarpURLEncoder;
+import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.continuum.store.Constants;
@@ -1825,6 +1826,7 @@ public class GTSHelper {
       
       if (copyLabels) {
         subgts.setLabels(gts.getLabels());
+        subgts.getMetadata().setAttributes(new HashMap<String,String>(gts.getMetadata().getAttributes()));
       }
     } else {
       GTSHelper.reset(subgts);
@@ -2721,6 +2723,12 @@ public class GTSHelper {
       encoder.addValue(timestamp, location, elevation, value);
     } else {
       ignoredCount.addAndGet(1);
+    }
+    
+    // Check labels/attributes sizes, subtract 6 to account for '// {} '
+    // Subtract value length
+    if (str.length() - 6 - valuestr.length() > MetadataUtils.SIZE_THRESHOLD && !MetadataUtils.validateMetadata(encoder.getMetadata())) {
+      throw new ParseException("Invalid metadata", 0);
     }
     
     return encoder;

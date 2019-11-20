@@ -737,9 +737,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
               if (this.updateActivity) {
                 metadata.setLastActivity(lastActivity);
               }
-              //nano6 += System.nanoTime() - nano0;
+              
               this.directoryClient.register(metadata);
-              //nano5 += System.nanoTime() - nano0;
               
               // Extract shardkey 128BITS
               // Shard key is 48 bits, 24 upper from the class Id and 24 lower from the labels Id
@@ -1115,7 +1114,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
           }
 
           if (!MetadataUtils.validateMetadata(metadata)) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid metadata " + line);
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid metadata " + metadata);
             return;
           }
           
