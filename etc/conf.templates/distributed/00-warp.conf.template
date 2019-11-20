@@ -95,6 +95,9 @@ warp.components =
 //
 #warp.meta.disabled = Meta updates are momentarily disabled
 
+// Telemetry - set to false to disable
+#warp10.telemetry = 
+
 //
 // Token file
 //

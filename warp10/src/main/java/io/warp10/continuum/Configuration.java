@@ -54,6 +54,8 @@ public class Configuration {
   
   public static final String WARP10_QUIET = "warp10.quiet";
   
+  public static final String WARP10_TELEMETRY = "warp10.telemetry";
+  
   /**
    * Comma separated list of headers to return in the Access-Allow-Control-Headers response header to preflight requests.
    */
