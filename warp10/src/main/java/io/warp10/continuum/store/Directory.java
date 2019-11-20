@@ -1785,10 +1785,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) {
                 Metadata meta = directory.metadatas.get(metadata.getName()).get(labelsId);
                 
-                boolean hasChanged = false;
-                
                 for (Entry<String,String> attr: metadata.getAttributes().entrySet()) {
-                  hasChanged = true;
                   if ("".equals(attr.getValue())) {
                     meta.getAttributes().remove(attr.getKey());
                   } else {
@@ -1796,13 +1793,13 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   }
                 }
                 
-                if (hasChanged) {
-                  metadata.setAttributes(new HashMap<String,String>(meta.getAttributes()));
+                // We need to update the attributes with those from 'meta' so we
+                // store the up to date version of the Metadata in HBase
+                metadata.setAttributes(new HashMap<String,String>(meta.getAttributes()));
                   
-                  // We re-serialize metadata
-                  TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-                  metadataBytes = serializer.serialize(metadata);                  
-                }
+                // We re-serialize metadata
+                TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+                metadataBytes = serializer.serialize(metadata);
               }
               
               //

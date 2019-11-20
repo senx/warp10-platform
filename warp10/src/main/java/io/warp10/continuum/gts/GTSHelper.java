@@ -2710,7 +2710,7 @@ public class GTSHelper {
           encoder.getMetadata().setAttributes(new HashMap<String,String>());
         }
         for (Entry<String,String> attr: attributes.entrySet()) {
-          if ("".equals(attr.getKey())) {
+          if ("".equals(attr.getValue())) {
             encoder.getMetadata().getAttributes().remove(attr.getKey());
           } else {
             encoder.getMetadata().putToAttributes(attr.getKey(), attr.getValue());
