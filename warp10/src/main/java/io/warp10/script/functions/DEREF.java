@@ -75,7 +75,7 @@ public class DEREF extends NamedWarpScriptFunction implements WarpScriptStackFun
         if (statements.get(i) instanceof Macro) {
           allmacros.add((Macro) statements.get(i));
           continue;
-        } else if (statements.get(i) instanceof LOAD) {
+        } else if (i > 0 && statements.get(i) instanceof LOAD) {
           Object symbol = statements.get(i - 1);
           if (symbol instanceof String && values.containsKey(symbol)) {
             statements.set(i - 1, NOOP);
