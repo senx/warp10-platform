@@ -64,9 +64,7 @@ public class DEREF extends NamedWarpScriptFunction implements WarpScriptStackFun
     List<Macro> allmacros = new ArrayList<Macro>();
     allmacros.add((Macro) top);
     
-    boolean abort = false;
-
-    while(!abort && !allmacros.isEmpty()) {
+    while(!allmacros.isEmpty()) {
       Macro m = allmacros.remove(0);
       
       List<Object> statements = new ArrayList<Object>(m.statements());
