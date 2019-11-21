@@ -21,6 +21,11 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
+// Set to true to allow the delta update of attributes
+//
+#ingress.attributes.allowdelta = true
+
+//
 // Max message size for the stream update websockets
 //
 ingress.websocket.maxmessagesize = 1048576

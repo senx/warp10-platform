@@ -783,6 +783,7 @@ public class WarpScriptLib {
   public static final String FILTERBY = "FILTERBY";
   public static final String UPDATE = "UPDATE";
   public static final String META = "META";
+  public static final String METADIFF = "METADIFF";
   public static final String DELETE = "DELETE";
   public static final String WEBCALL = "WEBCALL";
   public static final String MATCH = "MATCH";
@@ -1629,6 +1630,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FILTERBY(FILTERBY));
     addNamedWarpScriptFunction(new UPDATE(UPDATE));
     addNamedWarpScriptFunction(new META(META));
+    addNamedWarpScriptFunction(new META(METADIFF, true));    
     addNamedWarpScriptFunction(new DELETE(DELETE));
     addNamedWarpScriptFunction(new WEBCALL(WEBCALL));
     addNamedWarpScriptFunction(new MATCH(MATCH));

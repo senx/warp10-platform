@@ -539,6 +539,11 @@ public class Configuration {
   public static final String DIRECTORY_PLUGIN_CLASS = "directory.plugin.class";
   
   /**
+   * Attribute which will contain the source of the Metadata processed by the plugin
+   */
+  public static final String DIRECTORY_PLUGIN_SOURCEATTR = "directory.plugin.sourceattr";
+  
+  /**
    * Boolean indicating whether or not we should use the HBase filter when initializing
    */
   public static final String DIRECTORY_HBASE_FILTER = "directory.hbase.filter";
@@ -625,6 +630,11 @@ public class Configuration {
    * Set to true to parse attributes in the data passed to /update.
    */
   public static final String INGRESS_PARSE_ATTRIBUTES = "ingress.parse.attributes";
+
+  /**
+   * Set to true to allow attributes to be interpreted as a delta update
+   */
+  public static final String INGRESS_ATTRIBUTES_ALLOWDELTA = "ingress.attributes.allowdelta";
   
   /**
    * Should we shuffle the GTS prior to issueing delete messages. Set to true or false.
@@ -664,6 +674,11 @@ public class Configuration {
    */
   public static final String INGRESS_METADATA_UPDATE_ENDPOINT = "ingress.metadata.update";
 
+  /**
+   * Identification if Ingress Metadata Update endpoint source when doing a delta update of attributes
+   */
+  public static final String INGRESS_METADATA_UPDATE_DELTA_ENDPOINT = "ingress.metadata.update.delta";
+  
   /**
    * Do we send Metadata in the Kafka message for delete operations?
    */
@@ -2155,6 +2170,11 @@ public class Configuration {
    */
   public static final String HTTP_HEADER_NOW_HEADERX = "http.header.now";
 
+  /**
+   * HTTP Header for specifying attribute parsing type
+   */
+  public static final String HTTP_HEADER_ATTRIBUTES = "http.header.attributes";
+  
   /**
    * HTTP Header for specifying the timespan in /sfetch requests
    */

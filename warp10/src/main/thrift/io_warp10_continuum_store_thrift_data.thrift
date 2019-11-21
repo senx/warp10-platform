@@ -403,6 +403,10 @@ struct DatalogRequest {
    * Delete query string. We store it in the request so it cannot be modified in the datalog file
    */
   6: optional string deleteQueryString,
+  /**
+   * Flag indicating whether or not the attributes should be treated as delta
+   */
+  7: optional bool deltaAttributes = false,
 }
 
 /**
