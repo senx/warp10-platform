@@ -54,6 +54,8 @@ public class Configuration {
   
   public static final String WARP10_QUIET = "warp10.quiet";
   
+  public static final String WARP10_TELEMETRY = "warp10.telemetry";
+  
   /**
    * Comma separated list of headers to return in the Access-Allow-Control-Headers response header to preflight requests.
    */
@@ -1629,7 +1631,17 @@ public class Configuration {
    */
   public static final String DATALOG_FORWARDER_SHARDKEY_SHIFT = "datalog.forwarder.shardkey.shift";
 
-  /*
+  /**
+   * Maximum length of labels (names + values) - Defaults to 2048
+   */
+  public static final String WARP_LABELS_MAXSIZE = "warp.labels.maxsize";
+  
+  /**
+   * Maximum length of attributes (names + values) - Defaults to 8192
+   */
+  public static final String WARP_ATTRIBUTES_MAXSIZE = "warp.attributes.maxsize";
+  
+  /**
    * Set to a message indicating the reason why updates are disabled, they are enabled if this is not set
    */
   public static final String WARP_UPDATE_DISABLED = "warp.update.disabled";

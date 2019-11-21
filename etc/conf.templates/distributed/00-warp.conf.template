@@ -95,6 +95,9 @@ warp.components =
 //
 #warp.meta.disabled = Meta updates are momentarily disabled
 
+// Telemetry - set to false to disable
+#warp10.telemetry = 
+
 //
 // Token file
 //
@@ -124,4 +127,14 @@ warp.components =
 //
 //
 # warp.trl.startup.delay = 60000
+
+//
+// Maximum length of labels (names + values) - Defaults to 2048
+//
+#warp.labels.maxsize = 2048
+  
+//
+// Maximum length of attributes (names + values) - Defaults to 8192
+//
+#warp.attributes.maxsize = 8192
 
