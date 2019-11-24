@@ -160,12 +160,24 @@ public class HBaseStoreClient implements StoreClient {
   }
   
   @Override
-  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long timespan, final boolean fromArchive, final boolean writeTimestamp, final int preBoundary, final int postBoundary) throws IOException {
+  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long timespan, final boolean fromArchive, final boolean writeTimestamp, int preBoundary, int postBoundary) throws IOException {
 
     if (fromArchive) {
       throw new RuntimeException("ARCHIVE MODE NOT IMPLEMENTED.");
     }
     
+    if (preBoundary < 0) {
+      preBoundary = 0;
+    }
+
+    if (postBoundary < 0) {
+      postBoundary = 0;
+    }
+        
+    if (timespan < 0 && preBoundary > 0) {
+      throw new RuntimeException("No support for fetching pre boundary records when fetching by count.");
+    }
+
     //
     // Determine the execution plan given the metadatas of the GTS we will be retrieving.
     // Some hints to choose the best plan:

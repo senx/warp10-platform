@@ -252,7 +252,7 @@ public class InMemoryChunkSet {
           int comp = Long.compare((long) o1[1], (long) o2[1]);
           // Timestamps are equal, compare the sequence #
           if (0 == comp) {
-            comp = Long.compare((long) o1[0], (long) o1[1]);
+            comp = Long.compare((long) o1[0], (long) o2[1]);
           }
           return comp;
         }
@@ -270,7 +270,7 @@ public class InMemoryChunkSet {
         
         synchronized(this.chunks) {
           // Ignore a given chunk if it is before 'now'
-          if (this.chunkends[chunk] - this.chunklen < now) {
+          if (this.chunkends[chunk] <= now) {
             continue;
           }
           
@@ -287,9 +287,11 @@ public class InMemoryChunkSet {
         // Add datapoints from the decoder
 
         while (chunkDecoder.next()) {
-          boundary.add(new Object[] { seq++, chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue() });
-          if (boundary.size() > postBoundary) {
-            boundary.remove();
+          if (chunkDecoder.getTimestamp() > now) {
+            boundary.add(new Object[] { seq++, chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue() });
+            if (boundary.size() > postBoundary) {
+              boundary.remove();
+            }
           }
         }
         
@@ -316,8 +318,9 @@ public class InMemoryChunkSet {
           // We want the largest timestamp to be in the head
           int comp = Long.compare((long) o2[1], (long) o1[1]);
           // Timestamps are equal, compare the sequence #
+          // the most recent being retained first
           if (0 == comp) {
-            comp = Long.compare((long) o1[0], (long) o1[1]);
+            comp = Long.compare((long) o2[0], (long) o1[1]);
           }
           return comp;
         }
@@ -331,10 +334,12 @@ public class InMemoryChunkSet {
       
       GTSDecoder chunkDecoder = null;
       
+      boolean boundaryOnly = false;
+      
       synchronized(this.chunks) {
         // Ignore a given chunk if it does not intersect our current range
         if (this.chunkends[chunk] < firstTimestamp || (this.chunkends[chunk] - this.chunklen) >= now) {
-          continue;
+          boundaryOnly = true;
         }
         
         // Extract a decoder to scan the chunk
@@ -361,7 +366,9 @@ public class InMemoryChunkSet {
           continue;
         }
         
-        encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue());
+        if (!boundaryOnly) {
+          encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue());
+        }
       }
       
       // If the pre boundary has enough datapoints, add them to the encoder and nullify boundary
@@ -421,7 +428,7 @@ try {
           int comp = Long.compare((long) o1[1], (long) o2[1]);
           // Timestamps are equal, compare the sequence #
           if (0 == comp) {
-            comp = Long.compare((long) o1[0], (long) o1[1]);
+            comp = Long.compare((long) o1[0], (long) o2[1]);
           }
           return comp;
         }
@@ -439,7 +446,7 @@ try {
         
         synchronized(this.chunks) {
           // Ignore a given chunk if it is before 'now'
-          if (this.chunkends[chunk] - this.chunklen < now) {
+          if (this.chunkends[chunk] <= now) {
             continue;
           }
           
@@ -456,9 +463,11 @@ try {
         // Add datapoints from the decoder
 
         while (chunkDecoder.next()) {
-          boundary.add(new Object[] { seq++, chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue() });
-          if (boundary.size() > postBoundary) {
-            boundary.remove();
+          if (chunkDecoder.getTimestamp() > now) {
+            boundary.add(new Object[] { seq++, chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue() });
+            if (boundary.size() > postBoundary) {
+              boundary.remove();
+            }
           }
         }
         
