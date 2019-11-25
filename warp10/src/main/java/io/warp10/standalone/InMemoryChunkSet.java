@@ -251,7 +251,7 @@ public class InMemoryChunkSet {
   public GTSEncoder fetchEncoder(long now, long timespan, int preBoundary, int postBoundary) throws IOException {
 
     if (this.ephemeral) {
-      return fetchCountEncoder(Long.MAX_VALUE, 1L);
+      return fetchCountEncoder(Long.MAX_VALUE, 1L, postBoundary);
     }
     
     if (timespan < 0) {
@@ -427,7 +427,6 @@ public class InMemoryChunkSet {
 //  }
 
   private GTSEncoder fetchCountEncoder(long now, long count, int postBoundary) throws IOException {
-try {
     //
     // Determine the chunk id of 'now'
     // We offset it by chunkcount so we can safely decrement and
@@ -712,10 +711,6 @@ try {
     }
         
     return encoder;
-} catch (Throwable t) {
-  t.printStackTrace();
-  throw t;
-}
   }
   
   /**
