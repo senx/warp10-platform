@@ -86,6 +86,8 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
   private final Properties properties;
 
+  private final boolean ephemeral;
+  
   private final long[] classKeyLongs;
   private final long[] labelsKeyLongs;
 
@@ -94,8 +96,15 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
     this.series = new MapMaker().concurrencyLevel(64).makeMap();
 
-    this.chunkcount = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.IN_MEMORY_CHUNK_COUNT, "3"));
-    this.chunkspan = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.IN_MEMORY_CHUNK_LENGTH, Long.toString(Long.MAX_VALUE)));
+    if ("true".equals(properties.getProperty(io.warp10.continuum.Configuration.IN_MEMORY_EPHEMERAL))) {
+      this.chunkcount = 1;
+      this.chunkspan = Long.MAX_VALUE;
+      this.ephemeral = true;
+    } else {
+      this.chunkcount = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.IN_MEMORY_CHUNK_COUNT, "3"));
+      this.chunkspan = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.IN_MEMORY_CHUNK_LENGTH, Long.toString(Long.MAX_VALUE)));      
+      this.ephemeral = false;
+    }    
   
     this.labelsKeyLongs = SipHashInline.getKey(keystore.getKey(KeyStore.SIPHASH_LABELS));
     this.classKeyLongs = SipHashInline.getKey(keystore.getKey(KeyStore.SIPHASH_CLASS));
@@ -288,7 +297,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       //
       
       if (null == chunkset) {
-        chunkset = new InMemoryChunkSet(this.chunkcount, this.chunkspan);
+        chunkset = new InMemoryChunkSet(this.chunkcount, this.chunkspan, this.ephemeral);
         this.series.put(clslbls,  chunkset);
       }
     }

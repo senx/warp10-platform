@@ -69,13 +69,24 @@ public class InMemoryChunkSet {
    */
   private final int chunkcount;
   
-  public InMemoryChunkSet(int chunkcount, long chunklen) {
+  /**
+   * Is this an ephemeral chunk set storing only the last stored value?
+   */
+  private final boolean ephemeral;
+  
+  public InMemoryChunkSet(int chunkcount, long chunklen, boolean ephemeral) {
     this.chunks = new GTSEncoder[chunkcount];
     this.chunkends = new long[chunkcount];
     this.chronological = new BitSet(chunkcount);
     this.lasttimestamp = new long[chunkcount];
-    this.chunklen = chunklen;
-    this.chunkcount = chunkcount;
+    this.ephemeral = ephemeral;
+    if (ephemeral) {
+      this.chunklen = Long.MAX_VALUE;
+      this.chunkcount = 1;
+    } else {
+      this.chunklen = chunklen;
+      this.chunkcount = chunkcount;      
+    }
   }
   
   /**
@@ -84,6 +95,23 @@ public class InMemoryChunkSet {
    * @param encoder The GTSEncoder instance to store
    */
   public void store(GTSEncoder encoder) throws IOException {
+    if (null == encoder) {
+      return;
+    }
+    
+    if (this.ephemeral) {
+      // Extract the first element from the encoder
+      GTSDecoder decoder = encoder.getUnsafeDecoder(false);
+      
+      if (!decoder.next()) {
+        return;
+      }
+      
+      // Reset the encoder      
+      chunks[0] = new GTSEncoder(decoder.getBaseTimestamp());
+      chunks[0].addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+      return;
+    }
     
     // Get the current time
     long now = TimeSource.getTime();
@@ -222,6 +250,10 @@ public class InMemoryChunkSet {
   
   public GTSEncoder fetchEncoder(long now, long timespan, int preBoundary, int postBoundary) throws IOException {
 
+    if (this.ephemeral) {
+      return fetchCountEncoder(Long.MAX_VALUE, 1L, postBoundary);
+    }
+    
     if (timespan < 0) {
       return fetchCountEncoder(now, -timespan, postBoundary);
     }
@@ -395,7 +427,6 @@ public class InMemoryChunkSet {
 //  }
 
   private GTSEncoder fetchCountEncoder(long now, long count, int postBoundary) throws IOException {
-try {
     //
     // Determine the chunk id of 'now'
     // We offset it by chunkcount so we can safely decrement and
@@ -680,10 +711,6 @@ try {
     }
         
     return encoder;
-} catch (Throwable t) {
-  t.printStackTrace();
-  throw t;
-}
   }
   
   /**
@@ -726,6 +753,10 @@ try {
    * @param now
    */
   public long clean(long now) {
+    if (this.ephemeral) {
+      return 0;
+    }
+    
     long cutoff = chunkEnd(now) - this.chunkcount * this.chunklen;
     int dropped = 0;
     long droppedDatapoints = 0L;
