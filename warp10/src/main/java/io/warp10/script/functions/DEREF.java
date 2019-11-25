@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import io.warp10.script.MacroHelper;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
@@ -34,6 +35,7 @@ import io.warp10.script.WarpScriptStackFunction;
 public class DEREF extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
   private static final NOOP NOOP = new NOOP(WarpScriptLib.NOOP);
+  private static final EVAL EVAL = new EVAL(WarpScriptLib.EVAL);
   
   public DEREF(String name) {
     super(name);
@@ -55,7 +57,7 @@ public class DEREF extends NamedWarpScriptFunction implements WarpScriptStackFun
     if (!(top instanceof Macro)) {
       throw new WarpScriptException(getName() + " operates on a Macro.");
     }
-    
+        
     //
     // Now loop over the macro statement, replacing occurrences of X LOAD and PUSHRx by the use
     // of the associated value
@@ -66,7 +68,11 @@ public class DEREF extends NamedWarpScriptFunction implements WarpScriptStackFun
     
     while(!allmacros.isEmpty()) {
       Macro m = allmacros.remove(0);
-      
+    
+      if (((Macro) m).isSecure()) {
+        throw new WarpScriptException(getName() + " cannot operate on a secure Macro.");
+      }
+
       List<Object> statements = new ArrayList<Object>(m.statements());
                 
       for (int i = 0; i < statements.size(); i++) {
@@ -76,13 +82,27 @@ public class DEREF extends NamedWarpScriptFunction implements WarpScriptStackFun
         } else if (i > 0 && statements.get(i) instanceof LOAD) {
           Object symbol = statements.get(i - 1);
           if (symbol instanceof String && values.containsKey(symbol)) {
-            statements.set(i - 1, NOOP);
-            statements.set(i, values.get(symbol));
+            Object value = values.get(symbol);
+
+            // Treat Macros in a specific way
+            if (value instanceof Macro) {
+              statements.set(i - 1, value);
+              statements.set(i, EVAL);
+            } else {
+              statements.set(i - 1, NOOP);
+              statements.set(i, value);              
+            }
           }
         } else if (statements.get(i) instanceof PUSHR) {
           long register = (long) ((PUSHR) statements.get(i)).getRegister();
           if (values.containsKey(register)) {
-            statements.set(i, values.get(register));
+            Object value = values.get(register);
+            
+            if (value instanceof Macro) {
+              statements.set(i, MacroHelper.wrap((Macro) value));
+            } else {
+              statements.set(i, values.get(register));
+            }
           }
         }
       }      
