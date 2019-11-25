@@ -106,7 +106,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
         if (statements.get(i) instanceof Macro) {
           allmacros.add((Macro) statements.get(i));
           continue;
-        } else if (statements.get(i) instanceof LOAD) {
+        } else if (i > 0 && statements.get(i) instanceof LOAD) {
           Object symbol = statements.get(i - 1);
           if (!(symbol instanceof String)) {
             abort = true;
@@ -117,7 +117,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             statements.set(i - 1, NOOP);
             statements.set(i, regfuncs[regno]);
           }
-        } else if (statements.get(i) instanceof STORE) {
+        } else if (i > 0 && statements.get(i) instanceof STORE) {
           Object symbol = statements.get(i - 1);
           if (!(symbol instanceof String)) {
             abort = true;
@@ -128,7 +128,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             statements.set(i - 1, NOOP);
             statements.set(i, regfuncs[regno+regidx]);
           }        
-        } else if (statements.get(i) instanceof CSTORE) {
+        } else if (i > 0 && statements.get(i) instanceof CSTORE) {
           Object symbol = statements.get(i - 1);
           if (!(symbol instanceof String)) {
             abort = true;

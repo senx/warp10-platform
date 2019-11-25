@@ -2451,10 +2451,10 @@ public class GTSHelper {
   }
   
   public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes) throws ParseException, IOException {
-    return parse(encoder, str, extraLabels, now, maxValueSize, parsedAttributes, null, null, null);
+    return parse(encoder, str, extraLabels, now, maxValueSize, parsedAttributes, null, null, null, false);
   }
   
-  public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes, Long maxpast, Long maxfuture, AtomicLong ignoredCount) throws ParseException, IOException {
+  public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes, Long maxpast, Long maxfuture, AtomicLong ignoredCount, boolean deltaAttributes) throws ParseException, IOException {
 
     int idx = 0;
     
@@ -2703,7 +2703,20 @@ public class GTSHelper {
 
     // Update the attributes if some were parsed
     if (null != attributes) {
-      encoder.getMetadata().setAttributes(attributes);
+      if (!deltaAttributes) {
+        encoder.getMetadata().setAttributes(attributes);
+      } else {
+        if (0 == encoder.getMetadata().getAttributesSize()) {
+          encoder.getMetadata().setAttributes(new HashMap<String,String>());
+        }
+        for (Entry<String,String> attr: attributes.entrySet()) {
+          if ("".equals(attr.getValue())) {
+            encoder.getMetadata().getAttributes().remove(attr.getKey());
+          } else {
+            encoder.getMetadata().putToAttributes(attr.getKey(), attr.getValue());
+          }
+        }
+      }
     }
 
     if (!ignored) {

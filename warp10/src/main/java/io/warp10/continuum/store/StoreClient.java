@@ -29,6 +29,6 @@ public interface StoreClient {
   public void store(GTSEncoder encoder) throws IOException;
   public void archive(int chunk, GTSEncoder encoder) throws IOException;
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException;
-  public GTSDecoderIterator fetch(ReadToken token, final List<Metadata> metadatas, final long now, final long timespan, boolean fromArchive, boolean writeTimestamp) throws IOException;
+  public GTSDecoderIterator fetch(ReadToken token, final List<Metadata> metadatas, final long now, final long timespan, boolean fromArchive, boolean writeTimestamp, final int preBoundary, final int postBoundary) throws IOException;
   public void addPlasmaHandler(StandalonePlasmaHandlerInterface handler);
 }

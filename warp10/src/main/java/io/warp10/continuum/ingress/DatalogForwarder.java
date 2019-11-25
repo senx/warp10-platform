@@ -256,6 +256,9 @@ public class DatalogForwarder extends Thread {
         conn.setRequestMethod("POST");
         
         if (forwarder.actasclient) {
+          if (action.request.isDeltaAttributes()) {
+            conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES), "delta");
+          }
           conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX), action.request.getToken());
           if (action.request.isSetNow()) {
             conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_NOW_HEADERX), action.request.getNow());
@@ -471,7 +474,12 @@ public class DatalogForwarder extends Thread {
         conn.setDoOutput(true);
         conn.setDoInput(true);
         conn.setRequestMethod("POST");
+        
         if (forwarder.actasclient) {
+          if (action.request.isDeltaAttributes()) {
+            conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES), "delta");
+          }
+          
           conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX), action.request.getToken());
         } else {
           conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_DATALOG), action.encodedRequest);

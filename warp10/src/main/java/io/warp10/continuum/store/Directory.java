@@ -385,6 +385,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
    */
   private final DirectoryPlugin plugin;
   
+  private final String sourceAttribute;
+  
   private int METADATA_CACHE_SIZE = 1000000;
   
   /**
@@ -405,7 +407,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     SIPHASH_LABELS_LONGS = SipHashInline.getKey(this.keystore.getKey(KeyStore.SIPHASH_LABELS));
     
     this.properties = (Properties) props.clone();
-        
+  
+    this.sourceAttribute = props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_PLUGIN_SOURCEATTR);
+    
     //
     // Check mandatory parameters
     //
@@ -651,11 +655,18 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   long nano = 0;
                   
                   try {
+                    //
+                    // Directory plugins have no provision for delta attribute updates
+                    //
                     GTS gts = new GTS(
                         new UUID(metadata.getClassId(), metadata.getLabelsId()),
                         metadata.getName(),
                         metadata.getLabels(),
                         metadata.getAttributes());
+                    
+                    if (null != sourceAttribute) {
+                      gts.getAttributes().put(sourceAttribute, metadata.getSource());
+                    }
                     
                     nano = System.nanoTime();
                     
@@ -1677,7 +1688,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 // If we are doing a metadata update and the GTS is not known, skip the call to store.
                 //
                 
-                if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource()) && !directory.plugin.known(gts)) {
+                if ((io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource()) || io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) && !directory.plugin.known(gts)) {
                   continue;
                 }
 
@@ -1693,7 +1704,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_STORE_TIME_NANOS, Sensision.EMPTY_LABELS, nano);                  
               }
               
-            } else {
+            } else { // no directory plugin
               //
               // If Metadata comes from Ingress and it is already in the cache, do
               // nothing. Unless we are tracking activity in which case we need to check
@@ -1750,7 +1761,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               // If metadata is an update, only take it into consideration if the GTS is already known
               //
               
-              if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())
+              if ((io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())
+                  || io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource()))
                   && (!directory.metadatas.containsKey(metadata.getName())
                       || !directory.metadatas.get(metadata.getName()).containsKey(labelsId))) {
                 continue;
@@ -1761,9 +1773,34 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             // Clear the cache if it is an update
             //
             
-            if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
+            if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())
+                || io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) {
               id = MetadataUtils.id(metadata);
               directory.serializedMetadataCache.remove(id);
+              
+              //
+              // If this is a delta update of attributes, consolidate them
+              //
+              
+              if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) {
+                Metadata meta = directory.metadatas.get(metadata.getName()).get(labelsId);
+                
+                for (Entry<String,String> attr: metadata.getAttributes().entrySet()) {
+                  if ("".equals(attr.getValue())) {
+                    meta.getAttributes().remove(attr.getKey());
+                  } else {
+                    meta.putToAttributes(attr.getKey(), attr.getValue());
+                  }
+                }
+                
+                // We need to update the attributes with those from 'meta' so we
+                // store the up to date version of the Metadata in HBase
+                metadata.setAttributes(new HashMap<String,String>(meta.getAttributes()));
+                  
+                // We re-serialize metadata
+                TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+                metadataBytes = serializer.serialize(metadata);
+              }
               
               //
               // Update the last activity
@@ -1782,7 +1819,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   metadata.setLastActivity(meta.getLastActivity());
                   hasChanged = true;
                 }
-                
+                                
                 if (hasChanged) {
                   // We re-serialize metadata
                   TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
