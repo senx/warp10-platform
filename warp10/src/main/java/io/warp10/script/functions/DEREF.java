@@ -86,8 +86,7 @@ public class DEREF extends NamedWarpScriptFunction implements WarpScriptStackFun
 
             // Treat Macros in a specific way
             if (value instanceof Macro) {
-              // If the macro contains a single element which is itself a macro, push
-              // that macro onto the stack as a shortcut
+              // If the macro contains a single element push it on the stack as a shortcut
               if (1 == ((Macro) value).size()) {
                 statements.set(i - 1, NOOP);
                 statements.set(i, ((Macro) value).get(0));
