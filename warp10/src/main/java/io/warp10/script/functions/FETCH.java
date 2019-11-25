@@ -532,7 +532,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                 // When fetching per count, only increase 'count' when
                 // timestamp is after the end timestamp so we do not
                 // increase count for the post boundary
-                if (timespan >= 0 || (timespan < 0 && ts <= end)) {
+                if (timespan >= 0 || ts <= end) {
                   count++;
                 } else if (ts > end) {
                   postB++;

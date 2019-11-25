@@ -252,7 +252,7 @@ public class InMemoryChunkSet {
           int comp = Long.compare((long) o1[1], (long) o2[1]);
           // Timestamps are equal, compare the sequence #
           if (0 == comp) {
-            comp = Long.compare((long) o1[0], (long) o2[1]);
+            comp = Long.compare((long) o1[0], (long) o2[0]);
           }
           return comp;
         }
@@ -312,7 +312,7 @@ public class InMemoryChunkSet {
     PriorityQueue<Object[]> boundary = null;
     
     if (preBoundary > 0) {
-      new PriorityQueue<Object[]>(new Comparator<Object[]>() {
+      boundary = new PriorityQueue<Object[]>(new Comparator<Object[]>() {
         @Override
         public int compare(Object[] o1, Object[] o2) {
           // We want the largest timestamp to be in the head
@@ -320,7 +320,7 @@ public class InMemoryChunkSet {
           // Timestamps are equal, compare the sequence #
           // the most recent being retained first
           if (0 == comp) {
-            comp = Long.compare((long) o2[0], (long) o1[1]);
+            comp = Long.compare((long) o2[0], (long) o1[0]);
           }
           return comp;
         }
@@ -428,7 +428,7 @@ try {
           int comp = Long.compare((long) o1[1], (long) o2[1]);
           // Timestamps are equal, compare the sequence #
           if (0 == comp) {
-            comp = Long.compare((long) o1[0], (long) o2[1]);
+            comp = Long.compare((long) o1[0], (long) o2[0]);
           }
           return comp;
         }
