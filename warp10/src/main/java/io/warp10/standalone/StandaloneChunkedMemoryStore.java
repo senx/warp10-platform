@@ -137,8 +137,8 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
   }
   
   @Override
-  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long timespan, boolean fromArchive, boolean writeTimestamp) {
-  
+  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long timespan, boolean fromArchive, boolean writeTimestamp, final int preBoundary, final int postBoundary) {
+
     GTSDecoderIterator iterator = new GTSDecoderIterator() {
 
       private int idx = 0;
@@ -206,7 +206,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
               InMemoryChunkSet chunkset = series.get(clslbls);
               
               try {
-                GTSDecoder dec = chunkset.fetch(now, timespan, extractor);
+                GTSDecoder dec = chunkset.fetch(now, timespan, extractor, preBoundary, postBoundary);
 
                 if (0 == dec.getCount()) {
                   idx++;

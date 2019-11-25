@@ -15,18 +15,10 @@
 //
 package io.warp10.continuum.store;
 
-import io.warp10.continuum.Tokens;
-import io.warp10.continuum.gts.GTSDecoder;
-import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.KeyStore;
-import io.warp10.quasar.token.thrift.data.ReadToken;
-import io.warp10.sensision.Sensision;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -41,6 +33,17 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 
+import com.google.common.primitives.Longs;
+
+import io.warp10.continuum.Tokens;
+import io.warp10.continuum.gts.GTSDecoder;
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.KeyStore;
+import io.warp10.quasar.token.thrift.data.ReadToken;
+import io.warp10.sensision.Sensision;
+
 public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
 
   int idx = 0;
@@ -48,7 +51,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
   long nvalues = Long.MAX_VALUE;
   
   private final Table htable;
-  
+
   private ResultScanner scanner = null;
   
   private Iterator<Result> scaniter = null;
@@ -75,7 +78,18 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
   
   private final boolean fromArchive;
   
-  public MultiScanGTSDecoderIterator(boolean fromArchive, ReadToken token, long now, long timespan, List<Metadata> metadatas, Connection conn, TableName tableName, byte[] colfam, boolean writeTimestamp, KeyStore keystore, boolean useBlockcache) throws IOException {
+  private final int preBoundary;
+  private final int postBoundary;
+  
+  private int preBoundaryCount = 0;
+  private int postBoundaryCount = 0;
+  
+  // Flag indicating we scan the pre boundary.
+  private boolean preBoundaryScan = false;
+  // Flag indicating we scan the post boundary.
+  private boolean postBoundaryScan = false;
+      
+  public MultiScanGTSDecoderIterator(boolean fromArchive, ReadToken token, long now, long timespan, List<Metadata> metadatas, Connection conn, TableName tableName, byte[] colfam, boolean writeTimestamp, KeyStore keystore, boolean useBlockcache, int preBoundary, int postBoundary) throws IOException {
     this.htable = conn.getTable(tableName);
     this.metadatas = metadatas;
     this.now = now;
@@ -86,24 +100,17 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     this.writeTimestamp = writeTimestamp;
     this.hbaseKey = keystore.getKey(KeyStore.AES_HBASE_DATA);
     this.fromArchive = fromArchive;
+    // If timespan is < 0, no pre boundary can be fetched
+    this.preBoundary = preBoundary >= 0 && timespan >= 0 ? preBoundary : 0;
+    // If now is Long.MAX_VALUE then there is no possibility to have a post boundary
+    this.postBoundary = postBoundary >= 0 && now < Long.MAX_VALUE ? postBoundary : 0;
+    
+    this.postBoundaryScan = 0 != this.postBoundary;
+    this.postBoundaryCount = this.postBoundary;
   }
       
   /**
    * Check whether or not there are more GeoTimeSerie instances.
-   * 
-   * The initial implementation is rather dumb, it loops over the metadatas and
-   * spawns a new Scanner for each.
-   * 
-   * This works great for a single or a few time series but might prove underperforming for
-   * a large number.
-   * 
-   * Other strategies could be attempted.
-   * 
-   * Fewer scans but with filters.
-   * AsyncHBase
-   * Managing a queue of metadatas handled by an executor service which would produce GTS in parallel
-   * in the background and push them on a result queue. This strategy will need to throttle itself so
-   * as to not overconsume memory.
    */
   @Override
   public boolean hasNext() {
@@ -114,6 +121,13 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     //
     
     boolean scanHasMore = ((null == scaniter) || nvalues <= 0) ? false : scaniter.hasNext();
+    
+    // Adjust scanHasMore for pre/post boundaries
+    if (postBoundaryScan && 0 == postBoundaryCount) {
+      scanHasMore = false;
+    } else if (preBoundaryScan && 0 == preBoundaryCount) {
+      scanHasMore = false;
+    }
     
     if (scanHasMore) {
       return true;
@@ -127,33 +141,55 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
       this.scanner.close();
       this.scanner = null;
       this.scaniter = null;
+      
+      if (postBoundaryScan) {
+        // We were scanning the post boundary, the next scan will be for the core zone
+        postBoundaryScan = false;
+      } else if (preBoundaryScan) {
+        // We were scanning the pre boundary, the next scan will be for the post boundary of the next GTS
+        preBoundaryScan = false;
+        postBoundaryScan = 0 != this.postBoundary;
+        postBoundaryCount = this.postBoundary;
+        idx++;
+      } else {
+        // We were scanning the core zone, now we will scan the pre boundary
+        preBoundaryScan = 0 != this.preBoundary;
+        preBoundaryCount = this.preBoundary;
+        
+        // If there is no pre boundary to scan, advance the metadata index
+        if (!preBoundaryScan) {
+          postBoundaryScan = 0 != this.postBoundary;
+          postBoundaryCount = this.postBoundary;
+          idx++;
+        }
+      }
+    } else {      
+      // Reset the type of scan we do
+      postBoundaryScan = 0 != this.postBoundary;
+      preBoundaryScan = false;
+      postBoundaryCount = this.postBoundary;
     }
             
     //
     // If there are no more metadatas then there won't be any more data
     //
-    
+
     if (idx >= metadatas.size()) {
       return false;
     }
     
     //
     // Scanner is either exhausted or had not yet been initialized, do so now
-    //
+    // Evolution of idx is performed above when closing the scanner    
     
-    // TODO(hbs): determine best index and thus key structure to use
-    // Determine if we should use filters on a fewer scanners instead of multiple scanners
-    // which may prove inefficient.
-    
-    
-    Metadata metadata = metadatas.get(idx++);
-    
+    Metadata metadata = metadatas.get(idx);
+        
     //
     // Build start / end key
     //
     // CAUTION, the following code might seem wrong, but remember, timestamp
     // are reversed so the most recent (end) appears first (startkey)
-    //
+    // 128bits
     
     byte[] startkey = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
     byte[] endkey = new byte[startkey.length];
@@ -162,7 +198,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
     bb.putLong(metadata.getClassId());
     bb.putLong(metadata.getLabelsId());
-    // FIXME(hbs): modulus should be extracted from metadata as it depends on GTS and auth
+
     long modulus = now - (now % Constants.DEFAULT_MODULUS);
     
     bb.putLong(Long.MAX_VALUE - modulus);
@@ -171,6 +207,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
     bb.putLong(metadata.getClassId());
     bb.putLong(metadata.getLabelsId());
+    
     //
     // We need to stop on the modulus boundary that precedes the last valid boundary
     //
@@ -193,26 +230,61 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     nvalues = timespan < 0 ? -timespan : Long.MAX_VALUE;
 
     Scan scan = new Scan();
+    
     // Retrieve the whole column family
     scan.addFamily(colfam);
-    scan.setStartRow(startkey);
-    scan.setStopRow(endkey);
+    
+    if (postBoundaryScan) {
+      scan.setReversed(true);
+      // Set the stop row to the prefix of the current start key without timestamp
+      scan.setStopRow(Arrays.copyOf(startkey, startkey.length - 8));
+      byte[] k = Arrays.copyOf(startkey, startkey.length);
+      System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - (now + 1)), 0, k, k.length - 8, 8);
+      scan.setStartRow(k);
+    } else if (preBoundaryScan) {
+      scan.setStartRow(endkey);
+      byte[] k = Arrays.copyOf(endkey, endkey.length + 1);
+      // Set the reversed time stamp to 0xFFFFFFFFFFFFFFFFL
+      Arrays.fill(k, endkey.length - 8, k.length - 1, (byte) 0xFF);
+      scan.setStopRow(k);
+    } else {
+      scan.setStartRow(startkey);
+      scan.setStopRow(endkey);
+    }
 
     //
     // Set batch/cache parameters
     //
     // FIXME(hbs): when using the HBase >= 0.96, use setMaxResultSize instead, and use setPrefetching
     
-    if (timespan > 0) {
-      scan.setMaxResultSize(1000000L);
-    }
+    // 1MB max result size
+    scan.setMaxResultSize(1000000L);
+    
     // Setting 'batch' too high when DEFAULT_MODULUS is != 1 will decrease performance when no filter is in use as extraneous cells may be fetched per row
     // Setting it too low will increase the number of roundtrips. A good heuristic is to set it to -timespan if timespan is < 0
-    scan.setBatch((int) (timespan < 0 ? Math.min(-timespan, 100000) : 100000));
-    
-    // Number of rows to cache can be set arbitrarly high as the end row will stop the scanner caching anyway
-    scan.setCaching((int) (timespan < 0 ? Math.min(-timespan, 100000) : 100000));
-    
+    if (postBoundaryScan) {
+      //scan.setBatch(Math.min(postBoundary, 100000));
+      // Best performance seems to be attained when adding 1 to the boundary size for caching
+      // Don't ask me why!
+      scan.setCaching(Math.min(postBoundary + 1, 100000));
+      if (postBoundary < 100) {
+        scan.setSmall(true);
+      }
+    } else if (preBoundaryScan) {
+      //scan.setBatch(Math.min(preBoundary , 100000));
+      scan.setCaching(Math.min(preBoundary + 1, 100000));
+      if (preBoundary < 100) {
+        scan.setSmall(true);
+      }
+    } else {
+      // Number of rows to cache can be set arbitrarily high as the end row will stop the scanner caching anyway
+      scan.setCaching((int) (timespan < 0 ? Math.min(-timespan, 100000) : 100000));
+      if (timespan < 0 && -timespan < 100) {
+        // setSmall and setBatch are not compatible, good, we are not using setBatch!
+        scan.setSmall(true);
+      }
+    }
+        
     if (this.useBlockcache) {
       scan.setCacheBlocks(true);
     } else {
@@ -222,7 +294,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     try {
       this.scanner = htable.getScanner(scan);
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_SCANNERS, Sensision.EMPTY_LABELS, 1);
-      this.scaniter = this.scanner.iterator();          
+      this.scaniter = this.scanner.iterator();
     } catch (IOException ioe) {
       //
       // If we caught an exception, we skip to the next metadata
@@ -230,6 +302,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
       //
       this.scanner = null;
       this.scaniter = null;
+      idx++;
       return hasNext();
     }
 
@@ -247,7 +320,6 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
   
   @Override
   public GTSDecoder next() {
-    
     if (null == scaniter) {
       return null;
     }
@@ -267,9 +339,8 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
       //
       // Extract next result from scaniter
       //
-      
+
       Result result = scaniter.next();
-                
       resultCount++;
       
       CellScanner cscanner = result.cellScanner();
@@ -324,7 +395,8 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
                     
           while(nvalues > 0 && decoder.next()) {
             long timestamp = decoder.getTimestamp();
-            if (timestamp <= now && (timespan < 0 || (timestamp > (now - timespan)))) {
+                        
+            if (preBoundaryScan || postBoundaryScan || (timestamp <= now && (timespan < 0 || (timestamp > (now - timespan))))) {
               try {
                 if (writeTimestamp) {
                   encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), cell.getTimestamp() * Constants.TIME_UNITS_PER_MS);
@@ -340,11 +412,33 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
                 keyBytes += cell.getRowLength() + cell.getFamilyLength() + cell.getQualifierLength();
                 datapoints++;
 
-                nvalues--;
+                // Don't decrement nvalues for the postBoundary as we might be retrieving
+                // it as part of a count based fetch
+                if (!postBoundaryScan) {
+                  nvalues--;
+                }
+                
+                if (preBoundaryScan) {
+                  preBoundaryCount--;
+                  if (0 == preBoundaryCount) {
+                    break;
+                  }
+                } else if (postBoundaryScan) {
+                  postBoundaryCount--;
+                  if (0 == postBoundaryCount) {
+                    break;
+                  }
+                }
               } catch (IOException ioe) {
                 // FIXME(hbs): LOG?
               }
             }
+          }
+          
+          if (preBoundaryScan && 0 == preBoundaryCount) {
+            break;
+          } else if (postBoundaryScan && 0 == postBoundaryCount) {
+            break;
           }
         }          
       } catch(IOException ioe) {
@@ -380,10 +474,15 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
         }
       } 
       */
-      
+     
+      if (preBoundaryScan && 0 == preBoundaryCount) {
+        break;
+      } else if (postBoundaryScan && 0 == postBoundaryCount) {
+        break;
+      }
     }
-    
-    encoder.setMetadata(metadatas.get(idx-1));
+            
+    encoder.setMetadata(metadatas.get(idx));
 
     //
     // Update Sensision
@@ -396,7 +495,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     if (null != token) {
       Map<String,String> labels = new HashMap<String,String>();
       
-      Map<String,String> metadataLabels = metadatas.get(idx-1).getLabels();
+      Map<String,String> metadataLabels = metadatas.get(idx).getLabels();
       
       String billedCustomerId = Tokens.getUUID(token.getBilledId());
 
@@ -447,7 +546,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_DATAPOINTS, labels, datapoints);          
       }
     }
-    
+
     return encoder.getDecoder();
   }
   
