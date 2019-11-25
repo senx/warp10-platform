@@ -292,6 +292,8 @@ public class Ingress extends AbstractHandler implements Runnable {
 
   final boolean ignoreOutOfRange;
   
+  final boolean allowDeltaAttributes;
+  
   public Ingress(KeyStore keystore, Properties props) {
 
     //
@@ -315,6 +317,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     // Extract parameters from 'props'
     //
     
+    this.allowDeltaAttributes = "true".equals(props.getProperty(Configuration.INGRESS_ATTRIBUTES_ALLOWDELTA));
     this.ttl = Long.parseLong(props.getProperty(Configuration.INGRESS_HBASE_CELLTTL, "-1"));
     this.useDatapointTs = "true".equals(props.getProperty(Configuration.INGRESS_HBASE_DPTS));
     
@@ -937,6 +940,12 @@ public class Ingress extends AbstractHandler implements Runnable {
           }
         }
 
+        boolean deltaAttributes = "delta".equals(request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES)));
+
+        if (deltaAttributes && !this.allowDeltaAttributes) {
+          throw new IOException("Delta update of attributes is disabled.");
+        }
+        
         //
         // Loop on all lines
         //
@@ -985,7 +994,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           }
                     
           try {
-            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxsize, hadAttributes, maxpast, maxfuture, ignoredCount);
+            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxsize, hadAttributes, maxpast, maxfuture, ignoredCount, deltaAttributes);
             count++;
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_PARSEERRORS, sensisionLabels, 1);
@@ -1061,7 +1070,11 @@ public class Ingress extends AbstractHandler implements Runnable {
                 // We need to push lastencoder's metadata update as they were updated since the last
                 // metadata update message sent
                 Metadata meta = new Metadata(lastencoder.getMetadata());
-                meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                if (deltaAttributes) {
+                  meta.setSource(Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT);                  
+                } else {
+                  meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                }
                 pushMetadataMessage(meta);
                 // Reset lastHadAttributes
                 lastHadAttributes = false;
@@ -1104,7 +1117,11 @@ public class Ingress extends AbstractHandler implements Runnable {
             // Push a metadata UPDATE message so attributes are stored
             // Build metadata object to push
             Metadata meta = new Metadata(lastencoder.getMetadata());
-            meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+            if (deltaAttributes) {
+              meta.setSource(Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT);              
+            } else {
+              meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+            }
             pushMetadataMessage(meta);
           }
         }
@@ -1167,6 +1184,12 @@ public class Ingress extends AbstractHandler implements Runnable {
     //
     // class{labels}{attributes}
     //
+    
+    boolean deltaAttributes = "delta".equals(request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES)));
+
+    if (deltaAttributes && !this.allowDeltaAttributes) {
+      throw new IOException("Delta update of attributes is disabled.");
+    }
     
     //
     // TODO(hbs): Extract producer/owner from token
@@ -1284,7 +1307,11 @@ public class Ingress extends AbstractHandler implements Runnable {
         
         count++;
 
-        metadata.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+        if (deltaAttributes) {
+          metadata.setSource(Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT);
+        } else {
+          metadata.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);          
+        }
         
         try {
           // We do not take into consideration this activity timestamp in the cache

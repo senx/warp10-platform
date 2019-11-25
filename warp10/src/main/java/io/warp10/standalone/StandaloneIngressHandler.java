@@ -137,8 +137,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
   private final Long maxpastOverride;
   private final Long maxfutureOverride;
   private final boolean ignoreOutOfRange;
+  private final boolean allowDeltaAttributes;
   
   public StandaloneIngressHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
+    
     this.keyStore = keystore;
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
@@ -153,6 +155,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
     this.lkl0 = this.labelsKeyLongs[0];
     this.lkl1 = this.labelsKeyLongs[1];
     
+    this.allowDeltaAttributes = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_ATTRIBUTES_ALLOWDELTA));
+
     updateActivity = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_ACTIVITY_UPDATE));
     metaActivity = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_ACTIVITY_META));
     
@@ -275,7 +279,13 @@ public class StandaloneIngressHandler extends AbstractHandler {
       response.setHeader("Access-Control-Allow-Origin", "*");
       
       long nano = System.nanoTime();
-      
+
+      boolean deltaAttributes = "delta".equals(request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES)));
+
+      if (deltaAttributes && !this.allowDeltaAttributes) {
+        throw new IOException("Delta update of attributes is disabled.");
+      }
+
       //
       // Extract DatalogRequest if specified
       //
@@ -316,6 +326,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
         labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
         Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_RECEIVED, labels, 1);
         forwarded = true;
+        
+        deltaAttributes = dr.isDeltaAttributes();
       }
 
       //
@@ -572,6 +584,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
             dr.setType(Constants.DATALOG_UPDATE);
             dr.setId(datalogId);
             dr.setToken(token); 
+            dr.setDeltaAttributes(deltaAttributes);
             
             if (null == now) {
               //
@@ -691,7 +704,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
           count++;
 
           try {
-            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxsize, hadAttributes, maxpast, maxfuture, ignoredCount);
+            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxsize, hadAttributes, maxpast, maxfuture, ignoredCount, deltaAttributes);
             //nano2 += System.nanoTime() - nano0;
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_PARSEERRORS, sensisionLabels, 1);
@@ -724,9 +737,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
               if (this.updateActivity) {
                 metadata.setLastActivity(lastActivity);
               }
-              //nano6 += System.nanoTime() - nano0;
+              
               this.directoryClient.register(metadata);
-              //nano5 += System.nanoTime() - nano0;
               
               // Extract shardkey 128BITS
               // Shard key is 48 bits, 24 upper from the class Id and 24 lower from the labels Id
@@ -740,7 +752,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
                 // We need to push lastencoder's metadata update as they were updated since the last
                 // metadata update message sent
                 Metadata meta = new Metadata(lastencoder.getMetadata());
-                meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                if (deltaAttributes) {
+                  meta.setSource(Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT);                  
+                } else {
+                  meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                }
                 this.directoryClient.register(meta);
                 lastHadAttributes = false;
               }
@@ -795,7 +811,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
             // Build metadata object to push
             Metadata meta = new Metadata(lastencoder.getMetadata());
             // Set source to indicate we
-            meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+            if (deltaAttributes) {
+              meta.setSource(Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT);
+            } else {
+              meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+            }
             this.directoryClient.register(meta);
           }
         }        
@@ -889,6 +909,12 @@ public class StandaloneIngressHandler extends AbstractHandler {
       
       response.setHeader("Access-Control-Allow-Origin", "*");
 
+      boolean deltaAttributes = "delta".equals(request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES)));
+      
+      if (deltaAttributes && !this.allowDeltaAttributes) {
+        throw new IOException("Delta update of attributes is disabled.");
+      }
+      
       //
       // Extract DatalogRequest if specified
       //
@@ -928,6 +954,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
         Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_RECEIVED, labels, 1);
         
         forwarded = true;
+        
+        deltaAttributes = dr.isDeltaAttributes();
       }
       
       //
@@ -1007,7 +1035,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
           dr.setTimestamp(nanos);
           dr.setType(Constants.DATALOG_META);
           dr.setId(datalogId);
-          dr.setToken(token);          
+          dr.setToken(token);
+          dr.setDeltaAttributes(deltaAttributes);
         }
         
         if (null != dr && (!forwarded || (forwarded && this.logforwarded))) {        
@@ -1085,11 +1114,15 @@ public class StandaloneIngressHandler extends AbstractHandler {
           }
 
           if (!MetadataUtils.validateMetadata(metadata)) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid metadata " + line);
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid metadata " + metadata);
             return;
           }
           
-          metadata.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+          if (deltaAttributes) {
+            metadata.setSource(Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT);            
+          } else {
+            metadata.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+          }
           
           if (metaActivity) {
             metadata.setLastActivity(lastActivity);

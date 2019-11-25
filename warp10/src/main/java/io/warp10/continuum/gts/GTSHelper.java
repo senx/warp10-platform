@@ -66,6 +66,7 @@ import com.google.common.collect.ImmutableMap;
 import io.warp10.CapacityExtractorOutputStream;
 import io.warp10.DoubleUtils;
 import io.warp10.WarpURLEncoder;
+import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.continuum.store.Constants;
@@ -2450,10 +2451,10 @@ public class GTSHelper {
   }
   
   public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes) throws ParseException, IOException {
-    return parse(encoder, str, extraLabels, now, maxValueSize, parsedAttributes, null, null, null);
+    return parse(encoder, str, extraLabels, now, maxValueSize, parsedAttributes, null, null, null, false);
   }
   
-  public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes, Long maxpast, Long maxfuture, AtomicLong ignoredCount) throws ParseException, IOException {
+  public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes, Long maxpast, Long maxfuture, AtomicLong ignoredCount, boolean deltaAttributes) throws ParseException, IOException {
 
     int idx = 0;
     
@@ -2702,13 +2703,32 @@ public class GTSHelper {
 
     // Update the attributes if some were parsed
     if (null != attributes) {
-      encoder.getMetadata().setAttributes(attributes);
+      if (!deltaAttributes) {
+        encoder.getMetadata().setAttributes(attributes);
+      } else {
+        if (0 == encoder.getMetadata().getAttributesSize()) {
+          encoder.getMetadata().setAttributes(new HashMap<String,String>());
+        }
+        for (Entry<String,String> attr: attributes.entrySet()) {
+          if ("".equals(attr.getValue())) {
+            encoder.getMetadata().getAttributes().remove(attr.getKey());
+          } else {
+            encoder.getMetadata().putToAttributes(attr.getKey(), attr.getValue());
+          }
+        }
+      }
     }
 
     if (!ignored) {
       encoder.addValue(timestamp, location, elevation, value);
     } else {
       ignoredCount.addAndGet(1);
+    }
+    
+    // Check labels/attributes sizes, subtract 6 to account for '// {} '
+    // Subtract value length
+    if (str.length() - 6 - valuestr.length() > MetadataUtils.SIZE_THRESHOLD && !MetadataUtils.validateMetadata(encoder.getMetadata())) {
+      throw new ParseException("Invalid metadata", 0);
     }
     
     return encoder;

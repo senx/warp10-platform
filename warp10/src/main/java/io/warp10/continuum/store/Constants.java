@@ -212,6 +212,11 @@ public class Constants {
    */
   public static final String HTTP_HEADER_DATALOG_DEFAULT = "X-Warp10-Datalog";
   
+  /**
+   * Header name for specifying attribute updates are delta
+   */
+  public static final String HTTP_HEADER_ATTRIBUTES_DEFAULT = "X-Warp10-Attributes";
+  
   public static final String DATALOG_UPDATE = "UPDATE";
   public static final String DATALOG_META = "META";
   public static final String DATALOG_DELETE = "DELETE";
@@ -483,6 +488,7 @@ public class Constants {
     HEADERS.put(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE, WarpConfig.getProperty(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE, HTTP_HEADER_DIRECTORY_SIGNATURE_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_EXPOSE_HEADERS, WarpConfig.getProperty(Configuration.HTTP_HEADER_EXPOSE_HEADERS, HTTP_HEADER_EXPOSE_HEADERS_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_DATALOG, WarpConfig.getProperty(Configuration.HTTP_HEADER_DATALOG, HTTP_HEADER_DATALOG_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_ATTRIBUTES, WarpConfig.getProperty(Configuration.HTTP_HEADER_ATTRIBUTES, HTTP_HEADER_ATTRIBUTES_DEFAULT));    
   }
   
   public static String getHeader(String name) {

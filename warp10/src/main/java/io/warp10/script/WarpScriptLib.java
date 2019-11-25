@@ -373,6 +373,7 @@ public class WarpScriptLib {
   public static final String EVALSECURE = "EVALSECURE";
   public static final String SNAPSHOT = "SNAPSHOT";
   public static final String SNAPSHOTALL = "SNAPSHOTALL";
+  public static final String DEREF = "DEREF";
   public static final String LOAD = "LOAD";
   public static final String POPR = "POPR";
   public static final String CPOPR = "CPOPR";
@@ -783,6 +784,7 @@ public class WarpScriptLib {
   public static final String FILTERBY = "FILTERBY";
   public static final String UPDATE = "UPDATE";
   public static final String META = "META";
+  public static final String METADIFF = "METADIFF";
   public static final String DELETE = "DELETE";
   public static final String WEBCALL = "WEBCALL";
   public static final String MATCH = "MATCH";
@@ -1245,6 +1247,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new STORE(STORE));
     addNamedWarpScriptFunction(new CSTORE(CSTORE));
     addNamedWarpScriptFunction(new LOAD(LOAD));
+    addNamedWarpScriptFunction(new DEREF(DEREF));
     addNamedWarpScriptFunction(new IMPORT(IMPORT));
     addNamedWarpScriptFunction(new RUN(RUN));
     addNamedWarpScriptFunction(new DEF(DEF));
@@ -1629,6 +1632,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FILTERBY(FILTERBY));
     addNamedWarpScriptFunction(new UPDATE(UPDATE));
     addNamedWarpScriptFunction(new META(META));
+    addNamedWarpScriptFunction(new META(METADIFF, true));    
     addNamedWarpScriptFunction(new DELETE(DELETE));
     addNamedWarpScriptFunction(new WEBCALL(WEBCALL));
     addNamedWarpScriptFunction(new MATCH(MATCH));
