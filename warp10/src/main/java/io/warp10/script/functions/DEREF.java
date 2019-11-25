@@ -88,7 +88,7 @@ public class DEREF extends NamedWarpScriptFunction implements WarpScriptStackFun
             if (value instanceof Macro) {
               // If the macro contains a single element which is itself a macro, push
               // that macro onto the stack as a shortcut
-              if (1 == ((Macro) value).size() && ((Macro) value).get(0) instanceof Macro) {
+              if (1 == ((Macro) value).size()) {
                 statements.set(i - 1, NOOP);
                 statements.set(i, ((Macro) value).get(0));
               } else {
@@ -108,7 +108,7 @@ public class DEREF extends NamedWarpScriptFunction implements WarpScriptStackFun
             if (value instanceof Macro) {
               statements.set(i, MacroHelper.wrap((Macro) value));
             } else {
-              statements.set(i, values.get(register));
+              statements.set(i, value);
             }
           }
         }
