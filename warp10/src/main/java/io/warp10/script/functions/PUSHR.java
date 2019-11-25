@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -35,5 +35,9 @@ public class PUSHR extends NamedWarpScriptFunction implements WarpScriptStackFun
     stack.push(stack.load(this.regno));
     
     return stack;
+  }
+  
+  public int getRegister() {
+    return this.regno;
   }
 }

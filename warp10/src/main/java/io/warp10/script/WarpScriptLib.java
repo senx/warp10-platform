@@ -373,6 +373,7 @@ public class WarpScriptLib {
   public static final String EVALSECURE = "EVALSECURE";
   public static final String SNAPSHOT = "SNAPSHOT";
   public static final String SNAPSHOTALL = "SNAPSHOTALL";
+  public static final String DEREF = "DEREF";
   public static final String LOAD = "LOAD";
   public static final String POPR = "POPR";
   public static final String CPOPR = "CPOPR";
@@ -1246,6 +1247,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new STORE(STORE));
     addNamedWarpScriptFunction(new CSTORE(CSTORE));
     addNamedWarpScriptFunction(new LOAD(LOAD));
+    addNamedWarpScriptFunction(new DEREF(DEREF));
     addNamedWarpScriptFunction(new IMPORT(IMPORT));
     addNamedWarpScriptFunction(new RUN(RUN));
     addNamedWarpScriptFunction(new DEF(DEF));
