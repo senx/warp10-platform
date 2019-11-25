@@ -246,7 +246,7 @@ public class InMemoryChunkSet {
   public GTSEncoder fetchEncoder(long now, long timespan) throws IOException {
 
     if (this.ephemeral) {
-      return fetchCountEncoder(Long.MAX_VALUE, 1);
+      return fetchCountEncoder(Long.MAX_VALUE, 1L);
     }
     
     if (timespan < 0) {
