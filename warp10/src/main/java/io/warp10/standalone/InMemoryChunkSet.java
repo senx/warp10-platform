@@ -102,9 +102,7 @@ public class InMemoryChunkSet {
         return;
       }
       
-      // Clear the existing encoders
-      chunks[0] = null;
-      
+      // Reset the encoder      
       chunks[0] = new GTSEncoder(decoder.getBaseTimestamp());
       chunks[0].addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
       return;
