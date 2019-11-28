@@ -212,13 +212,28 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     // We need to stop on the modulus boundary that precedes the last valid boundary
     //
     
+    boolean endAtMinlong = false;
+    
     if (timespan >= 0) {
-      modulus = (now - timespan);
-      modulus = (modulus - (modulus % Constants.DEFAULT_MODULUS)) - Constants.DEFAULT_MODULUS;
+      try {
+        modulus = Math.subtractExact(now, timespan);
+      } catch (ArithmeticException ae) {
+        modulus = Long.MIN_VALUE;
+        endAtMinlong = true;
+      }
+      
+      if (modulus < Long.MIN_VALUE + Constants.DEFAULT_MODULUS) {
+        endAtMinlong = true;
+        modulus = Long.MIN_VALUE;
+      } else {
+        modulus = (modulus - (modulus % Constants.DEFAULT_MODULUS)) - Constants.DEFAULT_MODULUS;
+      }
     
       bb.putLong(Long.MAX_VALUE - modulus);
     } else {
+      // Long.MAX_VALUE - Long.MIN_VALUE, the beginning of time...
       bb.putLong(0xffffffffffffffffL);
+      endAtMinlong = true;
     }
     
     //
@@ -242,14 +257,26 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
       System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - (now + 1)), 0, k, k.length - 8, 8);
       scan.setStartRow(k);
     } else if (preBoundaryScan) {
-      scan.setStartRow(endkey);
-      byte[] k = Arrays.copyOf(endkey, endkey.length + 1);
-      // Set the reversed time stamp to 0xFFFFFFFFFFFFFFFFL
-      Arrays.fill(k, endkey.length - 8, k.length - 1, (byte) 0xFF);
-      scan.setStopRow(k);
+      if (endAtMinlong) {
+        // If the end timestamp is minlong, we will not have a preBoundaryScan, so set
+        // dummy scan range
+        scan.setStartRow(endkey);
+        scan.setStopRow(new byte[1]);
+      } else {
+        scan.setStartRow(endkey);
+        byte[] k = Arrays.copyOf(endkey, endkey.length + 1);
+        // Set the reversed time stamp to 0xFFFFFFFFFFFFFFFFL plus a 0x0 byte
+        Arrays.fill(k, endkey.length - 8, k.length - 1, (byte) 0xFF);
+        scan.setStopRow(k);        
+      }
     } else {
       scan.setStartRow(startkey);
-      scan.setStopRow(endkey);
+      if (endAtMinlong) {
+        // When the end timestamp should have been after MIN_LONG add a trailing 0x00
+        scan.setStopRow(Arrays.copyOf(endkey, endkey.length + 1));
+      } else {
+        scan.setStopRow(endkey);
+      }
     }
 
     //
