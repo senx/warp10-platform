@@ -1530,11 +1530,11 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new ADDVALUE(ADDVALUE, false));
     addNamedWarpScriptFunction(new ADDVALUE(SETVALUE, true));
     addNamedWarpScriptFunction(new REMOVETICK(REMOVETICK));
-    addNamedWarpScriptFunction(new FETCH(FETCH, false, null));
-    addNamedWarpScriptFunction(new FETCH(FETCHLONG, false, TYPE.LONG));
-    addNamedWarpScriptFunction(new FETCH(FETCHDOUBLE, false, TYPE.DOUBLE));
-    addNamedWarpScriptFunction(new FETCH(FETCHSTRING, false, TYPE.STRING));
-    addNamedWarpScriptFunction(new FETCH(FETCHBOOLEAN, false, TYPE.BOOLEAN));
+    addNamedWarpScriptFunction(new FETCH(FETCH, null));
+    addNamedWarpScriptFunction(new FETCH(FETCHLONG, TYPE.LONG));
+    addNamedWarpScriptFunction(new FETCH(FETCHDOUBLE, TYPE.DOUBLE));
+    addNamedWarpScriptFunction(new FETCH(FETCHSTRING, TYPE.STRING));
+    addNamedWarpScriptFunction(new FETCH(FETCHBOOLEAN, TYPE.BOOLEAN));
     addNamedWarpScriptFunction(new LIMIT(LIMIT));
     addNamedWarpScriptFunction(new MAXGTS(MAXGTS));
     addNamedWarpScriptFunction(new FIND(FIND, false));
