@@ -240,7 +240,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
               if (((List) symbol).get(k) instanceof String) {
                 Integer regno = varregs.get(((List) symbol).get(k).toString());
                 if (null != regno) {
-                  ((List) symbol).set(k, regno);
+                  ((List) symbol).set(k, (long) regno);
                 }
               }
             }
@@ -251,7 +251,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
               if (stmt instanceof String) {
                 Integer regno = varregs.get(statements.get(idx));
                 if (null != regno) {
-                  statements.set(idx, regno);
+                  statements.set(idx, (long) regno);
                 }
               }
               idx--;
