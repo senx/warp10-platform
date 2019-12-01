@@ -40,6 +40,7 @@ import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
+import io.warp10.warp.sdk.IngressPlugin;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -55,6 +56,7 @@ import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPInputStream;
@@ -138,6 +140,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
   private final Long maxfutureOverride;
   private final boolean ignoreOutOfRange;
   private final boolean allowDeltaAttributes;
+  
+  private final IngressPlugin plugin;
   
   public StandaloneIngressHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
     
@@ -241,6 +245,25 @@ public class StandaloneIngressHandler extends AbstractHandler {
       this.datalogPSK = null;
     }
     
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_PLUGIN_CLASS)) {
+      try {
+        ClassLoader pluginCL = this.getClass().getClassLoader();
+
+        Class pluginClass = Class.forName(WarpConfig.getProperty(Configuration.INGRESS_PLUGIN_CLASS), true, pluginCL);
+        this.plugin = (IngressPlugin) pluginClass.newInstance();
+        
+        //
+        // Now call the 'init' method of the plugin
+        //
+        
+        this.plugin.init();
+      } catch (Exception e) {
+        throw new RuntimeException("Unable to instantiate plugin class", e);
+      }
+    } else {
+      this.plugin = null;
+    }
+
     this.logforwarded = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_LOGFORWARDED));
     this.datalogSync = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_SYNC));
     
@@ -705,6 +728,12 @@ public class StandaloneIngressHandler extends AbstractHandler {
 
           try {
             encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxsize, hadAttributes, maxpast, maxfuture, ignoredCount, deltaAttributes);
+            if (null != this.plugin) {
+              if (!this.plugin.update(this, writeToken, line, encoder)) {
+                hadAttributes.set(false);
+                continue;
+              }
+            }
             //nano2 += System.nanoTime() - nano0;
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_PARSEERRORS, sensisionLabels, 1);
@@ -1128,6 +1157,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
             metadata.setLastActivity(lastActivity);
           }
           
+          if (null != this.plugin) {
+            if (!this.plugin.meta(this, wtoken, line, metadata)) {
+              continue;
+            }
+          }
           this.directoryClient.register(metadata);
           
           //
@@ -1169,5 +1203,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
         return;
       }
     }
+  }
+  
+  public IngressPlugin getPlugin() {
+    return this.plugin;
   }
 }

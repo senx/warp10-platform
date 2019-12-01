@@ -41,6 +41,7 @@ import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
+import io.warp10.warp.sdk.IngressPlugin;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -114,6 +115,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
   private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
 
   private final boolean disabled;
+  
+  private IngressPlugin plugin = null;
   
   public StandaloneDeleteHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
     this.keyStore = keystore;
@@ -529,6 +532,11 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         long localCount = 0;
         
         if (!dryrun) {
+          if (null != this.plugin) {
+            if (!this.plugin.delete(this, writeToken, metadata)) {
+              continue;
+            }
+          }
           localCount = this.storeClient.delete(writeToken, metadata, start, end);
         }
 
@@ -630,8 +638,16 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       }
       
       LOG.info(LogUtil.serializeLoggingEvent(this.keyStore, event));
+      
+      if (null != this.plugin) {
+        this.plugin.flush(this);
+      }
     }
 
     response.setStatus(HttpServletResponse.SC_OK);
-  }  
+  } 
+  
+  public void setPlugin(IngressPlugin plugin) {
+    this.plugin = plugin;
+  }
 }

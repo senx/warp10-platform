@@ -337,3 +337,8 @@ ingress.kafka.metadata.maxsize = 900000
 // The default value if false.
 //
 #ingress.hbase.dpts = false
+
+//
+// Fully qualified class name of an optional IngressPlugin to load
+//
+#ingress.plugin.class = ...
