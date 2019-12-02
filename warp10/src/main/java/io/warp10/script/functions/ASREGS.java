@@ -82,20 +82,20 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
           inuse.set(((PUSHR) statements.get(i)).getRegister());
         } else if (statements.get(i) instanceof POPR) {
           inuse.set(((POPR) statements.get(i)).getRegister());
-        } else if (statements.get(i) instanceof LOAD) {
+        } else if (statements.get(i) instanceof LOAD || statements.get(i) instanceof CSTORE) {
           // If the statement is the first, we cannot determine if what
-          // we load is a register or a variable, so abort.
+          // we load or update is a register or a variable, so abort.
           if (0 == i) {
             abort = true;
             break;
           }
-          // Fetch what precedes the LOAD
+          // Fetch what precedes the LOAD/CSTORE
           Object symbol = statements.get(i - 1);
           if (symbol instanceof Long) {
             inuse.set(((Long) symbol).intValue());
           } else if (!(symbol instanceof String)) {
-            // We encountered a LOAD with a non string and non long param,
-            // we cannot determine what is being loaded, so no replacement
+            // We encountered a LOAD/CSTORE with a non string and non long param,
+            // we cannot determine what is being loaded or updated, so no replacement
             // can occur
             abort = true;
           }
@@ -136,23 +136,6 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             // a list, so we cannot determine if a register is involved or not, so we abort
             abort = true;
           }
-        } else if (statements.get(i) instanceof CSTORE) {
-          // If the statement is the first, we cannot determine if what
-          // we update is a register or a variable, so abort.
-          if (0 == i) {
-            abort = true;
-            break;
-          }
-          // Fetch what precedes the CSTORE
-          Object symbol = statements.get(i - 1);
-          if (symbol instanceof Long) {
-            inuse.set(((Long) symbol).intValue());
-          } else if (!(symbol instanceof String)) {
-            // We encountered a CSTORE with a non string and non long param,
-            // we cannot determine what is being updated, so no replacement
-            // can occur
-            abort = true;
-          }          
         } else if (statements.get(i) instanceof Macro) {
           allmacros.add((Macro) statements.get(i));
         }
@@ -233,7 +216,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             Integer regno = varregs.get(symbol.toString());
             if (null != regno) {
               statements.set(i - 1, NOOP);
-              statements.set(i, regfuncs[regno+regidx]);
+              statements.set(i, regfuncs[regno + regidx]);
             }                    
           } else if (symbol instanceof List) {
             for (int k = 0; k < ((List) symbol).size(); k++) {
@@ -266,7 +249,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             Integer regno = varregs.get(symbol.toString());
             if (null != regno) {
               statements.set(i - 1, NOOP);
-              statements.set(i, regfuncs[regno+regidx+regidx]);
+              statements.set(i, regfuncs[regno + regidx + regidx]);
             }
           } else if (!(symbol instanceof Long)) {
             abort = true;
