@@ -110,7 +110,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     this.hbaseKey = keystore.getKey(KeyStore.AES_HBASE_DATA);
 
     // If we are fetching up to Long.MIN_VALUE, then don't fetch a pre boundary
-    this.preBoundary = Long.MIN_VALUE == then && preBoundary > 0 ? 0 : preBoundary;
+    this.preBoundary = Long.MIN_VALUE == then ? 0 : preBoundary;
     // If now is Long.MAX_VALUE then there is no possibility to have a post boundary
     this.postBoundary = postBoundary >= 0 && now < Long.MAX_VALUE ? postBoundary : 0;
     

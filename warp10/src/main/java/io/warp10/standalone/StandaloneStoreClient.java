@@ -114,7 +114,7 @@ public class StandaloneStoreClient implements StoreClient {
     //
     // If we are fetching up to Long.MIN_VALUE, then don't fetch a pre boundary
     //
-    if (Long.MIN_VALUE == then && preBoundary > 0) {
+    if (Long.MIN_VALUE == then) {
       preBoundary = 0;
     }
     

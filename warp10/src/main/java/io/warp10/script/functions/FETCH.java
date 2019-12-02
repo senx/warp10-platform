@@ -475,9 +475,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         
         double sample = 1.0D;
         
-        if (params.containsKey(PARAM_SAMPLE)) {
-          sample = (double) params.get(PARAM_SAMPLE);
-        }
+        sample = (double) params.getOrDefault(PARAM_SAMPLE, 1.0D);
         
         TYPE type = (TYPE) params.get(PARAM_TYPE);
 
@@ -553,7 +551,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
                 // When fetching per count, only increase 'count' when
                 // timestamp is after the end timestamp so we do not
-                // increase count for the post boundary
+                // increase dpcount for the post boundary
                 if (-1L == count || ts <= end) {
                   dpcount++;
                 } else if (ts > end) {
@@ -886,7 +884,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         // By default scan the whole time range from 'end' to the beginnings of times
         params.put(PARAM_START, Long.MIN_VALUE);
       } else {
-        params.put(PARAM_START, (long) params.get(PARAM_END) - (long) params.get(PARAM_TIMESPAN));
+        params.put(PARAM_START, (long) params.get(PARAM_END) - (long) params.get(PARAM_TIMESPAN) + 1);
       }
     } else if (map.containsKey(PARAM_COUNT)) {
       params.put(PARAM_COUNT, (long) map.get(PARAM_COUNT));

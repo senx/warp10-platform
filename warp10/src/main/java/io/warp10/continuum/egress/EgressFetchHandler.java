@@ -257,11 +257,11 @@ public class EgressFetchHandler extends AbstractHandler {
         if (tsstart < tsstop) {
           now = tsstop;
           then = tsstart;
-          timespan = tsstop - tsstart;
+          timespan = tsstop - tsstart + 1;
         } else {
           now = tsstart;
           then = tsstop;
-          timespan = tsstart - tsstop;
+          timespan = tsstart - tsstop + 1;
         }
       } else if (null != nowParam && null != timespanParam) {
         if ("now".equals(nowParam)) {
