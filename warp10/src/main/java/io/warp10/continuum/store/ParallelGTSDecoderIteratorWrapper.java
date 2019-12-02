@@ -426,7 +426,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     
     while(!this.errorFlag.get() && this.queue.isEmpty() && !(0 == this.pending.get() &&  0 == this.inflight.get())) {
       schedule();
-      LockSupport.parkNanos(10000L);
+      LockSupport.parkNanos(50000L);
     }
     
     if (this.errorFlag.get()) {

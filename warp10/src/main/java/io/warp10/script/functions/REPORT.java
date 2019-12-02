@@ -52,6 +52,8 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
   private static final AtomicLong seq = new AtomicLong(0L);
   
   private static final String uuid = UUID.randomUUID().toString();
+
+  private static boolean initialized = false;
   
   static {
     String defaultSecret = UUID.randomUUID().toString();
@@ -60,15 +62,15 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
     if (defaultSecret.equals(SECRET)) {
       LOG.info("REPORT secret not set, using '" + defaultSecret + "'.");
       System.out.println("REPORT secret not set, using '" + defaultSecret + "'.");
-    }
-    
-    if (!"false".equals(WarpConfig.getProperty(Configuration.WARP10_TELEMETRY))) {
-      telinit();
-    }
+    }    
   }
   
   public REPORT(String name) {
     super(name);
+    if (!initialized && !"false".equals(WarpConfig.getProperty(Configuration.WARP10_TELEMETRY))) {
+      telinit();
+    }
+    initialized = true;
   }
 
   @Override
