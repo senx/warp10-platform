@@ -34,15 +34,20 @@ public class CSTORE extends NamedWarpScriptFunction implements WarpScriptStackFu
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object var = stack.pop();
     
-    if (!(var instanceof String)) {
-      throw new WarpScriptException(getName() + " expects variable name to be a string.");
+    if (!(var instanceof String) && !(var instanceof Long)) {
+      throw new WarpScriptException(getName() + " expects variable name to be a string or a register number.");
     }
 
     Object o = stack.pop();
 
-    if (!stack.getSymbolTable().containsKey(var.toString())) {
-      stack.store(var.toString(), o);      
+    if (var instanceof String) {
+      if (!stack.getSymbolTable().containsKey(var.toString())) {
+        stack.store(var.toString(), o);      
+      }
+    } else if (null == stack.load(((Long) var).intValue())) {
+      stack.store(((Long) var).intValue(), o);
     }
+    
     return stack;
   }
 }

@@ -211,6 +211,8 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
           }
         }
       };
+      
+      telemetry.setDaemon(true);
       telemetry.start();
       
       Runtime.getRuntime().addShutdownHook(new Thread() {
