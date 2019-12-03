@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package io.warp10.script.functions;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -27,11 +26,10 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Extract all used variables in a macro. If a STORE/CSTORE or LOAD operation is
@@ -56,9 +54,9 @@ public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunc
     // Now loop over the macro statement, extracting variable names
     //
     
-    Set<String> symbols = new LinkedHashSet<String>();
+    Set<Object> symbols = new LinkedHashSet<Object>();
     
-    final Map<String,AtomicInteger> occurrences = new HashMap<String,AtomicInteger>();
+    final Map<Object,AtomicInteger> occurrences = new HashMap<Object,AtomicInteger>();
     
     List<Macro> allmacros = new ArrayList<Macro>();
     allmacros.add((Macro) top);
@@ -74,22 +72,86 @@ public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunc
         if (statements.get(i) instanceof Macro) {
           allmacros.add((Macro) statements.get(i));
           continue;
-        } else if (statements.get(i) instanceof LOAD|| statements.get(i) instanceof STORE|| statements.get(i) instanceof CSTORE) {
+        } else if (statements.get(i) instanceof POPR) {
+          symbols.add((long) ((POPR) statements.get(i)).getRegister());
+          AtomicInteger occ = occurrences.get((long) ((POPR) statements.get(i)).getRegister());
+          if (null == occ) {
+            occ = new AtomicInteger();
+            occurrences.put((long) ((POPR) statements.get(i)).getRegister(), occ);
+          }
+          occ.incrementAndGet();
+        } else if (statements.get(i) instanceof PUSHR) {
+          symbols.add((long) ((PUSHR) statements.get(i)).getRegister());
+          AtomicInteger occ = occurrences.get((long) ((PUSHR) statements.get(i)).getRegister());
+          if (null == occ) {
+            occ = new AtomicInteger();
+            occurrences.put((long) ((PUSHR) statements.get(i)).getRegister(), occ);
+          }
+          occ.incrementAndGet();                  
+        } else if (statements.get(i) instanceof LOAD || statements.get(i) instanceof CSTORE) {
           Object symbol = statements.get(i - 1);
           // If the parameter to LOAD/STORE/CSTORE is not a string, then we cannot extract
           // the variables in a safe way as some may be unknown to us (as their name may be the result
           // of a computation), so in this case we abort the process
-          if (!(symbol instanceof String)) {
+          if (symbol instanceof String || symbol instanceof Long) {
+            symbols.add(symbol);
+            AtomicInteger occ = occurrences.get(symbol);
+            if (null == occ) {
+              occ = new AtomicInteger();
+              occurrences.put(symbol, occ);
+            }
+            occ.incrementAndGet();
+          } else {
             abort = true;
             break;
           }
-          symbols.add(symbol.toString());
-          AtomicInteger occ = occurrences.get(symbol.toString());
-          if (null == occ) {
-            occ = new AtomicInteger();
-            occurrences.put(symbol.toString(), occ);
+        } else if (statements.get(i) instanceof STORE) {
+          if (0 == i) {
+            abort = true;
+            break;
           }
-          occ.incrementAndGet();
+          Object symbol = statements.get(i-1);
+          if (symbol instanceof List) {
+            // We inspect the list, looking for registers
+            for (Object elt: (List) symbol) {
+              if (elt instanceof String || elt instanceof Long) {
+                symbols.add(elt);
+                AtomicInteger occ = occurrences.get(elt);
+                if (null == occ) {
+                  occ = new AtomicInteger();
+                  occurrences.put(elt, occ);
+                }
+                occ.incrementAndGet();
+              } else if (null != elt) {
+                abort = true;
+                break;
+              }
+            }
+          } else if (symbol instanceof ENDLIST) {
+            // We go backwards in statements until we find a MARK, inspecting elements
+            // If we encounter something else than String/Long/NULL, we abort as we cannot
+            // determine if a register is used or not
+            int idx = i - 2;
+            while (idx >= 0 && !(statements.get(idx) instanceof MARK)) {
+              Object stmt = statements.get(idx--);
+              if (stmt instanceof String || stmt instanceof Long) {
+                symbols.add(stmt);
+                AtomicInteger occ = occurrences.get(stmt);
+                if (null == occ) {
+                  occ = new AtomicInteger();
+                  occurrences.put(stmt, occ);
+                }
+                occ.incrementAndGet();                
+              } else if (null != stmt && !(stmt instanceof NULL)) {
+                abort = true;
+                break;
+              }
+            }            
+          } else if (!(symbol instanceof String) && !(symbol instanceof Long)) {
+            // We encountered a STORE with something that is neither a register, a string or
+            // a list, so we cannot determine if a register is involved or not, so we abort
+            abort = true;
+          }
         }
       }            
     }
@@ -98,13 +160,13 @@ public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunc
       throw new WarpScriptException(getName() + " encountered a LOAD/STORE or CSTORE operation with a non explicit symbol name.");
     }
     
-    List<String> vars = new ArrayList<String>(symbols);
+    List<Object> vars = new ArrayList<Object>(symbols);
     
     // Now sort according to the number of occurrences (decreasing)
     
-    vars.sort(new Comparator<String>() {
+    vars.sort(new Comparator<Object>() {
       @Override
-      public int compare(String s1, String s2) {
+      public int compare(Object s1, Object s2) {
         AtomicInteger occ1 = occurrences.get(s1);
         AtomicInteger occ2 = occurrences.get(s2);
         
@@ -113,8 +175,7 @@ public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunc
         } else if (occ1.get() > occ2.get()) {
           return -1;
         } else {
-          // Compare the strings
-          return s1.compareTo(s2);
+          return s1.toString().compareTo(s2.toString());
         }
       }
     });
