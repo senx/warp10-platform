@@ -46,4 +46,8 @@ public class POPR extends NamedWarpScriptFunction implements WarpScriptStackFunc
     
     return stack;
   }
+  
+  public int getRegister() {
+    return this.regno;
+  }
 }
