@@ -467,15 +467,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         }
 
         long then = (long) params.get(PARAM_START);
-        long skip = 0;
-        
-        if (params.containsKey(PARAM_SKIP)) {
-          skip = (long) params.get(PARAM_SKIP);
-        }
-        
-        double sample = 1.0D;
-        
-        sample = (double) params.getOrDefault(PARAM_SAMPLE, 1.0D);
+        long skip = (long) params.getOrDefault(PARAM_SKIP, 0L);        
+        double sample = (double) params.getOrDefault(PARAM_SAMPLE, 1.0D);
         
         TYPE type = (TYPE) params.get(PARAM_TYPE);
 
@@ -550,7 +543,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                 Object value = decoder.getBinaryValue();
 
                 // When fetching per count, only increase 'count' when
-                // timestamp is after the end timestamp so we do not
+                // timestamp is before the end timestamp so we do not
                 // increase dpcount for the post boundary
                 if (-1L == count || ts <= end) {
                   dpcount++;

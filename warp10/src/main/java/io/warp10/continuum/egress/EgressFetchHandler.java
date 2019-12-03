@@ -292,13 +292,13 @@ public class EgressFetchHandler extends AbstractHandler {
           Duration duration = p.toDurationFrom(new Instant());
 
           timespan = duration.getMillis() * Constants.TIME_UNITS_PER_MS;
-          then = now - timespan;
+          then = now - timespan + 1;
         } else {
           timespan = Long.parseLong(timespanParam);
           if (timespan < 0) {
             count = -timespan;
           } else {
-            then = now - timespan;
+            then = now - timespan + 1;
           }
         }
       }

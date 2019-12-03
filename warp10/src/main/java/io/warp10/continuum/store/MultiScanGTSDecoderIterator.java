@@ -257,12 +257,8 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
       }
     } else {
       scan.setStartRow(startkey);
-      if (endAtMinlong) {
-        // When the end timestamp should have been after MIN_LONG add a trailing 0x00
-        scan.setStopRow(Arrays.copyOf(endkey, endkey.length + 1));
-      } else {
-        scan.setStopRow(endkey);
-      }
+      // Then endkey is 'endkey' plus a trailing 0x00 so we include 'endkey'
+      scan.setStopRow(Arrays.copyOf(endkey, endkey.length + 1));
     }
 
     //

@@ -170,7 +170,7 @@ public class HBaseStoreClient implements StoreClient {
       postBoundary = 0;
     }
      
-    if (sample <= 0.0D || sample >= 1.0D) {
+    if (sample <= 0.0D || sample > 1.0D) {
       sample = 1.0D;
     }
     
@@ -185,7 +185,7 @@ public class HBaseStoreClient implements StoreClient {
     //
     // If we are fetching up to Long.MIN_VALUE, then don't fetch a pre boundary
     //
-    if (Long.MIN_VALUE == then && preBoundary > 0) {
+    if (Long.MIN_VALUE == then) {
       preBoundary = 0;
     }
 
@@ -223,7 +223,7 @@ public class HBaseStoreClient implements StoreClient {
     
     if (useHBaseFilter && metadatas.size() > this.hbaseFilterThreshold) {
       if (count > 0 && Long.MIN_VALUE == then) {
-        // If we are fetching per count only (i.e. time range ends at Long.MIN_VALUE
+        // If we are fetching per count only (i.e. time range ends at Long.MIN_VALUE)
         optimized = true;
       } else if (-1 == count) {
         // When not fetching by count but by time range, use the filter

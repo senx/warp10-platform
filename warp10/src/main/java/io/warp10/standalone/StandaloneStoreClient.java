@@ -99,7 +99,7 @@ public class StandaloneStoreClient implements StoreClient {
       postBoundary = 0;
     }
      
-    if (sample <= 0.0D || sample >= 1.0D) {
+    if (sample <= 0.0D || sample > 1.0D) {
       sample = 1.0D;
     }
     
