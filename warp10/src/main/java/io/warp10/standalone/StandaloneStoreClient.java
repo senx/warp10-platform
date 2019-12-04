@@ -393,7 +393,7 @@ public class StandaloneStoreClient implements StoreClient {
             startrow = null;
           }
           
-          // We need to reseek if startrow is null
+          // We need to reseek if startrow is null (it indicates we need to skip to the next GTS)
           if (null == startrow) {
             idx++;
 

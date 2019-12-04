@@ -249,7 +249,8 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
         scan.setStartRow(endkey);
         scan.setStopRow(new byte[1]);
       } else {
-        scan.setStartRow(endkey);
+        // Start right after 'endkey'
+        scan.setStartRow(Arrays.copyOf(endkey, endkey.length + 1));
         byte[] k = Arrays.copyOf(endkey, endkey.length + 1);
         // Set the reversed time stamp to 0xFFFFFFFFFFFFFFFFL plus a 0x0 byte
         Arrays.fill(k, endkey.length - 8, k.length - 1, (byte) 0xFF);
