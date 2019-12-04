@@ -546,16 +546,16 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
           }
         }
 
-        if (wtoken.getAttributes().containsKey(Constants.STORE_ATTR_TTL)
-            || wtoken.getAttributes().containsKey(Constants.STORE_ATTR_USEDATAPOINTTS)) {
+        if (wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_TTL)
+            || wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_DPTS)) {
           if (null == kafkaDataMessageAttributes) {
             kafkaDataMessageAttributes = new HashMap<String,String>();
           }
-          if (wtoken.getAttributes().containsKey(Constants.STORE_ATTR_TTL)) {
-            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_TTL, wtoken.getAttributes().get(Constants.STORE_ATTR_TTL));
+          if (wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_TTL)) {
+            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_TTL, wtoken.getAttributes().get(Constants.TOKEN_ATTR_TTL));
           }
-          if (wtoken.getAttributes().containsKey(Constants.STORE_ATTR_USEDATAPOINTTS)) {
-            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_USEDATAPOINTTS, wtoken.getAttributes().get(Constants.STORE_ATTR_USEDATAPOINTTS));
+          if (wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_DPTS)) {
+            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_USEDATAPOINTTS, wtoken.getAttributes().get(Constants.TOKEN_ATTR_DPTS));
           }
         }       
       }

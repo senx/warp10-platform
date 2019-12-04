@@ -745,16 +745,16 @@ public class Ingress extends AbstractHandler implements Runnable {
       }
       
       if (writeToken.getAttributesSize() > 0) {
-        if (writeToken.getAttributes().containsKey(Constants.STORE_ATTR_TTL)
-            || writeToken.getAttributes().containsKey(Constants.STORE_ATTR_USEDATAPOINTTS)) {
+        if (writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_TTL)
+            || writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_DPTS)) {
           if (null == kafkaDataMessageAttributes) {
             kafkaDataMessageAttributes = new HashMap<String,String>();
           }
-          if (writeToken.getAttributes().containsKey(Constants.STORE_ATTR_TTL)) {
-            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_TTL, writeToken.getAttributes().get(Constants.STORE_ATTR_TTL));
+          if (writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_TTL)) {
+            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_TTL, writeToken.getAttributes().get(Constants.TOKEN_ATTR_TTL));
           }
-          if (writeToken.getAttributes().containsKey(Constants.STORE_ATTR_USEDATAPOINTTS)) {
-            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_USEDATAPOINTTS, writeToken.getAttributes().get(Constants.STORE_ATTR_USEDATAPOINTTS));
+          if (writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_DPTS)) {
+            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_USEDATAPOINTTS, writeToken.getAttributes().get(Constants.TOKEN_ATTR_DPTS));
           }
         }
       }
