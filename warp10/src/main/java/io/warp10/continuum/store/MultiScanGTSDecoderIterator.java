@@ -200,8 +200,9 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     // are reversed so the most recent (end) appears first (startkey)
     // 128bits
     
-    byte[] startkey = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
-    byte[] endkey = new byte[startkey.length];
+    byte[] startkey = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];    
+    // endkey has a trailing 0x00 so we include the actual end key
+    byte[] endkey = new byte[startkey.length + 1];
     
     ByteBuffer bb = ByteBuffer.wrap(startkey).order(ByteOrder.BIG_ENDIAN);
     bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
@@ -247,19 +248,18 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
         // If the end timestamp is minlong, we will not have a preBoundaryScan, so set
         // dummy scan range
         scan.setStartRow(endkey);
-        scan.setStopRow(new byte[1]);
+        scan.setStopRow(endkey);
       } else {
         // Start right after 'endkey'
-        scan.setStartRow(Arrays.copyOf(endkey, endkey.length + 1));
-        byte[] k = Arrays.copyOf(endkey, endkey.length + 1);
+        scan.setStartRow(endkey);
+        byte[] k = Arrays.copyOf(endkey, endkey.length);
         // Set the reversed time stamp to 0xFFFFFFFFFFFFFFFFL plus a 0x0 byte
         Arrays.fill(k, endkey.length - 8, k.length - 1, (byte) 0xFF);
         scan.setStopRow(k);        
       }
     } else {
       scan.setStartRow(startkey);
-      // Then endkey is 'endkey' plus a trailing 0x00 so we include 'endkey'
-      scan.setStopRow(Arrays.copyOf(endkey, endkey.length + 1));
+      scan.setStopRow(endkey);
     }
 
     //
