@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
+import java.util.zip.GZIPOutputStream;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -243,8 +244,11 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
       }      
       seq.addAndGet(1L);
       conn.addRequestProperty("X-Warp10-Telemetry-UUID", uuid);
+      conn.addRequestProperty("Content-Type", "application/gzip");
       OutputStream out = conn.getOutputStream();
-      out.write(report.getBytes(StandardCharsets.UTF_8));
+      OutputStream zout = new GZIPOutputStream(out);
+      zout.write(report.getBytes(StandardCharsets.UTF_8));
+      zout.close();
       out.close();
       String newdelay = conn.getHeaderField("X-Warp10-Telemetry-Delay");
       
