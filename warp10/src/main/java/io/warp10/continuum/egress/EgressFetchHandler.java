@@ -185,11 +185,18 @@ public class EgressFetchHandler extends AbstractHandler {
       
       long now = Long.MIN_VALUE;
       long timespan = 0L;
+      long then = Long.MIN_VALUE;
+      long count = -1;
+      long skip = 0;
+      double sample = 1.0D;
 
       String nowParam = null;
       String timespanParam = null;
       String dedupParam = null;
       String showErrorsParam = null;
+      String countParam = null;
+      String skipParam = null;
+      String sampleParam = null;
       
       if (splitFetch) {
         nowParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_NOW_HEADERX));
@@ -203,6 +210,9 @@ public class EgressFetchHandler extends AbstractHandler {
         timespanParam = req.getParameter(Constants.HTTP_PARAM_TIMESPAN);
         dedupParam = req.getParameter(Constants.HTTP_PARAM_DEDUP);      
         showErrorsParam = req.getParameter(Constants.HTTP_PARAM_SHOW_ERRORS);
+        countParam = req.getParameter(Constants.HTTP_PARAM_COUNT);
+        skipParam = req.getParameter(Constants.HTTP_PARAM_SKIP);
+        sampleParam = req.getParameter(Constants.HTTP_PARAM_SAMPLE);
       }
           
       String maxDecoderLenParam = req.getParameter(Constants.HTTP_PARAM_MAXSIZE);
@@ -246,10 +256,12 @@ public class EgressFetchHandler extends AbstractHandler {
         
         if (tsstart < tsstop) {
           now = tsstop;
-          timespan = tsstop - tsstart;
+          then = tsstart;
+          timespan = tsstop - tsstart + 1;
         } else {
           now = tsstart;
-          timespan = tsstart - tsstop;
+          then = tsstop;
+          timespan = tsstart - tsstop + 1;
         }
       } else if (null != nowParam && null != timespanParam) {
         if ("now".equals(nowParam)) {
@@ -279,9 +291,15 @@ public class EgressFetchHandler extends AbstractHandler {
 
           Duration duration = p.toDurationFrom(new Instant());
 
-          timespan = duration.getMillis() * Constants.TIME_UNITS_PER_MS;    
+          timespan = duration.getMillis() * Constants.TIME_UNITS_PER_MS;
+          then = now - timespan + 1;
         } else {
           timespan = Long.parseLong(timespanParam);
+          if (timespan < 0) {
+            count = -timespan;
+          } else {
+            then = now - timespan + 1;
+          }
         }
       }
       
@@ -290,6 +308,18 @@ public class EgressFetchHandler extends AbstractHandler {
         return;
       }
         
+      if (null != countParam) {
+        count = Long.parseLong(countParam);
+      }
+      
+      if (null != skipParam) {
+        skip = Long.parseLong(skipParam);        
+      }
+      
+      if (null != sampleParam) {
+        sample = Double.parseDouble(sampleParam);
+      }
+      
       String selector = splitFetch ? null : req.getParameter(Constants.HTTP_PARAM_SELECTOR);
    
       //
@@ -729,7 +759,7 @@ public class EgressFetchHandler extends AbstractHandler {
           //
           
           if (metas.size() > FETCH_BATCHSIZE || !itermeta.hasNext()) {
-            try(GTSDecoderIterator iterrsc = storeClient.fetch(rtoken, metas, now, fetchtimespan, fromArchive, writeTimestamp, 0, 0)) {
+            try(GTSDecoderIterator iterrsc = storeClient.fetch(rtoken, metas, now, then, count, skip, sample, writeTimestamp, 0, 0)) {
               GTSDecoderIterator iter = iterrsc;
                           
               if (unpack) {

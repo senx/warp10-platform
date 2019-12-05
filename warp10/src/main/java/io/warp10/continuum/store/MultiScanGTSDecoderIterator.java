@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellScanner;
@@ -46,9 +47,13 @@ import io.warp10.sensision.Sensision;
 
 public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
 
+  private static Random prng = new Random();
+  
   int idx = 0;
 
   long nvalues = Long.MAX_VALUE;
+  
+  long toskip = 0;
   
   private final Table htable;
 
@@ -63,8 +68,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
   private final List<Metadata> metadatas;
   
   private final long now;
-  
-  private final long timespan;
+  private final long then;
   
   private final boolean useBlockcache;
   
@@ -75,8 +79,6 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
   private final boolean writeTimestamp;
   
   private byte[] hbaseKey;
-  
-  private final boolean fromArchive;
   
   private final int preBoundary;
   private final int postBoundary;
@@ -89,19 +91,26 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
   // Flag indicating we scan the post boundary.
   private boolean postBoundaryScan = false;
       
-  public MultiScanGTSDecoderIterator(boolean fromArchive, ReadToken token, long now, long timespan, List<Metadata> metadatas, Connection conn, TableName tableName, byte[] colfam, boolean writeTimestamp, KeyStore keystore, boolean useBlockcache, int preBoundary, int postBoundary) throws IOException {
+  private long count = -1;
+  private long skip = 0;
+  private double sample = 1.0D;
+  
+  public MultiScanGTSDecoderIterator(ReadToken token, long now, long then, long count, long skip, double sample, List<Metadata> metadatas, Connection conn, TableName tableName, byte[] colfam, boolean writeTimestamp, KeyStore keystore, boolean useBlockcache, int preBoundary, int postBoundary) throws IOException {
     this.htable = conn.getTable(tableName);
     this.metadatas = metadatas;
     this.now = now;
-    this.timespan = timespan;
+    this.then = then;
+    this.count = count;
+    this.skip = skip;
+    this.sample = sample;
     this.useBlockcache = useBlockcache;
     this.token = token;
     this.colfam = colfam;
     this.writeTimestamp = writeTimestamp;
     this.hbaseKey = keystore.getKey(KeyStore.AES_HBASE_DATA);
-    this.fromArchive = fromArchive;
-    // If timespan is < 0, no pre boundary can be fetched
-    this.preBoundary = preBoundary >= 0 && timespan >= 0 ? preBoundary : 0;
+
+    // If we are fetching up to Long.MIN_VALUE, then don't fetch a pre boundary
+    this.preBoundary = Long.MIN_VALUE == then ? 0 : preBoundary;
     // If now is Long.MAX_VALUE then there is no possibility to have a post boundary
     this.postBoundary = postBoundary >= 0 && now < Long.MAX_VALUE ? postBoundary : 0;
     
@@ -191,8 +200,9 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     // are reversed so the most recent (end) appears first (startkey)
     // 128bits
     
-    byte[] startkey = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
-    byte[] endkey = new byte[startkey.length];
+    byte[] startkey = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];    
+    // endkey has a trailing 0x00 so we include the actual end key
+    byte[] endkey = new byte[startkey.length + 1];
     
     ByteBuffer bb = ByteBuffer.wrap(startkey).order(ByteOrder.BIG_ENDIAN);
     bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
@@ -208,33 +218,9 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     bb.putLong(metadata.getClassId());
     bb.putLong(metadata.getLabelsId());
     
-    //
-    // We need to stop on the modulus boundary that precedes the last valid boundary
-    //
-    
-    boolean endAtMinlong = false;
-    
-    if (timespan >= 0) {
-      try {
-        modulus = Math.subtractExact(now, timespan);
-      } catch (ArithmeticException ae) {
-        modulus = Long.MIN_VALUE;
-        endAtMinlong = true;
-      }
-      
-      if (modulus < Long.MIN_VALUE + Constants.DEFAULT_MODULUS) {
-        endAtMinlong = true;
-        modulus = Long.MIN_VALUE;
-      } else {
-        modulus = (modulus - (modulus % Constants.DEFAULT_MODULUS)) - Constants.DEFAULT_MODULUS;
-      }
-    
-      bb.putLong(Long.MAX_VALUE - modulus);
-    } else {
-      // Long.MAX_VALUE - Long.MIN_VALUE, the beginning of time...
-      bb.putLong(0xffffffffffffffffL);
-      endAtMinlong = true;
-    }
+    boolean endAtMinlong = Long.MIN_VALUE == then;
+
+    bb.putLong(Long.MAX_VALUE - then);
     
     //
     // Reset number of values retrieved since we just skipped to a new GTS.
@@ -242,8 +228,9 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     // otherwise use Long.MAX_VALUE
     //
     
-    nvalues = timespan < 0 ? -timespan : Long.MAX_VALUE;
-
+    nvalues = count >= 0 ? count : Long.MAX_VALUE;
+    toskip = skip;
+    
     Scan scan = new Scan();
     
     // Retrieve the whole column family
@@ -261,22 +248,18 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
         // If the end timestamp is minlong, we will not have a preBoundaryScan, so set
         // dummy scan range
         scan.setStartRow(endkey);
-        scan.setStopRow(new byte[1]);
+        scan.setStopRow(endkey);
       } else {
+        // Start right after 'endkey'
         scan.setStartRow(endkey);
-        byte[] k = Arrays.copyOf(endkey, endkey.length + 1);
+        byte[] k = Arrays.copyOf(endkey, endkey.length);
         // Set the reversed time stamp to 0xFFFFFFFFFFFFFFFFL plus a 0x0 byte
         Arrays.fill(k, endkey.length - 8, k.length - 1, (byte) 0xFF);
         scan.setStopRow(k);        
       }
     } else {
       scan.setStartRow(startkey);
-      if (endAtMinlong) {
-        // When the end timestamp should have been after MIN_LONG add a trailing 0x00
-        scan.setStopRow(Arrays.copyOf(endkey, endkey.length + 1));
-      } else {
-        scan.setStopRow(endkey);
-      }
+      scan.setStopRow(endkey);
     }
 
     //
@@ -305,8 +288,9 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
       }
     } else {
       // Number of rows to cache can be set arbitrarily high as the end row will stop the scanner caching anyway
-      scan.setCaching((int) (timespan < 0 ? Math.min(-timespan, 100000) : 100000));
-      if (timespan < 0 && -timespan < 100) {
+      // TODO(hbs): how should we account for sample?
+      scan.setCaching((int) (count >= 0 ? Math.min(count + skip, 100000) : 100000));
+      if (count >= 0 && count + skip < 100) {
         // setSmall and setBatch are not compatible, good, we are not using setBatch!
         scan.setSmall(true);
       }
@@ -379,8 +363,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
           cellCount++;
           
           //
-          // Extract timestamp base from column qualifier
-          // This is true even for packed readings, those have a base timestamp of 0L
+          // Extract timestamp base from row key
           //
 
           long basets = Long.MAX_VALUE;
@@ -423,8 +406,19 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
           while(nvalues > 0 && decoder.next()) {
             long timestamp = decoder.getTimestamp();
                         
-            if (preBoundaryScan || postBoundaryScan || (timestamp <= now && (timespan < 0 || (timestamp > (now - timespan))))) {
+            if (preBoundaryScan || postBoundaryScan || (timestamp <= now && timestamp >= then)) {
               try {
+                // Skip
+                if (toskip > 0 && !preBoundaryScan && !postBoundaryScan) {
+                  toskip--;
+                  continue;
+                }
+                
+                // Sample if we have to
+                if (1.0D != sample && !preBoundaryScan && !postBoundaryScan && prng.nextDouble() > sample) {
+                  continue;
+                }
+                
                 if (writeTimestamp) {
                   encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), cell.getTimestamp() * Constants.TIME_UNITS_PER_MS);
                 } else {
@@ -439,9 +433,8 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
                 keyBytes += cell.getRowLength() + cell.getFamilyLength() + cell.getQualifierLength();
                 datapoints++;
 
-                // Don't decrement nvalues for the postBoundary as we might be retrieving
-                // it as part of a count based fetch
-                if (!postBoundaryScan) {
+                // Don't decrement nvalues for the boundaries
+                if (!postBoundaryScan && !preBoundaryScan) {
                   nvalues--;
                 }
                 
@@ -546,15 +539,9 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
       // Update per owner statistics, use a TTL for those
       //
       
-      if (fromArchive) {
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_VALUES_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, valueBytes);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_KEYS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, keyBytes);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_DATAPOINTS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, datapoints);                    
-      } else {
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_VALUES_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, valueBytes);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_KEYS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, keyBytes);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_DATAPOINTS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, datapoints);          
-      }
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_VALUES_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, valueBytes);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_KEYS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, keyBytes);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_DATAPOINTS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, datapoints);          
              
       //
       // Update summary statistics
@@ -563,15 +550,9 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
       // Remove 'owner' label
       labels.remove(SensisionConstants.SENSISION_LABEL_OWNER);
 
-      if (fromArchive) {
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_VALUES, labels, valueBytes);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_KEYS, labels, keyBytes);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_DATAPOINTS, labels, datapoints);          
-      } else {
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_VALUES, labels, valueBytes);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_KEYS, labels, keyBytes);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_DATAPOINTS, labels, datapoints);          
-      }
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_VALUES, labels, valueBytes);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_KEYS, labels, keyBytes);
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_DATAPOINTS, labels, datapoints);          
     }
 
     return encoder.getDecoder();
