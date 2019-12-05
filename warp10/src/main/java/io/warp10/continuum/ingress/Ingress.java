@@ -1846,7 +1846,7 @@ public class Ingress extends AbstractHandler implements Runnable {
    * 
    * @param props Properties from which to extract the key specs
    */
-  private void extractKeys(KeyStore keystore, Properties props) {
+  private static void extractKeys(KeyStore keystore, Properties props) {
     String keyspec = props.getProperty(Configuration.INGRESS_KAFKA_META_MAC);
     
     if (null != keyspec) {
@@ -1882,12 +1882,12 @@ public class Ingress extends AbstractHandler implements Runnable {
     keyspec = props.getProperty(Configuration.DIRECTORY_PSK);
     
     if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
+      byte[] key = keystore.decodeKey(keyspec);
       Preconditions.checkArgument(16 == key.length, "Key " + Configuration.DIRECTORY_PSK + " MUST be 128 bits long.");
-      this.keystore.setKey(KeyStore.SIPHASH_DIRECTORY_PSK, key);
+      keystore.setKey(KeyStore.SIPHASH_DIRECTORY_PSK, key);
     }    
     
-    this.keystore.forget();
+    keystore.forget();
   }
   
   void pushMetadataMessage(Metadata metadata) throws IOException {
