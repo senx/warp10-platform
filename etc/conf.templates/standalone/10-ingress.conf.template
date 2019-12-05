@@ -21,6 +21,11 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
+// Set to true to parse attributes in the data passed to /update.
+//
+#ingress.parse.attributes = true
+
+//
 // Set to true to allow the delta update of attributes
 //
 #ingress.attributes.allowdelta = true
