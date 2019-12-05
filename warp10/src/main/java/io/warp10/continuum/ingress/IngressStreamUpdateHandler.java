@@ -258,6 +258,14 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
 
               try {
                 encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.maxsize, hadAttributes, maxpast, maxfuture, ignoredCount, this.deltaAttributes);
+                
+                if (null != this.handler.ingress.plugin) {
+                  GTSEncoder enc = encoder;
+                  if (!this.handler.ingress.plugin.update(this.handler.ingress, wtoken, line, encoder)) {
+                    hadAttributes.set(false);
+                    continue;
+                  }
+                }
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
                 throw new IOException("Parse error at '" + line + "'", pe);
@@ -399,6 +407,10 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
           } finally {
             this.handler.ingress.pushMetadataMessage(null);
             this.handler.ingress.pushDataMessage(null, this.kafkaDataMessageAttributes);
+            
+            if (null != this.handler.ingress.plugin) {
+              this.handler.ingress.plugin.flush(this.handler.ingress);
+            }
             nano = System.nanoTime() - nano;
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);          
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_MESSAGES, sensisionLabels, 1);

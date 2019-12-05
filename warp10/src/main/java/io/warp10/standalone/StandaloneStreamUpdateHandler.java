@@ -38,6 +38,7 @@ import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.sensision.Sensision;
+import io.warp10.warp.sdk.IngressPlugin;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -115,6 +116,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
   private final Long maxpastOverride;
   private final Long maxfutureOverride;
   private final boolean ignoreOutOfRange;
+  
+  private IngressPlugin plugin = null;
   
   private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
 
@@ -426,6 +429,12 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
 
               try {
                 encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.maxsize, hadAttributes, maxpast, maxfuture, ignoredCount, this.deltaAttributes);
+                if (null != this.handler.plugin) {
+                  if (!this.handler.plugin.update(this.handler, wtoken, line, encoder)) {
+                    hadAttributes.set(false);
+                    continue;
+                  }
+                }
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
                 throw new IOException("Parse error at '" + line + "'", pe);
@@ -583,6 +592,9 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);          
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_MESSAGES, sensisionLabels, 1);
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_TIME_US, sensisionLabels, nano / 1000);      
+          }
+          if (null != this.handler.plugin) {
+            this.handler.plugin.flush(this.handler);
           }
           session.getRemote().sendString("OK " + (seqno++) + " UPDATE " + count + " " + nano);
         }        
@@ -804,6 +816,10 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     }    
   }
      
+  public void setPlugin(IngressPlugin plugin) {
+    this.plugin = plugin;
+  }
+  
   public DirectoryClient getDirectoryClient() {
     return this.directoryClient;
   }
