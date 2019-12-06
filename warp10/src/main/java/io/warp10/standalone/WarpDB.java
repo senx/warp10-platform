@@ -490,7 +490,7 @@ public class WarpDB extends Thread implements DB {
          //              until there are no more waiters?
                   
          Thread owner = mutex.getOwner();
-         if (!owner.isAlive()) {
+         if (null != owner && !owner.isAlive()) {
            LOG.warn("WarpDB mutex holder is no longer alive, " + mutex.getHoldCount() + " holds, " + mutex.getQueueLength() + " threads waiting WarpDB.");
          }
          
