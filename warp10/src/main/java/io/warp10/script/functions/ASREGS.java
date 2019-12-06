@@ -149,6 +149,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
     Map<String,Integer> varregs = new HashMap<String,Integer>();
     
     int regidx = 0;
+    int numregs = 0;
     
     for (Object v: vars) {
       
@@ -169,15 +170,16 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
         regidx = inuse.nextClearBit(0);
         inuse.set(regidx);
         varregs.put(v.toString(), regidx);
+        numregs = regidx + 1;
       }
-    }
+    }    
     
-    WarpScriptStackFunction[] regfuncs = new WarpScriptStackFunction[regidx * 3];
+    WarpScriptStackFunction[] regfuncs = new WarpScriptStackFunction[numregs * 3];
     
-    for (int i = 0; i < regidx; i++) {
+    for (int i = 0; i < numregs; i++) {
       regfuncs[i] = new PUSHR(WarpScriptLib.PUSHR + i, i); // LOAD
-      regfuncs[regidx + i] = new POPR(WarpScriptLib.POPR + i, i); // STORE
-      regfuncs[regidx + regidx + i] = new POPR(WarpScriptLib.POPR + i, i, true); // CSTORE
+      regfuncs[numregs + i] = new POPR(WarpScriptLib.POPR + i, i); // STORE
+      regfuncs[numregs + numregs + i] = new POPR(WarpScriptLib.POPR + i, i, true); // CSTORE
     }
         
     //
@@ -216,7 +218,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             Integer regno = varregs.get(symbol.toString());
             if (null != regno) {
               statements.set(i - 1, NOOP);
-              statements.set(i, regfuncs[regno + regidx]);
+              statements.set(i, regfuncs[regno + numregs]);
             }                    
           } else if (symbol instanceof List) {
             for (int k = 0; k < ((List) symbol).size(); k++) {
@@ -249,7 +251,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             Integer regno = varregs.get(symbol.toString());
             if (null != regno) {
               statements.set(i - 1, NOOP);
-              statements.set(i, regfuncs[regno + regidx + regidx]);
+              statements.set(i, regfuncs[regno + numregs + numregs]);
             }
           } else if (!(symbol instanceof Long)) {
             abort = true;
@@ -272,7 +274,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
         m.setSize(statements.size() - noops);
       }
     }
-    
+
     if (abort) {
       throw new WarpScriptException(getName() + " was unable to convert variables to registers.");
     }
