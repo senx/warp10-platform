@@ -25,6 +25,7 @@ public class ENDVECTOR extends ENDLIST {
   
   public ENDVECTOR(String name) {
     super(name);
+    nameOfCollection = "vector";
   }
   
   @Override

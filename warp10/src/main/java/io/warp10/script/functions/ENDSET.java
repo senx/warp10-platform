@@ -25,6 +25,7 @@ public class ENDSET extends ENDLIST {
   
   public ENDSET(String name) {
     super(name);
+    nameOfCollection = "set";
   }
   
   @Override

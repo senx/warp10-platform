@@ -32,7 +32,11 @@ public class ENDMAP extends NamedWarpScriptFunction implements WarpScriptStackFu
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    ctm.apply(stack);
+    try {
+      ctm.apply(stack);
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException("Cannot find a matching start of map.", wse);
+    }
     tm.apply(stack);
     stack.swap();
     stack.drop();
