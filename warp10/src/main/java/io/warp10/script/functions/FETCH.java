@@ -212,10 +212,10 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         
         if (start < stop) {
           endts = stop;
-          timespan = stop - start;
+          timespan = stop - start + 1;
         } else {
           endts = start;
-          timespan = start - stop;
+          timespan = start - stop + 1;
         }
       } else if (oStart instanceof Long && oStop instanceof Long) {
         endts = (long) oStart;
@@ -232,8 +232,10 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
           timespan++; // It's ok to modify a bit the count of points as it is impossible to return Long.MAX_VALUE points
         }
         params.put(PARAM_COUNT, -timespan);
+        // By default scan the whole time range from 'end' to the beginnings of times
+        params.put(PARAM_START, Long.MIN_VALUE);
       } else {
-        params.put(PARAM_TIMESPAN, timespan);
+        params.put(PARAM_START, endts - timespan + 1);
       }
       
       //
