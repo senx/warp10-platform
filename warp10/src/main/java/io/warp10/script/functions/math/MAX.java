@@ -21,9 +21,12 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
+import java.util.List;
+
 /**
  * Check https://docs.oracle.com/javase/8/docs/api/java/lang/Math.html for the documentation of this function.
  * Last java parameter is on top of the stack.
+ * Also work on a list, returning the max value of a given list.
  */
 public class MAX extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -35,21 +38,48 @@ public class MAX extends NamedWarpScriptFunction implements WarpScriptStackFunct
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object op0 = stack.pop();
 
-    if (!(op0 instanceof Number)) {
-      throw new WarpScriptException(getName() + " can only operate on numerical values.");
-    }
+    if (op0 instanceof List) {
+      Number min = null;
 
-    Object op1 = stack.pop();
+      for (Object element: (List) op0) {
+        if (!(element instanceof Number)) {
+          throw new WarpScriptException(getName() + " can only operate on numerical values.");
+        }
 
-    if (!(op1 instanceof Number)) {
-      throw new WarpScriptException(getName() + " can only operate on numerical values.");
-    }
+        if (null == min) {
+          if (element instanceof Long || element instanceof Integer) {
+            min = ((Number) element).longValue();
+          } else {
+            min = ((Number) element).doubleValue();
+          }
+        } else {
+          if ((element instanceof Long || element instanceof Integer) && (min instanceof Long)) {
+            min = Math.max(((Number) element).longValue(), min.longValue());
+          } else {
+            min = Math.max(((Number) element).doubleValue(), min.doubleValue());
+          }
+        }
+      }
 
-    if ((op1 instanceof Long || op1 instanceof Integer)
-        && (op0 instanceof Long || op0 instanceof Integer)) {
-      stack.push(Math.max(((Number) op1).longValue(), ((Number) op0).longValue()));
+      stack.push(min);
     } else {
-      stack.push(Math.max(((Number) op1).doubleValue(), ((Number) op0).doubleValue()));
+
+      if (!(op0 instanceof Number)) {
+        throw new WarpScriptException(getName() + " can only operate on 2 numerical values or a list on numerical values.");
+      }
+
+      Object op1 = stack.pop();
+
+      if (!(op1 instanceof Number)) {
+        throw new WarpScriptException(getName() + " can only operate on 2 numerical values or a list on numerical values.");
+      }
+
+      if ((op1 instanceof Long || op1 instanceof Integer)
+          && (op0 instanceof Long || op0 instanceof Integer)) {
+        stack.push(Math.max(((Number) op1).longValue(), ((Number) op0).longValue()));
+      } else {
+        stack.push(Math.max(((Number) op1).doubleValue(), ((Number) op0).doubleValue()));
+      }
     }
 
     return stack;
