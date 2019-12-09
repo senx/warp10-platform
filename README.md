@@ -42,4 +42,4 @@ Don't hesitate to contact us at [sales@senx.io](mailto:sales@senx.io) for all yo
 
 #### Trademarks
 
-Warp 10, WarpScript, WarpFleet, Geo Time Series and SenX are tradekarms of SenX S.A.S.
+Warp 10, WarpScript, WarpFleet, Geo Time Series and SenX are trademarks of SenX S.A.S.
