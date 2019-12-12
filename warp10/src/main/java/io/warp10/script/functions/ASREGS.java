@@ -170,10 +170,11 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
         regidx = inuse.nextClearBit(0);
         inuse.set(regidx);
         varregs.put(v.toString(), regidx);
-        numregs = regidx + 1;
       }
     }    
-    
+
+    numregs = regidx + 1;
+
     WarpScriptStackFunction[] regfuncs = new WarpScriptStackFunction[numregs * 3];
     
     for (int i = 0; i < numregs; i++) {
