@@ -1058,6 +1058,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
               Period p = period.toPeriod();
 
+              // TODO(tce) This could be removed if we add this period to start or subtract to end. However we need
+              // to keep track of the timezone which require quite a lot of change in the code.
               if (p.getMonths() != 0 || p.getYears() != 0) {
                 throw new WarpScriptException("No support for ambiguous durations containing years or months, please convert those to days.");
               }
