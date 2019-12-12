@@ -121,6 +121,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
   public static final String PARAM_SAMPLE = "sample";
   
   public static final String POSTFETCH_HOOK = "postfetch";
+
+  public static final String NOW_PARAM_VALUE = "now";
   
   private static DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
   
@@ -1005,70 +1007,14 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     // Try to convert start to a valid timestamp if possible.
     //
 
-    Long startTs = null;
-
-    if (start instanceof Long) {
-      // Simple case: start is a long
-      startTs = (long) start;
-    } else if (start instanceof String) {
-      // If it's a string, it may be the string representation of a Long, a ISO8601 date or 'now'.
-      if ("now".equals(start)) {
-        startTs = now;
-      } else {
-        try {
-          startTs = Long.valueOf((String) start);
-        } catch (NumberFormatException nfe) {
-          // Not string representation of a Long, try ISO8601
-          try {
-            if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-              startTs = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp((String) start);
-            } else {
-              startTs = fmt.parseDateTime((String) start).getMillis() * Constants.TIME_UNITS_PER_MS;
-            }
-          } catch (WarpScriptException | IllegalArgumentException e) {
-            throw new WarpScriptException("Invalid format for parameter '" + startParamName + "'.", e);
-          }
-        }
-      }
-    } else if (null != start) {
-      // If start is not null and we cannot retrieve the timestamp, throw an error.
-      throw new WarpScriptException("Invalid format for parameter '" + startParamName + "'.");
-    }
+    Long startTs = getTimestamp(start, startParamName, now);
 
     //
     // Try to convert end to a valid timestamp if possible.
     // Same exact logic as for start.
     //
 
-    Long endTs = null;
-
-    if (end instanceof Long) {
-      // Simple case: start is a long
-      endTs = (long) end;
-    } else if (end instanceof String) {
-      // If it's a string, it may be the string representation of a Long, a ISO8601 date or 'now'.
-      if ("now".equals(start)) {
-        endTs = now;
-      } else {
-        try {
-          endTs = Long.valueOf((String) end);
-        } catch (NumberFormatException nfe) {
-          // Not string representation of a Long, try ISO8601
-          try {
-            if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-              endTs = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp((String) end);
-            } else {
-              endTs = fmt.parseDateTime((String) end).getMillis() * Constants.TIME_UNITS_PER_MS;
-            }
-          } catch (WarpScriptException | IllegalArgumentException e) {
-            throw new WarpScriptException("Invalid format for parameter '" + endParamName + "'.", e);
-          }
-        }
-      }
-    } else if (null != end) {
-      // If end is not null and we cannot retrieve the timestamp, throw an error.
-      throw new WarpScriptException("Invalid format for parameter '" + endParamName + "'.");
-    }
+    Long endTs = getTimestamp(end, endParamName, now);
 
     // Check that either startTs or endTs is defined.
     if (null == startTs && null == endTs) {
@@ -1101,44 +1047,53 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         numericTimespan = (Long) timespan;
       } else if (timespan instanceof String) {
         // If it's a string, it may be the string representation of a Long or a ISO8601 duration.
-        // Try the former then the latter if it fails.
-        try {
-          numericTimespan = Long.parseLong((String) timespan);
-        } catch (NumberFormatException nfe) {
-          // Not string representation of a Long, try ISO8601 duration.
+        if (0 != ((String) timespan).length()) {
           try {
-            ReadWritablePeriod period = new MutablePeriod();
+            // Speed up choice between ISO8601 and Long by checking the first character instead of relying on exceptions.
+            if ('P' == ((String) timespan).charAt(0)) {
+              // Should be a ISO8601 duration
+              ReadWritablePeriod period = new MutablePeriod();
 
-            ISOPeriodFormat.standard().getParser().parseInto(period, (String) timespan, 0, Locale.US);
+              ISOPeriodFormat.standard().getParser().parseInto(period, (String) timespan, 0, Locale.US);
 
-            Period p = period.toPeriod();
+              Period p = period.toPeriod();
 
-            if (p.getMonths() != 0 || p.getYears() != 0) {
-              throw new WarpScriptException("No support for ambiguous durations containing years or months, please convert those to days.");
+              if (p.getMonths() != 0 || p.getYears() != 0) {
+                throw new WarpScriptException("No support for ambiguous durations containing years or months, please convert those to days.");
+              }
+
+              Duration duration = p.toDurationFrom(new Instant());
+
+              numericTimespan = duration.getMillis() * Constants.TIME_UNITS_PER_MS;
+            } else {
+              // Should be a Long representation
+              numericTimespan = Long.parseLong((String) timespan);
             }
-
-            Duration duration = p.toDurationFrom(new Instant());
-
-            numericTimespan = duration.getMillis() * Constants.TIME_UNITS_PER_MS;
-          } catch (WarpScriptException | IllegalArgumentException e) {
+          } catch (IllegalArgumentException | WarpScriptException e) {
             throw new WarpScriptException("Invalid format for parameter '" + timespanParamName + "'.", e);
           }
+        } else {
+          throw new WarpScriptException("Parameter '" + timespanParamName + "' is empty.");
         }
       } else {
         // If timespan is not null and not a Long nor a String, throw an error.
         throw new WarpScriptException("Invalid format for parameter '" + timespanParamName + "'.");
       }
 
-      if (startTs == null) {
+      if (numericTimespan < 0) {
+        throw new WarpScriptException("'" + timespanParamName + "' cannot be negative.");
+      }
+
+      if (null == startTs) {
         // In that case startTs is not defined, so we compute it.
 
         // Check edge case
-        if (0 == numericTimespan && Long.MAX_VALUE == endTs) {
+        if (0L == numericTimespan && Long.MAX_VALUE == endTs) {
           throw new WarpScriptException("Cannot set '" + timespanParamName + "' to 0 and '" + endParamName + "' to MAX_VALUE.");
         }
 
         try {
-          // No need to check for overflow for +1 because this edge case has already been checked.
+          // No need to check for overflow for '+ 1' on the line below because this edge case has already been checked.
           startTs = Math.subtractExact(endTs, numericTimespan) + 1;
         } catch (ArithmeticException ae) {
           startTs = Long.MIN_VALUE;
@@ -1147,12 +1102,12 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         // In that case endTs is not defined, so we compute it.
 
         // Check edge case
-        if (0 == numericTimespan && Long.MIN_VALUE == startTs) {
+        if (0L == numericTimespan && Long.MIN_VALUE == startTs) {
           throw new WarpScriptException("Cannot set '" + timespanParamName + "' to 0 and '" + startParamName + "' to MIN_VALUE.");
         }
 
         try {
-          // No need to check for overflow for -1 because this edge case has already been checked.
+          // No need to check for overflow for '- 1' on the line below because this edge case has already been checked.
           endTs = Math.addExact(startTs, numericTimespan) - 1;
         } catch (ArithmeticException ae) {
           endTs = Long.MAX_VALUE;
@@ -1166,15 +1121,50 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     }
 
     // Make sure startTs is defined.
-    if(null == startTs) {
+    if (null == startTs) {
       if (null == count) {
-        throw new WarpScriptException("Invalid time range specification: '" + countParamName + "' is mandatory if neither '" + startParamName + "' and '" + timespanParamName + "' are not specified.");
+        throw new WarpScriptException("Invalid time range specification: '" + countParamName + "' is mandatory if '" + startParamName + "' and '" + timespanParamName + "' are not specified.");
       } else {
         // Fetch with end and count: start is set to the beginnings of time.
         startTs = Long.MIN_VALUE;
       }
     }
 
-    return new Long[]{startTs, endTs, numericTimespan};
+    return new Long[] {startTs, endTs, numericTimespan};
+  }
+
+  public static Long getTimestamp(Object timestampRepresentation, String timestampRepresentationParameterName, Long nowTimestamp) throws WarpScriptException {
+    Long timestamp = null;
+
+    if (timestampRepresentation instanceof Long) {
+      // Simple case: start is a long
+      timestamp = (long) timestampRepresentation;
+    } else if (timestampRepresentation instanceof String) {
+      // If it's a string, it may be the string representation of a Long, a ISO8601 date or 'now'.
+      if (NOW_PARAM_VALUE.equals(timestampRepresentation)) {
+        timestamp = nowTimestamp;
+      } else {
+        try {
+          timestamp = Long.parseLong((String) timestampRepresentation);
+        } catch (NumberFormatException nfe) {
+          // Not string representation of a Long, try ISO8601
+          try {
+            if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
+              timestamp = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp((String) timestampRepresentation);
+            } else {
+              timestamp = fmt.parseDateTime((String) timestampRepresentation).getMillis() * Constants.TIME_UNITS_PER_MS;
+            }
+          } catch (WarpScriptException | IllegalArgumentException e) {
+            // Don't set the cause of the execption because we don't know which of the two (nfs or e) it is.
+            throw new WarpScriptException("Invalid format for parameter '" + timestampRepresentationParameterName + "'.");
+          }
+        }
+      }
+    } else if (null != timestampRepresentation) {
+      // If start is not null and we cannot retrieve the timestamp, throw an error.
+      throw new WarpScriptException("Invalid format for parameter '" + timestampRepresentationParameterName + "'.");
+    }
+
+    return timestamp;
   }
 }

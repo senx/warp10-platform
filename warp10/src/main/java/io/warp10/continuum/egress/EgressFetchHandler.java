@@ -240,7 +240,8 @@ public class EgressFetchHandler extends AbstractHandler {
 
       // negative timespan is count
       if (null != timespanParam && null != countParam) {
-        throw new WarpScriptException("Cannot specify both '" + Constants.HTTP_PARAM_COUNT + "' and negative '" + Constants.HTTP_PARAM_TIMESPAN + "'.");
+        resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Cannot specify both '" + Constants.HTTP_PARAM_COUNT + "' and negative '" + Constants.HTTP_PARAM_TIMESPAN + "'.");
+        return;
       }
       try {
         long numericTimespan = Long.parseLong(timespanParam);
@@ -256,7 +257,8 @@ public class EgressFetchHandler extends AbstractHandler {
       String endParamName = Constants.HTTP_PARAM_END;
       if (null != stopParam) {
         if (null != endParam) {
-          throw new WarpScriptException("Cannot specify both '" + Constants.HTTP_PARAM_END + "' and '" + Constants.HTTP_PARAM_STOP + "'.");
+          resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Cannot specify both '" + Constants.HTTP_PARAM_END + "' and '" + Constants.HTTP_PARAM_STOP + "'.");
+          return;
         } else {
           endParam = stopParam;
           endParamName = Constants.HTTP_PARAM_STOP;
@@ -264,7 +266,8 @@ public class EgressFetchHandler extends AbstractHandler {
       }
       if (null != nowParam) {
         if (null != endParam) {
-          throw new WarpScriptException("Cannot specify both '" + Constants.HTTP_PARAM_END + "' and '" + Constants.HTTP_PARAM_NOW + "'.");
+          resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Cannot specify both '" + Constants.HTTP_PARAM_END + "' and '" + Constants.HTTP_PARAM_NOW + "'.");
+          return;
         } else {
           endParam = nowParam;
           endParamName = Constants.HTTP_PARAM_NOW;
@@ -740,7 +743,7 @@ public class EgressFetchHandler extends AbstractHandler {
                 count = Long.MAX_VALUE;
               }
               
-              if("text".equals(format)) {
+              if ("text".equals(format)) {
                 textDump(pw, iter, now, count, false, dedup, signed, showAttr, lastMeta, lastCount, sortMeta);
               } else if ("fulltext".equals(format)) {
                 textDump(pw, iter, now, count, true, dedup, signed, showAttr, lastMeta, lastCount, sortMeta);
