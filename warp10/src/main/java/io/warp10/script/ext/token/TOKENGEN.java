@@ -117,14 +117,14 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
       top = stack.pop();
     } else {
       //
-      // A non null token secret was configured, check it
+      // If a non null token secret was configured and no keys are specified, check it
       //
       
       top = stack.pop();
       
       String secret = TokenWarpScriptExtension.TOKEN_SECRET;
       
-      if (null != secret) {
+      if ((null == this.tokenAESKey || null == this.tokenSipHashKey) && null != secret) {
         if (!(top instanceof String)) {
           throw new WarpScriptException(getName() + " expects a token secret on top of the stack.");
         }
