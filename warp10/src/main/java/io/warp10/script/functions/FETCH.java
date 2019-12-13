@@ -184,8 +184,17 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       map.put(PARAM_TOKEN, list.get(0));
       map.put(PARAM_CLASS, list.get(1));
       map.put(PARAM_LABELS, list.get(2));
-      map.put(PARAM_START, list.get(3));
-      map.put(PARAM_END, list.get(4));
+
+      if (list.get(3) instanceof Long && list.get(4) instanceof Long) {
+        map.put(PARAM_END, list.get(3));
+        map.put(PARAM_TIMESPAN, list.get(4));
+      } else if (list.get(3) instanceof String && list.get(4) instanceof String) {
+        map.put(PARAM_START, list.get(3));
+        map.put(PARAM_END, list.get(4));
+      } else {
+        throw new WarpScriptException(getName() + " expects '" + PARAM_START + "' and '" + PARAM_END + "' to be Strings or '" + PARAM_END + "' and '" + PARAM_TIMESPAN + "' to be Longs.");
+      }
+
       params = paramsFromMap(map);
     } else {
       throw new  WarpScriptException(getName()+" expects a map or a list as parameter.");
