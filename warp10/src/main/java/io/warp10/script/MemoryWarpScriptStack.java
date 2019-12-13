@@ -616,7 +616,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             }
             multiline.append(stmt);
             continue;
-          } else if (WarpScriptStack.COMMENT_END.equals(stmt)) {
+          } else if (stmt.endsWith(WarpScriptStack.COMMENT_END)) {
             if (!inComment.get()) {
               throw new WarpScriptException("Not inside a comment.");
             }
@@ -624,7 +624,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             continue;
           } else if (inComment.get()) {
             continue;
-          } else if (WarpScriptStack.COMMENT_START.equals(stmt)) {
+          } else if (stmt.startsWith(WarpScriptStack.COMMENT_START)) {
             inComment.set(true);
             continue;
           } else if (WarpScriptStack.MULTILINE_START.equals(stmt)) {
