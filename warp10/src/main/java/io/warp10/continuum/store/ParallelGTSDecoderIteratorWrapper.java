@@ -312,7 +312,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
         GTSDecoderIterator iterator = null;
         
         if (optimized) {
-          long timespan = count > 1 ? -count : now - then + 1;
+          long timespan = count > 0 ? -count : now - then + 1;
           iterator = new OptimizedSlicedRowFilterGTSDecoderIterator(now, timespan, metas, conn, tableName, colfam, writeTimestamp, keystore, useBlockCache);
         } else {
           iterator = new MultiScanGTSDecoderIterator(token, now, then, count, skip, sample, metas, conn, tableName, colfam, writeTimestamp, keystore, useBlockCache, preBoundary, postBoundary);      
