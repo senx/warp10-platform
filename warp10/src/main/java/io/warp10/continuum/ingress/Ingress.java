@@ -122,6 +122,7 @@ import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
+import io.warp10.warp.sdk.IngressPlugin;
 
 /**
  * This is the class which ingests metrics.
