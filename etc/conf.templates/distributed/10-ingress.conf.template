@@ -21,6 +21,16 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
+// Set to true to parse attributes in the data passed to /update.
+//
+#ingress.parse.attributes = true
+
+//
+// Set to true to allow the delta update of attributes
+//
+#ingress.attributes.allowdelta = true
+
+//
 // Period between updates of last activity timestamps for Geo Time Series
 // The value of this parameter is in ms and determines how often the directory
 // will be updated when activity is being tracked.
@@ -332,3 +342,8 @@ ingress.kafka.metadata.maxsize = 900000
 // The default value if false.
 //
 #ingress.hbase.dpts = false
+
+//
+// Fully qualified class name of an optional IngressPlugin to load
+//
+#ingress.plugin.class = ...

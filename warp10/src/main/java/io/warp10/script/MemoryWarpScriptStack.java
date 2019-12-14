@@ -1356,7 +1356,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     // Copy symbol table and registers
     //
     
-    context.symbolTable = new HashMap<String, Object>();    
+    context.symbolTable = new HashMap<String, Object>(this.symbolTable.size());    
     context.symbolTable.putAll(this.symbolTable);
     context.registers = Arrays.copyOf(this.registers, this.registers.length);
     
@@ -1364,7 +1364,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     // Copy redefined functions
     //
     
-    context.defined = new HashMap<String, WarpScriptStackFunction>();
+    context.defined = new HashMap<String, WarpScriptStackFunction>(this.defined.size());
     context.defined.putAll(this.defined);
     
     //

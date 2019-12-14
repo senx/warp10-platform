@@ -16,6 +16,36 @@
 
 package io.warp10.script.functions;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.zip.GZIPInputStream;
+
+import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.apache.commons.lang3.JavaVersion;
+import org.apache.commons.lang3.SystemUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TException;
+import org.apache.thrift.protocol.TCompactProtocol;
+import org.joda.time.Duration;
+import org.joda.time.Instant;
+import org.joda.time.MutablePeriod;
+import org.joda.time.Period;
+import org.joda.time.ReadWritablePeriod;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
+
 import io.warp10.WarpDist;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
@@ -39,43 +69,19 @@ import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.sensision.Sensision;
+import org.joda.time.format.ISOPeriodFormat;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.zip.GZIPInputStream;
-
-import org.apache.commons.io.output.ByteArrayOutputStream;
-import org.apache.commons.lang3.JavaVersion;
-import org.apache.commons.lang3.SystemUtils;
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.thrift.TDeserializer;
-import org.apache.thrift.TException;
-import org.apache.thrift.protocol.TCompactProtocol;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
-
-import com.geoxp.GeoXPLib.GeoXPShape;
 /**
  * Fetch GeoTimeSeries from continuum
  * FIXME(hbs): we need to retrieve an OAuth token, where do we put it?
  *
  * The top of the stack must contain a list of the following parameters
  * 
- * @param token The OAuth 2.0 token to use for data retrieval
+ * @param token The token to use for data retrieval
  * @param classSelector  Class selector.
  * @param labelsSelectors Map of label name to label selector.
  * @param now Most recent timestamp to consider (in us since the Epoch)
@@ -108,14 +114,19 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
   public static final String PARAM_GTS = "gts";
   public static final String PARAM_ACTIVE_AFTER = "active.after";
   public static final String PARAM_QUIET_AFTER = "quiet.after";
+  public static final String PARAM_BOUNDARY_PRE = "boundary.pre";
+  public static final String PARAM_BOUNDARY_POST = "boundary.post";
+  public static final String PARAM_BOUNDARY = "boundary";
+  public static final String PARAM_SKIP = "skip";
+  public static final String PARAM_SAMPLE = "sample";
   
   public static final String POSTFETCH_HOOK = "postfetch";
+
+  public static final String NOW_PARAM_VALUE = "now";
   
-  private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
+  private static DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
   
   private WarpScriptStackFunction listTo = new LISTTO("");
-  
-  private final boolean fromArchive;
   
   private final TYPE forcedType;
   
@@ -124,9 +135,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
   private final byte[] AES_METASET;
   
-  public FETCH(String name, boolean fromArchive, TYPE type) {
+  public FETCH(String name, TYPE type) {
     super(name);
-    this.fromArchive = fromArchive;
     this.forcedType = type;
     KeyStore ks = null;
     
@@ -153,7 +163,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     // Extract parameters from the stack
     //
 
-    Object top = stack.peek();
+    Object top = stack.pop();
     
     //
     // Handle the new (as of 20150805) parameter passing mechanism as a map
@@ -162,123 +172,34 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     Map<String,Object> params = null;
     
     if (top instanceof Map) {
-      stack.pop();
-      params = paramsFromMap(stack, (Map<String,Object>) top);
-    }
-    
-    if (top instanceof List) {      
-      if (5 != ((List) top).size()) {
-        stack.drop();
-        throw new WarpScriptException(getName() + " expects 5 parameters.");
+      params = paramsFromMap((Map<String,Object>) top);
+    } else if (top instanceof List) {
+      List list = (List)top;
+      if (5 != list.size()) {
+        throw new WarpScriptException(getName() + " expects a list with 5 elements.");
       }
 
-      //
-      // Explode list and remove its size
-      //
-      
-      listTo.apply(stack);
-      stack.drop();
-    }
-  
-    if (null == params) {
-      
-      params = new HashMap<String, Object>();
-      
-      //
-      // Extract time span
-      //
-    
-      Object oStop = stack.pop();
-      Object oStart = stack.pop();
-      
-      long endts;
-      long timespan;
-      
-      if (oStart instanceof String && oStop instanceof String) {
-        long start;
-        long stop;
-        
-        if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-          start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(oStart.toString());
-        } else {
-          start = fmt.parseDateTime((String) oStart).getMillis() * Constants.TIME_UNITS_PER_MS;
-        }
-        
-        if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-          stop = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(oStop.toString());
-        } else {
-          stop = fmt.parseDateTime((String) oStop).getMillis() * Constants.TIME_UNITS_PER_MS;
-        }
-        
-        if (start < stop) {
-          endts = stop;
-          timespan = stop - start;
-        } else {
-          endts = start;
-          timespan = start - stop;
-        }
-      } else if (oStart instanceof Long && oStop instanceof Long) {
-        endts = (long) oStart;
-        timespan = (long) oStop;       
+      // convert list spec to map spec
+      Map<String,Object> map = new HashMap<String,Object>();
+      map.put(PARAM_TOKEN, list.get(0));
+      map.put(PARAM_CLASS, list.get(1));
+      map.put(PARAM_LABELS, list.get(2));
+
+      if (list.get(3) instanceof Long && list.get(4) instanceof Long) {
+        map.put(PARAM_END, list.get(3));
+        map.put(PARAM_TIMESPAN, list.get(4));
+      } else if (list.get(3) instanceof String && list.get(4) instanceof String) {
+        map.put(PARAM_START, list.get(3));
+        map.put(PARAM_END, list.get(4));
       } else {
-        throw new WarpScriptException("Invalid timespan specification.");
+        throw new WarpScriptException(getName() + " expects '" + PARAM_START + "' and '" + PARAM_END + "' to be Strings or '" + PARAM_END + "' and '" + PARAM_TIMESPAN + "' to be Longs.");
       }
 
-      params.put(PARAM_END, endts);
-      
-      if (timespan < 0) {
-        // Make sure negation will be positive
-        if(Long.MIN_VALUE == timespan){
-          timespan++; // It's ok to modify a bit the count of points as it is impossible to return Long.MAX_VALUE points
-        }
-        params.put(PARAM_COUNT, -timespan);
-      } else {
-        params.put(PARAM_TIMESPAN, timespan);
-      }
-      
-      //
-      // Extract labels selector
-      //
-      
-      Object oLabelsSelector = stack.pop();
-      
-      if (!(oLabelsSelector instanceof Map)) {
-        throw new WarpScriptException("Label selectors must be a map.");
-      }
-      
-      Map<String,String> labelSelectors = new HashMap<String,String>((Map<String,String>) oLabelsSelector);
-      
-      params.put(PARAM_LABELS, labelSelectors);
-      
-      //
-      // Extract class selector
-      //
-      
-      Object oClassSelector = stack.pop();
-
-      if (!(oClassSelector instanceof String)) {
-        throw new WarpScriptException("Class selector must be a string.");
-      }
-      
-      String classSelector = (String) oClassSelector;
-
-      params.put(PARAM_CLASS, classSelector);
-      
-      //
-      // Extract token
-      //
-      
-      Object oToken = stack.pop();
-      
-      if (!(oToken instanceof String)) {
-        throw new WarpScriptException("Token must be a string.");
-      }
-      
-      String token = (String) oToken;
-      
-      params.put(PARAM_TOKEN, token);
+      params = paramsFromMap(map);
+    } else {
+      throw new  WarpScriptException(getName()+" expects a map or a list as parameter.");
     }
-    
+
     StoreClient gtsStore = stack.getStoreClient();
     
     DirectoryClient directoryClient = stack.getDirectoryClient();
@@ -399,6 +320,16 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     Metadata lastMetadata = null;
     long lastCount = 0L;
     
+    int preBoundary = 0;
+    int postBoundary = 0;
+    
+    if (params.containsKey(PARAM_BOUNDARY_PRE)) {
+      preBoundary = (int) params.get(PARAM_BOUNDARY_PRE);
+    }
+    if (params.containsKey(PARAM_BOUNDARY_POST)) {
+      postBoundary = (int) params.get(PARAM_BOUNDARY_POST);
+    }
+    
     try {
       while(iter.hasNext()) {
         
@@ -442,7 +373,15 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         // then one from another, then one from the first one.
         //
               
-        long timespan = params.containsKey(PARAM_TIMESPAN) ? (long) params.get(PARAM_TIMESPAN) : - ((long) params.get(PARAM_COUNT));
+        long count = -1L;
+
+        if (params.containsKey(PARAM_COUNT)) {
+          count = (long) params.get(PARAM_COUNT);
+        }
+
+        long then = (long) params.get(PARAM_START);
+        long skip = (long) params.getOrDefault(PARAM_SKIP, 0L);        
+        double sample = (double) params.getOrDefault(PARAM_SAMPLE, 1.0D);
         
         TYPE type = (TYPE) params.get(PARAM_TYPE);
 
@@ -459,9 +398,17 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         
         TYPE lastType = TYPE.UNDEFINED;
         
-        try (GTSDecoderIterator gtsiter = gtsStore.fetch(rtoken, metadatas, (long) params.get(PARAM_END), timespan, fromArchive, writeTimestamp)) {
-          while(gtsiter.hasNext()) {
+        long end = (long) params.get(PARAM_END);
+        
+        int boundary = 0;
+        
+        try (GTSDecoderIterator gtsiter = gtsStore.fetch(rtoken, metadatas, end, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary)) {
+          while(gtsiter.hasNext()) {           
             GTSDecoder decoder = gtsiter.next();
+
+            if (null == base) {
+              boundary = 0;
+            }
             
             boolean identical = true;
 
@@ -486,7 +433,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                 uuid = new java.util.UUID(decoder.getClassId(), decoder.getLabelsId());
               }
 
-              long count = 0;
+              long dpcount = 0;
+              long postB = 0;
               
               Metadata decoderMeta = new Metadata(decoder.getMetadata());
               // Remove producer/owner labels
@@ -498,16 +446,24 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               while(decoder.next()) {
                 
                 // If we've read enough data, exit
-                if (timespan < 0 && lastCount + count >= -timespan) {
+                if (count >= 0 && lastCount + dpcount >= count) {
                   break;
                 }
                 
-                count++;
                 long ts = decoder.getTimestamp();
                 long location = decoder.getLocation();
                 long elevation = decoder.getElevation();
                 Object value = decoder.getBinaryValue();
-                
+
+                // When fetching per count, only increase 'count' when
+                // timestamp is before the end timestamp so we do not
+                // increase dpcount for the post boundary
+                if (-1L == count || ts <= end) {
+                  dpcount++;
+                } else if (ts > end) {
+                  postB++;
+                }
+
                 int gtsidx = 0;
                 String typename = "DOUBLE";
                 
@@ -544,14 +500,14 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                 GTSHelper.setValue(base, ts, location, elevation, value, false);                
               }
               
-              if (fetched.addAndGet(count) > fetchLimit) {
+              if (fetched.addAndGet(count + postB) > fetchLimit) {
                 Map<String,String> sensisionLabels = new HashMap<String, String>();
                 sensisionLabels.put(SensisionConstants.SENSISION_LABEL_CONSUMERID, Tokens.getUUID(rtoken.getBilledId()));
                 Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FETCHCOUNT_EXCEEDED, sensisionLabels, 1);
                 throw new WarpScriptException(getName() + " exceeded limit of " + fetchLimit + " datapoints, current count is " + fetched.get());
               }
 
-              lastCount += count;
+              lastCount += dpcount;
               
               continue;
             }
@@ -572,11 +528,24 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               lastType = gts.getType();
             }
         
-            if (timespan < 0 && lastCount + GTSHelper.nvalues(gts) > -timespan) {
+            if (null == base && count >= 0 && postBoundary > 0) {
+              // This is the first GTS, so we need to count the size of the post boundary
+              // so we get a correct estimate of the number of datapoints we fetched
+              for (int i = 0; i < GTSHelper.nvalues(gts); i++) {
+                if (GTSHelper.tickAtIndex(gts, i) > end) {
+                  boundary++;
+                } else {
+                  // We can exit as soon as we find a timestamp <= end
+                  break;                  
+                }
+              }
+            }
+            
+            if (count >= 0 && lastCount + GTSHelper.nvalues(gts) - boundary > count) {
               // We would add too many datapoints, we will shrink the GTS.
               // As it it sorted in reverse order of the ticks (since the datapoints are organized
               // this way in HBase), we just need to shrink the GTS.
-              gts = GTSHelper.shrinkTo(gts, (int) Math.max(-timespan - lastCount, 0));
+              gts = GTSHelper.shrinkTo(gts, (int) Math.max(count - lastCount + boundary, 0));
             }
             
             lastCount += GTSHelper.nvalues(gts);
@@ -673,7 +642,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     return stack;
   }
   
-  private Map<String,Object> paramsFromMap(WarpScriptStack stack, Map<String,Object> map) throws WarpScriptException {
+  private Map<String,Object> paramsFromMap(Map<String,Object> map) throws WarpScriptException {
     Map<String,Object> params = new HashMap<String, Object>();
     
     //
@@ -796,109 +765,104 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     } else if (!params.containsKey(PARAM_METASET) && !params.containsKey(PARAM_GTS)) {
       throw new WarpScriptException(getName() + " Missing '" + PARAM_METASET + "', '" + PARAM_GTS + "', '" + PARAM_SELECTOR + "', '" + PARAM_SELECTORS + "' or '" + PARAM_CLASS + "' and '" + PARAM_LABELS + "' parameters.");
     }
-    
-    if (!map.containsKey(PARAM_END)) {
-      throw new WarpScriptException(getName() + " Missing '" + PARAM_END + "' parameter.");
+
+    //
+    // Time range and count specifications
+    //
+
+    // Handle negative timestamp as alias of count
+    // In that case, remove timespan spec and add count spec.
+    if (map.get(PARAM_TIMESPAN) instanceof Long && (long) map.get(PARAM_TIMESPAN) < 0) {
+      if (map.containsKey(PARAM_COUNT)) {
+        throw new WarpScriptException(getName() + " cannot be given both '" + PARAM_COUNT + "' and negative '" + PARAM_TIMESPAN + "'.");
+      } else {
+        map.put(PARAM_COUNT, -(long) map.get(PARAM_TIMESPAN));
+        map.remove(PARAM_TIMESPAN);
+      }
     }
-    
-    if (map.get(PARAM_END) instanceof Long) {
-      params.put(PARAM_END, map.get(PARAM_END));      
-    } else if (map.get(PARAM_END) instanceof String) {
-      if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-        params.put(PARAM_END, io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(map.get(PARAM_END).toString()));      
-      } else {
-        params.put(PARAM_END, fmt.parseDateTime(map.get(PARAM_END).toString()).getMillis() * Constants.TIME_UNITS_PER_MS);      
-      }
-    } else {
-      throw new WarpScriptException(getName() + " Invalid format for parameter '" + PARAM_END + "'.");
+
+    if (map.containsKey(PARAM_COUNT)) {
+      params.put(PARAM_COUNT, map.get(PARAM_COUNT));
     }
-    
-    if (map.containsKey(PARAM_TIMESPAN)) {
-      params.put(PARAM_TIMESPAN, (long) map.get(PARAM_TIMESPAN));
-    } else if (map.containsKey(PARAM_COUNT)) {
-      params.put(PARAM_COUNT, (long) map.get(PARAM_COUNT));
-    } else if (map.containsKey(PARAM_START)) {
-      long end = (long) params.get(PARAM_END);
-      long start;
-      
-      if (map.get(PARAM_START) instanceof Long) {
-        start = (long) map.get(PARAM_START);
-      } else {
-        if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-          start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(map.get(PARAM_START).toString());      
-        } else {
-          start = fmt.parseDateTime(map.get(PARAM_START).toString()).getMillis() * Constants.TIME_UNITS_PER_MS;
-        }
+
+    try {
+      Long[] timeRange = computeTimeRange(map.get(PARAM_START), PARAM_START, map.get(PARAM_END), PARAM_END, map.get(PARAM_TIMESPAN), PARAM_TIMESPAN, map.get(PARAM_COUNT), PARAM_COUNT);
+      params.put(PARAM_START, timeRange[0]);
+      params.put(PARAM_END, timeRange[1]);
+      if (null != timeRange[2]) {
+        // Only useful for MetaSet timespan check
+        params.put(PARAM_TIMESPAN, timeRange[2]);
       }
-      
-      long timespan;
-      
-      if (start < end) {
-        timespan = end - start;
-      } else {
-        timespan = start - end;
-        end = start;
-      }
-      
-      params.put(PARAM_END, end);
-      params.put(PARAM_TIMESPAN, timespan);
-    } else {
-      throw new WarpScriptException(getName() + " Missing parameter '" + PARAM_TIMESPAN + "' or '" + PARAM_COUNT + "' or '" + PARAM_START + "'");
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException(getName() + " given invalid parameters.", wse);
     }
 
     //
-    // Check end/timespan against MetaSet, adjust limits accordingly
+    // Check time range and count against MetaSet, adjust limits accordingly
     //
-    
+
     if (null != metaset) {
-      
-      long end = (long) params.get(PARAM_END);
-      long timespan = params.containsKey(PARAM_TIMESPAN) ? (long) params.get(PARAM_TIMESPAN) : -1;
-      long count = params.containsKey(PARAM_COUNT) ? (long) params.get(PARAM_COUNT) : -1;
+      // Metaset is incompatible with pre/post boundaries
+      if (map.containsKey(PARAM_BOUNDARY_PRE) || map.containsKey((PARAM_BOUNDARY_POST))) {
+        throw new WarpScriptException(getName() + " cannot support both MetaSet and pre/post boundary parameters.");
+      }
 
       if (metaset.isSetMaxduration()) {
-        // Force 'end' to 'now'
-        params.put(PARAM_END, TimeSource.getTime());
-        
-        if (-1 != count && metaset.getMaxduration() >= 0) {
-          throw new WarpScriptException(getName() + " MetaSet forbids count based requests.");
+        // Force 'end' to 'now' only if there are no 'notbefore' and no 'notafter'.
+        if (!metaset.isSetNotbefore() && !metaset.isSetNotafter()) {
+          params.put(PARAM_END, TimeSource.getTime());
         }
-        
-        if (-1 != timespan && metaset.getMaxduration() <= 0) {
-          throw new WarpScriptException(getName() + " MetaSet forbids duration based requests.");
+
+        // If fetch by count, check that maxDuration is for count (ie is negative) and apply limit.
+        if (params.containsKey(PARAM_COUNT)) {
+          if (metaset.getMaxduration() >= 0) {
+            throw new WarpScriptException(getName() + " given MetaSet forbids '" + PARAM_COUNT + "' based requests.");
+          }
+
+          if ((long) params.get(PARAM_COUNT) > -metaset.getMaxduration()) {
+            params.put(PARAM_COUNT, -metaset.getMaxduration());
+          }
         }
-        
-        if (-1 != count && count > -metaset.getMaxduration()) {
-          count = -metaset.getMaxduration();
-          params.put(PARAM_COUNT, count);
-        }
-        
-        if (-1 != timespan && timespan > metaset.getMaxduration()) {
-          timespan = metaset.getMaxduration();
-          params.put(PARAM_TIMESPAN, timespan);
+
+        // If fetch by duration, check that maxDuration is for count (ie is positive) and apply limit.
+        if (params.containsKey(PARAM_TIMESPAN)) {
+          if (metaset.getMaxduration() <= 0) {
+            throw new WarpScriptException(getName() + " given MetaSet forbids '" + PARAM_TIMESPAN + "' based requests.");
+          }
+
+          if ((long) params.get(PARAM_TIMESPAN) > metaset.getMaxduration()) {
+            params.put(PARAM_TIMESPAN, metaset.getMaxduration());
+          }
         }
       }
 
       if (metaset.isSetNotbefore()) {
         // forbid count based requests
-        if (-1 != count) {
+        if (null != params.get(PARAM_COUNT)) {
           throw new WarpScriptException(getName() + " MetaSet forbids count based requests.");
         }
-        
-        if (end < metaset.getNotbefore()) {
-          throw new WarpScriptException(getName() + " MetaSet forbids time ranges before " + metaset.getNotbefore());
-        }
-        
-        // Adjust timespan so maxDuration is respected
-        if (timespan > metaset.getMaxduration()) {
-          timespan = metaset.getMaxduration();
-          params.put(PARAM_TIMESPAN, timespan);
+
+        // Limit end to 'notbefore'.
+        if ((long) params.get(PARAM_END) < metaset.getNotbefore()) {
+          params.put(PARAM_END, metaset.getNotbefore());
         }
       }
-      
-      if (metaset.isSetNotafter() && end >= metaset.getNotafter()) {
-        end = metaset.getNotafter();
-        params.put(PARAM_END, end);
+
+      // Limit end to 'notafter'.
+      if (metaset.isSetNotafter() && (long) params.get(PARAM_END) > metaset.getNotafter()) {
+        params.put(PARAM_END, metaset.getNotafter());
+      }
+
+      // Recompute start because end or timespan may have been changed.
+      try {
+        // Check edge case
+        if (0 == (long) params.get(PARAM_TIMESPAN) && Long.MAX_VALUE == (long) params.get(PARAM_END)) {
+          throw new WarpScriptException(getName() + " use of MetaSet restrictions make it so '" + PARAM_TIMESPAN + "' is 0 and '" + PARAM_START + "' is MIN_VALUE, which is not supported.");
+        }
+        long newStart = Math.subtractExact((long) params.get(PARAM_END), (long) params.get(PARAM_TIMESPAN)) + 1;
+        params.put(PARAM_START, newStart);
+      } catch (ArithmeticException ae) {
+        params.put(PARAM_START, Long.MIN_VALUE);
       }
     }
     
@@ -975,6 +939,243 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       params.put(PARAM_SHOWUUID, map.get(PARAM_SHOWUUID));
     }
     
+    if (map.containsKey(PARAM_BOUNDARY)) {
+      Object o = map.get(PARAM_BOUNDARY);
+      if (!(o instanceof Long)) {
+        throw new WarpScriptException(getName() + " Invalid type for parameter '" + PARAM_BOUNDARY + "'.");
+      }
+      int boundary = ((Long) o).intValue();
+      params.put(PARAM_BOUNDARY_PRE, boundary);
+      params.put(PARAM_BOUNDARY_POST, boundary);
+    }
+
+    if (map.containsKey(PARAM_BOUNDARY_PRE)) {
+      Object o = map.get(PARAM_BOUNDARY_PRE);
+      if (!(o instanceof Long)) {
+        throw new WarpScriptException(getName() + " Invalid type for parameter '" + PARAM_BOUNDARY_PRE + "'.");
+      }
+      int boundary = ((Long) o).intValue();
+      params.put(PARAM_BOUNDARY_PRE, boundary);
+    }
+
+    if (map.containsKey(PARAM_BOUNDARY_POST)) {
+      Object o = map.get(PARAM_BOUNDARY_POST);
+      if (!(o instanceof Long)) {
+        throw new WarpScriptException(getName() + " Invalid type for parameter '" + PARAM_BOUNDARY_POST + "'.");
+      }
+      int boundary = ((Long) o).intValue();
+      params.put(PARAM_BOUNDARY_POST, boundary);
+    }
+    
+    if (map.containsKey(PARAM_SKIP)) {
+      Object o = map.get(PARAM_SKIP);
+      if (!(o instanceof Long)) {
+        throw new WarpScriptException(getName() + " Invalid type for parameter '" + PARAM_SKIP + "'.");
+      }
+      long skip = ((Long) o).longValue();
+      
+      if (skip < 0) {
+        throw new WarpScriptException(getName() + " Parameter '" + PARAM_SKIP + "' must be >= 0.");
+      }
+      params.put(PARAM_SKIP, skip);
+    }
+
+    if (map.containsKey(PARAM_SAMPLE)) {
+      Object o = map.get(PARAM_SAMPLE);
+      if (!(o instanceof Double)) {
+        throw new WarpScriptException(getName() + " Invalid type for parameter '" + PARAM_SAMPLE + "'.");
+      }
+      double sample = ((Double) o).doubleValue();
+      if (sample <= 0.0D || sample > 1.0D) {
+        throw new WarpScriptException(getName() + " Parameter '" + PARAM_SAMPLE + "' must be in the range ( 0.0, 1.0 ].");
+      }
+
+      params.put(PARAM_SAMPLE, sample);
+    }
+
     return params;
+  }
+
+  /**
+   * Compute the time range given start, end, timespan and count. One of these 3 parameters must be null.
+   * @param start A Long, a String representing a Long, a String representing an ISO8601 date or "now". This represents the start of the time range.
+   * @param startParamName The name of the start parameter, for error generation.
+   * @param end A Long, a String representing a Long, a String representing an ISO8601 date or "now". This represents the end of the time range.
+   * @param endParamName The name of the end parameter, for error generation.
+   * @param timespan A Long, a String representing a Long or a String representing an ISO8601 duration. This represents the duration of the time range.
+   * @param timespanParamName The name of the timespan parameter, for error generation.
+   * @param count A positive Long. This represents the number of point to return in the time range.
+   * @param countParamName The name of the count parameter, for error generation.
+   * @return An array of three Longs: [start, end, timespan] with the guarantee that start and end are not null.
+   * @throws WarpScriptException If the time range specification is invalid.
+   */
+  public static Long[] computeTimeRange(Object start, String startParamName, Object end, String endParamName, Object timespan, String timespanParamName, Object count, String countParamName) throws WarpScriptException {
+    long now = TimeSource.getTime();
+
+    //
+    // Try to convert start to a valid timestamp if possible.
+    //
+
+    Long startTs = getTimestamp(start, startParamName, now);
+
+    //
+    // Try to convert end to a valid timestamp if possible.
+    // Same exact logic as for start.
+    //
+
+    Long endTs = getTimestamp(end, endParamName, now);
+
+    // Check that either startTs or endTs is defined.
+    if (null == startTs && null == endTs) {
+      throw new WarpScriptException("Missing either '" + startParamName + "' or '" + endParamName + "' parameter.");
+    }
+
+    // If both are defined but swapped, swap them.
+    if (null != startTs && null != endTs && startTs > endTs) {
+      long tmp = startTs;
+      startTs = endTs;
+      endTs = tmp;
+    }
+
+    //
+    // Try to use timestamp to either determine endTs or startTs if not already defined.
+    //
+
+    Long numericTimespan = null;
+
+    if (null != timespan) {
+      // Check that endTs and startTs are not both already defined.
+      if (startTs != null && endTs != null) {
+        throw new WarpScriptException("Invalid time range specification: '" + startParamName + "', '" + endParamName + "' and '" + timespanParamName + "' cannot all be defined. Only 2 out of those 3 parameters should be defined.");
+      }
+
+      //
+      // Cast or convert timespan to a numeric one.
+      //
+      if (timespan instanceof Long) {
+        numericTimespan = (Long) timespan;
+      } else if (timespan instanceof String) {
+        // If it's a string, it may be the string representation of a Long or a ISO8601 duration.
+        if (0 != ((String) timespan).length()) {
+          try {
+            // Speed up choice between ISO8601 and Long by checking the first character instead of relying on exceptions.
+            if ('P' == ((String) timespan).charAt(0)) {
+              // Should be a ISO8601 duration
+              ReadWritablePeriod period = new MutablePeriod();
+
+              ISOPeriodFormat.standard().getParser().parseInto(period, (String) timespan, 0, Locale.US);
+
+              Period p = period.toPeriod();
+
+              // TODO(tce) This could be removed if we add this period to start or subtract to end. However we need
+              // to keep track of the timezone which require quite a lot of change in the code.
+              if (p.getMonths() != 0 || p.getYears() != 0) {
+                throw new WarpScriptException("No support for ambiguous durations containing years or months, please convert those to days.");
+              }
+
+              Duration duration = p.toDurationFrom(new Instant());
+
+              numericTimespan = duration.getMillis() * Constants.TIME_UNITS_PER_MS;
+            } else {
+              // Should be a Long representation
+              numericTimespan = Long.parseLong((String) timespan);
+            }
+          } catch (IllegalArgumentException | WarpScriptException e) {
+            throw new WarpScriptException("Invalid format for parameter '" + timespanParamName + "'.", e);
+          }
+        } else {
+          throw new WarpScriptException("Parameter '" + timespanParamName + "' is empty.");
+        }
+      } else {
+        // If timespan is not null and not a Long nor a String, throw an error.
+        throw new WarpScriptException("Invalid format for parameter '" + timespanParamName + "'.");
+      }
+
+      if (numericTimespan < 0) {
+        throw new WarpScriptException("'" + timespanParamName + "' cannot be negative.");
+      }
+
+      if (null == startTs) {
+        // In that case startTs is not defined, so we compute it.
+
+        // Check edge case
+        if (0L == numericTimespan && Long.MAX_VALUE == endTs) {
+          throw new WarpScriptException("Cannot set '" + timespanParamName + "' to 0 and '" + endParamName + "' to MAX_VALUE.");
+        }
+
+        try {
+          // No need to check for overflow for '+ 1' on the line below because this edge case has already been checked.
+          startTs = Math.subtractExact(endTs, numericTimespan) + 1;
+        } catch (ArithmeticException ae) {
+          startTs = Long.MIN_VALUE;
+        }
+      } else { // endTs == null
+        // In that case endTs is not defined, so we compute it.
+
+        // Check edge case
+        if (0L == numericTimespan && Long.MIN_VALUE == startTs) {
+          throw new WarpScriptException("Cannot set '" + timespanParamName + "' to 0 and '" + startParamName + "' to MIN_VALUE.");
+        }
+
+        try {
+          // No need to check for overflow for '- 1' on the line below because this edge case has already been checked.
+          endTs = Math.addExact(startTs, numericTimespan) - 1;
+        } catch (ArithmeticException ae) {
+          endTs = Long.MAX_VALUE;
+        }
+      }
+    }
+
+    // Check that at least endTs is defined.
+    if (null == endTs) {
+      throw new WarpScriptException("Missing '" + endParamName + "' or '" + startParamName + "' and '" + timespanParamName + "' parameter.");
+    }
+
+    // Make sure startTs is defined.
+    if (null == startTs) {
+      if (null == count) {
+        throw new WarpScriptException("Invalid time range specification: '" + countParamName + "' is mandatory if '" + startParamName + "' and '" + timespanParamName + "' are not specified.");
+      } else {
+        // Fetch with end and count: start is set to the beginnings of time.
+        startTs = Long.MIN_VALUE;
+      }
+    }
+
+    return new Long[] {startTs, endTs, numericTimespan};
+  }
+
+  public static Long getTimestamp(Object timestampRepresentation, String timestampRepresentationParameterName, Long nowTimestamp) throws WarpScriptException {
+    Long timestamp = null;
+
+    if (timestampRepresentation instanceof Long) {
+      // Simple case: start is a long
+      timestamp = (long) timestampRepresentation;
+    } else if (timestampRepresentation instanceof String) {
+      // If it's a string, it may be the string representation of a Long, a ISO8601 date or 'now'.
+      if (NOW_PARAM_VALUE.equals(timestampRepresentation)) {
+        timestamp = nowTimestamp;
+      } else {
+        try {
+          timestamp = Long.parseLong((String) timestampRepresentation);
+        } catch (NumberFormatException nfe) {
+          // Not string representation of a Long, try ISO8601
+          try {
+            if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
+              timestamp = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp((String) timestampRepresentation);
+            } else {
+              timestamp = fmt.parseDateTime((String) timestampRepresentation).getMillis() * Constants.TIME_UNITS_PER_MS;
+            }
+          } catch (WarpScriptException | IllegalArgumentException e) {
+            // Don't set the cause of the execption because we don't know which of the two (nfs or e) it is.
+            throw new WarpScriptException("Invalid format for parameter '" + timestampRepresentationParameterName + "'.");
+          }
+        }
+      }
+    } else if (null != timestampRepresentation) {
+      // If start is not null and we cannot retrieve the timestamp, throw an error.
+      throw new WarpScriptException("Invalid format for parameter '" + timestampRepresentationParameterName + "'.");
+    }
+
+    return timestamp;
   }
 }

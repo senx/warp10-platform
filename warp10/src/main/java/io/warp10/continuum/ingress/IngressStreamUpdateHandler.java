@@ -72,6 +72,8 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
     
     private IngressStreamUpdateHandler handler;
     
+    private boolean deltaAttributes = false;
+        
     private boolean errormsg = false;
     
     private long seqno = 0L;
@@ -132,6 +134,13 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
             this.errormsg = false;
           }
           session.getRemote().sendString("OK " + (seqno++) + " ONERROR");
+        } else if ("DELTAON".equals(tokens[0])) {
+          if (!this.handler.ingress.allowDeltaAttributes) {
+            throw new IOException("Delta update of attributes is disabled.");
+          }
+          this.deltaAttributes = true;
+        } else if ("DELTAOFF".equals(tokens[0])) {
+          this.deltaAttributes = false;
         } else {
           //
           // Anything else is considered a measurement
@@ -248,7 +257,15 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
               }
 
               try {
-                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.maxsize, hadAttributes, maxpast, maxfuture, ignoredCount);
+                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.maxsize, hadAttributes, maxpast, maxfuture, ignoredCount, this.deltaAttributes);
+                
+                if (null != this.handler.ingress.plugin) {
+                  GTSEncoder enc = encoder;
+                  if (!this.handler.ingress.plugin.update(this.handler.ingress, wtoken, line, encoder)) {
+                    hadAttributes.set(false);
+                    continue;
+                  }
+                }
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
                 throw new IOException("Parse error at '" + line + "'", pe);
@@ -323,7 +340,11 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
                     // We need to push lastencoder's metadata update as they were updated since the last
                     // metadata update message sent
                     Metadata meta = new Metadata(lastencoder.getMetadata());
-                    meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                    if (this.deltaAttributes) {
+                      meta.setSource(Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT);                      
+                    } else {
+                      meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                    }
                     this.handler.ingress.pushMetadataMessage(meta);
                     lastHadAttributes = false;
                   }
@@ -375,13 +396,21 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
                 // Build metadata object to push
                 Metadata meta = new Metadata(lastencoder.getMetadata());
                 // Set source to indicate we
-                meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                if (this.deltaAttributes) {
+                  meta.setSource(Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT);
+                } else {
+                  meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);                  
+                }
                 this.handler.ingress.pushMetadataMessage(meta);
               }
             }                  
           } finally {
             this.handler.ingress.pushMetadataMessage(null);
             this.handler.ingress.pushDataMessage(null, this.kafkaDataMessageAttributes);
+            
+            if (null != this.handler.ingress.plugin) {
+              this.handler.ingress.plugin.flush(this.handler.ingress);
+            }
             nano = System.nanoTime() - nano;
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);          
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_MESSAGES, sensisionLabels, 1);
@@ -529,16 +558,16 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
           }
         }
 
-        if (wtoken.getAttributes().containsKey(Constants.STORE_ATTR_TTL)
-            || wtoken.getAttributes().containsKey(Constants.STORE_ATTR_USEDATAPOINTTS)) {
+        if (wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_TTL)
+            || wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_DPTS)) {
           if (null == kafkaDataMessageAttributes) {
             kafkaDataMessageAttributes = new HashMap<String,String>();
           }
-          if (wtoken.getAttributes().containsKey(Constants.STORE_ATTR_TTL)) {
-            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_TTL, wtoken.getAttributes().get(Constants.STORE_ATTR_TTL));
+          if (wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_TTL)) {
+            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_TTL, wtoken.getAttributes().get(Constants.TOKEN_ATTR_TTL));
           }
-          if (wtoken.getAttributes().containsKey(Constants.STORE_ATTR_USEDATAPOINTTS)) {
-            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_USEDATAPOINTTS, wtoken.getAttributes().get(Constants.STORE_ATTR_USEDATAPOINTTS));
+          if (wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_DPTS)) {
+            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_USEDATAPOINTTS, wtoken.getAttributes().get(Constants.TOKEN_ATTR_DPTS));
           }
         }       
       }

@@ -38,6 +38,7 @@ import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.sensision.Sensision;
+import io.warp10.warp.sdk.IngressPlugin;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -109,11 +110,14 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
 
   private final boolean updateActivity;
   private final boolean parseAttributes;
+  private final boolean allowDeltaAttributes;
   private final Long maxpastDefault;
   private final Long maxfutureDefault;
   private final Long maxpastOverride;
   private final Long maxfutureOverride;
   private final boolean ignoreOutOfRange;
+  
+  private IngressPlugin plugin = null;
   
   private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
 
@@ -126,6 +130,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     
     private boolean errormsg = false;
     
+    private boolean deltaAttributes = false;
+    
     private long seqno = 0L;
     
     private long maxsize;
@@ -137,7 +143,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     private Long maxfuturedelta = null;
     
     private String encodedToken;
-    
+        
     /**
      * Cache used to determine if we should push metadata into Kafka or if it was previously seen.
      * Key is a BigInteger constructed from a byte array of classId+labelsId (we cannot use byte[] as map key)
@@ -198,6 +204,13 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
             this.errormsg = false;
           }
           session.getRemote().sendString("OK " + (seqno++) + " ONERROR");
+        } else if ("DELTAON".equals(tokens[0])) {
+          if (!this.handler.allowDeltaAttributes) {
+            throw new IOException("Delta update of attributes is disabled.");
+          }
+          this.deltaAttributes = true;
+        } else if ("DELTAOFF".equals(tokens[0])) {
+          this.deltaAttributes = false;
         } else {
           //
           // Anything else is considered a measurement
@@ -372,6 +385,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                 dr.setType(Constants.DATALOG_UPDATE);
                 dr.setId(handler.datalogId);
                 dr.setToken(encodedToken); 
+                dr.setDeltaAttributes(deltaAttributes);
                 
                 //
                 // Force 'now'
@@ -414,7 +428,13 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               }
 
               try {
-                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.maxsize, hadAttributes, maxpast, maxfuture, ignoredCount);
+                encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.maxsize, hadAttributes, maxpast, maxfuture, ignoredCount, this.deltaAttributes);
+                if (null != this.handler.plugin) {
+                  if (!this.handler.plugin.update(this.handler, wtoken, line, encoder)) {
+                    hadAttributes.set(false);
+                    continue;
+                  }
+                }
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
                 throw new IOException("Parse error at '" + line + "'", pe);
@@ -472,7 +492,11 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                     // We need to push lastencoder's metadata update as they were updated since the last
                     // metadata update message sent
                     Metadata meta = new Metadata(lastencoder.getMetadata());
-                    meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                    if (this.deltaAttributes) {
+                      meta.setSource(Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT);                      
+                    } else {
+                      meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                    }
                     this.handler.directoryClient.register(meta);
                     lastHadAttributes = false;
                   }
@@ -531,7 +555,11 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                 // Build metadata object to push
                 Metadata meta = new Metadata(lastencoder.getMetadata());
                 // Set source to indicate we
-                meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                if (this.deltaAttributes) {
+                  meta.setSource(Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT);                  
+                } else {
+                  meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
+                }
                 this.handler.directoryClient.register(meta);
               }
             }              
@@ -564,6 +592,9 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);          
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_MESSAGES, sensisionLabels, 1);
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_TIME_US, sensisionLabels, nano / 1000);      
+          }
+          if (null != this.handler.plugin) {
+            this.handler.plugin.flush(this.handler);
           }
           session.getRemote().sendString("OK " + (seqno++) + " UPDATE " + count + " " + nano);
         }        
@@ -706,7 +737,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     this.maxValueSize = Long.parseLong(properties.getProperty(Configuration.STANDALONE_VALUE_MAXSIZE, StandaloneIngressHandler.DEFAULT_VALUE_MAXSIZE));
     
     this.parseAttributes = "true".equals(properties.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
-    
+    this.allowDeltaAttributes = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_ATTRIBUTES_ALLOWDELTA));
+
     if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT)) {
       this.maxpastDefault = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT));
       if (this.maxpastDefault < 0) {
@@ -784,6 +816,10 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     }    
   }
      
+  public void setPlugin(IngressPlugin plugin) {
+    this.plugin = plugin;
+  }
+  
   public DirectoryClient getDirectoryClient() {
     return this.directoryClient;
   }

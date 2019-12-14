@@ -57,11 +57,15 @@ public class MacroHelper {
     @Override
     public String snapshot() {
       if (macro instanceof Snapshotable) {
-        return macro.snapshot();
+        return macro.snapshot() + " " + WarpScriptLib.EVAL;
       } else {
         return this.toString();
       }
     }
+  }
+  
+  public static WarpScriptStackFunction wrap(Macro m) {
+    return new MacroWrapper(null, m);
   }
   
   public static WarpScriptStackFunction wrap(String name, String mc2, boolean secure) {

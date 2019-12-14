@@ -160,12 +160,35 @@ public class HBaseStoreClient implements StoreClient {
   }
   
   @Override
-  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long timespan, final boolean fromArchive, final boolean writeTimestamp) throws IOException {
+  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, long count, long skip, double sample, final boolean writeTimestamp, int preBoundary, int postBoundary) throws IOException {
 
-    if (fromArchive) {
-      throw new RuntimeException("ARCHIVE MODE NOT IMPLEMENTED.");
+    if (preBoundary < 0) {
+      preBoundary = 0;
+    }
+
+    if (postBoundary < 0) {
+      postBoundary = 0;
+    }
+     
+    if (sample <= 0.0D || sample > 1.0D) {
+      sample = 1.0D;
     }
     
+    if (skip < 0) {
+      skip = 0;
+    }
+    
+    if (count < -1L) {
+      count = -1L;
+    }
+    
+    //
+    // If we are fetching up to Long.MIN_VALUE, then don't fetch a pre boundary
+    //
+    if (Long.MIN_VALUE == then) {
+      preBoundary = 0;
+    }
+
     //
     // Determine the execution plan given the metadatas of the GTS we will be retrieving.
     // Some hints to choose the best plan:
@@ -190,6 +213,7 @@ public class HBaseStoreClient implements StoreClient {
     // which is not congruent to 0 modulo DEFAULT_MODULUS, because we may then have datapoints after 'now' and would then
     // need to do a full scan of every classId/labelsId in metadatas as the SlicedRowFilter does not interpret the read data
     // and is thus unable to read the timestamp
+    // Don't use the filter when skip is > 0 or sample < 1.0D
     //
     // Only use SlicedRowFilter when not having a value count approach or when 'now' is congruent to 0 modulo DEFAULT_MODULUS
     // or equal to Long.MAX_VALUE (EPOCHEND)
@@ -197,27 +221,36 @@ public class HBaseStoreClient implements StoreClient {
     
     boolean optimized = false;
     
-    if (useHBaseFilter && metadatas.size() > this.hbaseFilterThreshold
-        && (timespan >= 0
-            || (timespan < 0
-                && ((0 == (now % Constants.DEFAULT_MODULUS))
-                    || Long.MAX_VALUE == now)
-               )
-            )
-        ) {
-
-      optimized = true;
+    if (useHBaseFilter && metadatas.size() > this.hbaseFilterThreshold) {
+      if (count > 0 && Long.MIN_VALUE == then) {
+        // If we are fetching per count only (i.e. time range ends at Long.MIN_VALUE)
+        optimized = true;
+      } else if (-1 == count) {
+        // When not fetching by count but by time range, use the filter
+        optimized = true;
+      }
     }
 
+    // If sampling or skipping, don't use the filter
+    if (0 != skip || 1.0D != sample) {
+      optimized = false;
+    }
+    
+    // When fetching boundaries, the optimized scanners cannot be used
+    if (preBoundary > 0 || postBoundary > 0) {
+      optimized = false;
+    }
+    
     if (metadatas.size() < ParallelGTSDecoderIteratorWrapper.getMinGTSPerScanner() || !ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
       if (optimized) {
         //return new SlicedRowFilterGTSDecoderIterator(now, timespan, metadatas, this.conn, this.tableName, this.colfam, this.keystore, metadatas.size() <= blockcacheThreshold);
+        long timespan = count > 0 ? -count : (now - then + 1);
         return new OptimizedSlicedRowFilterGTSDecoderIterator(now, timespan, metadatas, this.conn, this.tableName, this.colfam, writeTimestamp, this.keystore, metadatas.size() <= blockcacheThreshold);
       } else {
-        return new MultiScanGTSDecoderIterator(fromArchive, token, now, timespan, metadatas, this.conn, this.tableName, colfam, writeTimestamp, this.keystore, metadatas.size() < blockcacheThreshold);      
+        return new MultiScanGTSDecoderIterator(token, now, then, count, skip, sample, metadatas, this.conn, this.tableName, colfam, writeTimestamp, this.keystore, metadatas.size() < blockcacheThreshold, preBoundary, postBoundary);      
       }      
     } else {
-      return new ParallelGTSDecoderIteratorWrapper(optimized, fromArchive, token, now, timespan, metadatas, keystore, this.conn, this.tableName, this.colfam, writeTimestamp, metadatas.size() < blockcacheThreshold);
+      return new ParallelGTSDecoderIteratorWrapper(optimized, token, now, then, count, skip, sample, metadatas, keystore, this.conn, this.tableName, this.colfam, writeTimestamp, metadatas.size() < blockcacheThreshold, preBoundary, postBoundary);
     }
   }
 

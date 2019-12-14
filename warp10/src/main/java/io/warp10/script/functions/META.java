@@ -46,8 +46,15 @@ public class META extends NamedWarpScriptFunction implements WarpScriptStackFunc
   
   private URL url = null;
   
+  private final boolean delta;
+  
   public META(String name) {
+    this(name, false);
+  }
+
+  public META(String name, boolean delta) {
     super(name);
+    this.delta = delta;
   }
   
   @Override
@@ -135,6 +142,11 @@ public class META extends NamedWarpScriptFunction implements WarpScriptStackFunc
       conn.setDoOutput(true);
       conn.setDoInput(true);
       conn.setRequestMethod("POST");
+      
+      if (this.delta) {
+        conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES), "delta");        
+      }
+      
       conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_META_TOKENX), token);
       conn.setRequestProperty("Content-Type", "application/gzip");
       conn.setChunkedStreamingMode(16384);

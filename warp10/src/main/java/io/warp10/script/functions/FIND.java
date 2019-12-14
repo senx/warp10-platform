@@ -242,7 +242,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
         }
         
         if (top instanceof Long) {
-          set.setNotafter((long) top);
+          set.setNotbefore((long) top);
         }
       }
       

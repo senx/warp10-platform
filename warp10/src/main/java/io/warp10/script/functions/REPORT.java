@@ -16,10 +16,16 @@
 
 package io.warp10.script.functions;
 
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
+import java.util.zip.GZIPOutputStream;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -43,6 +49,12 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
   private static final Logger LOG = LoggerFactory.getLogger(REPORT.class);
   
   private static final String SECRET;
+
+  private static final AtomicLong seq = new AtomicLong(0L);
+  
+  private static final String uuid = UUID.randomUUID().toString();
+
+  private static boolean initialized = false;
   
   static {
     String defaultSecret = UUID.randomUUID().toString();
@@ -51,11 +63,15 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
     if (defaultSecret.equals(SECRET)) {
       LOG.info("REPORT secret not set, using '" + defaultSecret + "'.");
       System.out.println("REPORT secret not set, using '" + defaultSecret + "'.");
-    }
+    }    
   }
   
   public REPORT(String name) {
     super(name);
+    if (!initialized && !"false".equals(WarpConfig.getProperty(Configuration.WARP10_TELEMETRY))) {
+      telinit();
+    }
+    initialized = true;
   }
 
   @Override
@@ -67,6 +83,12 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException(getName() + " invalid secret.");
     }
     
+    stack.push(genReport(true));
+        
+    return stack;
+  }
+  
+  public static String genReport(boolean includeConf) throws WarpScriptException {
     try {
       StringBuilder sb = new StringBuilder();
       
@@ -112,32 +134,34 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
         sb.append("\n");
       }
       
-      sb.append("\n[config]\n");
+      if (includeConf) {
+        sb.append("\n[config]\n");
 
-      Properties properties = WarpConfig.getProperties();
-      
-      for (Entry<Object,Object> entry: properties.entrySet()) {
-        String key = entry.getKey().toString();
+        Properties properties = WarpConfig.getProperties();
         
-        //
-        // Skip crypto related properties
-        //
-        
-        if (key.contains(".key")
-            || key.contains(".aes")
-            || key.contains(".hash")
-            || key.contains(".mac")
-            || key.contains(".psk")
-            || key.contains(".secret")) {
-          continue;
-        }
+        for (Entry<Object,Object> entry: properties.entrySet()) {
+          String key = entry.getKey().toString();
+          
+          //
+          // Skip crypto related properties
+          //
+          
+          if (key.contains(".key")
+              || key.contains(".aes")
+              || key.contains(".hash")
+              || key.contains(".mac")
+              || key.contains(".psk")
+              || key.contains(".secret")) {
+            continue;
+          }
 
-        sb.append(key);
-        sb.append("=");
-        
-        String value = entry.getValue().toString();
-        sb.append(value);
-        sb.append("\n");
+          sb.append(key);
+          sb.append("=");
+          
+          String value = entry.getValue().toString();
+          sb.append(value);
+          sb.append("\n");
+        }        
       }
       
       byte[] data = sb.toString().getBytes(StandardCharsets.UTF_8);
@@ -159,11 +183,87 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
       sb.insert(0, System.currentTimeMillis());
       sb.insert(0, "[report]\n");
       
-      stack.push(sb.toString());  
+      return sb.toString();
     } catch (Exception e) {
       throw new WarpScriptException("Error while generating report.");
     }
-        
-    return stack;
+  }
+  
+  private static final void telinit() {
+    try {
+      Thread telemetry = new Thread() {
+        @Override
+        public void run() {
+          boolean first = true;
+          long delay = 8 * 3600L * 1000000000L;
+          while(true) {
+            
+            if (!first) {
+              LockSupport.parkNanos(delay);
+            }
+            
+            first = false;
+
+            long newdelay = REPORT.telemetry();
+            
+            if (newdelay > 0) {
+              delay = newdelay;
+            }
+          }
+        }
+      };
+      
+      telemetry.setDaemon(true);
+      telemetry.start();
+      
+      Runtime.getRuntime().addShutdownHook(new Thread() {
+        @Override
+        public void run() {
+          seq.set(Long.MIN_VALUE);
+          REPORT.telemetry();
+        }
+      });
+    } catch (Throwable t) {      
+    }
+  }
+  
+  private static long telemetry() {
+    HttpURLConnection conn = null;
+    
+    try {
+      String report = genReport(false);
+      
+      conn = (HttpURLConnection) new URL("https://telemetry.senx.io/report").openConnection();
+      conn.setDoOutput(true);
+      if (0 == seq.get()) {
+        conn.addRequestProperty("X-Warp10-Telemetry-Event", "start");
+      } else if (seq.get() < 0) {
+        conn.addRequestProperty("X-Warp10-Telemetry-Event", "stop");
+      } else {
+        conn.addRequestProperty("X-Warp10-Telemetry-Event", "report");
+      }      
+      seq.addAndGet(1L);
+      conn.addRequestProperty("X-Warp10-Telemetry-UUID", uuid);
+      conn.addRequestProperty("Content-Type", "application/gzip");
+      OutputStream out = conn.getOutputStream();
+      OutputStream zout = new GZIPOutputStream(out);
+      zout.write(report.getBytes(StandardCharsets.UTF_8));
+      zout.close();
+      out.close();
+      String newdelay = conn.getHeaderField("X-Warp10-Telemetry-Delay");
+      
+      if (null != newdelay) {
+        try {
+          return Long.parseLong(newdelay);
+        } catch (Throwable t) {                  
+        }
+      }
+    } catch (Throwable t) {   
+    } finally {
+      if (null != conn) {
+        try { conn.disconnect(); } catch (Throwable t) {}
+      }
+    }
+    return 0;
   }
 }

@@ -54,6 +54,8 @@ public class Configuration {
   
   public static final String WARP10_QUIET = "warp10.quiet";
   
+  public static final String WARP10_TELEMETRY = "warp10.telemetry";
+  
   /**
    * Comma separated list of headers to return in the Access-Allow-Control-Headers response header to preflight requests.
    */
@@ -537,6 +539,11 @@ public class Configuration {
   public static final String DIRECTORY_PLUGIN_CLASS = "directory.plugin.class";
   
   /**
+   * Attribute which will contain the source of the Metadata processed by the plugin
+   */
+  public static final String DIRECTORY_PLUGIN_SOURCEATTR = "directory.plugin.sourceattr";
+  
+  /**
    * Boolean indicating whether or not we should use the HBase filter when initializing
    */
   public static final String DIRECTORY_HBASE_FILTER = "directory.hbase.filter";
@@ -555,6 +562,11 @@ public class Configuration {
   // I N G R E S S
   //
   /////////////////////////////////////////////////////////////////////////////////////////
+
+  /**
+   * Class name of ingress plugin to use
+   */
+  public static final String INGRESS_PLUGIN_CLASS = "ingress.plugin.class";
 
   /**
    * Default datapoint cell TTL (in ms) to enforce. If this is not set, then the TTL will be that
@@ -623,6 +635,11 @@ public class Configuration {
    * Set to true to parse attributes in the data passed to /update.
    */
   public static final String INGRESS_PARSE_ATTRIBUTES = "ingress.parse.attributes";
+
+  /**
+   * Set to true to allow attributes to be interpreted as a delta update
+   */
+  public static final String INGRESS_ATTRIBUTES_ALLOWDELTA = "ingress.attributes.allowdelta";
   
   /**
    * Should we shuffle the GTS prior to issueing delete messages. Set to true or false.
@@ -662,6 +679,11 @@ public class Configuration {
    */
   public static final String INGRESS_METADATA_UPDATE_ENDPOINT = "ingress.metadata.update";
 
+  /**
+   * Identification if Ingress Metadata Update endpoint source when doing a delta update of attributes
+   */
+  public static final String INGRESS_METADATA_UPDATE_DELTA_ENDPOINT = "ingress.metadata.update.delta";
+  
   /**
    * Do we send Metadata in the Kafka message for delete operations?
    */
@@ -1629,7 +1651,17 @@ public class Configuration {
    */
   public static final String DATALOG_FORWARDER_SHARDKEY_SHIFT = "datalog.forwarder.shardkey.shift";
 
-  /*
+  /**
+   * Maximum length of labels (names + values) - Defaults to 2048
+   */
+  public static final String WARP_LABELS_MAXSIZE = "warp.labels.maxsize";
+  
+  /**
+   * Maximum length of attributes (names + values) - Defaults to 8192
+   */
+  public static final String WARP_ATTRIBUTES_MAXSIZE = "warp.attributes.maxsize";
+  
+  /**
    * Set to a message indicating the reason why updates are disabled, they are enabled if this is not set
    */
   public static final String WARP_UPDATE_DISABLED = "warp.update.disabled";
@@ -2143,6 +2175,11 @@ public class Configuration {
    */
   public static final String HTTP_HEADER_NOW_HEADERX = "http.header.now";
 
+  /**
+   * HTTP Header for specifying attribute parsing type
+   */
+  public static final String HTTP_HEADER_ATTRIBUTES = "http.header.attributes";
+  
   /**
    * HTTP Header for specifying the timespan in /sfetch requests
    */

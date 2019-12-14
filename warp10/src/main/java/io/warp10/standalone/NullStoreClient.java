@@ -28,7 +28,7 @@ import java.io.IOException;
 public class NullStoreClient implements StoreClient {
   
   @Override
-  public GTSDecoderIterator fetch(ReadToken token, java.util.List<io.warp10.continuum.store.thrift.data.Metadata> metadatas, long now, long timespan, boolean fromArchive, boolean writeTimestamp) {
+  public GTSDecoderIterator fetch(ReadToken token, java.util.List<io.warp10.continuum.store.thrift.data.Metadata> metadatas, long now, long then, long count, long skip, double sample, boolean writeTimestamp, final int preBoundary, final int postBoundary) {
     return null;
   }
   

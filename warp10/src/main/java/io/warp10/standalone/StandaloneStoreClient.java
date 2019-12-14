@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.hadoop.hbase.util.Bytes;
@@ -88,12 +89,35 @@ public class StandaloneStoreClient implements StoreClient {
   }
   
   @Override
-  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long timespan, final boolean fromArchive, boolean writeTimestamp) {
-    
-    if (timespan < 0 && fromArchive) {
-      throw new RuntimeException("No support for negative timespans when fetching from archive.");      
+  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, long count, long skip, double sample, boolean writeTimestamp, int preBoundary, int postBoundary) {
+
+    if (preBoundary < 0) {
+      preBoundary = 0;
     }
 
+    if (postBoundary < 0) {
+      postBoundary = 0;
+    }
+     
+    if (sample <= 0.0D || sample > 1.0D) {
+      sample = 1.0D;
+    }
+    
+    if (skip < 0) {
+      skip = 0;
+    }
+    
+    if (count < -1L) {
+      count = -1L;
+    }
+    
+    //
+    // If we are fetching up to Long.MIN_VALUE, then don't fetch a pre boundary
+    //
+    if (Long.MIN_VALUE == then) {
+      preBoundary = 0;
+    }
+    
     if (writeTimestamp) {
       throw new RuntimeException("No support for write timestamp retrieval.");
     }
@@ -123,8 +147,21 @@ public class StandaloneStoreClient implements StoreClient {
     
     Collections.sort(metadatas, MetadataIdComparator.COMPARATOR);
         
+    final int preB = preBoundary;
+    final int postB = postBoundary;
+
+    final long fskip = skip;
+    final double fsample = sample;
+    final long fcount = count;
+    
     return new GTSDecoderIterator() {
     
+      Random prng = fsample < 1.0D ? new Random() : null;
+      
+      long skip = fskip;
+      int preBoundary = preB;
+      int postBoundary = postB;
+      
       int idx = -1;
        
       // First row of current scan      
@@ -155,29 +192,110 @@ public class StandaloneStoreClient implements StoreClient {
         long valueBytes = 0L;
         long datapoints = 0L;
         
+        //
+        // Fetch the boundary
+        //
+        while (postBoundary > 0 && encoder.size() < MAX_ENCODER_SIZE) {          
+          Entry<byte[], byte[]> kv = iterator.prev();
+          // Check if the previous row is for the same GTS
+          // 128bits
+          int i = Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8;
+
+          if (0 != Bytes.compareTo(kv.getKey(), 0, i, startrow, 0, i)) {
+            postBoundary = 0;
+            iterator.seek(startrow);
+            break;
+          }
+          byte[] k = kv.getKey();          
+          long basets = k[i++] & 0xFFL;
+          basets <<= 8; basets |= (k[i++] & 0xFFL); 
+          basets <<= 8; basets |= (k[i++] & 0xFFL); 
+          basets <<= 8; basets |= (k[i++] & 0xFFL); 
+          basets <<= 8; basets |= (k[i++] & 0xFFL); 
+          basets <<= 8; basets |= (k[i++] & 0xFFL); 
+          basets <<= 8; basets |= (k[i++] & 0xFFL); 
+          basets <<= 8; basets |= (k[i++] & 0xFFL); 
+          basets = Long.MAX_VALUE - basets;
+
+          GTSDecoder decoder = new GTSDecoder(basets, keystore.getKey(KeyStore.AES_LEVELDB_DATA), ByteBuffer.wrap(kv.getValue()));
+          decoder.next();
+          try {
+            encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
+            postBoundary--;
+            if (0 == postBoundary) {
+              iterator.seek(startrow);
+            }
+          } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+          }            
+        }
+        
         do {
           Entry<byte[], byte[]> kv = iterator.next();
           
           if (Bytes.compareTo(kv.getKey(), stoprow) > 0) {
+            //
+            // If a boundary was requested, fetch it
+            //
+            
+            while (preBoundary > 0 && encoder.size() < MAX_ENCODER_SIZE) {
+              // Check if the previous row is for the same GTS
+              // 128bits
+              int i = Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8;
+              if (0 != Bytes.compareTo(kv.getKey(), 0, i, stoprow, 0, i)) {
+                preBoundary = 0;
+                break;
+              }
+              byte[] k = kv.getKey();          
+              long basets = k[i++] & 0xFFL;
+              basets <<= 8; basets |= (k[i++] & 0xFFL); 
+              basets <<= 8; basets |= (k[i++] & 0xFFL); 
+              basets <<= 8; basets |= (k[i++] & 0xFFL); 
+              basets <<= 8; basets |= (k[i++] & 0xFFL); 
+              basets <<= 8; basets |= (k[i++] & 0xFFL); 
+              basets <<= 8; basets |= (k[i++] & 0xFFL); 
+              basets <<= 8; basets |= (k[i++] & 0xFFL); 
+              basets = Long.MAX_VALUE - basets;
+
+              GTSDecoder decoder = new GTSDecoder(basets, keystore.getKey(KeyStore.AES_LEVELDB_DATA), ByteBuffer.wrap(kv.getValue()));
+              decoder.next();
+              try {
+                encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
+                preBoundary--;
+              } catch (IOException ioe) {
+                throw new RuntimeException(ioe);
+              }            
+              kv = iterator.next();              
+            }
+            
             startrow = null;
             break;
           }
           
           ByteBuffer bb = ByteBuffer.wrap(kv.getKey()).order(ByteOrder.BIG_ENDIAN);
           
-          if (fromArchive) {
-            bb.position(Store.HBASE_ARCHIVE_DATA_KEY_PREFIX.length + 8 + 8);                        
-          } else {
-            bb.position(Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8);            
-          }
+          bb.position(Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8);            
           
-          long basets = fromArchive ? 0L : (Long.MAX_VALUE - bb.getLong());
+          long basets = Long.MAX_VALUE - bb.getLong();
           
           byte[] v = kv.getValue();
           
           //
-          // Update statistics
+          // Skip datapoints
           //
+          
+          if (skip > 0) {
+            skip--;
+            continue;
+          }
+          
+          //
+          // Sample datapoints
+          //
+          
+          if (fsample < 1.0D && prng.nextDouble() > fsample) {
+            continue;
+          }
           
           valueBytes += v.length;
           keyBytes += kv.getKey().length;          
@@ -185,20 +303,13 @@ public class StandaloneStoreClient implements StoreClient {
           
           nvalues--;
                     
-          if (fromArchive) {
-            // When reading from the archive, create an encoder with the chunk data
-            encoder = new GTSEncoder(0L, keystore.getKey(KeyStore.AES_LEVELDB_DATA), kv.getValue());
-            // Exit after the chunk
-            break;
-          } else {
-            GTSDecoder decoder = new GTSDecoder(basets, keystore.getKey(KeyStore.AES_LEVELDB_DATA), ByteBuffer.wrap(kv.getValue()));
-            decoder.next();
-            try {
-              encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
-            } catch (IOException ioe) {
-              throw new RuntimeException(ioe);
-            }            
-          }
+          GTSDecoder decoder = new GTSDecoder(basets, keystore.getKey(KeyStore.AES_LEVELDB_DATA), ByteBuffer.wrap(kv.getValue()));
+          decoder.next();
+          try {
+            encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
+          } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+          }            
         } while(iterator.hasNext() && encoder.size() < MAX_ENCODER_SIZE && nvalues > 0);
 
         encoder.setMetadata(metadatas.get(idx));
@@ -233,15 +344,9 @@ public class StandaloneStoreClient implements StoreClient {
         // Update per owner statistics, use a TTL for those
         //
         
-        if (fromArchive) {
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_VALUES_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, valueBytes);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_KEYS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, keyBytes);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_DATAPOINTS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, datapoints);                    
-        } else {
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_VALUES_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, valueBytes);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_KEYS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, keyBytes);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_DATAPOINTS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, datapoints);          
-        }
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_VALUES_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, valueBytes);
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_KEYS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, keyBytes);
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_DATAPOINTS_PEROWNER, labels, SensisionConstants.SENSISION_TTL_PERUSER, datapoints);          
                
         //
         // Update summary statistics
@@ -250,15 +355,9 @@ public class StandaloneStoreClient implements StoreClient {
         // Remove 'owner' label
         labels.remove(SensisionConstants.SENSISION_LABEL_OWNER);
 
-        if (fromArchive) {
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_VALUES, labels, valueBytes);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_KEYS, labels, keyBytes);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_AFETCH_DATAPOINTS, labels, datapoints);          
-        } else {
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_VALUES, labels, valueBytes);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_KEYS, labels, keyBytes);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_DATAPOINTS, labels, datapoints);          
-        }
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_VALUES, labels, valueBytes);
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_BYTES_KEYS, labels, keyBytes);
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_DATAPOINTS, labels, datapoints);          
 
         return encoder.getDecoder();
       }
@@ -278,13 +377,13 @@ public class StandaloneStoreClient implements StoreClient {
           if (idx >= 0 && iterator.hasNext()) {
             Entry<byte[], byte[]> kv = iterator.peekNext();
 
-            // If the next key is over the range, nullify startrow
-            if (Bytes.compareTo(kv.getKey(), stoprow) > 0) {
+            // If the next key is over the range, nullify startrow unless we still have boundaries to fetch
+            if (0 == preBoundary && 0 == postBoundary && Bytes.compareTo(kv.getKey(), stoprow) > 0) {
               startrow = null;
             } else {
               //
               // If we are time based or value count based with values left to read, return true
-              if (timespan >= 0 || (timespan < 0 && nvalues > 0)) {
+              if (-1 == fcount || nvalues > 0) {
                 return true;
               } else {
                 startrow = null;
@@ -294,7 +393,7 @@ public class StandaloneStoreClient implements StoreClient {
             startrow = null;
           }
           
-          // We need to reseek if startrow is null
+          // We need to reseek if startrow is null (it indicates we need to skip to the next GTS)
           if (null == startrow) {
             idx++;
 
@@ -302,44 +401,19 @@ public class StandaloneStoreClient implements StoreClient {
               return false;
             }
             
-            if (fromArchive) {
-              startrow = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8];
-              ByteBuffer bb = ByteBuffer.wrap(startrow).order(ByteOrder.BIG_ENDIAN);
-              bb.put(Store.HBASE_ARCHIVE_DATA_KEY_PREFIX);
-              bb.putLong(metadatas.get(idx).getClassId());
-              bb.putLong(metadatas.get(idx).getLabelsId());
+            startrow = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
+            ByteBuffer bb = ByteBuffer.wrap(startrow).order(ByteOrder.BIG_ENDIAN);
+            bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
+            bb.putLong(metadatas.get(idx).getClassId());
+            bb.putLong(metadatas.get(idx).getLabelsId());
+            bb.putLong(Long.MAX_VALUE - now);
               
-              stoprow = new byte[startrow.length + 8]; // Provision for 2**64 chunks (!)
-              bb = ByteBuffer.wrap(stoprow).order(ByteOrder.BIG_ENDIAN);
-              bb.put(Store.HBASE_ARCHIVE_DATA_KEY_PREFIX);
-              bb.putLong(metadatas.get(idx).getClassId());
-              bb.putLong(metadatas.get(idx).getLabelsId());              
-              bb.putLong(0xffffffffffffffffL);
-            } else {
-              startrow = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
-              ByteBuffer bb = ByteBuffer.wrap(startrow).order(ByteOrder.BIG_ENDIAN);
-              bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
-              bb.putLong(metadatas.get(idx).getClassId());
-              bb.putLong(metadatas.get(idx).getLabelsId());
-              bb.putLong(Long.MAX_VALUE - now);
-              
-              stoprow = new byte[startrow.length];
-              bb = ByteBuffer.wrap(stoprow).order(ByteOrder.BIG_ENDIAN);
-              bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
-              bb.putLong(metadatas.get(idx).getClassId());
-              bb.putLong(metadatas.get(idx).getLabelsId());              
-              
-              //
-              // If 'timespan' is negative, we are interested in retrieving -'timespan' values,
-              // regardless of how long ago they were measured
-              //
-              
-              if (timespan >= 0) {
-                bb.putLong(Long.MAX_VALUE - (now - timespan + 1));
-              } else {
-                bb.putLong(0xffffffffffffffffL);
-              }
-            }            
+            stoprow = new byte[startrow.length];
+            bb = ByteBuffer.wrap(stoprow).order(ByteOrder.BIG_ENDIAN);
+            bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
+            bb.putLong(metadatas.get(idx).getClassId());
+            bb.putLong(metadatas.get(idx).getLabelsId());                            
+            bb.putLong(Long.MAX_VALUE - then);
           }
 
           //
@@ -348,9 +422,11 @@ public class StandaloneStoreClient implements StoreClient {
           // otherwise use Long.MAX_VALUE
           //
           
-          nvalues = (!fromArchive && (timespan < 0)) ? -timespan : Long.MAX_VALUE;
+          nvalues = fcount >= 0L ? fcount : Long.MAX_VALUE;
           
-          iterator.seek(startrow);          
+          iterator.seek(startrow);
+          preBoundary = preB;
+          postBoundary = postB;
         }
       }
     };

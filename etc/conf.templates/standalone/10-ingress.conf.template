@@ -21,6 +21,16 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
+// Set to true to parse attributes in the data passed to /update.
+//
+#ingress.parse.attributes = true
+
+//
+// Set to true to allow the delta update of attributes
+//
+#ingress.attributes.allowdelta = true
+
+//
 // Max message size for the stream update websockets
 //
 ingress.websocket.maxmessagesize = 1048576
@@ -75,3 +85,8 @@ ingress.websocket.maxmessagesize = 1048576
 // If this is not set or set to anything but 'true', datapoints with timestamps outside the permitted range will trigger an error
 //
 #ingress.outofrange.ignore = true
+
+//
+// Fully qualified class name of an optional IngressPlugin to load
+//
+#ingress.plugin.class = ...

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ import java.util.Map.Entry;
 import org.apache.thrift.TBase;
 import org.apache.thrift.TException;
 
-import io.warp10.continuum.store.Constants;
 import io.warp10.crypto.KeyStore;
 import io.warp10.quasar.encoder.QuasarTokenEncoder;
 import io.warp10.quasar.token.thrift.data.ReadToken;
@@ -64,6 +63,8 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
   private byte[] tokenAESKey = null;
   private byte[] tokenSipHashKey = null;
   
+  private boolean multikey = false;
+  
   public TOKENGEN(String name) {
     super(name);
   }
@@ -79,28 +80,59 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
     this.DEFAULT_TTL = ttl;
   }
   
+  public TOKENGEN(String name, boolean multikey) {
+    super(name);
+    this.multikey = multikey;
+  }
+  
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
-    if (null == tokenAESKey || null == tokenSipHashKey) {
+    byte[] AESKey = this.tokenAESKey;
+    byte[] SipHashKey = this.tokenSipHashKey;
+
+    if ((null == AESKey || null == SipHashKey) && !this.multikey) {
       throw new WarpScriptException(getName() + " cannot be used in this context.");
     }
     
-    Object top = stack.pop();
-    
-    //
-    // A non null token secret was configured, check it
-    //
-    String secret = TokenWarpScriptExtension.TOKEN_SECRET;
-    
-    if (null != secret) {
-      if (!(top instanceof String)) {
-        throw new WarpScriptException(getName() + " expects a token secret on top of the stack.");
-      }
-      if (!secret.equals(top)) {
-        throw new WarpScriptException(getName() + " invalid token secret.");
-      }
+    Object top = null;
+        
+    if (multikey) {
       top = stack.pop();
+      
+      if (!(top instanceof byte[])) {
+        throw new WarpScriptException(getName() + " expects a SipHash Key (a byte array).");
+      }
+      
+      SipHashKey = (byte[]) top;
+      
+      top = stack.pop();
+      
+      if (!(top instanceof byte[])) {
+        throw new WarpScriptException(getName() + " expects an AES Key (byte array).");
+      }
+      
+      AESKey = (byte[]) top;
+      
+      top = stack.pop();
+    } else {
+      //
+      // If a non null token secret was configured and no keys are specified, check it
+      //
+      
+      top = stack.pop();
+      
+      String secret = TokenWarpScriptExtension.TOKEN_SECRET;
+      
+      if ((null == this.tokenAESKey || null == this.tokenSipHashKey) && null != secret) {
+        if (!(top instanceof String)) {
+          throw new WarpScriptException(getName() + " expects a token secret on top of the stack.");
+        }
+        if (!secret.equals(top)) {
+          throw new WarpScriptException(getName() + " invalid token secret.");
+        }
+        top = stack.pop();
+      }      
     }
     
     if (!(top instanceof Map)) {
@@ -112,8 +144,8 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
     try {      
       TBase token = tokenFromMap(params);
       
-      String tokenstr = encoder.encryptToken(token, this.tokenAESKey, this.tokenSipHashKey);
-      String ident = encoder.getTokenIdent(tokenstr, this.tokenSipHashKey);
+      String tokenstr = encoder.encryptToken(token, AESKey, SipHashKey);
+      String ident = encoder.getTokenIdent(tokenstr, SipHashKey);
         
       Map<Object,Object> result = new HashMap<Object,Object>();
       result.put(KEY_TOKEN, tokenstr);
