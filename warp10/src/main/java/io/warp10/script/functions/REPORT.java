@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
+import java.util.zip.GZIPOutputStream;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -52,6 +53,8 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
   private static final AtomicLong seq = new AtomicLong(0L);
   
   private static final String uuid = UUID.randomUUID().toString();
+
+  private static boolean initialized = false;
   
   static {
     String defaultSecret = UUID.randomUUID().toString();
@@ -60,15 +63,15 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
     if (defaultSecret.equals(SECRET)) {
       LOG.info("REPORT secret not set, using '" + defaultSecret + "'.");
       System.out.println("REPORT secret not set, using '" + defaultSecret + "'.");
-    }
-    
-    if (!"false".equals(WarpConfig.getProperty(Configuration.WARP10_TELEMETRY))) {
-      telinit();
-    }
+    }    
   }
   
   public REPORT(String name) {
     super(name);
+    if (!initialized && !"false".equals(WarpConfig.getProperty(Configuration.WARP10_TELEMETRY))) {
+      telinit();
+    }
+    initialized = true;
   }
 
   @Override
@@ -209,6 +212,8 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
           }
         }
       };
+      
+      telemetry.setDaemon(true);
       telemetry.start();
       
       Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -239,8 +244,11 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
       }      
       seq.addAndGet(1L);
       conn.addRequestProperty("X-Warp10-Telemetry-UUID", uuid);
+      conn.addRequestProperty("Content-Type", "application/gzip");
       OutputStream out = conn.getOutputStream();
-      out.write(report.getBytes(StandardCharsets.UTF_8));
+      OutputStream zout = new GZIPOutputStream(out);
+      zout.write(report.getBytes(StandardCharsets.UTF_8));
+      zout.close();
       out.close();
       String newdelay = conn.getHeaderField("X-Warp10-Telemetry-Delay");
       

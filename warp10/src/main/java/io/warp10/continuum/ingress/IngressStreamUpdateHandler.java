@@ -258,6 +258,14 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
 
               try {
                 encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.maxsize, hadAttributes, maxpast, maxfuture, ignoredCount, this.deltaAttributes);
+                
+                if (null != this.handler.ingress.plugin) {
+                  GTSEncoder enc = encoder;
+                  if (!this.handler.ingress.plugin.update(this.handler.ingress, wtoken, line, encoder)) {
+                    hadAttributes.set(false);
+                    continue;
+                  }
+                }
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
                 throw new IOException("Parse error at '" + line + "'", pe);
@@ -399,6 +407,10 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
           } finally {
             this.handler.ingress.pushMetadataMessage(null);
             this.handler.ingress.pushDataMessage(null, this.kafkaDataMessageAttributes);
+            
+            if (null != this.handler.ingress.plugin) {
+              this.handler.ingress.plugin.flush(this.handler.ingress);
+            }
             nano = System.nanoTime() - nano;
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);          
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_MESSAGES, sensisionLabels, 1);
@@ -546,16 +558,16 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
           }
         }
 
-        if (wtoken.getAttributes().containsKey(Constants.STORE_ATTR_TTL)
-            || wtoken.getAttributes().containsKey(Constants.STORE_ATTR_USEDATAPOINTTS)) {
+        if (wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_TTL)
+            || wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_DPTS)) {
           if (null == kafkaDataMessageAttributes) {
             kafkaDataMessageAttributes = new HashMap<String,String>();
           }
-          if (wtoken.getAttributes().containsKey(Constants.STORE_ATTR_TTL)) {
-            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_TTL, wtoken.getAttributes().get(Constants.STORE_ATTR_TTL));
+          if (wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_TTL)) {
+            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_TTL, wtoken.getAttributes().get(Constants.TOKEN_ATTR_TTL));
           }
-          if (wtoken.getAttributes().containsKey(Constants.STORE_ATTR_USEDATAPOINTTS)) {
-            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_USEDATAPOINTTS, wtoken.getAttributes().get(Constants.STORE_ATTR_USEDATAPOINTTS));
+          if (wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_DPTS)) {
+            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_USEDATAPOINTTS, wtoken.getAttributes().get(Constants.TOKEN_ATTR_DPTS));
           }
         }       
       }

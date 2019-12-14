@@ -582,6 +582,11 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
 
   /**
+   * Class name of ingress plugin to use
+   */
+  public static final String INGRESS_PLUGIN_CLASS = "ingress.plugin.class";
+
+  /**
    * Default datapoint cell TTL (in ms) to enforce. If this is not set, then the TTL will be that
    * of the columns family. A value of -1 disables the use of cell TTLs.
    * This can be overridden by the '.ttl' WriteToken attribute.

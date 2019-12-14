@@ -371,7 +371,12 @@ public class Constants {
   public static final String HTTP_PARAM_ACTIVEAFTER = "activeafter";
   public static final String HTTP_PARAM_QUIETAFTER = "quietafter";
   public static final String HTTP_PARAM_LIMIT = "limit";
-  
+  public static final String HTTP_PARAM_COUNT = "count";
+  public static final String HTTP_PARAM_SKIP = "skip";
+  public static final String HTTP_PARAM_SAMPLE = "sample";
+  public static final String HTTP_PARAM_PREBOUNDARY = "boundary.pre";
+  public static final String HTTP_PARAM_POSTBOUNDARY = "boundary.post";
+
   public static final String DEFAULT_PACKED_CLASS_SUFFIX = ":packed";
   public static final int DEFAULT_PACKED_MAXSIZE = 65536;
   

@@ -23,6 +23,7 @@ import java.util.BitSet;
 import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 
 import io.warp10.CapacityExtractorOutputStream;
@@ -73,6 +74,8 @@ public class InMemoryChunkSet {
    * Is this an ephemeral chunk set storing only the last stored value?
    */
   private final boolean ephemeral;
+  
+  private static final Random prng = new Random();
   
   public InMemoryChunkSet(int chunkcount, long chunklen, boolean ephemeral) {
     this.chunks = new GTSEncoder[chunkcount];
@@ -210,8 +213,8 @@ public class InMemoryChunkSet {
    * @param timespan The timespan or value count to consider.
    * @return
    */
-  public GTSDecoder fetch(long now, long timespan, CapacityExtractorOutputStream extractor, int preBoundary, int postBoundary) throws IOException {
-    GTSEncoder encoder = fetchEncoder(now, timespan, preBoundary, postBoundary);
+  public GTSDecoder fetch(long now, long then, long count, long skip, double sample, CapacityExtractorOutputStream extractor, int preBoundary, int postBoundary) throws IOException {
+    GTSEncoder encoder = fetchEncoder(now, then, count, skip, sample, preBoundary, postBoundary);
 
     //
     // Resize the encoder so we don't waste too much memory
@@ -229,8 +232,8 @@ public class InMemoryChunkSet {
     return encoder.getUnsafeDecoder(false);
   }
 
-  public GTSDecoder fetch(long now, long timespan) throws IOException {
-    return fetch(now, timespan, null, 0, 0);
+  public GTSDecoder fetch(long now, long then, long count, long skip, double sample) throws IOException {
+    return fetch(now, then, count, skip, sample, null, 0, 0);
   }
   
   public List<GTSDecoder> getDecoders() {
@@ -248,14 +251,17 @@ public class InMemoryChunkSet {
     return decoders;
   }
   
-  public GTSEncoder fetchEncoder(long now, long timespan, int preBoundary, int postBoundary) throws IOException {
+  public GTSEncoder fetchEncoder(long now, long then, long count, long skip, double sample, int preBoundary, int postBoundary) throws IOException {
 
     if (this.ephemeral) {
       return fetchCountEncoder(Long.MAX_VALUE, 1L, postBoundary);
     }
     
-    if (timespan < 0) {
-      return fetchCountEncoder(now, -timespan, postBoundary);
+    // Call fetchCountEncoder if fetching by count with a 'then' of MIN_LONG, no skipping
+    // and no sampling or preBoundary
+    
+    if (count > 0 && Long.MIN_VALUE == then && 0 == skip && 1.0D == sample && 0 == preBoundary) {
+      return fetchCountEncoder(now, -count, postBoundary);
     }
     
     //
@@ -266,7 +272,7 @@ public class InMemoryChunkSet {
     int nowchunk = chunk(now) + this.chunkcount;
     
     // Compute the first timestamp (included)
-    long firstTimestamp = now - timespan + 1;
+    long firstTimestamp = then;
     
     GTSEncoder encoder = new GTSEncoder(0L);
     
@@ -384,6 +390,8 @@ public class InMemoryChunkSet {
         continue;
       }
       
+      long nvalues = count >= 0 ? count : Long.MAX_VALUE;
+      
       // Merge the data from chunkDecoder which is in the requested range in 'encoder'
       while(chunkDecoder.next()) {
         long ts = chunkDecoder.getTimestamp();
@@ -399,7 +407,27 @@ public class InMemoryChunkSet {
         }
         
         if (!boundaryOnly) {
-          encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue());
+          // Do we have more datapoints to retrieve?
+          if (nvalues > 0) {
+            // Skip
+            if (skip > 0) {
+              skip--;
+              continue;
+            }
+            
+            // Sample
+            if (1.0D != sample && prng.nextDouble() > sample) {
+              continue;
+            }          
+
+            encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue());
+            nvalues--;
+          }
+        }
+        
+        // If we are done fetching and have no preBoundary, exit
+        if (0 == nvalues && 0 == preBoundary) {
+          break;
         }
       }
       

@@ -59,7 +59,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.warp10.ThrowableUtils;
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.util.ShutdownHookManager;
@@ -89,6 +88,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 
 import io.warp10.SSLUtils;
+import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
@@ -171,6 +171,8 @@ public class Ingress extends AbstractHandler implements Runnable {
   private final String cacheDumpPath;
   
   private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
+  
+  public final IngressPlugin plugin;
   
   /**
    * List of pending Kafka messages containing metadata (one per Thread)
@@ -453,7 +455,26 @@ public class Ingress extends AbstractHandler implements Runnable {
     if (null != props.getProperty(Configuration.INGRESS_KAFKA_DATA_REQUEST_TIMEOUT_MS)) {
       dataProps.setProperty(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, props.getProperty(Configuration.INGRESS_KAFKA_DATA_REQUEST_TIMEOUT_MS));
     }
+    
+    if (null != props.getProperty(Configuration.INGRESS_PLUGIN_CLASS)) {
+      try {
+        ClassLoader pluginCL = this.getClass().getClassLoader();
 
+        Class pluginClass = Class.forName(properties.getProperty(Configuration.INGRESS_PLUGIN_CLASS), true, pluginCL);
+        this.plugin = (IngressPlugin) pluginClass.newInstance();
+        
+        //
+        // Now call the 'init' method of the plugin
+        //
+        
+        this.plugin.init();
+      } catch (Exception e) {
+        throw new RuntimeException("Unable to instantiate plugin class", e);
+      }
+    } else {
+      this.plugin = null;
+    }
+    
     ///???? dataProps.setProperty("block.on.buffer.full", "true");
     
     // FIXME(hbs): compression does not work
@@ -744,16 +765,16 @@ public class Ingress extends AbstractHandler implements Runnable {
       }
       
       if (writeToken.getAttributesSize() > 0) {
-        if (writeToken.getAttributes().containsKey(Constants.STORE_ATTR_TTL)
-            || writeToken.getAttributes().containsKey(Constants.STORE_ATTR_USEDATAPOINTTS)) {
+        if (writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_TTL)
+            || writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_DPTS)) {
           if (null == kafkaDataMessageAttributes) {
             kafkaDataMessageAttributes = new HashMap<String,String>();
           }
-          if (writeToken.getAttributes().containsKey(Constants.STORE_ATTR_TTL)) {
-            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_TTL, writeToken.getAttributes().get(Constants.STORE_ATTR_TTL));
+          if (writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_TTL)) {
+            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_TTL, writeToken.getAttributes().get(Constants.TOKEN_ATTR_TTL));
           }
-          if (writeToken.getAttributes().containsKey(Constants.STORE_ATTR_USEDATAPOINTTS)) {
-            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_USEDATAPOINTTS, writeToken.getAttributes().get(Constants.STORE_ATTR_USEDATAPOINTTS));
+          if (writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_DPTS)) {
+            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_USEDATAPOINTTS, writeToken.getAttributes().get(Constants.TOKEN_ATTR_DPTS));
           }
         }
       }
@@ -995,6 +1016,13 @@ public class Ingress extends AbstractHandler implements Runnable {
                     
           try {
             encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxsize, hadAttributes, maxpast, maxfuture, ignoredCount, deltaAttributes);
+            if (null != this.plugin) {
+              GTSEncoder enc = encoder;
+              if (!this.plugin.update(this, writeToken, line, encoder)) {                
+                hadAttributes.set(false);
+                continue;
+              }
+            }
             count++;
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_PARSEERRORS, sensisionLabels, 1);
@@ -1135,6 +1163,10 @@ public class Ingress extends AbstractHandler implements Runnable {
         pushMetadataMessage(null, null);
         pushDataMessage(null, kafkaDataMessageAttributes);
 
+        if (null != this.plugin) {
+          this.plugin.flush(this);
+        }
+        
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_DATAPOINTS_GLOBAL, Sensision.EMPTY_LABELS, count);
         
@@ -1319,6 +1351,11 @@ public class Ingress extends AbstractHandler implements Runnable {
           if (activityTracking && metaActivity) {
             metadata.setLastActivity(nowms);
           }
+          if (null != this.plugin) {
+            if (!this.plugin.meta(this, writeToken, line, metadata)) {
+              continue;
+            }
+          }
           pushMetadataMessage(metadata);
         } catch (Exception e) {
           throw new IOException("Unable to push metadata");
@@ -1339,6 +1376,10 @@ public class Ingress extends AbstractHandler implements Runnable {
       //
     
       pushMetadataMessage(null, null);
+      
+      if (null != this.plugin) {
+        this.plugin.flush(this);
+      }
     }
   
     response.setStatus(HttpServletResponse.SC_OK);
@@ -1720,6 +1761,11 @@ public class Ingress extends AbstractHandler implements Runnable {
             Metadata metadata = shufflediterator.next();
             
             if (!dryrun) {
+              if (null != this.plugin) {
+                if (!this.plugin.delete(this, writeToken, metadata)) {
+                  continue;
+                }
+              }
               pushDeleteMessage(start, end, minage, metadata);
               
               if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
@@ -1757,7 +1803,7 @@ public class Ingress extends AbstractHandler implements Runnable {
             throw error.get();
           }
         } finally {
-          try { shufflediterator.close(); } catch (Exception e) {}
+          try { shufflediterator.close(); } catch (Exception e) {}          
         }
       } else {
         
@@ -1770,6 +1816,12 @@ public class Ingress extends AbstractHandler implements Runnable {
             Metadata metadata = iterator.next();
             
             if (!dryrun) {
+              if (null != this.plugin) {
+                if (!this.plugin.delete(this, writeToken, metadata)) {
+                  continue;
+                }
+              }
+
               pushDeleteMessage(start, end, minage, metadata);
               
               if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
@@ -1831,7 +1883,10 @@ public class Ingress extends AbstractHandler implements Runnable {
         pushDeleteMessage(0L,0L,0L,null);
         if (completeDeletion) {
           pushMetadataMessage(null, null);
-        }        
+        }
+        if (null != this.plugin) {
+          this.plugin.flush(this);
+        }
       }
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_DELETE_REQUESTS, sensisionLabels, 1);
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_DELETE_GTS, sensisionLabels, gts);
@@ -1845,7 +1900,7 @@ public class Ingress extends AbstractHandler implements Runnable {
    * 
    * @param props Properties from which to extract the key specs
    */
-  private void extractKeys(KeyStore keystore, Properties props) {
+  private static void extractKeys(KeyStore keystore, Properties props) {
     String keyspec = props.getProperty(Configuration.INGRESS_KAFKA_META_MAC);
     
     if (null != keyspec) {
@@ -1881,12 +1936,12 @@ public class Ingress extends AbstractHandler implements Runnable {
     keyspec = props.getProperty(Configuration.DIRECTORY_PSK);
     
     if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
+      byte[] key = keystore.decodeKey(keyspec);
       Preconditions.checkArgument(16 == key.length, "Key " + Configuration.DIRECTORY_PSK + " MUST be 128 bits long.");
-      this.keystore.setKey(KeyStore.SIPHASH_DIRECTORY_PSK, key);
+      keystore.setKey(KeyStore.SIPHASH_DIRECTORY_PSK, key);
     }    
     
-    this.keystore.forget();
+    keystore.forget();
   }
   
   void pushMetadataMessage(Metadata metadata) throws IOException {

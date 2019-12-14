@@ -27,6 +27,10 @@ UUID 'owner' STORE # Generate a new UUID for owner and producer
   'owner' $owner
   'application' $application
   'ttl' $ttl
+  
+  'applications' [ $application ]
+  'owners' [ $owner ]
+  'producers' [ $owner ]
 }
 {{secret}}
 TOKENGEN
@@ -70,7 +74,9 @@ DUP
       $owner
     ]
     "producer" $owner
-    "producers" []
+    "producers" [
+      $owner
+    ]
   }
   "write" {
     "token" $writeToken

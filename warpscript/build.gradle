@@ -69,6 +69,7 @@ jar {
     include 'io/warp10/continuum/geo/GeoDirectoryThriftClient.class'
     include 'io/warp10/continuum/geo/GeoDirectoryThriftClient$*'
     include 'io/warp10/continuum/store/StoreClient.class'
+    include 'io/warp10/standalone/StandalonePlasmaHandlerInterface.class'
     include 'io/warp10/hadoop/**'
 
     from project(":token").sourceSets.main.output

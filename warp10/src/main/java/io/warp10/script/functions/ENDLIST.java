@@ -25,6 +25,8 @@ public class ENDLIST extends NamedWarpScriptFunction implements WarpScriptStackF
   
   private static final COUNTTOMARK ctm = new COUNTTOMARK("");
   private static final TOLIST tl = new TOLIST("");
+
+  protected String nameOfCollection = "list";
   
   public ENDLIST(String name) {
     super(name);
@@ -32,7 +34,11 @@ public class ENDLIST extends NamedWarpScriptFunction implements WarpScriptStackF
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    ctm.apply(stack);
+    try {
+      ctm.apply(stack);
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException("Cannot find a matching start of " + nameOfCollection + ".", wse);
+    }
     tl.apply(stack);
     stack.swap();
     stack.drop();

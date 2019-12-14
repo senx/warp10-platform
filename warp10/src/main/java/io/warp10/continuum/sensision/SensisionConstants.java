@@ -206,36 +206,6 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPERS_DATAPOINTS_PERAPP = "warp.sfetch.wrappers.datapoints.perapp";
 
   /**
-   * Number of value bytes read by the calls to fetch from archive
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_VALUES = "warp.afetch.bytes.values";
-
-  /**
-   * Number of value bytes read by the calls to fetch from archive per owner
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_VALUES_PEROWNER = "warp.afetch.bytes.values.perowner";
-
-  /**
-   * Number of key bytes read by the calls to fetch from archive
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_KEYS = "warp.afetch.bytes.keys";
-
-  /**
-   * Number of key bytes read by the calls to fetch from archive per owner
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_AFETCH_BYTES_KEYS_PEROWNER = "warp.afetch.bytes.keys.perowner";
-
-  /**
-   * Number of datapoints read by 'fetch' from archive
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_AFETCH_DATAPOINTS = "warp.afetch.datapoints";
-
-  /**
-   * Number of datapoints read by 'fetch' from archive per owner
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_AFETCH_DATAPOINTS_PEROWNER = "warp.afetch.datapoints.perowner";
-
-  /**
    * Number of messages sent on the throttling topic
    */
   public static final String CLASS_WARP_INGRESS_KAFKA_THROTTLING_OUT_MESSAGES = "warp.ingress.kafka.throttling.out.messages";
