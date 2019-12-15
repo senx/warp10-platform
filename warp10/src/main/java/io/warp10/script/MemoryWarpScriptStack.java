@@ -616,10 +616,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             }
             multiline.append(stmt);
             continue;
-          } else if (stmt.endsWith(WarpScriptStack.COMMENT_END)) {
-            if (!inComment.get()) {
-              throw new WarpScriptException("Not inside a comment.");
-            }
+          } else if (stmt.endsWith(WarpScriptStack.COMMENT_END) && inComment.get()) {
             inComment.set(false);
             continue;
           } else if (inComment.get()) {
