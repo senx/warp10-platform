@@ -54,11 +54,13 @@ import org.apache.hadoop.util.Progressable;
 public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
   private static final Properties DEFAULT_PROPERTIES;
-  
+
   static {
     DEFAULT_PROPERTIES = WarpConfig.getProperties();
   }
-  
+
+  private final boolean allowCStyleBlockComments;
+
   private AtomicLong[] counters;
 
   private final Object[] registers;
@@ -233,7 +235,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     this.properties = properties;
 
     int nregs = Integer.parseInt(null == this.properties ? String.valueOf(WarpScriptStack.DEFAULT_REGISTERS) : this.properties.getProperty(Configuration.CONFIG_WARPSCRIPT_REGISTERS, String.valueOf(WarpScriptStack.DEFAULT_REGISTERS)));
-
+    allowCStyleBlockComments = Boolean.parseBoolean(properties.getProperty(Configuration.WARPSCRIPT_ALLOW_C_BLOCK_COMMENTS,"false"));
     this.registers = new Object[nregs];
   }
   
@@ -616,12 +618,21 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             }
             multiline.append(stmt);
             continue;
-          } else if (stmt.endsWith(WarpScriptStack.COMMENT_END) && inComment.get()) {
+          } else if (!allowCStyleBlockComments && WarpScriptStack.COMMENT_END.equals(stmt)) {
+            if (!inComment.get()) {
+              throw new WarpScriptException("Not inside a comment.");
+            }
+            inComment.set(false);
+            continue;
+          } else if (allowCStyleBlockComments && inComment.get() && stmt.endsWith(WarpScriptStack.COMMENT_END)){
             inComment.set(false);
             continue;
           } else if (inComment.get()) {
             continue;
-          } else if (stmt.startsWith(WarpScriptStack.COMMENT_START)) {
+          } else if (!allowCStyleBlockComments && WarpScriptStack.COMMENT_START.equals(stmt)) {
+            inComment.set(true);
+            continue;
+          } else if (allowCStyleBlockComments && stmt.startsWith(WarpScriptStack.COMMENT_START)) {
             inComment.set(true);
             continue;
           } else if (WarpScriptStack.MULTILINE_START.equals(stmt)) {
