@@ -52,8 +52,17 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
-    Object macro = stack.pop(); // RUN-macro
+
+    Object top = stack.pop();
+
+    boolean pushIndex = false;
+    if (top instanceof Boolean) {
+      pushIndex = (Boolean) top;
+      top = stack.pop();
+    }
+
+    Object macro = top;// RUN-macro
+
     Object obj = stack.pop(); // LIST or MAP
     
     if (!(macro instanceof Macro)) {
@@ -65,8 +74,11 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
     }
     
     if (obj instanceof List) {
-      for (Object o: ((List<Object>) obj)) {
-        stack.push(o);
+      for (int i = 0; i < ((List) obj).size(); i++) {
+        stack.push(((List) obj).get(i));
+        if (pushIndex) {
+          stack.push(i);
+        }
         //
         // Execute RUN-macro
         //        
