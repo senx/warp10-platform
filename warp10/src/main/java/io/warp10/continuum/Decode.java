@@ -23,8 +23,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
-
-import com.google.common.base.Charsets;
+import java.nio.charset.StandardCharsets;
 
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -72,7 +71,7 @@ public class Decode {
         if (value instanceof byte[]) {
           bytes = (byte[]) value;
         } else {
-          bytes = OrderPreservingBase64.decode(value.toString().getBytes(Charsets.UTF_8));
+          bytes = OrderPreservingBase64.decode(value.toString().getBytes(StandardCharsets.UTF_8));
         }
         decoder = new GTSDecoder(ts, ByteBuffer.wrap(bytes));
         decoder.setMetadata(encoder.getMetadata());

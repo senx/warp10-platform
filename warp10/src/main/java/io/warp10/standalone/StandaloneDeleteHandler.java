@@ -16,6 +16,7 @@
 
 package io.warp10.standalone;
 
+import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
@@ -40,6 +41,7 @@ import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
+import io.warp10.warp.sdk.IngressPlugin;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -48,6 +50,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.ParseException;
@@ -77,8 +80,6 @@ import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Charsets;
 
 public class StandaloneDeleteHandler extends AbstractHandler {
   
@@ -115,6 +116,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
 
   private final boolean disabled;
   
+  private IngressPlugin plugin = null;
+  
   public StandaloneDeleteHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
     this.keyStore = keystore;
     this.storeClient = storeClient;
@@ -143,7 +146,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       if (null == id) {
         throw new RuntimeException("Property '" + Configuration.DATALOG_ID + "' MUST be set to a unique value for this instance.");
       } else {
-        datalogId = new String(OrderPreservingBase64.encode(id.getBytes(Charsets.UTF_8)), Charsets.US_ASCII);
+        datalogId = new String(OrderPreservingBase64.encode(id.getBytes(StandardCharsets.UTF_8)), StandardCharsets.US_ASCII);
       }
     } else {
       loggingDir = null;
@@ -199,7 +202,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     boolean forwarded = false;
     
     if (null != datalogHeader) {
-      byte[] bytes = OrderPreservingBase64.decode(datalogHeader.getBytes(Charsets.US_ASCII));
+      byte[] bytes = OrderPreservingBase64.decode(datalogHeader.getBytes(StandardCharsets.US_ASCII));
       
       if (null != datalogPSK) {
         bytes = CryptoUtils.unwrap(datalogPSK, bytes);
@@ -216,12 +219,12 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         dr = new DatalogRequest();
         deser.deserialize(dr, bytes);
       } catch (TException te) {
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, te.getMessage());
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ThrowableUtils.getErrorMessage(te, Constants.MAX_HTTP_REASON_LENGTH));
         return;
       }
     
       Map<String,String> labels = new HashMap<String,String>();
-      labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+      labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
       labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
       Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_RECEIVED, labels, 1);
 
@@ -257,7 +260,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       }
     } catch (WarpScriptException ee) {
       ee.printStackTrace();
-      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ee.getMessage());
+      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ThrowableUtils.getErrorMessage(ee, Constants.MAX_HTTP_REASON_LENGTH));
       return;
     }
     
@@ -353,7 +356,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         try {
           encoded = ser.serialize(dr);
         } catch (TException te) {
-          response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, te.getMessage());
+          response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ThrowableUtils.getErrorMessage(te, Constants.MAX_HTTP_REASON_LENGTH));
           return;
         }
         
@@ -367,14 +370,14 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         
         FileOutputStream fos = new FileOutputStream(loggingFile);
         loggingFD = fos.getFD();
-        OutputStreamWriter osw = new OutputStreamWriter(fos, Charsets.UTF_8);
+        OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
         loggingWriter = new PrintWriter(osw);
         
         //
         // Write request
         //
         
-        loggingWriter.println(new String(encoded, Charsets.US_ASCII));        
+        loggingWriter.println(new String(encoded, StandardCharsets.US_ASCII));
       }
     }
 
@@ -476,7 +479,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         return;
       }
       
-      String classSelector = URLDecoder.decode(m.group(1), "UTF-8");
+      String classSelector = URLDecoder.decode(m.group(1), StandardCharsets.UTF_8.name());
       String labelsSelection = m.group(2);
       
       Map<String,String> labelsSelectors;
@@ -484,7 +487,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       try {
         labelsSelectors = GTSHelper.parseLabelsSelectors(labelsSelection);
       } catch (ParseException pe) {
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, pe.getMessage());
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ThrowableUtils.getErrorMessage(pe, Constants.MAX_HTTP_REASON_LENGTH));
         return;
       }
       
@@ -529,6 +532,11 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         long localCount = 0;
         
         if (!dryrun) {
+          if (null != this.plugin) {
+            if (!this.plugin.delete(this, writeToken, metadata)) {
+              continue;
+            }
+          }
           localCount = this.storeClient.delete(writeToken, metadata, start, end);
         }
 
@@ -574,19 +582,20 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, metadata.getLabels().get(Constants.APPLICATION_LABEL));
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_DATAPOINTS_PEROWNERAPP, labels, localCount);
       }
-    } catch (Exception e) {
-      t = e;
+    } catch (Throwable thr) {
+      t = thr;
       // If we have not yet written anything on the output stream, call sendError
-      if (0 == gts) {
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
-        return;
+      if (0 == gts && !response.isCommitted()) {
+        String prefix = "Error when deleting data: ";
+        String msg = prefix + ThrowableUtils.getErrorMessage(thr, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
       } else {
-        throw new IOException(e);
+        throw new IOException(thr);
       }
     } finally {
       if (null != loggingWriter) {
         Map<String,String> labels = new HashMap<String,String>();
-        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(Charsets.US_ASCII)), Charsets.UTF_8));
+        labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
         labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
         Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
 
@@ -629,8 +638,16 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       }
       
       LOG.info(LogUtil.serializeLoggingEvent(this.keyStore, event));
+      
+      if (null != this.plugin) {
+        this.plugin.flush(this);
+      }
     }
 
     response.setStatus(HttpServletResponse.SC_OK);
-  }  
+  } 
+  
+  public void setPlugin(IngressPlugin plugin) {
+    this.plugin = plugin;
+  }
 }

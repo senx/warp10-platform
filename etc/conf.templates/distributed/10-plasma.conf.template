@@ -82,6 +82,11 @@ plasma.frontend.host = 127.0.0.1
 plasma.frontend.port = 8884
 
 //
+// TCP Backlog applied to the ingress server listener
+//
+#plasma.frontend.tcp.backlog =
+
+//
 // Number of acceptors
 //
 plasma.frontend.acceptors = 2

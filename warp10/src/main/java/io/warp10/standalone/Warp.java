@@ -110,7 +110,9 @@ public class Warp extends WarpDist implements Runnable {
   }
   
   public static void main(String[] args) throws Exception {
-    
+    // Indicate standalone mode is on
+    standaloneMode = true;
+
     System.setProperty("java.awt.headless", "true");
     
     System.out.println();
@@ -295,10 +297,12 @@ public class Warp extends WarpDist implements Runnable {
       int selectors = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_SELECTORS, DEFAULT_HTTP_SELECTORS));
       port = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_PORT));
       host = properties.getProperty(Configuration.STANDALONE_HOST, "0.0.0.0");
+      int tcpBacklog = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_TCP_BACKLOG, "0"));
       
       httpConnector = new ServerConnector(server, acceptors, selectors);
       
       httpConnector.setPort(port);
+      httpConnector.setAcceptQueueSize(tcpBacklog);
       
       if (null != host) {
         httpConnector.setHost(host);
@@ -449,7 +453,8 @@ public class Warp extends WarpDist implements Runnable {
     
     if (!analyticsEngineOnly) {
       gzip = new GzipHandler();
-      gzip.setHandler(new StandaloneIngressHandler(keystore, sdc, scc));
+      StandaloneIngressHandler sih = new StandaloneIngressHandler(keystore, sdc, scc); 
+      gzip.setHandler(sih);
       gzip.setMinGzipSize(0);
       gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
@@ -469,7 +474,9 @@ public class Warp extends WarpDist implements Runnable {
       }
 
       gzip = new GzipHandler();
-      gzip.setHandler(new StandaloneDeleteHandler(keystore, sdc, scc));
+      StandaloneDeleteHandler sdh = new StandaloneDeleteHandler(keystore, sdc, scc);
+      sdh.setPlugin(sih.getPlugin());
+      gzip.setHandler(sdh);
       gzip.setMinGzipSize(0);
       gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
@@ -482,6 +489,7 @@ public class Warp extends WarpDist implements Runnable {
       
       if (enableStreamUpdate) {
         StandaloneStreamUpdateHandler streamUpdateHandler = new StandaloneStreamUpdateHandler(keystore, properties, sdc, scc);
+        streamUpdateHandler.setPlugin(sih.getPlugin());
         handlers.addHandler(streamUpdateHandler);
       }
       
@@ -532,9 +540,6 @@ public class Warp extends WarpDist implements Runnable {
     if (null != httpConnector) {
       port = httpConnector.getLocalPort();
     }
-
-    // Indicate standalone mode is on
-    standaloneMode = true;
 
     WarpDist.setInitialized(true);
     

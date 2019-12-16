@@ -35,7 +35,41 @@ public class Pblend extends NamedWarpScriptFunction implements WarpScriptStackFu
   public Pblend(String name) {
     super(name);
   }
-  
+
+  private int getBlendMode(String mode) throws WarpScriptException {
+    if ("BLEND".equals(mode)) {
+      return(PGraphics.BLEND);
+    } else if ("ADD".equals(mode)) {
+      return(PGraphics.ADD);
+    } else if ("SUBTRACT".equals(mode)) {
+      return(PGraphics.SUBTRACT);
+    } else if ("DARKEST".equals(mode)) {
+      return(PGraphics.DARKEST);
+    } else if ("LIGHTEST".equals(mode)) {
+      return(PGraphics.LIGHTEST);
+    } else if ("DIFFERENCE".equals(mode)) {
+      return(PGraphics.DIFFERENCE);
+    } else if ("EXCLUSION".equals(mode)) {
+      return(PGraphics.EXCLUSION);
+    } else if ("MULTIPLY".equals(mode)) {
+      return(PGraphics.MULTIPLY);
+    } else if ("SCREEN".equals(mode)) {
+      return(PGraphics.SCREEN);
+    } else if ("OVERLAY".equals(mode)) {
+      return(PGraphics.OVERLAY);
+    } else if ("HARD_LIGHT".equals(mode)) {
+      return(PGraphics.HARD_LIGHT);
+    } else if ("SOFT_LIGHT".equals(mode)) {
+      return(PGraphics.SOFT_LIGHT);
+    } else if ("DODGE".equals(mode)) {
+      return(PGraphics.DODGE);
+    } else if ("BURN".equals(mode)) {
+      return(PGraphics.BURN);
+    } else {
+      throw new WarpScriptException(getName() + ": invalid mode, should be 'BLEND', 'ADD', 'SUBTRACT', 'DARKEST', 'LIGHTEST', 'DIFFERENCE', 'EXCLUSION', 'MULTIPLY', 'SCREEN', 'OVERLAY', 'HARD_LIGHT', 'SOFT_LIGHT', 'DODGE' or 'BURN'.");
+    }
+  }
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
@@ -53,7 +87,7 @@ public class Pblend extends NamedWarpScriptFunction implements WarpScriptStackFu
         ((Number) params.get(6)).intValue(),
         ((Number) params.get(7)).intValue(),
         ((Number) params.get(8)).intValue(),
-        ((Number) params.get(9)).intValue()
+        getBlendMode((String) params.get(9))
       );
     } else if (11 == params.size()) {
       pg.blend(        
@@ -66,8 +100,8 @@ public class Pblend extends NamedWarpScriptFunction implements WarpScriptStackFu
         ((Number) params.get(7)).intValue(),
         ((Number) params.get(8)).intValue(),
         ((Number) params.get(9)).intValue(),
-        ((Number) params.get(10)).intValue()
-      );          
+        getBlendMode((String) params.get(10))
+      );
     }
     
     stack.push(pg);

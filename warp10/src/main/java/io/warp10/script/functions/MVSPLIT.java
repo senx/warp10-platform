@@ -17,6 +17,7 @@
 package io.warp10.script.functions;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,8 +30,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
-
-import com.google.common.base.Charsets;
 
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -57,10 +56,10 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
     
     Object top = stack.pop();
     
-    Map<Long,String> renamingMap = new HashMap<Long,String>();
+    Map<Object,Object> renamingMap = new HashMap<Object,Object>();
     
     if (top instanceof Map) {
-      renamingMap = (Map<Long,String>) top;
+      renamingMap = (Map<Object,Object>) top;
       top = stack.pop();
     }
     
@@ -180,7 +179,7 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
               }
             } else if (value instanceof String) {
               try {
-                byte[] bytes = value.toString().getBytes(Charsets.ISO_8859_1);
+                byte[] bytes = value.toString().getBytes(StandardCharsets.ISO_8859_1);
                 wrapper.clear();
                 deser.deserialize(wrapper, bytes);
                 value = wrapper;
@@ -196,7 +195,7 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
             // Check if a STRING is a wrapper
             if (value instanceof String) {
               try {
-                byte[] bytes = value.toString().getBytes(Charsets.ISO_8859_1);
+                byte[] bytes = value.toString().getBytes(StandardCharsets.ISO_8859_1);
                 wrapper.clear();
                 deser.deserialize(wrapper, bytes);
                 value = wrapper;
@@ -273,13 +272,18 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
       // Now rename the encoders
       GeoTimeSerie g = new GeoTimeSerie();
       for (Entry<Long,GTSEncoder> entry: encoders.entrySet()) {
-        String name = renamingMap.get(entry.getKey());
+        Object name = renamingMap.get(entry.getKey());
+        
+        // If there was no name with the Long as the key, try with the String representation
+        if (null == name) {
+          name = renamingMap.get(entry.getKey().toString());
+        }
         
         if (null == name) {
           entry.getValue().setName(entry.getValue().getName() + ":" + entry.getKey());
         } else {
           g.safeSetMetadata(entry.getValue().getMetadata());
-          GTSHelper.rename(g, name);
+          GTSHelper.rename(g, name.toString());
         }
       }
       

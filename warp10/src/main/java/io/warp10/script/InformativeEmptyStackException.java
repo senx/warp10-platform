@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,11 +14,14 @@
 //   limitations under the License.
 //
 
-package io.warp10.continuum.store;
+package io.warp10.script;
 
-import io.warp10.continuum.gts.GeoTimeSerie;
+import java.util.EmptyStackException;
 
-import java.util.Iterator;
+public class InformativeEmptyStackException extends EmptyStackException {
 
-public abstract class GTSIterator implements Iterator<GeoTimeSerie>, AutoCloseable {
+  @Override
+  public String getMessage() {
+    return "Empty stack.";
+  }
 }

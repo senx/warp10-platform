@@ -18,9 +18,11 @@ package io.warp10.standalone;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
@@ -37,17 +39,30 @@ import org.iq80.leveldb.Snapshot;
 import org.iq80.leveldb.WriteBatch;
 import org.iq80.leveldb.WriteOptions;
 import org.iq80.leveldb.impl.Iq80DBFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.warp10.script.WarpScriptException;
 
 public class WarpDB extends Thread implements DB {
   
+  private static final Logger LOG = LoggerFactory.getLogger(WarpDB.class);
+  
   private DB db;
 
   private AtomicInteger pendingOps = new AtomicInteger(0);
   private AtomicBoolean compactionsSuspended = new AtomicBoolean(false);
+
+  private static final class WarpDBReentrantLock extends ReentrantLock {
+    public Thread getOwner() {
+      return super.getOwner();
+    }    
+    public Collection<Thread> getQueuedThreads() {
+      return super.getQueuedThreads();
+    }
+  }
   
-  private ReentrantLock mutex = new ReentrantLock();
+  private WarpDBReentrantLock mutex = new WarpDBReentrantLock();
   
   private final boolean nativedisabled;
   private final boolean javadisabled;
@@ -309,6 +324,9 @@ public class WarpDB extends Thread implements DB {
   
   @Override
   public DBIterator iterator(ReadOptions options) {
+    if (null == options) {
+      return iterator();
+    }
     if (null != options.snapshot()) {
       throw new RuntimeException("Snapshots are unsupported.");
     }
@@ -322,7 +340,7 @@ public class WarpDB extends Thread implements DB {
         mutex.unlock();
       }
     }    
-    return new WarpIterator(pendingOps, this.db.iterator(options));
+    return new WarpIterator(pendingOps, this.db.iterator(options));    
   }
   
   @Override
@@ -439,6 +457,7 @@ public class WarpDB extends Thread implements DB {
         
         return result;
       } catch (Throwable t) {
+        LOG.error("Exception when attempting offline operation, DB will NOT be reopen.", t);
         throw new RuntimeException("Exception when attempting offline operation, DB will NOT be reopen.", t);
       }
     } catch (InterruptedException ie) {
@@ -459,7 +478,25 @@ public class WarpDB extends Thread implements DB {
     while(true) {
       WarpDBCommand command = null;
       try {
-         command = this.commandQ.take();
+         command = this.commandQ.poll(10L, TimeUnit.SECONDS);
+         
+         // Check if the mutex is held by a dead thread
+         // This is bad but could potentially happen if a thread is killed
+         // while in a try block in one of the methods of WarpDB, the finally
+         // clause would then not be executed and the mutex not released
+         // TODO(hbs): think about possible mitigation of this case. One possible strategy:
+         //              Allocate a new mutex
+         //              Iterate over the threads waiting on the previous mutex, interrupting them all
+         //              until there are no more waiters?
+                  
+         Thread owner = mutex.getOwner();
+         if (null != owner && !owner.isAlive()) {
+           LOG.warn("WarpDB mutex holder is no longer alive, " + mutex.getHoldCount() + " holds, " + mutex.getQueueLength() + " threads waiting WarpDB.");
+         }
+         
+         if (null == command) {
+           continue;
+         }         
       } catch (InterruptedException ie) {
         continue;
       }
@@ -480,6 +517,9 @@ public class WarpDB extends Thread implements DB {
           } finally {
             // Unlock only if we are holding the lock more than once or we failed to close the DB
             if (mutex.isHeldByCurrentThread() && (mutex.getHoldCount() > 1 || null != this.db || null != error)) {
+              // We end up holding the lock more than once when we processed multiple CLOSE
+              // commands, in this case the unlock below will decrement the hold count and
+              // make it fall back to 1
               mutex.unlock();
             }
           }
@@ -492,7 +532,8 @@ public class WarpDB extends Thread implements DB {
             try {            
               this.open(this.nativedisabled, javadisabled, home, options);
               ok = true;
-            } catch (IOException ioe) {              
+            } catch (Throwable t) {
+              LOG.error("Error while processing OPEN command, WarpDB will not be re-open automatically.", t);
             } finally {
               if (ok) {
                 mutex.unlock();

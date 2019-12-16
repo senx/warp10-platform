@@ -16,18 +16,17 @@
 
 package io.warp10.continuum.egress;
 
+import io.warp10.ThrowableUtils;
 import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.LogUtil;
 import io.warp10.continuum.TimeSource;
-import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.KeyStore;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
@@ -39,15 +38,12 @@ import io.warp10.script.WarpScriptStack.StackContext;
 import io.warp10.sensision.Sensision;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.net.URL;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.EmptyStackException;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
@@ -67,9 +63,6 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.inject.Singleton;
-
-@Singleton
 public class EgressExecHandler extends AbstractHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(EgressExecHandler.class);
@@ -207,8 +200,8 @@ public class EgressExecHandler extends AbstractHandler {
         for (String token: tokens) {
           String[] subtokens = token.split("=");
           
-          subtokens[0] = URLDecoder.decode(subtokens[0], "UTF-8");
-          subtokens[1] = URLDecoder.decode(subtokens[1], "UTF-8");        
+          subtokens[0] = URLDecoder.decode(subtokens[0], StandardCharsets.UTF_8.name());
+          subtokens[1] = URLDecoder.decode(subtokens[1], StandardCharsets.UTF_8.name());
           
           //
           // Execute values[0] so we can interpret it prior to storing it in the symbol table
@@ -317,7 +310,7 @@ public class EgressExecHandler extends AbstractHandler {
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_FETCHEDX), stack.getAttribute(WarpScriptStack.ATTRIBUTE_FETCH_COUNT).toString());
       
       //resp.setContentType("application/json");
-      //resp.setCharacterEncoding("UTF-8");
+      //resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
       
       //
       // Output the exported symbols in a map
@@ -342,10 +335,6 @@ public class EgressExecHandler extends AbstractHandler {
     } catch (Throwable e) {
       t = e;      
 
-      if (t instanceof EmptyStackException) {
-        t = new WarpScriptException("Empty stack", t);
-      }
-      
       int debugDepth = (int) stack.getAttribute(WarpScriptStack.ATTRIBUTE_DEBUG_DEPTH);
 
       //
@@ -373,9 +362,9 @@ public class EgressExecHandler extends AbstractHandler {
 
       resp.addHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX) + "," + Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX));
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX), Long.toString(lineno));
-      String section = (String) stack.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME);
-      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX), "in section '" + section + "': " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : ""));
-      
+      String headerErrorMsg = ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_HEADER_LENGTH);
+      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX), headerErrorMsg);
+
       //
       // Output the exported symbols in a map
       //
@@ -402,14 +391,18 @@ public class EgressExecHandler extends AbstractHandler {
         try {
           // Set max stack depth to max int value - 1 so we can push our error message
           stack.setAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH, Integer.MAX_VALUE - 1);
-          stack.push("ERROR line #" + lineno + " in section '" + section + "': " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : "")); if (debugDepth < Integer.MAX_VALUE) { debugDepth++; }
+          stack.push("ERROR line #" + lineno + ": " + ThrowableUtils.getErrorMessage(t));
+          if (debugDepth < Integer.MAX_VALUE) {
+            debugDepth++;
+          }
         } catch (WarpScriptException ee) {
         }
 
         try { StackUtils.toJSON(pw, stack, debugDepth); } catch (WarpScriptException ee) {}
 
       } else {
-        String msg = "ERROR line #" + lineno + " in section '" + section + "': " + t.getMessage() + (null != t.getCause() ? " (" + t.getCause().getMessage() + ")" : "");
+        String prefix = "ERROR line #" + lineno + ": ";
+        String msg = prefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
         resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
       }

@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.egress;
 
+import io.warp10.ThrowableUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSHelper;
@@ -36,6 +37,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -54,9 +56,6 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.inject.Singleton;
-
-@Singleton
 public class EgressFindHandler extends AbstractHandler {
   
   private static final Logger LOG = LoggerFactory.getLogger(EgressFindHandler.class);
@@ -267,14 +266,14 @@ public class EgressFindHandler extends AbstractHandler {
           t.printStackTrace(pw2);
           pw2.close();
           sw.flush();
-          String error = URLEncoder.encode(sw.toString(), "UTF-8");
+          String error = URLEncoder.encode(sw.toString(), StandardCharsets.UTF_8.name());
           pw.println(Constants.EGRESS_FIND_ERROR_PREFIX + error);
         }
         throw new IOException(t);
       }      
     } catch (Exception e) {
       if (!resp.isCommitted()) {
-        resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+        resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ThrowableUtils.getErrorMessage(e, Constants.MAX_HTTP_REASON_LENGTH));
         return;
       }
     }

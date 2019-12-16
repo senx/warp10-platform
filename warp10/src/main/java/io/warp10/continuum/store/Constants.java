@@ -19,6 +19,7 @@ package io.warp10.continuum.store;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,8 +27,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-
-import com.google.common.base.Charsets;
 
 public class Constants {
   
@@ -213,6 +212,11 @@ public class Constants {
    */
   public static final String HTTP_HEADER_DATALOG_DEFAULT = "X-Warp10-Datalog";
   
+  /**
+   * Header name for specifying attribute updates are delta
+   */
+  public static final String HTTP_HEADER_ATTRIBUTES_DEFAULT = "X-Warp10-Attributes";
+  
   public static final String DATALOG_UPDATE = "UPDATE";
   public static final String DATALOG_META = "META";
   public static final String DATALOG_DELETE = "DELETE";
@@ -367,7 +371,12 @@ public class Constants {
   public static final String HTTP_PARAM_ACTIVEAFTER = "activeafter";
   public static final String HTTP_PARAM_QUIETAFTER = "quietafter";
   public static final String HTTP_PARAM_LIMIT = "limit";
-  
+  public static final String HTTP_PARAM_COUNT = "count";
+  public static final String HTTP_PARAM_SKIP = "skip";
+  public static final String HTTP_PARAM_SAMPLE = "sample";
+  public static final String HTTP_PARAM_PREBOUNDARY = "boundary.pre";
+  public static final String HTTP_PARAM_POSTBOUNDARY = "boundary.post";
+
   public static final String DEFAULT_PACKED_CLASS_SUFFIX = ":packed";
   public static final int DEFAULT_PACKED_MAXSIZE = 65536;
   
@@ -393,6 +402,50 @@ public class Constants {
   public static final String TOKEN_ATTR_NOUPDATE = ".noupdate";
   public static final String TOKEN_ATTR_NOMETA = ".nometa";
   
+  /**
+   * Attribute to specify the maximum value size
+   */
+  public static final String TOKEN_ATTR_MAXSIZE = ".maxsize";
+
+  /**
+   * Timestamp limits for WRITE tokens (expressed in ms delta from current time)
+   */
+  public static final String TOKEN_ATTR_MAXFUTURE = ".maxfuture";
+  public static final String TOKEN_ATTR_MAXPAST = ".maxpast";
+  public static final String TOKEN_ATTR_IGNOOR = ".ignoor";
+  
+  /**
+   * TTL for the written data (in ms)
+   */
+  public static final String TOKEN_ATTR_TTL = ".ttl";
+  
+  /**
+   * Use the timestamp of the datapoints as the HBase cell timestamp.
+   * Use of this attribute has no effect on a standalone version of Warp 10
+   */
+  public static final String TOKEN_ATTR_DPTS = ".dpts";
+  
+  //
+  // KafkaMessage Store attributes
+  //
+  
+  public static final String STORE_ATTR_TTL = "ttl";
+  public static final String STORE_ATTR_USEDATAPOINTTS = "dpts";
+
+  /**
+   * Limit to the size of errors message returned as the HTTP reason. In Jetty, this is limited to 1024 character.
+   * See https://github.com/eclipse/jetty.project/blob/jetty-9.4.2.v20170220/jetty-http/src/main/java/org/eclipse/jetty/http/HttpGenerator.java#L624-L625
+   */
+  public static  final int MAX_HTTP_REASON_LENGTH = 1024;
+
+  /**
+   * Limit to the size of messages set in HTTP headers. In Jetty, the default limit is 8*1024 for all the headers.
+   * See https://github.com/eclipse/jetty.project/blob/jetty-9.4.2.v20170220/jetty-server/src/main/java/org/eclipse/jetty/server/HttpConfiguration.java#L56
+   * We set this limit to 1/8 of this value, expecting that this is highly unlikely that 8 values of this length will
+   * be added to the headers.
+   */
+  public static  final int MAX_HTTP_HEADER_LENGTH = 1024;
+
   static {
     String tu = WarpConfig.getProperty(Configuration.WARP_TIME_UNITS);
     
@@ -440,6 +493,7 @@ public class Constants {
     HEADERS.put(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE, WarpConfig.getProperty(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE, HTTP_HEADER_DIRECTORY_SIGNATURE_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_EXPOSE_HEADERS, WarpConfig.getProperty(Configuration.HTTP_HEADER_EXPOSE_HEADERS, HTTP_HEADER_EXPOSE_HEADERS_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_DATALOG, WarpConfig.getProperty(Configuration.HTTP_HEADER_DATALOG, HTTP_HEADER_DATALOG_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_ATTRIBUTES, WarpConfig.getProperty(Configuration.HTTP_HEADER_ATTRIBUTES, HTTP_HEADER_ATTRIBUTES_DEFAULT));    
   }
   
   public static String getHeader(String name) {
@@ -465,10 +519,10 @@ public class Constants {
   /**
    * row key prefix for metadata
    */
-  public static final byte[] HBASE_METADATA_KEY_PREFIX = "M".getBytes(Charsets.UTF_8);
+  public static final byte[] HBASE_METADATA_KEY_PREFIX = "M".getBytes(StandardCharsets.UTF_8);
 
   /**
    * Prefix for 'raw' (individual datapoints) data
    */
-  public static final byte[] HBASE_RAW_DATA_KEY_PREFIX = "R".getBytes(Charsets.UTF_8);
+  public static final byte[] HBASE_RAW_DATA_KEY_PREFIX = "R".getBytes(StandardCharsets.UTF_8);
 }

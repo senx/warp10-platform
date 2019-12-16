@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -84,8 +85,6 @@ import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 
 import com.geoxp.GeoXPLib;
-import com.google.common.base.Charsets;
-
 public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements Runnable, StandalonePlasmaHandlerInterface {
   
   private enum OUTPUT_FORMAT {
@@ -202,6 +201,10 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
           return;
         }
         
+        labelsSelector.remove(Constants.PRODUCER_LABEL);
+        labelsSelector.remove(Constants.OWNER_LABEL);
+        labelsSelector.remove(Constants.APPLICATION_LABEL);
+
         labelsSelector.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
         
         List<String> clsSels = new ArrayList<String>();
@@ -602,9 +605,9 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
                 // FIXME(hbs): should we use a specific key?
                 // FIXME(hbs): create chunks so we stay below maxmessagesize
                 byte[] encrypted = CryptoUtils.wrap(this.metadataKey, serialized);
-                sb.append(new String(OrderPreservingBase64.encode(encrypted), Charsets.US_ASCII));
+                sb.append(new String(OrderPreservingBase64.encode(encrypted), StandardCharsets.US_ASCII));
                 sb.append(":");              
-                sb.append(new String(OrderPreservingBase64.encode(encoder.getBytes()), Charsets.US_ASCII));
+                sb.append(new String(OrderPreservingBase64.encode(encoder.getBytes()), StandardCharsets.US_ASCII));
                 
                 entry.getKey().getRemote().sendStringByFuture(sb.toString());                
               } catch (TException te) {
@@ -631,7 +634,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
                 byte[] serialized = tserializer.serialize(wrapper);
 
                 sb.setLength(0);
-                sb.append(new String(OrderPreservingBase64.encode(serialized), Charsets.US_ASCII));
+                sb.append(new String(OrderPreservingBase64.encode(serialized), StandardCharsets.US_ASCII));
                 
                 entry.getKey().getRemote().sendStringByFuture(sb.toString());                
               } catch (TException te) {

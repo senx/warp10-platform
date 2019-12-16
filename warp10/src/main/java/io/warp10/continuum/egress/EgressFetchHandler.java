@@ -16,9 +16,9 @@
 
 package io.warp10.continuum.egress;
 
+import io.warp10.ThrowableUtils;
 import io.warp10.JsonUtils;
 import io.warp10.continuum.Configuration;
-import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -41,6 +41,7 @@ import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.functions.FETCH;
 import io.warp10.sensision.Sensision;
 
 import java.io.BufferedReader;
@@ -54,13 +55,13 @@ import java.io.StringWriter;
 import java.math.BigInteger;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
@@ -79,8 +80,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.lang3.JavaVersion;
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -88,19 +87,12 @@ import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
-import org.joda.time.Duration;
-import org.joda.time.Instant;
-import org.joda.time.MutablePeriod;
-import org.joda.time.Period;
-import org.joda.time.ReadWritablePeriod;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
-import org.joda.time.format.ISOPeriodFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.geoxp.GeoXPLib;
-import com.google.common.base.Charsets;
 import com.google.common.primitives.Longs;
 
 public class EgressFetchHandler extends AbstractHandler {
@@ -177,30 +169,45 @@ public class EgressFetchHandler extends AbstractHandler {
       //
       
       resp.setHeader("Access-Control-Allow-Origin", "*");
-
-      String start = null;
-      String stop = null;
       
       long now = Long.MIN_VALUE;
-      long timespan = 0L;
+      long then = Long.MIN_VALUE;
+      long count = -1;
+      long skip = 0;
+      double sample = 1.0D;
+      int preBoundary = 0;
+      int postBoundary = 0;
 
+      String startParam = null;
+      String stopParam = null;
       String nowParam = null;
+      String endParam = null;
       String timespanParam = null;
       String dedupParam = null;
       String showErrorsParam = null;
-      
+      String countParam = null;
+      String skipParam = null;
+      String sampleParam = null;
+      String preBoundaryParam = null;
+      String postBoundaryParam = null;
+
       if (splitFetch) {
         nowParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_NOW_HEADERX));
         timespanParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TIMESPAN_HEADERX));
         showErrorsParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_SHOW_ERRORS_HEADERX));
       } else {
-        start = req.getParameter(Constants.HTTP_PARAM_START);
-        stop = req.getParameter(Constants.HTTP_PARAM_STOP);
-        
+        startParam = req.getParameter(Constants.HTTP_PARAM_START);
+        stopParam = req.getParameter(Constants.HTTP_PARAM_STOP);
         nowParam = req.getParameter(Constants.HTTP_PARAM_NOW);
+        endParam = req.getParameter(Constants.HTTP_PARAM_END);
         timespanParam = req.getParameter(Constants.HTTP_PARAM_TIMESPAN);
         dedupParam = req.getParameter(Constants.HTTP_PARAM_DEDUP);      
         showErrorsParam = req.getParameter(Constants.HTTP_PARAM_SHOW_ERRORS);
+        countParam = req.getParameter(Constants.HTTP_PARAM_COUNT);
+        skipParam = req.getParameter(Constants.HTTP_PARAM_SKIP);
+        sampleParam = req.getParameter(Constants.HTTP_PARAM_SAMPLE);
+        preBoundaryParam = req.getParameter(Constants.HTTP_PARAM_PREBOUNDARY);
+        postBoundaryParam = req.getParameter(Constants.HTTP_PARAM_POSTBOUNDARY);
       }
           
       String maxDecoderLenParam = req.getParameter(Constants.HTTP_PARAM_MAXSIZE);
@@ -225,69 +232,71 @@ public class EgressFetchHandler extends AbstractHandler {
       
       boolean showErrors = null != showErrorsParam;
       boolean dedup = null != dedupParam && "true".equals(dedupParam);
-      
-      if (null != start && null != stop) {
-        long tsstart;
-        long tsstop;
-        
-        if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-          tsstart = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(start);
-        } else {
-          tsstart = fmt.parseDateTime(start).getMillis() * Constants.TIME_UNITS_PER_MS;
-        }
-        
-        if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-          tsstop = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(stop);
-        } else {
-          tsstop = fmt.parseDateTime(stop).getMillis() * Constants.TIME_UNITS_PER_MS;
-        }
-        
-        if (tsstart < tsstop) {
-          now = tsstop;
-          timespan = tsstop - tsstart;
-        } else {
-          now = tsstart;
-          timespan = tsstart - tsstop;
-        }
-      } else if (null != nowParam && null != timespanParam) {
-        if ("now".equals(nowParam)) {
-          now = TimeSource.getTime();
-        } else {
-          try {
-            now = Long.parseLong(nowParam);
-          } catch (Exception e) {
-            if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-              now = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(nowParam);
-            } else {
-              now = fmt.parseDateTime(nowParam).getMillis() * Constants.TIME_UNITS_PER_MS;
-            }
-          }        
-        }
-        
-        if (timespanParam.trim().startsWith("P")) {
-          ReadWritablePeriod period = new MutablePeriod();
-          
-          ISOPeriodFormat.standard().getParser().parseInto(period, timespanParam, 0, Locale.US);
 
-          Period p = period.toPeriod();
-          
-          if (p.getMonths() != 0 || p.getYears() != 0) {
-            throw new IOException("No support for ambiguous durations containing years or months, please convert those to days.");
-          }
+      //
+      // Handle aliases
+      //
 
-          Duration duration = p.toDurationFrom(new Instant());
-
-          timespan = duration.getMillis() * Constants.TIME_UNITS_PER_MS;    
-        } else {
-          timespan = Long.parseLong(timespanParam);
-        }
-      }
-      
-      if (Long.MIN_VALUE == now) {
-        resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing now/timespan or start/stop parameters.");
+      // negative timespan is count
+      if (null != timespanParam && null != countParam) {
+        resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Cannot specify both '" + Constants.HTTP_PARAM_COUNT + "' and negative '" + Constants.HTTP_PARAM_TIMESPAN + "'.");
         return;
       }
-        
+      try {
+        long numericTimespan = Long.parseLong(timespanParam);
+        if (numericTimespan < 0) {
+          timespanParam = null;
+          countParam = Long.toString(-numericTimespan);
+        }
+      } catch (NumberFormatException nfe) {
+        // do nothing, timespan is not a long, should be a ISO8601 duration
+      }
+
+      // stop, now and end are aliases. Put the defined value in endParam.
+      String endParamName = Constants.HTTP_PARAM_END;
+      if (null != stopParam) {
+        if (null != endParam) {
+          resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Cannot specify both '" + Constants.HTTP_PARAM_END + "' and '" + Constants.HTTP_PARAM_STOP + "'.");
+          return;
+        } else {
+          endParam = stopParam;
+          endParamName = Constants.HTTP_PARAM_STOP;
+        }
+      }
+      if (null != nowParam) {
+        if (null != endParam) {
+          resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Cannot specify both '" + Constants.HTTP_PARAM_END + "' and '" + Constants.HTTP_PARAM_NOW + "'.");
+          return;
+        } else {
+          endParam = nowParam;
+          endParamName = Constants.HTTP_PARAM_NOW;
+        }
+      }
+
+      Long[] timerange = FETCH.computeTimeRange(startParam, Constants.HTTP_PARAM_START, endParam, endParamName, timespanParam, Constants.HTTP_PARAM_TIMESPAN, countParam, Constants.HTTP_PARAM_COUNT);
+      then = timerange[0];
+      now = timerange[1];
+
+      if (null != countParam) {
+        count = Long.parseLong(countParam);
+      }
+      
+      if (null != skipParam) {
+        skip = Long.parseLong(skipParam);        
+      }
+      
+      if (null != sampleParam) {
+        sample = Double.parseDouble(sampleParam);
+      }
+
+      if (null != preBoundaryParam) {
+        preBoundary = Integer.parseInt(preBoundaryParam);
+      }
+
+      if (null != postBoundaryParam) {
+        postBoundary = Integer.parseInt(postBoundaryParam);
+      }
+      
       String selector = splitFetch ? null : req.getParameter(Constants.HTTP_PARAM_SELECTOR);
    
       //
@@ -333,7 +342,7 @@ public class EgressFetchHandler extends AbstractHandler {
           
           String tstoken = Long.toString(sigts) + ":" + token;
           
-          long checkedhash = SipHashInline.hash24(fetchPSK, tstoken.getBytes(Charsets.ISO_8859_1));
+          long checkedhash = SipHashInline.hash24(fetchPSK, tstoken.getBytes(StandardCharsets.ISO_8859_1));
           
           if (checkedhash != sighash) {
             throw new IOException("Corrupted fetch signature");
@@ -399,7 +408,7 @@ public class EgressFetchHandler extends AbstractHandler {
             return;
           }
           
-          String classSelector = URLDecoder.decode(m.group(1), "UTF-8");
+          String classSelector = URLDecoder.decode(m.group(1), StandardCharsets.UTF_8.name());
           String labelsSelection = m.group(2);
           
           Map<String,String> labelsSelectors;
@@ -509,59 +518,59 @@ public class EgressFetchHandler extends AbstractHandler {
             if (!metadatas.isEmpty()) {
               return true;
             }
-            
+
             if (done) {
-              return false;            
+              return false;
             }
-            
+
             String line = null;
-            
+
             try {
               line = fbr.readLine();
             } catch (IOException ioe) {
               throw new RuntimeException(ioe);
             }
-            
+
             if (null == line) {
               done = true;
               return false;
             }
-            
+
             //
             // Decode/Unwrap/Deserialize the split
             //
-            
-            byte[] data = OrderPreservingBase64.decode(line.getBytes(Charsets.US_ASCII));
+
+            byte[] data = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
             if (null != fetchAES) {
               data = CryptoUtils.unwrap(fetchAES, data);
             }
-            
+
             if (null == data) {
               throw new RuntimeException("Invalid wrapped content.");
             }
-            
+
             TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
-            
+
             GTSSplit split = new GTSSplit();
-            
+
             try {
               deserializer.deserialize(split, data);
             } catch (TException te) {
               throw new RuntimeException(te);
             }
-            
+
             //
             // Check the expiry
             //
-            
+
             long instant = System.currentTimeMillis();
-            
+
             if (instant - split.getTimestamp() > maxSplitAge || instant > split.getExpiry()) {
               throw new RuntimeException("Split has expired.");
             }
-                      
+
             this.metadatas.addAll(split.getMetadatas());
-            
+
             // We assume there was at least one metadata instance in the split!!!
             return true;
           }
@@ -665,7 +674,7 @@ public class EgressFetchHandler extends AbstractHandler {
               done = true;
               return false;
             }
-            byte[] raw = OrderPreservingBase64.decode(line.getBytes(Charsets.US_ASCII));
+            byte[] raw = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
             // Apply one time pad
             for (int i = 0; i < raw.length; i++) {
               raw[i] = (byte) (raw[i] ^ onetimepad[padidx++]);
@@ -716,8 +725,6 @@ public class EgressFetchHandler extends AbstractHandler {
       AtomicReference<Metadata> lastMeta = new AtomicReference<Metadata>(null);
       AtomicLong lastCount = new AtomicLong(0L);
       
-      long fetchtimespan = timespan;
-      
       for (Iterator<Metadata> itermeta: iterators) {
         while(itermeta.hasNext()) {
           metas.add(itermeta.next());
@@ -727,34 +734,34 @@ public class EgressFetchHandler extends AbstractHandler {
           //
           
           if (metas.size() > FETCH_BATCHSIZE || !itermeta.hasNext()) {
-            try(GTSDecoderIterator iterrsc = storeClient.fetch(rtoken, metas, now, fetchtimespan, fromArchive, writeTimestamp)) {
+            try(GTSDecoderIterator iterrsc = storeClient.fetch(rtoken, metas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary)) {
               GTSDecoderIterator iter = iterrsc;
                           
               if (unpack) {
                 iter = new UnpackingGTSDecoderIterator(iter, suffix);
-                timespan = Long.MIN_VALUE + 1;
+                count = Long.MAX_VALUE;
               }
               
-              if("text".equals(format)) {
-                textDump(pw, iter, now, timespan, false, dedup, signed, showAttr, lastMeta, lastCount, sortMeta);
+              if ("text".equals(format)) {
+                textDump(pw, iter, now, count, false, dedup, signed, showAttr, lastMeta, lastCount, sortMeta);
               } else if ("fulltext".equals(format)) {
-                textDump(pw, iter, now, timespan, true, dedup, signed, showAttr, lastMeta, lastCount, sortMeta);
+                textDump(pw, iter, now, count, true, dedup, signed, showAttr, lastMeta, lastCount, sortMeta);
               } else if ("raw".equals(format)) {
-                rawDump(pw, iter, dedup, signed, timespan, lastMeta, lastCount, sortMeta);
+                rawDump(pw, iter, dedup, signed, count, lastMeta, lastCount, sortMeta);
               } else if ("wrapper".equals(format)) {
-                wrapperDump(pw, iter, dedup, signed, fetchPSK, timespan, lastMeta, lastCount);
+                wrapperDump(pw, iter, dedup, signed, fetchPSK, count, lastMeta, lastCount);
               } else if ("json".equals(format)) {
-                jsonDump(pw, iter, now, timespan, dedup, signed, lastMeta, lastCount);
+                jsonDump(pw, iter, now, count, dedup, signed, lastMeta, lastCount);
               } else if ("tsv".equals(format)) {
-                tsvDump(pw, iter, now, timespan, false, dedup, signed, lastMeta, lastCount, sortMeta);
+                tsvDump(pw, iter, now, count, false, dedup, signed, lastMeta, lastCount, sortMeta);
               } else if ("fulltsv".equals(format)) {
-                tsvDump(pw, iter, now, timespan, true, dedup, signed, lastMeta, lastCount, sortMeta);
+                tsvDump(pw, iter, now, count, true, dedup, signed, lastMeta, lastCount, sortMeta);
               } else if ("pack".equals(format)) {
-                packedDump(pw, iter, now, timespan, dedup, signed, lastMeta, lastCount, maxDecoderLen, suffix, chunksize, sortMeta);
+                packedDump(pw, iter, now, count, dedup, signed, lastMeta, lastCount, maxDecoderLen, suffix, chunksize, sortMeta);
               } else if ("null".equals(format)) {
                 nullDump(iter);
               } else {
-                textDump(pw, iter, now, timespan, false, dedup, signed, showAttr, lastMeta, lastCount, sortMeta);
+                textDump(pw, iter, now, count, false, dedup, signed, showAttr, lastMeta, lastCount, sortMeta);
               }
             } catch (Throwable t) {
               LOG.error("",t);
@@ -766,7 +773,7 @@ public class EgressFetchHandler extends AbstractHandler {
                 t.printStackTrace(pw2);
                 pw2.close();
                 sw.flush();
-                String error = URLEncoder.encode(sw.toString(), "UTF-8");
+                String error = URLEncoder.encode(sw.toString(), StandardCharsets.UTF_8.name());
                 pw.println(Constants.EGRESS_FETCH_ERROR_PREFIX + error);
               }
               throw new IOException(t);
@@ -798,13 +805,13 @@ public class EgressFetchHandler extends AbstractHandler {
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_REQUESTS, labels, 1);      
     } catch (Exception e) {
       if (!resp.isCommitted()) {
-        resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+        resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ThrowableUtils.getErrorMessage(e, Constants.MAX_HTTP_REASON_LENGTH));
         return;
       }
     }
   }
   
-  private static void rawDump(PrintWriter pw, GTSDecoderIterator iter, boolean dedup, boolean signed, long timespan, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean sortMeta) throws IOException {
+  private static void rawDump(PrintWriter pw, GTSDecoderIterator iter, boolean dedup, boolean signed, long count, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean sortMeta) throws IOException {
     
     String name = null;
     Map<String,String> labels = null;
@@ -827,13 +834,13 @@ public class EgressFetchHandler extends AbstractHandler {
 
       long toDecodeCount = Long.MAX_VALUE;
       
-      if (timespan < 0) {
+      if (count >= 0) {
         Metadata meta = decoder.getMetadata();
         if (!meta.equals(lastMetadata)) {
           lastMetadata = meta;
           currentCount = 0;
         }
-        toDecodeCount = Math.max(0, -timespan - currentCount);
+        toDecodeCount = Math.max(0, count - currentCount);
       }
 
       GTSEncoder encoder = decoder.getEncoder(true);
@@ -893,7 +900,7 @@ public class EgressFetchHandler extends AbstractHandler {
         encoder = enc;
       }
 
-      if (timespan < 0) {
+      if (count >= 0) {
         currentCount += encoder.getCount();
       }
 
@@ -916,7 +923,7 @@ public class EgressFetchHandler extends AbstractHandler {
     lastCount.set(currentCount);
   }
 
-  private static void wrapperDump(PrintWriter pw, GTSDecoderIterator iter, boolean dedup, boolean signed, byte[] fetchPSK, long timespan, AtomicReference<Metadata> lastMeta, AtomicLong lastCount) throws IOException {
+  private static void wrapperDump(PrintWriter pw, GTSDecoderIterator iter, boolean dedup, boolean signed, byte[] fetchPSK, long count, AtomicReference<Metadata> lastMeta, AtomicLong lastCount) throws IOException {
 
     if (!signed) {
       throw new IOException("Unsigned request.");
@@ -943,13 +950,13 @@ public class EgressFetchHandler extends AbstractHandler {
 
       long toDecodeCount = Long.MAX_VALUE;
       
-      if (timespan < 0) {
+      if (count >= 0) {
         Metadata meta = decoder.getMetadata();
         if (!meta.equals(lastMetadata)) {
           lastMetadata = meta;
           currentCount = 0;
         }
-        toDecodeCount = Math.max(0, -timespan - currentCount);
+        toDecodeCount = Math.max(0, count - currentCount);
       }
       
       GTSEncoder encoder = decoder.getEncoder(true);
@@ -965,7 +972,7 @@ public class EgressFetchHandler extends AbstractHandler {
         encoder = enc;
       }
 
-      if (timespan < 0) {
+      if (count >= 0) {
         currentCount += encoder.getCount();
       }
 
@@ -1061,7 +1068,7 @@ public class EgressFetchHandler extends AbstractHandler {
    * Output a text version of fetched data. Deduplication is done on the fly so we don't decode twice.
    * 
    */
-  private static void textDump(PrintWriter pw, GTSDecoderIterator iter, long now, long timespan, boolean raw, boolean dedup, boolean signed, boolean showAttributes, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean sortMeta) throws IOException {
+  private static void textDump(PrintWriter pw, GTSDecoderIterator iter, long now, long count, boolean raw, boolean dedup, boolean signed, boolean showAttributes, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean sortMeta) throws IOException {
     
     String name = null;
     Map<String,String> labels = null;
@@ -1080,13 +1087,13 @@ public class EgressFetchHandler extends AbstractHandler {
 
       long toDecodeCount = Long.MAX_VALUE;
       
-      if (timespan < 0) {
+      if (count >= 0) {
         Metadata meta = decoder.getMetadata();
         if (!meta.equals(lastMetadata)) {
           lastMetadata = meta;
           currentCount = 0;
         }
-        toDecodeCount = Math.max(0, -timespan - currentCount);
+        toDecodeCount = Math.max(0, count - currentCount);
       }
       
       //
@@ -1168,17 +1175,9 @@ public class EgressFetchHandler extends AbstractHandler {
         }
         
         // FIXME(hbs): only display the results which match the authorized (according to token) timerange and geo zones
-  
-        //
-        // Filter out any value not in the time range
-        //
         
         long newTimestamp = decoder.getTimestamp();
-        
-        if (newTimestamp > now || (timespan >= 0 && newTimestamp <= (now -timespan))) {
-          continue;
-        }
-        
+
         //
         // TODO(hbs): filter out values with no location or outside the selected geozone when a geozone was set
         //
@@ -1247,7 +1246,7 @@ public class EgressFetchHandler extends AbstractHandler {
       } while (decoder.next());        
       
       // Update currentcount
-      if (timespan < 0) {
+      if (count >= 0) {
         currentCount += decoded;
       }
       
@@ -1278,7 +1277,7 @@ public class EgressFetchHandler extends AbstractHandler {
     lastCount.set(currentCount);
   }
 
-  static void jsonDump(PrintWriter pw, Iterator<GTSDecoder> iter, long now, long timespan, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount) throws IOException {
+  static void jsonDump(PrintWriter pw, Iterator<GTSDecoder> iter, long now, long count, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount) throws IOException {
     
     String name = null;
     Map<String,String> labels = null;
@@ -1310,13 +1309,13 @@ public class EgressFetchHandler extends AbstractHandler {
             
         long toDecodeCount = Long.MAX_VALUE;
         
-        if (timespan < 0) {
+        if (count >= 0) {
           Metadata meta = decoder.getMetadata();
           if (!meta.equals(lastMetadata)) {
             lastMetadata = meta;
             currentCount = 0;
           }
-          toDecodeCount = Math.max(0, -timespan - currentCount);
+          toDecodeCount = Math.max(0, count - currentCount);
         }
 
         //
@@ -1339,7 +1338,8 @@ public class EgressFetchHandler extends AbstractHandler {
           
           sb.append("{\"c\":");
       
-          sb.append(JsonUtils.ObjectToJson(name, true));
+          //sb.append(gson.toJson(name));
+          sb.append(serializer.serialize(name));
 
           boolean first = true;
           
@@ -1362,9 +1362,11 @@ public class EgressFetchHandler extends AbstractHandler {
               sb.append(",");
             }
             
-            sb.append(JsonUtils.ObjectToJson(entry.getKey(), true));
+            //sb.append(gson.toJson(entry.getKey()));
+            sb.append(serializer.serialize(entry.getKey()));
             sb.append(":");
-            sb.append(JsonUtils.ObjectToJson(entry.getValue(), true));
+            //sb.append(gson.toJson(entry.getValue()));
+            sb.append(serializer.serialize(entry.getValue()));
             first = false;
           }
           sb.append("}");
@@ -1377,9 +1379,11 @@ public class EgressFetchHandler extends AbstractHandler {
               sb.append(",");
             }
             
-            sb.append(JsonUtils.ObjectToJson(entry.getKey(), true));
+            //sb.append(gson.toJson(entry.getKey()));
+            sb.append(serializer.serialize(entry.getKey()));
             sb.append(":");
-            sb.append(JsonUtils.ObjectToJson(entry.getValue(), true));
+            //sb.append(gson.toJson(entry.getValue()));
+            sb.append(serializer.serialize(entry.getValue()));
             first = false;
           }
           
@@ -1401,14 +1405,6 @@ public class EgressFetchHandler extends AbstractHandler {
           }
 
           // FIXME(hbs): only display the results which match the authorized (according to token) timerange and geo zones
-    
-          //
-          // Filter out any value not in the time range
-          //
-          
-          if (decoder.getTimestamp() > now || (timespan >= 0 && decoder.getTimestamp() <= (now -timespan))) {
-            continue;
-          }
           
           decoded++;
           
@@ -1457,7 +1453,7 @@ public class EgressFetchHandler extends AbstractHandler {
           pw.print("]");
         } while (decoder.next());        
         
-        if (timespan < 0) {
+        if (count >= 0) {
           currentCount += decoded;
         }
 
@@ -1488,7 +1484,7 @@ public class EgressFetchHandler extends AbstractHandler {
    * Output a tab separated version of fetched data. Deduplication is done on the fly so we don't decode twice.
    * 
    */
-  private static void tsvDump(PrintWriter pw, GTSDecoderIterator iter, long now, long timespan, boolean raw, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean sortMeta) throws IOException {
+  private static void tsvDump(PrintWriter pw, GTSDecoderIterator iter, long now, long count, boolean raw, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean sortMeta) throws IOException {
     
     String name = null;
     Map<String,String> labels = null;
@@ -1510,13 +1506,13 @@ public class EgressFetchHandler extends AbstractHandler {
     
       long toDecodeCount = Long.MAX_VALUE;
       
-      if (timespan < 0) {
+      if (count >= 0) {
         Metadata meta = decoder.getMetadata();
         if (!meta.equals(lastMetadata)) {
           lastMetadata = meta;
           currentCount = 0;
         }
-        toDecodeCount = Math.max(0, -timespan - currentCount);
+        toDecodeCount = Math.max(0, count - currentCount);
       }
 
       //
@@ -1600,16 +1596,8 @@ public class EgressFetchHandler extends AbstractHandler {
         if (toDecodeCount == decoded) {
           break;
         }
-
-        //
-        // Filter out any value not in the time range
-        //
         
         long newTimestamp = decoder.getTimestamp();
-        
-        if (newTimestamp > now || (timespan >= 0 && newTimestamp <= (now -timespan))) {
-          continue;
-        }
         
         //
         // TODO(hbs): filter out values with no location or outside the selected geozone when a geozone was set
@@ -1730,7 +1718,7 @@ public class EgressFetchHandler extends AbstractHandler {
       } while (decoder.next());        
       
       // Update currentcount
-      if (timespan < 0) {
+      if (count >= 0) {
         currentCount += decoded;
       }
 
@@ -1812,7 +1800,7 @@ public class EgressFetchHandler extends AbstractHandler {
     }
   }
   
-  private void packedDump(PrintWriter pw, GTSDecoderIterator iter, long now, long timespan, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, int maxDecoderLen, String classSuffix, long chunksize, boolean sortMeta) throws IOException {
+  private void packedDump(PrintWriter pw, GTSDecoderIterator iter, long now, long count, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, int maxDecoderLen, String classSuffix, long chunksize, boolean sortMeta) throws IOException {
     
     String name = null;
     Map<String,String> labels = null;
@@ -1837,13 +1825,13 @@ public class EgressFetchHandler extends AbstractHandler {
 
       long toDecodeCount = Long.MAX_VALUE;
       
-      if (timespan < 0) {
+      if (count >= 0) {
         Metadata meta = decoder.getMetadata();
         if (!meta.equals(lastMetadata)) {
           lastMetadata = meta;
           currentCount = 0;
         }
-        toDecodeCount = Math.max(0, -timespan - currentCount);
+        toDecodeCount = Math.max(0, count - currentCount);
       }
 
       GTSEncoder encoder = decoder.getEncoder(true);
@@ -1906,7 +1894,7 @@ public class EgressFetchHandler extends AbstractHandler {
         encoder = enc;
       }
 
-      if (timespan < 0) {
+      if (count >= 0) {
         currentCount += encoder.getCount();
       }
 

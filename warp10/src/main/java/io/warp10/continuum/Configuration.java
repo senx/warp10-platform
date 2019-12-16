@@ -54,6 +54,8 @@ public class Configuration {
   
   public static final String WARP10_QUIET = "warp10.quiet";
   
+  public static final String WARP10_TELEMETRY = "warp10.telemetry";
+  
   /**
    * Comma separated list of headers to return in the Access-Allow-Control-Headers response header to preflight requests.
    */
@@ -440,11 +442,21 @@ public class Configuration {
    * Port on which the DirectoryService will listen
    */
   public static final String DIRECTORY_PORT = "directory.port";
-  
+
+  /**
+   * TCP Backlog applied to the DirectoryService listener
+   */
+  public static final String DIRECTORY_TCP_BACKLOG = "directory.tcp.backlog";
+
   /**
    * Port the streaming directory service listens to
    */
   public static final String DIRECTORY_STREAMING_PORT = "directory.streaming.port";
+
+  /**
+   * TCP Backlog applied to the streaming directory service listener
+   */
+  public static final String DIRECTORY_STREAMING_TCP_BACKLOG = "directory.streaming.tcp.backlog";
 
   /**
    * Should we ignore the proxy settings when doing a streaming request?
@@ -527,6 +539,11 @@ public class Configuration {
   public static final String DIRECTORY_PLUGIN_CLASS = "directory.plugin.class";
   
   /**
+   * Attribute which will contain the source of the Metadata processed by the plugin
+   */
+  public static final String DIRECTORY_PLUGIN_SOURCEATTR = "directory.plugin.sourceattr";
+  
+  /**
    * Boolean indicating whether or not we should use the HBase filter when initializing
    */
   public static final String DIRECTORY_HBASE_FILTER = "directory.hbase.filter";
@@ -545,6 +562,58 @@ public class Configuration {
   // I N G R E S S
   //
   /////////////////////////////////////////////////////////////////////////////////////////
+
+  /**
+   * Class name of ingress plugin to use
+   */
+  public static final String INGRESS_PLUGIN_CLASS = "ingress.plugin.class";
+
+  /**
+   * Default datapoint cell TTL (in ms) to enforce. If this is not set, then the TTL will be that
+   * of the columns family. A value of -1 disables the use of cell TTLs.
+   * This can be overridden by the '.ttl' WriteToken attribute.
+   */
+  public static final String INGRESS_HBASE_CELLTTL = "ingress.hbase.cellttl";
+  
+  /**
+   * Flag indicating whether to use the DataPoint TimeStamp instead of the write timestamp
+   * for the data stored in HBase.
+   * This can be overridden by the '.dpts' WriteToken attribute.
+   */
+  public static final String INGRESS_HBASE_DPTS = "ingress.hbase.dpts";
+  
+  /**
+   * Default maximum age of datapoints pushed to Warp 10, in ms. Any timestamp older than
+   * 'now' - this value will be rejected.
+   * The maxpast value from the token will have precedence over this one
+   */
+  public static final String INGRESS_MAXPAST_DEFAULT = "ingress.maxpast.default";
+  
+  /**
+   * Default maximum timestamp delta in the future for datapoints pushed to Warp 10, in ms.
+   * Any timestamp more than this value past 'now' will be rejected
+   * The maxfuture value from the token will have precedence over this one
+   */
+  public static final String INGRESS_MAXFUTURE_DEFAULT = "ingress.maxfuture.default";
+  
+  /**
+   * Absolute maximum age of datapoints pushed to Warp 10, in ms. Any timestamp older than
+   * 'now' - this value will be rejected.
+   * This value overrides both the default and token value for maxpast. 
+   */
+  public static final String INGRESS_MAXPAST_OVERRIDE = "ingress.maxpast.override";
+  
+  /**
+   * Absolute maximum timestamp delta in the future for datapoints pushed to Warp 10, in ms.
+   * Any timestamp more than this value past 'now' will be rejected
+   * This value overrides both the default and token value for maxfuture
+   */
+  public static final String INGRESS_MAXFUTURE_OVERRIDE = "ingress.maxfuture.override";
+
+  /**
+   * Set to true to silently ignore values which are outside the allowed time range
+   */
+  public static final String INGRESS_OUTOFRANGE_IGNORE = "ingress.outofrange.ignore";
   
   /**
    * Length of the activity window in ms. If this parameter is set then GTS activity will
@@ -566,6 +635,11 @@ public class Configuration {
    * Set to true to parse attributes in the data passed to /update.
    */
   public static final String INGRESS_PARSE_ATTRIBUTES = "ingress.parse.attributes";
+
+  /**
+   * Set to true to allow attributes to be interpreted as a delta update
+   */
+  public static final String INGRESS_ATTRIBUTES_ALLOWDELTA = "ingress.attributes.allowdelta";
   
   /**
    * Should we shuffle the GTS prior to issueing delete messages. Set to true or false.
@@ -606,6 +680,11 @@ public class Configuration {
   public static final String INGRESS_METADATA_UPDATE_ENDPOINT = "ingress.metadata.update";
 
   /**
+   * Identification if Ingress Metadata Update endpoint source when doing a delta update of attributes
+   */
+  public static final String INGRESS_METADATA_UPDATE_DELTA_ENDPOINT = "ingress.metadata.update.delta";
+  
+  /**
    * Do we send Metadata in the Kafka message for delete operations?
    */
   public static final String INGRESS_DELETE_METADATA_INCLUDE = "ingress.delete.metadata.include";
@@ -625,6 +704,11 @@ public class Configuration {
    */
   public static final String INGRESS_PORT = "ingress.port";
   
+  /**
+   * TCP Backlog applied to the ingress server listener
+   */
+  public static final String INGRESS_TCP_BACKLOG = "ingress.tcp.backlog";
+
   /**
    * Size of metadata cache in number of entries
    */
@@ -766,7 +850,9 @@ public class Configuration {
   public static final String INGRESS_KAFKA_DATA_AES = "ingress.kafka.data.aes";
   
   /**
-   * Maximum message size for the 'data' topic
+   * Maximum message size for the 'data' topic, this value should be less than 2/3 the maximum Kafka message size
+   * minus 64 to ensure all parsed data can be sent without error.
+   * The maximum value size will be capped to half this value minus 64
    */
   public static final String INGRESS_KAFKA_DATA_MAXSIZE = "ingress.kafka.data.maxsize";
   
@@ -1059,7 +1145,12 @@ public class Configuration {
    * Port on which to listen
    */
   public static final String PLASMA_FRONTEND_PORT = "plasma.frontend.port";
-  
+
+  /**
+   * TCP Backlog applied to the Plasma listener
+   */
+  public static final String PLASMA_FRONTEND_TCP_BACKLOG = "plasma.frontend.tcp.backlog";
+
   /**
    * Number of acceptors
    */
@@ -1298,6 +1389,13 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
+   * Geo Time Series count above which block caching will be disabled for LevelDB.
+   * The goal is to limit the cache pollution when scanning large chunks of data.
+   * Note that this limit is per fetch call to the backend, which means that in the case of parallel scanners it is for each parallel fetch attempt.
+   */
+  public static final String LEVELDB_BLOCKCACHE_GTS_THRESHOLD = "leveldb.blockcache.gts.threshold";
+
+  /**
    * Rate of synchronous writes for the datapoints (update/deletes).
    * This is a double between 0.0 (all writes asynchronous) and 1.0 (all writes synchronous).
    * The default value is 1.0 (all writes are synchronous)
@@ -1378,6 +1476,11 @@ public class Configuration {
   public static final String STANDALONE_PORT = "standalone.port";
 
   /**
+   * TCP Backlog applied to incoming connections listener.
+   */
+  public static final String STANDALONE_TCP_BACKLOG = "standalone.tcp.backlog";
+
+  /**
    * Number of Jetty acceptors
    */
   public static final String STANDALONE_ACCEPTORS = "standalone.acceptors";
@@ -1416,6 +1519,11 @@ public class Configuration {
    * Path to a file to use for signaling that compactions are suspended
    */
   public static final String STANDALONE_SNAPSHOT_SIGNAL = "standalone.snapshot.signal";
+  
+  /**
+   * Set to 'true' to ignore timestamp limits (maxpast/maxfuture) when receiving data via datalog.
+   */
+  public static final String DATALOG_IGNORE_TIMESTAMPLIMITS = "datalog.ignore.timestamplimits";
   
   /**
    * Directory where data requests should be logged. This directory should be in 700 to protect sensitive token infos.
@@ -1543,7 +1651,17 @@ public class Configuration {
    */
   public static final String DATALOG_FORWARDER_SHARDKEY_SHIFT = "datalog.forwarder.shardkey.shift";
 
-  /*
+  /**
+   * Maximum length of labels (names + values) - Defaults to 2048
+   */
+  public static final String WARP_LABELS_MAXSIZE = "warp.labels.maxsize";
+  
+  /**
+   * Maximum length of attributes (names + values) - Defaults to 8192
+   */
+  public static final String WARP_ATTRIBUTES_MAXSIZE = "warp.attributes.maxsize";
+  
+  /**
    * Set to a message indicating the reason why updates are disabled, they are enabled if this is not set
    */
   public static final String WARP_UPDATE_DISABLED = "warp.update.disabled";
@@ -1675,7 +1793,12 @@ public class Configuration {
    * Port onto which the egress server should listen
    */
   public static final String EGRESS_PORT = "egress.port";
-  
+
+  /**
+   * TCP Backlog applied to the egress server listener
+   */
+  public static final String EGRESS_TCP_BACKLOG = "egress.tcp.backlog";
+
   /**
    * Host onto which the egress server should listen
    */
@@ -1788,6 +1911,7 @@ public class Configuration {
   /**
    * Geo Time Series count threshold above which block caching will be disabled for HBase scanners.
    * The goal is to limit the cache pollution when scanning large chunks of data.
+   * Note that this limit is per fetch call to the backend, which means that in the case of parallel scanners it is for each parallel fetch attempt.
    */
   public static final String EGRESS_HBASE_DATA_BLOCKCACHE_GTS_THRESHOLD = "egress.hbase.data.blockcache.gts.threshold";
   
@@ -2052,6 +2176,11 @@ public class Configuration {
   public static final String HTTP_HEADER_NOW_HEADERX = "http.header.now";
 
   /**
+   * HTTP Header for specifying attribute parsing type
+   */
+  public static final String HTTP_HEADER_ATTRIBUTES = "http.header.attributes";
+  
+  /**
    * HTTP Header for specifying the timespan in /sfetch requests
    */
   public static final String HTTP_HEADER_TIMESPAN_HEADERX = "http.header.timespan";
@@ -2085,6 +2214,11 @@ public class Configuration {
    * SSL Port
    */
   public static final String _SSL_PORT = ".ssl.port";
+
+  /**
+   * SSL TCP Backlog
+   */
+  public static final String _SSL_TCP_BACKLOG = ".ssl.tcp.backlog";
 
   /**
    * SSL Host
@@ -2134,4 +2268,19 @@ public class Configuration {
   public static final String EGRESS_PREFIX = "egress";
   public static final String INGRESS_PREFIX = "ingress";
   public static final String PLASMA_FRONTEND_PREFIX = "plasma.frontend";
+  
+  //
+  // Hadoop Integration Configurations
+  //
+  
+  /**
+   * Set to 'true' to throw an error when a Writable that the WritableUtils cannot convert is encountered.
+   * If this is not set, the unknown Writable will be returned as is.
+   */
+  public static final String CONFIG_WARPSCRIPT_HADOOP_STRICTWRITABLES = "warpscript.hadoop.strictwritables";
+  
+  /**
+   * Set to 'true' to return Writable instances as is in WarpScriptInputFormat
+   */
+  public static final String CONFIG_WARPSCRIPT_HADOOP_RAWWRITABLES = "warpscript.hadoop.rawwritables";  
 }

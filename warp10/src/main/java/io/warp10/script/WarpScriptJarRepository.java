@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
@@ -39,8 +40,6 @@ import java.util.Properties;
 import java.util.concurrent.locks.LockSupport;
 
 import org.bouncycastle.util.encoders.Hex;
-
-import com.google.common.base.Charsets;
 
 /**
  * Class which manages WarpScript functions stored in jar files from a directory
@@ -138,7 +137,7 @@ public class WarpScriptJarRepository extends Thread {
 
             in.close();
             
-            String hash = new String(Hex.encode(md.digest()), Charsets.US_ASCII);
+            String hash = new String(Hex.encode(md.digest()), StandardCharsets.US_ASCII);
 
             if(!newClassLoadersFingerprints.containsValue(hash)) {
               if (classLoadersFingerprints.containsValue(hash)) {

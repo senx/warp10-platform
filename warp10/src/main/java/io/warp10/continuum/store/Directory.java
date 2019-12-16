@@ -16,43 +16,16 @@
 
 package io.warp10.continuum.store;
 
-import io.warp10.SmartPattern;
-import io.warp10.continuum.DirectoryUtil;
-import io.warp10.continuum.JettyUtil;
-import io.warp10.continuum.KafkaOffsetCounters;
-import io.warp10.continuum.LogUtil;
-import io.warp10.continuum.MetadataUtils;
-import io.warp10.continuum.MetadataUtils.MetadataID;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.thrift.data.DirectoryFindRequest;
-import io.warp10.continuum.store.thrift.data.DirectoryFindResponse;
-import io.warp10.continuum.store.thrift.data.DirectoryGetRequest;
-import io.warp10.continuum.store.thrift.data.DirectoryGetResponse;
-import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
-import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.continuum.store.thrift.service.DirectoryService;
-import io.warp10.continuum.thrift.data.LoggingEvent;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.KeyStore;
-import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.crypto.SipHashInline;
-import io.warp10.script.HyperLogLogPlus;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.functions.PARSESELECTOR;
-import io.warp10.sensision.Sensision;
-import io.warp10.warp.sdk.DirectoryPlugin;
-import io.warp10.warp.sdk.DirectoryPlugin.GTS;
-
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
-import java.net.InetSocketAddress;
+import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -84,15 +57,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import kafka.consumer.Consumer;
-import kafka.consumer.ConsumerConfig;
-import kafka.consumer.ConsumerIterator;
-import kafka.consumer.KafkaStream;
-import kafka.javaapi.consumer.ConsumerConnector;
-import kafka.message.MessageAndMetadata;
-
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
@@ -129,10 +94,8 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.MapMaker;
-import com.google.common.primitives.Longs;
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.retry.RetryNTimes;
@@ -141,6 +104,41 @@ import com.netflix.curator.x.discovery.ServiceDiscoveryBuilder;
 import com.netflix.curator.x.discovery.ServiceInstance;
 import com.netflix.curator.x.discovery.ServiceInstanceBuilder;
 import com.netflix.curator.x.discovery.ServiceType;
+
+import io.warp10.SmartPattern;
+import io.warp10.continuum.DirectoryUtil;
+import io.warp10.continuum.JettyUtil;
+import io.warp10.continuum.KafkaOffsetCounters;
+import io.warp10.continuum.LogUtil;
+import io.warp10.continuum.MetadataUtils;
+import io.warp10.continuum.MetadataUtils.MetadataID;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.thrift.data.DirectoryFindRequest;
+import io.warp10.continuum.store.thrift.data.DirectoryFindResponse;
+import io.warp10.continuum.store.thrift.data.DirectoryGetRequest;
+import io.warp10.continuum.store.thrift.data.DirectoryGetResponse;
+import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
+import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.continuum.store.thrift.service.DirectoryService;
+import io.warp10.continuum.thrift.data.LoggingEvent;
+import io.warp10.crypto.CryptoUtils;
+import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.crypto.SipHashInline;
+import io.warp10.script.HyperLogLogPlus;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.functions.PARSESELECTOR;
+import io.warp10.sensision.Sensision;
+import io.warp10.warp.sdk.DirectoryPlugin;
+import io.warp10.warp.sdk.DirectoryPlugin.GTS;
+import kafka.consumer.Consumer;
+import kafka.consumer.ConsumerConfig;
+import kafka.consumer.ConsumerIterator;
+import kafka.consumer.KafkaStream;
+import kafka.javaapi.consumer.ConsumerConnector;
+import kafka.message.MessageAndMetadata;
 
 /**
  * Manages Metadata for a subset of known GTS.
@@ -221,7 +219,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   private final int remainder;
   private String host;
   private int port;
+  private int tcpBacklog;
   private int streamingport;
+  private int streamingTcpBacklog;
   private int streamingselectors;
   private int streamingacceptors;
     
@@ -346,6 +346,16 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   private final boolean register;
   
   /**
+   * Service instance
+   */
+  private ServiceInstance<Map> instance = null;
+  
+  /**
+   * Thread used as shutdown hook for deregistering instance
+   */
+  private Thread deregisterHook = null;
+  
+  /**
    * Should we initialize Directory upon startup by reading from HBase
    */
   private final boolean init;
@@ -375,6 +385,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
    */
   private final DirectoryPlugin plugin;
   
+  private final String sourceAttribute;
+  
   private int METADATA_CACHE_SIZE = 1000000;
   
   /**
@@ -395,7 +407,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     SIPHASH_LABELS_LONGS = SipHashInline.getKey(this.keystore.getKey(KeyStore.SIPHASH_LABELS));
     
     this.properties = (Properties) props.clone();
-        
+  
+    this.sourceAttribute = props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_PLUGIN_SOURCEATTR);
+    
     //
     // Check mandatory parameters
     //
@@ -475,7 +489,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     this.conn = ConnectionFactory.createConnection(conf);
 
     this.hbaseTable = TableName.valueOf(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_TABLE));
-    this.colfam = properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_COLFAM).getBytes(Charsets.UTF_8);
+    this.colfam = properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_COLFAM).getBytes(StandardCharsets.UTF_8);
     
     this.serviceNThreads = Integer.valueOf(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_SERVICE_NTHREADS));
     
@@ -641,11 +655,18 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   long nano = 0;
                   
                   try {
+                    //
+                    // Directory plugins have no provision for delta attribute updates
+                    //
                     GTS gts = new GTS(
                         new UUID(metadata.getClassId(), metadata.getLabelsId()),
                         metadata.getName(),
                         metadata.getLabels(),
                         metadata.getAttributes());
+                    
+                    if (null != sourceAttribute) {
+                      gts.getAttributes().put(sourceAttribute, metadata.getSource());
+                    }
                     
                     nano = System.nanoTime();
                     
@@ -678,6 +699,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 //
                 
                 String owner = metadata.getLabels().get(Constants.OWNER_LABEL);
+
+                String app = metadata.getLabels().get(Constants.APPLICATION_LABEL);
+                Map<String,String> sensisionLabels = new HashMap<String,String>();
+                sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, app);
                 
                 synchronized(classesPerOwner) {
                   Set<String> classes = classesPerOwner.get(owner);
@@ -690,6 +715,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   classes.add(metadata.getName());
                 }
 
+                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, 1);
                 Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_OWNERS, Sensision.EMPTY_LABELS, classesPerOwner.size());
 
                 synchronized(metadatas.get(metadata.getName())) {
@@ -744,7 +770,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               Scan scan = new Scan();
               scan.setStartRow(lastrow);
               // FIXME(hbs): we know the prefix is 'M', so we use 'N' as the stoprow
-              scan.setStopRow("N".getBytes(Charsets.UTF_8));
+              scan.setStopRow("N".getBytes(StandardCharsets.UTF_8));
               scan.addFamily(self.colfam);
               scan.setCaching(10000);
               scan.setBatch(10000);
@@ -846,7 +872,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     
     this.host = properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HOST);
     this.port = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_PORT));
+    this.tcpBacklog = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_TCP_BACKLOG, "0"));
     this.streamingport = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_PORT));
+    this.streamingTcpBacklog = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_TCP_BACKLOG, "0"));
     this.streamingacceptors = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_ACCEPTORS));
     this.streamingselectors = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_SELECTORS));
     
@@ -1034,6 +1062,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     connector.setIdleTimeout(idleTimeout);
     connector.setPort(this.streamingport);
     connector.setHost(host);
+    connector.setAcceptQueueSize(this.streamingTcpBacklog);
     connector.setName("Directory Streaming Service");
     
     server.setConnectors(new Connector[] { connector });
@@ -1061,6 +1090,27 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   public void run() {
     
     //
+    // Add a shutdown hook to unregister Directory
+    //
+    
+    if (this.register) {
+      final Directory self = this;
+      this.deregisterHook = new Thread() {
+        @Override
+        public void run() {
+          try {
+            LOG.info("Unregistering from ZooKeeper.");
+            self.sd.close();
+            LOG.info("Directory successfully unregistered from ZooKeeper.");
+          } catch (Exception e) {
+            LOG.error("Error while unregistering Directory.", e);
+          }
+        }
+      };
+      Runtime.getRuntime().addShutdownHook(deregisterHook);
+    }
+
+    //
     // Wait until cache has been populated
     //
     
@@ -1078,8 +1128,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     Runtime.getRuntime().gc();
     nano = System.nanoTime() - nano;
     LOG.info("GC performed in " + (nano / 1000000.0D) + " ms.");
-    
-    
+        
     this.fullyInitialized.set(true);
     
     Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
@@ -1090,11 +1139,11 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         
     DirectoryService.Processor processor = new DirectoryService.Processor(this);
     
-    ServiceInstance<Map> instance = null;
+    this.instance = null;
 
     try {
-      InetSocketAddress bindAddress = new InetSocketAddress(this.host, this.port);
-      TServerTransport transport = new TServerSocket(bindAddress);
+      InetAddress bindAddress = InetAddress.getByName(this.host);
+      TServerTransport transport = new TServerSocket(new ServerSocket(this.port, this.tcpBacklog, bindAddress));
       TThreadPoolServer.Args args = new TThreadPoolServer.Args(transport);
       args.processor(processor);
       //
@@ -1134,7 +1183,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       }
       builder.payload(payload);
 
-      instance = builder.build();
+      this.instance = builder.build();
 
       if (this.register) {
         sd.start();
@@ -1152,6 +1201,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         try {
           sd.unregisterService(instance);
         } catch (Exception e) {
+        }        
+      }
+      if (null != deregisterHook) {
+        try {
+          Runtime.getRuntime().removeShutdownHook(deregisterHook);
+        } catch (Exception e) {          
         }
       }
     }
@@ -1498,6 +1553,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               continue;
             }
             
+            String app = metadata.getLabels().get(Constants.APPLICATION_LABEL);
+            Map<String,String> sensisionLabels = new HashMap<String,String>();
+            sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, app);
             
             //
             // Check the source of the metadata
@@ -1562,6 +1620,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                     }                    
                   }
                   Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, -1);
+                  Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, -1);
                 }
               }
 
@@ -1629,7 +1688,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 // If we are doing a metadata update and the GTS is not known, skip the call to store.
                 //
                 
-                if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource()) && !directory.plugin.known(gts)) {
+                if ((io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource()) || io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) && !directory.plugin.known(gts)) {
                   continue;
                 }
 
@@ -1645,7 +1704,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_STORE_TIME_NANOS, Sensision.EMPTY_LABELS, nano);                  
               }
               
-            } else {
+            } else { // no directory plugin
               //
               // If Metadata comes from Ingress and it is already in the cache, do
               // nothing. Unless we are tracking activity in which case we need to check
@@ -1702,7 +1761,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               // If metadata is an update, only take it into consideration if the GTS is already known
               //
               
-              if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())
+              if ((io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())
+                  || io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource()))
                   && (!directory.metadatas.containsKey(metadata.getName())
                       || !directory.metadatas.get(metadata.getName()).containsKey(labelsId))) {
                 continue;
@@ -1713,9 +1773,34 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             // Clear the cache if it is an update
             //
             
-            if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
+            if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())
+                || io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) {
               id = MetadataUtils.id(metadata);
               directory.serializedMetadataCache.remove(id);
+              
+              //
+              // If this is a delta update of attributes, consolidate them
+              //
+              
+              if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) {
+                Metadata meta = directory.metadatas.get(metadata.getName()).get(labelsId);
+                
+                for (Entry<String,String> attr: metadata.getAttributes().entrySet()) {
+                  if ("".equals(attr.getValue())) {
+                    meta.getAttributes().remove(attr.getKey());
+                  } else {
+                    meta.putToAttributes(attr.getKey(), attr.getValue());
+                  }
+                }
+                
+                // We need to update the attributes with those from 'meta' so we
+                // store the up to date version of the Metadata in HBase
+                metadata.setAttributes(new HashMap<String,String>(meta.getAttributes()));
+                  
+                // We re-serialize metadata
+                TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+                metadataBytes = serializer.serialize(metadata);
+              }
               
               //
               // Update the last activity
@@ -1734,11 +1819,11 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   metadata.setLastActivity(meta.getLastActivity());
                   hasChanged = true;
                 }
-                
+                                
                 if (hasChanged) {
                   // We re-serialize metadata
                   TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-                  metadataBytes = serializer.serialize(meta);
+                  metadataBytes = serializer.serialize(metadata);
                 }                
               }
             }
@@ -1851,6 +1936,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               // 128bits
               if (null == directory.metadatas.get(metadata.getName()).put(labelsId, metadata)) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, 1);
+                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, 1);
               }
            
             } finally {
@@ -2498,7 +2584,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               long labelsId = GTSHelper.labelsId(SIPHASH_LABELS_LONGS, metadata.getLabels());
               
               // Compute gtsId, we use the GTS Id String from which we extract the 16 bytes
-              byte[] data = GTSHelper.gtsIdToString(classId, labelsId).getBytes(Charsets.UTF_16BE);
+              byte[] data = GTSHelper.gtsIdToString(classId, labelsId).getBytes(StandardCharsets.UTF_16BE);
               long gtsId = SipHashInline.hash24(SIPHASH_CLASS_LONGS[0], SIPHASH_CLASS_LONGS[1], data, 0, data.length);
               
               gtsCount.aggregate(gtsId);
@@ -2516,13 +2602,13 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 if (perClassCardinality.size() >= LIMIT_CLASS_CARDINALITY) {
                   classCardinality = new HyperLogLogPlus(ESTIMATOR_P, ESTIMATOR_PPRIME);
                   for (String cls: perClassCardinality.keySet()) {
-                    data = cls.getBytes(Charsets.UTF_8);
+                    data = cls.getBytes(StandardCharsets.UTF_8);
                     classCardinality.aggregate(SipHashInline.hash24(SIPHASH_CLASS_LONGS[0], SIPHASH_CLASS_LONGS[1], data, 0, data.length, false));
                     perClassCardinality = null;
                   }
                 }
               } else {
-                data = metadata.getName().getBytes(Charsets.UTF_8);
+                data = metadata.getName().getBytes(StandardCharsets.UTF_8);
                 classCardinality.aggregate(SipHashInline.hash24(SIPHASH_CLASS_LONGS[0], SIPHASH_CLASS_LONGS[1], data, 0, data.length, false));
               }
               
@@ -2534,7 +2620,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                       estimator = new HyperLogLogPlus(ESTIMATOR_P, ESTIMATOR_PPRIME);
                       perLabelValueCardinality.put(entry.getKey(), estimator);
                     }
-                    data = entry.getValue().getBytes(Charsets.UTF_8);
+                    data = entry.getValue().getBytes(StandardCharsets.UTF_8);
                     long siphash = SipHashInline.hash24(SIPHASH_LABELS_LONGS[0], SIPHASH_LABELS_LONGS[1], data, 0, data.length, false);
                     estimator.aggregate(siphash);
                   }
@@ -2547,7 +2633,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                       estimator = new HyperLogLogPlus(ESTIMATOR_P, ESTIMATOR_PPRIME);
                       perLabelValueCardinality.put(entry.getKey(), estimator);
                     }
-                    data = entry.getValue().getBytes(Charsets.UTF_8);
+                    data = entry.getValue().getBytes(StandardCharsets.UTF_8);
                     estimator.aggregate(SipHashInline.hash24(SIPHASH_LABELS_LONGS[0], SIPHASH_LABELS_LONGS[1], data, 0, data.length, false));
                   }
                 }
@@ -2556,7 +2642,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   labelNamesCardinality = new HyperLogLogPlus(ESTIMATOR_P, ESTIMATOR_PPRIME);
                   labelValuesCardinality = new HyperLogLogPlus(ESTIMATOR_P, ESTIMATOR_PPRIME);
                   for (Entry<String,HyperLogLogPlus> entry: perLabelValueCardinality.entrySet()) {
-                    data = entry.getKey().getBytes(Charsets.UTF_8);
+                    data = entry.getKey().getBytes(StandardCharsets.UTF_8);
                     labelNamesCardinality.aggregate(SipHashInline.hash24(SIPHASH_LABELS_LONGS[0], SIPHASH_LABELS_LONGS[1], data, 0, data.length, false));
                     labelValuesCardinality.fuse(entry.getValue());
                   }
@@ -2565,17 +2651,17 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               } else {
                 if (metadata.getLabelsSize() > 0) {
                   for (Entry<String,String> entry: metadata.getLabels().entrySet()) {
-                    data = entry.getKey().getBytes(Charsets.UTF_8);
+                    data = entry.getKey().getBytes(StandardCharsets.UTF_8);
                     labelValuesCardinality.aggregate(SipHashInline.hash24(SIPHASH_LABELS_LONGS[0], SIPHASH_LABELS_LONGS[1], data, 0, data.length, false));
-                    data = entry.getValue().getBytes(Charsets.UTF_8);
+                    data = entry.getValue().getBytes(StandardCharsets.UTF_8);
                     labelValuesCardinality.aggregate(SipHashInline.hash24(SIPHASH_LABELS_LONGS[0], SIPHASH_LABELS_LONGS[1], data, 0, data.length, false));
                   }
                 }
                 if (metadata.getAttributesSize() > 0) {
                   for (Entry<String,String> entry: metadata.getAttributes().entrySet()) {
-                    data = entry.getKey().getBytes(Charsets.UTF_8);
+                    data = entry.getKey().getBytes(StandardCharsets.UTF_8);
                     labelValuesCardinality.aggregate(SipHashInline.hash24(SIPHASH_LABELS_LONGS[0], SIPHASH_LABELS_LONGS[1], data, 0, data.length, false));
-                    data = entry.getValue().getBytes(Charsets.UTF_8);
+                    data = entry.getValue().getBytes(StandardCharsets.UTF_8);
                     labelValuesCardinality.aggregate(SipHashInline.hash24(SIPHASH_LABELS_LONGS[0], SIPHASH_LABELS_LONGS[1], data, 0, data.length, false));
                   }
                 }
@@ -2591,7 +2677,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         classCardinality = new HyperLogLogPlus(ESTIMATOR_P, ESTIMATOR_PPRIME);
         for (Entry<String,HyperLogLogPlus> entry: perClassCardinality.entrySet()) {
           response.putToPerClassCardinality(entry.getKey(), ByteBuffer.wrap(entry.getValue().toBytes()));
-          byte[] data = entry.getKey().getBytes(Charsets.UTF_8);
+          byte[] data = entry.getKey().getBytes(StandardCharsets.UTF_8);
           classCardinality.aggregate(SipHashInline.hash24(SIPHASH_CLASS_LONGS[0], SIPHASH_CLASS_LONGS[1], data, 0, data.length, false));        
         }
       }
@@ -2602,7 +2688,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         HyperLogLogPlus estimator = new HyperLogLogPlus(ESTIMATOR_P, ESTIMATOR_PPRIME);
         HyperLogLogPlus nameEstimator = new HyperLogLogPlus(ESTIMATOR_P, ESTIMATOR_PPRIME);
         for (Entry<String,HyperLogLogPlus> entry: perLabelValueCardinality.entrySet()) {
-          byte[] data = entry.getKey().getBytes(Charsets.UTF_8);
+          byte[] data = entry.getKey().getBytes(StandardCharsets.UTF_8);
           nameEstimator.aggregate(SipHashInline.hash24(SIPHASH_LABELS_LONGS[0], SIPHASH_LABELS_LONGS[1], data, 0, data.length, false));
           estimator.fuse(entry.getValue());
           response.putToPerLabelValueCardinality(entry.getKey(), ByteBuffer.wrap(entry.getValue().toBytes()));
@@ -2652,7 +2738,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         break;
       }
       
-      byte[] raw = OrderPreservingBase64.decode(line.getBytes(Charsets.US_ASCII));
+      byte[] raw = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
 
       // Extract DirectoryStatsRequest
       TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
@@ -2701,7 +2787,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         
     // Decode selector
     
-    selector = new String(OrderPreservingBase64.decode(selector.getBytes(Charsets.US_ASCII)), Charsets.UTF_8);
+    selector = new String(OrderPreservingBase64.decode(selector.getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8);
     
     //
     // Check request signature
@@ -2738,7 +2824,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         
     String tssel = Long.toString(sigts) + ":" + selector;
         
-    byte[] bytes = tssel.getBytes(Charsets.UTF_8);
+    byte[] bytes = tssel.getBytes(StandardCharsets.UTF_8);
     long checkedhash = SipHashInline.hash24(SIPHASH_PSK_LONGS[0], SIPHASH_PSK_LONGS[1], bytes, 0, bytes.length);
         
     if (checkedhash != sighash) {

@@ -29,15 +29,18 @@ jar {
     }
 
     from project(":warp10").sourceSets.main.output
+    include('REVISION')
     include 'io/warp10/Py4JEntryPoint.class'
     include 'io/warp10/SortedPathIterator.class'
     include 'io/warp10/SortedPathIterator$*'
     include 'io/warp10/WarpClassLoader.class'
     include 'io/warp10/script/**'
+    exclude 'io/warp10/script/ScriptRunner*.class'
     include 'io/warp10/CapacityExtractorOutputStream.class'
     include 'io/warp10/udf/**'
     include 'io/warp10/thrift/**'
     include 'io/warp10/WarpConfig.class'
+    include 'io/warp10/WarpManager.class'
     include 'io/warp10/WarpURLEncoder.class'
     include 'io/warp10/DoubleUtils.class'
     include 'io/warp10/FloatUtils.class'
@@ -60,9 +63,8 @@ jar {
     include 'io/warp10/continuum/store/DirectoryClient.class'
     include 'io/warp10/continuum/store/GTSDecoderIterator.class'
     include 'io/warp10/continuum/store/thrift/data/**'
-    include 'io/warp10/continuum/egress/ThriftDirectoryClient.class'
-    include 'io/warp10/continuum/egress/ThriftDirectoryClient$*'
     include 'io/warp10/warp/sdk/**'
+    include 'io/warp10/continuum/sensision/SensisionConstants.class'
     include 'io/warp10/continuum/geo/GeoDirectoryClient.class'
     include 'io/warp10/continuum/geo/GeoDirectoryThriftClient.class'
     include 'io/warp10/continuum/geo/GeoDirectoryThriftClient$*'

@@ -195,8 +195,13 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
         }
         
       } catch (Throwable t) {
-        this.errorFlag.set(true);
-        this.errorThrowable.set(t);
+        // Only set the error if we are not done, this is to prevent
+        // the call to close to trigger an error if the thread is
+        // interrupted while in a call to acquire for example
+        if (!done) {
+          this.errorFlag.set(true);
+          this.errorThrowable.set(t);
+        }
       } finally {
         if (0 != held) {
           this.sem.release(held);
@@ -273,7 +278,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
   private static final int MIN_GTS_PERSCANNER;
   private static final int MAX_PARALLEL_SCANNERS;
   
-  public ParallelGTSDecoderIteratorWrapper(boolean optimized, boolean fromArchive, ReadToken token, long now, long timespan, List<Metadata> metadatas, KeyStore keystore, Connection conn, TableName tableName, byte[] colfam, boolean writeTimestamp, boolean useBlockCache) throws IOException {
+  public ParallelGTSDecoderIteratorWrapper(boolean optimized, ReadToken token, long now, long then, long count, long skip, double sample, List<Metadata> metadatas, KeyStore keystore, Connection conn, TableName tableName, byte[] colfam, boolean writeTimestamp, boolean useBlockCache, int preBoundary, int postBoundary) throws IOException {
     if (standalone) {
       throw new IOException("Incompatible parallel scanner instantiated.");
     }
@@ -307,9 +312,10 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
         GTSDecoderIterator iterator = null;
         
         if (optimized) {
+          long timespan = count > 0 ? -count : now - then + 1;
           iterator = new OptimizedSlicedRowFilterGTSDecoderIterator(now, timespan, metas, conn, tableName, colfam, writeTimestamp, keystore, useBlockCache);
         } else {
-          iterator = new MultiScanGTSDecoderIterator(fromArchive, token, now, timespan, metas, conn, tableName, colfam, writeTimestamp, keystore, useBlockCache);      
+          iterator = new MultiScanGTSDecoderIterator(token, now, then, count, skip, sample, metas, conn, tableName, colfam, writeTimestamp, keystore, useBlockCache, preBoundary, postBoundary);      
         }      
 
         GTSDecoderIteratorRunnable runnable = new GTSDecoderIteratorRunnable(iterator, queue, sem, this.pending, this.inflight, this.errorFlag, this.errorThrowable);
@@ -322,9 +328,10 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
       GTSDecoderIterator iterator = null;
       
       if (optimized) {
+        long timespan = count > 1 ? -count : now - then + 1;
         iterator = new OptimizedSlicedRowFilterGTSDecoderIterator(now, timespan, metas, conn, tableName, colfam, writeTimestamp, keystore, useBlockCache);
       } else {
-        iterator = new MultiScanGTSDecoderIterator(fromArchive, token, now, timespan, metas, conn, tableName, colfam, writeTimestamp, keystore, useBlockCache);      
+        iterator = new MultiScanGTSDecoderIterator(token, now, then, count, skip, sample, metas, conn, tableName, colfam, writeTimestamp, keystore, useBlockCache, preBoundary, postBoundary);      
       }      
 
       GTSDecoderIteratorRunnable runnable = new GTSDecoderIteratorRunnable(iterator, queue, sem, this.pending, this.inflight, this.errorFlag, this.errorThrowable);
@@ -340,7 +347,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     this.pending.set(runnables.size());
   }
   
-  public ParallelGTSDecoderIteratorWrapper(StoreClient client, ReadToken token, long now, long timespan, List<Metadata> metadatas) throws IOException {
+  public ParallelGTSDecoderIteratorWrapper(StoreClient client, ReadToken token, long now, long then, long count, long skip, double sample, List<Metadata> metadatas, int preBoundary, int postBoundary) throws IOException {
     
     if (!standalone) {
       throw new IOException("Incompatible parallel scanner instantiated.");
@@ -374,7 +381,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
       if (gtsPerScanner == metas.size()) {
         GTSDecoderIterator iterator = null;
     
-        iterator = client.fetch(token, metas, now, timespan, false, false);
+        iterator = client.fetch(token, metas, now, then, count, skip, sample, false, preBoundary, postBoundary);
 
         GTSDecoderIteratorRunnable runnable = new GTSDecoderIteratorRunnable(iterator, queue, sem, this.pending, this.inflight, this.errorFlag, this.errorThrowable);
         runnables.add(runnable);
@@ -385,7 +392,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     if (null != metas) {
       GTSDecoderIterator iterator = null;
       
-      iterator = client.fetch(token, metas, now, timespan, false, false);
+      iterator = client.fetch(token, metas, now, then, count, skip, sample, false, preBoundary, postBoundary);
 
       GTSDecoderIteratorRunnable runnable = new GTSDecoderIteratorRunnable(iterator, queue, sem, this.pending, this.inflight, this.errorFlag, this.errorThrowable);
       runnables.add(runnable);
@@ -419,7 +426,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     
     while(!this.errorFlag.get() && this.queue.isEmpty() && !(0 == this.pending.get() &&  0 == this.inflight.get())) {
       schedule();
-      LockSupport.parkNanos(10000L);
+      LockSupport.parkNanos(50000L);
     }
     
     if (this.errorFlag.get()) {

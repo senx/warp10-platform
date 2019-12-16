@@ -15,7 +15,6 @@
 //
 package io.warp10.plugins.udp;
 
-import com.google.common.base.Charsets;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStopException;
@@ -29,6 +28,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -93,7 +93,7 @@ public class UDPConsumer extends Thread {
 
     in.close();
 
-    this.warpscript = new String(baos.toByteArray(), Charsets.UTF_8);
+    this.warpscript = new String(baos.toByteArray(), StandardCharsets.UTF_8);
     this.stack = new MemoryWarpScriptStack(null, null, new Properties());
     stack.maxLimits();
 

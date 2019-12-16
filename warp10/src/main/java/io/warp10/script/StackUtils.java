@@ -37,6 +37,7 @@ import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -665,7 +666,7 @@ public class StackUtils {
     } else if (o instanceof String) {
       sb.append("'");
       try {
-        sb.append(WarpURLEncoder.encode(o.toString(), "UTF-8"));
+        sb.append(WarpURLEncoder.encode(o.toString(), StandardCharsets.UTF_8));
       } catch (UnsupportedEncodingException uee) {        
       }
       sb.append("'");

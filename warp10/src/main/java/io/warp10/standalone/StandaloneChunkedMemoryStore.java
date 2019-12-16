@@ -86,6 +86,8 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
   private final Properties properties;
 
+  private final boolean ephemeral;
+  
   private final long[] classKeyLongs;
   private final long[] labelsKeyLongs;
 
@@ -94,8 +96,15 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
     this.series = new MapMaker().concurrencyLevel(64).makeMap();
 
-    this.chunkcount = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.IN_MEMORY_CHUNK_COUNT, "3"));
-    this.chunkspan = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.IN_MEMORY_CHUNK_LENGTH, Long.toString(Long.MAX_VALUE)));
+    if ("true".equals(properties.getProperty(io.warp10.continuum.Configuration.IN_MEMORY_EPHEMERAL))) {
+      this.chunkcount = 1;
+      this.chunkspan = Long.MAX_VALUE;
+      this.ephemeral = true;
+    } else {
+      this.chunkcount = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.IN_MEMORY_CHUNK_COUNT, "3"));
+      this.chunkspan = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.IN_MEMORY_CHUNK_LENGTH, Long.toString(Long.MAX_VALUE)));      
+      this.ephemeral = false;
+    }    
   
     this.labelsKeyLongs = SipHashInline.getKey(keystore.getKey(KeyStore.SIPHASH_LABELS));
     this.classKeyLongs = SipHashInline.getKey(keystore.getKey(KeyStore.SIPHASH_CLASS));
@@ -137,8 +146,8 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
   }
   
   @Override
-  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long timespan, boolean fromArchive, boolean writeTimestamp) {
-  
+  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, final long count, final long skip, final double sample, boolean writeTimestamp, final int preBoundary, final int postBoundary) {
+
     GTSDecoderIterator iterator = new GTSDecoderIterator() {
 
       private int idx = 0;
@@ -206,7 +215,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
               InMemoryChunkSet chunkset = series.get(clslbls);
               
               try {
-                GTSDecoder dec = chunkset.fetch(now, timespan, extractor);
+                GTSDecoder dec = chunkset.fetch(now, then, count, skip, sample, extractor, preBoundary, postBoundary);
 
                 if (0 == dec.getCount()) {
                   idx++;
@@ -288,7 +297,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       //
       
       if (null == chunkset) {
-        chunkset = new InMemoryChunkSet(this.chunkcount, this.chunkspan);
+        chunkset = new InMemoryChunkSet(this.chunkcount, this.chunkspan, this.ephemeral);
         this.series.put(clslbls,  chunkset);
       }
     }

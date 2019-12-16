@@ -29,6 +29,21 @@ public interface StoreClient {
   public void store(GTSEncoder encoder) throws IOException;
   public void archive(int chunk, GTSEncoder encoder) throws IOException;
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException;
-  public GTSDecoderIterator fetch(ReadToken token, final List<Metadata> metadatas, final long now, final long timespan, boolean fromArchive, boolean writeTimestamp) throws IOException;
+  /**
+   * 
+   * @param token Read token to use for reading data
+   * @param metadatas List of Metadata for the GTS to fetch
+   * @param now End timestamp (included)
+   * @param then Start timestamp (included)
+   * @param count Number of datapoints to fetch. 0 is a valid value if you want to fetch only boundaries. Use -1 to specify you are not fetching by count.
+   * @param skip Number of datapoints to skip before returning values
+   * @param sample Double value representing the sampling rate. Use 1.0D for returning all values. Valid values are ] 0.0D, 1.0D ]
+   * @param writeTimestamp Flag indicating we are interested in the HBase cell timestamp
+   * @param preBoundary Size of the pre boundary in number of values
+   * @param postBoundary Size of the post boundary in number of values
+   * @return
+   * @throws IOException
+   */
+  public GTSDecoderIterator fetch(ReadToken token, final List<Metadata> metadatas, final long now, final long then, long count, long skip, double sample, boolean writeTimestamp, final int preBoundary, final int postBoundary) throws IOException;
   public void addPlasmaHandler(StandalonePlasmaHandlerInterface handler);
 }

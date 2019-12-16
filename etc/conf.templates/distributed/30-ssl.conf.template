@@ -24,6 +24,8 @@
 #ingress.ssl.host =
 # Port the SSL endpoint should bind to
 #ingress.ssl.port =
+# TCP Backlog for the SSL endpoint
+#ingress.ssl.tcp.backlog =
 # Number of Jetty acceptors (defaults to 2)
 #ingress.ssl.acceptors =
 # Number of Jetty selectors (defaults to 4)
@@ -45,6 +47,8 @@
 #egress.ssl.host =
 # Port the SSL endpoint should bind to
 #egress.ssl.port =
+# TCP Backlog for the SSL endpoint
+#egress.ssl.tcp.backlog =
 # Number of Jetty acceptors (defaults to 2)
 #egress.ssl.acceptors =
 # Number of Jetty selectors (defaults to 4)
@@ -66,6 +70,8 @@
 #plasma.frontend.ssl.host =
 # Port the SSL endpoint should bind to
 #plasma.frontend.ssl.port =
+# TCP Backlog for the SSL endpoint
+#plasma.frontend.ssl.tcp.backlog =
 # Number of Jetty acceptors (defaults to 2)
 #plasma.frontend.ssl.acceptors =
 # Number of Jetty selectors (defaults to 4)
@@ -87,6 +93,8 @@
 #http.ssl.host =
 # Port the SSL endpoint should bind to
 #http.ssl.port =
+# TCP Backlog for the SSL endpoint
+#http.ssl.tcp.backlog =
 # Number of Jetty acceptors (defaults to 2)
 # Adapt value of http.maxthreads accordingly
 #http.ssl.acceptors =

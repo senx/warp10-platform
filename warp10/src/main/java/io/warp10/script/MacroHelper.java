@@ -20,11 +20,10 @@ import io.warp10.script.functions.SNAPSHOT.Snapshotable;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
-
-import com.google.common.base.Charsets;
 
 /**
  * Class containing various methods related to macros.
@@ -58,11 +57,15 @@ public class MacroHelper {
     @Override
     public String snapshot() {
       if (macro instanceof Snapshotable) {
-        return macro.snapshot();
+        return macro.snapshot() + " " + WarpScriptLib.EVAL;
       } else {
         return this.toString();
       }
     }
+  }
+  
+  public static WarpScriptStackFunction wrap(Macro m) {
+    return new MacroWrapper(null, m);
   }
   
   public static WarpScriptStackFunction wrap(String name, String mc2, boolean secure) {
@@ -121,7 +124,7 @@ public class MacroHelper {
       
       in.close();
       
-      String mc2 = new String(baos.toByteArray(), Charsets.UTF_8);
+      String mc2 = new String(baos.toByteArray(), StandardCharsets.UTF_8);
       
       return wrap(name, mc2, secure);
     } catch (IOException ioe) {

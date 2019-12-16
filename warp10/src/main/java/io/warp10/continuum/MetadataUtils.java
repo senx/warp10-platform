@@ -16,6 +16,7 @@
 
 package io.warp10.continuum;
 
+import io.warp10.WarpConfig;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.UnsafeString;
 import io.warp10.continuum.store.Constants;
@@ -23,13 +24,13 @@ import io.warp10.continuum.store.thrift.data.Metadata;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.common.base.Charsets;
 import com.google.common.primitives.Longs;
 
 public class MetadataUtils {
@@ -37,14 +38,27 @@ public class MetadataUtils {
   /**
    * Maximum size the labels (names + values) can occupy.
    */
-  private static final int MAX_LABELS_SIZE = 2048;
+  private static final int MAX_LABELS_SIZE;
   
   /**
    * Maximum size the attributes can occupy (names + values).
    */
-  private static final int MAX_ATTRIBUTES_SIZE = 8192;
+  private static final int MAX_ATTRIBUTES_SIZE;
+  
+  /**
+   * Size over which to check for metadata validity
+   */
+  public static final int SIZE_THRESHOLD;
   
   private static final Pattern METADATA_PATTERN = Pattern.compile("^+([^\\{]+)\\{([^\\}]*)\\}\\{([^\\}]*)\\}$");
+  
+  static {
+    // Add provision for 2 UUIDs and the producer/owner/application label names. Actual application name will count towards the total size
+    int internalLabels = 36 + 36 + Constants.PRODUCER_LABEL.length() + Constants.OWNER_LABEL.length() + Constants.APPLICATION_LABEL.length(); 
+    MAX_LABELS_SIZE =  internalLabels + Integer.parseInt(WarpConfig.getProperty(Configuration.WARP_LABELS_MAXSIZE, "2048"));
+    MAX_ATTRIBUTES_SIZE = Integer.parseInt(WarpConfig.getProperty(Configuration.WARP_ATTRIBUTES_MAXSIZE, "8192"));
+    SIZE_THRESHOLD = Math.min(MAX_LABELS_SIZE - internalLabels, MAX_ATTRIBUTES_SIZE);
+  }
   
   public static class MetadataID {
     private long classId;
@@ -79,7 +93,7 @@ public class MetadataUtils {
     }
     
     try {
-      String name = URLDecoder.decode(m.group(1), "UTF-8");
+      String name = URLDecoder.decode(m.group(1), StandardCharsets.UTF_8.name());
       
       Map<String,String> labels = GTSHelper.parseLabels(m.group(2));
       Map<String,String> attributes = GTSHelper.parseLabels(m.group(3));
@@ -108,7 +122,6 @@ public class MetadataUtils {
    * @return
    */
   public static boolean validateMetadata(Metadata metadata) {
-    
     if (null == metadata) {
       return false;
     }
@@ -148,7 +161,7 @@ public class MetadataUtils {
         total += entry.getKey().length();
         total += entry.getValue().length();
       }
-      
+
       if (total > MAX_LABELS_SIZE) {
         return false;
       }

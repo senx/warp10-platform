@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,14 +17,13 @@
 package io.warp10.script.ext.token;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.thrift.TBase;
-
-import com.google.common.base.Charsets;
 
 import io.warp10.continuum.Tokens;
 import io.warp10.crypto.KeyStore;
@@ -54,6 +53,8 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
   private byte[] tokenAESKey = null;
   private byte[] tokenSipHashKey = null;
   
+  private boolean multikey = false;
+  
   public TOKENDUMP(String name) {
     super(name);
     decoder = null;
@@ -67,28 +68,59 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
     decoder = new QuasarTokenDecoder(lkey[0], lkey[1], tokenAESKey);
   }
   
+  public TOKENDUMP(String name, boolean multikey) {
+    super(name);
+    this.multikey = multikey;
+    decoder = null;
+  }
+  
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
-    if (null == tokenAESKey || null == tokenSipHashKey) {
+    byte[] AESKey = tokenAESKey;
+    byte[] SipHashKey = tokenSipHashKey;
+    
+    if ((null == AESKey || null == SipHashKey) && !this.multikey) {
       throw new WarpScriptException(getName() + " cannot be used in this context.");
     }
     
-    Object top = stack.pop();
-
-    //
-    // A non null token secret was configured, check it
-    //
-    String secret = TokenWarpScriptExtension.TOKEN_SECRET;
-    
-    if (null != secret) {
-      if (!(top instanceof String)) {
-        throw new WarpScriptException(getName() + " expects a token secret on top of the stack.");
-      }
-      if (!secret.equals(top)) {
-        throw new WarpScriptException(getName() + " invalid token secret.");
-      }
+    Object top = null;
+        
+    if (this.multikey) {
       top = stack.pop();
+      
+      if (!(top instanceof byte[])) {
+        throw new WarpScriptException(getName() + " expects a SipHash Key (a byte array).");
+      }
+      
+      SipHashKey = (byte[]) top;
+      
+      top = stack.pop();
+      
+      if (!(top instanceof byte[])) {
+        throw new WarpScriptException(getName() + " expects an AES Key (byte array).");
+      }
+      
+      AESKey = (byte[]) top;
+      
+      top = stack.pop();      
+    } else {
+      //
+      // A non null token secret was configured, check it
+      //
+      String secret = TokenWarpScriptExtension.TOKEN_SECRET;
+      
+      top = stack.pop();
+      
+      if (null != secret) {
+        if (!(top instanceof String)) {
+          throw new WarpScriptException(getName() + " expects a token secret on top of the stack.");
+        }
+        if (!secret.equals(top)) {
+          throw new WarpScriptException(getName() + " invalid token secret.");
+        }
+        top = stack.pop();
+      }      
     }
     
     if (!(top instanceof String)) {
@@ -100,19 +132,26 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
     ReadToken rtoken = null;
     WriteToken wtoken = null;
     
-    byte[] token = OrderPreservingBase64.decode(tokenstr.getBytes(Charsets.UTF_8));
+    byte[] token = OrderPreservingBase64.decode(tokenstr.getBytes(StandardCharsets.UTF_8));
+    
+    QuasarTokenDecoder dec = decoder;
+    
+    if (null == dec) {
+      long[] lkey = SipHashInline.getKey(SipHashKey);
+      dec = new QuasarTokenDecoder(lkey[0], lkey[1], AESKey);
+    }
     
     try {
-      rtoken = decoder.decodeReadToken(token);
+      rtoken = dec.decodeReadToken(token);
     } catch (QuasarTokenException qte) {
       try {
-        wtoken = decoder.decodeWriteToken(token);
+        wtoken = dec.decodeWriteToken(token);
       } catch (Exception e) {
         throw new WarpScriptException(getName() + " invalid token.", e);
       }
     }
     
-    String ident = encoder.getTokenIdent(tokenstr, this.tokenSipHashKey);
+    String ident = encoder.getTokenIdent(tokenstr, SipHashKey);
 
     Map<Object,Object> result = new HashMap<Object,Object>();
     result.put(TOKENGEN.KEY_TOKEN, tokenstr);

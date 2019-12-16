@@ -20,7 +20,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Comparator;
 import java.util.List;
+import java.util.PriorityQueue;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 
 import io.warp10.CapacityExtractorOutputStream;
@@ -37,6 +40,9 @@ public class InMemoryChunkSet {
    */
   private static final int ENCODER_MAX_WASTED = 1024;
   
+  /**
+   * Chunks, organized in a ring. A given timestamp will lead to a specific chunk in the ring
+   */
   private final GTSEncoder[] chunks;
   
   /**
@@ -64,13 +70,26 @@ public class InMemoryChunkSet {
    */
   private final int chunkcount;
   
-  public InMemoryChunkSet(int chunkcount, long chunklen) {
+  /**
+   * Is this an ephemeral chunk set storing only the last stored value?
+   */
+  private final boolean ephemeral;
+  
+  private static final Random prng = new Random();
+  
+  public InMemoryChunkSet(int chunkcount, long chunklen, boolean ephemeral) {
     this.chunks = new GTSEncoder[chunkcount];
     this.chunkends = new long[chunkcount];
     this.chronological = new BitSet(chunkcount);
     this.lasttimestamp = new long[chunkcount];
-    this.chunklen = chunklen;
-    this.chunkcount = chunkcount;
+    this.ephemeral = ephemeral;
+    if (ephemeral) {
+      this.chunklen = Long.MAX_VALUE;
+      this.chunkcount = 1;
+    } else {
+      this.chunklen = chunklen;
+      this.chunkcount = chunkcount;      
+    }
   }
   
   /**
@@ -79,6 +98,23 @@ public class InMemoryChunkSet {
    * @param encoder The GTSEncoder instance to store
    */
   public void store(GTSEncoder encoder) throws IOException {
+    if (null == encoder) {
+      return;
+    }
+    
+    if (this.ephemeral) {
+      // Extract the first element from the encoder
+      GTSDecoder decoder = encoder.getUnsafeDecoder(false);
+      
+      if (!decoder.next()) {
+        return;
+      }
+      
+      // Reset the encoder      
+      chunks[0] = new GTSEncoder(decoder.getBaseTimestamp());
+      chunks[0].addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+      return;
+    }
     
     // Get the current time
     long now = TimeSource.getTime();
@@ -177,8 +213,8 @@ public class InMemoryChunkSet {
    * @param timespan The timespan or value count to consider.
    * @return
    */
-  public GTSDecoder fetch(long now, long timespan, CapacityExtractorOutputStream extractor) throws IOException {
-    GTSEncoder encoder = fetchEncoder(now, timespan);
+  public GTSDecoder fetch(long now, long then, long count, long skip, double sample, CapacityExtractorOutputStream extractor, int preBoundary, int postBoundary) throws IOException {
+    GTSEncoder encoder = fetchEncoder(now, then, count, skip, sample, preBoundary, postBoundary);
 
     //
     // Resize the encoder so we don't waste too much memory
@@ -196,8 +232,8 @@ public class InMemoryChunkSet {
     return encoder.getUnsafeDecoder(false);
   }
 
-  public GTSDecoder fetch(long now, long timespan) throws IOException {
-    return fetch(now, timespan, null);
+  public GTSDecoder fetch(long now, long then, long count, long skip, double sample) throws IOException {
+    return fetch(now, then, count, skip, sample, null, 0, 0);
   }
   
   public List<GTSDecoder> getDecoders() {
@@ -215,10 +251,17 @@ public class InMemoryChunkSet {
     return decoders;
   }
   
-  public GTSEncoder fetchEncoder(long now, long timespan) throws IOException {
+  public GTSEncoder fetchEncoder(long now, long then, long count, long skip, double sample, int preBoundary, int postBoundary) throws IOException {
 
-    if (timespan < 0) {
-      return fetchCountEncoder(now, -timespan);
+    if (this.ephemeral) {
+      return fetchCountEncoder(Long.MAX_VALUE, 1L, postBoundary);
+    }
+    
+    // Call fetchCountEncoder if fetching by count with a 'then' of MIN_LONG, no skipping
+    // and no sampling or preBoundary
+    
+    if (count > 0 && Long.MIN_VALUE == then && 0 == skip && 1.0D == sample && 0 == preBoundary) {
+      return fetchCountEncoder(now, -count, postBoundary);
     }
     
     //
@@ -229,19 +272,112 @@ public class InMemoryChunkSet {
     int nowchunk = chunk(now) + this.chunkcount;
     
     // Compute the first timestamp (included)
-    long firstTimestamp = now - timespan + 1;
+    long firstTimestamp = then;
     
     GTSEncoder encoder = new GTSEncoder(0L);
+    
+    //
+    // Fetch the postBoundary
+    //
+    
+    if (postBoundary > 0) {
+      // We store sequence / ts / lat / lon / elev / value
+      // 'sequence' is the order in which the datapoints were inserted, used
+      // to order them when their timestamp is equal
+      PriorityQueue<Object[]> boundary = new PriorityQueue<Object[]>(new Comparator<Object[]>() {
+        @Override
+        public int compare(Object[] o1, Object[] o2) {
+          int comp = Long.compare((long) o1[1], (long) o2[1]);
+          // Timestamps are equal, compare the sequence #
+          if (0 == comp) {
+            comp = Long.compare((long) o1[0], (long) o2[0]);
+          }
+          return comp;
+        }
+      });
+
+      // Now populate the queue from the current chunk, walking back in the ring until we have
+      // postBoundary elements or we have exhausted the available data
+      
+      long seq = 0;
+      
+      for (int i = 0; i < this.chunkcount; i++) {
+        int chunk = (nowchunk + i) % this.chunkcount;
+        
+        GTSDecoder chunkDecoder = null;
+        
+        synchronized(this.chunks) {
+          // Ignore a given chunk if it is before 'now'
+          if (this.chunkends[chunk] <= now) {
+            continue;
+          }
+          
+          // Extract a decoder to scan the chunk
+          if (null != this.chunks[chunk]) {
+            chunkDecoder = this.chunks[chunk].getUnsafeDecoder(false);
+          }
+        }
+        
+        if (null == chunkDecoder) {
+          continue;
+        }
+
+        // Add datapoints from the decoder
+
+        while (chunkDecoder.next()) {
+          if (chunkDecoder.getTimestamp() > now) {
+            boundary.add(new Object[] { seq++, chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue() });
+            if (boundary.size() > postBoundary) {
+              boundary.remove();
+            }
+          }
+        }
+        
+        // If we have enough datapoints, stop
+        
+        if (postBoundary == boundary.size()) {
+          break;
+        }
+      }            
+      
+      // Add the elements to 'encoder'
+      
+      for (Object[] elt: boundary) {
+        encoder.addValue((long) elt[1], (long) elt[2], (long) elt[3], elt[4]);
+      }
+    }
+
+    PriorityQueue<Object[]> boundary = null;
+    
+    if (preBoundary > 0) {
+      boundary = new PriorityQueue<Object[]>(new Comparator<Object[]>() {
+        @Override
+        public int compare(Object[] o1, Object[] o2) {
+          // We want the largest timestamp to be in the head
+          int comp = Long.compare((long) o2[1], (long) o1[1]);
+          // Timestamps are equal, compare the sequence #
+          // the most recent being retained first
+          if (0 == comp) {
+            comp = Long.compare((long) o2[0], (long) o1[0]);
+          }
+          return comp;
+        }
+      });
+    }
+    
+    long seq = 0;
     
     for (int i = 0; i < this.chunkcount; i++) {
       int chunk = (nowchunk - i) % this.chunkcount;
       
       GTSDecoder chunkDecoder = null;
       
+      boolean boundaryOnly = false;
+      
       synchronized(this.chunks) {
         // Ignore a given chunk if it does not intersect our current range
         if (this.chunkends[chunk] < firstTimestamp || (this.chunkends[chunk] - this.chunklen) >= now) {
-          continue;
+          boundaryOnly = true;
         }
         
         // Extract a decoder to scan the chunk
@@ -254,27 +390,71 @@ public class InMemoryChunkSet {
         continue;
       }
       
+      long nvalues = count >= 0 ? count : Long.MAX_VALUE;
+      
       // Merge the data from chunkDecoder which is in the requested range in 'encoder'
       while(chunkDecoder.next()) {
         long ts = chunkDecoder.getTimestamp();
         
         if (ts > now || ts < firstTimestamp) {
+          if (null != boundary) {
+            boundary.add(new Object[] { seq++, chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue() });
+            if (boundary.size() > preBoundary) {
+              boundary.remove();
+            }
+          }
           continue;
         }
         
-        encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue());
+        if (!boundaryOnly) {
+          // Do we have more datapoints to retrieve?
+          if (nvalues > 0) {
+            // Skip
+            if (skip > 0) {
+              skip--;
+              continue;
+            }
+            
+            // Sample
+            if (1.0D != sample && prng.nextDouble() > sample) {
+              continue;
+            }          
+
+            encoder.addValue(ts, chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue());
+            nvalues--;
+          }
+        }
+        
+        // If we are done fetching and have no preBoundary, exit
+        if (0 == nvalues && 0 == preBoundary) {
+          break;
+        }
+      }
+      
+      // If the pre boundary has enough datapoints, add them to the encoder and nullify boundary
+      if (null != boundary && preBoundary == boundary.size()) {
+        for (Object[] elt: boundary) {
+          encoder.addValue((long) elt[1], (long) elt[2], (long) elt[3], elt[4]);
+        }
+
+        boundary = null;
       }
     }
 
+    if (null != boundary) {
+      for (Object[] elt: boundary) {
+        encoder.addValue((long) elt[1], (long) elt[2], (long) elt[3], elt[4]);
+      }
+    }
+    
     return encoder;
   }
   
-  private GTSDecoder fetchCount(long now, long count) throws IOException {
-    return fetchCountEncoder(now, count).getUnsafeDecoder(false);
-  }
+//  private GTSDecoder fetchCount(long now, long count) throws IOException {
+//    return fetchCountEncoder(now, count).getUnsafeDecoder(false);
+//  }
 
-  private GTSEncoder fetchCountEncoder(long now, long count) throws IOException {
-try {
+  private GTSEncoder fetchCountEncoder(long now, long count, int postBoundary) throws IOException {
     //
     // Determine the chunk id of 'now'
     // We offset it by chunkcount so we can safely decrement and
@@ -291,6 +471,78 @@ try {
     int avgsize = (int) Math.ceil((double) oursize / (double) ourcount);
     int hint = (int) Math.min((int) (count * avgsize), this.getSize());
     GTSEncoder encoder = new GTSEncoder(0L, null, hint);
+    
+    //
+    // Fetch the postBoundary
+    //
+    
+    if (postBoundary > 0) {
+      // We store sequence / ts / lat / lon / elev / value
+      // 'sequence' is the order in which the datapoints were inserted, used
+      // to order them when their timestamp is equal
+      PriorityQueue<Object[]> boundary = new PriorityQueue<Object[]>(new Comparator<Object[]>() {
+        @Override
+        public int compare(Object[] o1, Object[] o2) {
+          // We want the datapoints with the lowest timestamp to be at the head
+          int comp = Long.compare((long) o1[1], (long) o2[1]);
+          // Timestamps are equal, compare the sequence #
+          if (0 == comp) {
+            comp = Long.compare((long) o1[0], (long) o2[0]);
+          }
+          return comp;
+        }
+      });
+
+      // Now populate the queue from the current chunk, walking back in the ring until we have
+      // postBoundary elements or we have exhausted the available data
+      
+      long seq = 0;
+      
+      for (int i = 0; i < this.chunkcount; i++) {
+        int chunk = (nowchunk + i) % this.chunkcount;
+        
+        GTSDecoder chunkDecoder = null;
+        
+        synchronized(this.chunks) {
+          // Ignore a given chunk if it is before 'now'
+          if (this.chunkends[chunk] <= now) {
+            continue;
+          }
+          
+          // Extract a decoder to scan the chunk
+          if (null != this.chunks[chunk]) {
+            chunkDecoder = this.chunks[chunk].getUnsafeDecoder(false);
+          }
+        }
+        
+        if (null == chunkDecoder) {
+          continue;
+        }
+
+        // Add datapoints from the decoder
+
+        while (chunkDecoder.next()) {
+          if (chunkDecoder.getTimestamp() > now) {
+            boundary.add(new Object[] { seq++, chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue() });
+            if (boundary.size() > postBoundary) {
+              boundary.remove();
+            }
+          }
+        }
+        
+        // If we have enough datapoints, stop
+        
+        if (postBoundary == boundary.size()) {
+          break;
+        }
+      }
+      
+      // Add the elements to 'encoder'
+      
+      for (Object[] elt: boundary) {
+        encoder.addValue((long) elt[1], (long) elt[2], (long) elt[3], elt[4]);
+      }
+    }
     
     // Initialize the number of datapoints to fetch
     long nvalues = count;
@@ -487,10 +739,6 @@ try {
     }
         
     return encoder;
-} catch (Throwable t) {
-  t.printStackTrace();
-  throw t;
-}
   }
   
   /**
@@ -533,6 +781,10 @@ try {
    * @param now
    */
   public long clean(long now) {
+    if (this.ephemeral) {
+      return 0;
+    }
+    
     long cutoff = chunkEnd(now) - this.chunkcount * this.chunklen;
     int dropped = 0;
     long droppedDatapoints = 0L;

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,28 +20,25 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.aggregator.FirstLT;
+import java.util.ArrayList;
 
-public class MAPPERLT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
-  public MAPPERLT(String name) {
+/**
+ * Push on the stack a list of all defined symbols
+ */
+public class SYMBOLS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  public SYMBOLS(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object o = stack.pop();
-    
-    if (o instanceof Long) {
-      stack.push(new FirstLT(getName(), (long) o));
-    } else if (o instanceof Double) {
-      stack.push(new FirstLT(getName(), (double) o));
-    } else if (o instanceof String) {
-      stack.push(new FirstLT(getName(), (String) o));
-    } else {
-      throw new WarpScriptException(getName() + " expects a LONG, DOUBLE or STRING value on top of the stack.");
-    }
-    
+
+    ArrayList<String> symbols = new ArrayList<String>();
+
+    symbols.addAll(stack.getSymbolTable().keySet());
+    stack.push(symbols);
+
     return stack;
   }
 }

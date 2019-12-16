@@ -150,9 +150,19 @@ directory.partition = 1:0
 directory.port = 8883
 
 //
+// TCP Backlog applied to the DirectoryService listener
+//
+#directory.tcp.backlog =
+
+//
 // Port the streaming directory service listens to
 //
 directory.streaming.port = 8885
+
+//
+// TCP Backlog applied to the streaming directory service listener
+//
+#directory.streaming.tcp.backlog =
 
 //
 // Number of Jetty selectors for the streaming server
@@ -230,6 +240,12 @@ directory.register = true
 // Class name of directory plugin to use
 //
 #directory.plugin.class = 
+
+//
+// Name of attribute which will be set to the source of the metadata update
+// so the plugin can process it accordingly
+//
+#directory.plugin.sourceattr =
 
 //
 // Boolean indicating whether or not we should use the HBase filter when initializing

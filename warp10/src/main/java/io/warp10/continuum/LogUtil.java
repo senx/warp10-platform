@@ -16,7 +16,7 @@
 
 package io.warp10.continuum;
 
-import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -25,7 +25,6 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
-import io.warp10.JsonUtils;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.CryptoUtils;
@@ -36,8 +35,8 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-
-import com.google.common.base.Charsets;
+import org.boon.json.JsonSerializer;
+import org.boon.json.JsonSerializerFactory;
 
 public class LogUtil {
   
@@ -78,11 +77,8 @@ public class LogUtil {
     event = ensureLoggingEvent(event);
     
     if (null != name && null != value) {
-      try {
-        event.putToAttributes(name, JsonUtils.ObjectToJson(value, true));
-      } catch (IOException e) {
-        event.putToAttributes(name, "Could not JSONify: " + value);
-      }
+      JsonSerializer ser = new JsonSerializerFactory().create();    
+      event.putToAttributes(name, ser.serialize(value).toString());
     }
     
     return event;
@@ -111,7 +107,7 @@ public class LogUtil {
       serialized = CryptoUtils.wrap(loggingAESKey, serialized);
     }
     
-    return new String(OrderPreservingBase64.encode(serialized), Charsets.US_ASCII); 
+    return new String(OrderPreservingBase64.encode(serialized), StandardCharsets.US_ASCII);
   }
   
   public static final LoggingEvent setLoggingEventStackTrace(LoggingEvent event, String name, Throwable t) {
@@ -193,7 +189,7 @@ public class LogUtil {
   
   public static final LoggingEvent unwrapLog(byte[] key, String logmsg) {    
     try {
-      byte[] data = OrderPreservingBase64.decode(logmsg.getBytes(Charsets.US_ASCII));
+      byte[] data = OrderPreservingBase64.decode(logmsg.getBytes(StandardCharsets.US_ASCII));
       
       if (null == data) {
         return null;      

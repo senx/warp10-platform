@@ -21,6 +21,7 @@ import io.warp10.continuum.store.Directory;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -33,8 +34,6 @@ import org.apache.hadoop.hbase.KeyValueUtil;
 import org.apache.hadoop.hbase.exceptions.DeserializationException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
-
-import com.google.common.base.Charsets;
 
 /**
  * Filter used by Directory to select rows
@@ -53,7 +52,7 @@ public class DirectoryRowFilter extends FilterBase {
   /**
    * row key prefix for metadata
    */
-  public static final byte[] HBASE_METADATA_KEY_PREFIX = "M".getBytes(Charsets.UTF_8);
+  public static final byte[] HBASE_METADATA_KEY_PREFIX = "M".getBytes(StandardCharsets.UTF_8);
   
   static {
     sun.misc.Unsafe unsafe = null;

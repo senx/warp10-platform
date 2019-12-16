@@ -18,9 +18,9 @@ package io.warp10.script.formatted;
 
 import io.warp10.WarpConfig;
 import io.warp10.script.*;
-import org.junit.BeforeClass;
-import org.junit.Test;
 import io.warp10.script.formatted.FormattedWarpScriptFunction.Arguments;
+import io.warp10.script.functions.TYPEOF;
+import org.junit.BeforeClass;
 
 import java.io.*;
 import java.lang.reflect.Method;
@@ -33,8 +33,12 @@ import java.util.*;
  * Generate initial .mc2 doc files of instances of FormattedWarpScriptFunction
  * Execute this file to perform its Unit tests
  * Assert that a map is returned in INFOMODE
+ *
+ * Can be extended by WarpScript extensions
  */
 public class RunAndGenerateDocumentationWithUnitTests {
+
+  protected static final String OUTPUT_FOLDER_KEY = "generated.documentation.output.folder";
 
   //
   // Set WRITE to false if only for unit tests
@@ -63,6 +67,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
     //TAGS.add("tensors");
   }
   private static boolean MAKE_FUNCTIONS_RELATED_WITHIN_SAME_PACKAGE = true;
+  private static List<String> RELATED = new ArrayList<>();
   private static String SINCE = "2.1";
   private static String DEPRECATED = "";
   private static String DELETED = "";
@@ -72,22 +77,44 @@ public class RunAndGenerateDocumentationWithUnitTests {
   // outputs, examples, tags and related are retrieved in each instance of FormattedWarpScriptFunction if they were set
   //
 
+  //
+  // Getters that can be overridden by subclasses
+  //
+
+  protected boolean WRITE() {return WRITE;}
+  protected String OUTPUT_FOLDER() {return WarpConfig.getProperty(OUTPUT_FOLDER_KEY);}
+  protected boolean OVERWRITE() {return OVERWRITE;}
+  protected String VERSION() {return VERSION;}
+  protected List<String> TAGS() {return TAGS;}
+  protected boolean MAKE_FUNCTIONS_RELATED_WITHIN_SAME_PACKAGE() {return MAKE_FUNCTIONS_RELATED_WITHIN_SAME_PACKAGE;}
+  protected List<String> RELATED() {return RELATED;}
+  protected String SINCE() {return SINCE;}
+  protected String DEPRECATED() {return DEPRECATED;}
+  protected String DELETED() {return DELETED;}
+  protected List<String> CONF() {return CONF;}
+
+  //
+  // Tests
+  //
+
   @BeforeClass
-  public static void beforeClass() throws Exception {
+  final public static void beforeClass() throws Exception {
     StringBuilder props = new StringBuilder();
 
     props.append("warp.timeunits=us");
     WarpConfig.safeSetProperties(new StringReader(props.toString()));
   }
 
-  //@Ignore
-  @Test
-  public void generate() throws Exception {;
+  final protected void generate(List<String> functionNames) throws Exception {
+
+    if (null == OUTPUT_FOLDER()) {
+      WarpConfig.setProperty(OUTPUT_FOLDER_KEY, OUTPUT_FOLDER);
+    }
+
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
     stack.maxLimits();
-    stack.exec("INFOMODE");
+    stack.exec(WarpScriptLib.INFOMODE);
 
-    List<String> functionNames = WarpScriptLib.getFunctionNames();
     Collections.sort(functionNames);
 
     for (String name : functionNames) {
@@ -129,7 +156,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
         }
 
         // tags
-        List<String> tags = new ArrayList<>(TAGS);
+        List<String> tags = new ArrayList<>(TAGS());
         for (Method m: function.getClass().getDeclaredMethods()) {
           if (m.getName().equals("getTags")) {
             m.setAccessible(true);
@@ -142,12 +169,13 @@ public class RunAndGenerateDocumentationWithUnitTests {
         }
 
         // related
-        List<String> related = new ArrayList<>();
-        if (MAKE_FUNCTIONS_RELATED_WITHIN_SAME_PACKAGE) {
+        List<String> related;
+        if (MAKE_FUNCTIONS_RELATED_WITHIN_SAME_PACKAGE()) {
           related = getRelatedClasses(function.getClass().getClassLoader(), function.getClass().getPackage().getName());
-          related.remove("");
-          related.remove(name);
+        } else {
+          related = RELATED();
         }
+        related.remove(name);
         for (Method m: function.getClass().getDeclaredMethods()) {
           if (m.getName().equals("getRelated")) {
             m.setAccessible(true);
@@ -165,8 +193,8 @@ public class RunAndGenerateDocumentationWithUnitTests {
 
         try {
 
-          mc2 = DocumentationGenerator.generateWarpScriptDoc((FormattedWarpScriptFunction) function, SINCE, DEPRECATED, DELETED, VERSION,
-            tags, related, examples, CONF, output);
+          mc2 = DocumentationGenerator.generateWarpScriptDoc((FormattedWarpScriptFunction) function, SINCE(), DEPRECATED(), DELETED(), VERSION(),
+            tags, related, examples, CONF(), output);
 
           boolean caught = false;
           try {
@@ -175,7 +203,8 @@ public class RunAndGenerateDocumentationWithUnitTests {
             // Pass warpscript unit tests and push info map
             //
 
-            stack.execMulti(mc2 + " EVAL");
+            stack.execMulti(mc2);
+            stack.exec(WarpScriptLib.EVAL);
           }
           catch (WarpScriptStopException wse) {
 
@@ -184,7 +213,16 @@ public class RunAndGenerateDocumentationWithUnitTests {
             //
 
             caught = true;
-            stack.exec(" DEPTH 1 == ASSERT TYPEOF 'MAP' == ASSERT");
+
+            stack.exec(WarpScriptLib.DEPTH);
+            stack.push(1L);
+            stack.exec(WarpScriptLib.EQ);
+            stack.exec(WarpScriptLib.ASSERT);
+            
+            stack.exec(WarpScriptLib.TYPEOF);
+            stack.push(TYPEOF.typeof(Map.class));
+            stack.exec(WarpScriptLib.EQ);
+            stack.exec(WarpScriptLib.ASSERT);
           }
           if (!caught) {
             throw new WarpScriptException("Infomode failed to stop.");
@@ -193,10 +231,10 @@ public class RunAndGenerateDocumentationWithUnitTests {
           e.printStackTrace();
         }
 
-        if (WRITE) {
-          String path = OUTPUT_FOLDER + name + ".mc2";
+        if (WRITE()) {
+          String path = OUTPUT_FOLDER() + WarpScriptLib.getFunction(name).getClass().getSimpleName().toUpperCase() + ".mc2";
           File file = new File(path);
-          if (OVERWRITE || !file.exists()) {
+          if (OVERWRITE() || !file.exists()) {
             try {
               Files.write(Paths.get(path), mc2.getBytes());
             } catch (IOException e) {
@@ -209,7 +247,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
     }
   }
 
-  private static List<String> getRelatedClasses(ClassLoader cl, String pack) throws Exception{
+  public static List<String> getRelatedClasses(ClassLoader cl, String pack) throws Exception {
 
     String dottedPackage = pack.replaceAll("[/]", ".");
     List<String> classNames = new ArrayList<>();
@@ -219,7 +257,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
     DataInputStream dis = new DataInputStream((InputStream) upackage.getContent());
     String line = null;
     while ((line = dis.readLine()) != null) {
-      if(line.endsWith(".class")) {
+      if(line.endsWith(".class") && !line.contains("$")) {
         classNames.add(Class.forName(dottedPackage+"."+line.substring(0,line.lastIndexOf('.'))).getSimpleName());
       }
     }
