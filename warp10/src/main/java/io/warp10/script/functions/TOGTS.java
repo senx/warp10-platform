@@ -161,7 +161,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
           enforcedType = typeMap.get(decoder.getName());
         } else {
           //look for regexp in typeMap
-          for (Entry<String,String> entry:typeMap.entrySet()) {
+          for (Entry<String, String> entry: typeMap.entrySet()) {
             if (entry.getKey().startsWith("~")) {
               Pattern pattern = Pattern.compile(entry.getKey().substring(1));
               if (pattern.matcher(decoder.getName()).find()) {
