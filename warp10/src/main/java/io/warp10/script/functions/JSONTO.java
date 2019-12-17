@@ -46,15 +46,12 @@ public class JSONTO extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException(getName() + " expects a string on top of the stack.");
     }
     
-    Object json = null;
-    
     try {
-      json = JsonUtils.JsonToObject(o.toString(), false);
+      Object json = JsonUtils.jsonToObject(o.toString());
+      stack.push(transform(json));
     } catch (IOException ioe) {
       throw new WarpScriptException(getName() + "failed to parse JSON", ioe);
     }
-
-    stack.push(transform(json));
 
     return stack;
   }

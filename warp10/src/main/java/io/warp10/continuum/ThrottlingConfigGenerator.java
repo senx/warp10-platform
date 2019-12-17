@@ -34,6 +34,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -234,7 +235,7 @@ public class ThrottlingConfigGenerator {
     
     br.close();
     
-    Object json = JsonUtils.JsonToObject(sb.toString(), true);
+    Object json = JsonUtils.jsonToObject(sb.toString());
     
     String str = ((List) json).get(0).toString();
     

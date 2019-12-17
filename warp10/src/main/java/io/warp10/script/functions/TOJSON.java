@@ -17,6 +17,7 @@
 package io.warp10.script.functions;
 
 import io.warp10.JsonUtils;
+import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -50,14 +51,12 @@ public class TOJSON extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException(getName() + " can only serialize structures containing numbers, strings, booleans, lists and maps which do not reference the same list/map multiple times.");
     }
 
-    String json = null;
     try {
-      json = JsonUtils.ObjectToJson(o, false);
+      String json = JsonUtils.objectToJson(o);
+      stack.push(json);
     } catch (IOException ioe) {
       throw new WarpScriptException(getName() + " failed with to convert to JSON.", ioe);
     }
-
-    stack.push(json);
 
     return stack;
   }
@@ -81,7 +80,7 @@ public class TOJSON extends NamedWarpScriptFunction implements WarpScriptStackFu
     int idx = 0;
 
 
-    if (null == o || o instanceof Number || o instanceof String || o instanceof Boolean) {
+    if (null == o || o instanceof Number || o instanceof String || o instanceof Boolean || o instanceof GeoTimeSerie) {
       return true;
     }
 
@@ -90,13 +89,13 @@ public class TOJSON extends NamedWarpScriptFunction implements WarpScriptStackFu
     while (idx < elements.size()) {
       Object obj = elements.get(idx++);
 
-      if (obj instanceof Number || obj instanceof String || obj instanceof Boolean) {
+      if (obj instanceof Number || obj instanceof String || obj instanceof Boolean || obj instanceof GeoTimeSerie) {
         continue;
       }
 
       if (obj instanceof List) {
         for (Object elt: (List) obj) {
-          if (null == elt || elt instanceof Number || elt instanceof String || elt instanceof Boolean) {
+          if (null == elt || elt instanceof Number || elt instanceof String || elt instanceof Boolean || elt instanceof GeoTimeSerie) {
             continue;
           } else if (elt instanceof List || elt instanceof Map) {
             // Check that the given list/map is not already in the structure
@@ -111,8 +110,7 @@ public class TOJSON extends NamedWarpScriptFunction implements WarpScriptStackFu
       } else if (obj instanceof Map) {
         for (Entry<Object, Object> entry: ((Map<Object, Object>) obj).entrySet()) {
           Object elt = entry.getKey();
-          // TODO(tce): be careful with null keys as they are converted to empty strings with boon but may not for other libraries
-          if (null == elt || elt instanceof Number || elt instanceof String || elt instanceof Boolean) {
+          if (null == elt || elt instanceof Number || elt instanceof String || elt instanceof Boolean || elt instanceof GeoTimeSerie) {
             // Ignore keys which are atomic like types
           } else if (elt instanceof List || elt instanceof Map) {
             // Check that the given list/map is not already in the structure
@@ -124,7 +122,7 @@ public class TOJSON extends NamedWarpScriptFunction implements WarpScriptStackFu
             return false;
           }
           elt = entry.getValue();
-          if (null == elt || elt instanceof Number || elt instanceof String || elt instanceof Boolean) {
+          if (null == elt || elt instanceof Number || elt instanceof String || elt instanceof Boolean || elt instanceof GeoTimeSerie) {
             continue;
           } else if (elt instanceof List || elt instanceof Map) {
             // Check that the given list/map is not already in the structure

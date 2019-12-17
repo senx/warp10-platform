@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.egress;
 
+import io.warp10.JsonUtils;
 import io.warp10.ThrowableUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
@@ -28,7 +29,6 @@ import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
 import io.warp10.quasar.token.thrift.data.ReadToken;
-import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.functions.PARSESELECTOR;
 import io.warp10.sensision.Sensision;
@@ -212,7 +212,7 @@ public class EgressFindHandler extends AbstractHandler {
                 } else {
                   first = false;
                 }
-                StackUtils.objectToJSON(pw, metadata, level, true);
+                JsonUtils.objectToJson(pw, metadata, level, true);
                 continue;
               }
               

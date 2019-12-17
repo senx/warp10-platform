@@ -403,7 +403,7 @@ public class ExportFunctions {
     output.put("constants", constants);
     output.put("structures", structures);
 
-    System.out.println(JsonUtils.ObjectToJson(output, true));
+    System.out.println(JsonUtils.objectToJson(output, true));
 
     // -------------------------------
     // ---- COUNT TOTAL FOUNCTIONS ---

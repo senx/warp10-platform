@@ -21,8 +21,8 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.warp10.JsonUtils;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -63,7 +63,7 @@ public class PSTACK extends NamedWarpScriptFunction implements WarpScriptStackFu
       StringWriter sw = new StringWriter();
       PrintWriter pw = new PrintWriter(sw);
       try {
-        StackUtils.objectToJSON(pw, o, recursionLevel, false);
+        JsonUtils.objectToJson(pw, o, recursionLevel, false);
       } catch (IOException ioe) {
         throw new WarpScriptException(ioe);
       }

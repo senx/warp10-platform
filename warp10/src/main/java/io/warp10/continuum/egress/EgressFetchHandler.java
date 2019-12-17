@@ -1338,8 +1338,7 @@ public class EgressFetchHandler extends AbstractHandler {
           
           sb.append("{\"c\":");
       
-          //sb.append(gson.toJson(name));
-          sb.append(serializer.serialize(name));
+          sb.append(JsonUtils.objectToJson(name));
 
           boolean first = true;
           
@@ -1362,11 +1361,9 @@ public class EgressFetchHandler extends AbstractHandler {
               sb.append(",");
             }
             
-            //sb.append(gson.toJson(entry.getKey()));
-            sb.append(serializer.serialize(entry.getKey()));
+            sb.append(JsonUtils.objectToJson(entry.getKey()));
             sb.append(":");
-            //sb.append(gson.toJson(entry.getValue()));
-            sb.append(serializer.serialize(entry.getValue()));
+            sb.append(JsonUtils.objectToJson(entry.getValue()));
             first = false;
           }
           sb.append("}");
@@ -1379,11 +1376,9 @@ public class EgressFetchHandler extends AbstractHandler {
               sb.append(",");
             }
             
-            //sb.append(gson.toJson(entry.getKey()));
-            sb.append(serializer.serialize(entry.getKey()));
+            sb.append(JsonUtils.objectToJson(entry.getKey()));
             sb.append(":");
-            //sb.append(gson.toJson(entry.getValue()));
-            sb.append(serializer.serialize(entry.getValue()));
+            sb.append(JsonUtils.objectToJson(entry.getValue()));
             first = false;
           }
           
@@ -1448,7 +1443,7 @@ public class EgressFetchHandler extends AbstractHandler {
             pw.print(Boolean.TRUE.equals(value) ? "true" : "false");
           } else {
             //pw.print(gson.toJson(value.toString()));
-            pw.print(JsonUtils.ObjectToJson(value.toString(), true));
+            pw.print(JsonUtils.objectToJson(value.toString()));
           }
           pw.print("]");
         } while (decoder.next());        

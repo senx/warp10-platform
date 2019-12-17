@@ -705,7 +705,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
                 } else {
                   sb.append(",");                
                 }
-                sb.append(JsonUtils.ObjectToJson(json, true));
+                sb.append(JsonUtils.objectToJson(json));
                 
                 first = false;
               } else {

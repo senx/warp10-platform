@@ -19,8 +19,6 @@ package io.warp10.script;
 import io.warp10.FloatUtils;
 import io.warp10.JsonUtils;
 import io.warp10.WarpURLEncoder;
-import io.warp10.continuum.gts.GTSDecoder;
-import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.UnsafeString;
@@ -53,215 +51,37 @@ public class StackUtils {
   public static void toJSON(PrintWriter out, WarpScriptStack stack, int maxdepth) throws WarpScriptException {
     
     boolean strictJSON = Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_JSON_STRICT));
-    
+
     AtomicInteger recursionLevel = new AtomicInteger(0);
-    
+
     int depth = Math.min(stack.depth(), maxdepth);
-    
+
     out.print("[");
-    
+
     boolean first = true;
-    
+
     for (int i = 0; i < depth; i++) {
-      
+
       if (!first) {
         out.print(",");
       }
       first = false;
-      
+
       try {
         Object o = stack.get(i);
-        
-        objectToJSON(out, o, recursionLevel, strictJSON);
+
+        JsonUtils.objectToJson(out, o, recursionLevel, strictJSON);
       } catch (WarpScriptException | IOException ee) {
       }
     }
-    
+
     out.print("]");
   }
 
   public static void toJSON(PrintWriter out, WarpScriptStack stack) throws WarpScriptException {
     toJSON(out, stack, Integer.MAX_VALUE);
   }
-  
-  public static void objectToJSON(PrintWriter out, Object o, AtomicInteger recursionLevel, boolean strictJSON) throws IOException {
-    
-    if (recursionLevel.addAndGet(1) > WarpScriptStack.DEFAULT_MAX_RECURSION_LEVEL && ((o instanceof Map) || (o instanceof List) || (o instanceof Macro))) {
-      out.write(" ...NESTED_CONTENT_REMOVED... ");
-      recursionLevel.addAndGet(-1);
-      return;
-    }
 
-    if (strictJSON && (o instanceof Double && (Double.isNaN((double) o) || Double.isInfinite((double) o)))) {
-      out.print("null");
-    } else if (strictJSON && (o instanceof Float && (Float.isNaN((float) o) || Float.isInfinite((float) o)))) {
-      out.print("null");
-    } else if (o instanceof Number || o instanceof String || o instanceof Boolean) {
-      //out.print(gson.toJson(o));
-      out.print(JsonUtils.ObjectToJson(o, strictJSON));
-    } else if (o instanceof Map) {
-      out.print("{");
-      boolean first = true;
-      for (Map.Entry keyAndValue: ((Map<?, ?>) o).entrySet()) {
-        Object key = keyAndValue.getKey();
-        if (!first) {
-          out.print(",");
-        }
-        if (null != key) {
-          //out.print(gson.toJson(key.toString()));
-          out.print(JsonUtils.ObjectToJson(key.toString(), strictJSON));
-        } else {
-          out.print("null");
-        }
-        out.print(":");
-        objectToJSON(out, keyAndValue.getValue(), recursionLevel, strictJSON);
-        first = false;
-      }
-      out.print("}");
-    } else if (o instanceof List) {
-      out.print("[");
-      boolean first  = true;
-      for (Object elt: ((List) o)) {
-        if (!first) {
-          out.print(",");
-        }
-        objectToJSON(out, elt, recursionLevel, strictJSON);
-        first = false;
-      }
-      out.print("]");    
-    } else if (o instanceof GeoTimeSerie) {
-      out.print("{");
-      out.print("\"c\":");
-      //out.print(gson.toJson(((GeoTimeSerie) o).getMetadata().getName()));
-      String name = ((GeoTimeSerie) o).getMetadata().getName();
-      if (null == name) {
-        name = "";
-      }
-      out.print(JsonUtils.ObjectToJson(name, strictJSON));
-      out.print(",\"l\":");
-      objectToJSON(out, ((GeoTimeSerie) o).getMetadata().getLabels(), recursionLevel, strictJSON);
-      out.print(",\"a\":");
-      objectToJSON(out, ((GeoTimeSerie) o).getMetadata().getAttributes(), recursionLevel, strictJSON);
-      out.print(",\"la\":");
-      objectToJSON(out, ((GeoTimeSerie) o).getMetadata().getLastActivity(), recursionLevel, strictJSON);
-      out.print(",\"v\":[");
-      boolean first = true;
-      for (int i = 0; i < ((GeoTimeSerie) o).size(); i++) {
-        if (!first) {
-          out.print(",");
-        }
-        long ts = GTSHelper.tickAtIndex((GeoTimeSerie) o, i);
-        long location = GTSHelper.locationAtIndex((GeoTimeSerie) o, i);
-        long elevation = GTSHelper.elevationAtIndex((GeoTimeSerie) o, i);
-        Object v = GTSHelper.valueAtIndex((GeoTimeSerie) o, i);
-        out.print("[");
-        out.print(ts);
-        if (GeoTimeSerie.NO_LOCATION != location) {
-          double[] latlon = GeoXPLib.fromGeoXPPoint(location);
-          out.print(",");
-          out.print(latlon[0]);
-          out.print(",");
-          out.print(latlon[1]);
-        }
-        if (GeoTimeSerie.NO_ELEVATION != elevation) {
-          out.print(",");
-          out.print(elevation);
-        }
-        out.print(",");
-        //out.print(gson.toJson(v));
-        if (strictJSON && (v instanceof Double) && (Double.isNaN((double) v) || Double.isInfinite((double) v))) {
-          out.print("null");
-        } else {
-          out.print(JsonUtils.ObjectToJson(v, strictJSON));
-        }
-        out.print("]");
-        first = false;
-      }
-      out.print("]");
-      out.print("}");
-    } else if (o instanceof GTSEncoder) {
-      out.print("{");
-      out.print("\"c\":");
-      //out.print(gson.toJson(((GeoTimeSerie) o).getMetadata().getName()));
-      String name = ((GTSEncoder) o).getMetadata().getName();
-      if (null == name) {
-        name = "";
-      }
-      out.print(JsonUtils.ObjectToJson(name, strictJSON));
-      out.print(",\"l\":");
-      objectToJSON(out, ((GTSEncoder) o).getMetadata().getLabels(), recursionLevel, strictJSON);
-      out.print(",\"a\":");
-      objectToJSON(out, ((GTSEncoder) o).getMetadata().getAttributes(), recursionLevel, strictJSON);
-      out.print(",\"v\":[");
-      boolean first = true;
-      GTSDecoder decoder = ((GTSEncoder) o).getUnsafeDecoder(false);
-      while(decoder.next()) {
-        if (!first) {
-          out.print(",");
-        }
-        long ts = decoder.getTimestamp();
-        long location = decoder.getLocation();
-        long elevation = decoder.getElevation();
-        // We do not call getBinaryValue because JSON cannot represent byte arrays
-        Object v = decoder.getValue();
-        out.print("[");
-        out.print(ts);
-        if (GeoTimeSerie.NO_LOCATION != location) {
-          double[] latlon = GeoXPLib.fromGeoXPPoint(location);
-          out.print(",");
-          out.print(latlon[0]);
-          out.print(",");
-          out.print(latlon[1]);
-        }
-        if (GeoTimeSerie.NO_ELEVATION != elevation) {
-          out.print(",");
-          out.print(elevation);
-        }
-        out.print(",");
-        //out.print(gson.toJson(v));
-        if (strictJSON && (v instanceof Double) && (Double.isNaN((double) v) || Double.isInfinite((double) v))) {
-          out.print("null");
-        } else {
-          out.print(JsonUtils.ObjectToJson(v, strictJSON));
-        }
-        out.print("]");
-        first = false;
-      }
-      out.print("]");
-      out.print("}");
-      
-    } else if (o instanceof Metadata) {
-      out.print("{");
-      out.print("\"c\":");
-      out.print(JsonUtils.ObjectToJson(((Metadata) o).getName(), strictJSON));
-      out.print(",\"l\":");
-      objectToJSON(out, ((Metadata) o).getLabels(), recursionLevel, strictJSON);
-      out.print(",\"a\":");
-      objectToJSON(out, ((Metadata) o).getAttributes(), recursionLevel, strictJSON);
-      out.print("}");
-    //} else if (o instanceof JsonArray || o instanceof JsonElement || o instanceof JsonBuilder) {
-    //  out.print(o.toString());
-    } else if (o instanceof Macro) {
-      //out.print(gson.toJson(o.toString()));
-      out.print(JsonUtils.ObjectToJson(o.toString(), strictJSON));
-    } else if (o instanceof NamedWarpScriptFunction) {
-      StringBuilder sb = new StringBuilder();
-      sb.append(WarpScriptStack.MACRO_START);
-      sb.append(" ");
-      sb.append(o.toString());
-      sb.append(" ");
-      sb.append(WarpScriptStack.MACRO_END);
-      sb.append(" ");
-      sb.append(WarpScriptLib.EVAL);
-      //out.print(gson.toJson(sb.toString()));
-      out.print(JsonUtils.ObjectToJson(sb.toString(), strictJSON));
-    } else {
-      out.print("null");
-    }
-    
-    recursionLevel.addAndGet(-1);
-  }
-  
   /**
    * Sanitize a script instance, removing comments etc.
    * Inspired by MemoryWarpScriptStack#exec
@@ -370,7 +190,7 @@ public class StackUtils {
   }
   
   /**
-   * Convert an object into a representation suitable for interacting with external functions.
+   * Convert an object into a representation suitable for interacting with externarecursionLevell functions.
    * 
    * The supported types are:
    * 

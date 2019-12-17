@@ -2359,7 +2359,7 @@ public class GTSHelper {
 
   public static GTSEncoder parseJSON(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now) throws IOException, ParseException {
     
-    Map<String,Object> o = (Map<String,Object>) JsonUtils.JsonToObject(str, true);
+    Map<String,Object> o = (Map<String,Object>) JsonUtils.jsonToObject(str);
     
     String name = (String) o.get("c");
     Map<String,String> labels = (Map<String,String>) o.get("l");
