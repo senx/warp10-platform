@@ -35,9 +35,11 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Pattern;
 
 /**
  * Converts an encoder into a map of gts, one per type
@@ -55,7 +57,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
     Object top = stack.pop();
 
     if (top instanceof Map) {
-      typeMap = new HashMap<>();
+      typeMap = new LinkedHashMap<>();
       // this is a map to specify type by name, it should contain valid types
       for (Map.Entry<Object, Object> entry: ((Map<Object, Object>) top).entrySet()) {
         if (!(entry.getKey() instanceof String)) {
@@ -145,6 +147,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     // if there is a type map on the stack:
     //  - if the encoder name is inside the map keys, the gts will have the corresponding type.
+    //  - if the encoder name is not inside the map keys, look at regexp inside the map keys, stop at first match.
     //  - if the encoder name is not inside the map keys, the gts will have the type of the first encountered element in the encoder.
     // GTSHelper.setValue will try to convert values whenever possible
     // a byte array will be serialized as an ISO-8859-1 string.
@@ -153,8 +156,22 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
       for (GTSDecoder decoder: decodersInput) {
         GeoTimeSerie gts = new GeoTimeSerie();
         gts.setMetadata(decoder.getMetadata());
+        String enforcedType = null;
         if (typeMap.containsKey(decoder.getName())) {
-          String enforcedType = typeMap.get(decoder.getName());
+          enforcedType = typeMap.get(decoder.getName());
+        } else {
+          //look for regexp in typeMap
+          for (Entry<String,String> entry:typeMap.entrySet()) {
+            if (entry.getKey().startsWith("~")) {
+              Pattern pattern = Pattern.compile(entry.getKey().substring(1));
+              if (pattern.matcher(decoder.getName()).find()) {
+                enforcedType = entry.getValue();
+                break;
+              }
+            }
+          }
+        }
+        if (enforcedType != null) {
           if (enforcedType.equals("DOUBLE")) {
             gts.setType(GeoTimeSerie.TYPE.DOUBLE);
           } else if (enforcedType.equals("LONG")) {
