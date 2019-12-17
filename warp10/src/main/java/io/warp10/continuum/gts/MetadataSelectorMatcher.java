@@ -3,7 +3,6 @@ package io.warp10.continuum.gts;
 
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.script.WarpScriptException;
-import org.boon.Str;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
