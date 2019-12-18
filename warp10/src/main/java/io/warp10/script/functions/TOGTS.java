@@ -164,6 +164,9 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
           if (entry.getValue().MetaDataMatch(decoder.getMetadata())) {
             enforcedType = entry.getKey();
           }
+          if (null!=enforcedType) {
+            break;
+          }
         }
         if (enforcedType != null) {
           if ("DOUBLE".equals(enforcedType)) {
