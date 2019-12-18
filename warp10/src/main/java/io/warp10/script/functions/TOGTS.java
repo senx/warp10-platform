@@ -86,7 +86,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
     if (top instanceof List) {
       for (Object o: (List) top) {
         if (!(o instanceof String) && !(o instanceof byte[]) && !(o instanceof GTSEncoder)) {
-          throw new WarpScriptException(getName() + " operates on a string, a byte array, an encoder, or list of thereof.");
+          throw new WarpScriptException(getName() + " operates on a string, a byte array, an encoder, or list thereof.");
         }
         decodersInput.add(getDecoderFromObject(o));
       }
@@ -94,7 +94,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
     } else if (top instanceof String || top instanceof byte[] || top instanceof GTSEncoder) {
       decodersInput.add(getDecoderFromObject(top));
     } else {
-      throw new WarpScriptException(getName() + " operates on a string, a byte array, an encoder, or list of thereof.");
+      throw new WarpScriptException(getName() + " operates on a string, a byte array, an encoder, or list thereof.");
     }
 
     // if there is no type map, the output is a map of GTS (v2.3.0 signature), or a map of lists of GTS
