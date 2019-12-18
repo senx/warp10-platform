@@ -23,7 +23,6 @@ import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.MetadataSelectorMatcher;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
-import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -41,7 +40,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.regex.Pattern;
 
 /**
  * Converts an encoder into a map of gts, one per type
@@ -186,6 +184,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
           }
           GTSHelper.setValue(gts, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), value, false);
         }
+        // exit here if input is not a list.
         if (!listInput) {
           stack.push(gts);
           return stack;
@@ -197,6 +196,12 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
     return stack;
   }
 
+  /**
+   * try to decode an encoder from its opb64 string representation or its byte array representation.
+   * @param o string, encoder, or byte array
+   * @return a GTSDecoder object
+   * @throws WarpScriptException
+   */
   private GTSDecoder getDecoderFromObject(Object o) throws WarpScriptException {
     GTSDecoder decoder;
     if (o instanceof GTSEncoder) {
