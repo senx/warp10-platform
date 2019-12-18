@@ -60,7 +60,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     if (top instanceof Map) {
       typeMap = new LinkedHashMap<>();
-      // this is a map to specify type by name, it should contain valid types
+      // this is a map to specify type by selector. MetadataSelectorMatcher are build once here.
       for (Map.Entry<Object, Object> entry: ((Map<Object, Object>) top).entrySet()) {
         if (!(entry.getValue() instanceof String)) {
           throw new WarpScriptException(getName() + " type MAP input must contains selector string as values.");
