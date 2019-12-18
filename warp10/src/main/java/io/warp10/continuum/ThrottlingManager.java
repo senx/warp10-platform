@@ -766,7 +766,7 @@ public class ThrottlingManager {
                   entity = uuid.toString().toLowerCase();
                 } else {
                   // Remove leading '+' and decode application name which may be URL encoded
-                  entity = WarpURLDecoder.decode(entity.substring(1), StandardCharsets.UTF_8));
+                  entity = WarpURLDecoder.decode(entity.substring(1), StandardCharsets.UTF_8);
                 }
                 
                 if ("-".equals(estimator)) {

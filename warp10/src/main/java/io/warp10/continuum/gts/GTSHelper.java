@@ -3641,8 +3641,12 @@ public class GTSHelper {
       String name = subtokens[0];
       String value = subtokens.length > 1 ? subtokens[1] : "";
 
-      name = WarpURLDecoder.decode(name, StandardCharsets.UTF_8);
-      value = WarpURLDecoder.decode(value, StandardCharsets.UTF_8);
+      try {
+        name = WarpURLDecoder.decode(name, StandardCharsets.UTF_8);
+        value = WarpURLDecoder.decode(value, StandardCharsets.UTF_8);
+      } catch (UnsupportedEncodingException uee) {
+        // Can't happen since we are using a standard JVM charset
+      }
             
       result.put(name, (exact ? "=" : "~") + value);
     }
@@ -3667,7 +3671,11 @@ public class GTSHelper {
     
     Map<String,Pattern> patterns = new HashMap<String,Pattern>();
     
-    classSelector = WarpURLDecoder.decode(classSelector, StandardCharsets.UTF_8);
+    try {
+      classSelector = WarpURLDecoder.decode(classSelector, StandardCharsets.UTF_8);
+    } catch (UnsupportedEncodingException uee) {
+      // Can't happen since we are using a standard JVM charset
+    }
     
     if ('=' == classSelector.charAt(0)) {
       patterns.put(null, Pattern.compile(Pattern.quote(classSelector.substring(1))));            
