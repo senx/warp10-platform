@@ -21,6 +21,7 @@ import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.continuum.gts.MetadataSelectorMatcher;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.OrderPreservingBase64;
@@ -54,25 +55,25 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    Map<String, String> typeMap = null;
+    Map<String, MetadataSelectorMatcher> typeMap = null;
     Object top = stack.pop();
 
     if (top instanceof Map) {
       typeMap = new LinkedHashMap<>();
       // this is a map to specify type by name, it should contain valid types
       for (Map.Entry<Object, Object> entry: ((Map<Object, Object>) top).entrySet()) {
-        if (!(entry.getKey() instanceof String)) {
-          throw new WarpScriptException(getName() + " type MAP input must contains encoder name as keys.");
+        if (!(entry.getValue() instanceof String)) {
+          throw new WarpScriptException(getName() + " type MAP input must contains selector string as values.");
         }
-        if (entry.getValue() instanceof String) {
-          String t = (String) entry.getValue();
-          if (t.equals("LONG") || t.equals("DOUBLE") || t.equals("BOOLEAN") || t.equals("STRING")) {
-            typeMap.put((String) entry.getKey(), (String) entry.getValue());
+        if (entry.getKey() instanceof String) {
+          String t = (String) entry.getKey();
+          if ("LONG".equals(t) || "DOUBLE".equals(t) || "BOOLEAN".equals(t) || "STRING".equals(t)) {
+            typeMap.put((String) entry.getKey(), new MetadataSelectorMatcher((String) entry.getValue()));
           } else {
-            throw new WarpScriptException(getName() + " type MAP input must contains valid types as value (LONG, DOUBLE, BOOLEAN or STRING).");
+            throw new WarpScriptException(getName() + " type MAP input must contains valid types as key (LONG, DOUBLE, BOOLEAN or STRING).");
           }
         } else {
-          throw new WarpScriptException(getName() + " type MAP input must contains valid types as value (LONG, DOUBLE, BOOLEAN or STRING).");
+          throw new WarpScriptException(getName() + " type MAP input must contains valid types as key (LONG, DOUBLE, BOOLEAN or STRING).");
         }
       }
       top = stack.pop();
@@ -159,19 +160,19 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
         GeoTimeSerie gts = new GeoTimeSerie();
         gts.setMetadata(decoder.getMetadata());
         String enforcedType = null;
-        for (Entry<String, String> entry: typeMap.entrySet()) {
-          if (metadataMatchSelector(decoder.getMetadata(), entry.getKey())) {
-            enforcedType = entry.getValue();
+        for (Entry<String, MetadataSelectorMatcher> entry: typeMap.entrySet()) {
+          if (entry.getValue().MetaDataMatch(decoder.getMetadata())) {
+            enforcedType = entry.getKey();
           }
         }
         if (enforcedType != null) {
-          if (enforcedType.equals("DOUBLE")) {
+          if ("DOUBLE".equals(enforcedType)) {
             gts.setType(GeoTimeSerie.TYPE.DOUBLE);
-          } else if (enforcedType.equals("LONG")) {
+          } else if ("LONG".equals(enforcedType)) {
             gts.setType(GeoTimeSerie.TYPE.LONG);
-          } else if (enforcedType.equals("STRING")) {
+          } else if ("STRING".equals(enforcedType)) {
             gts.setType(GeoTimeSerie.TYPE.STRING);
-          } else if (enforcedType.equals("BOOLEAN")) {
+          } else if ("BOOLEAN".equals(enforcedType)) {
             gts.setType(GeoTimeSerie.TYPE.BOOLEAN);
           }
         }
@@ -211,70 +212,4 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
     return decoder;
   }
 
-  /**
-   * Returns true when the metadata match the selector.
-   *
-   * @param metadata Encoder/GeoTimeSerie metadata
-   * @param selector Standard WarpScript selector, i.e. "~.*temperature{room=A,sensorplace~(ceil|roof)}"
-   * @return true when metadata's classname, labels and attributes fits the selector.
-   * @throws WarpScriptException
-   */
-  public boolean metadataMatchSelector(Metadata metadata, String selector) throws WarpScriptException {
-
-    // PARSESELECTOR.parse() returns a string and a map. handle the url encoding.
-    Object[] selectors = PARSESELECTOR.parse(selector);
-    if (!(selectors[0] instanceof String) || !(selectors[1] instanceof Map)) {
-      throw new WarpScriptException(getName() + " expects valid selectors in the type MAP.");
-    }
-    String classSelector = (String) selectors[0];
-    Map<String, String> labelSelector = (Map) selectors[1];
-
-    //check classname match
-    boolean classMatch = classSelector.equals("~.*")
-        || (classSelector.equals(metadata.getName()))
-        || (classSelector.startsWith("=") && metadata.getName().equals(classSelector.substring(1)))
-        || (classSelector.startsWith("~") && Pattern.compile(classSelector.substring(1)).matcher(metadata.getName()).matches());
-
-    //check labels and attributes match
-    boolean labelsMatch = (labelSelector.size() == 0);
-    if (classMatch && !labelsMatch) {
-      //build patterns from label selector map.
-      Map labelPatterns = new HashMap<String, Pattern>();
-      for (Entry<String, String> entry: labelSelector.entrySet()) {
-        Pattern pattern;
-        if (entry.getValue().startsWith("=")) {
-          pattern = Pattern.compile(Pattern.quote(entry.getValue().substring(1)));
-        } else if (entry.getValue().startsWith("~")) {
-          pattern = Pattern.compile(entry.getValue().substring(1));
-        } else {
-          pattern = Pattern.compile(Pattern.quote(entry.getValue()));
-        }
-        labelPatterns.put(entry.getKey(), pattern);
-      }
-
-      //check matching labels,then matching attributes
-      labelsMatch = true;
-      for (Entry<String, String> entry: metadata.getLabels().entrySet()) {
-        if (labelPatterns.containsKey(entry.getKey())) {
-          labelsMatch &= ((Pattern) labelPatterns.get(entry.getKey())).matcher(entry.getValue()).matches();
-          if (!labelsMatch) {
-            break;
-          }
-        }
-      }
-      if (labelsMatch) {
-        for (Entry<String, String> entry: metadata.getAttributes().entrySet()) {
-          if (labelPatterns.containsKey(entry.getKey())) {
-            labelsMatch &= ((Pattern) labelPatterns.get(entry.getKey())).matcher(entry.getValue()).matches();
-            if (!labelsMatch) {
-              break;
-            }
-          }
-        }
-      }
-    }
-
-
-    return classMatch && labelsMatch;
-  }
 }
