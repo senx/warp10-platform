@@ -17,6 +17,7 @@
 package io.warp10.continuum;
 
 import io.warp10.WarpConfig;
+import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.UnsafeString;
 import io.warp10.continuum.store.Constants;
@@ -93,7 +94,7 @@ public class MetadataUtils {
     }
     
     try {
-      String name = URLDecoder.decode(m.group(1), StandardCharsets.UTF_8.name());
+      String name = WarpURLDecoder.decode(m.group(1), StandardCharsets.UTF_8);
       
       Map<String,String> labels = GTSHelper.parseLabels(m.group(2));
       Map<String,String> attributes = GTSHelper.parseLabels(m.group(3));

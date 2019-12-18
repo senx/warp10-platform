@@ -17,6 +17,7 @@
 package io.warp10.continuum;
 
 import io.warp10.WarpConfig;
+import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.ingress.IngressMetadataConsumerFactory;
@@ -765,7 +766,7 @@ public class ThrottlingManager {
                   entity = uuid.toString().toLowerCase();
                 } else {
                   // Remove leading '+' and decode application name which may be URL encoded
-                  entity = URLDecoder.decode(entity.substring(1), StandardCharsets.UTF_8.name());
+                  entity = WarpURLDecoder.decode(entity.substring(1), StandardCharsets.UTF_8));
                 }
                 
                 if ("-".equals(estimator)) {

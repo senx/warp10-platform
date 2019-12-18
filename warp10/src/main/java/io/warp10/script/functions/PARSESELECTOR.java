@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
@@ -78,7 +79,7 @@ public class PARSESELECTOR extends NamedWarpScriptFunction implements WarpScript
     String classSelector = null;
     
     try {
-      classSelector = URLDecoder.decode(m.group(1), StandardCharsets.UTF_8.name());
+      classSelector = WarpURLDecoder.decode(m.group(1), StandardCharsets.UTF_8);
     } catch (UnsupportedEncodingException uee) {
       // Can't happen, we're using UTF-8
     }

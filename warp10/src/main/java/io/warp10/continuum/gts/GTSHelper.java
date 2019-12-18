@@ -65,6 +65,7 @@ import com.google.common.collect.ImmutableMap;
 
 import io.warp10.CapacityExtractorOutputStream;
 import io.warp10.DoubleUtils;
+import io.warp10.WarpURLDecoder;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.TimeSource;
@@ -2589,11 +2590,7 @@ public class GTSHelper {
       
       //if (name.contains("%")) {
       if (-1 != UnsafeString.indexOf(name, '%')) {
-        try {      
-          name = URLDecoder.decode(name, StandardCharsets.UTF_8.name());
-        } catch (UnsupportedEncodingException uee) {
-          // Can't happen, we're using UTF-8
-        }      
+        name = WarpURLDecoder.decode(name, StandardCharsets.UTF_8);
       }
 
       // Advance past the '{'
@@ -2749,11 +2746,7 @@ public class GTSHelper {
           || ('"' == firstChar && valuestr.endsWith("\""))) {
         value = valuestr.substring(1, valuestr.length() - 1);
         if (((String)value).contains("%")) {
-          try {
-            value = URLDecoder.decode((String) value, StandardCharsets.UTF_8.name());
-          } catch (UnsupportedEncodingException uee) {
-            // Can't happen, we're using UTF-8
-          }
+          value = WarpURLDecoder.decode((String) value, StandardCharsets.UTF_8);
         }        
       } else if (('t' == firstChar || 'T' == firstChar) && (1 == valuestr.length() || "true".equalsIgnoreCase(valuestr))) {
         value = Boolean.TRUE;
@@ -3647,18 +3640,9 @@ public class GTSHelper {
       
       String name = subtokens[0];
       String value = subtokens.length > 1 ? subtokens[1] : "";
-      
-      try {
-        if (name.contains("%")) {
-          name = URLDecoder.decode(name, StandardCharsets.UTF_8.name());
-        }
-        
-        if (value.contains("%")) {
-          value = URLDecoder.decode(value, StandardCharsets.UTF_8.name());
-        }        
-      } catch (UnsupportedEncodingException uee) {
-        // Can't happen, we're using UTF-8 which is a standard JVM encoding.
-      }
+
+      name = WarpURLDecoder.decode(name, StandardCharsets.UTF_8);
+      value = WarpURLDecoder.decode(value, StandardCharsets.UTF_8);
             
       result.put(name, (exact ? "=" : "~") + value);
     }
@@ -3683,14 +3667,8 @@ public class GTSHelper {
     
     Map<String,Pattern> patterns = new HashMap<String,Pattern>();
     
-    if (classSelector.contains("%")) {
-      try {      
-        classSelector = URLDecoder.decode(classSelector, StandardCharsets.UTF_8.name());
-      } catch (UnsupportedEncodingException uee) {
-        // Can't happen, we're using UTF-8
-      }      
-    }
-
+    classSelector = WarpURLDecoder.decode(classSelector, StandardCharsets.UTF_8);
+    
     if ('=' == classSelector.charAt(0)) {
       patterns.put(null, Pattern.compile(Pattern.quote(classSelector.substring(1))));            
     } else if ('~' == classSelector.charAt(0)) {

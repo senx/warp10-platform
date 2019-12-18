@@ -87,6 +87,7 @@ import io.warp10.SSLUtils;
 import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
+import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.KafkaProducerPool;
@@ -1565,7 +1566,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         return;
       }
       
-      String classSelector = URLDecoder.decode(m.group(1), StandardCharsets.UTF_8.name());
+      String classSelector = WarpURLDecoder.decode(m.group(1), StandardCharsets.UTF_8);
       String labelsSelection = m.group(2);
       
       Map<String,String> labelsSelectors;

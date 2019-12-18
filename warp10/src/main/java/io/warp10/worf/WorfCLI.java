@@ -16,6 +16,7 @@
 package io.warp10.worf;
 
 import io.warp10.Revision;
+import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.gts.GTSHelper;
 
 import com.google.common.base.Strings;
@@ -263,11 +264,11 @@ public class WorfCLI {
             String[] apps = matcher.group(2).split(",");
 
             // adds uuid to the list, fail otherwise
-            for (String app : apps) {
-              authorizedApplications.add(URLDecoder.decode(app, StandardCharsets.UTF_8.name()));
+            for (String app: apps) {
+              authorizedApplications.add(WarpURLDecoder.decode(app, StandardCharsets.UTF_8));
             }
 
-            appName = URLDecoder.decode(matcher.group(1), StandardCharsets.UTF_8.name());
+            appName = WarpURLDecoder.decode(matcher.group(1), StandardCharsets.UTF_8);
           }
 
           if (null == authorizedApplications || authorizedApplications.isEmpty()) {

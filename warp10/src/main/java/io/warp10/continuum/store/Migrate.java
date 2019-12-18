@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.store;
 
+import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.crypto.KeyStore;
@@ -139,9 +140,9 @@ public class Migrate {
       } else if ("--tokey".equals(args[i])) {
         tokey = args[++i];
       } else if ("--start".equals(args[i])) {
-        start = URLDecoder.decode(args[++i], StandardCharsets.ISO_8859_1.name());
+        start = WarpURLDecoder.decode(args[++i], StandardCharsets.ISO_8859_1);
       } else if ("--end".equals(args[i])) {
-        end = URLDecoder.decode(args[++i], StandardCharsets.ISO_8859_1.name());
+        end = WarpURLDecoder.decode(args[++i], StandardCharsets.ISO_8859_1);
       } else if ("--encryptedonly".equals(args[i])) {
         encdataonly = true;
       } else if ("--data".equals(args[i])) {

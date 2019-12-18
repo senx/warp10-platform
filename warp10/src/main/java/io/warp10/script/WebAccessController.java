@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.warp10.WarpURLDecoder;
+
 public class WebAccessController {
 
   private final List<Pattern> patterns = new ArrayList<Pattern>();
@@ -48,7 +50,7 @@ public class WebAccessController {
       for (String pattern: subpatterns) {
         if (pattern.contains("%")) {
           try {
-            pattern = URLDecoder.decode(pattern, StandardCharsets.UTF_8.name());
+            pattern = WarpURLDecoder.decode(pattern, StandardCharsets.UTF_8);
           } catch (UnsupportedEncodingException uee) {
             throw new RuntimeException(uee);
           }

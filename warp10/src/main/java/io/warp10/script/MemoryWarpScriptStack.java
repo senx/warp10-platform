@@ -17,6 +17,7 @@
 package io.warp10.script;
 
 import io.warp10.WarpConfig;
+import io.warp10.WarpURLDecoder;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.gts.UnsafeString;
@@ -689,9 +690,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               String str = stmt.substring(1, stmt.length() - 1);
 
               if (-1 != UnsafeString.indexOf(str, '%')) {
-                // replace occurrences of '+' with '%2B'
-                str = str.replaceAll("\\+", "%2B");
-                str = URLDecoder.decode(str, StandardCharsets.UTF_8.name());
+                str = WarpURLDecoder.decode(str, StandardCharsets.UTF_8);
               }
 
               if (macros.isEmpty()) {

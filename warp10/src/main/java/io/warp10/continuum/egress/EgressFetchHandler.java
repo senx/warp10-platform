@@ -17,6 +17,7 @@
 package io.warp10.continuum.egress;
 
 import io.warp10.ThrowableUtils;
+import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSDecoder;
@@ -409,7 +410,7 @@ public class EgressFetchHandler extends AbstractHandler {
             return;
           }
           
-          String classSelector = URLDecoder.decode(m.group(1), StandardCharsets.UTF_8.name());
+          String classSelector = WarpURLDecoder.decode(m.group(1), StandardCharsets.UTF_8);
           String labelsSelection = m.group(2);
           
           Map<String,String> labelsSelectors;
