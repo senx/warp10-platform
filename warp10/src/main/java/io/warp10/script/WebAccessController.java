@@ -48,12 +48,10 @@ public class WebAccessController {
       int idx = 0;
 
       for (String pattern: subpatterns) {
-        if (pattern.contains("%")) {
-          try {
-            pattern = WarpURLDecoder.decode(pattern, StandardCharsets.UTF_8);
-          } catch (UnsupportedEncodingException uee) {
-            throw new RuntimeException(uee);
-          }
+        try {
+          pattern = WarpURLDecoder.decode(pattern, StandardCharsets.UTF_8);
+        } catch (UnsupportedEncodingException uee) {
+          throw new RuntimeException(uee);
         }
 
         boolean exclude = false;
