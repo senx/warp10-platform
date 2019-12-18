@@ -33,7 +33,7 @@ public class WarpURLDecoder {
     // so decoding is correct.
     
     if (input.contains("+")) {
-      input = input.replaceAll("+", "%2B");
+      input = input.replace("+", "%2B");
     }
     
     return URLDecoder.decode(input, charset.name());
