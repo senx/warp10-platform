@@ -67,13 +67,13 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
         }
         if (entry.getKey() instanceof String) {
           String t = (String) entry.getKey();
-          if ("LONG".equals(t) || "DOUBLE".equals(t) || "BOOLEAN".equals(t) || "STRING".equals(t)) {
+          if ("LONG".equals(t) || "DOUBLE".equals(t) || "BOOLEAN".equals(t) || "STRING".equals(t) || "BINARY".equals(t)) {
             typeMap.put((String) entry.getKey(), new MetadataSelectorMatcher((String) entry.getValue()));
           } else {
-            throw new WarpScriptException(getName() + " type MAP input must contains valid types as key (LONG, DOUBLE, BOOLEAN or STRING).");
+            throw new WarpScriptException(getName() + " type MAP input must contains valid types as key (LONG, DOUBLE, BOOLEAN, STRING or BINARY).");
           }
         } else {
-          throw new WarpScriptException(getName() + " type MAP input must contains valid types as key (LONG, DOUBLE, BOOLEAN or STRING).");
+          throw new WarpScriptException(getName() + " type MAP input must contains valid types as key (LONG, DOUBLE, BOOLEAN, STRING or BINARY).");
         }
       }
       top = stack.pop();
@@ -164,7 +164,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
           if (entry.getValue().MetaDataMatch(decoder.getMetadata())) {
             enforcedType = entry.getKey();
           }
-          if (null!=enforcedType) {
+          if (null != enforcedType) {
             break;
           }
         }
@@ -173,7 +173,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
             gts.setType(GeoTimeSerie.TYPE.DOUBLE);
           } else if ("LONG".equals(enforcedType)) {
             gts.setType(GeoTimeSerie.TYPE.LONG);
-          } else if ("STRING".equals(enforcedType)) {
+          } else if ("STRING".equals(enforcedType) || "BINARY".equals(enforcedType)) {
             gts.setType(GeoTimeSerie.TYPE.STRING);
           } else if ("BOOLEAN".equals(enforcedType)) {
             gts.setType(GeoTimeSerie.TYPE.BOOLEAN);
