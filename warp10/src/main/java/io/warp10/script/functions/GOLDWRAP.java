@@ -19,6 +19,8 @@ package io.warp10.script.functions;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -57,6 +59,7 @@ public class GOLDWRAP extends ElementOrListStackFunction {
         try {
           if (element instanceof GeoTimeSerie) {
             encoder = new GTSEncoder(0L);
+            encoder.setMetadata(((GeoTimeSerie) element).getMetadata());
             GTSHelper.fullsort((GeoTimeSerie) element, false);
             sortedEncoder = true;
             encoder.encodeOptimized((GeoTimeSerie) element);
@@ -86,6 +89,21 @@ public class GOLDWRAP extends ElementOrListStackFunction {
             enc = encoder;
           } else {
             enc = GTSHelper.fullsort(encoder, false, 0L);
+          }
+          
+          //
+          // We need to ensure the metadata (labels/attributes) are in a deterministic order
+          //
+          
+          if (enc.getMetadata().getLabelsSize() > 0) {
+            Map<String,String> smap = new TreeMap<String,String>();
+            smap.putAll(enc.getMetadata().getLabels());
+            enc.getMetadata().setLabels(smap);
+          }
+          if (enc.getMetadata().getAttributesSize() > 0) {
+            Map<String,String> smap = new TreeMap<String,String>();
+            smap.putAll(enc.getMetadata().getAttributes());
+            enc.getMetadata().setAttributes(smap);            
           }
           
           GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(enc, true, 1.0D, Integer.MAX_VALUE);
