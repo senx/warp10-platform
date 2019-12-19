@@ -32,28 +32,32 @@ public class WarpURLDecoder {
     // The input contains a '%', if it contains a '+' we need to replace the '+' with '%2B'
     // so decoding is correct.
     
-    if (input.contains("+")) {
-      StringBuilder sb = new StringBuilder();
-      
-      int start = 0;
-      int idx = 0;
-      
-      while(idx < input.length()) {
-        if ('+' == input.charAt(idx)) {
-          sb.append(input, start, idx);
-          sb.append("%2B");
-          start = idx + 1;
-        }
-        idx++;
-      }
-      
-      if (idx != start) {
-        sb.append(input, start, idx);
-      }
-      
-      input = sb.toString();
+    if (input.contains("+")) {      
+      input = replace(input, '+', "%2B").toString();
     }
 
     return URLDecoder.decode(input, charset.name());
+  }
+  
+  public static StringBuilder replace(CharSequence seq, char c, String replacement) {    
+    StringBuilder sb = new StringBuilder();
+    
+    int start = 0;
+    int idx = 0;
+    
+    while(idx < seq.length()) {
+      if ('+' == seq.charAt(idx)) {
+        sb.append(seq, start, idx);
+        sb.append("%2B");
+        start = idx + 1;
+      }
+      idx++;
+    }
+
+    if (idx != start) {
+      sb.append(seq, start, idx);
+    }
+
+    return sb;
   }
 }
