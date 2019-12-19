@@ -143,14 +143,13 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
       stack.push(result);
       return stack;
-    }
 
-    // if there is a type map on the stack:
-    //  - the map key is a selector. If the encoder's metadata fits, the gts will have the corresponding type of the first matching selector.
-    //  - if the encoder doesn't fit to any selector, the gts will have the type of the first encountered element in the encoder.
-    // GTSHelper.setValue will try to convert values whenever possible
-    // a byte array will be serialized as an ISO-8859-1 string.
-    else {
+    } else {
+      // if there is a type map on the stack:
+      //  - the map key is a selector. If the encoder's metadata fits, the gts will have the corresponding type of the first matching selector.
+      //  - if the encoder doesn't fit to any selector, the gts will have the type of the first encountered element in the encoder.
+      // GTSHelper.setValue will try to convert values whenever possible, and
+      // a byte array will be serialized as an ISO-8859-1 string by GTSHelper.setValue
       ArrayList<GeoTimeSerie> result = new ArrayList<>();
       boolean classMatch;
       boolean labelsMatch;
@@ -179,9 +178,6 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
         }
         while (decoder.next()) {
           Object value = decoder.getBinaryValue();
-          if (value instanceof byte[]) {
-            value = new String((byte[]) value, StandardCharsets.ISO_8859_1);
-          }
           GTSHelper.setValue(gts, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), value, false);
         }
         // exit here if input is not a list.
