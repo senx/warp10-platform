@@ -143,7 +143,7 @@ public class MetadataSelectorMatcher {
       if (null != this.labelsPatterns && null != inputLabels) {
         for (Entry<String, Matcher> ls: this.labelsPatterns.entrySet()) {
           String inputLabel = (String) inputLabels.get(ls.getKey());
-          labelAndAttributeMatch &= null == inputLabel || ls.getValue().reset(inputLabel).matches();
+          labelAndAttributeMatch &= null != inputLabel && ls.getValue().reset(inputLabel).matches();
           if (!labelAndAttributeMatch) {
             break;
           }
@@ -155,7 +155,7 @@ public class MetadataSelectorMatcher {
             break;
           }
           String inputAttribute = (String) inputAttributes.get(ls.getKey());
-          labelAndAttributeMatch &= null == inputAttribute || ls.getValue().reset(inputAttribute).matches();
+          labelAndAttributeMatch &= null != inputAttribute && ls.getValue().reset(inputAttribute).matches();
         }
       }
     } else {
@@ -168,10 +168,13 @@ public class MetadataSelectorMatcher {
             if (null != inputLabel) {
               // label exists in the input, try to match.
               labelAndAttributeMatch &= ls.getValue().reset(inputLabel).matches();
-            } else if (labelAndAttributeMatch && null != inputAttributes) {
+            } else if (null != inputAttributes) {
               // label does not exist, look for attribute existence and match.
               String inputAttribute = (String) inputAttributes.get(ls.getKey());
-              labelAndAttributeMatch &= null == inputAttribute || ls.getValue().reset(inputAttribute).matches();
+              labelAndAttributeMatch &= null != inputAttribute && ls.getValue().reset(inputAttribute).matches();
+            } else {
+              // no label with this name, and no attributes at all
+              labelAndAttributeMatch = false;
             }
           }
           if (!labelAndAttributeMatch) {
