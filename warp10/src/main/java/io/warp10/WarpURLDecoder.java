@@ -39,22 +39,30 @@ public class WarpURLDecoder {
     return URLDecoder.decode(input, charset.name());
   }
   
-  public static StringBuilder replace(CharSequence seq, char c, String replacement) {    
-    StringBuilder sb = new StringBuilder();
+  public static CharSequence replace(CharSequence seq, char c, String replacement) {    
+    StringBuilder sb = null;
     
     int start = 0;
     int idx = 0;
     
     while(idx < seq.length()) {
-      if ('+' == seq.charAt(idx)) {
+      if (c == seq.charAt(idx)) {
+        if (null == sb) {
+          sb = new StringBuilder();
+        }
         sb.append(seq, start, idx);
-        sb.append("%2B");
-        start = idx + 1;
+        sb.append(replacement);
+        start = ++idx;
+      } else {
+        idx++;
       }
-      idx++;
     }
 
-    if (idx != start) {
+    if (null == sb) {
+      return seq;
+    }
+    
+    if (idx > start) {
       sb.append(seq, start, idx);
     }
 
