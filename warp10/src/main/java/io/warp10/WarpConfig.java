@@ -32,7 +32,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -236,9 +235,7 @@ public class WarpConfig {
 
       // Remove URL encoding if a '%' sign is present in the token
       for (int i = 0; i < tokens.length; i++) {
-        if (tokens[i].contains("%")) {
-          tokens[i] = URLDecoder.decode(tokens[i], StandardCharsets.UTF_8.name());
-        }
+        tokens[i] = WarpURLDecoder.decode(tokens[i], StandardCharsets.UTF_8);
         tokens[i] = tokens[i].trim();
       }
 
@@ -275,12 +272,8 @@ public class WarpConfig {
 
         try {
           // URL Decode name/value if needed
-          if (name.contains("%")) {
-            name = URLDecoder.decode(name, StandardCharsets.UTF_8.name());
-          }
-          if (value.contains("%")) {
-            value = URLDecoder.decode(value, StandardCharsets.UTF_8.name());
-          }
+          name = WarpURLDecoder.decode(name, StandardCharsets.UTF_8);
+          value = WarpURLDecoder.decode(value, StandardCharsets.UTF_8);
 
           // Override property
           properties.setProperty(name, value);
@@ -302,12 +295,8 @@ public class WarpConfig {
 
         try {
           // URL Decode name/value if needed
-          if (name.contains("%")) {
-            name = URLDecoder.decode(name, StandardCharsets.UTF_8.name());
-          }
-          if (value.contains("%")) {
-            value = URLDecoder.decode(value, StandardCharsets.UTF_8.name());
-          }
+          name = WarpURLDecoder.decode(name, StandardCharsets.UTF_8);
+          value = WarpURLDecoder.decode(value, StandardCharsets.UTF_8);
 
           // Override property
           properties.setProperty(name, value);

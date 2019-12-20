@@ -16,25 +16,11 @@
 
 package io.warp10.script;
 
-import io.warp10.WarpConfig;
-import io.warp10.WarpURLEncoder;
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.gts.UnsafeString;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.DirectoryClient;
-import io.warp10.continuum.store.StoreClient;
-import io.warp10.script.functions.SECURE;
-import io.warp10.sensision.Sensision;
-import io.warp10.warp.sdk.WarpScriptJavaFunction;
-import io.warp10.warp.sdk.WarpScriptJavaFunctionException;
-import io.warp10.warp.sdk.WarpScriptRawJavaFunction;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,6 +36,20 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.util.Progressable;
+
+import io.warp10.WarpConfig;
+import io.warp10.WarpURLDecoder;
+import io.warp10.WarpURLEncoder;
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.gts.UnsafeString;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.DirectoryClient;
+import io.warp10.continuum.store.StoreClient;
+import io.warp10.script.functions.SECURE;
+import io.warp10.sensision.Sensision;
+import io.warp10.warp.sdk.WarpScriptJavaFunction;
+import io.warp10.warp.sdk.WarpScriptJavaFunctionException;
+import io.warp10.warp.sdk.WarpScriptRawJavaFunction;
 
 public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
@@ -688,11 +688,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             try {
               String str = stmt.substring(1, stmt.length() - 1);
 
-              if (-1 != UnsafeString.indexOf(str, '%')) {
-                // replace occurrences of '+' with '%2B'
-                str = str.replaceAll("\\+", "%2B");
-                str = URLDecoder.decode(str, StandardCharsets.UTF_8.name());
-              }
+              str = WarpURLDecoder.decode(str, StandardCharsets.UTF_8);
 
               if (macros.isEmpty()) {
                 push(str);
