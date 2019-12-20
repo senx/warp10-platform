@@ -39,7 +39,7 @@ import java.util.List;
  */
 public class LMAP extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private boolean flat;
+  private final boolean flat;
 
   public LMAP(String name) {
     this(name, false);
