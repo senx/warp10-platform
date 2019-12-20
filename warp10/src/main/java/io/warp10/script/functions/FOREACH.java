@@ -72,12 +72,14 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
     if (!(obj instanceof List) && !(obj instanceof Map) && !(obj instanceof Iterator) && !(obj instanceof Iterable) && !(obj instanceof GeoTimeSerie) && !(obj instanceof GTSEncoder)) {
       throw new WarpScriptException(getName() + " operates on a list, map, Geo Time Series™, ENCODER, iterator or iterable.");
     }
-    
+
+    int index = 0;
+
     if (obj instanceof List) {
-      for (int i = 0; i < ((List) obj).size(); i++) {
-        stack.push(((List) obj).get(i));
+      for (Object o: ((List<Object>) obj)) {
+        stack.push(o);
         if (pushIndex) {
-          stack.push(i);
+          stack.push(index++);
         }
         //
         // Execute RUN-macro
@@ -94,6 +96,9 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
       for (Entry<Object,Object> entry: ((Map<Object,Object>) obj).entrySet()) {
         stack.push(entry.getKey());
         stack.push(entry.getValue());
+        if (pushIndex) {
+          stack.push(index++);
+        }
         try {
           stack.exec((Macro) macro);
         } catch (WarpScriptLoopBreakException elbe) {
@@ -107,6 +112,9 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
       while(iter.hasNext()) {
         Object o = iter.next();
         stack.push(o);
+        if (pushIndex) {
+          stack.push(index++);
+        }
         try {
           stack.exec((Macro) macro);
         } catch (WarpScriptLoopBreakException elbe) {
@@ -137,6 +145,9 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
         }
         elt.add(GTSHelper.valueAtIndex(gts, i));
         stack.push(elt);
+        if (pushIndex) {
+          stack.push(index++);
+        }
         try {
           stack.exec((Macro) macro);
         } catch (WarpScriptLoopBreakException elbe) {
@@ -167,6 +178,9 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
         }
         elt.add(decoder.getBinaryValue());
         stack.push(elt);
+        if (pushIndex) {
+          stack.push(index++);
+        }
         try {
           stack.exec((Macro) macro);
         } catch (WarpScriptLoopBreakException elbe) {
