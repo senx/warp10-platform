@@ -130,35 +130,40 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
   
   private final TYPE forcedType;
   
-  private final long[] SIPHASH_CLASS;
-  private final long[] SIPHASH_LABELS;
+  private long[] SIPHASH_CLASS;
+  private long[] SIPHASH_LABELS;
 
-  private final byte[] AES_METASET;
+  private byte[] AES_METASET;
+  
+  private boolean initialized = false;
   
   public FETCH(String name, TYPE type) {
     super(name);
     this.forcedType = type;
-    KeyStore ks = null;
-    
-    try {
-      ks = WarpDist.getKeyStore();
-    } catch (Throwable t) {
-      // Catch NoClassDefFound
-    }
-    
-    if (null != ks) {
-      this.SIPHASH_CLASS = SipHashInline.getKey(ks.getKey(KeyStore.SIPHASH_CLASS));
-      this.SIPHASH_LABELS = SipHashInline.getKey(ks.getKey(KeyStore.SIPHASH_LABELS));
-      this.AES_METASET = ks.getKey(KeyStore.AES_METASETS);
-    } else {
-      this.SIPHASH_CLASS = null;
-      this.SIPHASH_LABELS = null;
-      this.AES_METASET = null;
-    }    
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
+
+    if (!initialized) {
+      synchronized(FETCH.class) {
+        KeyStore ks = null;
+        
+        ks = WarpDist.getKeyStore();
+        
+        if (null != ks) {
+          this.SIPHASH_CLASS = SipHashInline.getKey(ks.getKey(KeyStore.SIPHASH_CLASS));
+          this.SIPHASH_LABELS = SipHashInline.getKey(ks.getKey(KeyStore.SIPHASH_LABELS));
+          this.AES_METASET = ks.getKey(KeyStore.AES_METASETS);
+        } else {
+          this.SIPHASH_CLASS = null;
+          this.SIPHASH_LABELS = null;
+          this.AES_METASET = null;
+        }            
+      }
+      initialized = true;
+    }
+
     //
     // Extract parameters from the stack
     //
@@ -228,7 +233,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       iter = metaset.getMetadatas().iterator();
     } else if (params.containsKey(PARAM_GTS)) {
       List<Metadata> metas = (List<Metadata>) params.get(PARAM_GTS);
-      
+            
       for (Metadata m: metas) {
         if (null == m.getLabels()) {
           m.setLabels(new HashMap<String,String>());
