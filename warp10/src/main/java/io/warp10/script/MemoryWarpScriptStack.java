@@ -500,7 +500,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       // Rethrow WarpScriptStopExceptions as is
       throw wsse;
     } catch (Exception e) {
-      throw new WarpScriptException("Line #" + i + ": " + e.getMessage());
+      throw new WarpScriptException("Line #" + i, e);
     }
    
     //String[] lines = UnsafeString.split(script, '\n');
