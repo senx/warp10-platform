@@ -2588,10 +2588,7 @@ public class GTSHelper {
     } else {
       name = str.substring(idx, idx2);
       
-      //if (name.contains("%")) {
-      if (-1 != UnsafeString.indexOf(name, '%')) {
-        name = WarpURLDecoder.decode(name, StandardCharsets.UTF_8);
-      }
+      name = WarpURLDecoder.decode(name, StandardCharsets.UTF_8);
 
       // Advance past the '{'
       idx = idx2 + 1;
@@ -2745,9 +2742,7 @@ public class GTSHelper {
       if (('\'' == firstChar && valuestr.endsWith("'"))
           || ('"' == firstChar && valuestr.endsWith("\""))) {
         value = valuestr.substring(1, valuestr.length() - 1);
-        if (((String)value).contains("%")) {
-          value = WarpURLDecoder.decode((String) value, StandardCharsets.UTF_8);
-        }        
+        value = WarpURLDecoder.decode((String) value, StandardCharsets.UTF_8);
       } else if (('t' == firstChar || 'T' == firstChar) && (1 == valuestr.length() || "true".equalsIgnoreCase(valuestr))) {
         value = Boolean.TRUE;
       } else if (('f' == firstChar || 'F' == firstChar) && (1 == valuestr.length() || "false".equalsIgnoreCase(valuestr))) {

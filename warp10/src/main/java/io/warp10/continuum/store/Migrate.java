@@ -16,13 +16,6 @@
 
 package io.warp10.continuum.store;
 
-import io.warp10.WarpURLDecoder;
-import io.warp10.continuum.gts.GTSDecoder;
-import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.crypto.KeyStore;
-import io.warp10.crypto.OSSKeyStore;
-
-import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -42,18 +35,21 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.filter.BinaryPrefixComparator;
-import org.apache.hadoop.hbase.filter.ByteArrayComparable;
 import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 import org.apache.hadoop.hbase.filter.ValueFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.bouncycastle.crypto.CipherParameters;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.AESWrapEngine;
-import org.bouncycastle.crypto.paddings.PKCS7Padding;
 import org.bouncycastle.crypto.params.KeyParameter;
 
 import com.geoxp.oss.jarjar.org.bouncycastle.util.Arrays;
-import com.geoxp.oss.jarjar.org.bouncycastle.util.encoders.Hex;
+
+import io.warp10.WarpURLDecoder;
+import io.warp10.continuum.gts.GTSDecoder;
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OSSKeyStore;
 /**
  * This class implements a migration tool to move data or metadata
  * from one state (HBase cluster, table, colfam, encryption) to another.
