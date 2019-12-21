@@ -17,8 +17,6 @@
 package io.warp10.worf;
 
 
-import com.google.common.base.Strings;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -28,7 +26,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -38,6 +35,10 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.google.common.base.Strings;
+
+import io.warp10.WarpURLDecoder;
 
 public class Worf {
 
@@ -112,9 +113,7 @@ public class Worf {
 
         // Remove URL encoding if a '%' sign is present in the token
         for (int i = 0; i < tokens.length; i++) {
-          if (tokens[i].contains("%")) {
-            tokens[i] = URLDecoder.decode(tokens[i], StandardCharsets.UTF_8.name());
-          }
+          tokens[i] = WarpURLDecoder.decode(tokens[i], StandardCharsets.UTF_8);
           tokens[i] = tokens[i].trim();
         }
 
@@ -155,12 +154,8 @@ public class Worf {
         String value = entry.getKey().toString();
 
         // URL Decode name/value if needed
-        if (name.contains("%")) {
-          name = URLDecoder.decode(name, StandardCharsets.UTF_8.name());
-        }
-        if (value.contains("%")) {
-          value = URLDecoder.decode(value, StandardCharsets.UTF_8.name());
-        }
+        name = WarpURLDecoder.decode(name, StandardCharsets.UTF_8);
+        value = WarpURLDecoder.decode(value, StandardCharsets.UTF_8);
 
         // Override property
         properties.setProperty(name, value);
