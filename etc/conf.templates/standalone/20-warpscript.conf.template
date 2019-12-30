@@ -207,4 +207,4 @@ warpscript.runner.bootstrap.period = 120000
 //
 // allow C style block comments. /**** valid block comment ****/
 //
-warpscript.allow.C.block.comments = true
+warpscript.comments.loose = true

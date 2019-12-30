@@ -59,7 +59,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     DEFAULT_PROPERTIES = WarpConfig.getProperties();
   }
 
-  private final boolean allowCStyleBlockComments;
+  private final boolean allowLooseBlockComments;
 
   private AtomicLong[] counters;
 
@@ -235,7 +235,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     this.properties = properties;
 
     int nregs = Integer.parseInt(null == this.properties ? String.valueOf(WarpScriptStack.DEFAULT_REGISTERS) : this.properties.getProperty(Configuration.CONFIG_WARPSCRIPT_REGISTERS, String.valueOf(WarpScriptStack.DEFAULT_REGISTERS)));
-    allowCStyleBlockComments = Boolean.parseBoolean(properties.getProperty(Configuration.WARPSCRIPT_ALLOW_C_BLOCK_COMMENTS,"false"));
+    allowLooseBlockComments = "true".equals(properties.getProperty(Configuration.WARPSCRIPT_ALLOW_LOOSE_BLOCK_COMMENTS, "false"));
     this.registers = new Object[nregs];
   }
   
@@ -618,23 +618,23 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             }
             multiline.append(stmt);
             continue;
-          } else if (!allowCStyleBlockComments && WarpScriptStack.COMMENT_END.equals(stmt)) {
+          } else if (!allowLooseBlockComments && WarpScriptStack.COMMENT_END.equals(stmt)) {
             if (!inComment.get()) {
               throw new WarpScriptException("Not inside a comment.");
             }
             inComment.set(false);
             continue;
-          } else if (allowCStyleBlockComments && stmt.startsWith(WarpScriptStack.COMMENT_START) && stmt.endsWith(WarpScriptStack.COMMENT_END)) {
+          } else if (allowLooseBlockComments && stmt.startsWith(WarpScriptStack.COMMENT_START) && stmt.endsWith(WarpScriptStack.COMMENT_END)) {
             continue;
-          } else if (allowCStyleBlockComments && inComment.get() && stmt.endsWith(WarpScriptStack.COMMENT_END)) {
+          } else if (allowLooseBlockComments && inComment.get() && stmt.endsWith(WarpScriptStack.COMMENT_END)) {
             inComment.set(false);
             continue;
           } else if (inComment.get()) {
             continue;
-          } else if (!allowCStyleBlockComments && WarpScriptStack.COMMENT_START.equals(stmt)) {
+          } else if (!allowLooseBlockComments && WarpScriptStack.COMMENT_START.equals(stmt)) {
             inComment.set(true);
             continue;
-          } else if (allowCStyleBlockComments && stmt.startsWith(WarpScriptStack.COMMENT_START)) {
+          } else if (allowLooseBlockComments && stmt.startsWith(WarpScriptStack.COMMENT_START)) {
             inComment.set(true);
             continue;
           } else if (WarpScriptStack.MULTILINE_START.equals(stmt)) {
