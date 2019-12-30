@@ -624,7 +624,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             }
             inComment.set(false);
             continue;
-          } else if (allowCStyleBlockComments && inComment.get() && stmt.endsWith(WarpScriptStack.COMMENT_END)){
+          } else if (allowCStyleBlockComments && stmt.startsWith(WarpScriptStack.COMMENT_START) && stmt.endsWith(WarpScriptStack.COMMENT_END)) {
+            continue;
+          } else if (allowCStyleBlockComments && inComment.get() && stmt.endsWith(WarpScriptStack.COMMENT_END)) {
             inComment.set(false);
             continue;
           } else if (inComment.get()) {
