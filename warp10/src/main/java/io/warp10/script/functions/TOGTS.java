@@ -43,9 +43,13 @@ import java.util.Map.Entry;
 
 /**
  * Converts an encoder into a map of gts, one per type
- * TODO: Provide a map type->selector, with an optional 'attribute' key. By default, the enforced type will be added in a ".type" label.
+ * TODO: Provide a map type->selector or type->list of selectors, with an optional 'label' key. By default, the enforced type will be added in a ".type" label.
+ * label = null will not add any label to the output GTS.
  */
 public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  public static final String LABEL_NAME_PARAMETER = "label";
+  public static final String DEFAULT_LABEL_NAME = ".type";
 
   public TOGTS(String name) {
     super(name);
@@ -54,25 +58,50 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    Map<String, MetadataSelectorMatcher> typeMap = null;
+    Map<String, ArrayList<MetadataSelectorMatcher>> typeMap = null;
     Object top = stack.pop();
+    // this is the default label name.
+    String extraLabel = DEFAULT_LABEL_NAME;
 
     if (top instanceof Map) {
       typeMap = new LinkedHashMap<>();
       // this is a map to specify type by selector. MetadataSelectorMatcher are build once here.
       for (Map.Entry<Object, Object> entry: ((Map<Object, Object>) top).entrySet()) {
-        if (!(entry.getValue() instanceof String)) {
-          throw new WarpScriptException(getName() + " type MAP input must contains selector string as values.");
-        }
         if (entry.getKey() instanceof String) {
           String t = (String) entry.getKey();
           if ("LONG".equals(t) || "DOUBLE".equals(t) || "BOOLEAN".equals(t) || "STRING".equals(t) || "BINARY".equals(t)) {
-            typeMap.put((String) entry.getKey(), new MetadataSelectorMatcher((String) entry.getValue()));
+            if (entry.getValue() instanceof String) {
+              // MAP with type->selector
+              ArrayList<MetadataSelectorMatcher> l = new ArrayList<>();
+              l.add(new MetadataSelectorMatcher((String) entry.getValue()));
+              typeMap.put((String) entry.getKey(), l);
+            } else if (entry.getValue() instanceof List) {
+              // MAP with type->listOfSelectors
+              ArrayList<MetadataSelectorMatcher> l = new ArrayList<>();
+              for (Object sel: (List) entry.getValue()) {
+                if (sel instanceof String) {
+                  l.add(new MetadataSelectorMatcher((String) sel));
+                } else {
+                  throw new WarpScriptException(getName() + " type MAP input must contains selector or list of thereof for each type.");
+                }
+              }
+              typeMap.put((String) entry.getKey(), l);
+            } else {
+              throw new WarpScriptException(getName() + " type MAP input must contains selector or list of thereof for each type.");
+            }
+          } else if (LABEL_NAME_PARAMETER.equals(t)) {
+            if (null == entry.getValue()) {
+              extraLabel = null;
+            } else if (entry.getValue() instanceof String) {
+              extraLabel = (String) entry.getValue();
+            } else {
+              throw new WarpScriptException(getName() + " extra 'label' input in the MAP must be either null or a string.");
+            }
           } else {
-            throw new WarpScriptException(getName() + " type MAP input must contains valid types as key (LONG, DOUBLE, BOOLEAN, STRING or BINARY).");
+            throw new WarpScriptException(getName() + " type MAP input must contains valid types as key (LONG, DOUBLE, BOOLEAN, STRING or BINARY) or '" + LABEL_NAME_PARAMETER + "' to override '" + DEFAULT_LABEL_NAME + "' label.");
           }
         } else {
-          throw new WarpScriptException(getName() + " type MAP input must contains valid types as key (LONG, DOUBLE, BOOLEAN, STRING or BINARY).");
+          throw new WarpScriptException(getName() + " type MAP input must contains valid types as key (LONG, DOUBLE, BOOLEAN, STRING or BINARY) or '" + LABEL_NAME_PARAMETER + "' to override '" + DEFAULT_LABEL_NAME + "' label.");
         }
       }
       top = stack.pop();
@@ -158,15 +187,17 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
         GeoTimeSerie gts = new GeoTimeSerie();
         gts.setMetadata(decoder.getMetadata());
         String enforcedType = null;
-        for (Entry<String, MetadataSelectorMatcher> entry: typeMap.entrySet()) {
-          if (entry.getValue().MetaDataMatch(decoder.getMetadata())) {
-            enforcedType = entry.getKey();
-          }
-          if (null != enforcedType) {
-            break;
+        for (Entry<String, ArrayList<MetadataSelectorMatcher>> entry: typeMap.entrySet()) {
+          for (MetadataSelectorMatcher m: entry.getValue()) {
+            if (m.MetaDataMatch(decoder.getMetadata())) {
+              enforcedType = entry.getKey();
+            }
+            if (null != enforcedType) {
+              break;
+            }
           }
         }
-        if (enforcedType != null) {
+        if (null != enforcedType) {
           if ("DOUBLE".equals(enforcedType)) {
             gts.setType(GeoTimeSerie.TYPE.DOUBLE);
           } else if ("LONG".equals(enforcedType)) {
@@ -180,6 +211,27 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
         while (decoder.next()) {
           Object value = decoder.getBinaryValue();
           GTSHelper.setValue(gts, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), value, false);
+        }
+        // also set an extra label with the enforced type:
+        if (null != extraLabel) {
+          String l;
+          if (null != enforcedType) {
+            l = enforcedType;
+          } else {
+            if (GeoTimeSerie.TYPE.BOOLEAN == gts.getType()) {
+              l = "BOOLEAN";
+            } else if (GeoTimeSerie.TYPE.LONG == gts.getType()) {
+              l = "LONG";
+            } else if (GeoTimeSerie.TYPE.DOUBLE == gts.getType()) {
+              l = "DOUBLE";
+            } else if (GeoTimeSerie.TYPE.STRING == gts.getType()) {
+              l = "STRING";
+            } else {
+              // empty series, undefined type.
+              l = "EMPTY";
+            }
+          }
+          gts.setLabel(extraLabel, l);
         }
         // exit here if input is not a list.
         if (!listInput) {
@@ -195,6 +247,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
 
   /**
    * try to decode an encoder from its opb64 string representation or its byte array representation.
+   *
    * @param o string, encoder, or byte array
    * @return a GTSDecoder object
    * @throws WarpScriptException
