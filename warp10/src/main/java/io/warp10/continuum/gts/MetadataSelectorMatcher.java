@@ -17,11 +17,11 @@
 package io.warp10.continuum.gts;
 
 
+import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.script.WarpScriptException;
 
 import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.HashMap;
@@ -58,7 +58,7 @@ public class MetadataSelectorMatcher {
     // read class selector
     String classSelector = null;
     try {
-      classSelector = URLDecoder.decode(m.group("classname"), StandardCharsets.UTF_8.name());
+      classSelector = WarpURLDecoder.decode(m.group("classname"), StandardCharsets.UTF_8);
     } catch (UnsupportedEncodingException uee) {
       // Can't happen, we're using UTF-8
     }
