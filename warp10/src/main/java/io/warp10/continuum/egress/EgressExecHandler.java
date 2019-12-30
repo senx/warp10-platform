@@ -200,6 +200,8 @@ public class EgressExecHandler extends AbstractHandler {
         for (String token: tokens) {
           String[] subtokens = token.split("=");
           
+          // Legit uses of URLDecoder.decode, do not replace by WarpURLDecoder
+          // as the encoding is performed by the browser
           subtokens[0] = URLDecoder.decode(subtokens[0], StandardCharsets.UTF_8.name());
           subtokens[1] = URLDecoder.decode(subtokens[1], StandardCharsets.UTF_8.name());
           

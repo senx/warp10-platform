@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.locks.LockSupport;
+import java.util.regex.Pattern;
 
 import org.apache.thrift.TBase;
 import org.slf4j.Logger;
@@ -326,7 +327,7 @@ public class Tokens {
           if (!first) {
             sb.append("|");
           }
-          sb.append(app);
+          sb.append(Pattern.quote(app));
           first = false;
         }
         sb.append(")$");
