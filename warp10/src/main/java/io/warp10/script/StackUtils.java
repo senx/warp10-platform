@@ -190,7 +190,7 @@ public class StackUtils {
   }
   
   /**
-   * Convert an object into a representation suitable for interacting with externarecursionLevell functions.
+   * Convert an object into a representation suitable for interacting with external functions.
    * 
    * The supported types are:
    * 

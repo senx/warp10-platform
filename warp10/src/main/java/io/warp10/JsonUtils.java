@@ -119,7 +119,7 @@ public class JsonUtils {
     }
 
     if (o instanceof Number || o instanceof String || o instanceof Boolean) {
-      a.append(JsonUtils.objectToJson(o, mapper));
+      a.append(objectToJson(o, mapper));
     } else if (o instanceof Map) {
       a.append("{");
       boolean first = true;
@@ -129,9 +129,9 @@ public class JsonUtils {
           a.append(",");
         }
         if (null != key) {
-          a.append(JsonUtils.objectToJson(key.toString(), mapper));
+          a.append(objectToJson(key.toString(), mapper));
         } else {
-          a.append("null");
+          a.append("\"\"");
         }
         a.append(":");
         objectToJson(a, keyAndValue.getValue(), recursionLevel, mapper);
@@ -156,7 +156,7 @@ public class JsonUtils {
       if (null == name) {
         name = "";
       }
-      a.append(JsonUtils.objectToJson(name, mapper));
+      a.append(objectToJson(name, mapper));
       a.append(",\"l\":");
       objectToJson(a, ((GeoTimeSerie) o).getMetadata().getLabels(), recursionLevel, mapper);
       a.append(",\"a\":");
@@ -187,7 +187,7 @@ public class JsonUtils {
           a.append(Long.toString(elevation));
         }
         a.append(",");
-        a.append(JsonUtils.objectToJson(v, mapper));
+        a.append(objectToJson(v, mapper));
         a.append("]");
         first = false;
       }
@@ -200,7 +200,7 @@ public class JsonUtils {
       if (null == name) {
         name = "";
       }
-      a.append(JsonUtils.objectToJson(name, mapper));
+      a.append(objectToJson(name, mapper));
       a.append(",\"l\":");
       objectToJson(a, ((GTSEncoder) o).getMetadata().getLabels(), recursionLevel, mapper);
       a.append(",\"a\":");
@@ -233,7 +233,7 @@ public class JsonUtils {
           a.append(Long.toString(elevation));
         }
         a.append(",");
-        a.append(JsonUtils.objectToJson(v, mapper));
+        a.append(objectToJson(v, mapper));
         a.append("]");
         first = false;
       }
@@ -243,14 +243,14 @@ public class JsonUtils {
     } else if (o instanceof Metadata) {
       a.append("{");
       a.append("\"c\":");
-      a.append(JsonUtils.objectToJson(((Metadata) o).getName(), mapper));
+      a.append(objectToJson(((Metadata) o).getName(), mapper));
       a.append(",\"l\":");
       objectToJson(a, ((Metadata) o).getLabels(), recursionLevel, mapper);
       a.append(",\"a\":");
       objectToJson(a, ((Metadata) o).getAttributes(), recursionLevel, mapper);
       a.append("}");
     } else if (o instanceof WarpScriptStack.Macro) {
-      a.append(JsonUtils.objectToJson(o.toString(), mapper));
+      a.append(objectToJson(o.toString(), mapper));
     } else if (o instanceof NamedWarpScriptFunction) {
       StringBuilder sb = new StringBuilder();
       sb.append(WarpScriptStack.MACRO_START);
@@ -260,7 +260,7 @@ public class JsonUtils {
       sb.append(WarpScriptStack.MACRO_END);
       sb.append(" ");
       sb.append(WarpScriptLib.EVAL);
-      a.append(JsonUtils.objectToJson(sb.toString(), mapper));
+      a.append(objectToJson(sb.toString(), mapper));
     } else {
       a.append("null");
     }
