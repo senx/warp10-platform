@@ -43,6 +43,7 @@ import java.util.Map.Entry;
 
 /**
  * Converts an encoder into a map of gts, one per type
+ * TODO: Provide a map type->selector, with an optional 'attribute' key. By default, the enforced type will be added in a ".type" label.
  */
 public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
