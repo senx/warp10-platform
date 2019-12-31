@@ -70,7 +70,7 @@ public class StackUtils {
       try {
         Object o = stack.get(i);
 
-        JsonUtils.objectToJson(out, o, recursionLevel, strictJSON);
+        JsonUtils.objectToJson(out, o, strictJSON, WarpScriptStack.DEFAULT_MAX_RECURSION_LEVEL);
       } catch (WarpScriptException | IOException ee) {
       }
     }

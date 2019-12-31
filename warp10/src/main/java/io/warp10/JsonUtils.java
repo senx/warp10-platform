@@ -33,11 +33,13 @@ import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
+import org.apache.commons.lang.StringEscapeUtils;
 
 import java.io.IOException;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class JsonUtils {
 
@@ -52,205 +54,193 @@ public class JsonUtils {
   /**
    * ObjectMapper instances are thread-safe, so we can safely use a single static instance.
    */
-  private static final ObjectMapper strictMapper;
-  private static final ObjectMapper looseMapper;
+  private static final ObjectMapper mapper;
 
   static {
-    JsonFactoryBuilder strictBuilder = new JsonFactoryBuilder();
-    strictBuilder.enable(JsonWriteFeature.ESCAPE_NON_ASCII);
-    strictMapper = new ObjectMapper(strictBuilder.build());
-    strictMapper.getSerializerProvider().setNullKeySerializer(new NullKeySer());
 
-    JsonFactoryBuilder looseBuilder = new JsonFactoryBuilder();
-    looseBuilder.enable(JsonReadFeature.ALLOW_NON_NUMERIC_NUMBERS);
-    looseBuilder.enable(JsonReadFeature.ALLOW_MISSING_VALUES);
-    looseBuilder.enable(JsonWriteFeature.ESCAPE_NON_ASCII);
-    looseBuilder.disable(JsonWriteFeature.WRITE_NAN_AS_STRINGS);
-    looseMapper = new ObjectMapper(looseBuilder.build());
-    looseMapper.getSerializerProvider().setNullKeySerializer(new NullKeySer());
-  }
-
-  public static String objectToJson(Object o) throws JsonProcessingException {
-    return objectToJson(o, true);
-  }
-
-  public static String objectToJson(Object o, boolean isStrict) throws JsonProcessingException {
-    if (isStrict) {
-      return objectToJson(o, strictMapper);
-    } else {
-      return objectToJson(o, looseMapper);
-    }
-  }
-
-  private static String objectToJson(Object o, ObjectMapper mapper) throws JsonProcessingException {
-    return mapper.writeValueAsString(o);
+    JsonFactoryBuilder builder = new JsonFactoryBuilder();
+    builder.enable(JsonReadFeature.ALLOW_NON_NUMERIC_NUMBERS);
+    builder.enable(JsonReadFeature.ALLOW_MISSING_VALUES);
+    mapper = new ObjectMapper(builder.build());
+    mapper.getSerializerProvider().setNullKeySerializer(new NullKeySer());
   }
 
   public static Object jsonToObject(String json) throws JsonProcessingException {
-    return jsonToObject(json, true);
-  }
-
-  public static Object jsonToObject(String json, boolean isStrict) throws JsonProcessingException {
-    if (isStrict) {
-      return jsonToObject(json, strictMapper);
-    } else {
-      return jsonToObject(json, looseMapper);
-    }
-  }
-
-  private static Object jsonToObject(String json, ObjectMapper mapper) throws JsonProcessingException {
     return mapper.readValue(json, Object.class);
   }
 
-  public static void objectToJson(Appendable a, Object o, AtomicInteger recursionLevel, boolean isStrict) throws IOException {
-    if (isStrict) {
-      objectToJson(a, o, recursionLevel, strictMapper);
-    } else {
-      objectToJson(a, o, recursionLevel, looseMapper);
-    }
+  public static String objectToJson(Object o) throws IOException {
+    return objectToJson(o, false);
   }
 
-  private static void objectToJson(Appendable a, Object o, AtomicInteger recursionLevel, ObjectMapper mapper) throws IOException {
+  public static String objectToJson(Object o, boolean isStrict) throws IOException {
+    StringWriter writer = new StringWriter();
+    objectToJson(writer, o, isStrict);
+    return writer.toString();
+  }
 
-    if (recursionLevel.addAndGet(1) > WarpScriptStack.DEFAULT_MAX_RECURSION_LEVEL && ((o instanceof Map) || (o instanceof List) || (o instanceof WarpScriptStack.Macro))) {
-      a.append(" ...NESTED_CONTENT_REMOVED... ");
-      recursionLevel.addAndGet(-1);
+  public static void objectToJson(Writer writer, Object o, boolean isStrict) throws IOException {
+    objectToJson(writer, o, isStrict, Long.MAX_VALUE);
+  }
+
+  public static void objectToJson(Writer writer, Object o, boolean isStrict, long allowedNesting) throws IOException {
+    if (allowedNesting < 0) {
+      writer.write(" ...NESTED_CONTENT_REMOVED... ");
       return;
     }
 
-    if (o instanceof Number || o instanceof String || o instanceof Boolean) {
-      a.append(objectToJson(o, mapper));
+    if (null == o) {
+      writer.write("null");
+    } else if (o instanceof Boolean) {
+      writer.write(o.toString());
+    } else if (o instanceof String) {
+      writer.write("\"");
+      StringEscapeUtils.escapeJava(writer, (String) o);
+      writer.write("\"");
+    } else if (o instanceof Number) {
+      if (isStrict && o instanceof Double && !Double.isFinite((Double) o)) {
+        writer.write("\"");
+        writer.write(o.toString());
+        writer.write("\"");
+      } else {
+        writer.write(o.toString());
+      }
     } else if (o instanceof Map) {
-      a.append("{");
+      writer.write("{");
       boolean first = true;
       for (Map.Entry keyAndValue: ((Map<?, ?>) o).entrySet()) {
-        Object key = keyAndValue.getKey();
         if (!first) {
-          a.append(",");
+          writer.write(",");
         }
-        if (null != key) {
-          a.append(objectToJson(key.toString(), mapper));
+
+        // Key must be a string. Even if in JavaScript it is possible to use numbers or null as key, they are in fact
+        // coerced to string.
+        Object key = keyAndValue.getKey();
+        if (null == key) {
+          objectToJson(writer, "null", isStrict, allowedNesting - 1);
         } else {
-          a.append("\"\"");
+          objectToJson(writer, key.toString(), isStrict, allowedNesting - 1);
         }
-        a.append(":");
-        objectToJson(a, keyAndValue.getValue(), recursionLevel, mapper);
+        writer.write(":");
+        objectToJson(writer, keyAndValue.getValue(), isStrict, allowedNesting - 1);
         first = false;
       }
-      a.append("}");
+      writer.write("}");
     } else if (o instanceof List) {
-      a.append("[");
+      writer.write("[");
       boolean first = true;
       for (Object elt: ((List) o)) {
         if (!first) {
-          a.append(",");
+          writer.write(",");
         }
-        objectToJson(a, elt, recursionLevel, mapper);
+        objectToJson(writer, elt, isStrict, allowedNesting - 1);
         first = false;
       }
-      a.append("]");
+      writer.write("]");
     } else if (o instanceof GeoTimeSerie) {
-      a.append("{");
-      a.append("\"c\":");
+      writer.write("{");
+      writer.write("\"c\":");
       String name = ((GeoTimeSerie) o).getMetadata().getName();
       if (null == name) {
         name = "";
       }
-      a.append(objectToJson(name, mapper));
-      a.append(",\"l\":");
-      objectToJson(a, ((GeoTimeSerie) o).getMetadata().getLabels(), recursionLevel, mapper);
-      a.append(",\"a\":");
-      objectToJson(a, ((GeoTimeSerie) o).getMetadata().getAttributes(), recursionLevel, mapper);
-      a.append(",\"la\":");
-      objectToJson(a, ((GeoTimeSerie) o).getMetadata().getLastActivity(), recursionLevel, mapper);
-      a.append(",\"v\":[");
+      objectToJson(writer, name, isStrict, allowedNesting - 1);
+      writer.write(",\"l\":");
+      objectToJson(writer, ((GeoTimeSerie) o).getMetadata().getLabels(), isStrict, allowedNesting - 1);
+      writer.write(",\"a\":");
+      objectToJson(writer, ((GeoTimeSerie) o).getMetadata().getAttributes(), isStrict, allowedNesting - 1);
+      writer.write(",\"la\":");
+      objectToJson(writer, ((GeoTimeSerie) o).getMetadata().getLastActivity(), isStrict, allowedNesting - 1);
+      writer.write(",\"v\":[");
       boolean first = true;
       for (int i = 0; i < ((GeoTimeSerie) o).size(); i++) {
         if (!first) {
-          a.append(",");
+          writer.write(",");
         }
         long ts = GTSHelper.tickAtIndex((GeoTimeSerie) o, i);
         long location = GTSHelper.locationAtIndex((GeoTimeSerie) o, i);
         long elevation = GTSHelper.elevationAtIndex((GeoTimeSerie) o, i);
         Object v = GTSHelper.valueAtIndex((GeoTimeSerie) o, i);
-        a.append("[");
-        a.append(Long.toString(ts));
+        writer.write("[");
+        writer.write(Long.toString(ts));
         if (GeoTimeSerie.NO_LOCATION != location) {
           double[] latlon = GeoXPLib.fromGeoXPPoint(location);
-          a.append(",");
-          a.append(Double.toString(latlon[0]));
-          a.append(",");
-          a.append(Double.toString(latlon[1]));
+          writer.write(",");
+          writer.write(Double.toString(latlon[0]));
+          writer.write(",");
+          writer.write(Double.toString(latlon[1]));
         }
         if (GeoTimeSerie.NO_ELEVATION != elevation) {
-          a.append(",");
-          a.append(Long.toString(elevation));
+          writer.write(",");
+          writer.write(Long.toString(elevation));
         }
-        a.append(",");
-        a.append(objectToJson(v, mapper));
-        a.append("]");
+        writer.write(",");
+        objectToJson(writer, v, isStrict, allowedNesting - 1);
+        writer.write("]");
         first = false;
       }
-      a.append("]");
-      a.append("}");
+      writer.write("]");
+      writer.write("}");
     } else if (o instanceof GTSEncoder) {
-      a.append("{");
-      a.append("\"c\":");
+      writer.write("{");
+      writer.write("\"c\":");
       String name = ((GTSEncoder) o).getMetadata().getName();
       if (null == name) {
         name = "";
       }
-      a.append(objectToJson(name, mapper));
-      a.append(",\"l\":");
-      objectToJson(a, ((GTSEncoder) o).getMetadata().getLabels(), recursionLevel, mapper);
-      a.append(",\"a\":");
-      objectToJson(a, ((GTSEncoder) o).getMetadata().getAttributes(), recursionLevel, mapper);
-      a.append(",\"la\":");
-      objectToJson(a, ((GTSEncoder) o).getMetadata().getLastActivity(), recursionLevel, mapper);
-      a.append(",\"v\":[");
+      objectToJson(writer, name, isStrict, allowedNesting - 1);
+      writer.write(",\"l\":");
+      objectToJson(writer, ((GTSEncoder) o).getMetadata().getLabels(), isStrict, allowedNesting - 1);
+      writer.write(",\"a\":");
+      objectToJson(writer, ((GTSEncoder) o).getMetadata().getAttributes(), isStrict, allowedNesting - 1);
+      writer.write(",\"la\":");
+      objectToJson(writer, ((GTSEncoder) o).getMetadata().getLastActivity(), isStrict, allowedNesting - 1);
+      writer.write(",\"v\":[");
       boolean first = true;
       GTSDecoder decoder = ((GTSEncoder) o).getUnsafeDecoder(false);
       while (decoder.next()) {
         if (!first) {
-          a.append(",");
+          writer.write(",");
         }
         long ts = decoder.getTimestamp();
         long location = decoder.getLocation();
         long elevation = decoder.getElevation();
         // We do not call getBinaryValue because JSON cannot represent byte arrays
         Object v = decoder.getValue();
-        a.append("[");
-        a.append(Long.toString(ts));
+        writer.write("[");
+        writer.write(Long.toString(ts));
         if (GeoTimeSerie.NO_LOCATION != location) {
           double[] latlon = GeoXPLib.fromGeoXPPoint(location);
-          a.append(",");
-          a.append(Double.toString(latlon[0]));
-          a.append(",");
-          a.append(Double.toString(latlon[1]));
+          writer.write(",");
+          writer.write(Double.toString(latlon[0]));
+          writer.write(",");
+          writer.write(Double.toString(latlon[1]));
         }
         if (GeoTimeSerie.NO_ELEVATION != elevation) {
-          a.append(",");
-          a.append(Long.toString(elevation));
+          writer.write(",");
+          writer.write(Long.toString(elevation));
         }
-        a.append(",");
-        a.append(objectToJson(v, mapper));
-        a.append("]");
+        writer.write(",");
+        objectToJson(writer, v, isStrict, allowedNesting - 1);
+        writer.write("]");
         first = false;
       }
-      a.append("]");
-      a.append("}");
+      writer.write("]");
+      writer.write("}");
 
     } else if (o instanceof Metadata) {
-      a.append("{");
-      a.append("\"c\":");
-      a.append(objectToJson(((Metadata) o).getName(), mapper));
-      a.append(",\"l\":");
-      objectToJson(a, ((Metadata) o).getLabels(), recursionLevel, mapper);
-      a.append(",\"a\":");
-      objectToJson(a, ((Metadata) o).getAttributes(), recursionLevel, mapper);
-      a.append("}");
+      writer.write("{");
+      writer.write("\"c\":");
+      objectToJson(writer, ((Metadata) o).getName(), isStrict, allowedNesting - 1);
+      writer.write(",\"l\":");
+      objectToJson(writer, ((Metadata) o).getLabels(), isStrict, allowedNesting - 1);
+      writer.write(",\"a\":");
+      objectToJson(writer, ((Metadata) o).getAttributes(), isStrict, allowedNesting - 1);
+      writer.write(",\"la\":");
+      objectToJson(writer, ((Metadata) o).getLastActivity(), isStrict, allowedNesting - 1);
+      writer.write("}");
     } else if (o instanceof WarpScriptStack.Macro) {
-      a.append(objectToJson(o.toString(), mapper));
+      objectToJson(writer, o.toString(), isStrict, allowedNesting - 1);
     } else if (o instanceof NamedWarpScriptFunction) {
       StringBuilder sb = new StringBuilder();
       sb.append(WarpScriptStack.MACRO_START);
@@ -260,12 +250,10 @@ public class JsonUtils {
       sb.append(WarpScriptStack.MACRO_END);
       sb.append(" ");
       sb.append(WarpScriptLib.EVAL);
-      a.append(objectToJson(sb.toString(), mapper));
+      objectToJson(writer, sb.toString(), isStrict, allowedNesting - 1);
     } else {
-      a.append("null");
+      writer.write("null");
     }
-
-    recursionLevel.addAndGet(-1);
   }
 
 }

@@ -63,7 +63,7 @@ public class PSTACK extends NamedWarpScriptFunction implements WarpScriptStackFu
       StringWriter sw = new StringWriter();
       PrintWriter pw = new PrintWriter(sw);
       try {
-        JsonUtils.objectToJson(pw, o, recursionLevel, false);
+        JsonUtils.objectToJson(pw, o, false, WarpScriptStack.DEFAULT_MAX_RECURSION_LEVEL);
       } catch (IOException ioe) {
         throw new WarpScriptException(ioe);
       }

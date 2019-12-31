@@ -30,6 +30,7 @@ import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
 import io.warp10.script.functions.PARSESELECTOR;
 import io.warp10.sensision.Sensision;
 
@@ -212,7 +213,7 @@ public class EgressFindHandler extends AbstractHandler {
                 } else {
                   first = false;
                 }
-                JsonUtils.objectToJson(pw, metadata, level, true);
+                JsonUtils.objectToJson(pw, metadata, true, WarpScriptStack.DEFAULT_MAX_RECURSION_LEVEL);
                 continue;
               }
               
