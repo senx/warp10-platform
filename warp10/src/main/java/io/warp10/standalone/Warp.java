@@ -72,6 +72,7 @@ import io.warp10.quasar.filter.QuasarTokenFilter;
 import io.warp10.script.ScriptRunner;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.sensision.Sensision;
+import io.warp10.standalone.wal.WALManager;
 import io.warp10.warp.sdk.AbstractWarp10Plugin;
 
 public class Warp extends WarpDist implements Runnable {
@@ -334,6 +335,13 @@ public class Warp extends WarpDist implements Runnable {
     
     StandaloneDirectoryClient sdc = null;
     StoreClient scc = null;
+        
+    WALManager wm = null;
+    
+    if (null != properties.getProperty(Configuration.STANDALONE_WAL_MANAGER)) {
+      Class clazz = Class.forName(properties.getProperty(Configuration.STANDALONE_WAL_MANAGER));
+      wm = (WALManager) clazz.newInstance();
+    }
 
     if (inmemory) {
       sdc = new StandaloneDirectoryClient(null, keystore);
@@ -346,14 +354,14 @@ public class Warp extends WarpDist implements Runnable {
       
       if (!"false".equals(properties.getProperty(Configuration.IN_MEMORY_CHUNKED))) {
         scc = new StandaloneChunkedMemoryStore(properties, keystore);
-        ((StandaloneChunkedMemoryStore) scc).setDirectoryClient(sdc);
+        ((StandaloneChunkedMemoryStore) scc).setDirectoryClient(WALManager.wrap(wm, sdc));
         ((StandaloneChunkedMemoryStore) scc).load();
       } else {
         scc = new StandaloneMemoryStore(keystore,
             Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_DEPTH, Long.toString(60 * 60 * 1000 * Constants.TIME_UNITS_PER_MS))),
             Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_HIGHWATERMARK, "100000")),
             Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_LOWWATERMARK, "80000")));
-        ((StandaloneMemoryStore) scc).setDirectoryClient(sdc);
+        ((StandaloneMemoryStore) scc).setDirectoryClient(WALManager.wrap(wm, sdc));
         if ("true".equals(properties.getProperty(Configuration.IN_MEMORY_EPHEMERAL))) {
           ((StandaloneMemoryStore) scc).setEphemeral(true);
         }        
@@ -378,6 +386,9 @@ public class Warp extends WarpDist implements Runnable {
     if (ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
       scc = new StandaloneParallelStoreClientWrapper(scc);
     }
+
+    sdc = WALManager.wrap(wm, sdc);
+    scc = WALManager.wrap(wm, scc);
 
     if (properties.containsKey(Configuration.RUNNER_ROOT)) {
       if (!properties.containsKey(Configuration.RUNNER_ENDPOINT)) {

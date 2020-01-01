@@ -75,6 +75,21 @@ public class StandaloneStoreClient implements StoreClient {
   private final double syncrate;
   private final int blockcacheThreshold;
   
+  
+  protected StandaloneStoreClient() {
+    MAX_ENCODER_SIZE = 0;
+    MAX_DELETE_BATCHSIZE = 0;
+    this.db = null;
+    this.keystore = null;
+    this.properties = null;
+    this.plasmaHandlers = null;
+    this.syncwrites = false;
+    this.syncrate = 0.0;
+    this.blockcacheThreshold = 0;
+    this.perThreadWriteBatch = null;
+    this.perThreadWriteBatchSize = null;
+  }
+
   public StandaloneStoreClient(DB db, KeyStore keystore, Properties properties) {
     this.db = db;
     this.keystore = keystore;

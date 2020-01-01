@@ -124,6 +124,19 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     public boolean exclude(long classId, long labelsId);
   }
   
+  public StandaloneDirectoryClient() {
+    this.db = null;
+    this.keystore = null;
+    this.classKey = null;
+    this.labelsKey = null;
+    this.classLongs = null;
+    this.labelsLongs = null;
+    this.aesKey = null;
+    this.initNThreads = 0;
+    this.syncwrites = false;
+    this.syncrate = 0.0F;
+  }
+
   public StandaloneDirectoryClient(DB db, final KeyStore keystore) {
 
     String classMaxCardinalityProp = WarpConfig.getProperty(Configuration.DIRECTORY_STATS_CLASS_MAXCARDINALITY);
