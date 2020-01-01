@@ -96,9 +96,11 @@ public class GOLDWRAP extends ElementOrListStackFunction {
           
           Metadata metadata = enc.getRawMetadata();
           
-          // Create a copy of the metadata
-          enc.setMetadata(metadata);
+          // Create an empty Metadata instance which will be populated
+          // using class, labels and attributes only
           
+          enc.setMetadata(new Metadata());
+                    
           try {
             //
             // We need to ensure the metadata (labels/attributes) are in a deterministic order
@@ -116,12 +118,9 @@ public class GOLDWRAP extends ElementOrListStackFunction {
               enc.getRawMetadata().setAttributes(smap);            
             }
 
-            // Unset the elements in Metadata which could vary
-            enc.getRawMetadata().unsetClassId();
-            enc.getRawMetadata().unsetLabelsId();
-            enc.getRawMetadata().unsetLastActivity();
-            enc.getRawMetadata().unsetSource();
-            
+            // Copy the elements which we need
+            enc.getRawMetadata().setName(metadata.getName());
+
             GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(enc, true, 1.0D, Integer.MAX_VALUE);
             TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
             byte[] bytes = ser.serialize(wrapper);
