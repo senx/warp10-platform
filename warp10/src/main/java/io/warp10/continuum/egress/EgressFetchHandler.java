@@ -17,7 +17,7 @@
 package io.warp10.continuum.egress;
 
 import io.warp10.ThrowableUtils;
-import io.warp10.JsonUtils;
+import io.warp10.json.JsonUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSDecoder;

@@ -17,7 +17,7 @@
 package io.warp10.script;
 
 import io.warp10.FloatUtils;
-import io.warp10.JsonUtils;
+import io.warp10.json.JsonUtils;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
@@ -42,7 +42,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.geoxp.GeoXPLib;
 
@@ -51,8 +50,6 @@ public class StackUtils {
   public static void toJSON(PrintWriter out, WarpScriptStack stack, int maxdepth) throws WarpScriptException {
     
     boolean strictJSON = Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_JSON_STRICT));
-
-    AtomicInteger recursionLevel = new AtomicInteger(0);
 
     int depth = Math.min(stack.depth(), maxdepth);
 
@@ -70,7 +67,7 @@ public class StackUtils {
       try {
         Object o = stack.get(i);
 
-        JsonUtils.objectToJson(out, o, strictJSON, WarpScriptStack.DEFAULT_MAX_RECURSION_LEVEL);
+        JsonUtils.objectToJson(out, o, strictJSON);
       } catch (WarpScriptException | IOException ee) {
       }
     }

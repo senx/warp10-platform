@@ -19,7 +19,7 @@ package io.warp10.test.tools;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import io.warp10.JsonUtils;
+import io.warp10.json.JsonUtils;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.ext.concurrent.ConcurrentWarpScriptExtension;
 import io.warp10.script.ext.sensision.SensisionWarpScriptExtension;

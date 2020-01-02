@@ -16,7 +16,7 @@
 
 package io.warp10.continuum.egress;
 
-import io.warp10.JsonUtils;
+import io.warp10.json.JsonUtils;
 import io.warp10.ThrowableUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
@@ -30,7 +30,6 @@ import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
 import io.warp10.script.functions.PARSESELECTOR;
 import io.warp10.sensision.Sensision;
 
@@ -45,7 +44,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 import javax.servlet.ServletException;
@@ -142,7 +140,6 @@ public class EgressFindHandler extends AbstractHandler {
       
       StringBuilder sb = new StringBuilder();
 
-      AtomicInteger level = new AtomicInteger(0);
       boolean first = true;
       
       try {
@@ -213,7 +210,7 @@ public class EgressFindHandler extends AbstractHandler {
                 } else {
                   first = false;
                 }
-                JsonUtils.objectToJson(pw, metadata, true, WarpScriptStack.DEFAULT_MAX_RECURSION_LEVEL);
+                JsonUtils.objectToJson(pw, metadata, true);
                 continue;
               }
               

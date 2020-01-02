@@ -16,7 +16,7 @@
 
 package io.warp10.standalone;
 
-import io.warp10.JsonUtils;
+import io.warp10.json.JsonUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.egress.EgressFetchHandler;
@@ -68,11 +68,8 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.apache.thrift.protocol.TCompactProtocol.Factory;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.UpgradeRequest;
-import org.eclipse.jetty.websocket.api.UpgradeResponse;
 import org.eclipse.jetty.websocket.api.WebSocketException;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
@@ -699,7 +696,6 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
                   json.put("elev", decoder.getElevation());
                 }
                 
-                //entry.getKey().getRemote().sendStringByFuture(gson.toJson(json).toString());
                 if (first) {
                   sb.append("[");
                 } else {

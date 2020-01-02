@@ -1,0 +1,73 @@
+//
+//   Copyright 2020  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
+package io.warp10.json;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.geoxp.GeoXPLib;
+import io.warp10.continuum.gts.GTSDecoder;
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.continuum.store.thrift.data.Metadata;
+
+import java.io.IOException;
+
+public class GTSEncoderSerializer extends JsonSerializer<GTSEncoder> {
+
+  @Override
+  public void serialize(GTSEncoder encoder, JsonGenerator gen, SerializerProvider provider) throws IOException {
+    Metadata metadata = encoder.getMetadata();
+    String name = metadata.getName();
+    if (null == name) {
+      name = "";
+    }
+
+    gen.writeStartObject();
+    gen.writeStringField("c", name);
+    gen.writeObjectField("l", metadata.getLabels());
+    gen.writeObjectField("a", metadata.getAttributes());
+    gen.writeNumberField("la", metadata.getLastActivity());
+    gen.writeFieldName("v");
+    gen.writeStartArray();
+
+    GTSDecoder decoder = encoder.getUnsafeDecoder(false);
+    while (decoder.next()) {
+      long ts = decoder.getTimestamp();
+      long location = decoder.getLocation();
+      long elevation = decoder.getElevation();
+      // We do not call getBinaryValue because JSON cannot represent byte arrays
+      Object v = decoder.getValue();
+
+      gen.writeStartArray();
+      gen.writeNumber(ts);
+      if (GeoTimeSerie.NO_LOCATION != location) {
+        double[] latlon = GeoXPLib.fromGeoXPPoint(location);
+        gen.writeNumber(latlon[0]);
+        gen.writeNumber(latlon[1]);
+      }
+      if (GeoTimeSerie.NO_ELEVATION != elevation) {
+        gen.writeNumber(elevation);
+      }
+      gen.writeObject(v);
+      gen.writeEndArray();
+    }
+    gen.writeEndArray();
+
+    gen.writeEndObject();
+  }
+}

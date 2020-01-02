@@ -26,8 +26,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
-import io.warp10.JsonUtils;
-import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.json.JsonUtils;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;

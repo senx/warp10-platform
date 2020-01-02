@@ -16,7 +16,7 @@
 
 package io.warp10.continuum;
 
-import io.warp10.JsonUtils;
+import io.warp10.json.JsonUtils;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
