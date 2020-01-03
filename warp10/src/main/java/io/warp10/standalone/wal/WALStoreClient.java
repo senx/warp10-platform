@@ -28,8 +28,10 @@ public class WALStoreClient implements StoreClient {
 
   @Override
   public void store(GTSEncoder encoder) throws IOException {
-    manager.store(encoder);
+    // CAUTION, StoreClient#store assumes that class and labels ids
+    // HAVE BEEN computed
     store.store(encoder);
+    manager.store(encoder);
   }
 
   @Override
@@ -39,8 +41,9 @@ public class WALStoreClient implements StoreClient {
 
   @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {
+    long result = store.delete(token, metadata, start, end);
     manager.delete(token, metadata, start, end);
-    return store.delete(token, metadata, start, end);
+    return result;
   }
 
   @Override

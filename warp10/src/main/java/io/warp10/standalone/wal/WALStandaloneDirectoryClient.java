@@ -21,18 +21,23 @@ public class WALStandaloneDirectoryClient extends StandaloneDirectoryClient {
   }
 
   @Override
+  public boolean register(Metadata metadata) throws IOException {
+    boolean stored = directory.register(metadata);
+    // Only record the metadata update in the WAL if the directory
+    // actually persisted it
+    if (stored) {
+      manager.register(metadata);
+    }
+    return stored;
+  }
+
+  @Override
   public List<Metadata> find(DirectoryRequest request) {
     return directory.find(request);
   }
 
   @Override
-  public void register(Metadata metadata) throws IOException {
-    manager.register(metadata);
-    directory.register(metadata);
-  }
-
-  @Override
-  public synchronized void unregister(Metadata metadata) {
+  public synchronized void unregister(Metadata metadata) throws IOException {
     manager.unregister(metadata);
     directory.unregister(metadata);
   }
