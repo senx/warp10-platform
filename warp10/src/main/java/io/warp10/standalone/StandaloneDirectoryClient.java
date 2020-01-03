@@ -596,7 +596,9 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     }    
   };
   
-  public void register(Metadata metadata) throws IOException {
+  public boolean register(Metadata metadata) throws IOException {
+    
+    boolean stored = false;
     
     //
     // Special case of null means flush leveldb
@@ -604,7 +606,8 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     
     if (null == metadata) {
       store(null, null);
-      return;
+      stored = true;
+      return stored;
     }
     
     //
@@ -613,6 +616,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         
     if (Configuration.INGRESS_METADATA_SOURCE.equals(metadata.getSource()) && !metadatas.containsKey(metadata.getName())) {
       store(metadata);
+      stored = true;
     } else if (Configuration.INGRESS_METADATA_SOURCE.equals(metadata.getSource())) {
       // Compute labelsId
       // 128BITS
@@ -621,6 +625,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       if (!metadatas.get(metadata.getName()).containsKey(labelsId)) {
         // Metadata is unknown so we know the Metadata should be stored
         store(metadata);
+        stored = true;
       } else {
         // Check that we do not have a collision
         if (!metadatas.get(metadata.getName()).get(labelsId).getLabels().equals(metadata.getLabels())) {
@@ -638,6 +643,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
           long currentLastActivity = metadatas.get(metadata.getName()).get(labelsId).getLastActivity();
           if (metadata.getLastActivity() - currentLastActivity >= activityWindow) {
             store(metadata);
+            stored = true;
           }
         }
       }
@@ -662,15 +668,19 @@ public class StandaloneDirectoryClient implements DirectoryClient {
             }
             
             store(metadata);
+            stored = true;
           }
         }
       } else {
         store(metadata);
+        stored = true;
       }
     }
+    
+    return stored;
   }
   
-  public synchronized void unregister(Metadata metadata) {
+  public synchronized void unregister(Metadata metadata) throws IOException {
     if (!metadatas.containsKey(metadata.getName())) {
       return;
     }

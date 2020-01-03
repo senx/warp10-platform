@@ -498,6 +498,11 @@ public class StandaloneStoreClient implements StoreClient {
     }
   }
   
+  /**
+   * Persists a GTSEncoder instance.
+   * CAUTION, this method assumes that classId and labelsId HAVE BEEN computed for
+   * the encoder.
+   */
   public void store(GTSEncoder encoder) throws IOException {
     
     if (null == encoder) {

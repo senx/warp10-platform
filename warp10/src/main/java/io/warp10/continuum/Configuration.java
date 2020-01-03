@@ -1453,6 +1453,11 @@ public class Configuration {
    * Compression type to use for leveldb (SNAPPY/NONE)
    */
   public static final String LEVELDB_COMPRESSION_TYPE = "leveldb.compression.type";
+ 
+  /**
+   * WAL Manager Fully Qualified Class Name
+   */
+  public static final String STANDALONE_WAL_MANAGER = "standalone.wal.manager";
   
   /**
    * Set to true to disable the delete endpoint in the standalone version of Warp 10.

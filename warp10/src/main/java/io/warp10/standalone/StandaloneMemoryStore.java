@@ -321,6 +321,10 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
     return iterator;
   }
   
+  /**
+   * CAUTION, this method assumes that class and labels ids HAVE BEEN
+   * computed for 'encoder'
+   */
   public void store(GTSEncoder encoder) throws IOException {
     
     if (null == encoder) {

@@ -176,10 +176,9 @@ public class StandaloneShardedDirectoryClientWrapper extends StandaloneDirectory
   }
   
   @Override
-  public void register(Metadata metadata) throws IOException {
+  public boolean register(Metadata metadata) throws IOException {
     if (null == metadata) {
-      this.client.register(metadata);
-      return;
+      return this.client.register(metadata);
     }
     
     if (null != this.filter) {
@@ -187,11 +186,11 @@ public class StandaloneShardedDirectoryClientWrapper extends StandaloneDirectory
       long labelsId = GTSHelper.labelsId(this.labelsKeyLongs, metadata.getLabels());
 
       if (this.filter.exclude(classId, labelsId)) {
-        return;
+        return false;
       }
     }
 
-    this.client.register(metadata);
+    return this.client.register(metadata);
   }
   
   @Override
@@ -200,7 +199,7 @@ public class StandaloneShardedDirectoryClientWrapper extends StandaloneDirectory
   }
   
   @Override
-  public synchronized void unregister(Metadata metadata) {
+  public synchronized void unregister(Metadata metadata) throws IOException {
     this.client.unregister(metadata);
   }    
 }
