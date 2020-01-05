@@ -4,17 +4,26 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.apache.commons.collections.IteratorUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileContext;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.SequenceFile;
@@ -40,10 +49,12 @@ public class FileBasedWALManager extends WALManager implements Runnable {
   
   private static final long DEFAULT_MAXSIZE = 128 * 1024 * 1024L;
   private static final long DEFAULT_MAXTIME = 3600 * 1000L;
+  private static final long DEFAULT_PURGE = 0L;
   
   public static final String CONFIG_WAL_DIR = "wal.dir";
   public static final String CONFIG_WAL_MAXSIZE = "wal.maxsize";
   public static final String CONFIG_WAL_MAXTIME = "wal.maxtime";
+  public static final String CONFIG_WAL_PURGE = "wal.purge";
   
   private final AtomicBoolean done = new AtomicBoolean(false);
   private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -55,8 +66,13 @@ public class FileBasedWALManager extends WALManager implements Runnable {
   private final Path dirpath;
   private final long MAXSIZE;
   private final long MAXTIME;
+  private final long PURGE_DELAY;
   private final Configuration conf;
-  
+  private final Matcher WAL_MATCHER = Pattern.compile("^(?<ts>[0-9a-fA-F]{16}).(?<uuid>[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\\.wal$").matcher("");
+
+  private Path walpath = null;
+  private long lastpurge = 0L;
+
   public FileBasedWALManager() {
     
     conf = new Configuration();
@@ -91,7 +107,7 @@ public class FileBasedWALManager extends WALManager implements Runnable {
     
     MAXSIZE = Long.parseLong(WarpConfig.getProperty(CONFIG_WAL_MAXSIZE, Long.toString(DEFAULT_MAXSIZE)));
     MAXTIME = Long.parseLong(WarpConfig.getProperty(CONFIG_WAL_MAXTIME, Long.toString(DEFAULT_MAXTIME)));
-    
+    PURGE_DELAY = Long.parseLong(WarpConfig.getProperty(CONFIG_WAL_PURGE, Long.toString(DEFAULT_PURGE)));
     //
     // Create shutdown hook
     //
@@ -162,8 +178,103 @@ public class FileBasedWALManager extends WALManager implements Runnable {
     return new WALStoreClient(this, sdc);
   }
   
+  private void purge() {
+    long now = System.currentTimeMillis();
+    if (PURGE_DELAY > 0 && now - lastpurge > Math.min(MAXTIME, PURGE_DELAY)) {
+      // Retrieve all WAL files
+      try {
+        RemoteIterator<LocatedFileStatus> iter = fs.listFiles(dirpath, false);
+        
+        // Any file whose timestamp appearing in the name is
+        // earlier than PURGE_DELAY + 2 * MAXTIME ago will be retained,
+        // others will be purged
+        
+        long cutoff = now - (PURGE_DELAY + 2 * MAXTIME);
+        
+        // Iterate over the files
+        while(iter.hasNext()) {
+          LocatedFileStatus status = iter.next();
+          String name = status.getPath().getName();
+          
+          // Ignore the current file
+          if (null != walpath && name.equals(walpath.getName())) {
+            continue;
+          }
+          
+          WAL_MATCHER.reset(name);
+          if (WAL_MATCHER.matches()) {
+            long ts = Long.parseLong(WAL_MATCHER.group("ts"), 16);
+            // If the file was created after the cutoff timestamp, ignore it
+            if (ts >= cutoff) {
+              continue;
+            }
+            // Delete the file
+            try {
+              fs.delete(status.getPath(), false);
+            } catch (IOException ioe) {                    
+            }
+          }
+        }
+        lastpurge = now;
+      } catch (IOException ioe) {
+        LOG.error("Unable to perform WAL purge", ioe);
+      }
+    }
+  }
   @Override
   protected void replay(StandaloneDirectoryClient sdc, StoreClient scc) {
+    //
+    // Purge WAL first
+    //
+    purge();
+    
+    //
+    // List all files
+    //
+    
+    try {
+      lock.lockInterruptibly();
+      
+      FileStatus[] files = fs.listStatus(dirpath);
+
+      // Sort by name
+      Arrays.sort(files, new Comparator<FileStatus>() {
+        @Override
+        public int compare(FileStatus o1, FileStatus o2) {
+          return o1.getPath().getName().compareTo(o2.getPath().getName());
+        }
+      });
+      
+      for (FileStatus file: files) {
+        // Only consider files which match WAL_MATCHER
+        if (!WAL_MATCHER.reset(file.getPath().getName()).matches()) {
+          continue;
+        }
+        LOG.info("Replaying " + file.getPath());
+        SequenceFile.Reader reader = new SequenceFile.Reader(conf,
+          SequenceFile.Reader.file(file.getPath()),
+          SequenceFile.Reader.start(0));
+        
+        NullWritable key = NullWritable.get();
+        BytesWritable val = new BytesWritable();
+        
+        long count = 0L;
+        
+        while(reader.next(key, val)) {
+          System.out.println("VAL=" + val);
+          count++;
+        }
+        
+        LOG.info("Replayed " + count + " records.");
+        reader.close();
+      }
+    } catch (Exception e) {
+      throw new RuntimeException("Error replaying WAL.", e);
+    } finally {
+      if (lock.isHeldByCurrentThread()) {
+        lock.unlock();
+      }
+    }
   }
 
   private void append(byte[] value) throws IOException {
@@ -188,9 +299,7 @@ public class FileBasedWALManager extends WALManager implements Runnable {
   
   @Override
   public void run() {
-    try {
-      Path walpath = null;
-      
+    try {            
       while(true) {
         // Should we close the current file and reopen a new one?
         if (done.get() || null == wal || size.get() > MAXSIZE || System.currentTimeMillis() - start.get() > MAXTIME) {
@@ -227,10 +336,8 @@ public class FileBasedWALManager extends WALManager implements Runnable {
                 SequenceFile.Writer.keyClass(NullWritable.class),
                 SequenceFile.Writer.valueClass(BytesWritable.class),
                 SequenceFile.Writer.compression(CompressionType.NONE),
-                SequenceFile.Writer.metadata(meta),
-                SequenceFile.Writer.bufferSize(1)
+                SequenceFile.Writer.metadata(meta)
                 );
-            System.out.println(wal.getClass());
             size.set(0L);
             start.set(now);
           } catch (Exception e) {
@@ -244,6 +351,7 @@ public class FileBasedWALManager extends WALManager implements Runnable {
             }
           }
         } else {
+          purge();
           LockSupport.parkNanos(1000000000L);
         }
       }      

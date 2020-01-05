@@ -35,6 +35,8 @@ public abstract class WALManager {
   }
   
   public static void replay(WALManager manager, StandaloneDirectoryClient sdc, StoreClient scc) {
-    manager.replay(sdc, scc);
+    if (null != manager) {
+      manager.replay(sdc, scc);
+    }
   }
 }
