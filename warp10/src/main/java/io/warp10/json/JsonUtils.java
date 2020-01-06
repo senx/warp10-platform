@@ -133,9 +133,17 @@ public class JsonUtils {
     looseMapper.registerModule(module);
   }
 
+  //
+  // Method to deserialize JSON to Objects.
+  //
+
   public static Object jsonToObject(String json) throws JsonProcessingException {
     return strictMapper.readValue(json, Object.class);
   }
+
+  //
+  // Methods to serialize objects to JSON
+  //
 
   public static String objectToJson(Object o) throws IOException {
     return objectToJson(o, MAX_JSON_SIZE_DEFAULT);

@@ -21,7 +21,7 @@ import java.io.Writer;
 
 /**
  * A wrapper for Writers to limit the number of written chars.
- * When the number of chars that should be written exceed the given limit, a WriterBoundReachedException is thrown.
+ * When the number of chars that should be written exceeds the given limit, a WriterBoundReachedException is thrown.
  */
 public class BoundedWriter extends Writer {
 
@@ -34,10 +34,10 @@ public class BoundedWriter extends Writer {
   }
 
   protected final Writer writer;
-  protected final int maxWrittenChars;
-  protected int currentWrittenChars;
+  protected final long maxWrittenChars;
+  protected long currentWrittenChars;
 
-  public BoundedWriter(Writer writer, int maxAppendedChars) {
+  public BoundedWriter(Writer writer, long maxAppendedChars) {
     this.writer = writer;
     this.maxWrittenChars = maxAppendedChars;
     this.currentWrittenChars = 0;
