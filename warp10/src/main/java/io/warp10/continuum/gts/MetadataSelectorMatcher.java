@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -88,7 +88,7 @@ public class MetadataSelectorMatcher {
     if (0 == labelsSelectors.size()) {
       this.labelsPatterns = null;
     } else {
-      this.labelsPatterns = new HashMap<>(labelsSelectors.size());
+      this.labelsPatterns = new HashMap<String, Matcher>(labelsSelectors.size());
       // build label patterns map
       for (Entry<String, String> l: labelsSelectors.entrySet()) {
         if (l.getValue().startsWith("=")) {
@@ -108,7 +108,7 @@ public class MetadataSelectorMatcher {
       } catch (ParseException pe) {
         throw new WarpScriptException(pe);
       }
-      this.attributesPatterns = new HashMap<>(attributesSelectors.size());
+      this.attributesPatterns = new HashMap<String, Matcher>(attributesSelectors.size());
       // build label patterns map
       for (Entry<String, String> l: attributesSelectors.entrySet()) {
         if (l.getValue().startsWith("=")) {
@@ -129,10 +129,19 @@ public class MetadataSelectorMatcher {
         || ((null != this.classnamePattern) && this.classnamePattern.reset(metadata.getName()).matches());
 
     // then, check labels.
-    // standard selector: class{labelOrAttribute=xxx}
-    // if there is no label with this name, look at the attributes.
-    // extended selector: class{label=xxx}{attribute=yyy}
-    // check separately labels and attributes, both must match.
+    // ###### Standard selector : `classname{labelOrAttribute=x}`
+    //  - If classname match, `filter.byselector` looks into input labels to check if labelOrAttribute exists and equals x.
+    //  If labelOrAttribute is not found among input labels, it looks into input attributes if the label exists and equals x.
+    // ###### Extended selector : `classname{labelname=x}{attributename=y}` matches if:
+    //  - classname matches
+    //  - input have labelname in its labels, and label value matches
+    //  - input have attributename in its labels, and attribute value matches
+    //
+    // ###### Selectors example :
+    //  - `~.*{}` matches everything.
+    //  - `={}` matches only emtpy classnames, whatever the labels and attributes.
+    //  - `~.*{label=value}{} filter.byselector` is equivalent to `{ 'label' 'value' } filter.bylabels`.
+    //  - `~.*{}{attribute~value} filter.byselector` is equivalent to `{ 'attribute' '~value' } filter.byattr`.
 
     Map inputLabels = metadata.getLabels();
     Map inputAttributes = metadata.getAttributes();

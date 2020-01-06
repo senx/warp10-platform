@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -64,7 +64,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
     String extraLabel = DEFAULT_LABEL_NAME;
 
     if (top instanceof Map) {
-      typeMap = new LinkedHashMap<>();
+      typeMap = new LinkedHashMap<String, ArrayList<MetadataSelectorMatcher>>();
       // this is a map to specify type by selector. MetadataSelectorMatcher are build once here.
       for (Map.Entry<Object, Object> entry: ((Map<Object, Object>) top).entrySet()) {
         if (entry.getKey() instanceof String) {
@@ -72,12 +72,12 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
           if ("LONG".equals(t) || "DOUBLE".equals(t) || "BOOLEAN".equals(t) || "STRING".equals(t) || "BINARY".equals(t)) {
             if (entry.getValue() instanceof String) {
               // MAP with type->selector
-              ArrayList<MetadataSelectorMatcher> l = new ArrayList<>();
+              ArrayList<MetadataSelectorMatcher> l = new ArrayList<MetadataSelectorMatcher>();
               l.add(new MetadataSelectorMatcher((String) entry.getValue()));
               typeMap.put((String) entry.getKey(), l);
             } else if (entry.getValue() instanceof List) {
               // MAP with type->listOfSelectors
-              ArrayList<MetadataSelectorMatcher> l = new ArrayList<>();
+              ArrayList<MetadataSelectorMatcher> l = new ArrayList<MetadataSelectorMatcher>();
               for (Object sel: (List) entry.getValue()) {
                 if (sel instanceof String) {
                   l.add(new MetadataSelectorMatcher((String) sel));
@@ -107,7 +107,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
       top = stack.pop();
     }
 
-    List<GTSDecoder> decodersInput = new ArrayList<>();
+    List<GTSDecoder> decodersInput = new ArrayList<GTSDecoder>();
 
     boolean listInput = false;
 
@@ -127,9 +127,9 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     // if there is no type map, the output is a map of GTS (v2.3.0 signature), or a map of lists of GTS
     if (null == typeMap) {
-      Map<String, ArrayList<GeoTimeSerie>> result = new HashMap<>();
+      Map<String, ArrayList<GeoTimeSerie>> result = new HashMap<String, ArrayList<GeoTimeSerie>>();
       for (GTSDecoder decoder: decodersInput) {
-        Map<String, GeoTimeSerie> series = new HashMap<>();
+        Map<String, GeoTimeSerie> series = new HashMap<String, GeoTimeSerie>();
         GeoTimeSerie gts;
         while (decoder.next()) {
           Object value = decoder.getBinaryValue();
@@ -180,7 +180,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
       //  - if the encoder doesn't fit to any selector, the gts will have the type of the first encountered element in the encoder.
       // GTSHelper.setValue will try to convert values whenever possible, and
       // a byte array will be serialized as an ISO-8859-1 string by GTSHelper.setValue
-      ArrayList<GeoTimeSerie> result = new ArrayList<>();
+      ArrayList<GeoTimeSerie> result = new ArrayList<GeoTimeSerie>();
       boolean classMatch;
       boolean labelsMatch;
       for (GTSDecoder decoder: decodersInput) {
