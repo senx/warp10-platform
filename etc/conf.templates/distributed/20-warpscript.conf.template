@@ -203,3 +203,7 @@ warpscript.mobius.pool = 16
 // List of patterns to include/exclude for hosts, works the same way as webcall.host.patterns. Defaults to the value of webcall.host.patterns.
 #warpscript.urlfetch.host.patterns =
 
+//
+// allow C style block comments. /**** valid block comment ****/
+//
+warpscript.comments.loose = true
