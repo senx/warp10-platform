@@ -1281,7 +1281,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new LINEOFF(LINEOFF));
     addNamedWarpScriptFunction(new LMAP(LMAP));
     addNamedWarpScriptFunction(new NONNULL(NONNULL));
-    addNamedWarpScriptFunction(new LFLATMAP(LFLATMAP));
+    addNamedWarpScriptFunction(new LMAP(LFLATMAP, true));
     addNamedWarpScriptFunction(new EMPTYLIST("[]"));
     addNamedWarpScriptFunction(new MARK(LIST_START));
     addNamedWarpScriptFunction(new ENDLIST(LIST_END));
