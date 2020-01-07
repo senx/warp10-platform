@@ -626,20 +626,20 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             inComment.set(false);
             continue;
           } else if (allowLooseBlockComments && stmt.startsWith(WarpScriptStack.COMMENT_START) && stmt.endsWith(WarpScriptStack.COMMENT_END)) {
-            // Single statement case : <*****foo*****>
+            // Single statement case : /*****foo*****/
             continue;
           } else if (allowLooseBlockComments && inComment.get() && stmt.endsWith(WarpScriptStack.COMMENT_END)) {
-            // End of comment, statement may contains characters before : +-+***/
+            // End of comment, statement may contain characters before : +-+***/
             inComment.set(false);
             continue;
           } else if (inComment.get()) {
             continue;
           } else if (!allowLooseBlockComments && WarpScriptStack.COMMENT_START.equals(stmt)) {
-            // Start of comment, statement may contains characters after : /**----
+            // Start of comment, statement may contain characters after : /**----
             inComment.set(true);
             continue;
           } else if (allowLooseBlockComments && stmt.startsWith(WarpScriptStack.COMMENT_START)) {
-            // Legacy comments block: Comments block must start with <* and end with *> .
+            // Legacy comments block: Comments block must start with /* and end with */ .
             inComment.set(true);
             continue;
           } else if (WarpScriptStack.MULTILINE_START.equals(stmt)) {
