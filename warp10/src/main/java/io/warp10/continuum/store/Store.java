@@ -963,7 +963,7 @@ public class Store extends Thread {
                       putsSize.set(0L);
                       // If an exception is thrown, abort
                       store.abort.set(true);
-                      LOG.error("Received InterrupedException", ie);
+                      LOG.error("Received InterruptedException", ie);
                       return;                    
                     } catch (Throwable t) {
                       // Some errors of HBase are reported as RuntimeException, so we
@@ -978,7 +978,7 @@ public class Store extends Thread {
                       // If an exception is thrown, abort
                       store.abort.set(true);                      
                       resetHBase = true;
-                      LOG.error("Received Throwable while forced writing to HBase - forcing HBase reset", t);
+                      LOG.error("Received Throwable while forced writing of " + puts.size() + " PUTs to HBase - forcing HBase reset");
                       return;
                     }
                   }                  
