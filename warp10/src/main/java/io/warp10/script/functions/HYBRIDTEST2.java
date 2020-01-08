@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GTSOutliersHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.GTSStackFunction;
@@ -100,6 +101,10 @@ public class HYBRIDTEST2 extends GTSStackFunction {
     int ppp = (int) params.get(PERIODS_PER_PIECE_PARAM);
     int k = (int) params.get(UPPERBOUND_PARAM);
     double alpha = (double) params.get(SIGNIFICANCE_PARAM);
+
+    if (!GTSHelper.isBucketized(gts) || GTSHelper.nvalues(gts) != GTSHelper.getBucketCount(gts)) {
+      throw new WarpScriptException(getName() + " operates on bucketized, filled Geo Time Series.");
+    }
     
     return GTSOutliersHelper.entropyHybridTest(gts, bpp, ppp, k, alpha);
   }
