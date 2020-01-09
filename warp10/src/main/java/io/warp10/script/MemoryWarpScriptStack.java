@@ -54,11 +54,13 @@ import io.warp10.warp.sdk.WarpScriptRawJavaFunction;
 public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
   private static final Properties DEFAULT_PROPERTIES;
-  
+
   static {
     DEFAULT_PROPERTIES = WarpConfig.getProperties();
   }
-  
+
+  private final boolean allowLooseBlockComments;
+
   private AtomicLong[] counters;
 
   private final Object[] registers;
@@ -233,7 +235,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     this.properties = properties;
 
     int nregs = Integer.parseInt(null == this.properties ? String.valueOf(WarpScriptStack.DEFAULT_REGISTERS) : this.properties.getProperty(Configuration.CONFIG_WARPSCRIPT_REGISTERS, String.valueOf(WarpScriptStack.DEFAULT_REGISTERS)));
-
+    allowLooseBlockComments = "true".equals(properties.getProperty(Configuration.WARPSCRIPT_ALLOW_LOOSE_BLOCK_COMMENTS, "false"));
     this.registers = new Object[nregs];
   }
   
@@ -616,15 +618,28 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             }
             multiline.append(stmt);
             continue;
-          } else if (WarpScriptStack.COMMENT_END.equals(stmt)) {
+          } else if (!allowLooseBlockComments && WarpScriptStack.COMMENT_END.equals(stmt)) {
+            // Legacy comments block: Comments block must start with <* and end with *> .
             if (!inComment.get()) {
               throw new WarpScriptException("Not inside a comment.");
             }
             inComment.set(false);
             continue;
+          } else if (allowLooseBlockComments && stmt.startsWith(WarpScriptStack.COMMENT_START) && stmt.endsWith(WarpScriptStack.COMMENT_END)) {
+            // Single statement case : /*****foo*****/
+            continue;
+          } else if (allowLooseBlockComments && inComment.get() && stmt.endsWith(WarpScriptStack.COMMENT_END)) {
+            // End of comment, statement may contain characters before : +-+***/
+            inComment.set(false);
+            continue;
           } else if (inComment.get()) {
             continue;
-          } else if (WarpScriptStack.COMMENT_START.equals(stmt)) {
+          } else if (!allowLooseBlockComments && WarpScriptStack.COMMENT_START.equals(stmt)) {
+            // Start of comment, statement may contain characters after : /**----
+            inComment.set(true);
+            continue;
+          } else if (allowLooseBlockComments && stmt.startsWith(WarpScriptStack.COMMENT_START)) {
+            // Legacy comments block: Comments block must start with /* and end with */ .
             inComment.set(true);
             continue;
           } else if (WarpScriptStack.MULTILINE_START.equals(stmt)) {
