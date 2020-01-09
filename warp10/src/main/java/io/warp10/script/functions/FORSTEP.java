@@ -61,8 +61,17 @@ public class FORSTEP extends NamedWarpScriptFunction implements WarpScriptStackF
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
-    Object macroRun = stack.pop(); // RUN-macro
+
+    Object top = stack.pop();
+
+    boolean pushCounter = true;
+    if (top instanceof Boolean) {
+      pushCounter = (Boolean) top;
+      top = stack.pop();
+    }
+
+    Object macroRun = top;// RUN-macro
+
     Object macroStep = stack.pop(); // STEP-macro
     Object to = stack.pop(); // TO
     Object from = stack.pop(); // FROM
@@ -126,11 +135,13 @@ public class FORSTEP extends NamedWarpScriptFunction implements WarpScriptStackF
       //
       // Push counter onto the stack
       //
-      
-      if (useDouble) {
-        stack.push(dcounter);
-      } else {
-        stack.push(lcounter);
+
+      if (pushCounter) {
+        if (useDouble) {
+          stack.push(dcounter);
+        } else {
+          stack.push(lcounter);
+        }
       }
       
       //

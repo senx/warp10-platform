@@ -149,6 +149,11 @@ public class Configuration {
   public static final String WARPSCRIPT_MAX_PIXELS_HARD = "warpscript.maxpixels.hard";
 
   /**
+   * When set to true, allow common comment block style. When false, keep the old strict comment block style within WarpScript
+   */
+  public static final String WARPSCRIPT_ALLOW_LOOSE_BLOCK_COMMENTS = "warpscript.comments.loose";
+
+  /**
    * Flag to enable REXEC
    */
   public static final String WARPSCRIPT_REXEC_ENABLE = "warpscript.rexec.enable";
