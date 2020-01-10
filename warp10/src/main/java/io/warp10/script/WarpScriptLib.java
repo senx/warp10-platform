@@ -105,6 +105,7 @@ import io.warp10.script.filler.FillerTrend;
 import io.warp10.script.filter.FilterByClass;
 import io.warp10.script.filter.FilterByLabels;
 import io.warp10.script.filter.FilterByMetadata;
+import io.warp10.script.filter.FilterBySelector;
 import io.warp10.script.filter.FilterLastEQ;
 import io.warp10.script.filter.FilterLastGE;
 import io.warp10.script.filter.FilterLastGT;
@@ -1848,6 +1849,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FilterByLabels.Builder("filter.byattr", false, true));
     addNamedWarpScriptFunction(new FilterByLabels.Builder("filter.bylabelsattr", true, true));
     addNamedWarpScriptFunction(new FilterByMetadata.Builder("filter.bymetadata"));
+    addNamedWarpScriptFunction(new FilterBySelector.Builder("filter.byselector"));
 
     addNamedWarpScriptFunction(new FilterLastEQ.Builder("filter.last.eq"));
     addNamedWarpScriptFunction(new FilterLastGE.Builder("filter.last.ge"));
