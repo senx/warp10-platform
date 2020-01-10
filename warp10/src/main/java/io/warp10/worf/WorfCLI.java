@@ -15,22 +15,8 @@
 //
 package io.warp10.worf;
 
-import io.warp10.Revision;
-import io.warp10.continuum.gts.GTSHelper;
-
-import com.google.common.base.Strings;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionGroup;
-import org.apache.commons.cli.Options;
-import org.codehaus.jettison.json.JSONObject;
-
 import java.io.File;
 import java.io.PrintWriter;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -42,6 +28,21 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.commons.cli.BasicParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
+import org.apache.commons.cli.Options;
+import org.codehaus.jettison.json.JSONObject;
+
+import com.google.common.base.Strings;
+
+import io.warp10.Revision;
+import io.warp10.WarpURLDecoder;
+import io.warp10.continuum.gts.GTSHelper;
 
 public class WorfCLI {
   public static boolean verbose = false;
@@ -263,11 +264,11 @@ public class WorfCLI {
             String[] apps = matcher.group(2).split(",");
 
             // adds uuid to the list, fail otherwise
-            for (String app : apps) {
-              authorizedApplications.add(URLDecoder.decode(app, StandardCharsets.UTF_8.name()));
+            for (String app: apps) {
+              authorizedApplications.add(WarpURLDecoder.decode(app, StandardCharsets.UTF_8));
             }
 
-            appName = URLDecoder.decode(matcher.group(1), StandardCharsets.UTF_8.name());
+            appName = WarpURLDecoder.decode(matcher.group(1), StandardCharsets.UTF_8);
           }
 
           if (null == authorizedApplications || authorizedApplications.isEmpty()) {

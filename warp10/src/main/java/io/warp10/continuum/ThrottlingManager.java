@@ -16,34 +16,19 @@
 
 package io.warp10.continuum;
 
-import io.warp10.WarpConfig;
-import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.ingress.IngressMetadataConsumerFactory;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.continuum.thrift.data.HyperLogLogPlusParameters;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.script.HyperLogLogPlus;
-import io.warp10.sensision.Sensision;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -51,18 +36,27 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import kafka.javaapi.producer.Producer;
-import kafka.producer.KeyedMessage;
-import kafka.producer.ProducerConfig;
-
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.RateLimiter;
+
+import io.warp10.WarpConfig;
+import io.warp10.WarpURLDecoder;
+import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.CryptoUtils;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.script.HyperLogLogPlus;
+import io.warp10.sensision.Sensision;
+import kafka.javaapi.producer.Producer;
+import kafka.producer.KeyedMessage;
+import kafka.producer.ProducerConfig;
 
 /**
  * This class manages the throttling of data ingestion.
@@ -765,7 +759,7 @@ public class ThrottlingManager {
                   entity = uuid.toString().toLowerCase();
                 } else {
                   // Remove leading '+' and decode application name which may be URL encoded
-                  entity = URLDecoder.decode(entity.substring(1), StandardCharsets.UTF_8.name());
+                  entity = WarpURLDecoder.decode(entity.substring(1), StandardCharsets.UTF_8);
                 }
                 
                 if ("-".equals(estimator)) {

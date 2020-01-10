@@ -27,26 +27,41 @@ import java.util.List;
 
 /**
  * Produces a list which is the result of the application of 'macro' on each element of 'list'
+ * If this.flat==true and if macro returns a list, the list is flattened into the result list.
  * <p>
  * 2: list
  * 1: macro
  * LMAP
  * <p>
- * macro and list are popped out of the stack
- * macro if called for each element of 'list' with the index of the current element and the element itself on the stack
+ * The macro and the list are popped out of the stack.
+ * The macro is called for each element of 'list' with the index of the current element, by default, and the element itself on the stack.
+ *
  */
 public class LMAP extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
+  private final boolean flat;
+
   public LMAP(String name) {
+    this(name, false);
+  }
+  
+  public LMAP(String name, boolean flat) {
     super(name);
+    this.flat = flat;
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
+
+    Object top = stack.pop();
+
+    boolean pushIndex = true;
+    if (top instanceof Boolean) {
+      pushIndex = (Boolean) top;
+      top = stack.pop();
+    }
     
-    Object macro = stack.pop();
-    
-    if (!(macro instanceof Macro)) {
+    if (!(top instanceof Macro)) {
       throw new WarpScriptException(getName() + " expects a macro on top of the stack.");
     }
     
@@ -61,9 +76,20 @@ public class LMAP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     
     for (int i = 0; i < n; i++) {
       stack.push(((List) list).get(i));
-      stack.push((long) i);
-      stack.exec((Macro) macro);
-      result.add(stack.pop());
+      if (pushIndex) {
+        stack.push((long) i);
+      }
+      stack.exec((Macro) top);
+
+      Object o = stack.pop();
+
+      if (!flat || !(o instanceof List)) {
+        result.add(o);
+      } else {
+        for (Object oo: (List) o) {
+          result.add(oo);
+        }
+      }
     }
     
     stack.push(result);

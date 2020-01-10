@@ -16,20 +16,19 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
-
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import io.warp10.WarpURLDecoder;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Parse a GTS Selector in a String and push the class selector and labels selector onto the stack
@@ -78,7 +77,7 @@ public class PARSESELECTOR extends NamedWarpScriptFunction implements WarpScript
     String classSelector = null;
     
     try {
-      classSelector = URLDecoder.decode(m.group(1), StandardCharsets.UTF_8.name());
+      classSelector = WarpURLDecoder.decode(m.group(1), StandardCharsets.UTF_8);
     } catch (UnsupportedEncodingException uee) {
       // Can't happen, we're using UTF-8
     }

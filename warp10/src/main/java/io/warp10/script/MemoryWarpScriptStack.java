@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,25 +16,11 @@
 
 package io.warp10.script;
 
-import io.warp10.WarpConfig;
-import io.warp10.WarpURLEncoder;
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.gts.UnsafeString;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.DirectoryClient;
-import io.warp10.continuum.store.StoreClient;
-import io.warp10.script.functions.SECURE;
-import io.warp10.sensision.Sensision;
-import io.warp10.warp.sdk.WarpScriptJavaFunction;
-import io.warp10.warp.sdk.WarpScriptJavaFunctionException;
-import io.warp10.warp.sdk.WarpScriptRawJavaFunction;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,17 +34,33 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.util.Progressable;
+
+import io.warp10.WarpConfig;
+import io.warp10.WarpURLDecoder;
+import io.warp10.WarpURLEncoder;
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.gts.UnsafeString;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.DirectoryClient;
+import io.warp10.continuum.store.StoreClient;
+import io.warp10.script.functions.SECURE;
+import io.warp10.sensision.Sensision;
+import io.warp10.warp.sdk.WarpScriptJavaFunction;
+import io.warp10.warp.sdk.WarpScriptJavaFunctionException;
+import io.warp10.warp.sdk.WarpScriptRawJavaFunction;
 
 public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
   private static final Properties DEFAULT_PROPERTIES;
-  
+
   static {
     DEFAULT_PROPERTIES = WarpConfig.getProperties();
   }
-  
+
+  private final boolean allowLooseBlockComments;
+
   private AtomicLong[] counters;
 
   private final Object[] registers;
@@ -233,7 +235,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     this.properties = properties;
 
     int nregs = Integer.parseInt(null == this.properties ? String.valueOf(WarpScriptStack.DEFAULT_REGISTERS) : this.properties.getProperty(Configuration.CONFIG_WARPSCRIPT_REGISTERS, String.valueOf(WarpScriptStack.DEFAULT_REGISTERS)));
-
+    allowLooseBlockComments = "true".equals(properties.getProperty(Configuration.WARPSCRIPT_ALLOW_LOOSE_BLOCK_COMMENTS, "false"));
     this.registers = new Object[nregs];
   }
   
@@ -500,7 +502,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       // Rethrow WarpScriptStopExceptions as is
       throw wsse;
     } catch (Exception e) {
-      throw new WarpScriptException("Line #" + i + ": " + e.getMessage());
+      throw new WarpScriptException("Line #" + i, e);
     }
    
     //String[] lines = UnsafeString.split(script, '\n');
@@ -616,15 +618,28 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             }
             multiline.append(stmt);
             continue;
-          } else if (WarpScriptStack.COMMENT_END.equals(stmt)) {
+          } else if (!allowLooseBlockComments && WarpScriptStack.COMMENT_END.equals(stmt)) {
+            // Legacy comments block: Comments block must start with <* and end with *> .
             if (!inComment.get()) {
               throw new WarpScriptException("Not inside a comment.");
             }
             inComment.set(false);
             continue;
+          } else if (allowLooseBlockComments && stmt.startsWith(WarpScriptStack.COMMENT_START) && stmt.endsWith(WarpScriptStack.COMMENT_END)) {
+            // Single statement case : /*****foo*****/
+            continue;
+          } else if (allowLooseBlockComments && inComment.get() && stmt.endsWith(WarpScriptStack.COMMENT_END)) {
+            // End of comment, statement may contain characters before : +-+***/
+            inComment.set(false);
+            continue;
           } else if (inComment.get()) {
             continue;
-          } else if (WarpScriptStack.COMMENT_START.equals(stmt)) {
+          } else if (!allowLooseBlockComments && WarpScriptStack.COMMENT_START.equals(stmt)) {
+            // Start of comment, statement may contain characters after : /**----
+            inComment.set(true);
+            continue;
+          } else if (allowLooseBlockComments && stmt.startsWith(WarpScriptStack.COMMENT_START)) {
+            // Legacy comments block: Comments block must start with /* and end with */ .
             inComment.set(true);
             continue;
           } else if (WarpScriptStack.MULTILINE_START.equals(stmt)) {
@@ -688,11 +703,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             try {
               String str = stmt.substring(1, stmt.length() - 1);
 
-              if (-1 != str.indexOf('%')) {
-                // replace occurrences of '+' with '%2B'
-                str = str.replaceAll("\\+", "%2B");
-                str = URLDecoder.decode(str, StandardCharsets.UTF_8.name());
-              }
+              str = WarpURLDecoder.decode(str, StandardCharsets.UTF_8);
 
               if (macros.isEmpty()) {
                 push(str);
