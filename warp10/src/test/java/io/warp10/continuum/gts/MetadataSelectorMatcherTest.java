@@ -27,7 +27,7 @@ import java.util.Map;
 public class MetadataSelectorMatcherTest {
 
   @Test
-  public void metaDataMatch() throws WarpScriptException {
+  public void testMetaDataMatch() throws WarpScriptException {
 
     // metadata with classname, labels, attributes. no pitfall.
     Metadata test = new Metadata();
