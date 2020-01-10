@@ -238,7 +238,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
             throw new WarpScriptException(getName() + " the input already has label " + extraLabel);
           }
           if (null == enforcedType) {
-            gts.setLabel(extraLabel, "EMPTY");
+            gts.setLabel(extraLabel, "UNDEFINED");
           } else {
             gts.setLabel(extraLabel, enforcedType);
           }
