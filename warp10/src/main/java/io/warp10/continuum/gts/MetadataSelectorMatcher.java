@@ -119,7 +119,7 @@ public class MetadataSelectorMatcher {
     }
   }
 
-  public boolean Matches(Metadata metadata) {
+  public boolean matches(Metadata metadata) {
 
     // if metadata is not set, or classname is not set, do not match
     if (null == metadata || null == metadata.getName()) {

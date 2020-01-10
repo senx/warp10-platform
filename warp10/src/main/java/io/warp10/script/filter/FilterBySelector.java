@@ -63,7 +63,7 @@ public class FilterBySelector extends NamedWarpScriptFunction implements WarpScr
 
     for (List<GeoTimeSerie> serie: series) {
       for (GeoTimeSerie gts: serie) {
-        if (this.selectorMatcher.Matches(gts.getMetadata())) {
+        if (this.selectorMatcher.matches(gts.getMetadata())) {
           retained.add(gts);
         }
       }

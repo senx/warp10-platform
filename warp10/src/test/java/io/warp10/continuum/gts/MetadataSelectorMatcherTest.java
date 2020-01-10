@@ -45,13 +45,13 @@ public class MetadataSelectorMatcherTest {
     MetadataSelectorMatcher x;
 
     x = new MetadataSelectorMatcher("~.*{toto~tata.*}{attr=yes,attr2~.false.*}");
-    Assert.assertFalse(x.Matches(test)); // there is no such label or attributes
+    Assert.assertFalse(x.matches(test)); // there is no such label or attributes
 
     x = new MetadataSelectorMatcher("~temp.*{sensor~(23|22),room=B}{}");
-    Assert.assertFalse(x.Matches(test)); // there is room attributes, but room=A
+    Assert.assertFalse(x.matches(test)); // there is room attributes, but room=A
 
     x = new MetadataSelectorMatcher("~temp.*{sensor~(23|22),room=B}");
-    Assert.assertFalse(x.Matches(test));
+    Assert.assertFalse(x.matches(test));
 
     // metadata with empty classname.
     Metadata testemptyclassname = new Metadata();
@@ -71,16 +71,16 @@ public class MetadataSelectorMatcherTest {
     g.setName("");
 
     x = new MetadataSelectorMatcher("={attr=yes,attr2~.false.*}");
-    Assert.assertTrue(x.Matches(testemptyclassname));
-    Assert.assertFalse(x.Matches(test));
-    Assert.assertFalse(x.Matches(g.getMetadata())); // the empty gts has not these attributes
+    Assert.assertTrue(x.matches(testemptyclassname));
+    Assert.assertFalse(x.matches(test));
+    Assert.assertFalse(x.matches(g.getMetadata())); // the empty gts has not these attributes
 
     x = new MetadataSelectorMatcher("~{attr=yes,attr2~.false.*}");
-    Assert.assertTrue(x.Matches(testemptyclassname));
-    Assert.assertFalse(x.Matches(test));
+    Assert.assertTrue(x.matches(testemptyclassname));
+    Assert.assertFalse(x.matches(test));
 
     x = new MetadataSelectorMatcher("={}");
-    Assert.assertTrue(x.Matches(g.getMetadata()));
+    Assert.assertTrue(x.matches(g.getMetadata()));
 
 
   }

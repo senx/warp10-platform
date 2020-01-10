@@ -42,9 +42,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 /**
- * Converts an encoder into a map of gts, one per type
- * TODO: Provide a map type->selector or type->list of selectors, with an optional 'label' key. By default, the enforced type will be added in a ".type" label.
- * label = null will not add any label to the output GTS.
+ * Converts an encoder into a map of gts, one per type,
+ * or converts list of encoders in list of GTS.
  */
 public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -189,7 +188,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
         boolean mustGuessTypeFromFirstValue = true;
         for (Entry<String, ArrayList<MetadataSelectorMatcher>> entry: typeMap.entrySet()) {
           for (MetadataSelectorMatcher m: entry.getValue()) {
-            if (m.Matches(decoder.getMetadata())) {
+            if (m.matches(decoder.getMetadata())) {
               enforcedType = entry.getKey();
               mustGuessTypeFromFirstValue = false;
             }
