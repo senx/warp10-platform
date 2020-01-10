@@ -70,6 +70,7 @@ public class MetadataSelectorMatcherTest {
 
     // this will have a null name
     GeoTimeSerie g = new GeoTimeSerie();
+    g.setName("");
 
     x = new MetadataSelectorMatcher("={attr=yes,attr2~.false.*}");
     Assert.assertTrue(x.MetaDataMatch(testemptyclassname));
