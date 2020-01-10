@@ -42,6 +42,8 @@ public class URLDECODE extends NamedWarpScriptFunction implements WarpScriptStac
     }
     
     try {
+      // This call should not be replaced by WarpURLDecoder.decode as we really want
+      // to URLDECODE the content
       stack.push(URLDecoder.decode(o.toString(), StandardCharsets.UTF_8.name()));
     } catch (Exception e) {
       throw new WarpScriptException(e);

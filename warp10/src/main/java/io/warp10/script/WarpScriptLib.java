@@ -17,7 +17,6 @@
 package io.warp10.script;
 
 import java.net.URL;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import io.warp10.WarpClassLoader;
 import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
+import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.gts.CORRELATE;
 import io.warp10.continuum.gts.DISCORDS;
@@ -105,6 +105,7 @@ import io.warp10.script.filler.FillerTrend;
 import io.warp10.script.filter.FilterByClass;
 import io.warp10.script.filter.FilterByLabels;
 import io.warp10.script.filter.FilterByMetadata;
+import io.warp10.script.filter.FilterBySelector;
 import io.warp10.script.filter.FilterLastEQ;
 import io.warp10.script.filter.FilterLastGE;
 import io.warp10.script.filter.FilterLastGT;
@@ -1281,7 +1282,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new LINEOFF(LINEOFF));
     addNamedWarpScriptFunction(new LMAP(LMAP));
     addNamedWarpScriptFunction(new NONNULL(NONNULL));
-    addNamedWarpScriptFunction(new LFLATMAP(LFLATMAP));
+    addNamedWarpScriptFunction(new LMAP(LFLATMAP, true));
     addNamedWarpScriptFunction(new EMPTYLIST("[]"));
     addNamedWarpScriptFunction(new MARK(LIST_START));
     addNamedWarpScriptFunction(new ENDLIST(LIST_END));
@@ -1848,6 +1849,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FilterByLabels.Builder("filter.byattr", false, true));
     addNamedWarpScriptFunction(new FilterByLabels.Builder("filter.bylabelsattr", true, true));
     addNamedWarpScriptFunction(new FilterByMetadata.Builder("filter.bymetadata"));
+    addNamedWarpScriptFunction(new FilterBySelector.Builder("filter.byselector"));
 
     addNamedWarpScriptFunction(new FilterLastEQ.Builder("filter.last.eq"));
     addNamedWarpScriptFunction(new FilterLastGE.Builder("filter.last.ge"));
@@ -2436,9 +2438,7 @@ public class WarpScriptLib {
         
         String namespace = props.getProperty(Configuration.CONFIG_WARPSCRIPT_NAMESPACE_PREFIX + wse.getClass().getName(), "").trim(); 
         if (null != namespace && !"".equals(namespace)) {
-          if (namespace.contains("%")) {
-            namespace = URLDecoder.decode(namespace, StandardCharsets.UTF_8.name());
-          }
+          namespace = WarpURLDecoder.decode(namespace, StandardCharsets.UTF_8);
           LOG.info("LOADED extension '" + extension + "'" + " under namespace '" + namespace + "'.");
         } else {
           LOG.info("LOADED extension '" + extension + "'");
@@ -2464,12 +2464,10 @@ public class WarpScriptLib {
   public static void register(WarpScriptExtension extension) {
     String namespace = WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_NAMESPACE_PREFIX + extension.getClass().getName(), "").trim();
         
-    if (namespace.contains("%")) {
-      try {
-        namespace = URLDecoder.decode(namespace, StandardCharsets.UTF_8.name());
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
+    try {
+      namespace = WarpURLDecoder.decode(namespace, StandardCharsets.UTF_8);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
 
     register(namespace, extension);

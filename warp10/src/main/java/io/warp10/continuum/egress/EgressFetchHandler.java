@@ -16,33 +16,6 @@
 
 package io.warp10.continuum.egress;
 
-import io.warp10.ThrowableUtils;
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.Tokens;
-import io.warp10.continuum.gts.GTSDecoder;
-import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.gts.GTSWrapperHelper;
-import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.DirectoryClient;
-import io.warp10.continuum.store.GTSDecoderIterator;
-import io.warp10.continuum.store.MetadataIterator;
-import io.warp10.continuum.store.StoreClient;
-import io.warp10.continuum.store.thrift.data.DirectoryRequest;
-import io.warp10.continuum.store.thrift.data.GTSSplit;
-import io.warp10.continuum.store.thrift.data.GTSWrapper;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.KeyStore;
-import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.crypto.SipHashInline;
-import io.warp10.quasar.token.thrift.data.ReadToken;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.functions.FETCH;
-import io.warp10.sensision.Sensision;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -52,7 +25,6 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.math.BigInteger;
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
@@ -95,6 +67,34 @@ import org.slf4j.LoggerFactory;
 
 import com.geoxp.GeoXPLib;
 import com.google.common.primitives.Longs;
+
+import io.warp10.ThrowableUtils;
+import io.warp10.WarpURLDecoder;
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.Tokens;
+import io.warp10.continuum.gts.GTSDecoder;
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GTSWrapperHelper;
+import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.DirectoryClient;
+import io.warp10.continuum.store.GTSDecoderIterator;
+import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.StoreClient;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
+import io.warp10.continuum.store.thrift.data.GTSSplit;
+import io.warp10.continuum.store.thrift.data.GTSWrapper;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.CryptoUtils;
+import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.crypto.SipHashInline;
+import io.warp10.quasar.token.thrift.data.ReadToken;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.functions.FETCH;
+import io.warp10.sensision.Sensision;
 
 public class EgressFetchHandler extends AbstractHandler {
 
@@ -409,7 +409,7 @@ public class EgressFetchHandler extends AbstractHandler {
             return;
           }
           
-          String classSelector = URLDecoder.decode(m.group(1), StandardCharsets.UTF_8.name());
+          String classSelector = WarpURLDecoder.decode(m.group(1), StandardCharsets.UTF_8);
           String labelsSelection = m.group(2);
           
           Map<String,String> labelsSelectors;

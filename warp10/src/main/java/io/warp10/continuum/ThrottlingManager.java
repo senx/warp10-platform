@@ -22,16 +22,13 @@ import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -42,6 +39,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.joda.time.format.ISODateTimeFormat;
@@ -51,6 +49,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.util.concurrent.RateLimiter;
 
 import io.warp10.WarpConfig;
+import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
@@ -762,7 +761,7 @@ public class ThrottlingManager {
                   entity = uuid.toString().toLowerCase();
                 } else {
                   // Remove leading '+' and decode application name which may be URL encoded
-                  entity = URLDecoder.decode(entity.substring(1), StandardCharsets.UTF_8.name());
+                  entity = WarpURLDecoder.decode(entity.substring(1), StandardCharsets.UTF_8);
                 }
                 
                 if ("-".equals(estimator)) {
