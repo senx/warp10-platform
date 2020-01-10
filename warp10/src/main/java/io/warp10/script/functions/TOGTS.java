@@ -48,8 +48,8 @@ import java.util.Map.Entry;
  */
 public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public static final String LABEL_NAME_PARAMETER = "label";
-  public static final String DEFAULT_LABEL_NAME = ".type";
+  private static final String LABEL_NAME_PARAMETER = "label";
+  private static final String DEFAULT_LABEL_NAME = ".type";
 
   public TOGTS(String name) {
     super(name);
@@ -181,8 +181,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
       // GTSHelper.setValue will try to convert values whenever possible, and
       // a byte array will be serialized as an ISO-8859-1 string by GTSHelper.setValue
       ArrayList<GeoTimeSerie> result = new ArrayList<GeoTimeSerie>();
-      boolean classMatch;
-      boolean labelsMatch;
+
       for (GTSDecoder decoder: decodersInput) {
         GeoTimeSerie gts = new GeoTimeSerie();
         gts.setMetadata(decoder.getMetadata());

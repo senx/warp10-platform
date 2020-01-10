@@ -35,11 +35,11 @@ public class MetadataSelectorMatcherTest {
     Metadata test = new Metadata();
     test.setName("temperature");
 
-    Map labels = new HashMap();
+    Map<String, String> labels = new HashMap<String, String>();
     labels.put("sensor", "23");
     test.setLabels(labels);
 
-    Map attributes = new HashMap();
+    Map<String, String> attributes = new HashMap<String, String>();
     attributes.put("room", "A");
     test.setAttributes(attributes);
 
@@ -59,11 +59,11 @@ public class MetadataSelectorMatcherTest {
     Metadata testemptyclassname = new Metadata();
     testemptyclassname.setName("");
 
-    labels = new HashMap();
+    labels = new HashMap<String, String>();
     labels.put("sensor", "23");
     testemptyclassname.setLabels(labels);
 
-    attributes = new HashMap();
+    attributes = new HashMap<String, String>();
     attributes.put("attr", "yes");
     attributes.put("attr2", "afalse detection failure");
     testemptyclassname.setAttributes(attributes);
