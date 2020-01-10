@@ -107,11 +107,11 @@ public class MetadataSelectorMatcher {
       }
       this.attributesPatterns = new HashMap<String, Matcher>(attributesSelectors.size());
       // build label patterns map
-      for (Entry<String, String> l: attributesSelectors.entrySet()) {
-        if (l.getValue().startsWith("=")) {
-          this.attributesPatterns.put(l.getKey(), Pattern.compile(Pattern.quote(l.getValue().substring(1))).matcher(""));
+      for (Entry<String, String> a: attributesSelectors.entrySet()) {
+        if (a.getValue().startsWith("=")) {
+          this.attributesPatterns.put(a.getKey(), Pattern.compile(Pattern.quote(a.getValue().substring(1))).matcher(""));
         } else { //starts with ~ , otherwise Parse Exception in GTSHelper.parseLabelsSelectors
-          this.attributesPatterns.put(l.getKey(), Pattern.compile(l.getValue().substring(1)).matcher(""));
+          this.attributesPatterns.put(a.getKey(), Pattern.compile(a.getValue().substring(1)).matcher(""));
         }
       }
     } else {
@@ -119,7 +119,7 @@ public class MetadataSelectorMatcher {
     }
   }
 
-  public boolean MetaDataMatch(Metadata metadata) {
+  public boolean Matches(Metadata metadata) {
 
     // if metadata is not set, or classname is not set, do not match
     if (null == metadata || null == metadata.getName()) {
@@ -135,15 +135,15 @@ public class MetadataSelectorMatcher {
     }
 
     // Check labels.
-    // ###### Standard selector : `classname{labelOrAttribute=x}`
+    // ###### Standard selector: `classname{labelOrAttribute=x}`
     //  - If classname match, `filter.byselector` looks into input labels to check if labelOrAttribute exists and equals x.
     //  If labelOrAttribute is not found among input labels, it looks into input attributes if the label exists and equals x.
-    // ###### Extended selector : `classname{labelname=x}{attributename=y}` matches if:
+    // ###### Extended selector: `classname{labelname=x}{attributename=y}` matches if:
     //  - classname matches
     //  - input have labelname in its labels, and label value matches
     //  - input have attributename in its labels, and attribute value matches
     //
-    // ###### Selectors example :
+    // ###### Selectors example:
     //  - `~.*{}` matches everything.
     //  - `={}` matches only emtpy classnames, whatever the labels and attributes.
     //  - `~.*{label=value}{} filter.byselector` is equivalent to `{ 'label' 'value' } filter.bylabels`.
@@ -158,8 +158,8 @@ public class MetadataSelectorMatcher {
       // extended selector
       if (null != this.labelsPatterns && null != inputLabels) {
         for (Entry<String, Matcher> ls: this.labelsPatterns.entrySet()) {
-          String inputLabel = (String) inputLabels.get(ls.getKey());
-          labelAndAttributeMatch = null != inputLabel && ls.getValue().reset(inputLabel).matches();
+          String inputLabel = inputLabels.get(ls.getKey());
+          labelAndAttributeMatch = (null != inputLabel) && ls.getValue().reset(inputLabel).matches();
           if (!labelAndAttributeMatch) {
             break;
           }
@@ -170,8 +170,8 @@ public class MetadataSelectorMatcher {
           if (!labelAndAttributeMatch) {
             break;
           }
-          String inputAttribute = (String) inputAttributes.get(ls.getKey());
-          labelAndAttributeMatch = null != inputAttribute && ls.getValue().reset(inputAttribute).matches();
+          String inputAttribute = inputAttributes.get(ls.getKey());
+          labelAndAttributeMatch = (null != inputAttribute) && ls.getValue().reset(inputAttribute).matches();
         }
       }
     } else {
@@ -180,14 +180,14 @@ public class MetadataSelectorMatcher {
         for (Entry<String, Matcher> ls: this.labelsPatterns.entrySet()) {
 
           if (null != inputLabels) {
-            String inputLabel = (String) inputLabels.get(ls.getKey());
+            String inputLabel = inputLabels.get(ls.getKey());
             if (null != inputLabel) {
               // label exists in the input, try to match.
               labelAndAttributeMatch = ls.getValue().reset(inputLabel).matches();
             } else if (null != inputAttributes) {
               // label does not exist, look for attribute existence and match.
-              String inputAttribute = (String) inputAttributes.get(ls.getKey());
-              labelAndAttributeMatch = null != inputAttribute && ls.getValue().reset(inputAttribute).matches();
+              String inputAttribute = inputAttributes.get(ls.getKey());
+              labelAndAttributeMatch = (null != inputAttribute) && ls.getValue().reset(inputAttribute).matches();
             } else {
               // no label with this name, and no attributes at all
               labelAndAttributeMatch = false;

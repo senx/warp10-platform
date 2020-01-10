@@ -176,7 +176,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     } else {
       // if there is a type map on the stack:
-      //  - the map key is a selector. If the encoder's metadata fits, the gts will have the corresponding type of the first matching selector.
+      //  - map contains types as key, and selectors or list of selectors as value for each type
       //  - if the encoder doesn't fit to any selector, the gts will have the type of the first encountered element in the encoder.
       // GTSHelper.setValue will try to convert values whenever possible, and
       // a byte array will be serialized as an ISO-8859-1 string by GTSHelper.setValue
@@ -189,7 +189,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
         boolean mustGuessTypeFromFirstValue = true;
         for (Entry<String, ArrayList<MetadataSelectorMatcher>> entry: typeMap.entrySet()) {
           for (MetadataSelectorMatcher m: entry.getValue()) {
-            if (m.MetaDataMatch(decoder.getMetadata())) {
+            if (m.Matches(decoder.getMetadata())) {
               enforcedType = entry.getKey();
               mustGuessTypeFromFirstValue = false;
             }
@@ -231,7 +231,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
             mustGuessTypeFromFirstValue = false;
           }
         }
-        // also set an extra label with the enforced type, or EMPTY if there is no type enforcement match AND the encoder was empty.
+        // also set an extra label with the enforced type, or UNDEFINED if there is no type enforcement match AND the encoder was empty.
         if (null != extraLabel) {
           if (null != gts.getLabel(extraLabel)) {
             // the label is already present in the input, throw an error

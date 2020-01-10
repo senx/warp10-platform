@@ -43,7 +43,7 @@ public class FilterBySelector extends NamedWarpScriptFunction implements WarpScr
     public Object apply(WarpScriptStack stack) throws WarpScriptException {
       Object arg = stack.pop();
       if (!(arg instanceof String)) {
-        throw new WarpScriptException("selector must be a STRING");
+        throw new WarpScriptException(getName() + " expects a STRING selector");
       }
       stack.push(new FilterBySelector(getName(), (String) arg));
       return stack;
@@ -63,7 +63,7 @@ public class FilterBySelector extends NamedWarpScriptFunction implements WarpScr
 
     for (List<GeoTimeSerie> serie: series) {
       for (GeoTimeSerie gts: serie) {
-        if (this.selectorMatcher.MetaDataMatch(gts.getMetadata())) {
+        if (this.selectorMatcher.Matches(gts.getMetadata())) {
           retained.add(gts);
         }
       }
