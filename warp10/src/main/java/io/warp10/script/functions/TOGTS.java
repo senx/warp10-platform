@@ -48,8 +48,8 @@ import java.util.Map.Entry;
  */
 public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private static final String LABEL_NAME_PARAMETER = "label";
-  private static final String DEFAULT_LABEL_NAME = ".type";
+  private static final String TYPE_LABEL_NAME_PARAMETER = "label.type";
+  private static final String DEFAULT_TYPE_LABEL_NAME = ".type";
 
   public TOGTS(String name) {
     super(name);
@@ -61,7 +61,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
     Map<String, ArrayList<MetadataSelectorMatcher>> typeMap = null;
     Object top = stack.pop();
     // this is the default label name.
-    String extraLabel = DEFAULT_LABEL_NAME;
+    String extraLabel = DEFAULT_TYPE_LABEL_NAME;
 
     if (top instanceof Map) {
       typeMap = new LinkedHashMap<String, ArrayList<MetadataSelectorMatcher>>();
@@ -89,7 +89,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
             } else {
               throw new WarpScriptException(getName() + " type MAP input must contains selector or list of thereof for each type.");
             }
-          } else if (LABEL_NAME_PARAMETER.equals(t)) {
+          } else if (TYPE_LABEL_NAME_PARAMETER.equals(t)) {
             if (null == entry.getValue()) {
               extraLabel = null;
             } else if (entry.getValue() instanceof String) {
@@ -98,10 +98,10 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
               throw new WarpScriptException(getName() + " extra 'label' input in the MAP must be either null or a string.");
             }
           } else {
-            throw new WarpScriptException(getName() + " type MAP input must contains valid types as key (LONG, DOUBLE, BOOLEAN, STRING or BINARY) or '" + LABEL_NAME_PARAMETER + "' to override '" + DEFAULT_LABEL_NAME + "' label.");
+            throw new WarpScriptException(getName() + " type MAP input must contains valid types as key (LONG, DOUBLE, BOOLEAN, STRING or BINARY) or '" + TYPE_LABEL_NAME_PARAMETER + "' to override '" + DEFAULT_TYPE_LABEL_NAME + "' label.");
           }
         } else {
-          throw new WarpScriptException(getName() + " type MAP input must contains valid types as key (LONG, DOUBLE, BOOLEAN, STRING or BINARY) or '" + LABEL_NAME_PARAMETER + "' to override '" + DEFAULT_LABEL_NAME + "' label.");
+          throw new WarpScriptException(getName() + " type MAP input must contains valid types as key (LONG, DOUBLE, BOOLEAN, STRING or BINARY) or '" + TYPE_LABEL_NAME_PARAMETER + "' to override '" + DEFAULT_TYPE_LABEL_NAME + "' label.");
         }
       }
       top = stack.pop();
@@ -186,17 +186,22 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
         GeoTimeSerie gts = new GeoTimeSerie();
         gts.setMetadata(decoder.getMetadata());
         String enforcedType = null;
+        boolean mustGuessTypeFromFirstValue = true;
         for (Entry<String, ArrayList<MetadataSelectorMatcher>> entry: typeMap.entrySet()) {
           for (MetadataSelectorMatcher m: entry.getValue()) {
             if (m.MetaDataMatch(decoder.getMetadata())) {
               enforcedType = entry.getKey();
+              mustGuessTypeFromFirstValue = false;
             }
             if (null != enforcedType) {
               break;
             }
           }
+          if (null != enforcedType) {
+            break;
+          }
         }
-        if (null != enforcedType) {
+        if (!mustGuessTypeFromFirstValue) {
           if ("DOUBLE".equals(enforcedType)) {
             gts.setType(GeoTimeSerie.TYPE.DOUBLE);
           } else if ("LONG".equals(enforcedType)) {
@@ -210,27 +215,33 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
         while (decoder.next()) {
           Object value = decoder.getBinaryValue();
           GTSHelper.setValue(gts, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), value, false);
-        }
-        // also set an extra label with the enforced type:
-        if (null != extraLabel) {
-          String l;
-          if (null != enforcedType) {
-            l = enforcedType;
-          } else {
-            if (GeoTimeSerie.TYPE.BOOLEAN == gts.getType()) {
-              l = "BOOLEAN";
-            } else if (GeoTimeSerie.TYPE.LONG == gts.getType()) {
-              l = "LONG";
-            } else if (GeoTimeSerie.TYPE.DOUBLE == gts.getType()) {
-              l = "DOUBLE";
-            } else if (GeoTimeSerie.TYPE.STRING == gts.getType()) {
-              l = "STRING";
-            } else {
-              // empty series, undefined type.
-              l = "EMPTY";
+          // Test here the value type, because GTS do not handle BINARY type.
+          if (mustGuessTypeFromFirstValue) {
+            if (value instanceof String) {
+              enforcedType = "STRING";
+            } else if (value instanceof Boolean) {
+              enforcedType = "BOOLEAN";
+            } else if (value instanceof Long) {
+              enforcedType = "LONG";
+            } else if (value instanceof Double || value instanceof BigDecimal) {
+              enforcedType = "DOUBLE";
+            } else if (value instanceof byte[]) {
+              enforcedType = "BINARY";
             }
+            mustGuessTypeFromFirstValue = false;
           }
-          gts.setLabel(extraLabel, l);
+        }
+        // also set an extra label with the enforced type, or EMPTY if there is no type enforcement match AND the encoder was empty.
+        if (null != extraLabel) {
+          if (null != gts.getLabel(extraLabel)) {
+            // the label is already present in the input, throw an error
+            throw new WarpScriptException(getName() + " the input already has label " + extraLabel);
+          }
+          if (null == enforcedType) {
+            gts.setLabel(extraLabel, "EMPTY");
+          } else {
+            gts.setLabel(extraLabel, enforcedType);
+          }
         }
         // exit here if input is not a list.
         if (!listInput) {
