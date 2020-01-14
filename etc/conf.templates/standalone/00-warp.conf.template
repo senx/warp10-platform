@@ -82,6 +82,14 @@ standalone.home = /opt/warp10-@VERSION@
 //
 warp.timeunits = us
 
+// 
+// Set to true so values, class names and label/attribute
+// name and value are decoded the old buggy way,
+// i.e. wrongly interpreting + as whitespace when % is present
+// and leaving it as + if no % is present
+//
+#buggy.urldecoder.compatibility = true
+
 //
 // IP to bind to for listening to incoming connections. Use 0.0.0.0 to listen to all interfaces
 //

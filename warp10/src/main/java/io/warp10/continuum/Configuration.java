@@ -233,6 +233,15 @@ public class Configuration {
   public static final String WARP_TIME_UNITS = "warp.timeunits";
 
   /**
+   * Set to true so values, class names and label/attribute
+   * name and value are decoded the old buggy way,
+   * i.e. wrongly interpreting + as whitespace when % is present
+   * and leaving it as + if no % is present
+   */
+
+  public static final String BUGGY_URLDECODER_COMPATIBILITY = "buggy.urldecoder.compatibility";
+  
+  /**
    * Path of the 'bootstrap' WarpScript code for Egress
    */
   public static final String CONFIG_WARPSCRIPT_BOOTSTRAP_PATH = "warpscript.bootstrap.path";

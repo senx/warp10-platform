@@ -35,6 +35,13 @@
 //
 warp.timeunits = us
 
+//
+// Set to true so values, class names and label/attribute
+// name and value are decoded the old buggy way,
+// i.e. wrongly interpreting + as whitespace when % is present
+// and leaving it as + if no % is present
+//
+#buggy.urldecoder.compatibility = true
 
 //
 // Comma separated list of headers to return in Access-Control-Allow-Headers on top of the token header.

@@ -446,6 +446,12 @@ public class Constants {
    */
   public static  final int MAX_HTTP_HEADER_LENGTH = 1024;
 
+  /**
+   * Flag indicating whether values, class names and label/attribute
+   * name and value should be decoded the old buggy way (i.e. interpreting + as whitespace)
+   */
+  public static final boolean BUGGY_URLDECODER_COMPATIBILITY;
+  
   static {
     String tu = WarpConfig.getProperty(Configuration.WARP_TIME_UNITS);
     
@@ -470,6 +476,8 @@ public class Constants {
     if (null == System.getProperty(Configuration.WARP10_QUIET)) {
       System.out.println("########[ Initialized with " + TIME_UNITS_PER_MS + " time units per millisecond ]########");
     }
+    
+    BUGGY_URLDECODER_COMPATIBILITY = "true".equals(WarpConfig.getProperty(Configuration.BUGGY_URLDECODER_COMPATIBILITY));
     
     //
     // Initialize headers

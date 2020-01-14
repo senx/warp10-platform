@@ -2587,8 +2587,14 @@ public class GTSHelper {
       reuseLabels = true;
     } else {
       name = str.substring(idx, idx2);
-      
-      name = WarpURLDecoder.decode(name, StandardCharsets.UTF_8);
+
+      if (Constants.BUGGY_URLDECODER_COMPATIBILITY) {
+       if (name.contains("%")) {
+         name = URLDecoder.decode(name, StandardCharsets.UTF_8.name());
+       }
+      } else {
+        name = WarpURLDecoder.decode(name, StandardCharsets.UTF_8);
+      }
 
       // Advance past the '{'
       idx = idx2 + 1;
@@ -2742,7 +2748,13 @@ public class GTSHelper {
       if (('\'' == firstChar && valuestr.endsWith("'"))
           || ('"' == firstChar && valuestr.endsWith("\""))) {
         value = valuestr.substring(1, valuestr.length() - 1);
-        value = WarpURLDecoder.decode((String) value, StandardCharsets.UTF_8);
+        if (Constants.BUGGY_URLDECODER_COMPATIBILITY) {
+          if (((String) value).contains("%")) {
+            value = URLDecoder.decode((String) value, StandardCharsets.UTF_8.name());
+          }
+        } else {
+          value = WarpURLDecoder.decode((String) value, StandardCharsets.UTF_8);
+        }
       } else if (('t' == firstChar || 'T' == firstChar) && (1 == valuestr.length() || "true".equalsIgnoreCase(valuestr))) {
         value = Boolean.TRUE;
       } else if (('f' == firstChar || 'F' == firstChar) && (1 == valuestr.length() || "false".equalsIgnoreCase(valuestr))) {
@@ -3637,8 +3649,17 @@ public class GTSHelper {
       String value = subtokens.length > 1 ? subtokens[1] : "";
 
       try {
-        name = WarpURLDecoder.decode(name, StandardCharsets.UTF_8);
-        value = WarpURLDecoder.decode(value, StandardCharsets.UTF_8);
+        if (Constants.BUGGY_URLDECODER_COMPATIBILITY) {
+          if (name.contains("%")) {
+            name = URLDecoder.decode(name, StandardCharsets.UTF_8.name());
+          }
+          if (value.contains("%")) {
+            value = URLDecoder.decode(name, StandardCharsets.UTF_8.name());
+          }
+        } else {
+          name = WarpURLDecoder.decode(name, StandardCharsets.UTF_8);
+          value = WarpURLDecoder.decode(value, StandardCharsets.UTF_8);          
+        }
       } catch (UnsupportedEncodingException uee) {
         // Can't happen since we are using a standard JVM charset
       }
@@ -3667,7 +3688,13 @@ public class GTSHelper {
     Map<String,Pattern> patterns = new HashMap<String,Pattern>();
     
     try {
-      classSelector = WarpURLDecoder.decode(classSelector, StandardCharsets.UTF_8);
+      if (Constants.BUGGY_URLDECODER_COMPATIBILITY) {
+        if (classSelector.contains("%")) {
+          classSelector = URLDecoder.decode(classSelector, StandardCharsets.UTF_8.name());
+        }
+      } else {
+        classSelector = WarpURLDecoder.decode(classSelector, StandardCharsets.UTF_8);        
+      }
     } catch (UnsupportedEncodingException uee) {
       // Can't happen since we are using a standard JVM charset
     }
