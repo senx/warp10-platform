@@ -28,6 +28,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import io.warp10.script.aggregator.CompareTo;
+import io.warp10.script.filter.*;
 import io.warp10.script.mapper.MapperCompareTo;
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
@@ -102,17 +103,6 @@ import io.warp10.script.filler.FillerInterpolate;
 import io.warp10.script.filler.FillerNext;
 import io.warp10.script.filler.FillerPrevious;
 import io.warp10.script.filler.FillerTrend;
-import io.warp10.script.filter.FilterByClass;
-import io.warp10.script.filter.FilterByLabels;
-import io.warp10.script.filter.FilterByMetadata;
-import io.warp10.script.filter.FilterBySelector;
-import io.warp10.script.filter.FilterLastEQ;
-import io.warp10.script.filter.FilterLastGE;
-import io.warp10.script.filter.FilterLastGT;
-import io.warp10.script.filter.FilterLastLE;
-import io.warp10.script.filter.FilterLastLT;
-import io.warp10.script.filter.FilterLastNE;
-import io.warp10.script.filter.LatencyFilter;
 import io.warp10.script.functions.*;
 import io.warp10.script.functions.math.ACOS;
 import io.warp10.script.functions.math.ADDEXACT;
@@ -1850,6 +1840,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FilterByLabels.Builder("filter.bylabelsattr", true, true));
     addNamedWarpScriptFunction(new FilterByMetadata.Builder("filter.bymetadata"));
     addNamedWarpScriptFunction(new FilterBySelector.Builder("filter.byselector"));
+    addNamedWarpScriptFunction(new FilterBySize.Builder("filter.bysize"));
 
     addNamedWarpScriptFunction(new FilterLastEQ.Builder("filter.last.eq"));
     addNamedWarpScriptFunction(new FilterLastGE.Builder("filter.last.ge"));
