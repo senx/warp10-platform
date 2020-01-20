@@ -1839,9 +1839,10 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MapperKernelTricube("mapper.kernel.tricube"));
     addNamedWarpScriptFunction(new MapperKernelTriweight("mapper.kernel.triweight"));
     addNamedWarpScriptFunction(new MapperKernelUniform("mapper.kernel.uniform"));
-        
-    addNamedWarpScriptFunction(new Percentile.Builder("mapper.percentile"));
-    
+
+    addNamedWarpScriptFunction(new Percentile.Builder("mapper.percentile",false));
+    addNamedWarpScriptFunction(new Percentile.Builder("mapper.percentile.forbid-nulls",true));
+
     //functions.put("mapper.abscissa", new MapperSAX.Builder());
     
     addNamedWarpScriptFunction(new FilterByClass.Builder("filter.byclass"));
@@ -2180,7 +2181,9 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Sum("bucketizer.sum", true));
     addNamedWarpScriptFunction(new Join.Builder("bucketizer.join", true, false, null));
     addNamedWarpScriptFunction(new Count("bucketizer.count", false));
-    addNamedWarpScriptFunction(new Percentile.Builder("bucketizer.percentile"));
+    addNamedWarpScriptFunction(new Percentile.Builder("bucketizer.percentile",false));
+    addNamedWarpScriptFunction(new Percentile.Builder("bucketizer.percentile.forbid-nulls",true));
+
     addNamedWarpScriptFunction(new Min("bucketizer.min.forbid-nulls", false));
     addNamedWarpScriptFunction(new Max("bucketizer.max.forbid-nulls", false));
     addNamedWarpScriptFunction(new Mean("bucketizer.mean.exclude-nulls", true));
@@ -2290,7 +2293,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Count("reducer.count.nonnull", true));
     addNamedWarpScriptFunction(new ShannonEntropy("reducer.shannonentropy.0", false));
     addNamedWarpScriptFunction(new ShannonEntropy("reducer.shannonentropy.1", true));
-    addNamedWarpScriptFunction(new Percentile.Builder("reducer.percentile"));
+    addNamedWarpScriptFunction(new Percentile.Builder("reducer.percentile",false));
+    addNamedWarpScriptFunction(new Percentile.Builder("reducer.percentile.forbid-nulls",true));
     addNamedWarpScriptFunction(new CircularMean.Builder("reducer.mean.circular", true));
     addNamedWarpScriptFunction(new CircularMean.Builder("reducer.mean.circular.exclude-nulls", false));
     addNamedWarpScriptFunction(new RMS("reducer.rms", false));
