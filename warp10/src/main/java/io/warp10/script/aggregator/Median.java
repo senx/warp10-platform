@@ -51,13 +51,15 @@ public class Median extends NamedWarpScriptFunction implements WarpScriptAggrega
     final Object[] values = (Object[]) args[6];
 
     //
-    // count null value
+    // count null value. Also check if there is one double at least
     //
     int nullCounter = 0;
+    boolean inputHasDouble = false;
     for (Object v: values) {
       if (null == v) {
         nullCounter++;
       }
+      inputHasDouble |= (v instanceof Double);
     }
 
     if (nullCounter != 0 && this.forbidNulls) {
@@ -129,6 +131,10 @@ public class Median extends NamedWarpScriptFunction implements WarpScriptAggrega
 
     }
 
+    // if the input has only long values, return a long.
+    if (!inputHasDouble) {
+      median = ((Double) median).longValue();
+    }
     return new Object[]{tick, location, elevation, median};
   }
 }
