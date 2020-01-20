@@ -26,20 +26,21 @@ import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.binary.EQ;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 
 /**
  * Return the median of the values on the interval.
- * The returned location will be the median of all locations.
- * The returned elevation will be the median of all elevations.
+ * If median data point has an associated location and elevation, return it
+ * If forbidNulls and null among inputs, the function will raise an exception.
  */
 public class Median extends NamedWarpScriptFunction implements WarpScriptAggregatorFunction, WarpScriptMapperFunction, WarpScriptBucketizerFunction, WarpScriptReducerFunction {
 
-  public Median(String name) {
+  private final boolean forbidNulls;
+
+  public Median(String name, boolean forbidNulls) {
     super(name);
+    this.forbidNulls = forbidNulls;
   }
 
   @Override
@@ -47,126 +48,85 @@ public class Median extends NamedWarpScriptFunction implements WarpScriptAggrega
     long tick = (long) args[0];
     long[] locations = (long[]) args[4];
     long[] elevations = (long[]) args[5];
-    Object[] values = (Object[]) args[6];
+    final Object[] values = (Object[]) args[6];
 
     //
-    // Remove NO_LOCATION, keep valid latitude and longitude
-    // Compute median of latitude, median of longitude
+    // count null value
     //
-    ArrayList<Double> validLat = new ArrayList<Double>(locations.length);
-    ArrayList<Double> validLong = new ArrayList<Double>(locations.length);
-
-    for (int i = 0; i < locations.length; i++) {
-      if (GeoTimeSerie.NO_LOCATION != locations[i]) {
-        validLat.add(GeoXPLib.fromGeoXPPoint(locations[i])[0]);
-        validLong.add(GeoXPLib.fromGeoXPPoint(locations[i])[1]);
+    int nullCounter = 0;
+    for (Object v: values) {
+      if (null == v) {
+        nullCounter++;
       }
     }
 
-    long location;
-
-    if (0 == validLat.size()) {
-      location = GeoTimeSerie.NO_LOCATION;
-    } else if (1 == validLat.size()) {
-      location = GeoXPLib.toGeoXPPoint(validLat.get(0), validLong.get(0));
-    } else {
-      Collections.sort(validLat);
-      Collections.sort(validLong);
-      Double medianLatitude;
-      Double medianLongitude;
-      int len = validLat.size();
-      if (0 == len % 2) {
-        medianLatitude = (validLat.get(len / 2) + validLat.get(len / 2 - 1)) / 2.0D;
-        medianLongitude = (validLong.get(len / 2) + validLong.get(len / 2 - 1)) / 2.0D;
-      } else {
-        medianLatitude = validLat.get(len / 2);
-        medianLongitude = validLong.get(len / 2);
-      }
-      location = GeoXPLib.toGeoXPPoint(medianLatitude, medianLongitude);
+    if (nullCounter != 0 && this.forbidNulls) {
+      throw new WarpScriptException(this.getName() + " cannot compute median of null values.");
     }
 
-    //
-    // Sort elevations.
-    // As NO_ELEVATION == Long.MIN_VALUE, sorting elevations is a way to exclude NO_ELEVATION efficiently.
-    // Compute elevation median
-    //
-    long elevation;
-    Arrays.sort(elevations);
-
-    if (elevations[0] == elevations[elevations.length - 1]) {
-      elevation = elevations[0];
-    } else {
-      // set offset to the first valid elevation
-      int offset = 0;
-      while (offset < elevations.length && GeoTimeSerie.NO_ELEVATION == elevations[offset]) {
-        offset++;
-      }
-      if (offset == elevations.length) {
-        // there is no valid elevation
-        elevation = GeoTimeSerie.NO_ELEVATION;
-      } else if (offset == elevations.length - 1) {
-        // there is only one valid elevation
-        elevation = elevations[offset];
-      } else {
-        // compute elevation median in the end of the array
-        int len = elevations.length - offset;
-        if (0 == len % 2) {
-          elevation = (elevations[offset + (len / 2)] + elevations[offset + ((len / 2) - 1)]) / 2L;
-        } else {
-          elevation = elevations[offset + (len / 2)];
-        }
-      }
+    Integer[] indices = new Integer[values.length];
+    for (int i = 0; i < indices.length; i++) {
+      indices[i] = i;
     }
-
     //
-    // Remove nulls, NaN
-    // Fail on non numeric values.
+    // sort indices from values, null at the end of the sorted array.
     //
-    ArrayList<Number> validValues = new ArrayList<Number>(values.length);
-    for (int i = 0; i < values.length; i++) {
-      if (null != values[i]) {
-        if (values[i] instanceof Number) {
-          if (!(values[i] instanceof Double && Double.isNaN((Double) values[i]))) {
-            validValues.add((Number) values[i]);
-          }
-        } else {
-          throw new WarpScriptException(this.getName() + " cannot compute median of non numeric values.");
-        }
-      }
-    }
-
-    //
-    // Sort values
-    // Could be Long or Double, or a mix, if used as a reducer.
-    //
-    Collections.sort(validValues, new Comparator<Number>() {
+    Arrays.sort(indices, new Comparator<Integer>() {
       @Override
-      public int compare(Number o1, Number o2) {
-        return EQ.compare(o1, o2);
+      public int compare(Integer idx1, Integer idx2) {
+        if (null == values[idx1] && null == values[idx2]) {
+          return 0;
+        } else if (null == values[idx1] || null == values[idx2]) {
+          return null == values[idx1] ? 1 : -1;
+        } else if (values[idx1] instanceof Number && values[idx2] instanceof Number) {
+          return EQ.compare((Number) values[idx1], (Number) values[idx2]);
+        } else {
+          throw new RuntimeException("MEDIAN can only operate on numeric Geo Time Series.");
+        }
       }
     });
 
+    long location = 0;
+    long elevation = GeoTimeSerie.NO_ELEVATION;
+    Object median;
 
-    Object median = null;
+    int nonNullLength = values.length - nullCounter;
 
-    if (0 != validValues.size()) {
-      if (validValues.get(0).equals(validValues.get(validValues.size() - 1))) {
-        // If extrema are identical, use this as the median
-        median = validValues.get(0);
-      } else {
-        int len = validValues.size();
-        if (0 == len % 2) {
-          Object low = validValues.get((len / 2) - 1);
-          Object high = validValues.get(len / 2);
-          if (low instanceof Long && high instanceof Long) {
-            median = ((long) low + (long) high) / 2L;
-          } else {
-            median = ((double) low + (double) high) / 2.0D;
-          }
-        } else {
-          median = validValues.get(len / 2);
+    //
+    // singleton case
+    //
+    if (1 == nonNullLength) {
+      return new Object[]{
+          tick, locations[indices[0]], elevations[indices[0]], values[indices[0]]
+      };
+    } else {
+      if (0 == nonNullLength % 2) {
+        //
+        // even number of non null values, return mean of both values.
+        // If there is a location for both points, return centroid of locations
+        // If there is an elevation for both points, return mean of elevations
+        //
+        int low = indices[nonNullLength / 2 - 1];
+        int high = indices[nonNullLength / 2];
+        median = (((Number) values[low]).doubleValue() + ((Number) values[high]).doubleValue()) / 2.0D;
+        if (GeoTimeSerie.NO_ELEVATION != elevations[low] && GeoTimeSerie.NO_ELEVATION != elevations[high]) {
+          elevation = (elevations[low] + elevations[high]) / 2;
         }
+        if (GeoTimeSerie.NO_LOCATION != locations[low] && GeoTimeSerie.NO_LOCATION != locations[high]) {
+          long[] xyLow = GeoXPLib.xyFromGeoXPPoint(locations[low]);
+          long[] xyHigh = GeoXPLib.xyFromGeoXPPoint(locations[high]);
+          location = GeoXPLib.toGeoXPPoint((xyLow[0] + xyHigh[0]) / 2, (xyLow[1] + xyHigh[1]) / 2);
+        }
+
+      } else {
+        //
+        // odd number of non null values
+        //
+        location = locations[indices[nonNullLength / 2]];
+        elevation = elevations[indices[nonNullLength / 2]];
+        median = ((Number) values[indices[nonNullLength / 2]]).doubleValue();
       }
+
     }
 
     return new Object[]{tick, location, elevation, median};

@@ -2173,7 +2173,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Min("bucketizer.min", true));
     addNamedWarpScriptFunction(new Max("bucketizer.max", true));
     addNamedWarpScriptFunction(new Mean("bucketizer.mean", false));
-    addNamedWarpScriptFunction(new Median("bucketizer.median"));
+    addNamedWarpScriptFunction(new Median("bucketizer.median",false));
+    addNamedWarpScriptFunction(new Median("bucketizer.median.forbid-nulls",true));
     addNamedWarpScriptFunction(new MAD("bucketizer.mad"));
     addNamedWarpScriptFunction(new Or("bucketizer.or", false));
     addNamedWarpScriptFunction(new Sum("bucketizer.sum", true));
@@ -2205,7 +2206,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Min(MAPPER_MIN, true));
     addNamedWarpScriptFunction(new Max(MAPPER_MAX, true));
     addNamedWarpScriptFunction(new Mean("mapper.mean", false));
-    addNamedWarpScriptFunction(new Median("mapper.median"));
+    addNamedWarpScriptFunction(new Median("mapper.median",false));
+    addNamedWarpScriptFunction(new Median("mapper.median.forbid-nulls",true));
     addNamedWarpScriptFunction(new MAD("mapper.mad"));
     addNamedWarpScriptFunction(new Or("mapper.or", false));
     addNamedWarpScriptFunction(new Highest(MAPPER_HIGHEST));
@@ -2263,7 +2265,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Max("reducer.max.nonnull", false));
     addNamedWarpScriptFunction(new Mean("reducer.mean", false));
     addNamedWarpScriptFunction(new Mean("reducer.mean.exclude-nulls", true));
-    addNamedWarpScriptFunction(new Median("reducer.median"));
+    addNamedWarpScriptFunction(new Median("reducer.median",false));
+    addNamedWarpScriptFunction(new Median("reducer.median.forbid-nulls",true));
     addNamedWarpScriptFunction(new MAD("reducer.mad"));
     addNamedWarpScriptFunction(new Or("reducer.or", false));
     addNamedWarpScriptFunction(new Or("reducer.or.exclude-nulls", true));
