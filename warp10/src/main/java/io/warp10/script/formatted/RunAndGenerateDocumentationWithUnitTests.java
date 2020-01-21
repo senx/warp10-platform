@@ -128,14 +128,12 @@ public class RunAndGenerateDocumentationWithUnitTests {
 
         // outputs
         List<ArgumentSpecification> output =  new ArrayList<>();
-        for (Method m: function.getClass().getDeclaredMethods()) {
-          if (m.getName().equals("getOutput")) {
-            m.setAccessible(true);
-            Object out = m.invoke(function);
-            if (out instanceof Arguments) {
-              output = ((Arguments) out).getArgsCopy();
-            }
-            break;
+        Method m = searchMethod(function, "getOutput");
+        if (null != m) {
+          m.setAccessible(true);
+          Object out = m.invoke(function);
+          if (out instanceof Arguments) {
+            output = ((Arguments) out).getArgsCopy();
           }
         }
         if (0 == output.size()) {
@@ -144,27 +142,23 @@ public class RunAndGenerateDocumentationWithUnitTests {
 
         // examples
         List<String> examples = new ArrayList<>();
-        for (Method m: function.getClass().getDeclaredMethods()) {
-          if (m.getName().equals("getExamples")) {
-            m.setAccessible(true);
-            Object exs = m.invoke(function);
-            if (exs instanceof List) {
-              examples.addAll((List) exs);
-            }
-            break;
+        m = searchMethod(function, "getExamples");
+        if (null != m) {
+          m.setAccessible(true);
+          Object exs = m.invoke(function);
+          if (exs instanceof List) {
+            examples.addAll((List) exs);
           }
         }
 
         // tags
         List<String> tags = new ArrayList<>(TAGS());
-        for (Method m: function.getClass().getDeclaredMethods()) {
-          if (m.getName().equals("getTags")) {
-            m.setAccessible(true);
-            Object tag = m.invoke(function);
-            if (tag instanceof List) {
-              tags.addAll((List) tag);
-            }
-            break;
+        m = searchMethod(function, "getTags");
+        if (null != m) {
+          m.setAccessible(true);
+          Object tag = m.invoke(function);
+          if (tag instanceof List) {
+            tags.addAll((List) tag);
           }
         }
 
@@ -176,18 +170,16 @@ public class RunAndGenerateDocumentationWithUnitTests {
           related = RELATED();
         }
         related.remove(name);
-        for (Method m: function.getClass().getDeclaredMethods()) {
-          if (m.getName().equals("getRelated")) {
-            m.setAccessible(true);
-            Object rel = m.invoke(function);
-            if (rel instanceof List) {
-              for (String r: (List<String>) rel) {
-                if (!related.contains(r)) {
-                  related.add(r);
-                }
+        m = searchMethod(function, "getRelated");
+        if (null != m) {
+          m.setAccessible(true);
+          Object rel = m.invoke(function);
+          if (rel instanceof List) {
+            for (String r: (List<String>) rel) {
+              if (!related.contains(r)) {
+                related.add(r);
               }
             }
-            break;
           }
         }
 
@@ -262,5 +254,29 @@ public class RunAndGenerateDocumentationWithUnitTests {
       }
     }
     return classNames;
+  }
+
+  /**
+   * Search a method in a class and in parent's hierarchy
+   *
+   * @param function
+   * @param simpleName
+   * @return method if found, or null
+   * @throws Exception
+   */
+  public static Method searchMethod(Object function, String simpleName) throws Exception {
+    Class<?> clazz = function.getClass();
+
+    while (clazz != null) {
+      for (Method m : clazz.getDeclaredMethods()) {
+        if (m.getName().equals(simpleName)) {
+          return m;
+        }
+      }
+
+      clazz = clazz.getSuperclass();
+    }
+
+    return null;
   }
 }
