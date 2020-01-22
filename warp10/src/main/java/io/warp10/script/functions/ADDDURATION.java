@@ -112,7 +112,7 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
 
     dt = dt.plus(period);
     long ts = dt.getMillis() * Constants.TIME_UNITS_PER_MS;
-    ts += (instant % Constants.TIME_UNITS_PER_MS);
+    ts += instant % Constants.TIME_UNITS_PER_MS;
     ts += offset;
 
     stack.push(ts);
