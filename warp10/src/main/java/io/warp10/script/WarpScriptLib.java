@@ -857,6 +857,7 @@ public class WarpScriptLib {
   public static final String NOTAFTER = "NOTAFTER";
   public static final String TSELEMENTS = "TSELEMENTS";
   public static final String ADDDAYS = "ADDDAYS";
+  public static final String ADDDURATION = "ADDDURATION";
   public static final String ADDMONTHS = "ADDMONTHS";
   public static final String ADDYEARS = "ADDYEARS";
   public static final String QUANTIZE = "QUANTIZE";
@@ -1733,6 +1734,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TSELEMENTS(TOTSELEMENTS));
     addNamedWarpScriptFunction(new FROMTSELEMENTS(TSELEMENTSTO));
     addNamedWarpScriptFunction(new ADDDAYS(ADDDAYS));
+    addNamedWarpScriptFunction(new ADDDURATION(ADDDURATION));
     addNamedWarpScriptFunction(new ADDMONTHS(ADDMONTHS));
     addNamedWarpScriptFunction(new ADDYEARS(ADDYEARS));
     
