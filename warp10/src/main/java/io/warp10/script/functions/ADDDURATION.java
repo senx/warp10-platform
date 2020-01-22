@@ -81,7 +81,7 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
     if (2 == tokens.length) {
       duration = tokens[0].concat("S");
       String tmp = tokens[1].substring(0, tokens[1].length() - 1);
-      Double d_offset = Double.valueOf(tmp) * new Double(Constants.TIME_UNITS_PER_S);
+      Double d_offset = Double.valueOf("0." + tmp) * new Double(Constants.TIME_UNITS_PER_S);
       offset = d_offset.longValue();
     }
 
@@ -110,7 +110,7 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
     long instant = ((Number) stack.pop()).longValue();
     DateTime dt = new DateTime(instant / Constants.TIME_UNITS_PER_MS, dtz);
 
-    dt.plus(period);
+    dt = dt.plus(period);
     long ts = dt.getMillis() * Constants.TIME_UNITS_PER_MS;
     ts += (instant % Constants.TIME_UNITS_PER_MS);
     ts += offset;
