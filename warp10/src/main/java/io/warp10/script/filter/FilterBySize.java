@@ -55,9 +55,9 @@ public class FilterBySize extends NamedWarpScriptFunction implements WarpScriptF
 
     @Override
     protected WarpScriptStack apply(Map<String, Object> formattedArgs, WarpScriptStack stack) throws WarpScriptException {
-      Long min = (Long) formattedArgs.get(MIN);
-      Long max = (Long) formattedArgs.get(MAX);
-      stack.push(new FilterBySize(getName(), min.intValue(), max.intValue()));
+      int min = ((Long) formattedArgs.get(MIN)).intValue();
+      int max = ((Long) formattedArgs.get(MAX)).intValue();
+      stack.push(new FilterBySize(getName(), min, max));
       return stack;
     }
   }
