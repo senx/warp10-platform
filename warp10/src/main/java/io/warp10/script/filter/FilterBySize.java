@@ -32,8 +32,8 @@ public class FilterBySize extends NamedWarpScriptFunction implements WarpScriptF
   static private final String MIN = "min";
   static private final String MAX = "max";
 
-  private final Long min;
-  private final Long max;
+  private final int min;
+  private final int max;
 
   public static class Builder extends FormattedWarpScriptFunction {
 
@@ -57,12 +57,12 @@ public class FilterBySize extends NamedWarpScriptFunction implements WarpScriptF
     protected WarpScriptStack apply(Map<String, Object> formattedArgs, WarpScriptStack stack) throws WarpScriptException {
       Long min = (Long) formattedArgs.get(MIN);
       Long max = (Long) formattedArgs.get(MAX);
-      stack.push(new FilterBySize(getName(), min, max));
+      stack.push(new FilterBySize(getName(), min.intValue(), max.intValue()));
       return null;
     }
   }
 
-  public FilterBySize(String name, Long min, Long max) throws WarpScriptException {
+  public FilterBySize(String name, int min, int max) throws WarpScriptException {
     super(name);
     this.min = min;
     this.max = max;
@@ -75,7 +75,7 @@ public class FilterBySize extends NamedWarpScriptFunction implements WarpScriptF
 
     for (List<GeoTimeSerie> serie: series) {
       for (GeoTimeSerie gts: serie) {
-        if (gts.size() >= min && gts.size() <= max) {
+        if (gts.size() >= this.min && gts.size() <= this.max) {
           retained.add(gts);
         }
       }
