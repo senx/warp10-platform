@@ -67,7 +67,7 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptAgg
       double percentile = ((Number) value).doubleValue();
 
       if (percentile < 0.0D || percentile > 100.0D) {
-        throw new WarpScriptException("Invalid percentile, MUST be between 0 and 100.");
+        throw new WarpScriptException("Invalid percentile for" + getName() + ", MUST be between 0 and 100.");
       }
 
       stack.push(new Percentile(getName(), percentile, false, this.forbidNulls));
@@ -90,7 +90,7 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptAgg
     final Object[] values = (Object[]) args[6];
 
     if (0 == ticks.length) {
-      return new Object[]{Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null};
+      return new Object[] {Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null};
     }
 
 
@@ -118,6 +118,7 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptAgg
       indices[i] = i;
     }
 
+    final String functionName = this.getName();
     try {
       Arrays.sort(indices, new Comparator<Integer>() {
         @Override
@@ -129,7 +130,7 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptAgg
           } else if (values[idx1] instanceof Number && values[idx2] instanceof Number) {
             return EQ.compare((Number) values[idx1], (Number) values[idx2]);
           } else {
-            throw new RuntimeException("MEDIAN can only operate on numeric Geo Time Series.");
+            throw new RuntimeException(functionName + " can only operate on numeric Geo Time Series.");
           }
         }
       });
@@ -148,7 +149,7 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptAgg
       if (n >= nonNullLength) {
         n--;
       }
-      return new Object[]{ticks[indices[n]], locations[indices[n]], elevations[indices[n]], values[indices[n]]};
+      return new Object[] {ticks[indices[n]], locations[indices[n]], elevations[indices[n]], values[indices[n]]};
     } else {
       int m = (int) Math.floor(0.5 + this.percentile * nonNullLength / 100.0) - 1;
 
@@ -156,13 +157,13 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptAgg
       double pm = (100.0 / nonNullLength) * (m + 1 - 0.5D);
 
       if (0 == n && this.percentile < pn) {
-        return new Object[]{ticks[indices[0]], locations[indices[0]], elevations[indices[0]], values[indices[0]]};
+        return new Object[] {ticks[indices[0]], locations[indices[0]], elevations[indices[0]], values[indices[0]]};
       } else if (m == nonNullLength - 1 && this.percentile > pm) {
-        return new Object[]{ticks[indices[m]], locations[indices[m]], elevations[indices[m]], values[indices[m]]};
+        return new Object[] {ticks[indices[m]], locations[indices[m]], elevations[indices[m]], values[indices[m]]};
       } else if (pn == this.percentile) {
-        return new Object[]{ticks[indices[n]], locations[indices[n]], elevations[indices[n]], values[indices[n]]};
+        return new Object[] {ticks[indices[n]], locations[indices[n]], elevations[indices[n]], values[indices[n]]};
       } else if (pm == this.percentile) {
-        return new Object[]{ticks[indices[m]], locations[indices[m]], elevations[indices[m]], values[indices[m]]};
+        return new Object[] {ticks[indices[m]], locations[indices[m]], elevations[indices[m]], values[indices[m]]};
       } else if (pm < this.percentile && this.percentile < pn) {
         double factor = nonNullLength * (this.percentile - pm) / 100.0D;
 
@@ -193,7 +194,7 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptAgg
           elevation = (long) (elevations[indices[m]] + factor * (elevations[indices[n]] - elevations[indices[m]]));
         }
 
-        return new Object[]{tick, location, elevation, v};
+        return new Object[] {tick, location, elevation, v};
       } else {
         throw new WarpScriptException("Twilight zone!");
       }
