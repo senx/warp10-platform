@@ -100,9 +100,7 @@ public class Median extends NamedWarpScriptFunction implements WarpScriptAggrega
     // singleton case
     //
     if (1 == nonNullLength) {
-      return new Object[] {
-          tick, locations[indices[0]], elevations[indices[0]], values[indices[0]]
-      };
+      return new Object[] {tick, locations[indices[0]], elevations[indices[0]], values[indices[0]]};
     } else {
       if (0 == nonNullLength % 2) {
         //

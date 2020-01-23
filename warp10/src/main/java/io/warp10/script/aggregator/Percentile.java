@@ -67,7 +67,7 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptAgg
       double percentile = ((Number) value).doubleValue();
 
       if (percentile < 0.0D || percentile > 100.0D) {
-        throw new WarpScriptException("Invalid percentile for" + getName() + ", MUST be between 0 and 100.");
+        throw new WarpScriptException("Invalid percentile for " + getName() + ", MUST be between 0 and 100.");
       }
 
       stack.push(new Percentile(getName(), percentile, false, this.forbidNulls));
