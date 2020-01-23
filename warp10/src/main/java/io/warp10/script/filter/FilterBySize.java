@@ -87,8 +87,8 @@ public class FilterBySize extends NamedWarpScriptFunction implements WarpScriptF
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append(StackUtils.toString(min));
-    sb.append(StackUtils.toString(max));
+    sb.append(StackUtils.toString(this.min));
+    sb.append(StackUtils.toString(this.max));
     sb.append(" ");
     sb.append(this.getName());
     return sb.toString();
