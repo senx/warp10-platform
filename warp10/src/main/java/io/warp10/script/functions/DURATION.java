@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.continuum.gts.UnsafeString;
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
@@ -42,7 +43,7 @@ public class DURATION extends NamedWarpScriptFunction implements WarpScriptStack
   public DURATION(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
@@ -51,10 +52,26 @@ public class DURATION extends NamedWarpScriptFunction implements WarpScriptStack
     if (!(o instanceof String)) {
       throw new WarpScriptException(getName() + " expects an ISO8601 duration (a string) on top of the stack. See http://en.wikipedia.org/wiki/ISO_8601#Durations");
     }
+
+    // Separate seconds from digits below second precision
+    String duration_string = o.toString();
+    String[] tokens = UnsafeString.split(duration_string, '.');
+
+    long offset = 0;
+    if (tokens.length > 2) {
+      throw new WarpScriptException(getName() + "received an invalid ISO8601 duration.");
+    }
+
+    if (2 == tokens.length) {
+      duration_string = tokens[0].concat("S");
+      String tmp = tokens[1].substring(0, tokens[1].length() - 1);
+      Double d_offset = Double.valueOf("0." + tmp) * new Double(Constants.TIME_UNITS_PER_S);
+      offset = d_offset.longValue();
+    }
     
     ReadWritablePeriod period = new MutablePeriod();
     
-    ISOPeriodFormat.standard().getParser().parseInto(period, o.toString(), 0, Locale.US);
+    ISOPeriodFormat.standard().getParser().parseInto(period, duration_string, 0, Locale.US);
 
     Period p = period.toPeriod();
     
@@ -64,7 +81,7 @@ public class DURATION extends NamedWarpScriptFunction implements WarpScriptStack
 
     Duration duration = p.toDurationFrom(new Instant());
 
-    stack.push(duration.getMillis() * Constants.TIME_UNITS_PER_MS);
+    stack.push(duration.getMillis() * Constants.TIME_UNITS_PER_MS + offset);
 
     return stack;
   }
