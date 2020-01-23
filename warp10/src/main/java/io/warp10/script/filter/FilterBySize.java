@@ -58,7 +58,7 @@ public class FilterBySize extends NamedWarpScriptFunction implements WarpScriptF
             Long min = (Long) formattedArgs.get(MIN);
             Long max = (Long) formattedArgs.get(MAX);
             stack.push(new FilterBySize(getName(), min, max));
-            return null;
+            return stack;
         }
     }
 
