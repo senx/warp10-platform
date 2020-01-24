@@ -36,6 +36,7 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
 
   final private static WarpScriptStackFunction TSELEMENTS = new TSELEMENTS(WarpScriptLib.TSELEMENTS);
   final private static WarpScriptStackFunction FROMTSELEMENTS = new FROMTSELEMENTS(WarpScriptLib.TSELEMENTSTO);
+  final private static Double STU = new Double(Constants.TIME_UNITS_PER_S);
 
   public ADDDURATION(String name) {
     super(name);
@@ -92,7 +93,7 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
     if (2 == tokens.length) {
       duration = tokens[0].concat("S");
       String tmp = tokens[1].substring(0, tokens[1].length() - 1);
-      Double d_offset = Double.valueOf("0." + tmp) * new Double(Constants.TIME_UNITS_PER_S);
+      Double d_offset = Double.valueOf("0." + tmp) * STU;
       offset = d_offset.longValue();
     }
 
