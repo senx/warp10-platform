@@ -27,8 +27,6 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
-import io.warp10.script.aggregator.CompareTo;
-import io.warp10.script.mapper.MapperCompareTo;
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
 import org.bouncycastle.crypto.digests.MD5Digest;
@@ -53,6 +51,7 @@ import io.warp10.continuum.gts.ZIP;
 import io.warp10.script.aggregator.And;
 import io.warp10.script.aggregator.Argminmax;
 import io.warp10.script.aggregator.CircularMean;
+import io.warp10.script.aggregator.CompareTo;
 import io.warp10.script.aggregator.Count;
 import io.warp10.script.aggregator.Delta;
 import io.warp10.script.aggregator.First;
@@ -160,9 +159,15 @@ import io.warp10.script.functions.math.TODEGREES;
 import io.warp10.script.functions.math.TOINTEXACT;
 import io.warp10.script.functions.math.TORADIANS;
 import io.warp10.script.functions.math.ULP;
+import io.warp10.script.functions.shape.CHECKSHAPE;
+import io.warp10.script.functions.shape.HULLSHAPE;
+import io.warp10.script.functions.shape.PERMUTE;
+import io.warp10.script.functions.shape.RESHAPE;
+import io.warp10.script.functions.shape.SHAPE;
 import io.warp10.script.mapper.MapperAbs;
 import io.warp10.script.mapper.MapperAdd;
 import io.warp10.script.mapper.MapperCeil;
+import io.warp10.script.mapper.MapperCompareTo;
 import io.warp10.script.mapper.MapperDayOfMonth;
 import io.warp10.script.mapper.MapperDayOfWeek;
 import io.warp10.script.mapper.MapperDotProduct;
@@ -337,11 +342,6 @@ import io.warp10.script.unary.TOLONG;
 import io.warp10.script.unary.TOSTRING;
 import io.warp10.script.unary.TOTIMESTAMP;
 import io.warp10.script.unary.UNIT;
-import io.warp10.script.functions.shape.CHECKSHAPE;
-import io.warp10.script.functions.shape.HULLSHAPE;
-import io.warp10.script.functions.shape.PERMUTE;
-import io.warp10.script.functions.shape.RESHAPE;
-import io.warp10.script.functions.shape.SHAPE;
 import io.warp10.warp.sdk.WarpScriptExtension;
 
 /**
@@ -1103,6 +1103,16 @@ public class WarpScriptLib {
   public static final String GEO_INTERSECTS = "GEO.INTERSECTS";
   public static final String GEO_COVER = "GEO.COVER";
   public static final String GEO_COVER_RL = "GEO.COVER.RL";
+  public static final String HHCODE_CENTER = "HHCODE.CENTER";
+  public static final String HHCODE_BBOX = "HHCODE.BBOX";
+  public static final String HHCODE_NORTH = "HHCODE.NORTH";
+  public static final String HHCODE_SOUTH = "HHCODE.SOUTH";
+  public static final String HHCODE_EAST = "HHCODE.EAST";
+  public static final String HHCODE_WEST = "HHCODE.WEST";
+  public static final String HHCODE_NORTH_EAST = "HHCODE.NORTH.EAST";
+  public static final String HHCODE_NORTH_WEST = "HHCODE.NORTH.WEST";
+  public static final String HHCODE_SOUTH_EAST = "HHCODE.SOUTH.EAST";
+  public static final String HHCODE_SOUTH_WEST = "HHCODE.SOUTH.WEST";
 
   public static final String MAPPER_GT = "mapper.gt";
   public static final String MAPPER_GE = "mapper.ge";
@@ -1842,9 +1852,10 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MapperKernelTricube("mapper.kernel.tricube"));
     addNamedWarpScriptFunction(new MapperKernelTriweight("mapper.kernel.triweight"));
     addNamedWarpScriptFunction(new MapperKernelUniform("mapper.kernel.uniform"));
-        
-    addNamedWarpScriptFunction(new Percentile.Builder("mapper.percentile"));
-    
+
+    addNamedWarpScriptFunction(new Percentile.Builder("mapper.percentile", false));
+    addNamedWarpScriptFunction(new Percentile.Builder("mapper.percentile.forbid-nulls", true));
+
     //functions.put("mapper.abscissa", new MapperSAX.Builder());
     
     addNamedWarpScriptFunction(new FilterByClass.Builder("filter.byclass"));
@@ -1883,6 +1894,16 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOHHCODE(TOGTSHHCODELONG, false, true));
     addNamedWarpScriptFunction(new HHCODETO(HHCODETO));
     addNamedWarpScriptFunction(new HHCODETO(GTSHHCODETO, true));
+    addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_BBOX, HHCODEFUNC.HHCodeAction.BBOX));
+    addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_CENTER, HHCODEFUNC.HHCodeAction.CENTER));
+    addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_NORTH, HHCODEFUNC.HHCodeAction.NORTH));
+    addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_SOUTH, HHCODEFUNC.HHCodeAction.SOUTH));
+    addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_EAST, HHCODEFUNC.HHCodeAction.EAST));
+    addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_WEST, HHCODEFUNC.HHCodeAction.WEST));
+    addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_NORTH_EAST, HHCODEFUNC.HHCodeAction.NORTH_EAST));
+    addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_NORTH_WEST, HHCODEFUNC.HHCodeAction.NORTH_WEST));
+    addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_SOUTH_EAST, HHCODEFUNC.HHCodeAction.SOUTH_EAST));
+    addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_SOUTH_WEST, HHCODEFUNC.HHCodeAction.SOUTH_WEST));
     addNamedWarpScriptFunction(new GEOREGEXP(GEO_REGEXP));
     addNamedWarpScriptFunction(new GeoWKT(GEO_WKT, false));
     addNamedWarpScriptFunction(new GeoWKT(GEO_WKT_UNIFORM, true));
@@ -2177,13 +2198,16 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Min("bucketizer.min", true));
     addNamedWarpScriptFunction(new Max("bucketizer.max", true));
     addNamedWarpScriptFunction(new Mean("bucketizer.mean", false));
-    addNamedWarpScriptFunction(new Median("bucketizer.median"));
+    addNamedWarpScriptFunction(new Median("bucketizer.median", false));
+    addNamedWarpScriptFunction(new Median("bucketizer.median.forbid-nulls", true));
     addNamedWarpScriptFunction(new MAD("bucketizer.mad"));
     addNamedWarpScriptFunction(new Or("bucketizer.or", false));
     addNamedWarpScriptFunction(new Sum("bucketizer.sum", true));
     addNamedWarpScriptFunction(new Join.Builder("bucketizer.join", true, false, null));
     addNamedWarpScriptFunction(new Count("bucketizer.count", false));
-    addNamedWarpScriptFunction(new Percentile.Builder("bucketizer.percentile"));
+    addNamedWarpScriptFunction(new Percentile.Builder("bucketizer.percentile", false));
+    addNamedWarpScriptFunction(new Percentile.Builder("bucketizer.percentile.forbid-nulls", true));
+
     addNamedWarpScriptFunction(new Min("bucketizer.min.forbid-nulls", false));
     addNamedWarpScriptFunction(new Max("bucketizer.max.forbid-nulls", false));
     addNamedWarpScriptFunction(new Mean("bucketizer.mean.exclude-nulls", true));
@@ -2209,7 +2233,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Min(MAPPER_MIN, true));
     addNamedWarpScriptFunction(new Max(MAPPER_MAX, true));
     addNamedWarpScriptFunction(new Mean("mapper.mean", false));
-    addNamedWarpScriptFunction(new Median("mapper.median"));
+    addNamedWarpScriptFunction(new Median("mapper.median", false));
+    addNamedWarpScriptFunction(new Median("mapper.median.forbid-nulls", true));
     addNamedWarpScriptFunction(new MAD("mapper.mad"));
     addNamedWarpScriptFunction(new Or("mapper.or", false));
     addNamedWarpScriptFunction(new Highest(MAPPER_HIGHEST));
@@ -2267,7 +2292,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Max("reducer.max.nonnull", false));
     addNamedWarpScriptFunction(new Mean("reducer.mean", false));
     addNamedWarpScriptFunction(new Mean("reducer.mean.exclude-nulls", true));
-    addNamedWarpScriptFunction(new Median("reducer.median"));
+    addNamedWarpScriptFunction(new Median("reducer.median", false));
+    addNamedWarpScriptFunction(new Median("reducer.median.forbid-nulls", true));
     addNamedWarpScriptFunction(new MAD("reducer.mad"));
     addNamedWarpScriptFunction(new Or("reducer.or", false));
     addNamedWarpScriptFunction(new Or("reducer.or.exclude-nulls", true));
@@ -2291,7 +2317,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Count("reducer.count.nonnull", true));
     addNamedWarpScriptFunction(new ShannonEntropy("reducer.shannonentropy.0", false));
     addNamedWarpScriptFunction(new ShannonEntropy("reducer.shannonentropy.1", true));
-    addNamedWarpScriptFunction(new Percentile.Builder("reducer.percentile"));
+    addNamedWarpScriptFunction(new Percentile.Builder("reducer.percentile", false));
+    addNamedWarpScriptFunction(new Percentile.Builder("reducer.percentile.forbid-nulls", true));
     addNamedWarpScriptFunction(new CircularMean.Builder("reducer.mean.circular", true));
     addNamedWarpScriptFunction(new CircularMean.Builder("reducer.mean.circular.exclude-nulls", false));
     addNamedWarpScriptFunction(new RMS("reducer.rms", false));
