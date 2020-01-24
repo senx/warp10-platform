@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -28,9 +28,11 @@
 #http.acceptors = 2
 // Number of Jetty selectors to use (defaults to 4)
 #http.selectors = 4
-// Number of threads Jetty should use (defaults to 1 + acceptors + acceptors * selectors which is the minimum)
-// All selectors/acceptors (with and without SSL support, see http.ssl.selectors/http.ssl.acceptors) must be considered
-#http.maxthreads = 11
+// Number of threads Jetty should use (defaults to 1 + acceptors + acceptors * selectors which is the strict minimum for 1 request)
+// All selectors/acceptors (with and without SSL support, see http.ssl.selectors/http.ssl.acceptors) must be considered.
+// Read this article to estimate number of thread depending on your server load : https://www.eclipse.org/lists/jetty-users/msg05196.html
+// 200 is Jetty default value for moderate load.
+#http.maxthreads = 200
 // Timeout (in ms) when expecting a HTTP request (defaults to 30000 ms)
 #http.idle.timeout = 30000
 // Directory where spec files are located
