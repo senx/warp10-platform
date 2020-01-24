@@ -67,8 +67,7 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
       if (hhstr.length() > 16) {
         throw new WarpScriptException(getName() + " expects an hexadecimal HHCode string of length <= 16");
       } else if (hhstr.length() < 16) {
-        hhcode = new StringBuilder(hhstr).append("0000000000000000");
-        ((StringBuilder) hhcode).setLength(16);
+        hhcode = (hhstr + "0000000000000000").substring(0, 16);
       }
       hh = Long.parseUnsignedLong(hhcode.toString(), 16);
     } else if (hhcode instanceof byte[]) {
@@ -125,7 +124,7 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
     Object o;
     if (input instanceof byte[]) {
       o = Longs.toByteArray(hh);
-    } else if (input instanceof StringBuilder) {
+    } else if (input instanceof String) {
       o = HHCodeHelper.toString(((Long) hh).longValue(), res);
     } else {
       o = ((Long) hh).longValue();
