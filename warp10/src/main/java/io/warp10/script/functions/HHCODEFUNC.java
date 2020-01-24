@@ -25,12 +25,22 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 /**
- * Get the south east hhcode of the given hhcode at the given resolution.
+ * Template function to interface with HHCodeHelper
  */
-public class HHCODESOUTHEAST extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public HHCODESOUTHEAST(String name) {
+  public enum HHCodeAction {
+    NORTH, SOUTH, EAST, WEST, NORTH_EAST, NORTH_WEST, SOUTH_EAST, SOUTH_WEST, BBOX, CENTER
+  }
+
+  private HHCodeAction action;
+  private boolean isLongFormat;
+  private int res;
+
+  public HHCODEFUNC(String name, HHCodeAction action) {
     super(name);
+    this.action = action;
+    this.isLongFormat = true;
   }
 
   @Override
@@ -42,7 +52,7 @@ public class HHCODESOUTHEAST extends NamedWarpScriptFunction implements WarpScri
       throw new WarpScriptException(getName() + " expects resolution (even number between 2 and 30) and a boolean as the top 3 elements of the stack.");
     }
 
-    int res = ((Number) o).intValue();
+    res = ((Number) o).intValue();
 
     if (0 != res && (res < 2 || res > 30 || (0 != (res & 1)))) {
       throw new WarpScriptException(getName() + " expects a maximum resolution which is an even number between 2 and 30 or 0.");
@@ -52,6 +62,7 @@ public class HHCODESOUTHEAST extends NamedWarpScriptFunction implements WarpScri
     Object hhcode = stack.pop();
 
     long hh;
+    this.isLongFormat = true;
 
     if (hhcode instanceof Long) {
       hh = (long) hhcode;
@@ -64,14 +75,64 @@ public class HHCODESOUTHEAST extends NamedWarpScriptFunction implements WarpScri
         ((StringBuilder) hhcode).setLength(16);
       }
       hh = Long.parseUnsignedLong(hhcode.toString(), 16);
+      this.isLongFormat = false;
     } else if (hhcode instanceof byte[]) {
       hh = Longs.fromByteArray((byte[]) hhcode);
     } else {
       throw new WarpScriptException(getName() + " expects a long, a string or a byte array.");
     }
 
-    long southEastHHCode = HHCodeHelper.southEastHHCode(hh, res);
-    stack.push(HHCodeHelper.toString(southEastHHCode, res));
+    switch (this.action) {
+      case NORTH:
+        stack.push(this.manageFormat(HHCodeHelper.northHHCode(hh, this.res)));
+        break;
+      case SOUTH:
+        stack.push(this.manageFormat(HHCodeHelper.southHHCode(hh, this.res)));
+        break;
+      case EAST:
+        stack.push(this.manageFormat(HHCodeHelper.eastHHCode(hh, this.res)));
+        break;
+      case WEST:
+        stack.push(this.manageFormat(HHCodeHelper.westHHCode(hh, this.res)));
+        break;
+      case NORTH_EAST:
+        stack.push(this.manageFormat(HHCodeHelper.northEastHHCode(hh, this.res)));
+        break;
+      case NORTH_WEST:
+        stack.push(this.manageFormat(HHCodeHelper.northWestHHCode(hh, this.res)));
+        break;
+      case SOUTH_EAST:
+        stack.push(this.manageFormat(HHCodeHelper.southEastHHCode(hh, this.res)));
+        break;
+      case SOUTH_WEST:
+        stack.push(this.manageFormat(HHCodeHelper.southWestHHCode(hh, this.res)));
+        break;
+      case BBOX:
+        double[] bbox = HHCodeHelper.getHHCodeBBox(hh, this.res);
+        stack.push(bbox[0]);
+        stack.push(bbox[1]);
+        stack.push(bbox[2]);
+        stack.push(bbox[3]);
+        break;
+      case CENTER:
+        double[] latlon = HHCodeHelper.getCenterLatLon(hh, this.res);
+        stack.push(latlon[0]);
+        stack.push(latlon[1]);
+        break;
+      default:
+        throw new WarpScriptException("Unknown HHCODE action");
+    }
+
     return stack;
+  }
+
+  private Object manageFormat(long hh) {
+    Object o;
+    if (this.isLongFormat) {
+      o = ((Long) hh).longValue();
+    } else {
+      o = HHCodeHelper.toString(((Long) hh).longValue(), this.res);
+    }
+    return o;
   }
 }
