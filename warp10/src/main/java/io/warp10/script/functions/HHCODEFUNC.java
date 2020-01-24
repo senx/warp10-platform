@@ -125,7 +125,7 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
     Object o;
     if (input instanceof byte[]) {
       o = Longs.toByteArray(hh);
-    } else if (input instanceof String) {
+    } else if (input instanceof StringBuilder) {
       o = HHCodeHelper.toString(((Long) hh).longValue(), res);
     } else {
       o = ((Long) hh).longValue();
