@@ -1873,6 +1873,13 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FilterAnyLT.Builder("filter.any.lt"));
     addNamedWarpScriptFunction(new FilterAnyNE.Builder("filter.any.ne"));
 
+    addNamedWarpScriptFunction(new FilterAnyEQ.Builder("filter.all.ne"));
+    addNamedWarpScriptFunction(new FilterAnyGE.Builder("filter.all.lt"));
+    addNamedWarpScriptFunction(new FilterAnyGT.Builder("filter.all.le"));
+    addNamedWarpScriptFunction(new FilterAnyLE.Builder("filter.all.gt"));
+    addNamedWarpScriptFunction(new FilterAnyLT.Builder("filter.all.ge"));
+    addNamedWarpScriptFunction(new FilterAnyNE.Builder("filter.all.eq"));
+
     addNamedWarpScriptFunction(new LatencyFilter.Builder("filter.latencies"));
     
     //
