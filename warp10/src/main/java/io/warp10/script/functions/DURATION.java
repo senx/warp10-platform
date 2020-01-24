@@ -39,6 +39,8 @@ import org.joda.time.format.ISOPeriodFormat;
  * @see http://en.wikipedia.org/wiki/ISO_8601#Durations
  */
 public class DURATION extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  final private static Double STU = new Double(Constants.TIME_UNITS_PER_S);
   
   public DURATION(String name) {
     super(name);
@@ -65,7 +67,7 @@ public class DURATION extends NamedWarpScriptFunction implements WarpScriptStack
     if (2 == tokens.length) {
       duration_string = tokens[0].concat("S");
       String tmp = tokens[1].substring(0, tokens[1].length() - 1);
-      Double d_offset = Double.valueOf("0." + tmp) * new Double(Constants.TIME_UNITS_PER_S);
+      Double d_offset = Double.valueOf("0." + tmp) * STU;
       offset = d_offset.longValue();
     }
     
@@ -80,6 +82,11 @@ public class DURATION extends NamedWarpScriptFunction implements WarpScriptStack
     }
 
     Duration duration = p.toDurationFrom(new Instant());
+
+    // check if offset should be positive of negative
+    if (p.getSeconds() < 0) {
+      offset = -offset;
+    }
 
     stack.push(duration.getMillis() * Constants.TIME_UNITS_PER_MS + offset);
 

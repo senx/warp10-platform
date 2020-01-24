@@ -138,6 +138,11 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
       }
     }
 
+    // check if offset should be positive of negative
+    if (period.toPeriod().getSeconds() < 0) {
+      offset = -offset;
+    }
+
     long ts = dt.getMillis() * Constants.TIME_UNITS_PER_MS;
     ts += instant % Constants.TIME_UNITS_PER_MS;
     ts += offset * N;
