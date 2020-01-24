@@ -28,12 +28,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import io.warp10.script.aggregator.CompareTo;
-import io.warp10.script.filter.FilterAnyEQ;
-import io.warp10.script.filter.FilterAnyGE;
-import io.warp10.script.filter.FilterAnyGT;
-import io.warp10.script.filter.FilterAnyLE;
-import io.warp10.script.filter.FilterAnyLT;
-import io.warp10.script.filter.FilterAnyNE;
+import io.warp10.script.filter.FilterAny;
 import io.warp10.script.mapper.MapperCompareTo;
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
@@ -1866,19 +1861,19 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FilterLastLT.Builder("filter.last.lt"));
     addNamedWarpScriptFunction(new FilterLastNE.Builder("filter.last.ne"));
 
-    addNamedWarpScriptFunction(new FilterAnyEQ.Builder("filter.any.eq"));
-    addNamedWarpScriptFunction(new FilterAnyGE.Builder("filter.any.ge"));
-    addNamedWarpScriptFunction(new FilterAnyGT.Builder("filter.any.gt"));
-    addNamedWarpScriptFunction(new FilterAnyLE.Builder("filter.any.le"));
-    addNamedWarpScriptFunction(new FilterAnyLT.Builder("filter.any.lt"));
-    addNamedWarpScriptFunction(new FilterAnyNE.Builder("filter.any.ne"));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.any.eq", FilterAny.Comparator.EQ));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.any.ge", FilterAny.Comparator.GE));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.any.gt", FilterAny.Comparator.GT));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.any.le", FilterAny.Comparator.LE));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.any.lt", FilterAny.Comparator.LT));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.any.ne", FilterAny.Comparator.NE));
 
-    addNamedWarpScriptFunction(new FilterAnyEQ.Builder("filter.all.ne", true));
-    addNamedWarpScriptFunction(new FilterAnyGE.Builder("filter.all.lt", true));
-    addNamedWarpScriptFunction(new FilterAnyGT.Builder("filter.all.le", true));
-    addNamedWarpScriptFunction(new FilterAnyLE.Builder("filter.all.gt", true));
-    addNamedWarpScriptFunction(new FilterAnyLT.Builder("filter.all.ge", true));
-    addNamedWarpScriptFunction(new FilterAnyNE.Builder("filter.all.eq", true));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.all.ne", FilterAny.Comparator.EQ, true));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.all.lt", FilterAny.Comparator.GE, true));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.all.le", FilterAny.Comparator.GT, true));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.all.gt", FilterAny.Comparator.LE, true));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.all.ge", FilterAny.Comparator.LT, true));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.all.eq", FilterAny.Comparator.NE, true));
 
     addNamedWarpScriptFunction(new LatencyFilter.Builder("filter.latencies"));
     

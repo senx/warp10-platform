@@ -30,51 +30,87 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class FilterAnyEQ extends NamedWarpScriptFunction implements WarpScriptFilterFunction {
+public class FilterAny extends NamedWarpScriptFunction implements WarpScriptFilterFunction {
+
+  public enum Comparator {
+    EQ,
+    GE,
+    GT,
+    LE,
+    LT,
+    NE
+  }
 
   private final TYPE type;
   private final Object threshold;
-  private final boolean complement;
+  private final boolean complementSet;
+  private final Comparator comparator;
 
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
     private final boolean complementSet;
+    private final Comparator comparator;
 
-    public Builder(String name, boolean complement) {
+    public Builder(String name, Comparator comparator, boolean complement) {
       super(name);
+      this.comparator =comparator;
       this.complementSet = complement;
     }
 
-    public Builder(String name) {
+    public Builder(String name, Comparator comparator) {
       super(name);
+      this.comparator = comparator;
       this.complementSet = false;
     }
 
     @Override
     public Object apply(WarpScriptStack stack) throws WarpScriptException {
       Object threshold = stack.pop();
-      stack.push(new FilterAnyEQ(getName(), threshold, this.complementSet));
+      stack.push(new FilterAny(getName(), threshold, this.comparator, this.complementSet));
       return stack;
     }
   }
 
-  public FilterAnyEQ(String name, Object threshold, boolean complementSet) throws WarpScriptException {
+  public FilterAny(String name, Object threshold, Comparator comparator, boolean complementSet) throws WarpScriptException {
     super(name);
-    this.complement = complementSet;
+    this.comparator = comparator;
+    this.complementSet = complementSet;
+
+    boolean allowBooleanThreshold = comparator == Comparator.EQ || comparator == Comparator.NE;
+
     if (threshold instanceof Long) {
       this.type = TYPE.LONG;
       this.threshold = threshold;
     } else if (threshold instanceof Double) {
       this.type = TYPE.DOUBLE;
       this.threshold = threshold;
-    } else if (threshold instanceof Boolean) {
-      this.type = TYPE.BOOLEAN;
-      this.threshold = threshold;
     } else if (threshold instanceof String) {
       this.type = TYPE.STRING;
       this.threshold = threshold;
+    } else if (allowBooleanThreshold && threshold instanceof Boolean) {
+      this.type = TYPE.BOOLEAN;
+      this.threshold = threshold;
     } else {
       throw new WarpScriptException("Invalid threshold type.");
+    }
+  }
+
+  private boolean verify(int i) throws WarpScriptException {
+    switch (this.comparator) {
+      case EQ:
+        return i == 0;
+      case GE:
+        return i <= 0;
+      case GT:
+        return i < 0;
+      case LE:
+        return i >= 0;
+      case LT:
+        return i > 0;
+      case NE:
+        return i != 0;
+      default:
+        throw new WarpScriptException(getName() + " has been implemented with an unknown comparator.");
     }
   }
 
@@ -92,35 +128,29 @@ public class FilterAnyEQ extends NamedWarpScriptFunction implements WarpScriptFi
 
           switch (type) {
             case LONG:
-              if (((Long) threshold).compareTo(((Number) val).longValue()) == 0) {
-                retained.add(serie);
-                found = true;
-              }
+              found = verify(((Long) threshold).compareTo(((Number) val).longValue()));
               break;
             case DOUBLE:
-              if (((Double) threshold).compareTo(((Number) val).doubleValue()) == 0) {
-                retained.add(serie);
-                found = true;
-              }
+              found = verify(((Double) threshold).compareTo(((Number) val).doubleValue()));
               break;
             case STRING:
-              if (((String) threshold).compareTo(val.toString()) == 0) {
-                retained.add(serie);
-                found = true;
-              }
+              found = verify(((String) threshold).compareTo(val.toString()));
               break;
             case BOOLEAN:
-              if (((Boolean) threshold).equals(val)) {
-                retained.add(serie);
+              if (!(((Boolean) threshold).equals(val) ^ this.comparator == Comparator.EQ)) {
                 found = true;
               }
               break;
+          }
+
+          if (found) {
+            retained.add(serie);
           }
         }
       }
     }
 
-    if (complement) {
+    if (complementSet) {
       List<GeoTimeSerie> retained_ = new ArrayList<GeoTimeSerie>();
 
       for (List<GeoTimeSerie> gtsinstances: series) {
