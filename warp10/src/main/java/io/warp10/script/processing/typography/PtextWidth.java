@@ -42,7 +42,7 @@ public class PtextWidth extends NamedWarpScriptFunction implements WarpScriptSta
         
     PGraphics pg = (PGraphics) params.get(0);
 
-    double width = pg.textWidth(params.get(1).toString());
+    double width = pg.parent.textWidth(params.get(1).toString());
     
     stack.push(pg);
     stack.push(width);

@@ -43,9 +43,9 @@ public class PsphereDetail extends NamedWarpScriptFunction implements WarpScript
     PGraphics pg = (PGraphics) params.get(0);
     
     if (2 == params.size()) {
-      pg.sphereDetail(((Number) params.get(1)).intValue());
+      pg.parent.sphereDetail(((Number) params.get(1)).intValue());
     } else {
-      pg.sphereDetail(((Number) params.get(1)).intValue(), ((Number) params.get(2)).intValue());
+      pg.parent.sphereDetail(((Number) params.get(1)).intValue(), ((Number) params.get(2)).intValue());
     }
     
     stack.push(pg);

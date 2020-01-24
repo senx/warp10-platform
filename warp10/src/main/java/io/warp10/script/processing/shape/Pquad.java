@@ -42,7 +42,7 @@ public class Pquad extends NamedWarpScriptFunction implements WarpScriptStackFun
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.quad(
+    pg.parent.quad(
         ((Number) params.get(1)).floatValue(),
         ((Number) params.get(2)).floatValue(),
         ((Number) params.get(3)).floatValue(),

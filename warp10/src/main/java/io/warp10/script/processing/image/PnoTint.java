@@ -42,7 +42,7 @@ public class PnoTint extends NamedWarpScriptFunction implements WarpScriptStackF
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.noTint();
+    pg.parent.noTint();
     
     stack.push(pg);
         

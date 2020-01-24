@@ -42,7 +42,7 @@ public class Pclip extends NamedWarpScriptFunction implements WarpScriptStackFun
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.clip(
+    pg.parent.clip(
       ((Number) params.get(1)).floatValue(),
       ((Number) params.get(2)).floatValue(),
       ((Number) params.get(3)).floatValue(),

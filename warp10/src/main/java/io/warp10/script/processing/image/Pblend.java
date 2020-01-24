@@ -78,7 +78,7 @@ public class Pblend extends NamedWarpScriptFunction implements WarpScriptStackFu
     PGraphics pg = (PGraphics) params.get(0);
     
     if (10 == params.size()) {
-      pg.blend(
+      pg.parent.blend(
         ((Number) params.get(1)).intValue(),
         ((Number) params.get(2)).intValue(),
         ((Number) params.get(3)).intValue(),
@@ -90,7 +90,7 @@ public class Pblend extends NamedWarpScriptFunction implements WarpScriptStackFu
         getBlendMode((String) params.get(9))
       );
     } else if (11 == params.size()) {
-      pg.blend(        
+      pg.parent.blend(        
         (PImage) params.get(1),
         ((Number) params.get(2)).intValue(),
         ((Number) params.get(3)).intValue(),

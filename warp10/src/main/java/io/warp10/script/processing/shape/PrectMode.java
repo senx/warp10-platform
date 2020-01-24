@@ -45,13 +45,13 @@ public class PrectMode extends NamedWarpScriptFunction implements WarpScriptStac
     String mode = params.get(1).toString();
     
     if ("CORNER".equals(mode)) {
-      pg.rectMode(PGraphics.CORNER);      
+      pg.parent.rectMode(PGraphics.CORNER);      
     } else if ("CORNERS".equals(mode)) {
-      pg.rectMode(PGraphics.CORNERS);
+      pg.parent.rectMode(PGraphics.CORNERS);
     } else if ("RADIUS".equals(mode)) {
-      pg.rectMode(PGraphics.RADIUS);
+      pg.parent.rectMode(PGraphics.RADIUS);
     } else if ("CENTER".equals(mode)) {
-      pg.rectMode(PGraphics.CENTER);
+      pg.parent.rectMode(PGraphics.CENTER);
     } else {
       throw new WarpScriptException(getName() + ": invalid mode, should be 'CENTER', 'RADIUS', 'CORNER' or 'CORNERS'.");
     }
