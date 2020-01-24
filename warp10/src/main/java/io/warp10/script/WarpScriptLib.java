@@ -111,6 +111,7 @@ import io.warp10.script.filter.FilterLastGT;
 import io.warp10.script.filter.FilterLastLE;
 import io.warp10.script.filter.FilterLastLT;
 import io.warp10.script.filter.FilterLastNE;
+import io.warp10.script.filter.FilterBySize;
 import io.warp10.script.filter.LatencyFilter;
 import io.warp10.script.functions.ADDDAYS;
 import io.warp10.script.functions.ADDMONTHS;
@@ -2323,6 +2324,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FilterByLabels.Builder("filter.bylabelsattr", true, true));
     addNamedWarpScriptFunction(new FilterByMetadata.Builder("filter.bymetadata"));
     addNamedWarpScriptFunction(new FilterBySelector.Builder("filter.byselector"));
+    addNamedWarpScriptFunction(new FilterBySize.Builder("filter.bysize"));
 
     addNamedWarpScriptFunction(new FilterLastEQ.Builder("filter.last.eq"));
     addNamedWarpScriptFunction(new FilterLastGE.Builder("filter.last.ge"));
