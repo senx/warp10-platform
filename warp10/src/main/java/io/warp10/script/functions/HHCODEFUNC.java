@@ -46,13 +46,13 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
     Object o = stack.pop();
 
     if (!(o instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects resolution (even number between 2 and 30).");
+      throw new WarpScriptException(getName() + " expects resolution (even number between 2 and 32).");
     }
 
     int res = ((Number) o).intValue();
 
-    if (0 != res && (res < 2 || res > 30 || (0 != (res & 1)))) {
-      throw new WarpScriptException(getName() + " expects a maximum resolution which is an even number between 2 and 30 or 0.");
+    if (0 != res && (res < 2 || res > 32 || (0 != (res & 1)))) {
+      throw new WarpScriptException(getName() + " expects a maximum resolution which is an even number between 2 and 32 or 0.");
     }
 
 
