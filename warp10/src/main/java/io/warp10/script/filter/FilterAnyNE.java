@@ -34,23 +34,33 @@ public class FilterAnyNE extends NamedWarpScriptFunction implements WarpScriptFi
 
   private final TYPE type;
   private final Object threshold;
+  private final boolean complement;
 
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
+    private final boolean complementSet;
+
+    public Builder(String name, boolean complement) {
+      super(name);
+      this.complementSet = complement;
+    }
+
     public Builder(String name) {
       super(name);
+      this.complementSet = false;
     }
 
     @Override
     public Object apply(WarpScriptStack stack) throws WarpScriptException {
       Object threshold = stack.pop();
-      stack.push(new FilterAnyNE(getName(), threshold));
+      stack.push(new FilterAnyNE(getName(), threshold, this.complementSet));
       return stack;
     }
   }
 
-  public FilterAnyNE(String name, Object threshold) throws WarpScriptException {
+  public FilterAnyNE(String name, Object threshold, boolean complementSet) throws WarpScriptException {
     super(name);
+    this.complement = complementSet;
     if (threshold instanceof Long) {
       this.type = TYPE.LONG;
       this.threshold = threshold;
@@ -108,6 +118,20 @@ public class FilterAnyNE extends NamedWarpScriptFunction implements WarpScriptFi
           }
         }
       }
+    }
+
+    if (complement) {
+      List<GeoTimeSerie> retained_ = new ArrayList<GeoTimeSerie>();
+
+      for (List<GeoTimeSerie> gtsinstances: series) {
+        for (GeoTimeSerie serie : gtsinstances) {
+          if (!retained.contains(serie)) {
+            retained_.add(serie);
+          }
+        }
+      }
+
+      retained = retained_;
     }
 
     return retained;
