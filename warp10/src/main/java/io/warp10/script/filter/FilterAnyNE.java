@@ -44,7 +44,7 @@ public class FilterAnyNE extends NamedWarpScriptFunction implements WarpScriptFi
     @Override
     public Object apply(WarpScriptStack stack) throws WarpScriptException {
       Object threshold = stack.pop();
-      stack.push(new FilterLastEQ(getName(), threshold));
+      stack.push(new FilterAnyNE(getName(), threshold));
       return stack;
     }
   }
