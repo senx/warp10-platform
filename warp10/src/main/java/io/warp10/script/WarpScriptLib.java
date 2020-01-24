@@ -28,6 +28,12 @@ import java.util.Properties;
 import java.util.Set;
 
 import io.warp10.script.aggregator.CompareTo;
+import io.warp10.script.filter.FilterAnyEQ;
+import io.warp10.script.filter.FilterAnyGE;
+import io.warp10.script.filter.FilterAnyGT;
+import io.warp10.script.filter.FilterAnyLE;
+import io.warp10.script.filter.FilterAnyLT;
+import io.warp10.script.filter.FilterAnyNE;
 import io.warp10.script.mapper.MapperCompareTo;
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
@@ -1859,6 +1865,13 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FilterLastLE.Builder("filter.last.le"));
     addNamedWarpScriptFunction(new FilterLastLT.Builder("filter.last.lt"));
     addNamedWarpScriptFunction(new FilterLastNE.Builder("filter.last.ne"));
+
+    addNamedWarpScriptFunction(new FilterAnyEQ.Builder("filter.any.eq"));
+    addNamedWarpScriptFunction(new FilterAnyGE.Builder("filter.any.ge"));
+    addNamedWarpScriptFunction(new FilterAnyGT.Builder("filter.any.gt"));
+    addNamedWarpScriptFunction(new FilterAnyLE.Builder("filter.any.le"));
+    addNamedWarpScriptFunction(new FilterAnyLT.Builder("filter.any.lt"));
+    addNamedWarpScriptFunction(new FilterAnyNE.Builder("filter.any.ne"));
 
     addNamedWarpScriptFunction(new LatencyFilter.Builder("filter.latencies"));
     
