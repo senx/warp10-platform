@@ -33,12 +33,13 @@ import java.util.List;
 import java.util.Locale;
 
 public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+  
+  final private static WarpScriptStackFunction TSELEMENTS = new TSELEMENTS(WarpScriptLib.TSELEMENTS);
+  final private static WarpScriptStackFunction FROMTSELEMENTS = new FROMTSELEMENTS(WarpScriptLib.TSELEMENTSTO);
 
   public ADDDURATION(String name) {
     super(name);
   }
-  final private static WarpScriptStackFunction TSELEMENTS = new TSELEMENTS(WarpScriptLib.TSELEMENTS);
-  final private static WarpScriptStackFunction FROMTSELEMENTS = new FROMTSELEMENTS(WarpScriptLib.TSELEMENTSTO);
 
   @Override
   public WarpScriptStack apply(WarpScriptStack stack) throws WarpScriptException {
