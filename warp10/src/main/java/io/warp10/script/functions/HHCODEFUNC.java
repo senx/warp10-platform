@@ -34,13 +34,10 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
   }
 
   private HHCodeAction action;
-  private boolean isLongFormat;
-  private int res;
 
   public HHCODEFUNC(String name, HHCodeAction action) {
     super(name);
     this.action = action;
-    this.isLongFormat = true;
   }
 
   @Override
@@ -49,10 +46,10 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
     Object o = stack.pop();
 
     if (!(o instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects resolution (even number between 2 and 30) and a boolean as the top 3 elements of the stack.");
+      throw new WarpScriptException(getName() + " expects resolution (even number between 2 and 30).");
     }
 
-    res = ((Number) o).intValue();
+    int res = ((Number) o).intValue();
 
     if (0 != res && (res < 2 || res > 30 || (0 != (res & 1)))) {
       throw new WarpScriptException(getName() + " expects a maximum resolution which is an even number between 2 and 30 or 0.");
@@ -62,7 +59,7 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
     Object hhcode = stack.pop();
 
     long hh;
-    this.isLongFormat = true;
+    boolean isLongFormat = true;
 
     if (hhcode instanceof Long) {
       hh = (long) hhcode;
@@ -75,7 +72,7 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
         ((StringBuilder) hhcode).setLength(16);
       }
       hh = Long.parseUnsignedLong(hhcode.toString(), 16);
-      this.isLongFormat = false;
+      isLongFormat = false;
     } else if (hhcode instanceof byte[]) {
       hh = Longs.fromByteArray((byte[]) hhcode);
     } else {
@@ -84,38 +81,38 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
 
     switch (this.action) {
       case NORTH:
-        stack.push(this.manageFormat(HHCodeHelper.northHHCode(hh, this.res)));
+        stack.push(this.manageFormat(HHCodeHelper.northHHCode(hh, res), res, isLongFormat));
         break;
       case SOUTH:
-        stack.push(this.manageFormat(HHCodeHelper.southHHCode(hh, this.res)));
+        stack.push(this.manageFormat(HHCodeHelper.southHHCode(hh, res), res, isLongFormat));
         break;
       case EAST:
-        stack.push(this.manageFormat(HHCodeHelper.eastHHCode(hh, this.res)));
+        stack.push(this.manageFormat(HHCodeHelper.eastHHCode(hh, res), res, isLongFormat));
         break;
       case WEST:
-        stack.push(this.manageFormat(HHCodeHelper.westHHCode(hh, this.res)));
+        stack.push(this.manageFormat(HHCodeHelper.westHHCode(hh, res), res, isLongFormat));
         break;
       case NORTH_EAST:
-        stack.push(this.manageFormat(HHCodeHelper.northEastHHCode(hh, this.res)));
+        stack.push(this.manageFormat(HHCodeHelper.northEastHHCode(hh, res), res, isLongFormat));
         break;
       case NORTH_WEST:
-        stack.push(this.manageFormat(HHCodeHelper.northWestHHCode(hh, this.res)));
+        stack.push(this.manageFormat(HHCodeHelper.northWestHHCode(hh, res), res, isLongFormat));
         break;
       case SOUTH_EAST:
-        stack.push(this.manageFormat(HHCodeHelper.southEastHHCode(hh, this.res)));
+        stack.push(this.manageFormat(HHCodeHelper.southEastHHCode(hh, res), res, isLongFormat));
         break;
       case SOUTH_WEST:
-        stack.push(this.manageFormat(HHCodeHelper.southWestHHCode(hh, this.res)));
+        stack.push(this.manageFormat(HHCodeHelper.southWestHHCode(hh, res), res, isLongFormat));
         break;
       case BBOX:
-        double[] bbox = HHCodeHelper.getHHCodeBBox(hh, this.res);
+        double[] bbox = HHCodeHelper.getHHCodeBBox(hh, res);
         stack.push(bbox[0]);
         stack.push(bbox[1]);
         stack.push(bbox[2]);
         stack.push(bbox[3]);
         break;
       case CENTER:
-        double[] latlon = HHCodeHelper.getCenterLatLon(hh, this.res);
+        double[] latlon = HHCodeHelper.getCenterLatLon(hh, res);
         stack.push(latlon[0]);
         stack.push(latlon[1]);
         break;
@@ -126,12 +123,12 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
     return stack;
   }
 
-  private Object manageFormat(long hh) {
+  private Object manageFormat(long hh, int res, boolean isLongFormat) {
     Object o;
-    if (this.isLongFormat) {
+    if (isLongFormat) {
       o = ((Long) hh).longValue();
     } else {
-      o = HHCodeHelper.toString(((Long) hh).longValue(), this.res);
+      o = HHCodeHelper.toString(((Long) hh).longValue(), res);
     }
     return o;
   }
