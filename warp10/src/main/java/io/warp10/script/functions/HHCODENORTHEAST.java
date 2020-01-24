@@ -71,7 +71,7 @@ public class HHCODENORTHEAST extends NamedWarpScriptFunction implements WarpScri
     }
 
     long northEastHHCode = HHCodeHelper.northEastHHCode(hh, res);
-    stack.push(HHCodeHelper.toString(northEastHHCode,res));
+    stack.push(HHCodeHelper.toString(northEastHHCode, res));
     return stack;
   }
 }
