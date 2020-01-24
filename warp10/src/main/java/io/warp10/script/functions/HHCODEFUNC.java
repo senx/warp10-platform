@@ -59,7 +59,6 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
     Object hhcode = stack.pop();
 
     long hh;
-    boolean isLongFormat = true;
 
     if (hhcode instanceof Long) {
       hh = (long) hhcode;
@@ -72,7 +71,6 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
         ((StringBuilder) hhcode).setLength(16);
       }
       hh = Long.parseUnsignedLong(hhcode.toString(), 16);
-      isLongFormat = false;
     } else if (hhcode instanceof byte[]) {
       hh = Longs.fromByteArray((byte[]) hhcode);
     } else {
@@ -81,28 +79,28 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
 
     switch (this.action) {
       case NORTH:
-        stack.push(this.manageFormat(HHCodeHelper.northHHCode(hh, res), res, isLongFormat));
+        stack.push(this.manageFormat(HHCodeHelper.northHHCode(hh, res), res, hhcode));
         break;
       case SOUTH:
-        stack.push(this.manageFormat(HHCodeHelper.southHHCode(hh, res), res, isLongFormat));
+        stack.push(this.manageFormat(HHCodeHelper.southHHCode(hh, res), res, hhcode));
         break;
       case EAST:
-        stack.push(this.manageFormat(HHCodeHelper.eastHHCode(hh, res), res, isLongFormat));
+        stack.push(this.manageFormat(HHCodeHelper.eastHHCode(hh, res), res, hhcode));
         break;
       case WEST:
-        stack.push(this.manageFormat(HHCodeHelper.westHHCode(hh, res), res, isLongFormat));
+        stack.push(this.manageFormat(HHCodeHelper.westHHCode(hh, res), res, hhcode));
         break;
       case NORTH_EAST:
-        stack.push(this.manageFormat(HHCodeHelper.northEastHHCode(hh, res), res, isLongFormat));
+        stack.push(this.manageFormat(HHCodeHelper.northEastHHCode(hh, res), res, hhcode));
         break;
       case NORTH_WEST:
-        stack.push(this.manageFormat(HHCodeHelper.northWestHHCode(hh, res), res, isLongFormat));
+        stack.push(this.manageFormat(HHCodeHelper.northWestHHCode(hh, res), res, hhcode));
         break;
       case SOUTH_EAST:
-        stack.push(this.manageFormat(HHCodeHelper.southEastHHCode(hh, res), res, isLongFormat));
+        stack.push(this.manageFormat(HHCodeHelper.southEastHHCode(hh, res), res, hhcode));
         break;
       case SOUTH_WEST:
-        stack.push(this.manageFormat(HHCodeHelper.southWestHHCode(hh, res), res, isLongFormat));
+        stack.push(this.manageFormat(HHCodeHelper.southWestHHCode(hh, res), res, hhcode));
         break;
       case BBOX:
         double[] bbox = HHCodeHelper.getHHCodeBBox(hh, res);
@@ -123,12 +121,14 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
     return stack;
   }
 
-  private Object manageFormat(long hh, int res, boolean isLongFormat) {
+  private Object manageFormat(long hh, int res, Object input) {
     Object o;
-    if (isLongFormat) {
-      o = ((Long) hh).longValue();
-    } else {
+    if (input instanceof byte[]) {
+      o = Longs.toByteArray(hh);
+    } else if (input instanceof String) {
       o = HHCodeHelper.toString(((Long) hh).longValue(), res);
+    } else {
+      o = ((Long) hh).longValue();
     }
     return o;
   }
