@@ -73,7 +73,7 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
       if (!(stack.peek() instanceof Long)) {
         throw new WarpScriptException(getName() + " operates on a tselements list, timestamp, or timestamp and timezone.");
       }
-    } else if (!(stack.peek() instanceof List) && !(stack.peek() instanceof Long)) {
+    } else if (!(stack.peek() instanceof List || stack.peek() instanceof Long)) {
       throw new WarpScriptException(getName() + " operates on a tselements list, timestamp, or timestamp and timezone.");
     }
 
