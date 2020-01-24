@@ -142,26 +142,12 @@ public class FilterAny extends NamedWarpScriptFunction implements WarpScriptFilt
               }
               break;
           }
+        }
 
-          if (found) {
-            retained.add(serie);
-          }
+        if (found ^ this.complementSet) {
+          retained.add(serie);
         }
       }
-    }
-
-    if (complementSet) {
-      List<GeoTimeSerie> retained_ = new ArrayList<GeoTimeSerie>();
-
-      for (List<GeoTimeSerie> gtsinstances: series) {
-        for (GeoTimeSerie serie : gtsinstances) {
-          if (!retained.contains(serie)) {
-            retained_.add(serie);
-          }
-        }
-      }
-
-      retained = retained_;
     }
 
     return retained;
