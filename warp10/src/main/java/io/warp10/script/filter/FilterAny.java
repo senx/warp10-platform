@@ -91,7 +91,7 @@ public class FilterAny extends NamedWarpScriptFunction implements WarpScriptFilt
       this.type = TYPE.BOOLEAN;
       this.threshold = threshold;
     } else {
-      throw new WarpScriptException("Invalid threshold type.");
+      throw new WarpScriptException(getName() + " threshold type is invalid.");
     }
   }
 
