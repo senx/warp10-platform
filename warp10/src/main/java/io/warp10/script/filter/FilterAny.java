@@ -137,7 +137,7 @@ public class FilterAny extends NamedWarpScriptFunction implements WarpScriptFilt
               found = verify(((String) threshold).compareTo(val.toString()));
               break;
             case BOOLEAN:
-              found = ((Boolean) threshold).equals(val) ^ this.comparator == Comparator.NEQ
+              found = ((Boolean) threshold).equals(val) ^ this.comparator == Comparator.NE;
               break;
           }
         }
