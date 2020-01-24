@@ -142,9 +142,17 @@ public class FilterAny extends NamedWarpScriptFunction implements WarpScriptFilt
           }
         }
 
+        //
+        // The gts is retained if we found any point that satisfies the comparison.
+        // OTOH that would also mean that not all points satisfy the opposite comparison.
+        // So if we want to implement a filter that retains a gts if all its points satisfy the opposite comparison,
+        // we can just retain the complement set of what we retain here.
+        //
         // In case of wanting the complementSet, the logic is reversed.
         // A ^ false = A
         // A ^ true = ~A
+        //
+        
         if (found ^ this.complementSet) {
           retained.add(serie);
         }
