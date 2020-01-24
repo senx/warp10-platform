@@ -49,14 +49,24 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
 
     Object top = stack.pop();
 
-    if (!(top instanceof String)) {
-      throw new WarpScriptException(getName() + " expects an ISO8601 duration (a string) on top of the stack. See http://en.wikipedia.org/wiki/ISO_8601#Durations.");
+    if (!(top instanceof String || top instanceof Long)) {
+      throw new WarpScriptException(getName() + " expects an ISO8601 duration (a string) on top of the stack (see http://en.wikipedia.org/wiki/ISO_8601#Durations), or a number of duration (a Long).");
     }
 
-    String duration = top.toString();
+    String duration;
+    long N = 1;
+    if (top instanceof String) {
+      duration = top.toString();
+    } else {
+      N = (Long) top;
+      top = stack.pop();
+      if (!(top instanceof String)) {
+        throw new WarpScriptException(getName() + " expects an ISO8601 duration (a string) in the second level of the stack (see http://en.wikipedia.org/wiki/ISO_8601#Durations).");
+      }
+      duration = top.toString();
+    }
 
     String tz = null;
-
     if (stack.peek() instanceof String) {
       tz = stack.pop().toString();
       if (!(stack.peek() instanceof Long)) {
@@ -110,10 +120,25 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
     long instant = ((Number) stack.pop()).longValue();
     DateTime dt = new DateTime(instant / Constants.TIME_UNITS_PER_MS, dtz);
 
-    dt = dt.plus(period);
+    //
+    // Add the duration
+    // Note that for performance reasons we add N times ISO8601 duration, then N times the sub seconds offset.
+    // This calculation is not exact in some rare edge cases  e.g. in the last second of the 28th february on a year before a leap year if we add 'P1YT0.999999S'.
+    //
+
+    long steps = Math.abs(N);
+    boolean non_negative = N >= 0;
+    for (long i = 0; i < steps; i++) {
+      if (non_negative) {
+        dt = dt.plus(period);
+      } else {
+        dt = dt.minus(period);
+      }
+    }
+
     long ts = dt.getMillis() * Constants.TIME_UNITS_PER_MS;
     ts += instant % Constants.TIME_UNITS_PER_MS;
-    ts += offset;
+    ts += offset * N;
 
     stack.push(ts);
     if (tselements) {
