@@ -42,7 +42,7 @@ public class PbezierPoint extends NamedWarpScriptFunction implements WarpScriptS
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    float f = pg.bezierPoint(
+    float f = pg.parent.bezierPoint(
       ((Number) params.get(1)).floatValue(),
       ((Number) params.get(2)).floatValue(),
       ((Number) params.get(3)).floatValue(),

@@ -42,7 +42,7 @@ public class PtextLeading extends NamedWarpScriptFunction implements WarpScriptS
         
     PGraphics pg = (PGraphics) params.get(0);
 
-    pg.textLeading(((Number) params.get(1)).floatValue());
+    pg.parent.textLeading(((Number) params.get(1)).floatValue());
     
     stack.push(pg);
     

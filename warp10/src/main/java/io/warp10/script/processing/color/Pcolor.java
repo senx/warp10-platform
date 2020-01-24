@@ -45,20 +45,20 @@ public class Pcolor extends NamedWarpScriptFunction implements WarpScriptStackFu
     long color = 0;
     
     if (2 == params.size()) {
-      color = pg.color(((Number) params.get(1)).intValue());
+      color = pg.parent.color(((Number) params.get(1)).intValue());
     } else if (3 == params.size()) {
-      color = pg.color(
+      color = pg.parent.color(
         ((Number) params.get(1)).intValue(),
         ((Number) params.get(2)).floatValue()
       );                
     } else if (4 == params.size()) {
-      color = pg.color(
+      color = pg.parent.color(
         ((Number) params.get(1)).floatValue(),
         ((Number) params.get(2)).floatValue(),
         ((Number) params.get(3)).floatValue()
       );          
     } else if (5 == params.size()) {
-      color = pg.color(
+      color = pg.parent.color(
         ((Number) params.get(1)).floatValue(),
         ((Number) params.get(2)).floatValue(),
         ((Number) params.get(3)).floatValue(),

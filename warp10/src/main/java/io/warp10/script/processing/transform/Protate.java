@@ -42,7 +42,7 @@ public class Protate extends NamedWarpScriptFunction implements WarpScriptStackF
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.rotate(((Number) params.get(1)).floatValue());
+    pg.parent.rotate(((Number) params.get(1)).floatValue());
     
     stack.push(pg);
         

@@ -42,7 +42,7 @@ public class Pclear extends NamedWarpScriptFunction implements WarpScriptStackFu
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.clear();
+    pg.parent.clear();
     
     stack.push(pg);
         

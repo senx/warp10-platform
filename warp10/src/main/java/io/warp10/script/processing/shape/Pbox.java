@@ -43,9 +43,9 @@ public class Pbox extends NamedWarpScriptFunction implements WarpScriptStackFunc
     PGraphics pg = (PGraphics) params.get(0);
     
     if (2 == params.size()) {
-      pg.box(((Number) params.get(1)).floatValue());
+      pg.parent.box(((Number) params.get(1)).floatValue());
     } else {
-      pg.box(
+      pg.parent.box(
           ((Number) params.get(1)).floatValue(),
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue()

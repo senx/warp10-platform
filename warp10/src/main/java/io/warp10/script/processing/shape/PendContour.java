@@ -42,7 +42,7 @@ public class PendContour extends NamedWarpScriptFunction implements WarpScriptSt
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.endContour();
+    pg.parent.endContour();
     
     stack.push(pg);
         

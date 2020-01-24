@@ -43,7 +43,7 @@ public class Pbezier extends NamedWarpScriptFunction implements WarpScriptStackF
     PGraphics pg = (PGraphics) params.get(0);
     
     if (9 == params.size()) {
-      pg.bezier(
+      pg.parent.bezier(
           ((Number) params.get(1)).floatValue(),
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue(),
@@ -54,7 +54,7 @@ public class Pbezier extends NamedWarpScriptFunction implements WarpScriptStackF
           ((Number) params.get(8)).floatValue()
       );      
     } else if (pg.is3D()) {
-      pg.bezier(
+      pg.parent.bezier(
           ((Number) params.get(1)).floatValue(),
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue(),

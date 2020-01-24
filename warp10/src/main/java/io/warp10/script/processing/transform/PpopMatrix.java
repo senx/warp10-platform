@@ -42,7 +42,7 @@ public class PpopMatrix extends NamedWarpScriptFunction implements WarpScriptSta
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.popMatrix();
+    pg.parent.popMatrix();
     
     stack.push(pg);
         

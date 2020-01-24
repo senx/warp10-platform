@@ -44,30 +44,30 @@ public class Ptint extends NamedWarpScriptFunction implements WarpScriptStackFun
     
     if (2 == params.size()) {
       if (params.get(1) instanceof Long) {
-        pg.tint(((Number) params.get(1)).intValue());
+        pg.parent.tint(((Number) params.get(1)).intValue());
       } else {
-        pg.tint(((Number) params.get(1)).floatValue());
+        pg.parent.tint(((Number) params.get(1)).floatValue());
       }
     } else if (3 == params.size()) {
       if (params.get(1) instanceof Long) {
-        pg.tint(
+        pg.parent.tint(
             ((Number) params.get(1)).intValue(),
             ((Number) params.get(2)).floatValue()
           );
       } else {
-        pg.tint(
+        pg.parent.tint(
             ((Number) params.get(1)).floatValue(),
             ((Number) params.get(2)).floatValue()
           );
       }
     } else if (4 == params.size()) {
-      pg.tint(
+      pg.parent.tint(
         ((Number) params.get(1)).floatValue(),
         ((Number) params.get(2)).floatValue(),
         ((Number) params.get(3)).floatValue()
       );          
     } else if (5 == params.size()) {
-      pg.tint(
+      pg.parent.tint(
         ((Number) params.get(1)).floatValue(),
         ((Number) params.get(2)).floatValue(),
         ((Number) params.get(3)).floatValue(),

@@ -45,9 +45,9 @@ public class Pcopy extends NamedWarpScriptFunction implements WarpScriptStackFun
     
     if (1 == params.size()) {
       stack.push(pg);
-      stack.push(pg.copy());
+      stack.push(pg.parent.copy());
     } else if (9 == params.size()) {
-      pg.copy(
+      pg.parent.copy(
         ((Number) params.get(1)).intValue(),
         ((Number) params.get(2)).intValue(),
         ((Number) params.get(3)).intValue(),
@@ -59,7 +59,7 @@ public class Pcopy extends NamedWarpScriptFunction implements WarpScriptStackFun
       );
       stack.push(pg);
     } else if (10 == params.size()) {
-      pg.copy(        
+      pg.parent.copy(        
         (PImage) params.get(1),
         ((Number) params.get(2)).intValue(),
         ((Number) params.get(3)).intValue(),

@@ -43,9 +43,9 @@ public class PtextMode extends NamedWarpScriptFunction implements WarpScriptStac
     PGraphics pg = (PGraphics) params.get(0);
 
     if ("MODEL".equals(params.get(1))) {
-      pg.textMode(PGraphics.MODEL);
+      pg.parent.textMode(PGraphics.MODEL);
     } else if ("SHAPE".equals(params.get(1))) {
-      pg.textMode(PGraphics.SHAPE);      
+      pg.parent.textMode(PGraphics.SHAPE);      
     } else {
       throw new WarpScriptException(getName() + " invalid mode, should be 'MODEL' or 'SHAPE'.");
     }

@@ -41,7 +41,7 @@ public class PGraphics extends NamedWarpScriptFunction implements WarpScriptStac
     Object top = stack.pop();
     
     processing.core.PGraphics pg = null;
-    
+
     if (String.valueOf(top).startsWith("2D")) {
       pg = new PGraphicsJava2D();
       if (!"2D".equals(top)) {
@@ -85,7 +85,7 @@ public class PGraphics extends NamedWarpScriptFunction implements WarpScriptStac
     // Disable async saving of frame in case we want to save a frame to a file
     pg.hint(processing.core.PGraphics.DISABLE_ASYNC_SAVEFRAME);
     
-    // Declare a PApplet as parent so we can create fonts for example
+    // Declare a PApplet as parent so we can create fonts or use a recorder for example
     PApplet pa = new PApplet();
     pa.g = pg;
     pg.parent = pa;
@@ -100,8 +100,8 @@ public class PGraphics extends NamedWarpScriptFunction implements WarpScriptStac
     // Begin the drawing mode
     pg.beginDraw();
  
-    pg.loadPixels();
-    pg.colorMode(pg.RGB, 255, 255, 255, 255);
+    pg.parent.loadPixels();
+    pg.parent.colorMode(pg.RGB, 255, 255, 255, 255);
 
     stack.push(pg);
     

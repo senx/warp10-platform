@@ -45,11 +45,11 @@ public class PstrokeCap extends NamedWarpScriptFunction implements WarpScriptSta
     String mode = params.get(1).toString();
     
     if ("SQUARE".equals(mode)) {
-      pg.strokeCap(PGraphics.SQUARE);      
+      pg.parent.strokeCap(PGraphics.SQUARE);      
     } else if ("PROJECT".equals(mode)) {
-      pg.strokeCap(PGraphics.PROJECT);
+      pg.parent.strokeCap(PGraphics.PROJECT);
     } else if ("ROUND".equals(mode)) {
-      pg.strokeCap(PGraphics.ROUND);
+      pg.parent.strokeCap(PGraphics.ROUND);
     } else {
       throw new WarpScriptException(getName() + ": invalid mode, should be 'SQUARE', 'PROJECT' or 'ROUND'.");
     }

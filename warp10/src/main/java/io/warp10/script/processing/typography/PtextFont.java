@@ -44,9 +44,9 @@ public class PtextFont extends NamedWarpScriptFunction implements WarpScriptStac
     PGraphics pg = (PGraphics) params.get(0);
 
     if (2 == params.size()) {
-      pg.textFont((PFont) params.get(1));
+      pg.parent.textFont((PFont) params.get(1));
     } else if (3 == params.size()) {
-      pg.textFont((PFont) params.get(1),
+      pg.parent.textFont((PFont) params.get(1),
           ((Number) params.get(2)).floatValue());
     }
 
