@@ -1242,7 +1242,8 @@ public class Store extends Thread {
           //
           if (useDatapointTs) {
             // Use the timestamp of the datapoint as the timestamp of the HBase cell
-            put.addColumn(store.colfam, null, basets / Constants.TIME_UNITS_PER_MS, bytes);
+            // as Put instances cannot have negative timestamps, replace negative timestamps with 0 (issue#640)
+            put.addColumn(store.colfam, null, Math.max(0L, basets) / Constants.TIME_UNITS_PER_MS, bytes);
           } else {
             put.addColumn(store.colfam, null, bytes);
           }
