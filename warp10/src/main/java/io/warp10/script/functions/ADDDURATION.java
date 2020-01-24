@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   final private static WarpScriptStackFunction TSELEMENTS = new TSELEMENTS(WarpScriptLib.TSELEMENTS);
   final private static WarpScriptStackFunction FROMTSELEMENTS = new FROMTSELEMENTS(WarpScriptLib.TSELEMENTSTO);
 
@@ -51,7 +51,7 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
     Object top = stack.pop();
 
     if (!(top instanceof String || top instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects an ISO8601 duration (a string) on top of the stack (see http://en.wikipedia.org/wiki/ISO_8601#Durations), or a number of duration (a Long).");
+      throw new WarpScriptException(getName() + " expects an ISO8601 duration (a string) on top of the stack (see http://en.wikipedia.org/wiki/ISO_8601#Durations), or a number of durations (a Long).");
     }
 
     String duration;
