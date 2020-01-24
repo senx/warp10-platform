@@ -16,16 +16,14 @@
 
 package io.warp10.script.functions;
 
+import com.geoxp.GeoXPLib;
+import com.google.common.primitives.Longs;
+
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-
-import java.math.BigInteger;
-
-import com.geoxp.GeoXPLib;
-import com.google.common.primitives.Longs;
 
 /**
  * Convert a GeoHash to lat/lon
@@ -33,7 +31,7 @@ import com.google.common.primitives.Longs;
 public class HHCODETO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private final boolean useGtsConvention;
-  
+
   public HHCODETO(String name) {
     this(name, false);
   }
@@ -42,14 +40,14 @@ public class HHCODETO extends NamedWarpScriptFunction implements WarpScriptStack
     super(name);
     this.useGtsConvention = useGtsConvention;
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object hhcode = stack.pop();
-    
+
     long hh;
-    
+
     if (hhcode instanceof Long) {
       hh = (long) hhcode;
     } else if (hhcode instanceof String) {
