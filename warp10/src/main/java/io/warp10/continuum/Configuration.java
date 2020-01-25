@@ -87,7 +87,13 @@ public class Configuration {
    * How often (in ms) should we refetch the region start/end keys
    */
   public static final String WARP_HBASE_REGIONKEYS_UPDATEPERIOD = "warp.hbase.regionkeys.updateperiod";
-  
+
+  /**
+   * WarpScript code used to resolve font URLs, can be a macro call or any other valid WarpScript excerpt
+   * The code is passed the URL to check and should return the updated URL. NOOP will accept all URLs.
+   */
+  public static final String PROCESSING_FONT_RESOLVER = "processing.font.resolver";
+
   /**
    * Number of registers to allocate in stacks. Defaults to WarpScriptStack.DEFAULT_REGISTERS
    */
