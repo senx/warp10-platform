@@ -19,9 +19,9 @@ package io.warp10.script.functions;
 import java.util.Map;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptStopException;
 
 /**
@@ -44,7 +44,11 @@ public class INFO extends NamedWarpScriptFunction implements WarpScriptStackFunc
     
     if (Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_INFOMODE))) {
       // Push the documentation back on the stack
-      stack.push(top);
+      // Perform a SNAPSHOT and an EVAL so we clone the info map
+      StringBuilder sb = new StringBuilder();
+      SNAPSHOT.addElement(sb, top);
+      stack.execMulti(sb.toString());
+
       // Stop the script
       throw new WarpScriptStopException("");
     }
