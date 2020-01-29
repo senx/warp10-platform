@@ -871,7 +871,7 @@ public class EgressFetchHandler extends AbstractHandler {
         //
         // Skip owner/producer labels and any other 'private' labels
         //
-        if (!signed) {
+        if (!signed && !Constants.EXPOSE_OWNER_PRODUCER) {
           if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
             continue;
           }
@@ -1126,7 +1126,7 @@ public class EgressFetchHandler extends AbstractHandler {
           //
           // Skip owner/producer labels and any other 'private' labels
           //
-          if (!signed) {
+          if (!signed && !Constants.EXPOSE_OWNER_PRODUCER) {
             if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
               continue;
             }
@@ -1352,7 +1352,7 @@ public class EgressFetchHandler extends AbstractHandler {
             //
             // Skip owner/producer labels and any other 'private' labels
             //
-            if (!signed) {
+            if (!signed && !Constants.EXPOSE_OWNER_PRODUCER) {
               if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
                 continue;
               }
@@ -1547,7 +1547,7 @@ public class EgressFetchHandler extends AbstractHandler {
           //
           // Skip owner/producer labels and any other 'private' labels
           //
-          if (!signed) {
+          if (!signed && !Constants.EXPOSE_OWNER_PRODUCER) {
             if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
               continue;
             }
@@ -1864,7 +1864,7 @@ public class EgressFetchHandler extends AbstractHandler {
         //
         // Skip owner/producer labels and any other 'private' labels
         //
-        if (!signed) {
+        if (!signed && !Constants.EXPOSE_OWNER_PRODUCER) {
           if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
             continue;
           }

@@ -412,8 +412,10 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
         if (!this.metaset) {
           Map<String,String> gtslabels = new HashMap<String, String>();
           gtslabels.putAll(gts.getLabels());
-          gtslabels.remove(Constants.PRODUCER_LABEL);
-          gtslabels.remove(Constants.OWNER_LABEL);
+          if (!Constants.EXPOSE_OWNER_PRODUCER) {
+            gtslabels.remove(Constants.PRODUCER_LABEL);
+            gtslabels.remove(Constants.OWNER_LABEL);
+          }
           gts.setLabels(gtslabels);          
           series.add(gts);
         } else {

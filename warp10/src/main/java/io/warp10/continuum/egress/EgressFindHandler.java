@@ -211,8 +211,10 @@ public class EgressFindHandler extends AbstractHandler {
                 // Remove internal labels, need to copy the map as it is Immutable in Metadata
                 if (null != metadata.getLabels()) {
                   metadata.setLabels(new HashMap<String,String>(metadata.getLabels()));
-                  metadata.getLabels().remove(Constants.OWNER_LABEL);
-                  metadata.getLabels().remove(Constants.PRODUCER_LABEL);
+                  if (!Constants.EXPOSE_OWNER_PRODUCER) {
+                    metadata.getLabels().remove(Constants.OWNER_LABEL);
+                    metadata.getLabels().remove(Constants.PRODUCER_LABEL);
+                  }
                 }
                 if (!first) {
                   pw.println(",");

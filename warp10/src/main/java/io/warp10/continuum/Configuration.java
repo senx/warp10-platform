@@ -55,7 +55,7 @@ public class Configuration {
   public static final String WARP10_QUIET = "warp10.quiet";
   
   public static final String WARP10_TELEMETRY = "warp10.telemetry";
-  
+    
   /**
    * Comma separated list of headers to return in the Access-Allow-Control-Headers response header to preflight requests.
    */
@@ -1670,6 +1670,11 @@ public class Configuration {
    * Set to a message indicating the reason why updates are disabled, they are enabled if this is not set
    */
   public static final String WARP_UPDATE_DISABLED = "warp.update.disabled";
+  
+  /**
+   * Set to true to expose owner and producer labels in Geo Time Series retrieved from the Warp 10 Storage Engine 
+   */
+  public static final String WARP10_EXPOSE_OWNER_PRODUCER = "warp10.expose.owner.producer";
   
   /**
    * Manager secret, must be set to use the managing functions

@@ -443,10 +443,10 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               
               Metadata decoderMeta = new Metadata(decoder.getMetadata());
               // Remove producer/owner labels
-              decoderMeta.getLabels().remove(Constants.PRODUCER_LABEL);
-              decoderMeta.getLabels().remove(Constants.OWNER_LABEL);
-              
-              // Remove producer/owner
+              if (!Constants.EXPOSE_OWNER_PRODUCER) {
+                decoderMeta.getLabels().remove(Constants.PRODUCER_LABEL);
+                decoderMeta.getLabels().remove(Constants.OWNER_LABEL);
+              }
               
               while(decoder.next()) {
                 
@@ -570,8 +570,11 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
             
             Map<String,String> labels = new HashMap<String, String>();
             labels.putAll(gts.getMetadata().getLabels());
-            labels.remove(Constants.PRODUCER_LABEL);
-            labels.remove(Constants.OWNER_LABEL);
+            
+            if (!Constants.EXPOSE_OWNER_PRODUCER) {
+              labels.remove(Constants.PRODUCER_LABEL);
+              labels.remove(Constants.OWNER_LABEL);
+            }
             gts.setLabels(labels);
             
             //

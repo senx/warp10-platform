@@ -446,8 +446,12 @@ public class Constants {
    */
   public static  final int MAX_HTTP_HEADER_LENGTH = 1024;
 
+  public static final boolean EXPOSE_OWNER_PRODUCER;
+  
   static {
     String tu = WarpConfig.getProperty(Configuration.WARP_TIME_UNITS);
+  
+    EXPOSE_OWNER_PRODUCER = "true".equals(WarpConfig.getProperty(Configuration.WARP10_EXPOSE_OWNER_PRODUCER));
     
     if (null == tu) {
       throw new RuntimeException("Missing time units.");

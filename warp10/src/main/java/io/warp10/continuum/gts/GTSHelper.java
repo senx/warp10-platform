@@ -8088,11 +8088,13 @@ public class GTSHelper {
         //
         // Skip owner/producer labels and any other 'private' labels
         //
-        if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
-          continue;
-        }
-        if (Constants.OWNER_LABEL.equals(entry.getKey())) {
-          continue;
+        if (!Constants.EXPOSE_OWNER_PRODUCER) {
+          if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
+            continue;
+          }
+          if (Constants.OWNER_LABEL.equals(entry.getKey())) {
+            continue;
+          }          
         }
         
         if (!first) {

@@ -275,9 +275,6 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
               // Force PRODUCER/OWNER
               //
               
-              //encoder.setLabel(Constants.PRODUCER_LABEL, producer);
-              //encoder.setLabel(Constants.OWNER_LABEL, owner);
-              
               if (encoder != lastencoder || lastencoder.size() > StandaloneIngressHandler.ENCODER_SIZE_THRESHOLD) {
                 
                 //

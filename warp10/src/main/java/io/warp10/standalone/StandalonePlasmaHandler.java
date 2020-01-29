@@ -626,8 +626,10 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
               // Remove producer/owner
               //
               
-              encoder.getMetadata().getLabels().remove(Constants.PRODUCER_LABEL);
-              encoder.getMetadata().getLabels().remove(Constants.OWNER_LABEL);
+              if (!Constants.EXPOSE_OWNER_PRODUCER) {
+                encoder.getMetadata().getLabels().remove(Constants.PRODUCER_LABEL);
+                encoder.getMetadata().getLabels().remove(Constants.OWNER_LABEL);                
+              }
 
               // Compress with two pass max
               GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true, GTSWrapperHelper.DEFAULT_COMP_RATIO_THRESHOLD, 2);
@@ -686,8 +688,10 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
                 // Remove PRODUCER/OWNER
                 //
                 
-                labels.remove(Constants.PRODUCER_LABEL);
-                labels.remove(Constants.OWNER_LABEL);
+                if (!Constants.EXPOSE_OWNER_PRODUCER) {
+                  labels.remove(Constants.PRODUCER_LABEL);
+                  labels.remove(Constants.OWNER_LABEL);
+                }
                 
                 json.put("l", labels);              
                 
