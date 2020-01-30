@@ -124,7 +124,7 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
       
       String secret = TokenWarpScriptExtension.TOKEN_SECRET;
       
-      if ((null == this.tokenAESKey || null == this.tokenSipHashKey) && null != secret) {
+      if (null != secret) {
         if (!(top instanceof String)) {
           throw new WarpScriptException(getName() + " expects a token secret on top of the stack.");
         }

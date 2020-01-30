@@ -45,36 +45,36 @@ public class Pbackground extends NamedWarpScriptFunction implements WarpScriptSt
     
     if (2 == params.size()) {
       if (params.get(1) instanceof Long) {
-        pg.background(
+        pg.parent.background(
           ((Number) params.get(1)).intValue()
         );                
       } else if (params.get(1) instanceof Double) {
-        pg.background(
+        pg.parent.background(
           ((Number) params.get(1)).floatValue()
         );        
       } else if (params.get(1) instanceof PImage) {
-        pg.background((PImage) params.get(1));
+        pg.parent.background((PImage) params.get(1));
       }
     } else if (3 == params.size()) {
       if (params.get(1) instanceof Long) {
-        pg.background(
+        pg.parent.background(
           ((Number) params.get(1)).intValue(),
           ((Number) params.get(2)).floatValue()
         );                
       } else if (params.get(1) instanceof Double) {
-        pg.background(
+        pg.parent.background(
           ((Number) params.get(1)).floatValue(),
           ((Number) params.get(2)).floatValue()
         );        
       }
     } else if (4 == params.size()) {
-      pg.background(
+      pg.parent.background(
         ((Number) params.get(1)).floatValue(),
         ((Number) params.get(2)).floatValue(),
         ((Number) params.get(3)).floatValue()
       );          
     } else if (5 == params.size()) {
-      pg.background(
+      pg.parent.background(
         ((Number) params.get(1)).floatValue(),
         ((Number) params.get(2)).floatValue(),
         ((Number) params.get(3)).floatValue(),

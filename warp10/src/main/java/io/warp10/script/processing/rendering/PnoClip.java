@@ -42,7 +42,7 @@ public class PnoClip extends NamedWarpScriptFunction implements WarpScriptStackF
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.noClip();
+    pg.parent.noClip();
     
     stack.push(pg);
         

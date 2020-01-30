@@ -42,7 +42,7 @@ public class PcurveTangent extends NamedWarpScriptFunction implements WarpScript
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    float f = pg.curveTangent(
+    float f = pg.parent.curveTangent(
       ((Number) params.get(1)).floatValue(),
       ((Number) params.get(2)).floatValue(),
       ((Number) params.get(3)).floatValue(),

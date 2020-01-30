@@ -42,6 +42,7 @@ jar {
     include 'io/warp10/WarpConfig.class'
     include 'io/warp10/WarpManager.class'
     include 'io/warp10/WarpURLEncoder.class'
+    include 'io/warp10/WarpURLDecoder.class'
     include 'io/warp10/DoubleUtils.class'
     include 'io/warp10/FloatUtils.class'
     include 'io/warp10/Revision.class'

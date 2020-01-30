@@ -47,9 +47,9 @@ public class Ppoint extends NamedWarpScriptFunction implements WarpScriptStackFu
     }
     
     if (pg.is3D()) {
-      pg.point(((Number) params.get(1)).floatValue(), ((Number) params.get(2)).floatValue(), ((Number) params.get(3)).floatValue());
+      pg.parent.point(((Number) params.get(1)).floatValue(), ((Number) params.get(2)).floatValue(), ((Number) params.get(3)).floatValue());
     } else {
-      pg.point(((Number) params.get(1)).floatValue(), ((Number) params.get(2)).floatValue());
+      pg.parent.point(((Number) params.get(1)).floatValue(), ((Number) params.get(2)).floatValue());
     }
     
     stack.push(pg);

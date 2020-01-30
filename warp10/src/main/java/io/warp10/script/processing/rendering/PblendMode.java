@@ -45,25 +45,25 @@ public class PblendMode extends NamedWarpScriptFunction implements WarpScriptSta
     String mode = params.get(1).toString();
     
     if ("BLEND".equals(mode)) {
-      pg.blendMode(PGraphics.BLEND);      
+      pg.parent.blendMode(PGraphics.BLEND);      
     } else if ("ADD".equals(mode)) {
-      pg.blendMode(PGraphics.ADD);
+      pg.parent.blendMode(PGraphics.ADD);
     } else if ("SUBTRACT".equals(mode)) {
-      pg.blendMode(PGraphics.SUBTRACT);
+      pg.parent.blendMode(PGraphics.SUBTRACT);
     } else if ("DARKEST".equals(mode)) {
-      pg.blendMode(PGraphics.DARKEST);
+      pg.parent.blendMode(PGraphics.DARKEST);
     } else if ("LIGHTEST".equals(mode)) {
-      pg.blendMode(PGraphics.LIGHTEST);
+      pg.parent.blendMode(PGraphics.LIGHTEST);
     } else if ("DIFFERENCE".equals(mode)) {
-      pg.blendMode(PGraphics.DIFFERENCE);
+      pg.parent.blendMode(PGraphics.DIFFERENCE);
     } else if ("EXCLUSION".equals(mode)) {
-      pg.blendMode(PGraphics.EXCLUSION);
+      pg.parent.blendMode(PGraphics.EXCLUSION);
     } else if ("MULTIPLY".equals(mode)) {
-      pg.blendMode(PGraphics.MULTIPLY);
+      pg.parent.blendMode(PGraphics.MULTIPLY);
     } else if ("SCREEN".equals(mode)) {
-      pg.blendMode(PGraphics.SCREEN);
+      pg.parent.blendMode(PGraphics.SCREEN);
     } else if ("REPLACE".equals(mode)) {
-      pg.blendMode(PGraphics.REPLACE);
+      pg.parent.blendMode(PGraphics.REPLACE);
     } else {
       throw new WarpScriptException(getName() + ": invalid mode, should be 'BLEND', 'ADD', 'SUBTRACT', 'DARKEST', 'LIGHTEST', 'DIFFERENCE', 'EXCLUSION', 'MULTIPLY', 'SCREEN', or 'REPLACE'.");
     }

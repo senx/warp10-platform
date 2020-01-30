@@ -45,13 +45,13 @@ public class PellipseMode extends NamedWarpScriptFunction implements WarpScriptS
     String mode = params.get(1).toString();
     
     if ("CORNER".equals(mode)) {
-      pg.ellipseMode(PGraphics.CORNER);      
+      pg.parent.ellipseMode(PGraphics.CORNER);      
     } else if ("CORNERS".equals(mode)) {
-      pg.ellipseMode(PGraphics.CORNERS);
+      pg.parent.ellipseMode(PGraphics.CORNERS);
     } else if ("RADIUS".equals(mode)) {
-      pg.ellipseMode(PGraphics.RADIUS);
+      pg.parent.ellipseMode(PGraphics.RADIUS);
     } else if ("CENTER".equals(mode)) {
-      pg.ellipseMode(PGraphics.CENTER);
+      pg.parent.ellipseMode(PGraphics.CENTER);
     } else {
       throw new WarpScriptException(getName() + ": invalid mode, should be 'CENTER', 'RADIUS', 'CORNER' or 'CORNERS'.");
     }

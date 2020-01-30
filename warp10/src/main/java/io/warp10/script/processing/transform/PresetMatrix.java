@@ -42,7 +42,7 @@ public class PresetMatrix extends NamedWarpScriptFunction implements WarpScriptS
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.resetMatrix();
+    pg.parent.resetMatrix();
     
     stack.push(pg);
         

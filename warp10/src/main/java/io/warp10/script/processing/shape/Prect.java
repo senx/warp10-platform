@@ -43,14 +43,14 @@ public class Prect extends NamedWarpScriptFunction implements WarpScriptStackFun
     PGraphics pg = (PGraphics) params.get(0);
     
     if (5 == params.size()) {
-      pg.rect(
+      pg.parent.rect(
           ((Number) params.get(1)).floatValue(),
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue(),
           ((Number) params.get(4)).floatValue()
         );
     } if (6 == params.size()) {
-      pg.rect(
+      pg.parent.rect(
           ((Number) params.get(1)).floatValue(),
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue(),
@@ -58,7 +58,7 @@ public class Prect extends NamedWarpScriptFunction implements WarpScriptStackFun
           ((Number) params.get(5)).floatValue()
         );
     } else if (9 == params.size()) {
-      pg.rect(
+      pg.parent.rect(
           ((Number) params.get(1)).floatValue(),
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue(),

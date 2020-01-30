@@ -43,7 +43,7 @@ public class Ppixels extends NamedWarpScriptFunction implements WarpScriptStackF
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.loadPixels();
+    pg.parent.loadPixels();
     
     List<Long> pixels = new ArrayList<Long>();
     

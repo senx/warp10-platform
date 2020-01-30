@@ -42,7 +42,7 @@ public class PstrokeWeight extends NamedWarpScriptFunction implements WarpScript
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.strokeWeight(((Number) params.get(1)).floatValue());
+    pg.parent.strokeWeight(((Number) params.get(1)).floatValue());
     
     stack.push(pg);
         

@@ -42,7 +42,7 @@ public class PcurveDetail extends NamedWarpScriptFunction implements WarpScriptS
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.curveDetail(((Number) params.get(1)).intValue());
+    pg.parent.curveDetail(((Number) params.get(1)).intValue());
     
     stack.push(pg);
         

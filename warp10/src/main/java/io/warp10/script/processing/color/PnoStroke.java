@@ -42,7 +42,7 @@ public class PnoStroke extends NamedWarpScriptFunction implements WarpScriptStac
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.noStroke();
+    pg.parent.noStroke();
     
     stack.push(pg);
         

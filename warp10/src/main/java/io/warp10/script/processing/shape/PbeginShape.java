@@ -43,25 +43,25 @@ public class PbeginShape extends NamedWarpScriptFunction implements WarpScriptSt
     PGraphics pg = (PGraphics) params.get(0);
 
     if (1 == params.size()) {
-      pg.beginShape();
+      pg.parent.beginShape();
     } else if (2 == params.size()) {
       String mode = params.get(1).toString();
       if ("POLYGON".equals(mode)) {
-        pg.beginShape(PGraphics.POLYGON);
+        pg.parent.beginShape(PGraphics.POLYGON);
       } else if ("POINTS".equals(mode)) {
-        pg.beginShape(PGraphics.POINTS);
+        pg.parent.beginShape(PGraphics.POINTS);
       } else if ("LINES".equals(mode)) {
-        pg.beginShape(PGraphics.LINES);
+        pg.parent.beginShape(PGraphics.LINES);
       } else if ("TRIANGLES".equals(mode)) {
-        pg.beginShape(PGraphics.TRIANGLES);
+        pg.parent.beginShape(PGraphics.TRIANGLES);
       } else if ("TRIANGLE_STRIP".equals(mode)) {
-        pg.beginShape(PGraphics.TRIANGLE_STRIP);
+        pg.parent.beginShape(PGraphics.TRIANGLE_STRIP);
       } else if ("TRIANGLE_FAN".equals(mode)) {
-        pg.beginShape(PGraphics.TRIANGLE_FAN);
+        pg.parent.beginShape(PGraphics.TRIANGLE_FAN);
       } else if ("QUADS".equals(mode)) {
-        pg.beginShape(PGraphics.QUADS);
+        pg.parent.beginShape(PGraphics.QUADS);
       } else if ("QUAD_STRIP".equals(mode)) {
-        pg.beginShape(PGraphics.QUAD_STRIP);
+        pg.parent.beginShape(PGraphics.QUAD_STRIP);
       } else {
         throw new WarpScriptException(getName() + ": invalid mode, should be 'POLYGON', 'POINTS', 'LINES', 'TRIANGLES', 'TRIANGLE_STRIP', 'TRIANGLE_FAN', 'QUADS' or 'QUAD_STRIP'.");
       }

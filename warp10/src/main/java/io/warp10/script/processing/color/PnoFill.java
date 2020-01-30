@@ -42,7 +42,7 @@ public class PnoFill extends NamedWarpScriptFunction implements WarpScriptStackF
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.noFill();
+    pg.parent.noFill();
     
     stack.push(pg);
         

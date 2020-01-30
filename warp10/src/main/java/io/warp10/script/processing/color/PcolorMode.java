@@ -52,21 +52,21 @@ public class PcolorMode extends NamedWarpScriptFunction implements WarpScriptSta
     int mode = "RGB".equals(modestr) ? PGraphics.RGB : PGraphics.HSB;
     
     if (2 == params.size()) {
-      pg.colorMode(mode);
+      pg.parent.colorMode(mode);
     } else if (3 == params.size()) {
-      pg.colorMode(
+      pg.parent.colorMode(
         mode,
         ((Number) params.get(2)).floatValue()
       );                
     } else if (5 == params.size()) {
-      pg.colorMode(
+      pg.parent.colorMode(
         mode,
         ((Number) params.get(2)).floatValue(),
         ((Number) params.get(3)).floatValue(),
         ((Number) params.get(4)).floatValue()
       );          
     } else if (6 == params.size()) {
-      pg.colorMode(
+      pg.parent.colorMode(
         mode,
         ((Number) params.get(2)).floatValue(),
         ((Number) params.get(3)).floatValue(),
