@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ public class Configuration {
   public static final String WARP10_QUIET = "warp10.quiet";
   
   public static final String WARP10_TELEMETRY = "warp10.telemetry";
-    
+
   /**
    * Comma separated list of headers to return in the Access-Allow-Control-Headers response header to preflight requests.
    */
