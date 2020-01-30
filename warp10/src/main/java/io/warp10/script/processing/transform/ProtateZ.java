@@ -42,7 +42,7 @@ public class ProtateZ extends NamedWarpScriptFunction implements WarpScriptStack
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.rotateZ(((Number) params.get(1)).floatValue());
+    pg.parent.rotateZ(((Number) params.get(1)).floatValue());
     
     stack.push(pg);
         

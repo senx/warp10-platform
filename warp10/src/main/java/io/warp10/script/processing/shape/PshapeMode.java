@@ -45,11 +45,11 @@ public class PshapeMode extends NamedWarpScriptFunction implements WarpScriptSta
     String mode = params.get(1).toString();
     
     if ("CORNER".equals(mode)) {
-      pg.shapeMode(PGraphics.CORNER);      
+      pg.parent.shapeMode(PGraphics.CORNER);      
     } else if ("CORNERS".equals(mode)) {
-      pg.shapeMode(PGraphics.CORNERS);
+      pg.parent.shapeMode(PGraphics.CORNERS);
     } else if ("CENTER".equals(mode)) {
-      pg.shapeMode(PGraphics.CENTER);
+      pg.parent.shapeMode(PGraphics.CENTER);
     } else {
       throw new WarpScriptException(getName() + ": invalid mode, should be 'CENTER', 'CORNER' or 'CORNERS'.");
     }

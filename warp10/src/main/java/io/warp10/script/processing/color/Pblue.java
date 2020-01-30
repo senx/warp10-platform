@@ -42,7 +42,7 @@ public class Pblue extends NamedWarpScriptFunction implements WarpScriptStackFun
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    double blue = pg.blue(((Number) params.get(1)).intValue());
+    double blue = pg.parent.blue(((Number) params.get(1)).intValue());
     
     stack.push(pg);
         

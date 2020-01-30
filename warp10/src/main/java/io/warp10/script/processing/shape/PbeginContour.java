@@ -42,7 +42,7 @@ public class PbeginContour extends NamedWarpScriptFunction implements WarpScript
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.beginContour();
+    pg.parent.beginContour();
     
     stack.push(pg);
         

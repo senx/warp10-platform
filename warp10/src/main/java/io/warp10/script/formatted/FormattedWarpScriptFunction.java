@@ -121,6 +121,20 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       return this;
     }
 
+    public ArgumentsBuilder addArgument(ArgumentSpecification spec) {
+      args.add(spec);
+      return this;
+    }
+
+    public ArgumentsBuilder addOptionalArgument(ArgumentSpecification spec) {
+      if (!spec.isOptional()) {
+        throw new IllegalStateException("Argument is added as an optional argument to the function but that is not coherent with its specification.");
+      }
+
+      optArgs.add(spec);
+      return this;
+    }
+
     public ArgumentsBuilder firstArgIsListExpandable() {
       listExpandable = true;
       ArgumentSpecification firstArgs = args.remove(0);

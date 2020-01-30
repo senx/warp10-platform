@@ -43,7 +43,7 @@ public class PbezierVertex extends NamedWarpScriptFunction implements WarpScript
     PGraphics pg = (PGraphics) params.get(0);
     
     if (10 == params.size()) {
-      pg.bezierVertex(
+      pg.parent.bezierVertex(
           ((Number) params.get(1)).floatValue(),
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue(),
@@ -55,7 +55,7 @@ public class PbezierVertex extends NamedWarpScriptFunction implements WarpScript
           ((Number) params.get(9)).floatValue()
       );      
     } else if (7 == params.size()) {
-      pg.bezierVertex(
+      pg.parent.bezierVertex(
           ((Number) params.get(1)).floatValue(),
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue(),

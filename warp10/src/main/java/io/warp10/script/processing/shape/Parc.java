@@ -43,7 +43,7 @@ public class Parc extends NamedWarpScriptFunction implements WarpScriptStackFunc
     PGraphics pg = (PGraphics) params.get(0);
     
     if (7 == params.size()) {
-      pg.arc(
+      pg.parent.arc(
           ((Number) params.get(1)).floatValue(),
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue(),
@@ -66,7 +66,7 @@ public class Parc extends NamedWarpScriptFunction implements WarpScriptStackFunc
         throw new WarpScriptException(getName() + " invalid mode, expected 'CHORD', 'PIE' or 'OPEN'.");
       }
       
-      pg.arc(
+      pg.parent.arc(
           ((Number) params.get(1)).floatValue(),
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue(),

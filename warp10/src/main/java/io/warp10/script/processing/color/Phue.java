@@ -42,7 +42,7 @@ public class Phue extends NamedWarpScriptFunction implements WarpScriptStackFunc
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    double hue = pg.hue(((Number) params.get(1)).intValue());
+    double hue = pg.parent.hue(((Number) params.get(1)).intValue());
     
     stack.push(pg);
         

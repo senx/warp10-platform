@@ -43,13 +43,13 @@ public class Ptranslate extends NamedWarpScriptFunction implements WarpScriptSta
     PGraphics pg = (PGraphics) params.get(0);
     
     if (4 == params.size()) {
-      pg.translate(
+      pg.parent.translate(
           ((Number) params.get(1)).floatValue(),
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue()
       );      
     } else if (3 == params.size()) {
-      pg.translate(
+      pg.parent.translate(
           ((Number) params.get(1)).floatValue(),
           ((Number) params.get(2)).floatValue()
       );            

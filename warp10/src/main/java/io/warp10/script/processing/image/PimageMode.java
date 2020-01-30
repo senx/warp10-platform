@@ -45,11 +45,11 @@ public class PimageMode extends NamedWarpScriptFunction implements WarpScriptSta
     String mode = params.get(1).toString();
     
     if ("CORNER".equals(mode)) {
-      pg.imageMode(PGraphics.CORNER);      
+      pg.parent.imageMode(PGraphics.CORNER);      
     } else if ("CORNERS".equals(mode)) {
-      pg.imageMode(PGraphics.CORNERS);
+      pg.parent.imageMode(PGraphics.CORNERS);
     } else if ("CENTER".equals(mode)) {
-      pg.imageMode(PGraphics.CENTER);
+      pg.parent.imageMode(PGraphics.CENTER);
     } else {
       throw new WarpScriptException(getName() + ": invalid mode, should be 'CENTER', 'CORNER' or 'CORNERS'.");
     }

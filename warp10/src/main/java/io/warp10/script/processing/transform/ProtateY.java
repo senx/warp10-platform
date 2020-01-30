@@ -42,7 +42,7 @@ public class ProtateY extends NamedWarpScriptFunction implements WarpScriptStack
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.rotateY(((Number) params.get(1)).floatValue());
+    pg.parent.rotateY(((Number) params.get(1)).floatValue());
     
     stack.push(pg);
         

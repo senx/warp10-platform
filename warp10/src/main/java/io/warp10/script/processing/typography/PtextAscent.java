@@ -42,7 +42,7 @@ public class PtextAscent extends NamedWarpScriptFunction implements WarpScriptSt
         
     PGraphics pg = (PGraphics) params.get(0);
 
-    double ascent = (double) pg.textAscent();
+    double ascent = (double) pg.parent.textAscent();
     
     stack.push(pg);
     stack.push(ascent);
