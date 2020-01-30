@@ -139,6 +139,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
 
     private Boolean ignoor = null;
     
+    private boolean expose = false;
+    
     private Long maxpastdelta = null;
     private Long maxfuturedelta = null;
     
@@ -454,8 +456,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                   String producer = extraLabels.get(Constants.PRODUCER_LABEL);
                   String owner = extraLabels.get(Constants.OWNER_LABEL);
                   String application = extraLabels.get(Constants.APPLICATION_LABEL);
-                  ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-                  ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
+                  ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
+                  ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
                 }
                 
                 //
@@ -539,8 +541,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               String producer = extraLabels.get(Constants.PRODUCER_LABEL);
               String owner = extraLabels.get(Constants.OWNER_LABEL);
               String application = extraLabels.get(Constants.APPLICATION_LABEL);
-              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
+              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
+              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
 
               lastencoder.setClassId(GTSHelper.classId(this.handler.classKeyLongs, lastencoder.getName()));
               lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.labelsKeyLongs, lastencoder.getLabels()));
@@ -650,6 +652,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
       Boolean ignoor = null;
       
       if (wtoken.getAttributesSize() > 0) {
+        
+        this.expose = wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
         
         if (wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_IGNOOR)) {
           String v = wtoken.getAttributes().get(Constants.TOKEN_ATTR_IGNOOR).toLowerCase();

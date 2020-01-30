@@ -53,7 +53,7 @@ public class Pack {
   // Set of Geo Time Series already encountered
   private static Set<Metadata> parsed = new HashSet<Metadata>();
 
-  private static void pack(long chunksize, int maxsize, String suffix) throws Exception {
+  private static void pack(long chunksize, int maxsize, String suffix, boolean expose) throws Exception {
     BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
     
     long now = TimeSource.getTime();
@@ -71,7 +71,7 @@ public class Pack {
 
       if (null != lastencoder && (encoder != lastencoder || lastencoder.size() > MAX_ENCODER_SIZE)) {
         // We changed the GTS, pack 'lastencoder'
-        outputEncoder(lastencoder, chunksize, maxsize, suffix);
+        outputEncoder(lastencoder, chunksize, maxsize, suffix, expose);
         
         if (encoder == lastencoder) {
           // We allocate a branch new Encoder but set its metadata to those of 'encoder'
@@ -88,11 +88,11 @@ public class Pack {
     }
 
     if (null != lastencoder) {
-      outputEncoder(lastencoder, chunksize, maxsize, suffix);      
+      outputEncoder(lastencoder, chunksize, maxsize, suffix, expose);      
     }
   }
   
-  private static void outputEncoder(GTSEncoder encoder, long chunksize, long maxsize, String suffix) throws Exception {
+  private static void outputEncoder(GTSEncoder encoder, long chunksize, long maxsize, String suffix, boolean expose) throws Exception {
     
     Metadata metadata = new Metadata(encoder.getMetadata());
     
@@ -113,7 +113,7 @@ public class Pack {
       }
       
       if (chunk != lastChunk) {
-        outputChunk(chunkEncoder, maxTS, maxsize);
+        outputChunk(chunkEncoder, maxTS, maxsize, expose);
         chunkEncoder = null;
         lastChunk = chunk;
         maxTS = Long.MIN_VALUE;        
@@ -147,13 +147,13 @@ public class Pack {
     }
     
     if (null != chunkEncoder && chunkEncoder.size() > 0) {
-      outputChunk(chunkEncoder, maxTS, maxsize);
+      outputChunk(chunkEncoder, maxTS, maxsize, expose);
     }
     
     parsed.add(metadata);
   }
   
-  private static void outputChunk(GTSEncoder encoder, long maxTS, long maxsize) throws Exception {
+  private static void outputChunk(GTSEncoder encoder, long maxTS, long maxsize, boolean expose) throws Exception {
     List<GTSEncoder> encoders = new ArrayList<GTSEncoder>();
     List<Long> maxtimestamps = new ArrayList<Long>();
     
@@ -207,7 +207,7 @@ public class Pack {
           //
           // Skip owner/producer labels and any other 'private' labels
           //
-          if (!Constants.EXPOSE_OWNER_PRODUCER) {
+          if (!Constants.EXPOSE_OWNER_PRODUCER && !expose) {
             if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
               continue;
             }
@@ -293,6 +293,7 @@ public class Pack {
     options.addOption("m", "maxsize", true, "sets the maximum value size in bytes");
     options.addOption("c", "chunksize", true, "sets the length of time chunks in time units");
     options.addOption("u", "unit", true, "sets the time unit");
+    options.addOption("e", "expose", false, "expose producer/owner");
     
     CommandLineParser parser = new DefaultParser();
     CommandLine cmd = parser.parse(options, args);
@@ -301,6 +302,7 @@ public class Pack {
     String timeunits = "us";
     String suffix = ":packed";
     long chunksize = Long.MAX_VALUE;
+    boolean expose = false;
     
     if (cmd.hasOption("m")) {
       maxsize = Integer.parseInt(cmd.getOptionValue("m"));
@@ -322,6 +324,10 @@ public class Pack {
       suffix = cmd.getOptionValue("s");
     }
     
+    if (cmd.hasOption("e")) {
+      expose = true;
+    }
+    
     //
     // Set system properties
     //
@@ -329,6 +335,6 @@ public class Pack {
     System.setProperty(Configuration.WARP_TIME_UNITS, timeunits);
     WarpConfig.setProperties((String) null);
     
-    pack(chunksize, maxsize, suffix);
+    pack(chunksize, maxsize, suffix, expose);
   }
 }

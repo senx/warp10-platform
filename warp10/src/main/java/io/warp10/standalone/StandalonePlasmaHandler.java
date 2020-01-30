@@ -133,6 +133,11 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
   private Map<Session, Long> sampleRate = new HashMap<Session, Long>();
   
   /**
+   * Map of Session flag to expose owner/producer, based on the tokens used
+   */
+  private Map<Session, Boolean> exposeOwnerProducer = new HashMap<Session, Boolean>();
+  
+  /**
    * Number of 
    */
   private Map<BigInteger, AtomicInteger> refcounts = new ConcurrentHashMap<BigInteger, AtomicInteger>();
@@ -220,6 +225,8 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
         drequest.setLabelsSelectors(lblsSels);
         Iterator<Metadata> iter = this.handler.getDirectoryClient().iterator(drequest);
 
+        int subs = this.handler.getSubscriptionCount(session);
+        
         try {
           while(iter.hasNext()) {
             metadatas.add(iter.next());
@@ -247,7 +254,32 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
           if (iter instanceof MetadataIterator) {
             try { ((MetadataIterator) iter).close(); } catch (Exception e) {}
           }
-        }                
+        }
+        
+        //
+        // Update the expose flag. If the token has the .expose attribute set
+        // then if the subscription list is currently empty or the expose flag is
+        // already true, then set it to true. If the token has the .expose attribute
+        // unset, reset the expose flag to false. This is to prevent metadata that were subscribed
+        // to with a token without the .expose attribute to be exposed.
+        //
+
+        if (0 == this.handler.getSubscriptionCount(session)) {
+          // Reset the expose flag to false if there are no more subscriptions
+          this.handler.setExposeOwnerProducer(session, false);
+        } else if (this.handler.getSubscriptionCount(session) - subs > 0) {
+          // We added some metadata
+          boolean expose = rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
+
+          // If the flag was false and the subscription list empty or we subscribed to more GTS and the
+          // flag was already true, then set it or keep it to true, otherwise set it to false
+          if (expose && ((0 == subs && !this.handler.getExposeOwnerProducer(session))
+                        || (subs > 0 && this.handler.getExposeOwnerProducer(session)))) {
+              this.handler.setExposeOwnerProducer(session, true);
+          } else {
+            this.handler.setExposeOwnerProducer(session, false);
+          }            
+        }
       } else if ("SUBSCRIPTIONS".equals(tokens[0])) {
         //
         // List subscriptions
@@ -470,6 +502,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
     clearSubscriptions(session);
     this.format.remove(session);
     this.sampleRate.remove(session);
+    this.exposeOwnerProducer.remove(session);
   }
   
   private synchronized void clearSubscriptions(Session session) {
@@ -509,9 +542,17 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
       for (BigInteger id: this.subscriptions.get(session)) {
         sb.setLength(0);
         sb.append("SUB ");
-        GTSHelper.metadataToString(sb, metadatas.get(id).getName(), metadatas.get(id).getLabels());
+        GTSHelper.metadataToString(sb, metadatas.get(id).getName(), metadatas.get(id).getLabels(), getExposeOwnerProducer(session));
         session.getRemote().sendString(sb.toString());
       }
+    }
+  }
+  
+  private synchronized int getSubscriptionCount(Session session) {
+    if (this.subscriptions.containsKey(session)) {
+      return this.subscriptions.get(session).size();
+    } else {
+      return 0;
     }
   }
   
@@ -563,6 +604,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
       long maxmessagesize = Math.min(this.getWebSocketFactory().getPolicy().getMaxTextMessageSize(), this.getWebSocketFactory().getPolicy().getMaxBinaryMessageSize());
       
       StringBuilder metasb = new StringBuilder();
+      StringBuilder exposedmetasb = new StringBuilder();
       StringBuilder sb = new StringBuilder();
 
       Metadata metadata = this.metadatas.get(id);
@@ -571,7 +613,8 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
         return;
       }
     
-      GTSHelper.metadataToString(metasb, metadata.getName(), metadata.getLabels());
+      GTSHelper.metadataToString(metasb, metadata.getName(), metadata.getLabels(), false);
+      GTSHelper.metadataToString(exposedmetasb, metadata.getName(), metadata.getLabels(), true);
       
       //Gson gson = null;
       JsonSerializer serializer = new JsonSerializerFactory().create();
@@ -594,6 +637,8 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
           if (entry.getValue().contains(id)) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_FRONTEND_DISPATCH_SESSIONS, Sensision.EMPTY_LABELS, 1);
             OUTPUT_FORMAT format = getOutputFormat(entry.getKey());
+            boolean exposeOwnerProducer = getExposeOwnerProducer(entry.getKey());
+            StringBuilder curmetasb = exposeOwnerProducer ? exposedmetasb : metasb;
             
             if (OUTPUT_FORMAT.RAW.equals(format)) {
               sb.setLength(0);
@@ -626,7 +671,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
               // Remove producer/owner
               //
               
-              if (!Constants.EXPOSE_OWNER_PRODUCER) {
+              if (!Constants.EXPOSE_OWNER_PRODUCER && !exposeOwnerProducer) {
                 encoder.getMetadata().getLabels().remove(Constants.PRODUCER_LABEL);
                 encoder.getMetadata().getLabels().remove(Constants.OWNER_LABEL);                
               }
@@ -688,7 +733,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
                 // Remove PRODUCER/OWNER
                 //
                 
-                if (!Constants.EXPOSE_OWNER_PRODUCER) {
+                if (!Constants.EXPOSE_OWNER_PRODUCER && !exposeOwnerProducer) {
                   labels.remove(Constants.PRODUCER_LABEL);
                   labels.remove(Constants.OWNER_LABEL);
                 }
@@ -736,7 +781,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
                 }
                 sb.append(" ");
                 if (first || !OUTPUT_FORMAT.TEXT.equals(format)) {
-                  sb.append(metasb);
+                  sb.append(curmetasb);
                   sb.append(" ");
                 }
                 GTSHelper.encodeValue(sb, decoder.getBinaryValue());
@@ -802,6 +847,18 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
     }
     
     return ids;
+  }
+  
+  private boolean getExposeOwnerProducer(Session session) {
+    return this.exposeOwnerProducer.getOrDefault(session, false);  
+  }
+  
+  private synchronized void setExposeOwnerProducer(Session session, boolean expose) {
+    if (true) {
+      this.exposeOwnerProducer.put(session, expose);
+    } else {
+      this.exposeOwnerProducer.remove(session);
+    }
   }
   
   private OUTPUT_FORMAT getOutputFormat(Session session) {

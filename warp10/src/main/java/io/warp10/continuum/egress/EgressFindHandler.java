@@ -131,7 +131,9 @@ public class EgressFindHandler extends AbstractHandler {
         resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Missing token.");
         return;
       }
-      
+
+      boolean expose = rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
+
       String[] selectors = selector.split("\\s+");
           
       PrintWriter pw = resp.getWriter();
@@ -211,7 +213,7 @@ public class EgressFindHandler extends AbstractHandler {
                 // Remove internal labels, need to copy the map as it is Immutable in Metadata
                 if (null != metadata.getLabels()) {
                   metadata.setLabels(new HashMap<String,String>(metadata.getLabels()));
-                  if (!Constants.EXPOSE_OWNER_PRODUCER) {
+                  if (!Constants.EXPOSE_OWNER_PRODUCER && !expose) {
                     metadata.getLabels().remove(Constants.OWNER_LABEL);
                     metadata.getLabels().remove(Constants.PRODUCER_LABEL);
                   }
@@ -231,18 +233,19 @@ public class EgressFindHandler extends AbstractHandler {
               
               if (metadata.getLabelsSize() > 0) {
                 if (sortMeta) {
-                  GTSHelper.labelsToString(sb, new TreeMap<String,String>(metadata.getLabels()));
+                  GTSHelper.labelsToString(sb, new TreeMap<String,String>(metadata.getLabels()), expose);
                 } else {
-                  GTSHelper.labelsToString(sb, metadata.getLabels());
+                  GTSHelper.labelsToString(sb, metadata.getLabels(), expose);
                 }
               }
               
               if (showAttr) {
                 if (metadata.getAttributesSize() > 0) {
+                  // For attributes we force 'expose' to be true
                   if (sortMeta) {
-                    GTSHelper.labelsToString(sb, new TreeMap<String,String>(metadata.getAttributes()));
+                    GTSHelper.labelsToString(sb, new TreeMap<String,String>(metadata.getAttributes()), true);
                   } else {
-                    GTSHelper.labelsToString(sb, metadata.getAttributes());
+                    GTSHelper.labelsToString(sb, metadata.getAttributes(), true);
                   }
                 } else {
                   sb.append("{}");

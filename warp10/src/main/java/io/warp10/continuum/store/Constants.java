@@ -425,6 +425,11 @@ public class Constants {
    */
   public static final String TOKEN_ATTR_DPTS = ".dpts";
   
+  /**
+   * Attribute to specify that owner and producer should be exposed instead of hidden
+   */
+  public static final String TOKEN_ATTR_EXPOSE = ".expose";
+  
   //
   // KafkaMessage Store attributes
   //

@@ -287,6 +287,8 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     
     ReadToken rtoken = Tokens.extractReadToken(token);
 
+    boolean expose = rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
+    
     List<String> clsSels = new ArrayList<String>();
     List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
 
@@ -412,7 +414,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
         if (!this.metaset) {
           Map<String,String> gtslabels = new HashMap<String, String>();
           gtslabels.putAll(gts.getLabels());
-          if (!Constants.EXPOSE_OWNER_PRODUCER) {
+          if (!Constants.EXPOSE_OWNER_PRODUCER && !expose) {
             gtslabels.remove(Constants.PRODUCER_LABEL);
             gtslabels.remove(Constants.OWNER_LABEL);
           }
