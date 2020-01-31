@@ -33,7 +33,7 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
     NORTH, SOUTH, EAST, WEST, NORTH_EAST, NORTH_WEST, SOUTH_EAST, SOUTH_WEST, BBOX, CENTER
   }
 
-  private HHCodeAction action;
+  private final HHCodeAction action;
 
   public HHCODEFUNC(String name, HHCodeAction action) {
     super(name);
@@ -46,15 +46,14 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
     Object o = stack.pop();
 
     if (!(o instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects resolution (even number between 2 and 32).");
+      throw new WarpScriptException(getName() + " expects a resolution which is an even long between 0 and 32.");
     }
 
     int res = ((Number) o).intValue();
 
-    if (0 != res && (res < 2 || res > 32 || (0 != (res & 1)))) {
-      throw new WarpScriptException(getName() + " expects a maximum resolution which is an even number between 2 and 32 or 0.");
+    if (res < 0 || res > 32 || (0 != (res & 1))) {
+      throw new WarpScriptException(getName() + " expects a resolution which is an even long between 0 and 32.");
     }
-
 
     Object hhcode = stack.pop();
 
@@ -78,28 +77,28 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
 
     switch (this.action) {
       case NORTH:
-        stack.push(this.manageFormat(HHCodeHelper.northHHCode(hh, res), res, hhcode));
+        stack.push(manageFormat(HHCodeHelper.northHHCode(hh, res), res, hhcode));
         break;
       case SOUTH:
-        stack.push(this.manageFormat(HHCodeHelper.southHHCode(hh, res), res, hhcode));
+        stack.push(manageFormat(HHCodeHelper.southHHCode(hh, res), res, hhcode));
         break;
       case EAST:
-        stack.push(this.manageFormat(HHCodeHelper.eastHHCode(hh, res), res, hhcode));
+        stack.push(manageFormat(HHCodeHelper.eastHHCode(hh, res), res, hhcode));
         break;
       case WEST:
-        stack.push(this.manageFormat(HHCodeHelper.westHHCode(hh, res), res, hhcode));
+        stack.push(manageFormat(HHCodeHelper.westHHCode(hh, res), res, hhcode));
         break;
       case NORTH_EAST:
-        stack.push(this.manageFormat(HHCodeHelper.northEastHHCode(hh, res), res, hhcode));
+        stack.push(manageFormat(HHCodeHelper.northEastHHCode(hh, res), res, hhcode));
         break;
       case NORTH_WEST:
-        stack.push(this.manageFormat(HHCodeHelper.northWestHHCode(hh, res), res, hhcode));
+        stack.push(manageFormat(HHCodeHelper.northWestHHCode(hh, res), res, hhcode));
         break;
       case SOUTH_EAST:
-        stack.push(this.manageFormat(HHCodeHelper.southEastHHCode(hh, res), res, hhcode));
+        stack.push(manageFormat(HHCodeHelper.southEastHHCode(hh, res), res, hhcode));
         break;
       case SOUTH_WEST:
-        stack.push(this.manageFormat(HHCodeHelper.southWestHHCode(hh, res), res, hhcode));
+        stack.push(manageFormat(HHCodeHelper.southWestHHCode(hh, res), res, hhcode));
         break;
       case BBOX:
         double[] bbox = HHCodeHelper.getHHCodeBBox(hh, res);
@@ -114,20 +113,20 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
         stack.push(latlon[1]);
         break;
       default:
-        throw new WarpScriptException("Unknown HHCODE action");
+        throw new WarpScriptException("Unknown HHCODE action.");
     }
 
     return stack;
   }
 
-  private Object manageFormat(long hh, int res, Object input) {
+  private static Object manageFormat(long hh, int res, Object input) {
     Object o;
     if (input instanceof byte[]) {
       o = Longs.toByteArray(hh);
     } else if (input instanceof String) {
-      o = HHCodeHelper.toString(((Long) hh).longValue(), res);
+      o = HHCodeHelper.toString(hh, res);
     } else {
-      o = ((Long) hh).longValue();
+      o = hh;
     }
     return o;
   }
