@@ -17,7 +17,7 @@
 
 UUID 'owner' STORE # Generate a new UUID for owner and producer
 'io.warp10.bootstrap' 'application' STORE
-365 100 * d 'ttl' STORE # Generate a ttl of 100 years
+365 100 * d MSTU / 'ttl' STORE # Generate a TTL of 100 years (note that TOKENGEN expects a TTL in milliseconds)
 
 #
 # Generate read token
