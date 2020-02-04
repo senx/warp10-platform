@@ -351,7 +351,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     this.maxValueSize = Long.parseLong(props.getProperty(Configuration.INGRESS_VALUE_MAXSIZE));
     
     if (this.maxValueSize > (this.DATA_MESSAGES_THRESHOLD / 2) - 64) {
-      throw new RuntimeException("Value of '" + Configuration.INGRESS_VALUE_MAXSIZE + "' cannot exceed that half of '" + Configuration.INGRESS_KAFKA_DATA_MAXSIZE + "' minus 64.");
+      throw new RuntimeException("Value of '" + Configuration.INGRESS_VALUE_MAXSIZE + "' cannot exceed half of '" + Configuration.INGRESS_KAFKA_DATA_MAXSIZE + "' minus 64.");
     }
     
     extractKeys(this.keystore, props);
