@@ -5076,15 +5076,18 @@ public class GTSHelper {
     }
 
     //
-    // Limit pre/post windows to Integer.MAX_VALUE
+    // Limit pre/post windows and occurrences to Integer.MAX_VALUE
     // as this is as many indices we may have at most in a GTS
     //
     
-    if (prewindow > 0 && prewindow > Integer.MAX_VALUE) {
+    if (prewindow > Integer.MAX_VALUE) {
       prewindow = Integer.MAX_VALUE;
     }
-    if (postwindow > 0 && postwindow > Integer.MAX_VALUE) {
+    if (postwindow > Integer.MAX_VALUE) {
       postwindow = Integer.MAX_VALUE;
+    }
+    if (occurrences > Integer.MAX_VALUE) {
+      occurrences = Integer.MAX_VALUE;
     }
     List<GeoTimeSerie> results = new ArrayList<GeoTimeSerie>();
 
