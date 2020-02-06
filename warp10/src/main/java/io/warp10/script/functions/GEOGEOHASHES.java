@@ -52,9 +52,50 @@ public class GEOGEOHASHES extends NamedWarpScriptFunction implements WarpScriptS
       String hash = String.valueOf(geohash).toLowerCase();
       long hhcode = GeoHashHelper.toHHCode(hash);
       int nbits = 5 * Math.min(12, hash.length());
-      int resolution = nbits >>> 1;
-
-      c.addCell(resolution, hhcode);
+      
+      int target = nbits;
+      
+      switch (nbits) {
+        case 5:
+          target = 8;
+          break;
+        case 10:
+          target = 12;
+          break;
+        case 15:
+          target = 16;
+          break;
+        case 25:
+          target = 28;
+          break;
+        case 30:
+          target = 32;
+          break;
+        case 35:
+          target = 36;
+          break;
+        case 45:
+          target = 48;
+          break;
+        case 50:
+          target = 52;
+          break;
+        case 55:
+          target = 56;
+          break;
+      }
+      
+      int deltabits = target - nbits;
+      int resolution = target >>> 1;
+      
+      if (deltabits > 0) {
+        hhcode = (hhcode >>> (64 - nbits)) << deltabits;
+        for (long delta = 0; delta < 1L << deltabits; delta++) {
+          c.addCell(resolution, (hhcode | delta) << (64 - target));
+        }
+      } else {
+        c.addCell(resolution, hhcode);        
+      }      
     }
     
     c.dedup();
