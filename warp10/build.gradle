@@ -90,7 +90,10 @@ dependencies {
     //
     // LevelDB
     //
-    compile 'org.fusesource.leveldbjni:leveldbjni-all:1.7'
+    compile 'org.fusesource.leveldbjni:leveldbjni-all:1.8'
+    // https://mvnrepository.com/artifact/org.openlabtesting.leveldbjni/leveldbjni-linux64-aarch64
+    compile group: 'org.openlabtesting.leveldbjni', name: 'leveldbjni-linux64-aarch64', version: '1.8'
+
     compile 'org.iq80.leveldb:leveldb:0.12:uber'
 
     //
@@ -106,7 +109,7 @@ dependencies {
     //
     // Geo
     //
-    compile 'com.geoxp:geoxplib:1.0.0-rc15'
+    compile 'com.geoxp:geoxplib:1.0.0-rc16'
     compile("org.wololo:jts2geojson:0.10.0")
 
     //
