@@ -1155,7 +1155,7 @@ public class EgressFetchHandler extends AbstractHandler {
               meta.setAttributes(new TreeMap<String,String>(meta.getAttributes()));
             }
             
-            GTSHelper.labelsToString(sb, meta.getAttributes(), expose);
+            GTSHelper.labelsToString(sb, meta.getAttributes(), true);
           } else {
             sb.append("{}");
           }          

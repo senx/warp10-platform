@@ -549,8 +549,9 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
   }
   
   private synchronized int getSubscriptionCount(Session session) {
-    if (this.subscriptions.containsKey(session)) {
-      return this.subscriptions.get(session).size();
+    Set<BigInteger> subs = this.subscriptions.get(session); 
+    if (null != subs) {
+      return subs.size();
     } else {
       return 0;
     }
@@ -854,7 +855,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
   }
   
   private synchronized void setExposeOwnerProducer(Session session, boolean expose) {
-    if (true) {
+    if (expose) {
       this.exposeOwnerProducer.put(session, expose);
     } else {
       this.exposeOwnerProducer.remove(session);

@@ -259,7 +259,8 @@ public class ThrottlingManager {
         labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
         StringBuilder sb = new StringBuilder();
         sb.append("Geo Time Series ");
-        // Do not 
+        // Do not expose producer and owner as the update did not contain them so
+        // identifying the line responsible for the error is easier
         GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels(), false);
         sb.append(" would exceed your Monthly Active Data Streams limit (");
         sb.append(oProducerLimit);
