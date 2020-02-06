@@ -73,7 +73,7 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
       throw new WarpScriptException(getName() + " operates on a list, map, Geo Time Series™, ENCODER, iterator or iterable.");
     }
 
-    int index = 0;
+    long index = 0;
 
     if (obj instanceof List) {
       for (Object o: ((List<Object>) obj)) {
