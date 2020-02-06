@@ -30,6 +30,8 @@ import java.awt.FontFormatException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import processing.core.PFont;
@@ -94,6 +96,12 @@ public class PcreateFont extends NamedWarpScriptFunction implements WarpScriptSt
         //
         // FIXME(hbs): support WOFF/WOFF2 on top of TTF/OTF
         //
+        
+        // Encode the URL if it contains a whitespace
+        if (url.contains(" ")) {
+          url = URLEncoder.encode(url, StandardCharsets.UTF_8.name());
+        }
+        
         in = new URL(url).openStream();
         Font f = Font.createFont(Font.TRUETYPE_FONT, in);
         
