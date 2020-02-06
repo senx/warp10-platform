@@ -109,7 +109,7 @@ dependencies {
     //
     // Geo
     //
-    compile 'com.geoxp:geoxplib:1.0.0-rc16'
+    compile 'com.geoxp:geoxplib:1.0.0-rc17'
     compile("org.wololo:jts2geojson:0.10.0")
 
     //
