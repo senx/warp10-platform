@@ -1926,7 +1926,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new GeoWKB(GEO_WKB_UNIFORM, true));
     addNamedWarpScriptFunction(new GeoJSON(GEO_JSON, false));
     addNamedWarpScriptFunction(new GeoJSON(GEO_JSON_UNIFORM, true));
-    addNamedWarpScriptFunction(New GEOGEOHASHES(GEO_GEOHASHES));
+    addNamedWarpScriptFunction(new GEOGEOHASHES(GEO_GEOHASHES));
     addNamedWarpScriptFunction(new GEOOPTIMIZE(GEO_OPTIMIZE));
     addNamedWarpScriptFunction(new GeoIntersection(GEO_INTERSECTION));
     addNamedWarpScriptFunction(new GeoUnion(GEO_UNION));
