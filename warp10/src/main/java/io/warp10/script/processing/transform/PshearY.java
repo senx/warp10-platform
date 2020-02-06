@@ -42,7 +42,7 @@ public class PshearY extends NamedWarpScriptFunction implements WarpScriptStackF
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.shearY(((Number) params.get(1)).floatValue());
+    pg.parent.shearY(((Number) params.get(1)).floatValue());
     
     stack.push(pg);
         

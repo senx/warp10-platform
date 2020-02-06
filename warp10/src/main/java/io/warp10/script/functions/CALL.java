@@ -192,7 +192,9 @@ public class CALL extends NamedWarpScriptFunction implements WarpScriptStackFunc
         // URL encoded message is the rest of the line. The space cannot otherwise occur since
         // we URL encode the return values.
         //
-        
+
+        // Legit uses of URLDecoder.decode
+
         if (ret.startsWith(" ")) {
           throw new WarpScriptException(URLDecoder.decode(ret.substring(1), StandardCharsets.UTF_8.name()));
         }

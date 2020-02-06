@@ -42,7 +42,7 @@ public class PtextDescent extends NamedWarpScriptFunction implements WarpScriptS
         
     PGraphics pg = (PGraphics) params.get(0);
 
-    double descent = (double) pg.textDescent();
+    double descent = (double) pg.parent.textDescent();
     
     stack.push(pg);
     stack.push(descent);

@@ -42,7 +42,7 @@ public class PbezierTangent extends NamedWarpScriptFunction implements WarpScrip
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    float f = pg.bezierTangent(
+    float f = pg.parent.bezierTangent(
       ((Number) params.get(1)).floatValue(),
       ((Number) params.get(2)).floatValue(),
       ((Number) params.get(3)).floatValue(),

@@ -43,13 +43,13 @@ public class PendShape extends NamedWarpScriptFunction implements WarpScriptStac
     PGraphics pg = (PGraphics) params.get(0);
 
     if (1 == params.size()) {
-      pg.endShape();
+      pg.parent.endShape();
     } else if (2 == params.size()) {
       String mode = params.get(1).toString();
       if ("OPEN".equals(mode)) {
-        pg.endShape(PGraphics.OPEN);
+        pg.parent.endShape(PGraphics.OPEN);
       } else if ("CLOSE".equals(mode)) {
-        pg.endShape(PGraphics.CLOSE);
+        pg.parent.endShape(PGraphics.CLOSE);
       } else {
         throw new WarpScriptException(getName() + ": invalid mode, should be 'OPEN' or 'CLOSE'.");
       }

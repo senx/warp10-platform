@@ -29,7 +29,6 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.math.BigInteger;
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
@@ -87,6 +86,7 @@ import io.warp10.SSLUtils;
 import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
+import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.KafkaProducerPool;
@@ -351,7 +351,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     this.maxValueSize = Long.parseLong(props.getProperty(Configuration.INGRESS_VALUE_MAXSIZE));
     
     if (this.maxValueSize > (this.DATA_MESSAGES_THRESHOLD / 2) - 64) {
-      throw new RuntimeException("Value of '" + Configuration.INGRESS_VALUE_MAXSIZE + "' cannot exceed that half of '" + Configuration.INGRESS_KAFKA_DATA_MAXSIZE + "' minus 64.");
+      throw new RuntimeException("Value of '" + Configuration.INGRESS_VALUE_MAXSIZE + "' cannot exceed half of '" + Configuration.INGRESS_KAFKA_DATA_MAXSIZE + "' minus 64.");
     }
     
     extractKeys(this.keystore, props);
@@ -1565,7 +1565,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         return;
       }
       
-      String classSelector = URLDecoder.decode(m.group(1), StandardCharsets.UTF_8.name());
+      String classSelector = WarpURLDecoder.decode(m.group(1), StandardCharsets.UTF_8);
       String labelsSelection = m.group(2);
       
       Map<String,String> labelsSelectors;

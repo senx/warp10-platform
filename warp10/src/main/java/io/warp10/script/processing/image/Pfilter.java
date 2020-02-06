@@ -70,9 +70,9 @@ public class Pfilter extends NamedWarpScriptFunction implements WarpScriptStackF
     }
     
     if (2 == params.size()) {
-      pg.filter(kind);
+      pg.parent.filter(kind);
     } else if (3 == params.size()) {
-      pg.filter(
+      pg.parent.filter(
         kind,
         ((Number) params.get(2)).floatValue()
       );

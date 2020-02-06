@@ -42,7 +42,7 @@ public class Ptriangle extends NamedWarpScriptFunction implements WarpScriptStac
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.triangle(
+    pg.parent.triangle(
         ((Number) params.get(1)).floatValue(),
         ((Number) params.get(2)).floatValue(),
         ((Number) params.get(3)).floatValue(),

@@ -43,14 +43,14 @@ public class Pget extends NamedWarpScriptFunction implements WarpScriptStackFunc
     PGraphics pg = (PGraphics) params.get(0);
     
     if (1 == params.size()) {
-      stack.push(pg.get());
+      stack.push(pg.parent.get());
     } else if (3 == params.size()) {
-      stack.push((long) pg.get(
+      stack.push((long) pg.parent.get(
         ((Number) params.get(1)).intValue(),
         ((Number) params.get(2)).intValue()
       ));
     } else if (5 == params.size()) {
-      stack.push(pg.get(
+      stack.push(pg.parent.get(
         ((Number) params.get(1)).intValue(),
         ((Number) params.get(2)).intValue(),
         ((Number) params.get(3)).intValue(),

@@ -42,7 +42,7 @@ public class Pred extends NamedWarpScriptFunction implements WarpScriptStackFunc
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    double red = pg.red(((Number) params.get(1)).intValue());
+    double red = pg.parent.red(((Number) params.get(1)).intValue());
     
     stack.push(pg);
         

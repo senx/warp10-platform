@@ -16,14 +16,7 @@
 
 package io.warp10.continuum;
 
-import io.warp10.WarpConfig;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.gts.UnsafeString;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.thrift.data.Metadata;
-
 import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Map;
@@ -32,6 +25,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.common.primitives.Longs;
+
+import io.warp10.WarpConfig;
+import io.warp10.WarpURLDecoder;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.thrift.data.Metadata;
 
 public class MetadataUtils {
   
@@ -93,7 +92,7 @@ public class MetadataUtils {
     }
     
     try {
-      String name = URLDecoder.decode(m.group(1), StandardCharsets.UTF_8.name());
+      String name = WarpURLDecoder.decode(m.group(1), StandardCharsets.UTF_8);
       
       Map<String,String> labels = GTSHelper.parseLabels(m.group(2));
       Map<String,String> attributes = GTSHelper.parseLabels(m.group(3));

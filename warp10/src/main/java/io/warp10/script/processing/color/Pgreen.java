@@ -42,7 +42,7 @@ public class Pgreen extends NamedWarpScriptFunction implements WarpScriptStackFu
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    double green = pg.green(((Number) params.get(1)).intValue());
+    double green = pg.parent.green(((Number) params.get(1)).intValue());
     
     stack.push(pg);
         

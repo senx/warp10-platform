@@ -19,6 +19,8 @@ package io.warp10.script.functions;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -31,6 +33,7 @@ import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
+import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.ElementOrListStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -57,6 +60,7 @@ public class GOLDWRAP extends ElementOrListStackFunction {
         try {
           if (element instanceof GeoTimeSerie) {
             encoder = new GTSEncoder(0L);
+            encoder.setMetadata(((GeoTimeSerie) element).getMetadata());
             GTSHelper.fullsort((GeoTimeSerie) element, false);
             sortedEncoder = true;
             encoder.encodeOptimized((GeoTimeSerie) element);
@@ -88,11 +92,44 @@ public class GOLDWRAP extends ElementOrListStackFunction {
             enc = GTSHelper.fullsort(encoder, false, 0L);
           }
           
-          GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(enc, true, 1.0D, Integer.MAX_VALUE);
-          TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
-          byte[] bytes = ser.serialize(wrapper);
+          // Save the current metadata
           
-          return bytes;
+          Metadata metadata = enc.getRawMetadata();
+          
+          // Create an empty Metadata instance which will be populated
+          // using class, labels and attributes only
+          
+          enc.setMetadata(new Metadata());
+                    
+          try {
+            //
+            // We need to ensure the metadata (labels/attributes) are in a deterministic order
+            //
+                      
+            if (metadata.getLabelsSize() > 0) {
+              Map<String,String> smap = new TreeMap<String,String>();
+              smap.putAll(metadata.getLabels());
+              enc.getRawMetadata().setLabels(smap);
+            }
+            
+            if (metadata.getAttributesSize() > 0) {
+              Map<String,String> smap = new TreeMap<String,String>();
+              smap.putAll(metadata.getAttributes());
+              enc.getRawMetadata().setAttributes(smap);            
+            }
+
+            // Copy the elements which we need
+            enc.getRawMetadata().setName(metadata.getName());
+
+            GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(enc, true, 1.0D, Integer.MAX_VALUE);
+            TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+            byte[] bytes = ser.serialize(wrapper);
+            
+            return bytes;            
+          } finally {
+            // Restore the original metadata
+            enc.safeSetMetadata(metadata);
+          }                    
         } catch (TException te) {
           throw new WarpScriptException(getName() + " encountered an error while manipulating GTS Wrapper.", te);
         } catch (IOException ioe) {

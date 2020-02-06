@@ -42,7 +42,7 @@ public class Pellipse extends NamedWarpScriptFunction implements WarpScriptStack
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.ellipse(
+    pg.parent.ellipse(
         ((Number) params.get(1)).floatValue(),
         ((Number) params.get(2)).floatValue(),
         ((Number) params.get(3)).floatValue(),

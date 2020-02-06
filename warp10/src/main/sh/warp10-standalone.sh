@@ -421,8 +421,10 @@ start() {
 
   #
   # Start Warp10 instance..
+  # By default, standard and error output is redirected to warp10.log file, and error output is duplicated to standard output
+  # As a consequence, if Warp 10 is launched by systemd, error messages will be in systemd journal too.
   #
-  ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${CONFIG_FILES} >> ${WARP10_HOME}/logs/warp10.log 2>&1 &
+  ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${CONFIG_FILES} >> ${WARP10_HOME}/logs/warp10.log 2> >(tee >(cat 1>&2)) &
 
   echo $! > ${PID_FILE}
 

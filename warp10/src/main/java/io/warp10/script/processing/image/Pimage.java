@@ -50,13 +50,13 @@ public class Pimage extends NamedWarpScriptFunction implements WarpScriptStackFu
     PImage img = (PImage) params.get(1);
     
     if (4 == params.size()) {
-      pg.image(
+      pg.parent.image(
           img,
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue()
         );          
     } else if (6 == params.size()) {
-      pg.image(
+      pg.parent.image(
           img,
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue(),

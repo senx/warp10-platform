@@ -49,7 +49,7 @@ public class PupdatePixels extends NamedWarpScriptFunction implements WarpScript
     
     List<Object> pixels = (List<Object>) params.get(1);
     
-    pg.loadPixels();
+    pg.parent.loadPixels();
 
     if (pixels.size() != pg.pixels.length) {
       throw new WarpScriptException(getName() + " expected an array of " + pg.pixels.length + " pixels, found " + pixels.size());
@@ -63,7 +63,7 @@ public class PupdatePixels extends NamedWarpScriptFunction implements WarpScript
       pg.pixels[i] = ((Long) pixels.get(i)).intValue();
     }
 
-    pg.updatePixels();
+    pg.parent.updatePixels();
     
     stack.push(pg);
     

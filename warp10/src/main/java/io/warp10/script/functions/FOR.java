@@ -60,7 +60,17 @@ public class FOR extends NamedWarpScriptFunction implements WarpScriptStackFunct
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
-    Object macro = stack.pop(); // RUN-macro
+    Object top = stack.pop();
+
+    boolean pushCounter = true;
+    if (top instanceof Boolean) {
+      pushCounter = (Boolean) top;
+      top = stack.pop();
+    }
+
+    Object macro = top;// RUN-macro
+
+
     Object to = stack.pop(); // TO
     Object from = stack.pop(); // FROM
     
@@ -115,11 +125,13 @@ public class FOR extends NamedWarpScriptFunction implements WarpScriptStackFunct
       //
       // Push counter onto the stack
       //
-      
-      if (useDouble) {
-        stack.push(dcounter);
-      } else {
-        stack.push(lcounter);
+
+      if (pushCounter) {
+        if (useDouble) {
+          stack.push(dcounter);
+        } else {
+          stack.push(lcounter);
+        }
       }
       
       //

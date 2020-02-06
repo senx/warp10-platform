@@ -45,11 +45,11 @@ public class PstrokeJoin extends NamedWarpScriptFunction implements WarpScriptSt
     String mode = params.get(1).toString();
     
     if ("MITER".equals(mode)) {
-      pg.strokeJoin(PGraphics.MITER);      
+      pg.parent.strokeJoin(PGraphics.MITER);      
     } else if ("BEVEL".equals(mode)) {
-      pg.strokeJoin(PGraphics.BEVEL);
+      pg.parent.strokeJoin(PGraphics.BEVEL);
     } else if ("ROUND".equals(mode)) {
-      pg.strokeJoin(PGraphics.ROUND);
+      pg.parent.strokeJoin(PGraphics.ROUND);
     } else {
       throw new WarpScriptException(getName() + ": invalid mode, should be 'MITER', 'BEVEL' or 'ROUND'.");
     }

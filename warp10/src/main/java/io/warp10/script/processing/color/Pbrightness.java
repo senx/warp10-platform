@@ -42,7 +42,7 @@ public class Pbrightness extends NamedWarpScriptFunction implements WarpScriptSt
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    double brightness = pg.brightness(((Number) params.get(1)).intValue());
+    double brightness = pg.parent.brightness(((Number) params.get(1)).intValue());
     
     stack.push(pg);
         

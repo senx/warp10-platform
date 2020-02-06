@@ -47,7 +47,7 @@ public class Pline extends NamedWarpScriptFunction implements WarpScriptStackFun
     }
     
     if (pg.is3D()) {
-      pg.line(
+      pg.parent.line(
           ((Number) params.get(1)).floatValue(),
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue(),
@@ -56,7 +56,7 @@ public class Pline extends NamedWarpScriptFunction implements WarpScriptStackFun
           ((Number) params.get(6)).floatValue()
       );
     } else {
-      pg.line(
+      pg.parent.line(
           ((Number) params.get(1)).floatValue(),
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue(),

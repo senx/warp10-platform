@@ -42,7 +42,7 @@ public class PlerpColor extends NamedWarpScriptFunction implements WarpScriptSta
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    long color = pg.lerpColor(
+    long color = pg.parent.lerpColor(
       ((Number) params.get(1)).intValue(),
       ((Number) params.get(2)).intValue(),
       ((Number) params.get(3)).floatValue()
