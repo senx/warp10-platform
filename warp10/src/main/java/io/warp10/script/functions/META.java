@@ -160,9 +160,11 @@ public class META extends NamedWarpScriptFunction implements WarpScriptStackFunc
       
       for (GeoTimeSerie gts: series) {
         sb.setLength(0);
-        GTSHelper.metadataToString(sb, gts.getName(), gts.getLabels());
+        // Expose all labels as producer/owner will have been dropped by the meta endpoint
+        GTSHelper.metadataToString(sb, gts.getName(), gts.getLabels(), true);
         Map<String,String> attributes = null != gts.getMetadata().getAttributes() ? gts.getMetadata().getAttributes() : new HashMap<String,String>();
-        GTSHelper.labelsToString(sb, attributes);
+        // Always expose attributes
+        GTSHelper.labelsToString(sb, attributes, true);
         pw.println(sb.toString());
       }
       

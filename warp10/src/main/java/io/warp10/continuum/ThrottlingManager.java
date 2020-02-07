@@ -226,7 +226,7 @@ public class ThrottlingManager {
    * @param labelsId
    * @throws WarpException
    */
-  public static void checkMADS(Metadata metadata, String producer, String owner, String application, long classId, long labelsId) throws WarpException {
+  public static void checkMADS(Metadata metadata, String producer, String owner, String application, long classId, long labelsId, boolean expose) throws WarpException {
         
     if (!loaded) {
       return;
@@ -259,7 +259,9 @@ public class ThrottlingManager {
         labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
         StringBuilder sb = new StringBuilder();
         sb.append("Geo Time Series ");
-        GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
+        // Do not expose producer and owner as the update did not contain them so
+        // identifying the line responsible for the error is easier
+        GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels(), false);
         sb.append(" would exceed your Monthly Active Data Streams limit (");
         sb.append(oProducerLimit);
         sb.append(").");
@@ -358,7 +360,7 @@ public class ThrottlingManager {
         if (cardinality > applicationLimit) {
           StringBuilder sb = new StringBuilder();
           sb.append("Geo Time Series ");
-          GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
+          GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels(), expose);
           sb.append(" would exceed the Monthly Active Data Streams limit for application '" + application + "' (");
           sb.append((long) Math.floor(applicationLimit / toleranceRatio));
           sb.append(").");
@@ -393,7 +395,7 @@ public class ThrottlingManager {
       if (cardinality > producerLimit) {
         StringBuilder sb = new StringBuilder();
         sb.append("Geo Time Series ");
-        GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
+        GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels(), expose);
         sb.append(" would exceed your Monthly Active Data Streams limit (");
         sb.append((long) Math.floor(producerLimit / toleranceRatio));
         sb.append(").");
@@ -421,7 +423,7 @@ public class ThrottlingManager {
    * @param count
    * @param maxwait Max wait per datapoint
    */
-  public static void checkDDP(Metadata metadata, String producer, String owner, String application, int count, long maxwait) throws WarpException {
+  public static void checkDDP(Metadata metadata, String producer, String owner, String application, int count, long maxwait, boolean expose) throws WarpException {
     if (!loaded) {
       return;
     }
@@ -455,7 +457,7 @@ public class ThrottlingManager {
         StringBuilder sb = new StringBuilder();
         sb.append("Storing data for ");
         if (null != metadata) {
-          GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
+          GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels(), expose);
         }
         sb.append(" would incur a wait greater than ");
         sb.append(appMaxWait);
@@ -478,7 +480,7 @@ public class ThrottlingManager {
       StringBuilder sb = new StringBuilder();
       sb.append("Storing data for ");
       if (null != metadata) {
-        GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
+        GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels(), expose);
       }
       sb.append(" would incur a wait greater than ");
       sb.append(producerMaxWait);
@@ -493,8 +495,8 @@ public class ThrottlingManager {
     }
   }
 
-  public static void checkDDP(Metadata metadata, String producer, String owner, String application, int count) throws WarpException {
-    checkDDP(metadata, producer, owner, application, count, MAXWAIT_PER_DATAPOINT);
+  public static void checkDDP(Metadata metadata, String producer, String owner, String application, int count, boolean expose) throws WarpException {
+    checkDDP(metadata, producer, owner, application, count, MAXWAIT_PER_DATAPOINT, expose);
   }
   
   public static Map<String,Object> getLimits(String producer, String app) {

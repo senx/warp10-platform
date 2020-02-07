@@ -265,6 +265,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     String producer = Tokens.getUUID(writeToken.getProducerId());
     String owner = Tokens.getUUID(writeToken.getOwnerId());
       
+    boolean expose = writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
+    
     //
     // For delete operations, producer and owner MUST be equal
     //
@@ -550,10 +552,11 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         count += localCount;
 
         sb.setLength(0);
-        GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
+        GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels(), expose);
         
         if (metadata.getAttributesSize() > 0) {
-          GTSHelper.labelsToString(sb, metadata.getAttributes());
+          // Always expose attributes
+          GTSHelper.labelsToString(sb, metadata.getAttributes(), true);
         } else {
           sb.append("{}");
         }
