@@ -40,6 +40,8 @@ import io.warp10.script.WarpScriptStack;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.util.ArrayList;
+import java.util.List;
 
 public class JsonUtils {
 
@@ -48,7 +50,6 @@ public class JsonUtils {
    * Outputs "null" because most javascript engines coerce null to "null" when using it as a key.
    */
   private static class NullKeySerializer extends JsonSerializer<Object> {
-
     @Override
     public void serialize(Object value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
       gen.writeFieldName("null");
@@ -56,36 +57,46 @@ public class JsonUtils {
   }
 
   /**
-   * A serializer that writes null whatever it is given.
-   * This serializer is used to output null for instances of classes without specific serializer.
+   * Used to swap UnknownSerializer and BeanSerializer for CustomEncodersSerializer.
    */
-  private static class NullSerializer extends JsonSerializer<Object> {
-
-    @Override
-    public void serialize(Object value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-      gen.writeNull();
-    }
-  }
-
-  /**
-   * Used to swap forbidden serializers for NullSerializer.
-   * This effectively allows a mapper to output null for any instance of class without a specific serializer.
-   * This includes all Objects except for Numbers, Strings, Booleans, Lists, Maps, etc and Objects with
-   * custom serializers added through Module.addSerializer.
-   */
-  public static class ForbiddenToNullSerializerModifier extends BeanSerializerModifier {
+  public static class NotSerializedToCustomSerializedModifier extends BeanSerializerModifier {
     @Override
     public JsonSerializer<?> modifySerializer(SerializationConfig config, BeanDescription beanDesc, JsonSerializer<?> serializer) {
       if (serializer instanceof UnknownSerializer || serializer instanceof BeanSerializer) {
-        return nullSerializer;
+        return customEncodersSerializer;
       } else {
         return serializer;
       }
     }
   }
 
-  public static final JsonSerializer<Object> nullSerializer = new NullSerializer();
+  public static class CustomEncodersSerializer extends JsonSerializer<Object> {
+    @Override
+    public void serialize(Object value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+      if (null != encoders && !encoders.isEmpty()) {
+        StringBuilder sb = new StringBuilder();
+        boolean encoded = false;
+        for (JsonEncoder encoder: encoders) {
+          encoded = encoder.addElement(sb, value);
+          if (encoded) {
+            break;
+          }
+        }
+        if (encoded) {
+          gen.writeString(sb.toString());
+        } else {
+          // No custom encoders able to encode this object, write null.
+          gen.writeNull();
+        }
+      } else {
+        // No custom encoders defined, write null.
+        gen.writeNull();
+      }
+    }
+  }
+
   public static final NullKeySerializer nullKeySerializer = new NullKeySerializer();
+  public static final CustomEncodersSerializer customEncodersSerializer = new CustomEncodersSerializer();
 
   //
   // ObjectMapper instances are thread-safe, so we can safely use a single static instance.
@@ -93,13 +104,19 @@ public class JsonUtils {
   private static final ObjectMapper strictMapper;
   private static final ObjectMapper looseMapper;
 
+  public interface JsonEncoder {
+    boolean addElement(StringBuilder sb, Object o);
+  }
+
+  private static List<JsonEncoder> encoders;
+
   static {
     //
     // Configure a module to handle the serialization of non-base classes.
     //
     SimpleModule module = new SimpleModule();
     // Add the UnknownToNullSerializerModifier instance
-    module.setSerializerModifier(new ForbiddenToNullSerializerModifier());
+    module.setSerializerModifier(new NotSerializedToCustomSerializedModifier());
     // Add custom serializers
     module.addSerializer(GeoTimeSerie.class, new GeoTimeSerieSerializer());
     module.addSerializer(GTSEncoder.class, new GTSEncoderSerializer());
@@ -169,7 +186,7 @@ public class JsonUtils {
   }
 
   public static void objectToJson(Writer writer, Object o, boolean isStrict, long maxJsonSize) throws IOException {
-    if(Long.MAX_VALUE != maxJsonSize) {
+    if (Long.MAX_VALUE != maxJsonSize) {
       writer = new BoundedWriter(writer, maxJsonSize);
     }
 
@@ -182,6 +199,13 @@ public class JsonUtils {
     } catch (BoundedWriter.WriterBoundReachedException wbre) {
       throw new IOException("Resulting JSON is too big.", wbre);
     }
+  }
+
+  public synchronized static void addEncoder(JsonEncoder encoder) {
+    if (null == encoders) {
+      encoders = new ArrayList<JsonEncoder>();
+    }
+    encoders.add(encoder);
   }
 
 }
