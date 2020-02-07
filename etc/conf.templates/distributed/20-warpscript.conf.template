@@ -20,6 +20,12 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////
 
+//
+// WarpScript code used to resolve font URLs, can be a macro call or any other valid WarpScript excerpt
+// The code is passed the URL to check and should return the updated URL. NOOP will accept all URLs.
+//
+#processing.font.resolver = NOOP
+
 // Maximum time that TIMEBOX can wait for an execution (in ms), defaults to 30s
 #warpscript.timebox.maxtime=30000
 
