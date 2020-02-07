@@ -1100,6 +1100,7 @@ public class WarpScriptLib {
 
   public static final String GEO_REGEXP = "GEO.REGEXP";
   public static final String GEO_OPTIMIZE = "GEO.OPTIMIZE";
+  public static final String GEO_NORMALIZE = "GEO.NORMALIZE";
   public static final String GEO_WITHIN = "GEO.WITHIN";
   public static final String GEO_INTERSECTS = "GEO.INTERSECTS";
   public static final String GEO_COVER = "GEO.COVER";
@@ -1927,6 +1928,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new GeoJSON(GEO_JSON, false));
     addNamedWarpScriptFunction(new GeoJSON(GEO_JSON_UNIFORM, true));
     addNamedWarpScriptFunction(new GEOOPTIMIZE(GEO_OPTIMIZE));
+    addNamedWarpScriptFunction(new GEONORMALIZE(GEO_NORMALIZE));
     addNamedWarpScriptFunction(new GeoIntersection(GEO_INTERSECTION));
     addNamedWarpScriptFunction(new GeoUnion(GEO_UNION));
     addNamedWarpScriptFunction(new GeoSubtraction(GEO_DIFFERENCE));
