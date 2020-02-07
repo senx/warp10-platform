@@ -16,17 +16,16 @@
 
 package io.warp10.script.functions;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.geoxp.GeoXPLib;
-import com.geoxp.geo.Coverage;
 import com.geoxp.geo.GeoHashHelper;
-import com.geoxp.geo.HHCodeHelper;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 public class GEOGEOHASHES extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
@@ -43,65 +42,15 @@ public class GEOGEOHASHES extends NamedWarpScriptFunction implements WarpScriptS
       throw new WarpScriptException(getName() + " expects a list of Geohashes.");
     }
 
-    List<Object> geohashes = (List<Object>) top;
+    List<Object> l = (List<Object>) top;
     
-    Coverage c = new Coverage();
+    List<String> geohashes = new ArrayList<String>(l.size());
     
-    for (Object geohash: geohashes) {
-      
-      String hash = String.valueOf(geohash).toLowerCase();
-      long hhcode = GeoHashHelper.toHHCode(hash);
-      int nbits = 5 * Math.min(12, hash.length());
-      
-      int target = nbits;
-      
-      switch (nbits) {
-        case 5:
-          target = 8;
-          break;
-        case 10:
-          target = 12;
-          break;
-        case 15:
-          target = 16;
-          break;
-        case 25:
-          target = 28;
-          break;
-        case 30:
-          target = 32;
-          break;
-        case 35:
-          target = 36;
-          break;
-        case 45:
-          target = 48;
-          break;
-        case 50:
-          target = 52;
-          break;
-        case 55:
-          target = 56;
-          break;
-      }
-      
-      int deltabits = target - nbits;
-      int resolution = target >>> 1;
-      
-      if (deltabits > 0) {
-        hhcode = (hhcode >>> (64 - nbits)) << deltabits;
-        for (long delta = 0; delta < 1L << deltabits; delta++) {
-          c.addCell(resolution, (hhcode | delta) << (64 - target));
-        }
-      } else {
-        c.addCell(resolution, hhcode);        
-      }      
+    for (Object geohash: l) {
+      geohashes.add(String.valueOf(geohash));
     }
-    
-    c.dedup();
-    c.optimize(0L);
 
-    long[] geocells = c.toGeoCells(HHCodeHelper.MAX_RESOLUTION);
+    long[] geocells = GeoHashHelper.toGeoCells(geohashes);
     
     stack.push(GeoXPLib.fromCells(geocells, false));
     
