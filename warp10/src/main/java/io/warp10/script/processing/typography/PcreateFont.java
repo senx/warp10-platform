@@ -29,6 +29,8 @@ import java.awt.Font;
 import java.awt.FontFormatException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -87,8 +89,10 @@ public class PcreateFont extends NamedWarpScriptFunction implements WarpScriptSt
     // to the defined validator
     //
     
-    if (params.get(1).toString().startsWith("http://") || params.get(1).toString().startsWith("https://")) {
-      String url = resolver.resolve(params.get(1).toString());
+    if (params.get(1).toString().startsWith("http://")
+        || params.get(1).toString().startsWith("https://")
+        || params.get(1).toString().startsWith("file://")) {
+      String urlstr = resolver.resolve(params.get(1).toString());
 
       InputStream in = null;
       
@@ -98,11 +102,11 @@ public class PcreateFont extends NamedWarpScriptFunction implements WarpScriptSt
         //
         
         // Encode the URL if it contains a whitespace
-        if (url.contains(" ")) {
-          url = URLEncoder.encode(url, StandardCharsets.UTF_8.name());
-        }
+        URL url = new URL(urlstr);
+        URI uri = new URI(url.getProtocol(), url.getUserInfo(), url.getHost(), url.getPort(), url.getPath(), url.getQuery(), url.getRef());
         
-        in = new URL(url).openStream();
+        in = new URL(uri.toASCIIString()).openStream(); 
+        
         Font f = Font.createFont(Font.TRUETYPE_FONT, in);
         
         float size = 12.0F;
@@ -120,10 +124,12 @@ public class PcreateFont extends NamedWarpScriptFunction implements WarpScriptSt
         }
         
         font = new PFont(f.deriveFont(size * pg.parent.pixelDensity), smooth, charset, true, pg.parent.pixelDensity);
+      } catch (URISyntaxException use) {
+        throw new WarpScriptException(getName() + " error loading font " + urlstr, use);
       } catch (FontFormatException ffe) {
-        throw new WarpScriptException(getName() + " error loading font " + url, ffe);
+        throw new WarpScriptException(getName() + " error loading font " + urlstr, ffe);
       } catch (IOException ioe) {
-        throw new WarpScriptException(getName() + " error fetching font " + url, ioe);
+        throw new WarpScriptException(getName() + " error fetching font " + urlstr, ioe);
       } finally {
         if (null != in) { try { in.close(); } catch (Exception e) {} }
       }      
