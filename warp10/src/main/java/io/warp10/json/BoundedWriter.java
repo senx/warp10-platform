@@ -25,7 +25,7 @@ import java.io.Writer;
  */
 public class BoundedWriter extends Writer {
 
-  public class WriterBoundReachedException extends IOException {
+  public static class WriterBoundReachedException extends IOException {
 
     public WriterBoundReachedException(String message) {
       super(message);

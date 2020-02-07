@@ -47,7 +47,7 @@ import com.geoxp.GeoXPLib;
 
 public class StackUtils {
 
-  public static void toJSON(PrintWriter out, WarpScriptStack stack, int maxdepth) throws WarpScriptException {
+  public static void toJSON(PrintWriter out, WarpScriptStack stack, int maxdepth, long maxJsonSize) throws WarpScriptException, IOException {
     
     boolean strictJSON = Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_JSON_STRICT));
 
@@ -64,19 +64,16 @@ public class StackUtils {
       }
       first = false;
 
-      try {
-        Object o = stack.get(i);
+      Object o = stack.get(i);
 
-        JsonUtils.objectToJson(out, o, strictJSON);
-      } catch (WarpScriptException | IOException ee) {
-      }
+      JsonUtils.objectToJson(out, o, strictJSON, maxJsonSize);
     }
 
     out.print("]");
   }
 
-  public static void toJSON(PrintWriter out, WarpScriptStack stack) throws WarpScriptException {
-    toJSON(out, stack, Integer.MAX_VALUE);
+  public static void toJSON(PrintWriter out, WarpScriptStack stack) throws WarpScriptException, IOException {
+    toJSON(out, stack, Integer.MAX_VALUE, Long.MAX_VALUE);
   }
 
   /**

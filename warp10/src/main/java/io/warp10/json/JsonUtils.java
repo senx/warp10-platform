@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationConfig;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.BeanSerializer;
 import com.fasterxml.jackson.databind.ser.BeanSerializerModifier;
 import com.fasterxml.jackson.databind.ser.impl.UnknownSerializer;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -67,15 +68,15 @@ public class JsonUtils {
   }
 
   /**
-   * Used to swap UnknownSerializer for NullSerializer.
+   * Used to swap forbidden serializers for NullSerializer.
    * This effectively allows a mapper to output null for any instance of class without a specific serializer.
    * This includes all Objects except for Numbers, Strings, Booleans, Lists, Maps, etc and Objects with
    * custom serializers added through Module.addSerializer.
    */
-  public static class UnknownToNullSerializerModifier extends BeanSerializerModifier {
+  public static class ForbiddenToNullSerializerModifier extends BeanSerializerModifier {
     @Override
     public JsonSerializer<?> modifySerializer(SerializationConfig config, BeanDescription beanDesc, JsonSerializer<?> serializer) {
-      if (serializer instanceof UnknownSerializer) {
+      if (serializer instanceof UnknownSerializer || serializer instanceof BeanSerializer) {
         return nullSerializer;
       } else {
         return serializer;
@@ -83,8 +84,8 @@ public class JsonUtils {
     }
   }
 
-  public static final int MAX_JSON_SIZE_DEFAULT = 100 * 1024 * 1024;
   public static final JsonSerializer<Object> nullSerializer = new NullSerializer();
+  public static final NullKeySerializer nullKeySerializer = new NullKeySerializer();
 
   //
   // ObjectMapper instances are thread-safe, so we can safely use a single static instance.
@@ -98,7 +99,7 @@ public class JsonUtils {
     //
     SimpleModule module = new SimpleModule();
     // Add the UnknownToNullSerializerModifier instance
-    module.setSerializerModifier(new UnknownToNullSerializerModifier());
+    module.setSerializerModifier(new ForbiddenToNullSerializerModifier());
     // Add custom serializers
     module.addSerializer(GeoTimeSerie.class, new GeoTimeSerieSerializer());
     module.addSerializer(GTSEncoder.class, new GTSEncoderSerializer());
@@ -121,7 +122,7 @@ public class JsonUtils {
     //
     builder.enable(JsonWriteFeature.WRITE_NAN_AS_STRINGS);
     strictMapper = new ObjectMapper(builder.build());
-    strictMapper.getSerializerProviderInstance().setNullKeySerializer(new NullKeySerializer());
+    strictMapper.getSerializerProvider().setNullKeySerializer(nullKeySerializer);
     strictMapper.registerModule(module);
 
     //
@@ -129,7 +130,7 @@ public class JsonUtils {
     //
     builder.disable(JsonWriteFeature.WRITE_NAN_AS_STRINGS);
     looseMapper = new ObjectMapper(builder.build());
-    looseMapper.getSerializerProviderInstance().setNullKeySerializer(new NullKeySerializer());
+    looseMapper.getSerializerProvider().setNullKeySerializer(nullKeySerializer);
     looseMapper.registerModule(module);
   }
 
@@ -146,34 +147,37 @@ public class JsonUtils {
   //
 
   public static String objectToJson(Object o) throws IOException {
-    return objectToJson(o, MAX_JSON_SIZE_DEFAULT);
+    return objectToJson(o, Long.MAX_VALUE);
   }
 
-  public static String objectToJson(Object o, int maxJsonSize) throws IOException {
+  public static String objectToJson(Object o, long maxJsonSize) throws IOException {
     return objectToJson(o, false, maxJsonSize);
   }
 
   public static String objectToJson(Object o, boolean isStrict) throws IOException {
-    return objectToJson(o, isStrict, MAX_JSON_SIZE_DEFAULT);
+    return objectToJson(o, isStrict, Long.MAX_VALUE);
   }
 
-  public static String objectToJson(Object o, boolean isStrict, int maxJsonSize) throws IOException {
+  public static String objectToJson(Object o, boolean isStrict, long maxJsonSize) throws IOException {
     StringWriter writer = new StringWriter();
     objectToJson(writer, o, isStrict, maxJsonSize);
     return writer.toString();
   }
 
   public static void objectToJson(Writer writer, Object o, boolean isStrict) throws IOException {
-    objectToJson(writer, o, isStrict, MAX_JSON_SIZE_DEFAULT);
+    objectToJson(writer, o, isStrict, Long.MAX_VALUE);
   }
 
-  public static void objectToJson(Writer writer, Object o, boolean isStrict, int maxJsonSize) throws IOException {
-    BoundedWriter boundedWriter = new BoundedWriter(writer, maxJsonSize);
+  public static void objectToJson(Writer writer, Object o, boolean isStrict, long maxJsonSize) throws IOException {
+    if(Long.MAX_VALUE != maxJsonSize) {
+      writer = new BoundedWriter(writer, maxJsonSize);
+    }
+
     try {
       if (isStrict) {
-        strictMapper.writeValue(boundedWriter, o);
+        strictMapper.writeValue(writer, o);
       } else {
-        looseMapper.writeValue(boundedWriter, o);
+        looseMapper.writeValue(writer, o);
       }
     } catch (BoundedWriter.WriterBoundReachedException wbre) {
       throw new IOException("Resulting JSON is too big.", wbre);

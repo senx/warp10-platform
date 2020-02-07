@@ -52,7 +52,8 @@ public class TOJSON extends NamedWarpScriptFunction implements WarpScriptStackFu
     }
 
     try {
-      String json = JsonUtils.objectToJson(o, false);
+      Long maxJsonSize = (Long)stack.getAttribute(WarpScriptStack.ATTRIBUTE_JSON_MAXSIZE);
+      String json = JsonUtils.objectToJson(o, false, maxJsonSize);
       stack.push(json);
     } catch (IOException ioe) {
       throw new WarpScriptException(getName() + " failed with to convert to JSON.", ioe);
