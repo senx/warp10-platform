@@ -115,9 +115,9 @@ public class JsonUtils {
     // Configure a module to handle the serialization of non-base classes.
     //
     SimpleModule module = new SimpleModule();
-    // Add the UnknownToNullSerializerModifier instance
+    // Add the NotSerializedToCustomSerializedModifier instance
     module.setSerializerModifier(new NotSerializedToCustomSerializedModifier());
-    // Add custom serializers
+    // Add core custom serializers
     module.addSerializer(GeoTimeSerie.class, new GeoTimeSerieSerializer());
     module.addSerializer(GTSEncoder.class, new GTSEncoderSerializer());
     module.addSerializer(Metadata.class, new MetadataSerializer());
@@ -201,7 +201,7 @@ public class JsonUtils {
     }
   }
 
-  public synchronized static void addEncoder(JsonEncoder encoder) {
+  public static synchronized void addEncoder(JsonEncoder encoder) {
     if (null == encoders) {
       encoders = new ArrayList<JsonEncoder>();
     }

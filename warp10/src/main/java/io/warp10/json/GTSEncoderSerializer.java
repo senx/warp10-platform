@@ -65,13 +65,13 @@ public class GTSEncoderSerializer extends JsonSerializer<GTSEncoder> {
       }
 
       // Do not use directly gen.writeObject() because it is VERY slow.
-      if(v instanceof Boolean) {
+      if (v instanceof Boolean) {
         gen.writeBoolean((boolean) v);
-      } else if(v instanceof Long) {
+      } else if (v instanceof Long) {
         gen.writeNumber((long) v);
-      } else if(v instanceof Double) {
+      } else if (v instanceof Double) {
         gen.writeNumber((double) v);
-      } else if(v instanceof String){
+      } else if (v instanceof String) {
         gen.writeString((String) v);
       } else {
         gen.writeObject(v);
