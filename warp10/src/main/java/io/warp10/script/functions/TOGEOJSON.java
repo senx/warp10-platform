@@ -20,32 +20,65 @@ import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
 import com.geoxp.geo.Coverage;
 import com.geoxp.geo.CoverageHelper;
-
+import com.geoxp.geo.HHCodeHelper;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 public class TOGEOJSON extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public TOGEOJSON(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    boolean allCells = false;
+
     Object top = stack.pop();
-    
+
+    if (top instanceof Boolean) {
+      allCells = (Boolean) top;
+      top = stack.pop();
+    }
+
     if (!(top instanceof GeoXPShape)) {
       throw new WarpScriptException(getName() + " operates on a GEOSHAPE.");
     }
-    
+
     GeoXPShape shape = (GeoXPShape) top;
-    
-    long[] cells = GeoXPLib.getCells(shape);
-    Coverage coverage = new Coverage(cells);
-    stack.push(CoverageHelper.toGeoJSON(coverage));
-    
+
+    if (allCells) {
+      long[] cells = GeoXPLib.getCells(shape);
+
+      StringBuilder sb = new StringBuilder();
+      sb.append("{\"type\":\"MultiPolygon\",\"coordinates\":[");
+      String prefix = "";
+
+      for (long cell: cells) {
+        int cellRes = ((int) (cell >>> 60)) << 1;
+        long hh = cell << 4;
+        double[] bbox = HHCodeHelper.getHHCodeBBox(hh, cellRes);
+        sb.append(prefix);
+        prefix = ",";
+        // Counterclockwise from sw, lon/lat
+        sb.append("[[[").append(bbox[1]).append(",").append(bbox[0]).append("],");// SW
+        sb.append("[").append(bbox[3]).append(",").append(bbox[0]).append("],"); // SE
+        sb.append("[").append(bbox[3]).append(",").append(bbox[2]).append("],"); // NE
+        sb.append("[").append(bbox[1]).append(",").append(bbox[2]).append("],"); // NW
+        sb.append("[").append(bbox[1]).append(",").append(bbox[0]).append("]]]"); // SW
+      }
+
+      sb.append("]}");
+
+      stack.push(sb.toString());
+    } else {
+      long[] cells = GeoXPLib.getCells(shape);
+      Coverage coverage = new Coverage(cells);
+      stack.push(CoverageHelper.toGeoJSON(coverage));
+    }
+
     return stack;
   }
 }
