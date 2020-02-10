@@ -51,8 +51,8 @@ public class EgressFetchHandlerTest {
   private String jsonDumpWithExpose(boolean expose) throws Exception {
     Map<String, String> labels = new HashMap<String, String>();
     labels.put("foo", "bar");
-    labels.put(".producer", "bar");
-    labels.put(".owner", "bar");
+    labels.put(".producer", "33000ee4-3bfc-4940-9aef-4fd27975f6f9");
+    labels.put(".owner", "6d9bbc0b-2af8-4053-a287-5d6b95405af0");
 
     GTSEncoder gts = new GTSEncoder();
     gts.getMetadata()
