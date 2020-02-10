@@ -43,6 +43,7 @@ public class GeoTimeSerieSerializer extends JsonSerializer<GeoTimeSerie> {
     gen.writeNumberField("la", metadata.getLastActivity());
     gen.writeFieldName("v");
     gen.writeStartArray();
+
     for (int i = 0; i < gts.size(); i++) {
       long ts = GTSHelper.tickAtIndex(gts, i);
       long location = GTSHelper.locationAtIndex(gts, i);
@@ -59,7 +60,25 @@ public class GeoTimeSerieSerializer extends JsonSerializer<GeoTimeSerie> {
       if (GeoTimeSerie.NO_ELEVATION != elevation) {
         gen.writeNumber(elevation);
       }
-      gen.writeObject(v);
+
+      // Do not use directly gen.writeObject() because it is VERY slow.
+      switch (gts.getType()) {
+        case UNDEFINED:
+          gen.writeObject(v);
+          break;
+        case LONG:
+          gen.writeNumber((long) v);
+          break;
+        case DOUBLE:
+          gen.writeNumber((double) v);
+          break;
+        case BOOLEAN:
+          gen.writeBoolean((boolean) v);
+          break;
+        case STRING:
+          gen.writeString((String) v);
+          break;
+      }
       gen.writeEndArray();
     }
     gen.writeEndArray();

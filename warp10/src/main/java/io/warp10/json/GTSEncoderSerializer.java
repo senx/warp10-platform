@@ -63,7 +63,20 @@ public class GTSEncoderSerializer extends JsonSerializer<GTSEncoder> {
       if (GeoTimeSerie.NO_ELEVATION != elevation) {
         gen.writeNumber(elevation);
       }
-      gen.writeObject(v);
+
+      // Do not use directly gen.writeObject() because it is VERY slow.
+      if(v instanceof Boolean) {
+        gen.writeBoolean((boolean) v);
+      } else if(v instanceof Long) {
+        gen.writeNumber((long) v);
+      } else if(v instanceof Double) {
+        gen.writeNumber((double) v);
+      } else if(v instanceof String){
+        gen.writeString((String) v);
+      } else {
+        gen.writeObject(v);
+      }
+
       gen.writeEndArray();
     }
     gen.writeEndArray();
