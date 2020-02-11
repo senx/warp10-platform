@@ -764,7 +764,12 @@ public class Ingress extends AbstractHandler implements Runnable {
         }
       }
       
+      boolean expose = false;
+      
       if (writeToken.getAttributesSize() > 0) {
+        
+        expose = writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
+        
         if (writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_TTL)
             || writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_DPTS)) {
           if (null == kafkaDataMessageAttributes) {
@@ -1046,8 +1051,8 @@ public class Ingress extends AbstractHandler implements Runnable {
             //
             
             if (null != lastencoder && lastencoder.size() > 0) {
-              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
+              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
+              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
             }
             
             boolean pushMeta = false;
@@ -1136,8 +1141,8 @@ public class Ingress extends AbstractHandler implements Runnable {
         } while (true); 
         
         if (null != lastencoder && lastencoder.size() > 0) {
-          ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-          ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
+          ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
+          ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
 
           pushDataMessage(lastencoder, kafkaDataMessageAttributes);
           
@@ -1596,6 +1601,7 @@ public class Ingress extends AbstractHandler implements Runnable {
       pw = response.getWriter();
       StringBuilder sb = new StringBuilder();
 
+      boolean expose = writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
       //
       // Shuffle only if not in dryrun mode
       //
@@ -1786,10 +1792,10 @@ public class Ingress extends AbstractHandler implements Runnable {
             
             sb.setLength(0);
             
-            GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
+            GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels(), expose);
             
             if (metadata.getAttributesSize() > 0) {
-              GTSHelper.labelsToString(sb, metadata.getAttributes());
+              GTSHelper.labelsToString(sb, metadata.getAttributes(), true);
             } else {
               sb.append("{}");
             }
@@ -1842,10 +1848,10 @@ public class Ingress extends AbstractHandler implements Runnable {
             
             sb.setLength(0);
             
-            GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
+            GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels(), expose);
             
             if (metadata.getAttributesSize() > 0) {
-              GTSHelper.labelsToString(sb, metadata.getAttributes());
+              GTSHelper.labelsToString(sb, metadata.getAttributes(), true);
             } else {
               sb.append("{}");
             }

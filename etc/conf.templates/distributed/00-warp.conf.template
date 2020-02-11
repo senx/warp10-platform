@@ -138,3 +138,8 @@ warp.components =
 //
 #warp.attributes.maxsize = 8192
 
+//
+// Set to true to expose owner and producer labels in Geo Time Series retrieved from the Warp 10 Storage Engine
+//
+#warp10.expose.owner.producer = true
+

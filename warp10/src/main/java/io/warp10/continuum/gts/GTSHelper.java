@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -8076,13 +8076,20 @@ public class GTSHelper {
     gts.lastbucket = lastbucket;
   }
 
-  public static void metadataToString(StringBuilder sb, String name, Map<String,String> labels) {
+  //public static void metadataToString(StringBuilder sb, String name, Map<String,String> labels) {
+  //  metadataToString(sb, name, labels, false);
+  //}
+  
+  public static void metadataToString(StringBuilder sb, String name, Map<String,String> labels, boolean expose) {
     GTSHelper.encodeName(sb, name);
     
-    labelsToString(sb, labels);
+    labelsToString(sb, labels, expose);
   }
+  //public static void labelsToString(StringBuilder sb, Map<String,String> labels) {
+  //  labelsToString(sb, labels, false);
+  //}
   
-  public static void labelsToString(StringBuilder sb, Map<String,String> labels) {
+  public static void labelsToString(StringBuilder sb, Map<String,String> labels, boolean expose) {
     sb.append("{");
     boolean first = true;
     
@@ -8091,11 +8098,13 @@ public class GTSHelper {
         //
         // Skip owner/producer labels and any other 'private' labels
         //
-        if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
-          continue;
-        }
-        if (Constants.OWNER_LABEL.equals(entry.getKey())) {
-          continue;
+        if (!expose && !Constants.EXPOSE_OWNER_PRODUCER) {
+          if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
+            continue;
+          }
+          if (Constants.OWNER_LABEL.equals(entry.getKey())) {
+            continue;
+          }          
         }
         
         if (!first) {

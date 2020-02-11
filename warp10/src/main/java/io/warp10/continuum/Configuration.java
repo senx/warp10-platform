@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ public class Configuration {
   public static final String WARP10_QUIET = "warp10.quiet";
   
   public static final String WARP10_TELEMETRY = "warp10.telemetry";
-  
+
   /**
    * Comma separated list of headers to return in the Access-Allow-Control-Headers response header to preflight requests.
    */
@@ -87,7 +87,13 @@ public class Configuration {
    * How often (in ms) should we refetch the region start/end keys
    */
   public static final String WARP_HBASE_REGIONKEYS_UPDATEPERIOD = "warp.hbase.regionkeys.updateperiod";
-  
+
+  /**
+   * WarpScript code used to resolve font URLs, can be a macro call or any other valid WarpScript excerpt
+   * The code is passed the URL to check and should return the updated URL. NOOP will accept all URLs.
+   */
+  public static final String PROCESSING_FONT_RESOLVER = "processing.font.resolver";
+
   /**
    * Number of registers to allocate in stacks. Defaults to WarpScriptStack.DEFAULT_REGISTERS
    */
@@ -1670,6 +1676,11 @@ public class Configuration {
    * Set to a message indicating the reason why updates are disabled, they are enabled if this is not set
    */
   public static final String WARP_UPDATE_DISABLED = "warp.update.disabled";
+  
+  /**
+   * Set to true to expose owner and producer labels in Geo Time Series retrieved from the Warp 10 Storage Engine 
+   */
+  public static final String WARP10_EXPOSE_OWNER_PRODUCER = "warp10.expose.owner.producer";
   
   /**
    * Manager secret, must be set to use the managing functions

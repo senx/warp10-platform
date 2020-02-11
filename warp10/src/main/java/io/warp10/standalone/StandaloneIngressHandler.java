@@ -396,6 +396,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
       
       boolean hasDatapoints = false;
 
+      boolean expose = false;
+          
       try {      
         if (null == producer || null == owner) {
           response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
@@ -477,6 +479,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
         Boolean ignoor = null;
         
         if (writeToken.getAttributesSize() > 0) {
+          
+          expose = writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
           
           if (writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_IGNOOR)) {
             String v = writeToken.getAttributes().get(Constants.TOKEN_ATTR_IGNOOR).toLowerCase();
@@ -752,8 +756,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
               lastencoder.setClassId(GTSHelper.classId(ckl0, ckl1, lastencoder.getName()));
               lastencoder.setLabelsId(GTSHelper.labelsId(lkl0, lkl1, lastencoder.getMetadata().getLabels()));
 
-              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
+              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
+              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
             }
             
             //
@@ -831,8 +835,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
           lastencoder.setClassId(GTSHelper.classId(ckl0, ckl1, lastencoder.getName()));
           lastencoder.setLabelsId(GTSHelper.labelsId(lkl0, lkl1, lastencoder.getMetadata().getLabels()));
                   
-          ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-          ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
+          ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
+          ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
           this.storeClient.store(lastencoder);
           
           if (parseAttributes && lastHadAttributes) {

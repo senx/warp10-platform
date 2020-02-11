@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -425,6 +425,11 @@ public class Constants {
    */
   public static final String TOKEN_ATTR_DPTS = ".dpts";
   
+  /**
+   * Attribute to specify that owner and producer should be exposed instead of hidden
+   */
+  public static final String TOKEN_ATTR_EXPOSE = ".expose";
+  
   //
   // KafkaMessage Store attributes
   //
@@ -446,8 +451,12 @@ public class Constants {
    */
   public static  final int MAX_HTTP_HEADER_LENGTH = 1024;
 
+  public static final boolean EXPOSE_OWNER_PRODUCER;
+  
   static {
     String tu = WarpConfig.getProperty(Configuration.WARP_TIME_UNITS);
+  
+    EXPOSE_OWNER_PRODUCER = "true".equals(WarpConfig.getProperty(Configuration.WARP10_EXPOSE_OWNER_PRODUCER));
     
     if (null == tu) {
       throw new RuntimeException("Missing time units.");

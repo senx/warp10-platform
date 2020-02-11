@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -358,7 +358,7 @@ public class EgressFetchHandler extends AbstractHandler {
       ReadToken rtoken = null;
       
       String format = splitFetch ? "wrapper" : req.getParameter(Constants.HTTP_PARAM_FORMAT);
-
+      
       if (!splitFetch) {
         try {
           rtoken = Tokens.extractReadToken(token);
@@ -726,6 +726,8 @@ public class EgressFetchHandler extends AbstractHandler {
       AtomicReference<Metadata> lastMeta = new AtomicReference<Metadata>(null);
       AtomicLong lastCount = new AtomicLong(0L);
       
+      boolean expose = rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
+      
       for (Iterator<Metadata> itermeta: iterators) {
         while(itermeta.hasNext()) {
           metas.add(itermeta.next());
@@ -744,25 +746,25 @@ public class EgressFetchHandler extends AbstractHandler {
               }
               
               if ("text".equals(format)) {
-                textDump(pw, iter, now, count, false, dedup, signed, showAttr, lastMeta, lastCount, sortMeta);
+                textDump(pw, iter, now, count, false, dedup, signed, showAttr, lastMeta, lastCount, sortMeta, expose);
               } else if ("fulltext".equals(format)) {
-                textDump(pw, iter, now, count, true, dedup, signed, showAttr, lastMeta, lastCount, sortMeta);
+                textDump(pw, iter, now, count, true, dedup, signed, showAttr, lastMeta, lastCount, sortMeta, expose);
               } else if ("raw".equals(format)) {
-                rawDump(pw, iter, dedup, signed, count, lastMeta, lastCount, sortMeta);
+                rawDump(pw, iter, dedup, signed, count, lastMeta, lastCount, sortMeta, expose);
               } else if ("wrapper".equals(format)) {
                 wrapperDump(pw, iter, dedup, signed, fetchPSK, count, lastMeta, lastCount);
               } else if ("json".equals(format)) {
-                jsonDump(pw, iter, now, count, dedup, signed, lastMeta, lastCount);
+                jsonDump(pw, iter, now, count, dedup, signed, lastMeta, lastCount, expose);
               } else if ("tsv".equals(format)) {
-                tsvDump(pw, iter, now, count, false, dedup, signed, lastMeta, lastCount, sortMeta);
+                tsvDump(pw, iter, now, count, false, dedup, signed, lastMeta, lastCount, sortMeta, expose);
               } else if ("fulltsv".equals(format)) {
-                tsvDump(pw, iter, now, count, true, dedup, signed, lastMeta, lastCount, sortMeta);
+                tsvDump(pw, iter, now, count, true, dedup, signed, lastMeta, lastCount, sortMeta, expose);
               } else if ("pack".equals(format)) {
-                packedDump(pw, iter, now, count, dedup, signed, lastMeta, lastCount, maxDecoderLen, suffix, chunksize, sortMeta);
+                packedDump(pw, iter, now, count, dedup, signed, lastMeta, lastCount, maxDecoderLen, suffix, chunksize, sortMeta, expose);
               } else if ("null".equals(format)) {
                 nullDump(iter);
               } else {
-                textDump(pw, iter, now, count, false, dedup, signed, showAttr, lastMeta, lastCount, sortMeta);
+                textDump(pw, iter, now, count, false, dedup, signed, showAttr, lastMeta, lastCount, sortMeta, expose);
               }
             } catch (Throwable t) {
               LOG.error("",t);
@@ -812,7 +814,7 @@ public class EgressFetchHandler extends AbstractHandler {
     }
   }
   
-  private static void rawDump(PrintWriter pw, GTSDecoderIterator iter, boolean dedup, boolean signed, long count, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean sortMeta) throws IOException {
+  private static void rawDump(PrintWriter pw, GTSDecoderIterator iter, boolean dedup, boolean signed, long count, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean sortMeta, boolean expose) throws IOException {
     
     String name = null;
     Map<String,String> labels = null;
@@ -871,7 +873,7 @@ public class EgressFetchHandler extends AbstractHandler {
         //
         // Skip owner/producer labels and any other 'private' labels
         //
-        if (!signed) {
+        if (!signed && !Constants.EXPOSE_OWNER_PRODUCER && !expose) {
           if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
             continue;
           }
@@ -1069,7 +1071,7 @@ public class EgressFetchHandler extends AbstractHandler {
    * Output a text version of fetched data. Deduplication is done on the fly so we don't decode twice.
    * 
    */
-  private static void textDump(PrintWriter pw, GTSDecoderIterator iter, long now, long count, boolean raw, boolean dedup, boolean signed, boolean showAttributes, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean sortMeta) throws IOException {
+  private static void textDump(PrintWriter pw, GTSDecoderIterator iter, long now, long count, boolean raw, boolean dedup, boolean signed, boolean showAttributes, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean sortMeta, boolean expose) throws IOException {
     
     String name = null;
     Map<String,String> labels = null;
@@ -1126,7 +1128,7 @@ public class EgressFetchHandler extends AbstractHandler {
           //
           // Skip owner/producer labels and any other 'private' labels
           //
-          if (!signed) {
+          if (!signed && !Constants.EXPOSE_OWNER_PRODUCER && !expose) {
             if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
               continue;
             }
@@ -1153,7 +1155,7 @@ public class EgressFetchHandler extends AbstractHandler {
               meta.setAttributes(new TreeMap<String,String>(meta.getAttributes()));
             }
             
-            GTSHelper.labelsToString(sb, meta.getAttributes());
+            GTSHelper.labelsToString(sb, meta.getAttributes(), true);
           } else {
             sb.append("{}");
           }          
@@ -1278,7 +1280,7 @@ public class EgressFetchHandler extends AbstractHandler {
     lastCount.set(currentCount);
   }
 
-  static void jsonDump(PrintWriter pw, Iterator<GTSDecoder> iter, long now, long count, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount) throws IOException {
+  static void jsonDump(PrintWriter pw, Iterator<GTSDecoder> iter, long now, long count, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean expose) throws IOException {
     
     String name = null;
     Map<String,String> labels = null;
@@ -1352,7 +1354,7 @@ public class EgressFetchHandler extends AbstractHandler {
             //
             // Skip owner/producer labels and any other 'private' labels
             //
-            if (!signed) {
+            if (!signed && !Constants.EXPOSE_OWNER_PRODUCER && !expose) {
               if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
                 continue;
               }
@@ -1487,7 +1489,7 @@ public class EgressFetchHandler extends AbstractHandler {
    * Output a tab separated version of fetched data. Deduplication is done on the fly so we don't decode twice.
    * 
    */
-  private static void tsvDump(PrintWriter pw, GTSDecoderIterator iter, long now, long count, boolean raw, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean sortMeta) throws IOException {
+  private static void tsvDump(PrintWriter pw, GTSDecoderIterator iter, long now, long count, boolean raw, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean sortMeta, boolean expose) throws IOException {
     
     String name = null;
     Map<String,String> labels = null;
@@ -1547,7 +1549,7 @@ public class EgressFetchHandler extends AbstractHandler {
           //
           // Skip owner/producer labels and any other 'private' labels
           //
-          if (!signed) {
+          if (!signed && !Constants.EXPOSE_OWNER_PRODUCER && !expose) {
             if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
               continue;
             }
@@ -1803,7 +1805,7 @@ public class EgressFetchHandler extends AbstractHandler {
     }
   }
   
-  private void packedDump(PrintWriter pw, GTSDecoderIterator iter, long now, long count, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, int maxDecoderLen, String classSuffix, long chunksize, boolean sortMeta) throws IOException {
+  private void packedDump(PrintWriter pw, GTSDecoderIterator iter, long now, long count, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, int maxDecoderLen, String classSuffix, long chunksize, boolean sortMeta, boolean expose) throws IOException {
     
     String name = null;
     Map<String,String> labels = null;
@@ -1864,7 +1866,7 @@ public class EgressFetchHandler extends AbstractHandler {
         //
         // Skip owner/producer labels and any other 'private' labels
         //
-        if (!signed) {
+        if (!signed && !Constants.EXPOSE_OWNER_PRODUCER && !expose) {
           if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
             continue;
           }
