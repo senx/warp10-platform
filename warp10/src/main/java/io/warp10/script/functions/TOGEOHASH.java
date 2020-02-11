@@ -21,7 +21,12 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.geoxp.GeoXPLib;
+import com.geoxp.GeoXPLib.GeoXPShape;
+import com.geoxp.geo.Coverage;
 import com.geoxp.geo.GeoHashHelper;
 
 /**
@@ -36,17 +41,27 @@ public class TOGEOHASH extends NamedWarpScriptFunction implements WarpScriptStac
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
-    Object lon = stack.pop();
-    Object lat = stack.pop();
+    Object top = stack.pop();
     
-    if (!(lon instanceof Number) && !(lat instanceof Number)) {
-      throw new WarpScriptException(getName() + " expects a latitude and a longitude on the stack.");
+    if (top instanceof GeoXPShape) {
+      List<String> geohashes = new ArrayList<String>(GeoHashHelper.fromGeoCells(GeoXPLib.getCells((GeoXPShape) top), false));
+      stack.push(geohashes);      
+    } else if (top instanceof Long) {
+      String geohash = GeoHashHelper.fromHHCode(((Long) top).longValue(), 32);      
+      stack.push(geohash);            
+    } else if (top instanceof Double) {
+      Object lon = (Double) top;
+      Object lat = stack.pop();
+      
+      if (!(lat instanceof Double)) {
+        throw new WarpScriptException(getName() + " expects a latitude and a longitude on the stack.");
+      }
+      
+      long geoxppoint = GeoXPLib.toGeoXPPoint(((Number) lat).doubleValue(), ((Number) lon).doubleValue());
+      String geohash = GeoHashHelper.fromHHCode(geoxppoint, 32);
+      
+      stack.push(geohash);      
     }
-    
-    long geoxppoint = GeoXPLib.toGeoXPPoint(((Number) lat).doubleValue(), ((Number) lon).doubleValue());
-    String geohash = GeoHashHelper.fromHHCode(geoxppoint, 32);
-    
-    stack.push(geohash);
 
     return stack;
   }
