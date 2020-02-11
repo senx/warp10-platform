@@ -44,7 +44,7 @@ public class TOGEOHASH extends NamedWarpScriptFunction implements WarpScriptStac
     Object top = stack.pop();
     
     if (top instanceof GeoXPShape) {
-      List<String> geohashes = new ArrayList<String>(GeoHashHelper.fromGeoCells(GeoXPLib.getCells((GeoXPShape) top), false));
+      List<String> geohashes = new ArrayList<String>(GeoHashHelper.fromGeoCells(GeoXPLib.getCells((GeoXPShape) top), true));
       stack.push(geohashes);      
     } else if (top instanceof Long) {
       String geohash = GeoHashHelper.fromHHCode(((Long) top).longValue(), 32);      
