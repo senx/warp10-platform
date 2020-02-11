@@ -16,21 +16,20 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStackFunction;
-
 import java.util.ArrayList;
 import java.util.List;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
-import com.geoxp.geo.Coverage;
 import com.geoxp.geo.GeoHashHelper;
 
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
+
 /**
- * Convert a lat/lon pair to a GeoHash
+ * Convert a GeoXPShape, a HHCode or a lat/lon pair to a GeoHash
  */
 public class TOGEOHASH extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
@@ -50,7 +49,7 @@ public class TOGEOHASH extends NamedWarpScriptFunction implements WarpScriptStac
       String geohash = GeoHashHelper.fromHHCode(((Long) top).longValue(), 32);      
       stack.push(geohash);            
     } else if (top instanceof Double) {
-      Object lon = (Double) top;
+      Object lon = top;
       Object lat = stack.pop();
       
       if (!(lat instanceof Double)) {
@@ -61,6 +60,8 @@ public class TOGEOHASH extends NamedWarpScriptFunction implements WarpScriptStac
       String geohash = GeoHashHelper.fromHHCode(geoxppoint, 32);
       
       stack.push(geohash);      
+    } else {
+      throw new WarpScriptException(getName() + " operates on a HHCode, a GEOSHAPE or a latitude and longitude.");
     }
 
     return stack;
