@@ -662,11 +662,6 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
               }
               
               if (OUTPUT_FORMAT.JSON.equals(format)) {
-                
-                //if (null == gson) {
-                //  gson = new Gson();
-                //}
-                
                 Map<String,Object> json = new HashMap<String,Object>();
                     
                 HashMap<String,String> labels = new HashMap<String,String>();

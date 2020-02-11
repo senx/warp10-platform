@@ -254,6 +254,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     setAttribute(WarpScriptStack.ATTRIBUTE_MAX_PIXELS, Long.MAX_VALUE - 1);
     // Set max of geocells to the largest INTEGER - 1, not Long.MAX_VALUE as it is used as an int
     setAttribute(WarpScriptStack.ATTRIBUTE_MAX_GEOCELLS, Integer.MAX_VALUE - 1);
+    setAttribute(WarpScriptStack.ATTRIBUTE_JSON_MAXSIZE, Long.MAX_VALUE);
   }
   
   @Override

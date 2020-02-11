@@ -19,24 +19,38 @@ package io.warp10.json;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import io.warp10.continuum.store.thrift.data.Metadata;
 
 import java.io.IOException;
 
-public class MetadataSerializer extends JsonSerializer<Metadata> {
+public class MetadataSerializer extends StdSerializer<Metadata> {
+
+  public static final String FIELD_NAME = "c";
+  public static final String FIELD_LABELS = "l";
+  public static final String FIELD_ATTRIBUTES = "a";
+  public static final String FIELD_LASTACTIVITY = "la";
+
+  protected MetadataSerializer() {
+    super(Metadata.class);
+  }
 
   @Override
   public void serialize(Metadata metadata, JsonGenerator gen, SerializerProvider provider) throws IOException {
+    gen.writeStartObject();
+    serializeMetadataFields(metadata, gen);
+    gen.writeEndObject();
+  }
+
+  public static void serializeMetadataFields(Metadata metadata, JsonGenerator gen) throws IOException {
     String name = metadata.getName();
     if (null == name) {
       name = "";
     }
 
-    gen.writeStartObject();
-    gen.writeStringField("c", name);
-    gen.writeObjectField("l", metadata.getLabels());
-    gen.writeObjectField("a", metadata.getAttributes());
-    gen.writeNumberField("la", metadata.getLastActivity());
-    gen.writeEndObject();
+    gen.writeStringField(FIELD_NAME, name);
+    gen.writeObjectField(FIELD_LABELS, metadata.getLabels());
+    gen.writeObjectField(FIELD_ATTRIBUTES, metadata.getAttributes());
+    gen.writeNumberField(FIELD_LASTACTIVITY, metadata.getLastActivity());
   }
 }

@@ -50,7 +50,7 @@ public class JSONTO extends NamedWarpScriptFunction implements WarpScriptStackFu
       Object json = JsonUtils.jsonToObject(o.toString());
       stack.push(transform(json));
     } catch (IOException ioe) {
-      throw new WarpScriptException(getName() + "failed to parse JSON", ioe);
+      throw new WarpScriptException(getName() + " failed to parse JSON", ioe);
     }
 
     return stack;

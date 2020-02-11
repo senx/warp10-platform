@@ -17,15 +17,19 @@
 package io.warp10.json;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 
 import java.io.IOException;
 
-public class NamedWarpScriptFunctionSerializer extends JsonSerializer<NamedWarpScriptFunction> {
+public class NamedWarpScriptFunctionSerializer extends StdSerializer<NamedWarpScriptFunction> {
+
+  protected NamedWarpScriptFunctionSerializer() {
+    super(NamedWarpScriptFunction.class);
+  }
 
   @Override
   public void serialize(NamedWarpScriptFunction namedWarpScriptFunction, JsonGenerator gen, SerializerProvider provider) throws IOException {

@@ -23,15 +23,16 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import io.warp10.script.WarpScriptStack;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
-public class MacroSerializer extends StdSerializer<WarpScriptStack.Macro> {
+public class BytesSerializer extends StdSerializer<byte[]> {
 
-  protected MacroSerializer() {
-    super(WarpScriptStack.Macro.class);
+  protected BytesSerializer() {
+    super(byte[].class);
   }
 
   @Override
-  public void serialize(WarpScriptStack.Macro macro, JsonGenerator gen, SerializerProvider provider) throws IOException {
-    gen.writeString(macro.toString());
+  public void serialize(byte[] bytes, JsonGenerator gen, SerializerProvider provider) throws IOException {
+    gen.writeString(new String(bytes, StandardCharsets.ISO_8859_1));
   }
 }

@@ -1442,7 +1442,6 @@ public class EgressFetchHandler extends AbstractHandler {
           } else if (value instanceof Boolean) {
             pw.print(Boolean.TRUE.equals(value) ? "true" : "false");
           } else {
-            //pw.print(gson.toJson(value.toString()));
             pw.print(JsonUtils.objectToJson(value.toString()));
           }
           pw.print("]");

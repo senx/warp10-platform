@@ -43,13 +43,21 @@ public class BoundedWriter extends Writer {
     this.currentWrittenChars = 0;
   }
 
+  /**
+   * Writes a portion of an array of characters.
+   * @param cbuf Array of characters
+   * @param off Offset from which to start writing characters
+   * @param len Number of characters to write
+   * @throws WriterBoundReachedException if this write would exceed the maximum number of written characters to this writer.
+   * @throws IOException if this the underlying writer throws an IOException.
+   */
   @Override
-  public void write(char[] chars, int start, int end) throws IOException {
-    if (end - start + currentWrittenChars - maxWrittenChars > 0) {
+  public void write(char[] cbuf, int off, int len) throws IOException {
+    if (len + currentWrittenChars - maxWrittenChars > 0) {
       throw new WriterBoundReachedException("Cannot write, maximum number of characters written :" + this.maxWrittenChars);
     }
-    this.currentWrittenChars += end - start;
-    writer.write(chars, start, end);
+    this.currentWrittenChars += len;
+    writer.write(cbuf, off, len);
   }
 
   @Override

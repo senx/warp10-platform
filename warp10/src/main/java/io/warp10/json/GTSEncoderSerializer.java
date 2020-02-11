@@ -19,6 +19,7 @@ package io.warp10.json;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.geoxp.GeoXPLib;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -27,21 +28,18 @@ import io.warp10.continuum.store.thrift.data.Metadata;
 
 import java.io.IOException;
 
-public class GTSEncoderSerializer extends JsonSerializer<GTSEncoder> {
+public class GTSEncoderSerializer extends StdSerializer<GTSEncoder> {
+
+  protected GTSEncoderSerializer() {
+    super(GTSEncoder.class);
+  }
 
   @Override
   public void serialize(GTSEncoder encoder, JsonGenerator gen, SerializerProvider provider) throws IOException {
     Metadata metadata = encoder.getMetadata();
-    String name = metadata.getName();
-    if (null == name) {
-      name = "";
-    }
 
     gen.writeStartObject();
-    gen.writeStringField("c", name);
-    gen.writeObjectField("l", metadata.getLabels());
-    gen.writeObjectField("a", metadata.getAttributes());
-    gen.writeNumberField("la", metadata.getLastActivity());
+    MetadataSerializer.serializeMetadataFields(metadata, gen);
     gen.writeFieldName("v");
     gen.writeStartArray();
 
@@ -50,7 +48,7 @@ public class GTSEncoderSerializer extends JsonSerializer<GTSEncoder> {
       long ts = decoder.getTimestamp();
       long location = decoder.getLocation();
       long elevation = decoder.getElevation();
-      // We do not call getBinaryValue because JSON cannot represent byte arrays
+      // We do not call getBinaryValue because JSON will also encode byte[] as IS0-8859-1
       Object v = decoder.getValue();
 
       gen.writeStartArray();

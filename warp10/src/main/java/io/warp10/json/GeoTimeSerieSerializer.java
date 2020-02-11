@@ -17,8 +17,8 @@
 package io.warp10.json;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.geoxp.GeoXPLib;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
@@ -26,22 +26,21 @@ import io.warp10.continuum.store.thrift.data.Metadata;
 
 import java.io.IOException;
 
-public class GeoTimeSerieSerializer extends JsonSerializer<GeoTimeSerie> {
+public class GeoTimeSerieSerializer extends StdSerializer<GeoTimeSerie> {
+
+  public static final String FIELD_VALUES = "v";
+
+  protected GeoTimeSerieSerializer() {
+    super(GeoTimeSerie.class);
+  }
 
   @Override
   public void serialize(GeoTimeSerie gts, JsonGenerator gen, SerializerProvider provider) throws IOException {
     Metadata metadata = gts.getMetadata();
-    String name = metadata.getName();
-    if (null == name) {
-      name = "";
-    }
 
     gen.writeStartObject();
-    gen.writeStringField("c", name);
-    gen.writeObjectField("l", metadata.getLabels());
-    gen.writeObjectField("a", metadata.getAttributes());
-    gen.writeNumberField("la", metadata.getLastActivity());
-    gen.writeFieldName("v");
+    MetadataSerializer.serializeMetadataFields(metadata, gen);
+    gen.writeFieldName(FIELD_VALUES);
     gen.writeStartArray();
 
     for (int i = 0; i < gts.size(); i++) {

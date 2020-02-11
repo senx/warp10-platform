@@ -83,7 +83,7 @@ public class JsonUtils {
           }
         }
         if (encoded) {
-          gen.writeString(sb.toString());
+          gen.writeRaw(sb.toString());
         } else {
           // No custom encoders able to encode this object, write null.
           gen.writeNull();
@@ -118,11 +118,12 @@ public class JsonUtils {
     // Add the NotSerializedToCustomSerializedModifier instance
     module.setSerializerModifier(new NotSerializedToCustomSerializedModifier());
     // Add core custom serializers
-    module.addSerializer(GeoTimeSerie.class, new GeoTimeSerieSerializer());
-    module.addSerializer(GTSEncoder.class, new GTSEncoderSerializer());
-    module.addSerializer(Metadata.class, new MetadataSerializer());
-    module.addSerializer(NamedWarpScriptFunction.class, new NamedWarpScriptFunctionSerializer());
-    module.addSerializer(WarpScriptStack.Macro.class, new MacroSerializer());
+    module.addSerializer(new GeoTimeSerieSerializer());
+    module.addSerializer(new GTSEncoderSerializer());
+    module.addSerializer(new MetadataSerializer());
+    module.addSerializer(new NamedWarpScriptFunctionSerializer());
+    module.addSerializer(new MacroSerializer());
+    module.addSerializer(new BytesSerializer());
 
     //
     // Common configuration for both strict and loose mappers.
