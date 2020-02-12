@@ -76,6 +76,11 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String TYPE_PSHAPE = "PSHAPE";
   public static final String TYPE_COUNTER = "COUNTER";
 
+  /**
+   * Interface to be used by extensions and plugins to define a new type.
+   * Classes implementing this interface MUST have a parameterless public constructor not throwing exception for
+   * typeof(Class) to work.
+   */
   public interface Typeofable {
     String typeof();
   }
