@@ -40,7 +40,7 @@ public class GTSEncoderSerializer extends StdSerializer<GTSEncoder> {
 
     gen.writeStartObject();
     MetadataSerializer.serializeMetadataFields(metadata, gen);
-    gen.writeFieldName("v");
+    gen.writeFieldName(GeoTimeSerieSerializer.FIELD_VALUES);
     gen.writeStartArray();
 
     GTSDecoder decoder = encoder.getUnsafeDecoder(false);

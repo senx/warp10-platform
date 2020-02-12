@@ -50,7 +50,9 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.warp10.json.GeoTimeSerieSerializer;
 import io.warp10.json.JsonUtils;
+import io.warp10.json.MetadataSerializer;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.thrift.TDeserializer;
@@ -1335,15 +1337,19 @@ public class EgressFetchHandler extends AbstractHandler {
           name = decoder.getName();
           labels = lbls;
           sb.setLength(0);
-          
-          sb.append("{\"c\":");
-      
+
+          sb.append("{\"");
+          sb.append(MetadataSerializer.FIELD_NAME);
+          sb.append("\":");
+
           sb.append(JsonUtils.objectToJson(name));
 
           boolean first = true;
-          
-          sb.append(",\"l\":{");
-          
+
+          sb.append(",\"");
+          sb.append(MetadataSerializer.FIELD_LABELS);
+          sb.append("\":{");
+
           for (Entry<String, String> entry: lbls.entrySet()) {
             //
             // Skip owner/producer labels and any other 'private' labels
@@ -1367,8 +1373,10 @@ public class EgressFetchHandler extends AbstractHandler {
             first = false;
           }
           sb.append("}");
-          
-          sb.append(",\"a\":{");
+
+          sb.append(",\"");
+          sb.append(MetadataSerializer.FIELD_ATTRIBUTES);
+          sb.append("\":{");
 
           first = true;
           for (Entry<String, String> entry: decoder.getMetadata().getAttributes().entrySet()) {
@@ -1385,10 +1393,14 @@ public class EgressFetchHandler extends AbstractHandler {
           sb.append("}");
           sb.append(",\"i\":\"");
           sb.append(decoder.getLabelsId() & mask);
-          sb.append("\",\"la\":");
+          sb.append("\",\"");
+          sb.append(MetadataSerializer.FIELD_LASTACTIVITY);
+          sb.append("\":");
           sb.append(decoder.getMetadata().getLastActivity());
 
-          sb.append(",\"v\":[");
+          sb.append(",\"");
+          sb.append(GeoTimeSerieSerializer.FIELD_VALUES);
+          sb.append("\":[");
         }
         
         long decoded = 0L;

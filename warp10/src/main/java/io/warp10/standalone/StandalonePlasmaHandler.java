@@ -36,6 +36,7 @@ import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.json.MetadataSerializer;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.sensision.Sensision;
 

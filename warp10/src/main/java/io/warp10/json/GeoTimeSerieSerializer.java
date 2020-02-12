@@ -41,7 +41,7 @@ public class GeoTimeSerieSerializer extends StdSerializer<GeoTimeSerie> {
     gen.writeStartObject();
     MetadataSerializer.serializeMetadataFields(metadata, gen);
     gen.writeFieldName(FIELD_VALUES);
-    gen.writeStartArray();
+    gen.writeStartArray(gts.size());
 
     for (int i = 0; i < gts.size(); i++) {
       long ts = GTSHelper.tickAtIndex(gts, i);

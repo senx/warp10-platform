@@ -124,6 +124,8 @@ public class JsonUtils {
     module.addSerializer(new NamedWarpScriptFunctionSerializer());
     module.addSerializer(new MacroSerializer());
     module.addSerializer(new BytesSerializer());
+    module.addSerializer(new RealVectorSerializer());
+    module.addSerializer(new RealMatrixSerializer());
 
     //
     // Common configuration for both strict and loose mappers.
