@@ -16,16 +16,20 @@
 
 package io.warp10.script.functions;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import com.geoxp.GeoXPLib;
+import com.geoxp.GeoXPLib.GeoXPShape;
+import com.geoxp.geo.GeoHashHelper;
+
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
-import com.geoxp.GeoXPLib;
-import com.geoxp.geo.GeoHashHelper;
-
 /**
- * Convert a lat/lon pair to a GeoHash
+ * Convert a GeoXPShape, a HHCode or a lat/lon pair to a GeoHash
  */
 public class TOGEOHASH extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
@@ -36,17 +40,29 @@ public class TOGEOHASH extends NamedWarpScriptFunction implements WarpScriptStac
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
-    Object lon = stack.pop();
-    Object lat = stack.pop();
+    Object top = stack.pop();
     
-    if (!(lon instanceof Number) && !(lat instanceof Number)) {
-      throw new WarpScriptException(getName() + " expects a latitude and a longitude on the stack.");
+    if (top instanceof GeoXPShape) {
+      List<String> geohashes = new ArrayList<String>(GeoHashHelper.fromGeoCells(GeoXPLib.getCells((GeoXPShape) top), true));
+      stack.push(geohashes);      
+    } else if (top instanceof Long) {
+      String geohash = GeoHashHelper.fromHHCode(((Long) top).longValue(), 32);      
+      stack.push(geohash);            
+    } else if (top instanceof Double) {
+      Object lon = top;
+      Object lat = stack.pop();
+      
+      if (!(lat instanceof Double)) {
+        throw new WarpScriptException(getName() + " expects a latitude and a longitude on the stack.");
+      }
+      
+      long geoxppoint = GeoXPLib.toGeoXPPoint(((Number) lat).doubleValue(), ((Number) lon).doubleValue());
+      String geohash = GeoHashHelper.fromHHCode(geoxppoint, 32);
+      
+      stack.push(geohash);      
+    } else {
+      throw new WarpScriptException(getName() + " operates on a HHCode, a GEOSHAPE or a latitude and longitude.");
     }
-    
-    long geoxppoint = GeoXPLib.toGeoXPPoint(((Number) lat).doubleValue(), ((Number) lon).doubleValue());
-    String geohash = GeoHashHelper.fromHHCode(geoxppoint, 32);
-    
-    stack.push(geohash);
 
     return stack;
   }
