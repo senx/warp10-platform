@@ -93,74 +93,82 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
 
   public static String typeof(Object o) {
     if (null == o) {
-      return TYPE_NULL;
-    } else if (o instanceof String) {
-      return TYPE_STRING;
-    } else if (o instanceof Long || o instanceof Integer || o instanceof Short || o instanceof Byte || o instanceof BigInteger) {
-      return TYPE_LONG;
-    } else if (o instanceof Double || o instanceof Float || o instanceof BigDecimal) {
-      return TYPE_DOUBLE;
-    } else if (o instanceof Boolean) {
-      return TYPE_BOOLEAN;
-    } else if (o instanceof Vector) {  // place before List. Vector implements List.
-      return TYPE_VECTOR;
-    } else if (o instanceof List) {
-      return TYPE_LIST;
-    } else if (o instanceof Map) {
-      return TYPE_MAP;
-    } else if (o instanceof Macro) {
-      return TYPE_MACRO;
-    } else if (o instanceof WarpScriptAggregatorFunction) {
-      return TYPE_AGGREGATOR;
-    } else if (o instanceof WarpScriptFillerFunction) {
-      return TYPE_FILLER;
-    } else if (o instanceof WarpScriptFilterFunction) {
-      return TYPE_FILTER;
-    } else if (o instanceof WarpScriptNAryFunction) {
-      return TYPE_OPERATOR;
-    } else if (o instanceof GeoTimeSerie) {
-      return TYPE_GTS;
-    } else if (o instanceof GTSEncoder) {
-      return TYPE_GTSENCODER;
-    } else if (o instanceof byte[]) {
-      return TYPE_BYTES;
-    } else if (o instanceof PGraphics) {
-      return TYPE_PGRAPHICSIMAGE;
-    } else if (o instanceof PImage) {
-      return TYPE_PIMAGE;
-    } else if (o instanceof PFont) {
-      return TYPE_PFONT;
-    } else if (o instanceof PShape) {
-      return TYPE_PSHAPE;
-    } else if (o instanceof GeoXPLib.GeoXPShape) {
-      return TYPE_GEOSHAPE;
-    } else if (o instanceof Set) {
-      return TYPE_SET;
-    } else if (o instanceof BitSet) {
-      return TYPE_BITSET;
-    } else if (o instanceof ArrayRealVector) {
-      return TYPE_REALVECTOR;
-    } else if (o instanceof RealMatrix) {
-      return TYPE_REALMATRIX;
-    } else if (o instanceof AtomicLong) {
-      return TYPE_COUNTER;
+      return (TYPE_NULL);
     } else if (o instanceof Typeofable) {
-      try {
-        return (((Typeofable) o).typeof());
-      } catch (Exception e) {
-        return defaultType(o);
-      }
+      return ("X-" + ((Typeofable) o).typeof());
     } else {
-      return defaultType(o);
+      return typeof(o.getClass());
     }
   }
 
-  public static String defaultType(Object o) {
-    String canonicalName = o.getClass().getCanonicalName();
+  public static String typeof(Class c) {
+    if (String.class.isAssignableFrom(c)) {
+      return TYPE_STRING;
+    } else if (Long.class.isAssignableFrom(c) || Integer.class.isAssignableFrom(c) || Short.class.isAssignableFrom(c) || Byte.class.isAssignableFrom(c) || BigInteger.class.isAssignableFrom(c)) {
+      return TYPE_LONG;
+    } else if (Double.class.isAssignableFrom(c) || Float.class.isAssignableFrom(c) || BigDecimal.class.isAssignableFrom(c)) {
+      return TYPE_DOUBLE;
+    } else if (Boolean.class.isAssignableFrom(c)) {
+      return TYPE_BOOLEAN;
+    } else if (Vector.class.isAssignableFrom(c)) {  // place before List. Vector implements List.
+      return TYPE_VECTOR;
+    } else if (List.class.isAssignableFrom(c)) {
+      return TYPE_LIST;
+    } else if (Map.class.isAssignableFrom(c)) {
+      return TYPE_MAP;
+    } else if (Macro.class.isAssignableFrom(c)) {
+      return TYPE_MACRO;
+    } else if (WarpScriptAggregatorFunction.class.isAssignableFrom(c)) {
+      return TYPE_AGGREGATOR;
+    } else if (WarpScriptFillerFunction.class.isAssignableFrom(c)) {
+      return TYPE_FILLER;
+    } else if (WarpScriptFilterFunction.class.isAssignableFrom(c)) {
+      return TYPE_FILTER;
+    } else if (WarpScriptNAryFunction.class.isAssignableFrom(c)) {
+      return TYPE_OPERATOR;
+    } else if (GeoTimeSerie.class.isAssignableFrom(c)) {
+      return TYPE_GTS;
+    } else if (GTSEncoder.class.isAssignableFrom(c)) {
+      return TYPE_GTSENCODER;
+    } else if (byte[].class.isAssignableFrom(c)) {
+      return TYPE_BYTES;
+    } else if (PGraphics.class.isAssignableFrom(c)) {
+      return TYPE_PGRAPHICSIMAGE;
+    } else if (PImage.class.isAssignableFrom(c)) {
+      return TYPE_PIMAGE;
+    } else if (PFont.class.isAssignableFrom(c)) {
+      return TYPE_PFONT;
+    } else if (PShape.class.isAssignableFrom(c)) {
+      return TYPE_PSHAPE;
+    } else if (GeoXPLib.GeoXPShape.class.isAssignableFrom(c)) {
+      return TYPE_GEOSHAPE;
+    } else if (Set.class.isAssignableFrom(c)) {
+      return TYPE_SET;
+    } else if (BitSet.class.isAssignableFrom(c)) {
+      return TYPE_BITSET;
+    } else if (ArrayRealVector.class.isAssignableFrom(c)) {
+      return TYPE_REALVECTOR;
+    } else if (RealMatrix.class.isAssignableFrom(c)) {
+      return TYPE_REALMATRIX;
+    } else if (AtomicLong.class.isAssignableFrom(c)) {
+      return TYPE_COUNTER;
+    } else if (Typeofable.class.isAssignableFrom(c)) {
+      try {
+        return "X-" + ((Typeofable) c.getDeclaredConstructor().newInstance()).typeof();
+      } catch (Exception e) {
+        return defaultType(c);
+      }
+    } else {
+      return defaultType(c);
+    }
+  }
+
+  private static String defaultType(Class c) {
+    String canonicalName = c.getCanonicalName();
     if (null == canonicalName) {
       return "X-(Local/Anonymous Class)";
     } else {
-      return canonicalName;
+      return "X-" + canonicalName;
     }
   }
 
