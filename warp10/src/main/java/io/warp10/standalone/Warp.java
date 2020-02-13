@@ -368,6 +368,10 @@ public class Warp extends WarpDist implements Runnable {
     } else {
       sdc = new StandaloneDirectoryClient(db, keystore);    
       scc = new StandaloneStoreClient(db, keystore, properties);
+      
+      if ("true".equals(properties.getProperty(Configuration.ACCELERATOR))) {
+        scc = new StandaloneAcceleratedStoreClient(sdc, scc);
+      }
     }
         
     if (null != WarpConfig.getProperty(Configuration.DATALOG_DIR) && null != WarpConfig.getProperty(Configuration.DATALOG_SHARDS)) {

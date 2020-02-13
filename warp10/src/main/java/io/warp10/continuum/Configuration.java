@@ -1718,6 +1718,27 @@ public class Configuration {
   public static final String WARP_STREAMUPDATE_DISABLE = "warp.streamupdate.disable";
 
   /**
+   * Set to 'true' to have an in-memory cache ahead of the persistent store.
+   * in.memory.chunk.count and in.memory.chunk.length MUST be defined
+   */
+  public static final String ACCELERATOR = "accelerator";
+  
+  /**
+   * Set to 'true' to preload the accelerator with data based on the lastactivity
+   */
+  public static final String ACCELERATOR_PRELOAD_ACTIVITY = "accelerator.preload.activity";
+  
+  /**
+   * Number of threads to use for preloading the accelerator
+   */
+  public static final String ACCELERATOR_PRELOAD_POOLSIZE = "accelerator.preload.poolsize";
+
+  /**
+   * Batch size to use for preloading the accelerator
+   */
+  public static final String ACCELERATOR_PRELOAD_BATCHSIZE = "accelerator.preload.batchsize";
+
+  /**
    * Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.
    */
   public static final String IN_MEMORY = "in.memory";

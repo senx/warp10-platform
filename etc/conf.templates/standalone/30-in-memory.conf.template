@@ -20,6 +20,25 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////
 
+//
+// Set to true to enable the Warp 10 Accelerator. This is incompatible with in.memory set to true
+//
+accelerator = false
+
+//
+// Number of threads to use for preloading the Warp 10 Accelerator
+//
+accelerator.preload.poolsize = 8
+
+//
+// Size of GTS batches to process when preloading the Warp 10 Accelerator
+//
+accelerator.preload.batchsize = 1000
+
+//
+// Set to true to take into account the last activity of Geo Time Series when preloading the Warp 10 Accelerator
+//
+accelerator.preload.activity = false
 
 //
 // Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.
