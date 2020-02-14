@@ -194,11 +194,11 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
     // Duration-Bucketize
     //
 
-    List<GeoTimeSerie> bucketized = new ArrayList<GeoTimeSerie>();
+    List<GeoTimeSerie> bucketized = new ArrayList<GeoTimeSerie>(series.size());
     for (GeoTimeSerie gts : series) {
 
       GeoTimeSerie b = durationBucketize(gts, bucketperiod, dtz, bucketcount, lastbucket, lastbucket_index, bucketizer, maxbuckets, bucketizer instanceof Macro ? stack : null);
-      b.getMetadata().getAttributes().put(DURATION_ATTRIBUTE_KEY, bucketduration);
+      b.getMetadata().putToAttributes(DURATION_ATTRIBUTE_KEY, bucketduration);
       b.getMetadata().getAttributes().put(OFFSET_ATTRIBUTE_KEY, String.valueOf(bucketoffset));
       b.getMetadata().getAttributes().put(TIMEZONE_ATTRIBUTE_KEY, dtz.getID());
 
