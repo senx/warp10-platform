@@ -806,6 +806,7 @@ public class WarpScriptLib {
   public static final String BUCKETSPAN = "BUCKETSPAN";
   public static final String BUCKETCOUNT = "BUCKETCOUNT";
   public static final String UNBUCKETIZE = "UNBUCKETIZE";
+  public static final String DURATION_UNBUCKETIZE = io.warp10.script.functions.DURATION_UNBUCKETIZE.getDefaultName();
   public static final String LASTBUCKET = "LASTBUCKET";
   public static final String NAME = "NAME";
   public static final String LABELS = "LABELS";
@@ -1677,6 +1678,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new BUCKETSPAN(BUCKETSPAN));
     addNamedWarpScriptFunction(new BUCKETCOUNT(BUCKETCOUNT));
     addNamedWarpScriptFunction(new UNBUCKETIZE(UNBUCKETIZE));
+    addNamedWarpScriptFunction(new DURATION_UNBUCKETIZE(DURATION_UNBUCKETIZE));
     addNamedWarpScriptFunction(new LASTBUCKET(LASTBUCKET));
     addNamedWarpScriptFunction(new NAME(NAME));
     addNamedWarpScriptFunction(new LABELS(LABELS));
@@ -1767,7 +1769,7 @@ public class WarpScriptLib {
     //
     
     addNamedWarpScriptFunction(new BUCKETIZE(BUCKETIZE));
-    addNamedWarpScriptFunction(new DURATION_BUCKETIZE());
+    addNamedWarpScriptFunction(new DURATION_BUCKETIZE(DURATION_BUCKETIZE));
     addNamedWarpScriptFunction(new MAP(MAP));
     addNamedWarpScriptFunction(new FILTER(FILTER, true));
     addNamedWarpScriptFunction(new APPLY(APPLY, true));
