@@ -790,8 +790,9 @@ public class InMemoryChunkSet {
    * @param now
    */
   public long clean(long now) {
+    
     if (this.ephemeral) {
-      return 0;
+      return 0L;
     }
     
     long cutoff = chunkEnd(now) - this.chunkcount * this.chunklen;
@@ -821,6 +822,11 @@ public class InMemoryChunkSet {
    * @param now
    */
   long optimize(CapacityExtractorOutputStream out, long now, AtomicLong allocation) {
+    
+    if (this.ephemeral) {
+      return 0L;
+    }
+    
     int currentChunk = chunk(now);
     
     long reclaimed = 0L;
@@ -853,7 +859,7 @@ public class InMemoryChunkSet {
     long count = 0L;
     
     for (int i = 0; i < chunks.length; i++) {
-      if (chunkends[i] < start || chunkends[i] > end + chunklen) {
+      if (!this.ephemeral && (chunkends[i] < start || chunkends[i] > end + chunklen)) {
         continue;
       }
       synchronized(chunks[i]) {
@@ -874,7 +880,11 @@ public class InMemoryChunkSet {
         }
         // Replace the encoder if datapoints were deleted
         if (deleted) {
-          chunks[i] = encoder;
+          if (this.ephemeral) {
+            chunks[i] = null;
+          } else {
+            chunks[i] = encoder;
+          }
         }
       }
     }
