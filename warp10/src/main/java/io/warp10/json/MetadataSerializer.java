@@ -30,6 +30,7 @@ public class MetadataSerializer extends StdSerializer<Metadata> {
   public static final String FIELD_LABELS = "l";
   public static final String FIELD_ATTRIBUTES = "a";
   public static final String FIELD_LASTACTIVITY = "la";
+  public static final String FIELD_LABELSID = "i";
 
   protected MetadataSerializer() {
     super(Metadata.class);
