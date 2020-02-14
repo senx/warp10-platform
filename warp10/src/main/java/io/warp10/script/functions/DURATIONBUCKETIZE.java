@@ -20,6 +20,7 @@ import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptBucketizerFunction;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -38,7 +39,7 @@ import java.util.regex.Pattern;
  */
 public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private static final String DEFAULT_NAME = "DURATION.BUCKETIZE";
+  private static final String DEFAULT_NAME = WarpScriptLib.DURATION_BUCKETIZE;
   private static final Matcher DURATION_RE = Pattern.compile("^P(?!$)(\\d+Y)?(\\d+M)?(\\d+W)?(\\d+D)?(T(?=\\d)(\\d+H)?(\\d+M)?((\\d+|\\d.(\\d)+)S)?)?$").matcher("");
   public static final String DURATION_ATTRIBUTE_KEY = ".bucketduration";
   public static final String OFFSET_ATTRIBUTE_KEY = ".bucketoffset";

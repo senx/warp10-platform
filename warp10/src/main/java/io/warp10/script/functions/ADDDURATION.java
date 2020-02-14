@@ -82,10 +82,10 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
     // Handle time zone
     //
 
-    if (null == tz) {
-      tz = "UTC";
+    DateTimeZone dtz = DateTimeZone.UTC;
+    if (null != tz) {
+      dtz = DateTimeZone.forID(tz);
     }
-    DateTimeZone dtz = DateTimeZone.forID(tz);
 
     //
     // Handle duration

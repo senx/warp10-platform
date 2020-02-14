@@ -20,6 +20,7 @@ import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.GTSStackFunction;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import org.joda.time.DateTimeZone;
 
@@ -30,7 +31,7 @@ import java.util.Map;
  */
 public class DURATIONUNBUCKETIZE extends GTSStackFunction {
 
-  private static final String DEFAULT_NAME = "DURATION.UNBUCKETIZE";
+  private static final String DEFAULT_NAME = WarpScriptLib.DURATION_UNBUCKETIZE;
 
   public DURATIONUNBUCKETIZE(String name) {
     super(name);

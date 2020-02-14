@@ -806,7 +806,7 @@ public class WarpScriptLib {
   public static final String BUCKETSPAN = "BUCKETSPAN";
   public static final String BUCKETCOUNT = "BUCKETCOUNT";
   public static final String UNBUCKETIZE = "UNBUCKETIZE";
-  public static final String DURATION_UNBUCKETIZE = DURATIONUNBUCKETIZE.getDefaultName();
+  public static final String DURATION_UNBUCKETIZE = "DURATION.UNBUCKETIZE";
   public static final String LASTBUCKET = "LASTBUCKET";
   public static final String NAME = "NAME";
   public static final String LABELS = "LABELS";
@@ -869,7 +869,7 @@ public class WarpScriptLib {
   public static final String NBOUNDS = "NBOUNDS";
   public static final String LBOUNDS = "LBOUNDS";
   public static final String BUCKETIZE = "BUCKETIZE";
-  public static final String DURATION_BUCKETIZE = DURATIONBUCKETIZE.getDefaultName();
+  public static final String DURATION_BUCKETIZE = "DURATION.BUCKETIZE";
   public static final String MAP = "MAP";
   public static final String FILTER = "FILTER";
   public static final String APPLY = "APPLY";
