@@ -119,6 +119,8 @@ public class EgressFetchHandler extends AbstractHandler {
    * Maximum number of GTS per call to the fetch endpoint
    */
   public static long FETCH_BATCHSIZE = 100000;
+
+  public static final String FIELD_ID = "i";
   
   public EgressFetchHandler(KeyStore keystore, Properties properties, DirectoryClient directoryClient, StoreClient storeClient) {
     this.fetchPSK = keystore.getKey(KeyStore.SIPHASH_FETCH_PSK);
@@ -1392,7 +1394,7 @@ public class EgressFetchHandler extends AbstractHandler {
           
           sb.append("}");
           sb.append(",\"");
-          sb.append(MetadataSerializer.FIELD_LABELSID);
+          sb.append(FIELD_ID);
           sb.append("\":\"");
           sb.append(decoder.getLabelsId() & mask);
           sb.append("\",\"");
