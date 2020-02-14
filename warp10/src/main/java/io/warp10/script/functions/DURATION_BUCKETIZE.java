@@ -320,7 +320,7 @@ public class DURATION_BUCKETIZE extends NamedWarpScriptFunction implements WarpS
     // Set bucket parameters
     //
 
-    GTSHelper.setLastBucket(durationBucketized, lastbucket);
+    GTSHelper.setLastBucket(durationBucketized, lastbucket_index);
     GTSHelper.setBucketSpan(durationBucketized, 1);
     GTSHelper.setBucketCount(durationBucketized, bucketcount == 0 ? durationBucketized.size() : Math.toIntExact(bucketcount));
 

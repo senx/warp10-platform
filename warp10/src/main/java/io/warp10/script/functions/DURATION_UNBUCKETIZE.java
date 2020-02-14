@@ -65,6 +65,7 @@ public class DURATION_UNBUCKETIZE extends GTSStackFunction {
     DateTimeZone dtz = DateTimeZone.forID(gts.getMetadata().getAttributes().get(DURATION_BUCKETIZE.TIMEZONE_ATTRIBUTE_KEY));
 
     GeoTimeSerie result = gts.cloneEmpty();
+    GTSHelper.unbucketize(result);
     result.getMetadata().getAttributes().remove(DURATION_BUCKETIZE.DURATION_ATTRIBUTE_KEY);
     result.getMetadata().getAttributes().remove(DURATION_BUCKETIZE.OFFSET_ATTRIBUTE_KEY);
     result.getMetadata().getAttributes().remove(DURATION_BUCKETIZE.TIMEZONE_ATTRIBUTE_KEY);
