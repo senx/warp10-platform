@@ -450,7 +450,7 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
           StringWriter sw = new StringWriter();
           PrintWriter pw = new PrintWriter(sw);
           
-          try { StackUtils.toJSON(pw, stack); } catch (WarpScriptException ee) {}
+          try { StackUtils.toJSON(pw, stack); } catch (WarpScriptException | IOException ee) {}
           
           pw.flush();
           

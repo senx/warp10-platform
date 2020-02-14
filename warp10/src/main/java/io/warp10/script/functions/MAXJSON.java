@@ -16,43 +16,41 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.json.JsonUtils;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
-import java.io.IOException;
-
 /**
- * Converts the object on top of the stack to a JSON representation
+ * Configure the JSON size limit of the stack
  */
-public class TOJSON extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class MAXJSON extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public TOJSON(String name) {
+  public MAXJSON(String name) {
     super(name);
   }
-
+  
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object o = stack.pop();
+    
+    if (!stack.isAuthenticated()) {
+      throw new WarpScriptException(getName() + " requires the stack to be authenticated.");
+    }
+    
+    Object top = stack.pop();
+    
+    if (!(top instanceof Long)) {
+      throw new WarpScriptException(getName() + " expects a numeric (long) limit.");
+    }
+    
+    long limit = ((Number) top).longValue();
 
-    //
-    // Only allow the serialization of simple lists and maps, otherwise JSON might
-    // expose internals
-    //
-
-    try {
-      Long maxJsonSize = (Long)stack.getAttribute(WarpScriptStack.ATTRIBUTE_JSON_MAXSIZE);
-      String json = JsonUtils.objectToJson(o, false, maxJsonSize);
-      stack.push(json);
-    } catch (IOException ioe) {
-      throw new WarpScriptException(getName() + " failed with to convert to JSON.", ioe);
-    } catch (StackOverflowError soe) {
-      throw new WarpScriptException(getName() + " failed with to convert to JSON, the structure is too deep or it references itself.", soe);
+    if (limit > (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_JSON_MAXSIZE_HARD)) {
+      throw new WarpScriptException(getName() + " cannot extend limit past " + stack.getAttribute(WarpScriptStack.ATTRIBUTE_JSON_MAXSIZE_HARD));
     }
 
+    stack.setAttribute(WarpScriptStack.ATTRIBUTE_JSON_MAXSIZE, limit);
+    
     return stack;
   }
-
 }

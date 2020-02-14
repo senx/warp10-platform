@@ -50,14 +50,15 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.warp10.json.GeoTimeSerieSerializer;
+import io.warp10.json.JsonUtils;
+import io.warp10.json.MetadataSerializer;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.boon.json.JsonSerializer;
-import org.boon.json.JsonSerializerFactory;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.joda.time.format.DateTimeFormatter;
@@ -118,6 +119,8 @@ public class EgressFetchHandler extends AbstractHandler {
    * Maximum number of GTS per call to the fetch endpoint
    */
   public static long FETCH_BATCHSIZE = 100000;
+
+  public static final String FIELD_ID = "i";
   
   public EgressFetchHandler(KeyStore keystore, Properties properties, DirectoryClient directoryClient, StoreClient storeClient) {
     this.fetchPSK = keystore.getKey(KeyStore.SIPHASH_FETCH_PSK);
@@ -1295,8 +1298,6 @@ public class EgressFetchHandler extends AbstractHandler {
     try {
       StringBuilder sb = new StringBuilder();
       
-      JsonSerializer serializer = new JsonSerializerFactory().create();
-      
       boolean firstgts = true;
       
       long mask = (long) (Math.random() * Long.MAX_VALUE);
@@ -1340,16 +1341,19 @@ public class EgressFetchHandler extends AbstractHandler {
           name = decoder.getName();
           labels = lbls;
           sb.setLength(0);
-          
-          sb.append("{\"c\":");
-      
-          //sb.append(gson.toJson(name));
-          sb.append(serializer.serialize(name));
+
+          sb.append("{\"");
+          sb.append(MetadataSerializer.FIELD_NAME);
+          sb.append("\":");
+
+          sb.append(JsonUtils.objectToJson(name));
 
           boolean first = true;
-          
-          sb.append(",\"l\":{");
-          
+
+          sb.append(",\"");
+          sb.append(MetadataSerializer.FIELD_LABELS);
+          sb.append("\":{");
+
           for (Entry<String, String> entry: lbls.entrySet()) {
             //
             // Skip owner/producer labels and any other 'private' labels
@@ -1367,16 +1371,16 @@ public class EgressFetchHandler extends AbstractHandler {
               sb.append(",");
             }
             
-            //sb.append(gson.toJson(entry.getKey()));
-            sb.append(serializer.serialize(entry.getKey()));
+            sb.append(JsonUtils.objectToJson(entry.getKey()));
             sb.append(":");
-            //sb.append(gson.toJson(entry.getValue()));
-            sb.append(serializer.serialize(entry.getValue()));
+            sb.append(JsonUtils.objectToJson(entry.getValue()));
             first = false;
           }
           sb.append("}");
-          
-          sb.append(",\"a\":{");
+
+          sb.append(",\"");
+          sb.append(MetadataSerializer.FIELD_ATTRIBUTES);
+          sb.append("\":{");
 
           first = true;
           for (Entry<String, String> entry: decoder.getMetadata().getAttributes().entrySet()) {
@@ -1384,21 +1388,25 @@ public class EgressFetchHandler extends AbstractHandler {
               sb.append(",");
             }
             
-            //sb.append(gson.toJson(entry.getKey()));
-            sb.append(serializer.serialize(entry.getKey()));
+            sb.append(JsonUtils.objectToJson(entry.getKey()));
             sb.append(":");
-            //sb.append(gson.toJson(entry.getValue()));
-            sb.append(serializer.serialize(entry.getValue()));
+            sb.append(JsonUtils.objectToJson(entry.getValue()));
             first = false;
           }
           
           sb.append("}");
-          sb.append(",\"i\":\"");
+          sb.append(",\"");
+          sb.append(FIELD_ID);
+          sb.append("\":\"");
           sb.append(decoder.getLabelsId() & mask);
-          sb.append("\",\"la\":");
+          sb.append("\",\"");
+          sb.append(MetadataSerializer.FIELD_LASTACTIVITY);
+          sb.append("\":");
           sb.append(decoder.getMetadata().getLastActivity());
 
-          sb.append(",\"v\":[");
+          sb.append(",\"");
+          sb.append(GeoTimeSerieSerializer.FIELD_VALUES);
+          sb.append("\":[");
         }
         
         long decoded = 0L;
@@ -1452,8 +1460,7 @@ public class EgressFetchHandler extends AbstractHandler {
           } else if (value instanceof Boolean) {
             pw.print(Boolean.TRUE.equals(value) ? "true" : "false");
           } else {
-            //pw.print(gson.toJson(value.toString()));
-            pw.print(serializer.serialize(value.toString()));
+            pw.print(JsonUtils.objectToJson(value.toString()));
           }
           pw.print("]");
         } while (decoder.next());        

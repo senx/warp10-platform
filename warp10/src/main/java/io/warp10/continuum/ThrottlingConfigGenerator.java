@@ -16,6 +16,7 @@
 
 package io.warp10.continuum;
 
+import io.warp10.json.JsonUtils;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -33,12 +34,9 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.boon.core.value.ValueList;
-import org.boon.json.JsonParser;
-import org.boon.json.JsonParserFactory;
 
 /**
  * This class generates a Throttling configuration by merging a base configuration
@@ -237,10 +235,9 @@ public class ThrottlingConfigGenerator {
     
     br.close();
     
-    JsonParser parser = new JsonParserFactory().create();
-    Object json = parser.parse(sb);
+    Object json = JsonUtils.jsonToObject(sb.toString());
     
-    String str = ((ValueList) json).get(0).toString();
+    String str = ((List) json).get(0).toString();
     
     br = new BufferedReader(new StringReader(str));
     
