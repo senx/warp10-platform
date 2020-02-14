@@ -27,6 +27,7 @@ import io.warp10.script.WarpScriptStack;
 import org.joda.time.DateTimeZone;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -221,7 +222,33 @@ public class DURATION_BUCKETIZE extends NamedWarpScriptFunction implements WarpS
       }
 
     } else {
-      aggregated = (Object[]) ((WarpScriptBucketizerFunction) aggregator).apply(subgts, bucketindex);
+
+      Object[] parms =  new Object[8];
+
+      parms[0] = bucketindex;
+      parms[1] = new String[]{subgts.getName()};
+      parms[2] = new Map[]{subgts.getLabels()};
+      parms[3] = GTSHelper.getTicks(subgts);
+      if (subgts.hasLocations()) {
+        parms[4] = GTSHelper.getLocations(subgts);
+      } else {
+        parms[4] = new long[subgts.size()];
+        Arrays.fill((long[]) parms[4], GeoTimeSerie.NO_LOCATION);
+      }
+      if (subgts.hasElevations()) {
+        parms[5] = GTSHelper.getElevations(subgts);
+      } else {
+        parms[5] = new long[subgts.size()];
+        Arrays.fill((long[]) parms[5], GeoTimeSerie.NO_ELEVATION);
+      }
+      parms[6] = new Object[subgts.size()];
+      parms[7] = new long[] {0, -1, bucketindex, bucketindex};
+
+      for (int j = 0; j < subgts.size(); j++) {
+        ((Object[]) parms[6])[j] = GTSHelper.valueAtIndex(subgts, j);
+      }
+
+      aggregated = (Object[]) ((WarpScriptBucketizerFunction) aggregator).apply(parms);
     }
 
     //
