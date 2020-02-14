@@ -124,7 +124,7 @@ public class DURATION_BUCKETIZE extends NamedWarpScriptFunction implements WarpS
     // Check that bucketcount is not negative or null and not over maxbuckets
     //
 
-    if (bucketcount <= 0) {
+    if (bucketcount < 0) {
       throw new WarpScriptException(getName() + " expects a positive bucketcount.");
     }
 
@@ -205,7 +205,7 @@ public class DURATION_BUCKETIZE extends NamedWarpScriptFunction implements WarpS
     return stack;
   }
 
-  private void aggregateAndSet(Object aggregator, GeoTimeSerie subgts, GeoTimeSerie bucketized, long bucketend, WarpScriptStack stack) throws WarpScriptException {
+  private void aggregateAndSet(Object aggregator, GeoTimeSerie subgts, GeoTimeSerie bucketized, long bucketindex, WarpScriptStack stack) throws WarpScriptException {
     Object[] aggregated;
     if (null != stack) {
       stack.push(subgts);
@@ -218,7 +218,7 @@ public class DURATION_BUCKETIZE extends NamedWarpScriptFunction implements WarpS
       }
 
     } else {
-      aggregated = (Object[]) ((WarpScriptBucketizerFunction) aggregator).apply(subgts, bucketend);
+      aggregated = (Object[]) ((WarpScriptBucketizerFunction) aggregator).apply(subgts, bucketindex);
     }
 
     //
@@ -226,7 +226,7 @@ public class DURATION_BUCKETIZE extends NamedWarpScriptFunction implements WarpS
     //
 
     if (null != aggregated[3]) {
-      GTSHelper.setValue(bucketized, bucketend, (long) aggregated[1], (long) aggregated[2], aggregated[3], false);
+      GTSHelper.setValue(bucketized, bucketindex, (long) aggregated[1], (long) aggregated[2], aggregated[3], false);
     }
   }
 
@@ -257,8 +257,7 @@ public class DURATION_BUCKETIZE extends NamedWarpScriptFunction implements WarpS
       }
     }
 
-    // initialize bucketstart (start boundary), bucketend (end boundary) and bucketindex of current tick
-    long bucketend = lastbucket;
+    // initialize bucketstart (start boundary), and bucketindex of current tick
     long bucketstart = ADDDURATION.addPeriod(lastbucket, bucketperiod, dtz, -1) + 1;
     int bucketindex = lastbucket_index;
 
@@ -284,7 +283,7 @@ public class DURATION_BUCKETIZE extends NamedWarpScriptFunction implements WarpS
         //
 
         if (subgts.size() > 0) {
-          aggregateAndSet(aggregator, subgts, durationBucketized, bucketend, stack);
+          aggregateAndSet(aggregator, subgts, durationBucketized, bucketindex, stack);
 
           //
           // Reset buffer
@@ -294,9 +293,8 @@ public class DURATION_BUCKETIZE extends NamedWarpScriptFunction implements WarpS
         }
       }
 
-      // update bucketend, bucketstart and bucketindex
+      // update bucketstart and bucketindex
       while (tick < bucketstart) {
-        bucketend = bucketstart - 1;
         bucketstart = ADDDURATION.addPeriod(bucketstart, bucketperiod, dtz, -1);
         bucketindex--;
       }
@@ -312,7 +310,7 @@ public class DURATION_BUCKETIZE extends NamedWarpScriptFunction implements WarpS
     //
 
     if (subgts.size() > 0) {
-      aggregateAndSet(aggregator, subgts, durationBucketized, bucketend, stack);
+      aggregateAndSet(aggregator, subgts, durationBucketized, bucketindex, stack);
     }
 
     //
