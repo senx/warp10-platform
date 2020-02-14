@@ -37,15 +37,15 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
   
   private final StoreClient persistent;
   private final StandaloneChunkedMemoryStore cache;
+  private final boolean ephemeral;
   
   public StandaloneAcceleratedStoreClient(DirectoryClient dir, StoreClient persistentStore) {
     
     this.persistent = persistentStore;
     this.cache = new StandaloneChunkedMemoryStore(WarpConfig.getProperties(), Warp.getKeyStore());
 
-    if ("true".equals(WarpConfig.getProperty(Configuration.IN_MEMORY_EPHEMERAL))) {
-      throw new RuntimeException("Cannot run Warp 10 Accelerator when '" + Configuration.IN_MEMORY_EPHEMERAL + "' is set to 'true'.");
-    }
+    this.ephemeral = "true".equals(WarpConfig.getProperty(Configuration.IN_MEMORY_EPHEMERAL)); 
+    
     //
     // Preload the cache
     //
@@ -59,9 +59,25 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     labelselectors.put(Constants.PRODUCER_LABEL, "~.*");
     labelselectors.put(Constants.OWNER_LABEL, "~.*");
     request.addToLabelsSelectors(labelselectors);
-    final long now = InMemoryChunkSet.chunkEnd(TimeSource.getTime(), this.cache.getChunkSpan());
-    final long then = now - this.cache.getChunkCount() * this.cache.getChunkSpan() + 1;
-
+    
+    long end;
+    long start;
+    long n = -1L;
+    
+    if (this.ephemeral) {
+      end = Long.MAX_VALUE;
+      start = Long.MIN_VALUE;
+      n = 1L;
+    } else {
+      end = InMemoryChunkSet.chunkEnd(TimeSource.getTime(), this.cache.getChunkSpan());
+      start = end - this.cache.getChunkCount() * this.cache.getChunkSpan() + 1;
+      n = -1L;
+    }
+    
+    final long now = end;
+    final long then = start;
+    final long count = n;
+    
     if ("true".equals(WarpConfig.getProperty(Configuration.ACCELERATOR_PRELOAD_ACTIVITY))) {
       long activityWindow = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_ACTIVITY_WINDOW, "-1"));
       if (activityWindow > 0) {
@@ -97,7 +113,7 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
             @Override
             public void run() {
               try {
-                GTSDecoderIterator decoders = persistent.fetch(null, fbatch, now, then, -1L, 0, 1.0D, false, 0, 0);
+                GTSDecoderIterator decoders = persistent.fetch(null, fbatch, now, then, count, 0, 1.0D, false, 0, 0);
                 
                 while(decoders.hasNext()) {
                   GTSDecoder decoder = decoders.next();
@@ -162,8 +178,6 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
   
   @Override
   public GTSDecoderIterator fetch(ReadToken token, List<Metadata> metadatas, long now, long then, long count, long skip, double sample, boolean writeTimestamp, int preBoundary, int postBoundary) throws IOException {
-    long truenow = TimeSource.getTime();
-    
     //
     // If the fetch has both a time range that is larger than the cache range, we will only use
     // the persistent backend to ensure a correct fetch. Same goes with boundaries which could extend outside the
@@ -171,17 +185,24 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     //
     // Note that this is a heuristic which could still lead to missing datapoints as data with timestamps within
     // the current cache time range could very well have been written to the persistent store and not preloaded
-    // at cache startup.
+    // at cache startup if they were not in an active chunk of the cache.
     //
     
     long cacheend = InMemoryChunkSet.chunkEnd(now, this.cache.getChunkSpan());
     long cachestart = cacheend - this.cache.getChunkCount() * this.cache.getChunkSpan() + 1;
-    
-    if ((now > cacheend || then < cachestart) || preBoundary > 0 || postBoundary > 0) {
-      return this.persistent.fetch(token, metadatas, truenow, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
+
+    //
+    // If fetching a single value from Long.MAX_VALUE with an ephemeral cache, always use the cache
+    //
+    if (this.ephemeral && 1 == count && Long.MAX_VALUE == now) {
+      return this.cache.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);      
     }
     
-    return this.cache.fetch(token, metadatas, truenow, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
+    if ((now > cacheend || then < cachestart) || preBoundary > 0 || postBoundary > 0) {
+      return this.persistent.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
+    }
+    
+    return this.cache.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
   }
   
   @Override
