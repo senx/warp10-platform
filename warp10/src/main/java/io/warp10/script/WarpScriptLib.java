@@ -868,6 +868,7 @@ public class WarpScriptLib {
   public static final String NBOUNDS = "NBOUNDS";
   public static final String LBOUNDS = "LBOUNDS";
   public static final String BUCKETIZE = "BUCKETIZE";
+  public static final String DURATION_BUCKETIZE = io.warp10.script.functions.DURATION_BUCKETIZE.getDefaultName();
   public static final String MAP = "MAP";
   public static final String FILTER = "FILTER";
   public static final String APPLY = "APPLY";
@@ -1766,6 +1767,7 @@ public class WarpScriptLib {
     //
     
     addNamedWarpScriptFunction(new BUCKETIZE(BUCKETIZE));
+    addNamedWarpScriptFunction(new DURATION_BUCKETIZE());
     addNamedWarpScriptFunction(new MAP(MAP));
     addNamedWarpScriptFunction(new FILTER(FILTER, true));
     addNamedWarpScriptFunction(new APPLY(APPLY, true));
