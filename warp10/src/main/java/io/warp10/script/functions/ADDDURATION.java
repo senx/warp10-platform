@@ -162,8 +162,16 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
     return new ReadWritablePeriodWithSubSecondOffset(period, offset);
   }
 
+  public static long addPeriod(long instant, ReadWritablePeriod period, DateTimeZone dtz) {
+    return addPeriod(instant, period, dtz, 1);
+  }
+
   public static long addPeriod(long instant, ReadWritablePeriod period, DateTimeZone dtz, long N) {
     return addPeriod(instant, new ReadWritablePeriodWithSubSecondOffset(period, 0), dtz, N);
+  }
+
+  public static long addPeriod(long instant, ReadWritablePeriodWithSubSecondOffset periodAndOffset, DateTimeZone dtz) {
+    return addPeriod(instant, periodAndOffset, dtz, 1);
   }
 
   /**
