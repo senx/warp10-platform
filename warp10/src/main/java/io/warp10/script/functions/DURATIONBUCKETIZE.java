@@ -82,12 +82,12 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
 
     for (int i = 0; i < params.size() - 4; i++) {
       if (!(params.get(i) instanceof GeoTimeSerie) && !(params.get(i) instanceof List)) {
-        throw new WarpScriptException(getName() + " expects a list of Geo Time Series as first parameter.");
+        throw new WarpScriptException(getName() + " expects a Geo Time Series or a list of Geo Time Series as first parameter.");
       }
     }
 
     if (!(params.get(params.size() - 4) instanceof WarpScriptBucketizerFunction) && !(params.get(params.size() - 4) instanceof Macro) && null != params.get(params.size() - 4)) {
-      throw new WarpScriptException(getName() + " expects a bucketizer function, a macro, or NULL as fourth to last parameter.");
+      throw new WarpScriptException(getName() + " expects a bucketizer function or a macro as fourth to last parameter.");
     }
 
     if (!(params.get(params.size() - 3) instanceof Long) || !(params.get(params.size() - 2) instanceof String) || !(params.get(params.size() - 1) instanceof Long)) {
@@ -142,7 +142,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
 
     for (GeoTimeSerie gts : series) {
       if (gts.getMetadata().getAttributes().get(DURATION_ATTRIBUTE_KEY) != null || gts.getMetadata().getAttributes().get(OFFSET_ATTRIBUTE_KEY) != null || gts.getMetadata().getAttributes().get(TIMEZONE_ATTRIBUTE_KEY) != null) {
-        throw new WarpScriptException(getName() + " expects GTS for which the attributes " + DURATION_ATTRIBUTE_KEY + ", " + OFFSET_ATTRIBUTE_KEY + " and " + TIMEZONE_ATTRIBUTE_KEY + " are not be set. If an input GTS is supposed to be already duration-bucketized, duration-unbucketize them first before applying a new duration-bucketization.");
+        throw new WarpScriptException(getName() + " expects GTS for which the attributes " + DURATION_ATTRIBUTE_KEY + ", " + OFFSET_ATTRIBUTE_KEY + " and " + TIMEZONE_ATTRIBUTE_KEY + " are not set. If an input GTS is supposed to be already duration-bucketized, duration-unbucketize it first before applying a new duration-bucketization.");
       }
     }
 
