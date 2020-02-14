@@ -36,12 +36,6 @@ package io.warp10.script;
 // tick, location, elevation, value
 //
 
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.gts.GeoTimeSerie;
-
-import java.util.Arrays;
-import java.util.Map;
-
 public interface WarpScriptBucketizerFunction {
   public Object apply(Object[] args) throws WarpScriptException;
 }
