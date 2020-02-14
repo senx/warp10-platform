@@ -36,7 +36,7 @@ import java.util.regex.Pattern;
 /**
  * Bucketizes some GTS instances using a bucketduration rather than a bucketspan.
  */
-public class DURATION_BUCKETIZE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private static final String DEFAULT_NAME = "DURATION.BUCKETIZE";
   private static final Matcher DURATION_RE = Pattern.compile("^P(?!$)(\\d+Y)?(\\d+M)?(\\d+W)?(\\d+D)?(T(?=\\d)(\\d+H)?(\\d+M)?((\\d+|\\d.(\\d)+)S)?)?$").matcher("");
@@ -44,11 +44,11 @@ public class DURATION_BUCKETIZE extends NamedWarpScriptFunction implements WarpS
   public static final String OFFSET_ATTRIBUTE_KEY = ".bucketoffset";
   public static final String TIMEZONE_ATTRIBUTE_KEY = ".buckettimezone";
 
-  public DURATION_BUCKETIZE(String name) {
+  public DURATIONBUCKETIZE(String name) {
     super(name);
   }
 
-  public DURATION_BUCKETIZE() {
+  public DURATIONBUCKETIZE() {
     super(DEFAULT_NAME);
   }
 
