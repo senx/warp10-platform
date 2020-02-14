@@ -28,6 +28,7 @@ import org.joda.time.DateTimeZone;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,8 +39,9 @@ public class DURATION_BUCKETIZE extends NamedWarpScriptFunction implements WarpS
 
   private static final String DEFAULT_NAME = "DURATION.BUCKETIZE";
   private static final Matcher DURATION_RE = Pattern.compile("^P(?!$)(\\d+Y)?(\\d+M)?(\\d+W)?(\\d+D)?(T(?=\\d)(\\d+H)?(\\d+M)?((\\d+|\\d.(\\d)+)S)?)?$").matcher("");
-  private static final String DURATION_ATTRIBUTE_KEY = ".bucketduration";
-  private static final String OFFSET_ATTRIBUTE_KEY = ".bucketoffset";
+  public static final String DURATION_ATTRIBUTE_KEY = ".bucketduration";
+  public static final String OFFSET_ATTRIBUTE_KEY = ".bucketoffset";
+  public static final String TIMEZONE_ATTRIBUTE_KEY = ".buckettimezone";
 
   public DURATION_BUCKETIZE(String name) {
     super(name);
@@ -138,8 +140,8 @@ public class DURATION_BUCKETIZE extends NamedWarpScriptFunction implements WarpS
     //
 
     for (GeoTimeSerie gts : series) {
-      if (gts.getMetadata().getAttributes().get(DURATION_ATTRIBUTE_KEY) != null || gts.getMetadata().getAttributes().get(OFFSET_ATTRIBUTE_KEY) != null) {
-        throw new WarpScriptException(getName() + " expects GTS for which the attributes " + DURATION_ATTRIBUTE_KEY + " and " + OFFSET_ATTRIBUTE_KEY + " are not be set. If an input GTS is supposed to be already duration-bucketized, duration-unbucketize them first before applying a new duration-bucketization.");
+      if (gts.getMetadata().getAttributes().get(DURATION_ATTRIBUTE_KEY) != null || gts.getMetadata().getAttributes().get(OFFSET_ATTRIBUTE_KEY) != null || gts.getMetadata().getAttributes().get(TIMEZONE_ATTRIBUTE_KEY) != null) {
+        throw new WarpScriptException(getName() + " expects GTS for which the attributes " + DURATION_ATTRIBUTE_KEY + ", " + OFFSET_ATTRIBUTE_KEY + " and " + TIMEZONE_ATTRIBUTE_KEY + " are not be set. If an input GTS is supposed to be already duration-bucketized, duration-unbucketize them first before applying a new duration-bucketization.");
       }
     }
 
@@ -197,6 +199,7 @@ public class DURATION_BUCKETIZE extends NamedWarpScriptFunction implements WarpS
       GeoTimeSerie b = durationBucketize(gts, bucketperiod, dtz, bucketcount, lastbucket, lastbucket_index, bucketizer, maxbuckets, bucketizer instanceof Macro ? stack : null);
       b.getMetadata().getAttributes().put(DURATION_ATTRIBUTE_KEY, bucketduration);
       b.getMetadata().getAttributes().put(OFFSET_ATTRIBUTE_KEY, String.valueOf(bucketoffset));
+      b.getMetadata().getAttributes().put(TIMEZONE_ATTRIBUTE_KEY, dtz.getID());
 
       bucketized.add(b);
     }
@@ -328,5 +331,11 @@ public class DURATION_BUCKETIZE extends NamedWarpScriptFunction implements WarpS
     GTSHelper.sort(durationBucketized);
 
     return durationBucketized;
+  }
+
+  public static boolean isDurationBucketized(GeoTimeSerie gts) throws WarpScriptException {
+    Map<String, String> attributes = gts.getMetadata().getAttributes();
+
+    return attributes.get(DURATION_ATTRIBUTE_KEY) != null && attributes.get(OFFSET_ATTRIBUTE_KEY) != null && attributes.get(TIMEZONE_ATTRIBUTE_KEY) != null;
   }
 }
