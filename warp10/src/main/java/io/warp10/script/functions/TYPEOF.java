@@ -171,7 +171,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   private static String defaultType(Class c) {
     String canonicalName = c.getCanonicalName();
     if (null == canonicalName) {
-      return "X-(Local/Anonymous Class)";
+      return "X-Local-Anonymous-Class)";
     } else {
       return "X-" + canonicalName;
     }
