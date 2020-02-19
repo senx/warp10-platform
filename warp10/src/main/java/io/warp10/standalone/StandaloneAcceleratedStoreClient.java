@@ -144,7 +144,7 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
       }
 
       if (!batch.isEmpty()) {          
-        GTSDecoderIterator decoders = this.persistent.fetch(null, batch, now, then, -1L, 0, 0.0, false, 0, 0);
+        GTSDecoderIterator decoders = this.persistent.fetch(null, batch, now, then, count, 0, 0.0, false, 0, 0);
         
         while(decoders.hasNext()) {
           GTSDecoder decoder = decoders.next();
