@@ -453,10 +453,17 @@ public class Constants {
 
   public static final boolean EXPOSE_OWNER_PRODUCER;
   
+  /**
+   * Does Directory support missing label selectors (using an empty STRING as exact match)
+   */
+  public static final boolean ABSENT_LABEL_SUPPORT;
+  
   static {
     String tu = WarpConfig.getProperty(Configuration.WARP_TIME_UNITS);
   
     EXPOSE_OWNER_PRODUCER = "true".equals(WarpConfig.getProperty(Configuration.WARP10_EXPOSE_OWNER_PRODUCER));
+    
+    ABSENT_LABEL_SUPPORT = "true".equals(WarpConfig.getProperty(Configuration.WARP10_ABSENT_LABEL_SUPPORT));
     
     if (null == tu) {
       throw new RuntimeException("Missing time units.");

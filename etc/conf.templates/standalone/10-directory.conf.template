@@ -29,3 +29,8 @@ directory.stats.class.maxcardinality = 100
 // Maximum number of labels for which to report detailed stats in 'FINDSTATS'
 //
 directory.stats.labels.maxcardinality = 100
+
+//
+// Set to true to allow Directory queries with missing label selectors (using empty exact match)
+//
+warp10.absent.label.support = true
