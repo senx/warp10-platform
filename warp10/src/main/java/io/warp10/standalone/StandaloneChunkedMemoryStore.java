@@ -342,9 +342,17 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       maxalloc = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_GC_MAXALLOC));
     }
     
+    long delayns = 1000000L * Math.min(Long.MAX_VALUE / 1000000L, gcperiod / Constants.TIME_UNITS_PER_MS);
+    
     while(true) {
-      LockSupport.parkNanos(1000000L * (gcperiod / Constants.TIME_UNITS_PER_MS));
+      // Do not reclaim data for ephemeral setups
+      if (this.ephemeral) {
+        LockSupport.parkNanos(Long.MAX_VALUE);
+        continue;
+      }
 
+      LockSupport.parkNanos(delayns);
+            
       List<BigInteger> metadatas = new ArrayList<BigInteger>();
       metadatas.addAll(this.series.keySet());
 
