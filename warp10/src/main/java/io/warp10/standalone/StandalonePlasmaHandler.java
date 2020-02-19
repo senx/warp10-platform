@@ -16,6 +16,7 @@
 
 package io.warp10.standalone;
 
+import io.warp10.json.JsonUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.egress.EgressFetchHandler;
@@ -35,6 +36,7 @@ import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.json.MetadataSerializer;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.sensision.Sensision;
 
@@ -67,13 +69,8 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.apache.thrift.protocol.TCompactProtocol.Factory;
-import org.boon.json.JsonSerializer;
-import org.boon.json.JsonSerializerFactory;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.UpgradeRequest;
-import org.eclipse.jetty.websocket.api.UpgradeResponse;
 import org.eclipse.jetty.websocket.api.WebSocketException;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
@@ -617,9 +614,6 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
       GTSHelper.metadataToString(metasb, metadata.getName(), metadata.getLabels(), false);
       GTSHelper.metadataToString(exposedmetasb, metadata.getName(), metadata.getLabels(), true);
       
-      //Gson gson = null;
-      JsonSerializer serializer = new JsonSerializerFactory().create();
-      
       Set<Entry<Session, Set<BigInteger>>> subs = subscriptions.entrySet();
       
       for (Entry<Session, Set<BigInteger>> entry: subs) {
@@ -717,11 +711,6 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
               }
               
               if (OUTPUT_FORMAT.JSON.equals(format)) {
-                
-                //if (null == gson) {
-                //  gson = new Gson();
-                //}
-                
                 Map<String,Object> json = new HashMap<String,Object>();
                     
                 HashMap<String,String> labels = new HashMap<String,String>();
@@ -753,13 +742,12 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
                   json.put("elev", decoder.getElevation());
                 }
                 
-                //entry.getKey().getRemote().sendStringByFuture(gson.toJson(json).toString());
                 if (first) {
                   sb.append("[");
                 } else {
                   sb.append(",");                
                 }
-                sb.append(serializer.serialize(json).toString());
+                sb.append(JsonUtils.objectToJson(json));
                 
                 first = false;
               } else {

@@ -400,12 +400,20 @@ public class EgressExecHandler extends AbstractHandler {
         } catch (WarpScriptException ee) {
         }
 
-        try { StackUtils.toJSON(pw, stack, debugDepth); } catch (WarpScriptException ee) {}
+        try {
+          // As the resulting JSON is streamed, there is no need to limit its size.
+          StackUtils.toJSON(pw, stack, debugDepth, Long.MAX_VALUE);
+        } catch (WarpScriptException ee) {
+        }
 
       } else {
-        String prefix = "ERROR line #" + lineno + ": ";
-        String msg = prefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
-        resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
+        // Check if the response is already committed. This may happen if the writer has already been written to and an
+        // error happened during the write, for instance a stack overflow caused by infinite recursion.
+        if(!resp.isCommitted()) {
+          String prefix = "ERROR line #" + lineno + ": ";
+          String msg = prefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
+          resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
+        }
         return;
       }
     } finally {

@@ -141,6 +141,7 @@ public class Configuration {
   public static final String WARPSCRIPT_MAX_SYMBOLS = "warpscript.maxsymbols";
   public static final String WARPSCRIPT_MAX_WEBCALLS = "warpscript.maxwebcalls";
   public static final String WARPSCRIPT_MAX_PIXELS = "warpscript.maxpixels";
+  public static final String WARPSCRIPT_MAX_JSON = "warpscript.maxjson";
 
   // Hard limits for the above limits which can be changed via a function call
   public static final String WARPSCRIPT_MAX_OPS_HARD = "warpscript.maxops.hard";
@@ -153,6 +154,7 @@ public class Configuration {
   public static final String WARPSCRIPT_MAX_RECURSION_HARD = "warpscript.maxrecursion.hard";
   public static final String WARPSCRIPT_MAX_SYMBOLS_HARD = "warpscript.maxsymbols.hard";
   public static final String WARPSCRIPT_MAX_PIXELS_HARD = "warpscript.maxpixels.hard";
+  public static final String WARPSCRIPT_MAX_JSON_HARD = "warpscript.maxjson.hard";
 
   /**
    * When set to true, allow common comment block style. When false, keep the old strict comment block style within WarpScript
