@@ -39,7 +39,6 @@ import java.util.regex.Pattern;
  */
 public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private static final String DEFAULT_NAME = WarpScriptLib.DURATION_BUCKETIZE;
   private static final Matcher DURATION_RE = Pattern.compile("^P(?!$)(\\d+Y)?(\\d+M)?(\\d+W)?(\\d+D)?(T(?=\\d)(\\d+H)?(\\d+M)?((\\d+|\\d.(\\d)+)S)?)?$").matcher("");
   public static final String DURATION_ATTRIBUTE_KEY = ".bucketduration";
   public static final String OFFSET_ATTRIBUTE_KEY = ".bucketoffset";
@@ -50,11 +49,11 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
   }
 
   public DURATIONBUCKETIZE() {
-    super(DEFAULT_NAME);
+    super(getDefaultName());
   }
 
   public static String getDefaultName() {
-    return DEFAULT_NAME;
+    return WarpScriptLib.DURATION_BUCKETIZE;
   }
 
   @Override
@@ -81,22 +80,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
       dtz = DateTimeZone.forID(tz);
     }
 
-    for (int i = 0; i < params.size() - 4; i++) {
-      if (!(params.get(i) instanceof GeoTimeSerie) && !(params.get(i) instanceof List)) {
-        throw new WarpScriptException(getName() + " expects a Geo Time Series or a list of Geo Time Series as first parameter.");
-      }
-    }
-
-    if (!(params.get(params.size() - 4) instanceof WarpScriptBucketizerFunction) && !(params.get(params.size() - 4) instanceof Macro) && null != params.get(params.size() - 4)) {
-      throw new WarpScriptException(getName() + " expects a bucketizer function or a macro as fourth to last parameter.");
-    }
-
-    if (!(params.get(params.size() - 3) instanceof Long) || !(params.get(params.size() - 2) instanceof String) || !(params.get(params.size() - 1) instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects lastbucket, bucketduration, bucketcount (and optionally timezone) as last parameters.");
-    }
-
     List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
-
 
     for (int i = 0; i < params.size() - 4; i++) {
       if (params.get(i) instanceof GeoTimeSerie) {
@@ -108,7 +92,17 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
           }
           series.add((GeoTimeSerie) o);
         }
+      } else {
+        throw new WarpScriptException(getName() + " expects a Geo Time Series or a list of Geo Time Series as first parameter.");
       }
+    }
+
+    if (!(params.get(params.size() - 4) instanceof WarpScriptBucketizerFunction) && !(params.get(params.size() - 4) instanceof Macro) && null != params.get(params.size() - 4)) {
+      throw new WarpScriptException(getName() + " expects a bucketizer function or a macro as fourth to last parameter.");
+    }
+
+    if (!(params.get(params.size() - 3) instanceof Long) || !(params.get(params.size() - 2) instanceof String) || !(params.get(params.size() - 1) instanceof Long)) {
+      throw new WarpScriptException(getName() + " expects lastbucket, bucketduration, bucketcount (and optionally timezone) as last parameters.");
     }
 
     Object bucketizer = params.get(params.size() - 4);
@@ -134,7 +128,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
 
     long maxbuckets = (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MAX_BUCKETS);
     if (bucketcount > maxbuckets) {
-      throw new WarpScriptException("Bucket count (" + bucketcount + ") would exceed maximum value of " + maxbuckets);
+      throw new WarpScriptException(getName() + " error: bucket count (" + bucketcount + ") would exceed maximum value of " + maxbuckets);
     }
 
     //
@@ -142,7 +136,8 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
     //
 
     for (GeoTimeSerie gts : series) {
-      if (gts.getMetadata().getAttributes().get(DURATION_ATTRIBUTE_KEY) != null || gts.getMetadata().getAttributes().get(OFFSET_ATTRIBUTE_KEY) != null || gts.getMetadata().getAttributes().get(TIMEZONE_ATTRIBUTE_KEY) != null) {
+      Map<String, String> attributes = gts.getMetadata().getAttributes();
+      if (attributes.get(DURATION_ATTRIBUTE_KEY) != null || attributes.get(OFFSET_ATTRIBUTE_KEY) != null || attributes.get(TIMEZONE_ATTRIBUTE_KEY) != null) {
         throw new WarpScriptException(getName() + " expects GTS for which the attributes " + DURATION_ATTRIBUTE_KEY + ", " + OFFSET_ATTRIBUTE_KEY + " and " + TIMEZONE_ATTRIBUTE_KEY + " are not set. If an input GTS is supposed to be already duration-bucketized, duration-unbucketize it first before applying a new duration-bucketization.");
       }
     }
@@ -160,7 +155,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
     //
 
     if (!DURATION_RE.reset(bucketduration).matches()) {
-      throw new WarpScriptException(getName() + "expects the bucketduration parameter to be a valid ISO8601 duration with positive coefficients.");
+      throw new WarpScriptException(getName() + " expects the bucketduration parameter to be a valid ISO8601 duration with positive coefficients.");
     }
     ADDDURATION.ReadWritablePeriodWithSubSecondOffset bucketperiod = ADDDURATION.durationToPeriod(bucketduration);
 
@@ -210,7 +205,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
     return stack;
   }
 
-  private void aggregateAndSet(Object aggregator, GeoTimeSerie subgts, GeoTimeSerie bucketized, long bucketindex, WarpScriptStack stack) throws WarpScriptException {
+  private static void aggregateAndSet(Object aggregator, GeoTimeSerie subgts, GeoTimeSerie bucketized, long bucketindex, WarpScriptStack stack) throws WarpScriptException {
     Object[] aggregated;
     if (null != stack) {
       stack.push(subgts);
@@ -224,11 +219,11 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
 
     } else {
 
-      Object[] parms =  new Object[8];
+      Object[] parms = new Object[8];
 
       parms[0] = bucketindex;
-      parms[1] = new String[]{subgts.getName()};
-      parms[2] = new Map[]{subgts.getLabels()};
+      parms[1] = new String[] {subgts.getName()};
+      parms[2] = new Map[] {subgts.getLabels()};
       parms[3] = GTSHelper.getTicks(subgts);
       if (subgts.hasLocations()) {
         parms[4] = GTSHelper.getLocations(subgts);
@@ -262,11 +257,11 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
   }
 
 
-  public GeoTimeSerie durationBucketize(GeoTimeSerie gts, ADDDURATION.ReadWritablePeriodWithSubSecondOffset bucketperiod, DateTimeZone dtz, long bucketcount, long lastbucket, int lastbucket_index, Object aggregator, long maxbuckets, WarpScriptStack stack) throws WarpScriptException {
+  public static GeoTimeSerie durationBucketize(GeoTimeSerie gts, ADDDURATION.ReadWritablePeriodWithSubSecondOffset bucketperiod, DateTimeZone dtz, long bucketcount, long lastbucket, int lastbucketIndex, Object aggregator, long maxbuckets, WarpScriptStack stack) throws WarpScriptException {
 
     long lastTick = GTSHelper.lasttick(gts);
-    long firsTick = GTSHelper.firsttick(gts);
-    int hint = Math.min(gts.size(), (int) (1.05 * (lastTick - firsTick) / ADDDURATION.addPeriod(0, bucketperiod, dtz)));
+    long firstTick = GTSHelper.firsttick(gts);
+    int hint = Math.min(gts.size(), (int) (1.05 * (lastTick - firstTick) / ADDDURATION.addPeriod(0, bucketperiod, dtz)));
 
     GeoTimeSerie durationBucketized = gts.cloneEmpty(hint);
 
@@ -290,7 +285,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
 
     // initialize bucketstart (start boundary), and bucketindex of current tick
     long bucketstart = ADDDURATION.addPeriod(lastbucket, bucketperiod, dtz, -1) + 1;
-    int bucketindex = lastbucket_index;
+    int bucketindex = lastbucketIndex;
 
     for (int i = gts.size() - 1; i >= 0; i--) {
       long tick = GTSHelper.tickAtIndex(gts, i);
@@ -301,12 +296,12 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
         // Break off the loop if bucketcount is exceeded (except if it is equal to 0)
         //
 
-        if (bucketcount != 0 && lastbucket_index - bucketindex + 1 >= bucketcount) {
+        if (bucketcount != 0 && lastbucketIndex - bucketindex + 1 >= bucketcount) {
           break;
         }
 
-        if (lastbucket_index - bucketindex + 2 > maxbuckets) {
-          throw new WarpScriptException("Bucket count (" + String.valueOf(lastbucket_index - bucketindex + 2) + ") is exceeding maximum value of " + maxbuckets);
+        if (lastbucketIndex - bucketindex + 2 > maxbuckets) {
+          throw new WarpScriptException("Bucket count (" + (lastbucketIndex - bucketindex + 2) + ") is exceeding maximum value of " + maxbuckets);
         }
 
         //
@@ -348,7 +343,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
     // Set bucket parameters
     //
 
-    GTSHelper.setLastBucket(durationBucketized, lastbucket_index);
+    GTSHelper.setLastBucket(durationBucketized, lastbucketIndex);
     GTSHelper.setBucketSpan(durationBucketized, 1);
     GTSHelper.setBucketCount(durationBucketized, bucketcount == 0 ? durationBucketized.size() : Math.toIntExact(bucketcount));
 
@@ -361,7 +356,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
     return durationBucketized;
   }
 
-  public static boolean isDurationBucketized(GeoTimeSerie gts) throws WarpScriptException {
+  public static boolean isDurationBucketized(GeoTimeSerie gts) {
     Map<String, String> attributes = gts.getMetadata().getAttributes();
 
     return attributes.get(DURATION_ATTRIBUTE_KEY) != null && attributes.get(OFFSET_ATTRIBUTE_KEY) != null && attributes.get(TIMEZONE_ATTRIBUTE_KEY) != null;
