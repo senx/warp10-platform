@@ -25,6 +25,7 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.joda.time.Duration;
 import org.joda.time.MutablePeriod;
 import org.joda.time.ReadWritablePeriod;
 import org.joda.time.format.ISOPeriodFormat;
@@ -204,15 +205,7 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
     // This calculation is not exact in some rare edge cases  e.g. in the last second of the 28th february on a year before a leap year if we add 'P1YT0.999999S'.
     //
 
-    long steps = Math.abs(N);
-    boolean nonNegative = N >= 0;
-    for (long i = 0; i < steps; i++) {
-      if (nonNegative) {
-        dt = dt.plus(period);
-      } else {
-        dt = dt.minus(period);
-      }
-    }
+    dt = dt.withPeriodAdded(period, Math.toIntExact(N));
 
     // check if offset should be positive of negative
     if (period.toPeriod().getSeconds() < 0) {

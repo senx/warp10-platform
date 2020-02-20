@@ -18,6 +18,7 @@ package io.warp10.script.functions;
 
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptLib;
@@ -26,6 +27,7 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import org.joda.time.DateTimeZone;
+import org.joda.time.Instant;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -166,28 +168,41 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
     // Compute bucketindex of lastbucket and compute bucketoffset
     //
 
+    long averageSpan = bucketperiod.getPeriod().toPeriod().toDurationFrom(new Instant()).getMillis() * Constants.TIME_UNITS_PER_MS + bucketperiod.getOffset();
+    long flag = 0; // always equal to epoch modulo period
     long bucketoffset;
     int lastbucketIndex;
-    if (lastbucket > 0) {
-      long boundary = ADDDURATION.addPeriod(0, bucketperiod, dtz);
 
-      lastbucketIndex = 0;
-      while (boundary <= lastbucket) {
-        boundary = ADDDURATION.addPeriod(boundary, bucketperiod, dtz);
-        lastbucketIndex++;
-      }
-      bucketoffset = boundary - (lastbucket + 1);
+    //
+    // Starting from Epoch, we make a hint and land the flag close to lastbucket
+    //
+
+    if (lastbucket > 0) {
+      int lastbucketIndexHint = Math.toIntExact(lastbucket / averageSpan);
+      flag = ADDDURATION.addPeriod(flag, bucketperiod, dtz, lastbucketIndexHint + 1);
+      lastbucketIndex = lastbucketIndexHint;
 
     } else {
-      long boundary = ADDDURATION.addPeriod(lastbucket, bucketperiod, dtz);
-
-      lastbucketIndex = -1;
-      while (boundary < 0) {
-        boundary = ADDDURATION.addPeriod(boundary, bucketperiod, dtz);
-      }
-      lastbucketIndex--;
-      bucketoffset = -(ADDDURATION.addPeriod(boundary, bucketperiod, dtz, -1) + 1);
+      int lastbucketIndexHint = - Math.toIntExact(lastbucket / averageSpan);
+      flag = ADDDURATION.addPeriod(flag, bucketperiod, dtz, lastbucketIndexHint);
+      lastbucketIndex = lastbucketIndexHint - 1;
     }
+
+    //
+    // We move the flag left and right on the time axis to make sure lastbucket is its leftmost bucketend
+    //
+
+    while (flag > lastbucket) {
+      flag = ADDDURATION.addPeriod(flag, bucketperiod, dtz, -1);
+      lastbucketIndex--;
+    }
+
+    while (flag <= lastbucket) {
+      flag = ADDDURATION.addPeriod(flag, bucketperiod, dtz);
+      lastbucketIndex++;
+    }
+
+    bucketoffset = flag - (lastbucket + 1);
 
     //
     // Duration-Bucketize
