@@ -36,7 +36,6 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
 
   final private static WarpScriptStackFunction TSELEMENTS = new TSELEMENTS(WarpScriptLib.TSELEMENTS);
   final private static WarpScriptStackFunction FROMTSELEMENTS = new FROMTSELEMENTS(WarpScriptLib.TSELEMENTSTO);
-  final private static Double STU = new Double(Constants.TIME_UNITS_PER_S);
 
   public ADDDURATION(String name) {
     super(name);
@@ -116,13 +115,13 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
   /**
    * A joda time period with sub second precision (the long offset).
    */
-  public static class ReadWritablePeriodWithSubSecondOffset  {
+  public static class ReadWritablePeriodWithSubSecondOffset {
     private final ReadWritablePeriod period;
     private final long offset;
 
     public ReadWritablePeriodWithSubSecondOffset(ReadWritablePeriod period, long offset) {
-     this.period = period;
-     this.offset = offset;
+      this.period = period;
+      this.offset = offset;
     }
 
     public ReadWritablePeriod getPeriod() {
@@ -152,13 +151,17 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
     if (2 == tokens.length) {
       duration = tokens[0].concat("S");
       String tmp = tokens[1].substring(0, tokens[1].length() - 1);
-      Double d_offset = Double.valueOf("0." + tmp) * STU;
-      offset = d_offset.longValue();
+
+      try {
+        offset = ((Double) (Double.valueOf("0." + tmp) * new Double(Constants.TIME_UNITS_PER_S))).longValue();
+      } catch (NumberFormatException e) {
+        throw new WarpScriptException("Parsing of sub second precision part of duration has failed. tried to parse: " + tmp);
+      }
     }
 
     ReadWritablePeriod period = new MutablePeriod();
     if (ISOPeriodFormat.standard().getParser().parseInto(period, duration, 0, Locale.US) < 0) {
-     throw new WarpScriptException("Parsing of duration without sub second precision has failed. Tried to parse: " + duration);
+      throw new WarpScriptException("Parsing of duration without sub second precision has failed. Tried to parse: " + duration);
     }
 
     return new ReadWritablePeriodWithSubSecondOffset(period, offset);
@@ -182,8 +185,7 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
    * @param periodAndOffset a period (with subsecond precision) to add
    * @param dtz timezone
    * @param N number of times the period is added
-   * @return
-   * @throws WarpScriptException
+   * @return resulting timestamp
    */
   public static long addPeriod(long instant, ReadWritablePeriodWithSubSecondOffset periodAndOffset, DateTimeZone dtz, long N) {
 
@@ -203,9 +205,9 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
     //
 
     long steps = Math.abs(N);
-    boolean non_negative = N >= 0;
+    boolean nonNegative = N >= 0;
     for (long i = 0; i < steps; i++) {
-      if (non_negative) {
+      if (nonNegative) {
         dt = dt.plus(period);
       } else {
         dt = dt.minus(period);
