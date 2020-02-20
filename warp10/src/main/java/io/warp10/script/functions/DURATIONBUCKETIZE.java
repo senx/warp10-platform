@@ -36,6 +36,9 @@ import java.util.regex.Pattern;
 
 /**
  * Bucketizes some GTS instances using a bucketduration rather than a bucketspan.
+ * The tick of the resulting buckets will be their index (number of bucketduration since Unix Epoch).
+ * The goal is to make possible to apply functions for bucketized series on a series with bucket of irregular calendar bucket span.
+ * To restore timestamp for ticks, there is DURATION.UNBUCKETIZE.
  */
 public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
