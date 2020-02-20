@@ -27,7 +27,7 @@ import org.joda.time.DateTimeZone;
 import java.util.Map;
 
 /**
- * Bucketizes some GTS instances using a bucketduration rather than a bucketspan.
+ * Unbucketizes GTS that were previously duration-bucketized. Restore timestamps instead bucket indices.
  */
 public class DURATIONUNBUCKETIZE extends GTSStackFunction {
 
