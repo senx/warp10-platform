@@ -157,7 +157,9 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
     }
 
     ReadWritablePeriod period = new MutablePeriod();
-    ISOPeriodFormat.standard().getParser().parseInto(period, duration, 0, Locale.US);
+    if (ISOPeriodFormat.standard().getParser().parseInto(period, duration, 0, Locale.US) < 0) {
+     throw new WarpScriptException("Parsing of duration without sub second precision has failed. Tried to parse: " + duration);
+    }
 
     return new ReadWritablePeriodWithSubSecondOffset(period, offset);
   }
