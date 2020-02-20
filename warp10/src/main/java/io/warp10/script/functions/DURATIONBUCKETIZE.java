@@ -164,25 +164,25 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
     //
 
     long bucketoffset;
-    int lastbucket_index;
+    int lastbucketIndex;
     if (lastbucket > 0) {
       long boundary = ADDDURATION.addPeriod(0, bucketperiod, dtz);
 
-      lastbucket_index = 0;
+      lastbucketIndex = 0;
       while (boundary <= lastbucket) {
         boundary = ADDDURATION.addPeriod(boundary, bucketperiod, dtz);
-        lastbucket_index++;
+        lastbucketIndex++;
       }
       bucketoffset = boundary - (lastbucket + 1);
 
     } else {
       long boundary = ADDDURATION.addPeriod(lastbucket, bucketperiod, dtz);
 
-      lastbucket_index = -1;
+      lastbucketIndex = -1;
       while (boundary < 0) {
         boundary = ADDDURATION.addPeriod(boundary, bucketperiod, dtz);
       }
-      lastbucket_index--;
+      lastbucketIndex--;
       bucketoffset = -(ADDDURATION.addPeriod(boundary, bucketperiod, dtz, -1) + 1);
     }
 
@@ -193,7 +193,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
     List<GeoTimeSerie> bucketized = new ArrayList<GeoTimeSerie>(series.size());
     for (GeoTimeSerie gts : series) {
 
-      GeoTimeSerie b = durationBucketize(gts, bucketperiod, dtz, bucketcount, lastbucket, lastbucket_index, bucketizer, maxbuckets, bucketizer instanceof Macro ? stack : null);
+      GeoTimeSerie b = durationBucketize(gts, bucketperiod, dtz, bucketcount, lastbucket, lastbucketIndex, bucketizer, maxbuckets, bucketizer instanceof Macro ? stack : null);
       b.getMetadata().putToAttributes(DURATION_ATTRIBUTE_KEY, bucketduration);
       b.getMetadata().getAttributes().put(OFFSET_ATTRIBUTE_KEY, String.valueOf(bucketoffset));
       b.getMetadata().getAttributes().put(TIMEZONE_ATTRIBUTE_KEY, dtz.getID());
