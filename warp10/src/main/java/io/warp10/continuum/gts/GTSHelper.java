@@ -2680,7 +2680,7 @@ public class GTSHelper {
     }
 
     if ((value instanceof String  && value.toString().length() > maxValueSize) || (value instanceof byte[] && ((byte[]) value).length > maxValueSize)) {
-      throw new ParseException("Value too large for GTS " + (null != encoder ? GTSHelper.buildSelector(encoder.getMetadata()) : ""), 0);
+      throw new ParseException("Value too large for GTS " + (null != encoder ? GTSHelper.buildSelector(encoder.getMetadata(), false) : ""), 0);
     }
     
     // Allocate a new Encoder if need be, with a base timestamp of 0L.
@@ -8115,11 +8115,18 @@ public class GTSHelper {
     sb.append("}");
   }
   
-  public static String buildSelector(GeoTimeSerie gts) {
-    return buildSelector(gts.getMetadata());
+  public static String buildSelector(GeoTimeSerie gts, boolean forSearch) {
+    return buildSelector(gts.getMetadata(), forSearch);
   }
   
-  public static String buildSelector(Metadata metadata) {
+  /**
+   * Build a string representation of Metadata suitable for selection (via FIND/FETCH).
+   * 
+   * @param metadata Metadata to represent
+   * @param forSearch Set to true if the result is for searching, in that case for empty values of labels, '~$' will be produced, otherwise '='
+   * @return
+   */
+  public static String buildSelector(Metadata metadata, boolean forSearch) {
     StringBuilder sb = new StringBuilder();
 
     String name = metadata.getName();
@@ -8140,8 +8147,12 @@ public class GTSHelper {
         sb.append(",");
       }
       encodeName(sb, entry.getKey());
-      sb.append("=");
-      encodeName(sb, entry.getValue());
+      if (forSearch && Constants.ABSENT_LABEL_SUPPORT && "".equals(entry.getValue())) {
+        sb.append("~$");
+      } else {
+        sb.append("=");
+        encodeName(sb, entry.getValue());
+      }
       first = false;
     }
     sb.append("}");
