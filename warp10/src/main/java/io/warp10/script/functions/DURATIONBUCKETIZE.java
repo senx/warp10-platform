@@ -293,18 +293,6 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
       if (tick < bucketstart) {
 
         //
-        // Break off the loop if bucketcount is exceeded (except if it is equal to 0)
-        //
-
-        if (bucketcount != 0 && lastbucketIndex - bucketindex + 1 >= bucketcount) {
-          break;
-        }
-
-        if (lastbucketIndex - bucketindex + 2 > maxbuckets) {
-          throw new WarpScriptException("Bucket count (" + (lastbucketIndex - bucketindex + 2) + ") is exceeding maximum value of " + maxbuckets);
-        }
-
-        //
         // Call the aggregation function on the last batch
         //
 
@@ -325,7 +313,22 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
         bucketindex--;
       }
 
-      //  save value in subgts (if tick is not more recent than lastbucket)
+      //
+      // Break off the loop if bucketcount is exceeded (except if it is equal to 0)
+      //
+
+      if (bucketcount != 0 && lastbucketIndex - bucketindex + 1 >= bucketcount) {
+        break;
+      }
+
+      if (lastbucketIndex - bucketindex + 2 > maxbuckets) {
+        throw new WarpScriptException("Bucket count (" + (lastbucketIndex - bucketindex + 2) + ") is exceeding maximum value of " + maxbuckets);
+      }
+
+      //
+      //  Save value in subgts (if tick is not more recent than lastbucket)
+      //
+
       if (tick <= lastbucket) {
         GTSHelper.setValue(subgts, tick, GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), GTSHelper.valueAtIndex(gts, i), false);
       }
