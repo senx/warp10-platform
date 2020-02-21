@@ -33,8 +33,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Bucketizes some GTS instances using a bucketduration rather than a bucketspan.
@@ -44,7 +42,6 @@ import java.util.regex.Pattern;
  */
 public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private static final Matcher DURATION_RE = Pattern.compile("^P(?!$)(\\d+Y)?(\\d+M)?(\\d+W)?(\\d+D)?(T(?=\\d)(\\d+H)?(\\d+M)?((\\d+|\\d.(\\d)+)S)?)?$").matcher("");
   public static final String DURATION_ATTRIBUTE_KEY = ".bucketduration";
   public static final String OFFSET_ATTRIBUTE_KEY = ".bucketoffset";
   public static final String TIMEZONE_ATTRIBUTE_KEY = ".buckettimezone";
@@ -159,16 +156,25 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
     // Convert duration to joda.time.Period
     //
 
-    if (!DURATION_RE.reset(bucketduration).matches()) {
-      throw new WarpScriptException(getName() + " expects the bucketduration parameter to be a valid ISO8601 duration with positive coefficients.");
+    if ('P' != bucketduration.charAt(0)) {
+      throw new WarpScriptException(getName() + " expects that the bucketduration is in ISO8601 duration format.");
     }
+
     ADDDURATION.ReadWritablePeriodWithSubSecondOffset bucketperiod = ADDDURATION.durationToPeriod(bucketduration);
+
+    //
+    // Check that the bucketduration is positive
+    //
+
+    long averageSpan = bucketperiod.getPeriod().toPeriod().toDurationFrom(new Instant()).getMillis() * Constants.TIME_UNITS_PER_MS + bucketperiod.getOffset();
+    if (averageSpan < 0) {
+      throw new WarpScriptException(getName() + " expects the bucketduration parameter to be a positive ISO8601 duration.");
+    }
 
     //
     // Compute bucketindex of lastbucket and compute bucketoffset
     //
 
-    long averageSpan = bucketperiod.getPeriod().toPeriod().toDurationFrom(new Instant()).getMillis() * Constants.TIME_UNITS_PER_MS + bucketperiod.getOffset();
     long flag = 0; // always equal to epoch modulo period
     long bucketoffset;
     int lastbucketIndex;
@@ -179,12 +185,12 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
 
     if (lastbucket > 0) {
       int lastbucketIndexHint = Math.toIntExact(lastbucket / averageSpan);
-      flag = ADDDURATION.addPeriod(flag, bucketperiod, dtz, lastbucketIndexHint + 1);
+      flag = addNonNegativePeriod(flag, bucketperiod, dtz, lastbucketIndexHint + 1);
       lastbucketIndex = lastbucketIndexHint;
 
     } else {
       int lastbucketIndexHint = - Math.toIntExact(lastbucket / averageSpan);
-      flag = ADDDURATION.addPeriod(flag, bucketperiod, dtz, lastbucketIndexHint);
+      flag = addNonNegativePeriod(flag, bucketperiod, dtz, lastbucketIndexHint);
       lastbucketIndex = lastbucketIndexHint - 1;
     }
 
@@ -193,12 +199,12 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
     //
 
     while (flag > lastbucket) {
-      flag = ADDDURATION.addPeriod(flag, bucketperiod, dtz, -1);
+      flag = addNonNegativePeriod(flag, bucketperiod, dtz, -1);
       lastbucketIndex--;
     }
 
     while (flag <= lastbucket) {
-      flag = ADDDURATION.addPeriod(flag, bucketperiod, dtz);
+      flag = addNonNegativePeriod(flag, bucketperiod, dtz, 1);
       lastbucketIndex++;
     }
 
@@ -221,6 +227,24 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
 
     stack.push(bucketized);
     return stack;
+  }
+
+  public static long addNonNegativePeriod(long origin, ADDDURATION.ReadWritablePeriodWithSubSecondOffset bucketperiod, DateTimeZone dtz, long N) throws WarpScriptException {
+    long result = ADDDURATION.addPeriod(origin, bucketperiod, dtz, N);
+
+    if (N == 0) {
+      return origin;
+    }
+
+    //
+    // We make sure the period from origin translates to a positive duration
+    //
+
+    if (result > origin ^ N > 0) {
+      throw new WarpScriptException("Duration from " + origin + " is negative.");
+    }
+
+    return result;
   }
 
   private static void aggregateAndSet(Object aggregator, GeoTimeSerie subgts, GeoTimeSerie bucketized, long bucketindex, WarpScriptStack stack) throws WarpScriptException {
@@ -279,7 +303,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
 
     long lastTick = GTSHelper.lasttick(gts);
     long firstTick = GTSHelper.firsttick(gts);
-    int hint = Math.min(gts.size(), (int) (1.05 * (lastTick - firstTick) / ADDDURATION.addPeriod(0, bucketperiod, dtz)));
+    int hint = Math.min(gts.size(), (int) (1.05 * (lastTick - firstTick) / addNonNegativePeriod(0, bucketperiod, dtz, 1)));
 
     GeoTimeSerie durationBucketized = gts.cloneEmpty(hint);
 
@@ -302,7 +326,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
     }
 
     // initialize bucketstart (start boundary), and bucketindex of current tick
-    long bucketstart = ADDDURATION.addPeriod(lastbucket, bucketperiod, dtz, -1) + 1;
+    long bucketstart = addNonNegativePeriod(lastbucket, bucketperiod, dtz, -1) + 1;
     int bucketindex = lastbucketIndex;
 
     for (int i = gts.size() - 1; i >= 0; i--) {
@@ -327,7 +351,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
 
       // update bucketstart and bucketindex
       while (tick < bucketstart) {
-        bucketstart = ADDDURATION.addPeriod(bucketstart, bucketperiod, dtz, -1);
+        bucketstart = addNonNegativePeriod(bucketstart, bucketperiod, dtz, -1);
         bucketindex--;
       }
 
