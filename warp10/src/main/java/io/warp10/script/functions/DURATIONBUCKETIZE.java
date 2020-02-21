@@ -160,7 +160,12 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
       throw new WarpScriptException(getName() + " expects that the bucketduration is in ISO8601 duration format.");
     }
 
-    ADDDURATION.ReadWritablePeriodWithSubSecondOffset bucketperiod = ADDDURATION.durationToPeriod(bucketduration);
+    ADDDURATION.ReadWritablePeriodWithSubSecondOffset bucketperiod;
+    try {
+      bucketperiod = ADDDURATION.durationToPeriod(bucketduration);
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException(getName() + " encountered an exception: " + wse.getMessage());
+    }
 
     //
     // Check that the bucketduration is positive
@@ -217,7 +222,13 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
     List<GeoTimeSerie> bucketized = new ArrayList<GeoTimeSerie>(series.size());
     for (GeoTimeSerie gts : series) {
 
-      GeoTimeSerie b = durationBucketize(gts, bucketperiod, dtz, bucketcount, lastbucket, lastbucketIndex, bucketizer, maxbuckets, bucketizer instanceof Macro ? stack : null);
+      GeoTimeSerie b;
+      try {
+        b = durationBucketize(gts, bucketperiod, dtz, bucketcount, lastbucket, lastbucketIndex, bucketizer, maxbuckets, bucketizer instanceof Macro ? stack : null);
+      } catch (WarpScriptException wse) {
+        throw new WarpScriptException(getName() + " encountered an exception: " + wse.getMessage());
+      }
+
       b.getMetadata().putToAttributes(DURATION_ATTRIBUTE_KEY, bucketduration);
       b.getMetadata().getAttributes().put(OFFSET_ATTRIBUTE_KEY, String.valueOf(bucketoffset));
       b.getMetadata().getAttributes().put(TIMEZONE_ATTRIBUTE_KEY, dtz.getID());
@@ -241,7 +252,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
     //
 
     if (result > origin ^ N > 0) {
-      throw new WarpScriptException("Duration from " + origin + " is negative.");
+      throw new WarpScriptException("Period is negative from timestamp " + origin + ". Can not add a negative period.");
     }
 
     return result;

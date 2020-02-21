@@ -25,7 +25,6 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-import org.joda.time.Duration;
 import org.joda.time.MutablePeriod;
 import org.joda.time.ReadWritablePeriod;
 import org.joda.time.format.ISOPeriodFormat;
@@ -91,7 +90,12 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
     // Handle duration
     //
 
-    ReadWritablePeriodWithSubSecondOffset period = durationToPeriod(duration);
+    ReadWritablePeriodWithSubSecondOffset period;
+    try {
+      period = durationToPeriod(duration);
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException(getName() + " encountered an exception: " + wse.getMessage());
+    }
 
     //
     // Do the computation
