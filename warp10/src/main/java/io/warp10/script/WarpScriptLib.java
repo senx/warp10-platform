@@ -786,6 +786,10 @@ public class WarpScriptLib {
   public static final String MSORT = "MSORT";
   public static final String GROUPBY = "GROUPBY";
   public static final String FILTERBY = "FILTERBY";
+  public static final String ACCEL_NOCACHE = "ACCEL.NOCACHE";
+  public static final String ACCEL_CACHE = "ACCEL.CACHE";
+  public static final String ACCEL_NOPERSIST = "ACCEL.NOPERSIST";
+  public static final String ACCEL_PERSIST = "ACCEL.PERSIST";
   public static final String UPDATE = "UPDATE";
   public static final String META = "META";
   public static final String METADIFF = "METADIFF";
@@ -1646,6 +1650,10 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MSORT(MSORT));
     addNamedWarpScriptFunction(new GROUPBY(GROUPBY));
     addNamedWarpScriptFunction(new FILTERBY(FILTERBY));
+    addNamedWarpScriptFunction(new ACCELCACHE(ACCEL_CACHE, false));
+    addNamedWarpScriptFunction(new ACCELCACHE(ACCEL_NOCACHE, true));
+    addNamedWarpScriptFunction(new ACCELPERSIST(ACCEL_PERSIST, false));
+    addNamedWarpScriptFunction(new ACCELPERSIST(ACCEL_NOPERSIST, true));
     addNamedWarpScriptFunction(new UPDATE(UPDATE));
     addNamedWarpScriptFunction(new META(META));
     addNamedWarpScriptFunction(new META(METADIFF, true));    

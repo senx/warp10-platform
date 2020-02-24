@@ -407,6 +407,10 @@ struct DatalogRequest {
    * Flag indicating whether or not the attributes should be treated as delta
    */
   7: optional bool deltaAttributes = false,
+  /**
+   * Additional attributes
+   */
+  8: optional map<string,string> attributes,
 }
 
 /**

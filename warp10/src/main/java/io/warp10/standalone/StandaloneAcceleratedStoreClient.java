@@ -9,6 +9,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
@@ -38,8 +39,34 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
   private final StoreClient persistent;
   private final StandaloneChunkedMemoryStore cache;
   private final boolean ephemeral;
+
+  public static final String ATTR_NOCACHE = "accel.nocache";
+  public static final String ATTR_NOPERSIST = "accel.nopersist";
+  
+  public static final String NOCACHE = "nocache";
+  public static final String NOPERSIST = "nopersist";
+  
+  public static final String ACCELERATOR_HEADER = "X-Warp10-Accelerator";
+  
+  private static final ThreadLocal<Boolean> nocache = new ThreadLocal<Boolean>() {
+    @Override
+    protected Boolean initialValue() {
+      return Boolean.FALSE;
+    }
+  };
+
+  private static final ThreadLocal<Boolean> nopersist = new ThreadLocal<Boolean>() {
+    @Override
+    protected Boolean initialValue() {
+      return Boolean.FALSE;
+    }
+  };
+
+  private static final AtomicBoolean instantiated = new AtomicBoolean(false);
   
   public StandaloneAcceleratedStoreClient(DirectoryClient dir, StoreClient persistentStore) {
+    
+    instantiated.set(true);
     
     this.persistent = persistentStore;
     this.cache = new StandaloneChunkedMemoryStore(WarpConfig.getProperties(), Warp.getKeyStore());
@@ -206,13 +233,42 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
   }
   
   @Override
-  public void store(GTSEncoder encoder) throws IOException {
-    persistent.store(encoder);
-    cache.store(encoder);
+  public void store(GTSEncoder encoder) throws IOException {    
+    if (!nopersist.get()) {
+      persistent.store(encoder);
+    }
+    
+    if (!nocache.get()) {
+      cache.store(encoder);
+    }
   }
   
   @Override
   public void archive(int chunk, GTSEncoder encoder) throws IOException {
     throw new IOException("Not Implemented");
+  }
+  
+  public static final void nocache() {
+    if (instantiated.get()) {
+      nocache.set(Boolean.TRUE);
+    }
+  }
+  
+  public static final void cache() {
+    if (instantiated.get()) {
+      nocache.set(Boolean.FALSE);
+    }
+  }
+  
+  public static final void nopersist() {
+    if (instantiated.get()) {
+      nopersist.set(Boolean.TRUE);
+    }
+  }
+  
+  public static final void persist() {
+    if (instantiated.get()) {   
+      nopersist.set(Boolean.FALSE);
+    }
   }
 }
