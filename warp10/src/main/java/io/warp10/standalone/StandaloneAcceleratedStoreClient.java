@@ -220,15 +220,18 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
 
     //
     // If fetching a single value from Long.MAX_VALUE with an ephemeral cache, always use the cache
+    // unless ACCEL.NOCACHE was called.
     //
-    if (this.ephemeral && 1 == count && Long.MAX_VALUE == now) {
+    if (this.ephemeral && 1 == count && Long.MAX_VALUE == now && !nocache.get()) {
       return this.cache.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);      
     }
     
-    if ((now > cacheend || then < cachestart) || preBoundary > 0 || postBoundary > 0) {
+    // Use the persistent store unless ACCEL.NOPERSIST was called 
+    if (((now > cacheend || then < cachestart) || preBoundary > 0 || postBoundary > 0 || nocache.get()) && !nopersist.get()) {
       return this.persistent.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
     }
     
+    // Last resort, use the cache
     return this.cache.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
   }
   
