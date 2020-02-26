@@ -158,7 +158,7 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
       String tmp = tokens[1].substring(0, tokens[1].length() - 1);
 
       try {
-        offset = ((Double) (Double.valueOf("0." + tmp) * new Double(Constants.TIME_UNITS_PER_S))).longValue();
+        offset = ((Double) (Double.parseDouble("0." + tmp) * Constants.TIME_UNITS_PER_S)).longValue();
       } catch (NumberFormatException e) {
         throw new WarpScriptException("Parsing of sub second precision part of duration has failed. tried to parse: " + tmp);
       }
