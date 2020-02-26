@@ -33,18 +33,16 @@ import java.util.Map;
  */
 public class DURATIONUNBUCKETIZE extends GTSStackFunction {
 
-  private static final String DEFAULT_NAME = WarpScriptLib.DURATION_UNBUCKETIZE;
-
   public DURATIONUNBUCKETIZE(String name) {
     super(name);
   }
 
   public DURATIONUNBUCKETIZE() {
-    super(DEFAULT_NAME);
+    super(getDefaultName());
   }
 
   public static String getDefaultName() {
-    return DEFAULT_NAME;
+    return WarpScriptLib.DURATION_UNBUCKETIZE;
   }
 
   @Override
