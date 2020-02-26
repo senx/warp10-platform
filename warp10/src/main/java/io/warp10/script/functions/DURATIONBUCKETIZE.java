@@ -182,19 +182,19 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
 
     long flag = 0; // always equal to epoch modulo period
     long bucketoffset;
-    int lastbucketIndex;
+    long lastbucketIndex;
 
     //
     // Starting from Epoch, we make a hint and land the flag close to lastbucket
     //
 
     if (lastbucket > 0) {
-      int lastbucketIndexHint = Math.toIntExact(lastbucket / averageSpan);
+      long lastbucketIndexHint = lastbucket / averageSpan;
       flag = addNonNegativePeriod(flag, bucketperiod, dtz, lastbucketIndexHint + 1);
       lastbucketIndex = lastbucketIndexHint;
 
     } else {
-      int lastbucketIndexHint = - Math.toIntExact(lastbucket / averageSpan);
+      long lastbucketIndexHint = - lastbucket / averageSpan;
       flag = addNonNegativePeriod(flag, bucketperiod, dtz, lastbucketIndexHint);
       lastbucketIndex = lastbucketIndexHint - 1;
     }
@@ -310,7 +310,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
   }
 
 
-  public static GeoTimeSerie durationBucketize(GeoTimeSerie gts, ADDDURATION.ReadWritablePeriodWithSubSecondOffset bucketperiod, DateTimeZone dtz, long bucketcount, long lastbucket, int lastbucketIndex, Object aggregator, long maxbuckets, WarpScriptStack stack) throws WarpScriptException {
+  public static GeoTimeSerie durationBucketize(GeoTimeSerie gts, ADDDURATION.ReadWritablePeriodWithSubSecondOffset bucketperiod, DateTimeZone dtz, long bucketcount, long lastbucket, long lastbucketIndex, Object aggregator, long maxbuckets, WarpScriptStack stack) throws WarpScriptException {
 
     long lastTick = GTSHelper.lasttick(gts);
     long firstTick = GTSHelper.firsttick(gts);
@@ -338,7 +338,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
 
     // initialize bucketstart (start boundary), and bucketindex of current tick
     long bucketstart = addNonNegativePeriod(lastbucket, bucketperiod, dtz, -1) + 1;
-    int bucketindex = lastbucketIndex;
+    long bucketindex = lastbucketIndex;
 
     for (int i = gts.size() - 1; i >= 0; i--) {
       long tick = GTSHelper.tickAtIndex(gts, i);

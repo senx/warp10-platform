@@ -209,7 +209,16 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
     // This calculation is not exact in some rare edge cases  e.g. in the last second of the 28th february on a year before a leap year if we add 'P1YT0.999999S'.
     //
 
-    dt = dt.withPeriodAdded(period, Math.toIntExact(N));
+    long M = N;
+    while (M > Integer.MAX_VALUE) {
+      dt = dt.withPeriodAdded(period, Integer.MAX_VALUE);
+      M = M - Integer.MAX_VALUE;
+    }
+    while (M < Integer.MIN_VALUE) {
+      dt = dt.withPeriodAdded(period, Integer.MIN_VALUE);
+      M = M - Integer.MIN_VALUE;
+    }
+    dt = dt.withPeriodAdded(period, Math.toIntExact(M));
 
     // check if offset should be positive of negative
     if (period.toPeriod().getSeconds() < 0) {
