@@ -88,7 +88,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
       if (params.get(i) instanceof GeoTimeSerie) {
         series.add((GeoTimeSerie) params.get(i));
       } else if (params.get(i) instanceof List) {
-        for (Object o : (List) params.get(i)) {
+        for (Object o: (List) params.get(i)) {
           if (!(o instanceof GeoTimeSerie)) {
             throw new WarpScriptException(getName() + " expects a list of Geo Time Series as first parameter.");
           }
@@ -137,7 +137,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
     // Check that input gts are not already duration-bucketized
     //
 
-    for (GeoTimeSerie gts : series) {
+    for (GeoTimeSerie gts: series) {
       Map<String, String> attributes = gts.getMetadata().getAttributes();
       if (attributes.get(DURATION_ATTRIBUTE_KEY) != null || attributes.get(OFFSET_ATTRIBUTE_KEY) != null || attributes.get(TIMEZONE_ATTRIBUTE_KEY) != null) {
         throw new WarpScriptException(getName() + " expects GTS for which the attributes " + DURATION_ATTRIBUTE_KEY + ", " + OFFSET_ATTRIBUTE_KEY + " and " + TIMEZONE_ATTRIBUTE_KEY + " are not set. If an input GTS is supposed to be already duration-bucketized, duration-unbucketize it first before applying a new duration-bucketization.");
@@ -239,7 +239,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
     //
 
     List<GeoTimeSerie> bucketized = new ArrayList<GeoTimeSerie>(series.size());
-    for (GeoTimeSerie gts : series) {
+    for (GeoTimeSerie gts: series) {
 
       GeoTimeSerie b;
       try {
