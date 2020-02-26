@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ public class STORE extends NamedWarpScriptFunction implements WarpScriptStackFun
       throw new WarpScriptException(getName() + " expects a variable name or register number or a list thereof on top of the stack.");
     }
     
-    int count = 1;
+    int count = 0;
     
     // Check that each element of the list is either a LONG or a STRING
     if (var instanceof List) {
@@ -55,7 +55,7 @@ public class STORE extends NamedWarpScriptFunction implements WarpScriptStackFun
       throw new WarpScriptException(getName() + " expects " + count + " elements on the stack, only found " + stack.depth());
     }
     
-    if (count > 1) {
+    if (count > 0) {
       for (int i = count - 1; i >= 0; i--) {
         Object symbol = ((List) var).get(i);
         
