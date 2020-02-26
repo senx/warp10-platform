@@ -188,13 +188,12 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
     // Starting from Epoch, we make a hint and land the flag close to lastbucket
     //
 
+    long lastbucketIndexHint = lastbucket / averageSpan;
     if (lastbucket > 0) {
-      long lastbucketIndexHint = lastbucket / averageSpan;
       flag = addNonNegativePeriod(flag, bucketperiod, dtz, lastbucketIndexHint + 1);
       lastbucketIndex = lastbucketIndexHint;
 
     } else {
-      long lastbucketIndexHint = - lastbucket / averageSpan;
       flag = addNonNegativePeriod(flag, bucketperiod, dtz, lastbucketIndexHint);
       lastbucketIndex = lastbucketIndexHint - 1;
     }
