@@ -286,8 +286,3 @@ directory.hbase.filter = false
 // Should we ignore the proxy settings when doing a streaming request?
 //
 #directory.streaming.noproxy =
-
-//
-// Set to true to allow Directory queries with missing label selectors (using empty exact match)
-//
-warp10.absent.label.support = true
