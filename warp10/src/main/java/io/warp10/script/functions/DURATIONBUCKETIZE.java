@@ -203,6 +203,26 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
     //
 
     while (flag > lastbucket) {
+      long N = - ((flag - lastbucket) / averageSpan - 1);
+      if (N < -1) {
+        flag = addNonNegativePeriod(flag, bucketperiod, dtz, N);
+        lastbucketIndex = lastbucketIndex + N;
+      } else {
+        break;
+      }
+    }
+
+    while (flag <= lastbucket) {
+      long N = (lastbucket - flag) / averageSpan - 1;
+      if (N > 1) {
+        flag = addNonNegativePeriod(flag, bucketperiod, dtz, N);
+        lastbucketIndex = lastbucketIndex + N;
+      } else {
+        break;
+      }
+    }
+
+    while (flag > lastbucket) {
       flag = addNonNegativePeriod(flag, bucketperiod, dtz, -1);
       lastbucketIndex--;
     }
@@ -251,7 +271,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
     //
 
     if (result > origin ^ N > 0) {
-      throw new WarpScriptException("Period is negative from timestamp " + origin + ". Can not add a negative period.");
+      throw new WarpScriptException("Period is negative from timestamp " + origin + ". Can not add a negative period. Period is " + N + " times " + bucketperiod.getPeriod().toString() + " plus " + bucketperiod.getOffset() + " time unit(s).");
     }
 
     return result;
