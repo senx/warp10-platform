@@ -216,7 +216,7 @@ public class MetadataSelectorMatcher {
           if (null != inputLabels && null != inputLabels.get(label)) {
             labelAndAttributeMatch = false;
             break;
-          } else if (null != inputAttributes && null != inputLabels.get(label)) {
+          } else if (null != inputAttributes && null != inputAttributes.get(label)) {
             labelAndAttributeMatch = false;
             break;
           }
