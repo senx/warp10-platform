@@ -806,6 +806,7 @@ public class WarpScriptLib {
   public static final String BUCKETSPAN = "BUCKETSPAN";
   public static final String BUCKETCOUNT = "BUCKETCOUNT";
   public static final String UNBUCKETIZE = "UNBUCKETIZE";
+  public static final String UNBUCKETIZE_CALENDAR = "UNBUCKETIZE.CALENDAR";
   public static final String LASTBUCKET = "LASTBUCKET";
   public static final String NAME = "NAME";
   public static final String LABELS = "LABELS";
@@ -868,6 +869,7 @@ public class WarpScriptLib {
   public static final String NBOUNDS = "NBOUNDS";
   public static final String LBOUNDS = "LBOUNDS";
   public static final String BUCKETIZE = "BUCKETIZE";
+  public static final String BUCKETIZE_CALENDAR = "BUCKETIZE.CALENDAR";
   public static final String MAP = "MAP";
   public static final String FILTER = "FILTER";
   public static final String APPLY = "APPLY";
@@ -1676,6 +1678,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new BUCKETSPAN(BUCKETSPAN));
     addNamedWarpScriptFunction(new BUCKETCOUNT(BUCKETCOUNT));
     addNamedWarpScriptFunction(new UNBUCKETIZE(UNBUCKETIZE));
+    addNamedWarpScriptFunction(new UNBUCKETIZECALENDAR(UNBUCKETIZE_CALENDAR));
     addNamedWarpScriptFunction(new LASTBUCKET(LASTBUCKET));
     addNamedWarpScriptFunction(new NAME(NAME));
     addNamedWarpScriptFunction(new LABELS(LABELS));
@@ -1766,6 +1769,7 @@ public class WarpScriptLib {
     //
     
     addNamedWarpScriptFunction(new BUCKETIZE(BUCKETIZE));
+    addNamedWarpScriptFunction(new BUCKETIZECALENDAR(BUCKETIZE_CALENDAR));
     addNamedWarpScriptFunction(new MAP(MAP));
     addNamedWarpScriptFunction(new FILTER(FILTER, true));
     addNamedWarpScriptFunction(new APPLY(APPLY, true));
