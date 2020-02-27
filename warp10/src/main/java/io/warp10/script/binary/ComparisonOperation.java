@@ -174,7 +174,7 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
       } else {
         throw new WarpScriptException(getName() + "can only operate on two GTS with NUMBER or STRING values.");
       }
-    } else if (op1 instanceof GeoTimeSerie && GeoTimeSerie.TYPE.UNDEFINED == ((GeoTimeSerie) op1).getType() && (op2 instanceof String || op1 instanceof Number)) {
+    } else if (op1 instanceof GeoTimeSerie && GeoTimeSerie.TYPE.UNDEFINED == ((GeoTimeSerie) op1).getType() && (op2 instanceof String || op2 instanceof Number)) {
       // empty gts compared to a string or a number
       stack.push(((GeoTimeSerie) op1).cloneEmpty());
     } else if (op1 instanceof GeoTimeSerie && op2 instanceof String && GeoTimeSerie.TYPE.STRING == ((GeoTimeSerie) op1).getType()) {

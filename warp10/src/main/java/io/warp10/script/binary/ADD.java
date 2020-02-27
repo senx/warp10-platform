@@ -101,7 +101,7 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
         type = TYPE.STRING;
       } else if (TYPE.DOUBLE == gts1.getType() || TYPE.DOUBLE == gts2.getType()) {
         type = TYPE.DOUBLE;
-      } else if (TYPE.LONG == gts1.getType() && TYPE.LONG == gts2.getType()) {
+      } else if (TYPE.LONG == gts1.getType() || TYPE.LONG == gts2.getType()) {
         type = TYPE.LONG;
       }
       
@@ -137,7 +137,9 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
           };
           break;
         default:
-          throw new WarpScriptException(getName() + " Invalid Geo Time Series™ type.");
+          // both inputs are empty, return an empty gts.
+          stack.push(new GeoTimeSerie());
+          return stack;
       }
 
       GTSOpsHelper.applyBinaryOp(result, gts1, gts2, op);
