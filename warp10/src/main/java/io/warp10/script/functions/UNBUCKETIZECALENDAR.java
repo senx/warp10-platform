@@ -27,22 +27,22 @@ import org.joda.time.DateTimeZone;
 import java.util.Map;
 
 /**
- * Unbucketizes GTS that were previously duration-bucketized.
+ * Unbucketizes GTS that were previously calendar-bucketized.
  * Restore timestamps instead bucket indices.
- * See DURATIONBUCKETIZE.
+ * See BUCKETIZECALENDAR.
  */
-public class UNBUCKETIZEDURATION extends GTSStackFunction {
+public class UNBUCKETIZECALENDAR extends GTSStackFunction {
 
-  public UNBUCKETIZEDURATION(String name) {
+  public UNBUCKETIZECALENDAR(String name) {
     super(name);
   }
 
-  public UNBUCKETIZEDURATION() {
+  public UNBUCKETIZECALENDAR() {
     super(getDefaultName());
   }
 
   public static String getDefaultName() {
-    return WarpScriptLib.UNBUCKETIZE_DURATION;
+    return WarpScriptLib.UNBUCKETIZE_CALENDAR;
   }
 
   @Override
@@ -57,19 +57,19 @@ public class UNBUCKETIZEDURATION extends GTSStackFunction {
       throw new WarpScriptException(getName() + " expects input GTS to be bucketized.");
     }
 
-    if (!BUCKETIZEDURATION.isDurationBucketized(gts)) {
+    if (!BUCKETIZECALENDAR.isDurationBucketized(gts)) {
       throw new WarpScriptException(getName() + " expects input GTS to be duration-bucketized. This information is stored in attributes.");
     }
 
-    ADDDURATION.ReadWritablePeriodWithSubSecondOffset bucketperiod = ADDDURATION.durationToPeriod(gts.getMetadata().getAttributes().get(BUCKETIZEDURATION.DURATION_ATTRIBUTE_KEY));
-    long bucketoffset = Long.parseLong(gts.getMetadata().getAttributes().get(BUCKETIZEDURATION.OFFSET_ATTRIBUTE_KEY));
-    DateTimeZone dtz = DateTimeZone.forID(gts.getMetadata().getAttributes().get(BUCKETIZEDURATION.TIMEZONE_ATTRIBUTE_KEY));
+    ADDDURATION.ReadWritablePeriodWithSubSecondOffset bucketperiod = ADDDURATION.durationToPeriod(gts.getMetadata().getAttributes().get(BUCKETIZECALENDAR.DURATION_ATTRIBUTE_KEY));
+    long bucketoffset = Long.parseLong(gts.getMetadata().getAttributes().get(BUCKETIZECALENDAR.OFFSET_ATTRIBUTE_KEY));
+    DateTimeZone dtz = DateTimeZone.forID(gts.getMetadata().getAttributes().get(BUCKETIZECALENDAR.TIMEZONE_ATTRIBUTE_KEY));
 
     GeoTimeSerie result = gts.cloneEmpty();
     GTSHelper.unbucketize(result);
-    result.getMetadata().getAttributes().remove(BUCKETIZEDURATION.DURATION_ATTRIBUTE_KEY);
-    result.getMetadata().getAttributes().remove(BUCKETIZEDURATION.OFFSET_ATTRIBUTE_KEY);
-    result.getMetadata().getAttributes().remove(BUCKETIZEDURATION.TIMEZONE_ATTRIBUTE_KEY);
+    result.getMetadata().getAttributes().remove(BUCKETIZECALENDAR.DURATION_ATTRIBUTE_KEY);
+    result.getMetadata().getAttributes().remove(BUCKETIZECALENDAR.OFFSET_ATTRIBUTE_KEY);
+    result.getMetadata().getAttributes().remove(BUCKETIZECALENDAR.TIMEZONE_ATTRIBUTE_KEY);
 
     for (int i = 0; i < gts.size(); i++) {
 

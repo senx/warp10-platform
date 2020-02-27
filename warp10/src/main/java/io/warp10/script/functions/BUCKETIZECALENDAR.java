@@ -38,25 +38,25 @@ import java.util.Map;
  * Bucketizes some GTS instances using a bucketduration rather than a bucketspan.
  * The tick of the resulting buckets will be their index (number of bucketduration since Unix Epoch).
  * The goal is to make possible to apply functions for bucketized series on a series with bucket of irregular calendar bucket span.
- * To restore timestamp for ticks, there is DURATION.UNBUCKETIZE.
+ * To restore timestamp for ticks, there is UNBUCKETIZE.CALENDAR.
  */
-public class BUCKETIZEDURATION extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class BUCKETIZECALENDAR extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   public static final String DURATION_ATTRIBUTE_KEY = ".bucketduration";
   public static final String OFFSET_ATTRIBUTE_KEY = ".bucketoffset";
   public static final String TIMEZONE_ATTRIBUTE_KEY = ".buckettimezone";
   public static final Instant EPOCH = new Instant(0);
 
-  public BUCKETIZEDURATION(String name) {
+  public BUCKETIZECALENDAR(String name) {
     super(name);
   }
 
-  public BUCKETIZEDURATION() {
+  public BUCKETIZECALENDAR() {
     super(getDefaultName());
   }
 
   public static String getDefaultName() {
-    return WarpScriptLib.BUCKETIZE_DURATION;
+    return WarpScriptLib.BUCKETIZE_CALENDAR;
   }
 
   @Override
