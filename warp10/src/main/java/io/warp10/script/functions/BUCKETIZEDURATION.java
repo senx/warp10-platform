@@ -165,7 +165,7 @@ public class BUCKETIZEDURATION extends NamedWarpScriptFunction implements WarpSc
     try {
       bucketperiod = ADDDURATION.durationToPeriod(bucketduration);
     } catch (WarpScriptException wse) {
-      throw new WarpScriptException(getName() + " encountered an exception.", wse.getCause());
+      throw new WarpScriptException(getName() + " encountered an exception.", wse);
     }
 
     //
@@ -246,7 +246,7 @@ public class BUCKETIZEDURATION extends NamedWarpScriptFunction implements WarpSc
       try {
         b = durationBucketize(gts, bucketperiod, dtz, bucketcount, lastbucket, lastbucketIndex, bucketizer, maxbuckets, bucketizer instanceof Macro ? stack : null);
       } catch (WarpScriptException wse) {
-        throw new WarpScriptException(getName() + " encountered an exception.", wse.getCause());
+        throw new WarpScriptException(getName() + " encountered an exception.", wse);
       }
 
       b.getMetadata().putToAttributes(DURATION_ATTRIBUTE_KEY, bucketduration);
