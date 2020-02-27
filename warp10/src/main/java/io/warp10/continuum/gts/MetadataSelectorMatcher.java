@@ -213,10 +213,8 @@ public class MetadataSelectorMatcher {
       // standard selector
       if (null != this.labelsPatterns) {
         for (String label: this.missingLabels) {
-          if (null != inputLabels && null != inputLabels.get(label)) {
-            labelAndAttributeMatch = false;
-            break;
-          } else if (null != inputAttributes && null != inputAttributes.get(label)) {
+          if ((null != inputLabels && null != inputLabels.get(label))
+              || (null != inputAttributes && null != inputAttributes.get(label))) {
             labelAndAttributeMatch = false;
             break;
           }
