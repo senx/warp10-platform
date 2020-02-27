@@ -45,6 +45,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
   public static final String DURATION_ATTRIBUTE_KEY = ".bucketduration";
   public static final String OFFSET_ATTRIBUTE_KEY = ".bucketoffset";
   public static final String TIMEZONE_ATTRIBUTE_KEY = ".buckettimezone";
+  public static final Instant EPOCH = new Instant(0);
 
   public DURATIONBUCKETIZE(String name) {
     super(name);
@@ -171,7 +172,7 @@ public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpSc
     // Check that the bucketduration is positive
     //
 
-    long averageSpan = bucketperiod.getPeriod().toPeriod().toDurationFrom(new Instant()).getMillis() * Constants.TIME_UNITS_PER_MS + bucketperiod.getOffset();
+    long averageSpan = bucketperiod.getPeriod().toPeriod().toDurationFrom(EPOCH).getMillis() * Constants.TIME_UNITS_PER_MS + bucketperiod.getOffset();
     if (averageSpan < 0) {
       throw new WarpScriptException(getName() + " expects the bucketduration parameter to be a positive ISO8601 duration.");
     }
