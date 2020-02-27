@@ -94,7 +94,7 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
     try {
       period = durationToPeriod(duration);
     } catch (WarpScriptException wse) {
-      throw new WarpScriptException(getName() + " encountered an exception: " + wse.getMessage());
+      throw new WarpScriptException(getName() + " encountered an exception: " + wse.getMessage(), wse.getCause());
     }
 
     //
