@@ -40,23 +40,23 @@ import java.util.Map;
  * The goal is to make possible to apply functions for bucketized series on a series with bucket of irregular calendar bucket span.
  * To restore timestamp for ticks, there is DURATION.UNBUCKETIZE.
  */
-public class DURATIONBUCKETIZE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class BUCKETIZEDURATION extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   public static final String DURATION_ATTRIBUTE_KEY = ".bucketduration";
   public static final String OFFSET_ATTRIBUTE_KEY = ".bucketoffset";
   public static final String TIMEZONE_ATTRIBUTE_KEY = ".buckettimezone";
   public static final Instant EPOCH = new Instant(0);
 
-  public DURATIONBUCKETIZE(String name) {
+  public BUCKETIZEDURATION(String name) {
     super(name);
   }
 
-  public DURATIONBUCKETIZE() {
+  public BUCKETIZEDURATION() {
     super(getDefaultName());
   }
 
   public static String getDefaultName() {
-    return WarpScriptLib.DURATION_BUCKETIZE;
+    return WarpScriptLib.BUCKETIZE_DURATION;
   }
 
   @Override

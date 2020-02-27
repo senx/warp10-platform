@@ -31,18 +31,18 @@ import java.util.Map;
  * Restore timestamps instead bucket indices.
  * See DURATIONBUCKETIZE.
  */
-public class DURATIONUNBUCKETIZE extends GTSStackFunction {
+public class UNBUCKETIZEDURATION extends GTSStackFunction {
 
-  public DURATIONUNBUCKETIZE(String name) {
+  public UNBUCKETIZEDURATION(String name) {
     super(name);
   }
 
-  public DURATIONUNBUCKETIZE() {
+  public UNBUCKETIZEDURATION() {
     super(getDefaultName());
   }
 
   public static String getDefaultName() {
-    return WarpScriptLib.DURATION_UNBUCKETIZE;
+    return WarpScriptLib.UNBUCKETIZE_DURATION;
   }
 
   @Override
@@ -57,19 +57,19 @@ public class DURATIONUNBUCKETIZE extends GTSStackFunction {
       throw new WarpScriptException(getName() + " expects input GTS to be bucketized.");
     }
 
-    if (!DURATIONBUCKETIZE.isDurationBucketized(gts)) {
+    if (!BUCKETIZEDURATION.isDurationBucketized(gts)) {
       throw new WarpScriptException(getName() + " expects input GTS to be duration-bucketized. This information is stored in attributes.");
     }
 
-    ADDDURATION.ReadWritablePeriodWithSubSecondOffset bucketperiod = ADDDURATION.durationToPeriod(gts.getMetadata().getAttributes().get(DURATIONBUCKETIZE.DURATION_ATTRIBUTE_KEY));
-    long bucketoffset = Long.parseLong(gts.getMetadata().getAttributes().get(DURATIONBUCKETIZE.OFFSET_ATTRIBUTE_KEY));
-    DateTimeZone dtz = DateTimeZone.forID(gts.getMetadata().getAttributes().get(DURATIONBUCKETIZE.TIMEZONE_ATTRIBUTE_KEY));
+    ADDDURATION.ReadWritablePeriodWithSubSecondOffset bucketperiod = ADDDURATION.durationToPeriod(gts.getMetadata().getAttributes().get(BUCKETIZEDURATION.DURATION_ATTRIBUTE_KEY));
+    long bucketoffset = Long.parseLong(gts.getMetadata().getAttributes().get(BUCKETIZEDURATION.OFFSET_ATTRIBUTE_KEY));
+    DateTimeZone dtz = DateTimeZone.forID(gts.getMetadata().getAttributes().get(BUCKETIZEDURATION.TIMEZONE_ATTRIBUTE_KEY));
 
     GeoTimeSerie result = gts.cloneEmpty();
     GTSHelper.unbucketize(result);
-    result.getMetadata().getAttributes().remove(DURATIONBUCKETIZE.DURATION_ATTRIBUTE_KEY);
-    result.getMetadata().getAttributes().remove(DURATIONBUCKETIZE.OFFSET_ATTRIBUTE_KEY);
-    result.getMetadata().getAttributes().remove(DURATIONBUCKETIZE.TIMEZONE_ATTRIBUTE_KEY);
+    result.getMetadata().getAttributes().remove(BUCKETIZEDURATION.DURATION_ATTRIBUTE_KEY);
+    result.getMetadata().getAttributes().remove(BUCKETIZEDURATION.OFFSET_ATTRIBUTE_KEY);
+    result.getMetadata().getAttributes().remove(BUCKETIZEDURATION.TIMEZONE_ATTRIBUTE_KEY);
 
     for (int i = 0; i < gts.size(); i++) {
 
