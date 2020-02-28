@@ -1685,6 +1685,11 @@ public class Configuration {
   public static final String WARP10_EXPOSE_OWNER_PRODUCER = "warp10.expose.owner.producer";
   
   /**
+   * Set to true to allow Directory queries with missing label selectors (using empty exact match)
+   */
+  public static final String WARP10_ABSENT_LABEL_SUPPORT = "warp10.absent.label.support";
+  
+  /**
    * Manager secret, must be set to use the managing functions
    */
   public static final String WARP10_MANAGER_SECRET = "warp10.manager.secret";

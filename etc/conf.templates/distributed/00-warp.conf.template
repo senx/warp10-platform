@@ -143,3 +143,7 @@ warp.components =
 //
 #warp10.expose.owner.producer = true
 
+//
+// Set to true to allow Directory queries with missing label selectors (using empty exact match)
+//
+warp10.absent.label.support = true
