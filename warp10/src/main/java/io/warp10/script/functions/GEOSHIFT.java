@@ -116,7 +116,7 @@ public class GEOSHIFT extends NamedWarpScriptFunction implements WarpScriptStack
       // check that the requested resolution is not finer than the finest present in
       // the shape
       if (resolution > shaperes) {
-        throw new WarpScriptException(getName() + " cannot use resolution finer than " + (resolution << 1));
+        throw new WarpScriptException(getName() + " cannot use resolution finer than " + (shaperes << 1));
       }
     }
 
