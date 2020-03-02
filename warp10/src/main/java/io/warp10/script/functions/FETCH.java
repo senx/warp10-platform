@@ -73,6 +73,8 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.sensision.Sensision;
+import io.warp10.standalone.StandaloneAcceleratedStoreClient;
+
 import org.joda.time.format.ISOPeriodFormat;
 
 /**
@@ -409,6 +411,21 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         
         int boundary = 0;
         
+        boolean nocache = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
+        boolean nopersist = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));
+
+        if (nocache) {
+          StandaloneAcceleratedStoreClient.nocache();
+        } else {
+          StandaloneAcceleratedStoreClient.cache();          
+        }
+        
+        if (nopersist) {
+          StandaloneAcceleratedStoreClient.nopersist();
+        } else {
+          StandaloneAcceleratedStoreClient.persist();
+        }
+        
         try (GTSDecoderIterator gtsiter = gtsStore.fetch(rtoken, metadatas, end, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary)) {
           while(gtsiter.hasNext()) {           
             GTSDecoder decoder = gtsiter.next();
@@ -638,7 +655,9 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         }
       }
     }
-           
+        
+    stack.setAttribute(StandaloneAcceleratedStoreClient.ATTR_REPORT, StandaloneAcceleratedStoreClient.accelerated());
+    
     stack.push(series);
     
     //

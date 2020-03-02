@@ -40,6 +40,7 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
   private final StandaloneChunkedMemoryStore cache;
   private final boolean ephemeral;
 
+  public static final String ATTR_REPORT = "accel.report";
   public static final String ATTR_NOCACHE = "accel.nocache";
   public static final String ATTR_NOPERSIST = "accel.nopersist";
   
@@ -47,6 +48,15 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
   public static final String NOPERSIST = "nopersist";
   
   public static final String ACCELERATOR_HEADER = "X-Warp10-Accelerator";
+  
+  /**
+   * Was the last FETCH accelerated for the given Thread?
+   */
+  private static final ThreadLocal<Boolean> accelerated = new ThreadLocal<Boolean>() {
+    protected Boolean initialValue() {
+      return Boolean.FALSE;
+    };
+  };
   
   private static final ThreadLocal<Boolean> nocache = new ThreadLocal<Boolean>() {
     @Override
@@ -223,15 +233,18 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     // unless ACCEL.NOCACHE was called.
     //
     if (this.ephemeral && 1 == count && Long.MAX_VALUE == now && !nocache.get()) {
+      accelerated.set(Boolean.TRUE);
       return this.cache.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);      
     }
     
     // Use the persistent store unless ACCEL.NOPERSIST was called 
     if (((now > cacheend || then < cachestart) || preBoundary > 0 || postBoundary > 0 || nocache.get()) && !nopersist.get()) {
+      accelerated.set(Boolean.FALSE);
       return this.persistent.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
     }
     
     // Last resort, use the cache
+    accelerated.set(Boolean.TRUE);
     return this.cache.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
   }
   
@@ -272,6 +285,14 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
   public static final void persist() {
     if (instantiated.get()) {   
       nopersist.set(Boolean.FALSE);
+    }
+  }
+  
+  public static final boolean accelerated() {
+    if (instantiated.get()) {
+      return accelerated.get();
+    } else {
+      return false;
     }
   }
 }

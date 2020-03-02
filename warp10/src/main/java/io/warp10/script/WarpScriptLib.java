@@ -791,6 +791,7 @@ public class WarpScriptLib {
   public static final String ACCEL_CACHE = "ACCEL.CACHE";
   public static final String ACCEL_NOPERSIST = "ACCEL.NOPERSIST";
   public static final String ACCEL_PERSIST = "ACCEL.PERSIST";
+  public static final String ACCEL_REPORT = "ACCEL.REPORT";
   public static final String UPDATE = "UPDATE";
   public static final String META = "META";
   public static final String METADIFF = "METADIFF";
@@ -1659,6 +1660,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new ACCELCACHE(ACCEL_NOCACHE, true));
     addNamedWarpScriptFunction(new ACCELPERSIST(ACCEL_PERSIST, false));
     addNamedWarpScriptFunction(new ACCELPERSIST(ACCEL_NOPERSIST, true));
+    addNamedWarpScriptFunction(new ACCELREPORT(ACCEL_REPORT));
     addNamedWarpScriptFunction(new UPDATE(UPDATE));
     addNamedWarpScriptFunction(new META(META));
     addNamedWarpScriptFunction(new META(METADIFF, true));    
