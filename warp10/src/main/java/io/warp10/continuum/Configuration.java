@@ -141,6 +141,7 @@ public class Configuration {
   public static final String WARPSCRIPT_MAX_SYMBOLS = "warpscript.maxsymbols";
   public static final String WARPSCRIPT_MAX_WEBCALLS = "warpscript.maxwebcalls";
   public static final String WARPSCRIPT_MAX_PIXELS = "warpscript.maxpixels";
+  public static final String WARPSCRIPT_MAX_JSON = "warpscript.maxjson";
 
   // Hard limits for the above limits which can be changed via a function call
   public static final String WARPSCRIPT_MAX_OPS_HARD = "warpscript.maxops.hard";
@@ -153,6 +154,7 @@ public class Configuration {
   public static final String WARPSCRIPT_MAX_RECURSION_HARD = "warpscript.maxrecursion.hard";
   public static final String WARPSCRIPT_MAX_SYMBOLS_HARD = "warpscript.maxsymbols.hard";
   public static final String WARPSCRIPT_MAX_PIXELS_HARD = "warpscript.maxpixels.hard";
+  public static final String WARPSCRIPT_MAX_JSON_HARD = "warpscript.maxjson.hard";
 
   /**
    * When set to true, allow common comment block style. When false, keep the old strict comment block style within WarpScript
@@ -1681,6 +1683,11 @@ public class Configuration {
    * Set to true to expose owner and producer labels in Geo Time Series retrieved from the Warp 10 Storage Engine 
    */
   public static final String WARP10_EXPOSE_OWNER_PRODUCER = "warp10.expose.owner.producer";
+  
+  /**
+   * Set to true to allow Directory queries with missing label selectors (using empty exact match)
+   */
+  public static final String WARP10_ABSENT_LABEL_SUPPORT = "warp10.absent.label.support";
   
   /**
    * Manager secret, must be set to use the managing functions

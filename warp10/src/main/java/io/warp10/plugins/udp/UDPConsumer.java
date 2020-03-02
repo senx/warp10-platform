@@ -212,12 +212,15 @@ public class UDPConsumer extends Thread {
 
         try {
           int queueIndex = 0;
+          
+          byte[] payload = Arrays.copyOfRange(packet.getData(), packet.getOffset(), packet.getOffset() + packet.getLength());
+          
           // Apply the partitioning macro if it is defined
           if (null != this.partitioner) {
             this.stack.clear();
             this.stack.push(packet.getAddress().getHostAddress());
             this.stack.push((long) packet.getPort());
-            this.stack.push(Arrays.copyOfRange(packet.getData(), packet.getOffset(), packet.getOffset() + packet.getLength()));
+            this.stack.push(payload);
             this.stack.exec(this.partitioner);
             int seq = ((Number) this.stack.pop()).intValue();
             queueIndex = seq % this.parallelism;
@@ -226,7 +229,7 @@ public class UDPConsumer extends Thread {
           ArrayList<Object> msg = new ArrayList<Object>();
           msg.add(packet.getAddress().getHostAddress());
           msg.add(packet.getPort());
-          msg.add(Arrays.copyOfRange(packet.getData(), packet.getOffset(), packet.getOffset() + packet.getLength()));
+          msg.add(payload);
 
           this.queues[queueIndex].put(msg);
 

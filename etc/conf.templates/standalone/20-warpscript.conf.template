@@ -133,6 +133,12 @@ warpscript.maxpixels = 1000000
 warpscript.maxpixels.hard = 1000000
 
 //
+// Maximum size of a JSON pushed on the stack, in characters.
+//
+warpscript.maxjson = 20971520
+warpscript.maxjson.hard = 209715200
+
+//
 // WEBCALL limit per WarpScript
 //
 warpscript.maxwebcalls = 4

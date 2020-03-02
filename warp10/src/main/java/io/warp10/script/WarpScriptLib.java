@@ -523,6 +523,7 @@ public class WarpScriptLib {
   public static final String OPS = "OPS";
   public static final String MAXSYMBOLS = "MAXSYMBOLS";
   public static final String SYMBOLS = "SYMBOLS";
+  public static final String MAXJSON = "MAXJSON";
   public static final String NOW = "NOW";
   public static final String AGO = "AGO";
   public static final String MSTU = "MSTU";
@@ -809,6 +810,7 @@ public class WarpScriptLib {
   public static final String BUCKETSPAN = "BUCKETSPAN";
   public static final String BUCKETCOUNT = "BUCKETCOUNT";
   public static final String UNBUCKETIZE = "UNBUCKETIZE";
+  public static final String UNBUCKETIZE_CALENDAR = "UNBUCKETIZE.CALENDAR";
   public static final String LASTBUCKET = "LASTBUCKET";
   public static final String NAME = "NAME";
   public static final String LABELS = "LABELS";
@@ -871,6 +873,7 @@ public class WarpScriptLib {
   public static final String NBOUNDS = "NBOUNDS";
   public static final String LBOUNDS = "LBOUNDS";
   public static final String BUCKETIZE = "BUCKETIZE";
+  public static final String BUCKETIZE_CALENDAR = "BUCKETIZE.CALENDAR";
   public static final String MAP = "MAP";
   public static final String FILTER = "FILTER";
   public static final String APPLY = "APPLY";
@@ -1103,6 +1106,7 @@ public class WarpScriptLib {
   public static final String MATTO = "MAT->";
   public static final String VECTO = "VEC->";
 
+  public static final String GEOSHIFT = "GEOSHIFT";
   public static final String GEO_REGEXP = "GEO.REGEXP";
   public static final String GEO_OPTIMIZE = "GEO.OPTIMIZE";
   public static final String GEO_NORMALIZE = "GEO.NORMALIZE";
@@ -1258,6 +1262,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new OPS(OPS));
     addNamedWarpScriptFunction(new MAXSYMBOLS(MAXSYMBOLS));
     addNamedWarpScriptFunction(new SYMBOLS(SYMBOLS));
+    addNamedWarpScriptFunction(new MAXJSON(MAXJSON));
     addNamedWarpScriptFunction(new EVAL(EVAL));
     addNamedWarpScriptFunction(new NOW(NOW));
     addNamedWarpScriptFunction(new AGO(AGO));
@@ -1682,6 +1687,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new BUCKETSPAN(BUCKETSPAN));
     addNamedWarpScriptFunction(new BUCKETCOUNT(BUCKETCOUNT));
     addNamedWarpScriptFunction(new UNBUCKETIZE(UNBUCKETIZE));
+    addNamedWarpScriptFunction(new UNBUCKETIZECALENDAR(UNBUCKETIZE_CALENDAR));
     addNamedWarpScriptFunction(new LASTBUCKET(LASTBUCKET));
     addNamedWarpScriptFunction(new NAME(NAME));
     addNamedWarpScriptFunction(new LABELS(LABELS));
@@ -1772,6 +1778,7 @@ public class WarpScriptLib {
     //
     
     addNamedWarpScriptFunction(new BUCKETIZE(BUCKETIZE));
+    addNamedWarpScriptFunction(new BUCKETIZECALENDAR(BUCKETIZE_CALENDAR));
     addNamedWarpScriptFunction(new MAP(MAP));
     addNamedWarpScriptFunction(new FILTER(FILTER, true));
     addNamedWarpScriptFunction(new APPLY(APPLY, true));
@@ -1939,6 +1946,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOGEOJSON(TOGEOJSON));
     addNamedWarpScriptFunction(new GEOOPTIMIZE(GEO_OPTIMIZE));
     addNamedWarpScriptFunction(new GEONORMALIZE(GEO_NORMALIZE));
+    addNamedWarpScriptFunction(new GEOSHIFT(GEOSHIFT));
     addNamedWarpScriptFunction(new GeoIntersection(GEO_INTERSECTION));
     addNamedWarpScriptFunction(new GeoUnion(GEO_UNION));
     addNamedWarpScriptFunction(new GeoSubtraction(GEO_DIFFERENCE));

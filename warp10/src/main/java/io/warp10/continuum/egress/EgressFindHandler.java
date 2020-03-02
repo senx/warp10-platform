@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.egress;
 
+import io.warp10.json.JsonUtils;
 import io.warp10.ThrowableUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
@@ -28,7 +29,6 @@ import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
 import io.warp10.quasar.token.thrift.data.ReadToken;
-import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.functions.PARSESELECTOR;
 import io.warp10.sensision.Sensision;
@@ -44,14 +44,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.boon.json.JsonSerializer;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.slf4j.Logger;
@@ -144,7 +142,6 @@ public class EgressFindHandler extends AbstractHandler {
       
       StringBuilder sb = new StringBuilder();
 
-      AtomicInteger level = new AtomicInteger(0);
       boolean first = true;
       
       try {
@@ -187,12 +184,6 @@ public class EgressFindHandler extends AbstractHandler {
             request.setQuietAfter(quietAfter);
           }
 
-          JsonSerializer serializer = null;
-          
-          if (json) {
-            serializer = StackUtils.getSerializer();
-          }
-          
           try (MetadataIterator iterator = directoryClient.iterator(request)) {
             while(iterator.hasNext()) {
               if (limit <= 0) {
@@ -223,7 +214,7 @@ public class EgressFindHandler extends AbstractHandler {
                 } else {
                   first = false;
                 }
-                StackUtils.objectToJSON(serializer, pw, metadata, level, true);
+                JsonUtils.objectToJson(pw, metadata, true);
                 continue;
               }
               

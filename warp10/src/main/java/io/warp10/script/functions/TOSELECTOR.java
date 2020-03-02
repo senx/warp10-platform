@@ -33,11 +33,11 @@ public class TOSELECTOR extends ElementOrListStackFunction {
     @Override
     public Object applyOnElement(Object element) throws WarpScriptException {
       if (element instanceof GeoTimeSerie) {
-        return GTSHelper.buildSelector((GeoTimeSerie) element);
+        return GTSHelper.buildSelector((GeoTimeSerie) element, true);
       } else if (element instanceof GTSEncoder) {
         Metadata meta = new Metadata(((GTSEncoder) element).getMetadata());
 
-        return GTSHelper.buildSelector(meta);
+        return GTSHelper.buildSelector(meta, true);
       } else {
         throw new WarpScriptException(getName() + " expects a GeoTimeSeries, a GTSEncoder or a list thereof on top of the stack.");
       }

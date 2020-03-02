@@ -36,7 +36,6 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
 
   final private static WarpScriptStackFunction TSELEMENTS = new TSELEMENTS(WarpScriptLib.TSELEMENTS);
   final private static WarpScriptStackFunction FROMTSELEMENTS = new FROMTSELEMENTS(WarpScriptLib.TSELEMENTSTO);
-  final private static Double STU = new Double(Constants.TIME_UNITS_PER_S);
 
   public ADDDURATION(String name) {
     super(name);
@@ -79,35 +78,24 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
     }
 
     //
-    // Handle duration
-    //
-
-    // Separate seconds from  digits below second precision
-    String[] tokens = UnsafeString.split(duration, '.');
-
-    long offset = 0;
-    if (tokens.length > 2) {
-      throw new WarpScriptException(getName() + "received an invalid ISO8601 duration.");
-    }
-
-    if (2 == tokens.length) {
-      duration = tokens[0].concat("S");
-      String tmp = tokens[1].substring(0, tokens[1].length() - 1);
-      Double d_offset = Double.valueOf("0." + tmp) * STU;
-      offset = d_offset.longValue();
-    }
-
-    ReadWritablePeriod period = new MutablePeriod();
-    ISOPeriodFormat.standard().getParser().parseInto(period, duration, 0, Locale.US);
-
-    //
     // Handle time zone
     //
 
-    if (null == tz) {
-      tz = "UTC";
+    DateTimeZone dtz = DateTimeZone.UTC;
+    if (null != tz) {
+      dtz = DateTimeZone.forID(tz);
     }
-    DateTimeZone dtz = DateTimeZone.forID(tz);
+
+    //
+    // Handle duration
+    //
+
+    ReadWritablePeriodWithSubSecondOffset period;
+    try {
+      period = durationToPeriod(duration);
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException(getName() + " encountered an exception.", wse);
+    }
 
     //
     // Do the computation
@@ -120,6 +108,99 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
     }
 
     long instant = ((Number) stack.pop()).longValue();
+    stack.push(addPeriod(instant, period, dtz, N));
+
+    if (tselements) {
+      TSELEMENTS.apply(stack);
+    }
+
+    return stack;
+  }
+
+  /**
+   * A joda time period with sub second precision (the long offset).
+   */
+  public static class ReadWritablePeriodWithSubSecondOffset {
+    private final ReadWritablePeriod period;
+    private final long offset;
+
+    public ReadWritablePeriodWithSubSecondOffset(ReadWritablePeriod period, long offset) {
+      this.period = period;
+      this.offset = offset;
+    }
+
+    public ReadWritablePeriod getPeriod() {
+      return period;
+    }
+
+    public long getOffset() {
+      return offset;
+    }
+  }
+
+  /**
+   * Convert an ISO8601 duration to a Period.
+   * @param duration
+   * @return
+   * @throws WarpScriptException
+   */
+  public static ReadWritablePeriodWithSubSecondOffset durationToPeriod(String duration) throws WarpScriptException {
+    // Separate seconds from  digits below second precision
+    String[] tokens = UnsafeString.split(duration, '.');
+
+    long offset = 0;
+    if (tokens.length > 2) {
+      throw new WarpScriptException("Invalid ISO8601 duration");
+    }
+
+    if (2 == tokens.length) {
+      duration = tokens[0].concat("S");
+      String tmp = tokens[1].substring(0, tokens[1].length() - 1);
+
+      try {
+        offset = ((Double) (Double.parseDouble("0." + tmp) * Constants.TIME_UNITS_PER_S)).longValue();
+      } catch (NumberFormatException e) {
+        throw new WarpScriptException("Parsing of sub second precision part of duration has failed. tried to parse: " + tmp);
+      }
+    }
+
+    ReadWritablePeriod period = new MutablePeriod();
+    if (ISOPeriodFormat.standard().getParser().parseInto(period, duration, 0, Locale.US) < 0) {
+      throw new WarpScriptException("Parsing of duration without sub second precision has failed. Tried to parse: " + duration);
+    }
+
+    return new ReadWritablePeriodWithSubSecondOffset(period, offset);
+  }
+
+  public static long addPeriod(long instant, ReadWritablePeriod period, DateTimeZone dtz) {
+    return addPeriod(instant, period, dtz, 1);
+  }
+
+  public static long addPeriod(long instant, ReadWritablePeriod period, DateTimeZone dtz, long N) {
+    return addPeriod(instant, new ReadWritablePeriodWithSubSecondOffset(period, 0), dtz, N);
+  }
+
+  public static long addPeriod(long instant, ReadWritablePeriodWithSubSecondOffset periodAndOffset, DateTimeZone dtz) {
+    return addPeriod(instant, periodAndOffset, dtz, 1);
+  }
+
+  /**
+   * Add a duration in ISO8601 duration format to a timestamp
+   * @param instant a timestamp since Unix Epoch
+   * @param periodAndOffset a period (with subsecond precision) to add
+   * @param dtz timezone
+   * @param N number of times the period is added
+   * @return resulting timestamp
+   */
+  public static long addPeriod(long instant, ReadWritablePeriodWithSubSecondOffset periodAndOffset, DateTimeZone dtz, long N) {
+
+    ReadWritablePeriod period = periodAndOffset.getPeriod();
+    long offset = periodAndOffset.getOffset();
+
+    //
+    // Do the computation
+    //
+
     DateTime dt = new DateTime(instant / Constants.TIME_UNITS_PER_MS, dtz);
 
     //
@@ -128,15 +209,16 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
     // This calculation is not exact in some rare edge cases  e.g. in the last second of the 28th february on a year before a leap year if we add 'P1YT0.999999S'.
     //
 
-    long steps = Math.abs(N);
-    boolean non_negative = N >= 0;
-    for (long i = 0; i < steps; i++) {
-      if (non_negative) {
-        dt = dt.plus(period);
-      } else {
-        dt = dt.minus(period);
-      }
+    long M = N;
+    while (M > Integer.MAX_VALUE) {
+      dt = dt.withPeriodAdded(period, Integer.MAX_VALUE);
+      M = M - Integer.MAX_VALUE;
     }
+    while (M < Integer.MIN_VALUE) {
+      dt = dt.withPeriodAdded(period, Integer.MIN_VALUE);
+      M = M - Integer.MIN_VALUE;
+    }
+    dt = dt.withPeriodAdded(period, Math.toIntExact(M));
 
     // check if offset should be positive of negative
     if (period.toPeriod().getSeconds() < 0) {
@@ -147,11 +229,6 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
     ts += instant % Constants.TIME_UNITS_PER_MS;
     ts += offset * N;
 
-    stack.push(ts);
-    if (tselements) {
-      TSELEMENTS.apply(stack);
-    }
-
-    return stack;
+    return ts;
   }
 }

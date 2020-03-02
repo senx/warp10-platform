@@ -19,11 +19,10 @@ package io.warp10.test.tools;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
+import io.warp10.json.JsonUtils;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.ext.concurrent.ConcurrentWarpScriptExtension;
 import io.warp10.script.ext.sensision.SensisionWarpScriptExtension;
-import org.boon.json.JsonFactory;
-import org.boon.json.ObjectMapper;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -404,8 +403,7 @@ public class ExportFunctions {
     output.put("constants", constants);
     output.put("structures", structures);
 
-    ObjectMapper jsonOutput =  JsonFactory.create();
-    System.out.println(jsonOutput.toJson(output));
+    System.out.println(JsonUtils.objectToJson(output, true));
 
     // -------------------------------
     // ---- COUNT TOTAL FOUNCTIONS ---
