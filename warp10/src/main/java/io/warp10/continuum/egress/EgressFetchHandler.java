@@ -96,6 +96,7 @@ import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.functions.FETCH;
 import io.warp10.sensision.Sensision;
+import io.warp10.standalone.StandaloneAcceleratedStoreClient;
 
 public class EgressFetchHandler extends AbstractHandler {
 
@@ -214,6 +215,9 @@ public class EgressFetchHandler extends AbstractHandler {
         postBoundaryParam = req.getParameter(Constants.HTTP_PARAM_POSTBOUNDARY);
       }
           
+      boolean nocache = null != req.getParameter(StandaloneAcceleratedStoreClient.NOCACHE);
+      boolean nopersist = null != req.getParameter(StandaloneAcceleratedStoreClient.NOPERSIST);
+      
       String maxDecoderLenParam = req.getParameter(Constants.HTTP_PARAM_MAXSIZE);
       int maxDecoderLen = null != maxDecoderLenParam ? Integer.parseInt(maxDecoderLenParam) : Constants.DEFAULT_PACKED_MAXSIZE;
       
@@ -730,6 +734,18 @@ public class EgressFetchHandler extends AbstractHandler {
       AtomicLong lastCount = new AtomicLong(0L);
       
       boolean expose = rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
+      
+      if (nocache) {
+        StandaloneAcceleratedStoreClient.nocache();
+      } else {
+        StandaloneAcceleratedStoreClient.cache();        
+      }
+      
+      if (nopersist) {
+        StandaloneAcceleratedStoreClient.nopersist();
+      } else {
+        StandaloneAcceleratedStoreClient.persist();        
+      }
       
       for (Iterator<Metadata> itermeta: iterators) {
         while(itermeta.hasNext()) {
