@@ -1102,6 +1102,7 @@ public class WarpScriptLib {
   public static final String MATTO = "MAT->";
   public static final String VECTO = "VEC->";
 
+  public static final String GEOSHIFT = "GEOSHIFT";
   public static final String GEO_REGEXP = "GEO.REGEXP";
   public static final String GEO_OPTIMIZE = "GEO.OPTIMIZE";
   public static final String GEO_NORMALIZE = "GEO.NORMALIZE";
@@ -1937,6 +1938,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOGEOJSON(TOGEOJSON));
     addNamedWarpScriptFunction(new GEOOPTIMIZE(GEO_OPTIMIZE));
     addNamedWarpScriptFunction(new GEONORMALIZE(GEO_NORMALIZE));
+    addNamedWarpScriptFunction(new GEOSHIFT(GEOSHIFT));
     addNamedWarpScriptFunction(new GeoIntersection(GEO_INTERSECTION));
     addNamedWarpScriptFunction(new GeoUnion(GEO_UNION));
     addNamedWarpScriptFunction(new GeoSubtraction(GEO_DIFFERENCE));
