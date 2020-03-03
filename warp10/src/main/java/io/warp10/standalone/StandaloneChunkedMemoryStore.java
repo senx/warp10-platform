@@ -458,10 +458,6 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
   
   @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {
-    if (Long.MIN_VALUE != start || Long.MAX_VALUE != end) {
-      //throw new IOException("MemoryStore only supports deleting complete Geo Time Series.");
-    }
-    
     //
     // Regen classId/labelsId
     //

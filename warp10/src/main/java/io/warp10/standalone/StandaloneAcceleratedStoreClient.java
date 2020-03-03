@@ -142,7 +142,7 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
           throw new RuntimeException("Error populating the accelerator", error.get());
         }
         
-        if (BATCH_SIZE == batch.size()) {
+        if (BATCH_SIZE == batch.size() || !iter.hasNext()) {
           
           final List<Metadata> fbatch = batch;
           
@@ -180,21 +180,17 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
         }
       }
 
-      if (!batch.isEmpty()) {          
-        GTSDecoderIterator decoders = this.persistent.fetch(null, batch, now, then, count, 0, 0.0, false, 0, 0);
-        
-        while(decoders.hasNext()) {
-          GTSDecoder decoder = decoders.next();
-          decoder.next();
-          GTSEncoder encoder = decoder.getEncoder(true);
-          this.cache.store(encoder);
-          datapoints.addAndGet(decoder.getCount());
+      exec.shutdown();
+      
+      while(true) {
+        try {
+          if (exec.awaitTermination(30, TimeUnit.SECONDS)) {
+            break;
+          }
+        } catch (InterruptedException ie) {          
         }
       }
 
-      exec.shutdown();
-      
-      System.out.println("Preloaded accelerator with " + datapoints + " datapoints from " + this.cache.getGTSCount() + " Geo Time Series in " + ((System.nanoTime() - nanos) / 1000000.0D) + " ms.");
       LOG.info("Preloaded accelerator with " + datapoints + " datapoints from " + this.cache.getGTSCount() + " Geo Time Series in " + ((System.nanoTime() - nanos) / 1000000.0D) + " ms.");
     } catch (IOException ioe) {
       throw new RuntimeException("Error populating cache.", ioe);
@@ -225,7 +221,7 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     // at cache startup if they were not in an active chunk of the cache.
     //
     
-    long cacheend = InMemoryChunkSet.chunkEnd(now, this.cache.getChunkSpan());
+    long cacheend = InMemoryChunkSet.chunkEnd(TimeSource.getTime(), this.cache.getChunkSpan());
     long cachestart = cacheend - this.cache.getChunkCount() * this.cache.getChunkSpan() + 1;
 
     //

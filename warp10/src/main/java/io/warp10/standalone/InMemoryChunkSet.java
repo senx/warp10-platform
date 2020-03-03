@@ -855,6 +855,13 @@ public class InMemoryChunkSet {
     return reclaimed;
   }
   
+  /**
+   * Delete datapoints whose timestamp if >= start and <= end
+   * 
+   * @param start Lower timestamp to delete (inclusive)
+   * @param end Upper timestamp to delete (inclusive)
+   * @return
+   */
   public long delete(long start, long end) {
     long count = 0L;
     
