@@ -77,7 +77,7 @@ public class FFTWINDOW extends GTSStackFunction {
     //
     
     if (TYPE.DOUBLE != gts.getType() && TYPE.LONG != gts.getType()) {
-      throw new WarpScriptException("Geo Time Series " + GTSHelper.buildSelector(gts) + " is not numeric.");
+      throw new WarpScriptException("Geo Time Series " + GTSHelper.buildSelector(gts, false) + " is not numeric.");
     }
     
     double window = 0.0D;
