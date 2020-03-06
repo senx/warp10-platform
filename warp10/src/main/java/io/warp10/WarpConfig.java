@@ -278,7 +278,7 @@ public class WarpConfig {
           // Override property
           properties.setProperty(name, value);
         } catch (Exception e) {
-          System.err.println("Error decoding environment variable '" + entry.getKey() + "' = '" + entry.getValue() + "', using raw values.");
+          System.err.println("Warning: failed to decode environment variable '" + entry.getKey() + "' = '" + entry.getValue() + "', using raw value.");
           properties.setProperty(entry.getKey(), entry.getValue());
         }
       }
