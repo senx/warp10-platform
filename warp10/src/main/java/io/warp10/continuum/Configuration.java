@@ -1690,6 +1690,18 @@ public class Configuration {
   public static final String WARP10_ABSENT_LABEL_SUPPORT = "warp10.absent.label.support";
   
   /**
+   * Set to true to allow the /delete endpoint to only delete metadata.
+   */
+  public static final String INGRESS_DELETE_NODATA_SUPPORT = "ingress.delete.nodata.support";
+  
+  /**
+   * Set to true to allow activeafter/quietafter parameters to delete requests.
+   * This must be explicitely configured to avoid deleting extraneous GTS when using those parameters when no
+   * activity tracking is active.
+   */
+  public static final String INGRESS_DELETE_ACTIVITY_SUPPORT = "ingress.delete.activity.support";
+  
+  /**
    * Manager secret, must be set to use the managing functions
    */
   public static final String WARP10_MANAGER_SECRET = "warp10.manager.secret";
