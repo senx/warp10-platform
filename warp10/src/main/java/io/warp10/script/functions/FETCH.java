@@ -345,7 +345,11 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         if (gtscount.incrementAndGet() > gtsLimit) {
           throw new WarpScriptException(getName() + " exceeded limit of " + gtsLimit + " Geo Time Series, current count is " + gtscount);
         }
-        
+
+        if (stack.aborted()) {
+          throw new WarpScriptException(getName() + " execution aborted.");
+        }
+
         if (metadatas.size() < EgressFetchHandler.FETCH_BATCHSIZE && iter.hasNext()) {
           continue;
         }
@@ -514,6 +518,10 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                 throw new WarpScriptException(getName() + " exceeded limit of " + fetchLimit + " datapoints, current count is " + fetched.get());
               }
 
+              if (stack.aborted()) {
+                throw new WarpScriptException(getName() + " execution aborted.");
+              }
+              
               lastCount += dpcount;
               
               continue;
@@ -604,6 +612,10 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FETCHCOUNT_EXCEEDED, sensisionLabels, 1);
               throw new WarpScriptException(getName() + " exceeded limit of " + fetchLimit + " datapoints, current count is " + fetched.get());
               //break;
+            }
+            
+            if (stack.aborted()) {
+              throw new WarpScriptException(getName() + " execution aborted.");
             }
           }      
         } catch (WarpScriptException ee) {

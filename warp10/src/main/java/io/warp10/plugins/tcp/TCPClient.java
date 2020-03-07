@@ -16,6 +16,7 @@
 package io.warp10.plugins.tcp;
 
 import io.warp10.script.MemoryWarpScriptStack;
+import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,6 +57,7 @@ public class TCPClient implements Runnable {
 
     this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), charset));
     this.stack = new MemoryWarpScriptStack(null, null, new Properties());
+    this.stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[Warp10TCPPlugin " + socket.getLocalPort() + "]");
     stack.maxLimits();
   }
 

@@ -35,6 +35,7 @@ import io.warp10.script.functions.AUTHENTICATE;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptStack.StackContext;
+import io.warp10.script.WarpScriptStackRegistry;
 import io.warp10.sensision.Sensision;
 
 import java.io.BufferedReader;
@@ -138,7 +139,8 @@ public class EgressExecHandler extends AbstractHandler {
     //
     
     WarpScriptStack stack = new MemoryWarpScriptStack(this.storeClient, this.directoryClient);
-
+    stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[EgressExecHandler " + Thread.currentThread().getName() + "]");
+    
     Throwable t = null;
 
     StringBuilder scriptSB = new StringBuilder();
@@ -417,6 +419,8 @@ public class EgressExecHandler extends AbstractHandler {
         return;
       }
     } finally {
+      WarpScriptStackRegistry.unregister(stack);
+      
       // Clear this metric in case there was an exception
       Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_REQUESTS, Sensision.EMPTY_LABELS, 1);
       Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_TIME_US, Sensision.EMPTY_LABELS, (long) ((System.nanoTime() - now) / 1000));

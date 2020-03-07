@@ -16,6 +16,7 @@
 package io.warp10.plugins.udp;
 
 import io.warp10.script.MemoryWarpScriptStack;
+import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStopException;
 import org.slf4j.Logger;
@@ -155,6 +156,7 @@ public class UDPConsumer extends Thread {
     for (int i = 0; i < this.parallelism; i++) {
 
       final MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, new Properties());
+      this.stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[Warp10UDPPlugin " + socket.getLocalPort() + " #" + i + "]");
       stack.maxLimits();
 
       final LinkedBlockingQueue<List<Object>> queue = this.queues[Math.min(i, this.queues.length - 1)];

@@ -18,6 +18,7 @@ package io.warp10.plugins.http;
 import io.warp10.WarpConfig;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.jetty.http.MimeTypes;
@@ -67,6 +68,7 @@ public class WarpScriptHandler extends AbstractHandler {
     baseRequest.setHandled(true);
 
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(HTTPWarp10Plugin.getExposedStoreClient(), HTTPWarp10Plugin.getExposedDirectoryClient(), this.properties);
+    stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[HTTPWarp10Plugin " + request.getRequestURL() + "]");
 
     //
     // Push the details onto the stack

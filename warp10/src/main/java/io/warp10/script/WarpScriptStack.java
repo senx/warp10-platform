@@ -273,6 +273,16 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_LAST_ERROR = "last.error";
   
   /**
+   * Creation timestamp for the stack
+   */
+  public static final String ATTRIBUTE_CREATION_TIME = "creation.time";
+  
+  /**
+   * Name given to the stack
+   */  
+  public static final String ATTRIBUTE_NAME = "stack.name";
+  
+  /**
    * Index of RETURN_DEPTH counter
    */
   public static final int COUNTER_RETURN_DEPTH = 0;
@@ -729,6 +739,16 @@ public interface WarpScriptStack {
   public String getUUID();
   
   /**
+   * Abort the stack, i.e. stop the currently executing code after the current statement and prevent further executions.
+   */
+  public void abort();
+  
+  /**
+   * Return the state of execution abortion.
+   */
+  public boolean aborted();
+  
+  /**
    * Set a stack attribute.
    * 
    * @param key Key under which the attribute should be stored.
@@ -785,5 +805,7 @@ public interface WarpScriptStack {
   /**
    * Restore the stack context from that on top of the stack
    */
-  public void restore() throws WarpScriptException;  
+  public void restore() throws WarpScriptException;
+  
+  
 }

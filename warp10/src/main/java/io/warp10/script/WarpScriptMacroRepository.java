@@ -366,6 +366,8 @@ public class WarpScriptMacroRepository extends Thread {
     
     sb.append(" ");
     
+    MemoryWarpScriptStack stack = null;
+    
     try {
       
       if (loading.get().contains(name)) {
@@ -419,7 +421,9 @@ public class WarpScriptMacroRepository extends Thread {
       
       sb.append("\n");
       
-      MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
+      stack = new MemoryWarpScriptStack(null, null);
+      stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[WarpScriptMacroRepository " + name + "]");
+
       stack.maxLimits();
       stack.setAttribute(WarpScriptStack.ATTRIBUTE_MACRO_NAME, name);
       
@@ -499,6 +503,7 @@ public class WarpScriptMacroRepository extends Thread {
       macro.setFingerprint(0L);
       return macro;
     } finally {
+      WarpScriptStackRegistry.unregister(stack);
       loading.get().remove(loading.get().size() - 1);
     }
   }
