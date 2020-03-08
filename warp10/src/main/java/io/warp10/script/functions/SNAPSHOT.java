@@ -447,9 +447,6 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
   //
 
   private static void appendProcessedString(StringBuilder sb, String s) {
-
-    char[] chars = UnsafeString.getChars(s);
-
     int lastIdx = 0;
     int idx = 0;
 
@@ -457,11 +454,13 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
     // Replace anything below 32 and ' by %## (invalid character)
     //
 
-    while(idx < chars.length) {
-      if ('%' == chars[idx] || '\'' == chars[idx] || chars[idx] < ' ') {
+    while(idx < s.length()) {
+      if ('%' == s.charAt(idx) || '\'' == s.charAt(idx) || s.charAt(idx) < ' ') {
 
-        sb.append(chars, lastIdx, idx - lastIdx);
-        sb.append("%" + (chars[idx] >>> 4) + Integer.toHexString(chars[idx] & 0xF));
+        for (int i = 0; i < idx - lastIdx; i++) {
+          sb.append(s.charAt(lastIdx + i));
+        }
+        sb.append("%" + (s.charAt(idx) >>> 4) + Integer.toHexString(s.charAt(idx) & 0xF));
         lastIdx = ++idx;
       } else {
         idx++;
@@ -469,7 +468,9 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
     }
 
     if (idx > lastIdx) {
-      sb.append(chars, lastIdx, idx - lastIdx);
+      for (int i = 0; i < idx - lastIdx; i++) {
+        sb.append(s.charAt(lastIdx + i));        
+      }
     }
   }
 

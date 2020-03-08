@@ -22,7 +22,6 @@ import java.util.ArrayList;
 
 import java.util.Arrays;
 
-import sun.misc.Unsafe;
 
 /**
  * The following class is inspired by:
@@ -32,90 +31,8 @@ import sun.misc.Unsafe;
  * 
  */
 
-public class UnsafeString {
-  private static final Unsafe unsafe;
-  private static final long valueOffset;
-  private static final long offsetOffset;
-  private static final long countOffset;
-  private static final long hashOffset;
-  
-  static {
-    try {
-      // This is a bit of voodoo to force the unsafe object into
-      // visibility and acquire it.
-      // This is not playing nice, but as an established back door it is
-      // not likely to be
-      // taken away.
-      Field field = Unsafe.class.getDeclaredField("theUnsafe");
-      field.setAccessible(true);
-      unsafe = (Unsafe) field.get(null);
-      valueOffset = unsafe.objectFieldOffset(String.class.getDeclaredField("value"));
-      Field declaredField;
-      try {
-        declaredField = String.class.getDeclaredField("count");
-      } catch (NoSuchFieldException e) {
-        // this will happen for jdk7 as these fields have been removed
-        declaredField = null;
-      }
-      
-      if (null != declaredField) {
-        countOffset = unsafe.objectFieldOffset(declaredField);
-      } else {
-        countOffset = -1L;
-      }
-      
-      declaredField = null;
-
-      try {
-        declaredField = String.class.getDeclaredField("offset");
-      } catch (NoSuchFieldException e) {
-        // this will happen for jdk7 as these fields have been removed
-        declaredField = null;
-      }
-      
-      if (null != declaredField) {
-        offsetOffset = unsafe.objectFieldOffset(declaredField);
-      } else {
-        offsetOffset = -1L;
-      }
-      
-      declaredField = null;
-
-      try {
-        declaredField = String.class.getDeclaredField("hash");
-      } catch (NoSuchFieldException e) {
-        // this will happen for jdk7 as these fields have been removed
-        declaredField = null;
-      }
-      
-      if (null != declaredField) {
-        hashOffset = unsafe.objectFieldOffset(declaredField);
-      } else {
-        hashOffset = -1L;
-      }
-
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-  
-  public final static char[] getChars(String s) {
-    return (char[]) unsafe.getObject(s, valueOffset);
-  }
-  
-  public final static char charAt(String s, int idx) {
-    char[] chars = (char[]) unsafe.getObject(s, valueOffset);
-    return chars[idx];
-  }
-
-  public final static int getOffset(String s) {
-    if (-1L == offsetOffset) {
-      return 0;
-    } else {
-      return unsafe.getInt(s, offsetOffset);
-    }
-  }
-  
+public class UnsafeString {  
+    
   public final static String[] split(String s, char ch) {
         
     //ArrayList<String> tokens = new ArrayList<String>();
@@ -204,69 +121,7 @@ public class UnsafeString {
   
     return true;
   }
-  
-  public static boolean isDouble_LIGHT(String s) {
-    char[] c = getChars(s);
-
-    //
-    // Skip leading whitespaces
-    //
     
-    int i = 0;
-    
-    while(i < c.length && ' ' == c[i]) {
-      i++;
-    }
-    
-    if (i == c.length) {
-      return false;
-    }
-
-    //
-    // Check sign
-    //
-
-    if ('-' == c[i] || '+' == c[i]) {
-      i++;
-      if (i >= c.length) {
-        return false;
-      }
-    }
-
-    //
-    // Handle NaN
-    //
-    
-    if (3 == c.length - i) {
-      if ('N' == c[i] && 'a' == c[i+1] && 'N' == c[i+2]) {
-        return true;
-      }
-    }
-
-    //
-    // Handle Infinity
-    //
-    
-    if (8 == c.length - i) {
-      if ('I' == c[i] && 'n' == c[i+1] && 'f' == c[i+2] && 'i' == c[i+3] && 'n' == c[i+4] && 'i' == c[i+5] && 't' == c[i+6] && 'y' == c[i+7]) {
-        return true;
-      }
-    }
-
-    //
-    // Check if there is a '.'
-    //
-    
-    while (i < c.length) {
-      if('.' == c[i]) {
-        return true;
-      }
-      i++;
-    }
-    
-    return false;
-  }
-  
   public static boolean isDouble(String s) {
     //
     // Skip leading whitespaces
@@ -468,15 +323,5 @@ public class UnsafeString {
     }
     
     return newstr;
-  }
-  
-  /**
-   * Reset the hash by setting it to 0 so hashcode computation is performed
-   * again when the internal char array has changed.
-   * 
-   * @param s
-   */
-  public static void resetHash(String s) {
-    unsafe.getAndSetInt(s, hashOffset,  0);
-  }
+  }  
 }
