@@ -1807,7 +1807,10 @@ public class Ingress extends AbstractHandler implements Runnable {
                   continue;
                 }
               }
-              pushDeleteMessage(start, end, minage, metadata);
+              
+              if (!nodata) {
+                pushDeleteMessage(start, end, minage, metadata);
+              }
               
               if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
                 completeDeletion = true;
@@ -1863,7 +1866,9 @@ public class Ingress extends AbstractHandler implements Runnable {
                 }
               }
 
-              pushDeleteMessage(start, end, minage, metadata);
+              if (!nodata) {
+                pushDeleteMessage(start, end, minage, metadata);
+              }
               
               if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
                 completeDeletion = true;
