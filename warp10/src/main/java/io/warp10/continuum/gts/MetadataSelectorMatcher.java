@@ -18,13 +18,16 @@ package io.warp10.continuum.gts;
 
 
 import io.warp10.WarpURLDecoder;
+import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.script.WarpScriptException;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
@@ -42,6 +45,8 @@ public class MetadataSelectorMatcher {
   private final Matcher classnamePattern;
   private final Map<String, Matcher> labelsPatterns;
   private final Map<String, Matcher> attributesPatterns;
+  private final List<String> missingLabels = new ArrayList<String>();
+  private final List<String> missingAttributes = new ArrayList<String>();
 
   private static final Pattern EXPR_RE = Pattern.compile("^(?<classname>[^{]+)\\{(?<labels>[^}]*)\\}(\\{(?<attributes>[^}]*)\\})?$");
 
@@ -88,6 +93,14 @@ public class MetadataSelectorMatcher {
       this.labelsPatterns = new HashMap<String, Matcher>(labelsSelectors.size());
       // build label patterns map
       for (Entry<String, String> l: labelsSelectors.entrySet()) {
+        
+        if (Constants.ABSENT_LABEL_SUPPORT) {
+          if ("".equals(l.getValue()) || "=".equals(l.getValue())) {
+            this.missingLabels.add(l.getKey());
+            continue;
+          }
+        }
+        
         if (l.getValue().startsWith("=")) {
           this.labelsPatterns.put(l.getKey(), Pattern.compile(Pattern.quote(l.getValue().substring(1))).matcher(""));
         } else { //starts with ~ , otherwise Parse Exception in GTSHelper.parseLabelsSelectors
@@ -108,6 +121,13 @@ public class MetadataSelectorMatcher {
       this.attributesPatterns = new HashMap<String, Matcher>(attributesSelectors.size());
       // build label patterns map
       for (Entry<String, String> a: attributesSelectors.entrySet()) {
+        if (Constants.ABSENT_LABEL_SUPPORT) {
+          if ("".equals(a.getValue()) || "=".equals(a.getValue())) {
+            this.missingAttributes.add(a.getKey());
+            continue;
+          }
+        }
+
         if (a.getValue().startsWith("=")) {
           this.attributesPatterns.put(a.getKey(), Pattern.compile(Pattern.quote(a.getValue().substring(1))).matcher(""));
         } else { //starts with ~ , otherwise Parse Exception in GTSHelper.parseLabelsSelectors
@@ -157,7 +177,16 @@ public class MetadataSelectorMatcher {
     if (null != this.attributesPatterns) {
       // extended selector
       if (null != this.labelsPatterns && null != inputLabels) {
+        for (String label: this.missingLabels) {
+          if (null != inputLabels.get(label)) {
+            labelAndAttributeMatch = false;
+            break;
+          }
+        }
         for (Entry<String, Matcher> ls: this.labelsPatterns.entrySet()) {
+          if (!labelAndAttributeMatch) {
+            break;
+          }
           String inputLabel = inputLabels.get(ls.getKey());
           labelAndAttributeMatch = (null != inputLabel) && ls.getValue().reset(inputLabel).matches();
           if (!labelAndAttributeMatch) {
@@ -166,6 +195,12 @@ public class MetadataSelectorMatcher {
         }
       }
       if (null != inputAttributes) {
+        for (String attr: this.missingAttributes) {
+          if (null != inputAttributes.get(attr)) {
+            labelAndAttributeMatch = false;
+            break;
+          }
+        }
         for (Entry<String, Matcher> ls: this.attributesPatterns.entrySet()) {
           if (!labelAndAttributeMatch) {
             break;
@@ -177,8 +212,17 @@ public class MetadataSelectorMatcher {
     } else {
       // standard selector
       if (null != this.labelsPatterns) {
+        for (String label: this.missingLabels) {
+          if ((null != inputLabels && null != inputLabels.get(label))
+              || (null != inputAttributes && null != inputAttributes.get(label))) {
+            labelAndAttributeMatch = false;
+            break;
+          }
+        }
         for (Entry<String, Matcher> ls: this.labelsPatterns.entrySet()) {
-
+          if (!labelAndAttributeMatch) {
+            break;
+          }
           if (null != inputLabels) {
             String inputLabel = inputLabels.get(ls.getKey());
             if (null != inputLabel) {
@@ -193,14 +237,10 @@ public class MetadataSelectorMatcher {
               labelAndAttributeMatch = false;
             }
           }
-          if (!labelAndAttributeMatch) {
-            break;
-          }
         }
       }
     }
 
     return labelAndAttributeMatch;
   }
-
 }

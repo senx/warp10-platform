@@ -394,6 +394,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     }
 
     Set<String> classNames = null;
+    List<String> missingLabels = Constants.ABSENT_LABEL_SUPPORT ? new ArrayList<String>() : null;
     
     for (int i = 0; i < classExpr.size(); i++) {
       
@@ -408,11 +409,20 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       
       Map<String,SmartPattern> labelPatterns = new HashMap<String,SmartPattern>();
       
+      if (null != missingLabels) {
+        missingLabels.clear();
+      }
+
       if (null != labelsExpr.get(i)) {
         for (Entry<String,String> entry: labelsExpr.get(i).entrySet()) {
           String label = entry.getKey();
           String expr = entry.getValue();
           Pattern pattern;
+          
+          if (null != missingLabels && ("=".equals(expr) || "".equals(expr))) {
+            missingLabels.add(label);
+            continue;
+          }
           
           if (expr.startsWith("=") || !expr.startsWith("~")) {
             labelPatterns.put(label, new SmartPattern(expr.startsWith("=") ? expr.substring(1) : expr));
@@ -499,6 +509,29 @@ public class StandaloneDirectoryClient implements DirectoryClient {
             
             
             boolean exclude = false;
+                        
+            if (null != missingLabels) {
+              for (String missing: missingLabels) {
+                // If the Metadata contain one of the missing labels, exclude the entry
+                if (null != metadata.getLabels().get(missing)) {
+                  exclude = true;
+                  break;
+                }
+              }              
+              // Check attributes
+              if (!exclude && metadata.getAttributesSize() > 0) {
+                for (String missing: missingLabels) {
+                  // If the Metadata contain one of the missing labels, exclude the entry
+                  if (null != metadata.getAttributes().get(missing)) {
+                    exclude = true;
+                    break;
+                  }
+                }                              
+              }
+              if (exclude) {
+                continue;
+              }
+            }
             
             int idx = 0;
       
@@ -978,6 +1011,8 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       HyperLogLogPlus labelValuesCardinality = null;
       HyperLogLogPlus classCardinality = null;
       
+      List<String> missingLabels = Constants.ABSENT_LABEL_SUPPORT ? new ArrayList<String>() : null;
+
       for (int i = 0; i < request.getClassSelectorSize(); i++) {
         String exactClassName = null;
         
@@ -990,12 +1025,21 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         
         Map<String,SmartPattern> labelPatterns = new HashMap<String,SmartPattern>();
         
+        if (null != missingLabels) {
+          missingLabels.clear();
+        }
+
         if (null != request.getLabelsSelectors()) {
           for (Entry<String,String> entry: request.getLabelsSelectors().get(i).entrySet()) {
             String label = entry.getKey();
             String expr = entry.getValue();
             SmartPattern pattern;
             
+            if (null != missingLabels && ("=".equals(expr) || "".equals(expr))) {
+              missingLabels.add(label);
+              continue;
+            }
+
             if (expr.startsWith("=") || !expr.startsWith("~")) {
               //pattern = Pattern.compile(Pattern.quote(expr.startsWith("=") ? expr.substring(1) : expr));
               pattern = new SmartPattern(expr.startsWith("=") ? expr.substring(1) : expr);
@@ -1091,8 +1135,31 @@ public class StandaloneDirectoryClient implements DirectoryClient {
               
               boolean exclude = false;
               
+              if (null != missingLabels) {
+                for (String missing: missingLabels) {
+                  // If the Metadata contain one of the missing labels, exclude the entry
+                  if (null != metadata.getLabels().get(missing)) {
+                    exclude = true;
+                    break;
+                  }
+                }              
+                // Check attributes
+                if (!exclude && metadata.getAttributesSize() > 0) {
+                  for (String missing: missingLabels) {
+                    // If the Metadata contain one of the missing labels, exclude the entry
+                    if (null != metadata.getAttributes().get(missing)) {
+                      exclude = true;
+                      break;
+                    }
+                  }                              
+                }
+                if (exclude) {
+                  continue;
+                }
+              }
+              
               int idx = 0;
-        
+
               for (String labelName: labelNames) {
                 //
                 // Immediately exclude metadata which do not contain one of the

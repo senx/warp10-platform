@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.egress;
 
+import io.warp10.json.JsonUtils;
 import io.warp10.ThrowableUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
@@ -28,7 +29,6 @@ import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
 import io.warp10.quasar.token.thrift.data.ReadToken;
-import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.functions.PARSESELECTOR;
 import io.warp10.sensision.Sensision;
@@ -44,14 +44,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.boon.json.JsonSerializer;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.slf4j.Logger;
@@ -131,7 +129,9 @@ public class EgressFindHandler extends AbstractHandler {
         resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Missing token.");
         return;
       }
-      
+
+      boolean expose = rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
+
       String[] selectors = selector.split("\\s+");
           
       PrintWriter pw = resp.getWriter();
@@ -142,7 +142,6 @@ public class EgressFindHandler extends AbstractHandler {
       
       StringBuilder sb = new StringBuilder();
 
-      AtomicInteger level = new AtomicInteger(0);
       boolean first = true;
       
       try {
@@ -185,12 +184,6 @@ public class EgressFindHandler extends AbstractHandler {
             request.setQuietAfter(quietAfter);
           }
 
-          JsonSerializer serializer = null;
-          
-          if (json) {
-            serializer = StackUtils.getSerializer();
-          }
-          
           try (MetadataIterator iterator = directoryClient.iterator(request)) {
             while(iterator.hasNext()) {
               if (limit <= 0) {
@@ -211,15 +204,17 @@ public class EgressFindHandler extends AbstractHandler {
                 // Remove internal labels, need to copy the map as it is Immutable in Metadata
                 if (null != metadata.getLabels()) {
                   metadata.setLabels(new HashMap<String,String>(metadata.getLabels()));
-                  metadata.getLabels().remove(Constants.OWNER_LABEL);
-                  metadata.getLabels().remove(Constants.PRODUCER_LABEL);
+                  if (!Constants.EXPOSE_OWNER_PRODUCER && !expose) {
+                    metadata.getLabels().remove(Constants.OWNER_LABEL);
+                    metadata.getLabels().remove(Constants.PRODUCER_LABEL);
+                  }
                 }
                 if (!first) {
                   pw.println(",");
                 } else {
                   first = false;
                 }
-                StackUtils.objectToJSON(serializer, pw, metadata, level, true);
+                JsonUtils.objectToJson(pw, metadata, true);
                 continue;
               }
               
@@ -229,18 +224,19 @@ public class EgressFindHandler extends AbstractHandler {
               
               if (metadata.getLabelsSize() > 0) {
                 if (sortMeta) {
-                  GTSHelper.labelsToString(sb, new TreeMap<String,String>(metadata.getLabels()));
+                  GTSHelper.labelsToString(sb, new TreeMap<String,String>(metadata.getLabels()), expose);
                 } else {
-                  GTSHelper.labelsToString(sb, metadata.getLabels());
+                  GTSHelper.labelsToString(sb, metadata.getLabels(), expose);
                 }
               }
               
               if (showAttr) {
                 if (metadata.getAttributesSize() > 0) {
+                  // For attributes we force 'expose' to be true
                   if (sortMeta) {
-                    GTSHelper.labelsToString(sb, new TreeMap<String,String>(metadata.getAttributes()));
+                    GTSHelper.labelsToString(sb, new TreeMap<String,String>(metadata.getAttributes()), true);
                   } else {
-                    GTSHelper.labelsToString(sb, metadata.getAttributes());
+                    GTSHelper.labelsToString(sb, metadata.getAttributes(), true);
                   }
                 } else {
                   sb.append("{}");

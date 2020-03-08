@@ -52,6 +52,7 @@ public interface WarpScriptStack {
   public static final int DEFAULT_MAX_SYMBOLS = 64;
   public static final int DEFAULT_MAX_WEBCALLS = 4;
   public static final long DEFAULT_MAX_PIXELS = 1000000L;
+  public static final long DEFAULT_MAX_JSON = 20L * 1024L * 1024L; // 20MB
   public static final long DEFAULT_REGISTERS = 256;
   
   public static final String MACRO_START = "<%";
@@ -128,7 +129,13 @@ public interface WarpScriptStack {
    * Is the stack configured to output strict JSON (i.e with no NaN/Infinity)?
    */
   public static final String ATTRIBUTE_JSON_STRICT = "json.strict";
-  
+
+  /**
+   * Maximum size of a JSON created and pushed on the stack, in number of characters.
+   */
+  public static final String ATTRIBUTE_JSON_MAXSIZE = "json.size.max";
+  public static final String ATTRIBUTE_JSON_MAXSIZE_HARD = "json.size.max.hard";
+
   /**
    * Maximum number of datapoints that can be fetched in a session
    */

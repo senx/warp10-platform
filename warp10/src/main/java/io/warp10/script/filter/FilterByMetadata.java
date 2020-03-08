@@ -103,7 +103,7 @@ public class FilterByMetadata extends NamedWarpScriptFunction implements WarpScr
     sb.append(WarpScriptLib.LIST_START);
     sb.append(" ");
     for (Metadata metadata: this.metadatas) {
-      sb.append(StackUtils.toString(GTSHelper.buildSelector(metadata)));
+      sb.append(StackUtils.toString(GTSHelper.buildSelector(metadata, false)));
       sb.append(" ");
       sb.append(WarpScriptLib.PARSESELECTOR);
       sb.append(" ");

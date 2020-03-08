@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -51,6 +51,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.warp10.json.JsonUtils;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.ArrayUtils;
@@ -58,8 +59,6 @@ import org.apache.commons.math3.fitting.PolynomialCurveFitter;
 import org.apache.commons.math3.fitting.WeightedObservedPoint;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.boon.json.JsonParser;
-import org.boon.json.JsonParserFactory;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
@@ -2360,13 +2359,9 @@ public class GTSHelper {
     return encoder;
   }
 
-  private static JsonParserFactory jpf = new JsonParserFactory();
-
   public static GTSEncoder parseJSON(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now) throws IOException, ParseException {
     
-    JsonParser parser = jpf.createFastParser();
-
-    Map<String,Object> o = (Map<String,Object>) parser.parse(str);
+    Map<String,Object> o = (Map<String,Object>) JsonUtils.jsonToObject(str);
     
     String name = (String) o.get("c");
     Map<String,String> labels = (Map<String,String>) o.get("l");
@@ -2686,7 +2681,7 @@ public class GTSHelper {
     }
 
     if ((value instanceof String  && value.toString().length() > maxValueSize) || (value instanceof byte[] && ((byte[]) value).length > maxValueSize)) {
-      throw new ParseException("Value too large for GTS " + (null != encoder ? GTSHelper.buildSelector(encoder.getMetadata()) : ""), 0);
+      throw new ParseException("Value too large for GTS " + (null != encoder ? GTSHelper.buildSelector(encoder.getMetadata(), false) : ""), 0);
     }
     
     // Allocate a new Encoder if need be, with a base timestamp of 0L.
@@ -5084,15 +5079,18 @@ public class GTSHelper {
     }
 
     //
-    // Limit pre/post windows to Integer.MAX_VALUE
+    // Limit pre/post windows and occurrences to Integer.MAX_VALUE
     // as this is as many indices we may have at most in a GTS
     //
     
-    if (prewindow > 0 && prewindow > Integer.MAX_VALUE) {
+    if (prewindow > Integer.MAX_VALUE) {
       prewindow = Integer.MAX_VALUE;
     }
-    if (postwindow > 0 && postwindow > Integer.MAX_VALUE) {
+    if (postwindow > Integer.MAX_VALUE) {
       postwindow = Integer.MAX_VALUE;
+    }
+    if (occurrences > Integer.MAX_VALUE) {
+      occurrences = Integer.MAX_VALUE;
     }
     List<GeoTimeSerie> results = new ArrayList<GeoTimeSerie>();
 
@@ -8081,13 +8079,20 @@ public class GTSHelper {
     gts.lastbucket = lastbucket;
   }
 
-  public static void metadataToString(StringBuilder sb, String name, Map<String,String> labels) {
+  //public static void metadataToString(StringBuilder sb, String name, Map<String,String> labels) {
+  //  metadataToString(sb, name, labels, false);
+  //}
+  
+  public static void metadataToString(StringBuilder sb, String name, Map<String,String> labels, boolean expose) {
     GTSHelper.encodeName(sb, name);
     
-    labelsToString(sb, labels);
+    labelsToString(sb, labels, expose);
   }
+  //public static void labelsToString(StringBuilder sb, Map<String,String> labels) {
+  //  labelsToString(sb, labels, false);
+  //}
   
-  public static void labelsToString(StringBuilder sb, Map<String,String> labels) {
+  public static void labelsToString(StringBuilder sb, Map<String,String> labels, boolean expose) {
     sb.append("{");
     boolean first = true;
     
@@ -8096,11 +8101,13 @@ public class GTSHelper {
         //
         // Skip owner/producer labels and any other 'private' labels
         //
-        if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
-          continue;
-        }
-        if (Constants.OWNER_LABEL.equals(entry.getKey())) {
-          continue;
+        if (!expose && !Constants.EXPOSE_OWNER_PRODUCER) {
+          if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
+            continue;
+          }
+          if (Constants.OWNER_LABEL.equals(entry.getKey())) {
+            continue;
+          }          
         }
         
         if (!first) {
@@ -8116,11 +8123,18 @@ public class GTSHelper {
     sb.append("}");
   }
   
-  public static String buildSelector(GeoTimeSerie gts) {
-    return buildSelector(gts.getMetadata());
+  public static String buildSelector(GeoTimeSerie gts, boolean forSearch) {
+    return buildSelector(gts.getMetadata(), forSearch);
   }
   
-  public static String buildSelector(Metadata metadata) {
+  /**
+   * Build a string representation of Metadata suitable for selection (via FIND/FETCH).
+   * 
+   * @param metadata Metadata to represent
+   * @param forSearch Set to true if the result is for searching, in that case for empty values of labels, '~$' will be produced, otherwise '='
+   * @return
+   */
+  public static String buildSelector(Metadata metadata, boolean forSearch) {
     StringBuilder sb = new StringBuilder();
 
     String name = metadata.getName();
@@ -8141,8 +8155,12 @@ public class GTSHelper {
         sb.append(",");
       }
       encodeName(sb, entry.getKey());
-      sb.append("=");
-      encodeName(sb, entry.getValue());
+      if (forSearch && Constants.ABSENT_LABEL_SUPPORT && "".equals(entry.getValue())) {
+        sb.append("~$");
+      } else {
+        sb.append("=");
+        encodeName(sb, entry.getValue());
+      }
       first = false;
     }
     sb.append("}");

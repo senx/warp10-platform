@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -218,6 +218,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     }
     
     ReadToken rtoken = Tokens.extractReadToken(params.get(PARAM_TOKEN).toString());
+
+    boolean expose = rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
 
     List<String> clsSels = new ArrayList<String>();
     List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
@@ -443,10 +445,10 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               
               Metadata decoderMeta = new Metadata(decoder.getMetadata());
               // Remove producer/owner labels
-              decoderMeta.getLabels().remove(Constants.PRODUCER_LABEL);
-              decoderMeta.getLabels().remove(Constants.OWNER_LABEL);
-              
-              // Remove producer/owner
+              if (!Constants.EXPOSE_OWNER_PRODUCER && !expose) {
+                decoderMeta.getLabels().remove(Constants.PRODUCER_LABEL);
+                decoderMeta.getLabels().remove(Constants.OWNER_LABEL);
+              }
               
               while(decoder.next()) {
                 
@@ -570,8 +572,11 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
             
             Map<String,String> labels = new HashMap<String, String>();
             labels.putAll(gts.getMetadata().getLabels());
-            labels.remove(Constants.PRODUCER_LABEL);
-            labels.remove(Constants.OWNER_LABEL);
+            
+            if (!Constants.EXPOSE_OWNER_PRODUCER && !expose) {
+              labels.remove(Constants.PRODUCER_LABEL);
+              labels.remove(Constants.OWNER_LABEL);
+            }
             gts.setLabels(labels);
             
             //

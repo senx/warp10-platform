@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -287,6 +287,8 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     
     ReadToken rtoken = Tokens.extractReadToken(token);
 
+    boolean expose = rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
+    
     List<String> clsSels = new ArrayList<String>();
     List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
 
@@ -412,8 +414,10 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
         if (!this.metaset) {
           Map<String,String> gtslabels = new HashMap<String, String>();
           gtslabels.putAll(gts.getLabels());
-          gtslabels.remove(Constants.PRODUCER_LABEL);
-          gtslabels.remove(Constants.OWNER_LABEL);
+          if (!Constants.EXPOSE_OWNER_PRODUCER && !expose) {
+            gtslabels.remove(Constants.PRODUCER_LABEL);
+            gtslabels.remove(Constants.OWNER_LABEL);
+          }
           gts.setLabels(gtslabels);          
           series.add(gts);
         } else {
