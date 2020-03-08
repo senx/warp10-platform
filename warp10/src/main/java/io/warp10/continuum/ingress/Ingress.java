@@ -352,7 +352,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     this.maxValueSize = Long.parseLong(props.getProperty(Configuration.INGRESS_VALUE_MAXSIZE));
     
     if (this.maxValueSize > (this.DATA_MESSAGES_THRESHOLD / 2) - 64) {
-      throw new RuntimeException("Value of '" + Configuration.INGRESS_VALUE_MAXSIZE + "' cannot exceed that half of '" + Configuration.INGRESS_KAFKA_DATA_MAXSIZE + "' minus 64.");
+      throw new RuntimeException("Value of '" + Configuration.INGRESS_VALUE_MAXSIZE + "' cannot exceed half of '" + Configuration.INGRESS_KAFKA_DATA_MAXSIZE + "' minus 64.");
     }
     
     extractKeys(this.keystore, props);
@@ -765,7 +765,12 @@ public class Ingress extends AbstractHandler implements Runnable {
         }
       }
       
+      boolean expose = false;
+      
       if (writeToken.getAttributesSize() > 0) {
+        
+        expose = writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
+        
         if (writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_TTL)
             || writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_DPTS)) {
           if (null == kafkaDataMessageAttributes) {
@@ -1047,8 +1052,8 @@ public class Ingress extends AbstractHandler implements Runnable {
             //
             
             if (null != lastencoder && lastencoder.size() > 0) {
-              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
+              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
+              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
             }
             
             boolean pushMeta = false;
@@ -1137,8 +1142,8 @@ public class Ingress extends AbstractHandler implements Runnable {
         } while (true); 
         
         if (null != lastencoder && lastencoder.size() > 0) {
-          ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-          ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
+          ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
+          ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
 
           pushDataMessage(lastencoder, kafkaDataMessageAttributes);
           
@@ -1597,6 +1602,7 @@ public class Ingress extends AbstractHandler implements Runnable {
       pw = response.getWriter();
       StringBuilder sb = new StringBuilder();
 
+      boolean expose = writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
       //
       // Shuffle only if not in dryrun mode
       //
@@ -1787,10 +1793,10 @@ public class Ingress extends AbstractHandler implements Runnable {
             
             sb.setLength(0);
             
-            GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
+            GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels(), expose);
             
             if (metadata.getAttributesSize() > 0) {
-              GTSHelper.labelsToString(sb, metadata.getAttributes());
+              GTSHelper.labelsToString(sb, metadata.getAttributes(), true);
             } else {
               sb.append("{}");
             }
@@ -1843,10 +1849,10 @@ public class Ingress extends AbstractHandler implements Runnable {
             
             sb.setLength(0);
             
-            GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
+            GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels(), expose);
             
             if (metadata.getAttributesSize() > 0) {
-              GTSHelper.labelsToString(sb, metadata.getAttributes());
+              GTSHelper.labelsToString(sb, metadata.getAttributes(), true);
             } else {
               sb.append("{}");
             }

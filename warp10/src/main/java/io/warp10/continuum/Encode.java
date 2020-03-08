@@ -59,7 +59,7 @@ public class Encode {
         sb.append("//");
         sb.append(lastencoder.getCount());
         sb.append(" ");
-        GTSHelper.metadataToString(sb, lastencoder.getMetadata().getName(), lastencoder.getMetadata().getLabels());
+        GTSHelper.metadataToString(sb, lastencoder.getMetadata().getName(), lastencoder.getMetadata().getLabels(), true);
         sb.append(" ");
         sb.append(new String(OrderPreservingBase64.encode(lastencoder.getBytes()), StandardCharsets.US_ASCII));
         pw.println(sb.toString());
@@ -75,7 +75,7 @@ public class Encode {
       sb.setLength(0);
       sb.append(encoder.getBaseTimestamp());
       sb.append("// ");
-      GTSHelper.metadataToString(sb, encoder.getMetadata().getName(), encoder.getMetadata().getLabels());
+      GTSHelper.metadataToString(sb, encoder.getMetadata().getName(), encoder.getMetadata().getLabels(), true);
       sb.append(" ");
       sb.append(new String(OrderPreservingBase64.encode(encoder.getBytes()), StandardCharsets.US_ASCII));
       pw.println(sb.toString());      

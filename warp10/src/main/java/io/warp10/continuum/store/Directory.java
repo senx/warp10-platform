@@ -2074,6 +2074,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     
     long count = 0;
 
+    List<String> missingLabels = Constants.ABSENT_LABEL_SUPPORT ? new ArrayList<String>() : null;
+    
     for (int i = 0; i < request.getClassSelectorSize(); i++) {
       
       //
@@ -2120,10 +2122,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_RESULTS, Sensision.EMPTY_LABELS, count - precount);
           Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_TIME_NANOS, Sensision.EMPTY_LABELS, time);                  
         }
-      } else { 
+      } else { // No Directory plugin
         String exactClassName = null;
         
-
         if (request.getClassSelector().get(i).startsWith("=") || !request.getClassSelector().get(i).startsWith("~")) {
           exactClassName = request.getClassSelector().get(i).startsWith("=") ? request.getClassSelector().get(i).substring(1) : request.getClassSelector().get(i);
           classSmartPattern = new SmartPattern(exactClassName);
@@ -2133,12 +2134,21 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         
         Map<String,SmartPattern> labelPatterns = new HashMap<String,SmartPattern>();
         
+        if (null != missingLabels) {
+          missingLabels.clear();          
+        }
+        
         if (request.getLabelsSelectors().get(i).size() > 0) {
           for (Entry<String,String> entry: request.getLabelsSelectors().get(i).entrySet()) {
             String label = entry.getKey();
             String expr = entry.getValue();
             SmartPattern pattern;
             
+            if (null != missingLabels && ("=".equals(expr) || "".equals(expr))) {
+              missingLabels.add(label);
+              continue;
+            }
+
             if (expr.startsWith("=") || !expr.startsWith("~")) {
               pattern = new SmartPattern(expr.startsWith("=") ? expr.substring(1) : expr);
             } else {
@@ -2223,6 +2233,29 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           if (classSmartPattern.matches(className)) {
             for (Metadata metadata: this.metadatas.get(className).values()) {
               boolean exclude = false;
+
+              if (null != missingLabels) {
+                for (String missing: missingLabels) {
+                  // If the Metadata contain one of the missing labels, exclude the entry
+                  if (null != metadata.getLabels().get(missing)) {
+                    exclude = true;
+                    break;
+                  }
+                }              
+                // Check attributes
+                if (!exclude && metadata.getAttributesSize() > 0) {
+                  for (String missing: missingLabels) {
+                    // If the Metadata contain one of the missing labels, exclude the entry
+                    if (null != metadata.getAttributes().get(missing)) {
+                      exclude = true;
+                      break;
+                    }
+                  }                              
+                }
+                if (exclude) {
+                  continue;
+                }
+              }
               
               int idx = 0;
         
@@ -2476,6 +2509,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       HyperLogLogPlus labelValuesCardinality = null;
       HyperLogLogPlus classCardinality = null;
       
+      List<String> missingLabels = Constants.ABSENT_LABEL_SUPPORT ? new ArrayList<String>() : null;
+
       for (int i = 0; i < request.getClassSelectorSize(); i++) {
         String exactClassName = null;
         
@@ -2487,13 +2522,22 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         }
         
         Map<String,SmartPattern> labelPatterns = new HashMap<String,SmartPattern>();
-        
+
+        if (null != missingLabels) {
+          missingLabels.clear();
+        }
+
         if (null != request.getLabelsSelectors()) {
           for (Entry<String,String> entry: request.getLabelsSelectors().get(i).entrySet()) {
             String label = entry.getKey();
             String expr = entry.getValue();
             SmartPattern pattern;
             
+            if (null != missingLabels && ("=".equals(expr) || "".equals(expr))) {
+              missingLabels.add(label);
+              continue;
+            }
+
             if (expr.startsWith("=") || !expr.startsWith("~")) {
               //pattern = Pattern.compile(Pattern.quote(expr.startsWith("=") ? expr.substring(1) : expr));
               pattern = new SmartPattern(expr.startsWith("=") ? expr.substring(1) : expr);
@@ -2587,6 +2631,29 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             for (Metadata metadata: classMetadatas.values()) {
               
               boolean exclude = false;
+
+              if (null != missingLabels) {
+                for (String missing: missingLabels) {
+                  // If the Metadata contain one of the missing labels, exclude the entry
+                  if (null != metadata.getLabels().get(missing)) {
+                    exclude = true;
+                    break;
+                  }
+                }              
+                // Check attributes
+                if (!exclude && metadata.getAttributesSize() > 0) {
+                  for (String missing: missingLabels) {
+                    // If the Metadata contain one of the missing labels, exclude the entry
+                    if (null != metadata.getAttributes().get(missing)) {
+                      exclude = true;
+                      break;
+                    }
+                  }                              
+                }
+                if (exclude) {
+                  continue;
+                }
+              }
               
               int idx = 0;
         
@@ -2999,11 +3066,13 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_TIME_NANOS, Sensision.EMPTY_LABELS, time);        
       }
       return;
-    } else {
+    } else { // No Plugin
       
       String exactClassName = null;
       SmartPattern classSmartPattern;
       
+      List<String> missingLabels = Constants.ABSENT_LABEL_SUPPORT ? new ArrayList<String>() : null;
+
       if (classSelector.startsWith("=") || !classSelector.startsWith("~")) {
         exactClassName = classSelector.startsWith("=") ? classSelector.substring(1) : classSelector;
         classSmartPattern = new SmartPattern(exactClassName);
@@ -3018,6 +3087,11 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         String expr = entry.getValue();
         SmartPattern pattern;
             
+        if (null != missingLabels && ("=".equals(expr) || "".equals(expr))) {
+          missingLabels.add(label);
+          continue;
+        }
+
         if (expr.startsWith("=") || !expr.startsWith("~")) {
           pattern = new SmartPattern(expr.startsWith("=") ? expr.substring(1) : expr);
         } else {
@@ -3131,6 +3205,29 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               continue;
             }
 
+            if (null != missingLabels) {
+              for (String missing: missingLabels) {
+                // If the Metadata contain one of the missing labels, exclude the entry
+                if (null != metadata.getLabels().get(missing)) {
+                  exclude = true;
+                  break;
+                }
+              }              
+              // Check attributes
+              if (!exclude && metadata.getAttributesSize() > 0) {
+                for (String missing: missingLabels) {
+                  // If the Metadata contain one of the missing labels, exclude the entry
+                  if (null != metadata.getAttributes().get(missing)) {
+                    exclude = true;
+                    break;
+                  }
+                }                              
+              }
+              if (exclude) {
+                continue;
+              }
+            }
+
             int idx = 0;
       
             for (String labelName: labelNames) {
@@ -3232,6 +3329,5 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_METADATA_CACHE_HITS, Sensision.EMPTY_LABELS, hits);
     nano = System.nanoTime() - nano;
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_TIME_US, Sensision.EMPTY_LABELS, nano / 1000);
-  }
-  
+  }  
 }

@@ -142,9 +142,9 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     Object mapper = params.get(PARAM_MAPPER);
     long prewindow = !params.containsKey(PARAM_PREWINDOW) ? 0 : (long) params.get(PARAM_PREWINDOW);
     long postwindow = !params.containsKey(PARAM_POSTWINDOW) ? 0 : (long) params.get(PARAM_POSTWINDOW);
-    int occurrences = !params.containsKey(PARAM_OCCURENCES) ? 0 : (int) ((long) params.get(PARAM_OCCURENCES));
+    long occurrences = !params.containsKey(PARAM_OCCURENCES) ? 0 : (long) params.get(PARAM_OCCURENCES);
     int step = !params.containsKey(PARAM_STEP) ? 1 : (int) ((long) params.get(PARAM_STEP));
-    boolean overrideTick = !params.containsKey(PARAM_OVERRIDE) ? false : (boolean) params.get(PARAM_OVERRIDE);
+    boolean overrideTick = params.containsKey(PARAM_OVERRIDE) && (boolean) params.get(PARAM_OVERRIDE);
     Object outputTicks = params.get(PARAM_OUTPUTTICKS);
     
     // Handle gts and nested list of gts
@@ -187,9 +187,14 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     // Call MAP
     
     List<Object> mapped = new ArrayList<Object>();
+
+    // Make sure Math.abs(occurrences) will return a positive value.
+    if (Long.MIN_VALUE == occurrences) {
+      occurrences = Long.MIN_VALUE + 1;
+    }
     
     for (GeoTimeSerie gts: series) {
-      List<GeoTimeSerie> res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), occurrences < 0 ? true : false, step, overrideTick, mapper instanceof Macro ? stack : null,
+      List<GeoTimeSerie> res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), occurrences < 0, step, overrideTick, mapper instanceof Macro ? stack : null,
               (List<Long>) outputTicks);
 
       if (res.size() < 2) {

@@ -16,29 +16,24 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.json.JsonUtils;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.boon.core.value.CharSequenceValue;
-import org.boon.json.JsonException;
-import org.boon.json.JsonParser;
-import org.boon.json.JsonParserFactory;
-
 /**
  * Parses a String as JSON and pushes it onto the stack
  */
 public class JSONTO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  private static final JsonParserFactory BOON_PARSER_FACTORY = new JsonParserFactory();
-
   public JSONTO(String name) {
     super(name);
   }
@@ -51,18 +46,12 @@ public class JSONTO extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException(getName() + " expects a string on top of the stack.");
     }
     
-    JsonParser parser = BOON_PARSER_FACTORY.create();
-    
-    Object json = null;
-    
     try {
-      json = parser.parse(o.toString());
-    } catch(JsonException je) {      
-      // We don't include the original message as it can be very long
-      throw new WarpScriptException("Error parsing JSON", je);
+      Object json = JsonUtils.jsonToObject(o.toString());
+      stack.push(transform(json));
+    } catch (IOException ioe) {
+      throw new WarpScriptException(getName() + " failed to parse JSON", ioe);
     }
-
-    stack.push(transform(json));
 
     return stack;
   }
@@ -85,8 +74,6 @@ public class JSONTO extends NamedWarpScriptFunction implements WarpScriptStackFu
       return target;
     } else if (json instanceof Integer) {
       return ((Integer) json).longValue();
-    } else if (json instanceof CharSequenceValue) {
-      return ((CharSequenceValue)json).stringValue();      
     } else {
       return json;
     }

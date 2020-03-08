@@ -51,15 +51,13 @@ public class Median extends NamedWarpScriptFunction implements WarpScriptAggrega
     final Object[] values = (Object[]) args[6];
 
     //
-    // count null value. Also check if there is one double at least
+    // count null value.
     //
     int nullCounter = 0;
-    boolean inputHasDouble = false;
     for (Object v: values) {
       if (null == v) {
         nullCounter++;
       }
-      inputHasDouble |= (v instanceof Double);
     }
 
     if (0 != nullCounter && this.forbidNulls) {
@@ -92,7 +90,7 @@ public class Median extends NamedWarpScriptFunction implements WarpScriptAggrega
 
     long location = GeoTimeSerie.NO_LOCATION;
     long elevation = GeoTimeSerie.NO_ELEVATION;
-    Object median;
+    double median;
 
     int nonNullLength = values.length - nullCounter;
 
@@ -100,7 +98,7 @@ public class Median extends NamedWarpScriptFunction implements WarpScriptAggrega
     // singleton case
     //
     if (1 == nonNullLength) {
-      return new Object[] {tick, locations[indices[0]], elevations[indices[0]], values[indices[0]]};
+      return new Object[] {tick, locations[indices[0]], elevations[indices[0]], ((Number) values[indices[0]]).doubleValue()};
     } else {
       if (0 == nonNullLength % 2) {
         //
@@ -140,10 +138,6 @@ public class Median extends NamedWarpScriptFunction implements WarpScriptAggrega
 
     }
 
-    // if the input has only long values, return a long.
-    if (!inputHasDouble) {
-      median = ((Double) median).longValue();
-    }
     return new Object[] {tick, location, elevation, median};
   }
 }

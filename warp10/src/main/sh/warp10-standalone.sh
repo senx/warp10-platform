@@ -25,12 +25,12 @@
 # Description:       Warp stores sensor data
 ### END INIT INFO
 
-set -euo pipefail
-
 # Source function library.
 if [[ -e /lib/lsb/init-functions ]]; then
   . /lib/lsb/init-functions
 fi
+
+set -euo pipefail
 
 #JAVA_HOME=/opt/java8
 #WARP10_HOME=/opt/warp10-@VERSION@

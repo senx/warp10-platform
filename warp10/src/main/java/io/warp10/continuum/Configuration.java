@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ public class Configuration {
   public static final String WARP10_QUIET = "warp10.quiet";
   
   public static final String WARP10_TELEMETRY = "warp10.telemetry";
-  
+
   /**
    * Comma separated list of headers to return in the Access-Allow-Control-Headers response header to preflight requests.
    */
@@ -90,7 +90,13 @@ public class Configuration {
    * How often (in ms) should we refetch the region start/end keys
    */
   public static final String WARP_HBASE_REGIONKEYS_UPDATEPERIOD = "warp.hbase.regionkeys.updateperiod";
-  
+
+  /**
+   * WarpScript code used to resolve font URLs, can be a macro call or any other valid WarpScript excerpt
+   * The code is passed the URL to check and should return the updated URL. NOOP will accept all URLs.
+   */
+  public static final String PROCESSING_FONT_RESOLVER = "processing.font.resolver";
+
   /**
    * Number of registers to allocate in stacks. Defaults to WarpScriptStack.DEFAULT_REGISTERS
    */
@@ -138,6 +144,7 @@ public class Configuration {
   public static final String WARPSCRIPT_MAX_SYMBOLS = "warpscript.maxsymbols";
   public static final String WARPSCRIPT_MAX_WEBCALLS = "warpscript.maxwebcalls";
   public static final String WARPSCRIPT_MAX_PIXELS = "warpscript.maxpixels";
+  public static final String WARPSCRIPT_MAX_JSON = "warpscript.maxjson";
 
   // Hard limits for the above limits which can be changed via a function call
   public static final String WARPSCRIPT_MAX_OPS_HARD = "warpscript.maxops.hard";
@@ -150,6 +157,7 @@ public class Configuration {
   public static final String WARPSCRIPT_MAX_RECURSION_HARD = "warpscript.maxrecursion.hard";
   public static final String WARPSCRIPT_MAX_SYMBOLS_HARD = "warpscript.maxsymbols.hard";
   public static final String WARPSCRIPT_MAX_PIXELS_HARD = "warpscript.maxpixels.hard";
+  public static final String WARPSCRIPT_MAX_JSON_HARD = "warpscript.maxjson.hard";
 
   /**
    * When set to true, allow common comment block style. When false, keep the old strict comment block style within WarpScript
@@ -1755,6 +1763,16 @@ public class Configuration {
    * Set to a message indicating the reason why updates are disabled, they are enabled if this is not set
    */
   public static final String WARP_UPDATE_DISABLED = "warp.update.disabled";
+  
+  /**
+   * Set to true to expose owner and producer labels in Geo Time Series retrieved from the Warp 10 Storage Engine 
+   */
+  public static final String WARP10_EXPOSE_OWNER_PRODUCER = "warp10.expose.owner.producer";
+  
+  /**
+   * Set to true to allow Directory queries with missing label selectors (using empty exact match)
+   */
+  public static final String WARP10_ABSENT_LABEL_SUPPORT = "warp10.absent.label.support";
   
   /**
    * Manager secret, must be set to use the managing functions

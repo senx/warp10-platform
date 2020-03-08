@@ -182,7 +182,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
       ArrayList<GeoTimeSerie> result = new ArrayList<GeoTimeSerie>();
 
       for (GTSDecoder decoder: decodersInput) {
-        GeoTimeSerie gts = new GeoTimeSerie();
+        GeoTimeSerie gts = new GeoTimeSerie((int) Math.min(Integer.MAX_VALUE, decoder.getCount()));
         gts.setMetadata(decoder.getMetadata());
         String enforcedType = null;
         boolean mustGuessTypeFromFirstValue = true;
