@@ -45,11 +45,7 @@ public class NOTAFTER extends NamedWarpScriptFunction implements WarpScriptStack
     long instant;
     
     if (top instanceof String) {
-      if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-        instant = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(top.toString());
-      } else {
-        instant = fmt.parseDateTime((String) top).getMillis() * Constants.TIME_UNITS_PER_MS;
-      }
+      instant = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(top.toString());
     } else if (!(top instanceof Long)) {
       throw new WarpScriptException(getName() + " expects a timestamp or ISO8601 datetime string on top of the stack.");
     } else {

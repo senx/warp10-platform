@@ -423,11 +423,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
           return;
         }
         if (startstr.contains("T")) {
-          if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-            start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(startstr);
-          } else {
-            start = fmt.parseDateTime(startstr).getMillis() * Constants.TIME_UNITS_PER_MS;
-          }
+          start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(startstr);
         } else {
           start = Long.valueOf(startstr);
         }
@@ -439,11 +435,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
           return;
         }
         if (endstr.contains("T")) {
-          if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-            end = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(endstr);
-          } else {
-            end = fmt.parseDateTime(endstr).getMillis() * Constants.TIME_UNITS_PER_MS;
-          }
+          end = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(endstr);
         } else {
           end = Long.valueOf(endstr);
         }

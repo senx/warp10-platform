@@ -1170,11 +1170,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         } catch (NumberFormatException nfe) {
           // Not string representation of a Long, try ISO8601
           try {
-            if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-              timestamp = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp((String) timestampRepresentation);
-            } else {
-              timestamp = fmt.parseDateTime((String) timestampRepresentation).getMillis() * Constants.TIME_UNITS_PER_MS;
-            }
+            timestamp = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp((String) timestampRepresentation);
           } catch (WarpScriptException | IllegalArgumentException e) {
             // Don't set the cause of the execption because we don't know which of the two (nfs or e) it is.
             throw new WarpScriptException("Invalid format for parameter '" + timestampRepresentationParameterName + "'.");
