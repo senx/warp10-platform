@@ -65,7 +65,6 @@ import com.geoxp.GeoXPLib.GeoXPShape;
 import com.google.common.collect.ImmutableMap;
 
 import io.warp10.CapacityExtractorOutputStream;
-import io.warp10.DoubleUtils;
 import io.warp10.WarpURLDecoder;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.MetadataUtils;
@@ -2773,8 +2772,8 @@ public class GTSHelper {
             q[qidx++] = Double.parseDouble(valuestr.substring(idx));
           }
         }
-        
-        if (!DoubleUtils.isFinite(q[0]) || !DoubleUtils.isFinite(q[1]) || !DoubleUtils.isFinite(q[2]) || !DoubleUtils.isFinite(q[3])) {
+
+        if (!Double.isFinite(q[0]) || !Double.isFinite(q[1]) || !Double.isFinite(q[2]) || !Double.isFinite(q[3])) {
           throw new ParseException("Quaternion values require finite elements.", 0);
         }
         

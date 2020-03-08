@@ -16,7 +16,6 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.DoubleUtils;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -63,7 +62,7 @@ public class TOQUATERNION extends NamedWarpScriptFunction implements WarpScriptS
     double y = ((Number) yo).doubleValue();
     double z = ((Number) zo).doubleValue();
 
-    if (!DoubleUtils.isFinite(w) || !DoubleUtils.isFinite(x) || !DoubleUtils.isFinite(y) || !DoubleUtils.isFinite(z)) {
+    if (!Double.isFinite(w) || !Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z)) {
       throw new WarpScriptException(getName() + " expects finite arguments.");
     }
     

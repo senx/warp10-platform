@@ -16,7 +16,6 @@
 
 package io.warp10.script;
 
-import io.warp10.FloatUtils;
 import io.warp10.json.JsonUtils;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.gts.GTSHelper;
@@ -410,7 +409,7 @@ public class StackUtils {
         long elevation = GeoTimeSerie.NO_ELEVATION;
         
         if (hasLocations) {
-          if (FloatUtils.isFinite(inGTS.latitudes[i]) && FloatUtils.isFinite(inGTS.longitudes[i])) {
+          if (Float.isFinite(inGTS.latitudes[i]) && Float.isFinite(inGTS.longitudes[i])) {
             location = GeoXPLib.toGeoXPPoint(inGTS.latitudes[i], inGTS.longitudes[i]);
           }
         }
