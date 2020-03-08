@@ -58,10 +58,8 @@ public class REVERSE extends NamedWarpScriptFunction implements WarpScriptStackF
       Collections.reverse((List) top);
       stack.push(top);
     } else if (top instanceof String) {
-      if (!this.stable) {
-        top = new String(UnsafeString.getChars(top.toString()));
-      }
-      char[] chars = UnsafeString.getChars(top.toString());
+      char[] chars = ((String) top).toCharArray();
+      
       int i = 0;
       int j = chars.length - 1;
       
@@ -72,8 +70,8 @@ public class REVERSE extends NamedWarpScriptFunction implements WarpScriptStackF
         i++;
         j--;
       }
-      
-      stack.push(top);
+
+      stack.push(String.valueOf(chars));
     } else if (top instanceof byte[]) {
       byte[] data = (byte[]) top; 
       if (!this.stable) {
