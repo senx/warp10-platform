@@ -47,6 +47,7 @@ public class StackPSWarpScriptExtension extends WarpScriptExtension {
     functions.put("WSPS", new WSPS("WSPS"));
     functions.put("WSINFO", new WSINFO("WSINFO"));
     functions.put("WSKILL", new WSKILL("WSKILL"));
+    functions.put("WSNAME", new WSNAME("WSNAME"));
   }
   
   @Override
