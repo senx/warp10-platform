@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.warp10.script.ext.stackps.StackPSWarpScriptExtension;
+
 public class WarpScriptStackRegistry {
   
   private static final Map<String,WeakReference<WarpScriptStack>> stacks = new HashMap<String,WeakReference<WarpScriptStack>>();
@@ -46,6 +48,29 @@ public class WarpScriptStackRegistry {
     
     stackref.get().abort();
     return true;
+  }
+  
+  public static int abortSession(String session) {
+    if (null == session) {
+      return 0;
+    }
+    
+    List<WeakReference<WarpScriptStack>> refs = new ArrayList<WeakReference<WarpScriptStack>>(stacks.values());
+    
+    int aborted = 0;
+    
+    for (WeakReference<WarpScriptStack> ref: refs) {
+      WarpScriptStack stack = ref.get();
+      
+      if (null != stack) {
+        if (session.equals(stack.getAttribute(StackPSWarpScriptExtension.ATTRIBUTE_SESSION))) {
+          stack.abort();
+          aborted++;
+        }
+      }
+    }
+    
+    return aborted;
   }
   
   public static void enable() {

@@ -34,6 +34,8 @@ public class StackPSWarpScriptExtension extends WarpScriptExtension {
    */
   public static String STACKPS_SECRET;  
 
+  public static final String ATTRIBUTE_SESSION = "stackps.session";
+  
   private static final Map<String,Object> functions;
   
   static {
@@ -47,7 +49,9 @@ public class StackPSWarpScriptExtension extends WarpScriptExtension {
     functions.put("WSPS", new WSPS("WSPS"));
     functions.put("WSINFO", new WSINFO("WSINFO"));
     functions.put("WSKILL", new WSKILL("WSKILL"));
-    functions.put("WSNAME", new WSNAME("WSNAME"));
+    functions.put("WSABORT", new WSABORT("WSABORT"));
+    functions.put("WSNAME", new WSNAME("WSNAME", false));
+    functions.put("WSSESSION", new WSNAME("WSSESSION", true));
   }
   
   @Override

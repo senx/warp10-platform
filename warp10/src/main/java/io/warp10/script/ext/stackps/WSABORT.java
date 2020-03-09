@@ -20,41 +20,23 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.WarpScriptStackRegistry;
 
-public class WSNAME extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
-  private static final int MAX_SIZE = 128;
-  
-  /**
-   * True when setting the session
-   */
-  private final boolean session;
-  
-  public WSNAME(String name, boolean session) {
+public class WSABORT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+  public WSABORT(String name) {
     super(name);
-    this.session = session;
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-
+    
     if (!(top instanceof String)) {
-      throw new WarpScriptException(getName() + " expects a STRING.");
+      throw new WarpScriptException(getName() + " expects a session name (STRING).");
     }
     
-    String name = top.toString();
-    
-    if (name.length() > MAX_SIZE) {
-      throw new WarpScriptException(getName() + " expects a name less than " + MAX_SIZE + " characters.");
-    }
-    
-    if (session) {
-      stack.setAttribute(StackPSWarpScriptExtension.ATTRIBUTE_SESSION, name);      
-    } else {
-      stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, name);
-    }
-    
+    stack.push(WarpScriptStackRegistry.abortSession(top.toString()));
+        
     return stack;
   }
 }

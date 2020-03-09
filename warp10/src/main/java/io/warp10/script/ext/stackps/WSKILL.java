@@ -34,15 +34,16 @@ public class WSKILL extends NamedWarpScriptFunction implements WarpScriptStackFu
     //
     // A non null stackps secret was configured, check it
     //
+
     String secret = StackPSWarpScriptExtension.STACKPS_SECRET;
-    
-    if (null != secret) {     
+
+    if (null != secret) {
       if (!(top instanceof String)) {
         throw new WarpScriptException(getName() + " expects a secret.");
       }
       if (!secret.equals(top)) {
         throw new WarpScriptException(getName() + " invalid secret.");
-      }
+      }        
       top = stack.pop();
     }      
 
