@@ -105,7 +105,6 @@ uploadArchives {
     repositories {
         repositories.mavenDeployer {
             configuration = configurations.deployerJars
-            uniqueVersion = false
 
             repository(url: "scpexe://${warpScriptPublishURL}") {
                 authentication(userName: "${warpScriptPublishUser}")

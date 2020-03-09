@@ -18,3 +18,4 @@ warp10/src/main/resources/REVISION
 gradle.properties
 archive
 /CHANGELOG.md
+.vscode

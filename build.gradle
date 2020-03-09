@@ -216,7 +216,6 @@ subprojects {
         repositories {
             repositories.mavenDeployer {
                 configuration = configurations.deployerJars
-                uniqueVersion = false
 
                 repository(url: "scpexe://${stagingURL}") {
                     authentication userName: stagingUser
