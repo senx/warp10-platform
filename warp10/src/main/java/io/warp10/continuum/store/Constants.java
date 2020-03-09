@@ -358,6 +358,7 @@ public class Constants {
   public static final String HTTP_PARAM_END = "end";
   public static final String HTTP_PARAM_DELETEALL = "deleteall";
   public static final String HTTP_PARAM_DRYRUN = "dryrun";
+  public static final String HTTP_PARAM_CLEAN_TTL = "cleanttl";
   public static final String HTTP_PARAM_MINAGE = "minage";
   public static final String HTTP_PARAM_SHOWUUID = "showuuid";
   public static final String HTTP_PARAM_SHOWATTR = "showattr";

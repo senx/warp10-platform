@@ -1566,6 +1566,23 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             //
             
             if (io.warp10.continuum.Configuration.INGRESS_METADATA_DELETE_SOURCE.equals(metadata.getSource())) {
+              long nowms = System.currentTimeMillis();
+
+              //LOG.info("Entrypoint: " + metadata.getSource() + ", nowms: " + nowms + ", metadata.isSetTtl: "+ metadata.isSetCleanttl() + ", ttl: "+ metadata.getCleanttl() + ", metadata.isSetLastActivity: " + metadata.isSetLastActivity() + ", la: " + metadata.getLastActivity());
+              
+              if (metadata.isSetCleanttl()) {
+                Long ttl = metadata.getCleanttl();
+                if (ttl > 0 && metadata.isSetLastActivity()) {
+                  if (nowms - ttl < metadata.getLastActivity() ) {
+                    LOG.info("Skip clean");
+                    metadata.unsetCleanttl();
+                    continue;
+                  } 
+                }  
+              }
+              metadata.unsetCleanttl();
+              
+
               
               //
               // Call external plugin

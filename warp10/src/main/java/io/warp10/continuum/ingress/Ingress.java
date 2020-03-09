@@ -1451,6 +1451,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     long gts = 0;
     
     boolean completeDeletion = false;
+    boolean cleanDeletion = null != request.getParameter(Constants.HTTP_PARAM_CLEAN_TTL);
 
     boolean dryrun = null != request.getParameter(Constants.HTTP_PARAM_DRYRUN);
     
@@ -1541,7 +1542,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         }
       }
 
-      if (Long.MIN_VALUE == start && Long.MAX_VALUE == end && null == request.getParameter(Constants.HTTP_PARAM_DELETEALL)) {
+      if (Long.MIN_VALUE == start && Long.MAX_VALUE == end && null == request.getParameter(Constants.HTTP_PARAM_DELETEALL) && !cleanDeletion) {
         throw new IOException("Parameter " + Constants.HTTP_PARAM_DELETEALL + " should be set when deleting a full range.");
       }
       
@@ -1772,13 +1773,27 @@ public class Ingress extends AbstractHandler implements Runnable {
                   continue;
                 }
               }
-              pushDeleteMessage(start, end, minage, metadata);
-              
-              if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
+              if (!cleanDeletion) {
+                pushDeleteMessage(start, end, minage, metadata);
+              }
+
+              if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage || cleanDeletion) {
                 completeDeletion = true;
                 // We must also push the metadata deletion and remove the metadata from the cache
                 Metadata meta = new Metadata(metadata);
                 meta.setSource(Configuration.INGRESS_METADATA_DELETE_SOURCE);
+                
+                if (cleanDeletion) {
+                  //
+                  // Extract TTL
+                  //
+                  long ttl = 0;
+
+                  String ttlstr = request.getParameter(Constants.HTTP_PARAM_CLEAN_TTL);
+                  ttl = Long.valueOf(ttlstr);
+                  meta.setCleanttl(ttl);
+                }
+
                 pushMetadataMessage(meta);          
                 byte[] bytes = new byte[16];
                 // We know class/labels Id were computed in pushMetadataMessage
@@ -1828,14 +1843,26 @@ public class Ingress extends AbstractHandler implements Runnable {
                 }
               }
 
-              pushDeleteMessage(start, end, minage, metadata);
+              if (!cleanDeletion) {
+                pushDeleteMessage(start, end, minage, metadata);
+              }
               
-              if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
+              if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage || cleanDeletion) {
                 completeDeletion = true;
                 // We must also push the metadata deletion and remove the metadata from the cache
                 Metadata meta = new Metadata(metadata);
                 meta.setSource(Configuration.INGRESS_METADATA_DELETE_SOURCE);
-                pushMetadataMessage(meta);          
+                if (cleanDeletion) {
+                  //
+                  // Extract TTL
+                  //
+                  long ttl = 0;
+                  String ttlstr = request.getParameter(Constants.HTTP_PARAM_CLEAN_TTL);
+                  ttl = Long.valueOf(ttlstr);
+                  meta.setCleanttl(ttl);
+                }
+                pushMetadataMessage(meta);
+                meta.unsetCleanttl();          
                 byte[] bytes = new byte[16];
                 // We know class/labels Id were computed in pushMetadataMessage
                 GTSHelper.fillGTSIds(bytes, 0, meta.getClassId(), meta.getLabelsId());
@@ -1886,8 +1913,10 @@ public class Ingress extends AbstractHandler implements Runnable {
     } finally {
       // Flush delete messages
       if (!dryrun) {
-        pushDeleteMessage(0L,0L,0L,null);
-        if (completeDeletion) {
+        if (!cleanDeletion) {
+          pushDeleteMessage(0L,0L,0L,null);
+        }
+        if (completeDeletion||cleanDeletion) {
           pushMetadataMessage(null, null);
         }
         if (null != this.plugin) {

@@ -64,6 +64,12 @@ struct Metadata {
    * depends on the configuration of the activity window in Warp 10.
    */
   7: optional i64 lastActivity,  
+  
+  /**
+    * Optional field expecting a duration (in ms) corresponding to a security to clean Geo Time Series.
+    * used only on the Delete endpoint
+    */
+  8: optional i64 cleanttl,  
 }
 
 /**
