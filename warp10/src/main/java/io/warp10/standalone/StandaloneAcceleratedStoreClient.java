@@ -204,8 +204,12 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
   
   @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {
-    cache.delete(token, metadata, start, end);
-    persistent.delete(token, metadata, start, end);
+    if (!nocache.get()) {
+      cache.delete(token, metadata, start, end);
+    }
+    if (!nopersist.get()) {
+      persistent.delete(token, metadata, start, end);
+    }
     return 0;
   }
   

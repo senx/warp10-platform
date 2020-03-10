@@ -293,7 +293,19 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     
     String startstr = request.getParameter(Constants.HTTP_PARAM_START);
     String endstr = request.getParameter(Constants.HTTP_PARAM_END);
-          
+     
+    //
+    // Extract nocache/nopersist
+    //
+    
+    boolean nocache = null != request.getParameter(StandaloneAcceleratedStoreClient.NOCACHE);
+    boolean nopersist = null != request.getParameter(StandaloneAcceleratedStoreClient.NOPERSIST);
+
+    if (nocache && nopersist) {
+      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Cannot specify both '" + StandaloneAcceleratedStoreClient.NOCACHE + "' and '" + StandaloneAcceleratedStoreClient.NOPERSIST + "'.");;
+      return;
+    }
+
     //
     // Extract selector
     //
@@ -523,6 +535,18 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       
       metadatas.sort(MetadataIdComparator.COMPARATOR);
       
+      if (nocache) {
+        StandaloneAcceleratedStoreClient.nocache();
+      } else {
+        StandaloneAcceleratedStoreClient.cache();        
+      }
+      
+      if (nopersist) {
+        StandaloneAcceleratedStoreClient.nopersist();
+      } else {
+        StandaloneAcceleratedStoreClient.persist();        
+      }
+
       for (Metadata metadata: metadatas) {                
         //
         // Remove data
