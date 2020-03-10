@@ -26,6 +26,12 @@
 accelerator = false
 
 //
+// Set to 'true' to preload the accelerator with the persisted data spanning the accelerator time range.
+// Preloading can be disabled for setups where the accelerator is used as a temporary side cache only.
+//
+accelerator.preload = true
+
+//
 // Number of threads to use for preloading the Warp 10 Accelerator
 //
 accelerator.preload.poolsize = 8

@@ -1729,6 +1729,12 @@ public class Configuration {
    * in.memory.chunk.count and in.memory.chunk.length MUST be defined
    */
   public static final String ACCELERATOR = "accelerator";
+
+  /**
+   * Set to 'true' to preload the accelerator with the persisted data spanning the accelerator time range.
+   * Preloading can be disabled for setups where the accelerator is used as a temporary side cache only.
+   */
+  public static final String ACCELERATOR_PRELOAD = "accelerator.preload";
   
   /**
    * Set to 'true' to preload the accelerator with data based on the lastactivity

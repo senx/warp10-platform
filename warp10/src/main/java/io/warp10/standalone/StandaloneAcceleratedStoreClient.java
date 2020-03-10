@@ -115,6 +115,8 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     final long then = start;
     final long count = n;
     
+    boolean preload = "true".equals(WarpConfig.getProperty(Configuration.ACCELERATOR_PRELOAD));
+    
     if ("true".equals(WarpConfig.getProperty(Configuration.ACCELERATOR_PRELOAD_ACTIVITY))) {
       long activityWindow = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_ACTIVITY_WINDOW, "-1"));
       if (activityWindow > 0) {
@@ -122,78 +124,82 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
       }
     }
     
-    try {
-      final AtomicLong datapoints = new AtomicLong();
-      
-      MetadataIterator iter = dir.iterator(request);
-      
-      int BATCH_SIZE = Integer.parseInt(WarpConfig.getProperty(Configuration.ACCELERATOR_PRELOAD_BATCHSIZE, "1000"));
-      List<Metadata> batch = new ArrayList<Metadata>(BATCH_SIZE);
+    if (preload) {
+      try {
+        final AtomicLong datapoints = new AtomicLong();
+        
+        MetadataIterator iter = dir.iterator(request);
+        
+        int BATCH_SIZE = Integer.parseInt(WarpConfig.getProperty(Configuration.ACCELERATOR_PRELOAD_BATCHSIZE, "1000"));
+        List<Metadata> batch = new ArrayList<Metadata>(BATCH_SIZE);
+              
+        int nthreads = Integer.parseInt(WarpConfig.getProperty(Configuration.ACCELERATOR_PRELOAD_POOLSIZE, "8"));
+        
+        ThreadPoolExecutor exec = new ThreadPoolExecutor(nthreads, nthreads, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(nthreads));
+        final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
+        
+        while(iter.hasNext()) {
+          batch.add(iter.next());
+          
+          if (null != error.get()) {
+            throw new RuntimeException("Error populating the accelerator", error.get());
+          }
+          
+          if (BATCH_SIZE == batch.size() || !iter.hasNext()) {
             
-      int nthreads = Integer.parseInt(WarpConfig.getProperty(Configuration.ACCELERATOR_PRELOAD_POOLSIZE, "8"));
-      
-      ThreadPoolExecutor exec = new ThreadPoolExecutor(nthreads, nthreads, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(nthreads));
-      final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
-      
-      while(iter.hasNext()) {
-        batch.add(iter.next());
-        
-        if (null != error.get()) {
-          throw new RuntimeException("Error populating the accelerator", error.get());
-        }
-        
-        if (BATCH_SIZE == batch.size() || !iter.hasNext()) {
-          
-          final List<Metadata> fbatch = batch;
-          
-          Runnable runnable = new Runnable() {            
-            @Override
-            public void run() {
+            final List<Metadata> fbatch = batch;
+            
+            Runnable runnable = new Runnable() {            
+              @Override
+              public void run() {
+                try {
+                  GTSDecoderIterator decoders = persistent.fetch(null, fbatch, now, then, count, 0, 1.0D, false, 0, 0);
+                  
+                  while(decoders.hasNext()) {
+                    GTSDecoder decoder = decoders.next();
+                    decoder.next();
+                    GTSEncoder encoder = decoder.getEncoder(true);
+                    cache.store(encoder);
+                    datapoints.addAndGet(decoder.getCount());
+                  }                              
+                } catch (Exception e) {
+                  error.set(e);
+                  throw new RuntimeException(e);
+                }
+              }
+            };
+            
+            boolean submitted = false;
+            while(!submitted) {
               try {
-                GTSDecoderIterator decoders = persistent.fetch(null, fbatch, now, then, count, 0, 1.0D, false, 0, 0);
-                
-                while(decoders.hasNext()) {
-                  GTSDecoder decoder = decoders.next();
-                  decoder.next();
-                  GTSEncoder encoder = decoder.getEncoder(true);
-                  cache.store(encoder);
-                  datapoints.addAndGet(decoder.getCount());
-                }                              
-              } catch (Exception e) {
-                error.set(e);
-                throw new RuntimeException(e);
+                exec.execute(runnable);
+                submitted = true;
+              } catch (RejectedExecutionException re) {
+                LockSupport.parkNanos(100000000L);
               }
             }
-          };
-          
-          boolean submitted = false;
-          while(!submitted) {
-            try {
-              exec.execute(runnable);
-              submitted = true;
-            } catch (RejectedExecutionException re) {
-              LockSupport.parkNanos(100000000L);
+            
+            batch = new ArrayList<Metadata>(BATCH_SIZE);
+          }
+        }
+
+        exec.shutdown();
+        
+        while(true) {
+          try {
+            if (exec.awaitTermination(30, TimeUnit.SECONDS)) {
+              break;
             }
+          } catch (InterruptedException ie) {          
           }
-          
-          batch = new ArrayList<Metadata>(BATCH_SIZE);
         }
-      }
 
-      exec.shutdown();
-      
-      while(true) {
-        try {
-          if (exec.awaitTermination(30, TimeUnit.SECONDS)) {
-            break;
-          }
-        } catch (InterruptedException ie) {          
-        }
-      }
-
-      LOG.info("Preloaded accelerator with " + datapoints + " datapoints from " + this.cache.getGTSCount() + " Geo Time Series in " + ((System.nanoTime() - nanos) / 1000000.0D) + " ms.");
-    } catch (IOException ioe) {
-      throw new RuntimeException("Error populating cache.", ioe);
+        LOG.info("Preloaded accelerator with " + datapoints + " datapoints from " + this.cache.getGTSCount() + " Geo Time Series in " + ((System.nanoTime() - nanos) / 1000000.0D) + " ms.");
+      } catch (IOException ioe) {
+        throw new RuntimeException("Error populating cache.", ioe);
+      }      
+    } else {
+      LOG.info("Skipping accelerator preloading.");
     }
   }
   
