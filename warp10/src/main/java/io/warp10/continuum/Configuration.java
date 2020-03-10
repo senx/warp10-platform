@@ -1692,7 +1692,7 @@ public class Configuration {
   /**
    * Set to true to allow the /delete endpoint to only delete metadata.
    */
-  public static final String INGRESS_DELETE_NODATA_SUPPORT = "ingress.delete.nodata.support";
+  public static final String INGRESS_DELETE_METAONLY_SUPPORT = "ingress.delete.metaonly.support";
   
   /**
    * Set to true to allow activeafter/quietafter parameters to delete requests.

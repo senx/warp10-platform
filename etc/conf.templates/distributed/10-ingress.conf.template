@@ -351,7 +351,7 @@ ingress.kafka.metadata.maxsize = 900000
 //
 // Set to true to allow the /delete endpoint to only delete metadata
 //   
-#ingress.delete.nodata.support = true
+#ingress.delete.metaonly.support = true
   
 //
 // Set to true to allow /delete queries to select GTS based on their last activity.

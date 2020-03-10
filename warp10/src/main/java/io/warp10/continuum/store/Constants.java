@@ -376,7 +376,7 @@ public class Constants {
   public static final String HTTP_PARAM_SAMPLE = "sample";
   public static final String HTTP_PARAM_PREBOUNDARY = "boundary.pre";
   public static final String HTTP_PARAM_POSTBOUNDARY = "boundary.post";
-  public static final String HTTP_PARAM_NODATA = "nodata";
+  public static final String HTTP_PARAM_METAONLY = "metaonly";
 
   public static final String DEFAULT_PACKED_CLASS_SUFFIX = ":packed";
   public static final int DEFAULT_PACKED_MAXSIZE = 65536;
@@ -462,7 +462,7 @@ public class Constants {
   /**
    * Does the /delete endpoint allow the use of the 'nodata' parameter to only remove metadata
    */
-  public static final boolean DELETE_NODATA_SUPPORT;
+  public static final boolean DELETE_METAONLY_SUPPORT;
   
   public static final boolean DELETE_ACTIVITY_SUPPORT;
   
@@ -473,7 +473,7 @@ public class Constants {
     
     ABSENT_LABEL_SUPPORT = "true".equals(WarpConfig.getProperty(Configuration.WARP10_ABSENT_LABEL_SUPPORT));
     
-    DELETE_NODATA_SUPPORT = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_DELETE_NODATA_SUPPORT));
+    DELETE_METAONLY_SUPPORT = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_DELETE_METAONLY_SUPPORT));
     
     DELETE_ACTIVITY_SUPPORT = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_DELETE_ACTIVITY_SUPPORT));
     

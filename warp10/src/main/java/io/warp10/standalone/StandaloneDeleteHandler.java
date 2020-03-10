@@ -449,8 +449,10 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         }
       }
       
-      if (Long.MIN_VALUE == start && Long.MAX_VALUE == end && null == request.getParameter(Constants.HTTP_PARAM_DELETEALL)) {
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Parameter " + Constants.HTTP_PARAM_DELETEALL + " should be set when deleting a full range.");
+      boolean metaonly = null != request.getParameter(Constants.HTTP_PARAM_METAONLY);
+      
+      if (Long.MIN_VALUE == start && Long.MAX_VALUE == end && (null == request.getParameter(Constants.HTTP_PARAM_DELETEALL) && !metaonly)) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Parameter " + Constants.HTTP_PARAM_DELETEALL + " or " + Constants.HTTP_PARAM_METAONLY + " should be set when no time range is specified.");
         return;
       }
       
@@ -458,15 +460,13 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         hasRange = true;
       }
 
-      boolean nodata = null != request.getParameter(Constants.HTTP_PARAM_NODATA);
-      
-      if (nodata && !Constants.DELETE_NODATA_SUPPORT) {
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Parameter " + Constants.HTTP_PARAM_NODATA + " cannot be used as nodata support is not enabled.");
+      if (metaonly && !Constants.DELETE_METAONLY_SUPPORT) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Parameter " + Constants.HTTP_PARAM_METAONLY + " cannot be used as metaonly support is not enabled.");
         return;        
       }
       
-      if (nodata && hasRange) {
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Parameter " + Constants.HTTP_PARAM_NODATA + " can only be set if no range is specified.");
+      if (metaonly && hasRange) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Parameter " + Constants.HTTP_PARAM_METAONLY + " can only be set if no range is specified.");
         return;
       }
       
@@ -567,7 +567,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
               continue;
             }
           }
-          if (!nodata) {
+          if (!metaonly) {
             localCount = this.storeClient.delete(writeToken, metadata, start, end);
           }
         }
