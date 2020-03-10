@@ -470,6 +470,11 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         hasRange = true;
       }
       
+      if (!hasRange && (nocache || nopersist)) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Time range is mandatory when specifying '" + StandaloneAcceleratedStoreClient.NOCACHE + "' or '" + StandaloneAcceleratedStoreClient.NOPERSIST + "'.");
+        return;
+      }
+      
       if (start > end) {
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Invalid time range specification.");
         return;
