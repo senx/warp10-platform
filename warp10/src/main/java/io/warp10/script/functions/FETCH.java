@@ -54,6 +54,7 @@ import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
+import io.warp10.continuum.gts.MetadataSelectorMatcher;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
@@ -235,32 +236,83 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       iter = metaset.getMetadatas().iterator();
     } else if (params.containsKey(PARAM_GTS)) {
       List<Metadata> metas = (List<Metadata>) params.get(PARAM_GTS);
-            
+      
+      Map<String,String> tokenSelectors = Tokens.labelSelectorsFromReadToken(rtoken);
+      
+      boolean singleApp = tokenSelectors.containsKey(Constants.APPLICATION_LABEL) && '=' == tokenSelectors.get(Constants.APPLICATION_LABEL).charAt(0);
+      boolean singleOwner = tokenSelectors.containsKey(Constants.OWNER_LABEL) && '=' == tokenSelectors.get(Constants.OWNER_LABEL).charAt(0);
+      boolean singleProducer = tokenSelectors.containsKey(Constants.PRODUCER_LABEL) && '=' == tokenSelectors.get(Constants.PRODUCER_LABEL).charAt(0); 
+
+      Metadata tmeta = new Metadata();
+      tmeta.setName("");
+      tmeta.setLabels(tokenSelectors);
+      
+      // Build a selector matching all classes
+      String tselector = "~.*" + GTSHelper.buildSelector(tmeta, true);
+      MetadataSelectorMatcher matcher = new MetadataSelectorMatcher(tselector);
+      
+      //
+      // Build a selector
       for (Metadata m: metas) {
         if (null == m.getLabels()) {
           m.setLabels(new HashMap<String,String>());
         }
-        m.getLabels().remove(Constants.PRODUCER_LABEL);
-        m.getLabels().remove(Constants.OWNER_LABEL);
-        m.getLabels().remove(Constants.APPLICATION_LABEL);
-        m.getLabels().putAll(Tokens.labelSelectorsFromReadToken(rtoken));
-                
-        if (m.getLabels().containsKey(Constants.PRODUCER_LABEL) && '=' == m.getLabels().get(Constants.PRODUCER_LABEL).charAt(0)) {
-          m.getLabels().put(Constants.PRODUCER_LABEL, m.getLabels().get(Constants.PRODUCER_LABEL).substring(1));
-        } else if (m.getLabels().containsKey(Constants.PRODUCER_LABEL)) {
-          throw new WarpScriptException(getName() + " provided token is incompatible with '" + PARAM_GTS + "' parameter, expecting a single producer.");
+        
+        //
+        // If the Metadata have producer/owner/app labels, check if 'matcher' would select them
+        //
+        
+        boolean matches = false;
+        
+        if (m.getLabels().containsKey(Constants.PRODUCER_LABEL)
+            && m.getLabels().containsKey(Constants.OWNER_LABEL)
+            && m.getLabels().containsKey(Constants.APPLICATION_LABEL)) {
+          matches = matcher.matches(m);
         }
         
-        if (m.getLabels().containsKey(Constants.OWNER_LABEL) && '=' == m.getLabels().get(Constants.OWNER_LABEL).charAt(0)) {
-          m.getLabels().put(Constants.OWNER_LABEL, m.getLabels().get(Constants.OWNER_LABEL).substring(1));
-        } else {
-          throw new WarpScriptException(getName() + " provided token is incompatible with '" + PARAM_GTS + "' parameter, expecting a single owner.");
-        }
+        //
+        // If the metadata would not get selected by the provided token
+        // force the producer/owner/app to be that of the token
+        //
         
-        if (m.getLabels().containsKey(Constants.APPLICATION_LABEL) && '=' == m.getLabels().get(Constants.APPLICATION_LABEL).charAt(0)) {
-          m.getLabels().put(Constants.APPLICATION_LABEL, m.getLabels().get(Constants.APPLICATION_LABEL).substring(1));
-        } else {
-          throw new WarpScriptException(getName() + " provided token is incompatible with '" + PARAM_GTS + "' parameter, expecting a single application.");
+        if (!matches) {
+          m.getLabels().remove(Constants.PRODUCER_LABEL);
+          m.getLabels().remove(Constants.OWNER_LABEL);
+          m.getLabels().remove(Constants.APPLICATION_LABEL);
+          m.getLabels().putAll(tokenSelectors);
+              
+          //
+          // If the token doesn't contain a single app we abort the selection as we cannot
+          // choose an app which would be within the reach of the token
+          //
+          
+          if (singleApp) {
+            m.getLabels().put(Constants.APPLICATION_LABEL, m.getLabels().get(Constants.APPLICATION_LABEL).substring(1));
+          } else {
+            throw new WarpScriptException(getName() + " provided token is incompatible with '" + PARAM_GTS + "' parameter, expecting a single application.");
+          }
+
+          if (singleProducer && singleOwner) {
+            //
+            // If the token has a single producer and single owner, use them for the GTS
+            //
+            m.getLabels().put(Constants.PRODUCER_LABEL, m.getLabels().get(Constants.PRODUCER_LABEL).substring(1));
+            m.getLabels().put(Constants.OWNER_LABEL, m.getLabels().get(Constants.OWNER_LABEL).substring(1));            
+          } else if (singleProducer && !tokenSelectors.containsKey(Constants.OWNER_LABEL)) {
+            //
+            // If the token has a single producer but no owner, use the producer as the owner, this would
+            // lead to a narrower scope than what the token would actually select so it is fine.
+            //
+            m.getLabels().put(Constants.OWNER_LABEL, m.getLabels().get(Constants.PRODUCER_LABEL).substring(1));                        
+          } else if (singleOwner && !tokenSelectors.containsKey(Constants.PRODUCER_LABEL)) {
+            //
+            // If the token has a single owner but no producer, use the owner as the producer, again this would
+            // lead to a narrower scope than what the token can actually access so it is fine too.
+            //
+            m.getLabels().put(Constants.PRODUCER_LABEL, m.getLabels().get(Constants.OWNER_LABEL).substring(1));            
+          } else {
+            throw new WarpScriptException(getName() + " provided token is incompatible with '" + PARAM_GTS + "' parameter, expecting a single producer and/or single owner.");            
+          }
         }
         
         // Recompute IDs
