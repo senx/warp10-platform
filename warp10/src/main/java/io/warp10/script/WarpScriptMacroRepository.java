@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-20  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.script;
 
+import io.warp10.WarpConfig;
 import io.warp10.WarpDist;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.sensision.SensisionConstants;
@@ -32,6 +33,7 @@ import java.io.FilenameFilter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -102,8 +104,24 @@ public class WarpScriptMacroRepository extends Thread {
   /**
    * Actual macros
    */
-  private final static Map<String,Macro> macros = new HashMap<String,Macro>();
+  private final static Map<String,Macro> macros;
  
+  private static final int DEFAULT_CACHE_SIZE = 10000;
+  
+  static {
+    //
+    // Create macro map
+    //
+    
+    final int maxcachesize = Integer.parseInt(WarpConfig.getProperty(Configuration.REPOSITORY_CACHE_SIZE, Integer.toString(DEFAULT_CACHE_SIZE)));
+    
+    macros = new LinkedHashMap<String,Macro>() {
+      @Override
+      protected boolean removeEldestEntry(java.util.Map.Entry<String,Macro> eldest) {
+        return this.size() > maxcachesize;
+      }
+    };
+  }
   private WarpScriptMacroRepository() {       
     this.setName("[Warp Macro Repository (" + directory + ")");
     this.setDaemon(true);

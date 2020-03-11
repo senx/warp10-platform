@@ -39,3 +39,9 @@ warpscript.repository.refresh = 60000
 
 // Maximum TTL that can be set using MACROTTL (defaults to 2**62 ms)
 #warpscript.repository.ttl.hard = 
+
+// Number of macros loaded from 'warpscript.repository.directory' to keep in memory
+warpscript.repository.cache.size = 10000
+
+// Size of macro cache for the macros loaded from the classpath
+warpscript.library.cache.size = 10000
