@@ -28,6 +28,8 @@ public class TokenWarpScriptExtension extends WarpScriptExtension {
 
   /*
    *  Name of configuration key with the token secret.
+   *
+   * Must be warp.key.token.secret if handled by OSS
    */
   public static final String CONF_TOKEN_SECRET = "token.secret";
 
@@ -41,12 +43,12 @@ public class TokenWarpScriptExtension extends WarpScriptExtension {
 
   static {
     TOKEN_SECRET = WarpConfig.getProperty(CONF_TOKEN_SECRET);
-    if(null != Warp.getKeyStore().getKey(TokenWarpScriptExtension.CONF_TOKEN_SECRET)){
-      TOKEN_SECRET = new String(Warp.getKeyStore().getKey(TokenWarpScriptExtension.CONF_TOKEN_SECRET)).replaceAll("\n", "").trim();
-    }
 
-    if (null != TOKEN_SECRET) {
+    if (null == TOKEN_SECRET) {
       keystore = Warp.getKeyStore();
+      if (null != keystore && null != keystore.getKey(TokenWarpScriptExtension.CONF_TOKEN_SECRET)) {
+        TOKEN_SECRET = new String(keystore.getKey(TokenWarpScriptExtension.CONF_TOKEN_SECRET)).replaceAll("\n", "").trim();
+      }
     } else {
       keystore = null;
     }
