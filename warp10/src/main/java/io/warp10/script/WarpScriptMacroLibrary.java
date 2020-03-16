@@ -16,11 +16,6 @@
 
 package io.warp10.script;
 
-import io.warp10.WarpConfig;
-import io.warp10.continuum.Configuration;
-import io.warp10.script.WarpScriptStack.Macro;
-import io.warp10.script.functions.INCLUDE;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -32,7 +27,6 @@ import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -40,6 +34,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
+import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.functions.INCLUDE;
 import sun.net.www.protocol.file.FileURLConnection;
 
 /**
