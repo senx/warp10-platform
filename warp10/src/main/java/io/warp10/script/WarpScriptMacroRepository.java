@@ -16,16 +16,6 @@
 
 package io.warp10.script;
 
-import io.warp10.WarpConfig;
-import io.warp10.WarpDist;
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.crypto.SipHashInline;
-import io.warp10.script.WarpScriptStack.Macro;
-import io.warp10.script.functions.INCLUDE;
-import io.warp10.script.functions.MSGFAIL;
-import io.warp10.sensision.Sensision;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -39,6 +29,16 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
+
+import io.warp10.WarpConfig;
+import io.warp10.WarpDist;
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.crypto.SipHashInline;
+import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.functions.INCLUDE;
+import io.warp10.script.functions.MSGFAIL;
+import io.warp10.sensision.Sensision;
 
 /**
  * Class which manages file based WarpScript macros from a directory
