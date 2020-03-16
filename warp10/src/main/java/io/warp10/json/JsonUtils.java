@@ -31,11 +31,6 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.BeanSerializer;
 import com.fasterxml.jackson.databind.ser.BeanSerializerModifier;
 import com.fasterxml.jackson.databind.ser.impl.UnknownSerializer;
-import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStack;
 
 import java.io.IOException;
 import java.io.StringWriter;
