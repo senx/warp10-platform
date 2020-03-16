@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import io.warp10.Revision;
 import io.warp10.continuum.Configuration;
+import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.binary.ADD;
@@ -45,6 +46,7 @@ import io.warp10.script.functions.DROP;
 import io.warp10.script.functions.HUMANDURATION;
 import io.warp10.script.functions.MSGFAIL;
 import io.warp10.script.functions.NOW;
+import io.warp10.sensision.Sensision;
 
 public class WarpFleetMacroRepository {
 
@@ -386,7 +388,9 @@ public class WarpFleetMacroRepository {
     WarpFleetMacroRepository.macros = new LinkedHashMap<String,Macro>() {
       @Override
       protected boolean removeEldestEntry(java.util.Map.Entry<String,Macro> eldest) {
-        return this.size() > maxcachesize;
+        int size = this.size();
+        Sensision.set(SensisionConstants.SENSISION_CLASS_WARPFLEET_MACROS_CACHED, Sensision.EMPTY_LABELS, size);
+        return size > maxcachesize;
       }
     };
     

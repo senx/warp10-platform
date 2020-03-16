@@ -1215,10 +1215,15 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_THROTTLING_RATE_PER_APP_GLOBAL = "warp.throttling.rate.perapp.global";
 
   /**
+   * Number of macros cached from WarpFleet repositories
+   */
+  public static final String SENSISION_CLASS_WARPFLEET_MACROS_CACHED = "warpfleet.macros.cached";
+  
+  /**
    * Number of macros known in the repository
    */
   public static final String SENSISION_CLASS_WARPSCRIPT_REPOSITORY_MACROS = "warp.script.repository.macros";
-  
+    
   /**
    * Number of jar files known in the repository
    */
