@@ -16,33 +16,34 @@
 
 package io.warp10.script.ext.token;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-
 import io.warp10.WarpConfig;
-import io.warp10.WarpDist;
 import io.warp10.crypto.KeyStore;
 import io.warp10.standalone.Warp;
 import io.warp10.warp.sdk.WarpScriptExtension;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class TokenWarpScriptExtension extends WarpScriptExtension {
-  
+
   /*
-   *  Name of configuration key with the token secret. 
+   *  Name of configuration key with the token secret.
    */
   public static final String CONF_TOKEN_SECRET = "token.secret";
-  
+
   /**
    * Current Token Secret
    */
   public static String TOKEN_SECRET = null;
-  
-  private static final Map<String,Object> functions = new HashMap<String,Object>();
+
+  private static final Map<String, Object> functions = new HashMap<String, Object>();
   private static final KeyStore keystore;
-  
+
   static {
     TOKEN_SECRET = WarpConfig.getProperty(CONF_TOKEN_SECRET);
+    if(null != Warp.getKeyStore().getKey(TokenWarpScriptExtension.CONF_TOKEN_SECRET)){
+      TOKEN_SECRET = new String(Warp.getKeyStore().getKey(TokenWarpScriptExtension.CONF_TOKEN_SECRET)).replaceAll("\n", "").trim();
+    }
 
     if (null != TOKEN_SECRET) {
       keystore = Warp.getKeyStore();
@@ -50,23 +51,23 @@ public class TokenWarpScriptExtension extends WarpScriptExtension {
       keystore = null;
     }
   }
-  
+
   public TokenWarpScriptExtension() {
     if (null != keystore) {
       functions.put("TOKENGEN", new TOKENGEN("TOKENGEN", keystore));
-      functions.put("TOKENDUMP", new TOKENDUMP("TOKENDUMP", keystore));      
+      functions.put("TOKENDUMP", new TOKENDUMP("TOKENDUMP", keystore));
     } else {
       functions.put("TOKENGEN", new TOKENGEN("TOKENGEN"));
       functions.put("TOKENDUMP", new TOKENDUMP("TOKENDUMP"));
     }
     functions.put("TOKENSECRET", new TOKENSECRET("TOKENSECRET"));
   }
-  
+
   public TokenWarpScriptExtension(KeyStore keystore) {
     functions.put("TOKENGEN", new TOKENGEN("TOKENGEN", keystore));
     functions.put("TOKENDUMP", new TOKENDUMP("TOKENDUMP", keystore));
   }
-  
+
   @Override
   public Map<String, Object> getFunctions() {
     return functions;
