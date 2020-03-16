@@ -1220,6 +1220,11 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_WARPFLEET_MACROS_CACHED = "warpfleet.macros.cached";
   
   /**
+   * Number of macros loaded from jars and the classpath which are currently cached
+   */
+  public static final String SENSISION_CLASS_WARPSCRIPT_LIBRARY_CACHED = "warpscript.library.macros";
+  
+  /**
    * Number of macros known in the repository
    */
   public static final String SENSISION_CLASS_WARPSCRIPT_REPOSITORY_MACROS = "warp.script.repository.macros";

@@ -2040,6 +2040,16 @@ public class Configuration {
    */
   public static final String WARPSCRIPT_LIBRARY_CACHE_SIZE = "warpscript.library.cache.size";
 
+  /**
+   * Default TTL for macros loaded from the classpath
+   */
+  public static final String WARPSCRIPT_LIBRARY_TTL = "warpscript.library.ttl";
+  
+  /**
+   * Maximum TTL for a macro loaded from the classpath
+   */
+  public static final String WARPSCRIPT_LIBRARY_TTL_HARD = "warpscript.library.ttl.hard";
+  
   /*
    * CALL root directory property
    */

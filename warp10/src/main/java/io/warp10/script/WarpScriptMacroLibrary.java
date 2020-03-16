@@ -34,10 +34,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
+import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.functions.INCLUDE;
+import io.warp10.sensision.Sensision;
+import jline.internal.Log;
 import sun.net.www.protocol.file.FileURLConnection;
 
 /**
@@ -47,25 +53,50 @@ import sun.net.www.protocol.file.FileURLConnection;
  * TODO(hbs): add support for secure script (the keystore is not initialized)
  */
 public class WarpScriptMacroLibrary {
+  
+  private static final Logger LOG = LoggerFactory.getLogger(WarpScriptMacroLibrary.class);
+  
   private static final Map<String,Macro> macros;
   
   private static final int DEFAULT_CACHE_SIZE = 10000;
+  
+  /**
+   * Default TTL for macros loaded on demand
+   */
+  private static final long DEFAULT_MACRO_TTL = 600000L;
+  
+  /**
+   * Default TTL for loaded macros
+   */
+  private static long ttl = DEFAULT_MACRO_TTL;
+  
+  /**
+   * Maximum TTL for loaded macros
+   */
+  private static long hardTtl = Long.MAX_VALUE >> 2;
+  
+  private static final int maxcachesize;
   
   static {
     //
     // Create macro map
     //
     
-    final int maxcachesize = Integer.parseInt(WarpConfig.getProperty(Configuration.WARPSCRIPT_LIBRARY_CACHE_SIZE, Integer.toString(DEFAULT_CACHE_SIZE)));
+    maxcachesize = Integer.parseInt(WarpConfig.getProperty(Configuration.WARPSCRIPT_LIBRARY_CACHE_SIZE, Integer.toString(DEFAULT_CACHE_SIZE)));
     
     macros = new LinkedHashMap<String,Macro>() {
       @Override
       protected boolean removeEldestEntry(java.util.Map.Entry<String,Macro> eldest) {
-        return this.size() > maxcachesize;
+        int size = this.size();
+        Sensision.set(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_LIBRARY_CACHED, Sensision.EMPTY_LABELS, size);
+        return size > maxcachesize;
       }
     };
 
+    ttl = Long.parseLong(WarpConfig.getProperty(Configuration.WARPSCRIPT_LIBRARY_TTL, Long.toString(DEFAULT_MACRO_TTL)));
+    hardTtl = Long.parseLong(WarpConfig.getProperty(Configuration.WARPSCRIPT_LIBRARY_TTL_HARD, Long.toString(Long.MAX_VALUE >>> 2)));
   }
+  
   public static void addJar(String path) throws WarpScriptException {
     addJar(path, null);
   }
@@ -123,6 +154,9 @@ public class WarpScriptMacroLibrary {
         macros.put(name, macro);
       }
       
+      if (maxcachesize == macros.size()) {
+        LOG.warn("Some cached library macros were evicted.");
+      }
     } catch (IOException ioe) {
       throw new WarpScriptException("Encountered error while loading " + f.getAbsolutePath(), ioe);
     } finally {
@@ -203,6 +237,20 @@ public class WarpScriptMacroLibrary {
       macro.setSecure(true);
       macro.setNameRecursive(name);
       
+      long macroTtl = ttl;
+      
+      if (null != stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL)) {
+        macroTtl = (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL);
+      }
+      
+      if (macroTtl > hardTtl) {
+        macroTtl = hardTtl;
+      }
+
+      // Set expiry. Note using a ttl too long will wrap around the sum and will
+      // make the macro expire too early
+      macro.setExpiry(System.currentTimeMillis() + ttl);
+
       return macro;
     } catch (IOException ioe) {
       throw new WarpScriptException(ioe);
@@ -225,7 +273,7 @@ public class WarpScriptMacroLibrary {
     // classpath
     //
     
-    if (null == macro) {
+    if (null == macro || macro.isExpired()) {
       String rsc = name + WarpScriptMacroRepository.WARPSCRIPT_FILE_EXTENSION;
       URL url = WarpScriptMacroLibrary.class.getClassLoader().getResource(rsc);
       
