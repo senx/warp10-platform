@@ -28,11 +28,14 @@ import java.util.Map;
 public class TokenWarpScriptExtension extends WarpScriptExtension {
 
   /*
-   *  Name of configuration key with the token secret.
-   *
-   * Must be warp.key.token.secret if handled by OSS
+   * Name of configuration key with the token secret.
    */
   public static final String CONF_TOKEN_SECRET = "token.secret";
+  /*
+   * Name of configuration key with OSS wrapped token secret
+   * ie: warp.key.token.secret  = wrapped:hex:xxxxx
+   */
+  public static final String KEY_TOKEN_SECRET = "warp.key.token.secret";
 
   /**
    * Current Token Secret
@@ -44,11 +47,20 @@ public class TokenWarpScriptExtension extends WarpScriptExtension {
 
   static {
     TOKEN_SECRET = WarpConfig.getProperty(CONF_TOKEN_SECRET);
-
     if (null == TOKEN_SECRET) {
-      keystore = Warp.getKeyStore();
-      if (null != keystore && null != keystore.getKey(TokenWarpScriptExtension.CONF_TOKEN_SECRET)) {
-        TOKEN_SECRET = new String(keystore.getKey(TokenWarpScriptExtension.CONF_TOKEN_SECRET), StandardCharsets.UTF_8).replaceAll("\n", "").trim();
+      // if OSS wrapped secret exists
+      TOKEN_SECRET = WarpConfig.getProperty(KEY_TOKEN_SECRET);
+      if (null == TOKEN_SECRET) { // if no configuration key
+        keystore =  Warp.getKeyStore();
+      } else {
+        keystore = null;
+        KeyStore keyStore = Warp.getKeyStore();
+        if(null != keyStore) {
+          byte[] ossHandledSecret = keyStore.getKey(TokenWarpScriptExtension.CONF_TOKEN_SECRET);
+          if (null != ossHandledSecret) {
+            TOKEN_SECRET = new String(ossHandledSecret, StandardCharsets.UTF_8).replaceAll("\n", "").trim();
+          }
+        }
       }
     } else {
       keystore = null;
