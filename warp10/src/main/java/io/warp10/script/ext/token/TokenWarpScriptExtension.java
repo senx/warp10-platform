@@ -21,6 +21,7 @@ import io.warp10.crypto.KeyStore;
 import io.warp10.standalone.Warp;
 import io.warp10.warp.sdk.WarpScriptExtension;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -47,7 +48,7 @@ public class TokenWarpScriptExtension extends WarpScriptExtension {
     if (null == TOKEN_SECRET) {
       keystore = Warp.getKeyStore();
       if (null != keystore && null != keystore.getKey(TokenWarpScriptExtension.CONF_TOKEN_SECRET)) {
-        TOKEN_SECRET = new String(keystore.getKey(TokenWarpScriptExtension.CONF_TOKEN_SECRET)).replaceAll("\n", "").trim();
+        TOKEN_SECRET = new String(keystore.getKey(TokenWarpScriptExtension.CONF_TOKEN_SECRET), StandardCharsets.UTF_8).replaceAll("\n", "").trim();
       }
     } else {
       keystore = null;
