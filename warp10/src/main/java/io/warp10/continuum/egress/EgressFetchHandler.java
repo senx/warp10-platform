@@ -242,13 +242,13 @@ public class EgressFetchHandler extends AbstractHandler {
       //
 
       // negative timespan is count
-      if (null != timespanParam && null != countParam) {
-        resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Cannot specify both '" + Constants.HTTP_PARAM_COUNT + "' and negative '" + Constants.HTTP_PARAM_TIMESPAN + "'.");
-        return;
-      }
       try {
         long numericTimespan = Long.parseLong(timespanParam);
         if (numericTimespan < 0) {
+          if (null != countParam) {
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Cannot specify both '" + Constants.HTTP_PARAM_COUNT + "' and negative '" + Constants.HTTP_PARAM_TIMESPAN + "'.");
+            return;
+          }
           timespanParam = null;
           countParam = Long.toString(-numericTimespan);
         }
