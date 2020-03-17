@@ -17,6 +17,7 @@
 package io.warp10.script.ext.token;
 
 import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
 import io.warp10.crypto.KeyStore;
 import io.warp10.standalone.Warp;
 import io.warp10.warp.sdk.WarpScriptExtension;
@@ -35,7 +36,7 @@ public class TokenWarpScriptExtension extends WarpScriptExtension {
    * Name of configuration key with OSS wrapped token secret
    * ie: warp.key.token.secret  = wrapped:hex:xxxxx
    */
-  public static final String KEY_TOKEN_SECRET = "token.secret";
+  public static final String KEY_TOKEN_SECRET = "warp.key.token.secret";
 
   /**
    * Current Token Secret
@@ -51,12 +52,12 @@ public class TokenWarpScriptExtension extends WarpScriptExtension {
       // if OSS wrapped secret exists
       TOKEN_SECRET = WarpConfig.getProperty(KEY_TOKEN_SECRET);
       if (null == TOKEN_SECRET) { // if no configuration key
-        keystore =  Warp.getKeyStore();
+        keystore = Warp.getKeyStore();
       } else {
         keystore = null;
-        KeyStore keyStore = Warp.getKeyStore();
-        if(null != keyStore) {
-          byte[] ossHandledSecret = keyStore.getKey(TokenWarpScriptExtension.CONF_TOKEN_SECRET);
+        KeyStore ks = Warp.getKeyStore();
+        if (null != ks) {
+          byte[] ossHandledSecret = ks.getKey(TokenWarpScriptExtension.CONF_TOKEN_SECRET);
           if (null != ossHandledSecret) {
             TOKEN_SECRET = new String(ossHandledSecret, StandardCharsets.UTF_8).replaceAll("\n", "").trim();
           }
