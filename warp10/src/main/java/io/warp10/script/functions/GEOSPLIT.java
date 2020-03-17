@@ -16,18 +16,8 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.continuum.gts.GTSDecoder;
-import io.warp10.continuum.gts.GTSWrapperHelper;
-import io.warp10.continuum.store.thrift.data.GTSWrapper;
-import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStackFunction;
-
-import org.apache.thrift.TDeserializer;
-import org.apache.thrift.TException;
-import org.apache.thrift.protocol.TCompactProtocol;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
@@ -35,9 +25,10 @@ import com.geoxp.geo.Coverage;
 import com.geoxp.geo.CoverageHelper;
 import com.geoxp.geo.HHCodeHelper;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Splits a GEOSHAPE into connex shapes (corner contact does not count towards connexity)
