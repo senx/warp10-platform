@@ -18,6 +18,7 @@ package io.warp10.script.mapper;
 
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -29,7 +30,7 @@ import java.util.Map;
 /**
  * Mapper which computes the SAX symbol of a value given a SAX alphabet size
  */
-public class MapperSAX extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
+public class MapperSAX extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptAggregatorFunction {
   
   /**
    * We voluntarily do not use the name 'SAX'.
