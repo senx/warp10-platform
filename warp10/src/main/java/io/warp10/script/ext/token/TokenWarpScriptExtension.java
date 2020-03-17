@@ -35,7 +35,7 @@ public class TokenWarpScriptExtension extends WarpScriptExtension {
    * Name of configuration key with OSS wrapped token secret
    * ie: warp.key.token.secret  = wrapped:hex:xxxxx
    */
-  public static final String KEY_TOKEN_SECRET = "warp.key.token.secret";
+  public static final String KEY_TOKEN_SECRET = "token.secret";
 
   /**
    * Current Token Secret
