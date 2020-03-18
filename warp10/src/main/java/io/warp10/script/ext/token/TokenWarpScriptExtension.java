@@ -17,7 +17,6 @@
 package io.warp10.script.ext.token;
 
 import io.warp10.WarpConfig;
-import io.warp10.continuum.Configuration;
 import io.warp10.crypto.KeyStore;
 import io.warp10.standalone.Warp;
 import io.warp10.warp.sdk.WarpScriptExtension;
@@ -33,10 +32,9 @@ public class TokenWarpScriptExtension extends WarpScriptExtension {
    */
   public static final String CONF_TOKEN_SECRET = "token.secret";
   /*
-   * Name of configuration key with OSS wrapped token secret
-   * ie: warp.key.token.secret  = wrapped:hex:xxxxx
+   * Name of the keystore key with OSS wrapped token secret
    */
-  public static final String KEY_TOKEN_SECRET = "warp.key.token.secret";
+  public static final String KEY_TOKEN_SECRET = "token.secret";
 
   /**
    * Current Token Secret
@@ -48,20 +46,19 @@ public class TokenWarpScriptExtension extends WarpScriptExtension {
 
   static {
     TOKEN_SECRET = WarpConfig.getProperty(CONF_TOKEN_SECRET);
-    if (null == TOKEN_SECRET) {
-      // if OSS wrapped secret exists
-      TOKEN_SECRET = WarpConfig.getProperty(KEY_TOKEN_SECRET);
-      if (null == TOKEN_SECRET) { // if no configuration key
-        keystore = Warp.getKeyStore();
+    if (null == TOKEN_SECRET) { // if no configuration key
+      KeyStore ks = Warp.getKeyStore();
+      if (null != ks) {
+        // if OSS wrapped secret exists
+        byte[] ossHandledSecret = ks.getKey(TokenWarpScriptExtension.KEY_TOKEN_SECRET);
+        if (null != ossHandledSecret) {
+          keystore = null;
+          TOKEN_SECRET = new String(ossHandledSecret, StandardCharsets.UTF_8).replaceAll("\n", "").trim();
+        } else {
+          keystore = ks;
+        }
       } else {
         keystore = null;
-        KeyStore ks = Warp.getKeyStore();
-        if (null != ks) {
-          byte[] ossHandledSecret = ks.getKey(TokenWarpScriptExtension.CONF_TOKEN_SECRET);
-          if (null != ossHandledSecret) {
-            TOKEN_SECRET = new String(ossHandledSecret, StandardCharsets.UTF_8).replaceAll("\n", "").trim();
-          }
-        }
       }
     } else {
       keystore = null;
