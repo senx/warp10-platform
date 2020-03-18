@@ -58,7 +58,6 @@ public class DIV extends NamedWarpScriptFunction implements WarpScriptStackFunct
       // Returns immediately a new gts if both inputs are empty
       if (0 == GTSHelper.nvalues(gts1) || 0 == GTSHelper.nvalues(gts2)) {
         GeoTimeSerie result = new GeoTimeSerie();
-        result.setType(TYPE.DOUBLE);
         stack.push(result);
         return stack;
       }
@@ -162,7 +161,6 @@ public class DIV extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
       // Returns immediately a new clone if gts is empty.
       if (0 == n) {
-        result.setType(TYPE.DOUBLE);
         stack.push(result);
         return stack;
       }
