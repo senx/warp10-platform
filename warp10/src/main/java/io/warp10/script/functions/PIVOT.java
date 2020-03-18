@@ -94,7 +94,11 @@ public class PIVOT extends NamedWarpScriptFunction implements WarpScriptStackFun
       if (o instanceof GTSEncoder) {
         GTSEncoder encoder = (GTSEncoder) o;
         GTSDecoder decoder = encoder.getDecoder(true);
-        o = decoder.decode(null, true);
+        try {
+          o = decoder.decode(null, true);
+        } catch (Throwable t) {
+          throw new WarpScriptException(getName() + " encountered an error while decoding encoder.", t);
+        }
       }
       
       if (!(o instanceof GeoTimeSerie)) {
