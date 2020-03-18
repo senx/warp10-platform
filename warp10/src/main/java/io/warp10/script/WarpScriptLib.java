@@ -1098,6 +1098,7 @@ public class WarpScriptLib {
   public static final String HHCODETO = "HHCODE->";
   public static final String GTSHHCODETO = "GTSHHCODE->";
   public static final String GEOHASHTO = "GEOHASH->";
+  public static final String GEOSPLIT = "GEOSPLIT";
   public static final String ZTO = "Z->";
   public static final String MATTO = "MAT->";
   public static final String VECTO = "VEC->";
@@ -1956,6 +1957,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new GEOHASHTO(GEOHASHTO));
     addNamedWarpScriptFunction(new GEOCOVER(GEO_COVER, false));
     addNamedWarpScriptFunction(new GEOCOVER(GEO_COVER_RL, true));
+    addNamedWarpScriptFunction(new GEOSPLIT(GEOSPLIT));
     
     //
     // Counters

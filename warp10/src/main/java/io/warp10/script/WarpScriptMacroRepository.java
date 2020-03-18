@@ -16,6 +16,7 @@
 
 package io.warp10.script;
 
+import io.warp10.ThrowableUtils;
 import io.warp10.WarpDist;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.sensision.SensisionConstants;
@@ -490,7 +491,7 @@ public class WarpScriptMacroRepository extends Thread {
     } catch(Exception e) {
       // Replace macro with a FAIL indicating the error message
       Macro macro = new Macro();
-      macro.add("[" + System.currentTimeMillis() + "] Error while loading macro '" + name + "': " + e.getMessage());      
+      macro.add("[" + System.currentTimeMillis() + "] Error while loading macro '" + name + "': " + ThrowableUtils.getErrorMessage(e, 1024));      
       macro.add(MSGFAIL_FUNC);
       // Set the expiry to half the refresh interval if ondemand is true so we get a chance to load a newly provided file
       if (ondemand) {
