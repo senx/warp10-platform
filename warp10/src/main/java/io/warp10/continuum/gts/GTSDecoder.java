@@ -546,6 +546,7 @@ public class GTSDecoder {
       Class lastClass = null;
       
       while(next()) {        
+        // TODO(hbs): may differentiate STRING and binary values if the use case ever arises
         Object value = getValue();
         Class valClass = value.getClass();
         // getValue could return a BigDecimal, we need to smooth the comparison so
