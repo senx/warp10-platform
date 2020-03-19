@@ -29,12 +29,6 @@ import io.warp10.script.WarpScriptStackRegistry;
 
 public class WSPS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  private static final String KEY_NAME = "name";
-  private static final String KEY_UUID = "uuid";
-  private static final String KEY_SESSION = "session";
-  private static final String KEY_SECTION = "section";
-  private static final String KEY_TIME = "time";
-  
   public WSPS(String name) {
     super(name);
   }
@@ -60,13 +54,7 @@ public class WSPS extends NamedWarpScriptFunction implements WarpScriptStackFunc
     List<Object> results = new ArrayList<Object>();
     
     for (WarpScriptStack stck: WarpScriptStackRegistry.stacks()) {
-      Map<Object,Object> result = new HashMap<Object,Object>();
-      
-      result.put(KEY_UUID, stck.getUUID());
-      result.put(KEY_TIME, stck.getAttribute(WarpScriptStack.ATTRIBUTE_CREATION_TIME));
-      result.put(KEY_NAME, stck.getAttribute(WarpScriptStack.ATTRIBUTE_NAME));
-      result.put(KEY_SESSION, stck.getAttribute(StackPSWarpScriptExtension.ATTRIBUTE_SESSION));
-      result.put(KEY_SECTION, stck.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME));
+      Map<Object,Object> result = WSINFO.getInfos(stck);
       
       results.add(result);
     }

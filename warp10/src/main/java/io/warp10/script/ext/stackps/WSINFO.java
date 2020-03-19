@@ -27,7 +27,7 @@ import io.warp10.script.WarpScriptStackRegistry;
 
 public class WSINFO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  private static final String[] EXPOSED_ATTRIBUTES = new String[] {
+  public static final String[] EXPOSED_ATTRIBUTES = new String[] {
       WarpScriptStack.ATTRIBUTE_CREATION_TIME,
       WarpScriptStack.ATTRIBUTE_FETCH_COUNT,
       WarpScriptStack.ATTRIBUTE_GTS_COUNT,
@@ -64,25 +64,33 @@ public class WSINFO extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException(getName() + " expects a UUID.");
     }
     
-    Map<Object,Object> infos = new HashMap<Object,Object>();
+    Map<Object,Object> infos = null;
 
     String uuid = top.toString();
     
     for (WarpScriptStack stck: WarpScriptStackRegistry.stacks()) {
       if (uuid.equals(stck.getUUID())) {
-        infos.put("uuid", stck.getUUID());
-        
-        Map<String,Object> attributes = new HashMap<String,Object>();
-        infos.put("attributes", attributes);
-        
-        for (String attr: EXPOSED_ATTRIBUTES) {
-          attributes.put(attr, stck.getAttribute(attr));          
-        }        
+        infos = getInfos(stck);
       }
     }
     
     stack.push(infos);
     
     return stack;
+  }
+  
+  public static Map<Object,Object> getInfos(WarpScriptStack stck) {
+    Map<Object,Object> infos = new HashMap<Object,Object>();
+
+    infos.put("uuid", stck.getUUID());
+    
+    Map<String,Object> attributes = new HashMap<String,Object>();
+    infos.put("attributes", attributes);
+    
+    for (String attr: EXPOSED_ATTRIBUTES) {
+      attributes.put(attr, stck.getAttribute(attr));          
+    }  
+    
+    return infos;
   }
 }
