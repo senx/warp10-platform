@@ -3014,6 +3014,12 @@ public class GTSHelper {
         value = Base64.decodeBase64(valuestr.substring(4));
       } else if ('h' == firstChar && valuestr.startsWith("hex:")) {
         value = Hex.decodeHex(valuestr.substring(4).toCharArray());
+      } else if (':' == firstChar) {
+        //
+        // Custom encoders support values prefixed with ':' + a custom prefix, i.e. ':xxx:VALUE'.
+        //
+        
+        value = ValueEncoder.parse(valuestr);
       } else {
         //boolean likelydouble = UnsafeString.isDouble(valuestr);
         boolean likelylong = UnsafeString.isLong(valuestr);
