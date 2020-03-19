@@ -19,6 +19,7 @@ package io.warp10.script.mapper;
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.StackUtils;
+import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -31,7 +32,7 @@ import org.joda.time.DateTimeZone;
  * Mapper which returns the minute of the tick for which it
  * is computed.
  */
-public class MapperMinuteOfHour extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
+public class MapperMinuteOfHour extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptAggregatorFunction {
   
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
     
