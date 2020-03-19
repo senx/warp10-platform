@@ -34,6 +34,7 @@ public class WSINFO extends NamedWarpScriptFunction implements WarpScriptStackFu
       WarpScriptStack.ATTRIBUTE_MACRO_NAME,
       WarpScriptStack.ATTRIBUTE_NAME,
       WarpScriptStack.ATTRIBUTE_SECTION_NAME,
+      StackPSWarpScriptExtension.ATTRIBUTE_SESSION,
   };
   
   public WSINFO(String name) {
