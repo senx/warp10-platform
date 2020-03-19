@@ -347,7 +347,8 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     while(true) {
       // Do not reclaim data for ephemeral setups
       if (this.ephemeral) {
-        LockSupport.parkNanos(Long.MAX_VALUE);
+        Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GTS, Sensision.EMPTY_LABELS, this.series.size());
+        LockSupport.parkNanos(30 * 1000000000L);
         continue;
       }
 
@@ -443,6 +444,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       
       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_BYTES, Sensision.EMPTY_LABELS, bytes);
       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_DATAPOINTS, Sensision.EMPTY_LABELS, datapoints);
+      Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GTS, Sensision.EMPTY_LABELS, this.series.size());
 
       if (datapointsdelta > 0) {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_DATAPOINTS, Sensision.EMPTY_LABELS, datapointsdelta);

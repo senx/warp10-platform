@@ -1752,6 +1752,31 @@ public class Configuration {
   public static final String ACCELERATOR_PRELOAD_BATCHSIZE = "accelerator.preload.batchsize";
 
   /**
+   * Number of chunks per GTS to handle in memory (defaults to 3)
+   */
+  public static final String ACCELERATOR_CHUNK_COUNT = "accelerator.chunk.count";
+  
+  /**
+   * Length of each chunk (in time units), defaults to Long.MAX_VALUE
+   */
+  public static final String ACCELERATOR_CHUNK_LENGTH = "accelerator.chunk.length";
+  
+  /**
+   * If set to true, then only the last recorded value of a GTS is kept
+   */
+  public static final String ACCELERATOR_EPHEMERAL = "accelerator.ephemeral";
+
+  /**
+   * How often (in ms) to perform a gc of the Warp 10 accelerator.
+   */
+  public static final String ACCELERATOR_GC_PERIOD = "accelerator.gcperiod";
+  
+  /**
+   * Maximum size (in bytes) of re-allocations performed during a gc cycle of the Warp 10 accelerator 
+   */
+  public static final String ACCELERATOR_GC_MAXALLOC = "accelerator.gc.maxalloc";  
+
+  /**
    * Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.
    */
   public static final String IN_MEMORY = "in.memory";

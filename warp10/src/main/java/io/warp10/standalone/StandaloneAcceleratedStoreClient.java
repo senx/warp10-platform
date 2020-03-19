@@ -1,3 +1,19 @@
+//
+//   Copyright 2020  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
 package io.warp10.standalone;
 
 import java.io.IOException;
@@ -9,7 +25,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
@@ -49,6 +64,8 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
   
   public static final String ACCELERATOR_HEADER = "X-Warp10-Accelerator";
   
+  private static StandaloneAcceleratedStoreClient instance = null;
+  
   /**
    * Was the last FETCH accelerated for the given Thread?
    */
@@ -72,11 +89,24 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     }
   };
 
-  private static final AtomicBoolean instantiated = new AtomicBoolean(false);
-  
   public StandaloneAcceleratedStoreClient(DirectoryClient dir, StoreClient persistentStore) {
+        
+    if (null != instance) {
+      throw new RuntimeException(StandaloneAcceleratedStoreClient.class.getName() + " can only be instantiated once.");
+    }
+            
+    //
+    // Force accelerator parameters to be replicated on inmemory ones and clear other in memory params
+    //
     
-    instantiated.set(true);
+    WarpConfig.setProperty(Configuration.IN_MEMORY_CHUNK_COUNT, WarpConfig.getProperty(Configuration.ACCELERATOR_CHUNK_COUNT));
+    WarpConfig.setProperty(Configuration.IN_MEMORY_CHUNK_LENGTH, WarpConfig.getProperty(Configuration.ACCELERATOR_CHUNK_LENGTH));
+    WarpConfig.setProperty(Configuration.IN_MEMORY_EPHEMERAL, WarpConfig.getProperty(Configuration.ACCELERATOR_EPHEMERAL));
+    WarpConfig.setProperty(Configuration.STANDALONE_MEMORY_GC_PERIOD, WarpConfig.getProperty(Configuration.ACCELERATOR_GC_PERIOD));
+    WarpConfig.setProperty(Configuration.STANDALONE_MEMORY_GC_MAXALLOC, WarpConfig.getProperty(Configuration.ACCELERATOR_GC_MAXALLOC));
+    
+    WarpConfig.setProperty(Configuration.STANDALONE_MEMORY_STORE_LOAD, null);
+    WarpConfig.setProperty(Configuration.STANDALONE_MEMORY_STORE_DUMP, null);
     
     this.persistent = persistentStore;
     this.cache = new StandaloneChunkedMemoryStore(WarpConfig.getProperties(), Warp.getKeyStore());
@@ -201,6 +231,8 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     } else {
       LOG.info("Skipping accelerator preloading.");
     }
+    
+    instance = this;
   }
   
   @Override
@@ -271,34 +303,70 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
   }
   
   public static final void nocache() {
-    if (instantiated.get()) {
+    if (null != instance) {
       nocache.set(Boolean.TRUE);
     }
   }
   
   public static final void cache() {
-    if (instantiated.get()) {
+    if (null != instance) {
       nocache.set(Boolean.FALSE);
     }
   }
   
   public static final void nopersist() {
-    if (instantiated.get()) {
+    if (null != instance) {
       nopersist.set(Boolean.TRUE);
     }
   }
   
   public static final void persist() {
-    if (instantiated.get()) {   
+    if (null != instance) {   
       nopersist.set(Boolean.FALSE);
     }
   }
   
+  public static final boolean isInstantiated() {
+    return (null != instance);
+  }
+  
   public static final boolean accelerated() {
-    if (instantiated.get()) {
+    if (null != instance) {
       return accelerated.get();
     } else {
       return false;
+    }
+  }
+  
+  public static final boolean isCache() {
+    if (null != instance) {
+      return !nocache.get();
+    } else {
+      return false;
+    }
+  }
+  
+  public static final boolean isPersist() {
+    if (null != instance) {
+      return !nopersist.get();
+    } else {
+      return true;
+    }
+  }
+  
+  public static int getChunkCount() {
+    if (null != instance) {
+      return instance.cache.getChunkCount();
+    } else {
+      return 0;
+    }
+  }
+  
+  public static long getChunkSpan() {
+    if (null != instance) {
+      return instance.cache.getChunkSpan();
+    } else {
+      return 0L;
     }
   }
 }

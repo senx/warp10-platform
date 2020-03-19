@@ -16,13 +16,23 @@
 
 package io.warp10.script.functions;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.standalone.StandaloneAcceleratedStoreClient;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.standalone.StandaloneAcceleratedStoreClient;
 
 public class ACCELREPORT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+  
+  private static final String KEY_ACCELERATED = "accelerated";
+  private static final String KEY_STATUS = "status";
+  private static final String KEY_CACHE = "cache";
+  private static final String KEY_PERSIST = "persist";
+  private static final String KEY_CHUNK_COUNT = "chunkcount";
+  private static final String KEY_CHUNK_SPAN = "chunkspan";
   
   public ACCELREPORT(String name) {
     super(name);
@@ -33,7 +43,16 @@ public class ACCELREPORT extends NamedWarpScriptFunction implements WarpScriptSt
     
     Object status = stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_REPORT);
     
-    stack.push(Boolean.TRUE.equals(status));
+    Map<Object,Object> report = new HashMap<Object,Object>();
+    
+    report.put(KEY_CACHE, StandaloneAcceleratedStoreClient.isCache());
+    report.put(KEY_PERSIST, StandaloneAcceleratedStoreClient.isPersist());
+    report.put(KEY_STATUS, StandaloneAcceleratedStoreClient.isInstantiated());
+    report.put(KEY_ACCELERATED, StandaloneAcceleratedStoreClient.accelerated());
+    report.put(KEY_CHUNK_COUNT, (long) StandaloneAcceleratedStoreClient.getChunkCount());
+    report.put(KEY_CHUNK_SPAN, StandaloneAcceleratedStoreClient.getChunkSpan());
+
+    stack.push(report);
 
     return stack;
   }

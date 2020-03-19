@@ -47,6 +47,31 @@ accelerator.preload.batchsize = 1000
 accelerator.preload.activity = false
 
 //
+// Number of chunks to retain (defaults to 3)
+//
+//accelerator.chunk.count =
+
+//
+// Length in platform time units of each chunk (defaults to 2**63)
+//
+//accelerator.chunk.length =
+
+//
+// If set to true, then only the last recorded value of a GTS is kept, ignoring chunk count and length
+//
+accelerator.ephemeral = false
+
+//
+// How often (in ms) to perform a gc of the accelerator in-memory data.
+//
+#accelerator.gcperiod =
+
+//
+// Maximum size (in bytes) of re-allocations performed during a gc cycle of the accelerator data
+//
+#accelerator.gc.maxalloc =
+
+//
 // Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.
 //
 in.memory = false
@@ -70,6 +95,11 @@ in.memory = false
 // Length in platform time units of each chunk (defaults to 2**63)
 //
 //in.memory.chunk.length =
+
+//
+// If set to true, then only the last recorded value of a GTS is kept, ignoring chunk count and length
+//
+in.memory.ephemeral = false
 
 //
 // Path to a dump file containing the state of an in-memory Warp 10 to restore.
