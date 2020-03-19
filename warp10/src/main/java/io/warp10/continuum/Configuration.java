@@ -1752,12 +1752,12 @@ public class Configuration {
   public static final String ACCELERATOR_PRELOAD_BATCHSIZE = "accelerator.preload.batchsize";
 
   /**
-   * Number of chunks per GTS to handle in memory (defaults to 3)
+   * Number of chunks per GTS to handle in memory
    */
   public static final String ACCELERATOR_CHUNK_COUNT = "accelerator.chunk.count";
   
   /**
-   * Length of each chunk (in time units), defaults to Long.MAX_VALUE
+   * Length of each chunk (in time units)
    */
   public static final String ACCELERATOR_CHUNK_LENGTH = "accelerator.chunk.length";
   

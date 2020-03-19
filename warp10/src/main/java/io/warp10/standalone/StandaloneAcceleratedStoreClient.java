@@ -99,6 +99,11 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     // Force accelerator parameters to be replicated on inmemory ones and clear other in memory params
     //
     
+    if (null == WarpConfig.getProperty(Configuration.ACCELERATOR_CHUNK_COUNT)
+        || null == WarpConfig.getProperty(Configuration.ACCELERATOR_CHUNK_LENGTH)) {
+      throw new RuntimeException("Missing configuration key '" + Configuration.ACCELERATOR_CHUNK_COUNT + "' or '" + Configuration.ACCELERATOR_CHUNK_LENGTH + "'");
+    }
+    
     WarpConfig.setProperty(Configuration.IN_MEMORY_CHUNK_COUNT, WarpConfig.getProperty(Configuration.ACCELERATOR_CHUNK_COUNT));
     WarpConfig.setProperty(Configuration.IN_MEMORY_CHUNK_LENGTH, WarpConfig.getProperty(Configuration.ACCELERATOR_CHUNK_LENGTH));
     WarpConfig.setProperty(Configuration.IN_MEMORY_EPHEMERAL, WarpConfig.getProperty(Configuration.ACCELERATOR_EPHEMERAL));
