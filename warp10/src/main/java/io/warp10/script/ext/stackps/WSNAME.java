@@ -50,7 +50,9 @@ public class WSNAME extends NamedWarpScriptFunction implements WarpScriptStackFu
     }
     
     if (session) {
-      stack.setAttribute(StackPSWarpScriptExtension.ATTRIBUTE_SESSION, name);      
+      if (null != stack.getAttribute(StackPSWarpScriptExtension.ATTRIBUTE_SESSION)) {
+        stack.setAttribute(StackPSWarpScriptExtension.ATTRIBUTE_SESSION, name);      
+      }
     } else {
       stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, name);
     }

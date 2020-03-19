@@ -36,6 +36,8 @@ public class StackPSWarpScriptExtension extends WarpScriptExtension {
 
   public static final String ATTRIBUTE_SESSION = "stackps.session";
   
+  public static final String HEADER_SESSION = "X-Warp10-WarpScriptSession";
+  
   private static final Map<String,Object> functions;
   
   static {
