@@ -303,13 +303,15 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
             // If the token has a single producer but no owner, use the producer as the owner, this would
             // lead to a narrower scope than what the token would actually select so it is fine.
             //
-            m.getLabels().put(Constants.OWNER_LABEL, m.getLabels().get(Constants.PRODUCER_LABEL).substring(1));                        
+            m.getLabels().put(Constants.PRODUCER_LABEL, m.getLabels().get(Constants.PRODUCER_LABEL).substring(1));
+            m.getLabels().put(Constants.OWNER_LABEL, m.getLabels().get(Constants.PRODUCER_LABEL));                        
           } else if (singleOwner && !tokenSelectors.containsKey(Constants.PRODUCER_LABEL)) {
             //
             // If the token has a single owner but no producer, use the owner as the producer, again this would
             // lead to a narrower scope than what the token can actually access so it is fine too.
             //
-            m.getLabels().put(Constants.PRODUCER_LABEL, m.getLabels().get(Constants.OWNER_LABEL).substring(1));            
+            m.getLabels().put(Constants.OWNER_LABEL, m.getLabels().get(Constants.OWNER_LABEL).substring(1));            
+            m.getLabels().put(Constants.PRODUCER_LABEL, m.getLabels().get(Constants.OWNER_LABEL));            
           } else {
             throw new WarpScriptException(getName() + " provided token is incompatible with '" + PARAM_GTS + "' parameter, expecting a single producer and/or single owner.");            
           }
