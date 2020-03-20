@@ -243,6 +243,10 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       boolean singleOwner = tokenSelectors.containsKey(Constants.OWNER_LABEL) && '=' == tokenSelectors.get(Constants.OWNER_LABEL).charAt(0);
       boolean singleProducer = tokenSelectors.containsKey(Constants.PRODUCER_LABEL) && '=' == tokenSelectors.get(Constants.PRODUCER_LABEL).charAt(0); 
 
+      String application = singleApp ? tokenSelectors.get(Constants.APPLICATION_LABEL).substring(1) : null;
+      String owner = singleOwner ? tokenSelectors.get(Constants.OWNER_LABEL).substring(1) : null;
+      String producer = singleProducer ? tokenSelectors.get(Constants.PRODUCER_LABEL).substring(1) : null;
+      
       Metadata tmeta = new Metadata();
       tmeta.setName("");
       tmeta.setLabels(tokenSelectors);
@@ -286,7 +290,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
           //
           
           if (singleApp) {
-            m.getLabels().put(Constants.APPLICATION_LABEL, tokenSelectors.get(Constants.APPLICATION_LABEL).substring(1));
+            m.getLabels().put(Constants.APPLICATION_LABEL, application);
           } else {
             throw new WarpScriptException(getName() + " provided token is incompatible with '" + PARAM_GTS + "' parameter, expecting a single application.");
           }
@@ -295,14 +299,13 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
             //
             // If the token has a single producer and single owner, use them for the GTS
             //
-            m.getLabels().put(Constants.PRODUCER_LABEL, tokenSelectors.get(Constants.PRODUCER_LABEL).substring(1));
-            m.getLabels().put(Constants.OWNER_LABEL, tokenSelectors.get(Constants.OWNER_LABEL).substring(1));            
+            m.getLabels().put(Constants.PRODUCER_LABEL, producer);
+            m.getLabels().put(Constants.OWNER_LABEL, owner);            
           } else if (singleProducer && !tokenSelectors.containsKey(Constants.OWNER_LABEL)) {
             //
             // If the token has a single producer but no owner, use the producer as the owner, this would
             // lead to a narrower scope than what the token would actually select so it is fine.
             //
-            String producer = tokenSelectors.get(Constants.PRODUCER_LABEL).substring(1);
             m.getLabels().put(Constants.PRODUCER_LABEL, producer);
             m.getLabels().put(Constants.OWNER_LABEL, producer);                        
           } else if (singleOwner && !tokenSelectors.containsKey(Constants.PRODUCER_LABEL)) {
@@ -310,7 +313,6 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
             // If the token has a single owner but no producer, use the owner as the producer, again this would
             // lead to a narrower scope than what the token can actually access so it is fine too.
             //
-            String owner = tokenSelectors.get(Constants.OWNER_LABEL).substring(1);
             m.getLabels().put(Constants.OWNER_LABEL, owner);            
             m.getLabels().put(Constants.PRODUCER_LABEL, owner);            
           } else {
