@@ -306,7 +306,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Standalone version does not support the '" + Constants.HTTP_PARAM_MINAGE + "' parameter in delete requests.");
       return;
     }
-    
+        
     boolean dryrun = null != request.getParameter(Constants.HTTP_PARAM_DRYRUN);
     
     File loggingFile = null;
@@ -449,13 +449,25 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         }
       }
       
-      if (Long.MIN_VALUE == start && Long.MAX_VALUE == end && null == request.getParameter(Constants.HTTP_PARAM_DELETEALL)) {
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Parameter " + Constants.HTTP_PARAM_DELETEALL + " should be set when deleting a full range.");
+      boolean metaonly = null != request.getParameter(Constants.HTTP_PARAM_METAONLY);
+      
+      if (Long.MIN_VALUE == start && Long.MAX_VALUE == end && (null == request.getParameter(Constants.HTTP_PARAM_DELETEALL) && !metaonly)) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Parameter " + Constants.HTTP_PARAM_DELETEALL + " or " + Constants.HTTP_PARAM_METAONLY + " should be set when no time range is specified.");
         return;
       }
       
       if (Long.MIN_VALUE != start || Long.MAX_VALUE != end) {
         hasRange = true;
+      }
+
+      if (metaonly && !Constants.DELETE_METAONLY_SUPPORT) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Parameter " + Constants.HTTP_PARAM_METAONLY + " cannot be used as metaonly support is not enabled.");
+        return;        
+      }
+      
+      if (metaonly && hasRange) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Parameter " + Constants.HTTP_PARAM_METAONLY + " can only be set if no range is specified.");
+        return;
       }
       
       if (start > end) {
@@ -506,6 +518,25 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       lblsSels.add(labelsSelectors);
       
       DirectoryRequest drequest = new DirectoryRequest();
+      
+      Long activeAfter = null == request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
+      Long quietAfter = null == request.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
+
+      if (!Constants.DELETE_ACTIVITY_SUPPORT) {
+        if (null != activeAfter || null != quietAfter) {
+          response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Activity based selection is disabled by configuration.");
+          return;
+        }
+      }
+      
+      if (null != activeAfter) {
+        drequest.setActiveAfter(activeAfter);
+      }
+      
+      if (null != quietAfter) {
+        drequest.setQuietAfter(quietAfter);
+      }
+      
       drequest.setClassSelectors(clsSels);
       drequest.setLabelsSelectors(lblsSels);
 
@@ -536,7 +567,9 @@ public class StandaloneDeleteHandler extends AbstractHandler {
               continue;
             }
           }
-          localCount = this.storeClient.delete(writeToken, metadata, start, end);
+          if (!metaonly) {
+            localCount = this.storeClient.delete(writeToken, metadata, start, end);
+          }
         }
 
         //

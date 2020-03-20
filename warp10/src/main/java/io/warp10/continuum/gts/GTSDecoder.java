@@ -528,9 +528,12 @@ public class GTSDecoder {
   /**
    * Decode any remaining values into a GTS instance.
    * 
+   * @param type TYPE to force for the resulting GTS
+   * @param strict Set to true to force values to be of uniform types, will throw RuntimeException if not
+   * 
    * @return A GTS instance containing the remaining values.
    */
-  public GeoTimeSerie decode(TYPE type) {
+  public GeoTimeSerie decode(TYPE type, boolean strict) {
     GeoTimeSerie gts = new GeoTimeSerie(this.count > 0 ? (int) Math.min(Integer.MAX_VALUE, this.count) : Math.max(16, this.buffer.remaining() / 10));
     
     if (null != type) {
@@ -538,16 +541,40 @@ public class GTSDecoder {
     }
     
     gts.setMetadata(this.getMetadata());
-    
-    while(next()) {
-      GTSHelper.setValue(gts, getTimestamp(), getLocation(), getElevation(), getValue(), false);
+  
+    if (strict) {
+      Class lastClass = null;
+      
+      while(next()) {        
+        // TODO(hbs): may differentiate STRING and binary values if the use case ever arises
+        Object value = getValue();
+        Class valClass = value.getClass();
+        // getValue could return a BigDecimal, we need to smooth the comparison so
+        // they are considered as Double
+        if (value instanceof BigDecimal) {
+          valClass = Double.class;
+        }
+        if (null != lastClass && !(valClass.equals(lastClass))) {
+          throw new RuntimeException("Non homogeneous GTS Encoder.");
+        }
+        lastClass = valClass;
+        GTSHelper.setValue(gts, getTimestamp(), getLocation(), getElevation(), value, false);
+      }
+    } else {
+      while(next()) {
+        GTSHelper.setValue(gts, getTimestamp(), getLocation(), getElevation(), getValue(), false);
+      }      
     }
     
     return gts;
   }
   
+  public GeoTimeSerie decode(TYPE type) {
+    return decode(type, false);
+  }
+  
   public GeoTimeSerie decode() {
-    return decode(null);
+    return decode(null, false);
   }
   
   public GTSEncoder getCompatibleEncoder(long basets) {

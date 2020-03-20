@@ -19,6 +19,7 @@ package io.warp10.script.mapper;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.StackUtils;
+import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -29,7 +30,7 @@ import java.util.Map;
 /**
  * Mapper which determines the max of a constant and the value passed as parameter
  */
-public class MapperMaxX extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
+public class MapperMaxX extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptAggregatorFunction {
   
   private TYPE type = TYPE.UNDEFINED;
   private long lvalue;

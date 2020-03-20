@@ -18,6 +18,7 @@ package io.warp10.script.mapper;
 
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptMapperFunction;
@@ -34,7 +35,7 @@ public class STRICTMAPPER extends NamedWarpScriptFunction implements WarpScriptS
   }
 
 
-  private static final class StringentMapper extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
+  private static final class StringentMapper extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptAggregatorFunction {
 
     private final long min;
     private final long max;

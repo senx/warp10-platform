@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -67,6 +67,13 @@ public class MUL extends NamedWarpScriptFunction implements WarpScriptStackFunct
     } else if (op1 instanceof GeoTimeSerie && op2 instanceof GeoTimeSerie) {
       GeoTimeSerie gts1 = (GeoTimeSerie) op1;
       GeoTimeSerie gts2 = (GeoTimeSerie) op2;
+
+      // Returns immediately a new gts if both inputs are empty
+      if (0 == GTSHelper.nvalues(gts1) || 0 == GTSHelper.nvalues(gts2)) {
+        GeoTimeSerie result = new GeoTimeSerie();
+        stack.push(result);
+        return stack;
+      }
 
       if (!(gts1.getType() == TYPE.DOUBLE || gts1.getType() == TYPE.LONG) || !(gts2.getType() == TYPE.DOUBLE || gts2.getType() == TYPE.LONG)) {
         throw new WarpScriptException(typeCheckErrorMsg);
@@ -160,6 +167,12 @@ public class MUL extends NamedWarpScriptFunction implements WarpScriptStackFunct
       
       GeoTimeSerie result = op1gts ? ((GeoTimeSerie) op1).cloneEmpty(n) : ((GeoTimeSerie) op2).cloneEmpty();
       GeoTimeSerie gts = op1gts ? (GeoTimeSerie) op1 : (GeoTimeSerie) op2;
+
+      // Returns immediately a new clone if gts is empty.
+      if (0 == n) {
+        stack.push(result);
+        return stack;
+      }
 
       if (!(gts.getType() == TYPE.LONG || gts.getType() == TYPE.DOUBLE)) {
         throw new WarpScriptException(typeCheckErrorMsg);

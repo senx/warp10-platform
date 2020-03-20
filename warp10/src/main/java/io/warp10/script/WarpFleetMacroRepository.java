@@ -35,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.warp10.Revision;
+import io.warp10.ThrowableUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
@@ -318,7 +319,7 @@ public class WarpFleetMacroRepository {
     } catch (WarpScriptException wse) {
       // Replace macro with a FAIL indicating the error message
       macro = new Macro();
-      macro.add("[" + System.currentTimeMillis() + "] Error while loading macro '" + name + "': " + wse.getMessage() + ", result cached for ");
+      macro.add("[" + System.currentTimeMillis() + "] Error while loading macro '" + name + "': " + ThrowableUtils.getErrorMessage(wse, 1024) + ", result cached for ");
       long expiry_ts = System.currentTimeMillis() + failedTtl;
       macro.add(expiry_ts * Constants.TIME_UNITS_PER_MS);
       macro.add(NOW_FUNC);
