@@ -1458,6 +1458,8 @@ public class Ingress extends AbstractHandler implements Runnable {
 
     PrintWriter pw = null;
     
+    boolean metaonly = null != request.getParameter(Constants.HTTP_PARAM_METAONLY);
+
     try {      
       if (null == producer || null == owner) {
         response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
@@ -1503,7 +1505,11 @@ public class Ingress extends AbstractHandler implements Runnable {
       
       long minage = 0L;
 
-      if (null != minagestr) {
+      if (null != minagestr) {        
+        if (metaonly) {
+          throw new IOException("Parameter '" + Constants.HTTP_PARAM_MINAGE + "' cannot be specified with '" + Constants.HTTP_PARAM_METAONLY + "'.");
+        }
+        
         minage = Long.parseLong(minagestr);
         
         if (minage < 0) {
@@ -1540,8 +1546,6 @@ public class Ingress extends AbstractHandler implements Runnable {
           end = Long.valueOf(endstr);
         }
       }
-
-      boolean metaonly = null != request.getParameter(Constants.HTTP_PARAM_METAONLY);
 
       if (Long.MIN_VALUE == start && Long.MAX_VALUE == end && (null == request.getParameter(Constants.HTTP_PARAM_DELETEALL) && !metaonly)) {
         throw new IOException("Parameter " + Constants.HTTP_PARAM_DELETEALL + " or " + Constants.HTTP_PARAM_METAONLY + " should be set when no time range is specified.");
@@ -1926,7 +1930,9 @@ public class Ingress extends AbstractHandler implements Runnable {
     } finally {
       // Flush delete messages
       if (!dryrun) {
-        pushDeleteMessage(0L,0L,0L,null);
+        if (!metaonly) {
+          pushDeleteMessage(0L,0L,0L,null);
+        }
         if (completeDeletion) {
           pushMetadataMessage(null, null);
         }
