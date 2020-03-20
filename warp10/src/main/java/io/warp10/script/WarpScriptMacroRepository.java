@@ -30,6 +30,9 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
 import io.warp10.WarpDist;
@@ -45,6 +48,8 @@ import io.warp10.sensision.Sensision;
  * Class which manages file based WarpScript macros from a directory
  */
 public class WarpScriptMacroRepository extends Thread {
+  
+  private static final Logger LOG = LoggerFactory.getLogger(WarpScriptMacroRepository.class);
   
   private static final MSGFAIL MSGFAIL_FUNC = new MSGFAIL("MSGFAIL");
   
@@ -109,17 +114,21 @@ public class WarpScriptMacroRepository extends Thread {
  
   private static final int DEFAULT_CACHE_SIZE = 10000;
   
+  private static int maxcachesize;
+  
   static {
     //
     // Create macro map
     //
     
-    final int maxcachesize = Integer.parseInt(WarpConfig.getProperty(Configuration.REPOSITORY_CACHE_SIZE, Integer.toString(DEFAULT_CACHE_SIZE)));
+    maxcachesize = Integer.parseInt(WarpConfig.getProperty(Configuration.REPOSITORY_CACHE_SIZE, Integer.toString(DEFAULT_CACHE_SIZE)));
     
     macros = new LinkedHashMap<String,Macro>() {
       @Override
       protected boolean removeEldestEntry(java.util.Map.Entry<String,Macro> eldest) {
-        return this.size() > maxcachesize;
+        int size = this.size();
+        Sensision.set(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_REPOSITORY_MACROS, Sensision.EMPTY_LABELS, size);
+        return size > maxcachesize;
       }
     };
   }
@@ -201,12 +210,16 @@ public class WarpScriptMacroRepository extends Thread {
           macros.putAll(newmacros);
         }        
       }
+
+      if (!ondemand && macros.size() == maxcachesize) {
+        LOG.warn("Some cached library macros were evicted.");        
+      }
       
       //
       // Update macro count
       //
       
-      Sensision.set(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_REPOSITORY_MACROS, Sensision.EMPTY_LABELS, newmacros.size());
+      Sensision.set(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_REPOSITORY_MACROS, Sensision.EMPTY_LABELS, macros.size());
       
       //
       // Sleep a while
@@ -492,10 +505,15 @@ public class WarpScriptMacroRepository extends Thread {
       Macro macro = (Macro) stack.pop();
                 
       // Set expiration if ondemand is set and a ttl was specified
-      if (ondemand && null != stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL)) {
-        macro.setExpiry(System.currentTimeMillis() + (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL));
-      } else if (ondemand) {
-        macro.setExpiry(System.currentTimeMillis() + ttl);
+      
+      try {
+        if (ondemand && null != stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL)) {
+          macro.setExpiry(Math.addExact(System.currentTimeMillis(), (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL)));
+        } else if (ondemand) {
+          macro.setExpiry(Math.addExact(System.currentTimeMillis(), ttl));
+        }        
+      } catch (ArithmeticException ae) {
+        macro.setExpiry(Long.MAX_VALUE - 1);
       }
       
       macro.setFingerprint(hash);

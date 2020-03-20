@@ -43,7 +43,6 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.functions.INCLUDE;
 import io.warp10.sensision.Sensision;
-import jline.internal.Log;
 import sun.net.www.protocol.file.FileURLConnection;
 
 /**
@@ -157,6 +156,9 @@ public class WarpScriptMacroLibrary {
       if (maxcachesize == macros.size()) {
         LOG.warn("Some cached library macros were evicted.");
       }
+      
+      Sensision.set(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_LIBRARY_CACHED, Sensision.EMPTY_LABELS, macros.size());
+
     } catch (IOException ioe) {
       throw new WarpScriptException("Encountered error while loading " + f.getAbsolutePath(), ioe);
     } finally {
@@ -249,7 +251,12 @@ public class WarpScriptMacroLibrary {
 
       // Set expiry. Note using a ttl too long will wrap around the sum and will
       // make the macro expire too early
-      macro.setExpiry(System.currentTimeMillis() + ttl);
+      
+      try {
+        macro.setExpiry(Math.addExact(System.currentTimeMillis(), ttl));
+      } catch (ArithmeticException ae) {
+        macro.setExpiry(Long.MAX_VALUE - 1);
+      }
 
       return macro;
     } catch (IOException ioe) {
