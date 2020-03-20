@@ -50,8 +50,7 @@ public class WarpRepair {
     } catch (UnsatisfiedLinkError ule) {
       ule.printStackTrace();
       if (!javadisabled) {
-        LevelDBRepair.repair(new File(path));
-        //Iq80DBFactory.factory.repair(new File(path), options);
+        Iq80DBFactory.factory.repair(new File(path), options);
       } else {
         throw new RuntimeException("No usable LevelDB implementation, aborting.");
       }
