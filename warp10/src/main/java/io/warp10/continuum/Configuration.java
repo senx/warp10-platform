@@ -24,6 +24,11 @@ public class Configuration {
   
   public static final String WARP_COMPONENTS = "warp.components";
 
+  /**
+   * Comma separated list of attributes which will invalidate the tokens they appear in
+   */
+  public static final String WARP_TOKEN_BANNED_ATTRIBUTES = "warp.token.banned.attributes";
+  
   public static final String WARP_TOKEN_FILE = "warp.token.file";
   
   public static final String WARP_HASH_CLASS = "warp.hash.class";
