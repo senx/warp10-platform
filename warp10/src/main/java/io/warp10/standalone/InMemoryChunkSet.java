@@ -866,7 +866,7 @@ public class InMemoryChunkSet {
     long count = 0L;
     
     for (int i = 0; i < chunks.length; i++) {
-      if (!this.ephemeral && (chunkends[i] < start || chunkends[i] > end + chunklen)) {
+      if (!this.ephemeral && (chunkends[i] < start || chunkends[i] >= end + chunklen)) {
         continue;
       }
       synchronized(chunks[i]) {
