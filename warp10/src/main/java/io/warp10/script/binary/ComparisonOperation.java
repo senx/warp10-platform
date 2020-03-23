@@ -170,6 +170,10 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
           result.setType(GeoTimeSerie.TYPE.LONG);
           GTSOpsHelper.applyBinaryOp(result, gts1, gts2, longOp, true);
         }
+        // Empty result should not be typed
+        if (0 == result.size()) {
+          result = new GeoTimeSerie();
+        }
         stack.push(result);
       } else {
         throw new WarpScriptException(getName() + "can only operate on two GTS with NUMBER or STRING values.");
@@ -185,6 +189,10 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
       for (int i = 0; i < GTSHelper.nvalues(gts); i++) {
         GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i),
             operator((GTSHelper.valueAtIndex(gts, i)).toString().compareTo(op2.toString()), 0) ? GTSHelper.valueAtIndex(gts, i) : null, false);
+      }
+      // Empty result should not be typed
+      if (0 == result.size()) {
+        result = new GeoTimeSerie();
       }
       stack.push(result);
     } else if (op1 instanceof GeoTimeSerie && op2 instanceof Number && GeoTimeSerie.TYPE.DOUBLE == ((GeoTimeSerie) op1).getType()) {
@@ -211,6 +219,10 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
                 operator(EQ.compare((Number) GTSHelper.valueAtIndex(gts, i), (Number) op2), 0) ? GTSHelper.valueAtIndex(gts, i) : null, false);
           }
         }
+      }        
+      // Empty result should not be typed
+      if (0 == result.size()) {
+        result = new GeoTimeSerie();
       }
       stack.push(result);
     } else if (op1 instanceof GeoTimeSerie && op2 instanceof Number && GeoTimeSerie.TYPE.LONG == ((GeoTimeSerie) op1).getType()) {
@@ -225,6 +237,10 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
         for (int i = 0; i < GTSHelper.nvalues(gts); i++) {
           GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i),
               operator(EQ.compare((Number) GTSHelper.valueAtIndex(gts, i), (Number) op2), 0) ? GTSHelper.valueAtIndex(gts, i) : null, false);
+        }
+        // Empty result should not be typed
+        if (0 == result.size()) {
+          result = new GeoTimeSerie();
         }
         stack.push(result);
       }

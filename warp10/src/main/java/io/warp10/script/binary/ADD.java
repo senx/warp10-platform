@@ -143,7 +143,11 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       }
 
       GTSOpsHelper.applyBinaryOp(result, gts1, gts2, op);
-
+      
+      // Returns an non typed GTS if the result is empty
+      if (0 == result.size()) {
+        result = new GeoTimeSerie();
+      }
       stack.push(result);
     } else if (op1 instanceof GeoTimeSerie || op2 instanceof GeoTimeSerie) {
       TYPE type = TYPE.UNDEFINED;

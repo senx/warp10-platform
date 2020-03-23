@@ -79,8 +79,9 @@ public class MUL extends NamedWarpScriptFunction implements WarpScriptStackFunct
         throw new WarpScriptException(typeCheckErrorMsg);
       }
 
-      // The result will be of type DOUBLE
+      // The result type is LONG if both inputs are LONG.
       GeoTimeSerie result = new GeoTimeSerie(Math.max(GTSHelper.nvalues(gts1), GTSHelper.nvalues(gts2)));
+      result.setType((gts1.getType() == TYPE.LONG && gts2.getType() == TYPE.LONG) ? TYPE.LONG : TYPE.DOUBLE);
       
       if (GTSHelper.isBucketized(gts1) && GTSHelper.isBucketized(gts2)) {
         if (GTSHelper.getBucketSpan(gts1) == GTSHelper.getBucketSpan(gts2)) {
@@ -97,7 +98,6 @@ public class MUL extends NamedWarpScriptFunction implements WarpScriptStackFunct
           }
         }
       }
-      result.setType(TYPE.DOUBLE);
       
       // Sort GTS
       GTSHelper.sort(gts1);
@@ -158,7 +158,10 @@ public class MUL extends NamedWarpScriptFunction implements WarpScriptStackFunct
           tsb = GTSHelper.tickAtIndex(gts2, idxb);
         }
       }
-
+      // Returns an non typed GTS if the result is empty
+      if (0 == result.size()) {
+        result = new GeoTimeSerie();
+      }
       stack.push(result);
     } else if ((op1 instanceof GeoTimeSerie && op2 instanceof Number) || (op1 instanceof Number && op2 instanceof GeoTimeSerie)) {
       boolean op1gts = op1 instanceof GeoTimeSerie;
@@ -177,13 +180,21 @@ public class MUL extends NamedWarpScriptFunction implements WarpScriptStackFunct
       if (!(gts.getType() == TYPE.LONG || gts.getType() == TYPE.DOUBLE)) {
         throw new WarpScriptException(typeCheckErrorMsg);
       }
-      
-      double op = op1gts ? ((Number) op2).doubleValue() : ((Number) op1).doubleValue();
-      
-      for (int i = 0; i < n; i++) {
-        double value = ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue() * op;
-        GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value, false);
-      }      
+
+      Number op = op1gts ? (Number) op2 : (Number) op1;
+
+      if (op instanceof Double || gts.getType() == TYPE.DOUBLE) {
+        for (int i = 0; i < n; i++) {
+          double value = ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue() * op.doubleValue();
+          GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value, false);
+        }
+      } else {
+        result.setType(TYPE.LONG);
+        for (int i = 0; i < n; i++) {
+          double value = ((Number) GTSHelper.valueAtIndex(gts, i)).longValue() * op.longValue();
+          GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value, false);
+        }
+      }
 
       stack.push(result);                   
     } else {

@@ -97,6 +97,10 @@ public abstract class CondShortCircuit extends NamedWarpScriptFunction implement
           GeoTimeSerie result = new GeoTimeSerie(Math.max(GTSHelper.nvalues(gts1), GTSHelper.nvalues(gts2)));
           result.setType(GeoTimeSerie.TYPE.BOOLEAN);
           GTSOpsHelper.applyBinaryOp(result, gts1, gts2, this.op);
+          // Empty result should not be typed
+          if (0 == result.size()) {
+            result = new GeoTimeSerie();
+          }
           stack.push(result);
           return stack;
         } else if ((GeoTimeSerie.TYPE.UNDEFINED == gts1.getType() && GeoTimeSerie.TYPE.BOOLEAN == gts2.getType())
