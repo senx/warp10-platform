@@ -326,6 +326,15 @@ public class Tokens {
   private static void checkAttributes(WriteToken wtoken) {
     checkAttributes(wtoken.getAttributes());
   }
+  
+  public static void disableCheckAttributes() {
+    skipCheckAttributes.set(true);
+  }
+  
+  public static void enableCheckAttributes() {
+    skipCheckAttributes.set(false);
+  }
+  
   /**
    * Return a map of selectors from the elements of the ReadToken
    * 
