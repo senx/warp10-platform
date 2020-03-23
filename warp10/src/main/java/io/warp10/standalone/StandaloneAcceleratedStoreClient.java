@@ -286,7 +286,11 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
       return this.persistent.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
     }
     
-    // Last resort, use the cache
+    // Last resort, use the cache, unless it is disabled in which case an exception is thrown
+    if (nocache.get()) {
+      throw new IOException("Cache and persistent store access disabled.");
+    }
+    
     accelerated.set(Boolean.TRUE);
     return this.cache.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
   }
