@@ -114,7 +114,7 @@ public class WarpScriptMacroRepository extends Thread {
  
   private static final int DEFAULT_CACHE_SIZE = 10000;
   
-  private static int maxcachesize;
+  private static final int maxcachesize;
   
   static {
     //
