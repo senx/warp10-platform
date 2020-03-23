@@ -45,24 +45,24 @@ public class WSINFO extends NamedWarpScriptFunction implements WarpScriptStackFu
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
 
-    //
-    // A non null stackps secret was configured, check it
-    //
-    String secret = StackPSWarpScriptExtension.STACKPS_SECRET;
-    
-    if (null != secret) {     
-      if (!(top instanceof String)) {
-        throw new WarpScriptException(getName() + " expects a secret.");
-      }
-      if (!secret.equals(top)) {
-        throw new WarpScriptException(getName() + " invalid secret.");
-      }
-      
-      top = stack.pop();
-    }      
+//    //
+//    // A non null stackps secret was configured, check it
+//    //
+//    String secret = StackPSWarpScriptExtension.STACKPS_SECRET;
+//    
+//    if (null != secret) {     
+//      if (!(top instanceof String)) {
+//        throw new WarpScriptException(getName() + " expects a secret.");
+//      }
+//      if (!secret.equals(top)) {
+//        throw new WarpScriptException(getName() + " invalid secret.");
+//      }
+//      
+//      top = stack.pop();
+//    }      
 
     if (!(top instanceof String)) {
-      throw new WarpScriptException(getName() + " expects a UUID.");
+      throw new WarpScriptException(getName() + " expects a session id.");
     }
     
     Map<Object,Object> infos = null;
