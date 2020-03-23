@@ -46,6 +46,7 @@ jar {
     include 'io/warp10/DoubleUtils.class'
     include 'io/warp10/FloatUtils.class'
     include 'io/warp10/Revision.class'
+    include 'io/warp10/continuum/AuthenticationPlugin.class'
     include 'io/warp10/continuum/MetadataUtils.class'
     include 'io/warp10/continuum/MetadataUtils$*'
     include 'io/warp10/continuum/index/**'
