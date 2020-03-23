@@ -70,7 +70,7 @@ public class Tokens {
   /**
    * If set, skip attribute checks
    */
-  private static ThreadLocal<Boolean> skipCheckAttributes = new ThreadLocal<Boolean>() {
+  private static final ThreadLocal<Boolean> skipCheckAttributes = new ThreadLocal<Boolean>() {
     protected Boolean initialValue() {
       return Boolean.TRUE;
     }
