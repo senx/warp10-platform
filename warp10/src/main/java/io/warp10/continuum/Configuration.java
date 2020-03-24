@@ -2051,6 +2051,21 @@ public class Configuration {
   public static final String JARS_DIRECTORY = "warpscript.jars.directory";
   public static final String JARS_REFRESH = "warpscript.jars.refresh";
   public static final String JARS_FROMCLASSPATH = "warpscript.jars.fromclasspath";
+
+  /**
+   * Size of macro cache for the macros loaded from the classpath
+   */
+  public static final String WARPSCRIPT_LIBRARY_CACHE_SIZE = "warpscript.library.cache.size";
+
+  /**
+   * Default TTL for macros loaded from the classpath
+   */
+  public static final String WARPSCRIPT_LIBRARY_TTL = "warpscript.library.ttl";
+  
+  /**
+   * Maximum TTL for a macro loaded from the classpath
+   */
+  public static final String WARPSCRIPT_LIBRARY_TTL_HARD = "warpscript.library.ttl.hard";
   
   /*
    * CALL root directory property
@@ -2072,6 +2087,11 @@ public class Configuration {
    * Macro Repository root directory
    */  
   public static final String REPOSITORY_DIRECTORY = "warpscript.repository.directory";
+  
+  /**
+   * Number of macros loaded from 'warpscript.repository.directory' to keep in memory
+   */
+  public static final String REPOSITORY_CACHE_SIZE = "warpscript.repository.cache.size";
   
   /**
    * Macro repository refresh interval (in ms)
