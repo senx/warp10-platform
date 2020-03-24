@@ -990,6 +990,11 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_BYTES = "warp.standalone.inmemory.bytes";
 
   /**
+   * Number of GTS currently stored in the memory store.
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GTS = "warp.standalone.inmemory.gts";
+
+  /**
    * Number of garbage collection cycles in the memory store
    */
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_RUNS = "warp.standalone.inmemory.gc.runs";

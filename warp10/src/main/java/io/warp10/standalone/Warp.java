@@ -134,7 +134,12 @@ public class Warp extends WarpDist implements Runnable {
     boolean plasmabackend = "true".equals(properties.getProperty(Configuration.PURE_PLASMA));
     
     boolean inmemory = "true".equals(properties.getProperty(Configuration.IN_MEMORY));
-
+    boolean accelerator = "true".equals(properties.getProperty(Configuration.ACCELERATOR));
+    
+    if (inmemory && accelerator) {
+      throw new RuntimeException("Accelerator mode cannot be enabled when " + Configuration.IN_MEMORY + " is set to true.");
+    }
+    
     boolean enablePlasma = !("true".equals(properties.getProperty(Configuration.WARP_PLASMA_DISABLE)));
     boolean enableMobius = !("true".equals(properties.getProperty(Configuration.WARP_MOBIUS_DISABLE)));
     boolean enableStreamUpdate = !("true".equals(properties.getProperty(Configuration.WARP_STREAMUPDATE_DISABLE)));
@@ -368,6 +373,10 @@ public class Warp extends WarpDist implements Runnable {
     } else {
       sdc = new StandaloneDirectoryClient(db, keystore);    
       scc = new StandaloneStoreClient(db, keystore, properties);
+      
+      if (accelerator) {
+        scc = new StandaloneAcceleratedStoreClient(sdc, scc);
+      }
     }
         
     if (null != WarpConfig.getProperty(Configuration.DATALOG_DIR) && null != WarpConfig.getProperty(Configuration.DATALOG_SHARDS)) {

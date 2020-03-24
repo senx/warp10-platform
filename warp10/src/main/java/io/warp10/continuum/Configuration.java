@@ -1742,6 +1742,58 @@ public class Configuration {
   public static final String WARP_STREAMUPDATE_DISABLE = "warp.streamupdate.disable";
 
   /**
+   * Set to 'true' to have an in-memory cache ahead of the persistent store.
+   * in.memory.chunk.count and in.memory.chunk.length MUST be defined
+   */
+  public static final String ACCELERATOR = "accelerator";
+
+  /**
+   * Set to 'true' to preload the accelerator with the persisted data spanning the accelerator time range.
+   * Preloading can be disabled for setups where the accelerator is used as a temporary side cache only.
+   */
+  public static final String ACCELERATOR_PRELOAD = "accelerator.preload";
+  
+  /**
+   * Set to 'true' to preload the accelerator with data based on the lastactivity
+   */
+  public static final String ACCELERATOR_PRELOAD_ACTIVITY = "accelerator.preload.activity";
+  
+  /**
+   * Number of threads to use for preloading the accelerator
+   */
+  public static final String ACCELERATOR_PRELOAD_POOLSIZE = "accelerator.preload.poolsize";
+
+  /**
+   * Batch size to use for preloading the accelerator
+   */
+  public static final String ACCELERATOR_PRELOAD_BATCHSIZE = "accelerator.preload.batchsize";
+
+  /**
+   * Number of chunks per GTS to handle in memory
+   */
+  public static final String ACCELERATOR_CHUNK_COUNT = "accelerator.chunk.count";
+  
+  /**
+   * Length of each chunk (in time units)
+   */
+  public static final String ACCELERATOR_CHUNK_LENGTH = "accelerator.chunk.length";
+  
+  /**
+   * If set to true, then only the last recorded value of a GTS is kept
+   */
+  public static final String ACCELERATOR_EPHEMERAL = "accelerator.ephemeral";
+
+  /**
+   * How often (in ms) to perform a gc of the Warp 10 accelerator.
+   */
+  public static final String ACCELERATOR_GC_PERIOD = "accelerator.gcperiod";
+  
+  /**
+   * Maximum size (in bytes) of re-allocations performed during a gc cycle of the Warp 10 accelerator 
+   */
+  public static final String ACCELERATOR_GC_MAXALLOC = "accelerator.gc.maxalloc";  
+
+  /**
    * Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.
    */
   public static final String IN_MEMORY = "in.memory";
