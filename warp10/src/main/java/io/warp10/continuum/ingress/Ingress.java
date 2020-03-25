@@ -696,6 +696,7 @@ public class Ingress extends AbstractHandler implements Runnable {
       return;
     } else if (target.equals(Constants.API_ENDPOINT_DELETE)) {
       handleDelete(target, baseRequest, request, response);
+      return;
     } else if (Constants.API_ENDPOINT_CHECK.equals(target)) {
       baseRequest.setHandled(true);
       response.setStatus(HttpServletResponse.SC_OK);
