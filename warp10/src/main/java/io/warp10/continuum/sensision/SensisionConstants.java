@@ -990,6 +990,11 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_BYTES = "warp.standalone.inmemory.bytes";
 
   /**
+   * Number of GTS currently stored in the memory store.
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GTS = "warp.standalone.inmemory.gts";
+
+  /**
    * Number of garbage collection cycles in the memory store
    */
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_RUNS = "warp.standalone.inmemory.gc.runs";
@@ -1215,10 +1220,20 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_THROTTLING_RATE_PER_APP_GLOBAL = "warp.throttling.rate.perapp.global";
 
   /**
+   * Number of macros cached from WarpFleet repositories
+   */
+  public static final String SENSISION_CLASS_WARPFLEET_MACROS_CACHED = "warpfleet.macros.cached";
+  
+  /**
+   * Number of macros loaded from jars and the classpath which are currently cached
+   */
+  public static final String SENSISION_CLASS_WARPSCRIPT_LIBRARY_CACHED = "warpscript.library.macros";
+  
+  /**
    * Number of macros known in the repository
    */
   public static final String SENSISION_CLASS_WARPSCRIPT_REPOSITORY_MACROS = "warp.script.repository.macros";
-  
+    
   /**
    * Number of jar files known in the repository
    */

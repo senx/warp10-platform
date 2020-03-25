@@ -22,34 +22,35 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 public class TOKENSECRET extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
   public TOKENSECRET(String name) {
     super(name);
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     String secret = TokenWarpScriptExtension.TOKEN_SECRET;
-    
+
     if (null == secret) {
       throw new WarpScriptException(getName() + " cannot be used if a token secret was not configured.");
     }
-    
+
     Object top = stack.pop();
-    
+
     if (!secret.equals(top)) {
       throw new WarpScriptException(getName() + " invalid token secret.");
     }
-    
+
     // pop the new secret to use
     top = stack.pop();
-    
+
     if (!(top instanceof String)) {
       throw new WarpScriptException(getName() + " expects a new secret which is a non null string.");
     }
-    
+
     TokenWarpScriptExtension.TOKEN_SECRET = String.valueOf(top);
-    
+
     return stack;
   }
 }

@@ -24,6 +24,11 @@ public class Configuration {
   
   public static final String WARP_COMPONENTS = "warp.components";
 
+  /**
+   * Comma separated list of attributes which will invalidate the tokens they appear in
+   */
+  public static final String WARP_TOKEN_BANNED_ATTRIBUTES = "warp.token.banned.attributes";
+  
   public static final String WARP_TOKEN_FILE = "warp.token.file";
   
   public static final String WARP_HASH_CLASS = "warp.hash.class";
@@ -1690,6 +1695,18 @@ public class Configuration {
   public static final String WARP10_ABSENT_LABEL_SUPPORT = "warp10.absent.label.support";
   
   /**
+   * Set to true to allow the /delete endpoint to only delete metadata.
+   */
+  public static final String INGRESS_DELETE_METAONLY_SUPPORT = "ingress.delete.metaonly.support";
+  
+  /**
+   * Set to true to allow activeafter/quietafter parameters to delete requests.
+   * This must be explicitely configured to avoid deleting extraneous GTS when using those parameters when no
+   * activity tracking is active.
+   */
+  public static final String INGRESS_DELETE_ACTIVITY_SUPPORT = "ingress.delete.activity.support";
+  
+  /**
    * Manager secret, must be set to use the managing functions
    */
   public static final String WARP10_MANAGER_SECRET = "warp10.manager.secret";
@@ -1723,6 +1740,58 @@ public class Configuration {
    * Set to 'true' to disable stream updates
    */
   public static final String WARP_STREAMUPDATE_DISABLE = "warp.streamupdate.disable";
+
+  /**
+   * Set to 'true' to have an in-memory cache ahead of the persistent store.
+   * in.memory.chunk.count and in.memory.chunk.length MUST be defined
+   */
+  public static final String ACCELERATOR = "accelerator";
+
+  /**
+   * Set to 'true' to preload the accelerator with the persisted data spanning the accelerator time range.
+   * Preloading can be disabled for setups where the accelerator is used as a temporary side cache only.
+   */
+  public static final String ACCELERATOR_PRELOAD = "accelerator.preload";
+  
+  /**
+   * Set to 'true' to preload the accelerator with data based on the lastactivity
+   */
+  public static final String ACCELERATOR_PRELOAD_ACTIVITY = "accelerator.preload.activity";
+  
+  /**
+   * Number of threads to use for preloading the accelerator
+   */
+  public static final String ACCELERATOR_PRELOAD_POOLSIZE = "accelerator.preload.poolsize";
+
+  /**
+   * Batch size to use for preloading the accelerator
+   */
+  public static final String ACCELERATOR_PRELOAD_BATCHSIZE = "accelerator.preload.batchsize";
+
+  /**
+   * Number of chunks per GTS to handle in memory
+   */
+  public static final String ACCELERATOR_CHUNK_COUNT = "accelerator.chunk.count";
+  
+  /**
+   * Length of each chunk (in time units)
+   */
+  public static final String ACCELERATOR_CHUNK_LENGTH = "accelerator.chunk.length";
+  
+  /**
+   * If set to true, then only the last recorded value of a GTS is kept
+   */
+  public static final String ACCELERATOR_EPHEMERAL = "accelerator.ephemeral";
+
+  /**
+   * How often (in ms) to perform a gc of the Warp 10 accelerator.
+   */
+  public static final String ACCELERATOR_GC_PERIOD = "accelerator.gcperiod";
+  
+  /**
+   * Maximum size (in bytes) of re-allocations performed during a gc cycle of the Warp 10 accelerator 
+   */
+  public static final String ACCELERATOR_GC_MAXALLOC = "accelerator.gc.maxalloc";  
 
   /**
    * Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.
@@ -2034,6 +2103,21 @@ public class Configuration {
   public static final String JARS_DIRECTORY = "warpscript.jars.directory";
   public static final String JARS_REFRESH = "warpscript.jars.refresh";
   public static final String JARS_FROMCLASSPATH = "warpscript.jars.fromclasspath";
+
+  /**
+   * Size of macro cache for the macros loaded from the classpath
+   */
+  public static final String WARPSCRIPT_LIBRARY_CACHE_SIZE = "warpscript.library.cache.size";
+
+  /**
+   * Default TTL for macros loaded from the classpath
+   */
+  public static final String WARPSCRIPT_LIBRARY_TTL = "warpscript.library.ttl";
+  
+  /**
+   * Maximum TTL for a macro loaded from the classpath
+   */
+  public static final String WARPSCRIPT_LIBRARY_TTL_HARD = "warpscript.library.ttl.hard";
   
   /*
    * CALL root directory property
@@ -2055,6 +2139,11 @@ public class Configuration {
    * Macro Repository root directory
    */  
   public static final String REPOSITORY_DIRECTORY = "warpscript.repository.directory";
+  
+  /**
+   * Number of macros loaded from 'warpscript.repository.directory' to keep in memory
+   */
+  public static final String REPOSITORY_CACHE_SIZE = "warpscript.repository.cache.size";
   
   /**
    * Macro repository refresh interval (in ms)

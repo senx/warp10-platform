@@ -314,11 +314,14 @@ public class StandaloneIngressHandler extends AbstractHandler {
       //
             
       String datalogHeader = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_DATALOG));
-      
+            
       DatalogRequest dr = null;
       
       boolean forwarded = false;
       
+      boolean nocache = false;
+      boolean nopersist = false;
+         
       if (null != datalogHeader) {
         byte[] bytes = OrderPreservingBase64.decode(datalogHeader.getBytes(StandardCharsets.US_ASCII));
         
@@ -351,8 +354,38 @@ public class StandaloneIngressHandler extends AbstractHandler {
         forwarded = true;
         
         deltaAttributes = dr.isDeltaAttributes();
+        
+        if (dr.getAttributesSize() > 0) {
+          if (null != dr.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOCACHE)) {
+            nocache = true;
+          } else {
+            nocache = false;
+          }
+          if (null != dr.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST)) {
+            nopersist = true;
+          } else {
+            nopersist = false;
+          }
+        }
+      } else {        
+        if (null != request.getHeader(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER)) {
+          nocache = request.getHeader(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER).contains(StandaloneAcceleratedStoreClient.NOCACHE);
+          nopersist = request.getHeader(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER).contains(StandaloneAcceleratedStoreClient.NOPERSIST);                
+        }
       }
 
+      if (nocache) {
+        StandaloneAcceleratedStoreClient.nocache();
+      } else {
+        StandaloneAcceleratedStoreClient.cache();          
+      }
+
+      if (nopersist) {
+        StandaloneAcceleratedStoreClient.nopersist();
+      } else {
+        StandaloneAcceleratedStoreClient.persist();        
+      }
+      
       //
       // TODO(hbs): Extract producer/owner from token
       //
@@ -622,6 +655,13 @@ public class StandaloneIngressHandler extends AbstractHandler {
               now = TimeSource.getTime();
             }
             dr.setNow(Long.toString(now));
+            
+            if (nocache) {
+              dr.putToAttributes(StandaloneAcceleratedStoreClient.ATTR_NOCACHE, "");
+            }
+            if (nopersist) {
+              dr.putToAttributes(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST, "");
+            }
           }
           
           if (null != dr && (!forwarded || (forwarded && this.logforwarded))) {

@@ -57,6 +57,7 @@ import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
+import io.warp10.standalone.StandaloneAcceleratedStoreClient;
 
 /**
  * Forward UPDATA/META/DELETE requests to another Warp 10 instance
@@ -262,6 +263,18 @@ public class DatalogForwarder extends Thread {
           conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX), action.request.getToken());
           if (action.request.isSetNow()) {
             conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_NOW_HEADERX), action.request.getNow());
+          }
+          if (action.request.getAttributesSize() > 0) {
+            String accel = "";
+            if (null != action.request.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOCACHE)) {
+              accel += StandaloneAcceleratedStoreClient.NOCACHE + " ";
+            }
+            if (null != action.request.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST)) {
+              accel += StandaloneAcceleratedStoreClient.NOPERSIST;              
+            }
+            if (!"".equals(accel)) {
+              conn.setRequestProperty(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER, accel);
+            }
           }
         } else {
           conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_DATALOG), action.encodedRequest);

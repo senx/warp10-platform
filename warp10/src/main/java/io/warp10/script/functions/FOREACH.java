@@ -69,12 +69,29 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
       throw new WarpScriptException(getName() + " expects a macro on top of the stack.");
     }
     
-    if (!(obj instanceof List) && !(obj instanceof Map) && !(obj instanceof Iterator) && !(obj instanceof Iterable) && !(obj instanceof GeoTimeSerie) && !(obj instanceof GTSEncoder)) {
-      throw new WarpScriptException(getName() + " operates on a list, map, Geo Time Series™, ENCODER, iterator or iterable.");
+    if (!(obj instanceof List) && !(obj instanceof Map) && !(obj instanceof Iterator) && !(obj instanceof Iterable) && !(obj instanceof GeoTimeSerie) && !(obj instanceof GTSEncoder) && !(obj instanceof String)) {
+      throw new WarpScriptException(getName() + " operates on a list, map, Geo Time Series™, ENCODER, STRING, iterator or iterable.");
     }
 
     long index = 0;
-
+    
+    if (obj instanceof String) {
+      final String s = (String) obj;
+      
+      obj = new Iterator<String>() {        
+        int idx = 0;
+        
+        @Override
+        public boolean hasNext() {
+          return idx < s.length();
+        }
+        @Override
+        public String next() {
+          return Character.toString(s.charAt(idx++));
+        }
+      };
+    }
+   
     if (obj instanceof List) {
       for (Object o: ((List<Object>) obj)) {
         stack.push(o);

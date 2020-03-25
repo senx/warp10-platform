@@ -17,6 +17,7 @@
 package io.warp10.script.mapper;
 
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptException;
 
@@ -25,7 +26,7 @@ import java.util.Map;
 /**
  * Mapper which returns the ceiling of the value passed as parameter
  */
-public class MapperCeil extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
+public class MapperCeil extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptAggregatorFunction {
 
   public MapperCeil(String name) {
     super(name);

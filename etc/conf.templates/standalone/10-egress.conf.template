@@ -33,4 +33,7 @@
 //
 // Should the egress exec handler expose its store/directory clients?
 //
+// When the Warp 10 Accelerator is used, the methods cache/nocache and persist/nopersist
+// of the class StandardAcceleratedStoreClient should be called prior to calling fetch
+//
 egress.clients.expose = false

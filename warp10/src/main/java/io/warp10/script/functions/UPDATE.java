@@ -26,6 +26,7 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.standalone.StandaloneAcceleratedStoreClient;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -181,6 +182,20 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
       conn.setRequestMethod("POST");
       conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_UPDATE_TOKENX), token);
       conn.setRequestProperty("Content-Type", "application/gzip");
+      
+      boolean nocache = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
+      boolean nopersist = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));
+      
+      String accel = "";
+      if (nocache) {
+        accel = accel + StandaloneAcceleratedStoreClient.NOCACHE + " ";
+      }
+      if (nopersist) {
+        accel = accel + StandaloneAcceleratedStoreClient.NOPERSIST;
+      }
+      if (!"".equals(accel)) {
+        conn.setRequestProperty(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER, accel);
+      }
       conn.setChunkedStreamingMode(16384);
       conn.connect();
       

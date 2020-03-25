@@ -83,14 +83,14 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
    * Number of chunks
    */
   private final int chunkcount;
-
+  
   private final Properties properties;
 
   private final boolean ephemeral;
   
   private final long[] classKeyLongs;
   private final long[] labelsKeyLongs;
-
+  
   public StandaloneChunkedMemoryStore(Properties properties, KeyStore keystore) {
     this.properties = properties;
 
@@ -105,7 +105,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       this.chunkspan = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.IN_MEMORY_CHUNK_LENGTH, Long.toString(Long.MAX_VALUE)));      
       this.ephemeral = false;
     }    
-  
+
     this.labelsKeyLongs = SipHashInline.getKey(keystore.getKey(KeyStore.SIPHASH_LABELS));
     this.classKeyLongs = SipHashInline.getKey(keystore.getKey(KeyStore.SIPHASH_CLASS));
     
@@ -316,7 +316,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       if (plasmaHandler.hasSubscriptions()) {
         plasmaHandler.publish(encoder);
       }
-    }
+    }    
   }
   
   @Override
@@ -342,9 +342,18 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       maxalloc = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_GC_MAXALLOC));
     }
     
+    long delayns = 1000000L * Math.min(Long.MAX_VALUE / 1000000L, gcperiod / Constants.TIME_UNITS_PER_MS);
+    
     while(true) {
-      LockSupport.parkNanos(1000000L * (gcperiod / Constants.TIME_UNITS_PER_MS));
+      // Do not reclaim data for ephemeral setups
+      if (this.ephemeral) {
+        Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GTS, Sensision.EMPTY_LABELS, this.series.size());
+        LockSupport.parkNanos(30 * 1000000000L);
+        continue;
+      }
 
+      LockSupport.parkNanos(delayns);
+            
       List<BigInteger> metadatas = new ArrayList<BigInteger>();
       metadatas.addAll(this.series.keySet());
 
@@ -435,6 +444,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       
       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_BYTES, Sensision.EMPTY_LABELS, bytes);
       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_DATAPOINTS, Sensision.EMPTY_LABELS, datapoints);
+      Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GTS, Sensision.EMPTY_LABELS, this.series.size());
 
       if (datapointsdelta > 0) {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_DATAPOINTS, Sensision.EMPTY_LABELS, datapointsdelta);
@@ -450,10 +460,6 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
   
   @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {
-    if (Long.MIN_VALUE != start || Long.MAX_VALUE != end) {
-      throw new IOException("MemoryStore only supports deleting complete Geo Time Series.");
-    }
-    
     //
     // Regen classId/labelsId
     //
@@ -490,10 +496,20 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
     BigInteger clslbls = new BigInteger(bytes);
 
+    InMemoryChunkSet set = null;
+    
     synchronized(this.series) {
-      this.series.remove(clslbls);
+      if (Long.MIN_VALUE == start && Long.MAX_VALUE == end) {
+        this.series.remove(clslbls);
+      } else {
+        set = this.series.get(clslbls);
+      }
     }
     
+    if (null != set) {
+      return set.delete(start, end);
+    }
+
     return 0L;
   }
   
@@ -502,6 +518,10 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
   } 
   
   public void dump(String path) throws IOException {
+    
+    if (null == this.directoryClient) {
+      return;
+    }
     
     long nano = System.nanoTime();
     int gts = 0;
@@ -664,5 +684,17 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
   
   public void setDirectoryClient(StandaloneDirectoryClient directoryClient) {
     this.directoryClient = directoryClient;
+  }
+  
+  public long getChunkSpan() {
+    return this.chunkspan;
+  }
+  
+  public int getChunkCount() {
+    return this.chunkcount;
+  }
+  
+  public int getGTSCount() {
+    return this.series.size();
   }
 }
