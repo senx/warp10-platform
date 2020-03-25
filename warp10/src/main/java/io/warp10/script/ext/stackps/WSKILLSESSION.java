@@ -19,12 +19,17 @@ package io.warp10.script.ext.stackps;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Signal;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptStackRegistry;
 
-public class WSABORT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  public WSABORT(String name) {
+public class WSKILLSESSION extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+  
+  private final Signal signal;
+  
+  public WSKILLSESSION(String name, Signal signal) {
     super(name);
+    this.signal = signal;
   }
 
   @Override
@@ -35,7 +40,7 @@ public class WSABORT extends NamedWarpScriptFunction implements WarpScriptStackF
       throw new WarpScriptException(getName() + " expects a session name (STRING).");
     }
     
-    stack.push(WarpScriptStackRegistry.abortSession(top.toString()));
+    stack.push(WarpScriptStackRegistry.signalBySession(top.toString(), this.signal));
         
     return stack;
   }

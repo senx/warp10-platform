@@ -405,9 +405,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
           throw new WarpScriptException(getName() + " exceeded limit of " + gtsLimit + " Geo Time Series, current count is " + gtscount);
         }
 
-        if (stack.aborted()) {
-          throw new WarpScriptException(getName() + " execution aborted.");
-        }
+        stack.signal();
 
         if (metadatas.size() < EgressFetchHandler.FETCH_BATCHSIZE && iter.hasNext()) {
           continue;
@@ -592,9 +590,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                 throw new WarpScriptException(getName() + " exceeded limit of " + fetchLimit + " datapoints, current count is " + fetched.get());
               }
 
-              if (stack.aborted()) {
-                throw new WarpScriptException(getName() + " execution aborted.");
-              }
+              stack.signal();
               
               lastCount += dpcount;
               
@@ -688,9 +684,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               //break;
             }
             
-            if (stack.aborted()) {
-              throw new WarpScriptException(getName() + " execution aborted.");
-            }
+            stack.signal();
           }      
         } catch (WarpScriptException ee) {
           throw ee;

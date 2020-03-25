@@ -19,12 +19,17 @@ package io.warp10.script.ext.stackps;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Signal;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptStackRegistry;
 
 public class WSKILL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  public WSKILL(String name) {
+
+  private final Signal signal;
+
+  public WSKILL(String name, Signal signal) {
     super(name);
+    this.signal = signal;
   }
 
   @Override
@@ -51,7 +56,7 @@ public class WSKILL extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException(getName() + " expects a UUID.");
     }
     
-    stack.push(WarpScriptStackRegistry.abort(top.toString()));
+    stack.push(WarpScriptStackRegistry.signalByUuid(top.toString(), this.signal));
         
     return stack;
   }

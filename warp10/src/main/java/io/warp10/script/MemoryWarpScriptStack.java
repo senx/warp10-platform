@@ -59,7 +59,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     DEFAULT_PROPERTIES = WarpConfig.getProperties();
   }
 
-  private boolean aborted = false;
+  private Signal signal = null;
+  private boolean signaled = false;
   
   private final boolean allowLooseBlockComments;
 
@@ -571,7 +572,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       //
 
       for (int st = 0; st < statements.length; st++) {
-        if (this.aborted) {
+        if (this.signaled) {
           throw new WarpScriptException("Execution aborted.");
         }
 
@@ -953,8 +954,10 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
       for (i = 0; i < n; i++) {        
 
-        if (this.aborted) {
-          throw new WarpScriptException("Execution aborted.");
+        // We check the boolean outside of a synchronized block for efficiency
+        // even though we might miss a change
+        if (this.signaled) {
+          signal();
         }
         
         Object stmt = stmts.get(i);
@@ -1614,14 +1617,35 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
   
   @Override
-  public void abort() {
+  public void signal(Signal signal) {
+    // Only set the signal if the stack is not yet signaled so a KILL is not
+    // overriden by anything else for example
+    if (this.signaled) {
+      return;
+    }
     synchronized(this) {
-      aborted = true;
+      this.signal = signal;
+      this.signaled = true;
     }
   }
   
   @Override
-  public boolean aborted() {
-    return aborted;
-  }
+  public void signal() throws WarpScriptATCException {
+    if (!this.signaled) {
+      return;
+    }
+    synchronized(this) {
+      switch (this.signal) {
+        case STOP: 
+          // Clear the signal
+          this.signal = null;
+          this.signaled = false;
+          throw new WarpScriptStopException("Execution received STOP signal.");
+        case KILL:
+          // The signal is retained
+          throw new WarpScriptKillException("Execution received KILL signal.");
+        default:
+      }            
+    }
+  }  
 }

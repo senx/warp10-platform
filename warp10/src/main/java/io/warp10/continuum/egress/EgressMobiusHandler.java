@@ -458,7 +458,7 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
           
           pw.flush();
           
-          fsession.getRemote().sendStringByFuture(sw.toString());          
+          fsession.getRemote().sendStringByFuture(sw.toString());
         }
       };
       

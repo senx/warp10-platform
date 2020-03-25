@@ -18,6 +18,8 @@ package io.warp10.plugins.tcp;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStackRegistry;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,6 +93,8 @@ public class TCPClient implements Runnable {
       }
     } catch (IOException e) {
       LOG.error("Problem when receiving text line from tcp on port " + socket.getPort(), e);
+    } finally {
+      WarpScriptStackRegistry.unregister(stack);
     }
     try {
       this.socket.close();

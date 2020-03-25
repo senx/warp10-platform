@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.warp10.WarpConfig;
+import io.warp10.script.WarpScriptStack.Signal;
 import io.warp10.script.WarpScriptStackRegistry;
 import io.warp10.warp.sdk.WarpScriptExtension;
 
@@ -50,8 +51,10 @@ public class StackPSWarpScriptExtension extends WarpScriptExtension {
     functions.put("STACKPSSECRET", new STACKPSSECRET("STACKPSSECRET"));
     functions.put("WSPS", new WSPS("WSPS"));
     functions.put("WSINFO", new WSINFO("WSINFO"));
-    functions.put("WSKILL", new WSKILL("WSKILL"));
-    functions.put("WSABORT", new WSABORT("WSABORT"));
+    functions.put("WSSTOP", new WSKILL("WSSTOP", Signal.STOP));
+    functions.put("WSKILL", new WSKILL("WSKILL", Signal.KILL));
+    functions.put("WSSTOPSESSION", new WSKILLSESSION("WSSTOPSESSION", Signal.STOP));
+    functions.put("WSKILLSESSION", new WSKILLSESSION("WSKILLSESSION", Signal.KILL));
     functions.put("WSNAME", new WSNAME("WSNAME", false));
     functions.put("WSSESSION", new WSNAME("WSSESSION", true));
   }

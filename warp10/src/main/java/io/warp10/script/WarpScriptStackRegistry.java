@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.warp10.script.WarpScriptStack.Signal;
 import io.warp10.script.ext.stackps.StackPSWarpScriptExtension;
 
 public class WarpScriptStackRegistry {
@@ -35,7 +36,7 @@ public class WarpScriptStackRegistry {
     return null != stacks.remove(uuid);
   }
   
-  public static boolean abort(String uuid) {
+  public static boolean signalByUuid(String uuid, Signal signal) {
     if (!enabled) {
       return false;
     }
@@ -46,11 +47,16 @@ public class WarpScriptStackRegistry {
       return false;
     }
     
-    stackref.get().abort();
+    WarpScriptStack stack = stackref.get();
+    
+    if (null == stack) {
+      return false;
+    }
+    stack.signal(signal);
     return true;
   }
   
-  public static int abortSession(String session) {
+  public static int signalBySession(String session, Signal signal) {
     if (null == session) {
       return 0;
     }
@@ -64,7 +70,7 @@ public class WarpScriptStackRegistry {
       
       if (null != stack) {
         if (session.equals(stack.getAttribute(StackPSWarpScriptExtension.ATTRIBUTE_SESSION))) {
-          stack.abort();
+          stack.signal(signal);
           aborted++;
         }
       }

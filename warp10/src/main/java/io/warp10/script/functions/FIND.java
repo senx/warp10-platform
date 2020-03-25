@@ -393,9 +393,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
           throw new WarpScriptException(getName() + " exceeded limit of " + gtsLimit + " Geo Time Series, current count is " + gtscount.get());
         }
 
-        if (stack.aborted()) {
-          throw new WarpScriptException(getName() + " execution aborted.");
-        }
+        stack.signal();
         
         GeoTimeSerie gts = new GeoTimeSerie();
         

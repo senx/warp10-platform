@@ -41,6 +41,11 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public interface WarpScriptStack {
   
+  public static enum Signal {
+    STOP,
+    KILL,
+  }
+  
   public static final int DEFAULT_MAX_RECURSION_LEVEL = 16;
   public static final long DEFAULT_FETCH_LIMIT = 100000L;
   public static final long DEFAULT_GTS_LIMIT = 100000L;
@@ -739,14 +744,14 @@ public interface WarpScriptStack {
   public String getUUID();
   
   /**
-   * Abort the stack, i.e. stop the currently executing code after the current statement and prevent further executions.
+   * Signal the stack, i.e. stop the currently executing code after the current statement and prevent further executions.
    */
-  public void abort();
+  public void signal(Signal signal);
   
   /**
-   * Return the state of execution abortion.
+   * Throw the exception associated with the current signal sent to the stack
    */
-  public boolean aborted();
+  public void signal() throws WarpScriptATCException;
   
   /**
    * Set a stack attribute.
