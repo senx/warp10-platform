@@ -60,7 +60,7 @@ public class LevelDBRepair {
   
   private static final InternalKeyComparator internalKeyComparator = new InternalKeyComparator(new BytewiseComparator());
 
-  private static AtomicLong nextFileNumber = new AtomicLong(0L);
+  private static final AtomicLong nextFileNumber = new AtomicLong(0L);
   
   public static synchronized void repair(File path, Options options) throws IOException {
     //
@@ -84,6 +84,7 @@ public class LevelDBRepair {
       
       switch (fileInfo.getFileType()) {
         case DESCRIPTOR:
+        case TABLE:
           if (fileInfo.getFileNumber() > nextFileNumber.get()) {
             nextFileNumber.set(fileInfo.getFileNumber());
           }
@@ -93,11 +94,6 @@ public class LevelDBRepair {
             nextFileNumber.set(fileInfo.getFileNumber());
           }
           logs.add(fileInfo.getFileNumber());
-          break;
-        case TABLE:
-          if (fileInfo.getFileNumber() > nextFileNumber.get()) {
-            nextFileNumber.set(fileInfo.getFileNumber());
-          }
           break;
         default:
       }
@@ -161,8 +157,6 @@ public class LevelDBRepair {
             while(iter.hasNext()) {
               Entry<InternalKey, Slice> entry = iter.next();
             
-              Slice slice = entry.getValue();
-
               if (null == smallest) {
                 smallest = entry.getKey();
               }
@@ -197,13 +191,7 @@ public class LevelDBRepair {
     Collections.sort(meta, new Comparator<FileMetaData>() {
       @Override
       public int compare(FileMetaData o1, FileMetaData o2) {
-        if (o1.getNumber() < o2.getNumber()) {
-          return -1;
-        } else if (o1.getNumber() > o2.getNumber()) {
-          return 1;
-        } else {
-          return 0;
-        }
+        return Long.compare(o1.getNumber(), o2.getNumber());
       }
     });
 
@@ -277,7 +265,6 @@ public class LevelDBRepair {
   /**
    * Convert a log file to a table
    * This is adapted from org.iq80.leveldb.impl.DbImpl#recoverLogFile
-   * @param fileno
    */
   private static long recoverLogFile(File databaseDir, long fileNumber, Options opt) throws IOException {
     Options options = null != opt ? opt : new Options();
