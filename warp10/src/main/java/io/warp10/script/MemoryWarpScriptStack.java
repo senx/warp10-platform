@@ -1631,9 +1631,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   
   @Override
   public void signal() throws WarpScriptATCException {
-    if (!this.signaled) {
-      return;
+    if (this.signaled) {
+      doSignal();
     }
+  }
+  
+  private void doSignal() throws WarpScriptATCException {
     synchronized(this) {
       switch (this.signal) {
         case STOP: 
@@ -1647,5 +1650,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
         default:
       }            
     }
-  }  
+
+  }
 }
