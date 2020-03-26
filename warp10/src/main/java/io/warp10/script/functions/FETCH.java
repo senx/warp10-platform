@@ -32,8 +32,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
-import org.apache.commons.lang3.JavaVersion;
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -1246,11 +1244,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         } catch (NumberFormatException nfe) {
           // Not string representation of a Long, try ISO8601
           try {
-            if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-              timestamp = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp((String) timestampRepresentation);
-            } else {
-              timestamp = fmt.parseDateTime((String) timestampRepresentation).getMillis() * Constants.TIME_UNITS_PER_MS;
-            }
+            timestamp = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp((String) timestampRepresentation);
           } catch (WarpScriptException | IllegalArgumentException e) {
             // Don't set the cause of the execption because we don't know which of the two (nfs or e) it is.
             throw new WarpScriptException("Invalid format for parameter '" + timestampRepresentationParameterName + "'.");
