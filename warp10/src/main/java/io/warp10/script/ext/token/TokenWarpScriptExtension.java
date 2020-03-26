@@ -52,10 +52,10 @@ public class TokenWarpScriptExtension extends WarpScriptExtension {
         // if OSS wrapped secret exists
         byte[] ossHandledSecret = ks.getKey(TokenWarpScriptExtension.KEY_TOKEN_SECRET);
         if (null != ossHandledSecret) {
-          keystore = null;
+          keystore = ks;
           TOKEN_SECRET = new String(ossHandledSecret, StandardCharsets.UTF_8).replaceAll("\n", "").trim();
         } else {
-          keystore = ks;
+          keystore = null;
         }
       } else {
         keystore = null;
