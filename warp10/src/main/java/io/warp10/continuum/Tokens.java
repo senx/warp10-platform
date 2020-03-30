@@ -72,7 +72,7 @@ public class Tokens {
    */
   private static final ThreadLocal<Boolean> skipCheckAttributes = new ThreadLocal<Boolean>() {
     protected Boolean initialValue() {
-      return Boolean.TRUE;
+      return Boolean.FALSE;
     }
   };
   
