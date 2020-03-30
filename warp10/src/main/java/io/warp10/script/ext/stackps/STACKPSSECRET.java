@@ -48,7 +48,7 @@ public class STACKPSSECRET extends NamedWarpScriptFunction implements WarpScript
       throw new WarpScriptException(getName() + " expects a new secret which is a non null string.");
     }
     
-    StackPSWarpScriptExtension.STACKPS_SECRET = String.valueOf(top);
+    StackPSWarpScriptExtension.STACKPS_SECRET = (String) top;
     
     return stack;
   }

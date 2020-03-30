@@ -67,12 +67,17 @@ public class WSINFO extends NamedWarpScriptFunction implements WarpScriptStackFu
     
     Map<Object,Object> infos = null;
 
-    String uuid = top.toString();
+    String session = top.toString();
     
     for (WarpScriptStack stck: WarpScriptStackRegistry.stacks()) {
-      if (uuid.equals(stck.getUUID())) {
+      if (session.equals(stck.getAttribute(StackPSWarpScriptExtension.ATTRIBUTE_SESSION))) {
         infos = getInfos(stck);
+        break;
       }
+    }
+    
+    if (null == infos) {
+      infos = new HashMap<Object,Object>();
     }
     
     stack.push(infos);
