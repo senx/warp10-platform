@@ -194,7 +194,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
     }
   }
   
-  public synchronized static void addResolver(TypeResolver resolver) {
+  public static synchronized void addResolver(TypeResolver resolver) {
     if (null == resolvers) {
       resolvers = new ArrayList<TypeResolver>();
     }
