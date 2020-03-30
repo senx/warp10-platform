@@ -756,7 +756,7 @@ public interface WarpScriptStack {
   /**
    * Throw the exception associated with the current signal sent to the stack
    */
-  public void signal() throws WarpScriptATCException;
+  public void handleSignal() throws WarpScriptATCException;
   
   /**
    * Set a stack attribute.

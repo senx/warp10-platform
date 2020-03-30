@@ -957,7 +957,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
         // We check the boolean outside of a synchronized block for efficiency
         // even though we might miss a change
         if (this.signaled) {
-          signal();
+          handleSignal();
         }
         
         Object stmt = stmts.get(i);
@@ -1635,7 +1635,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
   
   @Override
-  public void signal() throws WarpScriptATCException {
+  public void handleSignal() throws WarpScriptATCException {
     if (this.signaled) {
       doSignal();
     }
