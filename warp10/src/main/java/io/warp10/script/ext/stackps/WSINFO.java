@@ -67,7 +67,7 @@ public class WSINFO extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException(getName() + " expects a session id.");
     }
     
-    List<Map<Object,Object>> infos = new ArrayList<Map<Object,Object>>();
+    List<Object> infos = new ArrayList<Object>();
 
     String session = top.toString();
     
