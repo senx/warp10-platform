@@ -41,7 +41,7 @@ public class GEONORMALIZE extends NamedWarpScriptFunction implements WarpScriptS
       throw new WarpScriptException(getName() + " operates on two GEOSHAPE instances.");
     }
     
-    GeoXPShape ashape = (GeoXPShape) top;
+    GeoXPShape bshape = (GeoXPShape) top;
     
     top = stack.pop();
     
@@ -49,7 +49,7 @@ public class GEONORMALIZE extends NamedWarpScriptFunction implements WarpScriptS
       throw new WarpScriptException(getName() + " operates on two GEOSHAPE instances.");
     }
     
-    GeoXPShape bshape = (GeoXPShape) top;
+    GeoXPShape ashape = (GeoXPShape) top;
     
     Coverage cova = new Coverage(GeoXPLib.getCells(ashape));
     Coverage covb = new Coverage(GeoXPLib.getCells(bshape));
