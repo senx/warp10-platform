@@ -560,4 +560,34 @@ public class WarpDB extends Thread implements DB {
       throw new WarpScriptException("Interrupted while attempting to open WarpDB.", ie);
     }
   }
+  
+  public boolean isJavaDisabled() {
+    return javadisabled;
+  }
+  
+  public boolean isNativeDisabled() {
+    return nativedisabled;
+  }
+  
+  public Options getOptions() {
+    //
+    // Clone the current options
+    //
+    
+    Options opt = new Options();
+    opt.blockRestartInterval(options.blockRestartInterval());
+    opt.blockSize(options.blockSize());
+    opt.cacheSize(options.cacheSize());
+    opt.comparator(options.comparator());
+    opt.compressionType(options.compressionType());
+    opt.createIfMissing(options.createIfMissing());
+    opt.errorIfExists(options.errorIfExists());
+    opt.logger(options.logger());
+    opt.maxOpenFiles(options.maxOpenFiles());
+    opt.paranoidChecks(options.paranoidChecks());
+    opt.verifyChecksums(options.verifyChecksums());
+    opt.writeBufferSize(options.writeBufferSize());
+    
+    return opt;
+  }
 }
