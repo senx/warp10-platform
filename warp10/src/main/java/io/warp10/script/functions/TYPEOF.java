@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
 
 /**
  * Push on the stack the type of the object on top of the stack
@@ -75,6 +76,8 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String TYPE_PFONT = "PFONT";
   public static final String TYPE_PSHAPE = "PSHAPE";
   public static final String TYPE_COUNTER = "COUNTER";
+  public static final String TYPE_MATCHER = "MATCHER";
+  public static final String TYPE_MARK = "MARK";
 
   /**
    * Interface to be used by extensions and plugins to define a new type.
@@ -157,6 +160,10 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
       return TYPE_REALMATRIX;
     } else if (AtomicLong.class.isAssignableFrom(c)) {
       return TYPE_COUNTER;
+    } else if (Matcher.class.isAssignableFrom(c)) {
+      return TYPE_MATCHER;
+    } else if (WarpScriptStack.Mark.class.isAssignableFrom(c)) {
+      return TYPE_MARK;
     } else if (Typeofable.class.isAssignableFrom(c)) {
       try {
         return "X-" + ((Typeofable) c.getDeclaredConstructor().newInstance()).typeof();
