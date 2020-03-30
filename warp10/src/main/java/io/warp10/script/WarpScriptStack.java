@@ -41,6 +41,11 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public interface WarpScriptStack {
   
+  /**
+   * Signals that can be sent to a stack
+   * The higher the ordinal of a signal, the higher its priority
+   *
+   */
   public static enum Signal {
     STOP,
     KILL,

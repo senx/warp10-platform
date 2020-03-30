@@ -1618,14 +1618,19 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   
   @Override
   public void signal(Signal signal) {
-    // Only set the signal if the stack is not yet signaled so a KILL is not
-    // overriden by anything else for example
-    if (this.signaled) {
-      return;
-    }
+    //
+    // Only set the signal is 'signal' is of higher priority than the current
+    // signal
+    //
+    
+    // Only set the signal if the stack is not yet signaled or if 'signal' is
+    // of higher priority than the current signal
+
     synchronized(this) {
-      this.signal = signal;
-      this.signaled = true;
+      if (!this.signaled || this.signal.ordinal() < signal.ordinal()) {
+        this.signal = signal;
+        this.signaled = true;
+      }
     }
   }
   
