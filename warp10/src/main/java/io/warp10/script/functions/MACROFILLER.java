@@ -107,9 +107,6 @@ public class MACROFILLER extends NamedWarpScriptFunction implements WarpScriptSt
       // the current tick of the other GTS and one element per postWindow tick
       //
       
-      int preWindowCount = this.preWindow;
-      int postWindowCount = this.postWindow;
-
       List<Object> ticks = new ArrayList<Object>(this.preWindow);
 
       for (int i = 1; i < args.length; i++) {
