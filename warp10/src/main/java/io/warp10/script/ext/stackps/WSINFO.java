@@ -16,7 +16,9 @@
 
 package io.warp10.script.ext.stackps;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import io.warp10.script.NamedWarpScriptFunction;
@@ -65,19 +67,14 @@ public class WSINFO extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException(getName() + " expects a session id.");
     }
     
-    Map<Object,Object> infos = null;
+    List<Map<Object,Object>> infos = new ArrayList<Map<Object,Object>>();
 
     String session = top.toString();
     
     for (WarpScriptStack stck: WarpScriptStackRegistry.stacks()) {
       if (session.equals(stck.getAttribute(StackPSWarpScriptExtension.ATTRIBUTE_SESSION))) {
-        infos = getInfos(stck);
-        break;
+        infos.add(getInfos(stck));
       }
-    }
-    
-    if (null == infos) {
-      infos = new HashMap<Object,Object>();
     }
     
     stack.push(infos);
