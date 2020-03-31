@@ -19,6 +19,7 @@ package io.warp10.continuum.egress;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.store.Constants;
+import io.warp10.script.ext.stackps.StackPSWarpScriptExtension;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -37,7 +38,9 @@ public class CORSHandler extends AbstractHandler {
     StringBuilder sb = new StringBuilder();
     
     sb.append(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
-
+    sb.append(",");
+    sb.append(StackPSWarpScriptExtension.HEADER_SESSION);
+    
     String corsHeadersProp = WarpConfig.getProperty(Configuration.CORS_HEADERS);
         
     if (null != corsHeadersProp) {

@@ -70,6 +70,7 @@ import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.StackContext;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.WarpScriptStackRegistry;
 import io.warp10.script.WarpScriptStopException;
 
 /**
@@ -430,6 +431,7 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
         out.print(getBanner());
         
         this.stack = new MemoryWarpScriptStack(this.rel.storeClient, this.rel.directoryClient);
+        this.stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[EgressInteractiveHandler " + Thread.currentThread().getName() + "]");
 
         //
         // Store PrintWriter
@@ -549,6 +551,7 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
       } catch (IOException ioe) {
         return;
       } finally {
+        WarpScriptStackRegistry.unregister(stack);
         this.rel.connections.decrementAndGet();
         try {
           if (null != this.socket) {

@@ -16,7 +16,10 @@
 package io.warp10.plugins.udp;
 
 import io.warp10.script.MemoryWarpScriptStack;
+import io.warp10.script.WarpScriptKillException;
+import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStackRegistry;
 import io.warp10.script.WarpScriptStopException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -155,6 +158,7 @@ public class UDPConsumer extends Thread {
     for (int i = 0; i < this.parallelism; i++) {
 
       final MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, new Properties());
+      stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[Warp10UDPPlugin " + socket.getLocalPort() + " #" + i + "]");
       stack.maxLimits();
 
       final LinkedBlockingQueue<List<Object>> queue = this.queues[Math.min(i, this.queues.length - 1)];
@@ -162,38 +166,43 @@ public class UDPConsumer extends Thread {
       executors[i] = new Thread() {
         @Override
         public void run() {
-          while (true) {
+          try {
+            while (true) {
+              try {
+                List<List<Object>> msgs = new ArrayList<List<Object>>();
 
-            try {
-              List<List<Object>> msgs = new ArrayList<List<Object>>();
-
-              if (timeout > 0) {
-                List<Object> msg = queue.poll(timeout, TimeUnit.MILLISECONDS);
-                if (null != msg) {
+                if (timeout > 0) {
+                  List<Object> msg = queue.poll(timeout, TimeUnit.MILLISECONDS);
+                  if (null != msg) {
+                    msgs.add(msg);
+                    queue.drainTo(msgs, maxMessages - 1);
+                  }
+                } else {
+                  List<Object> msg = queue.take();
                   msgs.add(msg);
                   queue.drainTo(msgs, maxMessages - 1);
                 }
-              } else {
-                List<Object> msg = queue.take();
-                msgs.add(msg);
-                queue.drainTo(msgs, maxMessages - 1);
+
+                stack.clear();
+
+                if (0 < msgs.size()) {
+                  stack.push(msgs);
+                } else {
+                  stack.push(null);
+                }
+
+                stack.exec(macro);
+              } catch (InterruptedException e) {
+                return;
+              } catch (WarpScriptKillException wske) {
+                return;
+              } catch (WarpScriptStopException wsse) {
+              } catch (Exception e) {
+                e.printStackTrace();
               }
-
-              stack.clear();
-
-              if (0 < msgs.size()) {
-                stack.push(msgs);
-              } else {
-                stack.push(null);
-              }
-
-              stack.exec(macro);
-            } catch (InterruptedException e) {
-              return;
-            } catch (WarpScriptStopException wsse) {
-            } catch (Exception e) {
-              e.printStackTrace();
-            }
+            }            
+          } finally {
+            WarpScriptStackRegistry.unregister(stack);
           }
         }
       };

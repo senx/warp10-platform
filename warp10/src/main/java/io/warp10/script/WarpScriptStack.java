@@ -41,6 +41,16 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public interface WarpScriptStack {
   
+  /**
+   * Signals that can be sent to a stack
+   * The higher the ordinal of a signal, the higher its priority
+   *
+   */
+  public static enum Signal {
+    STOP,
+    KILL,
+  }
+  
   public static final int DEFAULT_MAX_RECURSION_LEVEL = 16;
   public static final long DEFAULT_FETCH_LIMIT = 100000L;
   public static final long DEFAULT_GTS_LIMIT = 100000L;
@@ -271,6 +281,16 @@ public interface WarpScriptStack {
    * Last error encountered in a TRY block
    */
   public static final String ATTRIBUTE_LAST_ERROR = "last.error";
+  
+  /**
+   * Creation timestamp for the stack
+   */
+  public static final String ATTRIBUTE_CREATION_TIME = "creation.time";
+  
+  /**
+   * Name given to the stack
+   */  
+  public static final String ATTRIBUTE_NAME = "stack.name";
   
   /**
    * Index of RETURN_DEPTH counter
@@ -729,6 +749,16 @@ public interface WarpScriptStack {
   public String getUUID();
   
   /**
+   * Signal the stack, i.e. stop the currently executing code after the current statement and prevent further executions.
+   */
+  public void signal(Signal signal);
+  
+  /**
+   * Throw the exception associated with the current signal sent to the stack
+   */
+  public void handleSignal() throws WarpScriptATCException;
+  
+  /**
    * Set a stack attribute.
    * 
    * @param key Key under which the attribute should be stored.
@@ -785,5 +815,7 @@ public interface WarpScriptStack {
   /**
    * Restore the stack context from that on top of the stack
    */
-  public void restore() throws WarpScriptException;  
+  public void restore() throws WarpScriptException;
+  
+  
 }
