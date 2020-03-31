@@ -39,22 +39,30 @@ public class WSNAME extends NamedWarpScriptFunction implements WarpScriptStackFu
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
 
-    if (!(top instanceof String)) {
+    if (null != top && !(top instanceof String)) {
       throw new WarpScriptException(getName() + " expects a STRING.");
     }
     
-    String name = top.toString();
+    String name = null == top ? null : top.toString();
     
-    if (name.length() > MAX_SIZE) {
+    if (null != name && name.length() > MAX_SIZE) {
       throw new WarpScriptException(getName() + " expects a name less than " + MAX_SIZE + " characters.");
     }
     
     if (session) {
-      if (null == stack.getAttribute(StackPSWarpScriptExtension.ATTRIBUTE_SESSION)) {
-        stack.setAttribute(StackPSWarpScriptExtension.ATTRIBUTE_SESSION, name);      
+      String session = (String) stack.getAttribute(StackPSWarpScriptExtension.ATTRIBUTE_SESSION);
+      if (null == session && null != name) {
+        session = name;
+        stack.setAttribute(StackPSWarpScriptExtension.ATTRIBUTE_SESSION, name);
       }
+      stack.push(session);
     } else {
-      stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, name);
+      String cname = (String) stack.getAttribute(WarpScriptStack.ATTRIBUTE_NAME);
+      if (null != name) {
+        cname = name;
+        stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, name);
+      }
+      stack.push(cname);
     }
     
     return stack;
