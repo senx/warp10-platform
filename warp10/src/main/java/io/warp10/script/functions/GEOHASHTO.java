@@ -26,6 +26,8 @@ import java.util.List;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.geo.GeoHashHelper;
+import com.geoxp.oss.jarjar.org.apache.commons.codec.binary.Hex;
+import com.google.common.primitives.Longs;
 
 /**
  * Convert a GeoHash to lat/lon
@@ -58,10 +60,10 @@ public class GEOHASHTO extends NamedWarpScriptFunction implements WarpScriptStac
       
       stack.push(GeoXPLib.fromCells(geocells, false));
     } else {      
-      boolean toHHCode = false;
+      Boolean toHHCodeString = null;
       
       if (top instanceof Boolean) {
-        toHHCode = Boolean.TRUE.equals(top);
+        toHHCodeString = Boolean.TRUE.equals(top);
         top = stack.pop();
       }
       
@@ -73,8 +75,12 @@ public class GEOHASHTO extends NamedWarpScriptFunction implements WarpScriptStac
       
       long geoxppoint = GeoHashHelper.toHHCode(geohash);
       
-      if (toHHCode) {
-        stack.push(geoxppoint);
+      if (null != toHHCodeString) {
+        if (Boolean.TRUE.equals(toHHCodeString)) {
+          stack.push(Hex.encodeHexString(Longs.toByteArray(geoxppoint)));
+        } else {
+          stack.push(geoxppoint);
+        }
       } else {
         double[] latlon = GeoXPLib.fromGeoXPPoint(geoxppoint);
       

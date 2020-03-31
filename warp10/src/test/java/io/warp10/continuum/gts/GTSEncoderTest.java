@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.gts;
 
+import io.warp10.WarpConfig;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -35,10 +36,19 @@ import org.bouncycastle.crypto.paddings.PKCS7Padding;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.geoxp.GeoXPLib;
 public class GTSEncoderTest {
+  
+  @BeforeClass
+  public static void beforeClass() throws Exception {
+    StringBuilder props = new StringBuilder();
+
+    props.append("warp.timeunits=us");
+    WarpConfig.safeSetProperties(new StringReader(props.toString()));
+  }
   
   @Test
   public void testAddValue_encrypted() throws Exception {

@@ -27,8 +27,6 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.commons.lang3.JavaVersion;
-import org.apache.commons.lang3.SystemUtils;
 import org.bouncycastle.crypto.digests.MD5Digest;
 import org.bouncycastle.crypto.digests.SHA1Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
@@ -1673,13 +1671,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new REPLACE(REPLACEALL, true));
     addNamedWarpScriptFunction(new REOPTALT(REOPTALT));
     
-    if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-      addNamedWarpScriptFunction(new TEMPLATE(TEMPLATE));
-      addNamedWarpScriptFunction(new TOTIMESTAMP(TOTIMESTAMP));
-    } else {
-      addNamedWarpScriptFunction(new FAIL(TEMPLATE, "Requires JAVA 1.8+"));
-      addNamedWarpScriptFunction(new FAIL(TOTIMESTAMP, "Requires JAVA 1.8+"));
-    }
+    addNamedWarpScriptFunction(new TEMPLATE(TEMPLATE));
+    addNamedWarpScriptFunction(new TOTIMESTAMP(TOTIMESTAMP));
 
     addNamedWarpScriptFunction(new STRINGFORMAT(STRINGFORMAT));
 

@@ -19,12 +19,9 @@ package io.warp10.script.functions;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.continuum.store.Constants;
 import io.warp10.script.ElementOrListStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import org.apache.commons.lang3.JavaVersion;
-import org.apache.commons.lang3.SystemUtils;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
@@ -49,11 +46,7 @@ public class TIMECLIP extends ElementOrListStackFunction {
 
     if (top instanceof String) {
       iso8601 = true;
-      if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-        start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(top.toString());
-      } else {
-        start = fmt.parseDateTime(top.toString()).getMillis() * Constants.TIME_UNITS_PER_MS;
-      }
+      start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(top.toString());
     } else if (!(top instanceof Long)) {
       throw new WarpScriptException(getName() + " expects either an ISO8601 timestamp as the origin timestamp or a duration.");
     } else {
@@ -65,11 +58,7 @@ public class TIMECLIP extends ElementOrListStackFunction {
     top = stack.pop();
 
     if (top instanceof String) {
-      if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-        end = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(top.toString());
-      } else {
-        end = fmt.parseDateTime(top.toString()).getMillis() * Constants.TIME_UNITS_PER_MS;
-      }
+      end = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(top.toString());
     } else if (!(top instanceof Long)) {
       throw new WarpScriptException(getName() + " expects either an ISO8601 timestamp or a delta since Unix Epoch as 'now' parameter.");
     } else {
