@@ -572,9 +572,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       //
 
       for (int st = 0; st < statements.length; st++) {
-        if (this.signaled) {
-          throw new WarpScriptException("Execution aborted.");
-        }
+        handleSignal();
 
         String stmt = statements[st];
 
@@ -953,12 +951,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       progress();
 
       for (i = 0; i < n; i++) {        
-
-        // We check the boolean outside of a synchronized block for efficiency
-        // even though we might miss a change
-        if (this.signaled) {
-          handleSignal();
-        }
+        handleSignal();
         
         Object stmt = stmts.get(i);
         

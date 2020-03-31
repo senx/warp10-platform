@@ -46,9 +46,6 @@ public class WarpScriptStackRegistry {
   }
   
   public static boolean unregister(String uuid) {
-    if (!enabled) {
-      return false;
-    }
     return null != stacks.remove(uuid);
   }
   
