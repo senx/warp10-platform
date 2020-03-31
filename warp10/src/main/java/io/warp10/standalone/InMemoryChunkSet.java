@@ -112,7 +112,7 @@ public class InMemoryChunkSet {
       
       // Reset the encoder      
       chunks[0] = new GTSEncoder(decoder.getBaseTimestamp());
-      chunks[0].addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+      chunks[0].addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
       return true;
     }
     
@@ -335,7 +335,7 @@ public class InMemoryChunkSet {
 
         while (chunkDecoder.next()) {
           if (chunkDecoder.getTimestamp() > now) {
-            boundary.add(new Object[] { seq++, chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue() });
+            boundary.add(new Object[] { seq++, chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue() });
             if (boundary.size() > postBoundary) {
               boundary.remove();
             }
@@ -412,7 +412,7 @@ public class InMemoryChunkSet {
         
         if (ts > now || ts < firstTimestamp) {
           if (null != boundary) {
-            boundary.add(new Object[] { seq++, chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue() });
+            boundary.add(new Object[] { seq++, chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue() });
             if (boundary.size() > preBoundary) {
               boundary.remove();
             }
@@ -536,7 +536,7 @@ public class InMemoryChunkSet {
 
         while (chunkDecoder.next()) {
           if (chunkDecoder.getTimestamp() > now) {
-            boundary.add(new Object[] { seq++, chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue() });
+            boundary.add(new Object[] { seq++, chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue() });
             if (boundary.size() > postBoundary) {
               boundary.remove();
             }
