@@ -172,6 +172,7 @@ public class META extends NamedWarpScriptFunction implements WarpScriptStackFunc
         // Always expose attributes
         GTSHelper.labelsToString(sb, attributes, true);
         pw.println(sb.toString());
+        stack.handleSignal();
       }
       
       pw.close();

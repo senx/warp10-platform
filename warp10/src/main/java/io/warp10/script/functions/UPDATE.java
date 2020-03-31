@@ -209,6 +209,7 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
     
       for (GTSEncoder encoder: encoders) {
         GTSHelper.dump(encoder, pw);
+        stack.handleSignal();
       }
       
       pw.close();
