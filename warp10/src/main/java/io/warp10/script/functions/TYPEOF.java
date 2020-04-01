@@ -38,6 +38,7 @@ import processing.core.PShape;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.security.Key;
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +51,12 @@ import java.util.regex.Matcher;
  * Push on the stack the type of the object on top of the stack
  */
 public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  public static interface TypeResolver {
+    public String typeof(Class c);
+  }
+
+  private static List<TypeResolver> resolvers = null;
 
   public static final String TYPE_NULL = "NULL";
   public static final String TYPE_STRING = "STRING";
@@ -175,6 +182,14 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
         return defaultType(c);
       }
     } else {
+      if (null != resolvers) {
+        for (TypeResolver resolver: resolvers) {
+          String type = resolver.typeof(c);
+          if (null != type) {
+            return type;
+          }
+        }
+      }
       return defaultType(c);
     }
   }
@@ -186,6 +201,13 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
     } else {
       return "X-" + canonicalName;
     }
+  }
+
+  public static synchronized void addResolver(TypeResolver resolver) {
+    if (null == resolvers) {
+      resolvers = new ArrayList<TypeResolver>();
+    }
+    resolvers.add(resolver);
   }
 
 }

@@ -112,7 +112,7 @@ public class InMemoryChunkSet {
       
       // Reset the encoder      
       chunks[0] = new GTSEncoder(decoder.getBaseTimestamp());
-      chunks[0].addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getValue());
+      chunks[0].addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
       return true;
     }
     
@@ -335,7 +335,7 @@ public class InMemoryChunkSet {
 
         while (chunkDecoder.next()) {
           if (chunkDecoder.getTimestamp() > now) {
-            boundary.add(new Object[] { seq++, chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue() });
+            boundary.add(new Object[] { seq++, chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue() });
             if (boundary.size() > postBoundary) {
               boundary.remove();
             }
@@ -390,7 +390,7 @@ public class InMemoryChunkSet {
         }
         
         // Extract a decoder to scan the chunk
-        if (null != this.chunks[chunk]) {
+        if (null != this.chunks[chunk] && !(boundaryOnly && null == boundary)) {
           chunkDecoder = this.chunks[chunk].getUnsafeDecoder(false);
         }
       }
@@ -399,15 +399,20 @@ public class InMemoryChunkSet {
         continue;
       }
       
-      long nvalues = count >= 0 ? count : Long.MAX_VALUE;
+      // Chunk does not intersect the main range, so if we are not fetching a preboundary, ignore it
+      if (boundaryOnly && null == boundary) {
+        continue;
+      }
       
+      long nvalues = count >= 0 ? count : Long.MAX_VALUE;
+
       // Merge the data from chunkDecoder which is in the requested range in 'encoder'
       while(chunkDecoder.next()) {
         long ts = chunkDecoder.getTimestamp();
         
         if (ts > now || ts < firstTimestamp) {
           if (null != boundary) {
-            boundary.add(new Object[] { seq++, chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue() });
+            boundary.add(new Object[] { seq++, chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue() });
             if (boundary.size() > preBoundary) {
               boundary.remove();
             }
@@ -439,7 +444,6 @@ public class InMemoryChunkSet {
           break;
         }
       }
-      
       // If the pre boundary has enough datapoints, add them to the encoder and nullify boundary
       if (null != boundary && preBoundary == boundary.size()) {
         for (Object[] elt: boundary) {
@@ -532,7 +536,7 @@ public class InMemoryChunkSet {
 
         while (chunkDecoder.next()) {
           if (chunkDecoder.getTimestamp() > now) {
-            boundary.add(new Object[] { seq++, chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getValue() });
+            boundary.add(new Object[] { seq++, chunkDecoder.getTimestamp(), chunkDecoder.getLocation(), chunkDecoder.getElevation(), chunkDecoder.getBinaryValue() });
             if (boundary.size() > postBoundary) {
               boundary.remove();
             }

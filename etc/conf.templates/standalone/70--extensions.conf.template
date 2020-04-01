@@ -60,6 +60,9 @@
 #warpscript.extension.urlfetch = io.warp10.script.ext.urlfetch.UrlFetchWarpScriptExtension
 // DEVAL
 #warpscript.extension.sharding = io.warp10.script.ext.sharding.ShardingWarpScriptExtension
+// WSPS WSINFO WSKILL STACKPSSECRET
+#warpscript.extension.stackps = io.warp10.script.ext.stackps.StackPSWarpScriptExtension
+#stackps.secret = ....
 //
 // Specific namespace under which to load an extension. The specified namespace will be used as a prefix for all functions of the extension.
 //

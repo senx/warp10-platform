@@ -167,6 +167,9 @@ public class WarpScriptMacroLibrary {
   }
   
   public static Macro loadMacro(Object root, InputStream in, String name) throws WarpScriptException {
+    
+    MemoryWarpScriptStack stack = null;
+    
     try {
       byte[] buf = new byte[8192];
       StringBuilder sb = new StringBuilder();
@@ -194,7 +197,9 @@ public class WarpScriptMacroLibrary {
       
       sb.append("\n");
       
-      MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, new Properties());
+      stack = new MemoryWarpScriptStack(null, null, new Properties());
+      stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[WarpScriptMacroLibrary " + name + "]");
+
       stack.maxLimits();
       stack.setAttribute(WarpScriptStack.ATTRIBUTE_MACRO_NAME, name);
 
@@ -262,6 +267,7 @@ public class WarpScriptMacroLibrary {
     } catch (IOException ioe) {
       throw new WarpScriptException(ioe);
     } finally {
+      WarpScriptStackRegistry.unregister(stack);
       try { in.close(); } catch (IOException ioe) {}
     }
   }

@@ -209,6 +209,8 @@ public class WarpFleetMacroRepository {
         
         InputStream in = null;
         
+        MemoryWarpScriptStack stack = null;
+        
         try {
           URL url = new URL(macroURL + ".mc2");
 
@@ -241,7 +243,9 @@ public class WarpFleetMacroRepository {
           sb.append(new String(data, StandardCharsets.UTF_8));
           sb.append("\n");
           
-          MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
+          stack = new MemoryWarpScriptStack(null, null);
+          stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[WarpFleetMacroRepository " + url.toString() + "]");
+
           stack.maxLimits();
           stack.setAttribute(WarpScriptStack.ATTRIBUTE_MACRO_NAME, name);
 
@@ -311,6 +315,7 @@ public class WarpFleetMacroRepository {
             macros.put(macroURL, macro);
           }
         } finally {
+          WarpScriptStackRegistry.unregister(stack);
           if (null != in) {
             try { in.close(); } catch (Exception e) {}
           }

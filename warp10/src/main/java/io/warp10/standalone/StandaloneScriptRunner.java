@@ -48,6 +48,7 @@ import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.ScriptRunner;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackRegistry;
 import io.warp10.script.WarpScriptStack.StackContext;
 import io.warp10.sensision.Sensision;
 
@@ -116,7 +117,7 @@ public class StandaloneScriptRunner extends ScriptRunner {
           long nano = System.nanoTime();
           
           WarpScriptStack stack = new MemoryWarpScriptStack(storeClient, directoryClient, props);
-
+          stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[StandloneScriptRunner " + script + "]");
           
           ByteArrayOutputStream baos = new ByteArrayOutputStream();
           
@@ -226,6 +227,7 @@ public class StandaloneScriptRunner extends ScriptRunner {
           } catch (Exception e) {                
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, 1);
           } finally {
+            WarpScriptStackRegistry.unregister(stack);
             currentThread().setName(name);
             nextrun.put(script, nowts + periodicity);
             nano = System.nanoTime() - nano;
