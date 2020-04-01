@@ -31,14 +31,14 @@ public class WarpScriptStackRegistry {
   
   private static boolean enabled = false;
   
-  public static void register(WarpScriptStack stack) {
+  public synchronized static void register(WarpScriptStack stack) {
     if (!enabled || null == stack) {
       return;
     }
     stacks.put(stack.getUUID(), new WeakReference<WarpScriptStack>(stack));
   }
   
-  public static boolean unregister(WarpScriptStack stack) {
+  public synchronized static boolean unregister(WarpScriptStack stack) {
     if (!enabled || null == stack) {
       return false;
     }
@@ -103,7 +103,7 @@ public class WarpScriptStackRegistry {
   }
   
   public static List<WarpScriptStack> stacks() {
-    List<WarpScriptStack> stacks = new ArrayList<WarpScriptStack>();
+    List<WarpScriptStack> stacks = new ArrayList<WarpScriptStack>(WarpScriptStackRegistry.stacks.size());
     
     for (WeakReference<WarpScriptStack> ref: WarpScriptStackRegistry.stacks.values()) {
       WarpScriptStack stack = ref.get();
