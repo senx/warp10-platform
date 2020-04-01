@@ -37,6 +37,7 @@ import processing.core.PShape;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.security.Key;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +79,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String TYPE_COUNTER = "COUNTER";
   public static final String TYPE_MATCHER = "MATCHER";
   public static final String TYPE_MARK = "MARK";
+  public static final String TYPE_KEY = "KEY";
 
   /**
    * Interface to be used by extensions and plugins to define a new type.
@@ -164,6 +166,8 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
       return TYPE_MATCHER;
     } else if (WarpScriptStack.Mark.class.isAssignableFrom(c)) {
       return TYPE_MARK;
+    } else if (Key.class.isAssignableFrom(c)) {
+      return TYPE_KEY;
     } else if (Typeofable.class.isAssignableFrom(c)) {
       try {
         return "X-" + ((Typeofable) c.getDeclaredConstructor().newInstance()).typeof();
