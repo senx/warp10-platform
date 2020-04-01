@@ -16,21 +16,7 @@
 
 package io.warp10.script.functions;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.commons.math3.linear.ArrayRealVector;
-import org.apache.commons.math3.linear.RealMatrix;
-
 import com.geoxp.GeoXPLib;
-
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -42,10 +28,24 @@ import io.warp10.script.WarpScriptNAryFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
+import org.apache.commons.math3.linear.ArrayRealVector;
+import org.apache.commons.math3.linear.RealMatrix;
 import processing.core.PFont;
 import processing.core.PGraphics;
 import processing.core.PImage;
 import processing.core.PShape;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.security.Key;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Vector;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
 
 /**
  * Push on the stack the type of the object on top of the stack
@@ -55,9 +55,9 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static interface TypeResolver {
     public String typeof(Class c);
   }
-  
+
   private static List<TypeResolver> resolvers = null;
-  
+
   public static final String TYPE_NULL = "NULL";
   public static final String TYPE_STRING = "STRING";
   public static final String TYPE_LONG = "LONG";
@@ -84,6 +84,9 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String TYPE_PFONT = "PFONT";
   public static final String TYPE_PSHAPE = "PSHAPE";
   public static final String TYPE_COUNTER = "COUNTER";
+  public static final String TYPE_MATCHER = "MATCHER";
+  public static final String TYPE_MARK = "MARK";
+  public static final String TYPE_KEY = "KEY";
 
   /**
    * Interface to be used by extensions and plugins to define a new type.
@@ -166,12 +169,18 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
       return TYPE_REALMATRIX;
     } else if (AtomicLong.class.isAssignableFrom(c)) {
       return TYPE_COUNTER;
+    } else if (Matcher.class.isAssignableFrom(c)) {
+      return TYPE_MATCHER;
+    } else if (WarpScriptStack.Mark.class.isAssignableFrom(c)) {
+      return TYPE_MARK;
+    } else if (Key.class.isAssignableFrom(c)) {
+      return TYPE_KEY;
     } else if (Typeofable.class.isAssignableFrom(c)) {
       try {
         return "X-" + ((Typeofable) c.getDeclaredConstructor().newInstance()).typeof();
       } catch (Exception e) {
         return defaultType(c);
-      }    
+      }
     } else {
       if (null != resolvers) {
         for (TypeResolver resolver: resolvers) {
@@ -193,7 +202,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
       return "X-" + canonicalName;
     }
   }
-  
+
   public static synchronized void addResolver(TypeResolver resolver) {
     if (null == resolvers) {
       resolvers = new ArrayList<TypeResolver>();
