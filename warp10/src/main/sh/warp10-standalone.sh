@@ -30,6 +30,8 @@ if [[ -e /lib/lsb/init-functions ]]; then
   . /lib/lsb/init-functions
 fi
 
+# Extract JAVA_OPTS before we switch to strict mode
+JAVA_OPTS=${JAVA_OPTS:-}
 set -euo pipefail
 
 #JAVA_HOME=/opt/java8
