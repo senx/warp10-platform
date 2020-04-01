@@ -165,22 +165,24 @@ public class DIV extends NamedWarpScriptFunction implements WarpScriptStackFunct
       Number op = op1gts ? (Number) op2 : (Number) op1;
 
       if (op instanceof Double || gts.getType() == TYPE.DOUBLE) {
+        double opDouble = op.doubleValue();
         for (int i = 0; i < n; i++) {
           double value;
           if (op1gts) {
-            value = ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue() / op.doubleValue();
+            value = ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue() / opDouble;
           } else {
-            value = op.doubleValue() / ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue();
+            value = opDouble / ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue();
           }
           GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value, false);
         }
       } else {
+        long opLong = op.longValue();
         for (int i = 0; i < n; i++) {
           long value;
           if (op1gts) {
-            value = ((Number) GTSHelper.valueAtIndex(gts, i)).longValue() / op.longValue();
+            value = ((Number) GTSHelper.valueAtIndex(gts, i)).longValue() / opLong;
           } else {
-            value = op.longValue() / ((Number) GTSHelper.valueAtIndex(gts, i)).longValue();
+            value = opLong / ((Number) GTSHelper.valueAtIndex(gts, i)).longValue();
           }
           GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value, false);
         }

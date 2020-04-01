@@ -174,13 +174,15 @@ public class MUL extends NamedWarpScriptFunction implements WarpScriptStackFunct
       Number op = op1gts ? (Number) op2 : (Number) op1;
 
       if (op instanceof Double || gts.getType() == TYPE.DOUBLE) {
+        double opDouble = op.doubleValue();
         for (int i = 0; i < n; i++) {
-          double value = ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue() * op.doubleValue();
+          double value = ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue() * opDouble;
           GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value, false);
         }
       } else {
+        long opLong = op.longValue();
         for (int i = 0; i < n; i++) {
-          long value = ((Number) GTSHelper.valueAtIndex(gts, i)).longValue() * op.longValue();
+          long value = ((Number) GTSHelper.valueAtIndex(gts, i)).longValue() * opLong;
           GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value, false);
         }
       }
