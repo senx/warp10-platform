@@ -46,8 +46,8 @@ public class TokenWarpScriptExtension extends WarpScriptExtension {
 
   static {
     TOKEN_SECRET = WarpConfig.getProperty(CONF_TOKEN_SECRET);
+    KeyStore ks = Warp.getKeyStore();
     if (null == TOKEN_SECRET) { // if no configuration key
-      KeyStore ks = Warp.getKeyStore();
       if (null != ks) {
         // if OSS wrapped secret exists
         byte[] ossHandledSecret = ks.getKey(TokenWarpScriptExtension.KEY_TOKEN_SECRET);
@@ -61,7 +61,7 @@ public class TokenWarpScriptExtension extends WarpScriptExtension {
         keystore = null;
       }
     } else {
-      keystore = null;
+      keystore = ks;
     }
   }
 
