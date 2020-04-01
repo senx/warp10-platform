@@ -103,7 +103,7 @@ public class WarpScriptStackRegistry {
   }
   
   public static List<WarpScriptStack> stacks() {
-    List<WarpScriptStack> stacks = new ArrayList<WarpScriptStack>(WarpScriptStackRegistry.stacks.size());
+    List<WarpScriptStack> stacks = new ArrayList<WarpScriptStack>();
     
     for (WeakReference<WarpScriptStack> ref: WarpScriptStackRegistry.stacks.values()) {
       WarpScriptStack stack = ref.get();
