@@ -18,7 +18,10 @@ package io.warp10.plugins.http;
 import io.warp10.WarpConfig;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStackRegistry;
+
 import org.apache.commons.io.IOUtils;
 import org.eclipse.jetty.http.MimeTypes;
 import org.eclipse.jetty.server.Request;
@@ -68,96 +71,102 @@ public class WarpScriptHandler extends AbstractHandler {
 
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(HTTPWarp10Plugin.getExposedStoreClient(), HTTPWarp10Plugin.getExposedDirectoryClient(), this.properties);
 
-    //
-    // Push the details onto the stack
-    //
-
-    Map<String, Object> params = new HashMap<String, Object>();
-
-    params.put("method", request.getMethod());
-    params.put("target", target);
-    params.put("pathinfo", target.substring(prefix.length()));
-
-    Enumeration<String> hdrs = request.getHeaderNames();
-    Map<String, List<String>> headers = new HashMap<String, List<String>>();
-    while (hdrs.hasMoreElements()) {
-      String hdr = hdrs.nextElement();
-      Enumeration<String> hvalues = request.getHeaders(hdr);
-      List<String> hval = new ArrayList<String>();
-      while (hvalues.hasMoreElements()) {
-        hval.add(hvalues.nextElement());
-      }
-      if (plugin.isLcHeaders()) {
-        headers.put(hdr.toLowerCase(), hval);
-      } else {
-        headers.put(hdr, hval);
-      }
-    }
-    params.put("headers", headers);
-
-    // Get the payload if the content-type is not application/x-www-form-urlencoded or we do not want to parse the payload
-    if (!MimeTypes.Type.FORM_ENCODED.is(request.getContentType()) || !plugin.isParsePayload(prefix)) {
-      byte[] payload = IOUtils.toByteArray(request.getInputStream());
-      if (0 < payload.length) {
-        params.put("payload", payload);
-      }
-    }
-
-    Map<String, List<String>> httpparams = new HashMap<String, List<String>>();
-    Map<String, String[]> pmap = request.getParameterMap();
-    for (Entry<String, String[]> param: pmap.entrySet()) {
-      httpparams.put(param.getKey(), Arrays.asList(param.getValue()));
-    }
-    params.put("params", httpparams);
-
     try {
-      stack.push(params);
-      stack.exec(macro);
+      stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[HTTPWarp10Plugin " + request.getRequestURL() + "]");
 
-      Object top = stack.pop();
+      //
+      // Push the details onto the stack
+      //
 
-      if (top instanceof Map) {
-        Map<String, Object> result = (Map<String, Object>) top;
-        if (result.containsKey("status")) {
-          response.setStatus(((Number) result.get("status")).intValue());
+      Map<String, Object> params = new HashMap<String, Object>();
+
+      params.put("method", request.getMethod());
+      params.put("target", target);
+      params.put("pathinfo", target.substring(prefix.length()));
+
+      Enumeration<String> hdrs = request.getHeaderNames();
+      Map<String, List<String>> headers = new HashMap<String, List<String>>();
+      while (hdrs.hasMoreElements()) {
+        String hdr = hdrs.nextElement();
+        Enumeration<String> hvalues = request.getHeaders(hdr);
+        List<String> hval = new ArrayList<String>();
+        while (hvalues.hasMoreElements()) {
+          hval.add(hvalues.nextElement());
         }
+        if (plugin.isLcHeaders()) {
+          headers.put(hdr.toLowerCase(), hval);
+        } else {
+          headers.put(hdr, hval);
+        }
+      }
+      params.put("headers", headers);
 
-        if (result.containsKey("headers")) {
-          Map<String, Object> respheaders = (Map<String, Object>) result.get("headers");
-          for (Entry<String, Object> hdr: respheaders.entrySet()) {
-            if (hdr.getValue() instanceof List) {
-              for (Object o: (List) hdr.getValue()) {
-                response.addHeader(hdr.getKey(), o.toString());
+      // Get the payload if the content-type is not application/x-www-form-urlencoded or we do not want to parse the payload
+      if (!MimeTypes.Type.FORM_ENCODED.is(request.getContentType()) || !plugin.isParsePayload(prefix)) {
+        byte[] payload = IOUtils.toByteArray(request.getInputStream());
+        if (0 < payload.length) {
+          params.put("payload", payload);
+        }
+      }
+
+      Map<String, List<String>> httpparams = new HashMap<String, List<String>>();
+      Map<String, String[]> pmap = request.getParameterMap();
+      for (Entry<String, String[]> param: pmap.entrySet()) {
+        httpparams.put(param.getKey(), Arrays.asList(param.getValue()));
+      }
+      params.put("params", httpparams);
+
+      try {
+        stack.push(params);
+        stack.exec(macro);
+
+        Object top = stack.pop();
+
+        if (top instanceof Map) {
+          Map<String, Object> result = (Map<String, Object>) top;
+          if (result.containsKey("status")) {
+            response.setStatus(((Number) result.get("status")).intValue());
+          }
+
+          if (result.containsKey("headers")) {
+            Map<String, Object> respheaders = (Map<String, Object>) result.get("headers");
+            for (Entry<String, Object> hdr: respheaders.entrySet()) {
+              if (hdr.getValue() instanceof List) {
+                for (Object o: (List) hdr.getValue()) {
+                  response.addHeader(hdr.getKey(), o.toString());
+                }
+              } else {
+                response.setHeader(hdr.getKey(), hdr.getValue().toString());
               }
-            } else {
-              response.setHeader(hdr.getKey(), hdr.getValue().toString());
             }
           }
-        }
 
-        if (result.containsKey("body")) {
-          Object body = result.get("body");
-          if (body instanceof byte[]) {
+          if (result.containsKey("body")) {
+            Object body = result.get("body");
+            if (body instanceof byte[]) {
+              OutputStream out = response.getOutputStream();
+              out.write((byte[]) body);
+            } else {
+              PrintWriter writer = response.getWriter();
+              writer.print(body.toString());
+            }
+          }
+        } else {
+          if (top instanceof byte[]) {
+            response.setContentType("application/octet-stream");
             OutputStream out = response.getOutputStream();
-            out.write((byte[]) body);
+            out.write((byte[]) top);
           } else {
+            response.setContentType("text/plain");
             PrintWriter writer = response.getWriter();
-            writer.print(body.toString());
+            writer.println(String.valueOf(top));
           }
         }
-      } else {
-        if (top instanceof byte[]) {
-          response.setContentType("application/octet-stream");
-          OutputStream out = response.getOutputStream();
-          out.write((byte[]) top);
-        } else {
-          response.setContentType("text/plain");
-          PrintWriter writer = response.getWriter();
-          writer.println(String.valueOf(top));
-        }
-      }
-    } catch (WarpScriptException wse) {
-      throw new IOException(wse);
-    }
+      } catch (WarpScriptException wse) {
+        throw new IOException(wse);
+      }      
+    } finally {
+      WarpScriptStackRegistry.unregister(stack);
+    }    
   }
 }

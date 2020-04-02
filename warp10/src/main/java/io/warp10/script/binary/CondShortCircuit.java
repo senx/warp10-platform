@@ -97,15 +97,22 @@ public abstract class CondShortCircuit extends NamedWarpScriptFunction implement
           GeoTimeSerie result = new GeoTimeSerie(Math.max(GTSHelper.nvalues(gts1), GTSHelper.nvalues(gts2)));
           result.setType(GeoTimeSerie.TYPE.BOOLEAN);
           GTSOpsHelper.applyBinaryOp(result, gts1, gts2, this.op);
+          // If result is empty, set type and sizehint to default.
+          if (0 == result.size()) {
+            result = result.cloneEmpty();
+          }
           stack.push(result);
           return stack;
-        } else if ((GeoTimeSerie.TYPE.UNDEFINED == gts1.getType() && GeoTimeSerie.TYPE.BOOLEAN == gts2.getType())
-                || (GeoTimeSerie.TYPE.UNDEFINED == gts2.getType() && GeoTimeSerie.TYPE.BOOLEAN == gts1.getType())) {
+        } else if ((GeoTimeSerie.TYPE.UNDEFINED == gts1.getType() || GeoTimeSerie.TYPE.BOOLEAN == gts1.getType())
+                && (GeoTimeSerie.TYPE.UNDEFINED == gts2.getType() || GeoTimeSerie.TYPE.BOOLEAN == gts2.getType())) {
           // gts1 or gts2 empty, return an empty gts
-          stack.push(new GeoTimeSerie());
+          GeoTimeSerie result = new GeoTimeSerie();
+          // Make sure the bucketization logic is still applied to the result, even if empty.
+          GTSOpsHelper.handleBucketization(result, gts1, gts2);
+          stack.push(result);
           return stack;
         } else {
-          throw new WarpScriptException(getName() + " can only operate on long values or long GTS.");
+          throw new WarpScriptException(getName() + " can only operate on boolean values or boolean GTS.");
         }
       } else {
         throw new WarpScriptException(exceptionMessage);

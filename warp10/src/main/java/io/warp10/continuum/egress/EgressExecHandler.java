@@ -16,27 +16,6 @@
 
 package io.warp10.continuum.egress;
 
-import io.warp10.ThrowableUtils;
-import io.warp10.continuum.BootstrapManager;
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.LogUtil;
-import io.warp10.continuum.TimeSource;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.DirectoryClient;
-import io.warp10.continuum.store.StoreClient;
-import io.warp10.continuum.thrift.data.LoggingEvent;
-import io.warp10.crypto.KeyStore;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptLib;
-import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStopException;
-import io.warp10.script.functions.AUTHENTICATE;
-import io.warp10.script.MemoryWarpScriptStack;
-import io.warp10.script.StackUtils;
-import io.warp10.script.WarpScriptStack.StackContext;
-import io.warp10.sensision.Sensision;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -49,10 +28,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.zip.GZIPInputStream;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
+import java.util.zip.GZIPInputStream;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -62,6 +41,29 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.warp10.ThrowableUtils;
+import io.warp10.continuum.BootstrapManager;
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.LogUtil;
+import io.warp10.continuum.TimeSource;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.DirectoryClient;
+import io.warp10.continuum.store.StoreClient;
+import io.warp10.continuum.thrift.data.LoggingEvent;
+import io.warp10.crypto.KeyStore;
+import io.warp10.script.MemoryWarpScriptStack;
+import io.warp10.script.StackUtils;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptLib;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.StackContext;
+import io.warp10.script.WarpScriptStackRegistry;
+import io.warp10.script.WarpScriptStopException;
+import io.warp10.script.ext.stackps.StackPSWarpScriptExtension;
+import io.warp10.script.functions.AUTHENTICATE;
+import io.warp10.sensision.Sensision;
 
 public class EgressExecHandler extends AbstractHandler {
 
@@ -138,7 +140,12 @@ public class EgressExecHandler extends AbstractHandler {
     //
     
     WarpScriptStack stack = new MemoryWarpScriptStack(this.storeClient, this.directoryClient);
-
+    stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[EgressExecHandler " + Thread.currentThread().getName() + "]");
+    
+    if (null != req.getHeader(StackPSWarpScriptExtension.HEADER_SESSION)) {
+      stack.setAttribute(StackPSWarpScriptExtension.ATTRIBUTE_SESSION, req.getHeader(StackPSWarpScriptExtension.HEADER_SESSION));
+    }
+    
     Throwable t = null;
 
     StringBuilder scriptSB = new StringBuilder();
@@ -417,6 +424,8 @@ public class EgressExecHandler extends AbstractHandler {
         return;
       }
     } finally {
+      WarpScriptStackRegistry.unregister(stack);
+      
       // Clear this metric in case there was an exception
       Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_REQUESTS, Sensision.EMPTY_LABELS, 1);
       Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_TIME_US, Sensision.EMPTY_LABELS, (long) ((System.nanoTime() - now) / 1000));

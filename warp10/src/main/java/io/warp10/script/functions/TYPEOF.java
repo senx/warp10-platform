@@ -37,17 +37,26 @@ import processing.core.PShape;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.security.Key;
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
 
 /**
  * Push on the stack the type of the object on top of the stack
  */
 public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  public static interface TypeResolver {
+    public String typeof(Class c);
+  }
+
+  private static List<TypeResolver> resolvers = null;
 
   public static final String TYPE_NULL = "NULL";
   public static final String TYPE_STRING = "STRING";
@@ -75,6 +84,9 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String TYPE_PFONT = "PFONT";
   public static final String TYPE_PSHAPE = "PSHAPE";
   public static final String TYPE_COUNTER = "COUNTER";
+  public static final String TYPE_MATCHER = "MATCHER";
+  public static final String TYPE_MARK = "MARK";
+  public static final String TYPE_KEY = "KEY";
 
   /**
    * Interface to be used by extensions and plugins to define a new type.
@@ -157,6 +169,12 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
       return TYPE_REALMATRIX;
     } else if (AtomicLong.class.isAssignableFrom(c)) {
       return TYPE_COUNTER;
+    } else if (Matcher.class.isAssignableFrom(c)) {
+      return TYPE_MATCHER;
+    } else if (WarpScriptStack.Mark.class.isAssignableFrom(c)) {
+      return TYPE_MARK;
+    } else if (Key.class.isAssignableFrom(c)) {
+      return TYPE_KEY;
     } else if (Typeofable.class.isAssignableFrom(c)) {
       try {
         return "X-" + ((Typeofable) c.getDeclaredConstructor().newInstance()).typeof();
@@ -164,6 +182,14 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
         return defaultType(c);
       }
     } else {
+      if (null != resolvers) {
+        for (TypeResolver resolver: resolvers) {
+          String type = resolver.typeof(c);
+          if (null != type) {
+            return type;
+          }
+        }
+      }
       return defaultType(c);
     }
   }
@@ -175,6 +201,13 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
     } else {
       return "X-" + canonicalName;
     }
+  }
+
+  public static synchronized void addResolver(TypeResolver resolver) {
+    if (null == resolvers) {
+      resolvers = new ArrayList<TypeResolver>();
+    }
+    resolvers.add(resolver);
   }
 
 }

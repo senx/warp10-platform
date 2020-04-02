@@ -59,6 +59,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     DEFAULT_PROPERTIES = WarpConfig.getProperties();
   }
 
+  private Signal signal = null;
+  private boolean signaled = false;
+  
   private final boolean allowLooseBlockComments;
 
   private AtomicLong[] counters;
@@ -150,6 +153,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   
   private final boolean unshadow;
   
+  private final long creationTime = System.currentTimeMillis();
+  
   public static class StackContext extends WarpScriptStack.StackContext {
     public Map<String, Object> symbolTable;
     public Map<String, WarpScriptStackFunction> defined;
@@ -238,7 +243,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
     int nregs = Integer.parseInt(null == this.properties ? String.valueOf(WarpScriptStack.DEFAULT_REGISTERS) : this.properties.getProperty(Configuration.CONFIG_WARPSCRIPT_REGISTERS, String.valueOf(WarpScriptStack.DEFAULT_REGISTERS)));
     allowLooseBlockComments = "true".equals(properties.getProperty(Configuration.WARPSCRIPT_ALLOW_LOOSE_BLOCK_COMMENTS, "false"));
-    this.registers = new Object[nregs];
+    this.registers = new Object[nregs];    
+  }
+  
+  @Override
+  protected void finalize() throws Throwable {
+    WarpScriptStackRegistry.unregister(this);
   }
   
   public void maxLimits() {
@@ -562,6 +572,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       //
 
       for (int st = 0; st < statements.length; st++) {
+        handleSignal();
+
         String stmt = statements[st];
 
         try {
@@ -939,7 +951,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       progress();
 
       for (i = 0; i < n; i++) {        
-
+        handleSignal();
+        
         Object stmt = stmts.get(i);
         
         incOps();
@@ -1220,6 +1233,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   
   @Override
   public Object setAttribute(String key, Object value) {
+    
     if (null == value) {
       return this.attributes.remove(key);
     }
@@ -1252,6 +1266,10 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     } else if (WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE.equals(key)) {
       // value is not null because it was checked on first line
       this.progressable = (Progressable) value;
+    } else if (WarpScriptStack.ATTRIBUTE_NAME.equals(key)) {
+      // Register the stack if its name is set, this will avoid
+      // having lots of anonymous stacks being registered
+      WarpScriptStackRegistry.register(this);
     }
 
     return this.attributes.put(key, value);
@@ -1268,6 +1286,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       return this.sectionName;
     } else if (WarpScriptStack.ATTRIBUTE_MACRO_NAME.equals(key)) {
       return this.macroName;
+    } else if (WarpScriptStack.ATTRIBUTE_CREATION_TIME.equals(key)) {
+      return this.creationTime;
     } else {
       return this.attributes.get(key);
     }
@@ -1587,5 +1607,47 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     }
     
     return symbol;
+  }
+  
+  @Override
+  public void signal(Signal signal) {
+    //
+    // Only set the signal is 'signal' is of higher priority than the current
+    // signal
+    //
+    
+    // Only set the signal if the stack is not yet signaled or if 'signal' is
+    // of higher priority than the current signal
+
+    synchronized(this) {
+      if (!this.signaled || this.signal.ordinal() < signal.ordinal()) {
+        this.signal = signal;
+        this.signaled = true;
+      }
+    }
+  }
+  
+  @Override
+  public void handleSignal() throws WarpScriptATCException {
+    if (this.signaled) {
+      doSignal();
+    }
+  }
+  
+  private void doSignal() throws WarpScriptATCException {
+    synchronized(this) {
+      switch (this.signal) {
+        case STOP: 
+          // Clear the signal
+          this.signal = null;
+          this.signaled = false;
+          throw new WarpScriptStopException("Execution received STOP signal.");
+        case KILL:
+          // The signal is retained
+          throw new WarpScriptKillException("Execution received KILL signal.");
+        default:
+      }            
+    }
+
   }
 }

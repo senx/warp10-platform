@@ -99,6 +99,11 @@ warp.components =
 #warp10.telemetry = 
 
 //
+// Comma separated list of banned token attributes. Token having one of those attributes will be rejected
+//
+#warp.token.banned.attributes =
+
+//
 // Token file
 //
 #warp.token.file =

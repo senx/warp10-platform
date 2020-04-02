@@ -35,9 +35,19 @@
 
 // TTL to use for failed macros, a new on-demand loading will occur after this delay.
 // Defaults to the max of 10s or half of warpscript.repository.refresh
-#warpscript.repository.ttl = 
+#warpscript.repository.ttl.failed = 
 
 // Maximum TTL that can be set using MACROTTL (defaults to 2**62 ms)
 #warpscript.repository.ttl.hard = 
 
+// Number of macros loaded from 'warpscript.repository.directory' to keep in memory
+warpscript.repository.cache.size = 10000
 
+// Default TTL for macros loaded from the classpath or jars
+#warpscript.library.ttl = 600000
+
+// Maximum TTL that can be set using MACROTTL (defaults to 2**62 ms)
+#warpscript.library.ttl.hard =
+
+// Size of macro cache for the macros loaded from the classpath
+warpscript.library.cache.size = 10000

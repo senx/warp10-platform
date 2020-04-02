@@ -384,6 +384,8 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
       }            
     }
 
+    boolean published = false;
+        
     synchronized(memencoder) {
       //
       // If the encoder's size is 0 and it's not in 'series', call store recursively since
@@ -392,15 +394,18 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
       //
       if (0 == memencoder.size() && this.series.get(clslbls) != memencoder) {
         store(encoder);
+        published = true;
       } else {
         memencoder.merge(encoder);
       }
     }            
     
-    for (StandalonePlasmaHandlerInterface plasmaHandler: this.plasmaHandlers) {
-      if (plasmaHandler.hasSubscriptions()) {
-        plasmaHandler.publish(encoder);
-      }
+    if (!published) {
+      for (StandalonePlasmaHandlerInterface plasmaHandler: this.plasmaHandlers) {
+        if (plasmaHandler.hasSubscriptions()) {
+          plasmaHandler.publish(encoder);
+        }
+      }      
     }
   }
   

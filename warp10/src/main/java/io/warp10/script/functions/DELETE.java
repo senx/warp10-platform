@@ -24,6 +24,7 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.standalone.StandaloneAcceleratedStoreClient;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -158,6 +159,19 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
       qsurl.append(Constants.HTTP_PARAM_SELECTOR);
       qsurl.append("=");
       qsurl.append(WarpURLEncoder.encode(selector, StandardCharsets.UTF_8));
+
+      boolean nocache = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
+      boolean nopersist = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));
+
+      if (nocache) {
+        qsurl.append("&");
+        qsurl.append(StandaloneAcceleratedStoreClient.NOCACHE);
+      }
+      
+      if (nopersist) {
+        qsurl.append("&");
+        qsurl.append(StandaloneAcceleratedStoreClient.NOPERSIST);
+      }
 
       //
       // Issue the dryrun request

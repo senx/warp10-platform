@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -101,7 +101,7 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
         type = TYPE.STRING;
       } else if (TYPE.DOUBLE == gts1.getType() || TYPE.DOUBLE == gts2.getType()) {
         type = TYPE.DOUBLE;
-      } else if (TYPE.LONG == gts1.getType() && TYPE.LONG == gts2.getType()) {
+      } else if (TYPE.LONG == gts1.getType() || TYPE.LONG == gts2.getType()) {
         type = TYPE.LONG;
       }
       
@@ -137,11 +137,16 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
           };
           break;
         default:
-          throw new WarpScriptException(getName() + " Invalid Geo Time Series™ type.");
+          // Leave op to null.
+          // Both GTSs are empty, thus applyBinaryOp will only apply its bucketization logic to the result.
       }
 
       GTSOpsHelper.applyBinaryOp(result, gts1, gts2, op);
-
+      
+      // If result is empty, set type and sizehint to default.
+      if (0 == result.size()) {
+        result = result.cloneEmpty();
+      }
       stack.push(result);
     } else if (op1 instanceof GeoTimeSerie || op2 instanceof GeoTimeSerie) {
       TYPE type = TYPE.UNDEFINED;
