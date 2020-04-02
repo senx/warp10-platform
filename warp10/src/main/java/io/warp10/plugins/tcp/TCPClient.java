@@ -16,7 +16,10 @@
 package io.warp10.plugins.tcp;
 
 import io.warp10.script.MemoryWarpScriptStack;
+import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStackRegistry;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +59,7 @@ public class TCPClient implements Runnable {
 
     this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), charset));
     this.stack = new MemoryWarpScriptStack(null, null, new Properties());
+    this.stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[Warp10TCPPlugin " + socket.getLocalPort() + "]");
     stack.maxLimits();
   }
 
@@ -89,6 +93,8 @@ public class TCPClient implements Runnable {
       }
     } catch (IOException e) {
       LOG.error("Problem when receiving text line from tcp on port " + socket.getPort(), e);
+    } finally {
+      WarpScriptStackRegistry.unregister(stack);
     }
     try {
       this.socket.close();

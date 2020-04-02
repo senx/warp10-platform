@@ -18,6 +18,7 @@ package io.warp10.script.mapper;
 
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptException;
 
@@ -26,7 +27,7 @@ import java.util.Map;
 /**
  * Mapper which returns the longitude of the tick
  */
-public class MapperGeoElevation extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
+public class MapperGeoElevation extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptAggregatorFunction {
 
   public MapperGeoElevation(String name) {
     super(name);

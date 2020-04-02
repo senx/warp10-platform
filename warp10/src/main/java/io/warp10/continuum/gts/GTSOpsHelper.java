@@ -20,14 +20,8 @@ public class GTSOpsHelper {
   public static interface GTSBinaryOp {
     public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb);
   }
-  public static void applyBinaryOp(GeoTimeSerie result, GeoTimeSerie gts1, GeoTimeSerie gts2, GTSBinaryOp op) {
-    applyBinaryOp(result, gts1, gts2, op,false);
-  }
-  public static void applyBinaryOp(GeoTimeSerie result, GeoTimeSerie gts1, GeoTimeSerie gts2, GTSBinaryOp op, boolean copyGts1Location) {
-    //
-    // Determine if result should be bucketized or not
-    //
-    
+
+  public static void handleBucketization(GeoTimeSerie result, GeoTimeSerie gts1, GeoTimeSerie gts2) {
     if (GTSHelper.isBucketized(gts1) && GTSHelper.isBucketized(gts2)) {
       if (GTSHelper.getBucketSpan(gts1) == GTSHelper.getBucketSpan(gts2)) {
         // Both GTS have the same bucket span, check their lastbucket to see if they have the
@@ -43,6 +37,14 @@ public class GTSOpsHelper {
         }
       }
     }
+  }
+
+  public static void applyBinaryOp(GeoTimeSerie result, GeoTimeSerie gts1, GeoTimeSerie gts2, GTSBinaryOp op) {
+    applyBinaryOp(result, gts1, gts2, op,false);
+  }
+  public static void applyBinaryOp(GeoTimeSerie result, GeoTimeSerie gts1, GeoTimeSerie gts2, GTSBinaryOp op, boolean copyGts1Location) {
+    // Determine if result should be bucketized or not
+    handleBucketization(result, gts1, gts2);
     
     // Sort GTS
     GTSHelper.sort(gts1);

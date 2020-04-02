@@ -57,8 +57,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.lang3.JavaVersion;
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -696,6 +694,7 @@ public class Ingress extends AbstractHandler implements Runnable {
       return;
     } else if (target.equals(Constants.API_ENDPOINT_DELETE)) {
       handleDelete(target, baseRequest, request, response);
+      return;
     } else if (Constants.API_ENDPOINT_CHECK.equals(target)) {
       baseRequest.setHandled(true);
       response.setStatus(HttpServletResponse.SC_OK);
@@ -1458,6 +1457,8 @@ public class Ingress extends AbstractHandler implements Runnable {
 
     PrintWriter pw = null;
     
+    boolean metaonly = null != request.getParameter(Constants.HTTP_PARAM_METAONLY);
+
     try {      
       if (null == producer || null == owner) {
         response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
@@ -1503,7 +1504,11 @@ public class Ingress extends AbstractHandler implements Runnable {
       
       long minage = 0L;
 
-      if (null != minagestr) {
+      if (null != minagestr) {        
+        if (metaonly) {
+          throw new IOException("Parameter '" + Constants.HTTP_PARAM_MINAGE + "' cannot be specified with '" + Constants.HTTP_PARAM_METAONLY + "'.");
+        }
+        
         minage = Long.parseLong(minagestr);
         
         if (minage < 0) {
@@ -1516,11 +1521,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           throw new IOException("Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
         }
         if (startstr.contains("T")) {
-          if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-            start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(startstr);
-          } else {
-            start = fmt.parseDateTime(startstr).getMillis() * Constants.TIME_UNITS_PER_MS;
-          }
+          start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(startstr);
         } else {
           start = Long.valueOf(startstr);
         }
@@ -1531,20 +1532,30 @@ public class Ingress extends AbstractHandler implements Runnable {
           throw new IOException("Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
         }
         if (endstr.contains("T")) {
-          if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-            end = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(endstr);
-          } else {
-            end = fmt.parseDateTime(endstr).getMillis() * Constants.TIME_UNITS_PER_MS;
-          }
+          end = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(endstr);
         } else {
           end = Long.valueOf(endstr);
         }
       }
 
-      if (Long.MIN_VALUE == start && Long.MAX_VALUE == end && null == request.getParameter(Constants.HTTP_PARAM_DELETEALL)) {
-        throw new IOException("Parameter " + Constants.HTTP_PARAM_DELETEALL + " should be set when deleting a full range.");
+      if (Long.MIN_VALUE == start && Long.MAX_VALUE == end && (null == request.getParameter(Constants.HTTP_PARAM_DELETEALL) && !metaonly)) {
+        throw new IOException("Parameter " + Constants.HTTP_PARAM_DELETEALL + " or " + Constants.HTTP_PARAM_METAONLY + " should be set when no time range is specified.");
       }
       
+      if (Long.MIN_VALUE != start || Long.MAX_VALUE != end) {
+        hasRange = true;
+      }
+      
+      if (metaonly && !Constants.DELETE_METAONLY_SUPPORT) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Parameter " + Constants.HTTP_PARAM_METAONLY + " cannot be used as metaonly support is not enabled.");
+        return;        
+      }
+      
+      if (metaonly && hasRange) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Parameter " + Constants.HTTP_PARAM_METAONLY + " can only be set if no range is specified.");
+        return;
+      }
+
       if (start > end) {
         throw new IOException("Invalid time range specification.");
       }
@@ -1623,6 +1634,25 @@ public class Ingress extends AbstractHandler implements Runnable {
         TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
         
         DirectoryRequest drequest = new DirectoryRequest();
+        
+        Long activeAfter = null == request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
+        Long quietAfter = null == request.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
+
+        if (!Constants.DELETE_ACTIVITY_SUPPORT) {
+          if (null != activeAfter || null != quietAfter) {
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Activity based selection is disabled by configuration.");
+            return;
+          }
+        }
+        
+        if (null != activeAfter) {
+          drequest.setActiveAfter(activeAfter);
+        }
+        
+        if (null != quietAfter) {
+          drequest.setQuietAfter(quietAfter);
+        }
+        
         drequest.setClassSelectors(clsSels);
         drequest.setLabelsSelectors(lblsSels);
         
@@ -1772,7 +1802,10 @@ public class Ingress extends AbstractHandler implements Runnable {
                   continue;
                 }
               }
-              pushDeleteMessage(start, end, minage, metadata);
+              
+              if (!metaonly) {
+                pushDeleteMessage(start, end, minage, metadata);
+              }
               
               if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
                 completeDeletion = true;
@@ -1828,7 +1861,9 @@ public class Ingress extends AbstractHandler implements Runnable {
                 }
               }
 
-              pushDeleteMessage(start, end, minage, metadata);
+              if (!metaonly) {
+                pushDeleteMessage(start, end, minage, metadata);
+              }
               
               if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
                 completeDeletion = true;
@@ -1886,7 +1921,9 @@ public class Ingress extends AbstractHandler implements Runnable {
     } finally {
       // Flush delete messages
       if (!dryrun) {
-        pushDeleteMessage(0L,0L,0L,null);
+        if (!metaonly) {
+          pushDeleteMessage(0L,0L,0L,null);
+        }
         if (completeDeletion) {
           pushMetadataMessage(null, null);
         }

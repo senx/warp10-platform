@@ -17,6 +17,7 @@
 package io.warp10.script.mapper;
 
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptException;
 
@@ -25,7 +26,7 @@ import java.util.Map;
 /**
  * Mapper which returns the floor of the value passed as parameter
  */
-public class MapperFloor extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
+public class MapperFloor extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptAggregatorFunction {
 
   public MapperFloor(String name) {
     super(name);

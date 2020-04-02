@@ -219,6 +219,7 @@ public class WarpScriptExecutor implements Serializable {
       @Override
       protected WarpScriptStack initialValue() {
         MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, properties);
+        stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[WarpScriptExecutor " + semantics.name() + "]");
         stack.maxLimits();
         if (null != progressable) {
           stack.setAttribute(WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE, progressable);
@@ -312,6 +313,10 @@ public class WarpScriptExecutor implements Serializable {
         // Clear the stack
         stack.clear();
       }
+      // Unregister the stack if it is allocated per call to exec
+      if (StackSemantics.NEW.equals(this.semantics)) {
+        WarpScriptStackRegistry.unregister(stack);
+      }
       this.sem.release();
     }
   }
@@ -327,6 +332,7 @@ public class WarpScriptExecutor implements Serializable {
       stack = perThreadStack.get();
     } else if (StackSemantics.NEW.equals(this.semantics)) {
       stack = new MemoryWarpScriptStack(null, null, properties);
+      stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[WarpScriptExecutor NEW]");
       ((MemoryWarpScriptStack) stack).maxLimits();
       if (null != this.progressable) {
         stack.setAttribute(WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE, this.progressable);

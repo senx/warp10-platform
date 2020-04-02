@@ -175,7 +175,7 @@ public abstract class AbstractWarp10Plugin {
       Method m = egress.getDeclaredMethod("getExposedStoreClient", new Class[0]);
       return (StoreClient) m.invoke(null, new Object[0]);
     } catch (Throwable t) {
-      t.printStackTrace();
+      LOG.warn("Unable to retrieve StoreClient", t);
     }
     return null;
   }
@@ -192,7 +192,7 @@ public abstract class AbstractWarp10Plugin {
       Method m = egress.getDeclaredMethod("getExposedDirectoryClient", new Class[0]);
       return (DirectoryClient) m.invoke(null, new Object[0]);
     } catch (Throwable t) {
-      t.printStackTrace();
+      LOG.warn("Unable to retrieve DirectoryClient", t);
     }
     return null;
   }

@@ -19,6 +19,7 @@ package io.warp10.script.mapper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.StackUtils;
+import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStackFunction;
@@ -33,7 +34,7 @@ import com.geoxp.GeoXPLib.GeoXPShape;
  * Mapper which returns a value for a tick if the value has a location
  * contained in the given Geo Shape.
  */
-public class MapperGeoWithin extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
+public class MapperGeoWithin extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptAggregatorFunction {
   
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
     

@@ -65,7 +65,7 @@ public class EQ extends ComparisonOperation {
     if (a instanceof Double && b instanceof Double) {
       return ((Double) a).compareTo((Double) b);
     } else if (((a instanceof Long || a instanceof Integer || a instanceof Short || a instanceof Byte || a instanceof AtomicLong)
-        && (b instanceof Long || b instanceof Integer || b instanceof Short || b instanceof Byte || a instanceof AtomicLong))) {
+        && (b instanceof Long || b instanceof Integer || b instanceof Short || b instanceof Byte || b instanceof AtomicLong))) {
       return Long.compare(a.longValue(), b.longValue());
     } else {
       // If the equals function fails and the types do not permit direct number comparison,
