@@ -48,7 +48,7 @@ public class MACROTTL extends NamedWarpScriptFunction implements WarpScriptStack
     
     //
     // Limit the TTL to the hard value, we do not throw an exception because MACROTTL is used in server
-    // side macros and the value might not be easily modifyable
+    // side macros and the value might not be easily modifiable
     //
     
     if (ttl > hardTTL) {
