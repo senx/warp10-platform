@@ -44,6 +44,6 @@ public interface StoreClient {
    * @return
    * @throws IOException
    */
-  public GTSDecoderIterator fetch(ReadToken token, final List<Metadata> metadatas, final long now, final long then, long count, long skip, double sample, boolean writeTimestamp, final int preBoundary, final int postBoundary) throws IOException;
+  public GTSDecoderIterator fetch(ReadToken token, final List<Metadata> metadatas, final long now, final long then, long count, long skip, double sample, boolean writeTimestamp, final long preBoundary, final long postBoundary) throws IOException;
   public void addPlasmaHandler(StandalonePlasmaHandlerInterface handler);
 }
