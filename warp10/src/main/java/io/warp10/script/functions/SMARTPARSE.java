@@ -88,8 +88,14 @@ public class SMARTPARSE  extends GTSStackFunction {
   protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
     
     Map<String,Object> params = new HashMap<String,Object>();
-    
-    String regexp = stack.pop().toString();
+
+    Object regexpObject = stack.pop();
+
+    if (!(regexpObject instanceof String)) {
+      throw new WarpScriptException(getName() + " expects a STRING regexp.");
+    }
+
+    String regexp = (String) regexpObject;
     
     Pattern pattern = Pattern.compile(regexp);
     

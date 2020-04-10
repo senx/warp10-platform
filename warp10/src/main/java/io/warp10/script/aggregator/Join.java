@@ -63,8 +63,12 @@ public class Join extends NamedWarpScriptFunction implements WarpScriptAggregato
     @Override
     public Object apply(WarpScriptStack stack) throws WarpScriptException {
       Object sep = stack.pop();
+
+      if (!(sep instanceof String)) {
+        throw new WarpScriptException(getName() + " expects a STRING seperator.");
+      }
       
-      stack.push(new Join(getName(), sep.toString(), ignoreNulls, urlencode, nulLString));
+      stack.push(new Join(getName(), (String) sep, ignoreNulls, urlencode, nulLString));
       
       return stack;
     }
