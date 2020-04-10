@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,26 +16,28 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.WrapperList;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
+
+import java.util.ArrayList;
 
 /**
  * Convert the whole stack into a list and push this list on the top of the stack.
  */
 public class STACKTOLIST extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
-  private static final TOLIST tl = new TOLIST("");
-  
+
   public STACKTOLIST(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    stack.push(stack.depth());
-    tl.apply(stack);
+    Object[] elements = stack.popn(stack.depth());
+    ArrayList<Object> list = new ArrayList<Object>(new WrapperList(elements));
+    stack.push(list);
     return stack;
   }
 }
