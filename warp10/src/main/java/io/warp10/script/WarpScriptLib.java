@@ -833,6 +833,7 @@ public class WarpScriptLib {
   public static final String UNWRAPEMPTY = "UNWRAPEMPTY";
   public static final String UNWRAPSIZE = "UNWRAPSIZE";
   public static final String WRAPMV = "WRAPMV";
+  public static final String WRAPMVNOCOMP = "WRAPMV!";
   public static final String MVTICKSPLIT = "MVTICKSPLIT";
   public static final String MVINDEXSPLIT = "MVINDEXSPLIT";
   public static final String MVVALUES = "MVVALUES";
@@ -1710,6 +1711,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new UNWRAPSIZE(UNWRAPSIZE));
     addNamedWarpScriptFunction(new UNWRAPENCODER(UNWRAPENCODER));
     addNamedWarpScriptFunction(new WRAP(WRAPMV, true, true, true, true));
+    addNamedWarpScriptFunction(new WRAP(WRAPMVNOCOMP, true, false, true, true));
     addNamedWarpScriptFunction(new TOMVSTRING(TOMVSTRING));
     addNamedWarpScriptFunction(new MVSPLIT(MVTICKSPLIT, true));
     addNamedWarpScriptFunction(new MVSPLIT(MVINDEXSPLIT, false));
