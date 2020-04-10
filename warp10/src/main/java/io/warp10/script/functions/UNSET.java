@@ -24,8 +24,7 @@ import io.warp10.script.WarpScriptStackFunction;
 import java.util.Set;
 
 /**
- * Push onto the stack all elements of the set on top
- * on top of a MARK
+ * Push onto the stack all elements of the set on top of a MARK
  * 
  * If the top of the stack is not a set, throw.
  * 

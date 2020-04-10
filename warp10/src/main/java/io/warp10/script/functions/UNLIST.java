@@ -24,8 +24,7 @@ import io.warp10.script.WarpScriptStack;
 import java.util.List;
 
 /**
- * Push onto the stack all elements of the list on top
- * on top of a MARK
+ * Push onto the stack all elements of the list on top of a MARK
  *
  * If the top of the stack is not a list or an array, throw.
  * 
