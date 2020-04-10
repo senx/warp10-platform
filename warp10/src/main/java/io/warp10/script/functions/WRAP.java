@@ -86,7 +86,7 @@ public class WRAP extends ElementOrListStackFunction {
             wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper((GTSEncoder) element, compress);
           }
         } else {
-          throw new WarpScriptException(getName() + " expects a Geo Time Series of a GTSEncoder or a list on top of the stack");
+          throw new WarpScriptException(getName() + " expects a Geo Time Series, a GTSEncoder or a list thereof.");
         }
 
         if (mv) {
