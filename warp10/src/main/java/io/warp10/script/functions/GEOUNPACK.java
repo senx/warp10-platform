@@ -31,9 +31,9 @@ import org.apache.thrift.protocol.TCompactProtocol;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
-import com.geoxp.oss.jarjar.org.bouncycastle.util.Arrays;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 /**
  * Unpack a GeoXPShape
