@@ -65,10 +65,6 @@ public class WRAP extends ElementOrListStackFunction {
     this.raw = raw;
     this.mv = mv;
     
-    if (this.opt && !this.compress) {
-      throw new RuntimeException("Invalid combination of opt and compress.");
-    }
-
     function = generateFunctionOnce();    
   }
 
