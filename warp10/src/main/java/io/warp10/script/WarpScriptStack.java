@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import io.warp10.warp.sdk.WarpScriptJavaFunction;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -478,23 +479,38 @@ public interface WarpScriptStack {
    * @throws InformativeEmptyStackException if the stack is empty.
    */
   public Object pop() throws InformativeEmptyStackException;
-  
+
   /**
    * Remove and return 'N' objects from the top of the
    * stack.
-   * 
+   *
    * 'N' is consumed at the top of the stack prior to
    * removing and returning the objects.
-   * 
-   * 
+   *
+   *
    * @return An array of 'N' objects, the first being the deepest.
-   *  
+   *
    * @throws InformativeEmptyStackException if the stack is empty.
    * @throws IndexOutOfBoundsException If 'N' is not present or if
    *         'N' is invalid or if the stack is not deep enough.
    */
   public Object[] popn() throws WarpScriptException;
-  
+
+  /**
+   * Remove and return 'N' objects from the top of the
+   * stack.
+   *
+   * 'N' is NOT taken from the stack but given as parameter.
+   *
+   *
+   * @return An array of 'N' objects, the first being the deepest.
+   *
+   * @throws InformativeEmptyStackException if the stack is empty.
+   * @throws IndexOutOfBoundsException If 'N' is invalid or if
+   *          the stack is not deep enough.
+   */
+  public Object[] popn(int n) throws WarpScriptException;
+
   /**
    * Return the object on top of the stack without removing
    * it from the stack.
