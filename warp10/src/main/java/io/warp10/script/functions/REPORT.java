@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 import java.util.zip.GZIPOutputStream;
@@ -51,6 +52,8 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
   private static final String SECRET;
 
   private static final AtomicLong seq = new AtomicLong(0L);
+  
+  private static final AtomicBoolean success = new AtomicBoolean(false);
   
   private static final String uuid = UUID.randomUUID().toString();
 
@@ -220,7 +223,9 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
         @Override
         public void run() {
           seq.set(Long.MIN_VALUE);
-          REPORT.telemetry();
+          if (success.get()) {
+            REPORT.telemetry();
+          }
         }
       });
     } catch (Throwable t) {      
@@ -232,6 +237,8 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
     
     try {
       String report = genReport(false);
+      
+      success.set(false);
       
       conn = (HttpURLConnection) new URL("https://telemetry.senx.io/report").openConnection();
       conn.setDoOutput(true);
@@ -251,6 +258,8 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
       zout.close();
       out.close();
       String newdelay = conn.getHeaderField("X-Warp10-Telemetry-Delay");
+      
+      success.set(true);
       
       if (null != newdelay) {
         try {
