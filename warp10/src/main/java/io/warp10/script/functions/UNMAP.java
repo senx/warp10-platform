@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ public class UNMAP extends NamedWarpScriptFunction implements WarpScriptStackFun
     Object o = stack.pop();
     
     if (!(o instanceof Map)) {
-      throw new WarpScriptException("Invalid type, expected a map.");
+      throw new WarpScriptException(getName() + " expects a MAP.");
     }
     
     Map<String,Object> map = (Map<String,Object>) o;
