@@ -201,7 +201,7 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
               break;
             default:
               // Cannot happen, type is in [STRING, DOUBLE, LONG]
-              throw new WarpScriptException(getName() + " Invalid operator type.");
+              throw new WarpScriptException(getName() + " Invalid operand type.");
           }          
         } else {
           switch (type) {
