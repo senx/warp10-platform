@@ -571,17 +571,12 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                 // shrink the GTS so we do not return too many.
                 //
 
-                if (countOnly) {
-                  if (lastCount + dpcount < count) {
-                    GTSHelper.setValue(base, ts, location, elevation, value, false);                
-                  } else {
-                    // We are done, exit
-                    break;
-                  }
-                } else {
-                  // Consider all points returned by the underlying system
-                  GTSHelper.setValue(base, ts, location, elevation, value, false);                
+                if (countOnly && lastCount + dpcount >= count) {
+                  // We are done, exit
+                  break;
                 }
+
+                GTSHelper.setValue(base, ts, location, elevation, value, false);
               }
               
               if (fetched.addAndGet(dpcount) > fetchLimit) {
@@ -623,7 +618,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
             // shrink the GTS so we do not return too many.
             //
             
-            if (count >= 0 && 0 == postBoundary && 0 == preBoundary && lastCount + GTSHelper.nvalues(gts) > count) {
+            if (countOnly && lastCount + GTSHelper.nvalues(gts) > count) {
               gts = GTSHelper.shrinkTo(gts, (int) Math.max(count - lastCount, 0));              
             }
 

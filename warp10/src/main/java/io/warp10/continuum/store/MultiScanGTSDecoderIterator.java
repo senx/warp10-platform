@@ -345,7 +345,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     
     GTSEncoder encoder = new GTSEncoder(0L);
 
-    while(encoder.size() < Constants.MAX_ENCODER_SIZE && nvalues > 0 && scaniter.hasNext()) {
+    while(encoder.size() < Constants.MAX_ENCODER_SIZE && (nvalues > 0 || preBoundaryScan || postBoundaryScan) && scaniter.hasNext()) {
       
       //
       // Extract next result from scaniter
