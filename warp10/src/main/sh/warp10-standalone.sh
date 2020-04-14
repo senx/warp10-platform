@@ -402,7 +402,7 @@ start() {
 
   CONFIG_KEYS=$(${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} . 'leveldb.home' 'standalone.host' 'standalone.port' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //')
 
-  LEVELDB_HOME="$(echo "${CONFIG_KEYS}"|grep -e '^leveldb\.home='| sed -e 's/^.*=//')"
+  LEVELDB_HOME="$(echo "${CONFIG_KEYS}" | grep -e '^leveldb\.home=' | sed -e 's/^.*=//')"
 
   #
   # Leveldb exists ?
@@ -423,8 +423,8 @@ start() {
     ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${LEVELDB_HOME} >> ${WARP10_HOME}/logs/warp10.log 2>&1
   fi
 
-  WARP10_LISTENSTO_HOST="$(echo "${CONFIG_KEYS}"|grep -e '^standalone\.host='| sed -e 's/^.*=//')"
-  WARP10_LISTENSTO_PORT="$(echo "${CONFIG_KEYS}"|grep -e '^standalone\.port='| sed -e 's/^.*=//')"
+  WARP10_LISTENSTO_HOST="$(echo "${CONFIG_KEYS}" | grep -e '^standalone\.host=' | sed -e 's/^.*=//')"
+  WARP10_LISTENSTO_PORT="$(echo "${CONFIG_KEYS}" | grep -e '^standalone\.port=' | sed -e 's/^.*=//')"
   WARP10_LISTENSTO="${WARP10_LISTENSTO_HOST}:${WARP10_LISTENSTO_PORT}"
 
   #
