@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,16 +16,22 @@
 
 package io.warp10.script.functions;
 
-import java.io.PrintWriter;
-
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
-public class NPEEK extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
-  public NPEEK(String name) {
+import java.util.Set;
+
+/**
+ * Push onto the stack all elements of the set on top of a MARK
+ * 
+ * If the top of the stack is not a set, throw.
+ * 
+ */
+public class UNSET extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  public UNSET(String name) {
     super(name);
   }
   
@@ -33,28 +39,14 @@ public class NPEEK extends NamedWarpScriptFunction implements WarpScriptStackFun
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
 
-    if(!(top instanceof Number)) {
-      throw new WarpScriptException(getName() + " expects a numeric value.");
-    }
-
-    int count = ((Number) top).intValue();
-
-    PrintWriter out = (PrintWriter) stack.getAttribute(WarpScriptStack.ATTRIBUTE_INTERACTIVE_WRITER);
-    boolean json = Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_INTERACTIVE_JSON));
-        
-    if (null != out && count > 0) {
-      if (count > stack.depth()) {
-        count = stack.depth();
+    if (top instanceof Set) {
+      stack.push(new WarpScriptStack.Mark());
+      for (Object o: (Set) top) {
+        stack.push(o);
       }
-
-      for (int i = count - 1; i >= 0; i--) {
-        Object o = stack.get(i);
-        PSTACK.print(out, i, o, json);
-      }
-
-      out.flush();
+    } else {
+      throw new WarpScriptException(getName() + " expects a SET.");
     }
-    
     return stack;
   }
 }

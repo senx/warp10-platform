@@ -16,15 +16,11 @@
 
 package io.warp10.script.binary;
 
+import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import org.apache.commons.math3.linear.RealMatrix;
-import org.apache.commons.math3.linear.RealVector;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -45,14 +41,15 @@ public class EQ extends ComparisonOperation {
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object op2 = stack.pop();
     Object op1 = stack.pop();
-    
-    if (op1 instanceof Boolean || op1 instanceof String
-        || op1 instanceof RealVector || op1 instanceof RealMatrix
-        || op1 instanceof List || op1 instanceof Map || op1 instanceof Set) {
-      stack.push(op1.equals(op2));
-    } else {
-      // gts and numbers
+
+    if ((op1 instanceof Number && op2 instanceof Number)
+        || (op1 instanceof GeoTimeSerie && op2 instanceof GeoTimeSerie)
+        || (op1 instanceof GeoTimeSerie && (op2 instanceof Number || op2 instanceof String))
+        || (op2 instanceof GeoTimeSerie && (op1 instanceof Number || op1 instanceof String))) {
+      // both numbers, both GTSs or one GTS and one String or Number
       comparison(stack, op1, op2);
+    } else {
+      stack.push(op1.equals(op2));
     }
     return stack;
   }

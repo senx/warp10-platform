@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 /**
  * Unpack a GeoXPShape
@@ -78,19 +79,18 @@ public class GEOUNPACK extends NamedWarpScriptFunction implements WarpScriptStac
     int idx = 0;
     
     while(idx < cells.length && decoder.next()) {
+      // We are only interested in the timestamp which is the cell
       long cell = decoder.getTimestamp();
-      // We do not call getBinaryValue because we expect booleans anyway
-      Object value = decoder.getValue();
-      
-      if (!Boolean.TRUE.equals(value)) {
-        throw new WarpScriptException(getName() + " invalid GeoXPShape.");        
+      // Only add cells with valid resolution (1-15)
+      if (0L != (cell & 0xf000000000000000L)) {
+        cells[idx++] = cell;
       }
-      
-      cells[idx++] = cell;
     }
     
+    // Adjust the size if there were some invalid cells (timestamps).
+    // This can happen when calling GEOUNPACK from a WRAPped GTS or ENCODER
     if (idx != cells.length) {
-      throw new WarpScriptException(getName() + " invalid GeoXPShape.");
+      cells = Arrays.copyOf(cells, idx);
     }
     
     GeoXPShape shape = GeoXPLib.fromCells(cells, false);
