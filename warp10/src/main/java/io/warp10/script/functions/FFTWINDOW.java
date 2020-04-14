@@ -57,7 +57,7 @@ public class FFTWINDOW extends GTSStackFunction {
     Object window = stack.pop();
 
     if (!(window instanceof String)) {
-      throw new WarpScriptException(getName() + " expects a STRING on top of the stack");
+      throw new WarpScriptException(getName() + " expects a STRING algorithm name.");
     }
     
     params.put(WINDOWING_ALGORITHM, window);

@@ -40,7 +40,7 @@ public class TIMED extends NamedWarpScriptFunction implements WarpScriptStackFun
     Object o1 = stack.pop();
 
     if (!(o1 instanceof String)) {
-      throw new WarpScriptException(getName() + " expects a String alias on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a STRING alias.");
     }
 
     String alias = (String) o1;

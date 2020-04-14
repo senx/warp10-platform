@@ -41,7 +41,7 @@ public class RENAME extends ElementOrListStackFunction {
     final Object top = stack.pop();
 
     if(!(top instanceof String)) {
-      throw new WarpScriptException(getName() + " expects a STRING on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a STRING name.");
     }
 
     return new ElementStackFunction() {
