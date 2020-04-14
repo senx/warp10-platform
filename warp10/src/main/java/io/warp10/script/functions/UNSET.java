@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,39 +14,39 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.binary;
+package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
-import java.math.BigDecimal;
+import java.util.Set;
 
 /**
- * Compute the modulo of the two operands on top of the stack
+ * Push onto the stack all elements of the set on top of a MARK
+ * 
+ * If the top of the stack is not a set, throw.
+ * 
  */
-public class MOD extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class UNSET extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public MOD(String name) {
+  public UNSET(String name) {
     super(name);
   }
-
+  
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object op2 = stack.pop();
-    Object op1 = stack.pop();
+    Object top = stack.pop();
 
-    if (!(op2 instanceof Number) || !(op1 instanceof Number)) {
-      throw new WarpScriptException(getName() + " operates on numeric arguments.");
-    }
-
-    if (op1 instanceof Double || op2 instanceof Double || op1 instanceof BigDecimal || op2 instanceof BigDecimal) {
-      stack.push(((Number) op1).doubleValue() % ((Number) op2).doubleValue());
+    if (top instanceof Set) {
+      stack.push(new WarpScriptStack.Mark());
+      for (Object o: (Set) top) {
+        stack.push(o);
+      }
     } else {
-      stack.push(((Number) op1).longValue() % ((Number) op2).longValue());
+      throw new WarpScriptException(getName() + " expects a SET.");
     }
-
     return stack;
   }
 }

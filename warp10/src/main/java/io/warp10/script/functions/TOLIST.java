@@ -16,35 +16,33 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.WrapperList;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * Make a list with 'N' elements present in the stack.
  * Replace those 'N' elements and 'N' with the list.
- * 
+ *
  * @param element1 First element of the resulting list
  * @param element2
  * @param elementN Last element of the resulting list
- * @param N Number of elements to add to the list
+ * @param N        Number of elements to add to the list
  */
 public class TOLIST extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public TOLIST(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object[] elements = stack.popn();
-    List<Object> list = new ArrayList<Object>();
-    list.addAll(Arrays.asList(elements));
+    ArrayList<Object> list = new ArrayList<Object>(new WrapperList(elements));
     stack.push(list);
     return stack;
   }

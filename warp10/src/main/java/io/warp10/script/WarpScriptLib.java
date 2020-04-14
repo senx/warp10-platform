@@ -478,6 +478,7 @@ public class WarpScriptLib {
   public static final String TIMED = "TIMED";
   public static final String CHRONOSTATS = "CHRONOSTATS";
   public static final String UNLIST = "UNLIST";
+  public static final String UNSET = "UNSET";
   public static final String UNION = "UNION";
   public static final String INTERSECTION = "INTERSECTION";
   public static final String DIFFERENCE = "DIFFERENCE";
@@ -832,6 +833,7 @@ public class WarpScriptLib {
   public static final String UNWRAPEMPTY = "UNWRAPEMPTY";
   public static final String UNWRAPSIZE = "UNWRAPSIZE";
   public static final String WRAPMV = "WRAPMV";
+  public static final String WRAPMVNOCOMP = "WRAPMV!";
   public static final String MVTICKSPLIT = "MVTICKSPLIT";
   public static final String MVINDEXSPLIT = "MVINDEXSPLIT";
   public static final String MVVALUES = "MVVALUES";
@@ -1205,6 +1207,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOLIST(TOLIST));
     addNamedWarpScriptFunction(new LISTTO(LISTTO));
     addNamedWarpScriptFunction(new UNLIST(UNLIST));
+    addNamedWarpScriptFunction(new UNSET(UNSET));
     addNamedWarpScriptFunction(new TOSET(TO_SET));
     addNamedWarpScriptFunction(new SETTO(SETTO));
     addNamedWarpScriptFunction(new TOVECTOR(TO_VECTOR));
@@ -1708,6 +1711,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new UNWRAPSIZE(UNWRAPSIZE));
     addNamedWarpScriptFunction(new UNWRAPENCODER(UNWRAPENCODER));
     addNamedWarpScriptFunction(new WRAP(WRAPMV, true, true, true, true));
+    addNamedWarpScriptFunction(new WRAP(WRAPMVNOCOMP, true, false, true, true));
     addNamedWarpScriptFunction(new TOMVSTRING(TOMVSTRING));
     addNamedWarpScriptFunction(new MVSPLIT(MVTICKSPLIT, true));
     addNamedWarpScriptFunction(new MVSPLIT(MVINDEXSPLIT, false));
