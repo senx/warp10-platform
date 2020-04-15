@@ -47,7 +47,7 @@ public class MapperMonthOfYear extends MapperDateTime {
   }
 
   @Override
-  public int getDateTimeInfo(DateTime dt) {
+  public Object getDateTimeInfo(DateTime dt, long tick) {
     return dt.getMonthOfYear();
   }
 }

@@ -51,10 +51,10 @@ public abstract class MapperDateTime extends NamedWarpScriptFunction implements 
 
     DateTime dt = new DateTime(tick / Constants.TIME_UNITS_PER_MS, this.dtz);
 
-    return new Object[] {tick, location, elevation, getDateTimeInfo(dt)};
+    return new Object[] {tick, location, elevation, getDateTimeInfo(dt, tick)};
   }
 
-  public abstract int getDateTimeInfo(DateTime dt);
+  public abstract Object getDateTimeInfo(DateTime dt, long tick);
 
   @Override
   public String toString() {

@@ -16,6 +16,7 @@
 
 package io.warp10.script.mapper;
 
+import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -47,7 +48,7 @@ public class MapperSecondOfMinute extends MapperDateTime {
   }
 
   @Override
-  public int getDateTimeInfo(DateTime dt) {
-    return dt.getSecondOfMinute();
+  public Object getDateTimeInfo(DateTime dt, long tick) {
+    return dt.getSecondOfMinute() + ((double) (tick % Constants.TIME_UNITS_PER_S) / (double) Constants.TIME_UNITS_PER_S);
   }
 }
