@@ -212,9 +212,9 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     
     GeoTimeSerie base = null;
     GeoTimeSerie[] bases = null;
-    String typelabel = (String) params.get(PARAM_TYPEATTR);
+    String typeattr = (String) params.get(PARAM_TYPEATTR);
 
-    if (null != typelabel) {
+    if (null != typeattr) {
       bases = new GeoTimeSerie[5];
     }
     
@@ -384,14 +384,14 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     Metadata lastMetadata = null;
     long lastCount = 0L;
     
-    int preBoundary = 0;
-    int postBoundary = 0;
+    long preBoundary = 0;
+    long postBoundary = 0;
     
     if (params.containsKey(PARAM_BOUNDARY_PRE)) {
-      preBoundary = (int) params.get(PARAM_BOUNDARY_PRE);
+      preBoundary = (long) params.get(PARAM_BOUNDARY_PRE);
     }
     if (params.containsKey(PARAM_BOUNDARY_POST)) {
-      postBoundary = (int) params.get(PARAM_BOUNDARY_POST);
+      postBoundary = (long) params.get(PARAM_BOUNDARY_POST);
     }
     
     try {
@@ -465,9 +465,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         TYPE lastType = TYPE.UNDEFINED;
         
         long end = (long) params.get(PARAM_END);
-        
-        int boundary = 0;
-        
+                
         boolean nocache = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
         boolean nopersist = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));
 
@@ -483,13 +481,12 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
           StandaloneAcceleratedStoreClient.persist();
         }
         
+        // Flag indicating the FETCH is a count only, no pre/post boundaries
+        boolean countOnly = count >= 0 && 0 == preBoundary & 0 == postBoundary;
+        
         try (GTSDecoderIterator gtsiter = gtsStore.fetch(rtoken, metadatas, end, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary)) {
           while(gtsiter.hasNext()) {           
             GTSDecoder decoder = gtsiter.next();
-
-            if (null == base) {
-              boundary = 0;
-            }
             
             boolean identical = true;
 
@@ -506,7 +503,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
             // If we should ventilate per type, do so now
             //
             
-            if (null != typelabel) {
+            if (null != typeattr) {
               
               java.util.UUID uuid = null;
               
@@ -515,7 +512,6 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               }
 
               long dpcount = 0;
-              long postB = 0;
               
               Metadata decoderMeta = new Metadata(decoder.getMetadata());
               // Remove producer/owner labels
@@ -524,27 +520,15 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                 decoderMeta.getLabels().remove(Constants.OWNER_LABEL);
               }
               
-              while(decoder.next()) {
-                
-                // If we've read enough data, exit
-                if (count >= 0 && lastCount + dpcount >= count) {
-                  break;
-                }
-                
+              while(decoder.next()) {                
                 long ts = decoder.getTimestamp();
                 long location = decoder.getLocation();
                 long elevation = decoder.getElevation();
                 Object value = decoder.getBinaryValue();
 
-                // When fetching per count, only increase 'count' when
-                // timestamp is before the end timestamp so we do not
-                // increase dpcount for the post boundary
-                if (-1L == count || ts <= end) {
-                  dpcount++;
-                } else if (ts > end) {
-                  postB++;
-                }
-
+                
+                dpcount++;
+                
                 int gtsidx = 0;
                 String typename = "DOUBLE";
                 
@@ -572,16 +556,30 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                   base.setMetadata(decoderMeta);
                   
                   // Force type attribute
-                  base.getMetadata().putToAttributes(typelabel, typename);
+                  base.getMetadata().putToAttributes(typeattr, typename);
                   if (null != uuid) {
                     base.getMetadata().putToAttributes(Constants.UUID_ATTRIBUTE, uuid.toString());
                   }
                 }
-                
-                GTSHelper.setValue(base, ts, location, elevation, value, false);                
+
+                //
+                // When using HBase, fetch requests which do not have boundaries may be served
+                // using a custom filter. This filter may return more data for a GTS than the requested
+                // count if the GTS spans multiple regions because the filtering is performed on the Region Servers
+                // and in this specific case the request will be forwarded to all RS serving regions for a given GTS.
+                // It is therefore necessary to keep track of how many datapoints were already fetched and
+                // shrink the GTS so we do not return too many.
+                //
+
+                if (countOnly && lastCount + dpcount >= count) {
+                  // We are done, exit
+                  break;
+                }
+
+                GTSHelper.setValue(base, ts, location, elevation, value, false);
               }
               
-              if (fetched.addAndGet(count + postB) > fetchLimit) {
+              if (fetched.addAndGet(dpcount) > fetchLimit) {
                 Map<String,String> sensisionLabels = new HashMap<String, String>();
                 sensisionLabels.put(SensisionConstants.SENSISION_LABEL_CONSUMERID, Tokens.getUUID(rtoken.getBilledId()));
                 Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FETCHCOUNT_EXCEEDED, sensisionLabels, 1);
@@ -610,27 +608,20 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               }
               lastType = gts.getType();
             }
-        
-            if (null == base && count >= 0 && postBoundary > 0) {
-              // This is the first GTS, so we need to count the size of the post boundary
-              // so we get a correct estimate of the number of datapoints we fetched
-              for (int i = 0; i < GTSHelper.nvalues(gts); i++) {
-                if (GTSHelper.tickAtIndex(gts, i) > end) {
-                  boundary++;
-                } else {
-                  // We can exit as soon as we find a timestamp <= end
-                  break;                  
-                }
-              }
-            }
+
+            //
+            // When using HBase, fetch requests which do not have boundaries may be served
+            // using a custom filter. This filter may return more data for a GTS than the requested
+            // count if the GTS spans multiple regions because the filtering is performed on the Region Servers
+            // and in this specific case the request will be forwarded to all RS serving regions for a given GTS.
+            // It is therefore necessary to keep track of how many datapoints were already fetched and
+            // shrink the GTS so we do not return too many.
+            //
             
-            if (count >= 0 && lastCount + GTSHelper.nvalues(gts) - boundary > count) {
-              // We would add too many datapoints, we will shrink the GTS.
-              // As it it sorted in reverse order of the ticks (since the datapoints are organized
-              // this way in HBase), we just need to shrink the GTS.
-              gts = GTSHelper.shrinkTo(gts, (int) Math.max(count - lastCount + boundary, 0));
+            if (countOnly && lastCount + GTSHelper.nvalues(gts) > count) {
+              gts = GTSHelper.shrinkTo(gts, (int) Math.max(count - lastCount, 0));              
             }
-            
+
             lastCount += GTSHelper.nvalues(gts);
             
             //
@@ -695,7 +686,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         // If there is one current GTS, push it onto the stack (only if not ventilating per type)
         //
         
-        if (null != base && null == typelabel) {
+        if (null != base && null == typeattr) {
           series.add(base);
         }     
         
@@ -1034,7 +1025,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       if (!(o instanceof Long)) {
         throw new WarpScriptException(getName() + " Invalid type for parameter '" + PARAM_BOUNDARY + "'.");
       }
-      int boundary = ((Long) o).intValue();
+      long boundary = ((Long) o).longValue();
       params.put(PARAM_BOUNDARY_PRE, boundary);
       params.put(PARAM_BOUNDARY_POST, boundary);
     }
@@ -1044,7 +1035,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       if (!(o instanceof Long)) {
         throw new WarpScriptException(getName() + " Invalid type for parameter '" + PARAM_BOUNDARY_PRE + "'.");
       }
-      int boundary = ((Long) o).intValue();
+      long boundary = ((Long) o).longValue();
       params.put(PARAM_BOUNDARY_PRE, boundary);
     }
 
@@ -1053,7 +1044,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       if (!(o instanceof Long)) {
         throw new WarpScriptException(getName() + " Invalid type for parameter '" + PARAM_BOUNDARY_POST + "'.");
       }
-      int boundary = ((Long) o).intValue();
+      long boundary = ((Long) o).longValue();
       params.put(PARAM_BOUNDARY_POST, boundary);
     }
     

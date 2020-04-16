@@ -278,7 +278,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
   private static final int MIN_GTS_PERSCANNER;
   private static final int MAX_PARALLEL_SCANNERS;
   
-  public ParallelGTSDecoderIteratorWrapper(boolean optimized, ReadToken token, long now, long then, long count, long skip, double sample, List<Metadata> metadatas, KeyStore keystore, Connection conn, TableName tableName, byte[] colfam, boolean writeTimestamp, boolean useBlockCache, int preBoundary, int postBoundary) throws IOException {
+  public ParallelGTSDecoderIteratorWrapper(boolean optimized, ReadToken token, long now, long then, long count, long skip, double sample, List<Metadata> metadatas, KeyStore keystore, Connection conn, TableName tableName, byte[] colfam, boolean writeTimestamp, boolean useBlockCache, long preBoundary, long postBoundary) throws IOException {
     if (standalone) {
       throw new IOException("Incompatible parallel scanner instantiated.");
     }
@@ -347,7 +347,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     this.pending.set(runnables.size());
   }
   
-  public ParallelGTSDecoderIteratorWrapper(StoreClient client, ReadToken token, long now, long then, long count, long skip, double sample, List<Metadata> metadatas, int preBoundary, int postBoundary) throws IOException {
+  public ParallelGTSDecoderIteratorWrapper(StoreClient client, ReadToken token, long now, long then, long count, long skip, double sample, List<Metadata> metadatas, long preBoundary, long postBoundary) throws IOException {
     
     if (!standalone) {
       throw new IOException("Incompatible parallel scanner instantiated.");

@@ -80,11 +80,11 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
   
   private byte[] hbaseKey;
   
-  private final int preBoundary;
-  private final int postBoundary;
+  private final long preBoundary;
+  private final long postBoundary;
   
-  private int preBoundaryCount = 0;
-  private int postBoundaryCount = 0;
+  private long preBoundaryCount = 0;
+  private long postBoundaryCount = 0;
   
   // Flag indicating we scan the pre boundary.
   private boolean preBoundaryScan = false;
@@ -95,7 +95,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
   private long skip = 0;
   private double sample = 1.0D;
   
-  public MultiScanGTSDecoderIterator(ReadToken token, long now, long then, long count, long skip, double sample, List<Metadata> metadatas, Connection conn, TableName tableName, byte[] colfam, boolean writeTimestamp, KeyStore keystore, boolean useBlockcache, int preBoundary, int postBoundary) throws IOException {
+  public MultiScanGTSDecoderIterator(ReadToken token, long now, long then, long count, long skip, double sample, List<Metadata> metadatas, Connection conn, TableName tableName, byte[] colfam, boolean writeTimestamp, KeyStore keystore, boolean useBlockcache, long preBoundary, long postBoundary) throws IOException {
     this.htable = conn.getTable(tableName);
     this.metadatas = metadatas;
     this.now = now;
@@ -276,13 +276,13 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
       //scan.setBatch(Math.min(postBoundary, 100000));
       // Best performance seems to be attained when adding 1 to the boundary size for caching
       // Don't ask me why!
-      scan.setCaching(Math.min(postBoundary + 1, 100000));
+      scan.setCaching((int) Math.min(postBoundary + 1, 100000));
       if (postBoundary < 100) {
         scan.setSmall(true);
       }
     } else if (preBoundaryScan) {
       //scan.setBatch(Math.min(preBoundary , 100000));
-      scan.setCaching(Math.min(preBoundary + 1, 100000));
+      scan.setCaching((int) Math.min(preBoundary + 1, 100000));
       if (preBoundary < 100) {
         scan.setSmall(true);
       }
@@ -345,7 +345,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     
     GTSEncoder encoder = new GTSEncoder(0L);
 
-    while(encoder.size() < Constants.MAX_ENCODER_SIZE && nvalues > 0 && scaniter.hasNext()) {
+    while(encoder.size() < Constants.MAX_ENCODER_SIZE && (nvalues > 0 || preBoundaryScan || postBoundaryScan) && scaniter.hasNext()) {
       
       //
       // Extract next result from scaniter
@@ -357,7 +357,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
       CellScanner cscanner = result.cellScanner();
       
       try {
-        while(nvalues > 0 && cscanner.advance()) {
+        while((nvalues > 0 || preBoundaryScan || postBoundaryScan) && cscanner.advance()) {
           Cell cell = cscanner.current();
       
           cellCount++;
@@ -403,7 +403,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
 
           GTSDecoder decoder = new GTSDecoder(basets, hbaseKey, bb);
                     
-          while(nvalues > 0 && decoder.next()) {
+          while((nvalues > 0 || preBoundaryScan || postBoundaryScan) && decoder.next()) {
             long timestamp = decoder.getTimestamp();
                         
             if (preBoundaryScan || postBoundaryScan || (timestamp <= now && timestamp >= then)) {

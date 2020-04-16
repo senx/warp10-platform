@@ -257,7 +257,7 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
   }
   
   @Override
-  public GTSDecoderIterator fetch(ReadToken token, List<Metadata> metadatas, long now, long then, long count, long skip, double sample, boolean writeTimestamp, int preBoundary, int postBoundary) throws IOException {
+  public GTSDecoderIterator fetch(ReadToken token, List<Metadata> metadatas, long now, long then, long count, long skip, double sample, boolean writeTimestamp, long preBoundary, long postBoundary) throws IOException {
     //
     // If the fetch has both a time range that is larger than the cache range, we will only use
     // the persistent backend to ensure a correct fetch. Same goes with boundaries which could extend outside the

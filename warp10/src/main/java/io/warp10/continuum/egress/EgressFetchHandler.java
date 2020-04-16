@@ -180,8 +180,8 @@ public class EgressFetchHandler extends AbstractHandler {
       long count = -1;
       long skip = 0;
       double sample = 1.0D;
-      int preBoundary = 0;
-      int postBoundary = 0;
+      long preBoundary = 0;
+      long postBoundary = 0;
 
       String startParam = null;
       String stopParam = null;
@@ -298,11 +298,11 @@ public class EgressFetchHandler extends AbstractHandler {
       }
 
       if (null != preBoundaryParam) {
-        preBoundary = Integer.parseInt(preBoundaryParam);
+        preBoundary = Long.parseLong(preBoundaryParam);
       }
 
       if (null != postBoundaryParam) {
-        postBoundary = Integer.parseInt(postBoundaryParam);
+        postBoundary = Long.parseLong(postBoundaryParam);
       }
       
       String selector = splitFetch ? null : req.getParameter(Constants.HTTP_PARAM_SELECTOR);

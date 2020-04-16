@@ -89,7 +89,7 @@ public class StandaloneStoreClient implements StoreClient {
   }
   
   @Override
-  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, long count, long skip, double sample, boolean writeTimestamp, int preBoundary, int postBoundary) {
+  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, long count, long skip, double sample, boolean writeTimestamp, long preBoundary, long postBoundary) {
 
     if (preBoundary < 0) {
       preBoundary = 0;
@@ -147,8 +147,8 @@ public class StandaloneStoreClient implements StoreClient {
     
     Collections.sort(metadatas, MetadataIdComparator.COMPARATOR);
         
-    final int preB = preBoundary;
-    final int postB = postBoundary;
+    final long preB = preBoundary;
+    final long postB = postBoundary;
 
     final long fskip = skip;
     final double fsample = sample;
@@ -159,8 +159,8 @@ public class StandaloneStoreClient implements StoreClient {
       Random prng = fsample < 1.0D ? new Random() : null;
       
       long skip = fskip;
-      int preBoundary = preB;
-      int postBoundary = postB;
+      long preBoundary = preB;
+      long postBoundary = postB;
       
       int idx = -1;
        
@@ -197,10 +197,11 @@ public class StandaloneStoreClient implements StoreClient {
         //
         while (postBoundary > 0 && encoder.size() < MAX_ENCODER_SIZE) {          
           Entry<byte[], byte[]> kv = iterator.prev();
-          // Check if the previous row is for the same GTS
+          // Check if the previous row is for the same GTS (prefix + 8 bytes for class id + 8 bytes for labels id)
           // 128bits
           int i = Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8;
 
+          // The post boundary scan exhausted the datapoints for the GTS, seek back to startrow
           if (0 != Bytes.compareTo(kv.getKey(), 0, i, startrow, 0, i)) {
             postBoundary = 0;
             iterator.seek(startrow);
@@ -246,7 +247,7 @@ public class StandaloneStoreClient implements StoreClient {
               //
               
               while (preBoundary > 0 && encoder.size() < MAX_ENCODER_SIZE) {
-                // Check if the previous row is for the same GTS
+                // Check if the row is for the same GTS, if not then we are done
                 // 128bits
                 int i = Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8;
                 if (0 != Bytes.compareTo(kv.getKey(), 0, i, stoprow, 0, i)) {
@@ -390,8 +391,9 @@ public class StandaloneStoreClient implements StoreClient {
               startrow = null;
             } else {
               //
-              // If we are time based or value count based with values left to read, return true
-              if (-1 == fcount || nvalues > 0) {
+              // If we are time based or value count based with values left to read or with boundaries still to be fetched,
+              // return true
+              if (-1 == fcount || nvalues > 0 || preBoundary > 0 || postBoundary > 0) {
                 return true;
               } else {
                 startrow = null;
