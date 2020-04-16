@@ -93,7 +93,8 @@ public class HHCODETO extends NamedWarpScriptFunction implements WarpScriptStack
           stack.push(Double.NaN);
           stack.push(Double.NaN);
         } else {
-          double[] latlon = HHCodeHelper.getCenterLatLon(hh, res);
+          // Lat/Lon of the SW coordinates of the HHCode
+          double[] latlon = GeoXPLib.fromGeoXPPoint(hh);
           stack.push(latlon[0]);
           stack.push(latlon[1]);
         }

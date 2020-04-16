@@ -129,6 +129,12 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
     return o;
   }
 
+  /**
+   * Convert a HHCode representation to a long hhcode and an int resolution. The resolution is even and between 2 and 32, inclusive.
+   * @param hhcode The HHCode representation, which may be a String, a byte[] or a Long.
+   * @return an array of two long, the first being the HHCode and the second being the resolution, which can be safely casted to an int.
+   * @throws WarpScriptException if the given Object is not a Long, a byte[] of length <= 8 or a String or length <= 16.
+   */
   public static long[] hhAndRes(Object hhcode) throws WarpScriptException {
     long hh;
     int res;
