@@ -99,11 +99,6 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     // Force accelerator parameters to be replicated on inmemory ones and clear other in memory params
     //
     
-    if (null == WarpConfig.getProperty(Configuration.ACCELERATOR_CHUNK_COUNT)
-        || null == WarpConfig.getProperty(Configuration.ACCELERATOR_CHUNK_LENGTH)) {
-      throw new RuntimeException("Missing configuration key '" + Configuration.ACCELERATOR_CHUNK_COUNT + "' or '" + Configuration.ACCELERATOR_CHUNK_LENGTH + "'");
-    }
-    
     WarpConfig.setProperty(Configuration.IN_MEMORY_CHUNK_COUNT, WarpConfig.getProperty(Configuration.ACCELERATOR_CHUNK_COUNT));
     WarpConfig.setProperty(Configuration.IN_MEMORY_CHUNK_LENGTH, WarpConfig.getProperty(Configuration.ACCELERATOR_CHUNK_LENGTH));
     WarpConfig.setProperty(Configuration.IN_MEMORY_EPHEMERAL, WarpConfig.getProperty(Configuration.ACCELERATOR_EPHEMERAL));
@@ -113,10 +108,15 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     WarpConfig.setProperty(Configuration.STANDALONE_MEMORY_STORE_LOAD, null);
     WarpConfig.setProperty(Configuration.STANDALONE_MEMORY_STORE_DUMP, null);
     
+    this.ephemeral = "true".equals(WarpConfig.getProperty(Configuration.IN_MEMORY_EPHEMERAL)); 
+
+    if (!this.ephemeral && (null == WarpConfig.getProperty(Configuration.ACCELERATOR_CHUNK_COUNT)
+        || null == WarpConfig.getProperty(Configuration.ACCELERATOR_CHUNK_LENGTH))) {
+      throw new RuntimeException("Missing configuration key '" + Configuration.ACCELERATOR_CHUNK_COUNT + "' or '" + Configuration.ACCELERATOR_CHUNK_LENGTH + "'");
+    }
+
     this.persistent = persistentStore;
     this.cache = new StandaloneChunkedMemoryStore(WarpConfig.getProperties(), Warp.getKeyStore());
-
-    this.ephemeral = "true".equals(WarpConfig.getProperty(Configuration.IN_MEMORY_EPHEMERAL)); 
     
     //
     // Preload the cache
@@ -275,6 +275,7 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     // If fetching a single value from Long.MAX_VALUE with an ephemeral cache, always use the cache
     // unless ACCEL.NOCACHE was called.
     //
+    
     if (this.ephemeral && 1 == count && Long.MAX_VALUE == now && !nocache.get()) {
       accelerated.set(Boolean.TRUE);
       return this.cache.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);      
