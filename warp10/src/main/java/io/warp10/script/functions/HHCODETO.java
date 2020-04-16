@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package io.warp10.script.functions;
 
 import com.geoxp.GeoXPLib;
-import com.google.common.primitives.Longs;
+import com.geoxp.geo.GeoHashHelper;
+import com.geoxp.geo.HHCodeHelper;
 
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -25,8 +26,11 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * Convert a GeoHash to lat/lon
+ * Convert a HHCode lat/lon or GeoHash, or a list of HHCodes to a GeoXPShape
  */
 public class HHCODETO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -44,34 +48,56 @@ public class HHCODETO extends NamedWarpScriptFunction implements WarpScriptStack
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    Object hhcode = stack.pop();
+    Object top = stack.pop();
 
-    long hh;
+    if (top instanceof List) {
+      List cellList = (List) top;
+      ArrayList<Long> cells = new ArrayList<Long>();
 
-    if (hhcode instanceof Long) {
-      hh = (long) hhcode;
-    } else if (hhcode instanceof String) {
-      String hhstr = hhcode.toString();
-      if (hhstr.length() > 16) {
-        throw new WarpScriptException(getName() + " expects an hexadecimal HHCode string of length <= 16");
-      } else if (hhstr.length() < 16) {
-        hhcode = new StringBuilder(hhstr).append("0000000000000000");
-        ((StringBuilder) hhcode).setLength(16);
+      long[] hhAndRes;
+      for(Object cell: cellList) {
+        try {
+          hhAndRes = HHCODEFUNC.hhAndRes(cell);
+        } catch (WarpScriptException wse) {
+          throw new WarpScriptException(getName() + " expects the given list to contain LONG, STRING or BYTES HHCodes.", wse);
+        }
+        long hh = hhAndRes[0];
+        int res = (int) hhAndRes[1]; // We know hhAndRes returns an int here.
+
+        cells.add(HHCodeHelper.toGeoCell(hh, res));
       }
-      hh = Long.parseUnsignedLong(hhcode.toString(), 16);
-    } else if (hhcode instanceof byte[]) {
-      hh = Longs.fromByteArray((byte[]) hhcode);
-    } else {
-      throw new WarpScriptException(getName() + " expects a long, a string or a byte array.");
-    }
 
-    if (useGtsConvention && GeoTimeSerie.NO_LOCATION == hh) {
-      stack.push(Double.NaN);
-      stack.push(Double.NaN);
+      stack.push(GeoXPLib.fromCells(cells));
     } else {
-      double[] latlon = GeoXPLib.fromGeoXPPoint(hh);
-      stack.push(latlon[0]);
-      stack.push(latlon[1]);
+      // Optional: boolean to select GeoHash/Lat-Lon output
+      boolean geohashOutput = false;
+      if (top instanceof Boolean) {
+        geohashOutput = (Boolean) top;
+        top = stack.pop();
+      }
+
+      long[] hhAndRes;
+      try {
+        hhAndRes = HHCODEFUNC.hhAndRes(top);
+      } catch (WarpScriptException wse) {
+        throw new WarpScriptException(getName() + " was given unexpected arguments.", wse);
+      }
+      long hh = hhAndRes[0];
+      int res = (int) hhAndRes[1]; // We know hhAndRes returns an int here.
+
+      if(geohashOutput) {
+        // This is an approximation of the HHCode with a GeoHash
+        stack.push(GeoHashHelper.fromHHCode(hh, res));
+      } else {
+        if (useGtsConvention && GeoTimeSerie.NO_LOCATION == hh) {
+          stack.push(Double.NaN);
+          stack.push(Double.NaN);
+        } else {
+          double[] latlon = HHCodeHelper.getCenterLatLon(hh, res);
+          stack.push(latlon[0]);
+          stack.push(latlon[1]);
+        }
+      }
     }
 
     return stack;
