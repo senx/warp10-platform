@@ -281,8 +281,10 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
       return this.cache.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);      
     }
     
-    // Use the persistent store unless ACCEL.NOPERSIST was called 
-    if (((now > cacheend || then < cachestart) || preBoundary > 0 || postBoundary > 0 || nocache.get()) && !nopersist.get()) {
+    // Use the persistent store if the accelerator is in ephemeral mode,
+    // if the requested time range is larger than the accelerated range or
+    // if boundaries were requested, unless ACCEL.NOPERSIST was called 
+    if ((this.ephemeral || (now > cacheend || then < cachestart) || preBoundary > 0 || postBoundary > 0 || nocache.get()) && !nopersist.get()) {
       accelerated.set(Boolean.FALSE);
       return this.persistent.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
     }
