@@ -120,11 +120,11 @@ subprojects {
         }
         mavenCentral()
         mavenLocal()
-        //maven {
-        //    url "http://maven.twttr.com"
-        //}
         maven {
             url 'https://dl.bintray.com/senx/maven'
+        }
+        maven {
+            url 'https://dl.bintray.com/hbs/maven'
         }
     }
 
