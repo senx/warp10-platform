@@ -19,7 +19,6 @@ package io.warp10.script.mapper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.StackUtils;
-import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStackFunction;
@@ -32,7 +31,7 @@ import java.util.Map;
 /**
  * Mapper which operates a dot product between an input vector and the sliding window
  */
-public class MapperDotProduct extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptAggregatorFunction {
+public class MapperDotProduct extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
 
   private final double[] omega;
   

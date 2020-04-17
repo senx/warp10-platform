@@ -17,7 +17,6 @@
 package io.warp10.script.mapper;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptException;
 
@@ -26,7 +25,7 @@ import java.util.Map;
 /**
  * Mapper which returns the absolute value of the value passed as parameter
  */
-public class MapperToLong extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptAggregatorFunction {
+public class MapperToLong extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
 
   public MapperToLong(String name) {
     super(name);

@@ -18,7 +18,6 @@ package io.warp10.script.functions;
 
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptReducerFunction;
@@ -34,7 +33,7 @@ public class STRICTREDUCER extends NamedWarpScriptFunction implements WarpScript
     super(name);
   }
   
-  private static final class StringentReducer extends NamedWarpScriptFunction implements WarpScriptReducerFunction, WarpScriptAggregatorFunction {
+  private static final class StringentReducer extends NamedWarpScriptFunction implements WarpScriptReducerFunction {
     
     private final WarpScriptReducerFunction reducer;
     

@@ -19,7 +19,6 @@ package io.warp10.script.mapper;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.StackUtils;
-import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -30,7 +29,7 @@ import java.util.Map;
 /**
  * Mapper which determines the min of a constant and the value passed as parameter
  */
-public class MapperMinX extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptAggregatorFunction {
+public class MapperMinX extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
   
   private TYPE type = TYPE.UNDEFINED;
   private long lvalue;

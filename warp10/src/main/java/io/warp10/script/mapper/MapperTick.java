@@ -17,7 +17,6 @@
 package io.warp10.script.mapper;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -26,7 +25,7 @@ import io.warp10.script.WarpScriptStack;
 /**
  * Mapper which returns the tick for which it is computed
  */
-public class MapperTick extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptAggregatorFunction {
+public class MapperTick extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
   
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
     

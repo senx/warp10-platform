@@ -21,7 +21,6 @@ import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.StackUtils;
-import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptMapperFunction;
@@ -44,7 +43,7 @@ import java.util.Map;
  * This reducer takes an additional LONG parameter to choose the maximum to report (use 0 to report them all),
  * and a String parameter to choose on which label it operates.
  */
-public class Argminmax extends NamedWarpScriptFunction implements WarpScriptAggregatorFunction, WarpScriptMapperFunction, WarpScriptBucketizerFunction, WarpScriptReducerFunction {
+public class Argminmax extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptBucketizerFunction, WarpScriptReducerFunction {
 
   /**
    * Label to report

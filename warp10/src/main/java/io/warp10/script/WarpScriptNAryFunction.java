@@ -22,6 +22,5 @@ package io.warp10.script;
  * partitioned GTS instances.
  * 
  */
-public interface WarpScriptNAryFunction {
-  public Object apply(Object[] args) throws WarpScriptException;
+public interface WarpScriptNAryFunction extends WarpScriptAggregatorFunction {
 }

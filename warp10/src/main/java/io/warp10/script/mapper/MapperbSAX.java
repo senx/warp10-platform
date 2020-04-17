@@ -19,7 +19,6 @@ package io.warp10.script.mapper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -31,7 +30,7 @@ import java.util.Map;
 /**
  * Mapper which computes the bSAX symbol given a wordlength and a tick step
  */
-public class MapperbSAX extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptAggregatorFunction {
+public class MapperbSAX extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
   
   /**
    * We voluntarily do not use the name 'bSAX'.

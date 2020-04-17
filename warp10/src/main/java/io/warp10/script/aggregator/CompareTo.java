@@ -20,7 +20,6 @@ import com.geoxp.GeoXPLib;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.StackUtils;
-import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptMapperFunction;
@@ -31,7 +30,7 @@ import java.util.function.BiFunction;
 /**
  * Keep the first element (tick, lat, lon, hhcode, elevation or value) which pass a comparison test (>, >=, ==, =<, < or !=) versus a given value.
  */
-public class CompareTo extends NamedWarpScriptFunction implements WarpScriptAggregatorFunction, WarpScriptMapperFunction, WarpScriptReducerFunction, WarpScriptBucketizerFunction {
+public class CompareTo extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptReducerFunction, WarpScriptBucketizerFunction {
 
   private final BiFunction<Object[], Integer, Boolean> tester;
 

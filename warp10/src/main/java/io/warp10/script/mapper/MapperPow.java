@@ -20,7 +20,6 @@ import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.StackUtils;
-import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -31,7 +30,7 @@ import java.util.Map;
 /**
  * Mapper which raises the value passed as parameter to a certain power.
  */
-public class MapperPow extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptAggregatorFunction {
+public class MapperPow extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
   
   private double dvalue;
 

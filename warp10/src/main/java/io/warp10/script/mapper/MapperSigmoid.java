@@ -18,7 +18,6 @@ package io.warp10.script.mapper;
 
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptException;
 
@@ -27,7 +26,7 @@ import java.util.Map;
 /**
  * Mapper which returns the sigmoid of the value passed as parameter
  */
-public class MapperSigmoid extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptAggregatorFunction {
+public class MapperSigmoid extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
 
   public MapperSigmoid(String name) {
     super(name);
