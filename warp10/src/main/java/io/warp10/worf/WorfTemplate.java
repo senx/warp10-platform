@@ -57,7 +57,7 @@ public class WorfTemplate {
   }
 
   public List<String> getCryptoKeys() throws WorfException {
-    List<String> keys = new ArrayList<>();
+    List<String> keys = new ArrayList<String>();
 
     for (Map.Entry<Object,Object> configEntry : config.entrySet()) {
       String key = (String) configEntry.getKey();
@@ -86,7 +86,7 @@ public class WorfTemplate {
   }
 
   public List<String> getTokenKeys() throws WorfException {
-    List<String> keys = new ArrayList<>();
+    List<String> keys = new ArrayList<String>();
     for (Map.Entry<Object,Object> configEntry : config.entrySet()) {
       String key = (String) configEntry.getKey();
       String value = (String) configEntry.getValue();
@@ -113,7 +113,7 @@ public class WorfTemplate {
   }
 
   public Stack<Pair<String, String[]>> getFieldsStack() throws WorfException {
-    Stack<Pair<String, String[]>> stack = new Stack<>();
+    Stack<Pair<String, String[]>> stack = new Stack<Pair<String, String[]>>();
 
     for (Map.Entry<Object,Object> configEntry : config.entrySet()) {
       String key = (String) configEntry.getKey();
@@ -132,7 +132,7 @@ public class WorfTemplate {
         if (templateValues.length != 3) {
           throw new WorfException("Read template error key=" + key + " t=" + value);
         }
-        stack.push(new Pair<>(value, templateValues));
+        stack.push(new Pair<String, String[]>(value, templateValues));
       }
     }
 

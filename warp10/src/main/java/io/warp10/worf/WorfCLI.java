@@ -198,7 +198,7 @@ public class WorfCLI {
 
           // extract uuid with the pattern owner{owner1,owner2}
           if (matcher.matches()) {
-            authorizedProducersUID = new ArrayList<>();
+            authorizedProducersUID = new ArrayList<String>();
             String[] uuids = matcher.group(2).split(",");
 
             // adds uuid to the list, fail otherwise
@@ -227,7 +227,7 @@ public class WorfCLI {
 
           // extract uuid with the pattern owner{owner1,owner2}
           if (matcher.matches()) {
-            authorizedOwnersUID = new ArrayList<>();
+            authorizedOwnersUID = new ArrayList<String>();
             String[] uuids = matcher.group(2).split(",");
 
             // adds uuid to the list, fail otherwise
@@ -260,7 +260,7 @@ public class WorfCLI {
 
           // extract app names of pattern app{app,app1,app2}
           if (matcher.matches()) {
-            authorizedApplications = new ArrayList<>();
+            authorizedApplications = new ArrayList<String>();
             String[] apps = matcher.group(2).split(",");
 
             // adds uuid to the list, fail otherwise

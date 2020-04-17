@@ -44,7 +44,7 @@ public class ThrowableUtils {
     String simpleClassName = t.getClass().getSimpleName();
 
     // Maintain a list of Throwable causes to avoid the unlikely case of a cycle in causes.
-    final ArrayList<Throwable> throwables = new ArrayList<>();
+    final ArrayList<Throwable> throwables = new ArrayList<Throwable>();
 
     List<String> messages = new ArrayList<String>();
 

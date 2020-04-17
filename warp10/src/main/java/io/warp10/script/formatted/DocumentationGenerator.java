@@ -43,7 +43,7 @@ public class DocumentationGenerator {
                                                  List<String> tags, List<String> related, List<String> examples, List<String> conf,
                                                  List<ArgumentSpecification> outputs) {
 
-    LinkedHashMap<String, Object> info = new LinkedHashMap<>();
+    LinkedHashMap<String, Object> info = new LinkedHashMap<String, Object>();
 
     info.put("name", function.getName());
     info.put("since", since);
@@ -60,8 +60,8 @@ public class DocumentationGenerator {
     // Signature generation
     //
 
-    List<List<List<Object>>> sig = new ArrayList<>();
-    List<Object> output = new ArrayList<>();
+    List<List<List<Object>>> sig = new ArrayList<List<List<Object>>>();
+    List<Object> output = new ArrayList<Object>();
     for (ArgumentSpecification arg: Lists.reverse(outputs)) {
       output.add(arg.getName() + ":" + arg.WarpScriptType());
     }
@@ -70,11 +70,11 @@ public class DocumentationGenerator {
     // Sig without opt args on the stack
     //
 
-    List<List<Object>> sig1 = new ArrayList<>();
-    List<Object> input1 = new ArrayList<>();
+    List<List<Object>> sig1 = new ArrayList<List<Object>>();
+    List<Object> input1 = new ArrayList<Object>();
 
     if (0 == args.size() && 0 != optArgs.size()) {
-      input1.add(new LinkedHashMap<>());
+      input1.add(new LinkedHashMap<String, String>());
     }
 
     for (ArgumentSpecification arg: Lists.reverse(args)) {
@@ -89,9 +89,9 @@ public class DocumentationGenerator {
     // Sig with opt args on the stack (in a map)
     //
 
-    List<List<Object>> sig2 = new ArrayList<>();
-    List<Object> input2 = new ArrayList<>();
-    LinkedHashMap<String, String> optMap = new LinkedHashMap<>();
+    List<List<Object>> sig2 = new ArrayList<List<Object>>();
+    List<Object> input2 = new ArrayList<Object>();
+    LinkedHashMap<String, String> optMap = new LinkedHashMap<String, String>();
 
     for (ArgumentSpecification arg: Lists.reverse(optArgs)) {
       optMap.put(arg.getName(), arg.getName() + ":" + arg.WarpScriptType());
@@ -112,7 +112,7 @@ public class DocumentationGenerator {
     // Params generation
     //
 
-    LinkedHashMap<String, String> params = new LinkedHashMap<>();
+    LinkedHashMap<String, String> params = new LinkedHashMap<String, String>();
     for (ArgumentSpecification arg: Lists.reverse(optArgs)) {
       params.put(arg.getName(), arg.getDoc());
     }

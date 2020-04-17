@@ -185,7 +185,7 @@ public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction
   public void testDocGeneration() throws Exception {
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
 
-    List<ArgumentSpecification> output = new ArrayList<>();
+    List<ArgumentSpecification> output = new ArrayList<ArgumentSpecification>();
     output.add(new ArgumentSpecification(Map.class, "result", "A map containing the input arguments."));
 
     stack.execMulti(generateWarpScriptDoc(this, output));
