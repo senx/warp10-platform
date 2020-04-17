@@ -56,10 +56,16 @@ public class HHCODETO extends NamedWarpScriptFunction implements WarpScriptStack
 
       long[] hhAndRes;
       for(Object cell: cellList) {
+        // Only support String or byte[] HHCode. Long HHCode are of resolution 32 and cannot be converted to a GeoXPShape.
+        // Longs may be Geo Cells which must not be mixed with pure HHCodes.
+        if (!(cell instanceof String || cell instanceof byte[])) {
+          throw new WarpScriptException(getName() + " expects the given list to contain STRING or BYTES HHCodes.");
+        }
+
         try {
           hhAndRes = HHCODEFUNC.hhAndRes(cell);
         } catch (WarpScriptException wse) {
-          throw new WarpScriptException(getName() + " expects the given list to contain LONG, STRING or BYTES HHCodes.", wse);
+          throw new WarpScriptException(getName() + " expects the given list to contain valid STRING or BYTES HHCodes.", wse);
         }
         long hh = hhAndRes[0];
         int res = (int) hhAndRes[1]; // We know hhAndRes returns an int here.

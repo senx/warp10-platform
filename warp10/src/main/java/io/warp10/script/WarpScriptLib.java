@@ -1083,6 +1083,7 @@ public class WarpScriptLib {
   public static final String TOHHCODELONG = "->HHCODELONG";
   public static final String TOGTSHHCODE = "->GTSHHCODE";
   public static final String TOGTSHHCODELONG = "->GTSHHCODELONG";
+  public static final String TOGEOCELLS = "->GEOCELLS";
   public static final String TOGEOHASH = "->GEOHASH";
   public static final String TOZ = "->Z";
   public static final String TOMAT = "->MAT";
@@ -1104,6 +1105,7 @@ public class WarpScriptLib {
   public static final String TSELEMENTSTO = "TSELEMENTS->";
   public static final String HHCODETO = "HHCODE->";
   public static final String GTSHHCODETO = "GTSHHCODE->";
+  public static final String GEOCELLSTO = "GEOCELLS->";
   public static final String GEOHASHTO = "GEOHASH->";
   public static final String GEOSPLIT = "GEOSPLIT";
   public static final String ZTO = "Z->";
@@ -1926,8 +1928,10 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOHHCODE(TOHHCODELONG, false));
     addNamedWarpScriptFunction(new TOHHCODE(TOGTSHHCODE, true, true));
     addNamedWarpScriptFunction(new TOHHCODE(TOGTSHHCODELONG, false, true));
+    addNamedWarpScriptFunction(new TOGEOCELLS(TOGEOCELLS));
     addNamedWarpScriptFunction(new HHCODETO(HHCODETO));
     addNamedWarpScriptFunction(new HHCODETO(GTSHHCODETO, true));
+    addNamedWarpScriptFunction(new GEOCELLSTO(GEOCELLSTO));
     addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_BBOX, HHCODEFUNC.HHCodeAction.BBOX));
     addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_CENTER, HHCODEFUNC.HHCodeAction.CENTER));
     addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_NORTH, HHCODEFUNC.HHCodeAction.NORTH));

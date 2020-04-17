@@ -49,8 +49,9 @@ public class TOHHCODE extends NamedWarpScriptFunction implements WarpScriptStack
 
     Object top = stack.pop();
 
-    if (top instanceof GeoXPLib.GeoXPShape) {
-      // GeoXPShape -> HHCodes
+    if (this.tostring && top instanceof GeoXPLib.GeoXPShape) {
+      // GeoXPShape -> HHCodes. Only String HHCode are supported.
+
       GeoXPLib.GeoXPShape shape = (GeoXPLib.GeoXPShape) top;
 
       ArrayList<Object> hhcodes = new ArrayList<Object>();
@@ -58,12 +59,8 @@ public class TOHHCODE extends NamedWarpScriptFunction implements WarpScriptStack
       long[] geocells = GeoXPLib.getCells(shape);
 
       for (long geocell: geocells) {
-        if (this.tostring) {
-          String hhcode = Long.toHexString(geocell).substring(1, (int) ((geocell >>> 60) + 1));
-          hhcodes.add(hhcode);
-        } else {
-          hhcodes.add(geocell);
-        }
+        String hhcode = Long.toHexString(geocell).substring(1, (int) ((geocell >>> 60) + 1));
+        hhcodes.add(hhcode);
       }
 
       stack.push(hhcodes);
@@ -112,7 +109,11 @@ public class TOHHCODE extends NamedWarpScriptFunction implements WarpScriptStack
         stack.push(geoxppoint);
       }
     } else {
-      throw new WarpScriptException(getName() + " expects numeric lat/lon, a STRING GeoHash or a GEOSHAPE shape.");
+      if (this.tostring) {
+        throw new WarpScriptException(getName() + " expects numeric lat/lon, a STRING GeoHash or a GEOSHAPE shape.");
+      } else {
+        throw new WarpScriptException(getName() + " expects numeric lat/lon or a STRING GeoHash.");
+      }
     }
     return stack;
   }
