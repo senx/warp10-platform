@@ -85,7 +85,7 @@ public class WarpConfig {
       // If a file starts with '@', treat it as a file containing lists of files
       //
 
-      List<String> filenames = new ArrayList<>(Arrays.asList(files));
+      List<String> filenames = new ArrayList<String>(Arrays.asList(files));
 
       StringBuilder sb = new StringBuilder();
 

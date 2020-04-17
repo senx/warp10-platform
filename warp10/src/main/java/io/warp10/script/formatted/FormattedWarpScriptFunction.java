@@ -68,11 +68,11 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     }
 
     public List<ArgumentSpecification> getArgsCopy() {
-      return new ArrayList<>(args);
+      return new ArrayList<ArgumentSpecification>(args);
     }
 
     public List<ArgumentSpecification> getOptArgsCopy() {
-      return new ArrayList<>(optArgs);
+      return new ArrayList<ArgumentSpecification>(optArgs);
     }
 
     public boolean isListExpandable() {
@@ -86,8 +86,8 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     private boolean listExpandable;
 
     public ArgumentsBuilder() {
-      args = new ArrayList<>();
-      optArgs = new ArrayList<>();
+      args = new ArrayList<ArgumentSpecification>();
+      optArgs = new ArrayList<ArgumentSpecification>();
       listExpandable = false;
     }
 
@@ -377,7 +377,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       // Check List and Map arguments sub types
       //
 
-      List<ArgumentSpecification> both = new ArrayList<>();
+      List<ArgumentSpecification> both = new ArrayList<ArgumentSpecification>();
       both.addAll(args);
       both.addAll(optArgs);
 
@@ -453,7 +453,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
 
           stack.push(args.size() - 1);
           Object[] cache = stack.popn();
-          List<Object> arr = new ArrayList<>();
+          List<Object> arr = new ArrayList<Object>();
           arr.add(stack.pop());
           stack.push(arr);
           for (Object o: cache) {
@@ -581,7 +581,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       } else {
 
         // first arg list is empty so result is empty
-        stack.push(new ArrayList<>());
+        stack.push(new ArrayList<Object>());
         return stack;
       }
 

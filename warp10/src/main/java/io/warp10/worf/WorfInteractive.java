@@ -605,7 +605,7 @@ public class WorfInteractive {
     try {
       if (Strings.isNullOrEmpty(line) && Strings.isNullOrEmpty(uuidDefault)) {
         if (optional) {
-          return new ArrayList<>();
+          return new ArrayList<String>();
         }
         return null;
       }

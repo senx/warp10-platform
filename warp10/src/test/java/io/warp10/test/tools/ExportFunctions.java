@@ -98,7 +98,7 @@ public class ExportFunctions {
   private final static String FMK_BUCKETIZE = "BUCKETIZE";
 
   public static void main(String[] args) throws Exception {
-    List<String> functionsFullList = new ArrayList<>();
+    List<String> functionsFullList = new ArrayList<String>();
     try {
       // THIS is a very bad thing, used only for extraction purpose
 
@@ -126,20 +126,20 @@ public class ExportFunctions {
     // -------------------------------------------------------------
     // output functions by category
     // -------------------------------------------------------------
-    Map<String, Map<String,List<String>>> frameworksFunctions = new HashMap<>();
+    Map<String, Map<String,List<String>>> frameworksFunctions = new HashMap<String, Map<String,List<String>>>();
     frameworksFunctions.put(FMK_MAP, getFrameworkStructure(SINGLE_VALUE_MAPPER, SLIDING_WINDOW_MAPPER, GEO_MAPPER, CUSTOM_MAPPER));
     frameworksFunctions.put(FMK_REDUCE, getFrameworkStructure(DEFAULT_REDUCER, CUSTOM_REDUCER) );
     frameworksFunctions.put(FMK_APPLY, getFrameworkStructure(DEFAULT_OP));
     frameworksFunctions.put(FMK_FILTER, getFrameworkStructure(DEFAULT_FILTER, CUSTOM_FILTER));
     frameworksFunctions.put(FMK_BUCKETIZE, getFrameworkStructure(DEFAULT_BUCKETIZER, CUSTOM_BUCKETIZER));
 
-    Map<String, List<String>> operators = new HashMap<>();
+    Map<String, List<String>> operators = new HashMap<String, List<String>>();
     operators.put(OP_ARITMETIC, new ArrayList<String>());
     operators.put(OP_LOGICAL, new ArrayList<String>());
     operators.put(OP_COMPARAISON, new ArrayList<String>());
     operators.put(OP_BITWISE, new ArrayList<String>());
 
-    Map<String, List<String>> functions = new HashMap<>();
+    Map<String, List<String>> functions = new HashMap<String, List<String>>();
     functions.put(FCT_MATH, new ArrayList<String>());
     functions.put(FCT_TIMEUNIT, new ArrayList<String>());
     functions.put(FCT_TRIGO, new ArrayList<String>());
@@ -190,7 +190,7 @@ public class ExportFunctions {
     // -------------------------------------------------------------
     // OPERATORS
     // -------------------------------------------------------------
-    Map<String, List<String>> staticOperators = new HashMap<>();
+    Map<String, List<String>> staticOperators = new HashMap<String, List<String>>();
     staticOperators.put(OP_ARITMETIC, Lists.newArrayList("+", "-", "*", "**", "/", "%"));
     staticOperators.put(OP_LOGICAL, Lists.newArrayList("&&", "||", "!", "AND", "OR", "NOT"));
     staticOperators.put(OP_COMPARAISON, Lists.newArrayList("==", "~=", "!=", "<=", ">=", "<", ">"));
@@ -225,7 +225,7 @@ public class ExportFunctions {
 
 
     // FUNCTIONS
-    Map<String, List<String>> staticFunctions = new HashMap<>();
+    Map<String, List<String>> staticFunctions = new HashMap<String, List<String>>();
     staticFunctions.put(FCT_MATH, Lists.newArrayList("+!","RANDPDF","->DOUBLEBITS","->FLOATBITS","DOUBLEBITS->","FLOATBITS->","ABS","CBRT","CEIL","COPYSIGN","EXP","FLOOR","IEEEREMAINDER","LBOUNDS","LOG","LOG10","MAX","MIN","NBOUNDS","NEXTAFTER","NEXTUP","NPDF","PROBABILITY","RAND","REVBITS","RINT","ROUND","SIGNUM","SQRT"));
     staticFunctions.put(FCT_TIMEUNIT, Lists.newArrayList("w","d","h","m","s", "ms","us", "ns", "ps"));
     staticFunctions.put(FCT_TRIGO, Lists.newArrayList("COS","COSH","ACOS","SIN","SINH","ASIN","TAN","TANH","ATAN","TODEGREES","TORADIANS"));
@@ -395,7 +395,7 @@ public class ExportFunctions {
     // -------------------------------------------------------------
     // build output json object
     // -------------------------------------------------------------
-    Map<String, Object> output = new HashMap<>();
+    Map<String, Object> output = new HashMap<String, Object>();
 
     output.put("frameworks", frameworksFunctions);
     output.put("operators", operators);
@@ -437,7 +437,7 @@ public class ExportFunctions {
   }
 
   private static Map<String, List<String>> getFrameworkStructure(String... categories) {
-    Map<String, List<String>> fmk = new HashMap<>();
+    Map<String, List<String>> fmk = new HashMap<String, List<String>>();
 
     for (String category : categories) {
       fmk.put(category, new ArrayList<String>());

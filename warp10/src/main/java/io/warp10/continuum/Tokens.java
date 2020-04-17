@@ -63,7 +63,7 @@ public class Tokens {
   
   private static QuasarTokenFilter tokenFilter;
   
-  private static List<AuthenticationPlugin> plugins = new ArrayList<>();
+  private static List<AuthenticationPlugin> plugins = new ArrayList<AuthenticationPlugin>();
   
   private static final List<String> blockedAttributes;
   

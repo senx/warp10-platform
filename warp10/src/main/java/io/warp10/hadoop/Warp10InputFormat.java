@@ -178,7 +178,7 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
       }
     }
     
-    List<String> fallbacks = new ArrayList<>();
+    List<String> fallbacks = new ArrayList<String>();
     
     boolean fallbacksonly = "true".equals(getProperty(context, PROPERTY_WARP10_FETCHER_FALLBACKSONLY));
     
@@ -300,7 +300,7 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
       }
     }
 
-    List<InputSplit> splits = new ArrayList<>();
+    List<InputSplit> splits = new ArrayList<InputSplit>();
     
     br = new BufferedReader(new FileReader(outfile));
     
