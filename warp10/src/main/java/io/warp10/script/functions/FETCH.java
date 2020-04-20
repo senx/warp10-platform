@@ -482,7 +482,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         }
         
         // Flag indicating the FETCH is a count only, no pre/post boundaries
-        boolean countOnly = count >= 0 && 0 == preBoundary & 0 == postBoundary;
+        boolean countOnly = count >= 0 && 0 == preBoundary && 0 == postBoundary;
         
         try (GTSDecoderIterator gtsiter = gtsStore.fetch(rtoken, metadatas, end, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary)) {
           while(gtsiter.hasNext()) {           
