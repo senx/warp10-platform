@@ -560,7 +560,7 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
         synchronized(encoder) {
           if (0 == encoder.size()) {
             synchronized(this.series) {
-              this.series.remove(this.series.get(metadatas.get(idx)));
+              this.series.remove(metadatas.get(idx));
               // TODO(hbs): Still need to unregister properly the Metadata from the Directory. This is tricky since
               // the call to store is re-entrant but won't go through the register phase....
             }
