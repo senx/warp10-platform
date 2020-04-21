@@ -235,7 +235,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             while (idx >= 0 && !(statements.get(idx) instanceof MARK)) {
               Object stmt = statements.get(idx);
               if (stmt instanceof String) {
-                Integer regno = varregs.get(statements.get(idx));
+                Integer regno = varregs.get(stmt);
                 if (null != regno) {
                   statements.set(idx, (long) regno);
                 }
