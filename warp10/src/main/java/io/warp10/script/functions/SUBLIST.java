@@ -151,63 +151,40 @@ public class SUBLIST extends NamedWarpScriptFunction implements WarpScriptStackF
         }
       }
     } else if (2 == indices.size()) { // Range definition with indices
-      Object a = indices.get(0);
-      Object b = indices.get(1);
+      Object b0 = indices.get(0);
+      Object b1 = indices.get(1);
 
-      if (!(a instanceof Long) || !(b instanceof Long)) {
+      if (!(b0 instanceof Long) || !(b1 instanceof Long)) {
         throw new WarpScriptException(getName() + " expects a list of indices which are numeric integers.");
       }
 
-      int la = ((Long) a).intValue();
-      int lb = ((Long) b).intValue();
+      int bmin = ((Long) b0).intValue();
+      int bmax = ((Long) b1).intValue();
 
-      if (la < 0) {
-        la = size + la;
+      // Add size to negative indexes
+      if (bmin < 0) {
+        bmin = size + bmin;
       }
-      if (lb < 0) {
-        lb = size + lb;
-      }
-
-      if (la < 0 && lb < 0) {
-        la = size;
-        lb = size;
-      } else {
-        la = Math.max(0, la);
-        lb = Math.max(0, lb);
+      if (bmax < 0) {
+        bmax = size + bmax;
       }
 
-      //
-      // If at least one of the bounds is included in the list indices,
-      // fix the other one
-      //
-
-      if (la < size || lb < size) {
-        if (la >= size) {
-          la = size - 1;
-        } else if (la < -1 * size) {
-          la = -1 * size;
-        }
-
-        if (lb >= size) {
-          lb = size - 1;
-        } else if (lb < -1 * size) {
-          lb = -1 * size;
-        }
+      // Make sure bmin <= bmax
+      if(bmin > bmax) {
+        int tmp = bmax;
+        bmax = bmin;
+        bmin = tmp;
       }
 
-      if (la < lb) {
-        if (la < size) {
-          lb = Math.min(size - 1, lb);
-          for (int i = la; i <= lb; i++) {
-            sublist.add(elements.get(i));
-          }
-        }
-      } else {
-        if (lb < size) {
-          la = Math.min(size - 1, la);
-          for (int i = lb; i <= la; i++) {
-            sublist.add(elements.get(i));
-          }
+      // Fill sublist only if bounds intersect valid bounds ie not both < 0 or not both >= size.
+      if(!((bmin < 0 && bmax < 0) || (size <= bmin && size <= bmax))) {
+        // Restrict to valid indexes
+        bmin = Math.max(0, bmin);
+        bmax = Math.min(size - 1, bmax);
+
+        // Fill sublist
+        for (int i = bmin; i <= bmax; i++) {
+          sublist.add(elements.get(i));
         }
       }
     } else { // Individual elements selection
