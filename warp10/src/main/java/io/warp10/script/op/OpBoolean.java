@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,60 +21,48 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptNAryFunction;
 import io.warp10.script.WarpScriptException;
 
-import java.util.Map;
-
 /**
- * AND values from multiple time series. The elevation and location are cleared.
+ * OR values from multiple time series. The elevation and location are cleared.
  */
-public class OpAND extends NamedWarpScriptFunction implements WarpScriptNAryFunction {
-  
+public class OpBoolean extends NamedWarpScriptFunction implements WarpScriptNAryFunction {
+
+
+  private final Boolean or;
+
   /**
-   * Should 'null' values (i.e. missing) be forbidden or ignored
+   * Should we ignore nulls (false) or forbid them (true)
    */
   private final boolean forbidNulls;
   
-  public OpAND(String name, boolean forbidNulls) {
+  public OpBoolean(String name, boolean applyOr, boolean forbidNulls) {
     super(name);
+    this.or = applyOr;
     this.forbidNulls = forbidNulls;
   }
   
   @Override
   public Object apply(Object[] args) throws WarpScriptException {
     long tick = (long) args[0];
-    String[] names = (String[]) args[1];
-    Map<String,String>[] labels = (Map<String,String>[]) args[2];
-    long[] ticks = (long[]) args[3];
-    long[] locations = (long[]) args[4];
-    long[] elevations = (long[]) args[5];
     Object[] values = (Object[]) args[6];
-    
-    //
-    // The type of result is determined by the first non null value
-    //
-    
-    boolean and = true;
     
     long location = GeoTimeSerie.NO_LOCATION;
     long elevation = GeoTimeSerie.NO_ELEVATION;
-    
-    for (int i = 0; i < values.length; i++) {      
+
+    for (Object value: values) {
       // If one of the values is 'null' (absent), return null as the value
-      if (null == values[i]) {
+      if (null == value) {
         if (this.forbidNulls) {
-          return new Object[] { tick, location, elevation, null };
+          return new Object[] {tick, location, elevation, null};
         } else {
-          // Simply ignore nulls
           continue;
         }
-      }      
-      
-      and = and && Boolean.TRUE.equals(values[i]);
-      
-      if (!and) {
-        return new Object[] { tick, location, elevation, false };
+      }
+
+      if (this.or.equals(value)) {
+        return new Object[] {tick, location, elevation, this.or};
       }
     }
-    
-    return new Object[] { tick, location, elevation, true };
+
+    return new Object[] {tick, location, elevation, !this.or};
   }
 }
