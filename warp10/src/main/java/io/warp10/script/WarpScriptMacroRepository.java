@@ -356,23 +356,13 @@ public class WarpScriptMacroRepository extends Thread {
     if (null == name && null == file) {
       return null;
     }
-    
-    // Reject names with relative path components in them or starting with '/'
-    if (name.contains("/../") || name.contains("/./") || name.startsWith("../") || name.startsWith("./") || name.startsWith("/")) {
-      return null;
-    }
 
-    // Name should contain "/" as macros should reside under a subdirectory
-    if (!name.contains("/")) {
-      return null;
-    }
-    
     //
     // Read content
     //
-    
+
     String rootdir = new File(directory).getAbsolutePath();
-    
+
     if (null == file) {
       // Replace '/' with the platform separator
       if (!"/".equals(File.separator)) {
@@ -380,7 +370,7 @@ public class WarpScriptMacroRepository extends Thread {
       } else {
         file = new File(rootdir, name + ".mc2");
       }
-      
+
       // Macros should reside in the configured root directory
       if (!file.getAbsolutePath().startsWith(rootdir)) {
         return null;
@@ -390,6 +380,16 @@ public class WarpScriptMacroRepository extends Thread {
     if (null == name) {
       name = file.getAbsolutePath().substring(rootdir.length() + 1).replaceAll("\\.mc2$", "");
       name = name.replaceAll(Pattern.quote(File.separator), "/");
+    }
+    
+    // Reject names with relative path components in them or starting with '/'
+    if (name.contains("/../") || name.contains("/./") || name.startsWith("../") || name.startsWith("./") || name.startsWith("/")) {
+      return null;
+    }
+
+    // Name should contain "/" as macros should reside under a subdirectory
+    if (!name.contains("/")) {
+      return null;
     }
     
     byte[] buf = new byte[8192];
