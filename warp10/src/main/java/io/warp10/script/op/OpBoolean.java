@@ -26,7 +26,9 @@ import io.warp10.script.WarpScriptException;
  */
 public class OpBoolean extends NamedWarpScriptFunction implements WarpScriptNAryFunction {
 
-
+  /**
+   * Does this apply an "or" (true) or an "and" (false).
+   */
   private final Boolean or;
 
   /**
