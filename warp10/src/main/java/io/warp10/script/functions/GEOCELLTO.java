@@ -16,18 +16,18 @@
 
 package io.warp10.script.functions;
 
-import com.geoxp.GeoXPLib;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
-import java.util.ArrayList;
-import java.util.List;
+/**
+ * Converts a geo cells long to a String HHCode prefix which resolution is implicitly given by its length.
+ * It cannot convert to a byte[] representation because they are limited to resolutions multiple of 4.
+ */
+public class GEOCELLTO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-public class GEOCELLSTO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-
-  public GEOCELLSTO(String name) {
+  public GEOCELLTO(String name) {
     super(name);
   }
 
@@ -35,22 +35,23 @@ public class GEOCELLSTO extends NamedWarpScriptFunction implements WarpScriptSta
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
 
-    if (!(top instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a LIST<LONG> GeoCells.");
+    if (!(top instanceof Long)) {
+      throw new WarpScriptException(getName() + " expects a " + TYPEOF.TYPE_LONG + " GeoCells.");
     }
 
-    ArrayList<Long> cells = new ArrayList<Long>(((List) top).size());
+    long geocell = (Long) top;
 
-    for (Object o: (List) top) {
-      if (!(o instanceof Long)) {
-        throw new WarpScriptException(getName() + " expects a LIST<LONG> GeoCells.");
-      }
-
-      cells.add((Long) o);
-    }
-
-    stack.push(GeoXPLib.fromCells(cells));
+    stack.push(geocellToHHCodePrefix(geocell));
 
     return stack;
+  }
+
+  /**
+   *
+   * @param geocell
+   * @return
+   */
+  public static String geocellToHHCodePrefix(long geocell) {
+    return Long.toHexString(geocell).substring(1, (int) (geocell >>> 60) + 1);
   }
 }

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,51 +16,47 @@
 
 package io.warp10.script.functions;
 
-import com.geoxp.GeoXPLib;
-import io.warp10.continuum.gts.GeoTimeSerie;
+import com.geoxp.geo.HHCodeHelper;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 /**
- * Converts a HHCode to lat/lon.
+ * Converts a String or byte[] HHCode prefix to a Long geo cell.
+ * The resolution of the HHCode String prefix is implicitly given by the length of the String.
  */
-public class HHCODETO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class TOGEOCELL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private final boolean useGtsConvention;
-
-  public HHCODETO(String name) {
-    this(name, false);
-  }
-
-  public HHCODETO(String name, boolean useGtsConvention) {
+  public TOGEOCELL(String name) {
     super(name);
-    this.useGtsConvention = useGtsConvention;
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-
     Object top = stack.pop();
+
+    if (!(top instanceof String) && !(top instanceof byte[])) {
+      throw new WarpScriptException(getName() + " expects a " + TYPEOF.TYPE_STRING + " or a " + TYPEOF.TYPE_BYTES);
+    }
 
     long[] hhAndRes;
     try {
       hhAndRes = HHCODEFUNC.hhAndRes(top);
     } catch (WarpScriptException wse) {
-      throw new WarpScriptException(getName() + " was given unexpected arguments.", wse);
+      throw new WarpScriptException(getName() + " expects a " + TYPEOF.TYPE_STRING + " or a " + TYPEOF.TYPE_BYTES, wse);
     }
     long hh = hhAndRes[0];
+    int res = (int) hhAndRes[1]; // We know hhAndRes returns an int here.
 
-    if (useGtsConvention && GeoTimeSerie.NO_LOCATION == hh) {
-      stack.push(Double.NaN);
-      stack.push(Double.NaN);
-    } else {
-      // Lat/Lon of the SW coordinates of the HHCode
-      double[] latlon = GeoXPLib.fromGeoXPPoint(hh);
-      stack.push(latlon[0]);
-      stack.push(latlon[1]);
+    long geocell = HHCodeHelper.toGeoCell(hh, res);
+
+    // Check cell is valid
+    if (0 == (geocell >>> 60)) {
+      throw new WarpScriptException(getName() + " expects the geo cell resolution to be even and between 2 and 30, inclusive.");
     }
+
+    stack.push(geocell);
 
     return stack;
   }

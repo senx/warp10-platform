@@ -17,17 +17,14 @@
 package io.warp10.script.functions;
 
 import com.geoxp.GeoXPLib;
-import com.geoxp.geo.GeoHashHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
-import java.util.ArrayList;
-
 /**
- * Convert a lat/lon pair or a GeoHash to an HHCode or GeoXPShape to a list of HHCodes.
+ * Converts a lat/lon pair to an HHCode
  */
 public class TOHHCODE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -47,74 +44,38 @@ public class TOHHCODE extends NamedWarpScriptFunction implements WarpScriptStack
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    Object top = stack.pop();
+    Object lon = stack.pop();
+    Object lat = stack.pop();
 
-    if (this.tostring && top instanceof GeoXPLib.GeoXPShape) {
-      // GeoXPShape -> HHCodes. Only String HHCode are supported.
+    if (!(lon instanceof Number) || !(lat instanceof Number)) {
+      throw new WarpScriptException(getName() + " expects a latitude and a longitude on the stack.");
+    }
 
-      GeoXPLib.GeoXPShape shape = (GeoXPLib.GeoXPShape) top;
+    double latDouble = ((Number) lat).doubleValue();
+    double lonDouble = ((Number) lon).doubleValue();
 
-      ArrayList<Object> hhcodes = new ArrayList<Object>();
+    long geoxppoint;
 
-      long[] geocells = GeoXPLib.getCells(shape);
-
-      for (long geocell: geocells) {
-        String hhcode = Long.toHexString(geocell).substring(1, (int) ((geocell >>> 60) + 1));
-        hhcodes.add(hhcode);
-      }
-
-      stack.push(hhcodes);
-    } else if (top instanceof String) {
-      // GeoHash -> HHCode
-      long geoxppoint = GeoHashHelper.toHHCode((String) top);
-
-      if (this.tostring) {
-        String hhcode = Long.toHexString(geoxppoint);
-
-        stack.push(hhcode);
-      } else {
-        stack.push(geoxppoint);
-      }
-    } else if (top instanceof Number) {
-      // Lat/lon -> HHCode
-      double lonDouble = ((Number) top).doubleValue();
-
-      top = stack.pop();
-
-      if (!(top instanceof Number)) {
-        throw new WarpScriptException(getName() + " expects a latitude and a longitude of type DOUBLE.");
-      }
-
-      double latDouble = ((Number) top).doubleValue();
-
-      long geoxppoint;
-
-      if (useGtsConvention) {
-        if (Double.isNaN(latDouble) != Double.isNaN(lonDouble)) {
-          throw new WarpScriptException(getName() + " expects latitude and longitude to both be NaN or both be not NaN");
-        } else if (!Double.isNaN(latDouble)) { // also !Double.isNaN(lonDouble)
-          geoxppoint = GeoXPLib.toGeoXPPoint(latDouble, lonDouble);
-        } else {
-          geoxppoint = GeoTimeSerie.NO_LOCATION;
-        }
-      } else {
+    if (useGtsConvention) {
+      if (Double.isNaN(latDouble) != Double.isNaN(lonDouble)) {
+        throw new WarpScriptException(getName() + " expects latitude and longitude to both be NaN or both be not NaN");
+      } else if (!Double.isNaN(latDouble)) { // also !Double.isNaN(lonDouble)
         geoxppoint = GeoXPLib.toGeoXPPoint(latDouble, lonDouble);
-      }
-
-      if (this.tostring) {
-        String hhcode = Long.toHexString(geoxppoint);
-
-        stack.push(hhcode);
       } else {
-        stack.push(geoxppoint);
+        geoxppoint = GeoTimeSerie.NO_LOCATION;
       }
     } else {
-      if (this.tostring) {
-        throw new WarpScriptException(getName() + " expects numeric lat/lon, a STRING GeoHash or a GEOSHAPE shape.");
-      } else {
-        throw new WarpScriptException(getName() + " expects numeric lat/lon or a STRING GeoHash.");
-      }
+      geoxppoint = GeoXPLib.toGeoXPPoint(latDouble, lonDouble);
     }
+
+    if (this.tostring) {
+      String hhcode = Long.toHexString(geoxppoint);
+
+      stack.push(hhcode);
+    } else {
+      stack.push(geoxppoint);
+    }
+
     return stack;
   }
 }
