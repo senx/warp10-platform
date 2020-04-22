@@ -22,7 +22,7 @@ import io.warp10.script.WarpScriptNAryFunction;
 import io.warp10.script.WarpScriptException;
 
 /**
- * OR values from multiple time series. The elevation and location are cleared.
+ * OR or AND values from multiple time series. The elevation and location are cleared.
  */
 public class OpBoolean extends NamedWarpScriptFunction implements WarpScriptNAryFunction {
 
@@ -35,7 +35,13 @@ public class OpBoolean extends NamedWarpScriptFunction implements WarpScriptNAry
    * Should we ignore nulls (false) or forbid them (true)
    */
   private final boolean forbidNulls;
-  
+
+  /**
+   * Build a boolean operator applying either OR or AND.
+   * @param name Name given to this function
+   * @param applyOr Whether to apply "or" (true) or an "and" (false).
+   * @param forbidNulls Whether to ignore nulls (false) or forbid them (true).
+   */
   public OpBoolean(String name, boolean applyOr, boolean forbidNulls) {
     super(name);
     this.or = applyOr;
@@ -60,11 +66,14 @@ public class OpBoolean extends NamedWarpScriptFunction implements WarpScriptNAry
         }
       }
 
+      // If this function applies an OR, this can stop as soon as it encounters a True value and the result will be True.
+      // If this function applies an AND, this can stop as soon as it encounters a False value and the result will be False.
       if (this.or.equals(value)) {
         return new Object[] {tick, location, elevation, this.or};
       }
     }
 
+    // No trigger value (see comment above) has been found, return False in the case of OR or True in the case of AND.
     return new Object[] {tick, location, elevation, !this.or};
   }
 }
