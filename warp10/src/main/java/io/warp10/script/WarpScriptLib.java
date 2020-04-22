@@ -214,8 +214,8 @@ import io.warp10.script.mapper.MapperToLong;
 import io.warp10.script.mapper.MapperToString;
 import io.warp10.script.mapper.MapperYear;
 import io.warp10.script.mapper.STRICTMAPPER;
-import io.warp10.script.op.OpAND;
 import io.warp10.script.op.OpAdd;
+import io.warp10.script.op.OpBoolean;
 import io.warp10.script.op.OpDiv;
 import io.warp10.script.op.OpEQ;
 import io.warp10.script.op.OpGE;
@@ -225,7 +225,6 @@ import io.warp10.script.op.OpLT;
 import io.warp10.script.op.OpMask;
 import io.warp10.script.op.OpMul;
 import io.warp10.script.op.OpNE;
-import io.warp10.script.op.OpOR;
 import io.warp10.script.op.OpSub;
 import io.warp10.script.processing.Pencode;
 import io.warp10.script.processing.color.Palpha;
@@ -2385,10 +2384,10 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new OpGT("op.gt"));
     addNamedWarpScriptFunction(new OpLE("op.le"));
     addNamedWarpScriptFunction(new OpGE("op.ge"));
-    addNamedWarpScriptFunction(new OpAND("op.and.ignore-nulls", false));
-    addNamedWarpScriptFunction(new OpAND("op.and", true));
-    addNamedWarpScriptFunction(new OpOR("op.or.ignore-nulls", false));
-    addNamedWarpScriptFunction(new OpOR("op.or", true));
+    addNamedWarpScriptFunction(new OpBoolean("op.and.ignore-nulls", false, false));
+    addNamedWarpScriptFunction(new OpBoolean("op.and", false, true));
+    addNamedWarpScriptFunction(new OpBoolean("op.or.ignore-nulls", true, false));
+    addNamedWarpScriptFunction(new OpBoolean("op.or", true, true));
 
     /////////////////////////
 
@@ -2507,7 +2506,7 @@ public class WarpScriptLib {
         wse.register();
         
         String namespace = props.getProperty(Configuration.CONFIG_WARPSCRIPT_NAMESPACE_PREFIX + wse.getClass().getName(), "").trim(); 
-        if (null != namespace && !"".equals(namespace)) {
+        if (!"".equals(namespace)) {
           namespace = WarpURLDecoder.decode(namespace, StandardCharsets.UTF_8);
           LOG.info("LOADED extension '" + extension + "'" + " under namespace '" + namespace + "'.");
         } else {
