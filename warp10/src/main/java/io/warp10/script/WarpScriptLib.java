@@ -649,6 +649,11 @@ public class WarpScriptLib {
   public static final String UNGZIP = "UNGZIP";
   public static final String DEFLATE = "DEFLATE";
   public static final String INFLATE = "INFLATE";
+  public static final String ECGEN = "ECGEN";
+  public static final String ECPRIVATE = "ECPRIVATE";
+  public static final String ECPUBLIC = "ECPUBLIC";
+  public static final String ECSIGN = "ECSIGN";
+  public static final String ECVERIFY = "ECVERIFY";
   public static final String RSAGEN = "RSAGEN";
   public static final String RSAENCRYPT = "RSAENCRYPT";
   public static final String RSADECRYPT = "RSADECRYPT";
@@ -1472,6 +1477,11 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new UNGZIP(UNGZIP));
     addNamedWarpScriptFunction(new DEFLATE(DEFLATE));
     addNamedWarpScriptFunction(new INFLATE(INFLATE));
+    addNamedWarpScriptFunction(new ECGEN(ECGEN));
+    addNamedWarpScriptFunction(new ECPRIVATE(ECPRIVATE));
+    addNamedWarpScriptFunction(new ECPUBLIC(ECPUBLIC));
+    addNamedWarpScriptFunction(new ECSIGN(ECSIGN));
+    addNamedWarpScriptFunction(new ECVERIFY(ECVERIFY));
     addNamedWarpScriptFunction(new RSAGEN(RSAGEN));
     addNamedWarpScriptFunction(new RSAPUBLIC(RSAPUBLIC));
     addNamedWarpScriptFunction(new RSAPRIVATE(RSAPRIVATE));
