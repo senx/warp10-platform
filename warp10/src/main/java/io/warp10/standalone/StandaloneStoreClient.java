@@ -387,44 +387,36 @@ public class StandaloneStoreClient implements StoreClient {
             Entry<byte[], byte[]> kv = iterator.peekNext();
 
             // If the next key is over the range, nullify startrow unless we still have boundaries to fetch
-            if (0 == preBoundary && 0 == postBoundary && Bytes.compareTo(kv.getKey(), stoprow) > 0) {
-              startrow = null;
-            } else {
+            if (!(0 == preBoundary && 0 == postBoundary && Bytes.compareTo(kv.getKey(), stoprow) > 0)) {
               //
               // If we are time based or value count based with values left to read or with boundaries still to be fetched,
               // return true
               if (-1 == fcount || nvalues > 0 || preBoundary > 0 || postBoundary > 0) {
                 return true;
-              } else {
-                startrow = null;
               }
             }
-          } else {
-            startrow = null;
           }
           
-          // We need to reseek if startrow is null (it indicates we need to skip to the next GTS)
-          if (null == startrow) {
-            idx++;
+          // We need to reseek because we need to skip to the next GTS
+          idx++;
 
-            if (idx >= metadatas.size()) {
-              return false;
-            }
-            
-            startrow = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
-            ByteBuffer bb = ByteBuffer.wrap(startrow).order(ByteOrder.BIG_ENDIAN);
-            bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
-            bb.putLong(metadatas.get(idx).getClassId());
-            bb.putLong(metadatas.get(idx).getLabelsId());
-            bb.putLong(Long.MAX_VALUE - now);
-              
-            stoprow = new byte[startrow.length];
-            bb = ByteBuffer.wrap(stoprow).order(ByteOrder.BIG_ENDIAN);
-            bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
-            bb.putLong(metadatas.get(idx).getClassId());
-            bb.putLong(metadatas.get(idx).getLabelsId());                            
-            bb.putLong(Long.MAX_VALUE - then);
+          if (idx >= metadatas.size()) {
+            return false;
           }
+
+          startrow = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
+          ByteBuffer bb = ByteBuffer.wrap(startrow).order(ByteOrder.BIG_ENDIAN);
+          bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
+          bb.putLong(metadatas.get(idx).getClassId());
+          bb.putLong(metadatas.get(idx).getLabelsId());
+          bb.putLong(Long.MAX_VALUE - now);
+
+          stoprow = new byte[startrow.length];
+          bb = ByteBuffer.wrap(stoprow).order(ByteOrder.BIG_ENDIAN);
+          bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
+          bb.putLong(metadatas.get(idx).getClassId());
+          bb.putLong(metadatas.get(idx).getLabelsId());
+          bb.putLong(Long.MAX_VALUE - then);
 
           //
           // Reset number of values retrieved since we just skipped to a new GTS.

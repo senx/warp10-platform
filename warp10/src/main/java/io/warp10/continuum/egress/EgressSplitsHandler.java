@@ -105,11 +105,6 @@ public class EgressSplitsHandler extends AbstractHandler {
       throw new IOException(ee);
     }
 
-    if (null == rtoken) {
-      response.sendError(HttpServletResponse.SC_FORBIDDEN, "Missing token.");
-      return;
-    }
-
     //
     // Parse selector
     //

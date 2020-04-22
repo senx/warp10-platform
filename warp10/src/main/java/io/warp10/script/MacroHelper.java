@@ -56,7 +56,7 @@ public class MacroHelper {
     
     @Override
     public String snapshot() {
-      if (macro instanceof Snapshotable) {
+      if (macro != null) {
         return macro.snapshot() + " " + WarpScriptLib.EVAL;
       } else {
         return this.toString();

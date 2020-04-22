@@ -243,7 +243,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     
     this.properties = properties;
 
-    int nregs = Integer.parseInt(null == this.properties ? String.valueOf(WarpScriptStack.DEFAULT_REGISTERS) : this.properties.getProperty(Configuration.CONFIG_WARPSCRIPT_REGISTERS, String.valueOf(WarpScriptStack.DEFAULT_REGISTERS)));
+    int nregs = Integer.parseInt(this.properties.getProperty(Configuration.CONFIG_WARPSCRIPT_REGISTERS, String.valueOf(WarpScriptStack.DEFAULT_REGISTERS)));
     allowLooseBlockComments = "true".equals(properties.getProperty(Configuration.WARPSCRIPT_ALLOW_LOOSE_BLOCK_COMMENTS, "false"));
     this.registers = new Object[nregs];    
   }
@@ -842,7 +842,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             // Check WarpScript functions
             //
 
-            func = null != func ? func : defined.get(stmt);
+            func = defined.get(stmt);
 
             if (null != func && Boolean.FALSE.equals(getAttribute(WarpScriptStack.ATTRIBUTE_ALLOW_REDEFINED))) {
               throw new WarpScriptException("Disallowed redefined function '" + stmt + "'.");

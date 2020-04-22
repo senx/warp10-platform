@@ -200,7 +200,7 @@ public class EgressExecHandler extends AbstractHandler {
       
       String pathInfo = req.getPathInfo().substring(target.length());
       
-      if (null != pathInfo && pathInfo.length() > 0) {
+      if (pathInfo.length() > 0) {
         pathInfo = pathInfo.substring(1);
         String[] tokens = pathInfo.split("/");
 

@@ -305,7 +305,6 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     br = new BufferedReader(new FileReader(outfile));
     
     Warp10InputSplit split = new Warp10InputSplit();
-    String lastserver = null;
     int subsplits = 0;
     
     while(true) {
@@ -319,7 +318,7 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
       
       // If the server changed or we've reached the maximum split size, flush the current split.
       
-      if (null != lastserver && !lastserver.equals(tokens[0]) || avgsplitcount == subsplits) {
+      if (avgsplitcount == subsplits) {
         // Add fallback fetchers, shuffle them first
         Collections.shuffle(fallbacks);
         for (String fallback: fallbacks) {

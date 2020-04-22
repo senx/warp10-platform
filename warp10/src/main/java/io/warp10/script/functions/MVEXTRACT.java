@@ -129,7 +129,7 @@ public class MVEXTRACT extends ElementOrListStackFunction implements ElementStac
       } else if (value instanceof String) {
         if (null != decoder) {
           // We are getting values from a decoder, so a STRING is not a binary value
-          values.add(elt(decoder, gts, idx, value));
+          values.add(elt(decoder, null, idx, value));
         } else {
           // Attempt to decode a Wrapper
           try {
@@ -140,14 +140,14 @@ public class MVEXTRACT extends ElementOrListStackFunction implements ElementStac
               values.add(mvextract(GTSWrapperHelper.fromGTSWrapperToGTSEncoder(wrapper)));
             } else {
               List<Object> elt = new ArrayList<Object>();
-              elt.add(elt(decoder, gts, idx, value));
+              elt.add(elt(null, gts, idx, value));
               elt.add(mvextract(GTSWrapperHelper.fromGTSWrapperToGTSEncoder(wrapper)));
               values.add(elt);
             }
           } catch (IOException e) {
             throw new WarpScriptException("Error decoding.");
           } catch (TException te) {
-            values.add(elt(decoder, gts, idx, value));
+            values.add(elt(null, gts, idx, value));
           }
         }
       }

@@ -1098,13 +1098,8 @@ public class ThrottlingManager {
   
   private static void dumpCurrentConfig() {
     if (null != dir && !producerHLLPEstimators.isEmpty() && !applicationHLLPEstimators.isEmpty()) {
-      File config;
-      if (".dump".endsWith(THROTTLING_MANAGER_SUFFIX)) {
-        config = new File(dir, "current" + THROTTLING_MANAGER_SUFFIX + ".dump.");      
-      } else {
-        config = new File(dir, "current" + THROTTLING_MANAGER_SUFFIX + ".dump");
-      }
-      
+      File config = new File(dir, "current" + THROTTLING_MANAGER_SUFFIX + ".dump");
+
       try {
         PrintWriter pw = new PrintWriter(config);
         
