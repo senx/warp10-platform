@@ -47,9 +47,11 @@ public class GEOCELLTO extends NamedWarpScriptFunction implements WarpScriptStac
   }
 
   /**
-   *
-   * @param geocell
-   * @return
+   * Converts a geo cell (4 bits resolution + 60 bits hhcode) to an HHCode prefix String which resolution is implicitly
+   * given by the length of the String.
+   * @param geocell The geo cell to convert.
+   * @return An HHCode prefix String which resolution is implicitly given by the length of the String. Thus its length is
+   * between 1 and 15, inclusive.
    */
   public static String geocellToHHCodePrefix(long geocell) {
     return Long.toHexString(geocell).substring(1, (int) (geocell >>> 60) + 1);
