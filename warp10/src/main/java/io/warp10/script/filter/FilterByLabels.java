@@ -141,7 +141,7 @@ public class FilterByLabels extends NamedWarpScriptFunction implements WarpScrip
               matched = false;
               break;
             }            
-          } else if (checkAttributes) {
+          } else { // We know it matched and it's not on labels, so it's on attributes.
             if (!matcher.reset(attributes.get(label)).matches()) {
               matched = false;
               break;
