@@ -46,7 +46,7 @@ jar {
     include 'io/warp10/WarpURLDecoder.class'
     include 'io/warp10/DoubleUtils.class'
     include 'io/warp10/FloatUtils.class'
-    include 'io/warp10/ListWrapper.class'
+    include 'io/warp10/WrapperList.class'
     include 'io/warp10/Revision.class'
     include 'io/warp10/ThrowableUtils.class'
     include 'io/warp10/continuum/AuthenticationPlugin.class'
