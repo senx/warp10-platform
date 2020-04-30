@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#   Copyright 2018  SenX S.A.S.
+#   Copyright 2018-2020  SenX S.A.S.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -29,6 +29,11 @@
 if [[ -e /lib/lsb/init-functions ]]; then
   . /lib/lsb/init-functions
 fi
+
+# Determine Python interpreter to use
+PYTHON=$(which python3)
+PYTHON=${PYTHON:-$(which python2)}
+PYTHON=${PYTHON:-$(which python)}
 
 # Extract JAVA_OPTS before we switch to strict mode
 JAVA_OPTS=${JAVA_OPTS:-}
@@ -340,7 +345,7 @@ bootstrap() {
   rm ${WARP10_HOME}/etc/log4j.properties${SED_SUFFIX}
 
   # Generate secrets
-  ${WARP10_HOME}/etc/generate_crypto_key.py ${WARP10_SECRETS}
+  ${PYTHON} ${WARP10_HOME}/etc/generate_crypto_key.py ${WARP10_SECRETS}
   chown -R ${WARP10_USER}:${WARP10_GROUP} ${WARP10_CONFIG_DIR}
 
 
