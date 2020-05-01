@@ -36,7 +36,7 @@ public class ACCELCACHE extends NamedWarpScriptFunction implements WarpScriptSta
     if (nocache) {
       stack.setAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE, Boolean.TRUE);
     } else {
-      stack.setAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE, null);
+      stack.setAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE, Boolean.FALSE);
     }
     return stack;
   }

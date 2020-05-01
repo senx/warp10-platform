@@ -319,8 +319,12 @@ public class StandaloneIngressHandler extends AbstractHandler {
       
       boolean forwarded = false;
       
-      boolean nocache = false;
-      boolean nopersist = false;
+      boolean nocache = StandaloneAcceleratedStoreClient.getDefaultWriteNocache();
+      // boolean to indicate we were explicitely instructed a nocache value
+      boolean forcedNocache = false;
+      boolean nopersist = StandaloneAcceleratedStoreClient.getDefaultWriteNopersist();
+      // boolean to indicate we were explicitely instructed a nopersist value
+      boolean forcedNopersist = false;
          
       if (null != datalogHeader) {
         byte[] bytes = OrderPreservingBase64.decode(datalogHeader.getBytes(StandardCharsets.US_ASCII));
@@ -357,20 +361,30 @@ public class StandaloneIngressHandler extends AbstractHandler {
         
         if (dr.getAttributesSize() > 0) {
           if (null != dr.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOCACHE)) {
-            nocache = true;
-          } else {
-            nocache = false;
+            forcedNocache = true;
+            nocache = !"false".equals(dr.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
           }
           if (null != dr.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST)) {
-            nopersist = true;
-          } else {
-            nopersist = false;
+            forcedNopersist = true;
+            nopersist = !"false".equals(dr.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));
           }
         }
       } else {        
         if (null != request.getHeader(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER)) {
-          nocache = request.getHeader(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER).contains(StandaloneAcceleratedStoreClient.NOCACHE);
-          nopersist = request.getHeader(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER).contains(StandaloneAcceleratedStoreClient.NOPERSIST);                
+          if (request.getHeader(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER).contains(StandaloneAcceleratedStoreClient.NOCACHE)) {
+            nocache = true;
+            forcedNocache = true;
+          } else if (request.getHeader(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER).contains(StandaloneAcceleratedStoreClient.CACHE)) {
+            nocache = false;
+            forcedNocache = true;
+          }
+          if (request.getHeader(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER).contains(StandaloneAcceleratedStoreClient.NOPERSIST)) {
+            nopersist = true;
+            forcedNopersist = true;
+          } else if (request.getHeader(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER).contains(StandaloneAcceleratedStoreClient.PERSIST)) {
+            nopersist = false;
+            forcedNopersist = false;
+          }
         }
       }
 
@@ -656,11 +670,11 @@ public class StandaloneIngressHandler extends AbstractHandler {
             }
             dr.setNow(Long.toString(now));
             
-            if (nocache) {
-              dr.putToAttributes(StandaloneAcceleratedStoreClient.ATTR_NOCACHE, "");
+            if (forcedNocache) {
+              dr.putToAttributes(StandaloneAcceleratedStoreClient.ATTR_NOCACHE, Boolean.toString(nocache));
             }
-            if (nopersist) {
-              dr.putToAttributes(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST, "");
+            if (forcedNopersist) {
+              dr.putToAttributes(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST, Boolean.toString(nopersist));
             }
           }
           

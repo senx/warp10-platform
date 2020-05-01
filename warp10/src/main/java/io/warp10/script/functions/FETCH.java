@@ -466,8 +466,14 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         
         long end = (long) params.get(PARAM_END);
                 
-        boolean nocache = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
-        boolean nopersist = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));
+        boolean nocache = StandaloneAcceleratedStoreClient.getDefaultReadNocache();
+        if (null != stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE)) {
+          nocache = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
+        }
+        boolean nopersist = StandaloneAcceleratedStoreClient.getDefaultReadNopersist();
+        if (null != stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST)) {
+          nopersist = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));
+        }
 
         if (nocache) {
           StandaloneAcceleratedStoreClient.nocache();

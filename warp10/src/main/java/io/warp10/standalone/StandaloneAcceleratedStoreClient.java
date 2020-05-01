@@ -61,11 +61,20 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
   
   public static final String NOCACHE = "nocache";
   public static final String NOPERSIST = "nopersist";
+  public static final String CACHE = "cache";
+  public static final String PERSIST = "persist";
   
   public static final String ACCELERATOR_HEADER = "X-Warp10-Accelerator";
   
-  private static StandaloneAcceleratedStoreClient instance = null;
+  private static boolean defaultWriteNocache = false;
+  private static boolean defaultWriteNopersist = false;
+  private static boolean defaultDeleteNocache = false;
+  private static boolean defaultDeleteNopersist = false;
+  private static boolean defaultReadNocache = false;
+  private static boolean defaultReadNopersist = false;
   
+  private static StandaloneAcceleratedStoreClient instance = null;
+    
   /**
    * Was the last FETCH accelerated for the given Thread?
    */
@@ -95,6 +104,44 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
       throw new RuntimeException(StandaloneAcceleratedStoreClient.class.getName() + " can only be instantiated once.");
     }
             
+    //
+    // Extract strategies from configuration
+    //
+    
+    String defaultStrategy = WarpConfig.getProperty(Configuration.ACCELERATOR_DEFAULT_WRITE);
+    if (defaultStrategy.contains(NOCACHE)) {
+      defaultWriteNocache = true;
+    } else if (defaultStrategy.contains(CACHE)) {
+      defaultWriteNocache = false;
+    }
+    if (defaultStrategy.contains(NOPERSIST)) {
+      defaultWriteNopersist = true;
+    } else if (defaultStrategy.contains(PERSIST)) {
+      defaultWriteNopersist = false;
+    }
+    defaultStrategy = WarpConfig.getProperty(Configuration.ACCELERATOR_DEFAULT_DELETE);
+    if (defaultStrategy.contains(NOCACHE)) {
+      defaultDeleteNocache = true;
+    } else if (defaultStrategy.contains(CACHE)) {
+      defaultDeleteNocache = false;
+    }
+    if (defaultStrategy.contains(NOPERSIST)) {
+      defaultDeleteNopersist = true;
+    } else if (defaultStrategy.contains(PERSIST)) {
+      defaultDeleteNopersist = false;
+    }
+    defaultStrategy = WarpConfig.getProperty(Configuration.ACCELERATOR_DEFAULT_READ);
+    if (defaultStrategy.contains(NOCACHE)) {
+      defaultReadNocache = true;
+    } else if (defaultStrategy.contains(CACHE)) {
+      defaultReadNocache = false;
+    }
+    if (defaultStrategy.contains(NOPERSIST)) {
+      defaultReadNopersist = true;
+    } else if (defaultStrategy.contains(PERSIST)) {
+      defaultReadNopersist = false;
+    }
+    
     //
     // Force accelerator parameters to be replicated on inmemory ones and clear other in memory params
     //
@@ -366,6 +413,25 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     }
   }
   
+  public static final boolean getDefaultReadNocache() {
+    return defaultReadNocache;
+  }
+  public static final boolean getDefaultReadNopersist() {
+    return defaultReadNopersist;
+  }
+  public static final boolean getDefaultWriteNocache() {
+    return defaultWriteNocache;
+  }  
+  public static final boolean getDefaultWriteNopersist() {
+    return defaultWriteNopersist;
+  }
+  public static final boolean getDefaultDeleteNocache() {
+    return defaultDeleteNocache;
+  }  
+  public static final boolean getDefaultDeleteNopersist() {
+    return defaultDeleteNopersist;
+  }
+    
   public static int getChunkCount() {
     if (null != instance) {
       return instance.cache.getChunkCount();

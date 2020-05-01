@@ -1748,6 +1748,27 @@ public class Configuration {
   public static final String ACCELERATOR = "accelerator";
 
   /**
+   * Default accelerator strategy for writes.
+   * Can contain 'cache', 'nocache', 'persist' and 'nopersist'.
+   * Defaults to 'cache persist'.
+   */
+  public static final String ACCELERATOR_DEFAULT_WRITE = "accelerator.default.write";
+
+  /**
+   * Default accelerator strategy for reads.
+   * Can contain 'cache', 'nocache', 'persist' and 'nopersist'.
+   * Defaults to 'cache persist'.
+   */
+  public static final String ACCELERATOR_DEFAULT_READ = "accelerator.default.read";
+
+  /**
+   * Default accelerator strategy for deletes.
+   * Can contain 'cache', 'nocache', 'persist' and 'nopersist'.
+   * Defaults to 'cache persist'. 
+   */
+  public static final String ACCELERATOR_DEFAULT_DELETE = "accelerator.default.delete";
+
+  /**
    * Set to 'true' to preload the accelerator with the persisted data spanning the accelerator time range.
    * Preloading can be disabled for setups where the accelerator is used as a temporary side cache only.
    */

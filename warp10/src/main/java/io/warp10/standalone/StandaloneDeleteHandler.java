@@ -296,8 +296,35 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     // Extract nocache/nopersist
     //
     
-    boolean nocache = null != request.getParameter(StandaloneAcceleratedStoreClient.NOCACHE);
-    boolean nopersist = null != request.getParameter(StandaloneAcceleratedStoreClient.NOPERSIST);
+    boolean nocache = StandaloneAcceleratedStoreClient.getDefaultDeleteNocache();
+    boolean forcedNocache = false;
+    boolean nopersist = StandaloneAcceleratedStoreClient.getDefaultDeleteNopersist();
+    boolean forcedNopersist = false;
+    
+    if (null != request.getParameter(StandaloneAcceleratedStoreClient.NOCACHE)) {
+      forcedNocache = true;
+      nocache = true;
+    }
+    if (null != request.getParameter(StandaloneAcceleratedStoreClient.CACHE)) {
+      if (forcedNocache) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Cannot specify both '" + StandaloneAcceleratedStoreClient.NOCACHE + "' and '" + StandaloneAcceleratedStoreClient.CACHE + "'.");;
+        return;
+      }
+      forcedNocache = true;
+      nocache = false;
+    }
+    if (null != request.getParameter(StandaloneAcceleratedStoreClient.NOPERSIST)) {
+      forcedNopersist = true;
+      nopersist = !"false".equals(request.getParameter(StandaloneAcceleratedStoreClient.NOPERSIST));      
+    }
+    if (null != request.getParameter(StandaloneAcceleratedStoreClient.PERSIST)) {
+      if (forcedNopersist) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Cannot specify both '" + StandaloneAcceleratedStoreClient.NOPERSIST + "' and '" + StandaloneAcceleratedStoreClient.PERSIST + "'.");;
+        return;
+      }
+      forcedNopersist = true;
+      nopersist = false;
+    }
 
     if (nocache && nopersist) {
       response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Cannot specify both '" + StandaloneAcceleratedStoreClient.NOCACHE + "' and '" + StandaloneAcceleratedStoreClient.NOPERSIST + "'.");;

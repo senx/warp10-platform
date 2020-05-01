@@ -72,6 +72,27 @@ accelerator.ephemeral = false
 #accelerator.gc.maxalloc =
 
 //
+// Default accelerator strategy for writes.
+// Can contain 'cache', 'nocache', 'persist' and 'nopersist'.
+// Defaults to 'cache persist'.
+//
+#accelerator.default.write = cache persist
+
+//
+// Default accelerator strategy for deletes.
+// Can contain 'cache', 'nocache', 'persist' and 'nopersist'.
+// Defaults to 'cache persist'.
+//
+#accelerator.default.delete = cache persist
+
+//
+// Default accelerator strategy for reads.
+// Can contain 'cache', 'nocache', 'persist' and 'nopersist'.
+// Defaults to 'cache persist'.
+//
+#accelerator.default.read = cache persist
+
+//
 // Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.
 //
 in.memory = false

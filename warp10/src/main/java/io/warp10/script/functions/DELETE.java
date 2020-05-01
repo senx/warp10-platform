@@ -160,17 +160,35 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
       qsurl.append("=");
       qsurl.append(WarpURLEncoder.encode(selector, StandardCharsets.UTF_8));
 
-      boolean nocache = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
-      boolean nopersist = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));
+      boolean forcedNocache = false;
+      boolean forcedNopersist = false;
+      boolean nocache = StandaloneAcceleratedStoreClient.getDefaultDeleteNocache();
+      if (null != stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE)) {
+        forcedNocache = true;
+        nocache = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
+      }
+      boolean nopersist = StandaloneAcceleratedStoreClient.getDefaultDeleteNopersist();
+      if (null != stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST)) {
+        forcedNopersist = true;
+        nopersist = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));
+      }
 
-      if (nocache) {
+      if (forcedNocache) {
         qsurl.append("&");
-        qsurl.append(StandaloneAcceleratedStoreClient.NOCACHE);
+        if (nocache) {
+          qsurl.append(StandaloneAcceleratedStoreClient.NOCACHE);
+        } else {
+          qsurl.append(StandaloneAcceleratedStoreClient.CACHE);
+        }
       }
       
-      if (nopersist) {
+      if (forcedNopersist) {
         qsurl.append("&");
-        qsurl.append(StandaloneAcceleratedStoreClient.NOPERSIST);
+        if (nopersist) {
+          qsurl.append(StandaloneAcceleratedStoreClient.NOPERSIST);
+        } else {
+          qsurl.append(StandaloneAcceleratedStoreClient.PERSIST);
+        }
       }
 
       //

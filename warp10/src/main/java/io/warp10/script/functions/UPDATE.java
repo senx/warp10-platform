@@ -183,15 +183,33 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
       conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_UPDATE_TOKENX), token);
       conn.setRequestProperty("Content-Type", "application/gzip");
       
-      boolean nocache = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
-      boolean nopersist = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));
+      boolean nocache = StandaloneAcceleratedStoreClient.getDefaultWriteNocache();
+      boolean forcedNocache = false;
+      if (null != stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE)) {
+        forcedNocache = true;
+        nocache = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
+      }
+      boolean nopersist = StandaloneAcceleratedStoreClient.getDefaultWriteNopersist();
+      boolean forcedNopersist = false;
+      if (null != stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST)) {
+        forcedNopersist = true;
+        nopersist = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));        
+      }
       
       String accel = "";
-      if (nocache) {
-        accel = accel + StandaloneAcceleratedStoreClient.NOCACHE + " ";
+      if (forcedNocache) {
+        if (nocache) {
+          accel = accel + StandaloneAcceleratedStoreClient.NOCACHE + " ";
+        } else {
+          accel = accel + StandaloneAcceleratedStoreClient.CACHE + " ";          
+        }
       }
-      if (nopersist) {
-        accel = accel + StandaloneAcceleratedStoreClient.NOPERSIST;
+      if (forcedNopersist) {
+        if (nopersist) {
+          accel = accel + StandaloneAcceleratedStoreClient.NOPERSIST;
+        } else {
+          accel = accel + StandaloneAcceleratedStoreClient.PERSIST;          
+        }        
       }
       if (!"".equals(accel)) {
         conn.setRequestProperty(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER, accel);

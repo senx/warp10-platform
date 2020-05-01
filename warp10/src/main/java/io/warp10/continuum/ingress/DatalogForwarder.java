@@ -267,10 +267,18 @@ public class DatalogForwarder extends Thread {
           if (action.request.getAttributesSize() > 0) {
             String accel = "";
             if (null != action.request.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOCACHE)) {
-              accel += StandaloneAcceleratedStoreClient.NOCACHE + " ";
+              if ("false".equals(action.request.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOCACHE))) {
+                accel += StandaloneAcceleratedStoreClient.CACHE + " ";                
+              } else {
+                accel += StandaloneAcceleratedStoreClient.NOCACHE + " ";
+              }
             }
             if (null != action.request.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST)) {
-              accel += StandaloneAcceleratedStoreClient.NOPERSIST;              
+              if ("false".equals(action.request.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST))) {
+                accel += StandaloneAcceleratedStoreClient.PERSIST;                
+              } else {
+                accel += StandaloneAcceleratedStoreClient.NOPERSIST;
+              }
             }
             if (!"".equals(accel)) {
               conn.setRequestProperty(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER, accel);
