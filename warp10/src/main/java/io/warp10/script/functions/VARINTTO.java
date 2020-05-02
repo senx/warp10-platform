@@ -40,6 +40,14 @@ public class VARINTTO extends NamedWarpScriptFunction implements WarpScriptStack
     
     Object top = stack.pop();
     
+    long count = Long.MAX_VALUE;
+    boolean countbased = false;
+    if (top instanceof Long) {
+      count = ((Long) top).longValue();
+      countbased = true;
+      top = stack.pop();
+    }
+    
     if (!(top instanceof byte[])) {
       throw new WarpScriptException(getName() + " operates on a byte array.");
     }
@@ -51,15 +59,23 @@ public class VARINTTO extends NamedWarpScriptFunction implements WarpScriptStack
     List<Object> values = new ArrayList<Object>();
 
     try {
-      while(bb.hasRemaining()) {
+      while(bb.hasRemaining() && count > 0) {
         long value = Varint.decodeUnsignedLong(bb);
         values.add(value);
-      }      
+        count--;
+      }
     } catch (Exception e) {
       throw new WarpScriptException(getName() + " error while decoding values.", e);
     }
     
     stack.push(values);
+    
+    //
+    // If we were count based, output the number of bytes we consumed
+    //
+    if (countbased) {
+      stack.push((long) (data.length - (int) bb.remaining())); 
+    }
     
     return stack;
   }
