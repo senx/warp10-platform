@@ -198,10 +198,10 @@ public class EgressExecHandler extends AbstractHandler {
       // Extract parameters from the path info and set their value as symbols
       //
       
-      String pathInfo = req.getPathInfo().substring(target.length());
+      String pathInfo = req.getPathInfo();
       
-      if (pathInfo.length() > 0) {
-        pathInfo = pathInfo.substring(1);
+      if (pathInfo != null && pathInfo.length() > Constants.API_ENDPOINT_EXEC.length()) {
+        pathInfo = pathInfo.substring(Constants.API_ENDPOINT_EXEC.length() + 1);
         String[] tokens = pathInfo.split("/");
 
         for (String token: tokens) {

@@ -1098,7 +1098,12 @@ public class ThrottlingManager {
   
   private static void dumpCurrentConfig() {
     if (null != dir && !producerHLLPEstimators.isEmpty() && !applicationHLLPEstimators.isEmpty()) {
-      File config = new File(dir, "current" + THROTTLING_MANAGER_SUFFIX + ".dump");
+      String filename = "current" + THROTTLING_MANAGER_SUFFIX + ".dump";
+      // Make sure the filename does not end with THROTTLING_MANAGER_SUFFIX, else it will be automatically loaded.
+      if (filename.endsWith(THROTTLING_MANAGER_SUFFIX)) {
+        filename += ".";
+      }
+      File config = new File(dir, filename);
 
       try {
         PrintWriter pw = new PrintWriter(config);

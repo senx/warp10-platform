@@ -276,7 +276,6 @@ public class StandaloneStoreClient implements StoreClient {
                 kv = iterator.next();              
               }
               
-              startrow = null;
               break;
             }
             
@@ -373,33 +372,29 @@ public class StandaloneStoreClient implements StoreClient {
       
       @Override
       public boolean hasNext() {
-        
+        // All the metadatas have been itered on, there is no more GTSEncoder to return.
         if (idx >= metadatas.size()) {
           return false;
         }
 
-        //
-        // If idx is non null, peek the next key and determine if it is in the current range or not
-        //
-        
+        // While all the metadata are exhasted or there is potentially some data associated to a metadata.
         while(true) {
+          // Check if there are still some data associated with the current metadata.
           if (idx >= 0 && iterator.hasNext()) {
-            Entry<byte[], byte[]> kv = iterator.peekNext();
+            byte[] key = iterator.peekNext().getKey();
 
-            // If the next key is over the range, nullify startrow unless we still have boundaries to fetch
-            if (!(0 == preBoundary && 0 == postBoundary && Bytes.compareTo(kv.getKey(), stoprow) > 0)) {
-              //
-              // If we are time based or value count based with values left to read or with boundaries still to be fetched,
-              // return true
-              if (-1 == fcount || nvalues > 0 || preBoundary > 0 || postBoundary > 0) {
-                return true;
-              }
+            // Still some data if there are boundaries to fetch...
+            if ((preBoundary > 0 || postBoundary > 0)
+                // ...or fetch is either time based or has not returned the requested number of points and stoprow was not yet reached.
+                || ((-1 == fcount || nvalues > 0) && (Bytes.compareTo(key, stoprow) <= 0))) {
+              return true;
             }
           }
           
-          // We need to reseek because we need to skip to the next GTS
+          // No more data associated with the current metadata, go to the next metadata.
           idx++;
 
+          // All the metadatas have been itered on, there is no more GTSEncoder to return.
           if (idx >= metadatas.size()) {
             return false;
           }

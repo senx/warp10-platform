@@ -248,7 +248,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
             this.handler.unsubscribe(session, metadatas);
           }
         } finally {
-          if (iter != null) {
+          if (null != iter) {
             try { ((MetadataIterator) iter).close(); } catch (Exception e) {}
           }
         }
