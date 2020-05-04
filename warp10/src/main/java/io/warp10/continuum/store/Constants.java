@@ -389,6 +389,9 @@ public class Constants {
   public static final String KEY_MODULUS = "modulus";
   public static final String KEY_ALGORITHM = "algorithm";
   public static final String KEY_EXPONENT = "exponent";
+  public static final String KEY_CURVE = "curve";
+  public static final String KEY_Q = "Q";
+  public static final String KEY_D = "d";
   
   private static final int DEFAULT_MAX_ENCODER_SIZE = 100000;
   
