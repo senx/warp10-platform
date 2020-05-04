@@ -17,6 +17,7 @@
 package io.warp10.script.functions;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.List;
 
 import io.warp10.continuum.gts.Varint;
@@ -58,8 +59,8 @@ public class TOVARINT extends NamedWarpScriptFunction implements WarpScriptStack
           baos.write(Varint.encodeUnsignedLong(((Long) longs.get(i)).longValue()));
         }
         stack.push(baos.toByteArray());
-      } catch (Exception e) {
-        throw new WarpScriptException(getName() + " error while decoding values.", e);
+      } catch (IOException ioe) {
+        throw new WarpScriptException(getName() + " error while decoding values.", ioe);
       }      
     }
     

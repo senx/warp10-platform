@@ -27,7 +27,7 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 /**
- * Converts a byte array containing varints into a list of varints
+ * Converts a byte array containing varints into a list of LONGs
  */
 public class VARINTTO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
@@ -64,8 +64,8 @@ public class VARINTTO extends NamedWarpScriptFunction implements WarpScriptStack
         values.add(value);
         count--;
       }
-    } catch (Exception e) {
-      throw new WarpScriptException(getName() + " error while decoding values.", e);
+    } catch (IllegalArgumentException iae) {
+      throw new WarpScriptException(getName() + " error while decoding values.", iae);
     }
     
     stack.push(values);
@@ -74,7 +74,7 @@ public class VARINTTO extends NamedWarpScriptFunction implements WarpScriptStack
     // If we were count based, output the number of bytes we consumed
     //
     if (countbased) {
-      stack.push((long) (data.length - (int) bb.remaining())); 
+      stack.push((long) (data.length - bb.remaining())); 
     }
     
     return stack;
