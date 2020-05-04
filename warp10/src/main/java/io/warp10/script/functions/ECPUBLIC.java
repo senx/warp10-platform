@@ -15,11 +15,11 @@
 //
 
 package io.warp10.script.functions;
+
 import java.util.Map;
 
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
-import org.bouncycastle.jce.provider.asymmetric.ec.EC5Util;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 import org.bouncycastle.jce.spec.ECParameterSpec;
 import org.bouncycastle.math.ec.ECPoint;
@@ -58,7 +58,7 @@ public class ECPUBLIC extends NamedWarpScriptFunction implements WarpScriptStack
     }
     
     if (!(params.get(Constants.KEY_Q) instanceof String)) {
-      throw new WarpScriptException(getName() + " invalid parameter '" + Constants.KEY_Q + "'.");
+      throw new WarpScriptException(getName() + " missing or non-String parameter '" + Constants.KEY_Q + "'.");
     }
     
     final byte[] encoded = Hex.decode((String) params.get(Constants.KEY_Q));

@@ -54,12 +54,12 @@ public class ECPRIVATE extends NamedWarpScriptFunction implements WarpScriptStac
     if (null == curve) {
       throw new WarpScriptException(getName() + " curve name not in " + ECGEN.getCurves() + ".");
     }
-    
-    if (!params.containsKey(Constants.KEY_D)) {
-      throw new WarpScriptException(getName() + " missing parameter '" + Constants.KEY_D + "'.");
+
+    if (!(params.get(Constants.KEY_D) instanceof String)) {
+      throw new WarpScriptException(getName() + " missing or non-String parameter '" + Constants.KEY_D + "'.");
     }
-    
-    final BigInteger d = new BigInteger(String.valueOf(params.get(Constants.KEY_D)));
+
+    final BigInteger d = new BigInteger((String) params.get(Constants.KEY_D));
     
     ECPrivateKey privateKey = new ECPrivateKey() {
       public String getFormat() { return "PKCS#8"; }

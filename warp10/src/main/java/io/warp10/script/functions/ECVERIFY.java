@@ -26,7 +26,6 @@ import java.security.spec.EllipticCurve;
 
 import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.provider.asymmetric.ec.EC5Util;
-import org.bouncycastle.math.ec.ECCurve;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -50,10 +49,10 @@ public class ECVERIFY extends NamedWarpScriptFunction implements WarpScriptStack
       throw new WarpScriptException(getName() + " expects an ECC public key.");
     }
 
-    byte[] encoded = ((org.bouncycastle.jce.interfaces.ECPublicKey) top).getQ().getEncoded();
-    org.bouncycastle.math.ec.ECPoint q = ((org.bouncycastle.jce.interfaces.ECPublicKey) top).getQ();
+    byte[] encoded = ((ECPublicKey) top).getQ().getEncoded();
+    org.bouncycastle.math.ec.ECPoint q = ((ECPublicKey) top).getQ();
     ECPoint w = new ECPoint(q.getX().toBigInteger(), q.getY().toBigInteger());
-    org.bouncycastle.jce.spec.ECParameterSpec curve = ((org.bouncycastle.jce.interfaces.ECPublicKey) top).getParameters();
+    org.bouncycastle.jce.spec.ECParameterSpec curve = ((ECPublicKey) top).getParameters();
     EllipticCurve ec = EC5Util.convertCurve(curve.getCurve(),  curve.getSeed());
 
     final ECParameterSpec spec = new ECParameterSpec(
