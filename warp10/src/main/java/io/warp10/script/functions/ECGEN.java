@@ -16,7 +16,6 @@
 
 package io.warp10.script.functions;
 
-import java.security.Security;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
