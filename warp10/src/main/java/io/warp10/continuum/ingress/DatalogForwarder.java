@@ -332,11 +332,6 @@ public class DatalogForwarder extends Thread {
                 }
               }
               continue;
-            } else {
-              // Ignore line if shard is not included in those we forward
-              if (!include) {
-                continue;
-              }
             }
           } else {
             // No shards defined, include everything

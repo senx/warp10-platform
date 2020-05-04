@@ -146,9 +146,7 @@ public class MapperbSAX extends NamedWarpScriptFunction implements WarpScriptMap
         symbols[i] = ((Number) values[i]).intValue();
       } else {
         // Fill missing values with the last one encountered
-        if (i > 0) {
-          symbols[i] = symbols[i - 1];
-        }
+        symbols[i] = symbols[i - 1];
       }
     }
     

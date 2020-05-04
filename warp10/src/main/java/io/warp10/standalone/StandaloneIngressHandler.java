@@ -1112,7 +1112,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
           dr.setDeltaAttributes(deltaAttributes);
         }
         
-        if (null != dr && (!forwarded || (forwarded && this.logforwarded))) {        
+        if (!forwarded || this.logforwarded) {
           //
           // Serialize the request
           //

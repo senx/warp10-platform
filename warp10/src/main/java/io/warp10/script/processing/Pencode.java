@@ -64,13 +64,12 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
       writer = iter.next();
     }
     ImageWriteParam param = writer.getDefaultWriteParam();
-    IIOMetadata metadata = null;
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     BufferedOutputStream output = new BufferedOutputStream(baos);
     
     try {
       writer.setOutput(ImageIO.createImageOutputStream(output));
-      writer.write(metadata, new IIOImage(bimage, null, metadata), param);      
+      writer.write(null, new IIOImage(bimage, null, null), param);
     } catch (IOException ioe) {
       throw new WarpScriptException(getName() + " error while encoding PGraphics.", ioe);
     }
