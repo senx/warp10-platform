@@ -39,24 +39,28 @@ public class TOVARINT extends NamedWarpScriptFunction implements WarpScriptStack
     
     Object top = stack.pop();
     
-    if (!(top instanceof List)) {
-      throw new WarpScriptException(getName() + " operates on a LIST of LONGs.");
+    if (!(top instanceof List) && !(top instanceof Long)) {
+      throw new WarpScriptException(getName() + " operates on a LONG or LIST of LONGs.");
     }
     
-    List<Object> longs = (List<Object>) top;
-    
-    ByteArrayOutputStream baos = new ByteArrayOutputStream(longs.size());
-    
-    try {
-      for (int i = 0; i < longs.size(); i++) {
-        if (!(longs.get(i) instanceof Long)) {
-          throw new WarpScriptException(getName() + " operates on a LIST of LONGs.");
+    if (top instanceof Long) {
+      stack.push(Varint.encodeUnsignedLong(((Long) top).longValue()));
+    } else {
+      List<Object> longs = (List<Object>) top;
+      
+      ByteArrayOutputStream baos = new ByteArrayOutputStream(longs.size());
+      
+      try {
+        for (int i = 0; i < longs.size(); i++) {
+          if (!(longs.get(i) instanceof Long)) {
+            throw new WarpScriptException(getName() + " operates on a LIST of LONGs.");
+          }
+          baos.write(Varint.encodeUnsignedLong(((Long) longs.get(i)).longValue()));
         }
-        baos.write(Varint.encodeUnsignedLong(((Long) longs.get(i)).longValue()));
-      }
-      stack.push(baos.toByteArray());
-    } catch (Exception e) {
-      throw new WarpScriptException(getName() + " error while decoding values.", e);
+        stack.push(baos.toByteArray());
+      } catch (Exception e) {
+        throw new WarpScriptException(getName() + " error while decoding values.", e);
+      }      
     }
     
     return stack;
