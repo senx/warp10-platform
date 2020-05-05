@@ -315,7 +315,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     }
     if (null != request.getParameter(StandaloneAcceleratedStoreClient.NOPERSIST)) {
       forcedNopersist = true;
-      nopersist = !"false".equals(request.getParameter(StandaloneAcceleratedStoreClient.NOPERSIST));      
+      nopersist = true;
     }
     if (null != request.getParameter(StandaloneAcceleratedStoreClient.PERSIST)) {
       if (forcedNopersist) {

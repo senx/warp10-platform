@@ -183,37 +183,32 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
       conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_UPDATE_TOKENX), token);
       conn.setRequestProperty("Content-Type", "application/gzip");
       
-      boolean nocache = StandaloneAcceleratedStoreClient.getDefaultWriteNocache();
-      boolean forcedNocache = false;
-      if (null != stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE)) {
-        forcedNocache = true;
-        nocache = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
-      }
-      boolean nopersist = StandaloneAcceleratedStoreClient.getDefaultWriteNopersist();
-      boolean forcedNopersist = false;
-      if (null != stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST)) {
-        forcedNopersist = true;
-        nopersist = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));        
-      }
-      
       String accel = "";
-      if (forcedNocache) {
+
+      boolean nocache = StandaloneAcceleratedStoreClient.getDefaultWriteNocache();
+      if (null != stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE)) {
+        nocache = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
         if (nocache) {
           accel = accel + StandaloneAcceleratedStoreClient.NOCACHE + " ";
         } else {
           accel = accel + StandaloneAcceleratedStoreClient.CACHE + " ";          
         }
       }
-      if (forcedNopersist) {
+
+      boolean nopersist = StandaloneAcceleratedStoreClient.getDefaultWriteNopersist();
+      if (null != stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST)) {
+        nopersist = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));        
         if (nopersist) {
           accel = accel + StandaloneAcceleratedStoreClient.NOPERSIST;
         } else {
           accel = accel + StandaloneAcceleratedStoreClient.PERSIST;          
         }        
       }
+      
       if (!"".equals(accel)) {
         conn.setRequestProperty(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER, accel);
       }
+      
       conn.setChunkedStreamingMode(16384);
       conn.connect();
       

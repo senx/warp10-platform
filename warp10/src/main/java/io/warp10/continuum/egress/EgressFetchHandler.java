@@ -230,7 +230,7 @@ public class EgressFetchHandler extends AbstractHandler {
       }
       if (null != req.getParameter(StandaloneAcceleratedStoreClient.NOPERSIST)) {
         forcedNopersist = true;
-        nopersist = !"false".equals(req.getParameter(StandaloneAcceleratedStoreClient.NOPERSIST));      
+        nopersist = true;   
       }
       if (null != req.getParameter(StandaloneAcceleratedStoreClient.PERSIST)) {
         if (forcedNopersist) {

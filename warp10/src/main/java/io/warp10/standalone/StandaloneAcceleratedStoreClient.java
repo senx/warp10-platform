@@ -108,7 +108,8 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     // Extract strategies from configuration
     //
     
-    String defaultStrategy = WarpConfig.getProperty(Configuration.ACCELERATOR_DEFAULT_WRITE);
+    String defaultStrategy = WarpConfig.getProperty(Configuration.ACCELERATOR_DEFAULT_WRITE, "");
+    
     if (defaultStrategy.contains(NOCACHE)) {
       defaultWriteNocache = true;
     } else if (defaultStrategy.contains(CACHE)) {
@@ -119,7 +120,9 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     } else if (defaultStrategy.contains(PERSIST)) {
       defaultWriteNopersist = false;
     }
-    defaultStrategy = WarpConfig.getProperty(Configuration.ACCELERATOR_DEFAULT_DELETE);
+    
+    defaultStrategy = WarpConfig.getProperty(Configuration.ACCELERATOR_DEFAULT_DELETE, "");
+
     if (defaultStrategy.contains(NOCACHE)) {
       defaultDeleteNocache = true;
     } else if (defaultStrategy.contains(CACHE)) {
@@ -130,7 +133,9 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     } else if (defaultStrategy.contains(PERSIST)) {
       defaultDeleteNopersist = false;
     }
-    defaultStrategy = WarpConfig.getProperty(Configuration.ACCELERATOR_DEFAULT_READ);
+    
+    defaultStrategy = WarpConfig.getProperty(Configuration.ACCELERATOR_DEFAULT_READ, "");
+    
     if (defaultStrategy.contains(NOCACHE)) {
       defaultReadNocache = true;
     } else if (defaultStrategy.contains(CACHE)) {
