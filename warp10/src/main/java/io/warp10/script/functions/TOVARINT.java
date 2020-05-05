@@ -60,7 +60,7 @@ public class TOVARINT extends NamedWarpScriptFunction implements WarpScriptStack
         }
         stack.push(baos.toByteArray());
       } catch (IOException ioe) {
-        throw new WarpScriptException(getName() + " error while decoding values.", ioe);
+        throw new WarpScriptException(getName() + " error while encoding values.", ioe);
       }      
     }
     
