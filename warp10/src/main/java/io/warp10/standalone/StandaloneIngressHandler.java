@@ -383,7 +383,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
             forcedNopersist = true;
           } else if (request.getHeader(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER).contains(StandaloneAcceleratedStoreClient.PERSIST)) {
             nopersist = false;
-            forcedNopersist = false;
+            forcedNopersist = true;
           }
         }
       }

@@ -185,9 +185,8 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
       
       String accel = "";
 
-      boolean nocache = StandaloneAcceleratedStoreClient.getDefaultWriteNocache();
       if (null != stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE)) {
-        nocache = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
+        boolean nocache = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
         if (nocache) {
           accel = accel + StandaloneAcceleratedStoreClient.NOCACHE + " ";
         } else {
@@ -195,9 +194,8 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
         }
       }
 
-      boolean nopersist = StandaloneAcceleratedStoreClient.getDefaultWriteNopersist();
       if (null != stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST)) {
-        nopersist = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));        
+        boolean nopersist = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));        
         if (nopersist) {
           accel = accel + StandaloneAcceleratedStoreClient.NOPERSIST;
         } else {
