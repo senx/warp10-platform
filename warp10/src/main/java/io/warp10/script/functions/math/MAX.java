@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -47,16 +48,16 @@ public class MAX extends NamedWarpScriptFunction implements WarpScriptStackFunct
         }
 
         if (null == min) {
-          if (element instanceof Long || element instanceof Integer) {
-            min = ((Number) element).longValue();
-          } else {
+          if (element instanceof Double || element instanceof BigDecimal) {
             min = ((Number) element).doubleValue();
+          } else {
+            min = ((Number) element).longValue();
           }
         } else {
-          if ((element instanceof Long || element instanceof Integer) && (min instanceof Long)) {
-            min = Math.max(((Number) element).longValue(), min.longValue());
-          } else {
+          if (element instanceof Double || element instanceof BigDecimal || min instanceof Double) {
             min = Math.max(((Number) element).doubleValue(), min.doubleValue());
+          } else {
+            min = Math.max(((Number) element).longValue(), min.longValue());
           }
         }
       }
@@ -74,11 +75,10 @@ public class MAX extends NamedWarpScriptFunction implements WarpScriptStackFunct
         throw new WarpScriptException(getName() + " can only operate on 2 numerical values or a list on numerical values.");
       }
 
-      if ((op1 instanceof Long || op1 instanceof Integer)
-          && (op0 instanceof Long || op0 instanceof Integer)) {
-        stack.push(Math.max(((Number) op1).longValue(), ((Number) op0).longValue()));
-      } else {
+      if (op0 instanceof Double || op0 instanceof BigDecimal || op1 instanceof Double || op1 instanceof BigDecimal) {
         stack.push(Math.max(((Number) op1).doubleValue(), ((Number) op0).doubleValue()));
+      } else {
+        stack.push(Math.max(((Number) op1).longValue(), ((Number) op0).longValue()));
       }
     }
 
