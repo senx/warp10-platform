@@ -1093,6 +1093,8 @@ public class WarpScriptLib {
   public static final String TOZ = "->Z";
   public static final String TOMAT = "->MAT";
   public static final String TOVEC = "->VEC";
+  public static final String TOVARINT = "->VARINT";
+  public static final String VARINTTO = "VARINT->";
 
   public static final String LISTTO = "LIST->";
   public static final String SETTO = "SET->";
@@ -1222,6 +1224,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new SETTO(SETTO));
     addNamedWarpScriptFunction(new TOVECTOR(TO_VECTOR));
     addNamedWarpScriptFunction(new VECTORTO(VTO));
+    addNamedWarpScriptFunction(new TOVARINT(TOVARINT));
+    addNamedWarpScriptFunction(new VARINTTO(VARINTTO));
     addNamedWarpScriptFunction(new UNION(UNION));
     addNamedWarpScriptFunction(new INTERSECTION(INTERSECTION));
     addNamedWarpScriptFunction(new DIFFERENCE(DIFFERENCE));
