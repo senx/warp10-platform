@@ -95,19 +95,16 @@ public class GEOCOVER extends ElementOrListStackFunction {
               }
             }            
           }
-        } else if (element instanceof GTSEncoder) {          
-          if (rhumblines) {
-            // Can't happen
-          } else {
-            GTSDecoder decoder = ((GTSEncoder) element).getDecoder();
+        } else if (element instanceof GTSEncoder) {
+          // In that case, rhumblines == false
+          GTSDecoder decoder = ((GTSEncoder) element).getDecoder();
 
-            while (decoder.next()) {
-              long location = decoder.getLocation();
-              if (GeoTimeSerie.NO_LOCATION != location) {
-                long cell = ((location & mask) >>> 4) | prefix;
-                cells.add(cell);
-              }
-            }            
+          while (decoder.next()) {
+            long location = decoder.getLocation();
+            if (GeoTimeSerie.NO_LOCATION != location) {
+              long cell = ((location & mask) >>> 4) | prefix;
+              cells.add(cell);
+            }
           }
         } else {
           throw new WarpScriptException(getName() + " can only operate on Geo Time Series™ or GTS Encoders.");

@@ -648,6 +648,11 @@ public class WarpScriptLib {
   public static final String UNGZIP = "UNGZIP";
   public static final String DEFLATE = "DEFLATE";
   public static final String INFLATE = "INFLATE";
+  public static final String ECGEN = "ECGEN";
+  public static final String ECPRIVATE = "ECPRIVATE";
+  public static final String ECPUBLIC = "ECPUBLIC";
+  public static final String ECSIGN = "ECSIGN";
+  public static final String ECVERIFY = "ECVERIFY";
   public static final String RSAGEN = "RSAGEN";
   public static final String RSAENCRYPT = "RSAENCRYPT";
   public static final String RSADECRYPT = "RSADECRYPT";
@@ -1082,10 +1087,14 @@ public class WarpScriptLib {
   public static final String TOHHCODELONG = "->HHCODELONG";
   public static final String TOGTSHHCODE = "->GTSHHCODE";
   public static final String TOGTSHHCODELONG = "->GTSHHCODELONG";
+  public static final String TOGEOCELL = "->GEOCELL";
+  public static final String TOGEOSHAPE = "->GEOSHAPE";
   public static final String TOGEOHASH = "->GEOHASH";
   public static final String TOZ = "->Z";
   public static final String TOMAT = "->MAT";
   public static final String TOVEC = "->VEC";
+  public static final String TOVARINT = "->VARINT";
+  public static final String VARINTTO = "VARINT->";
 
   public static final String LISTTO = "LIST->";
   public static final String SETTO = "SET->";
@@ -1103,6 +1112,8 @@ public class WarpScriptLib {
   public static final String TSELEMENTSTO = "TSELEMENTS->";
   public static final String HHCODETO = "HHCODE->";
   public static final String GTSHHCODETO = "GTSHHCODE->";
+  public static final String GEOCELLTO = "GEOCELL->";
+  public static final String GEOSHAPETO = "GEOSHAPE->";
   public static final String GEOHASHTO = "GEOHASH->";
   public static final String GEOSPLIT = "GEOSPLIT";
   public static final String ZTO = "Z->";
@@ -1213,6 +1224,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new SETTO(SETTO));
     addNamedWarpScriptFunction(new TOVECTOR(TO_VECTOR));
     addNamedWarpScriptFunction(new VECTORTO(VTO));
+    addNamedWarpScriptFunction(new TOVARINT(TOVARINT));
+    addNamedWarpScriptFunction(new VARINTTO(VARINTTO));
     addNamedWarpScriptFunction(new UNION(UNION));
     addNamedWarpScriptFunction(new INTERSECTION(INTERSECTION));
     addNamedWarpScriptFunction(new DIFFERENCE(DIFFERENCE));
@@ -1471,6 +1484,11 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new UNGZIP(UNGZIP));
     addNamedWarpScriptFunction(new DEFLATE(DEFLATE));
     addNamedWarpScriptFunction(new INFLATE(INFLATE));
+    addNamedWarpScriptFunction(new ECGEN(ECGEN));
+    addNamedWarpScriptFunction(new ECPRIVATE(ECPRIVATE));
+    addNamedWarpScriptFunction(new ECPUBLIC(ECPUBLIC));
+    addNamedWarpScriptFunction(new ECSIGN(ECSIGN));
+    addNamedWarpScriptFunction(new ECVERIFY(ECVERIFY));
     addNamedWarpScriptFunction(new RSAGEN(RSAGEN));
     addNamedWarpScriptFunction(new RSAPUBLIC(RSAPUBLIC));
     addNamedWarpScriptFunction(new RSAPRIVATE(RSAPRIVATE));
@@ -1925,8 +1943,12 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOHHCODE(TOHHCODELONG, false));
     addNamedWarpScriptFunction(new TOHHCODE(TOGTSHHCODE, true, true));
     addNamedWarpScriptFunction(new TOHHCODE(TOGTSHHCODELONG, false, true));
+    addNamedWarpScriptFunction(new TOGEOCELL(TOGEOCELL));
+    addNamedWarpScriptFunction(new TOGEOSHAPE(TOGEOSHAPE));
     addNamedWarpScriptFunction(new HHCODETO(HHCODETO));
     addNamedWarpScriptFunction(new HHCODETO(GTSHHCODETO, true));
+    addNamedWarpScriptFunction(new GEOCELLTO(GEOCELLTO));
+    addNamedWarpScriptFunction(new GEOSHAPETO(GEOSHAPETO));
     addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_BBOX, HHCODEFUNC.HHCodeAction.BBOX));
     addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_CENTER, HHCODEFUNC.HHCodeAction.CENTER));
     addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_NORTH, HHCODEFUNC.HHCodeAction.NORTH));

@@ -47,7 +47,7 @@ public class RSAGEN extends NamedWarpScriptFunction implements WarpScriptStackFu
     Object top = stack.pop();
 
     if (!(top instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects a key length on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a key length.");
     }
 
     int strength = ((Number) top).intValue();

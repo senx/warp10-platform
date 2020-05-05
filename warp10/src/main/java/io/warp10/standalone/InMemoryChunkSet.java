@@ -399,11 +399,6 @@ public class InMemoryChunkSet {
         continue;
       }
       
-      // Chunk does not intersect the main range, so if we are not fetching a preboundary, ignore it
-      if (boundaryOnly && null == boundary) {
-        continue;
-      }
-      
       long nvalues = count >= 0 ? count : Long.MAX_VALUE;
 
       // Merge the data from chunkDecoder which is in the requested range in 'encoder'

@@ -276,7 +276,6 @@ public class StandaloneStoreClient implements StoreClient {
                 kv = iterator.next();              
               }
               
-              startrow = null;
               break;
             }
             
@@ -373,58 +372,46 @@ public class StandaloneStoreClient implements StoreClient {
       
       @Override
       public boolean hasNext() {
-        
+        // All the metadatas have been itered on, there is no more GTSEncoder to return.
         if (idx >= metadatas.size()) {
           return false;
         }
 
-        //
-        // If idx is non null, peek the next key and determine if it is in the current range or not
-        //
-        
+        // While all the metadata are exhasted or there is potentially some data associated to a metadata.
         while(true) {
+          // Check if there are still some data associated with the current metadata.
           if (idx >= 0 && iterator.hasNext()) {
-            Entry<byte[], byte[]> kv = iterator.peekNext();
+            byte[] key = iterator.peekNext().getKey();
 
-            // If the next key is over the range, nullify startrow unless we still have boundaries to fetch
-            if (0 == preBoundary && 0 == postBoundary && Bytes.compareTo(kv.getKey(), stoprow) > 0) {
-              startrow = null;
-            } else {
-              //
-              // If we are time based or value count based with values left to read or with boundaries still to be fetched,
-              // return true
-              if (-1 == fcount || nvalues > 0 || preBoundary > 0 || postBoundary > 0) {
-                return true;
-              } else {
-                startrow = null;
-              }
+            // Still some data if there are boundaries to fetch...
+            if ((preBoundary > 0 || postBoundary > 0)
+                // ...or fetch is either time based or has not returned the requested number of points and stoprow was not yet reached.
+                || ((-1 == fcount || nvalues > 0) && (Bytes.compareTo(key, stoprow) <= 0))) {
+              return true;
             }
-          } else {
-            startrow = null;
           }
           
-          // We need to reseek if startrow is null (it indicates we need to skip to the next GTS)
-          if (null == startrow) {
-            idx++;
+          // No more data associated with the current metadata, go to the next metadata.
+          idx++;
 
-            if (idx >= metadatas.size()) {
-              return false;
-            }
-            
-            startrow = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
-            ByteBuffer bb = ByteBuffer.wrap(startrow).order(ByteOrder.BIG_ENDIAN);
-            bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
-            bb.putLong(metadatas.get(idx).getClassId());
-            bb.putLong(metadatas.get(idx).getLabelsId());
-            bb.putLong(Long.MAX_VALUE - now);
-              
-            stoprow = new byte[startrow.length];
-            bb = ByteBuffer.wrap(stoprow).order(ByteOrder.BIG_ENDIAN);
-            bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
-            bb.putLong(metadatas.get(idx).getClassId());
-            bb.putLong(metadatas.get(idx).getLabelsId());                            
-            bb.putLong(Long.MAX_VALUE - then);
+          // All the metadatas have been itered on, there is no more GTSEncoder to return.
+          if (idx >= metadatas.size()) {
+            return false;
           }
+
+          startrow = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
+          ByteBuffer bb = ByteBuffer.wrap(startrow).order(ByteOrder.BIG_ENDIAN);
+          bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
+          bb.putLong(metadatas.get(idx).getClassId());
+          bb.putLong(metadatas.get(idx).getLabelsId());
+          bb.putLong(Long.MAX_VALUE - now);
+
+          stoprow = new byte[startrow.length];
+          bb = ByteBuffer.wrap(stoprow).order(ByteOrder.BIG_ENDIAN);
+          bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
+          bb.putLong(metadatas.get(idx).getClassId());
+          bb.putLong(metadatas.get(idx).getLabelsId());
+          bb.putLong(Long.MAX_VALUE - then);
 
           //
           // Reset number of values retrieved since we just skipped to a new GTS.

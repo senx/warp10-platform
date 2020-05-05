@@ -248,7 +248,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
             this.handler.unsubscribe(session, metadatas);
           }
         } finally {
-          if (iter instanceof MetadataIterator) {
+          if (null != iter) {
             try { ((MetadataIterator) iter).close(); } catch (Exception e) {}
           }
         }
@@ -844,7 +844,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
   
   private synchronized void setExposeOwnerProducer(Session session, boolean expose) {
     if (expose) {
-      this.exposeOwnerProducer.put(session, expose);
+      this.exposeOwnerProducer.put(session, true);
     } else {
       this.exposeOwnerProducer.remove(session);
     }

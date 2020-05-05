@@ -69,7 +69,7 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
       throw new WarpScriptException(getName() + " expects a macro on top of the stack.");
     }
     
-    if (!(obj instanceof List) && !(obj instanceof Map) && !(obj instanceof Iterator) && !(obj instanceof Iterable) && !(obj instanceof GeoTimeSerie) && !(obj instanceof GTSEncoder) && !(obj instanceof String)) {
+    if (!(obj instanceof Map) && !(obj instanceof Iterator) && !(obj instanceof Iterable) && !(obj instanceof GeoTimeSerie) && !(obj instanceof GTSEncoder) && !(obj instanceof String)) {
       throw new WarpScriptException(getName() + " operates on a list, map, Geo Time Series™, ENCODER, STRING, iterator or iterable.");
     }
 
@@ -173,7 +173,7 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
           // Do nothing!
         }        
       }
-    } else if (obj instanceof GTSEncoder) {
+    } else { // obj instanceof GTSEncoder
       GTSDecoder decoder = ((GTSEncoder) obj).getDecoder();
       while(decoder.next()) {
         List<Object> elt = new ArrayList<Object>(5);
