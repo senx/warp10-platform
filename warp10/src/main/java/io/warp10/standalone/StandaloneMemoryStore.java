@@ -134,7 +134,6 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
   }
   
   @Override
-  //public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long timespan, boolean fromArchive, boolean writeTimestamp, final int preBoundary, final int postBoundary) {
   public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, final long count, final long skip, final double sample, boolean writeTimestamp, final long preBoundary, final long postBoundary) {
 
     if (0 != preBoundary || 0 != postBoundary) {
@@ -407,11 +406,6 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
         }
       }      
     }
-  }
-  
-  @Override
-  public void archive(int chunk, GTSEncoder encoder) throws IOException {
-    throw new IOException("in-memory platform does not support archiving.");
   }
   
   @Override

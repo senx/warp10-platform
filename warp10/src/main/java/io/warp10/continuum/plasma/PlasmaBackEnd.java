@@ -599,7 +599,6 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
                 backend.dispatch(clslbls, msg, tmsg, outSipHashKey, outAESKey);              
                 break;
               case DELETE:
-              case ARCHIVE:
                 break;
               default:
                 throw new RuntimeException("Invalid message type.");

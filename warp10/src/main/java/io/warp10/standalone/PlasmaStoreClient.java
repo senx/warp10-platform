@@ -46,10 +46,5 @@ public class PlasmaStoreClient implements StoreClient {
   }
   
   @Override
-  public void archive(int chunk, GTSEncoder encoder) throws IOException {
-    throw new IOException("Archive not implemented.");
-  }
-  
-  @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException { return 0L; }
 }

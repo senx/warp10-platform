@@ -37,9 +37,6 @@ public class NullStoreClient implements StoreClient {
   
   @Override
   public void store(GTSEncoder encoder) throws IOException {}
-  
-  @Override
-  public void archive(int chunk, GTSEncoder encoder) throws IOException {}
 
   @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException { return 0L; }

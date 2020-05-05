@@ -27,7 +27,6 @@ import java.util.List;
 
 public interface StoreClient {
   public void store(GTSEncoder encoder) throws IOException;
-  public void archive(int chunk, GTSEncoder encoder) throws IOException;
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException;
   /**
    * 
