@@ -309,11 +309,6 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     }
   }
   
-  @Override
-  public void archive(int chunk, GTSEncoder encoder) throws IOException {
-    throw new IOException("Not Implemented");
-  }
-  
   public static final void nocache() {
     if (null != instance) {
       nocache.set(Boolean.TRUE);

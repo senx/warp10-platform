@@ -39,11 +39,6 @@ public class StandaloneParallelStoreClientWrapper implements StoreClient {
   }
   
   @Override
-  public void archive(int chunk, GTSEncoder encoder) throws IOException {
-    parent.archive(chunk, encoder);
-  }
-  
-  @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {
     return parent.delete(token, metadata, start, end);
   }

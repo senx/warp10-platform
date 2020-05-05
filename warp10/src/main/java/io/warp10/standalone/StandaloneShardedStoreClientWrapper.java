@@ -98,11 +98,6 @@ public class StandaloneShardedStoreClientWrapper implements StoreClient {
   }
   
   @Override
-  public void archive(int chunk, GTSEncoder encoder) throws IOException {
-    throw new IOException("Archive is not implemented.");
-  }
-  
-  @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {
     return this.client.delete(token, metadata, start, end);
   }

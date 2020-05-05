@@ -264,11 +264,6 @@ public class HBaseStoreClient implements StoreClient {
   public void store(GTSEncoder encoder) throws IOException {
     throw new RuntimeException("Not Implemented.");   
   }
-
-  @Override
-  public void archive(int chunk, GTSEncoder encoder) throws IOException {
-    throw new RuntimeException("Not Implemented.");   
-  }
   
   @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {

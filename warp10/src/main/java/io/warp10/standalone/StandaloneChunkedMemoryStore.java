@@ -320,11 +320,6 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
   }
   
   @Override
-  public void archive(int chunk, GTSEncoder encoder) throws IOException {
-    throw new IOException("in-memory platform does not support archiving.");
-  }
-  
-  @Override
   public void run() {
     //
     // Loop endlessly over the series, cleaning them as they grow

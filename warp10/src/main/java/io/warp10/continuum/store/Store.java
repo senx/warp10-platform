@@ -100,11 +100,6 @@ public class Store extends Thread {
   private static final Logger LOG = LoggerFactory.getLogger(Store.class);
   
   /**
-   * Prefix for 'archived' data
-   */
-  public static final byte[] HBASE_ARCHIVE_DATA_KEY_PREFIX = "A".getBytes(StandardCharsets.UTF_8);
-  
-  /**
    * Set of required parameters, those MUST be set
    */
   private static final String[] REQUIRED_PROPERTIES = new String[] {
@@ -1134,9 +1129,6 @@ public class Store extends Thread {
               case DELETE:
                 handleDelete(ht, tmsg);              
                 break;
-              case ARCHIVE:
-                handleArchive(ht, tmsg);              
-                break;
               default:
                 throw new RuntimeException("Invalid message type.");
             }
@@ -1544,16 +1536,6 @@ public class Store extends Thread {
           store.inflightDeletions.addAndGet(-1);
         }
       }
-    }
-    
-    private void handleArchive(Table ht, KafkaDataMessage msg) {
-      
-      if (KafkaDataMessageType.ARCHIVE != msg.getType()) {
-        return;
-      }
-      
-      
-      throw new RuntimeException("Archive not implemented yet.");
     }
   }
   
