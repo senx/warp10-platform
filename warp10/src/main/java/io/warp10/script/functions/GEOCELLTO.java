@@ -22,7 +22,7 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 /**
- * Converts a geo cells long to a String HHCode prefix which resolution is implicitly given by its length.
+ * Converts a geocell long to a String HHCode prefix whose resolution is implicitly given by its length.
  * It cannot convert to a byte[] representation because they are limited to resolutions multiple of 4.
  */
 public class GEOCELLTO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
@@ -36,10 +36,10 @@ public class GEOCELLTO extends NamedWarpScriptFunction implements WarpScriptStac
     Object top = stack.pop();
 
     if (!(top instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects a " + TYPEOF.TYPE_LONG + " GeoCells.");
+      throw new WarpScriptException(getName() + " expects a " + TYPEOF.TYPE_LONG + " geocell.");
     }
 
-    long geocell = (Long) top;
+    long geocell = ((Long) top).longValue();
 
     stack.push(geocellToHHCodePrefix(geocell));
 
@@ -47,10 +47,11 @@ public class GEOCELLTO extends NamedWarpScriptFunction implements WarpScriptStac
   }
 
   /**
-   * Converts a geo cell (4 bits resolution + 60 bits hhcode) to an HHCode prefix String which resolution is implicitly
+   * Converts a geocell (4 bits resolution + 60 bits hhcode) to an HHCode prefix String whose resolution is implicitly
    * given by the length of the String.
-   * @param geocell The geo cell to convert.
-   * @return An HHCode prefix String which resolution is implicitly given by the length of the String. Thus its length is
+   *
+   * @param geocell The geocell to convert.
+   * @return An HHCode prefix String whose resolution is implicitly given by the length of the String. Thus its length is
    * between 1 and 15, inclusive.
    */
   public static String geocellToHHCodePrefix(long geocell) {

@@ -23,7 +23,7 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 /**
- * Converts a String or byte[] HHCode prefix to a Long geo cell.
+ * Converts a String or byte[] HHCode prefix to a Long geocell.
  * The resolution of the HHCode String prefix is implicitly given by the length of the String.
  */
 public class TOGEOCELL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
@@ -37,14 +37,14 @@ public class TOGEOCELL extends NamedWarpScriptFunction implements WarpScriptStac
     Object top = stack.pop();
 
     if (!(top instanceof String) && !(top instanceof byte[])) {
-      throw new WarpScriptException(getName() + " expects a " + TYPEOF.TYPE_STRING + " or a " + TYPEOF.TYPE_BYTES);
+      throw new WarpScriptException(getName() + " expects a " + TYPEOF.TYPE_STRING + " or a " + TYPEOF.TYPE_BYTES + ".");
     }
 
     long[] hhAndRes;
     try {
       hhAndRes = HHCODEFUNC.hhAndRes(top);
     } catch (WarpScriptException wse) {
-      throw new WarpScriptException(getName() + " expects a " + TYPEOF.TYPE_STRING + " or a " + TYPEOF.TYPE_BYTES, wse);
+      throw new WarpScriptException(getName() + " expects a " + TYPEOF.TYPE_STRING + " or a " + TYPEOF.TYPE_BYTES + ".", wse);
     }
     long hh = hhAndRes[0];
     int res = (int) hhAndRes[1]; // We know hhAndRes returns an int here.
@@ -53,7 +53,7 @@ public class TOGEOCELL extends NamedWarpScriptFunction implements WarpScriptStac
 
     // Check cell is valid
     if (0 == (geocell >>> 60)) {
-      throw new WarpScriptException(getName() + " expects the geo cell resolution to be even and between 2 and 30, inclusive.");
+      throw new WarpScriptException(getName() + " expects the geocell resolution to be even and between 2 and 30, inclusive.");
     }
 
     stack.push(geocell);

@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Converts a list of geo cells (longs) or HHCode prefixes (strings or bytes) to a GeoXPShape.
+ * Converts a list of geocells (longs) or HHCode prefixes (strings or bytes) to a GeoXPShape.
  */
 public class TOGEOSHAPE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -52,7 +52,7 @@ public class TOGEOSHAPE extends NamedWarpScriptFunction implements WarpScriptSta
 
       if (cell instanceof Long) {
         // Explicit GeoCell: 4 bits resolution + 60 bits HHCode.
-        geocell = (Long) cell;
+        geocell = ((Long) cell).longValue();
       } else if (cell instanceof String || cell instanceof byte[]) {
         // Implicit GeoCell: resolution is defined by the length of the String or byte[]
         try {
@@ -70,7 +70,7 @@ public class TOGEOSHAPE extends NamedWarpScriptFunction implements WarpScriptSta
 
       // Check cell is valid
       if (0 == (geocell >>> 60)) {
-        throw new WarpScriptException(getName() + " expects geo cells resolutions to be even and between 2 and 30, inclusive.");
+        throw new WarpScriptException(getName() + " expects geocells resolutions to be even and between 2 and 30, inclusive.");
       }
 
       geocells.add(geocell);

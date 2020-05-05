@@ -25,7 +25,7 @@ import io.warp10.script.WarpScriptStackFunction;
 import java.util.ArrayList;
 
 /**
- * Converts a GeoXPShape to a list of geo cell (longs) or HHCode prefixes (strings).
+ * Converts a GeoXPShape to a list of geocells (longs) or HHCode prefixes (strings).
  * It cannot convert to a bytes representation because they are limited to resolutions multiple of 4.
  */
 public class GEOSHAPETO extends NamedWarpScriptFunction implements WarpScriptStackFunction {

@@ -17,11 +17,13 @@
 package io.warp10.script.functions;
 
 import com.geoxp.GeoXPLib;
+import com.google.common.primitives.Longs;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import org.apache.commons.codec.binary.Hex;
 
 /**
  * Converts a lat/lon pair to an HHCode
@@ -69,7 +71,7 @@ public class TOHHCODE extends NamedWarpScriptFunction implements WarpScriptStack
     }
 
     if (this.tostring) {
-      String hhcode = Long.toHexString(geoxppoint);
+      String hhcode = Hex.encodeHexString(Longs.toByteArray(geoxppoint));
 
       stack.push(hhcode);
     } else {
