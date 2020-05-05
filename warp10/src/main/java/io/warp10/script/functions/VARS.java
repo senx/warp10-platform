@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -49,25 +49,40 @@ public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunc
     if (!(top instanceof Macro)) {
       throw new WarpScriptException(getName() + " operates on a macro.");
     }
-    
-    //
-    // Now loop over the macro statement, extracting variable names
-    //
-    
+
+    Macro macro = (Macro) top;
+
+    try {
+      stack.push(getVars(macro));
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException(getName() + " failed.", wse);
+    }
+
+    return stack;
+  }
+
+  /**
+   * Loop over the macro statements, in a recursive manner, extracting all variable names.
+   *
+   * @param macro The root macro to extract the variable names from.
+   * @return The list of variable names.
+   * @throws WarpScriptException If a STORE call is found to be using neither a String, Long or a list thereof.
+   */
+  public static List<Object> getVars(Macro macro) throws WarpScriptException {
     Set<Object> symbols = new LinkedHashSet<Object>();
-    
-    final Map<Object,AtomicInteger> occurrences = new HashMap<Object,AtomicInteger>();
-    
+
+    final Map<Object, AtomicInteger> occurrences = new HashMap<Object, AtomicInteger>();
+
     List<Macro> allmacros = new ArrayList<Macro>();
-    allmacros.add((Macro) top);
-    
+    allmacros.add(macro);
+
     boolean abort = false;
 
-    while(!abort && !allmacros.isEmpty()) {
+    while (!abort && !allmacros.isEmpty()) {
       Macro m = allmacros.remove(0);
-      
+
       List<Object> statements = new ArrayList<Object>(m.statements());
-                
+
       for (int i = 0; i < statements.size(); i++) {
         if (statements.get(i) instanceof Macro) {
           allmacros.add((Macro) statements.get(i));
@@ -87,7 +102,7 @@ public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunc
             occ = new AtomicInteger();
             occurrences.put((long) ((PUSHR) statements.get(i)).getRegister(), occ);
           }
-          occ.incrementAndGet();                  
+          occ.incrementAndGet();
         } else if (statements.get(i) instanceof LOAD || statements.get(i) instanceof CSTORE) {
           Object symbol = statements.get(i - 1);
           // If the parameter to LOAD/STORE/CSTORE is not a string, then we cannot extract
@@ -110,7 +125,7 @@ public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunc
             abort = true;
             break;
           }
-          Object symbol = statements.get(i-1);
+          Object symbol = statements.get(i - 1);
           if (symbol instanceof List) {
             // We inspect the list, looking for registers
             for (Object elt: (List) symbol) {
@@ -141,35 +156,35 @@ public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunc
                   occ = new AtomicInteger();
                   occurrences.put(stmt, occ);
                 }
-                occ.incrementAndGet();                
+                occ.incrementAndGet();
               } else if (null != stmt && !(stmt instanceof NULL)) {
                 abort = true;
                 break;
               }
-            }            
+            }
           } else if (!(symbol instanceof String) && !(symbol instanceof Long)) {
             // We encountered a STORE with something that is neither a register, a string or
             // a list, so we cannot determine if a register is involved or not, so we abort
             abort = true;
           }
         }
-      }            
+      }
     }
-    
+
     if (abort) {
-      throw new WarpScriptException(getName() + " encountered a LOAD/STORE or CSTORE operation with a non explicit symbol name.");
+      throw new WarpScriptException("Encountered a LOAD/STORE or CSTORE operation with a non explicit symbol name.");
     }
-    
+
     List<Object> vars = new ArrayList<Object>(symbols);
-    
+
     // Now sort according to the number of occurrences (decreasing)
-    
+
     vars.sort(new Comparator<Object>() {
       @Override
       public int compare(Object s1, Object s2) {
         AtomicInteger occ1 = occurrences.get(s1);
         AtomicInteger occ2 = occurrences.get(s2);
-        
+
         if (occ1.get() < occ2.get()) {
           return 1;
         } else if (occ1.get() > occ2.get()) {
@@ -179,9 +194,7 @@ public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunc
         }
       }
     });
-        
-    stack.push(vars);
-    
-    return stack;
+
+    return vars;
   }
 }
