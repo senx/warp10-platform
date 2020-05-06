@@ -362,10 +362,16 @@ public class StandaloneIngressHandler extends AbstractHandler {
         if (dr.getAttributesSize() > 0) {
           if (null != dr.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOCACHE)) {
             forcedNocache = true;
+            // The test below checks for "false" because initially the nocache attribute was set to the empty string
+            // to mean 'true', so we need to explicitely look for 'false' and invert it so the empty string is indeed
+            // synonymous for true.
             nocache = !"false".equals(dr.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
           }
           if (null != dr.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST)) {
             forcedNopersist = true;
+            // The test below checks for "false" because initially the nocache attribute was set to the empty string
+            // to mean 'true', so we need to explicitely look for 'false' and invert it so the empty string is indeed
+            // synonymous for true.
             nopersist = !"false".equals(dr.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));
           }
         }
