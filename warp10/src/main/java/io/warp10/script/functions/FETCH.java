@@ -714,8 +714,6 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
     }
         
-    stack.setAttribute(StandaloneAcceleratedStoreClient.ATTR_REPORT, StandaloneAcceleratedStoreClient.accelerated());
-    
     stack.push(series);
     
     //

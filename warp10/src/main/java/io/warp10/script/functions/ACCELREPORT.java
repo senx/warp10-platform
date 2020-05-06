@@ -47,8 +47,6 @@ public class ACCELREPORT extends NamedWarpScriptFunction implements WarpScriptSt
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
-    Object status = stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_REPORT);
-    
     Map<Object,Object> report = new HashMap<Object,Object>();
     
     report.put(KEY_CACHE, StandaloneAcceleratedStoreClient.isCache());

@@ -55,7 +55,6 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
   private final StandaloneChunkedMemoryStore cache;
   private final boolean ephemeral;
 
-  public static final String ATTR_REPORT = "accel.report";
   public static final String ATTR_NOCACHE = "accel.nocache";
   public static final String ATTR_NOPERSIST = "accel.nopersist";
   
