@@ -209,8 +209,35 @@ public class EgressFetchHandler extends AbstractHandler {
         postBoundaryParam = req.getParameter(Constants.HTTP_PARAM_POSTBOUNDARY);
       }
           
-      boolean nocache = null != req.getParameter(StandaloneAcceleratedStoreClient.NOCACHE);
-      boolean nopersist = null != req.getParameter(StandaloneAcceleratedStoreClient.NOPERSIST);
+      boolean nocache = StandaloneAcceleratedStoreClient.getDefaultReadNocache();
+      boolean forcedNocache = false;
+      boolean nopersist = StandaloneAcceleratedStoreClient.getDefaultReadNopersist();
+      boolean forcedNopersist = false;
+      
+      if (null != req.getParameter(StandaloneAcceleratedStoreClient.NOCACHE)) {
+        forcedNocache = true;
+        nocache = true;
+      }
+      if (null != req.getParameter(StandaloneAcceleratedStoreClient.CACHE)) {
+        if (forcedNocache) {
+          resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Cannot specify both '" + StandaloneAcceleratedStoreClient.NOCACHE + "' and '" + StandaloneAcceleratedStoreClient.CACHE + "'.");;
+          return;
+        }
+        forcedNocache = true;
+        nocache = false;
+      }
+      if (null != req.getParameter(StandaloneAcceleratedStoreClient.NOPERSIST)) {
+        forcedNopersist = true;
+        nopersist = true;   
+      }
+      if (null != req.getParameter(StandaloneAcceleratedStoreClient.PERSIST)) {
+        if (forcedNopersist) {
+          resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Cannot specify both '" + StandaloneAcceleratedStoreClient.NOPERSIST + "' and '" + StandaloneAcceleratedStoreClient.PERSIST + "'.");;
+          return;
+        }
+        forcedNopersist = true;
+        nopersist = false;
+      }
       
       String maxDecoderLenParam = req.getParameter(Constants.HTTP_PARAM_MAXSIZE);
       int maxDecoderLen = null != maxDecoderLenParam ? Integer.parseInt(maxDecoderLenParam) : Constants.DEFAULT_PACKED_MAXSIZE;

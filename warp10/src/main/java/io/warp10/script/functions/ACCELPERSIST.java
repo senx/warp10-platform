@@ -36,7 +36,7 @@ public class ACCELPERSIST extends NamedWarpScriptFunction implements WarpScriptS
     if (nopersist) {
       stack.setAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST, Boolean.TRUE);
     } else {
-      stack.setAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST, null);
+      stack.setAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST, Boolean.FALSE);
     }
     return stack;
   }

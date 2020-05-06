@@ -160,17 +160,24 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
       qsurl.append("=");
       qsurl.append(WarpURLEncoder.encode(selector, StandardCharsets.UTF_8));
 
-      boolean nocache = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
-      boolean nopersist = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));
-
-      if (nocache) {
+      if (null != stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE)) {
+        boolean nocache = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
         qsurl.append("&");
-        qsurl.append(StandaloneAcceleratedStoreClient.NOCACHE);
+        if (nocache) {
+          qsurl.append(StandaloneAcceleratedStoreClient.NOCACHE);
+        } else {
+          qsurl.append(StandaloneAcceleratedStoreClient.CACHE);
+        }
       }
-      
-      if (nopersist) {
+
+      if (null != stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST)) {
+        boolean nopersist = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));
         qsurl.append("&");
-        qsurl.append(StandaloneAcceleratedStoreClient.NOPERSIST);
+        if (nopersist) {
+          qsurl.append(StandaloneAcceleratedStoreClient.NOPERSIST);
+        } else {
+          qsurl.append(StandaloneAcceleratedStoreClient.PERSIST);
+        }
       }
 
       //
