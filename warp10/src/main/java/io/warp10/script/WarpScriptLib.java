@@ -136,8 +136,7 @@ import io.warp10.script.functions.math.INCREMENTEXACT;
 import io.warp10.script.functions.math.LOG;
 import io.warp10.script.functions.math.LOG10;
 import io.warp10.script.functions.math.LOG1P;
-import io.warp10.script.functions.math.MAX;
-import io.warp10.script.functions.math.MIN;
+import io.warp10.script.functions.math.NumericBinaryFunction;
 import io.warp10.script.functions.math.MULTIPLYEXACT;
 import io.warp10.script.functions.math.NEGATEEXACT;
 import io.warp10.script.functions.math.NEXTAFTER;
@@ -2070,8 +2069,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TORADIANS(TORADIANS));
     addNamedWarpScriptFunction(new TODEGREES(TODEGREES));
 
-    addNamedWarpScriptFunction(new MAX(MAX));
-    addNamedWarpScriptFunction(new MIN(MIN));
+    addNamedWarpScriptFunction(new NumericBinaryFunction(MAX, Math::max, Math::max));
+    addNamedWarpScriptFunction(new NumericBinaryFunction(MIN, Math::min, Math::min));
 
     addNamedWarpScriptFunction(new COPYSIGN(COPYSIGN));
     addNamedWarpScriptFunction(new HYPOT(HYPOT));
