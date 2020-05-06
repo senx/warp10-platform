@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import org.apache.kafka.clients.producer.Partitioner;
 import org.apache.kafka.common.Cluster;
 
 import io.warp10.crypto.SipHashInline;
-import kafka.utils.VerifiableProperties;
 
 public class KafkaPartitioner implements Partitioner {
   
@@ -31,13 +30,7 @@ public class KafkaPartitioner implements Partitioner {
   private static final long SIPHASH_KEY_LSB = 0x95037E0C0DB5B059L;
   
   private Random random = new Random();
-  
-  public KafkaPartitioner() {
-  }
-  
-  public KafkaPartitioner(VerifiableProperties props) {
-  }
-  
+    
   @Override
   public int partition(String topic, Object key, byte[] keyBytes, Object value, byte[] valueBytes, Cluster cluster) {
     int numPartitions = cluster.partitionCountForTopic(topic);

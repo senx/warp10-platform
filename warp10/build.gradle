@@ -129,21 +129,23 @@ dependencies {
     // @see http://www.mail-archive.com/dev@kafka.apache.org/msg03829.html
     if (null != System.getProperty("mapr-streams")) {
       println '#### Building Warp 10 for MapR Streams ###'
-      compile("org.apache.kafka:kafka_2.11:1.0.1-mapr-1803") {
-        exclude module: 'jms'
-        exclude module: 'jmxtools'
-        exclude module: 'jmxri'
-      }
+      // https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients
+      compile group: 'org.apache.kafka', name: 'kafka-clients', version: '2.5.0'
+      //compile("org.apache.kafka:kafka_2.11:1.0.1-mapr-1803") {
+      //  exclude module: 'jms'
+      //  exclude module: 'jmxtools'
+      //  exclude module: 'jmxri'
+      //}
       // MapR Streams
       compile("com.mapr.streams:mapr-streams:6.0.1-mapr")
+    } else if (null != System.getProperty("pulsar")) {
+      println '#### Building Warp 10 for Pulsar ###'
+      // https://mvnrepository.com/artifact/org.apache.pulsar/pulsar-client-kafka
+      compile group: 'org.apache.pulsar', name: 'pulsar-client-kafka', version: '2.5.1'
     } else {
-      // We need the kafka dep and not just kafka-clients as we are providing a custom partitioner
-      compile("org.apache.kafka:kafka_2.11:2.1.0") {
-      //compile("org.apache.kafka:kafka_2.11:1.1.1") {
-        exclude module: 'jms'
-        exclude module: 'jmxtools'
-        exclude module: 'jmxri'
-      }
+      println '#### Building Warp 10 for Kafka ###'
+      // https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients
+      compile group: 'org.apache.kafka', name: 'kafka-clients', version: '2.5.0'
     }
     testCompile 'junit:junit:4.6'
 }
