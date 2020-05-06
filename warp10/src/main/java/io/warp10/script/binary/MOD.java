@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
+import java.math.BigDecimal;
+
 /**
  * Compute the modulo of the two operands on top of the stack
  */
@@ -39,10 +41,10 @@ public class MOD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       throw new WarpScriptException(getName() + " operates on numeric arguments.");
     }
 
-    if ((op2 instanceof Long || op2 instanceof Integer) && (op1 instanceof Long || op1 instanceof Integer)) {
-      stack.push(((Number) op1).longValue() % ((Number) op2).longValue());
-    } else {
+    if (op1 instanceof Double || op2 instanceof Double || op1 instanceof BigDecimal || op2 instanceof BigDecimal) {
       stack.push(((Number) op1).doubleValue() % ((Number) op2).doubleValue());
+    } else {
+      stack.push(((Number) op1).longValue() % ((Number) op2).longValue());
     }
 
     return stack;

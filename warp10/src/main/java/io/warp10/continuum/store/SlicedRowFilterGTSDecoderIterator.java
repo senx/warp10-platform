@@ -90,7 +90,6 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
   private static final byte[] ZERO_BYTES = Longs.toByteArray(0L);
   private static final byte[] ONES_BYTES = Longs.toByteArray(0xffffffffffffffffL);
   
-  // FIXME(hbs): use a different prefix for archived data
   private static byte[] prefix = Constants.HBASE_RAW_DATA_KEY_PREFIX;
 
   private final boolean writeTimestamp;
@@ -100,7 +99,6 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
     this.keystore = keystore;
     this.now = now;
     this.timespan = timespan;
-    // FIXME(hbs): different key for archival
     this.hbaseAESKey = keystore.getKey(KeyStore.AES_HBASE_DATA);
     this.writeTimestamp = writeTimestamp;
     

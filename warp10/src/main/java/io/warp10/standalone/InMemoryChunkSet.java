@@ -222,7 +222,7 @@ public class InMemoryChunkSet {
    * @param timespan The timespan or value count to consider.
    * @return
    */
-  public GTSDecoder fetch(long now, long then, long count, long skip, double sample, CapacityExtractorOutputStream extractor, int preBoundary, int postBoundary) throws IOException {
+  public GTSDecoder fetch(long now, long then, long count, long skip, double sample, CapacityExtractorOutputStream extractor, long preBoundary, long postBoundary) throws IOException {
     GTSEncoder encoder = fetchEncoder(now, then, count, skip, sample, preBoundary, postBoundary);
 
     //
@@ -260,7 +260,7 @@ public class InMemoryChunkSet {
     return decoders;
   }
   
-  public GTSEncoder fetchEncoder(long now, long then, long count, long skip, double sample, int preBoundary, int postBoundary) throws IOException {
+  public GTSEncoder fetchEncoder(long now, long then, long count, long skip, double sample, long preBoundary, long postBoundary) throws IOException {
 
     if (this.ephemeral) {
       return fetchCountEncoder(Long.MAX_VALUE, 1L, postBoundary);
@@ -399,11 +399,6 @@ public class InMemoryChunkSet {
         continue;
       }
       
-      // Chunk does not intersect the main range, so if we are not fetching a preboundary, ignore it
-      if (boundaryOnly && null == boundary) {
-        continue;
-      }
-      
       long nvalues = count >= 0 ? count : Long.MAX_VALUE;
 
       // Merge the data from chunkDecoder which is in the requested range in 'encoder'
@@ -467,7 +462,7 @@ public class InMemoryChunkSet {
 //    return fetchCountEncoder(now, count).getUnsafeDecoder(false);
 //  }
 
-  private GTSEncoder fetchCountEncoder(long now, long count, int postBoundary) throws IOException {
+  private GTSEncoder fetchCountEncoder(long now, long count, long postBoundary) throws IOException {
     //
     // Determine the chunk id of 'now'
     // We offset it by chunkcount so we can safely decrement and

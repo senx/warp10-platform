@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,18 +16,17 @@
 
 package io.warp10.script.functions;
 
+import com.geoxp.GeoXPLib;
+import com.google.common.primitives.Longs;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-
-import com.geoxp.GeoXPLib;
-import com.geoxp.oss.jarjar.org.apache.commons.codec.binary.Hex;
-import com.google.common.primitives.Longs;
+import org.apache.commons.codec.binary.Hex;
 
 /**
- * Convert a lat/lon pair to an HHCode
+ * Converts a lat/lon pair to an HHCode
  */
 public class TOHHCODE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -43,13 +42,13 @@ public class TOHHCODE extends NamedWarpScriptFunction implements WarpScriptStack
     this.tostring = tostring;
     this.useGtsConvention = useGtsConvention;
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object lon = stack.pop();
     Object lat = stack.pop();
-    
+
     if (!(lon instanceof Number) || !(lat instanceof Number)) {
       throw new WarpScriptException(getName() + " expects a latitude and a longitude on the stack.");
     }
@@ -73,7 +72,7 @@ public class TOHHCODE extends NamedWarpScriptFunction implements WarpScriptStack
 
     if (this.tostring) {
       String hhcode = Hex.encodeHexString(Longs.toByteArray(geoxppoint));
-    
+
       stack.push(hhcode);
     } else {
       stack.push(geoxppoint);

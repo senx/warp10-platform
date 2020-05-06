@@ -36,9 +36,11 @@ public class EVAL extends NamedWarpScriptFunction implements WarpScriptStackFunc
       stack.exec((Macro) o);
     } else if (o instanceof WarpScriptStackFunction) {
       ((WarpScriptStackFunction) o).apply(stack);
-    } else {
+    } else if (o instanceof String) {
       // Execute single statement which may span multiple lines
-      stack.execMulti(o.toString());      
+      stack.execMulti((String) o);
+    } else {
+      throw new WarpScriptException(getName() + " expects a Macro, a function of a String.");
     }
     return stack;
   }

@@ -81,14 +81,12 @@ public class MERGE extends NamedWarpScriptFunction implements WarpScriptStackFun
       } else {
         GTSEncoder encoder = new GTSEncoder(0L);
         
-        if (!encoders.isEmpty()) {
-          encoder.setMetadata(encoders.get(0).getMetadata());
-          
-          for (GTSEncoder enc: encoders) {
-            encoder.merge(enc);
-          }
+        encoder.setMetadata(encoders.get(0).getMetadata());
+
+        for (GTSEncoder enc: encoders) {
+          encoder.merge(enc);
         }
-        
+
         stack.push(encoder);
       }
     } catch (IOException ioe) {

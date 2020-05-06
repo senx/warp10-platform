@@ -245,10 +245,6 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
       fis = new FileInputStream(filepath);
     }
     
-    if (null == fis) {
-      throw new IOException("WarpScript file '" + filepath + "' could not be found.");
-    }
-    
     return fis;
   }
   

@@ -30,8 +30,12 @@ public class ASSERTMSG extends NamedWarpScriptFunction implements WarpScriptStac
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
-    
-    String msg = o.toString();
+
+    if (!(o instanceof String)) {
+      throw new WarpScriptException(getName() + " expects a STRING message.");
+    }
+
+    String msg = (String) o;
     
     o = stack.pop();
     

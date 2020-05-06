@@ -352,7 +352,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
     maxthreads = Integer.parseInt(properties.getProperty(CONF_HTTP_MAXTHREADS, String.valueOf(maxthreads)));
 
     if (properties.containsKey(CONF_HTTP_QUEUESIZE)) {
-      queue = new BlockingArrayQueue<>(Integer.parseInt(properties.getProperty(CONF_HTTP_QUEUESIZE)));
+      queue = new BlockingArrayQueue<Runnable>(Integer.parseInt(properties.getProperty(CONF_HTTP_QUEUESIZE)));
     }
 
     gzip = !"false".equals(properties.getProperty(CONF_HTTP_GZIP));

@@ -260,11 +260,6 @@ public class Constants {
    * Split fetch endpoint
    */
   public static final String API_ENDPOINT_SFETCH = "/api/v0/sfetch";
-  
-  /**
-   * Archive Fetch endpoint for the API
-   */
-  public static final String API_ENDPOINT_AFETCH = "/api/v0/afetch";
 
   /**
    * Delete endpoint for the API
@@ -389,6 +384,9 @@ public class Constants {
   public static final String KEY_MODULUS = "modulus";
   public static final String KEY_ALGORITHM = "algorithm";
   public static final String KEY_EXPONENT = "exponent";
+  public static final String KEY_CURVE = "curve";
+  public static final String KEY_Q = "Q";
+  public static final String KEY_D = "d";
   
   private static final int DEFAULT_MAX_ENCODER_SIZE = 100000;
   

@@ -160,7 +160,7 @@ public class HBaseStoreClient implements StoreClient {
   }
   
   @Override
-  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, long count, long skip, double sample, final boolean writeTimestamp, int preBoundary, int postBoundary) throws IOException {
+  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, long count, long skip, double sample, final boolean writeTimestamp, long preBoundary, long postBoundary) throws IOException {
 
     if (preBoundary < 0) {
       preBoundary = 0;
@@ -262,11 +262,6 @@ public class HBaseStoreClient implements StoreClient {
   
   @Override
   public void store(GTSEncoder encoder) throws IOException {
-    throw new RuntimeException("Not Implemented.");   
-  }
-
-  @Override
-  public void archive(int chunk, GTSEncoder encoder) throws IOException {
     throw new RuntimeException("Not Implemented.");   
   }
   

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,8 +17,6 @@
 package io.warp10.script.functions;
 
 import com.geoxp.GeoXPLib;
-import com.google.common.primitives.Longs;
-
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -26,7 +24,7 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 /**
- * Convert a GeoHash to lat/lon
+ * Converts a HHCode to lat/lon.
  */
 public class HHCODETO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -44,31 +42,21 @@ public class HHCODETO extends NamedWarpScriptFunction implements WarpScriptStack
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    Object hhcode = stack.pop();
+    Object top = stack.pop();
 
-    long hh;
-
-    if (hhcode instanceof Long) {
-      hh = (long) hhcode;
-    } else if (hhcode instanceof String) {
-      String hhstr = hhcode.toString();
-      if (hhstr.length() > 16) {
-        throw new WarpScriptException(getName() + " expects an hexadecimal HHCode string of length <= 16");
-      } else if (hhstr.length() < 16) {
-        hhcode = new StringBuilder(hhstr).append("0000000000000000");
-        ((StringBuilder) hhcode).setLength(16);
-      }
-      hh = Long.parseUnsignedLong(hhcode.toString(), 16);
-    } else if (hhcode instanceof byte[]) {
-      hh = Longs.fromByteArray((byte[]) hhcode);
-    } else {
-      throw new WarpScriptException(getName() + " expects a long, a string or a byte array.");
+    long[] hhAndRes;
+    try {
+      hhAndRes = HHCODEFUNC.hhAndRes(top);
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException(getName() + " was given unexpected arguments.", wse);
     }
+    long hh = hhAndRes[0];
 
     if (useGtsConvention && GeoTimeSerie.NO_LOCATION == hh) {
       stack.push(Double.NaN);
       stack.push(Double.NaN);
     } else {
+      // Lat/Lon of the SW coordinates of the HHCode
       double[] latlon = GeoXPLib.fromGeoXPPoint(hh);
       stack.push(latlon[0]);
       stack.push(latlon[1]);

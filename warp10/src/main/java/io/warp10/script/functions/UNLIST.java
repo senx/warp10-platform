@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -25,10 +24,9 @@ import io.warp10.script.WarpScriptStack;
 import java.util.List;
 
 /**
- * Push onto the stack all elements of the list on top
- * on top of a MARK
- * 
- * If the top of the stack is not a list, do nothing.
+ * Push onto the stack all elements of the list on top of a MARK
+ *
+ * If the top of the stack is not a list or an array, throw.
  * 
  */
 public class UNLIST extends NamedWarpScriptFunction implements WarpScriptStackFunction {
@@ -39,20 +37,20 @@ public class UNLIST extends NamedWarpScriptFunction implements WarpScriptStackFu
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object list = stack.pop();
+    Object top = stack.pop();
 
-    if (list instanceof Object[]) {
+    if (top instanceof Object[]) {
       stack.push(new WarpScriptStack.Mark());
-      for (Object o: (Object[]) list) {
+      for (Object o: (Object[]) top) {
         stack.push(o);
       }
-    } else if (list instanceof List) {
+    } else if (top instanceof List) {
       stack.push(new WarpScriptStack.Mark());
-      for (Object o: (List<Object>) list) {
+      for (Object o: (List<Object>) top) {
         stack.push(o);
       }
     } else {
-      stack.push(list);
+      throw new WarpScriptException(getName() + " expects a LIST.");
     }
     return stack;
   }

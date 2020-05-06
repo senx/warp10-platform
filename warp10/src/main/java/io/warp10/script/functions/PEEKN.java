@@ -31,13 +31,20 @@ public class PEEKN extends NamedWarpScriptFunction implements WarpScriptStackFun
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    Object top = stack.peek();
+
+    if(!(top instanceof Number)) {
+      throw new WarpScriptException(getName() + " expects a numeric value.");
+    }
+
+    int level = ((Number) top).intValue();
+
     PrintWriter out = (PrintWriter) stack.getAttribute(WarpScriptStack.ATTRIBUTE_INTERACTIVE_WRITER);
     boolean json = Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_INTERACTIVE_JSON));
 
     if (null != out) {
-      Object level = stack.peek();
       Object o = stack.peekn();
-      PSTACK.print(out, ((Number) level).intValue(), o, json);
+      PSTACK.print(out, level, o, json);
       out.flush();
     }
     

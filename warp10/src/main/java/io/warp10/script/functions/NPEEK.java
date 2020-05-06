@@ -30,27 +30,29 @@ public class NPEEK extends NamedWarpScriptFunction implements WarpScriptStackFun
   }
   
   @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {    
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    Object top = stack.pop();
+
+    if(!(top instanceof Number)) {
+      throw new WarpScriptException(getName() + " expects a numeric value.");
+    }
+
+    int count = ((Number) top).intValue();
+
     PrintWriter out = (PrintWriter) stack.getAttribute(WarpScriptStack.ATTRIBUTE_INTERACTIVE_WRITER);
     boolean json = Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_INTERACTIVE_JSON));
         
-    if (null != out) {
-      Object top = stack.pop();
-      
-      int count = ((Number) top).intValue();
-      
-      if (count > 0) {
-        if (count > stack.depth()) {
-          count = stack.depth();
-        }
-        
-        for (int i = count - 1; i >= 0; i--) {
-          Object o = stack.get(i);
-          PSTACK.print(out, i, o, json);
-        }
-
-        out.flush();        
+    if (null != out && count > 0) {
+      if (count > stack.depth()) {
+        count = stack.depth();
       }
+
+      for (int i = count - 1; i >= 0; i--) {
+        Object o = stack.get(i);
+        PSTACK.print(out, i, o, json);
+      }
+
+      out.flush();
     }
     
     return stack;

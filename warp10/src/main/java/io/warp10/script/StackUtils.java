@@ -364,6 +364,7 @@ public class StackUtils {
         if (inGTS.elevations.length != len) {
           throw new WarpScriptException("Incoherent number of elevations (" + inGTS.elevations.length + "), expected " + len);
         }
+        hasElevations = true;
       }
       
       TYPE type = TYPE.UNDEFINED;
@@ -488,10 +489,8 @@ public class StackUtils {
       sb.append(Boolean.toString((boolean) o));
     } else if (o instanceof WarpScriptStackFunction) {
       sb.append(o.toString());
-    } else if (o instanceof Snapshotable) {
+    } else if (o instanceof Snapshotable) { // Also includes Macro
       ((Snapshotable) o).snapshot();
-    } else if (o instanceof Macro) {
-      sb.append(o.toString());
     } else if (o instanceof NamedWarpScriptFunction){
       sb.append(o.toString());
     }

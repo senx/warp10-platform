@@ -72,7 +72,7 @@ public class QuasarTokenFilter {
 
   public ReadToken getReadToken(String cryptedToken) throws QuasarTokenException {      // Decode the token hex string to byte array
     long now = System.nanoTime();
-    Map<String,String> labels = new HashMap<>();
+    Map<String,String> labels = new HashMap<String,String>();
     try {
       labels.put("type", "READ");
       // Check if the filter is correctly initialized
@@ -121,7 +121,7 @@ public class QuasarTokenFilter {
 
   public WriteToken getWriteToken(String cryptedToken) throws QuasarTokenException {
     long now = System.nanoTime();
-    Map<String,String> labels = new HashMap<>();
+    Map<String,String> labels = new HashMap<String,String>();
     try {
       labels.put("type", "WRITE");
 

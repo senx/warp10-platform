@@ -149,7 +149,7 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       }
       stack.push(result);
     } else if (op1 instanceof GeoTimeSerie || op2 instanceof GeoTimeSerie) {
-      TYPE type = TYPE.UNDEFINED;
+      TYPE type;
       
       boolean op1gts = op1 instanceof GeoTimeSerie;
       
@@ -182,6 +182,8 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
         } else {
           type = TYPE.STRING;
         }
+      } else {
+        throw new WarpScriptException(getName() + " can only be used with String or numeric types with a GTS.");
       }
       
       for (int i = 0; i < n; i++) {
@@ -198,7 +200,8 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
               value = ((Number) GTSHelper.valueAtIndex(gts, i)).longValue() + ((Number) op).longValue();
               break;
             default:
-              throw new WarpScriptException(getName() + " Invalid Geo Time Series™ type.");
+              // Cannot happen, type is in [STRING, DOUBLE, LONG]
+              throw new WarpScriptException(getName() + " Invalid operand type.");
           }          
         } else {
           switch (type) {
@@ -212,7 +215,8 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
               value = ((Number) GTSHelper.valueAtIndex(gts, i)).longValue() + ((Number) op).longValue();
               break;
             default:
-              throw new WarpScriptException(getName() + " Invalid Geo Time Series™ type.");
+              // Cannot happen, type is in [STRING, DOUBLE, LONG]
+              throw new WarpScriptException(getName() + " Invalid operator type.");
           }                    
         }
         GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value, false);

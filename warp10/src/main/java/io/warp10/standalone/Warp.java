@@ -146,10 +146,6 @@ public class Warp extends WarpDist implements Runnable {
     boolean enableREL = !("true".equals(properties.getProperty(Configuration.WARP_INTERACTIVE_DISABLE)));
     
     for (String property: REQUIRED_PROPERTIES) {
-      // Don't check LEVELDB_HOME when in-memory
-      if (inmemory && Configuration.LEVELDB_HOME.equals(property)) {
-        continue;
-      }
       Preconditions.checkNotNull(properties.getProperty(property), "Property '" + property + "' MUST be set.");
     }
 

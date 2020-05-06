@@ -39,17 +39,12 @@ public class StandaloneParallelStoreClientWrapper implements StoreClient {
   }
   
   @Override
-  public void archive(int chunk, GTSEncoder encoder) throws IOException {
-    parent.archive(chunk, encoder);
-  }
-  
-  @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {
     return parent.delete(token, metadata, start, end);
   }
   
   @Override
-  public GTSDecoderIterator fetch(ReadToken token, List<Metadata> metadatas, long now, long then, long count, long skip, double sample, boolean writeTimestamp, final int preBoundary, final int postBoundary) throws IOException {
+  public GTSDecoderIterator fetch(ReadToken token, List<Metadata> metadatas, long now, long then, long count, long skip, double sample, boolean writeTimestamp, final long preBoundary, final long postBoundary) throws IOException {
     if (ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
       return new ParallelGTSDecoderIteratorWrapper(parent, token, now, then, count, skip, sample, metadatas, preBoundary, postBoundary);
     } else {

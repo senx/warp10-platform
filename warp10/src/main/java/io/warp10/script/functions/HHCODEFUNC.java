@@ -24,6 +24,8 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
+import java.util.Arrays;
+
 /**
  * Template function to interface with HHCodeHelper
  */
@@ -43,62 +45,58 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    Object o = stack.pop();
+    Object top = stack.pop();
 
-    if (!(o instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects a resolution which is an even long between 0 and 32.");
-    }
+    int resOverride = -1;
 
-    int res = ((Number) o).intValue();
+    if (top instanceof Number) {
+      resOverride = ((Number) top).intValue();
 
-    if (res < 0 || res > 32 || (0 != (res & 1))) {
-      throw new WarpScriptException(getName() + " expects a resolution which is an even long between 0 and 32.");
-    }
-
-    Object hhcode = stack.pop();
-
-    long hh;
-
-    if (hhcode instanceof Long) {
-      hh = (long) hhcode;
-    } else if (hhcode instanceof String) {
-      String hhstr = hhcode.toString();
-      if (hhstr.length() > 16) {
-        throw new WarpScriptException(getName() + " expects an hexadecimal HHCode string of length <= 16");
-      } else if (hhstr.length() < 16) {
-        hhcode = (hhstr + "0000000000000000").substring(0, 16);
+      // TODO(tce) odd resolutions could be handled but HHCodeHelper.getCenter should be modified for that.
+      if (resOverride < 2 || resOverride > 32 || (0 != (resOverride & 1))) {
+        throw new WarpScriptException(getName() + " expects a resolution which is an even long between 2 and 32, inclusive.");
       }
-      hh = Long.parseUnsignedLong(hhcode.toString(), 16);
-    } else if (hhcode instanceof byte[]) {
-      hh = Longs.fromByteArray((byte[]) hhcode);
-    } else {
-      throw new WarpScriptException(getName() + " expects a long, a string or a byte array.");
+
+      top = stack.pop();
+    }
+
+    long[] hhAndRes;
+    try {
+      hhAndRes = hhAndRes(top);
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException(getName() + " was given unexpected arguments.", wse);
+    }
+    long hh = hhAndRes[0];
+    int res = (int) hhAndRes[1]; // We know hhAndRes returns an int here.
+
+    if (resOverride >= 0) {
+      res = resOverride;
     }
 
     switch (this.action) {
       case NORTH:
-        stack.push(manageFormat(HHCodeHelper.northHHCode(hh, res), res, hhcode));
+        stack.push(manageFormat(HHCodeHelper.northHHCode(hh, res), res, top));
         break;
       case SOUTH:
-        stack.push(manageFormat(HHCodeHelper.southHHCode(hh, res), res, hhcode));
+        stack.push(manageFormat(HHCodeHelper.southHHCode(hh, res), res, top));
         break;
       case EAST:
-        stack.push(manageFormat(HHCodeHelper.eastHHCode(hh, res), res, hhcode));
+        stack.push(manageFormat(HHCodeHelper.eastHHCode(hh, res), res, top));
         break;
       case WEST:
-        stack.push(manageFormat(HHCodeHelper.westHHCode(hh, res), res, hhcode));
+        stack.push(manageFormat(HHCodeHelper.westHHCode(hh, res), res, top));
         break;
       case NORTH_EAST:
-        stack.push(manageFormat(HHCodeHelper.northEastHHCode(hh, res), res, hhcode));
+        stack.push(manageFormat(HHCodeHelper.northEastHHCode(hh, res), res, top));
         break;
       case NORTH_WEST:
-        stack.push(manageFormat(HHCodeHelper.northWestHHCode(hh, res), res, hhcode));
+        stack.push(manageFormat(HHCodeHelper.northWestHHCode(hh, res), res, top));
         break;
       case SOUTH_EAST:
-        stack.push(manageFormat(HHCodeHelper.southEastHHCode(hh, res), res, hhcode));
+        stack.push(manageFormat(HHCodeHelper.southEastHHCode(hh, res), res, top));
         break;
       case SOUTH_WEST:
-        stack.push(manageFormat(HHCodeHelper.southWestHHCode(hh, res), res, hhcode));
+        stack.push(manageFormat(HHCodeHelper.southWestHHCode(hh, res), res, top));
         break;
       case BBOX:
         double[] bbox = HHCodeHelper.getHHCodeBBox(hh, res);
@@ -129,5 +127,53 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
       o = hh;
     }
     return o;
+  }
+
+  /**
+   * Convert a HHCode representation to a long hhcode and an int resolution. The resolution is even and between 2 and 32, inclusive.
+   * @param hhcode The HHCode representation, which may be a String, a byte[] or a Long.
+   * @return an array of two long, the first being the HHCode and the second being the resolution, which can be safely casted to an int.
+   * @throws WarpScriptException if the given Object is not a Long, a byte[] of length <= 8 or a String or length <= 16.
+   */
+  public static long[] hhAndRes(Object hhcode) throws WarpScriptException {
+    long hh;
+    int res;
+
+    if (hhcode instanceof Long) {
+      hh = (long) hhcode;
+      // We don't know the resolution of a HHCode when represented as a long, assume it's full res.
+      res = 32;
+    } else if (hhcode instanceof String) {
+      String hhstr = hhcode.toString();
+      // Each character represents 4 bits, so 2 bits per lat or lon.
+      res = hhstr.length() * 2;
+
+      // Make sure the hex string is 16 character-long (64 bits), right-pad with zeros if shorter, throw if longer.
+      if (hhstr.length() > 16) {
+        throw new WarpScriptException("Hexadecimal HHCode string of must be of length <= 16");
+      } else if (hhstr.length() < 16) {
+        hhcode = new StringBuilder(hhstr).append("0000000000000000");
+        ((StringBuilder) hhcode).setLength(16);
+      }
+
+      hh = Long.parseUnsignedLong(hhcode.toString(), 16);
+    } else if (hhcode instanceof byte[]) {
+      byte[] hhbytes = (byte[]) hhcode;
+      // Each byte represents 8 bits, so 4 bits par lat or lon.
+      res = hhbytes.length * 4;
+
+      // Make sure the byte array is 8 bytes (64 bits), right-pad with zeros if shorter, throw if longer.
+      if (hhbytes.length > 8) {
+        throw new WarpScriptException("Byte array HHCode must be of length <= 8");
+      } else if (hhbytes.length < 8) {
+        hhbytes = Arrays.copyOf(hhbytes, 8);
+      }
+
+      hh = Longs.fromByteArray(hhbytes);
+    } else {
+      throw new WarpScriptException("HHCode must be represented as a long, a string or a byte array.");
+    }
+
+    return new long[] {hh, res};
   }
 }

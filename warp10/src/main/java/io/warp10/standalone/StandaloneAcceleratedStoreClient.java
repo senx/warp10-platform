@@ -99,11 +99,6 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     // Force accelerator parameters to be replicated on inmemory ones and clear other in memory params
     //
     
-    if (null == WarpConfig.getProperty(Configuration.ACCELERATOR_CHUNK_COUNT)
-        || null == WarpConfig.getProperty(Configuration.ACCELERATOR_CHUNK_LENGTH)) {
-      throw new RuntimeException("Missing configuration key '" + Configuration.ACCELERATOR_CHUNK_COUNT + "' or '" + Configuration.ACCELERATOR_CHUNK_LENGTH + "'");
-    }
-    
     WarpConfig.setProperty(Configuration.IN_MEMORY_CHUNK_COUNT, WarpConfig.getProperty(Configuration.ACCELERATOR_CHUNK_COUNT));
     WarpConfig.setProperty(Configuration.IN_MEMORY_CHUNK_LENGTH, WarpConfig.getProperty(Configuration.ACCELERATOR_CHUNK_LENGTH));
     WarpConfig.setProperty(Configuration.IN_MEMORY_EPHEMERAL, WarpConfig.getProperty(Configuration.ACCELERATOR_EPHEMERAL));
@@ -113,10 +108,15 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     WarpConfig.setProperty(Configuration.STANDALONE_MEMORY_STORE_LOAD, null);
     WarpConfig.setProperty(Configuration.STANDALONE_MEMORY_STORE_DUMP, null);
     
+    this.ephemeral = "true".equals(WarpConfig.getProperty(Configuration.IN_MEMORY_EPHEMERAL)); 
+
+    if (!this.ephemeral && (null == WarpConfig.getProperty(Configuration.ACCELERATOR_CHUNK_COUNT)
+        || null == WarpConfig.getProperty(Configuration.ACCELERATOR_CHUNK_LENGTH))) {
+      throw new RuntimeException("Missing configuration key '" + Configuration.ACCELERATOR_CHUNK_COUNT + "' or '" + Configuration.ACCELERATOR_CHUNK_LENGTH + "'");
+    }
+
     this.persistent = persistentStore;
     this.cache = new StandaloneChunkedMemoryStore(WarpConfig.getProperties(), Warp.getKeyStore());
-
-    this.ephemeral = "true".equals(WarpConfig.getProperty(Configuration.IN_MEMORY_EPHEMERAL)); 
     
     //
     // Preload the cache
@@ -257,7 +257,7 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
   }
   
   @Override
-  public GTSDecoderIterator fetch(ReadToken token, List<Metadata> metadatas, long now, long then, long count, long skip, double sample, boolean writeTimestamp, int preBoundary, int postBoundary) throws IOException {
+  public GTSDecoderIterator fetch(ReadToken token, List<Metadata> metadatas, long now, long then, long count, long skip, double sample, boolean writeTimestamp, long preBoundary, long postBoundary) throws IOException {
     //
     // If the fetch has both a time range that is larger than the cache range, we will only use
     // the persistent backend to ensure a correct fetch. Same goes with boundaries which could extend outside the
@@ -275,13 +275,16 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     // If fetching a single value from Long.MAX_VALUE with an ephemeral cache, always use the cache
     // unless ACCEL.NOCACHE was called.
     //
+    
     if (this.ephemeral && 1 == count && Long.MAX_VALUE == now && !nocache.get()) {
       accelerated.set(Boolean.TRUE);
       return this.cache.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);      
     }
     
-    // Use the persistent store unless ACCEL.NOPERSIST was called 
-    if (((now > cacheend || then < cachestart) || preBoundary > 0 || postBoundary > 0 || nocache.get()) && !nopersist.get()) {
+    // Use the persistent store if the accelerator is in ephemeral mode,
+    // if the requested time range is larger than the accelerated range or
+    // if boundaries were requested, unless ACCEL.NOPERSIST was called 
+    if ((this.ephemeral || (now > cacheend || then < cachestart) || preBoundary > 0 || postBoundary > 0 || nocache.get()) && !nopersist.get()) {
       accelerated.set(Boolean.FALSE);
       return this.persistent.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
     }
@@ -304,11 +307,6 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     if (!nocache.get()) {
       cache.store(encoder);
     }
-  }
-  
-  @Override
-  public void archive(int chunk, GTSEncoder encoder) throws IOException {
-    throw new IOException("Not Implemented");
   }
   
   public static final void nocache() {

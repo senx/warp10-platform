@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package io.warp10.script.mapper;
 
 import io.warp10.DoubleUtils;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptException;
 
@@ -27,7 +26,7 @@ import java.util.Map;
 /**
  * Mapper which returns its input value only if it is finite (i.e a non DOUBLE or a DOUBLE which is neither NaN nor Infinity)
  */
-public class MapperFinite extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptAggregatorFunction {
+public class MapperFinite extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
 
   public MapperFinite(String name) {
     super(name);

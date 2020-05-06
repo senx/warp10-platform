@@ -1440,14 +1440,13 @@ public class Ingress extends AbstractHandler implements Runnable {
     // For delete operations, producer and owner MUST be equal
     //
     
-    if (!producer.equals(owner)) {
+    if (null == producer || !producer.equals(owner)) {
       throw new IOException("Invalid write token for deletion.");
     }
     
     Map<String,String> sensisionLabels = new HashMap<String,String>();
     sensisionLabels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
 
-    long count = 0;
     long gts = 0;
     
     boolean completeDeletion = false;
@@ -1461,11 +1460,6 @@ public class Ingress extends AbstractHandler implements Runnable {
     boolean metaonly = null != request.getParameter(Constants.HTTP_PARAM_METAONLY);
 
     try {      
-      if (null == producer || null == owner) {
-        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
-        return;
-      }
-      
       //
       // Build extra labels
       //
@@ -1797,33 +1791,31 @@ public class Ingress extends AbstractHandler implements Runnable {
           while(shufflediterator.hasNext()) {
             Metadata metadata = shufflediterator.next();
             
-            if (!dryrun) {
-              if (null != this.plugin) {
-                if (!this.plugin.delete(this, writeToken, metadata)) {
-                  continue;
-                }
-              }
-              
-              if (!metaonly) {
-                pushDeleteMessage(start, end, minage, metadata);
-              }
-              
-              if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
-                completeDeletion = true;
-                // We must also push the metadata deletion and remove the metadata from the cache
-                Metadata meta = new Metadata(metadata);
-                meta.setSource(Configuration.INGRESS_METADATA_DELETE_SOURCE);
-                pushMetadataMessage(meta);          
-                byte[] bytes = new byte[16];
-                // We know class/labels Id were computed in pushMetadataMessage
-                GTSHelper.fillGTSIds(bytes, 0, meta.getClassId(), meta.getLabelsId());
-                BigInteger key = new BigInteger(bytes);
-                synchronized(this.metadataCache) {
-                  this.metadataCache.remove(key);
-                }
+            if (null != this.plugin) {
+              if (!this.plugin.delete(this, writeToken, metadata)) {
+                continue;
               }
             }
-            
+
+            if (!metaonly) {
+              pushDeleteMessage(start, end, minage, metadata);
+            }
+
+            if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
+              completeDeletion = true;
+              // We must also push the metadata deletion and remove the metadata from the cache
+              Metadata meta = new Metadata(metadata);
+              meta.setSource(Configuration.INGRESS_METADATA_DELETE_SOURCE);
+              pushMetadataMessage(meta);
+              byte[] bytes = new byte[16];
+              // We know class/labels Id were computed in pushMetadataMessage
+              GTSHelper.fillGTSIds(bytes, 0, meta.getClassId(), meta.getLabelsId());
+              BigInteger key = new BigInteger(bytes);
+              synchronized(this.metadataCache) {
+                this.metadataCache.remove(key);
+              }
+            }
+
             sb.setLength(0);
             
             GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels(), expose);

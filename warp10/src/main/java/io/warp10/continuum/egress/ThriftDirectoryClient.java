@@ -641,7 +641,7 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
                 reader = null;
                 
               } catch (IOException ioe){
-                if (null != reader) { try { reader.close(); } catch (Exception e) {} }
+                try { reader.close(); } catch (Exception e) {}
                 throw ioe;
               }
               
@@ -889,21 +889,17 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
       stats.put(STATS_LABEL_VALUES_ESTIMATOR, labelValuesCardinalityEstimator.cardinality());
     }
     
-    if (null != perClassCardinality) {
-      Map<String,Long> cardinalities = new HashMap<String, Long>();
-      for (Entry<String,HyperLogLogPlus> entry: perClassCardinality.entrySet()) {
-        cardinalities.put(entry.getKey(), entry.getValue().cardinality());
-      }
-      stats.put(STATS_PER_CLASS_ESTIMATOR, cardinalities);
+    Map<String,Long> cardinalitiesPerClass = new HashMap<String, Long>();
+    for (Entry<String,HyperLogLogPlus> entry: perClassCardinality.entrySet()) {
+      cardinalitiesPerClass.put(entry.getKey(), entry.getValue().cardinality());
     }
+    stats.put(STATS_PER_CLASS_ESTIMATOR, cardinalitiesPerClass);
 
-    if (null != perLabelValueCardinality) {
-      Map<String,Long> cardinalities = new HashMap<String, Long>();
-      for (Entry<String,HyperLogLogPlus> entry: perLabelValueCardinality.entrySet()) {
-        cardinalities.put(entry.getKey(), entry.getValue().cardinality());
-      }
-      stats.put(STATS_PER_LABEL_VALUE_ESTIMATOR, cardinalities);
+    Map<String,Long> cardinalitiesPerLabel = new HashMap<String, Long>();
+    for (Entry<String,HyperLogLogPlus> entry: perLabelValueCardinality.entrySet()) {
+      cardinalitiesPerLabel.put(entry.getKey(), entry.getValue().cardinality());
     }
+    stats.put(STATS_PER_LABEL_VALUE_ESTIMATOR, cardinalitiesPerLabel);
 
     if (partial) {
       stats.put(STATS_PARTIAL, true);
