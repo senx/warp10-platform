@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,17 +21,24 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.function.DoubleBinaryOperator;
+import java.util.function.LongBinaryOperator;
 
 /**
- * Check https://docs.oracle.com/javase/8/docs/api/java/lang/Math.html for the documentation of this function.
- * Last java parameter is on top of the stack.
- * Also work on a list, returning the min value of a given list.
+ * Apply a double or long binary operator to 2 values or a list of values, converting any long value to a double value
+ * if a double value is found.
  */
-public class MIN extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class NumericBinaryFunction extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public MIN(String name) {
+  final LongBinaryOperator opL;
+  final DoubleBinaryOperator opD;
+
+  public NumericBinaryFunction(String name, LongBinaryOperator longBinOp, DoubleBinaryOperator doubleBinOp) {
     super(name);
+    opL = longBinOp;
+    opD = doubleBinOp;
   }
 
   @Override
@@ -39,30 +46,31 @@ public class MIN extends NamedWarpScriptFunction implements WarpScriptStackFunct
     Object op0 = stack.pop();
 
     if (op0 instanceof List) {
-      Number min = null;
+      Number result = null;
 
       for (Object element: (List) op0) {
         if (!(element instanceof Number)) {
           throw new WarpScriptException(getName() + " can only operate on numerical values.");
         }
 
-        if (null == min) {
-          if (element instanceof Long || element instanceof Integer) {
-            min = ((Number) element).longValue();
+        if (null == result) {
+          if (element instanceof Double || element instanceof BigDecimal) {
+            result = ((Number) element).doubleValue();
           } else {
-            min = ((Number) element).doubleValue();
+            result = ((Number) element).longValue();
           }
         } else {
-          if ((element instanceof Long || element instanceof Integer) && (min instanceof Long)) {
-            min = Math.min(((Number) element).longValue(), min.longValue());
+          if (element instanceof Double || element instanceof BigDecimal || result instanceof Double) {
+            result = opD.applyAsDouble(((Number) element).doubleValue(), result.doubleValue());
           } else {
-            min = Math.min(((Number) element).doubleValue(), min.doubleValue());
+            result = opL.applyAsLong (((Number) element).longValue(), result.longValue());
           }
         }
       }
 
-      stack.push(min);
+      stack.push(result);
     } else {
+
       if (!(op0 instanceof Number)) {
         throw new WarpScriptException(getName() + " can only operate on 2 numerical values or a list on numerical values.");
       }
@@ -73,11 +81,10 @@ public class MIN extends NamedWarpScriptFunction implements WarpScriptStackFunct
         throw new WarpScriptException(getName() + " can only operate on 2 numerical values or a list on numerical values.");
       }
 
-      if ((op1 instanceof Long || op1 instanceof Integer)
-          && (op0 instanceof Long || op0 instanceof Integer)) {
-        stack.push(Math.min(((Number) op1).longValue(), ((Number) op0).longValue()));
+      if (op0 instanceof Double || op0 instanceof BigDecimal || op1 instanceof Double || op1 instanceof BigDecimal) {
+        stack.push(opD.applyAsDouble(((Number) op1).doubleValue(), ((Number) op0).doubleValue()));
       } else {
-        stack.push(Math.min(((Number) op1).doubleValue(), ((Number) op0).doubleValue()));
+        stack.push(opL.applyAsLong(((Number) op1).longValue(), ((Number) op0).longValue()));
       }
     }
 
