@@ -85,7 +85,7 @@ public class WarpConfig {
       // If a file starts with '@', treat it as a file containing lists of files
       //
 
-      List<String> filenames = new ArrayList<>(Arrays.asList(files));
+      List<String> filenames = new ArrayList<String>(Arrays.asList(files));
 
       StringBuilder sb = new StringBuilder();
 
@@ -424,15 +424,32 @@ public class WarpConfig {
       System.exit(-1);
     }
 
-    String[] files = Arrays.copyOf(args, args.length - 1);
-    String key = args[args.length - 1];
+    //
+    // Copy file arguments up to '.'
+    //
+    
+    List<String> lfiles = new ArrayList<String>();
+    
+    int keycount = 0;
+    
+    for (int i = 0; i < args.length; i++) {
+      if (".".equals(args[i])) {
+        keycount = args.length - i - 1;
+        break;
+      }
+      lfiles.add(args[i]);
+    }
+    
+    String[] files = lfiles.toArray(new String[lfiles.size()]);
+
     try {
       WarpConfig.setProperties(files);
-      properties = WarpConfig.getProperties();
-      System.out.println(key + "=" + WarpConfig.getProperty(key));
+      
+      for (int i = args.length - keycount; i < args.length; i++) {
+        System.out.println("@CONF@ " + args[i] + "=" + WarpConfig.getProperty(args[i]));        
+      }
     } catch (Exception e) {
       e.printStackTrace();
     }
-
   }
 }

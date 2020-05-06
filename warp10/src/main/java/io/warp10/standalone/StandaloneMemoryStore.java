@@ -134,8 +134,7 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
   }
   
   @Override
-  //public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long timespan, boolean fromArchive, boolean writeTimestamp, final int preBoundary, final int postBoundary) {
-  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, final long count, final long skip, final double sample, boolean writeTimestamp, final int preBoundary, final int postBoundary) {
+  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, final long count, final long skip, final double sample, boolean writeTimestamp, final long preBoundary, final long postBoundary) {
 
     if (0 != preBoundary || 0 != postBoundary) {
       throw new RuntimeException("Boundary retrieval is not supported by the current data store.");
@@ -410,11 +409,6 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
   }
   
   @Override
-  public void archive(int chunk, GTSEncoder encoder) throws IOException {
-    throw new IOException("in-memory platform does not support archiving.");
-  }
-  
-  @Override
   public void run() {
     //
     // Loop endlessly over the series, cleaning them as they grow
@@ -560,7 +554,7 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
         synchronized(encoder) {
           if (0 == encoder.size()) {
             synchronized(this.series) {
-              this.series.remove(this.series.get(metadatas.get(idx)));
+              this.series.remove(metadatas.get(idx));
               // TODO(hbs): Still need to unregister properly the Metadata from the Directory. This is tricky since
               // the call to store is re-entrant but won't go through the register phase....
             }

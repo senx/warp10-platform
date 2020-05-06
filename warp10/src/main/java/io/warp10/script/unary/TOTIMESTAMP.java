@@ -46,7 +46,7 @@ public class TOTIMESTAMP extends NamedWarpScriptFunction implements WarpScriptSt
     } else if (top instanceof java.util.Date) {
       long ts = ((java.util.Date) top).getTime() * Constants.TIME_UNITS_PER_MS;
       stack.push(ts);
-    } else if (top instanceof String) {      
+    } else { // top instanceof String
       long ts = parseTimestamp(top.toString());
       stack.push(ts);
     }

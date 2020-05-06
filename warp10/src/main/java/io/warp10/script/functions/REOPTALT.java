@@ -126,7 +126,7 @@ public class REOPTALT extends NamedWarpScriptFunction implements WarpScriptStack
         len++;
       } else {
         len--;
-        break;
+        // While loop will end because cardinality > prevcard
       }
     }
     

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package io.warp10.script.mapper;
 
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.WarpScriptException;
@@ -29,7 +28,7 @@ import java.util.Map;
 /**
  * Mapper which multiplies together all (non null) values of its window
  */
-public class MapperProduct extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptReducerFunction, WarpScriptAggregatorFunction {
+public class MapperProduct extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptReducerFunction {
 
   public MapperProduct(String name) {
     super(name);

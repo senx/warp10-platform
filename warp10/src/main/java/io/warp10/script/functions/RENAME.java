@@ -40,18 +40,22 @@ public class RENAME extends ElementOrListStackFunction {
   public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {
     final Object top = stack.pop();
 
+    if(!(top instanceof String)) {
+      throw new WarpScriptException(getName() + " expects a STRING name.");
+    }
+
     return new ElementStackFunction() {
       @Override
       public Object applyOnElement(Object element) throws WarpScriptException {
         if (element instanceof GeoTimeSerie) {
-          return GTSHelper.rename((GeoTimeSerie) element, top.toString());
+          return GTSHelper.rename((GeoTimeSerie) element, (String) top);
         } else if (element instanceof GTSEncoder) {
           GTSEncoder encoder = (GTSEncoder) element;
 
           GeoTimeSerie gts = new GeoTimeSerie();
           gts.setMetadata(encoder.getMetadata());
 
-          gts = GTSHelper.rename(gts, top.toString());
+          gts = GTSHelper.rename(gts, (String) top);
 
           encoder.setMetadata(gts.getMetadata());
 

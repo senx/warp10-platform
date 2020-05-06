@@ -31,9 +31,13 @@ public class EXTLOADED extends NamedWarpScriptFunction implements WarpScriptStac
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
-    
-    stack.push(WarpScriptLib.extloaded(o.toString()));
-    
+
+    if (!(o instanceof String)) {
+      throw new WarpScriptException(getName() + "expects a String extension name.");
+    }
+
+    stack.push(WarpScriptLib.extloaded((String) o));
+
     return stack;
   }
 }

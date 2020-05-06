@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.StackUtils;
-import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptReducerFunction;
@@ -35,7 +34,7 @@ import io.warp10.script.WarpScriptStack;
  * Return the concatenation of the string representation of values separated by the join string
  * elevation and location are from the latest measure.
  */
-public class Join extends NamedWarpScriptFunction implements WarpScriptAggregatorFunction, WarpScriptMapperFunction, WarpScriptBucketizerFunction, WarpScriptReducerFunction {
+public class Join extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptBucketizerFunction, WarpScriptReducerFunction {
   
   private final boolean ignoreNulls;
 
@@ -63,8 +62,12 @@ public class Join extends NamedWarpScriptFunction implements WarpScriptAggregato
     @Override
     public Object apply(WarpScriptStack stack) throws WarpScriptException {
       Object sep = stack.pop();
+
+      if (!(sep instanceof String)) {
+        throw new WarpScriptException(getName() + " expects a STRING seperator.");
+      }
       
-      stack.push(new Join(getName(), sep.toString(), ignoreNulls, urlencode, nulLString));
+      stack.push(new Join(getName(), (String) sep, ignoreNulls, urlencode, nulLString));
       
       return stack;
     }

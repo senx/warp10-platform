@@ -284,7 +284,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.LIST_START);
           sb.append(" ");
           for (Object oo : (Vector) o) {
-            addElement(snapshot, sb, oo, readable);
+            addElement(snapshot, sb, oo, true);
           }
           sb.append(WarpScriptLib.LIST_END);
           sb.append(" ");          
@@ -293,7 +293,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.LIST_END);
           sb.append(" ");
           for (Object oo : (Vector) o) {
-            addElement(snapshot, sb, oo, readable);
+            addElement(snapshot, sb, oo, false);
             sb.append(WarpScriptLib.INPLACEADD);
             sb.append(" ");
           }
@@ -305,7 +305,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.LIST_START);
           sb.append(" ");
           for (Object oo : (List) o) {
-            addElement(snapshot, sb, oo, readable);
+            addElement(snapshot, sb, oo, true);
           }          
           sb.append(WarpScriptLib.LIST_END);
           sb.append(" ");          
@@ -314,7 +314,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.LIST_END);
           sb.append(" ");
           for (Object oo : (List) o) {
-            addElement(snapshot, sb, oo, readable);
+            addElement(snapshot, sb, oo, false);
             sb.append(WarpScriptLib.INPLACEADD);
             sb.append(" ");
           }          
@@ -324,7 +324,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.LIST_START);
           sb.append(" ");
           for (Object oo : (Set) o) {
-            addElement(snapshot, sb, oo, readable);
+            addElement(snapshot, sb, oo, true);
           }
           sb.append(WarpScriptLib.LIST_END);
           sb.append(" ");          
@@ -333,7 +333,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.LIST_END);
           sb.append(" ");
           for (Object oo : (Set) o) {
-            addElement(snapshot, sb, oo, readable);
+            addElement(snapshot, sb, oo, false);
             sb.append(WarpScriptLib.INPLACEADD);
             sb.append(" ");
           }
@@ -345,8 +345,8 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.MAP_START);
           sb.append(System.lineSeparator());
           for (Entry<Object, Object> entry: ((Map<Object, Object>) o).entrySet()) {
-            addElement(snapshot, sb, entry.getKey(), readable);
-            addElement(snapshot, sb, entry.getValue(), readable);
+            addElement(snapshot, sb, entry.getKey(), true);
+            addElement(snapshot, sb, entry.getValue(), true);
             sb.append(System.lineSeparator());
           }                    
           sb.append(WarpScriptLib.MAP_END);
@@ -356,8 +356,8 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.MAP_END);
           sb.append(" ");
           for (Entry<Object, Object> entry: ((Map<Object, Object>) o).entrySet()) {
-            addElement(snapshot, sb, entry.getValue(), readable);
-            addElement(snapshot, sb, entry.getKey(), readable);
+            addElement(snapshot, sb, entry.getValue(), false);
+            addElement(snapshot, sb, entry.getKey(), false);
             sb.append(WarpScriptLib.PUT);
             sb.append(" ");
           }          
@@ -385,11 +385,8 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
       } else if (o instanceof Mark) {
         sb.append(WarpScriptLib.MARK);
         sb.append(" ");
-      } else if (o instanceof Snapshotable) {
+      } else if (o instanceof Snapshotable) { // Also includes Macro
         sb.append(((Snapshotable) o).snapshot());
-        sb.append(" ");
-      } else if (o instanceof Macro) {
-        sb.append(o.toString());
         sb.append(" ");
       } else if (o instanceof RSAPublicKey) {
         sb.append("{ 'algorithm' 'RSA' 'exponent' '");

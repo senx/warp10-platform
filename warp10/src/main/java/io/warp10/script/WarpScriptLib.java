@@ -214,8 +214,8 @@ import io.warp10.script.mapper.MapperToLong;
 import io.warp10.script.mapper.MapperToString;
 import io.warp10.script.mapper.MapperYear;
 import io.warp10.script.mapper.STRICTMAPPER;
-import io.warp10.script.op.OpAND;
 import io.warp10.script.op.OpAdd;
+import io.warp10.script.op.OpBoolean;
 import io.warp10.script.op.OpDiv;
 import io.warp10.script.op.OpEQ;
 import io.warp10.script.op.OpGE;
@@ -225,7 +225,6 @@ import io.warp10.script.op.OpLT;
 import io.warp10.script.op.OpMask;
 import io.warp10.script.op.OpMul;
 import io.warp10.script.op.OpNE;
-import io.warp10.script.op.OpOR;
 import io.warp10.script.op.OpSub;
 import io.warp10.script.processing.Pencode;
 import io.warp10.script.processing.color.Palpha;
@@ -254,6 +253,7 @@ import io.warp10.script.processing.image.PimageMode;
 import io.warp10.script.processing.image.PnoTint;
 import io.warp10.script.processing.image.Ppixels;
 import io.warp10.script.processing.image.Pset;
+import io.warp10.script.processing.image.Psize;
 import io.warp10.script.processing.image.Ptint;
 import io.warp10.script.processing.image.PtoImage;
 import io.warp10.script.processing.image.PupdatePixels;
@@ -478,6 +478,7 @@ public class WarpScriptLib {
   public static final String TIMED = "TIMED";
   public static final String CHRONOSTATS = "CHRONOSTATS";
   public static final String UNLIST = "UNLIST";
+  public static final String UNSET = "UNSET";
   public static final String UNION = "UNION";
   public static final String INTERSECTION = "INTERSECTION";
   public static final String DIFFERENCE = "DIFFERENCE";
@@ -647,6 +648,11 @@ public class WarpScriptLib {
   public static final String UNGZIP = "UNGZIP";
   public static final String DEFLATE = "DEFLATE";
   public static final String INFLATE = "INFLATE";
+  public static final String ECGEN = "ECGEN";
+  public static final String ECPRIVATE = "ECPRIVATE";
+  public static final String ECPUBLIC = "ECPUBLIC";
+  public static final String ECSIGN = "ECSIGN";
+  public static final String ECVERIFY = "ECVERIFY";
   public static final String RSAGEN = "RSAGEN";
   public static final String RSAENCRYPT = "RSAENCRYPT";
   public static final String RSADECRYPT = "RSADECRYPT";
@@ -832,6 +838,7 @@ public class WarpScriptLib {
   public static final String UNWRAPEMPTY = "UNWRAPEMPTY";
   public static final String UNWRAPSIZE = "UNWRAPSIZE";
   public static final String WRAPMV = "WRAPMV";
+  public static final String WRAPMVNOCOMP = "WRAPMV!";
   public static final String MVTICKSPLIT = "MVTICKSPLIT";
   public static final String MVINDEXSPLIT = "MVINDEXSPLIT";
   public static final String MVVALUES = "MVVALUES";
@@ -1023,6 +1030,7 @@ public class WarpScriptLib {
   public static final String PSATURATION = "Psaturation";
   public static final String PDECODE = "Pdecode";
   public static final String PIMAGE = "Pimage";
+  public static final String PSIZE = "Psize";
   public static final String PIMAGEMODE = "PimageMode";
   public static final String PTINT = "Ptint";
   public static final String PNOTINT = "PnoTint";
@@ -1079,10 +1087,14 @@ public class WarpScriptLib {
   public static final String TOHHCODELONG = "->HHCODELONG";
   public static final String TOGTSHHCODE = "->GTSHHCODE";
   public static final String TOGTSHHCODELONG = "->GTSHHCODELONG";
+  public static final String TOGEOCELL = "->GEOCELL";
+  public static final String TOGEOSHAPE = "->GEOSHAPE";
   public static final String TOGEOHASH = "->GEOHASH";
   public static final String TOZ = "->Z";
   public static final String TOMAT = "->MAT";
   public static final String TOVEC = "->VEC";
+  public static final String TOVARINT = "->VARINT";
+  public static final String VARINTTO = "VARINT->";
 
   public static final String LISTTO = "LIST->";
   public static final String SETTO = "SET->";
@@ -1100,6 +1112,8 @@ public class WarpScriptLib {
   public static final String TSELEMENTSTO = "TSELEMENTS->";
   public static final String HHCODETO = "HHCODE->";
   public static final String GTSHHCODETO = "GTSHHCODE->";
+  public static final String GEOCELLTO = "GEOCELL->";
+  public static final String GEOSHAPETO = "GEOSHAPE->";
   public static final String GEOHASHTO = "GEOHASH->";
   public static final String GEOSPLIT = "GEOSPLIT";
   public static final String ZTO = "Z->";
@@ -1205,10 +1219,13 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOLIST(TOLIST));
     addNamedWarpScriptFunction(new LISTTO(LISTTO));
     addNamedWarpScriptFunction(new UNLIST(UNLIST));
+    addNamedWarpScriptFunction(new UNSET(UNSET));
     addNamedWarpScriptFunction(new TOSET(TO_SET));
     addNamedWarpScriptFunction(new SETTO(SETTO));
     addNamedWarpScriptFunction(new TOVECTOR(TO_VECTOR));
     addNamedWarpScriptFunction(new VECTORTO(VTO));
+    addNamedWarpScriptFunction(new TOVARINT(TOVARINT));
+    addNamedWarpScriptFunction(new VARINTTO(VARINTTO));
     addNamedWarpScriptFunction(new UNION(UNION));
     addNamedWarpScriptFunction(new INTERSECTION(INTERSECTION));
     addNamedWarpScriptFunction(new DIFFERENCE(DIFFERENCE));
@@ -1467,6 +1484,11 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new UNGZIP(UNGZIP));
     addNamedWarpScriptFunction(new DEFLATE(DEFLATE));
     addNamedWarpScriptFunction(new INFLATE(INFLATE));
+    addNamedWarpScriptFunction(new ECGEN(ECGEN));
+    addNamedWarpScriptFunction(new ECPRIVATE(ECPRIVATE));
+    addNamedWarpScriptFunction(new ECPUBLIC(ECPUBLIC));
+    addNamedWarpScriptFunction(new ECSIGN(ECSIGN));
+    addNamedWarpScriptFunction(new ECVERIFY(ECVERIFY));
     addNamedWarpScriptFunction(new RSAGEN(RSAGEN));
     addNamedWarpScriptFunction(new RSAPUBLIC(RSAPUBLIC));
     addNamedWarpScriptFunction(new RSAPRIVATE(RSAPRIVATE));
@@ -1708,6 +1730,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new UNWRAPSIZE(UNWRAPSIZE));
     addNamedWarpScriptFunction(new UNWRAPENCODER(UNWRAPENCODER));
     addNamedWarpScriptFunction(new WRAP(WRAPMV, true, true, true, true));
+    addNamedWarpScriptFunction(new WRAP(WRAPMVNOCOMP, true, false, true, true));
     addNamedWarpScriptFunction(new TOMVSTRING(TOMVSTRING));
     addNamedWarpScriptFunction(new MVSPLIT(MVTICKSPLIT, true));
     addNamedWarpScriptFunction(new MVSPLIT(MVINDEXSPLIT, false));
@@ -1920,8 +1943,12 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOHHCODE(TOHHCODELONG, false));
     addNamedWarpScriptFunction(new TOHHCODE(TOGTSHHCODE, true, true));
     addNamedWarpScriptFunction(new TOHHCODE(TOGTSHHCODELONG, false, true));
+    addNamedWarpScriptFunction(new TOGEOCELL(TOGEOCELL));
+    addNamedWarpScriptFunction(new TOGEOSHAPE(TOGEOSHAPE));
     addNamedWarpScriptFunction(new HHCODETO(HHCODETO));
     addNamedWarpScriptFunction(new HHCODETO(GTSHHCODETO, true));
+    addNamedWarpScriptFunction(new GEOCELLTO(GEOCELLTO));
+    addNamedWarpScriptFunction(new GEOSHAPETO(GEOSHAPETO));
     addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_BBOX, HHCODEFUNC.HHCodeAction.BBOX));
     addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_CENTER, HHCODEFUNC.HHCodeAction.CENTER));
     addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_NORTH, HHCODEFUNC.HHCodeAction.NORTH));
@@ -2168,6 +2195,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Pdecode(PDECODE));
     addNamedWarpScriptFunction(new Pimage(PIMAGE));
     addNamedWarpScriptFunction(new PimageMode(PIMAGEMODE));
+    addNamedWarpScriptFunction(new Psize(PSIZE));
     addNamedWarpScriptFunction(new Ptint(PTINT));
     addNamedWarpScriptFunction(new PnoTint(PNOTINT));
     addNamedWarpScriptFunction(new Ppixels(PPIXELS));
@@ -2378,10 +2406,10 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new OpGT("op.gt"));
     addNamedWarpScriptFunction(new OpLE("op.le"));
     addNamedWarpScriptFunction(new OpGE("op.ge"));
-    addNamedWarpScriptFunction(new OpAND("op.and.ignore-nulls", false));
-    addNamedWarpScriptFunction(new OpAND("op.and", true));
-    addNamedWarpScriptFunction(new OpOR("op.or.ignore-nulls", false));
-    addNamedWarpScriptFunction(new OpOR("op.or", true));
+    addNamedWarpScriptFunction(new OpBoolean("op.and.ignore-nulls", false, false));
+    addNamedWarpScriptFunction(new OpBoolean("op.and", false, true));
+    addNamedWarpScriptFunction(new OpBoolean("op.or.ignore-nulls", true, false));
+    addNamedWarpScriptFunction(new OpBoolean("op.or", true, true));
 
     /////////////////////////
 
@@ -2500,7 +2528,7 @@ public class WarpScriptLib {
         wse.register();
         
         String namespace = props.getProperty(Configuration.CONFIG_WARPSCRIPT_NAMESPACE_PREFIX + wse.getClass().getName(), "").trim(); 
-        if (null != namespace && !"".equals(namespace)) {
+        if (!"".equals(namespace)) {
           namespace = WarpURLDecoder.decode(namespace, StandardCharsets.UTF_8);
           LOG.info("LOADED extension '" + extension + "'" + " under namespace '" + namespace + "'.");
         } else {

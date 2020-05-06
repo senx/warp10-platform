@@ -37,7 +37,12 @@ public class CHRONOEND extends NamedWarpScriptFunction implements WarpScriptStac
     long endNanos = System.nanoTime();
 
     Object o1 = stack.pop();
-    String alias = o1.toString();
+
+    if (!(o1 instanceof String)) {
+      throw new WarpScriptException(getName() + " expects a STRING alias.");
+    }
+
+    String alias = (String) o1;
 
     String keyStart = CHRONOSTATS.getStartKey(alias, stack);
     String keyActiveCount = CHRONOSTATS.getActiveCountKey(alias, stack);

@@ -47,7 +47,7 @@ public class NPDF extends NamedWarpScriptFunction implements WarpScriptStackFunc
         throw new WarpScriptException(getName() + " expects a standard deviation (sigma) on top of the stack.");
       }
       
-      double sigma = (double) value;
+      double sigma = ((Number) value).doubleValue();
       
       value = stack.pop();
       

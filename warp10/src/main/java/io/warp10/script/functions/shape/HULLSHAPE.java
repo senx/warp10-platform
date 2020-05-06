@@ -78,7 +78,7 @@ public class HULLSHAPE extends FormattedWarpScriptFunction {
     List<Long> res = new ArrayList<Long>();
     res.add((long) list.size());
 
-    List<Long> hull = new ArrayList<>();
+    List<Long> hull = new ArrayList<Long>();
     for (Object el: list) {
       if (el instanceof List) {
         hull = maximizeHull(hull, recHullShape((List) el));

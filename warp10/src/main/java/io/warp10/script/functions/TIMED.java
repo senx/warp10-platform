@@ -38,7 +38,12 @@ public class TIMED extends NamedWarpScriptFunction implements WarpScriptStackFun
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o1 = stack.pop();
-    String alias = o1.toString();
+
+    if (!(o1 instanceof String)) {
+      throw new WarpScriptException(getName() + " expects a STRING alias.");
+    }
+
+    String alias = (String) o1;
 
     Object o2 = stack.pop();
 

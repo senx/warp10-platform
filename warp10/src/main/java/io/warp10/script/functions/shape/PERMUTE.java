@@ -104,7 +104,7 @@ public class PERMUTE extends FormattedWarpScriptFunction {
 
       } else {
 
-        List<Object> nested = new ArrayList<>();
+        List<Object> nested = new ArrayList<Object>();
         result.add(nested);
         recPermute(tensor, nested, new_indices, dimension + 1, pattern, newShape);
       }

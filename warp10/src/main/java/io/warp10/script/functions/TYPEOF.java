@@ -87,6 +87,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String TYPE_MATCHER = "MATCHER";
   public static final String TYPE_MARK = "MARK";
   public static final String TYPE_KEY = "KEY";
+  public static final String TYPE_CONTEXT = "CONTEXT";
 
   /**
    * Interface to be used by extensions and plugins to define a new type.
@@ -175,6 +176,8 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
       return TYPE_MARK;
     } else if (Key.class.isAssignableFrom(c)) {
       return TYPE_KEY;
+    } else if (WarpScriptStack.StackContext.class.isAssignableFrom(c)) {
+      return TYPE_CONTEXT;
     } else if (Typeofable.class.isAssignableFrom(c)) {
       try {
         return "X-" + ((Typeofable) c.getDeclaredConstructor().newInstance()).typeof();

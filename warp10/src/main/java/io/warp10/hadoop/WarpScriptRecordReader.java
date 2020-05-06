@@ -176,7 +176,7 @@ public class WarpScriptRecordReader extends RecordReader<Object, Object> {
         List<Object> input = new ArrayList<Object>();
         
         // This is the last K/V we feed to the executor
-        input.add(done);
+        input.add(true);
         
         try {
           List<Object> results = this.executor.exec(input);
@@ -192,7 +192,7 @@ public class WarpScriptRecordReader extends RecordReader<Object, Object> {
           // ensuring each is a [ key value ] pair
           for (int i = results.size() - 1; i >= 0; i--) {
             Object result = results.get(i);
-            if (!(result instanceof List) && 2 != ((List) result).size()) {
+            if (!(result instanceof List) || 2 != ((List) result).size()) {
               throw new IOException("Invalid WarpScript™ output, expected [ key value ] pairs, got a " + result.getClass());
             }
             List<Object> record = new ArrayList<Object>();

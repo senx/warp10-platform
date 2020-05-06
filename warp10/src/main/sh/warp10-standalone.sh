@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#   Copyright 2018  SenX S.A.S.
+#   Copyright 2018-2020  SenX S.A.S.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -29,6 +29,11 @@
 if [[ -e /lib/lsb/init-functions ]]; then
   . /lib/lsb/init-functions
 fi
+
+# Determine Python interpreter to use
+PYTHON=$(which python3)
+PYTHON=${PYTHON:-$(which python2)}
+PYTHON=${PYTHON:-$(which python)}
 
 # Extract JAVA_OPTS before we switch to strict mode
 JAVA_OPTS=${JAVA_OPTS:-}
@@ -340,7 +345,7 @@ bootstrap() {
   rm ${WARP10_HOME}/etc/log4j.properties${SED_SUFFIX}
 
   # Generate secrets
-  ${WARP10_HOME}/etc/generate_crypto_key.py ${WARP10_SECRETS}
+  ${PYTHON} ${WARP10_HOME}/etc/generate_crypto_key.py ${WARP10_SECRETS}
   chown -R ${WARP10_USER}:${WARP10_GROUP} ${WARP10_CONFIG_DIR}
 
 
@@ -388,7 +393,7 @@ start() {
   getConfigFiles
 
   #
-  # Config file exists ?
+  # Config file exists?
   #
   if [[ -z "${CONFIG_FILES}" ]]; then
     echo "Config file does not exist - Use 'bootstrap' command before the very first launch (it must be run as root)"
@@ -396,7 +401,13 @@ start() {
     exit 1
   fi
 
-  LEVELDB_HOME="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} 'leveldb.home' | grep 'leveldb.home' | sed -e 's/^.*=//'`"
+  # 
+  # Extract configuration keys
+  # 
+
+  CONFIG_KEYS=$(${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} . 'leveldb.home' 'standalone.host' 'standalone.port' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //')
+
+  LEVELDB_HOME="$(echo "${CONFIG_KEYS}" | grep -e '^leveldb\.home=' | sed -e 's/^.*=//')"
 
   #
   # Leveldb exists ?
@@ -417,8 +428,8 @@ start() {
     ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${LEVELDB_HOME} >> ${WARP10_HOME}/logs/warp10.log 2>&1
   fi
 
-  WARP10_LISTENSTO_HOST="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} 'standalone.host' | grep 'standalone.host' | sed -e 's/^.*=//'`"
-  WARP10_LISTENSTO_PORT="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} 'standalone.port' | grep 'standalone.port' | sed -e 's/^.*=//'`"
+  WARP10_LISTENSTO_HOST="$(echo "${CONFIG_KEYS}" | grep -e '^standalone\.host=' | sed -e 's/^.*=//')"
+  WARP10_LISTENSTO_PORT="$(echo "${CONFIG_KEYS}" | grep -e '^standalone\.port=' | sed -e 's/^.*=//')"
   WARP10_LISTENSTO="${WARP10_LISTENSTO_HOST}:${WARP10_LISTENSTO_PORT}"
 
   #

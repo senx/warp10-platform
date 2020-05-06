@@ -98,17 +98,12 @@ public class StandaloneShardedStoreClientWrapper implements StoreClient {
   }
   
   @Override
-  public void archive(int chunk, GTSEncoder encoder) throws IOException {
-    throw new IOException("Archive is not implemented.");
-  }
-  
-  @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {
     return this.client.delete(token, metadata, start, end);
   }
   
   @Override
-  public GTSDecoderIterator fetch(ReadToken token, List<Metadata> metadatas, long now, long then, long count, long skip, double sample, boolean writeTimestamp, final int preBoundary, final int postBoundary) throws IOException {
+  public GTSDecoderIterator fetch(ReadToken token, List<Metadata> metadatas, long now, long then, long count, long skip, double sample, boolean writeTimestamp, final long preBoundary, final long postBoundary) throws IOException {
     return this.client.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
   }
   

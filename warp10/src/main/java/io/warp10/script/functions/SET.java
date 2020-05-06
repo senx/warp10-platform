@@ -53,7 +53,7 @@ public class SET extends NamedWarpScriptFunction implements WarpScriptStackFunct
         }
       }
 
-      List<Long> copyIndices = new ArrayList<>((List<Long>) key);
+      List<Long> copyIndices = new ArrayList<Long>((List<Long>) key);
       int lastIdx = copyIndices.remove(copyIndices.size() - 1).intValue();
       Object container;
 

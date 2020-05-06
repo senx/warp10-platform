@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -45,17 +45,27 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
     Object top = stack.pop();
-    
-    if (!(top instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a list of variable names on top of the stack.");
+
+    List vars = null;
+
+    // Set the optional list of variable names to convert to registers.
+    if (top instanceof List) {
+      vars = (List) top;
+      top = stack.pop();
     }
 
-    List vars = (List) top;
-    
-    top = stack.pop();
-    
     if (!(top instanceof Macro)) {
-      throw new WarpScriptException(getName() + " operates on a macro.");
+      throw new WarpScriptException(getName() + " expects an optional list of variable names and a macro.");
+    }
+
+    Macro macro = (Macro) top;
+
+    if (null == vars) {
+      try {
+        vars = VARS.getVars(macro);
+      } catch (WarpScriptException wse) {
+        throw new WarpScriptException(getName() + " failed.", wse);
+      }
     }
 
     Object[] regs = stack.getRegisters();
@@ -68,7 +78,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
     // Inspect the macro to determine the registers which are already used
     //
     List<Macro> allmacros = new ArrayList<Macro>();
-    allmacros.add((Macro) top);
+    allmacros.add(macro);
     
     boolean abort = false;
     
@@ -235,7 +245,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             while (idx >= 0 && !(statements.get(idx) instanceof MARK)) {
               Object stmt = statements.get(idx);
               if (stmt instanceof String) {
-                Integer regno = varregs.get(statements.get(idx));
+                Integer regno = varregs.get(stmt);
                 if (null != regno) {
                   statements.set(idx, (long) regno);
                 }

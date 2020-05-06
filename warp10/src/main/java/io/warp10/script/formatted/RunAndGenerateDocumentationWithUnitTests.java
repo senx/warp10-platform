@@ -57,7 +57,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
   }
 
   private static String VERSION = "all";
-  private static List<String> TAGS = new ArrayList<>();
+  private static List<String> TAGS = new ArrayList<String>();
   static {
     //
     // Tags that are common to all functions for which the documentation is being written, for example:
@@ -67,11 +67,11 @@ public class RunAndGenerateDocumentationWithUnitTests {
     //TAGS.add("tensors");
   }
   private static boolean MAKE_FUNCTIONS_RELATED_WITHIN_SAME_PACKAGE = true;
-  private static List<String> RELATED = new ArrayList<>();
+  private static List<String> RELATED = new ArrayList<String>();
   private static String SINCE = "2.1";
   private static String DEPRECATED = "";
   private static String DELETED = "";
-  private static List<String> CONF = new ArrayList<>();
+  private static List<String> CONF = new ArrayList<String>();
 
   //
   // outputs, examples, tags and related are retrieved in each instance of FormattedWarpScriptFunction if they were set
@@ -127,7 +127,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
         System.out.println("Generate and assert doc for " + function.getClass().getName());
 
         // outputs
-        List<ArgumentSpecification> output =  new ArrayList<>();
+        List<ArgumentSpecification> output =  new ArrayList<ArgumentSpecification>();
         Method m = searchMethod(function, "getOutput");
         if (null != m) {
           m.setAccessible(true);
@@ -141,7 +141,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
         }
 
         // examples
-        List<String> examples = new ArrayList<>();
+        List<String> examples = new ArrayList<String>();
         m = searchMethod(function, "getExamples");
         if (null != m) {
           m.setAccessible(true);
@@ -152,7 +152,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
         }
 
         // tags
-        List<String> tags = new ArrayList<>(TAGS());
+        List<String> tags = new ArrayList<String>(TAGS());
         m = searchMethod(function, "getTags");
         if (null != m) {
           m.setAccessible(true);
@@ -242,7 +242,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
   public static List<String> getRelatedClasses(ClassLoader cl, String pack) throws Exception {
 
     String dottedPackage = pack.replaceAll("[/]", ".");
-    List<String> classNames = new ArrayList<>();
+    List<String> classNames = new ArrayList<String>();
     pack = pack.replaceAll("[.]", "/");
     URL upackage = cl.getResource(pack);
 

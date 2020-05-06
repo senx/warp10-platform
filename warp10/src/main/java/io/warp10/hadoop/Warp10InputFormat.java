@@ -178,7 +178,7 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
       }
     }
     
-    List<String> fallbacks = new ArrayList<>();
+    List<String> fallbacks = new ArrayList<String>();
     
     boolean fallbacksonly = "true".equals(getProperty(context, PROPERTY_WARP10_FETCHER_FALLBACKSONLY));
     
@@ -300,7 +300,7 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
       }
     }
 
-    List<InputSplit> splits = new ArrayList<>();
+    List<InputSplit> splits = new ArrayList<InputSplit>();
     
     br = new BufferedReader(new FileReader(outfile));
     
@@ -319,7 +319,7 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
       
       // If the server changed or we've reached the maximum split size, flush the current split.
       
-      if (null != lastserver && !lastserver.equals(tokens[0]) || avgsplitcount == subsplits) {
+      if ((null != lastserver && !lastserver.equals(tokens[0])) || avgsplitcount == subsplits) {
         // Add fallback fetchers, shuffle them first
         Collections.shuffle(fallbacks);
         for (String fallback: fallbacks) {
@@ -332,6 +332,7 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
       }
       
       subsplits++;
+      lastserver = tokens[0];
 
       split.addEntry(fallbacksonly ? null : tokens[0], tokens[2]);
     }

@@ -24,8 +24,10 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.EmptyStackException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -241,7 +243,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     
     this.properties = properties;
 
-    int nregs = Integer.parseInt(null == this.properties ? String.valueOf(WarpScriptStack.DEFAULT_REGISTERS) : this.properties.getProperty(Configuration.CONFIG_WARPSCRIPT_REGISTERS, String.valueOf(WarpScriptStack.DEFAULT_REGISTERS)));
+    int nregs = Integer.parseInt(this.properties.getProperty(Configuration.CONFIG_WARPSCRIPT_REGISTERS, String.valueOf(WarpScriptStack.DEFAULT_REGISTERS)));
     allowLooseBlockComments = "true".equals(properties.getProperty(Configuration.WARPSCRIPT_ALLOW_LOOSE_BLOCK_COMMENTS, "false"));
     this.registers = new Object[nregs];    
   }
@@ -355,23 +357,22 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   @Override
   public Object[] popn() throws EmptyStackException, IndexOutOfBoundsException {
     int n = getn();
-    
+
+    return popn(n);
+  }
+
+  @Override
+  public Object[] popn(int n) throws EmptyStackException, IndexOutOfBoundsException {
     if (size < n || n < 0) {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
-    
+
     Object[] objects = new Object[n];
 
-    //
-    // Remove objects from the end of the stack so the call to remove is blazing
-    // fast.
-    //
-    
-    for (int i = n - 1; i >= 0; i--) {
-      objects[i] = elements[size - 1];
-      size--;
-    }
-    
+    System.arraycopy(elements, size - n, objects, 0, n);
+
+    size -= n;
+
     return objects;
   }
   
@@ -841,7 +842,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             // Check WarpScript functions
             //
 
-            func = null != func ? func : defined.get(stmt);
+            func = defined.get(stmt);
 
             if (null != func && Boolean.FALSE.equals(getAttribute(WarpScriptStack.ATTRIBUTE_ALLOW_REDEFINED))) {
               throw new WarpScriptException("Disallowed redefined function '" + stmt + "'.");

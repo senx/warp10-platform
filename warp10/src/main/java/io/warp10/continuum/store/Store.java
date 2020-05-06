@@ -100,11 +100,6 @@ public class Store extends Thread {
   private static final Logger LOG = LoggerFactory.getLogger(Store.class);
   
   /**
-   * Prefix for 'archived' data
-   */
-  public static final byte[] HBASE_ARCHIVE_DATA_KEY_PREFIX = "A".getBytes(StandardCharsets.UTF_8);
-  
-  /**
    * Set of required parameters, those MUST be set
    */
   private static final String[] REQUIRED_PROPERTIES = new String[] {
@@ -1134,9 +1129,6 @@ public class Store extends Thread {
               case DELETE:
                 handleDelete(ht, tmsg);              
                 break;
-              case ARCHIVE:
-                handleArchive(ht, tmsg);              
-                break;
               default:
                 throw new RuntimeException("Invalid message type.");
             }
@@ -1473,7 +1465,7 @@ public class Store extends Thread {
 
             Metadata meta = msg.getMetadata();
             if (null != meta) {
-              Map<String, String> labels = new HashMap<>();
+              Map<String, String> labels = new HashMap<String, String>();
               labels.put(SensisionConstants.SENSISION_LABEL_OWNER, meta.getLabels().get(Constants.OWNER_LABEL));
               labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, meta.getLabels().get(Constants.APPLICATION_LABEL));
               Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS_PEROWNERAPP, labels, noOfDeletedVersions);
@@ -1544,16 +1536,6 @@ public class Store extends Thread {
           store.inflightDeletions.addAndGet(-1);
         }
       }
-    }
-    
-    private void handleArchive(Table ht, KafkaDataMessage msg) {
-      
-      if (KafkaDataMessageType.ARCHIVE != msg.getType()) {
-        return;
-      }
-      
-      
-      throw new RuntimeException("Archive not implemented yet.");
     }
   }
   

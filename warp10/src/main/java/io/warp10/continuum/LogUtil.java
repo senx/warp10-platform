@@ -163,10 +163,6 @@ public class LogUtil {
 
       t = t.getCause();
     }
-    
-    if (null == event) {
-      event = new LoggingEvent();
-    }
 
     try{
       event.putToAttributes(name, JsonUtils.objectToJson(stacktrace));
@@ -192,10 +188,6 @@ public class LogUtil {
   public static final LoggingEvent unwrapLog(byte[] key, String logmsg) {    
     try {
       byte[] data = OrderPreservingBase64.decode(logmsg.getBytes(StandardCharsets.US_ASCII));
-      
-      if (null == data) {
-        return null;      
-      }
       
       data = CryptoUtils.unwrap(key, data);
       

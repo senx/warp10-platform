@@ -156,12 +156,12 @@ public class SharedMemoryWarpScriptExtension extends WarpScriptExtension impleme
         synchronized(locks) {
           long now = System.currentTimeMillis();
           
-          for (Map.Entry<String, Object> symbolAndObject: shmobjects.entrySet()) {
-            String symbol = symbolAndObject.getKey();
+          for (String symbol: shmobjects.keySet()) {
             // If SHM Object was not used for more than ttl, clear it
             // if its mutex is not currently held
             if (now - shmobjectUses.get(symbol) > ttl) {
-              ReentrantLock lock = locks.get(symbolAndObject.getValue());
+              String mutex = shmobjectLocks.get(symbol);
+              ReentrantLock lock = locks.get(mutex);
               if (!lock.isLocked()) {
                 shmobjects.remove(symbol);
                 shmobjectLocks.remove(symbol);

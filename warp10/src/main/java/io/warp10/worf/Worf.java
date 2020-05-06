@@ -167,7 +167,7 @@ public class Worf {
 
       Pattern VAR = Pattern.compile(".*\\$\\{([^}]+)\\}.*");
 
-      Set<String> emptyProperties = new HashSet<>();
+      Set<String> emptyProperties = new HashSet<String>();
 
       for (Map.Entry<Object, Object> entry : properties.entrySet()) {
         String name = entry.getKey().toString();

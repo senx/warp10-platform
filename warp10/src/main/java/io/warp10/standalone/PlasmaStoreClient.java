@@ -30,7 +30,7 @@ import java.util.List;
 public class PlasmaStoreClient implements StoreClient {
   private List<StandalonePlasmaHandlerInterface> plasmaHandlers = new ArrayList<StandalonePlasmaHandlerInterface>();
   @Override
-  public GTSDecoderIterator fetch(ReadToken token, List<Metadata> metadatas, long now, long then, long count, long skip, double sample, boolean writeTimestamp, final int preBoundary, final int postBoundary) {
+  public GTSDecoderIterator fetch(ReadToken token, List<Metadata> metadatas, long now, long then, long count, long skip, double sample, boolean writeTimestamp, final long preBoundary, final long postBoundary) {
     return null;
   }
   @Override
@@ -43,11 +43,6 @@ public class PlasmaStoreClient implements StoreClient {
         plasmaHandler.publish(encoder);
       }
     }
-  }
-  
-  @Override
-  public void archive(int chunk, GTSEncoder encoder) throws IOException {
-    throw new IOException("Archive not implemented.");
   }
   
   @Override

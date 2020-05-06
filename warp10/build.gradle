@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ dependencies {
     //
     compile project(':crypto')
     compile project(':token')
-    compile 'io.warp10:sensision:1.0.20'
+    compile 'io.warp10:sensision:1.0.21'
 
     compile 'joda-time:joda-time:2.2'
     compile 'org.apache.commons:commons-lang3:3.6'
@@ -109,7 +109,7 @@ dependencies {
     //
     // Geo
     //
-    compile 'com.geoxp:geoxplib:1.0.0-rc23'
+    compile 'com.geoxp:geoxplib:1.0.0'
     compile("org.wololo:jts2geojson:0.10.0")
 
     //

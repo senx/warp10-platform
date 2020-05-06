@@ -314,30 +314,6 @@ public class GTSOutliersHelper {
   }
   
   /**
-   * Applying Tietjen and Moore's test using mean/std or median/mad
-   * @see http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h2.htm
-   * 
-   * @param gts
-   * @param k       Number of outliers
-   * @param useMedian     Should the test use median instead of mean
-   * @param alpha   Significance level with which to accept or reject anomalies. Default is 0.05
-   * 
-   * @return anomalous_ticks
-   * 
-   * @throws WarpScriptException
-   */
-  // Not yet implemented as description of test is unclear. Consider using ESDTest instead.
-  public static List<Long> tietjenMooreTest(GeoTimeSerie gts, int k, boolean useMedian, double alpha) throws WarpScriptException {
-    doubleCheck(gts);
-    List<Long> anomalous_ticks = new ArrayList<Long>();
-    
-    // WIP
-    if (true) throw new WarpScriptException("tietjenMooreTest: Work in Progress. Consider using ESDTest instead.");
-    
-    return anomalous_ticks;    
-  }
-  
-  /**
    * Applying generalized extreme Studentized deviate test using mean/std or median/mad
    * @see http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h3.htm
    * 
@@ -522,28 +498,6 @@ public class GTSOutliersHelper {
     anomalous_ticks.addAll(ESDTest(remainder, k, true, alpha));
     
     return anomalous_ticks;
-  }
-  
-  /** NOT implemented Yet, See entropyHybridTest  below instead
-   * Applying test based on Entropy Seasonal approximation.
-   * 
-   * @param gts                   Must be bucketized
-   * @param buckets_per_period
-   * 
-   * @return anomalous_ticks
-   * 
-   * @throws WarpScriptException
-   */
-  public static List<Long> entropyTest(GeoTimeSerie gts, int buckets_per_period) throws WarpScriptException {
-    doubleCheck(gts);
-    List<Long> anomalous_ticks = new ArrayList<Long>();
-
-    // TODO(JCV): WIP
-    if (true) {
-      throw new WarpScriptException("entropyTest: Work In Progress. Consider using entropyHybridTest");
-    }
-    
-    return anomalous_ticks;    
   }
   
   //

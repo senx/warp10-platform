@@ -72,7 +72,7 @@ public class REVERSE extends NamedWarpScriptFunction implements WarpScriptStackF
       }
 
       stack.push(String.valueOf(chars));
-    } else if (top instanceof byte[]) {
+    } else { // top instanceof byte[]
       byte[] data = (byte[]) top; 
       if (!this.stable) {
         data = Arrays.copyOf(data, data.length);
