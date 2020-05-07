@@ -269,7 +269,7 @@ public class WarpConfig {
     // Now override properties with environment variables
     //
 
-    if (null == System.getProperty(WARP10_NOENV)) {
+    if (null == properties.getOrDefault(WARP10_NOENV, System.getProperty(WARP10_NOENV))) {
       for (Entry<String, String> entry : System.getenv().entrySet()) {
         String name = entry.getKey();
         String value = entry.getValue();
@@ -292,7 +292,7 @@ public class WarpConfig {
     // Now override properties with system properties
     //
 
-    if (null != System.getProperty(WARP10_NOSYS)) {
+    if (null == properties.getOrDefault(WARP10_NOSYS, System.getProperty(WARP10_NOSYS))) {
       Properties sysprops = System.getProperties();
 
       for (Entry<Object, Object> entry : sysprops.entrySet()) {
@@ -322,7 +322,7 @@ public class WarpConfig {
 
       Set<String> emptyProperties = new HashSet<String>();
 
-      boolean ignoreFailedExpands = null != System.getProperty(WARP10_IGNOREFAILEDEXPANDS);
+      boolean ignoreFailedExpands = null != properties.getOrDefault(WARP10_IGNOREFAILEDEXPANDS, System.getProperty(WARP10_IGNOREFAILEDEXPANDS));
       
       for (Entry<Object, Object> entry : properties.entrySet()) {
         String name = entry.getKey().toString();
