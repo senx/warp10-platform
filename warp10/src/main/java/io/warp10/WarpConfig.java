@@ -365,6 +365,7 @@ public class WarpConfig {
           if (loopcount > 100) {
             System.err.println("Hmmm, that's embarrassing, but I've been dereferencing variables " + loopcount + " times trying to set a value for '" + name + "' from value '" + origValue + "'.");
             if (ignoreFailedExpands) {
+              System.err.println("Removing property '" + name + "'.");
               // Clearing the value
               value = null;
               break;
