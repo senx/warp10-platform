@@ -445,6 +445,12 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
       if (!this.metaset) {
         stack.push(series);
       } else {
+        // Check that metadata are not empty
+        List<Metadata> metas = set.getMetadatas();
+        if (null == metas || metas.isEmpty()) {
+          throw new WarpScriptException(getName() + " couldn't find any metadata matching the given class and label selectors.");
+        }
+
         //
         // Encode the MetaSet
         //
