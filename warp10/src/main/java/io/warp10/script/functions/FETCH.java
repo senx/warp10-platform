@@ -898,39 +898,26 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
           params.put(PARAM_END, TimeSource.getTime());
         }
 
-        // If fetch by count, check that maxDuration is for count (ie is negative) and apply limit.
-        if (params.containsKey(PARAM_COUNT)) {
-          if (metaset.getMaxduration() >= 0) {
-            throw new WarpScriptException(getName() + " given MetaSet forbids '" + PARAM_COUNT + "' based requests.");
-          }
-
-          if ((long) params.get(PARAM_COUNT) > -metaset.getMaxduration()) {
-            params.put(PARAM_COUNT, -metaset.getMaxduration());
+        // Metaset limits timespan
+        if (metaset.getMaxduration() >= 0) {
+          // Set timespan to limit if not defined or greater than limit
+          if (!params.containsKey(PARAM_TIMESPAN) || (long) params.get(PARAM_TIMESPAN) > metaset.getMaxduration()) {
+            params.put(PARAM_TIMESPAN, metaset.getMaxduration());
           }
         }
 
-        // If fetch by duration, check that maxDuration is for count (ie is positive) and apply limit.
-        if (params.containsKey(PARAM_TIMESPAN)) {
-          if (metaset.getMaxduration() <= 0) {
-            throw new WarpScriptException(getName() + " given MetaSet forbids '" + PARAM_TIMESPAN + "' based requests.");
-          }
-
-          if ((long) params.get(PARAM_TIMESPAN) > metaset.getMaxduration()) {
-            params.put(PARAM_TIMESPAN, metaset.getMaxduration());
+        // Metaset limits count
+        if (metaset.getMaxduration() < 0) {
+          // Set count to limit if not defined or greater than limit
+          if (!params.containsKey(PARAM_COUNT) || (long) params.get(PARAM_COUNT) > -metaset.getMaxduration()) {
+            params.put(PARAM_COUNT, -metaset.getMaxduration());
           }
         }
       }
 
-      if (metaset.isSetNotbefore()) {
-        // forbid count based requests
-        if (null != params.get(PARAM_COUNT)) {
-          throw new WarpScriptException(getName() + " MetaSet forbids count based requests.");
-        }
-
-        // Limit end to 'notbefore'.
-        if ((long) params.get(PARAM_END) < metaset.getNotbefore()) {
-          params.put(PARAM_END, metaset.getNotbefore());
-        }
+      // Limit end to 'notbefore'.
+      if (metaset.isSetNotbefore() && (long) params.get(PARAM_END) < metaset.getNotbefore()) {
+        params.put(PARAM_END, metaset.getNotbefore());
       }
 
       // Limit end to 'notafter'.
@@ -938,16 +925,18 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         params.put(PARAM_END, metaset.getNotafter());
       }
 
-      // Recompute start because end or timespan may have been changed.
-      try {
-        // Check edge case
-        if (0 == (long) params.get(PARAM_TIMESPAN) && Long.MAX_VALUE == (long) params.get(PARAM_END)) {
-          throw new WarpScriptException(getName() + " use of MetaSet restrictions make it so '" + PARAM_TIMESPAN + "' is 0 and '" + PARAM_START + "' is MIN_VALUE, which is not supported.");
+      // If the fetch uses a timespan or if this metaset enforce it, recompute start because end or timespan may have been changed.
+      if(params.containsKey(PARAM_TIMESPAN)) {
+        try {
+          // Check edge case
+          if (0 == (long) params.get(PARAM_TIMESPAN) && Long.MAX_VALUE == (long) params.get(PARAM_END)) {
+            throw new WarpScriptException(getName() + " use of MetaSet restrictions make it so '" + PARAM_TIMESPAN + "' is 0 and '" + PARAM_START + "' is MIN_VALUE, which is not supported.");
+          }
+          long newStart = Math.subtractExact((long) params.get(PARAM_END), (long) params.get(PARAM_TIMESPAN)) + 1;
+          params.put(PARAM_START, newStart);
+        } catch (ArithmeticException ae) {
+          params.put(PARAM_START, Long.MIN_VALUE);
         }
-        long newStart = Math.subtractExact((long) params.get(PARAM_END), (long) params.get(PARAM_TIMESPAN)) + 1;
-        params.put(PARAM_START, newStart);
-      } catch (ArithmeticException ae) {
-        params.put(PARAM_START, Long.MIN_VALUE);
       }
     }
     
