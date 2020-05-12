@@ -294,7 +294,10 @@ public class StandaloneStoreClient implements StoreClient {
                   preBoundary--;
                 } catch (IOException ioe) {
                   throw new RuntimeException(ioe);
-                }            
+                }
+                if (!iterator.hasNext()) {
+                  break;
+                }
                 kv = iterator.next();              
               }
               
@@ -448,9 +451,17 @@ public class StandaloneStoreClient implements StoreClient {
           
           nvalues = fcount >= 0L ? fcount : Long.MAX_VALUE;
           
-          iterator.seek(startrow);
           preBoundary = preB;
           postBoundary = postB;
+
+          // If we are not fetching a post boundary and not fetching data from the
+          // defined time range, seek to stoprow to speed up possible pre boundary
+          // fetch
+          if (0 == nvalues && postBoundary <= 0) {
+            iterator.seek(stoprow);
+          } else {
+            iterator.seek(startrow);
+          }
         }
       }
     };
