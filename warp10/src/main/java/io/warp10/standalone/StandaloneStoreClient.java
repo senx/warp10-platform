@@ -36,6 +36,8 @@ import org.iq80.leveldb.ReadOptions;
 import org.iq80.leveldb.WriteBatch;
 import org.iq80.leveldb.WriteOptions;
 
+import com.geoxp.oss.jarjar.org.apache.commons.codec.binary.Hex;
+
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSDecoder;
@@ -112,7 +114,13 @@ public class StandaloneStoreClient implements StoreClient {
     }
     
     //
-    // If we are fetching up to Long.MIN_VALUE, then don't fetch a pre boundary
+    // If we are fetching up to Long.MAX_VALUE, then don't fetch a post boundary
+    if (Long.MAX_VALUE == now) {
+      postBoundary = 0;
+    }
+    
+    //
+    // If we are fetching from Long.MIN_VALUE, then don't fetch a pre boundary
     //
     if (Long.MIN_VALUE == then) {
       preBoundary = 0;
@@ -195,18 +203,25 @@ public class StandaloneStoreClient implements StoreClient {
         //
         // Fetch the boundary
         //
-        while (postBoundary > 0 && encoder.size() < MAX_ENCODER_SIZE) {          
+        while (postBoundary > 0 && encoder.size() < MAX_ENCODER_SIZE) {
+          // Given the prefix for metadata is before the prefix for the raw data, the call to prev
+          // will never throw an exception because we've reached the beginning of the LevelDB key space
           Entry<byte[], byte[]> kv = iterator.prev();
           // Check if the previous row is for the same GTS (prefix + 8 bytes for class id + 8 bytes for labels id)
           // 128bits
           int i = Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8;
-
           // The post boundary scan exhausted the datapoints for the GTS, seek back to startrow
           if (0 != Bytes.compareTo(kv.getKey(), 0, i, startrow, 0, i)) {
             postBoundary = 0;
-            iterator.seek(startrow);
+            if (nvalues > 0) {
+              iterator.seek(startrow);
+            } else {
+              // If there are no values to fetch, position at the last row
+              iterator.seek(stoprow);
+            }
             break;
           }
+          
           byte[] k = kv.getKey();          
           long basets = k[i++] & 0xFFL;
           basets <<= 8; basets |= (k[i++] & 0xFFL); 
@@ -224,7 +239,12 @@ public class StandaloneStoreClient implements StoreClient {
             encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
             postBoundary--;
             if (0 == postBoundary) {
-              iterator.seek(startrow);
+              if (nvalues > 0) {
+                iterator.seek(startrow);
+              } else {
+                //  If there are no values to fetch, position at the last row
+                iterator.seek(stoprow);
+              }
             }
           } catch (IOException ioe) {
             throw new RuntimeException(ioe);
@@ -236,11 +256,13 @@ public class StandaloneStoreClient implements StoreClient {
         // if the postBoundary is not complete or if the encoder
         // has already reached its maximum allowed size
         //
-        
-        if (postBoundary <= 0 && encoder.size() < MAX_ENCODER_SIZE) {
+        // We need to check iterator.hasNext otherwise the call to next() may throw an
+        // exception if we've reached the end of the LevelDB key space
+        if (postBoundary <= 0 && encoder.size() < MAX_ENCODER_SIZE && iterator.hasNext()) {
           do {
             Entry<byte[], byte[]> kv = iterator.next();
             
+            // We've reached past 'stoprow', handle pre boundary
             if (Bytes.compareTo(kv.getKey(), stoprow) > 0) {
               //
               // If a boundary was requested, fetch it
@@ -279,6 +301,11 @@ public class StandaloneStoreClient implements StoreClient {
               break;
             }
             
+            // We are not fetching a pre boundary and we do not have values to fetch, exit the loop
+            if (nvalues <= 0) {
+              break;
+            }
+
             ByteBuffer bb = ByteBuffer.wrap(kv.getKey()).order(ByteOrder.BIG_ENDIAN);
             
             bb.position(Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8);            
@@ -303,7 +330,7 @@ public class StandaloneStoreClient implements StoreClient {
             if (fsample < 1.0D && prng.nextDouble() > fsample) {
               continue;
             }
-            
+                        
             valueBytes += v.length;
             keyBytes += kv.getKey().length;          
             datapoints++;
