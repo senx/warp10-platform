@@ -36,8 +36,6 @@ import org.iq80.leveldb.ReadOptions;
 import org.iq80.leveldb.WriteBatch;
 import org.iq80.leveldb.WriteOptions;
 
-import com.geoxp.oss.jarjar.org.apache.commons.codec.binary.Hex;
-
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSDecoder;
@@ -47,7 +45,6 @@ import io.warp10.continuum.gts.MetadataIdComparator;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.GTSDecoderIterator;
-import io.warp10.continuum.store.Store;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
