@@ -46,7 +46,7 @@ public class WarpURLEncoder {
         if (null == sb) {
           sb = new StringBuilder(encoded.length());
         }
-        sb.append(encoded, lastidx, idx - lastidx);
+        sb.append(encoded, lastidx, idx);
         sb.append("%20");
         lastidx = ++idx;
       } else {
@@ -58,8 +58,8 @@ public class WarpURLEncoder {
       return encoded;
     }
     
-    if (idx > lastidx) {
-      sb.append(encoded, lastidx, idx - lastidx);
+    if (lastidx < encoded.length()) {
+      sb.append(encoded, lastidx, encoded.length());
     }
     
     return sb.toString();
