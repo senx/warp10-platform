@@ -14,30 +14,26 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.functions.math;
+package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.DoubleBinaryOperator;
 import java.util.function.LongBinaryOperator;
 
 /**
- * Apply a double or long binary operator to 2 values or a list of values, converting any long value to a double value
- * if a double value is found.
+ * Apply a double binary operator to 2 values or a list of values, converting all values to double.
  */
-public class NumericBinaryFunction extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class DoubleBinaryFunction extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  final LongBinaryOperator opL;
   final DoubleBinaryOperator opD;
 
-  public NumericBinaryFunction(String name, LongBinaryOperator longBinOp, DoubleBinaryOperator doubleBinOp) {
+  public DoubleBinaryFunction(String name, DoubleBinaryOperator doubleBinOp) {
     super(name);
-    opL = longBinOp;
     opD = doubleBinOp;
   }
 
@@ -54,17 +50,9 @@ public class NumericBinaryFunction extends NamedWarpScriptFunction implements Wa
         }
 
         if (null == result) {
-          if (element instanceof Double || element instanceof BigDecimal) {
-            result = ((Number) element).doubleValue();
-          } else {
-            result = ((Number) element).longValue();
-          }
+          result = ((Number) element).doubleValue();
         } else {
-          if (element instanceof Double || element instanceof BigDecimal || result instanceof Double) {
-            result = opD.applyAsDouble(((Number) element).doubleValue(), result.doubleValue());
-          } else {
-            result = opL.applyAsLong (((Number) element).longValue(), result.longValue());
-          }
+          result = opD.applyAsDouble(((Number) element).doubleValue(), result.doubleValue());
         }
       }
 
@@ -81,11 +69,7 @@ public class NumericBinaryFunction extends NamedWarpScriptFunction implements Wa
         throw new WarpScriptException(getName() + " can only operate on 2 numerical values or a list on numerical values.");
       }
 
-      if (op0 instanceof Double || op0 instanceof BigDecimal || op1 instanceof Double || op1 instanceof BigDecimal) {
-        stack.push(opD.applyAsDouble(((Number) op1).doubleValue(), ((Number) op0).doubleValue()));
-      } else {
-        stack.push(opL.applyAsLong(((Number) op1).longValue(), ((Number) op0).longValue()));
-      }
+      stack.push(opD.applyAsDouble(((Number) op1).doubleValue(), ((Number) op0).doubleValue()));
     }
 
     return stack;
