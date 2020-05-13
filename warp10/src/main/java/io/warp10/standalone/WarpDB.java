@@ -441,9 +441,19 @@ public class WarpDB extends Thread implements DB {
     try {
       mutex.lockInterruptibly();
       
-      LOG.info("Waiting for " + pendingOps.get() + " pending ops to finish.");
+      int pending = pendingOps.get();
+      
+      LOG.info("Waiting for " + pendingOps.get() + " pending ops to finish.");      
       
       while(pendingOps.get() > 0 || compactionsSuspended.get()) {
+        if (pendingOps.get() != pending) {
+          pending = pendingOps.get();
+          if (pending > 0) {
+            LOG.info("Waiting for " + pendingOps.get() + " pending ops to finish.");
+          } else {
+            continue;
+          }
+        }
         LockSupport.parkNanos(100000000L);
       }
       
