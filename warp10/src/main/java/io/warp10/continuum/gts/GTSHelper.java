@@ -53,12 +53,12 @@ import java.util.regex.Pattern;
 
 import io.warp10.json.JsonUtils;
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.fitting.PolynomialCurveFitter;
 import org.apache.commons.math3.fitting.WeightedObservedPoint;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.bouncycastle.util.encoders.Hex;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
@@ -3013,7 +3013,7 @@ public class GTSHelper {
       } else if ('b' == firstChar && valuestr.startsWith("b64:")) {
         value = Base64.decodeBase64(valuestr.substring(4));
       } else if ('h' == firstChar && valuestr.startsWith("hex:")) {
-        value = Hex.decodeHex(valuestr.substring(4).toCharArray());
+        value = Hex.decode(valuestr.substring(4));
       } else if (':' == firstChar) {
         //
         // Custom encoders support values prefixed with ':' + a custom prefix, i.e. ':xxx:VALUE'.
