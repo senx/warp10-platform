@@ -441,19 +441,29 @@ public class WarpDB extends Thread implements DB {
     try {
       mutex.lockInterruptibly();
       
+      LOG.info("Waiting for " + pendingOps.get() + " pending ops to finish.");
+      
       while(pendingOps.get() > 0 || compactionsSuspended.get()) {
         LockSupport.parkNanos(100000000L);
       }
       
+      LOG.info("No more pending ops.");
+      
       try {
         // Close the db
+        LOG.info("Closing LevelDB.");
         this.db.close();
         this.db = null;
-
+        LOG.info("LevelDB closed.");
+        
+        LOG.info("Invoking offline operation.");
         Object result = callable.call();
+        LOG.info("Returned from offline operation.");
         
         // Reopen LevelDB
+        LOG.info("Opening LevelDB.");
         open(nativedisabled, javadisabled, home, options);
+        LOG.info("LevelDB now open.");
         
         return result;
       } catch (Throwable t) {
