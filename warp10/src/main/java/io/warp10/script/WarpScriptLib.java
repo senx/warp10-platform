@@ -284,7 +284,6 @@ import io.warp10.script.processing.typography.PtextLeading;
 import io.warp10.script.processing.typography.PtextMode;
 import io.warp10.script.processing.typography.PtextSize;
 import io.warp10.script.processing.typography.PtextWidth;
-import io.warp10.script.unary.ABS;
 import io.warp10.script.unary.COMPLEMENT;
 import io.warp10.script.unary.FROMBIN;
 import io.warp10.script.unary.FROMBITS;
@@ -1399,7 +1398,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new COMPLEMENT("~"));
     addNamedWarpScriptFunction(new REVERSEBITS(REVBITS));
     addNamedWarpScriptFunction(new NOT(NOT));
-    addNamedWarpScriptFunction(new ABS(ABS));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(ABS, Math::abs, Math::abs));
     addNamedWarpScriptFunction(new TODOUBLE(TODOUBLE));
     addNamedWarpScriptFunction(new TOBOOLEAN(TOBOOLEAN));
     addNamedWarpScriptFunction(new TOLONG(TOLONG));
@@ -1997,58 +1996,58 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOVEC(TOVEC));
     addNamedWarpScriptFunction(new VECTO(VECTO));
 
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(COS, Math::cos));
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(COSH, Math::cosh));
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(ACOS, Math::acos));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(COS, null, Math::cos));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(COSH, null, Math::cosh));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(ACOS, null, Math::acos));
 
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(SIN, Math::sin));
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(SINH, Math::sinh));
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(ASIN, Math::asin));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(SIN, null, Math::sin));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(SINH, null, Math::sinh));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(ASIN, null, Math::asin));
 
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(TAN, Math::tan));
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(TANH, Math::tanh));
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(ATAN, Math::atan));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(TAN, null, Math::tan));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(TANH, null, Math::tanh));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(ATAN, null, Math::atan));
 
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(SIGNUM, Math::signum));
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(FLOOR, Math::floor));
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(CEIL, Math::ceil));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(SIGNUM, null, Math::signum));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(FLOOR, null, Math::floor));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(CEIL, null, Math::ceil));
     addNamedWarpScriptFunction(new ROUND(ROUND));
 
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(RINT, Math::rint));
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(ULP, Math::ulp));
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(NEXTUP, Math::nextUp));
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(NEXTDOWN, Math::nextDown));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(RINT, null, Math::rint));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(ULP, null, Math::ulp));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(NEXTUP, null, Math::nextUp));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(NEXTDOWN, null, Math::nextDown));
 
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(SQRT, Math::sqrt));
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(CBRT, Math::cbrt));
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(EXP, Math::exp));
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(EXPM1, Math::expm1));
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(LOG_, Math::log));
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(LOG10, Math::log10));
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(LOG1P, Math::log1p));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(SQRT, null, Math::sqrt));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(CBRT, null, Math::cbrt));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(EXP, null, Math::exp));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(EXPM1, null, Math::expm1));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(LOG_, null, Math::log));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(LOG10, null, Math::log10));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(LOG1P, null, Math::log1p));
 
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(TORADIANS, Math::toRadians));
-    addNamedWarpScriptFunction(new DoubleUnaryFunction(TODEGREES, Math::toDegrees));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(TORADIANS, null, Math::toRadians));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(TODEGREES, null, Math::toDegrees));
 
-    addNamedWarpScriptFunction(new NumericBinaryFunction(MAX, Math::max, Math::max));
-    addNamedWarpScriptFunction(new NumericBinaryFunction(MIN, Math::min, Math::min));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(MAX, Math::max, Math::max, true));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(MIN, Math::min, Math::min, true));
 
-    addNamedWarpScriptFunction(new DoubleBinaryFunction(COPYSIGN, Math::copySign));
-    addNamedWarpScriptFunction(new DoubleBinaryFunction(HYPOT, Math::hypot));
-    addNamedWarpScriptFunction(new DoubleBinaryFunction(IEEEREMAINDER, Math::IEEEremainder));
-    addNamedWarpScriptFunction(new DoubleBinaryFunction(NEXTAFTER, Math::nextAfter));
-    addNamedWarpScriptFunction(new DoubleBinaryFunction(ATAN2, Math::atan2));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(COPYSIGN, null, Math::copySign, false));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(HYPOT, null, Math::hypot, false));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(IEEEREMAINDER, null, Math::IEEEremainder, false));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(NEXTAFTER, null, Math::nextAfter, false));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(ATAN2, null, Math::atan2, false));
 
-    addNamedWarpScriptFunction(new LongBinaryFunction(FLOORDIV, Math::floorDiv));
-    addNamedWarpScriptFunction(new LongBinaryFunction(FLOORMOD, Math::floorMod));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(FLOORDIV, Math::floorDiv, null, false));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(FLOORMOD, Math::floorMod, null, false));
 
-    addNamedWarpScriptFunction(new LongBinaryFunction(ADDEXACT, Math::addExact));
-    addNamedWarpScriptFunction(new LongBinaryFunction(SUBTRACTEXACT, Math::subtractExact));
-    addNamedWarpScriptFunction(new LongBinaryFunction(MULTIPLYEXACT, Math::multiplyExact));
-    addNamedWarpScriptFunction(new LongUnaryFunction(INCREMENTEXACT, Math::incrementExact));
-    addNamedWarpScriptFunction(new LongUnaryFunction(DECREMENTEXACT, Math::decrementExact));
-    addNamedWarpScriptFunction(new LongUnaryFunction(NEGATEEXACT, Math::negateExact));
-    addNamedWarpScriptFunction(new LongUnaryFunction(TOINTEXACT, Math::toIntExact));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(ADDEXACT, Math::addExact, null, true));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(SUBTRACTEXACT, Math::subtractExact, null, true));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(MULTIPLYEXACT, Math::multiplyExact, null, true));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(INCREMENTEXACT, Math::incrementExact, null));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(DECREMENTEXACT, Math::decrementExact, null));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(NEGATEEXACT, Math::negateExact, null));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(TOINTEXACT, Math::toIntExact, null));
 
     addNamedWarpScriptFunction(new SCALB(SCALB));
     addNamedWarpScriptFunction(new RANDOM(RANDOM));

@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * DEPRECATED: Use ListRecursiveStackFunction instead.
+ *
  * Abstract class for functions which manipulate GTS instances.
  * 
  * The GTS instances can be one of the following:
@@ -31,6 +33,7 @@ import java.util.Map;
  * A list of GTS instances
  * 
  */
+@Deprecated
 public abstract class GTSStackFunction extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
   /**

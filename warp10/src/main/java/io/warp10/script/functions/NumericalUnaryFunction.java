@@ -20,22 +20,33 @@ import io.warp10.script.ListRecursiveStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
+import java.math.BigDecimal;
+import java.util.function.DoubleUnaryOperator;
 import java.util.function.LongUnaryOperator;
 
 /**
- * Apply a long unary operator to 1 value or a list of values, converting all numbers to long.
+ * Apply a double or long unary operator to one value, a list of values or nested lists of values.
+ * If the only the long operator is defined, all numbers are converted to long.
+ * If the only the double operator is defined, all numbers are converted to double.
+ * If the both long and double operator are defined, all numbers are converted long until a Double or BigDecimal is found,
+ * then they are all converted to double.
  */
-public class LongUnaryFunction extends ListRecursiveStackFunction {
+public class NumericalUnaryFunction extends ListRecursiveStackFunction {
 
   final ElementStackFunction func;
 
-  public LongUnaryFunction(String name, LongUnaryOperator longUnOp) {
+  public NumericalUnaryFunction(String name, LongUnaryOperator opL, DoubleUnaryOperator opD) {
     super(name);
+
     func = new ElementStackFunction() {
       @Override
       public Object applyOnElement(Object element) throws WarpScriptException {
         if (element instanceof Number) {
-          return longUnOp.applyAsLong(((Number) element).longValue());
+          if (null != opD && (null == opL || element instanceof Double || element instanceof BigDecimal)) {
+            return opD.applyAsDouble(((Number) element).doubleValue());
+          } else {
+            return opL.applyAsLong(((Number) element).longValue());
+          }
         } else {
           return unhandled(element);
         }
