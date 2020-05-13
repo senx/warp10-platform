@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -50,6 +50,10 @@ public class WarpConfig {
    */
   public static final String WARP10_CONFIG = "warp10.config";
 
+  private static final String WARP10_NOENV = "warp10.noenv";
+  private static final String WARP10_NOSYS = "warp10.nosys";
+  private static final String WARP10_IGNOREFAILEDEXPANDS  = "warp10.ignorefailedexpands";
+  
   /**
    * Name of environment variable used in various submodules to locate the Warp 10 configuration file
    */
@@ -261,11 +265,11 @@ public class WarpConfig {
       System.exit(-1);
     }
 
-    if (expandVars) {
-      //
-      // Now override properties with environment variables
-      //
+    //
+    // Now override properties with environment variables
+    //
 
+    if (null == properties.getOrDefault(WARP10_NOENV, System.getProperty(WARP10_NOENV))) {
       for (Entry<String, String> entry : System.getenv().entrySet()) {
         String name = entry.getKey();
         String value = entry.getValue();
@@ -281,12 +285,14 @@ public class WarpConfig {
           System.err.println("Warning: failed to decode environment variable '" + entry.getKey() + "' = '" + entry.getValue() + "', using raw value.");
           properties.setProperty(entry.getKey(), entry.getValue());
         }
-      }
+      }      
+    }
 
-      //
-      // Now override properties with system properties
-      //
+    //
+    // Now override properties with system properties
+    //
 
+    if (null == properties.getOrDefault(WARP10_NOSYS, System.getProperty(WARP10_NOSYS))) {
       Properties sysprops = System.getProperties();
 
       for (Entry<Object, Object> entry : sysprops.entrySet()) {
@@ -304,8 +310,10 @@ public class WarpConfig {
           System.err.println("Error decoding system property '" + entry.getKey().toString() + "' = '" + entry.getValue().toString() + "', using raw values.");
           properties.setProperty(entry.getKey().toString(), entry.getValue().toString());
         }
-      }
+      }      
+    }
 
+    if (expandVars) {
       //
       // Now expand ${xxx} constructs
       //
@@ -314,6 +322,8 @@ public class WarpConfig {
 
       Set<String> emptyProperties = new HashSet<String>();
 
+      boolean ignoreFailedExpands = null != properties.getOrDefault(WARP10_IGNOREFAILEDEXPANDS, System.getProperty(WARP10_IGNOREFAILEDEXPANDS));
+      
       for (Entry<Object, Object> entry : properties.entrySet()) {
         String name = entry.getKey().toString();
         String value = entry.getValue().toString();
@@ -328,6 +338,8 @@ public class WarpConfig {
 
         int loopcount = 0;
 
+        String origValue = value;
+        
         while (true) {
           Matcher m = VAR.matcher(value);
 
@@ -351,8 +363,15 @@ public class WarpConfig {
           loopcount++;
 
           if (loopcount > 100) {
-            System.err.println("Hmmm, that's embarrassing, but I've been dereferencing variables " + loopcount + " times trying to set a value for '" + name + "'.");
-            System.exit(-1);
+            System.err.println("Hmmm, that's embarrassing, but I've been dereferencing variables " + loopcount + " times trying to set a value for '" + name + "' from value '" + origValue + "'.");
+            if (ignoreFailedExpands) {
+              System.err.println("Removing property '" + name + "'.");
+              // Clearing the value
+              value = null;
+              break;
+            } else {
+              System.exit(-1);
+            }
           }
         }
 
