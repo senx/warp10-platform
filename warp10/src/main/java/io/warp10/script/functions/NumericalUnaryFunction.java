@@ -28,12 +28,12 @@ import java.util.function.LongUnaryOperator;
  * Apply a double or long unary operator to one value, a list of values or nested lists of values.
  * If the only the long operator is defined, all numbers are converted to long.
  * If the only the double operator is defined, all numbers are converted to double.
- * If the both long and double operator are defined, all numbers are converted long until a Double or BigDecimal is found,
+ * If the both long and double operator are defined, all numbers are converted to long until a Double or BigDecimal is found,
  * then they are all converted to double.
  */
 public class NumericalUnaryFunction extends ListRecursiveStackFunction {
 
-  final ElementStackFunction func;
+  final ListRecursiveStackFunction.ElementStackFunction func;
 
   public NumericalUnaryFunction(String name, LongUnaryOperator opL, DoubleUnaryOperator opD) {
     super(name);
@@ -48,7 +48,7 @@ public class NumericalUnaryFunction extends ListRecursiveStackFunction {
             return opL.applyAsLong(((Number) element).longValue());
           }
         } else {
-          return unhandled(element);
+          return UNHANDLED;
         }
       }
     };

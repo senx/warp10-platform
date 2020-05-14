@@ -31,15 +31,17 @@ import java.util.List;
  */
 public abstract class ListRecursiveStackFunction extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
+  public static final Object UNHANDLED = new Object();
+
   /**
    * Interface defining the function to be generated which is applied to each element.
-   * This method should check the type of the given element and call unhandled on it if the element is of
+   * This method should check the type of the given element and return UNHANDLED if the element is of
    * unexpected type.
    */
   public abstract class ElementStackFunction {
     /**
      * Apply the function on a single element (not a List).
-     * If it can't handle the element, MUST call unhandled.
+     * If it can't handle the element, MUST return UNHANDLED.
      *
      * @param element The element to apply the function on.
      * @return The result of the application of the function.
@@ -47,24 +49,26 @@ public abstract class ListRecursiveStackFunction extends NamedWarpScriptFunction
      */
     public abstract Object applyOnElement(Object element) throws WarpScriptException;
 
-    /**
-     * Method to call when applyOnElement cannot handle the type of the given element.
-     *
-     * @param o
-     * @return An ArrayList where each element is the result of applyOnElement.
-     * @throws WarpScriptException If not given a list.
-     */
-    public ArrayList<Object> unhandled(Object o) throws WarpScriptException {
-      if (o instanceof List) {
-        List elements = (List) o;
-        ArrayList<Object> result = new ArrayList<Object>(elements.size());
-        for (Object e: elements) {
-          result.add(applyOnElement(e));
+    private final Object apply(Object o) throws WarpScriptException {
+      Object result = applyOnElement(o);
+
+      // If not handled by applyOnElement, may be a list or really an unexpected type.
+      if (UNHANDLED == result) {
+        if (o instanceof List) {
+          // In the case of a List, recurse on each element of the list.
+          List elements = (List) o;
+          ArrayList<Object> resultList = new ArrayList<Object>(elements.size());
+          for (Object element: elements) {
+            resultList.add(apply(element));
+          }
+          return resultList;
+        } else {
+          // Truly an unhandled type, throw.
+          throw new WarpScriptException(getUnhandledErrorMessage());
         }
-        return result;
-      } else {
-        throw new WarpScriptException(getUnhandledErrorMessage());
       }
+
+      return result;
     }
   }
 
@@ -93,7 +97,7 @@ public abstract class ListRecursiveStackFunction extends NamedWarpScriptFunction
 
     Object o = stack.pop();
 
-    stack.push(function.applyOnElement(o));
+    stack.push(function.apply(o));
 
     return stack;
   }
