@@ -66,12 +66,12 @@ pipeline {
             }
         }
 
-        stage('Publish') {
+/*        stage('Publish') {
             steps {
                 sh './gradlew warp10:uploadArchives'
                 sh './gradlew warpscript:uploadArchives'
             }
-        }
+        }*/
 
         stage('Deploy') {
             when {
