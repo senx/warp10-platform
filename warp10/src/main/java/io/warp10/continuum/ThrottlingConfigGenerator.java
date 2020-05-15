@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ import java.util.Set;
 
 /**
  * This class generates a Throttling configuration by merging a base configuration
- * with the limits and a set of estimators collected from the various ingestion endpoints (and soon geo directories).
+ * with the limits and a set of estimators collected from the various ingestion endpoints.
  * 
  * Relies on macro ops/throttling-ddp.mc2 from repo 'devops'
  */
