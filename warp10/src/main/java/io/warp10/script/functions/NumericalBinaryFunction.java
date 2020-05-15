@@ -29,17 +29,17 @@ import java.util.function.LongBinaryOperator;
 
 /**
  * Apply a double or long binary operator to two values.
- * If the only the long operator is defined, all numbers are converted to long.
- * If the only the double operator is defined, all numbers are converted to double.
- * If the both long and double operator are defined, all numbers are converted long until a Double or BigDecimal is found,
+ * If only the long operator is defined, all numbers are converted to long.
+ * If only the double operator is defined, all numbers are converted to double.
+ * If both long and double operators are defined, all numbers are converted to long until a Double or BigDecimal is found,
  * then they are all converted to double.
  *
  * The operator can also be applied to a list of values and a single operand, on top.
  * The result is a copy of the list with values being the result of the operator applied on the initial value and the single operand.
  *
  * If the function is given a list on top, its behavior depends on applyOnSingleList:
- * - if True the result is op(...op(op(op(v[0], v[1]), v[2]), v[3]), ... v[n])
- * - if False, the function expects a single value under the list and behave the same as described in the paragraph before, operands being switched.
+ * - if true the result is op(...op(op(op(v[0], v[1]), v[2]), v[3]), ... v[n])
+ * - if false, the function expects a single value under the list and behave the same as described in the paragraph before, operands being switched.
  *
  * Whether applyOnSingleList should be set to true of false depends on the commutativity of the operator:
  * - max, sum, multiplication, for instance, do have meaning for a single list. Moreover, being commutative,

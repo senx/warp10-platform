@@ -20,10 +20,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Abstract class to inherit when a function can be called on a single element or a list of elements or list of list of elements, etc.
+ * Abstract class to inherit when a function can be called on a single element or a nested list of elements.
  * This class can be used, for instance, for a function working on GTSs, GTSEncoders and lists thereof, including lists with mixed types.
  * The idea is to generate a function using the parameters on the stack and then to apply this function on the element
- * or the list of elements.
+ * or each element of the nested list.
  * This is similar to GTSStackFunction for GTSs but it is a tad faster if the function uses some parameters as this
  * implementation does not use a Map for parameters.
  * This is similar to ElementOrListStackFunction but it is faster has it checks for List after the other cases which
