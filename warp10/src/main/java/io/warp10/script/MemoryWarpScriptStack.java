@@ -61,6 +61,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     DEFAULT_PROPERTIES = WarpConfig.getProperties();
   }
 
+  /**
+   * Should we updatr per function metrics
+   */
+  private boolean FUNCTION_METRICS = true;
+      
   private Signal signal = null;
   private boolean signaled = false;
   
@@ -878,9 +883,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
                   macros.get(0).add(func);
                 }
               }
-            } finally {
-              Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_COUNT, labels, 1);
-              Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_TIME_US, labels, (System.nanoTime() - nano) / 1000L);
+            } finally { 
+              if (FUNCTION_METRICS) {
+                Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_COUNT, labels, 1);
+                Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_TIME_US, labels, (System.nanoTime() - nano) / 1000L);
+              }
             }
           }
         } catch (WarpScriptATCException e) {
@@ -1649,6 +1656,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
         default:
       }            
     }
-
+  }
+  
+  public void setFunctionMetrics(boolean state) {
+    this.FUNCTION_METRICS = state;
   }
 }
