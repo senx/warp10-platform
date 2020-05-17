@@ -22,6 +22,7 @@ import io.warp10.script.WarpFleetMacroRepository;
 import io.warp10.script.WarpScriptJarRepository;
 import io.warp10.script.WarpScriptMacroRepository;
 
+import com.google.common.annotations.Beta;
 import com.google.common.io.Files;
 
 import java.io.BufferedReader;
@@ -35,8 +36,10 @@ import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
@@ -66,6 +69,58 @@ public class WarpConfig {
 
   private static Properties properties = null;
 
+  public static final String THREAD_PROPERTY_SESSION = ".session";
+  
+  /**
+   * The concept of thread properties is to allocate a per thread map which can contain
+   * arbitrary elements keyed by STRINGs and therefore accessible to all methods invoked within
+   * the same thread.
+   * One of the use cases is to be able to know that multiple calls to a given method are performed
+   * within the same thread. This is useful in ValueEncoder instances for example to keep some context
+   * when parsing multiple lines independently but within the same 'session'.
+   * The per thread property map should be cleared at the end of the main Warp 10 entry points (/update, /exec) and
+   * at the end of any additional entry points defined.
+   * Those endpoints should set the '.session' thread property at the beginning of a try block with a finally clause
+   * calling clearThreadProperties.
+   * Of course if the convention above is not respected, property maps might be created without clearing ensured.
+   * 
+   */
+  
+  @Beta
+  private static final ThreadLocal<Map<String,Object>> threadProperties = new ThreadLocal<Map<String,Object>>() {
+    protected java.util.Map<String,Object> initialValue() {
+      return new HashMap<String,Object>();
+    }
+  };
+  
+  @Beta
+  public static Object getThreadProperty(String key) {
+    return threadProperties.get().get(key);
+  }
+  
+  @Beta
+  public static Object setThreadProperty(String key, Object value) {
+    return threadProperties.get().put(key, value);
+  }
+  
+  @Beta
+  public static Object removeThreadProperty(String key) {
+    Map<String,Object> props = threadProperties.get();
+    Object previous;
+    previous = props.remove(key);
+
+    // If the property map is empty, clear it
+    if (0 == props.size()) {
+      threadProperties.remove();
+    }
+    return previous;    
+  }
+  
+  @Beta
+  public static void clearThreadProperties() {
+    threadProperties.remove();
+  }
+  
   public static void safeSetProperties(String file) throws IOException {
     if (null != properties) {
       return;
