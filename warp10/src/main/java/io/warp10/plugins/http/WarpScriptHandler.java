@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.UUID;
 
 public class WarpScriptHandler extends AbstractHandler {
 
@@ -72,6 +73,7 @@ public class WarpScriptHandler extends AbstractHandler {
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(HTTPWarp10Plugin.getExposedStoreClient(), HTTPWarp10Plugin.getExposedDirectoryClient(), this.properties);
 
     try {
+      WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
       stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[HTTPWarp10Plugin " + request.getRequestURL() + "]");
 
       //
@@ -166,6 +168,7 @@ public class WarpScriptHandler extends AbstractHandler {
         throw new IOException(wse);
       }      
     } finally {
+      WarpConfig.clearThreadProperties();
       WarpScriptStackRegistry.unregister(stack);
     }    
   }
