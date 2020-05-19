@@ -100,15 +100,4 @@ ingress.websocket.maxmessagesize = 1048576
 // Set to true to allow /delete queries to select GTS based on their last activity.
 // This must be explicitely configured to avoid deleting extraneous series when activity tracking is not enabled
 //
-#ingress.delete.activity.support = true                                                                                                                                                                                                                                                
-//
-// Prefix to use for values which trigger a macro, defaults to ':m:', should not be changed
-// except for security by obscurity strategies...
-//
-#macro.value.encoder.prefix = :m:
-  
-//
-// Prefix to add to macro names specified in values handled by MacroValueEncoder.
-// A value of ':m:foo/bar:xxx' with a macro prefix of 'pre' will trigger macro @pre/foo/bar.
-//
-#macro.value.encoder.macro.prefix = 
+#ingress.delete.activity.support = true

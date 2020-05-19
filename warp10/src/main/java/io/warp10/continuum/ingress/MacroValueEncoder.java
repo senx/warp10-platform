@@ -76,7 +76,7 @@ public class MacroValueEncoder extends ValueEncoder {
       return null;
     }
     
-    // Extract the macro namex
+    // Extract the macro name
     String macro = value.substring(prefixLen, value.indexOf(':', prefixLen));
 
     MemoryWarpScriptStack stack = (MemoryWarpScriptStack) WarpConfig.getThreadProperty(KEY_STACK);
