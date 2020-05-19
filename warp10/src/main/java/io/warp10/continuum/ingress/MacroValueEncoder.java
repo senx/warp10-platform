@@ -84,9 +84,8 @@ public class MacroValueEncoder extends ValueEncoder {
       WarpConfig.setThreadProperty(KEY_STACK, stack);
     }
     
-
     try {
-      stack.push(value.substring(LEN + macro.length() + 1));
+      stack.push(value.substring(prefixLen + macro.length() + 1));
       stack.run(macro);
       return stack.pop();
     } finally {
