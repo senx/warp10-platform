@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -32,13 +32,13 @@ public class EVAL extends NamedWarpScriptFunction implements WarpScriptStackFunc
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
     
-    if (o instanceof Macro) {
+    if (o instanceof String) {
+      // Execute single statement which may span multiple lines
+      stack.execMulti((String) o);
+    } else if (o instanceof Macro) {
       stack.exec((Macro) o);
     } else if (o instanceof WarpScriptStackFunction) {
       ((WarpScriptStackFunction) o).apply(stack);
-    } else if (o instanceof String) {
-      // Execute single statement which may span multiple lines
-      stack.execMulti((String) o);
     } else {
       throw new WarpScriptException(getName() + " expects a Macro, a function of a String.");
     }
