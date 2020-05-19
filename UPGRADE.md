@@ -1,6 +1,16 @@
+# How to upgrade
+
+Upgrading your Warp 10 instance from a previous release is usually straightforward and simply implies copying the `.jar` file (named `warp10-x.y.z.jar`) into the `bin` directory and modifying the `bin/warp10-standalone.sh` script so the `WARP10_REVISION` environment variable is set to the new revision (`x.y.z`).
+
+As the data format is backward compatible, a simple restart of your Warp 10 instance will then be sufficient.
+
+Upgrading to some releases might require some specific steps, they are detailed below.
+
+# Upgrade to `2.5.1`
+
 Upgrading from a previous Warp 10 instance to release `2.5.1` will require that you follow the steps below in order to ensure your setup works as expected.
 
-# Init scripts
+## Init scripts
 
 The `warp10-standalone.sh` script was modified in release `2.5.1` to use a more efficient configuration extraction implementation.
 
@@ -14,16 +24,14 @@ Copy the existing `warp10-standalone.sh` for backup purposes.
 
 Replace `warp10-standalone.sh` with your modified version from release `2.5.1`.
 
-# Configuration
+## Configuration
 
 Some new features of Warp 10 `2.5.1` might need some additional configuration. We encourage you to look at the [blog](https://blog.senx.io/) post describing those features and to look at the configuration files included with `2.5.1` so you can decide what to add to your deployment configuration. 
 
-# Data
+## Data
 
 The data format used by `2.5.1` has not changed with that of all previous releases, there is therefore nothing to do to make your data `2.5.1` ready.
 
-# Restarting Warp 10
+## Restarting Warp 10
 
-Restart your Warp 10 instance using `warp10-standalone.init`.
-
-
+Restart your Warp 10 instance using `warp10-standalone.init` (as user `root`) or `warp10-standalone.sh` (as user `warp10`).
