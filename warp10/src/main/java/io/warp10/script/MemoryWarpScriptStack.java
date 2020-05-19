@@ -24,10 +24,8 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.EmptyStackException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -62,9 +60,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
 
   /**
-   * Should we updatr per function metrics
+   * Should we update per function metrics
    */
-  private boolean FUNCTION_METRICS = true;
+  private boolean functionMetrics = true;
       
   private Signal signal = null;
   private boolean signaled = false;
@@ -884,7 +882,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
                 }
               }
             } finally { 
-              if (FUNCTION_METRICS) {
+              if (functionMetrics) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_COUNT, labels, 1);
                 Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_TIME_US, labels, (System.nanoTime() - nano) / 1000L);
               }
@@ -1659,6 +1657,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
   
   public void setFunctionMetrics(boolean state) {
-    this.FUNCTION_METRICS = state;
+    this.functionMetrics = state;
   }
 }

@@ -18,19 +18,26 @@ package io.warp10.continuum.ingress;
 
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.warp10.WarpConfig;
-import io.warp10.continuum.Configuration;
 import io.warp10.continuum.gts.ValueEncoder;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
-import io.warp10.script.WarpScriptStackRegistry;
 import io.warp10.warp.sdk.WarpScriptExtension;
 
 public class MacroValueEncoder extends ValueEncoder {
+  
+  /**
+   * Prefix to use for values which trigger a macro, defaults to ':m:', should not be changed
+   * except for security by obscurity strategies...
+   */
+  public static final String CONFIG_MACRO_VALUE_ENCODER_PREFIX = "macro.value.encoder.prefix";
+  
+  /**
+   * Prefix to add to macro names specified in values handled by MacroValueEncoder.
+   * A value of ':m:foo/bar:xxx' with a macro prefix of 'pre' will trigger macro @pre/foo/bar.
+   */
+  public static final String CONFIG_MACRO_VALUE_ENCODER_MACRO_PREFIX = "macro.value.encoder.macro.prefix";
   
   private static final String DEFAULT_PREFIX = ":m:";
   private static final String DEFAULT_MACRO_PREFIX ="";
@@ -52,12 +59,10 @@ public class MacroValueEncoder extends ValueEncoder {
     }
   }
   
-  private static final Macro NOOP_MACRO = new Macro();
-  
   public MacroValueEncoder() {
-    this.prefix = WarpConfig.getProperty(Configuration.CONFIG_MACRO_VALUE_ENCODER_PREFIX, DEFAULT_PREFIX);
+    this.prefix = WarpConfig.getProperty(CONFIG_MACRO_VALUE_ENCODER_PREFIX, DEFAULT_PREFIX);
     this.prefixLen = this.prefix.length();
-    String mprefix = WarpConfig.getProperty(Configuration.CONFIG_MACRO_VALUE_ENCODER_MACRO_PREFIX, DEFAULT_MACRO_PREFIX);
+    String mprefix = WarpConfig.getProperty(CONFIG_MACRO_VALUE_ENCODER_MACRO_PREFIX, DEFAULT_MACRO_PREFIX);
     if (!mprefix.isEmpty() && !mprefix.endsWith("/")) {
       this.macroPrefix = mprefix + "/";
     } else {
@@ -71,8 +76,8 @@ public class MacroValueEncoder extends ValueEncoder {
       return null;
     }
     
-    // Extract the macro name, adding the specified prefix
-    String macro = this.macroPrefix + value.substring(prefixLen, value.indexOf(':', prefixLen));
+    // Extract the macro namex
+    String macro = value.substring(prefixLen, value.indexOf(':', prefixLen));
 
     MemoryWarpScriptStack stack = (MemoryWarpScriptStack) WarpConfig.getThreadProperty(KEY_STACK);
     
@@ -85,8 +90,10 @@ public class MacroValueEncoder extends ValueEncoder {
     }
     
     try {
+      // Push the value
       stack.push(value.substring(prefixLen + macro.length() + 1));
-      stack.run(macro);
+      // Run the macro (with prefix)
+      stack.run(this.macroPrefix + macro);
       return stack.pop();
     } finally {
       stack.clear();

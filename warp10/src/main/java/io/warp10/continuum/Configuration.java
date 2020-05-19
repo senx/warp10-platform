@@ -100,18 +100,6 @@ public class Configuration {
   public static final String PROCESSING_FONT_RESOLVER = "processing.font.resolver";
 
   /**
-   * Prefix to use for values which trigger a macro, defaults to ':m:', should not be changed
-   * except for security by obscurity strategies...
-   */
-  public static final String CONFIG_MACRO_VALUE_ENCODER_PREFIX = "macro.value.encoder.prefix";
-  
-  /**
-   * Prefix to add to macro names specified in values handled by MacroValueEncoder.
-   * A value of ':m:foo/bar:xxx' with a macro prefix of 'pre' will trigger macro @pre/foo/bar.
-   */
-  public static final String CONFIG_MACRO_VALUE_ENCODER_MACRO_PREFIX = "macro.value.encoder.macro.prefix";
-  
-  /**
    * Number of registers to allocate in stacks. Defaults to WarpScriptStack.DEFAULT_REGISTERS
    */
   public static final String CONFIG_WARPSCRIPT_REGISTERS = "warpscript.registers";
