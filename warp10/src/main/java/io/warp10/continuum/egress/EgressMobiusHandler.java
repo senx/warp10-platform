@@ -42,6 +42,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
@@ -391,6 +392,8 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
           //
           
           WarpScriptStack stack = new MemoryWarpScriptStack(storeClient, directoryClient);
+          WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
+          
           stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[EgressMobiusHandler " + Thread.currentThread().getName() + "]");
 
           boolean error = false;
@@ -416,6 +419,7 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
             error = true;
             try { stack.push(e.getMessage()); } catch (WarpScriptException ee) {}
           } finally {
+            WarpConfig.clearThreadProperties();
             WarpScriptStackRegistry.unregister(stack);
           }
 

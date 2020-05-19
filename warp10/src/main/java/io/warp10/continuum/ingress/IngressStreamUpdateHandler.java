@@ -17,6 +17,7 @@
 package io.warp10.continuum.ingress;
 
 import io.warp10.ThrowableUtils;
+import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.ThrottlingManager;
@@ -37,6 +38,7 @@ import java.io.StringReader;
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.util.HashMap;
+import java.util.UUID;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -218,6 +220,8 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
           AtomicBoolean hadAttributes = this.handler.ingress.parseAttributes ? new AtomicBoolean(false) : null;
 
           try {
+            WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
+            
             GTSEncoder lastencoder = null;
             GTSEncoder encoder = null;
 
@@ -404,6 +408,8 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
               }
             }                  
           } finally {
+            WarpConfig.clearThreadProperties();
+            
             this.handler.ingress.pushMetadataMessage(null);
             this.handler.ingress.pushDataMessage(null, this.kafkaDataMessageAttributes);
             
