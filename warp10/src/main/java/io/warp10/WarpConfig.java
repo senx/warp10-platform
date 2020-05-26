@@ -320,6 +320,8 @@ public class WarpConfig {
       System.exit(-1);
     }
 
+    System.setProperty("java.version", String.valueOf(properties.getOrDefault(Configuration.JAVA_VERSION, System.getProperty("java.version"))));
+     
     //
     // Now override properties with environment variables
     //
