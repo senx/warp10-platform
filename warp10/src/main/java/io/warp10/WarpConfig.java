@@ -322,6 +322,7 @@ public class WarpConfig {
 
     //
     // Adapt the java.version system property so we stick to the previous versions format of 1.major.minor
+    // @see https://openjdk.java.net/jeps/223
     //
     
     String jversion = System.getProperty("java.version");
