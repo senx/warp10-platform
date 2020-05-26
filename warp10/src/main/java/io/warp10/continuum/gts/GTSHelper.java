@@ -51,7 +51,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.warp10.json.JsonUtils;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.fitting.PolynomialCurveFitter;
@@ -65,6 +64,7 @@ import com.geoxp.GeoXPLib.GeoXPShape;
 import com.google.common.collect.ImmutableMap;
 
 import io.warp10.CapacityExtractorOutputStream;
+import io.warp10.WarpHexDecoder;
 import io.warp10.WarpURLDecoder;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.MetadataUtils;
@@ -75,6 +75,7 @@ import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
+import io.warp10.json.JsonUtils;
 import io.warp10.script.SAXUtils;
 import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptBinaryOp;
@@ -3013,7 +3014,7 @@ public class GTSHelper {
       } else if ('b' == firstChar && valuestr.startsWith("b64:")) {
         value = Base64.decodeBase64(valuestr.substring(4));
       } else if ('h' == firstChar && valuestr.startsWith("hex:")) {
-        value = Hex.decode(valuestr.substring(4));
+        value = WarpHexDecoder.decode(valuestr.substring(4));
       } else if (':' == firstChar) {
         //
         // Custom encoders support values prefixed with ':' + a custom prefix, i.e. ':xxx:VALUE'.

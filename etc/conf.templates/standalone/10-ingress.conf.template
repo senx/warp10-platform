@@ -100,4 +100,4 @@ ingress.websocket.maxmessagesize = 1048576
 // Set to true to allow /delete queries to select GTS based on their last activity.
 // This must be explicitely configured to avoid deleting extraneous series when activity tracking is not enabled
 //
-#ingress.delete.activity.support = true                                                                                                                                                                                                                                                
+#ingress.delete.activity.support = true

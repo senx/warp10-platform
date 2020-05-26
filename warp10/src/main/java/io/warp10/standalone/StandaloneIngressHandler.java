@@ -57,6 +57,7 @@ import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPInputStream;
@@ -295,6 +296,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
     long lastActivity = System.currentTimeMillis();
     
     try {
+      WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
+      
       //
       // CORS header
       //
@@ -975,6 +978,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
       }
+    } finally {
+      WarpConfig.clearThreadProperties();
     }
   }
   

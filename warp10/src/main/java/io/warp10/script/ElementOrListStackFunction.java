@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * DEPRECATED: Use ListRecursiveStackFunction instead.
+ *
  * Abstract class to inherit when a function can be called on a single element or a list of elements.
  * For instance for a function working on GTSs, GTSEncoders and lists thereof, including lists with mixed types.
  * The idea is to generate a function using the parameters on the stack and then to apply this function on the element
@@ -29,6 +31,7 @@ import java.util.Map;
  * This is similar to GTSStackFunction for GTSs but it is a tad faster if the function uses some parameters as this
  * implementation does not use a Map for parameters.
  */
+@Deprecated
 public abstract class ElementOrListStackFunction extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   /**

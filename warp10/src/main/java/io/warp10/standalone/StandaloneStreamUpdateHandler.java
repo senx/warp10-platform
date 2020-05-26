@@ -57,6 +57,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -298,6 +299,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
           }
           
           try {
+            WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
+            
             GTSEncoder lastencoder = null;
             GTSEncoder encoder = null;
 
@@ -563,6 +566,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               }
             }              
           } finally {
+            WarpConfig.clearThreadProperties();
+            
             if (null != loggingWriter) {              
               Map<String,String> labels = new HashMap<String,String>();
               labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
