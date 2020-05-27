@@ -43,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.warp10.ThrowableUtils;
+import io.warp10.WarpConfig;
 import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.LogUtil;
@@ -156,6 +157,8 @@ public class EgressExecHandler extends AbstractHandler {
     long now = System.nanoTime();
     
     try {
+      WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
+      
       //
       // Replace the context with the bootstrap one
       //
@@ -424,6 +427,7 @@ public class EgressExecHandler extends AbstractHandler {
         return;
       }
     } finally {
+      WarpConfig.clearThreadProperties();
       WarpScriptStackRegistry.unregister(stack);
       
       // Clear this metric in case there was an exception

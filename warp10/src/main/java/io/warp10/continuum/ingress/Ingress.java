@@ -46,6 +46,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Future;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -680,7 +681,6 @@ public class Ingress extends AbstractHandler implements Runnable {
   
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-    
     String token = null;
     
     if (target.equals(Constants.API_ENDPOINT_UPDATE)) {
@@ -711,7 +711,9 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     long nowms = System.currentTimeMillis();
     
-    try {
+    try {      
+      WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
+      
       //
       // CORS header
       //
@@ -1187,6 +1189,8 @@ public class Ingress extends AbstractHandler implements Runnable {
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
       }
+    } finally {
+      WarpConfig.clearThreadProperties();
     }
     
     response.setStatus(HttpServletResponse.SC_OK);

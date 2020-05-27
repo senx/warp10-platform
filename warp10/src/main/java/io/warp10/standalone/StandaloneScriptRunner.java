@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
@@ -121,7 +122,8 @@ public class StandaloneScriptRunner extends ScriptRunner {
           
           ByteArrayOutputStream baos = new ByteArrayOutputStream();
           
-          try {            
+          try {
+            WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_CURRENT, Sensision.EMPTY_LABELS, 1);
 
             InputStream in = new FileInputStream(f);
@@ -227,6 +229,7 @@ public class StandaloneScriptRunner extends ScriptRunner {
           } catch (Exception e) {                
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, 1);
           } finally {
+            WarpConfig.clearThreadProperties();
             WarpScriptStackRegistry.unregister(stack);
             currentThread().setName(name);
             nextrun.put(script, nowts + periodicity);

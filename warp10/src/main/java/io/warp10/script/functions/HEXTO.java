@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,12 +16,11 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.WarpHexDecoder;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import org.bouncycastle.util.encoders.Hex;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Decode a String in hexadecimal
@@ -40,9 +39,9 @@ public class HEXTO extends NamedWarpScriptFunction implements WarpScriptStackFun
       throw new WarpScriptException(getName() + " operates on a String.");
     }
     
-    String hex = o.toString();
+    String hex = (String) o;
     
-    stack.push(Hex.decode(1 == (hex.length() % 2) ? ("0" + hex) : hex));
+    stack.push(WarpHexDecoder.decode(1 == (hex.length() % 2) ? ("0" + hex) : hex));
     
     return stack;
   }

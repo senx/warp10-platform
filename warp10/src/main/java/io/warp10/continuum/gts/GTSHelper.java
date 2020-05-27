@@ -49,9 +49,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.warp10.json.JsonUtils;
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.fitting.PolynomialCurveFitter;
 import org.apache.commons.math3.fitting.WeightedObservedPoint;
@@ -64,6 +62,7 @@ import com.google.common.collect.ImmutableMap;
 
 import io.warp10.CapacityExtractorOutputStream;
 import io.warp10.DoubleUtils;
+import io.warp10.WarpHexDecoder;
 import io.warp10.WarpURLDecoder;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.MetadataUtils;
@@ -74,6 +73,7 @@ import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
+import io.warp10.json.JsonUtils;
 import io.warp10.script.SAXUtils;
 import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptBinaryOp;
@@ -3013,7 +3013,7 @@ public class GTSHelper {
       } else if ('b' == firstChar && valuestr.startsWith("b64:")) {
         value = Base64.decodeBase64(valuestr.substring(4));
       } else if ('h' == firstChar && valuestr.startsWith("hex:")) {
-        value = Hex.decodeHex(valuestr.substring(4).toCharArray());
+        value = WarpHexDecoder.decode(valuestr.substring(4));
       } else if (':' == firstChar) {
         //
         // Custom encoders support values prefixed with ':' + a custom prefix, i.e. ':xxx:VALUE'.
@@ -3536,17 +3536,15 @@ public class GTSHelper {
     }
   }
   
-  public static long[] stringToGTSId(String s) {    
-    char[] c = s.toCharArray();
-    
+  public static long[] stringToGTSId(String s) {        
     long x = 0L;
     long y = 0L;
     
     for (int i = 0; i < 4; i++) {
       x <<= 16;
-      x |= (c[i] & 0xffffL);
+      x |= (s.charAt(i) & 0xffffL);
       y <<= 16;
-      y |= (c[i + 4] & 0xffffL);
+      y |= (s.charAt(i + 4) & 0xffffL);
     }
     
     long[] clslbls = new long[2];

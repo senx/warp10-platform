@@ -67,3 +67,18 @@
 // Specific namespace under which to load an extension. The specified namespace will be used as a prefix for all functions of the extension.
 //
 //warpscript.namespace.package.class = namespace.
+
+//
+// MacroValueEncoder
+//
+#warpscript.extension.macrovalueencoder = io.warp10.continuum.ingress.MacroValueEncoder$Extension
+//
+// Prefix to use for values which trigger a macro, defaults to ':m:', should not be changed
+// except for security by obscurity strategies...
+//
+#macro.value.encoder.prefix = :m:
+//
+// Prefix to add to macro names specified in values handled by MacroValueEncoder.
+// A value of ':m:foo/bar:xxx' with a macro prefix of 'pre' will trigger macro @pre/foo/bar.
+//
+#macro.value.encoder.macro.prefix =

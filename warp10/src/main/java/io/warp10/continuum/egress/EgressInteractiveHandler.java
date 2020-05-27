@@ -40,6 +40,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import io.warp10.ThrowableUtils;
+import io.warp10.WarpConfig;
+
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
@@ -433,6 +435,8 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
         this.stack = new MemoryWarpScriptStack(this.rel.storeClient, this.rel.directoryClient);
         this.stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[EgressInteractiveHandler " + Thread.currentThread().getName() + "]");
 
+        WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
+        
         //
         // Store PrintWriter
         //
@@ -551,6 +555,7 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
       } catch (IOException ioe) {
         return;
       } finally {
+        WarpConfig.clearThreadProperties();
         WarpScriptStackRegistry.unregister(stack);
         this.rel.connections.decrementAndGet();
         try {
