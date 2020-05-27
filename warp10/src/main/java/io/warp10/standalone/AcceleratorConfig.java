@@ -18,6 +18,14 @@ package io.warp10.standalone;
 
 public class AcceleratorConfig {
 
+  public static final String ATTR_NOCACHE = "accel.nocache";
+  public static final String ATTR_NOPERSIST = "accel.nopersist";
+  public static final String NOCACHE = "nocache";
+  public static final String NOPERSIST = "nopersist";
+  public static final String CACHE = "cache";
+  public static final String PERSIST = "persist";
+  public static final String ACCELERATOR_HEADER = "X-Warp10-Accelerator";
+
   static boolean defaultWriteNocache = false;
   static boolean defaultWriteNopersist = false;
   static boolean defaultDeleteNocache = false;
@@ -41,33 +49,40 @@ public class AcceleratorConfig {
       return Boolean.FALSE;
     };
   };
+  
   static final ThreadLocal<Boolean> nocache = new ThreadLocal<Boolean>() {
     @Override
     protected Boolean initialValue() {
       return Boolean.FALSE;
     }
   };
+  
   static final ThreadLocal<Boolean> nopersist = new ThreadLocal<Boolean>() {
     @Override
     protected Boolean initialValue() {
       return Boolean.FALSE;
     }
   };
+  
   public static final boolean getDefaultReadNocache() {
     return defaultReadNocache;
   }
+  
   public static final boolean getDefaultReadNopersist() {
     return defaultReadNopersist;
   }
   public static final boolean getDefaultWriteNocache() {
     return defaultWriteNocache;
   }
+  
   public static final boolean getDefaultWriteNopersist() {
     return defaultWriteNopersist;
   }
+  
   public static final boolean getDefaultDeleteNocache() {
     return defaultDeleteNocache;
   }
+  
   public static final boolean getDefaultDeleteNopersist() {
     return defaultDeleteNopersist;
   }
@@ -81,11 +96,13 @@ public class AcceleratorConfig {
       nocache.set(Boolean.TRUE);
     }
   }
+  
   public static final void cache() {
     if (instantiated) {
       nocache.set(Boolean.FALSE);
     }
   }
+  
   public static final void nopersist() {
     if (instantiated) {
       nopersist.set(Boolean.TRUE);
@@ -96,6 +113,7 @@ public class AcceleratorConfig {
       nopersist.set(Boolean.FALSE);
     }
   }
+  
   public static final boolean isCache() {
     if (instantiated) {
       return !nocache.get();
@@ -103,6 +121,7 @@ public class AcceleratorConfig {
       return false;
     }
   }
+  
   public static final boolean isPersist() {
     if (instantiated) {
       return !nopersist.get();
@@ -110,6 +129,7 @@ public class AcceleratorConfig {
       return true;
     }
   }
+  
   public static final boolean accelerated() {
     if (instantiated) {
       return accelerated.get();
@@ -117,8 +137,6 @@ public class AcceleratorConfig {
       return false;
     }
   }
-  public static final String ATTR_NOCACHE = "accel.nocache";
-  public static final String ATTR_NOPERSIST = "accel.nopersist";
   
   public static final boolean isInstantiated() {
     return instantiated;
@@ -131,15 +149,11 @@ public class AcceleratorConfig {
   public static void setChunkSpan(long span) {
     chunkSpan = span;
   }
+  
   public static int getChunkCount() {
-    return 0;
+    return chunkCount;
   }
   public static long getChunkSpan() {
-    return 0L;
+    return chunkSpan;
   }
-  public static final String NOCACHE = "nocache";
-  public static final String NOPERSIST = "nopersist";
-  public static final String CACHE = "cache";
-  public static final String PERSIST = "persist";
-  public static final String ACCELERATOR_HEADER = "X-Warp10-Accelerator";
 }
