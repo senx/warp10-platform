@@ -55,48 +55,8 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
   private final StandaloneChunkedMemoryStore cache;
   private final boolean ephemeral;
 
-  public static final String ATTR_NOCACHE = "accel.nocache";
-  public static final String ATTR_NOPERSIST = "accel.nopersist";
-  
-  public static final String NOCACHE = "nocache";
-  public static final String NOPERSIST = "nopersist";
-  public static final String CACHE = "cache";
-  public static final String PERSIST = "persist";
-  
-  public static final String ACCELERATOR_HEADER = "X-Warp10-Accelerator";
-  
-  private static boolean defaultWriteNocache = false;
-  private static boolean defaultWriteNopersist = false;
-  private static boolean defaultDeleteNocache = false;
-  private static boolean defaultDeleteNopersist = false;
-  private static boolean defaultReadNocache = false;
-  private static boolean defaultReadNopersist = false;
-  
   private static StandaloneAcceleratedStoreClient instance = null;
     
-  /**
-   * Was the last FETCH accelerated for the given Thread?
-   */
-  private static final ThreadLocal<Boolean> accelerated = new ThreadLocal<Boolean>() {
-    protected Boolean initialValue() {
-      return Boolean.FALSE;
-    };
-  };
-  
-  private static final ThreadLocal<Boolean> nocache = new ThreadLocal<Boolean>() {
-    @Override
-    protected Boolean initialValue() {
-      return Boolean.FALSE;
-    }
-  };
-
-  private static final ThreadLocal<Boolean> nopersist = new ThreadLocal<Boolean>() {
-    @Override
-    protected Boolean initialValue() {
-      return Boolean.FALSE;
-    }
-  };
-
   public StandaloneAcceleratedStoreClient(DirectoryClient dir, StoreClient persistentStore) {
         
     if (null != instance) {
@@ -109,41 +69,41 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     
     String defaultStrategy = WarpConfig.getProperty(Configuration.ACCELERATOR_DEFAULT_WRITE, "");
     
-    if (defaultStrategy.contains(NOCACHE)) {
-      defaultWriteNocache = true;
-    } else if (defaultStrategy.contains(CACHE)) {
-      defaultWriteNocache = false;
+    if (defaultStrategy.contains(AcceleratorConfig.NOCACHE)) {
+      AcceleratorConfig.defaultWriteNocache = true;
+    } else if (defaultStrategy.contains(AcceleratorConfig.CACHE)) {
+      AcceleratorConfig.defaultWriteNocache = false;
     }
-    if (defaultStrategy.contains(NOPERSIST)) {
-      defaultWriteNopersist = true;
-    } else if (defaultStrategy.contains(PERSIST)) {
-      defaultWriteNopersist = false;
+    if (defaultStrategy.contains(AcceleratorConfig.NOPERSIST)) {
+      AcceleratorConfig.defaultWriteNopersist = true;
+    } else if (defaultStrategy.contains(AcceleratorConfig.PERSIST)) {
+      AcceleratorConfig.defaultWriteNopersist = false;
     }
     
     defaultStrategy = WarpConfig.getProperty(Configuration.ACCELERATOR_DEFAULT_DELETE, "");
 
-    if (defaultStrategy.contains(NOCACHE)) {
-      defaultDeleteNocache = true;
-    } else if (defaultStrategy.contains(CACHE)) {
-      defaultDeleteNocache = false;
+    if (defaultStrategy.contains(AcceleratorConfig.NOCACHE)) {
+      AcceleratorConfig.defaultDeleteNocache = true;
+    } else if (defaultStrategy.contains(AcceleratorConfig.CACHE)) {
+      AcceleratorConfig.defaultDeleteNocache = false;
     }
-    if (defaultStrategy.contains(NOPERSIST)) {
-      defaultDeleteNopersist = true;
-    } else if (defaultStrategy.contains(PERSIST)) {
-      defaultDeleteNopersist = false;
+    if (defaultStrategy.contains(AcceleratorConfig.NOPERSIST)) {
+      AcceleratorConfig.defaultDeleteNopersist = true;
+    } else if (defaultStrategy.contains(AcceleratorConfig.PERSIST)) {
+      AcceleratorConfig.defaultDeleteNopersist = false;
     }
     
     defaultStrategy = WarpConfig.getProperty(Configuration.ACCELERATOR_DEFAULT_READ, "");
     
-    if (defaultStrategy.contains(NOCACHE)) {
-      defaultReadNocache = true;
-    } else if (defaultStrategy.contains(CACHE)) {
-      defaultReadNocache = false;
+    if (defaultStrategy.contains(AcceleratorConfig.NOCACHE)) {
+      AcceleratorConfig.defaultReadNocache = true;
+    } else if (defaultStrategy.contains(AcceleratorConfig.CACHE)) {
+      AcceleratorConfig.defaultReadNocache = false;
     }
-    if (defaultStrategy.contains(NOPERSIST)) {
-      defaultReadNopersist = true;
-    } else if (defaultStrategy.contains(PERSIST)) {
-      defaultReadNopersist = false;
+    if (defaultStrategy.contains(AcceleratorConfig.NOPERSIST)) {
+      AcceleratorConfig.defaultReadNopersist = true;
+    } else if (defaultStrategy.contains(AcceleratorConfig.PERSIST)) {
+      AcceleratorConfig.defaultReadNopersist = false;
     }
     
     //
@@ -289,6 +249,9 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     }
     
     instance = this;
+    AcceleratorConfig.setChunkCount(instance.cache.getChunkCount());
+    AcceleratorConfig.setChunkSpan(instance.cache.getChunkSpan());
+    AcceleratorConfig.instantiated();
   }
   
   @Override
@@ -298,10 +261,10 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
   
   @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {
-    if (!nocache.get()) {
+    if (!AcceleratorConfig.nocache.get()) {
       cache.delete(token, metadata, start, end);
     }
-    if (!nopersist.get()) {
+    if (!AcceleratorConfig.nopersist.get()) {
       persistent.delete(token, metadata, start, end);
     }
     return 0;
@@ -327,123 +290,36 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     // unless ACCEL.NOCACHE was called.
     //
     
-    if (this.ephemeral && 1 == count && Long.MAX_VALUE == now && !nocache.get()) {
-      accelerated.set(Boolean.TRUE);
+    if (this.ephemeral && 1 == count && Long.MAX_VALUE == now && !AcceleratorConfig.nocache.get()) {
+      AcceleratorConfig.accelerated.set(Boolean.TRUE);
       return this.cache.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);      
     }
     
     // Use the persistent store if the accelerator is in ephemeral mode,
     // if the requested time range is larger than the accelerated range or
     // if boundaries were requested, unless ACCEL.NOPERSIST was called 
-    if ((this.ephemeral || (now > cacheend || then < cachestart) || preBoundary > 0 || postBoundary > 0 || nocache.get()) && !nopersist.get()) {
-      accelerated.set(Boolean.FALSE);
+    if ((this.ephemeral || (now > cacheend || then < cachestart) || preBoundary > 0 || postBoundary > 0 || AcceleratorConfig.nocache.get()) && !AcceleratorConfig.nopersist.get()) {
+      AcceleratorConfig.accelerated.set(Boolean.FALSE);
       return this.persistent.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
     }
     
     // Last resort, use the cache, unless it is disabled in which case an exception is thrown
-    if (nocache.get()) {
+    if (AcceleratorConfig.nocache.get()) {
       throw new IOException("Cache and persistent store access disabled.");
     }
     
-    accelerated.set(Boolean.TRUE);
+    AcceleratorConfig.accelerated.set(Boolean.TRUE);
     return this.cache.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
   }
   
   @Override
   public void store(GTSEncoder encoder) throws IOException {    
-    if (!nopersist.get()) {
+    if (!AcceleratorConfig.nopersist.get()) {
       persistent.store(encoder);
     }
     
-    if (!nocache.get()) {
+    if (!AcceleratorConfig.nocache.get()) {
       cache.store(encoder);
-    }
-  }
-  
-  public static final void nocache() {
-    if (null != instance) {
-      nocache.set(Boolean.TRUE);
-    }
-  }
-  
-  public static final void cache() {
-    if (null != instance) {
-      nocache.set(Boolean.FALSE);
-    }
-  }
-  
-  public static final void nopersist() {
-    if (null != instance) {
-      nopersist.set(Boolean.TRUE);
-    }
-  }
-  
-  public static final void persist() {
-    if (null != instance) {   
-      nopersist.set(Boolean.FALSE);
-    }
-  }
-  
-  public static final boolean isInstantiated() {
-    return (null != instance);
-  }
-  
-  public static final boolean accelerated() {
-    if (null != instance) {
-      return accelerated.get();
-    } else {
-      return false;
-    }
-  }
-  
-  public static final boolean isCache() {
-    if (null != instance) {
-      return !nocache.get();
-    } else {
-      return false;
-    }
-  }
-  
-  public static final boolean isPersist() {
-    if (null != instance) {
-      return !nopersist.get();
-    } else {
-      return true;
-    }
-  }
-  
-  public static final boolean getDefaultReadNocache() {
-    return defaultReadNocache;
-  }
-  public static final boolean getDefaultReadNopersist() {
-    return defaultReadNopersist;
-  }
-  public static final boolean getDefaultWriteNocache() {
-    return defaultWriteNocache;
-  }  
-  public static final boolean getDefaultWriteNopersist() {
-    return defaultWriteNopersist;
-  }
-  public static final boolean getDefaultDeleteNocache() {
-    return defaultDeleteNocache;
-  }  
-  public static final boolean getDefaultDeleteNopersist() {
-    return defaultDeleteNopersist;
-  }
-    
-  public static int getChunkCount() {
-    if (null != instance) {
-      return instance.cache.getChunkCount();
-    } else {
-      return 0;
-    }
-  }
-  
-  public static long getChunkSpan() {
-    if (null != instance) {
-      return instance.cache.getChunkSpan();
-    } else {
-      return 0L;
     }
   }
 }

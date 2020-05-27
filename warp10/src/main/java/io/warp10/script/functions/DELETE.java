@@ -24,7 +24,7 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.standalone.StandaloneAcceleratedStoreClient;
+import io.warp10.standalone.AcceleratorConfig;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -160,23 +160,23 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
       qsurl.append("=");
       qsurl.append(WarpURLEncoder.encode(selector, StandardCharsets.UTF_8));
 
-      if (null != stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE)) {
-        boolean nocache = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
+      if (null != stack.getAttribute(AcceleratorConfig.ATTR_NOCACHE)) {
+        boolean nocache = Boolean.TRUE.equals(stack.getAttribute(AcceleratorConfig.ATTR_NOCACHE));
         qsurl.append("&");
         if (nocache) {
-          qsurl.append(StandaloneAcceleratedStoreClient.NOCACHE);
+          qsurl.append(AcceleratorConfig.NOCACHE);
         } else {
-          qsurl.append(StandaloneAcceleratedStoreClient.CACHE);
+          qsurl.append(AcceleratorConfig.CACHE);
         }
       }
 
-      if (null != stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST)) {
-        boolean nopersist = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));
+      if (null != stack.getAttribute(AcceleratorConfig.ATTR_NOPERSIST)) {
+        boolean nopersist = Boolean.TRUE.equals(stack.getAttribute(AcceleratorConfig.ATTR_NOPERSIST));
         qsurl.append("&");
         if (nopersist) {
-          qsurl.append(StandaloneAcceleratedStoreClient.NOPERSIST);
+          qsurl.append(AcceleratorConfig.NOPERSIST);
         } else {
-          qsurl.append(StandaloneAcceleratedStoreClient.PERSIST);
+          qsurl.append(AcceleratorConfig.PERSIST);
         }
       }
 
