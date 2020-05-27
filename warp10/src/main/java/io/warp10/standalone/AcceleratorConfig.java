@@ -108,6 +108,7 @@ public class AcceleratorConfig {
       nopersist.set(Boolean.TRUE);
     }
   }
+  
   public static final void persist() {
     if (instantiated) {   
       nopersist.set(Boolean.FALSE);
@@ -153,6 +154,7 @@ public class AcceleratorConfig {
   public static int getChunkCount() {
     return chunkCount;
   }
+  
   public static long getChunkSpan() {
     return chunkSpan;
   }
