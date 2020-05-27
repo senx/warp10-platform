@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -41,12 +41,15 @@ jar {
     include 'io/warp10/udf/**'
     include 'io/warp10/thrift/**'
     include 'io/warp10/WarpConfig.class'
+    include 'io/warp10/WarpConfig$1.class'
+    include 'io/warp10/WarpHexDecoder.class'
     include 'io/warp10/WarpManager.class'
     include 'io/warp10/WarpURLEncoder.class'
     include 'io/warp10/WarpURLDecoder.class'
     include 'io/warp10/DoubleUtils.class'
     include 'io/warp10/FloatUtils.class'
     include 'io/warp10/WrapperList.class'
+    include 'io/warp10/WrapperList$ArrayItr.class'
     include 'io/warp10/Revision.class'
     include 'io/warp10/ThrowableUtils.class'
     include 'io/warp10/continuum/AuthenticationPlugin.class'
@@ -70,12 +73,11 @@ jar {
     include 'io/warp10/continuum/store/thrift/data/**'
     include 'io/warp10/warp/sdk/**'
     include 'io/warp10/continuum/sensision/SensisionConstants.class'
-    include 'io/warp10/continuum/geo/GeoDirectoryClient.class'
-    include 'io/warp10/continuum/geo/GeoDirectoryThriftClient.class'
-    include 'io/warp10/continuum/geo/GeoDirectoryThriftClient$*'
     include 'io/warp10/continuum/store/StoreClient.class'
     include 'io/warp10/standalone/StandalonePlasmaHandlerInterface.class'
     include 'io/warp10/hadoop/**'
+    include 'io/warp10/standalone/AcceleratorConfig.class'
+    include 'io/warp10/standalone/AcceleratorConfig$*.class'
 
     from project(":token").sourceSets.main.output
     include 'io/warp10/quasar/token/thrift/data/**'

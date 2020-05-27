@@ -322,10 +322,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
       
       boolean forwarded = false;
       
-      boolean nocache = StandaloneAcceleratedStoreClient.getDefaultWriteNocache();
+      boolean nocache = AcceleratorConfig.getDefaultWriteNocache();
       // boolean to indicate we were explicitely instructed a nocache value
       boolean forcedNocache = false;
-      boolean nopersist = StandaloneAcceleratedStoreClient.getDefaultWriteNopersist();
+      boolean nopersist = AcceleratorConfig.getDefaultWriteNopersist();
       // boolean to indicate we were explicitely instructed a nopersist value
       boolean forcedNopersist = false;
          
@@ -363,34 +363,34 @@ public class StandaloneIngressHandler extends AbstractHandler {
         deltaAttributes = dr.isDeltaAttributes();
         
         if (dr.getAttributesSize() > 0) {
-          if (null != dr.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOCACHE)) {
+          if (null != dr.getAttributes().get(AcceleratorConfig.ATTR_NOCACHE)) {
             forcedNocache = true;
             // The test below checks for "false" because initially the nocache attribute was set to the empty string
             // to mean 'true', so we need to explicitely look for 'false' and invert it so the empty string is indeed
             // synonymous for true.
-            nocache = !"false".equals(dr.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
+            nocache = !"false".equals(dr.getAttributes().get(AcceleratorConfig.ATTR_NOCACHE));
           }
-          if (null != dr.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST)) {
+          if (null != dr.getAttributes().get(AcceleratorConfig.ATTR_NOPERSIST)) {
             forcedNopersist = true;
             // The test below checks for "false" because initially the nocache attribute was set to the empty string
             // to mean 'true', so we need to explicitely look for 'false' and invert it so the empty string is indeed
             // synonymous for true.
-            nopersist = !"false".equals(dr.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));
+            nopersist = !"false".equals(dr.getAttributes().get(AcceleratorConfig.ATTR_NOPERSIST));
           }
         }
       } else {        
-        if (null != request.getHeader(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER)) {
-          if (request.getHeader(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER).contains(StandaloneAcceleratedStoreClient.NOCACHE)) {
+        if (null != request.getHeader(AcceleratorConfig.ACCELERATOR_HEADER)) {
+          if (request.getHeader(AcceleratorConfig.ACCELERATOR_HEADER).contains(AcceleratorConfig.NOCACHE)) {
             nocache = true;
             forcedNocache = true;
-          } else if (request.getHeader(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER).contains(StandaloneAcceleratedStoreClient.CACHE)) {
+          } else if (request.getHeader(AcceleratorConfig.ACCELERATOR_HEADER).contains(AcceleratorConfig.CACHE)) {
             nocache = false;
             forcedNocache = true;
           }
-          if (request.getHeader(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER).contains(StandaloneAcceleratedStoreClient.NOPERSIST)) {
+          if (request.getHeader(AcceleratorConfig.ACCELERATOR_HEADER).contains(AcceleratorConfig.NOPERSIST)) {
             nopersist = true;
             forcedNopersist = true;
-          } else if (request.getHeader(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER).contains(StandaloneAcceleratedStoreClient.PERSIST)) {
+          } else if (request.getHeader(AcceleratorConfig.ACCELERATOR_HEADER).contains(AcceleratorConfig.PERSIST)) {
             nopersist = false;
             forcedNopersist = true;
           }
@@ -398,15 +398,15 @@ public class StandaloneIngressHandler extends AbstractHandler {
       }
 
       if (nocache) {
-        StandaloneAcceleratedStoreClient.nocache();
+        AcceleratorConfig.nocache();
       } else {
-        StandaloneAcceleratedStoreClient.cache();          
+        AcceleratorConfig.cache();          
       }
 
       if (nopersist) {
-        StandaloneAcceleratedStoreClient.nopersist();
+        AcceleratorConfig.nopersist();
       } else {
-        StandaloneAcceleratedStoreClient.persist();        
+        AcceleratorConfig.persist();        
       }
       
       //
@@ -680,10 +680,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
             dr.setNow(Long.toString(now));
             
             if (forcedNocache) {
-              dr.putToAttributes(StandaloneAcceleratedStoreClient.ATTR_NOCACHE, Boolean.toString(nocache));
+              dr.putToAttributes(AcceleratorConfig.ATTR_NOCACHE, Boolean.toString(nocache));
             }
             if (forcedNopersist) {
-              dr.putToAttributes(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST, Boolean.toString(nopersist));
+              dr.putToAttributes(AcceleratorConfig.ATTR_NOPERSIST, Boolean.toString(nopersist));
             }
           }
           
