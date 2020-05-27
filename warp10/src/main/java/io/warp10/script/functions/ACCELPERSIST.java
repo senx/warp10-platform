@@ -18,7 +18,7 @@ package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.standalone.StandaloneAcceleratedStoreClient;
+import io.warp10.standalone.AcceleratorConfig;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
@@ -34,9 +34,9 @@ public class ACCELPERSIST extends NamedWarpScriptFunction implements WarpScriptS
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     if (nopersist) {
-      stack.setAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST, Boolean.TRUE);
+      stack.setAttribute(AcceleratorConfig.ATTR_NOPERSIST, Boolean.TRUE);
     } else {
-      stack.setAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST, Boolean.FALSE);
+      stack.setAttribute(AcceleratorConfig.ATTR_NOPERSIST, Boolean.FALSE);
     }
     return stack;
   }

@@ -72,7 +72,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.sensision.Sensision;
-import io.warp10.standalone.StandaloneAcceleratedStoreClient;
+import io.warp10.standalone.AcceleratorConfig;
 
 import org.joda.time.format.ISOPeriodFormat;
 
@@ -466,25 +466,25 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         
         long end = (long) params.get(PARAM_END);
                 
-        boolean nocache = StandaloneAcceleratedStoreClient.getDefaultReadNocache();
-        if (null != stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE)) {
-          nocache = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE));
+        boolean nocache = AcceleratorConfig.getDefaultReadNocache();
+        if (null != stack.getAttribute(AcceleratorConfig.ATTR_NOCACHE)) {
+          nocache = Boolean.TRUE.equals(stack.getAttribute(AcceleratorConfig.ATTR_NOCACHE));
         }
-        boolean nopersist = StandaloneAcceleratedStoreClient.getDefaultReadNopersist();
-        if (null != stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST)) {
-          nopersist = Boolean.TRUE.equals(stack.getAttribute(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST));
+        boolean nopersist = AcceleratorConfig.getDefaultReadNopersist();
+        if (null != stack.getAttribute(AcceleratorConfig.ATTR_NOPERSIST)) {
+          nopersist = Boolean.TRUE.equals(stack.getAttribute(AcceleratorConfig.ATTR_NOPERSIST));
         }
 
         if (nocache) {
-          StandaloneAcceleratedStoreClient.nocache();
+          AcceleratorConfig.nocache();
         } else {
-          StandaloneAcceleratedStoreClient.cache();          
+          AcceleratorConfig.cache();          
         }
         
         if (nopersist) {
-          StandaloneAcceleratedStoreClient.nopersist();
+          AcceleratorConfig.nopersist();
         } else {
-          StandaloneAcceleratedStoreClient.persist();
+          AcceleratorConfig.persist();
         }
         
         // Flag indicating the FETCH is a count only, no pre/post boundaries
