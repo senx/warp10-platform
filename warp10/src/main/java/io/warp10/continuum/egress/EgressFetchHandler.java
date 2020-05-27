@@ -96,7 +96,7 @@ import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.functions.FETCH;
 import io.warp10.sensision.Sensision;
-import io.warp10.standalone.StandaloneAcceleratedStoreClient;
+import io.warp10.standalone.AcceleratorConfig;
 
 public class EgressFetchHandler extends AbstractHandler {
 
@@ -209,30 +209,30 @@ public class EgressFetchHandler extends AbstractHandler {
         postBoundaryParam = req.getParameter(Constants.HTTP_PARAM_POSTBOUNDARY);
       }
           
-      boolean nocache = StandaloneAcceleratedStoreClient.getDefaultReadNocache();
+      boolean nocache = AcceleratorConfig.getDefaultReadNocache();
       boolean forcedNocache = false;
-      boolean nopersist = StandaloneAcceleratedStoreClient.getDefaultReadNopersist();
+      boolean nopersist = AcceleratorConfig.getDefaultReadNopersist();
       boolean forcedNopersist = false;
       
-      if (null != req.getParameter(StandaloneAcceleratedStoreClient.NOCACHE)) {
+      if (null != req.getParameter(AcceleratorConfig.NOCACHE)) {
         forcedNocache = true;
         nocache = true;
       }
-      if (null != req.getParameter(StandaloneAcceleratedStoreClient.CACHE)) {
+      if (null != req.getParameter(AcceleratorConfig.CACHE)) {
         if (forcedNocache) {
-          resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Cannot specify both '" + StandaloneAcceleratedStoreClient.NOCACHE + "' and '" + StandaloneAcceleratedStoreClient.CACHE + "'.");;
+          resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Cannot specify both '" + AcceleratorConfig.NOCACHE + "' and '" + AcceleratorConfig.CACHE + "'.");;
           return;
         }
         forcedNocache = true;
         nocache = false;
       }
-      if (null != req.getParameter(StandaloneAcceleratedStoreClient.NOPERSIST)) {
+      if (null != req.getParameter(AcceleratorConfig.NOPERSIST)) {
         forcedNopersist = true;
         nopersist = true;   
       }
-      if (null != req.getParameter(StandaloneAcceleratedStoreClient.PERSIST)) {
+      if (null != req.getParameter(AcceleratorConfig.PERSIST)) {
         if (forcedNopersist) {
-          resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Cannot specify both '" + StandaloneAcceleratedStoreClient.NOPERSIST + "' and '" + StandaloneAcceleratedStoreClient.PERSIST + "'.");;
+          resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Cannot specify both '" + AcceleratorConfig.NOPERSIST + "' and '" + AcceleratorConfig.PERSIST + "'.");;
           return;
         }
         forcedNopersist = true;
@@ -752,15 +752,15 @@ public class EgressFetchHandler extends AbstractHandler {
       boolean expose = rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
       
       if (nocache) {
-        StandaloneAcceleratedStoreClient.nocache();
+        AcceleratorConfig.nocache();
       } else {
-        StandaloneAcceleratedStoreClient.cache();        
+        AcceleratorConfig.cache();        
       }
       
       if (nopersist) {
-        StandaloneAcceleratedStoreClient.nopersist();
+        AcceleratorConfig.nopersist();
       } else {
-        StandaloneAcceleratedStoreClient.persist();        
+        AcceleratorConfig.persist();        
       }
       
       for (Iterator<Metadata> itermeta: iterators) {

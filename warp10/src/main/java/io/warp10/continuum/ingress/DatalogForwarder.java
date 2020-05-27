@@ -57,7 +57,7 @@ import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
-import io.warp10.standalone.StandaloneAcceleratedStoreClient;
+import io.warp10.standalone.AcceleratorConfig;
 
 /**
  * Forward UPDATA/META/DELETE requests to another Warp 10 instance
@@ -266,28 +266,28 @@ public class DatalogForwarder extends Thread {
           }
           if (action.request.getAttributesSize() > 0) {
             String accel = "";
-            if (null != action.request.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOCACHE)) {
+            if (null != action.request.getAttributes().get(AcceleratorConfig.ATTR_NOCACHE)) {
               // The test below checks for "false" because initially the nocache attribute was set to the empty string
               // to mean 'true', so we need to explicitely look for 'false' and invert it so the empty string is indeed
               // synonymous for true.
-              if ("false".equals(action.request.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOCACHE))) {
-                accel += StandaloneAcceleratedStoreClient.CACHE + " ";                
+              if ("false".equals(action.request.getAttributes().get(AcceleratorConfig.ATTR_NOCACHE))) {
+                accel += AcceleratorConfig.CACHE + " ";                
               } else {
-                accel += StandaloneAcceleratedStoreClient.NOCACHE + " ";
+                accel += AcceleratorConfig.NOCACHE + " ";
               }
             }
-            if (null != action.request.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST)) {
+            if (null != action.request.getAttributes().get(AcceleratorConfig.ATTR_NOPERSIST)) {
               // The test below checks for "false" because initially the nocache attribute was set to the empty string
               // to mean 'true', so we need to explicitely look for 'false' and invert it so the empty string is indeed
               // synonymous for true.
-              if ("false".equals(action.request.getAttributes().get(StandaloneAcceleratedStoreClient.ATTR_NOPERSIST))) {
-                accel += StandaloneAcceleratedStoreClient.PERSIST;                
+              if ("false".equals(action.request.getAttributes().get(AcceleratorConfig.ATTR_NOPERSIST))) {
+                accel += AcceleratorConfig.PERSIST;                
               } else {
-                accel += StandaloneAcceleratedStoreClient.NOPERSIST;
+                accel += AcceleratorConfig.NOPERSIST;
               }
             }
             if (!"".equals(accel)) {
-              conn.setRequestProperty(StandaloneAcceleratedStoreClient.ACCELERATOR_HEADER, accel);
+              conn.setRequestProperty(AcceleratorConfig.ACCELERATOR_HEADER, accel);
             }
           }
         } else {

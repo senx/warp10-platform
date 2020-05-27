@@ -18,7 +18,7 @@ package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.standalone.StandaloneAcceleratedStoreClient;
+import io.warp10.standalone.AcceleratorConfig;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
@@ -34,9 +34,9 @@ public class ACCELCACHE extends NamedWarpScriptFunction implements WarpScriptSta
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     if (nocache) {
-      stack.setAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE, Boolean.TRUE);
+      stack.setAttribute(AcceleratorConfig.ATTR_NOCACHE, Boolean.TRUE);
     } else {
-      stack.setAttribute(StandaloneAcceleratedStoreClient.ATTR_NOCACHE, Boolean.FALSE);
+      stack.setAttribute(AcceleratorConfig.ATTR_NOCACHE, Boolean.FALSE);
     }
     return stack;
   }
