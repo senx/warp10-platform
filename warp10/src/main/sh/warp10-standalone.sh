@@ -352,7 +352,7 @@ bootstrap() {
   getConfigFiles
 
   # Edit the warp10-tokengen.mc2 to use or not the secret
-  secret=`su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} 'token.secret' | grep 'token.secret' | sed -e 's/^.*=//'"`
+  secret=`su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} . 'token.secret' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //' | grep 'token.secret' | sed -e 's/^.*=//'"`
   if [[ "${secret}"  != "null" ]]; then
     sed -i${SED_SUFFIX} -e "s|^{{secret}}|'"${secret}"'|" ${WARP10_HOME}/templates/warp10-tokengen.mc2
   else
