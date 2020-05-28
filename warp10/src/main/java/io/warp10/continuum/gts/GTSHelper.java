@@ -3377,14 +3377,14 @@ public class GTSHelper {
     idx = 0;
     
     for (long hash: hashes) {
-      buf[idx++] = (byte) ((hash >> 56) & 0xff);
-      buf[idx++] = (byte) ((hash >> 48) & 0xff);
-      buf[idx++] = (byte) ((hash >> 40) & 0xff);
-      buf[idx++] = (byte) ((hash >> 32) & 0xff);
-      buf[idx++] = (byte) ((hash >> 24) & 0xff);
-      buf[idx++] = (byte) ((hash >> 16) & 0xff);
-      buf[idx++] = (byte) ((hash >> 8) & 0xff);
-      buf[idx++] = (byte) (hash & 0xff);
+      buf[idx++] = (byte) ((hash >> 56) & 0xffL);
+      buf[idx++] = (byte) ((hash >> 48) & 0xffL);
+      buf[idx++] = (byte) ((hash >> 40) & 0xffL);
+      buf[idx++] = (byte) ((hash >> 32) & 0xffL);
+      buf[idx++] = (byte) ((hash >> 24) & 0xffL);
+      buf[idx++] = (byte) ((hash >> 16) & 0xffL);
+      buf[idx++] = (byte) ((hash >> 8) & 0xffL);
+      buf[idx++] = (byte) (hash & 0xffL);
       //bb.putLong(hash);
     }
     
@@ -3568,25 +3568,25 @@ public class GTSHelper {
     long id = classId;
     int idx = offset;
     
-    bytes[idx++] = (byte) ((id >> 56) & 0xff);
-    bytes[idx++] = (byte) ((id >> 48) & 0xff);
-    bytes[idx++] = (byte) ((id >> 40) & 0xff);
-    bytes[idx++] = (byte) ((id >> 32) & 0xff);
-    bytes[idx++] = (byte) ((id >> 24) & 0xff);
-    bytes[idx++] = (byte) ((id >> 16) & 0xff);
-    bytes[idx++] = (byte) ((id >> 8) & 0xff);
-    bytes[idx++] = (byte) (id & 0xff);
+    bytes[idx++] = (byte) ((id >> 56) & 0xffL);
+    bytes[idx++] = (byte) ((id >> 48) & 0xffL);
+    bytes[idx++] = (byte) ((id >> 40) & 0xffL);
+    bytes[idx++] = (byte) ((id >> 32) & 0xffL);
+    bytes[idx++] = (byte) ((id >> 24) & 0xffL);
+    bytes[idx++] = (byte) ((id >> 16) & 0xffL);
+    bytes[idx++] = (byte) ((id >> 8) & 0xffL);
+    bytes[idx++] = (byte) (id & 0xffL);
     
     id = labelsId;
 
-    bytes[idx++] = (byte) ((id >> 56) & 0xff);
-    bytes[idx++] = (byte) ((id >> 48) & 0xff);
-    bytes[idx++] = (byte) ((id >> 40) & 0xff);
-    bytes[idx++] = (byte) ((id >> 32) & 0xff);
-    bytes[idx++] = (byte) ((id >> 24) & 0xff);
-    bytes[idx++] = (byte) ((id >> 16) & 0xff);
-    bytes[idx++] = (byte) ((id >> 8) & 0xff);
-    bytes[idx++] = (byte) (id & 0xff);
+    bytes[idx++] = (byte) ((id >> 56) & 0xffL);
+    bytes[idx++] = (byte) ((id >> 48) & 0xffL);
+    bytes[idx++] = (byte) ((id >> 40) & 0xffL);
+    bytes[idx++] = (byte) ((id >> 32) & 0xffL);
+    bytes[idx++] = (byte) ((id >> 24) & 0xffL);
+    bytes[idx++] = (byte) ((id >> 16) & 0xffL);
+    bytes[idx++] = (byte) ((id >> 8) & 0xffL);
+    bytes[idx++] = (byte) (id & 0xffL);
   }
   
   /**
