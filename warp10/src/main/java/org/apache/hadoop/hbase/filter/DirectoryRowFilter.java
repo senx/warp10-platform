@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,13 +16,24 @@
 
 package org.apache.hadoop.hbase.filter;
 
+import io.warp10.continuum.store.Directory;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
+import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.KeyValueUtil;
 import org.apache.hadoop.hbase.exceptions.DeserializationException;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 
 /**
  * Filter used by Directory to select rows
@@ -36,11 +47,27 @@ import org.apache.hadoop.hbase.exceptions.DeserializationException;
  */
 public class DirectoryRowFilter extends FilterBase {
   
+  private static final sun.misc.Unsafe UNSAFE;
+
   /**
    * row key prefix for metadata
    */
   public static final byte[] HBASE_METADATA_KEY_PREFIX = "M".getBytes(StandardCharsets.UTF_8);
-    
+  
+  static {
+    sun.misc.Unsafe unsafe = null;
+    try {
+      java.lang.reflect.Field field = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+      field.setAccessible(true);
+      unsafe = (sun.misc.Unsafe)field.get(null);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    UNSAFE = unsafe;
+  }
+  
+  private static final long base = UNSAFE.arrayBaseOffset(new byte[0].getClass());
+  
   private long instanceModulus;
   private long instanceRemainder;
   private long threadModulus;
@@ -149,6 +176,8 @@ public class DirectoryRowFilter extends FilterBase {
 
     // processing 8 bytes blocks in data
     while (i < last) {
+      // pack a block to long, as LE 8 bytes
+      /*
       m = (data[!reversed ? offset + i++ : offset + (len - 1) - i++] & 0xffL)
           | (data[!reversed ? offset + i++ : offset + (len - 1) - i++] & 0xffL) << 8
           | (data[!reversed ? offset + i++ : offset + (len - 1) - i++] & 0xffL) << 16
@@ -157,6 +186,17 @@ public class DirectoryRowFilter extends FilterBase {
           | (data[!reversed ? offset + i++ : offset + (len - 1) - i++] & 0xffL) << 40
           | (data[!reversed ? offset + i++ : offset + (len - 1) - i++] & 0xffL) << 48
           | (data[!reversed ? offset + i++ : offset + (len - 1) - i++] & 0xffL) << 56;
+      */
+      
+      if (!reversed) {
+        m = UNSAFE.getLong(data, base + offset + i);
+        //m = Long.reverseBytes(m);
+      } else {
+        m = UNSAFE.getLong(data, base + offset + len - 1 - (i + 7));
+        m = Long.reverseBytes(m);
+      }
+      
+      i += 8;
       
       // MSGROUND {
       v3 ^= m;
