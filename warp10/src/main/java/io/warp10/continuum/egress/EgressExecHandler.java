@@ -210,6 +210,9 @@ public class EgressExecHandler extends AbstractHandler {
         pathInfo = pathInfo.substring(Constants.API_ENDPOINT_EXEC.length() + 1);
         String[] tokens = pathInfo.split("/");
 
+        // Store the depth of the stack in case the Bootstrap leave something on the stack.
+        int initialStackDepth = stack.depth();
+
         for (String token: tokens) {
           String[] subtokens = token.split("=", 2);
 
@@ -231,7 +234,7 @@ public class EgressExecHandler extends AbstractHandler {
 
           stack.exec(subtokens[1]);
 
-          if (1 != stack.depth()) {
+          if (1 != (stack.depth() - initialStackDepth)) {
             throw new WarpScriptException("Each symbol definition must leave one element on the stack.");
           }
 
