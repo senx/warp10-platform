@@ -235,7 +235,7 @@ public class EgressExecHandler extends AbstractHandler {
           stack.exec(subtokens[1]);
 
           if (1 != (stack.depth() - initialStackDepth)) {
-            throw new WarpScriptException("Each symbol definition must leave one element on the stack.");
+            throw new WarpScriptException("Each symbol definition must output one element.");
           }
 
           stack.store(subtokens[0], stack.pop());
