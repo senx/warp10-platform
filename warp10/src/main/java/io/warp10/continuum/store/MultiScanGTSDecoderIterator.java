@@ -241,7 +241,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     
     nvalues = count >= 0 ? count : Long.MAX_VALUE;
     toskip = skip;
-    steps = hasStep ? step : 0L;
+    steps = hasStep ? step - 1L : 0L;
     nextTimestamp = Long.MAX_VALUE;
     
     Scan scan = new Scan();
@@ -430,17 +430,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
                 if (basets > nextTimestamp && !preBoundaryScan && !postBoundaryScan) {
                   continue;
                 }
-                
-                if (steps > 0 && !preBoundaryScan && !postBoundaryScan) {
-                  steps--;
-                  continue;
-                }
-                
-                // Sample if we have to
-                if (1.0D != sample && !preBoundaryScan && !postBoundaryScan && prng.nextDouble() > sample) {
-                  continue;
-                }
-                
+
                 //
                 // Compute the new value of nextTimestamp if timestep is set
                 //
@@ -451,10 +441,20 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
                     nextTimestamp = Long.MIN_VALUE;
                   }                 
                 }
+
+                if (steps > 0 && !preBoundaryScan && !postBoundaryScan) {
+                  steps--;
+                  continue;
+                }
                 
                 if (hasStep) {
-                  steps = step;
+                  steps = step - 1L;
                 }
+
+                // Sample if we have to
+                if (1.0D != sample && !preBoundaryScan && !postBoundaryScan && prng.nextDouble() > sample) {
+                  continue;
+                }                               
                 
                 if (writeTimestamp) {
                   encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), cell.getTimestamp() * Constants.TIME_UNITS_PER_MS);

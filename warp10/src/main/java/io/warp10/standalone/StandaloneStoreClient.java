@@ -130,6 +130,7 @@ public class StandaloneStoreClient implements StoreClient {
     if (step <= 1L) {
       step = 1L;
     }
+    
     if (timestep <= 1L) {
       timestep = 1L;
     }
@@ -345,32 +346,11 @@ public class StandaloneStoreClient implements StoreClient {
             // Check that the datapoint timestamp is compatible with the timestep parameter, i.e. it is at least
             // 'timestep' time units before the previous one we selected
             //
+            
             if (basets > nextTimestamp) {
               continue;
             }
-            
-            //
-            // Check that the data point should not be stepped over
-            //
-            if (steps > 0) {
-              steps--;
-              continue;
-            }
-            
-            //
-            // Sample datapoints
-            //
-            
-            if (fsample < 1.0D && prng.nextDouble() > fsample) {
-              continue;
-            }
-                        
-            valueBytes += v.length;
-            keyBytes += kv.getKey().length;          
-            datapoints++;
-            
-            nvalues--;
-            
+
             //
             // Compute the new value of nextTimestamp if timestep is set
             //
@@ -404,11 +384,34 @@ public class StandaloneStoreClient implements StoreClient {
 //
 //              iterator.seek(rowbuf);
             }
+                        
+            //
+            // Check that the data point should not be stepped over
+            //
             
-            if (hasStep) {
-              steps = step;
+            if (steps > 0) {
+              steps--;
+              continue;
             }
             
+            if (hasStep) {
+              steps = step - 1L;
+            }
+
+            //
+            // Sample datapoints
+            //
+            
+            if (fsample < 1.0D && prng.nextDouble() > fsample) {
+              continue;
+            }
+                        
+            valueBytes += v.length;
+            keyBytes += kv.getKey().length;          
+            datapoints++;
+            
+            nvalues--;
+                        
             GTSDecoder decoder = new GTSDecoder(basets, keystore.getKey(KeyStore.AES_LEVELDB_DATA), ByteBuffer.wrap(kv.getValue()));
             decoder.next();
             try {
