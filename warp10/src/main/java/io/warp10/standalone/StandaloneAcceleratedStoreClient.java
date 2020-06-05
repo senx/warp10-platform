@@ -199,7 +199,7 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
               @Override
               public void run() {
                 try {
-                  GTSDecoderIterator decoders = persistent.fetch(null, fbatch, now, then, count, 0, 1.0D, false, 0, 0);
+                  GTSDecoderIterator decoders = persistent.fetch(null, fbatch, now, then, count, 0L, 0L, 0L, 1.0D, false, 0, 0);
                   
                   while(decoders.hasNext()) {
                     GTSDecoder decoder = decoders.next();
@@ -271,7 +271,7 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
   }
   
   @Override
-  public GTSDecoderIterator fetch(ReadToken token, List<Metadata> metadatas, long now, long then, long count, long skip, double sample, boolean writeTimestamp, long preBoundary, long postBoundary) throws IOException {
+  public GTSDecoderIterator fetch(ReadToken token, List<Metadata> metadatas, long now, long then, long count, long skip, long step, long timestep, double sample, boolean writeTimestamp, long preBoundary, long postBoundary) throws IOException {
     //
     // If the fetch has both a time range that is larger than the cache range, we will only use
     // the persistent backend to ensure a correct fetch. Same goes with boundaries which could extend outside the
@@ -292,7 +292,7 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     
     if (this.ephemeral && 1 == count && Long.MAX_VALUE == now && !AcceleratorConfig.nocache.get()) {
       AcceleratorConfig.accelerated.set(Boolean.TRUE);
-      return this.cache.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);      
+      return this.cache.fetch(token, metadatas, now, then, count, skip, step, timestep, sample, writeTimestamp, preBoundary, postBoundary);      
     }
     
     // Use the persistent store if the accelerator is in ephemeral mode,
@@ -300,7 +300,7 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     // if boundaries were requested, unless ACCEL.NOPERSIST was called 
     if ((this.ephemeral || (now > cacheend || then < cachestart) || preBoundary > 0 || postBoundary > 0 || AcceleratorConfig.nocache.get()) && !AcceleratorConfig.nopersist.get()) {
       AcceleratorConfig.accelerated.set(Boolean.FALSE);
-      return this.persistent.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
+      return this.persistent.fetch(token, metadatas, now, then, count, skip, step, timestep, sample, writeTimestamp, preBoundary, postBoundary);
     }
     
     // Last resort, use the cache, unless it is disabled in which case an exception is thrown
@@ -309,7 +309,7 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     }
     
     AcceleratorConfig.accelerated.set(Boolean.TRUE);
-    return this.cache.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
+    return this.cache.fetch(token, metadatas, now, then, count, skip, step, timestep, sample, writeTimestamp, preBoundary, postBoundary);
   }
   
   @Override

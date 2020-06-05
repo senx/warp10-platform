@@ -94,14 +94,25 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
   private long count = -1;
   private long skip = 0;
   private double sample = 1.0D;
+  private long step = -1L;
+  private long timestep = -1L;
   
-  public MultiScanGTSDecoderIterator(ReadToken token, long now, long then, long count, long skip, double sample, List<Metadata> metadatas, Connection conn, TableName tableName, byte[] colfam, boolean writeTimestamp, KeyStore keystore, boolean useBlockcache, long preBoundary, long postBoundary) throws IOException {
+  private long nextTimestamp = Long.MAX_VALUE;
+  private long steps = 0L;
+  private boolean hasStep = false;
+  private boolean hasTimestep = false;
+  
+  public MultiScanGTSDecoderIterator(ReadToken token, long now, long then, long count, long skip, long step, long timestep, double sample, List<Metadata> metadatas, Connection conn, TableName tableName, byte[] colfam, boolean writeTimestamp, KeyStore keystore, boolean useBlockcache, long preBoundary, long postBoundary) throws IOException {
     this.htable = conn.getTable(tableName);
     this.metadatas = metadatas;
     this.now = now;
     this.then = then;
     this.count = count;
     this.skip = skip;
+    this.step = step;
+    this.hasStep = step > 1L;
+    this.timestep = timestep;
+    this.hasTimestep = timestep > 1L;
     this.sample = sample;
     this.useBlockcache = useBlockcache;
     this.token = token;
@@ -230,6 +241,8 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     
     nvalues = count >= 0 ? count : Long.MAX_VALUE;
     toskip = skip;
+    steps = hasStep ? step : 0L;
+    nextTimestamp = Long.MAX_VALUE;
     
     Scan scan = new Scan();
     
@@ -361,7 +374,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
           Cell cell = cscanner.current();
       
           cellCount++;
-          
+
           //
           // Extract timestamp base from row key
           //
@@ -414,9 +427,33 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
                   continue;
                 }
                 
+                if (basets > nextTimestamp && !preBoundaryScan && !postBoundaryScan) {
+                  continue;
+                }
+                
+                if (steps > 0 && !preBoundaryScan && !postBoundaryScan) {
+                  steps--;
+                  continue;
+                }
+                
                 // Sample if we have to
                 if (1.0D != sample && !preBoundaryScan && !postBoundaryScan && prng.nextDouble() > sample) {
                   continue;
+                }
+                
+                //
+                // Compute the new value of nextTimestamp if timestep is set
+                //
+                if (hasTimestep) {
+                  try {
+                    nextTimestamp = Math.addExact(basets, -timestep);
+                  } catch (ArithmeticException ae) {
+                    nextTimestamp = Long.MIN_VALUE;
+                  }                 
+                }
+                
+                if (hasStep) {
+                  steps = step;
                 }
                 
                 if (writeTimestamp) {

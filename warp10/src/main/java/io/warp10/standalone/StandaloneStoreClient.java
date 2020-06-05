@@ -88,7 +88,7 @@ public class StandaloneStoreClient implements StoreClient {
   }
   
   @Override
-  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, long count, long skip, double sample, boolean writeTimestamp, long preBoundary, long postBoundary) {
+  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, long count, long skip, long step, long timestep, double sample, boolean writeTimestamp, long preBoundary, long postBoundary) {
 
     if (preBoundary < 0) {
       preBoundary = 0;
@@ -109,7 +109,7 @@ public class StandaloneStoreClient implements StoreClient {
     if (count < -1L) {
       count = -1L;
     }
-    
+        
     //
     // If we are fetching up to Long.MAX_VALUE, then don't fetch a post boundary
     if (Long.MAX_VALUE == now) {
@@ -127,6 +127,20 @@ public class StandaloneStoreClient implements StoreClient {
       throw new RuntimeException("No support for write timestamp retrieval.");
     }
     
+    if (step <= 1L) {
+      step = 1L;
+    }
+    if (timestep <= 1L) {
+      timestep = 1L;
+    }
+    
+    final boolean hasStep = 1L != step;
+    final boolean hasTimestep = 1L != timestep;
+    final long fstep = step;
+    final long ftimestep = timestep;
+    // 128bits
+    final byte[] rowbuf = hasTimestep ? new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8] : null;
+
     ReadOptions options = new ReadOptions().fillCache(true);
     
     if (this.blockcacheThreshold > 0) {
@@ -158,7 +172,7 @@ public class StandaloneStoreClient implements StoreClient {
     final long fskip = skip;
     final double fsample = sample;
     final long fcount = count;
-    
+     
     return new GTSDecoderIterator() {
     
       Random prng = fsample < 1.0D ? new Random() : null;
@@ -166,6 +180,10 @@ public class StandaloneStoreClient implements StoreClient {
       long skip = fskip;
       long preBoundary = preB;
       long postBoundary = postB;
+      long step = fstep;
+      long timestep = ftimestep;
+      long nextTimestamp = Long.MAX_VALUE;
+      long steps = 0L;
       
       int idx = -1;
        
@@ -324,6 +342,22 @@ public class StandaloneStoreClient implements StoreClient {
             }
             
             //
+            // Check that the datapoint timestamp is compatible with the timestep parameter, i.e. it is at least
+            // 'timestep' time units before the previous one we selected
+            //
+            if (basets > nextTimestamp) {
+              continue;
+            }
+            
+            //
+            // Check that the data point should not be stepped over
+            //
+            if (steps > 0) {
+              steps--;
+              continue;
+            }
+            
+            //
             // Sample datapoints
             //
             
@@ -336,7 +370,45 @@ public class StandaloneStoreClient implements StoreClient {
             datapoints++;
             
             nvalues--;
-                      
+            
+            //
+            // Compute the new value of nextTimestamp if timestep is set
+            //
+            if (hasTimestep) {
+              try {
+                nextTimestamp = Math.addExact(basets, -timestep);
+              } catch (ArithmeticException ae) {
+                nextTimestamp = Long.MIN_VALUE;
+              }
+             
+// TODO(hbs): what heuristics should we consider to determine if we should seek or not?
+//              // If the timestep is above a threshold, seek to the new
+//              long rowts = Long.MAX_VALUE - nextTimestamp;
+//              // 128bits
+//              int offset = Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8;
+//              rowbuf[offset + 7] = (byte) (rowts & 0xFFL);
+//              rowts >>>= 8;
+//              rowbuf[offset + 6] = (byte) (rowts & 0xFFL);
+//              rowts >>>= 8;
+//              rowbuf[offset + 5] = (byte) (rowts & 0xFFL);
+//              rowts >>>= 8;
+//              rowbuf[offset + 4] = (byte) (rowts & 0xFFL);
+//              rowts >>>= 8;
+//              rowbuf[offset + 3] = (byte) (rowts & 0xFFL);
+//              rowts >>>= 8;
+//              rowbuf[offset + 2] = (byte) (rowts & 0xFFL);
+//              rowts >>>= 8;
+//              rowbuf[offset + 1] = (byte) (rowts & 0xFFL);
+//              rowts >>>= 8;
+//              rowbuf[offset] = (byte) (rowts & 0xFFL);
+//
+//              iterator.seek(rowbuf);
+            }
+            
+            if (hasStep) {
+              steps = step;
+            }
+            
             GTSDecoder decoder = new GTSDecoder(basets, keystore.getKey(KeyStore.AES_LEVELDB_DATA), ByteBuffer.wrap(kv.getValue()));
             decoder.next();
             try {
@@ -426,6 +498,7 @@ public class StandaloneStoreClient implements StoreClient {
             return false;
           }
 
+          // 128buts
           startrow = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
           ByteBuffer bb = ByteBuffer.wrap(startrow).order(ByteOrder.BIG_ENDIAN);
           bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
@@ -440,6 +513,10 @@ public class StandaloneStoreClient implements StoreClient {
           bb.putLong(metadatas.get(idx).getLabelsId());
           bb.putLong(Long.MAX_VALUE - then);
 
+          if (null != rowbuf) {
+            System.arraycopy(startrow, 0, rowbuf, 0, rowbuf.length);
+          }
+          
           //
           // Reset number of values retrieved since we just skipped to a new GTS.
           // If 'timespan' is negative this is the opposite of the number of values to retrieve

@@ -146,8 +146,12 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
   }
   
   @Override
-  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, final long count, final long skip, final double sample, boolean writeTimestamp, final long preBoundary, final long postBoundary) {
+  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, final long count, final long skip, long step, long timestep, final double sample, boolean writeTimestamp, final long preBoundary, final long postBoundary) {
 
+    if (step > 1L || timestep > 1L) {
+      throw new RuntimeException("Parameters 'step' and 'timestep' are not supported by the in-memory store."); 
+    }
+    
     GTSDecoderIterator iterator = new GTSDecoderIterator() {
 
       private int idx = 0;

@@ -368,6 +368,8 @@ public class Constants {
   public static final String HTTP_PARAM_LIMIT = "limit";
   public static final String HTTP_PARAM_COUNT = "count";
   public static final String HTTP_PARAM_SKIP = "skip";
+  public static final String HTTP_PARAM_STEP = "step";
+  public static final String HTTP_PARAM_TIMESTEP = "timestep";
   public static final String HTTP_PARAM_SAMPLE = "sample";
   public static final String HTTP_PARAM_PREBOUNDARY = "boundary.pre";
   public static final String HTTP_PARAM_POSTBOUNDARY = "boundary.post";

@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
@@ -61,8 +62,14 @@ import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.joda.time.Duration;
+import org.joda.time.Instant;
+import org.joda.time.MutablePeriod;
+import org.joda.time.Period;
+import org.joda.time.ReadWritablePeriod;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
+import org.joda.time.format.ISOPeriodFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -173,6 +180,8 @@ public class EgressFetchHandler extends AbstractHandler {
       long then = Long.MIN_VALUE;
       long count = -1;
       long skip = 0;
+      long step = 1L;
+      long timestep = 1L;
       double sample = 1.0D;
       long preBoundary = 0;
       long postBoundary = 0;
@@ -186,6 +195,8 @@ public class EgressFetchHandler extends AbstractHandler {
       String showErrorsParam = null;
       String countParam = null;
       String skipParam = null;
+      String stepParam = null;
+      String timestepParam = null;
       String sampleParam = null;
       String preBoundaryParam = null;
       String postBoundaryParam = null;
@@ -204,6 +215,8 @@ public class EgressFetchHandler extends AbstractHandler {
         showErrorsParam = req.getParameter(Constants.HTTP_PARAM_SHOW_ERRORS);
         countParam = req.getParameter(Constants.HTTP_PARAM_COUNT);
         skipParam = req.getParameter(Constants.HTTP_PARAM_SKIP);
+        stepParam = req.getParameter(Constants.HTTP_PARAM_STEP);
+        timestepParam = req.getParameter(Constants.HTTP_PARAM_TIMESTEP);
         sampleParam = req.getParameter(Constants.HTTP_PARAM_SAMPLE);
         preBoundaryParam = req.getParameter(Constants.HTTP_PARAM_PREBOUNDARY);
         postBoundaryParam = req.getParameter(Constants.HTTP_PARAM_POSTBOUNDARY);
@@ -312,6 +325,38 @@ public class EgressFetchHandler extends AbstractHandler {
       
       if (null != skipParam) {
         skip = Long.parseLong(skipParam);        
+      }
+      
+      if (null != stepParam) {
+        step = Long.parseLong(stepParam);
+        if (step <= 1) {
+          throw new WarpScriptException("Parameter '" + Constants.HTTP_PARAM_STEP + "' cannot be <= 1.");
+        }
+      }
+      
+      if (null != timestepParam) {
+        if (timestepParam.startsWith("P")) {
+          // Should be a ISO8601 duration
+          ReadWritablePeriod period = new MutablePeriod();
+
+          ISOPeriodFormat.standard().getParser().parseInto(period, timestepParam, 0, Locale.US);
+
+          Period p = period.toPeriod();
+
+          if (p.getMonths() != 0 || p.getYears() != 0) {
+            throw new WarpScriptException("No support for ambiguous durations containing years or months, please convert those to days.");
+          }
+
+          Duration duration = p.toDurationFrom(new Instant());
+
+          timestep = duration.getMillis() * Constants.TIME_UNITS_PER_MS;
+        } else {
+          timestep = Long.parseLong(timestepParam);
+        }
+        
+        if (timestep <= 1) {
+          throw new WarpScriptException("Parameter '" + Constants.HTTP_PARAM_TIMESTEP + "' cannot be <= 1.");
+        }
       }
       
       if (null != sampleParam) {
@@ -772,7 +817,7 @@ public class EgressFetchHandler extends AbstractHandler {
           //
           
           if (metas.size() > FETCH_BATCHSIZE || !itermeta.hasNext()) {
-            try(GTSDecoderIterator iterrsc = storeClient.fetch(rtoken, metas, now, then, count, skip, sample, false, preBoundary, postBoundary)) {
+            try(GTSDecoderIterator iterrsc = storeClient.fetch(rtoken, metas, now, then, count, skip, step, timestep, sample, false, preBoundary, postBoundary)) {
               GTSDecoderIterator iter = iterrsc;
                           
               if (unpack) {

@@ -119,6 +119,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
   public static final String PARAM_BOUNDARY_POST = "boundary.post";
   public static final String PARAM_BOUNDARY = "boundary";
   public static final String PARAM_SKIP = "skip";
+  public static final String PARAM_STEP = "step";
+  public static final String PARAM_TIMESTEP = "timestep";
   public static final String PARAM_SAMPLE = "sample";
   
   public static final String POSTFETCH_HOOK = "postfetch";
@@ -446,7 +448,24 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         }
 
         long then = (long) params.get(PARAM_START);
-        long skip = (long) params.getOrDefault(PARAM_SKIP, 0L);        
+        long skip = (long) params.getOrDefault(PARAM_SKIP, 0L);
+        long timestep = 1L;
+        long step = 1L;
+        
+        if (params.containsKey(PARAM_TIMESTEP)) {
+          timestep = (long) params.get(PARAM_TIMESTEP);
+          if (timestep <= 1) {
+            throw new WarpScriptException(getName() + " parameter '" + PARAM_TIMESTEP + "' cannot be <= 1.");
+          }
+        }
+        
+        if (params.containsKey(PARAM_STEP)) {
+          step = (long) params.get(PARAM_STEP);
+          
+          if (timestep <= 1) {
+            throw new WarpScriptException(getName() + " parameter '" + PARAM_STEP + "' cannot be <= 1.");            
+          }
+        }
         double sample = (double) params.getOrDefault(PARAM_SAMPLE, 1.0D);
         
         TYPE type = (TYPE) params.get(PARAM_TYPE);
@@ -490,7 +509,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         // Flag indicating the FETCH is a count only, no pre/post boundaries
         boolean countOnly = count >= 0 && 0 == preBoundary && 0 == postBoundary;
         
-        try (GTSDecoderIterator gtsiter = gtsStore.fetch(rtoken, metadatas, end, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary)) {
+        try (GTSDecoderIterator gtsiter = gtsStore.fetch(rtoken, metadatas, end, then, count, skip, step, timestep, sample, writeTimestamp, preBoundary, postBoundary)) {
           while(gtsiter.hasNext()) {           
             GTSDecoder decoder = gtsiter.next();
             
@@ -1052,6 +1071,32 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         throw new WarpScriptException(getName() + " Parameter '" + PARAM_SKIP + "' must be >= 0.");
       }
       params.put(PARAM_SKIP, skip);
+    }
+
+    if (map.containsKey(PARAM_STEP)) {
+      Object o = map.get(PARAM_STEP);
+      if (!(o instanceof Long)) {
+        throw new WarpScriptException(getName() + " Invalid type for parameter '" + PARAM_STEP + "'.");
+      }
+      long step = ((Long) o).longValue();
+      
+      if (step < 0) {
+        throw new WarpScriptException(getName() + " Parameter '" + PARAM_STEP + "' must be >= 0.");
+      }
+      params.put(PARAM_STEP, step);      
+    }
+
+    if (map.containsKey(PARAM_TIMESTEP)) {      
+      Object o = map.get(PARAM_TIMESTEP);
+      if (!(o instanceof Long)) {
+        throw new WarpScriptException(getName() + " Invalid type for parameter '" + PARAM_TIMESTEP + "'.");
+      }
+      long timestep = ((Long) o).longValue();
+      
+      if (timestep < 0) {
+        throw new WarpScriptException(getName() + " Parameter '" + PARAM_TIMESTEP + "' must be >= 0.");
+      }
+      params.put(PARAM_TIMESTEP, timestep);      
     }
 
     if (map.containsKey(PARAM_SAMPLE)) {

@@ -134,7 +134,7 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
   }
   
   @Override
-  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, final long count, final long skip, final double sample, boolean writeTimestamp, final long preBoundary, final long postBoundary) {
+  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, final long count, final long skip, final long step, final long timestep, final double sample, boolean writeTimestamp, final long preBoundary, final long postBoundary) {
 
     if (0 != preBoundary || 0 != postBoundary) {
       throw new RuntimeException("Boundary retrieval is not supported by the current data store.");
@@ -144,6 +144,10 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
       throw new RuntimeException("Unsupported skip operation.");
     }
     
+    if (step > 1L || timestep > 1L) {
+      throw new RuntimeException("Parameters 'step' and 'timestep' are not supported by the in-memory store."); 
+    }
+
     if (1.0D != sample) {
       throw new RuntimeException("Unsupported sample operation.");
     }

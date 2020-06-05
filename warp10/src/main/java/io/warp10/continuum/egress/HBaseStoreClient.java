@@ -160,7 +160,7 @@ public class HBaseStoreClient implements StoreClient {
   }
   
   @Override
-  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, long count, long skip, double sample, final boolean writeTimestamp, long preBoundary, long postBoundary) throws IOException {
+  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, long count, long skip, long step, long timestep, double sample, final boolean writeTimestamp, long preBoundary, long postBoundary) throws IOException {
 
     if (preBoundary < 0) {
       preBoundary = 0;
@@ -170,6 +170,14 @@ public class HBaseStoreClient implements StoreClient {
       postBoundary = 0;
     }
      
+    if (step < 1L) {
+      step = 1L;
+    }
+    
+    if (timestep < 1L) {
+      timestep = 1L;
+    }
+    
     if (sample <= 0.0D || sample > 1.0D) {
       sample = 1.0D;
     }
@@ -241,16 +249,21 @@ public class HBaseStoreClient implements StoreClient {
       optimized = false;
     }
     
+    // When having a step or timestep, the optimized scanners cannot be used either
+    if (-1L != step || -1L != timestep) {
+      optimized = false;
+    }
+    
     if (metadatas.size() < ParallelGTSDecoderIteratorWrapper.getMinGTSPerScanner() || !ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
       if (optimized) {
         //return new SlicedRowFilterGTSDecoderIterator(now, timespan, metadatas, this.conn, this.tableName, this.colfam, this.keystore, metadatas.size() <= blockcacheThreshold);
         long timespan = count > 0 ? -count : (now - then + 1);
         return new OptimizedSlicedRowFilterGTSDecoderIterator(now, timespan, metadatas, this.conn, this.tableName, this.colfam, writeTimestamp, this.keystore, metadatas.size() <= blockcacheThreshold);
       } else {
-        return new MultiScanGTSDecoderIterator(token, now, then, count, skip, sample, metadatas, this.conn, this.tableName, colfam, writeTimestamp, this.keystore, metadatas.size() < blockcacheThreshold, preBoundary, postBoundary);      
+        return new MultiScanGTSDecoderIterator(token, now, then, count, skip, step, timestep, sample, metadatas, this.conn, this.tableName, colfam, writeTimestamp, this.keystore, metadatas.size() < blockcacheThreshold, preBoundary, postBoundary);      
       }      
     } else {
-      return new ParallelGTSDecoderIteratorWrapper(optimized, token, now, then, count, skip, sample, metadatas, keystore, this.conn, this.tableName, this.colfam, writeTimestamp, metadatas.size() < blockcacheThreshold, preBoundary, postBoundary);
+      return new ParallelGTSDecoderIteratorWrapper(optimized, token, now, then, count, skip, step, timestep, sample, metadatas, keystore, this.conn, this.tableName, this.colfam, writeTimestamp, metadatas.size() < blockcacheThreshold, preBoundary, postBoundary);
     }
   }
 

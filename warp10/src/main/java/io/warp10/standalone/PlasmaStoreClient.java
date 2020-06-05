@@ -30,7 +30,7 @@ import java.util.List;
 public class PlasmaStoreClient implements StoreClient {
   private List<StandalonePlasmaHandlerInterface> plasmaHandlers = new ArrayList<StandalonePlasmaHandlerInterface>();
   @Override
-  public GTSDecoderIterator fetch(ReadToken token, List<Metadata> metadatas, long now, long then, long count, long skip, double sample, boolean writeTimestamp, final long preBoundary, final long postBoundary) {
+  public GTSDecoderIterator fetch(ReadToken token, List<Metadata> metadatas, long now, long then, long count, long skip, long step, long timestep, double sample, boolean writeTimestamp, final long preBoundary, final long postBoundary) {
     return null;
   }
   @Override
