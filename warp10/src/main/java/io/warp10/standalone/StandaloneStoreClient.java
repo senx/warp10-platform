@@ -361,28 +361,28 @@ public class StandaloneStoreClient implements StoreClient {
                 nextTimestamp = Long.MIN_VALUE;
               }
              
-// TODO(hbs): what heuristics should we consider to determine if we should seek or not?
-//              // If the timestep is above a threshold, seek to the new
-//              long rowts = Long.MAX_VALUE - nextTimestamp;
-//              // 128bits
-//              int offset = Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8;
-//              rowbuf[offset + 7] = (byte) (rowts & 0xFFL);
-//              rowts >>>= 8;
-//              rowbuf[offset + 6] = (byte) (rowts & 0xFFL);
-//              rowts >>>= 8;
-//              rowbuf[offset + 5] = (byte) (rowts & 0xFFL);
-//              rowts >>>= 8;
-//              rowbuf[offset + 4] = (byte) (rowts & 0xFFL);
-//              rowts >>>= 8;
-//              rowbuf[offset + 3] = (byte) (rowts & 0xFFL);
-//              rowts >>>= 8;
-//              rowbuf[offset + 2] = (byte) (rowts & 0xFFL);
-//              rowts >>>= 8;
-//              rowbuf[offset + 1] = (byte) (rowts & 0xFFL);
-//              rowts >>>= 8;
-//              rowbuf[offset] = (byte) (rowts & 0xFFL);
-//
-//              iterator.seek(rowbuf);
+              // TODO(hbs): should we apply a heuristics to determine if we should seek or not?
+
+              long rowts = Long.MAX_VALUE - nextTimestamp;
+              // 128bits
+              int offset = Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8;
+              rowbuf[offset + 7] = (byte) (rowts & 0xFFL);
+              rowts >>>= 8;
+              rowbuf[offset + 6] = (byte) (rowts & 0xFFL);
+              rowts >>>= 8;
+              rowbuf[offset + 5] = (byte) (rowts & 0xFFL);
+              rowts >>>= 8;
+              rowbuf[offset + 4] = (byte) (rowts & 0xFFL);
+              rowts >>>= 8;
+              rowbuf[offset + 3] = (byte) (rowts & 0xFFL);
+              rowts >>>= 8;
+              rowbuf[offset + 2] = (byte) (rowts & 0xFFL);
+              rowts >>>= 8;
+              rowbuf[offset + 1] = (byte) (rowts & 0xFFL);
+              rowts >>>= 8;
+              rowbuf[offset] = (byte) (rowts & 0xFFL);
+
+              iterator.seek(rowbuf);
             }
                         
             //
