@@ -428,6 +428,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
                   continue;
                 }
                 
+                // The timestamp is still after the one we expect
                 if (basets > nextTimestamp && !preBoundaryScan && !postBoundaryScan) {
                   continue;
                 }
@@ -443,6 +444,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
                   }                 
                 }
 
+                // We have not yet stepped over enough entries
                 if (steps > 0 && !preBoundaryScan && !postBoundaryScan) {
                   steps--;
                   continue;
