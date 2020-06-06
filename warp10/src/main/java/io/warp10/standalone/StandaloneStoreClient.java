@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -46,6 +46,7 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.GTSDecoderIterator;
 import io.warp10.continuum.store.StoreClient;
+import io.warp10.continuum.store.thrift.data.FetchRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
 import io.warp10.quasar.token.thrift.data.ReadToken;
@@ -88,8 +89,20 @@ public class StandaloneStoreClient implements StoreClient {
   }
   
   @Override
-  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, long count, long skip, long step, long timestep, double sample, boolean writeTimestamp, long preBoundary, long postBoundary) {
-
+  public GTSDecoderIterator fetch(FetchRequest req) {
+    final ReadToken token = req.getToken();
+    final List<Metadata> metadatas = req.getMetadatas();
+    final long now = req.getNow();
+    final long then = req.getThents();
+    long count = req.getCount();
+    long skip = req.getSkip();
+    long step = req.getSkip();
+    long timestep = req.getTimestep();
+    double sample = req.getSample();
+    long preBoundary = req.getPreBoundary();
+    long postBoundary = req.getPostBoundary();
+    final boolean writeTimestamp = req.isWriteTimestamp();
+    
     if (preBoundary < 0) {
       preBoundary = 0;
     }

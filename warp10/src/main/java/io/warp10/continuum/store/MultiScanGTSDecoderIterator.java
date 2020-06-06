@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.thrift.data.FetchRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
 import io.warp10.quasar.token.thrift.data.ReadToken;
@@ -102,28 +103,28 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
   private boolean hasStep = false;
   private boolean hasTimestep = false;
   
-  public MultiScanGTSDecoderIterator(ReadToken token, long now, long then, long count, long skip, long step, long timestep, double sample, List<Metadata> metadatas, Connection conn, TableName tableName, byte[] colfam, boolean writeTimestamp, KeyStore keystore, boolean useBlockcache, long preBoundary, long postBoundary) throws IOException {
+  public MultiScanGTSDecoderIterator(FetchRequest req, Connection conn, TableName tableName, byte[] colfam, KeyStore keystore, boolean useBlockcache) throws IOException {
     this.htable = conn.getTable(tableName);
-    this.metadatas = metadatas;
-    this.now = now;
-    this.then = then;
-    this.count = count;
-    this.skip = skip;
-    this.step = step;
+    this.metadatas = req.getMetadatas();
+    this.now = req.getNow();
+    this.then = req.getThents();
+    this.count = req.getCount();
+    this.skip = req.getSkip();
+    this.step = req.getStep();
     this.hasStep = step > 1L;
-    this.timestep = timestep;
+    this.timestep = req.getTimestep();
     this.hasTimestep = timestep > 1L;
-    this.sample = sample;
+    this.sample = req.getSample();
     this.useBlockcache = useBlockcache;
-    this.token = token;
+    this.token = req.getToken();
     this.colfam = colfam;
-    this.writeTimestamp = writeTimestamp;
+    this.writeTimestamp = req.isWriteTimestamp();
     this.hbaseKey = keystore.getKey(KeyStore.AES_HBASE_DATA);
 
     // If we are fetching up to Long.MIN_VALUE, then don't fetch a pre boundary
-    this.preBoundary = Long.MIN_VALUE == then ? 0 : preBoundary;
+    this.preBoundary = Long.MIN_VALUE == then ? 0L : req.getPreBoundary();
     // If now is Long.MAX_VALUE then there is no possibility to have a post boundary
-    this.postBoundary = postBoundary >= 0 && now < Long.MAX_VALUE ? postBoundary : 0;
+    this.postBoundary = req.getPostBoundary() >= 0L && now < Long.MAX_VALUE ? req.getPostBoundary() : 0L;
     
     this.postBoundaryScan = 0 != this.postBoundary;
     this.postBoundaryCount = this.postBoundary;

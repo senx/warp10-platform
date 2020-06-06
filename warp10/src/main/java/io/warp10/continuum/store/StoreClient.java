@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,14 +16,13 @@
 
 package io.warp10.continuum.store;
 
+import java.io.IOException;
+
 import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.store.thrift.data.FetchRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.standalone.StandalonePlasmaHandlerInterface;
-
-import java.io.IOException;
-import java.util.List;
 
 public interface StoreClient {
   public void store(GTSEncoder encoder) throws IOException;
@@ -45,6 +44,6 @@ public interface StoreClient {
    * @return
    * @throws IOException
    */
-  public GTSDecoderIterator fetch(ReadToken token, final List<Metadata> metadatas, final long now, final long then, long count, long skip, long step, long timestep, double sample, boolean writeTimestamp, final long preBoundary, final long postBoundary) throws IOException;
+  public GTSDecoderIterator fetch(FetchRequest req) throws IOException; //ReadToken token, final List<Metadata> metadatas, final long now, final long then, long count, long skip, long step, long timestep, double sample, boolean writeTimestamp, final long preBoundary, final long postBoundary) throws IOException;
   public void addPlasmaHandler(StandalonePlasmaHandlerInterface handler);
 }

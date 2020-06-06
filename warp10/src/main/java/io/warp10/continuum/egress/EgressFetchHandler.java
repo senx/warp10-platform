@@ -92,6 +92,7 @@ import io.warp10.continuum.store.GTSDecoderIterator;
 import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.DirectoryRequest;
+import io.warp10.continuum.store.thrift.data.FetchRequest;
 import io.warp10.continuum.store.thrift.data.GTSSplit;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.continuum.store.thrift.data.Metadata;
@@ -817,7 +818,21 @@ public class EgressFetchHandler extends AbstractHandler {
           //
           
           if (metas.size() > FETCH_BATCHSIZE || !itermeta.hasNext()) {
-            try(GTSDecoderIterator iterrsc = storeClient.fetch(rtoken, metas, now, then, count, skip, step, timestep, sample, false, preBoundary, postBoundary)) {
+            FetchRequest freq = new FetchRequest();
+            freq.setToken(rtoken);
+            freq.setMetadatas(metas);
+            freq.setNow(now);
+            freq.setThents(then);
+            freq.setCount(count);
+            freq.setSkip(skip);
+            freq.setStep(step);
+            freq.setTimestep(timestep);
+            freq.setSample(sample);
+            freq.setWriteTimestamp(false);
+            freq.setPreBoundary(preBoundary);
+            freq.setPostBoundary(postBoundary);
+
+            try(GTSDecoderIterator iterrsc = storeClient.fetch(freq)) {
               GTSDecoderIterator iter = iterrsc;
                           
               if (unpack) {

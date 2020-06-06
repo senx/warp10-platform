@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,50 +16,32 @@
 
 package io.warp10.continuum.egress;
 
-import io.warp10.continuum.Tokens;
-import io.warp10.continuum.gts.GTSDecoder;
-import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.gts.MetadataIdComparator;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.GTSDecoderIterator;
-import io.warp10.continuum.store.HBaseRegionKeys;
-import io.warp10.continuum.store.MultiScanGTSDecoderIterator;
-import io.warp10.continuum.store.OptimizedSlicedRowFilterGTSDecoderIterator;
-import io.warp10.continuum.store.ParallelGTSDecoderIteratorWrapper;
-import io.warp10.continuum.store.SlicedRowFilterGTSDecoderIterator;
-import io.warp10.continuum.store.Store;
-import io.warp10.continuum.store.StoreClient;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.KeyStore;
-import io.warp10.quasar.token.thrift.data.ReadToken;
-import io.warp10.quasar.token.thrift.data.WriteToken;
-import io.warp10.sensision.Sensision;
-import io.warp10.standalone.StandalonePlasmaHandlerInterface;
-
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.CellScanner;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.RegionLocator;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.Table;
+
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.gts.MetadataIdComparator;
+import io.warp10.continuum.store.GTSDecoderIterator;
+import io.warp10.continuum.store.HBaseRegionKeys;
+import io.warp10.continuum.store.MultiScanGTSDecoderIterator;
+import io.warp10.continuum.store.OptimizedSlicedRowFilterGTSDecoderIterator;
+import io.warp10.continuum.store.ParallelGTSDecoderIteratorWrapper;
+import io.warp10.continuum.store.StoreClient;
+import io.warp10.continuum.store.thrift.data.FetchRequest;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.KeyStore;
+import io.warp10.quasar.token.thrift.data.WriteToken;
+import io.warp10.standalone.StandalonePlasmaHandlerInterface;
 
 public class HBaseStoreClient implements StoreClient {
   
@@ -160,8 +142,19 @@ public class HBaseStoreClient implements StoreClient {
   }
   
   @Override
-  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, long count, long skip, long step, long timestep, double sample, final boolean writeTimestamp, long preBoundary, long postBoundary) throws IOException {
-
+  public GTSDecoderIterator fetch(FetchRequest req) throws IOException {
+    long preBoundary = req.getPreBoundary();
+    long postBoundary = req.getPostBoundary();
+    long step = req.getStep();
+    long timestep = req.getTimestep();
+    double sample = req.getSample();
+    long skip = req.getSkip();
+    long count = req.getCount();
+    long then = req.getThents();
+    List<Metadata> metadatas = req.getMetadatas();
+    long now = req.getNow();
+    boolean writeTimestamp = req.isWriteTimestamp();
+    
     if (preBoundary < 0) {
       preBoundary = 0;
     }
@@ -260,10 +253,34 @@ public class HBaseStoreClient implements StoreClient {
         long timespan = count > 0 ? -count : (now - then + 1);
         return new OptimizedSlicedRowFilterGTSDecoderIterator(now, timespan, metadatas, this.conn, this.tableName, this.colfam, writeTimestamp, this.keystore, metadatas.size() <= blockcacheThreshold);
       } else {
-        return new MultiScanGTSDecoderIterator(token, now, then, count, skip, step, timestep, sample, metadatas, this.conn, this.tableName, colfam, writeTimestamp, this.keystore, metadatas.size() < blockcacheThreshold, preBoundary, postBoundary);      
+        FetchRequest freq = new FetchRequest();
+        freq.setToken(req.getToken());
+        freq.setNow(now);
+        freq.setThents(then);
+        freq.setCount(count);
+        freq.setSkip(skip);
+        freq.setStep(step);
+        freq.setTimestep(timestep);
+        freq.setSample(sample);
+        freq.setMetadatas(metadatas);
+        freq.setPreBoundary(preBoundary);
+        freq.setPostBoundary(postBoundary);
+        return new MultiScanGTSDecoderIterator(freq, this.conn, this.tableName, colfam, this.keystore, metadatas.size() < blockcacheThreshold);      
       }      
     } else {
-      return new ParallelGTSDecoderIteratorWrapper(optimized, token, now, then, count, skip, step, timestep, sample, metadatas, keystore, this.conn, this.tableName, this.colfam, writeTimestamp, metadatas.size() < blockcacheThreshold, preBoundary, postBoundary);
+      FetchRequest freq = new FetchRequest();
+      freq.setToken(req.getToken());
+      freq.setNow(now);
+      freq.setThents(then);
+      freq.setCount(count);
+      freq.setSkip(skip);
+      freq.setStep(step);
+      freq.setTimestep(timestep);
+      freq.setSample(sample);
+      freq.setMetadatas(metadatas);
+      freq.setPreBoundary(preBoundary);
+      freq.setPostBoundary(postBoundary);
+      return new ParallelGTSDecoderIteratorWrapper(freq, optimized, keystore, this.conn, this.tableName, this.colfam, metadatas.size() < blockcacheThreshold);
     }
   }
 

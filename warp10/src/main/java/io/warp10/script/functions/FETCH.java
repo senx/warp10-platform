@@ -60,6 +60,7 @@ import io.warp10.continuum.store.GTSDecoderIterator;
 import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.DirectoryRequest;
+import io.warp10.continuum.store.thrift.data.FetchRequest;
 import io.warp10.continuum.store.thrift.data.MetaSet;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
@@ -509,7 +510,21 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         // Flag indicating the FETCH is a count only, no pre/post boundaries
         boolean countOnly = count >= 0 && 0 == preBoundary && 0 == postBoundary;
         
-        try (GTSDecoderIterator gtsiter = gtsStore.fetch(rtoken, metadatas, end, then, count, skip, step, timestep, sample, writeTimestamp, preBoundary, postBoundary)) {
+        FetchRequest req = new FetchRequest();
+        req.setToken(rtoken);
+        req.setMetadatas(metadatas);
+        req.setNow(end);
+        req.setThents(then);
+        req.setCount(count);
+        req.setSkip(skip);
+        req.setStep(step);
+        req.setTimestep(timestep);
+        req.setSample(sample);
+        req.setWriteTimestamp(writeTimestamp);
+        req.setPreBoundary(preBoundary);
+        req.setPostBoundary(postBoundary);
+        
+        try (GTSDecoderIterator gtsiter = gtsStore.fetch(req)) {
           while(gtsiter.hasNext()) {           
             GTSDecoder decoder = gtsiter.next();
             
