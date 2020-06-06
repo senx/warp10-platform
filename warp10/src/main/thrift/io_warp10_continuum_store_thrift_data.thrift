@@ -462,36 +462,56 @@ struct MetaSet {
 }
 
 struct FetchRequest {
+  /**
+   * Read token to use for fetching data
+   */
   1: optional io_warp10_quasar_token_thrift_data.ReadToken token,
+  /**
+   * List of Metadata describing the Geo Time Series to fetch
+   */
   2: optional list<Metadata> metadatas,
+  /**
+   * End timestamp (included)
+   */
   3: optional i64 now,
   /**
    * Start timestamp (included). We cannot use 'then' which is a reserved word.
    */
   4: optional i64 thents,
+  /**
+   * Number of data points to fetch.
+   * 0 is a valid value if you want to fetch only boundaries.
+   * Use -1 to specify you are not fetching by count.
+   */
   5: optional i64 count = -1,
+  /**
+   * Number of data points to skip before starting to return values.
+   */
   6: optional i64 skip = 0,
+  /**
+   * Index offset between two data points, defaults to 1, i.e. return every data point.
+   */
   7: optional i64 step = 1,
+  /**
+   * Minimum time offset between data points, expressed in time units. Defaults to 1.
+   */
   8: optional i64 timestep = 1,
+  /**
+   * Sampling rate.
+   * Use 1.0D for returning all values.
+   * Valid values are ( 0.0D, 1.0D ]
+   */
   9: optional double sample = 1.0,
+  /**
+   * Flag indicating to return the HBase cell timestamp instead of the value.
+   */
   10: optional bool writeTimestamp = false,
+  /**
+   * Size of the pre boundary in number of data points.
+   */
   11: optional i64 preBoundary = 0,
+  /**
+   * Size of the post boundary in number of data points.
+   */
   12: optional i64 postBoundary = 0,
 }
-
-  /**
-   * 
-   * @param token Read token to use for reading data
-   * @param metadatas List of Metadata for the GTS to fetch
-   * @param now End timestamp (included)
-   * @param then Start timestamp (included)
-   * @param count Number of datapoints to fetch. 0 is a valid value if you want to fetch only boundaries. Use -1 to specify you are not fetching by count.
-   * @param skip Number of datapoints to skip before returning values
-   * @param step Index offset between two datapoints, defaults to 1, i.e. return every data point
-   * @param timestep Minimum time offset between datapoints, defaults to 1 time unit
-   * @param sample Double value representing the sampling rate. Use 1.0D for returning all values. Valid values are ] 0.0D, 1.0D ]
-   * @param writeTimestamp Flag indicating we are interested in the HBase cell timestamp
-   * @param preBoundary Size of the pre boundary in number of values
-   * @param postBoundary Size of the post boundary in number of values
-   */
-
