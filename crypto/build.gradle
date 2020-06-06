@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,8 +14,6 @@
 //   limitations under the License.
 //
 
-archivesBaseName = 'crypto'
-version = getVersionName(warp10Version[archivesBaseName])
 //
 // Project dependencies
 //
@@ -29,23 +27,19 @@ dependencies {
     compile 'com.geoxp.oss:oss-client:1.0.0'
 }
 
-jar {
-    zip64 = true
-    manifest {
-        attributes(
-                "Implementation-Title": "Warp10-crypto",
-                "Implementation-Vendor": "Warp 10",
-                "Implementation-Version": version)
-    }
-}
+//
+// Set jar title
+//
+jar.manifest.attributes.put("Implementation-Title", "Warp10-crypto")
 
-publishing {
-    publications {
-        crypto(MavenPublication) {
-            from components.java
-            groupId 'io.warp10'
-            artifactId archivesBaseName
-            version version
-        }
+//
+// Configure bintray artifacts, repo and name.
+//
+bintray {
+    publications = ['maven']
+
+    pkg {
+        repo = 'maven'
+        name = 'warp10'
     }
 }

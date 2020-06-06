@@ -82,3 +82,6 @@ find ${WARP10_HOME} -type f \( -name "*.sh" -o -name "*.py" -o -name "*.init" \)
 
 # Build tar
 tar czpf ../build/libs/warp10-${VERSION}.tar.gz ${WARP10_HOME}
+
+# Delete ARCHIVE
+rm -rf ${ARCHIVE}

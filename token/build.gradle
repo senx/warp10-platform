@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -13,12 +13,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-
-archivesBaseName = 'token'
-version = getVersionName(warp10Version[archivesBaseName])
-
-// ---------------- Constants ----------------
-ext.thriftOutputDir = new File('token/src/generated/thrift')
 
 sourceSets {
     main {
@@ -39,28 +33,24 @@ dependencies {
     compile 'org.apache.thrift:libthrift:0.11.0'
 }
 
-jar {
-    zip64 = true
-    manifest {
-        attributes(
-                "Implementation-Title": "Warp10-token",
-                "Implementation-Vendor": "Warp 10",
-                "Implementation-Version": version)
-    }
-}
+//
+// Set jar title
+//
+jar.manifest.attributes.put("Implementation-Title", "Warp10-token")
 
-publishing {
-    publications {
-        token(MavenPublication) {
-            from components.java
-            groupId 'io.warp10'
-            artifactId archivesBaseName
-            version version
-        }
+//
+// Configure bintray artifacts, repo and name.
+//
+bintray {
+    publications = ['maven']
+
+    pkg {
+        repo = 'maven'
+        name = 'warp10'
     }
 }
 
 //
-// Compile task dependency
+// Tasks dependencies
 //
 compileJava.dependsOn generateThrift

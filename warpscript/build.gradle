@@ -14,19 +14,28 @@
 //   limitations under the License.
 //
 
-archivesBaseName = 'warpscript'
-group = 'io.warp10'
-version = updateRevision(getVersionName(warp10Version[archivesBaseName]))
+//
+// Define WarpScript dependencies for the POM file generation
+//
+ext {
+    // List of dependencies for Warpscript
+    mc2DepsList = []
 
+    // List of unique dependency names (index)
+    mc2DepsIndex = [] as Set
+
+    // List of dependencies required by Warpscript
+    requiredLibsMc2 = [ 'libthrift', 'bcprov-jdk16', 'commons-io', 'commons-codec', 'commons-lang3', 'commons-math3',\
+                        'compiler', 'core', 'curator-x-discovery', 'geoxplib', 'guava', 'hadoop-common', 'hadoop-mapreduce-client-core',\
+                        'java-merge-sort','joda-time', 'jtransforms', 'jts', 'oss-client', 'sensision', 'slf4j-api', 'pyrolite',\
+                        'jts2geojson', 'jackson-core', 'jackson-databind', 'jackson-annotations' ]
+}
+
+//
+// Define jar inclusion
+//
 jar {
-    zip64 = true
-
-    manifest {
-        attributes(
-                "Implementation-Title": "WarpScript",
-                "Implementation-Vendor": "Warp 10",
-                "Implementation-Version": version)
-    }
+    manifest.attributes.put("Implementation-Title", "WarpScript")
 
     from project(":warp10").sourceSets.main.output
     include('REVISION')
@@ -88,63 +97,76 @@ jar {
 
 }
 
+//
+// Customize POM filename
+//
 model {
-    tasks.generatePomFileForWarpscriptPublication {
+    tasks.generatePomFileForMavenPublication {
         destination = file("$buildDir/generated-pom.xml")
     }
 }
 
+//
+// Customize POM file in maven publication
+//
 publishing {
     publications {
-        warpscript(MavenPublication) {
-            from components.java
-            groupId 'io.warp10'
-            artifactId archivesBaseName
-            version version
+        maven(MavenPublication) {
             genPomForWarpscript(pom)
         }
     }
 }
 
-// DEPLOY ON MAVEN REPO WITH SCP
-uploadArchives {
-    repositories {
-        repositories.mavenDeployer {
-            configuration = configurations.deployerJars
-
-            repository(url: "scpexe://${warpScriptPublishURL}") {
-                authentication(userName: "${warpScriptPublishUser}")
-            }
-            genPomForWarpscript(pom)
-        }
-    }
-}
-
+//
+// Configure bintray artifacts, repo and name.
+//
 bintray {
-    dryRun = false
-
-    user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
-    key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
-
-    publications = ['warpscript']
-    publish = true
+    publications = ['maven']
 
     pkg {
         repo = 'maven'
-        name = 'warpscript'
-        userOrg = 'senx'
-        licenses = ['Apache-2.0']
-        vcsUrl = 'https://github.com/senx/warp10-platform.git'
-        version {
-            name = getVersionName(warp10Version['warpscript'])
-            released = new Date()
-            vcsTag = getVersionName(warp10Version['warpscript'])
+        name = project.name
+    }
+}
+
+//
+// Generate custom pom for WarpScript with the minimal dependencies
+//
+def genPomForWarpscript(Object pom) {
+    pom.withXml {
+        // compute the list of dependencies
+        project(":warp10").configurations.compile.resolvedConfiguration.firstLevelModuleDependencies.each {
+            directDep ->
+                addChildsToWarpscriptDeps(directDep)
+        }
+
+        def dependenciesNode = asNode().appendNode('dependencies')
+        mc2DepsList.each {
+            def dependencyNode = dependenciesNode.appendNode('dependency')
+            dependencyNode.appendNode('groupId', it.getModuleGroup())
+            dependencyNode.appendNode('artifactId', it.getModuleName())
+            dependencyNode.appendNode('version', it.getModuleVersion())
         }
     }
 }
 
 //
-// Tasks dependencies
+// Add the root dependency and all its children (transitive dependencies) to the list
 //
-uploadArchives.dependsOn jar
-bintrayUpload.dependsOn jar
+def addChildsToWarpscriptDeps (def pResolvedDependency) {
+
+    pResolvedDependency.children.each {
+        addChildsToWarpscriptDeps(it)
+    }
+
+    // Add the dependency and its children if it has not been seen before and if this dependency is required by Warpscript
+    String depName = pResolvedDependency.getModuleName()
+    if(!mc2DepsIndex.contains(depName) && isDepRequired(depName)) {
+        mc2DepsIndex << depName
+        mc2DepsList << pResolvedDependency
+    }
+}
+
+boolean isDepRequired(String currentDep ) {
+    return ext.requiredLibsMc2.any { currentDep.equalsIgnoreCase(it as String) }
+}

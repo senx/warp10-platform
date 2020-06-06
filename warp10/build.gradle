@@ -14,8 +14,10 @@
 //   limitations under the License.
 //
 
-archivesBaseName = 'warp10'
-version = updateRevision(getVersionName(warp10Version[archivesBaseName]))
+// Only the warp10 subproject uses changelog, so apply the plugin here.
+plugins {
+    id "com.selesse.git.changelog" version "0.3.0"
+}
 
 //
 // Configurations
@@ -23,9 +25,6 @@ version = updateRevision(getVersionName(warp10Version[archivesBaseName]))
 configurations {
     provided
 }
-
-// ---------------- Constants ----------------
-ext.thriftOutputDir = new File('warp10/src/generated/thrift')
 
 sourceSets {
     main {
@@ -126,26 +125,17 @@ dependencies {
     testCompile 'junit:junit:4.6'
 }
 
-jar {
+task pack(type: Jar) {
     zip64 = true
+    archiveAppendix = (null != System.getProperty('warp')) ? System.getProperty('warp') : ""
 
     manifest {
         attributes(
-                "Implementation-Title": "Warp 10",
-                "Implementation-Vendor": "SenX",
-                "Implementation-Version": version)
-    }
-}
-
-task pack(type: Jar) {
-    zip64 = true
-    ext.warpSuffixName = null != System.getProperty('warp') ? System.getProperty('warp') : ""
-    appendix = "${warpSuffixName}"
-
-    manifest {
-        attributes("Main-Class": "io.warp10.standalone.Warp")
-        attributes("Implementation-Title": "Warp 10")
-        attributes("Implementation-Version": version)
+            "Main-Class": "io.warp10.standalone.Warp",
+            "Implementation-Title": "Warp 10",
+            "Implementation-Vendor": "Warp 10",
+            "Implementation-Version": version
+        )
     }
 
     from files(sourceSets.main.output.classesDirs)
@@ -154,60 +144,43 @@ task pack(type: Jar) {
         configurations.compile.collect {
             it.isDirectory() ? it : zipTree(it).matching {
                 exclude { it.toString().contains('/servlet-api') }
-                exclude { it.toString().contains('jmh') }
                 exclude { it.toString().contains('junit') }
-                exclude { it.toString().contains('parquet') }
             }
         }
     } {
         exclude 'META-INF/*.DSA'
-        exclude 'META-INF/*.RSA'
         exclude 'about.html'
-        exclude 'about_files/**'
-        exclude 'plugin.properties'
         exclude 'jetty-dir.css'
     }
 }
 
+//
+// Exec task to create the Warp 10 tar.gz file
+//
 task createTarArchive(type: Exec, dependsOn: pack) {
     workingDir = '.'
-    commandLine = ["${workingDir}/src/main/sh/package.sh", getVersionName(warp10Version['warp10']), "${buildDir}/.."]
+    commandLine = ["${workingDir}/src/main/sh/package.sh", version, projectDir]
+    outputs.file "${buildDir}/libs/warp10-${version}.tar.gz"
 }
 
-publishing {
-    publications {
-        warp10(MavenPublication) {
-            artifact("${buildDir}/libs/warp10-${getVersionName(warp10Version['warp10'])}.tar.gz") {
-                extension = 'tar.gz'
-            }
-            groupId 'io.warp10'
-            artifactId archivesBaseName
-            version version
-        }
-    }
-}
+//
+// Set jar title
+//
+jar.manifest.attributes.put("Implementation-Title", "Warp 10")
 
+//
+// Configure bintray artifacts, repo and name.
+//
 bintray {
-    dryRun = false
-
-    user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
-    key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
-
-    publications = ['warp10']
-    publish = true
-
+    // Not uploaded to a maven repo, so just copy the jar.
+    filesSpec {
+        from createTarArchive
+        into project.group.replaceAll('\\.', '/') + "/$project.name/$project.version"
+    }
 
     pkg {
         repo = 'generic'
-        name = 'warp10'
-        userOrg = 'senx'
-        licenses = ['Apache-2.0']
-        vcsUrl = 'https://github.com/senx/warp10-platform.git'
-        version {
-            name = getVersionName(warp10Version['warp10'])
-            released = new Date()
-            vcsTag = getVersionName(warp10Version['warp10'])
-        }
+        name = project.name
     }
 }
 
@@ -262,18 +235,6 @@ changelog {
     includeLines = {
         !it.contains("Merge")
     }
-
-    // A closure that transforms a changelog String.
-    // Default value: the identity closure, { it }
-    //
-    // For example, to remove '[ci skip]' from the changelog messages:
-    //processLines = {
-    //    String input = it as String
-    //    if (input.contains('[ci skip] ')) {
-    //        input = input.minus('[ci skip] ')
-    //    }
-    //    input
-    //}
 }
 
 //
@@ -281,5 +242,3 @@ changelog {
 //
 compileJava.dependsOn generateThrift
 pack.dependsOn generateChangelog
-uploadArchives.dependsOn pack
-bintrayUpload.dependsOn createTarArchive
