@@ -18,13 +18,13 @@
 // Project dependencies
 //
 dependencies {
-    testCompile 'junit:junit:4.6'
+    testCompileOnly 'junit:junit:4.6'
     // UTILS
-    compile 'com.google.guava:guava:15.0'
+    api 'com.google.guava:guava:15.0'
     // CRYPTO JAVA PROVIDER
-    compile 'org.bouncycastle:bcprov-jdk16:1.46'
+    api 'org.bouncycastle:bcprov-jdk16:1.46'
     // OSS
-    compile 'com.geoxp.oss:oss-client:1.0.0'
+    api 'com.geoxp.oss:oss-client:1.0.0'
 }
 
 //

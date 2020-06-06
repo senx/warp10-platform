@@ -59,10 +59,9 @@ task checkPublicationState {
 def versionFromGit = getVersionFromGit()
 
 subprojects {
-    apply plugin: 'java'
+    apply plugin: 'java-library'
     apply plugin: 'eclipse'
     apply plugin: 'idea'
-    apply plugin: 'maven'
     apply plugin: 'maven-publish'
     apply plugin: 'com.jfrog.bintray'
 
@@ -177,7 +176,7 @@ subprojects {
             attributes(
                     // "Implementation-Title" to be set by each sub-project
                     "Implementation-Vendor": "Warp 10",
-                    "Implementation-Version": version)
+                    "Implementation-Version": project.version)
         }
     }
 

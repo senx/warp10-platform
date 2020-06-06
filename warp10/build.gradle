@@ -42,87 +42,87 @@ dependencies {
     //
     // io.warp10 dependencies
     //
-    compile project(':crypto')
-    compile project(':token')
-    compile 'io.warp10:sensision:1.0.21'
+    api project(':crypto')
+    api project(':token')
+    api 'io.warp10:sensision:1.0.21'
 
-    compile 'joda-time:joda-time:2.2'
-    compile 'org.apache.commons:commons-lang3:3.6'
-    compile 'org.apache.commons:commons-math3:3.6'
-    compile 'org.bouncycastle:bcprov-jdk16:1.46'
+    api 'joda-time:joda-time:2.2'
+    api 'org.apache.commons:commons-lang3:3.6'
+    api 'org.apache.commons:commons-math3:3.6'
+    api 'org.bouncycastle:bcprov-jdk16:1.46'
 
     //
     // Processing
     //
-    compile 'org.processing:core:3.0'
+    api 'org.processing:core:3.0'
 
     //
     // Commons CLI
     //
-    compile 'commons-cli:commons-cli:1.3.1'
+    api 'commons-cli:commons-cli:1.3.1'
 
     //
     // HBase 1.0.0
     //
-    compile 'org.apache.hbase:hbase-client:1.0.0'
-    compile 'org.apache.hbase:hbase-examples:1.0.0'
-    compile 'org.apache.hbase:hbase-common:1.0.0'
-    compile 'org.apache.hbase:hbase-protocol:1.0.0'
+    api 'org.apache.hbase:hbase-client:1.0.0'
+    api 'org.apache.hbase:hbase-examples:1.0.0'
+    api 'org.apache.hbase:hbase-common:1.0.0'
+    api 'org.apache.hbase:hbase-protocol:1.0.0'
 
-    compile 'org.eclipse.jetty:jetty-server:9.4.2.v20170220'
-    compile 'org.eclipse.jetty.websocket:websocket-server:9.4.2.v20170220'
-    compile 'org.eclipse.jetty.websocket:websocket-client:9.4.2.v20170220'
-    compile 'com.netflix.curator:curator-x-discovery:1.3.3'
-    compile 'com.fasterxml.jackson.core:jackson-databind:2.10.2'
-    compile 'org.slf4j:slf4j-api:1.7.5'
+    api 'org.eclipse.jetty:jetty-server:9.4.2.v20170220'
+    api 'org.eclipse.jetty.websocket:websocket-server:9.4.2.v20170220'
+    api 'org.eclipse.jetty.websocket:websocket-client:9.4.2.v20170220'
+    api 'com.netflix.curator:curator-x-discovery:1.3.3'
+    api 'com.fasterxml.jackson.core:jackson-databind:2.10.2'
+    api 'org.slf4j:slf4j-api:1.7.5'
 
     //
     // FFT
     //
-    compile 'com.github.rwl:jtransforms:2.4.0'
+    api 'com.github.rwl:jtransforms:2.4.0'
 
     //
     // Pyrolite
     //
-    compile 'net.razorvine:pyrolite:4.10'
+    api 'net.razorvine:pyrolite:4.10'
 
     //
     // LevelDB
     //
-    compile 'org.fusesource.leveldbjni:leveldbjni-all:1.8'
+    api 'org.fusesource.leveldbjni:leveldbjni-all:1.8'
     // https://mvnrepository.com/artifact/org.openlabtesting.leveldbjni/leveldbjni-linux64-aarch64
-    compile group: 'org.openlabtesting.leveldbjni', name: 'leveldbjni-linux64-aarch64', version: '1.8'
+    api group: 'org.openlabtesting.leveldbjni', name: 'leveldbjni-linux64-aarch64', version: '1.8'
 
-    compile 'org.iq80.leveldb:leveldb:0.12:uber'
+    api 'org.iq80.leveldb:leveldb:0.12:uber'
 
     //
     // Worf
     //
-    compile 'jline:jline:2.13'
+    api 'jline:jline:2.13'
 
     //
     // Mustache
     //
-    compile 'com.github.spullara.mustache.java:compiler:0.9.1'
+    api 'com.github.spullara.mustache.java:compiler:0.9.1'
 
     //
     // Geo
     //
-    compile 'com.geoxp:geoxplib:1.0.0'
-    compile("org.wololo:jts2geojson:0.10.0")
+    api 'com.geoxp:geoxplib:1.0.0'
+    api 'org.wololo:jts2geojson:0.10.0'
 
     //
     // Java Merge Sort
     //
-    compile 'com.fasterxml.util:java-merge-sort:1.0.0'
+    api 'com.fasterxml.util:java-merge-sort:1.0.0'
 
     // @see http://www.mail-archive.com/dev@kafka.apache.org/msg03829.html
-    compile("org.apache.kafka:kafka_2.11:0.8.2.2") {
+    api('org.apache.kafka:kafka_2.11:0.8.2.2') {
         exclude module: 'jms'
         exclude module: 'jmxtools'
         exclude module: 'jmxri'
     }
-    testCompile 'junit:junit:4.6'
+    testCompileOnly 'junit:junit:4.6'
 }
 
 task pack(type: Jar) {
@@ -134,14 +134,14 @@ task pack(type: Jar) {
             "Main-Class": "io.warp10.standalone.Warp",
             "Implementation-Title": "Warp 10",
             "Implementation-Vendor": "Warp 10",
-            "Implementation-Version": version
+            "Implementation-Version": project.version
         )
     }
 
     from files(sourceSets.main.output.classesDirs)
     from files(sourceSets.main.resources.srcDirs)
     from {
-        configurations.compile.collect {
+        configurations.compileClasspath.collect {
             it.isDirectory() ? it : zipTree(it).matching {
                 exclude { it.toString().contains('/servlet-api') }
                 exclude { it.toString().contains('junit') }
