@@ -211,6 +211,8 @@ public class HBaseStoreClient implements StoreClient {
 
     //
     // We cannot use SlicedRowFilterGTSDecoderIterator when fetching a pre or post boundary.
+    // We cannot use it also when requesting a given number of values WITH the use of
+    // either step/timestep/skip/sample.
     //
 
     boolean optimized = false;
@@ -218,8 +220,11 @@ public class HBaseStoreClient implements StoreClient {
     if (useHBaseFilter && metadatas.size() > this.hbaseFilterThreshold) {
       if (count > 0 && Long.MIN_VALUE == then) {
         // If we are fetching per count only (i.e. time range ends at Long.MIN_VALUE)
-        optimized = true;
-      } else if (-1 == count) {
+        // use the filter unless step/timestep/skip/sample are defined
+        if (step <= 1L && timestep <= 1L && 1.0D == sample && 0L == skip) {
+          optimized = true;
+        }
+      } else if (-1L == count) {
         // When not fetching by count but by time range, use the filter
         optimized = true;
       }
@@ -229,7 +234,6 @@ public class HBaseStoreClient implements StoreClient {
     if (preBoundary > 0 || postBoundary > 0) {
       optimized = false;
     }
-    
     
     if (metadatas.size() < ParallelGTSDecoderIteratorWrapper.getMinGTSPerScanner() || !ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
       if (optimized) {
