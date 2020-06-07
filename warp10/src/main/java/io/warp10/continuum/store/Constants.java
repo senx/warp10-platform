@@ -16,17 +16,14 @@
 
 package io.warp10.continuum.store;
 
-import io.warp10.WarpConfig;
-import io.warp10.continuum.Configuration;
-
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
+
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
 
 public class Constants {
   
