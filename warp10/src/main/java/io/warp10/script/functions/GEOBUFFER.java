@@ -36,6 +36,7 @@ public class GEOBUFFER extends NamedWarpScriptFunction implements WarpScriptStac
   private static final double DEFAULT_DISTANCE = 360.0D / (1852.0D * 360.0D * 60.0D);
   
   public static final String KEY_DIST = "dist";
+  public static final String KEY_MDIST = "mdist";
   public static final String KEY_PARAMS = "params";
   private static final String KEY_CAP = "cap";
   private static final String KEY_JOIN = "join";
@@ -63,7 +64,16 @@ public class GEOBUFFER extends NamedWarpScriptFunction implements WarpScriptStac
     
     Map<String,Object> buffer = new HashMap<String, Object>();
     
-    double distance = Double.parseDouble(String.valueOf(map.getOrDefault(KEY_DIST, DEFAULT_DISTANCE)));
+    double distance = DEFAULT_DISTANCE;
+    
+    if (map.containsKey(KEY_DIST)) {
+      distance = Double.parseDouble(String.valueOf(map.get(KEY_DIST)));
+    } else if (map.containsKey(KEY_MDIST)) {
+      distance = Double.parseDouble(String.valueOf(map.get(KEY_MDIST)));
+      // Convert in center angle in degrees
+      distance = distance * (360.0D / (1852.0D * 360.0D * 60.0D));
+    }
+    
     buffer.put(KEY_DIST, distance);
     
     int quadrantSegments = Integer.parseInt(String.valueOf(map.getOrDefault(KEY_SEGMENTS, BufferParameters.DEFAULT_QUADRANT_SEGMENTS)));
