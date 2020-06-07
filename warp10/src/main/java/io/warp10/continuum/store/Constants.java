@@ -467,6 +467,10 @@ public class Constants {
   public static final boolean DELETE_ACTIVITY_SUPPORT;
   
   static {
+    if (1 != Constants.DEFAULT_MODULUS) {
+      throw new RuntimeException("DEFAULT_MODULUS cannot be diffrent than 1.");
+    }
+    
     String tu = WarpConfig.getProperty(Configuration.WARP_TIME_UNITS);
   
     EXPOSE_OWNER_PRODUCER = "true".equals(WarpConfig.getProperty(Configuration.WARP10_EXPOSE_OWNER_PRODUCER));

@@ -175,8 +175,8 @@ public class HBaseStoreClient implements StoreClient {
       sample = 1.0D;
     }
     
-    if (skip < 0) {
-      skip = 0;
+    if (skip < 0L) {
+      skip = 0L;
     }
     
     if (count < -1L) {
@@ -210,16 +210,9 @@ public class HBaseStoreClient implements StoreClient {
     // applied in order and the results returned by calls to 'next'.
 
     //
-    // DON'T use SlicedRowFilterGTSDecoterIterator when using a value count based approach with a value of 'now'
-    // which is not congruent to 0 modulo DEFAULT_MODULUS, because we may then have datapoints after 'now' and would then
-    // need to do a full scan of every classId/labelsId in metadatas as the SlicedRowFilter does not interpret the read data
-    // and is thus unable to read the timestamp
-    // Don't use the filter when skip is > 0 or sample < 1.0D
+    // We cannot use SlicedRowFilterGTSDecoderIterator when fetching a pre or post boundary.
     //
-    // Only use SlicedRowFilter when not having a value count approach or when 'now' is congruent to 0 modulo DEFAULT_MODULUS
-    // or equal to Long.MAX_VALUE (EPOCHEND)
-    //
-    
+
     boolean optimized = false;
     
     if (useHBaseFilter && metadatas.size() > this.hbaseFilterThreshold) {
@@ -232,26 +225,27 @@ public class HBaseStoreClient implements StoreClient {
       }
     }
 
-    // If sampling or skipping, don't use the filter
-    if (0 != skip || 1.0D != sample) {
-      optimized = false;
-    }
-    
     // When fetching boundaries, the optimized scanners cannot be used
     if (preBoundary > 0 || postBoundary > 0) {
       optimized = false;
     }
     
-    // When having a step or timestep, the optimized scanners cannot be used either
-    if (-1L != step || -1L != timestep) {
-      optimized = false;
-    }
     
     if (metadatas.size() < ParallelGTSDecoderIteratorWrapper.getMinGTSPerScanner() || !ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
       if (optimized) {
-        //return new SlicedRowFilterGTSDecoderIterator(now, timespan, metadatas, this.conn, this.tableName, this.colfam, this.keystore, metadatas.size() <= blockcacheThreshold);
-        long timespan = count > 0 ? -count : (now - then + 1);
-        return new OptimizedSlicedRowFilterGTSDecoderIterator(now, timespan, metadatas, this.conn, this.tableName, this.colfam, writeTimestamp, this.keystore, metadatas.size() <= blockcacheThreshold);
+        FetchRequest freq = new FetchRequest(req);
+        freq.setToken(req.getToken());
+        freq.setNow(now);
+        freq.setThents(then);
+        freq.setCount(count);
+        freq.setSkip(skip);
+        freq.setStep(step);
+        freq.setTimestep(timestep);
+        freq.setSample(sample);
+        freq.setMetadatas(metadatas);
+        freq.setPreBoundary(preBoundary);
+        freq.setPostBoundary(postBoundary);
+        return new OptimizedSlicedRowFilterGTSDecoderIterator(freq, this.conn, this.tableName, this.colfam, this.keystore, metadatas.size() <= blockcacheThreshold);
       } else {
         FetchRequest freq = new FetchRequest();
         freq.setToken(req.getToken());

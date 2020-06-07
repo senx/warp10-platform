@@ -283,10 +283,6 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     //
 
     List<Metadata> metadatas = req.getMetadatas();
-    long count = req.getCount();
-    long now = req.getNow();
-    long then = req.getThents();
-    boolean writeTimestamp = req.isWriteTimestamp();
     
     int gtsPerScanner = (int) Math.max(MIN_GTS_PERSCANNER, Math.floor(metadatas.size() / MAX_PARALLEL_SCANNERS));
     
@@ -305,8 +301,9 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
         GTSDecoderIterator iterator = null;
         
         if (optimized) {
-          long timespan = count > 0 ? -count : now - then + 1;
-          iterator = new OptimizedSlicedRowFilterGTSDecoderIterator(now, timespan, metas, conn, tableName, colfam, writeTimestamp, keystore, useBlockCache);
+          FetchRequest freq = new FetchRequest(req);
+          freq.setMetadatas(metas);
+          iterator = new OptimizedSlicedRowFilterGTSDecoderIterator(freq, conn, tableName, colfam, keystore, useBlockCache);
         } else {
           FetchRequest freq = new FetchRequest(req);
           freq.setMetadatas(metas);
@@ -323,8 +320,9 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
       GTSDecoderIterator iterator = null;
       
       if (optimized) {
-        long timespan = count > 0 ? -count : now - then + 1;
-        iterator = new OptimizedSlicedRowFilterGTSDecoderIterator(now, timespan, metas, conn, tableName, colfam, writeTimestamp, keystore, useBlockCache);
+        FetchRequest freq = new FetchRequest(req);
+        freq.setMetadatas(metas);
+        iterator = new OptimizedSlicedRowFilterGTSDecoderIterator(freq, conn, tableName, colfam, keystore, useBlockCache);
       } else {
         FetchRequest freq = new FetchRequest(req);
         freq.setMetadatas(metas);
