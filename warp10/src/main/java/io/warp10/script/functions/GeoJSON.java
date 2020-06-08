@@ -83,10 +83,6 @@ public class GeoJSON extends NamedWarpScriptFunction implements WarpScriptStackF
       // Apply the buffer operation
       BufferOp bop = new BufferOp(geometry, (BufferParameters) buffer.get(GEOBUFFER.KEY_PARAMS));
       geometry = bop.getResultGeometry(((Double) buffer.get(GEOBUFFER.KEY_DIST)).doubleValue());
-      if (Boolean.TRUE.equals(buffer.get(GEOBUFFER.KEY_WKT))) {
-        stack.push(geometry.toText());
-        return stack;
-      }
     }
 
     //

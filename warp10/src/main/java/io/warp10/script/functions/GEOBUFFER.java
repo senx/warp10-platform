@@ -19,6 +19,15 @@ package io.warp10.script.functions;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.wololo.jts2geojson.GeoJSONReader;
+import org.wololo.jts2geojson.GeoJSONWriter;
+
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.io.ParseException;
+import com.vividsolutions.jts.io.WKBReader;
+import com.vividsolutions.jts.io.WKBWriter;
+import com.vividsolutions.jts.io.WKTReader;
+import com.vividsolutions.jts.operation.buffer.BufferOp;
 import com.vividsolutions.jts.operation.buffer.BufferParameters;
 
 import io.warp10.script.NamedWarpScriptFunction;
@@ -42,7 +51,10 @@ public class GEOBUFFER extends NamedWarpScriptFunction implements WarpScriptStac
   private static final String KEY_JOIN = "join";
   private static final String KEY_SEGMENTS = "segments";
   private static final String KEY_LIMIT = "limit";
+  public static final String KEY_WKB = "wkb";
   public static final String KEY_WKT = "wkt";
+  public static final String KEY_GEOJSON = "geojson";
+  public static final String KEY_SINGLESIDED = "singlesided";
   
   public GEOBUFFER(String name) {
     super(name);
@@ -102,11 +114,69 @@ public class GEOBUFFER extends NamedWarpScriptFunction implements WarpScriptStac
       mitreLimit = Double.parseDouble(String.valueOf(map.get(KEY_LIMIT)));
     }
     
-    buffer.put(KEY_WKT, Boolean.TRUE.equals(map.get(KEY_WKT)));
-    
     BufferParameters params = new BufferParameters(quadrantSegments, endCapStyle, joinStyle, mitreLimit);
-    buffer.put(KEY_PARAMS, params);
-    stack.setAttribute(ATTR_GEOBUFFER, buffer);
+
+    if (map.containsKey(KEY_SINGLESIDED)) {
+      params.setSingleSided(Boolean.TRUE.equals(map.get(KEY_SINGLESIDED)));
+    }
+
+    //
+    // If any of KEY_WKB, KEY_WKT or KEY_GEOJSON is set, simply compute buffer and output modified geometry definition
+    //
+    
+    if (map.get(KEY_WKB) instanceof byte[]) {
+      if (map.containsKey(KEY_WKT) || map.containsKey(KEY_GEOJSON)) {
+        throw new WarpScriptException(getName() + " only one of '" + KEY_WKB + "', '" + KEY_WKT + "' or '" + KEY_GEOJSON + "' can be specified.");
+      }
+      WKBReader reader = new WKBReader();
+
+      Geometry geometry = null;
+
+      try {
+        byte[] bytes = (byte[]) map.get(KEY_WKB);
+        geometry = reader.read(bytes);
+        BufferOp bop = new BufferOp(geometry, params);
+        geometry = bop.getResultGeometry(distance);
+        WKBWriter writer = new WKBWriter();
+        stack.push(writer.write(geometry));
+      } catch (ParseException pe) {
+        throw new WarpScriptException(pe);
+      }
+    } else if (map.get(KEY_WKT) instanceof String) {
+      if (map.containsKey(KEY_WKB) || map.containsKey(KEY_GEOJSON)) {
+        throw new WarpScriptException(getName() + " only one of '" + KEY_WKB + "', '" + KEY_WKT + "' or '" + KEY_GEOJSON + "' can be specified.");
+      }      
+      WKTReader reader = new WKTReader();
+      Geometry geometry = null;
+
+      try {
+        geometry = reader.read(((String) map.get(KEY_WKT)).toString());
+        BufferOp bop = new BufferOp(geometry, params);
+        geometry = bop.getResultGeometry(distance);
+        stack.push(geometry.toText());
+      } catch (ParseException pe) {
+        throw new WarpScriptException(pe);
+      }
+    } else if (map.get(KEY_GEOJSON) instanceof String) {
+      if (map.containsKey(KEY_WKT) || map.containsKey(KEY_WKB)) {
+        throw new WarpScriptException(getName() + " only one of '" + KEY_WKB + "', '" + KEY_WKT + "' or '" + KEY_GEOJSON + "' can be specified.");
+      }
+      GeoJSONReader reader = new GeoJSONReader();
+      Geometry geometry = null;
+
+      try {
+        geometry = reader.read((String) map.get(KEY_GEOJSON));
+        BufferOp bop = new BufferOp(geometry, params);
+        geometry = bop.getResultGeometry(distance);
+        GeoJSONWriter writer = new GeoJSONWriter();
+        stack.push(writer.write(geometry).toString());
+      } catch (UnsupportedOperationException uoe) {
+        throw new WarpScriptException(uoe);
+      }
+    } else {
+      buffer.put(KEY_PARAMS, params);
+      stack.setAttribute(ATTR_GEOBUFFER, buffer);      
+    }    
     
     return stack;
   }
