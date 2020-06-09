@@ -51,9 +51,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.warp10.json.GeoTimeSerieSerializer;
-import io.warp10.json.JsonUtils;
-import io.warp10.json.MetadataSerializer;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.thrift.TDeserializer;
@@ -100,6 +97,10 @@ import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
+import io.warp10.hadoop.Warp10InputFormat;
+import io.warp10.json.GeoTimeSerieSerializer;
+import io.warp10.json.JsonUtils;
+import io.warp10.json.MetadataSerializer;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.functions.FETCH;
@@ -203,9 +204,23 @@ public class EgressFetchHandler extends AbstractHandler {
       String postBoundaryParam = null;
 
       if (splitFetch) {
-        nowParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_NOW_HEADERX));
-        timespanParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TIMESPAN_HEADERX));
-        showErrorsParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_SHOW_ERRORS_HEADERX));
+        //
+        // Extract parameters from headers
+        //
+        startParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_START);
+        stopParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_STOP);
+        nowParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_NOW);
+        endParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_END);
+        timespanParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_TIMESPAN);
+        dedupParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_DEDUP);
+        showErrorsParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_SHOW_ERRORS);
+        countParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_COUNT);
+        skipParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_SKIP);
+        stepParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_STEP);
+        timestepParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_TIMESTEP);
+        sampleParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_SAMPLE);
+        preBoundaryParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_PREBOUNDARY);
+        postBoundaryParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_POSTBOUNDARY);
       } else {
         startParam = req.getParameter(Constants.HTTP_PARAM_START);
         stopParam = req.getParameter(Constants.HTTP_PARAM_STOP);
@@ -533,6 +548,8 @@ public class EgressFetchHandler extends AbstractHandler {
           }
         }      
       } else {
+        // split fetch
+        
         //
         // Add an iterator which reads splits from the request body
         //
@@ -647,7 +664,7 @@ public class EgressFetchHandler extends AbstractHandler {
         };
         
         iterators.add(iterator);
-      }
+      } // End of splitFetch block
          
       List<Metadata> metas = new ArrayList<Metadata>();
       metas.addAll(metadatas);
