@@ -370,6 +370,7 @@ public class WarpScriptLib {
   public static final String GEO_WKB_UNIFORM = "GEO.WKB.UNIFORM";
   
   public static final String TOGEOJSON = "->GEOJSON";
+  public static final String GEO_BUFFER = "GEO.BUFFER";
   public static final String GEO_JSON = "GEO.JSON";
   public static final String GEO_JSON_UNIFORM = "GEO.JSON.UNIFORM";
   public static final String GEO_INTERSECTION = "GEO.INTERSECTION";
@@ -1918,6 +1919,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_SOUTH_EAST, HHCODEFUNC.HHCodeAction.SOUTH_EAST));
     addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_SOUTH_WEST, HHCODEFUNC.HHCodeAction.SOUTH_WEST));
     addNamedWarpScriptFunction(new GEOREGEXP(GEO_REGEXP));
+    addNamedWarpScriptFunction(new GEOBUFFER(GEO_BUFFER));
     addNamedWarpScriptFunction(new GeoWKT(GEO_WKT, false));
     addNamedWarpScriptFunction(new GeoWKT(GEO_WKT_UNIFORM, true));
     addNamedWarpScriptFunction(new GeoWKB(GEO_WKB, false));
