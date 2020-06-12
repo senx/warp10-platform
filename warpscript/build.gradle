@@ -135,7 +135,7 @@ bintray {
 def genPomForWarpscript(Object pom) {
     pom.withXml {
         // compute the list of dependencies
-        project(":warp10").configurations.compile.resolvedConfiguration.firstLevelModuleDependencies.each {
+        project(":warp10").configurations.compileClasspath.resolvedConfiguration.firstLevelModuleDependencies.each {
             directDep ->
                 addChildsToWarpscriptDeps(directDep)
         }
