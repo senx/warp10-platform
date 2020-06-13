@@ -108,7 +108,15 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
    */
   private boolean inSecureMacro = false;
   
+  /**
+   * Current number of visible (not hidden) elements
+   */
   private int size = 0;
+  
+  /**
+   * Offset, 0 means no part of the stack is hidden, > 0 means 'offset' elements are hidden
+   */
+  private int offset = 0;
   
   private Object[] elements = new Object[32];
 
@@ -323,9 +331,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       throw new InformativeEmptyStackException();
     }
     
-    Object element = elements[size - 1];
+    Object element = elements[offset + size - 1];
     ensureCapacity(1);
-    elements[size++] = element;
+    elements[offset + size++] = element;
   }
 
   @Override
@@ -339,8 +347,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     int count = n;
     ensureCapacity(n);
     while (count > 0) {
-      Object o = elements[size - 1 - (n - 1)];
-      elements[size++] = o;
+      Object o = elements[offset + size - 1 - (n - 1)];
+      elements[offset + size++] = o;
       count--;
     }
   }
@@ -351,7 +359,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       throw new InformativeEmptyStackException();
     }
 
-    Object element = elements[size - 1];
+    Object element = elements[offset + size - 1];
     size--;
     
     return element;    
@@ -372,7 +380,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
     Object[] objects = new Object[n];
 
-    System.arraycopy(elements, size - n, objects, 0, n);
+    System.arraycopy(elements, offset + size - n, objects, 0, n);
 
     size -= n;
 
@@ -382,7 +390,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   @Override
   public void push(Object o) throws WarpScriptException {
     ensureCapacity(1);
-    elements[size++] = o;
+    elements[offset + size++] = o;
   }
   
   @Override
@@ -395,10 +403,10 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
         
-    Object top = elements[size - 1];
-    Object top2 = elements[size - 2];
-    elements[size - 1] = top2;
-    elements[size - 2] = top;
+    Object top = elements[offset + size - 1];
+    Object top2 = elements[offset + size - 2];
+    elements[offset + size - 1] = top2;
+    elements[offset + size - 2] = top;
   }
   
   @Override
@@ -407,7 +415,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       throw new InformativeEmptyStackException();
     }
 
-    return elements[size - 1];
+    return elements[offset + size - 1];
   }
   
   @Override
@@ -421,13 +429,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
     
-    Object tmp = elements[size - 1 - 2];
+    Object tmp = elements[offset + size - 1 - 2];
     
     for (int i = 0; i < 2; i++) {
-      elements[size - 1 - 2 + i] = elements[size - 1 - 2 + i + 1];
+      elements[offset + size - 1 - 2 + i] = elements[offset + size - 1 - 2 + i + 1];
     }
     
-    elements[size - 1] = tmp;
+    elements[offset + size - 1] = tmp;
   }
   
   @Override
@@ -438,13 +446,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
     
-    Object tmp = elements[size - 1 - (n - 1)];
+    Object tmp = elements[offset + size - 1 - (n - 1)];
     
     for (int i = 0; i < n - 1; i++) {
-      elements[size - 1 - (n - 1) + i] = elements[size - 1 - (n - 1) + i + 1];
+      elements[offset + size - 1 - (n - 1) + i] = elements[offset + size - 1 - (n - 1) + i + 1];
     }
     
-    elements[size - 1] = tmp;
+    elements[offset + size - 1] = tmp;
   }
   
   @Override
@@ -460,7 +468,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       throw new WarpScriptException("Invalid level.");
     }
     
-    return elements[size - 1 - n];
+    return elements[offset + size - 1 - n];
   }
   
   /**
@@ -1132,7 +1140,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       if (i < this.size) {
         sb.append(i + 1);
         sb.append(": ");
-        Object elt = this.elements[this.size - 1 - i];
+        Object elt = this.elements[offset + this.size - 1 - i];
         
         if (elt instanceof Object[]) {
           sb.append(Arrays.toString((Object[]) elt));
@@ -1156,8 +1164,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     }
       
     ensureCapacity(1);
-    Object o = elements[size - 1 - (n - 1)];
-    elements[size++] = o;
+    Object o = elements[offset + size - 1 - (n - 1)];
+    elements[offset + size++] = o;
   }
   
   @Override
@@ -1168,11 +1176,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
       
-    Object tmp = elements[size - 1];
+    Object tmp = elements[offset + size - 1];
     for (int i = 0; i < n - 1; i++) {
-      elements[size - 1 - i] = elements[size - 1 - (i + 1)];
+      elements[offset + size - 1 - i] = elements[offset + size - 1 - (i + 1)];
     }
-    elements[size - 1 - (n - 1)] = tmp;
+    elements[offset + size - 1 - (n - 1)] = tmp;
   }
   
   @Override
@@ -1577,11 +1585,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
   
   private void ensureCapacity(int n) throws WarpScriptException {
-    if (size + n < elements.length) {
+    if (offset + size + n < elements.length) {
       return;
     }
 
-    if (size + n > this.maxdepth) {
+    if (offset + size + n > this.maxdepth) {
       Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_STACKDEPTH_EXCEEDED, Sensision.EMPTY_LABELS, 1);
       throw new WarpScriptException("Stack depth would exceed set limit of " + this.maxdepth);
     }
@@ -1658,5 +1666,32 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   
   public void setFunctionMetrics(boolean state) {
     this.functionMetrics = state;
+  }
+  
+  @Override
+  public int hide(int count) {
+    if (0 == count) {
+      count = size;
+    } else if (count > size) {
+      count = size;
+    } else if (count < 0) {
+      count = 0;
+    }
+    offset += count;
+    size -= count;
+    return count;
+  }
+  
+  @Override
+  public void show(int count) {
+    if (0 == count) {
+      count = offset;
+    } else if (count > offset) {
+      count = offset;
+    } else if (count < 0) {
+      count = 0;
+    }
+    offset -= count;
+    size += count;    
   }
 }
