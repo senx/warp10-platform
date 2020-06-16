@@ -69,6 +69,12 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
 
     Object o = stack.pop();
 
+    HashMap<String, String> properties = new HashMap<String, String>();
+    if (o instanceof Map) {
+      properties = (HashMap<String, String>) o;
+      o = stack.pop();
+    }
+
     if (!(o instanceof String) && !(o instanceof List)) {
       throw new WarpScriptException(getName() + " expects a URL or list thereof on top of the stack.");
     }
@@ -144,12 +150,16 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
 
       try {
         conn = (HttpURLConnection) url.openConnection();
-        
+
         if (null != url.getUserInfo()) {
           String basicAuth = "Basic " + new String(Base64.encodeBase64String(url.getUserInfo().getBytes(StandardCharsets.UTF_8)));
-          conn.setRequestProperty ("Authorization", basicAuth);
+          properties.put("Authorization", basicAuth);
         }
-        
+
+        for (Map.Entry<String, String> prop: properties.entrySet()) {
+          conn.setRequestProperty(prop.getKey(), prop.getValue());
+        }
+
         conn.setDoInput(true);
         conn.setDoOutput(false);
         conn.setRequestMethod("GET");
