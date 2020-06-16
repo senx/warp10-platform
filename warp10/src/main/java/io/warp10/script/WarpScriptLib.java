@@ -462,6 +462,8 @@ public class WarpScriptLib {
   public static final String DUPN = "DUPN";
   public static final String DROP = "DROP";
   public static final String CLEAR = "CLEAR";
+  public static final String HIDE = "HIDE";
+  public static final String SHOW = "SHOW";
   public static final String CLEARDEFS = "CLEARDEFS";
   public static final String CLEARSYMBOLS = "CLEARSYMBOLS";
   public static final String DROPN = "DROPN";
@@ -1216,6 +1218,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new DUPN(DUPN));
     addNamedWarpScriptFunction(new SWAP(SWAP));
     addNamedWarpScriptFunction(new DROP(DROP));
+    addNamedWarpScriptFunction(new HIDE(HIDE));
+    addNamedWarpScriptFunction(new SHOW(SHOW));
     addNamedWarpScriptFunction(new SAVE(SAVE));
     addNamedWarpScriptFunction(new RESTORE(RESTORE));
     addNamedWarpScriptFunction(new CLEAR(CLEAR));
