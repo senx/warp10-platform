@@ -69,9 +69,9 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
 
     Object o = stack.pop();
 
-    HashMap<String, String> properties = new HashMap<String, String>();
+    Map<Object, Object> properties = new HashMap<Object, Object>();
     if (o instanceof Map) {
-      properties = (HashMap<String, String>) o;
+      properties = (Map<Object, Object>) o;
       o = stack.pop();
     }
 
@@ -156,8 +156,8 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
           properties.put("Authorization", basicAuth);
         }
 
-        for (Map.Entry<String, String> prop: properties.entrySet()) {
-          conn.setRequestProperty(prop.getKey(), prop.getValue());
+        for (Map.Entry<Object, Object> prop: properties.entrySet()) {
+          conn.setRequestProperty(String.valueOf(prop.getKey()), String.valueOf(prop.getValue()));
         }
 
         conn.setDoInput(true);
