@@ -455,18 +455,12 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         
         if (params.containsKey(PARAM_TIMESTEP)) {
           timestep = (long) params.get(PARAM_TIMESTEP);
-          if (timestep <= 1) {
-            throw new WarpScriptException(getName() + " parameter '" + PARAM_TIMESTEP + "' cannot be <= 1.");
-          }
         }
         
         if (params.containsKey(PARAM_STEP)) {
           step = (long) params.get(PARAM_STEP);
-          
-          if (timestep <= 1) {
-            throw new WarpScriptException(getName() + " parameter '" + PARAM_STEP + "' cannot be <= 1.");            
-          }
         }
+
         double sample = (double) params.getOrDefault(PARAM_SAMPLE, 1.0D);
         
         TYPE type = (TYPE) params.get(PARAM_TYPE);
@@ -1095,8 +1089,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
       long step = ((Long) o).longValue();
       
-      if (step < 0) {
-        throw new WarpScriptException(getName() + " Parameter '" + PARAM_STEP + "' must be >= 0.");
+      if (step < 1L) {
+        throw new WarpScriptException(getName() + " Parameter '" + PARAM_STEP + "' must be >= 1.");
       }
       params.put(PARAM_STEP, step);      
     }
@@ -1108,8 +1102,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
       long timestep = ((Long) o).longValue();
       
-      if (timestep < 0) {
-        throw new WarpScriptException(getName() + " Parameter '" + PARAM_TIMESTEP + "' must be >= 0.");
+      if (timestep < 1L) {
+        throw new WarpScriptException(getName() + " Parameter '" + PARAM_TIMESTEP + "' must be >= 1.");
       }
       params.put(PARAM_TIMESTEP, timestep);      
     }

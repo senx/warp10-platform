@@ -28,22 +28,22 @@ public interface StoreClient {
   public void store(GTSEncoder encoder) throws IOException;
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException;
   /**
-   * 
-   * @param token Read token to use for reading data
-   * @param metadatas List of Metadata for the GTS to fetch
-   * @param now End timestamp (included)
-   * @param then Start timestamp (included)
-   * @param count Number of datapoints to fetch. 0 is a valid value if you want to fetch only boundaries. Use -1 to specify you are not fetching by count.
-   * @param skip Number of datapoints to skip before returning values
-   * @param step Index offset between two datapoints, defaults to 1, i.e. return every data point
-   * @param timestep Minimum time offset between datapoints, defaults to 1 time unit
-   * @param sample Double value representing the sampling rate. Use 1.0D for returning all values. Valid values are ] 0.0D, 1.0D ]
-   * @param writeTimestamp Flag indicating we are interested in the HBase cell timestamp
-   * @param preBoundary Size of the pre boundary in number of values
-   * @param postBoundary Size of the post boundary in number of values
+   * @param req FetchRequest instance containing the following elements:
+   *   token Read token to use for reading data
+   *   metadatas List of Metadata for the GTS to fetch
+   *   now End timestamp (included)
+   *   thents Start timestamp (included)
+   *   count Number of datapoints to fetch. 0 is a valid value if you want to fetch only boundaries. Use -1 to specify you are not fetching by count.
+   *   skip Number of datapoints to skip before returning values
+   *   step Index offset between two datapoints, defaults to 1, i.e. return every data point
+   *   timestep Minimum time offset between datapoints, defaults to 1 time unit
+   *   sample Double value representing the sampling rate. Use 1.0D for returning all values. Valid values are ] 0.0D, 1.0D ]
+   *   writeTimestamp Flag indicating we are interested in the HBase cell timestamp
+   *   preBoundary Size of the pre boundary in number of values
+   *   postBoundary Size of the post boundary in number of values
    * @return
    * @throws IOException
    */
-  public GTSDecoderIterator fetch(FetchRequest req) throws IOException; //ReadToken token, final List<Metadata> metadatas, final long now, final long then, long count, long skip, long step, long timestep, double sample, boolean writeTimestamp, final long preBoundary, final long postBoundary) throws IOException;
+  public GTSDecoderIterator fetch(FetchRequest req) throws IOException;
   public void addPlasmaHandler(StandalonePlasmaHandlerInterface handler);
 }

@@ -140,11 +140,11 @@ public class StandaloneStoreClient implements StoreClient {
       throw new RuntimeException("No support for write timestamp retrieval.");
     }
     
-    if (step <= 1L) {
+    if (step < 1L) {
       step = 1L;
     }
     
-    if (timestep <= 1L) {
+    if (timestep < 1L) {
       timestep = 1L;
     }
     
@@ -369,9 +369,10 @@ public class StandaloneStoreClient implements StoreClient {
             //
             if (hasTimestep) {
               try {
-                nextTimestamp = Math.addExact(basets, -timestep);
+                nextTimestamp = Math.subtractExact(basets, timestep);
               } catch (ArithmeticException ae) {
                 nextTimestamp = Long.MIN_VALUE;
+                nvalues = 0L;
               }
              
               // TODO(hbs): should we apply a heuristics to determine if we should seek or not?
@@ -514,7 +515,7 @@ public class StandaloneStoreClient implements StoreClient {
             return false;
           }
 
-          // 128buts
+          // 128bits
           startrow = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
           ByteBuffer bb = ByteBuffer.wrap(startrow).order(ByteOrder.BIG_ENDIAN);
           bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);

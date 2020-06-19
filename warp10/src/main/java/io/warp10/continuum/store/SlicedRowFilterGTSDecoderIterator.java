@@ -101,9 +101,6 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
    */
   private Result pendingresult = null;
   
-  private static final byte[] ZERO_BYTES = Longs.toByteArray(0L);
-  private static final byte[] ONES_BYTES = Longs.toByteArray(0xffffffffffffffffL);
-  
   private static byte[] prefix = Constants.HBASE_RAW_DATA_KEY_PREFIX;
 
   private final boolean writeTimestamp;
@@ -136,7 +133,7 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
     this.timestep = this.hasTimestep ? req.getTimestep() : 1L;
     this.nextTimestamp = Long.MAX_VALUE;
     this.skip = req.getSkip();
-    this.nvalues = this.count > 0 ? this.count : Long.MAX_VALUE;
+    this.nvalues = this.count >= 0 ? this.count : Long.MAX_VALUE;
     this.hbaseAESKey = keystore.getKey(KeyStore.AES_HBASE_DATA);
     this.writeTimestamp = req.isWriteTimestamp();
     List<Metadata> metadatas = req.getMetadatas();
@@ -172,7 +169,7 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
       ranges.add(range);
     }
                 
-    SlicedRowFilter filter = new SlicedRowFilter(bounds, ranges, count > 0 ? count : Long.MAX_VALUE);
+    SlicedRowFilter filter = new SlicedRowFilter(bounds, ranges, count >= 0 ? count : Long.MAX_VALUE);
 
     //
     // Create scanner. The start key is the lower bound of the first range
@@ -298,7 +295,7 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
         //
         // Reset fetch parameters
         //
-        this.nvalues = this.count > 0 ? this.count : Long.MAX_VALUE;
+        this.nvalues = this.count >= 0 ? this.count : Long.MAX_VALUE;
         this.skip = this.request.getSkip();
         this.steps = this.hasStep ? this.request.getStep() - 1 : 0L;
         this.nextTimestamp = Long.MAX_VALUE;
@@ -376,7 +373,7 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
               // 'timestep' time units before the previous one we selected
               //
               
-              if (basets > nextTimestamp) {
+              if (timestamp > nextTimestamp) {
                 continue;
               }
 
@@ -385,9 +382,10 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
               //
               if (hasTimestep) {
                 try {
-                  nextTimestamp = Math.addExact(basets, -this.timestep);
+                  nextTimestamp = Math.subtractExact(timestamp, this.timestep);
                 } catch (ArithmeticException ae) {
                   nextTimestamp = Long.MIN_VALUE;
+                  nvalues = 0L;
                 }
               }
                           

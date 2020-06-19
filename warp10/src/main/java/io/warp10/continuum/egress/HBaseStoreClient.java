@@ -152,8 +152,6 @@ public class HBaseStoreClient implements StoreClient {
     long count = req.getCount();
     long then = req.getThents();
     List<Metadata> metadatas = req.getMetadatas();
-    long now = req.getNow();
-    boolean writeTimestamp = req.isWriteTimestamp();
     
     if (preBoundary < 0) {
       preBoundary = 0;
@@ -235,50 +233,25 @@ public class HBaseStoreClient implements StoreClient {
       optimized = false;
     }
     
+    FetchRequest freq = new FetchRequest(req);
+    freq.setCount(count);
+    freq.setSkip(skip);
+    freq.setStep(step);
+    freq.setTimestep(timestep);
+    freq.setSample(sample);
+    freq.setPreBoundary(preBoundary);
+    freq.setPostBoundary(postBoundary);
+
+    boolean useBlockCache = metadatas.size() <= blockcacheThreshold;
+
     if (metadatas.size() < ParallelGTSDecoderIteratorWrapper.getMinGTSPerScanner() || !ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
       if (optimized) {
-        FetchRequest freq = new FetchRequest(req);
-        freq.setToken(req.getToken());
-        freq.setNow(now);
-        freq.setThents(then);
-        freq.setCount(count);
-        freq.setSkip(skip);
-        freq.setStep(step);
-        freq.setTimestep(timestep);
-        freq.setSample(sample);
-        freq.setMetadatas(metadatas);
-        freq.setPreBoundary(preBoundary);
-        freq.setPostBoundary(postBoundary);
-        return new OptimizedSlicedRowFilterGTSDecoderIterator(freq, this.conn, this.tableName, this.colfam, this.keystore, metadatas.size() <= blockcacheThreshold);
+        return new OptimizedSlicedRowFilterGTSDecoderIterator(freq, this.conn, this.tableName, this.colfam, this.keystore, useBlockCache);
       } else {
-        FetchRequest freq = new FetchRequest();
-        freq.setToken(req.getToken());
-        freq.setNow(now);
-        freq.setThents(then);
-        freq.setCount(count);
-        freq.setSkip(skip);
-        freq.setStep(step);
-        freq.setTimestep(timestep);
-        freq.setSample(sample);
-        freq.setMetadatas(metadatas);
-        freq.setPreBoundary(preBoundary);
-        freq.setPostBoundary(postBoundary);
-        return new MultiScanGTSDecoderIterator(freq, this.conn, this.tableName, colfam, this.keystore, metadatas.size() < blockcacheThreshold);      
+        return new MultiScanGTSDecoderIterator(freq, this.conn, this.tableName, colfam, this.keystore, useBlockCache);      
       }      
     } else {
-      FetchRequest freq = new FetchRequest();
-      freq.setToken(req.getToken());
-      freq.setNow(now);
-      freq.setThents(then);
-      freq.setCount(count);
-      freq.setSkip(skip);
-      freq.setStep(step);
-      freq.setTimestep(timestep);
-      freq.setSample(sample);
-      freq.setMetadatas(metadatas);
-      freq.setPreBoundary(preBoundary);
-      freq.setPostBoundary(postBoundary);
-      return new ParallelGTSDecoderIteratorWrapper(freq, optimized, keystore, this.conn, this.tableName, this.colfam, metadatas.size() < blockcacheThreshold);
+      return new ParallelGTSDecoderIteratorWrapper(freq, optimized, keystore, this.conn, this.tableName, this.colfam, useBlockCache);
     }
   }
 

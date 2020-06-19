@@ -95,8 +95,8 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
   private long count = -1;
   private long skip = 0;
   private double sample = 1.0D;
-  private long step = -1L;
-  private long timestep = -1L;
+  private long step = 1L;
+  private long timestep = 1L;
   
   private long nextTimestamp = Long.MAX_VALUE;
   private long steps = 0L;
@@ -382,32 +382,18 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
 
           long basets = Long.MAX_VALUE;
           
-          if (1 == Constants.DEFAULT_MODULUS) {
-            byte[] data = cell.getRowArray();
-            int offset = cell.getRowOffset();
-            offset += Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8; // Add 'prefix' + 'classId' + 'labelsId' to row key offset
-            long delta = data[offset] & 0xFF;
-            delta <<= 8; delta |= (data[offset + 1] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 2] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 3] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 4] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 5] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 6] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 7] & 0xFFL);
-            basets -= delta;              
-          } else {
-            byte[] data = cell.getQualifierArray();
-            int offset = cell.getQualifierOffset();
-            long delta = data[offset] & 0xFFL;
-            delta <<= 8; delta |= (data[offset + 1] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 2] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 3] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 4] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 5] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 6] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 7] & 0xFFL);
-            basets -= delta;                            
-          }
+          byte[] data = cell.getRowArray();
+          int offset = cell.getRowOffset();
+          offset += Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8; // Add 'prefix' + 'classId' + 'labelsId' to row key offset
+          long delta = data[offset] & 0xFF;
+          delta <<= 8; delta |= (data[offset + 1] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 2] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 3] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 4] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 5] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 6] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 7] & 0xFFL);
+          basets -= delta;              
           
           byte[] value = cell.getValueArray();
           int valueOffset = cell.getValueOffset();
@@ -422,43 +408,47 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
                         
             if (preBoundaryScan || postBoundaryScan || (timestamp <= now && timestamp >= then)) {
               try {
-                // Skip
-                if (toskip > 0 && !preBoundaryScan && !postBoundaryScan) {
-                  toskip--;
-                  continue;
-                }
-                
-                // The timestamp is still after the one we expect
-                if (basets > nextTimestamp && !preBoundaryScan && !postBoundaryScan) {
-                  continue;
-                }
+                if (!preBoundaryScan && !postBoundaryScan) {
+                  // Skip
+                  if (toskip > 0) {
+                    toskip--;
+                    continue;
+                  }
 
-                //
-                // Compute the new value of nextTimestamp if timestep is set
-                //
-                if (hasTimestep) {
-                  try {
-                    nextTimestamp = Math.addExact(basets, -timestep);
-                  } catch (ArithmeticException ae) {
-                    nextTimestamp = Long.MIN_VALUE;
-                  }                 
-                }
+                  // The timestamp is still after the one we expect
+                  if (timestamp > nextTimestamp) {
+                    continue;
+                  }
+                  
+                  //
+                  // Compute the new value of nextTimestamp if timestep is set
+                  //
+                  if (hasTimestep) {
+                    try {
+                      nextTimestamp = Math.subtractExact(timestamp, timestep);
+                    } catch (ArithmeticException ae) {
+                      nextTimestamp = Long.MIN_VALUE;
+                      // set nvalues to 0 so we stop after the current value
+                      nvalues = 0L;
+                    }
+                  }
+                  
+                  // We have not yet stepped over enough entries
+                  if (steps > 0) {
+                    steps--;
+                    continue;
+                  }
+                  
+                  if (hasStep) {
+                    steps = step - 1L;
+                  }
 
-                // We have not yet stepped over enough entries
-                if (steps > 0 && !preBoundaryScan && !postBoundaryScan) {
-                  steps--;
-                  continue;
+                  // Sample if we have to
+                  if (1.0D != sample && prng.nextDouble() > sample) {
+                    continue;
+                  }                               
                 }
-                
-                if (hasStep) {
-                  steps = step - 1L;
-                }
-
-                // Sample if we have to
-                if (1.0D != sample && !preBoundaryScan && !postBoundaryScan && prng.nextDouble() > sample) {
-                  continue;
-                }                               
-                
+                                
                 if (writeTimestamp) {
                   encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), cell.getTimestamp() * Constants.TIME_UNITS_PER_MS);
                 } else {

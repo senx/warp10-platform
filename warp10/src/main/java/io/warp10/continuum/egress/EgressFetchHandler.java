@@ -60,6 +60,7 @@ import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.joda.time.Duration;
+import org.joda.time.DurationFieldType;
 import org.joda.time.Instant;
 import org.joda.time.MutablePeriod;
 import org.joda.time.Period;
@@ -103,6 +104,7 @@ import io.warp10.json.JsonUtils;
 import io.warp10.json.MetadataSerializer;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.functions.ADDDURATION;
 import io.warp10.script.functions.FETCH;
 import io.warp10.sensision.Sensision;
 import io.warp10.standalone.AcceleratorConfig;
@@ -345,33 +347,29 @@ public class EgressFetchHandler extends AbstractHandler {
       
       if (null != stepParam) {
         step = Long.parseLong(stepParam);
-        if (step <= 1) {
-          throw new WarpScriptException("Parameter '" + Constants.HTTP_PARAM_STEP + "' cannot be <= 1.");
+        if (step < 1) {
+          throw new WarpScriptException("Parameter '" + Constants.HTTP_PARAM_STEP + "' cannot be < 1.");
         }
       }
       
       if (null != timestepParam) {
         if (timestepParam.startsWith("P")) {
-          // Should be a ISO8601 duration
-          ReadWritablePeriod period = new MutablePeriod();
+          
+          ADDDURATION.ReadWritablePeriodWithSubSecondOffset periodWithSubSec = ADDDURATION.durationToPeriod(timestepParam);
+          
+          ReadWritablePeriod p = periodWithSubSec.getPeriod();
 
-          ISOPeriodFormat.standard().getParser().parseInto(period, timestepParam, 0, Locale.US);
-
-          Period p = period.toPeriod();
-
-          if (p.getMonths() != 0 || p.getYears() != 0) {
+          if (p.get(DurationFieldType.months()) != 0 || p.get(DurationFieldType.years()) != 0) {
             throw new WarpScriptException("No support for ambiguous durations containing years or months, please convert those to days.");
           }
 
-          Duration duration = p.toDurationFrom(new Instant());
-
-          timestep = duration.getMillis() * Constants.TIME_UNITS_PER_MS;
+          timestep = periodWithSubSec.getPeriod().toPeriod().toDurationFrom(new Instant()).getMillis() * Constants.TIME_UNITS_PER_MS + periodWithSubSec.getOffset();
         } else {
           timestep = Long.parseLong(timestepParam);
         }
         
-        if (timestep <= 1) {
-          throw new WarpScriptException("Parameter '" + Constants.HTTP_PARAM_TIMESTEP + "' cannot be <= 1.");
+        if (timestep < 1) {
+          throw new WarpScriptException("Parameter '" + Constants.HTTP_PARAM_TIMESTEP + "' cannot be < 1.");
         }
       }
       
