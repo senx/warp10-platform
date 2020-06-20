@@ -3604,7 +3604,7 @@ public class GTSHelper {
     // Loop over the tokens
     //
     
-    Map<String,String> result = new HashMap<String,String>(tokens.length);
+    Map<String,String> result = new LinkedHashMap<String,String>(tokens.length);
     
     for (String token: tokens) {
       

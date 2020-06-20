@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -219,6 +219,13 @@ plasma.frontend.websocket.maxmessagesize = 1048576
 //
 #warp.labels.maxsize = 2048
  
+//
+// Default priority order for matching labels when doing a FIND/FETCH.
+// Comma separated list of label names.
+// Defaults to .producer,.app,.owner
+//
+#warp.labels.priority =
+
 //
 // Maximum length of attributes (names + values) - Defaults to 8192
 //
