@@ -138,7 +138,7 @@ ingress.kafka.metadata.brokerlist = 127.0.0.1:9092
 //
 // Actual 'meta' topic
 //
-ingress.kafka.metadata.topic =  metadata   
+ingress.kafka.metadata.topic = metadata
 
 //
 // Key to use for computing MACs (128 bits in hex or OSS reference)
@@ -200,7 +200,7 @@ ingress.kafka.data.mac = hex:hhhhhh...
 //
 // Key to use for encrypting payloads (128/192/256 bits in hex or OSS reference) 
 //
-#ingress.kafka.data.aes = 
+#ingress.kafka.data.aes = hex:hhhhhh...
 
 //
 // Maximum message size for the 'data' topic
@@ -215,7 +215,7 @@ ingress.kafka.metadata.maxsize = 900000
 //
 // Kafka broker list for the throttling topic
 //
-#ingress.kafka.throttling.brokerlist = 
+#ingress.kafka.throttling.brokerlist = 127.0.0.1:9092
   
 //
 // Optional client id to use when producing messages in the throttling topic
@@ -235,7 +235,7 @@ ingress.kafka.metadata.maxsize = 900000
 //
 // ZK connect string for the throttling kafka cluster
 //
-#ingress.kafka.throttling.zkconnect = 
+#ingress.kafka.throttling.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
   
 //
 // Client id to use when consuming the throttling topic

@@ -255,7 +255,7 @@ directory.hbase.filter = false
 //
 // Kafka client id to use for consuming the metadata topic
 //
-//directory.kafka.metadata.consumer.clientid =
+#directory.kafka.metadata.consumer.clientid =
 
 //
 // ZooKeeper port for HBase client

@@ -52,9 +52,9 @@ plasma.frontend.kafka.commitperiod = 1000
 plasma.frontend.kafka.nthreads = 2
 
 //
-// Optional AES key for messages in Kafka
+// Key for encrypting messages in Kafka (128/192/256 bits in hex or OSS reference)
 //
-#plasma.frontend.kafka.aes = 
+#plasma.frontend.kafka.aes = hex:hhhhhh...
 
 //
 // ZooKeeper connect String for subscription
@@ -107,9 +107,9 @@ plasma.frontend.websocket.maxmessagesize = 1048576
 plasma.frontend.idle.timout = 300000
 
 //
-// SipHash key for computing MACs of Kafka messages
+// SipHash key for computing MACs of Kafka messages (128 bits in hex or OSS reference)
 //
-plasma.frontend.kafka.mac = hex:hhhh...
+plasma.frontend.kafka.mac = hex:hhhhhh...
 
 plasma.frontend.subscribe.delay = 5000
 
@@ -131,7 +131,7 @@ plasma.backend.kafka.in.mac = hex:hhhhhh...
 //
 // Key to use for encrypting payloads (128/192/256 bits in hex or OSS reference) 
 //
-#plasma.backend.kafka.in.aes = 
+#plasma.backend.kafka.in.aes = hex:hhhhhh...
 
 //
 // Kafka group id with which to consume the in topic
@@ -166,7 +166,7 @@ plasma.backend.kafka.out.mac = hex:hhhhhh...
 //
 // Key to use for encrypting payloads (128/192/256 bits in hex or OSS reference) 
 //
-#plasma.backend.kafka.out.aes = 
+#plasma.backend.kafka.out.aes = hex:hhhhhh...
 
 //
 // ZooKeeper Quorum for the ZK ensemble to use for retrieving subscriptions
@@ -181,24 +181,24 @@ plasma.backend.subscriptions.znode = /zk/warp/localhost/plasma
 //
 // Kafka client id to use for the data consumer
 //
-//plasma.frontend.kafka.consumer.clientid =
+#plasma.frontend.kafka.consumer.clientid =
 
 //
 // Kafka client id to use for the data consumer
 //
-//plasma.backend.kafka.in.consumer.clientid =
+#plasma.backend.kafka.in.consumer.clientid =
 
 //
 // Kafka client id to use for the data producer towards the frontends
 //
-//plasma.backend.kafka.out.producer.clientid =
+#plasma.backend.kafka.out.producer.clientid =
 
 //
 // Name of partition assignment strategy to use
 //
-//plasma.backend.kafka.in.consumer.partition.assignment.strategy = 
+#plasma.backend.kafka.in.consumer.partition.assignment.strategy =
 
 //
 // Name of partition assignment strategy to use
 //
-//plasma.frontend.kafka.consumer.partition.assignment.strategy = 
+#plasma.frontend.kafka.consumer.partition.assignment.strategy =

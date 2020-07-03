@@ -64,7 +64,7 @@
 //
 // Specific namespace under which to load an extension. The specified namespace will be used as a prefix for all functions of the extension.
 //
-//warpscript.namespace.package.class = namespace.
+#warpscript.namespace.package.class = namespace.
 
 //
 // MacroValueEncoder

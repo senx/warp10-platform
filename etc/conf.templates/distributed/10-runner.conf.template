@@ -69,9 +69,9 @@ runner.scanperiod = 60000
 runner.endpoint = http://127.0.0.1:8881/api/v0/exec/warpscript
 
 //
-// AES key for wrapping a runner nonce which can later be extracted using RUNNERNONCE
+// Key for wrapping a runner nonce which can later be extracted using RUNNERNONCE (128/192/256 bits in hex or OSS reference)
 //
-//runner.psk = hex:......
+#runner.psk = hex:hhhhhh...
 
 //
 // Minimum period at which a script can be scheduled. Any script scheduled
@@ -115,26 +115,26 @@ runner.kafka.nthreads = 1
 runner.kafka.commitperiod = 1000
 
 //
-// Key for integrity checks
+// Key to use for computing MACs (128 bits in hex or OSS reference)
 //
 runner.kafka.mac = hex:hhhhhh...
 
 //
-// Key for encryption of scripts on topic
+// Key for encryption of scripts on topic (128/192/256 bits in hex or OSS reference)
 //
-#runner.kafka.aes = 
+#runner.kafka.aes = hex:hhhhhh...
 
 //
 // Kafka client id to use for the producer
 //
-//runner.kafka.producer.clientid =
+#runner.kafka.producer.clientid =
 
 //
 // Kafka client id to use for the consumer
 //
-//runner.kafka.consumer.clientid =
+#runner.kafka.consumer.clientid =
 
 //
 // Name of partition assignment strategy to use
 //
-//runner.kafka.consumer.partition.assignment.strategy = 
+#runner.kafka.consumer.partition.assignment.strategy =
