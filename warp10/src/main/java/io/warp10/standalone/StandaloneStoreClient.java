@@ -96,7 +96,7 @@ public class StandaloneStoreClient implements StoreClient {
     final long then = req.getThents();
     long count = req.getCount();
     long skip = req.getSkip();
-    long step = req.getSkip();
+    long step = req.getStep();
     long timestep = req.getTimestep();
     double sample = req.getSample();
     long preBoundary = req.getPreBoundary();

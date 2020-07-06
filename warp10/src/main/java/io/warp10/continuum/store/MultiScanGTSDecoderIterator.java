@@ -242,7 +242,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     
     nvalues = count >= 0 ? count : Long.MAX_VALUE;
     toskip = skip;
-    steps = hasStep ? step - 1L : 0L;
+    steps = 0L;
     nextTimestamp = Long.MAX_VALUE;
     
     Scan scan = new Scan();

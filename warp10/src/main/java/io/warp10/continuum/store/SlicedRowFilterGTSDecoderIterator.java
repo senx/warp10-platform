@@ -290,16 +290,16 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
       // update the metadata
       //      
       if ((encoder.getClassId() != metadata.getClassId() || encoder.getLabelsId() != metadata.getLabelsId())) {
-        // Save result in pendingresult as we have not yet read the associated cells
-        this.pendingresult = result;
         //
         // Reset fetch parameters
         //
         this.nvalues = this.count >= 0 ? this.count : Long.MAX_VALUE;
         this.skip = this.request.getSkip();
-        this.steps = this.hasStep ? this.request.getStep() - 1 : 0L;
+        this.steps = 0L;
         this.nextTimestamp = Long.MAX_VALUE;
         if (encoder.size() > 0) {
+          // Save result in pendingresult as we have not yet read the associated cells
+          this.pendingresult = result;
           return encoder.getDecoder();
         }
       }
