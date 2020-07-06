@@ -889,7 +889,12 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       if (map.containsKey(PARAM_COUNT)) {
         throw new WarpScriptException(getName() + " cannot be given both '" + PARAM_COUNT + "' and negative '" + PARAM_TIMESPAN + "'.");
       } else {
-        map.put(PARAM_COUNT, -(long) map.get(PARAM_TIMESPAN));
+        long timespan = (long) map.get(PARAM_TIMESPAN);
+        // Make sure negation will be positive
+        if (Long.MIN_VALUE == timespan) {
+          timespan++; // It's ok to modify by one the count of points when fetching -Long.MIN_VALUE points
+        }
+        map.put(PARAM_COUNT, -timespan);
         map.remove(PARAM_TIMESPAN);
       }
     }

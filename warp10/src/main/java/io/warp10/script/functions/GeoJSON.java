@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,6 +18,11 @@ package io.warp10.script.functions;
 
 import com.geoxp.GeoXPLib;
 import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.operation.buffer.BufferOp;
+import com.vividsolutions.jts.operation.buffer.BufferParameters;
+
+import java.util.Map;
+
 import org.wololo.jts2geojson.GeoJSONReader;
 
 import io.warp10.script.NamedWarpScriptFunction;
@@ -65,6 +70,19 @@ public class GeoJSON extends NamedWarpScriptFunction implements WarpScriptStackF
       geometry = reader.read((String) geoJson);
     } catch (UnsupportedOperationException uoe) {
       throw new WarpScriptException(uoe);
+    }
+
+    //
+    // Apply buffer if defined
+    //
+    Map<Object,Object> buffer = (Map<Object,Object>) stack.getAttribute(GEOBUFFER.ATTR_GEOBUFFER);
+    
+    if (null != buffer) {
+      // Clear the buffer
+      stack.setAttribute(GEOBUFFER.ATTR_GEOBUFFER, null);
+      // Apply the buffer operation
+      BufferOp bop = new BufferOp(geometry, (BufferParameters) buffer.get(GEOBUFFER.KEY_PARAMS));
+      geometry = bop.getResultGeometry(((Double) buffer.get(GEOBUFFER.KEY_DIST)).doubleValue());
     }
 
     //
