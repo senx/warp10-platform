@@ -28,9 +28,11 @@ dependencies {
 }
 
 //
-// Set jar title
+// Set jars title
 //
-jar.manifest.attributes.put("Implementation-Title", "Warp10-crypto")
+tasks.withType(Jar) {
+    manifest.attributes.put("Implementation-Title", "Warp10-crypto")
+}
 
 //
 // Configure bintray artifacts, repo and name.

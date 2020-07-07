@@ -14,10 +14,17 @@
 //   limitations under the License.
 //
 
-jar {
+//
+// Set jars title and class inclusion/exclusion
+//
+tasks.withType(Jar) {
     manifest.attributes.put("Implementation-Title", "HBase Filters")
 
-    from project(':warp10').sourceSets.main.output
+    if('sources' == classifier) {
+        from project(':warp10').sourceSets.main.allSource
+    } else {
+        from project(':warp10').sourceSets.main.output
+    }
     include 'org/apache/hadoop/hbase/filter/**'
 }
 

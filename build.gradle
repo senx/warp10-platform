@@ -167,9 +167,17 @@ subprojects {
     }
 
     //
+    // Sources jar
+    //
+    task sourcesJar(type: Jar) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    //
     // Common jar conf
     //
-    jar {
+    tasks.withType(Jar) {
         zip64 = true
 
         manifest {
