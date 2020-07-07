@@ -344,16 +344,15 @@ public class Tokens {
    * those, thus leading potentially to data exposure
    * 
    */
-  public static Map<String,String> labelSelectorsFromReadToken(ReadToken rtoken) {
+  public static LinkedHashMap<String,String> labelSelectorsFromReadToken(ReadToken rtoken) {
     
-    Map<String,String> labelSelectors = new LinkedHashMap<String,String>();
+    LinkedHashMap<String,String> labelSelectors = new LinkedHashMap<String,String>();
     
     List<String> owners = new ArrayList<String>();
     List<String> producers = new ArrayList<String>();
-    Map<String, String> labels = new LinkedHashMap<String, String>();
 
     if (rtoken.getLabelsSize() > 0) {
-      labels = rtoken.getLabels();
+      Map<String,String> labels = rtoken.getLabels();
       if (!labels.isEmpty()) {
         for (Map.Entry<String, String> entry : labels.entrySet()) {
           switch (entry.getKey()) {

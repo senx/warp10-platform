@@ -381,7 +381,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
             sel.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
 
             // Re-order the labels
-            Map<String,String> ordered = new LinkedHashMap<String,String>(labelSelectors.size());
+            Map<String,String> ordered = new LinkedHashMap<String,String>(null != labelSelectors ? labelSelectors.size() : 1);
             for (String label: order) {
               if (sel.containsKey(label)) {
                 ordered.put(label, sel.get(label));

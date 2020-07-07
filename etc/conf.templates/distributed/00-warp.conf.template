@@ -139,13 +139,6 @@ warp.components =
 #warp.labels.maxsize = 2048
 
 //
-// Default priority order for matching labels when doing a FIND/FETCH.
-// Comma separated list of label names.
-// Defaults to .producer,.app,.owner
-//
-#warp.labels.priority =
-  
-//
 // Maximum length of attributes (names + values) - Defaults to 8192
 //
 #warp.attributes.maxsize = 8192

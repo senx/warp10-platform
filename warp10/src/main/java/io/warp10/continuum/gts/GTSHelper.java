@@ -3592,7 +3592,7 @@ public class GTSHelper {
    * @param selectors Selectors following the syntax NAME&lt;TYPE&gt;VALUE,NAME&lt;TYPE&gt;VALUE,... to be parsed.
    * @return A map from label name to selector.
    */
-  public static final Map<String,String> parseLabelsSelectors(String selectors) throws ParseException {
+  public static final LinkedHashMap<String,String> parseLabelsSelectors(String selectors) throws ParseException {
     //
     // Split selectors on ',' boundaries
     //
@@ -3604,7 +3604,7 @@ public class GTSHelper {
     // Loop over the tokens
     //
     
-    Map<String,String> result = new LinkedHashMap<String,String>(tokens.length);
+    LinkedHashMap<String,String> result = new LinkedHashMap<String,String>(tokens.length);
     
     for (String token: tokens) {
       

@@ -220,3 +220,10 @@ warpscript.runner.bootstrap.period = 120000
 // allow C style block comments. /**** valid block comment ****/
 //
 warpscript.comments.loose = true
+
+//
+// Default priority order for matching labels when doing a FIND/FETCH.
+// Comma separated list of label names.
+// Defaults to .producer,.app,.owner
+//
+#warp.labels.priority =

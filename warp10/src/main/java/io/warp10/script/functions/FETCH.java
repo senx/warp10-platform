@@ -359,7 +359,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
             ordered.put(entry.getKey(), entry.getValue());
           }
 
-          lblsSels.add((Map<String,String>) ordered);
+          lblsSels.add(ordered);
         }
       } else {
         clsSels.add(params.get(PARAM_CLASS).toString());
@@ -375,10 +375,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         if (params.containsKey(PARAM_LABELS_PRIORITY)) {
           order = (List<String>) params.get(PARAM_LABELS_PRIORITY);
         } else {
-          order = new ArrayList<String>(3);
-          order.add(Constants.PRODUCER_LABEL);
-          order.add(Constants.APPLICATION_LABEL);
-          order.add(Constants.OWNER_LABEL);
+          order = FIND.DEFAULT_LABELS_PRIORITY;
         }
         Map<String,String> ordered = new LinkedHashMap<String,String>(labelSelectors.size());
         for (String label: order) {
