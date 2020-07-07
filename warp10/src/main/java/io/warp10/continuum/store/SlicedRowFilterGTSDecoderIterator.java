@@ -127,7 +127,7 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
     this.hasSample = this.sample < 1.0D;
     this.prng = hasSample ? new Random() : null;
     this.hasStep = req.getStep() > 1L;
-    this.steps = req.getStep() - 1L;
+    this.steps = 0L;
     this.step = hasStep ? req.getStep() : 1L;
     this.hasTimestep = req.getTimestep() > 1L;
     this.timestep = this.hasTimestep ? req.getTimestep() : 1L;

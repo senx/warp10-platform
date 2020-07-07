@@ -140,7 +140,7 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
     final long then = req.getThents();
     final long count = req.getCount();
     final long skip = req.getSkip();
-    long step = req.getSkip();
+    long step = req.getStep();
     long timestep = req.getTimestep();
     final double sample = req.getSample();
     final long preBoundary = req.getPreBoundary();
