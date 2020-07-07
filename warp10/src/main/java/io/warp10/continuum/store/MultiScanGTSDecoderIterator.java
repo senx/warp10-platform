@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.thrift.data.FetchRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
 import io.warp10.quasar.token.thrift.data.ReadToken;
@@ -94,25 +95,36 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
   private long count = -1;
   private long skip = 0;
   private double sample = 1.0D;
+  private long step = 1L;
+  private long timestep = 1L;
   
-  public MultiScanGTSDecoderIterator(ReadToken token, long now, long then, long count, long skip, double sample, List<Metadata> metadatas, Connection conn, TableName tableName, byte[] colfam, boolean writeTimestamp, KeyStore keystore, boolean useBlockcache, long preBoundary, long postBoundary) throws IOException {
+  private long nextTimestamp = Long.MAX_VALUE;
+  private long steps = 0L;
+  private boolean hasStep = false;
+  private boolean hasTimestep = false;
+  
+  public MultiScanGTSDecoderIterator(FetchRequest req, Connection conn, TableName tableName, byte[] colfam, KeyStore keystore, boolean useBlockcache) throws IOException {
     this.htable = conn.getTable(tableName);
-    this.metadatas = metadatas;
-    this.now = now;
-    this.then = then;
-    this.count = count;
-    this.skip = skip;
-    this.sample = sample;
+    this.metadatas = req.getMetadatas();
+    this.now = req.getNow();
+    this.then = req.getThents();
+    this.count = req.getCount();
+    this.skip = req.getSkip();
+    this.step = req.getStep();
+    this.hasStep = step > 1L;
+    this.timestep = req.getTimestep();
+    this.hasTimestep = timestep > 1L;
+    this.sample = req.getSample();
     this.useBlockcache = useBlockcache;
-    this.token = token;
+    this.token = req.getToken();
     this.colfam = colfam;
-    this.writeTimestamp = writeTimestamp;
+    this.writeTimestamp = req.isWriteTimestamp();
     this.hbaseKey = keystore.getKey(KeyStore.AES_HBASE_DATA);
 
     // If we are fetching up to Long.MIN_VALUE, then don't fetch a pre boundary
-    this.preBoundary = Long.MIN_VALUE == then ? 0 : preBoundary;
+    this.preBoundary = Long.MIN_VALUE == then ? 0L : req.getPreBoundary();
     // If now is Long.MAX_VALUE then there is no possibility to have a post boundary
-    this.postBoundary = postBoundary >= 0 && now < Long.MAX_VALUE ? postBoundary : 0;
+    this.postBoundary = req.getPostBoundary() >= 0L && now < Long.MAX_VALUE ? req.getPostBoundary() : 0L;
     
     this.postBoundaryScan = 0 != this.postBoundary;
     this.postBoundaryCount = this.postBoundary;
@@ -230,6 +242,8 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     
     nvalues = count >= 0 ? count : Long.MAX_VALUE;
     toskip = skip;
+    steps = 0L;
+    nextTimestamp = Long.MAX_VALUE;
     
     Scan scan = new Scan();
     
@@ -361,39 +375,25 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
           Cell cell = cscanner.current();
       
           cellCount++;
-          
+
           //
           // Extract timestamp base from row key
           //
 
           long basets = Long.MAX_VALUE;
           
-          if (1 == Constants.DEFAULT_MODULUS) {
-            byte[] data = cell.getRowArray();
-            int offset = cell.getRowOffset();
-            offset += Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8; // Add 'prefix' + 'classId' + 'labelsId' to row key offset
-            long delta = data[offset] & 0xFF;
-            delta <<= 8; delta |= (data[offset + 1] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 2] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 3] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 4] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 5] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 6] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 7] & 0xFFL);
-            basets -= delta;              
-          } else {
-            byte[] data = cell.getQualifierArray();
-            int offset = cell.getQualifierOffset();
-            long delta = data[offset] & 0xFFL;
-            delta <<= 8; delta |= (data[offset + 1] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 2] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 3] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 4] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 5] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 6] & 0xFFL);
-            delta <<= 8; delta |= (data[offset + 7] & 0xFFL);
-            basets -= delta;                            
-          }
+          byte[] data = cell.getRowArray();
+          int offset = cell.getRowOffset();
+          offset += Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8; // Add 'prefix' + 'classId' + 'labelsId' to row key offset
+          long delta = data[offset] & 0xFF;
+          delta <<= 8; delta |= (data[offset + 1] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 2] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 3] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 4] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 5] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 6] & 0xFFL);
+          delta <<= 8; delta |= (data[offset + 7] & 0xFFL);
+          basets -= delta;              
           
           byte[] value = cell.getValueArray();
           int valueOffset = cell.getValueOffset();
@@ -408,17 +408,47 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
                         
             if (preBoundaryScan || postBoundaryScan || (timestamp <= now && timestamp >= then)) {
               try {
-                // Skip
-                if (toskip > 0 && !preBoundaryScan && !postBoundaryScan) {
-                  toskip--;
-                  continue;
+                if (!preBoundaryScan && !postBoundaryScan) {
+                  // Skip
+                  if (toskip > 0) {
+                    toskip--;
+                    continue;
+                  }
+
+                  // The timestamp is still after the one we expect
+                  if (timestamp > nextTimestamp) {
+                    continue;
+                  }
+                  
+                  //
+                  // Compute the new value of nextTimestamp if timestep is set
+                  //
+                  if (hasTimestep) {
+                    try {
+                      nextTimestamp = Math.subtractExact(timestamp, timestep);
+                    } catch (ArithmeticException ae) {
+                      nextTimestamp = Long.MIN_VALUE;
+                      // set nvalues to 0 so we stop after the current value
+                      nvalues = 0L;
+                    }
+                  }
+                  
+                  // We have not yet stepped over enough entries
+                  if (steps > 0) {
+                    steps--;
+                    continue;
+                  }
+                  
+                  if (hasStep) {
+                    steps = step - 1L;
+                  }
+
+                  // Sample if we have to
+                  if (1.0D != sample && prng.nextDouble() > sample) {
+                    continue;
+                  }                               
                 }
-                
-                // Sample if we have to
-                if (1.0D != sample && !preBoundaryScan && !postBoundaryScan && prng.nextDouble() > sample) {
-                  continue;
-                }
-                
+                                
                 if (writeTimestamp) {
                   encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), cell.getTimestamp() * Constants.TIME_UNITS_PER_MS);
                 } else {

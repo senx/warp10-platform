@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
@@ -50,9 +51,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.warp10.json.GeoTimeSerieSerializer;
-import io.warp10.json.JsonUtils;
-import io.warp10.json.MetadataSerializer;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.thrift.TDeserializer;
@@ -61,8 +59,15 @@ import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.joda.time.Duration;
+import org.joda.time.DurationFieldType;
+import org.joda.time.Instant;
+import org.joda.time.MutablePeriod;
+import org.joda.time.Period;
+import org.joda.time.ReadWritablePeriod;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
+import org.joda.time.format.ISOPeriodFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,6 +90,7 @@ import io.warp10.continuum.store.GTSDecoderIterator;
 import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.DirectoryRequest;
+import io.warp10.continuum.store.thrift.data.FetchRequest;
 import io.warp10.continuum.store.thrift.data.GTSSplit;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.continuum.store.thrift.data.Metadata;
@@ -92,8 +98,13 @@ import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
+import io.warp10.hadoop.Warp10InputFormat;
+import io.warp10.json.GeoTimeSerieSerializer;
+import io.warp10.json.JsonUtils;
+import io.warp10.json.MetadataSerializer;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.functions.ADDDURATION;
 import io.warp10.script.functions.FETCH;
 import io.warp10.sensision.Sensision;
 import io.warp10.standalone.AcceleratorConfig;
@@ -173,6 +184,8 @@ public class EgressFetchHandler extends AbstractHandler {
       long then = Long.MIN_VALUE;
       long count = -1;
       long skip = 0;
+      long step = 1L;
+      long timestep = 1L;
       double sample = 1.0D;
       long preBoundary = 0;
       long postBoundary = 0;
@@ -186,14 +199,30 @@ public class EgressFetchHandler extends AbstractHandler {
       String showErrorsParam = null;
       String countParam = null;
       String skipParam = null;
+      String stepParam = null;
+      String timestepParam = null;
       String sampleParam = null;
       String preBoundaryParam = null;
       String postBoundaryParam = null;
 
       if (splitFetch) {
-        nowParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_NOW_HEADERX));
-        timespanParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TIMESPAN_HEADERX));
-        showErrorsParam = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_SHOW_ERRORS_HEADERX));
+        //
+        // Extract parameters from headers
+        //
+        startParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_START);
+        stopParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_STOP);
+        nowParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_NOW);
+        endParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_END);
+        timespanParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_TIMESPAN);
+        dedupParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_DEDUP);
+        showErrorsParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_SHOW_ERRORS);
+        countParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_COUNT);
+        skipParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_SKIP);
+        stepParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_STEP);
+        timestepParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_TIMESTEP);
+        sampleParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_SAMPLE);
+        preBoundaryParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_PREBOUNDARY);
+        postBoundaryParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_POSTBOUNDARY);
       } else {
         startParam = req.getParameter(Constants.HTTP_PARAM_START);
         stopParam = req.getParameter(Constants.HTTP_PARAM_STOP);
@@ -204,6 +233,8 @@ public class EgressFetchHandler extends AbstractHandler {
         showErrorsParam = req.getParameter(Constants.HTTP_PARAM_SHOW_ERRORS);
         countParam = req.getParameter(Constants.HTTP_PARAM_COUNT);
         skipParam = req.getParameter(Constants.HTTP_PARAM_SKIP);
+        stepParam = req.getParameter(Constants.HTTP_PARAM_STEP);
+        timestepParam = req.getParameter(Constants.HTTP_PARAM_TIMESTEP);
         sampleParam = req.getParameter(Constants.HTTP_PARAM_SAMPLE);
         preBoundaryParam = req.getParameter(Constants.HTTP_PARAM_PREBOUNDARY);
         postBoundaryParam = req.getParameter(Constants.HTTP_PARAM_POSTBOUNDARY);
@@ -312,6 +343,34 @@ public class EgressFetchHandler extends AbstractHandler {
       
       if (null != skipParam) {
         skip = Long.parseLong(skipParam);        
+      }
+      
+      if (null != stepParam) {
+        step = Long.parseLong(stepParam);
+        if (step < 1) {
+          throw new WarpScriptException("Parameter '" + Constants.HTTP_PARAM_STEP + "' cannot be < 1.");
+        }
+      }
+      
+      if (null != timestepParam) {
+        if (timestepParam.startsWith("P")) {
+          
+          ADDDURATION.ReadWritablePeriodWithSubSecondOffset periodWithSubSec = ADDDURATION.durationToPeriod(timestepParam);
+          
+          ReadWritablePeriod p = periodWithSubSec.getPeriod();
+
+          if (p.get(DurationFieldType.months()) != 0 || p.get(DurationFieldType.years()) != 0) {
+            throw new WarpScriptException("No support for ambiguous durations containing years or months, please convert those to days.");
+          }
+
+          timestep = periodWithSubSec.getPeriod().toPeriod().toDurationFrom(new Instant()).getMillis() * Constants.TIME_UNITS_PER_MS + periodWithSubSec.getOffset();
+        } else {
+          timestep = Long.parseLong(timestepParam);
+        }
+        
+        if (timestep < 1) {
+          throw new WarpScriptException("Parameter '" + Constants.HTTP_PARAM_TIMESTEP + "' cannot be < 1.");
+        }
       }
       
       if (null != sampleParam) {
@@ -487,6 +546,8 @@ public class EgressFetchHandler extends AbstractHandler {
           }
         }      
       } else {
+        // split fetch
+        
         //
         // Add an iterator which reads splits from the request body
         //
@@ -601,7 +662,7 @@ public class EgressFetchHandler extends AbstractHandler {
         };
         
         iterators.add(iterator);
-      }
+      } // End of splitFetch block
          
       List<Metadata> metas = new ArrayList<Metadata>();
       metas.addAll(metadatas);
@@ -772,7 +833,21 @@ public class EgressFetchHandler extends AbstractHandler {
           //
           
           if (metas.size() > FETCH_BATCHSIZE || !itermeta.hasNext()) {
-            try(GTSDecoderIterator iterrsc = storeClient.fetch(rtoken, metas, now, then, count, skip, sample, false, preBoundary, postBoundary)) {
+            FetchRequest freq = new FetchRequest();
+            freq.setToken(rtoken);
+            freq.setMetadatas(metas);
+            freq.setNow(now);
+            freq.setThents(then);
+            freq.setCount(count);
+            freq.setSkip(skip);
+            freq.setStep(step);
+            freq.setTimestep(timestep);
+            freq.setSample(sample);
+            freq.setWriteTimestamp(false);
+            freq.setPreBoundary(preBoundary);
+            freq.setPostBoundary(postBoundary);
+
+            try(GTSDecoderIterator iterrsc = storeClient.fetch(freq)) {
               GTSDecoderIterator iter = iterrsc;
                           
               if (unpack) {
