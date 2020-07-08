@@ -69,7 +69,8 @@ egress.idle.timeout = 300000
 egress.zk.quorum = 127.0.0.1:2181
 
 //
-// Key to use for encrypting data in HBase (128/192/256 bits in hex or OSS reference) 
+// 128/192/256 bits AES key for encrypting data in HBase.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 #egress.hbase.data.aes = hex:hhhhhh...
 
@@ -109,7 +110,8 @@ egress.fetch.batchsize = 10000
 egress.hbase.filter = true
 
 //
-// Key to use for encrypting GTSSplit instances (128/192/256 bits in hex or OSS reference)
+// 128/192/256 bits AES key for encrypting GTSSplit instances.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 #egress.fetcher.aes = hex:hhhhhh...
 

@@ -52,7 +52,8 @@ plasma.frontend.kafka.commitperiod = 1000
 plasma.frontend.kafka.nthreads = 2
 
 //
-// Key for encrypting messages in Kafka (128/192/256 bits in hex or OSS reference)
+// 128/192/256 bits AES key for encrypting frontend messages in Kafka.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 #plasma.frontend.kafka.aes = hex:hhhhhh...
 
@@ -107,7 +108,7 @@ plasma.frontend.websocket.maxmessagesize = 1048576
 plasma.frontend.idle.timout = 300000
 
 //
-// SipHash key for computing MACs of Kafka messages (128 bits in hex or OSS reference)
+// 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 plasma.frontend.kafka.mac = hex:hhhhhh...
 
@@ -124,12 +125,13 @@ plasma.backend.kafka.in.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
 plasma.backend.kafka.in.topic = data
 
 //
-// Key to use for computing MACs (128 bits in hex or OSS reference)
+// 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 plasma.backend.kafka.in.mac = hex:hhhhhh...
 
 //
-// Key to use for encrypting payloads (128/192/256 bits in hex or OSS reference) 
+// 128/192/256 bits AES key for encrypting backend messages in Kafka.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 #plasma.backend.kafka.in.aes = hex:hhhhhh...
 
@@ -159,12 +161,13 @@ plasma.backend.kafka.out.brokerlist = 127.0.0.1:9092
 plasma.backend.kafka.out.maxsize = 500000
 
 //
-// Key to use for computing MACs (128 bits in hex or OSS reference)
+// 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 plasma.backend.kafka.out.mac = hex:hhhhhh...
 
 //
-// Key to use for encrypting payloads (128/192/256 bits in hex or OSS reference) 
+// 128/192/256 bits AES key for encrypting backend messages in Kafka.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 #plasma.backend.kafka.out.aes = hex:hhhhhh...
 

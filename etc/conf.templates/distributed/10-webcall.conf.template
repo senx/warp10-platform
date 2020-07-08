@@ -46,12 +46,13 @@ webcall.kafka.brokerlist = 127.0.0.1:9092
 webcall.kafka.topic = webcall
 
 //
-// Key to use for encrypting WebCall requests (128/192/256 bits in hex or OSS reference)
+// 128/192/256 bits AES key for encrypting WebCall requests in Kafka.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 #webcall.kafka.aes = hex:hhhhhh...
 
 //
-// SipHash key to use for computing WebCall requests HMACs
+// 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 #webcall.kafka.mac = hex:hhhhhh...
 

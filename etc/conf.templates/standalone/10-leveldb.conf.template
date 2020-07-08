@@ -56,18 +56,21 @@ leveldb.data.syncrate = 1.0
 leveldb.directory.syncrate = 1.0
 
 //
-// Key to use for wrapping metadata prior to storage in leveldb (128/192/256 bits in hex or OSS reference)
+// 128/192/256 bits AES key for encrypting metadata prior to storage in LevelDB.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 #leveldb.metadata.aes = hex:hhhhhh...
 
 //
-// Key to use for wrapping datapoints prior to storage in leveldb (128/192/256 bits in hex or OSS reference)
+// 128/192/256 bits AES key for encrypting data prior to storage in LevelDB.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 #leveldb.data.aes = hex:hhhhhh...
 
 //
 // @deprecated
-// Key to use for storing index details in leveldb (128/192/256 bits in hex or OSS reference)
+// 128/192/256 bits AES key for encrypting index details in in LevelDB.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 #leveldb.index.aes = hex:hhhhhh...
 

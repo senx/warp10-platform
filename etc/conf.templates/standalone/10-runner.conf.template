@@ -43,9 +43,10 @@ runner.roles = standalone
 #runner.endpoint = http://127.0.0.1:8881/api/v0/exec/warpscript
 
 //
-// Key for wrapping a runner nonce which can later be extracted using RUNNERNONCE (128/192/256 bits in hex or OSS reference)
+// 128/192/256 bits AES key for wrapping a runner nonce which can later be extracted using RUNNERNONCE.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-#runner.psk = hex:hhhhhh..
+#runner.psk = hex:hhhhhh...
 
 //
 // Root directory under which scripts to run reside.

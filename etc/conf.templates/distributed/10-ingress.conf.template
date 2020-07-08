@@ -141,12 +141,13 @@ ingress.kafka.metadata.brokerlist = 127.0.0.1:9092
 ingress.kafka.metadata.topic = metadata
 
 //
-// Key to use for computing MACs (128 bits in hex or OSS reference)
+// 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 ingress.kafka.metadata.mac = hex:hhhhhh...
 
 //
-// Key to use for encrypting payloads (128/192/256 bits in hex or OSS reference)
+// 128/192/256 bits AES key for encrypting metadata in Kafka.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 ingress.kafka.metadata.aes = hex:hhhhhh...
 
@@ -193,12 +194,13 @@ ingress.kafka.data.poolsize = 2
 ingress.kafka.metadata.poolsize = 2
 
 //
-// Key to use for computing MACs (128 bits in hex or OSS reference)
+// 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 ingress.kafka.data.mac = hex:hhhhhh...
 
 //
-// Key to use for encrypting payloads (128/192/256 bits in hex or OSS reference) 
+// 128/192/256 bits AES key for encrypting data in Kafka.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 #ingress.kafka.data.aes = hex:hhhhhh...
 
