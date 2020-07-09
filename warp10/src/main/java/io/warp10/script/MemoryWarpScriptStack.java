@@ -1258,6 +1258,14 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     
     if (WarpScriptStack.ATTRIBUTE_MAX_DEPTH.equals(key)) {
       this.maxdepth = ((Number) value).intValue();
+      // Check if the underlying array is already bigger than the requested maximum depth
+      if (elements.length > this.maxdepth) {
+        if (size + offset > maxdepth) {
+          throw new IndexOutOfBoundsException("The stack depth is over the requested maximum depth.");
+        } else {
+          elements = Arrays.copyOf(elements, maxdepth);
+        }
+      }
     } else if (WarpScriptStack.ATTRIBUTE_MAX_OPS.equals(key)) {
       this.maxops = ((Number) value).longValue();
     } else if (WarpScriptStack.ATTRIBUTE_RECURSION_MAXDEPTH.equals(key)) {
