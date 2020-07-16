@@ -49,7 +49,11 @@ public class EQ extends ComparisonOperation {
       // both numbers, both GTSs or one GTS and one String or Number
       comparison(stack, op1, op2);
     } else {
-      stack.push(op1.equals(op2));
+      if (null == op1) {
+        stack.push(null == op2);
+      } else {
+        stack.push(op1.equals(op2));
+      }
     }
     return stack;
   }
