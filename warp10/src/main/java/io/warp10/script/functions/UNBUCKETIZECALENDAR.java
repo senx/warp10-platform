@@ -53,12 +53,22 @@ public class UNBUCKETIZECALENDAR extends GTSStackFunction {
   @Override
   protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
 
-    if (!GTSHelper.isBucketized(gts)) {
-      throw new WarpScriptException(getName() + " expects input GTS to be bucketized.");
-    }
-
     if (!BUCKETIZECALENDAR.isDurationBucketized(gts)) {
       throw new WarpScriptException(getName() + " expects input GTS to be duration-bucketized. This information is stored in attributes.");
+    }
+
+    GeoTimeSerie result = gts.cloneEmpty();
+
+    if (0 == gts.size()) {
+      GTSHelper.unbucketize(result);
+      result.getMetadata().getAttributes().remove(BUCKETIZECALENDAR.DURATION_ATTRIBUTE_KEY);
+      result.getMetadata().getAttributes().remove(BUCKETIZECALENDAR.OFFSET_ATTRIBUTE_KEY);
+      result.getMetadata().getAttributes().remove(BUCKETIZECALENDAR.TIMEZONE_ATTRIBUTE_KEY);
+      return result;
+    }
+
+    if (!GTSHelper.isBucketized(gts)) {
+      throw new WarpScriptException(getName() + " expects input GTS to be bucketized.");
     }
 
     ADDDURATION.ReadWritablePeriodWithSubSecondOffset bucketperiod = ADDDURATION.durationToPeriod(gts.getMetadata().getAttributes().get(BUCKETIZECALENDAR.DURATION_ATTRIBUTE_KEY));
