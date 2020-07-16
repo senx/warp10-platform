@@ -810,7 +810,7 @@ public class EgressFetchHandler extends AbstractHandler {
       AtomicReference<Metadata> lastMeta = new AtomicReference<Metadata>(null);
       AtomicLong lastCount = new AtomicLong(0L);
       
-      boolean expose = rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
+      boolean expose = null != rtoken && rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
       
       if (nocache) {
         AcceleratorConfig.nocache();
