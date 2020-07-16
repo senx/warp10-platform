@@ -36,6 +36,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.google.common.base.Preconditions;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -151,6 +152,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     String pskProp = WarpConfig.getProperty(Configuration.DATALOG_PSK);
     if (null != pskProp) {
       this.datalogPSK = this.keyStore.decodeKey(pskProp);
+      Preconditions.checkArgument((16 == this.datalogPSK.length) || (24 == this.datalogPSK.length) || (32 == this.datalogPSK.length), Configuration.DATALOG_PSK + " MUST be 128, 192 or 256 bits long.");
     } else {
       this.datalogPSK = null;
     }

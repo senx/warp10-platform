@@ -49,7 +49,11 @@ public class MAXDEPTH extends NamedWarpScriptFunction implements WarpScriptStack
       throw new WarpScriptException(getName() + " cannot extend limit past " + stack.getAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH_HARD));
     }
 
-    stack.setAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH, (int) limit);
+    try {
+      stack.setAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH, (int) limit);
+    } catch (IndexOutOfBoundsException iobe) {
+      throw new WarpScriptException(getName() + " failed.", iobe);
+    }
     
     return stack;
   }

@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.StringUtils;
@@ -131,8 +130,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   private StoreClient storeClient;
   
   private DirectoryClient directoryClient;
-  
-  private final AtomicInteger recursionLevel = new AtomicInteger(0);
   
   private final String uuid = UUID.randomUUID().toString();
   
@@ -287,13 +284,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   
   @Override
   public void reset(int depth) throws WarpScriptException {
-    //
-    // Remove the last element of the list until we reach 'depth'
-    // We remove the last element to prevent having to shift remaining elements
-    //
-    
-    while (size > depth) {
-      size--;
+    if (depth < 0) {
+      throw new IndexOutOfBoundsException("Index out of bound.");
+    }
+
+    if (size > depth) {
+      size = depth;
     }
   }
   
@@ -319,10 +315,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
 
-    while (n > 0) {
-      size--;
-      n--;
-    }
+    size -= n;
   }
   
   @Override
@@ -1265,6 +1258,14 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     
     if (WarpScriptStack.ATTRIBUTE_MAX_DEPTH.equals(key)) {
       this.maxdepth = ((Number) value).intValue();
+      // Check if the underlying array is already bigger than the requested maximum depth
+      if (elements.length > this.maxdepth) {
+        if (size + offset > maxdepth) {
+          throw new IndexOutOfBoundsException("The stack depth is over the requested maximum depth.");
+        } else {
+          elements = Arrays.copyOf(elements, maxdepth);
+        }
+      }
     } else if (WarpScriptStack.ATTRIBUTE_MAX_OPS.equals(key)) {
       this.maxops = ((Number) value).longValue();
     } else if (WarpScriptStack.ATTRIBUTE_RECURSION_MAXDEPTH.equals(key)) {
