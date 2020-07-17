@@ -75,7 +75,6 @@ public class UNBUCKETIZECALENDAR extends GTSStackFunction {
     long bucketoffset = Long.parseLong(gts.getMetadata().getAttributes().get(BUCKETIZECALENDAR.OFFSET_ATTRIBUTE_KEY));
     DateTimeZone dtz = DateTimeZone.forID(gts.getMetadata().getAttributes().get(BUCKETIZECALENDAR.TIMEZONE_ATTRIBUTE_KEY));
 
-    GeoTimeSerie result = gts.cloneEmpty();
     GTSHelper.unbucketize(result);
     result.getMetadata().getAttributes().remove(BUCKETIZECALENDAR.DURATION_ATTRIBUTE_KEY);
     result.getMetadata().getAttributes().remove(BUCKETIZECALENDAR.OFFSET_ATTRIBUTE_KEY);
