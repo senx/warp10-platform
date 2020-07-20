@@ -40,12 +40,13 @@ runner.roles = standalone
 // warpscript endpoint to use for executing the scripts. If this is omitted then
 // execution will take place in the scheduling thread.
 //
-//runner.endpoint = http://127.0.0.1:8881/api/v0/exec/warpscript
+#runner.endpoint = http://127.0.0.1:8881/api/v0/exec/warpscript
 
 //
-// AES key for wrapping a runner nonce which can later be extracted using RUNNERNONCE
+// 128/192/256 bits AES key for wrapping a runner nonce which can later be extracted using RUNNERNONCE.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-//runner.psk = @key:256:runner.psk@
+#runner.psk = hex:hhhhhh...
 
 //
 // Root directory under which scripts to run reside.
