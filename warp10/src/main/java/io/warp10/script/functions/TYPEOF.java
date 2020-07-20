@@ -182,6 +182,14 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
       try {
         return "X-" + ((Typeofable) c.getDeclaredConstructor().newInstance()).typeof();
       } catch (Exception e) {
+        if (null != resolvers) {
+          for (TypeResolver resolver: resolvers) {
+            String type = resolver.typeof(c);
+            if (null != type) {
+              return type;
+            }
+          }
+        }
         return defaultType(c);
       }
     } else {
