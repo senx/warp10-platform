@@ -208,7 +208,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     
     DirectoryRequest drequest = null;
     
-    List<String> order = null;
+    List<String> order = DEFAULT_LABELS_PRIORITY;
     
     if (mapparams) {
       top = stack.pop();
@@ -336,10 +336,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
       clsSels.add(classSelector);
       
       // Re-order the labels
-      if (null == order) {
-        order = DEFAULT_LABELS_PRIORITY;
-      }
-      Map<String,String> ordered = new LinkedHashMap<String,String>(labelSelectors.size());
+      Map<String,String> ordered = new LinkedHashMap<String,String>(labelSelectors.size() > 0 ? labelSelectors.size() : 1);
       for (String label: order) {
         if (labelSelectors.containsKey(label)) {
           ordered.put(label, labelSelectors.get(label));
@@ -371,7 +368,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
         drequest.setLabelsSelectors(lblsSels);
       } else {
         // Fix labels
-        
+
         if (drequest.isSetLabelsSelectors()) {
           for (int i = 0; i < drequest.getLabelsSelectorsSize(); i++) {
             Map<String,String> sel = drequest.getLabelsSelectors().get(i);
