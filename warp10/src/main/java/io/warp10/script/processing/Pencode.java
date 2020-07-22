@@ -104,15 +104,8 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
                 metadata.iTXt_keyword.add((String) chunkmap.get("keyword"));
                 metadata.iTXt_text.add((String) chunkmap.get("text"));
                 metadata.iTXt_compressionFlag.add(Boolean.TRUE.equals(chunkmap.get("compressionFlag")));
-                Object cm = chunkmap.getOrDefault("compressionMethod", 0L);
-                if (!(cm instanceof Long)) {
-                  throw new WarpScriptException(getName() + " compression method MUST either be 0 (uncompressed) or 1 (zlib).");
-                }
-                long cml = ((Long) cm).longValue();
-                if (0L != cml && 1L != cml) {
-                  throw new WarpScriptException(getName() + " compression method MUST either be 0 (uncompressed) or 1 (zlib).");                  
-                }
-                metadata.iTXt_compressionMethod.add((int) cml);
+                // 0 is the only supported compression method (http://www.libpng.org/pub/png/spec/1.2/PNG-Chunks.html)
+                metadata.iTXt_compressionMethod.add(0);
                 metadata.iTXt_languageTag.add(chunkmap.getOrDefault("languageTag", "").toString());
                 metadata.iTXt_translatedKeyword.add(chunkmap.getOrDefault("translatedKeyword", "").toString());
               } else {
