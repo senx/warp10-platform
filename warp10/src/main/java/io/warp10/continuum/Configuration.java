@@ -1694,7 +1694,7 @@ public class Configuration {
    * Set the maximum of dead references in the index before compaction of the indexes.
    * Defaults to 100 000
    */
-  public static final String WARP_LABEL_INDEX_MAX_EMPTY_META = "warp.indexed.labels.max.empty.meta";
+  public static final String WARP_INDEXED_LABELS_MAX_EMPTY_META = "warp.indexed.labels.max.empty.meta";
 
   /**
    * Maximum length of attributes (names + values) - Defaults to 8192

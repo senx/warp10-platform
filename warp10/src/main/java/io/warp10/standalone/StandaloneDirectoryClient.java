@@ -145,7 +145,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     }
     INDEXED_LABELS = Collections.unmodifiableList(order);
 
-    byLabelIndexMaxNullRefs = Long.parseLong(WarpConfig.getProperty(Configuration.WARP_LABEL_INDEX_MAX_EMPTY_META, Constants.DIRECTORY_DEFAULT_LABEL_INDEX_MAX_EMPTY_META));
+    byLabelIndexMaxNullRefs = Long.parseLong(WarpConfig.getProperty(Configuration.WARP_INDEXED_LABELS_MAX_EMPTY_META, Constants.DIRECTORY_DEFAULT_LABEL_INDEX_MAX_EMPTY_META));
   }
 
   public static interface ShardFilter {
@@ -449,7 +449,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       String exactClassName = null;
       Map<String, Integer> indexedLabelToLook = new LinkedHashMap<>();
       String indexedLabelToLookFirst = null;
-      
+
       if (classExpr.get(i).startsWith("=") || !classExpr.get(i).startsWith("~")) {
         exactClassName = classExpr.get(i).startsWith("=") ? classExpr.get(i).substring(1) : classExpr.get(i);
         classSmartPattern = new SmartPattern(exactClassName);
@@ -669,26 +669,29 @@ public class StandaloneDirectoryClient implements DirectoryClient {
           }
         }
       } else {
-        // use the metadatasbylabel
+        //
+        // use the metadatasbylabel index:
+        // iterate on all the metadatas for the given indexed label
+        //
 
-        // iterate on all the metadatas for the given indexed label 
         String indexedlabelValue = labelsExpr.get(i).get(indexedLabelToLookFirst);
-        // this happens with delete endpoint find requests.
+        // label value starting with = happens with delete endpoint find requests.
         if (indexedlabelValue.startsWith("=")) {
           indexedlabelValue = indexedlabelValue.substring(1);
         }
         for (Metadata metadata: metadatasByLabel.get(indexedLabelToLookFirst).get(indexedlabelValue)) {
 
-          // When unregister metadata, queue will include a cleared metadata null. 
+          //
+          // When unregister metadata, queue will include a cleared metadata.
+          //
           if (null == metadata.getName()) {
             continue;
           }
 
+          //
+          // Check for class match
+          //
           String className = metadata.getName();
-          //
-          // If class matches, check all labels for matches
-          //
-
           if (classSmartPattern.matches(className)) {
 
             //
@@ -901,9 +904,10 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       return;
     }
 
-    // nullify the classname. Reference to the metadata is kept in metadatasByLabel queues. 
+    // nullify the classname. Reference to the metadata is kept in metadatasByLabel index queues. 
     metadatas.get(metadata.getName()).get(labelsId).clear();
     if (byLabelIndexNullRefsCount.incrementAndGet() > byLabelIndexMaxNullRefs) {
+      LOG.warn("Lots of delete happened. Rebuilding extra label index...");
       // recompact label indexes
       for (String indexedLabel: INDEXED_LABELS) {
         synchronized (metadatasByLabel.get(indexedLabel)) {
@@ -915,6 +919,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
           }
         }
       }
+      LOG.warn("Extra label indexes rebuild.");
     }
 
     metadatas.get(metadata.getName()).remove(labelsId);
