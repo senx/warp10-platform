@@ -1673,14 +1673,29 @@ public class Configuration {
    * Maximum length of labels (names + values) - Defaults to 2048
    */
   public static final String WARP_LABELS_MAXSIZE = "warp.labels.maxsize";
-  
+
   /**
    * Default priority order for matching labels when doing a FIND/FETCH.
    * Comma separated list of label names.
    * Defaults to .producer,.app,.owner
    */
   public static final String WARP_LABELS_PRIORITY = "warp.labels.priority";
-  
+
+  /**
+   * Extra labels to build a directory index.
+   * Memory hungry feature that can solve specific directory problems.
+   * This extra label index only supports exact matches.
+   * Defaults to none.
+   */
+  public static final String WARP_INDEXED_LABELS = "warp.indexed.labels";
+
+  /**
+   * If warp.indexed.labels feature is used, delete a series do not delete metadata from the index.
+   * Set the maximum of dead references in the index before compaction of the indexes.
+   * Defaults to 100 000
+   */
+  public static final String WARP_LABEL_INDEX_MAX_EMPTY_META = "warp.indexed.labels.max.empty.meta";
+
   /**
    * Maximum length of attributes (names + values) - Defaults to 8192
    */

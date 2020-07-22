@@ -463,6 +463,11 @@ public class Constants {
   public static final boolean DELETE_METAONLY_SUPPORT;
   
   public static final boolean DELETE_ACTIVITY_SUPPORT;
+
+  /**
+   * Default value for maximum number of null metadata in label indexes
+   */
+  public static final String DIRECTORY_DEFAULT_LABEL_INDEX_MAX_EMPTY_META = "1000000";
   
   static {
     String tu = WarpConfig.getProperty(Configuration.WARP_TIME_UNITS);

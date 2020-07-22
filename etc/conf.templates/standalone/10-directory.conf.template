@@ -29,3 +29,19 @@ directory.stats.class.maxcardinality = 100
 // Maximum number of labels for which to report detailed stats in 'FINDSTATS'
 //
 directory.stats.labels.maxcardinality = 100
+
+
+//
+// Extra labels to build another directory index.
+// Memory hungry feature that can solve specific directory problems.
+// This extra label index only supports exact matches.
+// By default, there is no such index
+//
+# warp.indexed.labels = labelA, labelB
+
+//
+// If warp.indexed.labels feature is used, deleting series do not delete metadata from the extra indexes to save performances
+// Set the maximum of dead references in the index before compaction of the index.
+// Defaults to 1 000 000. 
+//
+# warp.indexed.labels.max.empty.meta = 10000000
