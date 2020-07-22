@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import processing.core.PGraphics;
+import processing.core.PImage;
 
 /**
  * Call update the pixel array then call loadPixels
@@ -38,6 +39,28 @@ public class PupdatePixels extends NamedWarpScriptFunction implements WarpScript
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    
+    if (stack.depth() >= 2) {
+      stack.push(1);
+      if (stack.peekn() instanceof PImage && stack.peek() instanceof List) {
+        List<Object> pixels = (List<Object>) stack.pop();
+        PImage pimg = (PImage) stack.peek();
+        pimg.loadPixels();
+        if (pimg.pixels.length != pixels.size()) {
+          throw new WarpScriptException(getName() + " expected array of " + pimg.pixels.length + " pixels, found " + pixels.size());
+        }
+        for (int i = 0; i < pimg.pixels.length; i++) {
+          if (!(pixels.get(i) instanceof Long)) {
+            throw new WarpScriptException(getName() + " expected an array of LONG.");
+          }
+          
+          pimg.pixels[i] = ((Long) pixels.get(i)).intValue();          
+        }
+        
+        pimg.updatePixels();
+        return stack;
+      }
+    }
     
     List<Object> params = ProcessingUtil.parseParams(stack, 1);
         
