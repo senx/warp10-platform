@@ -5065,6 +5065,11 @@ public class GTSHelper {
 
   public static List<GeoTimeSerie> map(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack,
                                        List<Long> outputTicks) throws WarpScriptException {
+    return map(gts, mapper, prewindow, postwindow, occurrences, reversed, step, overrideTick, stack, outputTicks, false);
+  }
+
+  public static List<GeoTimeSerie> map(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack,
+                                       List<Long> outputTicks, boolean dedup) throws WarpScriptException {
 
     //
     // Make sure step is positive
@@ -5153,6 +5158,8 @@ public class GTSHelper {
 
     boolean hasSingleResult = true;
 
+    long lastTick = 0;
+
     while (idx < nticks) {
 
       if (hasOccurrences && 0 == occurrences) {
@@ -5183,6 +5190,17 @@ public class GTSHelper {
           }
         }
       }
+
+      //
+      // Skip tick if same as last one and must deduplicate
+      // dedup will behave strangely with step>1, pre>0, post>0 or non-null outputTicks, avoid these configurations.
+      //
+      if (dedup && 0 != idx && tick == lastTick) {
+        idx += step;
+        // Do not decrease occurences as duplicate ticks are considered one occurence in dedup mode.
+        continue;
+      }
+      lastTick = tick;
 
       //
       // Determine start/stop timestamp for extracting subserie
