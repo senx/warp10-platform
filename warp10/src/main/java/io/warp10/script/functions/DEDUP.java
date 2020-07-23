@@ -30,7 +30,7 @@ import io.warp10.script.WarpScriptStack;
  */
 public class DEDUP extends ListRecursiveStackFunction {
 
-  private final ElementStackFunction simpleDedup = new ElementStackFunction() {
+  private final ElementStackFunction SIMPLE_DEDUP = new ElementStackFunction() {
     @Override
     public Object applyOnElement(Object element) throws WarpScriptException {
       if (element instanceof GeoTimeSerie) {
@@ -63,7 +63,7 @@ public class DEDUP extends ListRecursiveStackFunction {
         }
       };
     } else {
-      return simpleDedup;
+      return SIMPLE_DEDUP;
     }
   }
 
