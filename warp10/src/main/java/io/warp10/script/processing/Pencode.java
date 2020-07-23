@@ -87,7 +87,34 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
         PNGMetadata metadata = new PNGMetadata();
         
         for (Entry<Object,Object> entry: chunks.entrySet()) {
-          if ("iTXt".equals(entry.getKey())) {
+          if ("tEXt".equals(entry.getKey()) || "zTXt".equals(entry.getKey())) {
+            boolean zTXt = "zTXt".equals(entry.getKey());
+            Object chunklist = entry.getValue();
+            
+            if (!(chunklist instanceof List)) {
+              throw new WarpScriptException(getName() + " expects chunk type to be associated with a list of chunks.");
+            }
+            
+            for (Object chunkelt: (List<Object>) chunklist) {
+              if (!(chunkelt instanceof Map)) {
+                throw new WarpScriptException(getName() + " expects iTXt chunks to be MAP instances.");
+              }
+              Map<Object,Object> chunkmap = (Map<Object,Object>) chunkelt;
+              
+              if (chunkmap.get("keyword") instanceof String && chunkmap.get("text") instanceof String) {
+                if (zTXt) {
+                  metadata.zTXt_keyword.add((String) chunkmap.get("keyword"));
+                  metadata.zTXt_text.add((String) chunkmap.get("text"));
+                  metadata.zTXt_compressionMethod.add(0);
+                } else {
+                  metadata.tEXt_keyword.add((String) chunkmap.get("keyword"));
+                  metadata.tEXt_text.add((String) chunkmap.get("text"));                  
+                }
+              } else {
+                throw new WarpScriptException(getName() + " tEXt chunks MUST contains 'keyword' and 'text' entries of type STRING.");
+              }
+            }
+          } else if ("iTXt".equals(entry.getKey())) {
             Object chunklist = entry.getValue();
             
             if (!(chunklist instanceof List)) {
