@@ -149,6 +149,7 @@ task pack(type: Jar) {
         }
     } {
         exclude 'META-INF/*.DSA'
+        exclude 'META-INF/*.RSA' // Dependency signatures must be removed otherwise repackaged classes may fail to be validated
         exclude 'about.html'
         exclude 'jetty-dir.css'
     }
