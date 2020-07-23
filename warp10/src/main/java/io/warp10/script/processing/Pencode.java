@@ -97,7 +97,7 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
             
             for (Object chunkelt: (List<Object>) chunklist) {
               if (!(chunkelt instanceof Map)) {
-                throw new WarpScriptException(getName() + " expects iTXt chunks to be MAP instances.");
+                throw new WarpScriptException(getName() + " expects tEXt and zTXt chunks to be MAP instances.");
               }
               Map<Object,Object> chunkmap = (Map<Object,Object>) chunkelt;
               
@@ -111,7 +111,7 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
                   metadata.tEXt_text.add((String) chunkmap.get("text"));                  
                 }
               } else {
-                throw new WarpScriptException(getName() + " tEXt chunks MUST contains 'keyword' and 'text' entries of type STRING.");
+                throw new WarpScriptException(getName() + " tEXt and zTXt chunks MUST contains 'keyword' and 'text' entries of type STRING.");
               }
             }
           } else if ("iTXt".equals(entry.getKey())) {
@@ -140,7 +140,7 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
               }
             }
           } else {
-            throw new WarpScriptException(getName() + " only 'iTXt' chunks can be specified.");
+            throw new WarpScriptException(getName() + " only 'tEXt', 'zTXt' and 'iTXt' chunks can be specified.");
           }
         }
         iioimage.setMetadata(metadata);
