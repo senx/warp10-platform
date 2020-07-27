@@ -40,7 +40,8 @@ public class PupdatePixels extends NamedWarpScriptFunction implements WarpScript
     
     if (stack.depth() >= 2) {
       stack.push(1);
-      if (stack.peekn() instanceof PImage && stack.peek() instanceof List) {
+      Object level1 = stack.peekn();
+      if (!(level1 instanceof PGraphics) && (level1 instanceof PImage) && stack.peek() instanceof List) {
         List<Object> pixels = (List<Object>) stack.pop();
         PImage pimg = (PImage) stack.peek();
         pimg.loadPixels();

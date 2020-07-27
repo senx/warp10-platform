@@ -40,15 +40,7 @@ public class Ppixels extends NamedWarpScriptFunction implements WarpScriptStackF
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
-    if (stack.peek() instanceof PImage) {
-      PImage pimage = (PImage) stack.pop();
-      pimage.loadPixels();
-      List<Long> pixels = new ArrayList<Long>(pimage.pixels.length);
-      for (int pixel: pimage.pixels) {
-        pixels.add((long) pixel);
-      }
-      stack.push(pixels);
-    } else {
+    if (stack.peek() instanceof PGraphics) {
       List<Object> params = ProcessingUtil.parseParams(stack, 0);
       
       PGraphics pg = (PGraphics) params.get(0);
@@ -63,6 +55,16 @@ public class Ppixels extends NamedWarpScriptFunction implements WarpScriptStackF
       
       stack.push(pg);
       stack.push(pixels);      
+    } else if (stack.peek() instanceof PImage) {
+      PImage pimage = (PImage) stack.pop();
+      pimage.loadPixels();
+      List<Long> pixels = new ArrayList<Long>(pimage.pixels.length);
+      for (int pixel: pimage.pixels) {
+        pixels.add((long) pixel);
+      }
+      stack.push(pixels);
+    } else {
+      throw new WarpScriptException(getName() + " can only be applied to PGraphics or PImage instances.");
     }
     
     return stack;
