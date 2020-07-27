@@ -60,6 +60,7 @@ import io.warp10.continuum.store.GTSDecoderIterator;
 import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.DirectoryRequest;
+import io.warp10.continuum.store.thrift.data.FetchRequest;
 import io.warp10.continuum.store.thrift.data.MetaSet;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
@@ -119,6 +120,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
   public static final String PARAM_BOUNDARY_POST = "boundary.post";
   public static final String PARAM_BOUNDARY = "boundary";
   public static final String PARAM_SKIP = "skip";
+  public static final String PARAM_STEP = "step";
+  public static final String PARAM_TIMESTEP = "timestep";
   public static final String PARAM_SAMPLE = "sample";
   
   public static final String POSTFETCH_HOOK = "postfetch";
@@ -446,7 +449,18 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         }
 
         long then = (long) params.get(PARAM_START);
-        long skip = (long) params.getOrDefault(PARAM_SKIP, 0L);        
+        long skip = (long) params.getOrDefault(PARAM_SKIP, 0L);
+        long timestep = 1L;
+        long step = 1L;
+        
+        if (params.containsKey(PARAM_TIMESTEP)) {
+          timestep = (long) params.get(PARAM_TIMESTEP);
+        }
+        
+        if (params.containsKey(PARAM_STEP)) {
+          step = (long) params.get(PARAM_STEP);
+        }
+
         double sample = (double) params.getOrDefault(PARAM_SAMPLE, 1.0D);
         
         TYPE type = (TYPE) params.get(PARAM_TYPE);
@@ -490,7 +504,21 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         // Flag indicating the FETCH is a count only, no pre/post boundaries
         boolean countOnly = count >= 0 && 0 == preBoundary && 0 == postBoundary;
         
-        try (GTSDecoderIterator gtsiter = gtsStore.fetch(rtoken, metadatas, end, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary)) {
+        FetchRequest req = new FetchRequest();
+        req.setToken(rtoken);
+        req.setMetadatas(metadatas);
+        req.setNow(end);
+        req.setThents(then);
+        req.setCount(count);
+        req.setSkip(skip);
+        req.setStep(step);
+        req.setTimestep(timestep);
+        req.setSample(sample);
+        req.setWriteTimestamp(writeTimestamp);
+        req.setPreBoundary(preBoundary);
+        req.setPostBoundary(postBoundary);
+        
+        try (GTSDecoderIterator gtsiter = gtsStore.fetch(req)) {
           while(gtsiter.hasNext()) {           
             GTSDecoder decoder = gtsiter.next();
             
@@ -861,7 +889,12 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       if (map.containsKey(PARAM_COUNT)) {
         throw new WarpScriptException(getName() + " cannot be given both '" + PARAM_COUNT + "' and negative '" + PARAM_TIMESPAN + "'.");
       } else {
-        map.put(PARAM_COUNT, -(long) map.get(PARAM_TIMESPAN));
+        long timespan = (long) map.get(PARAM_TIMESPAN);
+        // Make sure negation will be positive
+        if (Long.MIN_VALUE == timespan) {
+          timespan++; // It's ok to modify by one the count of points when fetching -Long.MIN_VALUE points
+        }
+        map.put(PARAM_COUNT, -timespan);
         map.remove(PARAM_TIMESPAN);
       }
     }
@@ -1052,6 +1085,32 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         throw new WarpScriptException(getName() + " Parameter '" + PARAM_SKIP + "' must be >= 0.");
       }
       params.put(PARAM_SKIP, skip);
+    }
+
+    if (map.containsKey(PARAM_STEP)) {
+      Object o = map.get(PARAM_STEP);
+      if (!(o instanceof Long)) {
+        throw new WarpScriptException(getName() + " Invalid type for parameter '" + PARAM_STEP + "'.");
+      }
+      long step = ((Long) o).longValue();
+      
+      if (step < 1L) {
+        throw new WarpScriptException(getName() + " Parameter '" + PARAM_STEP + "' must be >= 1.");
+      }
+      params.put(PARAM_STEP, step);      
+    }
+
+    if (map.containsKey(PARAM_TIMESTEP)) {      
+      Object o = map.get(PARAM_TIMESTEP);
+      if (!(o instanceof Long)) {
+        throw new WarpScriptException(getName() + " Invalid type for parameter '" + PARAM_TIMESTEP + "'.");
+      }
+      long timestep = ((Long) o).longValue();
+      
+      if (timestep < 1L) {
+        throw new WarpScriptException(getName() + " Parameter '" + PARAM_TIMESTEP + "' must be >= 1.");
+      }
+      params.put(PARAM_TIMESTEP, timestep);      
     }
 
     if (map.containsKey(PARAM_SAMPLE)) {

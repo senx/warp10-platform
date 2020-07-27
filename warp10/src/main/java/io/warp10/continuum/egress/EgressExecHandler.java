@@ -20,6 +20,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.MalformedURLException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -113,6 +114,8 @@ public class EgressExecHandler extends AbstractHandler {
     } else {
       return;
     }
+
+    int errorCode = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
     
     //
     // CORS header
@@ -203,12 +206,20 @@ public class EgressExecHandler extends AbstractHandler {
       
       String pathInfo = req.getPathInfo();
       
-      if (pathInfo != null && pathInfo.length() > Constants.API_ENDPOINT_EXEC.length()) {
+      if (pathInfo != null && pathInfo.length() > Constants.API_ENDPOINT_EXEC.length() + 1) {
         pathInfo = pathInfo.substring(Constants.API_ENDPOINT_EXEC.length() + 1);
         String[] tokens = pathInfo.split("/");
 
+        // Store the depth of the stack in case the Bootstrap leave something on the stack.
+        int initialStackDepth = stack.depth();
+
         for (String token: tokens) {
-          String[] subtokens = token.split("=");
+          String[] subtokens = token.split("=", 2);
+
+          if (2 != subtokens.length) {
+            errorCode = HttpServletResponse.SC_BAD_REQUEST;
+            throw new MalformedURLException("Each symbol definition must have at least one equal sign.");
+          }
           
           // Legit uses of URLDecoder.decode, do not replace by WarpURLDecoder
           // as the encoding is performed by the browser
@@ -222,7 +233,11 @@ public class EgressExecHandler extends AbstractHandler {
           scriptSB.append("// @param ").append(subtokens[0]).append("=").append(subtokens[1]).append("\n");
 
           stack.exec(subtokens[1]);
-          
+
+          if (1 != (stack.depth() - initialStackDepth)) {
+            throw new WarpScriptException("Each symbol definition must output one element.");
+          }
+
           stack.store(subtokens[0], stack.pop());
         }
       }
@@ -397,7 +412,7 @@ public class EgressExecHandler extends AbstractHandler {
       }
 
       if(debugDepth > 0) {        
-        resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        resp.setStatus(errorCode);
         PrintWriter pw = resp.getWriter();
         
         try {
@@ -420,9 +435,13 @@ public class EgressExecHandler extends AbstractHandler {
         // Check if the response is already committed. This may happen if the writer has already been written to and an
         // error happened during the write, for instance a stack overflow caused by infinite recursion.
         if(!resp.isCommitted()) {
-          String prefix = "ERROR line #" + lineno + ": ";
+          String prefix = "";
+          // If error happened before any WarpScript execution, do not add line.
+          if (lineno > 0) {
+            prefix = "ERROR line #" + lineno + ": ";
+          }
           String msg = prefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
-          resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
+          resp.sendError(errorCode, msg);
         }
         return;
       }

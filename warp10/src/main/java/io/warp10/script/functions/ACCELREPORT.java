@@ -17,9 +17,8 @@
 package io.warp10.script.functions;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -46,16 +45,33 @@ public class ACCELREPORT extends NamedWarpScriptFunction implements WarpScriptSt
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
-    Map<Object,Object> report = new HashMap<Object,Object>();
-    
+
+    LinkedHashMap<Object,Object> report = new LinkedHashMap<>();
+
+    report.put(KEY_STATUS, AcceleratorConfig.isInstantiated());
+
     report.put(KEY_CACHE, AcceleratorConfig.isCache());
     report.put(KEY_PERSIST, AcceleratorConfig.isPersist());
-    report.put(KEY_STATUS, AcceleratorConfig.isInstantiated());
+
     report.put(KEY_ACCELERATED, AcceleratorConfig.accelerated());
+
     report.put(KEY_CHUNK_COUNT, (long) AcceleratorConfig.getChunkCount());
     report.put(KEY_CHUNK_SPAN, AcceleratorConfig.getChunkSpan());
+
     List<String> defaults = new ArrayList<String>(2);
+    if (AcceleratorConfig.getDefaultReadNocache()) {
+      defaults.add(AcceleratorConfig.NOCACHE);
+    } else {
+      defaults.add(AcceleratorConfig.CACHE);
+    }
+    if (AcceleratorConfig.getDefaultReadNopersist()) {
+      defaults.add(AcceleratorConfig.NOPERSIST);
+    } else {
+      defaults.add(AcceleratorConfig.PERSIST);
+    }
+    report.put(KEY_DEFAULTS_READ, defaults);
+
+    defaults = new ArrayList<String>(2);
     if (AcceleratorConfig.getDefaultWriteNocache()) {
       defaults.add(AcceleratorConfig.NOCACHE);
     } else {
@@ -67,19 +83,6 @@ public class ACCELREPORT extends NamedWarpScriptFunction implements WarpScriptSt
       defaults.add(AcceleratorConfig.PERSIST);            
     }
     report.put(KEY_DEFAULTS_WRITE, defaults);
-    
-    defaults = new ArrayList<String>(2);
-    if (AcceleratorConfig.getDefaultReadNocache()) {
-      defaults.add(AcceleratorConfig.NOCACHE);
-    } else {
-      defaults.add(AcceleratorConfig.CACHE);      
-    }
-    if (AcceleratorConfig.getDefaultReadNopersist()) {
-      defaults.add(AcceleratorConfig.NOPERSIST);
-    } else {
-      defaults.add(AcceleratorConfig.PERSIST);            
-    }
-    report.put(KEY_DEFAULTS_READ, defaults);
     
     defaults = new ArrayList<String>(2);
     if (AcceleratorConfig.getDefaultDeleteNocache()) {

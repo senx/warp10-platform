@@ -270,7 +270,7 @@ public class InMemoryChunkSet {
     // and no sampling or preBoundary
     
     if (count > 0 && Long.MIN_VALUE == then && 0 == skip && 1.0D == sample && 0 == preBoundary) {
-      return fetchCountEncoder(now, -count, postBoundary);
+      return fetchCountEncoder(now, count, postBoundary);
     }
     
     //

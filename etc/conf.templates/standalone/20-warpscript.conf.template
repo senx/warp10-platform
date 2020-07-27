@@ -176,7 +176,7 @@ warpscript.delete.endpoint = http://${standalone.host}:${standalone.port}/api/v0
 //
 // Maximum number of subprogram instances which can be spawned by CALL
 //
-//warpscript.call.maxcapacity = 1
+#warpscript.call.maxcapacity = 1
 
 //
 // Path of the 'bootstrap' WarpScript code for Mobius

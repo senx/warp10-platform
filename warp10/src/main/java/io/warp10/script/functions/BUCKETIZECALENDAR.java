@@ -394,8 +394,8 @@ public class BUCKETIZECALENDAR extends NamedWarpScriptFunction implements WarpSc
         break;
       }
 
-      if (lastbucketIndex - bucketindex + 2 > maxbuckets) {
-        throw new WarpScriptException("Bucket count (" + (lastbucketIndex - bucketindex + 2) + ") is exceeding maximum value of " + maxbuckets);
+      if (lastbucketIndex - bucketindex + 1 > maxbuckets) {
+        throw new WarpScriptException("Bucket count (" + (lastbucketIndex - bucketindex + 1) + ") is exceeding maximum value of " + maxbuckets);
       }
 
       //
@@ -421,7 +421,7 @@ public class BUCKETIZECALENDAR extends NamedWarpScriptFunction implements WarpSc
 
     GTSHelper.setLastBucket(durationBucketized, lastbucketIndex);
     GTSHelper.setBucketSpan(durationBucketized, 1);
-    GTSHelper.setBucketCount(durationBucketized, bucketcount == 0 ? durationBucketized.size() : Math.toIntExact(bucketcount));
+    GTSHelper.setBucketCount(durationBucketized, bucketcount == 0 ? Math.toIntExact(lastbucketIndex - bucketindex + 1) : Math.toIntExact(bucketcount));
 
     //
     // Reverse the order

@@ -39,6 +39,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.locks.LockSupport;
 import java.util.zip.GZIPOutputStream;
 
+import com.google.common.base.Preconditions;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -620,6 +621,7 @@ public class DatalogForwarder extends Thread {
 
     if (properties.containsKey(Configuration.DATALOG_PSK)) {
       this.datalogPSK = keystore.decodeKey(properties.getProperty(Configuration.DATALOG_PSK));
+      Preconditions.checkArgument((16 == this.datalogPSK.length) || (24 == this.datalogPSK.length) || (32 == this.datalogPSK.length), Configuration.DATALOG_PSK + " MUST be 128, 192 or 256 bits long.");
     } else {
       this.datalogPSK = null;
     }

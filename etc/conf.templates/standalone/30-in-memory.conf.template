@@ -49,12 +49,12 @@ accelerator.preload.activity = false
 //
 // Number of chunks to retain
 //
-//accelerator.chunk.count =
+#accelerator.chunk.count =
 
 //
 // Length in platform time units of each chunk
 //
-//accelerator.chunk.length =
+#accelerator.chunk.length =
 
 //
 // If set to true, then only the last recorded value of a GTS is kept, ignoring chunk count and length
@@ -105,17 +105,17 @@ in.memory = false
 // This configuration MUST be set starting with 2.1.
 // Set it to false if you are using the deprecated non chunked memory store.
 //
-//in.memory.chunked = true
+#in.memory.chunked = true
 
 //
 // Number of chunks to retain (defaults to 3)
 //
-//in.memory.chunk.count =
+#in.memory.chunk.count =
 
 //
 // Length in platform time units of each chunk (defaults to 2**63)
 //
-//in.memory.chunk.length =
+#in.memory.chunk.length =
 
 //
 // If set to true, then only the last recorded value of a GTS is kept, ignoring chunk count and length

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import processing.core.PGraphics;
+import processing.core.PImage;
 
 /**
  * Call loadPixels then pixels
@@ -39,20 +40,32 @@ public class Ppixels extends NamedWarpScriptFunction implements WarpScriptStackF
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
-    List<Object> params = ProcessingUtil.parseParams(stack, 0);
-        
-    PGraphics pg = (PGraphics) params.get(0);
-    
-    pg.parent.loadPixels();
-    
-    List<Long> pixels = new ArrayList<Long>();
-    
-    for (int pixel: pg.pixels) {
-      pixels.add((long) pixel);
+    if (stack.peek() instanceof PGraphics) {
+      List<Object> params = ProcessingUtil.parseParams(stack, 0);
+      
+      PGraphics pg = (PGraphics) params.get(0);
+      
+      pg.parent.loadPixels();
+      
+      List<Long> pixels = new ArrayList<Long>(pg.pixels.length);
+      
+      for (int pixel: pg.pixels) {
+        pixels.add((long) pixel);
+      }
+      
+      stack.push(pg);
+      stack.push(pixels);      
+    } else if (stack.peek() instanceof PImage) {
+      PImage pimage = (PImage) stack.pop();
+      pimage.loadPixels();
+      List<Long> pixels = new ArrayList<Long>(pimage.pixels.length);
+      for (int pixel: pimage.pixels) {
+        pixels.add((long) pixel);
+      }
+      stack.push(pixels);
+    } else {
+      throw new WarpScriptException(getName() + " can only be applied to PGraphics or PImage instances.");
     }
-    
-    stack.push(pg);
-    stack.push(pixels);
     
     return stack;
   }

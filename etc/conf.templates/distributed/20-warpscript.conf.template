@@ -152,12 +152,12 @@ warpscript.maxwebcalls = 4
 //   
 // Path of the 'bootstrap' WarpScript code    
 //    
-//warpscript.bootstrap.path = /opt/warp10/etc/hello.mc2
+#warpscript.bootstrap.path = /opt/warp10/etc/hello.mc2
 
 //
 // How often to reload the bootstrap code (in ms)
 //
-//warpscript.bootstrap.period = 120000
+#warpscript.bootstrap.period = 120000
 
 //
 // URL for the 'update' endpoint
@@ -177,13 +177,13 @@ warpscript.delete.endpoint = http://127.0.0.1:8080/api/v0/delete
 //
 // Maximum number of subprogram instances which can be spawned
 //
-//warpscript.call.maxcapacity = 1
+#warpscript.call.maxcapacity = 1
 
 
 //
 // Path of the 'bootstrap' WarpScript code for Mobius
 //
-//warpscript.mobius.bootstrap.path = 
+#warpscript.mobius.bootstrap.path =
 
 //
 // Number of threads in the Mobius pool (those threads are used to execute the mobius macros)
@@ -193,17 +193,17 @@ warpscript.mobius.pool = 16
 //
 // How often to reload the bootstrap code (in ms) for Mobius
 //
-//warpscript.mobius.bootstrap.period = 
+#warpscript.mobius.bootstrap.period =
 
 //
 // Path of the 'bootstrap' WarpScript code for Runner
 //
-//warpscript.runner.bootstrap.path = 
+#warpscript.runner.bootstrap.path =
 
 //
 // How often to reload the bootstrap code (in ms) for Runner
 //
-//warpscript.runner.bootstrap.period =
+#warpscript.runner.bootstrap.period =
 
 //
 // URLFETCH extension

@@ -79,7 +79,7 @@ public class PGraphics extends NamedWarpScriptFunction implements WarpScriptStac
     long PIXEL_LIMIT = (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MAX_PIXELS);
     
     if (width * height > PIXEL_LIMIT) {
-      throw new WarpScriptException(getName() + " only allows graphics with a total number of pixels less than " + PIXEL_LIMIT);
+      throw new WarpScriptException(getName() + " only allows graphics with a total number of pixels less than " + PIXEL_LIMIT + " requested size was " + width + "x" + height + " (" + (width * height) + ").");
     }
 
     // Disable async saving of frame in case we want to save a frame to a file

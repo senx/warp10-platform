@@ -15,6 +15,7 @@
 //
 
 namespace java io.warp10.continuum.store.thrift.data
+include "token/src/main/thrift/io_warp10_quasar_token_thrift_data.thrift"
 
 /**
  * Metadata describing a Geo Time Serie
@@ -458,4 +459,59 @@ struct MetaSet {
    * be <= notafter.
    */
   6: optional i64 notafter,
+}
+
+struct FetchRequest {
+  /**
+   * Read token to use for fetching data
+   */
+  1: optional io_warp10_quasar_token_thrift_data.ReadToken token,
+  /**
+   * List of Metadata describing the Geo Time Series to fetch
+   */
+  2: optional list<Metadata> metadatas,
+  /**
+   * End timestamp (included)
+   */
+  3: optional i64 now,
+  /**
+   * Start timestamp (included). We cannot use 'then' which is a reserved word.
+   */
+  4: optional i64 thents,
+  /**
+   * Number of data points to fetch.
+   * 0 is a valid value if you want to fetch only boundaries.
+   * Use -1 to specify you are not fetching by count.
+   */
+  5: optional i64 count = -1,
+  /**
+   * Number of data points to skip before starting to return values.
+   */
+  6: optional i64 skip = 0,
+  /**
+   * Index offset between two data points, defaults to 1, i.e. return every data point.
+   */
+  7: optional i64 step = 1,
+  /**
+   * Minimum time offset between data points, expressed in time units. Defaults to 1.
+   */
+  8: optional i64 timestep = 1,
+  /**
+   * Sampling rate.
+   * Use 1.0D for returning all values.
+   * Valid values are ( 0.0D, 1.0D ]
+   */
+  9: optional double sample = 1.0,
+  /**
+   * Flag indicating to return the HBase cell timestamp instead of the value.
+   */
+  10: optional bool writeTimestamp = false,
+  /**
+   * Size of the pre boundary in number of data points.
+   */
+  11: optional i64 preBoundary = 0,
+  /**
+   * Size of the post boundary in number of data points.
+   */
+  12: optional i64 postBoundary = 0,
 }

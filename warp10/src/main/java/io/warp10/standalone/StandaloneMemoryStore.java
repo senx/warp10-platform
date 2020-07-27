@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,22 +15,6 @@
 //
 
 package io.warp10.standalone;
-
-import io.warp10.WarpConfig;
-import io.warp10.continuum.TimeSource;
-import io.warp10.continuum.gts.GTSDecoder;
-import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.GTSDecoderIterator;
-import io.warp10.continuum.store.StoreClient;
-import io.warp10.continuum.store.thrift.data.GTSWrapper;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.KeyStore;
-import io.warp10.quasar.token.thrift.data.ReadToken;
-import io.warp10.quasar.token.thrift.data.WriteToken;
-import io.warp10.sensision.Sensision;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -54,6 +38,22 @@ import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 
 import com.google.common.collect.MapMaker;
+
+import io.warp10.WarpConfig;
+import io.warp10.continuum.TimeSource;
+import io.warp10.continuum.gts.GTSDecoder;
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.GTSDecoderIterator;
+import io.warp10.continuum.store.StoreClient;
+import io.warp10.continuum.store.thrift.data.FetchRequest;
+import io.warp10.continuum.store.thrift.data.GTSWrapper;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.KeyStore;
+import io.warp10.quasar.token.thrift.data.WriteToken;
+import io.warp10.sensision.Sensision;
 
 public class StandaloneMemoryStore extends Thread implements StoreClient {
   
@@ -134,7 +134,17 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
   }
   
   @Override
-  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, final long count, final long skip, final double sample, boolean writeTimestamp, final long preBoundary, final long postBoundary) {
+  public GTSDecoderIterator fetch(FetchRequest req) {
+    final List<Metadata> metadatas = req.getMetadatas();
+    final long now = req.getNow();
+    final long then = req.getThents();
+    final long count = req.getCount();
+    final long skip = req.getSkip();
+    long step = req.getStep();
+    long timestep = req.getTimestep();
+    final double sample = req.getSample();
+    final long preBoundary = req.getPreBoundary();
+    final long postBoundary = req.getPostBoundary();
 
     if (0 != preBoundary || 0 != postBoundary) {
       throw new RuntimeException("Boundary retrieval is not supported by the current data store.");
@@ -144,6 +154,10 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
       throw new RuntimeException("Unsupported skip operation.");
     }
     
+    if (step > 1L || timestep > 1L) {
+      throw new RuntimeException("Parameters 'step' and 'timestep' are not supported by the in-memory store."); 
+    }
+
     if (1.0D != sample) {
       throw new RuntimeException("Unsupported sample operation.");
     }
