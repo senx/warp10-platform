@@ -145,10 +145,12 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
     
     if (null != properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_MAC)) {
       keystore.setKey(KeyStore.SIPHASH_KAFKA_PLASMA_FRONTEND_IN, keystore.decodeKey(properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_MAC)));
+      Preconditions.checkArgument(16 == keystore.getKey(KeyStore.SIPHASH_KAFKA_PLASMA_FRONTEND_IN).length, "Key " + Configuration.PLASMA_FRONTEND_KAFKA_MAC + " MUST be 128 bits long.");
     }
 
     if (null != properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_AES)) {
       keystore.setKey(KeyStore.AES_KAFKA_PLASMA_FRONTEND_IN, keystore.decodeKey(properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_AES)));
+      Preconditions.checkArgument((16 == keystore.getKey(KeyStore.AES_KAFKA_PLASMA_FRONTEND_IN).length) || (24 == keystore.getKey(KeyStore.AES_KAFKA_PLASMA_FRONTEND_IN).length) || (32 == keystore.getKey(KeyStore.AES_KAFKA_PLASMA_FRONTEND_IN).length), Configuration.PLASMA_FRONTEND_KAFKA_AES + " MUST be 128, 192 or 256 bits long.");
     }
 
     //

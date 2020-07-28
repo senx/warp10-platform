@@ -104,9 +104,7 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
   
   private void ensureInnerFormat(Configuration conf) throws IOException {
     if (null == this.wrappedInputFormat) {
-      try {
-        String cls = Warp10InputFormat.getProperty(conf, this.suffix, WARPSCRIPT_INPUTFORMAT_CLASS, null);
-        
+      try {        
         //
         // Tweak the configuration if a conf suffix was specified
         //
@@ -131,6 +129,8 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
             conf.set(key, entry.getValue());
           }
         }
+
+        String cls = Warp10InputFormat.getProperty(conf, this.suffix, WARPSCRIPT_INPUTFORMAT_CLASS, null);
 
         Class innerClass = Class.forName(cls);
         this.wrappedInputFormat = (InputFormat) innerClass.newInstance();        

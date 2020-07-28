@@ -138,12 +138,12 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
             this.errormsg = false;
           }
           session.getRemote().sendString("OK " + (seqno++) + " ONERROR");
-        } else if ("DELTAON".equals(tokens[0])) {
+        } else if (null != tokens && "DELTAON".equals(tokens[0])) {
           if (!this.handler.ingress.allowDeltaAttributes) {
             throw new IOException("Delta update of attributes is disabled.");
           }
           this.deltaAttributes = true;
-        } else if ("DELTAOFF".equals(tokens[0])) {
+        } else if (null != tokens && "DELTAOFF".equals(tokens[0])) {
           this.deltaAttributes = false;
         } else {
           //

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -35,7 +35,6 @@ import org.apache.hadoop.util.Progressable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.warp10.continuum.Configuration;
 import io.warp10.continuum.store.Constants;
 import io.warp10.crypto.OrderPreservingBase64;
 
@@ -74,12 +73,23 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
     this.progress = context;
 
     //
-    // Retrieve now and timespan parameters
+    // Retrieve parameters
     //
 
-    long now = Long.valueOf(getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCH_NOW));
-    long timespan = Long.valueOf(getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCH_TIMESPAN));
-
+    String now = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCH_NOW);
+    String timespan = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCH_TIMESPAN);
+    String start = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCH_START);
+    String stop = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCH_STOP);
+    String end = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCH_END);
+    String count = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCH_COUNT);
+    String dedup = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCH_DEDUP);
+    String skip = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCH_SKIP);
+    String step = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCH_STEP);
+    String timestep = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCH_TIMESTEP);
+    String sample = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCH_SAMPLE);
+    String preboundary = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCH_PREBOUNDARY);
+    String postboundary = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCH_POSTBOUNDARY);
+    
     int connectTimeout = Integer.valueOf(getProperty(context, Warp10InputFormat.PROPERTY_WARP10_HTTP_CONNECT_TIMEOUT, Warp10InputFormat.DEFAULT_WARP10_HTTP_CONNECT_TIMEOUT));
     int readTimeout = Integer.valueOf(getProperty(context, Warp10InputFormat.PROPERTY_WARP10_HTTP_READ_TIMEOUT, Warp10InputFormat.DEFAULT_WARP10_HTTP_READ_TIMEOUT));
 
@@ -90,10 +100,6 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
     String protocol = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCHER_PROTOCOL, Warp10InputFormat.DEFAULT_WARP10_FETCHER_PROTOCOL);
     String port = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCHER_PORT, Warp10InputFormat.DEFAULT_WARP10_FETCHER_PORT);
     String path = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCHER_PATH, Warp10InputFormat.DEFAULT_WARP10_FETCHER_PATH);
-
-    // FIXME: use Constants instead ?? but warp.timeunits is mandatory and property file must be provided..
-    String nowHeader = getProperty(context, Configuration.HTTP_HEADER_NOW_HEADERX, Warp10InputFormat.HTTP_HEADER_NOW_HEADER_DEFAULT);
-    String timespanHeader = getProperty(context, Configuration.HTTP_HEADER_TIMESPAN_HEADERX, Warp10InputFormat.HTTP_HEADER_TIMESPAN_HEADER_DEFAULT);
 
     for (String fetcher: split.getLocations()) {
       try {
@@ -119,8 +125,52 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
         conn.setChunkedStreamingMode(16384);
         conn.setDoInput(true);
         conn.setDoOutput(true);
-        conn.setRequestProperty(nowHeader, Long.toString(now));
-        conn.setRequestProperty(timespanHeader, Long.toString(timespan));
+        
+        //
+        // We are issueing a POST Request, so we pass the parameters via headers instead
+        // of parameters
+        //
+        
+        if (null != now) {          
+          conn.setRequestProperty(Warp10InputFormat.HTTP_HEADER_NOW, now);
+        }
+        if (null != timespan) {
+          conn.setRequestProperty(Warp10InputFormat.HTTP_HEADER_TIMESPAN, timespan);
+        }
+        if (null != start) {
+          conn.setRequestProperty(Warp10InputFormat.HTTP_HEADER_START, start);
+        }
+        if (null != stop) {
+          conn.setRequestProperty(Warp10InputFormat.HTTP_HEADER_STOP, stop);
+        }
+        if (null != stop) {
+          conn.setRequestProperty(Warp10InputFormat.HTTP_HEADER_END, end);
+        }
+        if (null != step) {
+          conn.setRequestProperty(Warp10InputFormat.HTTP_HEADER_STEP, step);
+        }
+        if (null != timestep) {
+          conn.setRequestProperty(Warp10InputFormat.HTTP_HEADER_TIMESTEP, timestep);
+        }
+        if (null != sample) {
+          conn.setRequestProperty(Warp10InputFormat.HTTP_HEADER_SAMPLE, sample);
+        }
+        if (null != skip) {
+          conn.setRequestProperty(Warp10InputFormat.HTTP_HEADER_SKIP, skip);
+        }
+        if (null != preboundary) {
+          conn.setRequestProperty(Warp10InputFormat.HTTP_HEADER_PREBOUNDARY, preboundary);
+        }
+        if (null != postboundary) {
+          conn.setRequestProperty(Warp10InputFormat.HTTP_HEADER_POSTBOUNDARY, postboundary);
+        }
+        if (null != count) {
+          conn.setRequestProperty(Warp10InputFormat.HTTP_HEADER_COUNT, count);
+        }
+        if (null != dedup) {
+          conn.setRequestProperty(Warp10InputFormat.HTTP_HEADER_DEDUP, dedup);
+        }
+
         conn.setRequestProperty("Content-Type", "application/gzip");
         conn.connect();
 

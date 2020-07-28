@@ -44,9 +44,10 @@
 #store.throttling.delay =
 
 //
-// Key for encrypting data in HBase
+// 128/192/256 bits AES key for encrypting data in HBase.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-#store.hbase.data.aes = 
+#store.hbase.data.aes = hex:hhhhhh...
 
 //
 // Zookeeper ZK connect string for Kafka ('data' topic)
@@ -64,14 +65,15 @@ store.kafka.data.brokerlist = 127.0.0.1:9092
 store.kafka.data.topic = data
 
 //
-// Key to use for computing MACs (128 bits in hex or OSS reference)
+// 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 store.kafka.data.mac = hex:hhhhhh...
 
 //
-// Key to use for encrypting payloads (128/192/256 bits in hex or OSS reference) 
+// 128/192/256 bits AES key for encrypting data in Kafka.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-#store.kafka.data.aes =
+#store.kafka.data.aes = hex:hhhhhh...
 
 //
 // Kafka group id with which to consume the data topic

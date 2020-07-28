@@ -150,7 +150,7 @@ plasma.frontend.websocket.maxmessagesize = 1048576
 //
 // Set to 'true' to only forward data to Plasma. Not data storage will take place.
 //
-//pureplasma = 
+#pureplasma =
 
 //
 // Number of threads to use for scheduling parallel scanners. Use 0 to disable parallel scanners
