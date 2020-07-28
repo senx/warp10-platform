@@ -1711,6 +1711,11 @@ public class Store extends Thread {
     //
     
     Configuration config = new Configuration();
+    
+    for (Entry<Object,Object> entry: io.warp10.continuum.Configuration.extractPrefixed(properties, io.warp10.continuum.Configuration.STORE_HBASE_CONF_PREFIX).entrySet()) {
+      config.set(entry.getKey().toString(), entry.getValue().toString());
+    }
+
     if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_HCONNECTION_THREADS_MAX)) {
       config.set("hbase.hconnection.threads.max", properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_HCONNECTION_THREADS_MAX));
     } else {

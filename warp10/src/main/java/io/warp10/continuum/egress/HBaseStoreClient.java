@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.Map.Entry;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
@@ -82,6 +83,11 @@ public class HBaseStoreClient implements StoreClient {
     this.hbaseFilterThreshold = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_FILTER_THRESHOLD, Integer.toString(HBASE_FILTER_THRESHOLD_DEFAULT)));
 
     Configuration conf = new Configuration();
+    
+    for (Entry<Object,Object> entry: io.warp10.continuum.Configuration.extractPrefixed(properties, io.warp10.continuum.Configuration.EGRESS_HBASE_CONF_PREFIX).entrySet()) {
+      conf.set(entry.getKey().toString(), entry.getValue().toString());
+    }
+
     conf.set(HConstants.ZOOKEEPER_QUORUM, properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_ZKCONNECT));
     if (!"".equals(properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_ZNODE))) {
       conf.set(HConstants.ZOOKEEPER_ZNODE_PARENT, properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_ZNODE));

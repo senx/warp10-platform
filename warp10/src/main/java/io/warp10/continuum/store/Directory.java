@@ -464,6 +464,11 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     final int nthreads = Integer.valueOf(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_NTHREADS));
     
     Configuration conf = new Configuration();
+    
+    for (Entry<Object,Object> entry: io.warp10.continuum.Configuration.extractPrefixed(properties, io.warp10.continuum.Configuration.DIRECTORY_HBASE_CONF_PREFIX).entrySet()) {
+      conf.set(entry.getKey().toString(), entry.getValue().toString());
+    }
+    
     conf.set("hbase.zookeeper.quorum", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_ZKCONNECT));
     if (!"".equals(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_ZNODE))) {
       conf.set("zookeeper.znode.parent", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_ZNODE));

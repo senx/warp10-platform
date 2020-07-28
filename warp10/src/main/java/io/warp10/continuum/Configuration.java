@@ -420,6 +420,11 @@ public class Configuration {
   public static final String DIRECTORY_KAFKA_METADATA_COMMITPERIOD = "directory.kafka.metadata.commitperiod";
 
   /**
+   * Prefix of Directory HBase custom configuration keys
+   */
+  public static final String DIRECTORY_HBASE_CONF_PREFIX = "directory.hbase.conf.prefix";
+  
+  /**
    * Maximum byte size we allow the pending Puts list to grow to
    */
   public static final String DIRECTORY_HBASE_METADATA_MAXPENDINGPUTSSIZE = "directory.hbase.metadata.pendingputs.size";
@@ -974,6 +979,11 @@ public class Configuration {
    */
   public static final String STORE_HBASE_CONFIG = "store.hbase.config";
   
+  /**
+   * Prefix of Store HBase custom configuration keys
+   */
+  public static final String STORE_HBASE_CONF_PREFIX = "store.hbase.conf.prefix";
+
   /**
    * Path to the throttling file. This file contains a single line with a double value in [0.0,1.0]
    */
@@ -1987,6 +1997,11 @@ public class Configuration {
    */
   public static final String EGRESS_HBASE_CONFIG = "egress.hbase.config";
 
+  /**
+   * Prefix of Egress HBase custom configuration keys
+   */
+  public static final String EGRESS_HBASE_CONF_PREFIX = "egress.hbase.conf.prefix";
+  
   /**
    * Port onto which the egress server should listen
    */
