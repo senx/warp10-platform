@@ -1670,13 +1670,21 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
   
   @Override
-  public int hide(int count) {
+  public int hide(int count) {    
     if (0 == count) {
       count = size;
     } else if (count > size) {
       count = size;
     } else if (count < 0) {
-      count = 0;
+      // If count is negative, it represents the number of levels
+      // that we want to keep visible, so we add the current size to determine
+      // the number of levels to hide. If size is less than -count, less than
+      // the requested number of levels will be visible.
+      count += size;
+      
+      if (count < 0) {
+        count = 0;
+      }
     }
     offset += count;
     size -= count;
@@ -1690,7 +1698,18 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     } else if (count > offset) {
       count = offset;
     } else if (count < 0) {
-      count = 0;
+      // Count is negative, so it represents the number of levels we want visible after
+      // the call to show. If this number is already reached, count is set to 0.
+      // No levels will be hidden by this call.      
+      count += size;
+      
+      if (count > 0) { // There are already more than -'count' levels visible, do not show any more 
+        count = 0;
+      } else if (-count > offset) { // We would need to show more levels than those hidden, so cap count to offset
+        count = offset;
+      } else { // We will need to show -'count' levels, so negate 'count'
+        count = -count;
+      }
     }
     offset -= count;
     size += count;    
