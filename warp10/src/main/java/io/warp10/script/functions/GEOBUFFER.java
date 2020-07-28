@@ -93,19 +93,25 @@ public class GEOBUFFER extends NamedWarpScriptFunction implements WarpScriptStac
     int joinStyle = BufferParameters.JOIN_ROUND;
     
     if (map.containsKey(KEY_CAP)) {
-      if ("SQUARE".equalsIgnoreCase(String.valueOf(map.get(KEY_CAP)))) {
+      String cap = String.valueOf(map.get(KEY_CAP));
+      if ("SQUARE".equalsIgnoreCase(cap)) {
         endCapStyle = BufferParameters.CAP_SQUARE;
-      } else if ("FLAT".equalsIgnoreCase(String.valueOf(map.get(KEY_CAP)))) {
+      } else if ("FLAT".equalsIgnoreCase(cap)) {
         endCapStyle = BufferParameters.CAP_FLAT;
+      } else if ("ROUND".equalsIgnoreCase(cap)) {
+        endCapStyle = BufferParameters.CAP_ROUND;
       }
     }
       
     if (map.containsKey(KEY_JOIN)) {
-      if ("BEVEL".equalsIgnoreCase(String.valueOf(map.get(KEY_JOIN)))) {
-        endCapStyle = BufferParameters.JOIN_BEVEL;
-      } else if ("MITRE".equalsIgnoreCase(String.valueOf(map.get(KEY_JOIN)))) {
-        endCapStyle = BufferParameters.JOIN_MITRE;
-      }      
+      String join = String.valueOf(map.get(KEY_JOIN));
+      if ("BEVEL".equalsIgnoreCase(join)) {
+        joinStyle = BufferParameters.JOIN_BEVEL;
+      } else if ("MITRE".equalsIgnoreCase(join)) {
+        joinStyle = BufferParameters.JOIN_MITRE;
+      } else if ("ROUND".equalsIgnoreCase(join)) {
+        joinStyle = BufferParameters.JOIN_ROUND;
+      }
     }
     
     double mitreLimit = BufferParameters.DEFAULT_MITRE_LIMIT;
