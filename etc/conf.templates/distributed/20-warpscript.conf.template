@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -228,4 +228,4 @@ warpscript.comments.loose = true
 // Comma separated list of label names.
 // Defaults to .producer,.app,.owner
 //
-#warp.labels.priority =
+#warpscript.labels.priority =

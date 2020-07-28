@@ -73,7 +73,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
   public static final List<String> DEFAULT_LABELS_PRIORITY;
   
   static {
-    String def = WarpConfig.getProperty(Configuration.WARP_LABELS_PRIORITY);
+    String def = WarpConfig.getProperty(Configuration.WARPSCRIPT_LABELS_PRIORITY);
     
     List<String> order = new ArrayList<String>();
     
@@ -378,7 +378,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
             sel.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
 
             // Re-order the labels
-            Map<String,String> ordered = new LinkedHashMap<String,String>(null != labelSelectors ? labelSelectors.size() : 1);
+            Map<String,String> ordered = new LinkedHashMap<String,String>(sel.size());
             for (String label: order) {
               if (sel.containsKey(label)) {
                 ordered.put(label, sel.get(label));

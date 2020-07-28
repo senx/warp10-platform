@@ -1679,7 +1679,7 @@ public class Configuration {
    * Comma separated list of label names.
    * Defaults to .producer,.app,.owner
    */
-  public static final String WARP_LABELS_PRIORITY = "warp.labels.priority";
+  public static final String WARPSCRIPT_LABELS_PRIORITY = "warpscript.labels.priority";
   
   /**
    * Maximum length of attributes (names + values) - Defaults to 8192
