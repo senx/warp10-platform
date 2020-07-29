@@ -233,7 +233,12 @@ public class HBaseStoreClient implements StoreClient {
       optimized = false;
     }
     
+    // Remove Metadatas from FetchRequest otherwise new FetchRequest(req) will do a deep copy
+    List<Metadata> lm = req.getMetadatas();          
+    req.unsetMetadatas();
     FetchRequest freq = new FetchRequest(req);
+    req.setMetadatas(lm);
+    freq.setMetadatas(lm);
     freq.setCount(count);
     freq.setSkip(skip);
     freq.setStep(step);

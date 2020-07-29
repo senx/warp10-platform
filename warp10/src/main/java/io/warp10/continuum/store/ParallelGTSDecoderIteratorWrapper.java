@@ -301,11 +301,21 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
         GTSDecoderIterator iterator = null;
         
         if (optimized) {
+          // Remove Metadatas from FetchRequest otherwise new FetchRequest(req) will do a deep copy
+          List<Metadata> lm = req.getMetadatas();          
+          req.unsetMetadatas();
           FetchRequest freq = new FetchRequest(req);
+          // Restore Metadatas
+          req.setMetadatas(lm);
           freq.setMetadatas(metas);
           iterator = new OptimizedSlicedRowFilterGTSDecoderIterator(freq, conn, tableName, colfam, keystore, useBlockCache);
         } else {
+          // Remove Metadatas from FetchRequest otherwise new FetchRequest(req) will do a deep copy
+          List<Metadata> lm = req.getMetadatas();          
+          req.unsetMetadatas();
           FetchRequest freq = new FetchRequest(req);
+          // Restore Metadatas
+          req.setMetadatas(lm);
           freq.setMetadatas(metas);
           iterator = new MultiScanGTSDecoderIterator(freq, conn, tableName, colfam, keystore, useBlockCache);      
         }      
@@ -320,11 +330,21 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
       GTSDecoderIterator iterator = null;
       
       if (optimized) {
+        // Remove Metadatas from FetchRequest otherwise new FetchRequest(req) will do a deep copy
+        List<Metadata> lm = req.getMetadatas();          
+        req.unsetMetadatas();
         FetchRequest freq = new FetchRequest(req);
+        // Restore Metadatas
+        req.setMetadatas(lm);        
         freq.setMetadatas(metas);
         iterator = new OptimizedSlicedRowFilterGTSDecoderIterator(freq, conn, tableName, colfam, keystore, useBlockCache);
       } else {
+        // Remove Metadatas from FetchRequest otherwise new FetchRequest(req) will do a deep copy
+        List<Metadata> lm = req.getMetadatas();          
+        req.unsetMetadatas();
         FetchRequest freq = new FetchRequest(req);
+        // Restore Metadatas
+        req.setMetadatas(lm);
         freq.setMetadatas(metas);
         iterator = new MultiScanGTSDecoderIterator(freq, conn, tableName, colfam, keystore, useBlockCache);      
       }      
@@ -378,7 +398,12 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
       if (gtsPerScanner == metas.size()) {
         GTSDecoderIterator iterator = null;
 
+        // Remove Metadatas from FetchRequest otherwise new FetchRequest(req) will do a deep copy
+        List<Metadata> lm = req.getMetadatas();          
+        req.unsetMetadatas();
         FetchRequest freq = new FetchRequest(req);
+        // Restore Metadatas
+        req.setMetadatas(lm);
         freq.setWriteTimestamp(false);
         freq.setMetadatas(metas);
         iterator = client.fetch(freq);
@@ -392,7 +417,12 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     if (null != metas) {
       GTSDecoderIterator iterator = null;
       
+      // Remove Metadatas from FetchRequest otherwise new FetchRequest(req) will do a deep copy
+      List<Metadata> lm = req.getMetadatas();          
+      req.unsetMetadatas();
       FetchRequest freq = new FetchRequest(req);
+      // Restore Metadatas
+      req.setMetadatas(lm);
       freq.setWriteTimestamp(false);
       freq.setMetadatas(metas);
       iterator = client.fetch(freq);
