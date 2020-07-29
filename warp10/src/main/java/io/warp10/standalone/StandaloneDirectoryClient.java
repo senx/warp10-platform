@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,27 +16,6 @@
 
 package io.warp10.standalone;
 
-import io.warp10.SmartPattern;
-import io.warp10.WarpConfig;
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.DirectoryUtil;
-import io.warp10.continuum.egress.ThriftDirectoryClient;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.Directory;
-import io.warp10.continuum.store.DirectoryClient;
-import io.warp10.continuum.store.MetadataIterator;
-import io.warp10.continuum.store.thrift.data.DirectoryRequest;
-import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
-import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.KeyStore;
-import io.warp10.crypto.SipHashInline;
-import io.warp10.script.HyperLogLogPlus;
-import io.warp10.sensision.Sensision;
-
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -48,10 +27,10 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -81,6 +60,26 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.MapMaker;
+
+import io.warp10.SmartPattern;
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.egress.ThriftDirectoryClient;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.Directory;
+import io.warp10.continuum.store.DirectoryClient;
+import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
+import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
+import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.CryptoUtils;
+import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.SipHashInline;
+import io.warp10.script.HyperLogLogPlus;
+import io.warp10.sensision.Sensision;
 
 public class StandaloneDirectoryClient implements DirectoryClient {
   
@@ -407,7 +406,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         classSmartPattern = new SmartPattern(Pattern.compile(classExpr.get(i).substring(1)));
       }
       
-      Map<String,SmartPattern> labelPatterns = new HashMap<String,SmartPattern>();
+      Map<String,SmartPattern> labelPatterns = new LinkedHashMap<String,SmartPattern>();
       
       if (null != missingLabels) {
         missingLabels.clear();
@@ -450,30 +449,6 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       List<String> labelNames = new ArrayList<String>(labelPatterns.size());
       List<SmartPattern> labelSmartPatterns = new ArrayList<SmartPattern>(labelPatterns.size());
       String[] labelValues = null;
-      
-      //
-      // Put producer/app/owner first
-      //
-      
-      if (labelPatterns.containsKey(Constants.PRODUCER_LABEL)) {
-        labelNames.add(Constants.PRODUCER_LABEL);
-        labelSmartPatterns.add(labelPatterns.get(Constants.PRODUCER_LABEL));
-        labelPatterns.remove(Constants.PRODUCER_LABEL);
-      }
-      if (labelPatterns.containsKey(Constants.APPLICATION_LABEL)) {
-        labelNames.add(Constants.APPLICATION_LABEL);
-        labelSmartPatterns.add(labelPatterns.get(Constants.APPLICATION_LABEL));
-        labelPatterns.remove(Constants.APPLICATION_LABEL);
-      }
-      if (labelPatterns.containsKey(Constants.OWNER_LABEL)) {
-        labelNames.add(Constants.OWNER_LABEL);
-        labelSmartPatterns.add(labelPatterns.get(Constants.OWNER_LABEL));
-        labelPatterns.remove(Constants.OWNER_LABEL);
-      }
-      
-      //
-      // Now add the other labels
-      //
       
       for(Entry<String,SmartPattern> entry: labelPatterns.entrySet()) {
         labelNames.add(entry.getKey());
@@ -1023,7 +998,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
           classSmartPattern = new SmartPattern(Pattern.compile(request.getClassSelector().get(i).substring(1)));
         }
         
-        Map<String,SmartPattern> labelPatterns = new HashMap<String,SmartPattern>();
+        Map<String,SmartPattern> labelPatterns = new LinkedHashMap<String,SmartPattern>();
         
         if (null != missingLabels) {
           missingLabels.clear();
@@ -1086,33 +1061,6 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         List<String> labelNames = new ArrayList<String>(labelPatterns.size());
         List<SmartPattern> labelSmartPatterns = new ArrayList<SmartPattern>(labelPatterns.size());
         List<String> labelValues = new ArrayList<String>(labelPatterns.size());
-        
-        //
-        // Put producer/app/owner first
-        //
-        
-        if (labelPatterns.containsKey(Constants.PRODUCER_LABEL)) {
-          labelNames.add(Constants.PRODUCER_LABEL);
-          labelSmartPatterns.add(labelPatterns.get(Constants.PRODUCER_LABEL));
-          labelPatterns.remove(Constants.PRODUCER_LABEL);   
-          labelValues.add(null);
-        }
-        if (labelPatterns.containsKey(Constants.APPLICATION_LABEL)) {
-          labelNames.add(Constants.APPLICATION_LABEL);
-          labelSmartPatterns.add(labelPatterns.get(Constants.APPLICATION_LABEL));
-          labelPatterns.remove(Constants.APPLICATION_LABEL);
-          labelValues.add(null);
-        }
-        if (labelPatterns.containsKey(Constants.OWNER_LABEL)) {
-          labelNames.add(Constants.OWNER_LABEL);
-          labelSmartPatterns.add(labelPatterns.get(Constants.OWNER_LABEL));
-          labelPatterns.remove(Constants.OWNER_LABEL);
-          labelValues.add(null);
-        }
-        
-        //
-        // Now add the other labels
-        //
         
         for(Entry<String,SmartPattern> entry: labelPatterns.entrySet()) {
           labelNames.add(entry.getKey());

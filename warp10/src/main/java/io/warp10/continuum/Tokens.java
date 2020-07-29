@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -343,16 +344,15 @@ public class Tokens {
    * those, thus leading potentially to data exposure
    * 
    */
-  public static Map<String,String> labelSelectorsFromReadToken(ReadToken rtoken) {
+  public static LinkedHashMap<String,String> labelSelectorsFromReadToken(ReadToken rtoken) {
     
-    Map<String,String> labelSelectors = new HashMap<String,String>();
+    LinkedHashMap<String,String> labelSelectors = new LinkedHashMap<String,String>();
     
     List<String> owners = new ArrayList<String>();
     List<String> producers = new ArrayList<String>();
-    Map<String, String> labels = new HashMap<String, String>();
 
     if (rtoken.getLabelsSize() > 0) {
-      labels = rtoken.getLabels();
+      Map<String,String> labels = rtoken.getLabels();
       if (!labels.isEmpty()) {
         for (Map.Entry<String, String> entry : labels.entrySet()) {
           switch (entry.getKey()) {
@@ -377,6 +377,27 @@ public class Tokens {
       for (ByteBuffer bb: rtoken.getProducers()) {
         producers.add(Tokens.getUUID(bb));
       }      
+    }
+    
+    if (!producers.isEmpty()) {
+      if (1 == producers.size()) {
+        labelSelectors.put(Constants.PRODUCER_LABEL, "=" + producers.get(0));        
+      } else {
+        StringBuilder sb = new StringBuilder();
+                
+        sb.append("~^(");
+        boolean first = true;
+        for (String producer: producers) {
+          if (!first) {
+            sb.append("|");
+          }
+          sb.append(producer);
+          first = false;
+        }
+        sb.append(")$");
+        
+        labelSelectors.put(Constants.PRODUCER_LABEL, sb.toString());
+      }
     }
     
     if (rtoken.getAppsSize() > 0) {
@@ -418,27 +439,6 @@ public class Tokens {
         sb.append(")$");
         
         labelSelectors.put(Constants.OWNER_LABEL, sb.toString());
-      }
-    }
-    
-    if (!producers.isEmpty()) {
-      if (1 == producers.size()) {
-        labelSelectors.put(Constants.PRODUCER_LABEL, "=" + producers.get(0));        
-      } else {
-        StringBuilder sb = new StringBuilder();
-                
-        sb.append("~^(");
-        boolean first = true;
-        for (String producer: producers) {
-          if (!first) {
-            sb.append("|");
-          }
-          sb.append(producer);
-          first = false;
-        }
-        sb.append(")$");
-        
-        labelSelectors.put(Constants.PRODUCER_LABEL, sb.toString());
       }
     }
 
