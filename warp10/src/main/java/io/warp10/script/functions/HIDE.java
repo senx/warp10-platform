@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,40 +21,23 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
-/**
- * Configure the maximum depth of the stack
- */
-public class MAXDEPTH extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class HIDE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  public MAXDEPTH(String name) {
+  public HIDE(String name) {
     super(name);
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
-    if (!stack.isAuthenticated()) {
-      throw new WarpScriptException(getName() + " requires the stack to be authenticated.");
-    }
-    
     Object top = stack.pop();
-        
+    
     if (!(top instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects a numeric (long) limit.");
+      throw new WarpScriptException(getName() + " expects a number of levels to hide.");
     }
     
-    long limit = ((Number) top).longValue();
-
-    if (limit > (int) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH_HARD)) {
-      throw new WarpScriptException(getName() + " cannot extend limit past " + stack.getAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH_HARD));
-    }
-
-    try {
-      stack.setAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH, (int) limit);
-    } catch (IndexOutOfBoundsException iobe) {
-      throw new WarpScriptException(getName() + " failed.", iobe);
-    }
-    
+    int count = ((Long) top).intValue();
+    long hidden = (long) stack.hide(count);
+    stack.push(hidden);
     return stack;
   }
 }

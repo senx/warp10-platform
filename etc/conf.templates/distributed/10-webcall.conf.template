@@ -33,37 +33,38 @@ webcall.host.patterns = !.*
 //
 // ZK Quorum to use for reaching the Kafka cluster to consume WebCall requests
 //
-webcall.kafka.zkconnect =
+webcall.kafka.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
 
 //
 // List of Kafka brokers to use for sending WebCall requests
 //
-webcall.kafka.brokerlist =
+webcall.kafka.brokerlist = 127.0.0.1:9092
 
 //
 // Topic to use for WebCall requests
 //
-webcall.kafka.topic =
+webcall.kafka.topic = webcall
 
 //
-// AES key to use for encrypting WebCall requests
+// 128/192/256 bits AES key for encrypting WebCall requests in Kafka.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-//webcall.kafka.aes = hex:......
+#webcall.kafka.aes = hex:hhhhhh...
 
 //
-// SipHash key to use for computing WebCall requests HMACs
+// 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-//webcall.kafka.mac = hex:.....
+#webcall.kafka.mac = hex:hhhhhh...
 
 //
 // Kafka client id to use when consuming WebCall requests
 //
-//webcall.kafka.consumer.clientid =
+#webcall.kafka.consumer.clientid =
 
 //
 // Kafka client id to use when producing WebCall requests
 //
-//webcall.kafka.producer.clientid =
+#webcall.kafka.producer.clientid =
 
 //
 // How many threads to spawn
@@ -73,7 +74,7 @@ webcall.nthreads = 4
 //
 // Groupid to use when consuming Kafka
 //
-//webcall.kafka.groupid =
+webcall.kafka.groupid = webcall
 
 //
 // How often to commit the Kafka offsets
@@ -83,4 +84,4 @@ webcall.kafka.commitperiod = 60000
 //
 // Name of partition assignment strategy to use
 //
-//webcall.kafka.consumer.partition.assignment.strategy = 
+#webcall.kafka.consumer.partition.assignment.strategy =

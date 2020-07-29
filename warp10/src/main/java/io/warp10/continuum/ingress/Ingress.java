@@ -1424,14 +1424,15 @@ public class Ingress extends AbstractHandler implements Runnable {
     String token = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
             
     WriteToken writeToken;
-    
+
     try {
       writeToken = Tokens.extractWriteToken(token);
       if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NODELETE)) {
         throw new WarpScriptException("Token cannot be used for deletions.");
       }
     } catch (WarpScriptException ee) {
-      throw new IOException(ee);
+      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ThrowableUtils.getErrorMessage(ee, Constants.MAX_HTTP_REASON_LENGTH));
+      return;
     }
     
     

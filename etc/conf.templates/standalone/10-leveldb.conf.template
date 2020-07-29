@@ -56,20 +56,23 @@ leveldb.data.syncrate = 1.0
 leveldb.directory.syncrate = 1.0
 
 //
-// AES key to use for wrapping metadata prior to storage in leveldb
+// 128/192/256 bits AES key for encrypting metadata prior to storage in LevelDB.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-#leveldb.metadata.aes =
+#leveldb.metadata.aes = hex:hhhhhh...
 
 //
-// AES key to use for wrapping datapoints prior to storage in leveldb
+// 128/192/256 bits AES key for encrypting data prior to storage in LevelDB.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-#leveldb.data.aes =
+#leveldb.data.aes = hex:hhhhhh...
 
 //
 // @deprecated
-// AES key to use for storing index details in leveldb
+// 128/192/256 bits AES key for encrypting index details in in LevelDB.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-#leveldb.index.aes =
+#leveldb.index.aes = hex:hhhhhh...
 
 //
 // Cache size for leveldb (in bytes)
@@ -84,7 +87,7 @@ leveldb.compression.type = SNAPPY
 //
 // Maximum number of open files to use for LevelDB
 //
-//leveldb.maxopenfiles =
+#leveldb.maxopenfiles =
 
 //
 // Geo Time Series count above which block caching will be disabled for LevelDB.

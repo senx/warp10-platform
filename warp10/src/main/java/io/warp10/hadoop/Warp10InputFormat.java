@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -129,6 +129,18 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
    */
   public static final String PROPERTY_WARP10_FETCH_TIMESPAN = "warp10.fetch.timespan";
 
+  public static final String PROPERTY_WARP10_FETCH_START = "warp10.fetch.start";
+  public static final String PROPERTY_WARP10_FETCH_STOP = "warp10.fetch.stop";
+  public static final String PROPERTY_WARP10_FETCH_END = "warp10.fetch.end";
+  public static final String PROPERTY_WARP10_FETCH_COUNT = "warp10.fetch.count";
+  public static final String PROPERTY_WARP10_FETCH_DEDUP = "warp10.fetch.dedup";
+  public static final String PROPERTY_WARP10_FETCH_SKIP = "warp10.fetch.skip";
+  public static final String PROPERTY_WARP10_FETCH_SAMPLE = "warp10.fetch.sample";
+  public static final String PROPERTY_WARP10_FETCH_STEP = "warp10.fetch.step";
+  public static final String PROPERTY_WARP10_FETCH_TIMESTEP = "warp10.fetch.timestep";
+  public static final String PROPERTY_WARP10_FETCH_PREBOUNDARY = "warp10.fetch.preboundary";
+  public static final String PROPERTY_WARP10_FETCH_POSTBOUNDARY = "warp10.fetch.postboundary";
+  
   /**
    * Maximum number of splits to combined into a single split
    */
@@ -140,19 +152,24 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
   public static final String PROPERTY_WARP10_MAX_SPLITS = "warp10.max.splits";
   
   /**
-   * Default Now HTTP Header
-   */
-  public static final String HTTP_HEADER_NOW_HEADER_DEFAULT = "X-Warp10-Now";
-
-  /**
-   * Default Timespan HTTP Header
-   */
-  public static final String HTTP_HEADER_TIMESPAN_HEADER_DEFAULT = "X-Warp10-Timespan";
-
-  /**
    * Suffix for the properties
    */
   private String suffix = "";
+
+  public static final String HTTP_HEADER_NOW = "X-Warp10-Now";
+  public static final String HTTP_HEADER_TIMESPAN = "X-Warp10-Timespan";
+  public static final String HTTP_HEADER_START = "X-Warp10-Start";
+  public static final String HTTP_HEADER_STOP = "X-Warp10-Stop";
+  public static final String HTTP_HEADER_END = "X-Warp10-End";
+  public static final String HTTP_HEADER_DEDUP = "X-Warp10-Dedup";
+  public static final String HTTP_HEADER_COUNT = "X-Warp10-Count";
+  public static final String HTTP_HEADER_SKIP = "X-Warp10-Skip";
+  public static final String HTTP_HEADER_SAMPLE = "X-Warp10-Sample";
+  public static final String HTTP_HEADER_STEP = "X-Warp10-Step";
+  public static final String HTTP_HEADER_PREBOUNDARY = "X-Warp10-Preboundary";
+  public static final String HTTP_HEADER_POSTBOUNDARY = "X-Warp10-Postboundary";
+  public static final String HTTP_HEADER_TIMESTEP = "X-Warp10-Timestep";
+  public static final String HTTP_HEADER_SHOW_ERRORS = "X-Warp10-ShowErrors";  
   
   public Warp10InputFormat(String suffix) {
     if (null != suffix) {

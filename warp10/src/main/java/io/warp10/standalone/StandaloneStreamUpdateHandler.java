@@ -16,6 +16,7 @@
 
 package io.warp10.standalone;
 
+import com.google.common.base.Preconditions;
 import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
@@ -207,12 +208,12 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
             this.errormsg = false;
           }
           session.getRemote().sendString("OK " + (seqno++) + " ONERROR");
-        } else if ("DELTAON".equals(tokens[0])) {
+        } else if (null != tokens && "DELTAON".equals(tokens[0])) {
           if (!this.handler.allowDeltaAttributes) {
             throw new IOException("Delta update of attributes is disabled.");
           }
           this.deltaAttributes = true;
-        } else if ("DELTAOFF".equals(tokens[0])) {
+        } else if (null != tokens && "DELTAOFF".equals(tokens[0])) {
           this.deltaAttributes = false;
         } else {
           //
@@ -817,6 +818,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     this.datalogSync = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_SYNC));
     if (properties.containsKey(Configuration.DATALOG_PSK)) {
       this.datalogPSK = this.keyStore.decodeKey(properties.getProperty(Configuration.DATALOG_PSK));
+      Preconditions.checkArgument((16 == this.datalogPSK.length) || (24 == this.datalogPSK.length) || (32 == this.datalogPSK.length), Configuration.DATALOG_PSK + " MUST be 128, 192 or 256 bits long.");
     } else {
       this.datalogPSK = null;
     }    

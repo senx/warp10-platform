@@ -55,10 +55,11 @@ datalog.sync = true
 #datalog.logshardkey = false
 
 //
-// Datalog pre-shared key to protect the DatalogRequest instances. If this AES key is not set, the requests will not be
-// encrypted and could be altered.
+// 128/192/256 bits AES key for protecting the DatalogRequest instances.
+// If this is not set, the requests will not be encrypted and could be altered.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-#datalog.psk = hex:hhhhhhhh....
+#datalog.psk = hex:hhhhhh...
 
 //
 // Set this property to 'false' to skip logging forwarded requests or to 'true' if you want to log them to

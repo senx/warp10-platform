@@ -160,7 +160,7 @@ subprojects {
                 def file = relativePath(it)
                 exec {
                     executable = (null != System.getenv('THRIFT_HOME')) ? System.getenv('THRIFT_HOME') + '/bin/thrift' : 'thrift'
-                    args = ['--gen', 'java:private-members', '-o', thriftOutputDir, file]
+                    args = ['--gen', 'java:private-members', '-I', '.', '-o', thriftOutputDir, file]
                 }
             }
         }
