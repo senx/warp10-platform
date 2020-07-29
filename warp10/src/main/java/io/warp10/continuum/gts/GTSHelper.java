@@ -58,7 +58,6 @@ import org.apache.thrift.protocol.TCompactProtocol;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
-import com.google.common.collect.ImmutableMap;
 
 import io.warp10.CapacityExtractorOutputStream;
 import io.warp10.DoubleUtils;
@@ -6656,7 +6655,7 @@ public class GTSHelper {
       for (Entry<Map<String,String>, List<GeoTimeSerie>> entry: partition.entrySet()) {
         
         List<GeoTimeSerie> series = entry.getValue();
-        Map<String,String> commonlabels = ImmutableMap.copyOf(entry.getKey());
+        Map<String,String> commonlabels = Collections.unmodifiableMap(entry.getKey());
         
         //
         // Extract x and y
@@ -6672,7 +6671,7 @@ public class GTSHelper {
       for (Entry<Map<String,String>, List<GeoTimeSerie>> entry: partition.entrySet()) {
         
         List<GeoTimeSerie> series = entry.getValue();
-        Map<String,String> commonlabels = ImmutableMap.copyOf(entry.getKey());
+        Map<String,String> commonlabels = Collections.unmodifiableMap(entry.getKey());
         
         //
         // Extract x and y
@@ -6765,10 +6764,10 @@ public class GTSHelper {
     params[5] = new long[2];
     params[6] = new Object[2];
     
-    Map<String,String> xlabels = ImmutableMap.copyOf(x.getLabels());
-    Map<String,String> ylabels = ImmutableMap.copyOf(y.getLabels());
+    Map<String,String> xlabels = Collections.unmodifiableMap(x.getLabels());
+    Map<String,String> ylabels = Collections.unmodifiableMap(y.getLabels());
           
-    labels = ImmutableMap.copyOf(labels);
+    labels = Collections.unmodifiableMap(labels);
     
     
     // FIXME(hbs): should the type be determined by the first call with a non null value for X?

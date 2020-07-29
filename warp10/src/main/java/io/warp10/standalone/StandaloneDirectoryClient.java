@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,27 +16,6 @@
 
 package io.warp10.standalone;
 
-import io.warp10.SmartPattern;
-import io.warp10.WarpConfig;
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.DirectoryUtil;
-import io.warp10.continuum.egress.ThriftDirectoryClient;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.Directory;
-import io.warp10.continuum.store.DirectoryClient;
-import io.warp10.continuum.store.MetadataIterator;
-import io.warp10.continuum.store.thrift.data.DirectoryRequest;
-import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
-import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.KeyStore;
-import io.warp10.crypto.SipHashInline;
-import io.warp10.script.HyperLogLogPlus;
-import io.warp10.sensision.Sensision;
-
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -45,13 +24,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -79,8 +58,27 @@ import org.iq80.leveldb.WriteOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.MapMaker;
+
+import io.warp10.SmartPattern;
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.egress.ThriftDirectoryClient;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.Directory;
+import io.warp10.continuum.store.DirectoryClient;
+import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
+import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
+import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.CryptoUtils;
+import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.SipHashInline;
+import io.warp10.script.HyperLogLogPlus;
+import io.warp10.sensision.Sensision;
 
 public class StandaloneDirectoryClient implements DirectoryClient {
   
@@ -586,8 +584,8 @@ public class StandaloneDirectoryClient implements DirectoryClient {
             
             Metadata meta = new Metadata();
             meta.setName(className);
-            meta.setLabels(ImmutableMap.copyOf(metadata.getLabels()));
-            meta.setAttributes(ImmutableMap.copyOf(metadata.getAttributes()));
+            meta.setLabels(Collections.unmodifiableMap(metadata.getLabels()));
+            meta.setAttributes(Collections.unmodifiableMap(metadata.getAttributes()));
             // 128BITS
             if (metadata.isSetClassId()) {
               meta.setClassId(metadata.getClassId());
