@@ -368,8 +368,10 @@ public class WarpScriptLib {
   public static final String GEO_WKT_UNIFORM = "GEO.WKT.UNIFORM";
   public static final String GEO_WKB = "GEO.WKB";
   public static final String GEO_WKB_UNIFORM = "GEO.WKB.UNIFORM";
-  
+
   public static final String TOGEOJSON = "->GEOJSON";
+  public static final String TOWKT = "->WKT";
+  public static final String TOWKB = "->WKB";
   public static final String GEO_BUFFER = "GEO.BUFFER";
   public static final String GEO_JSON = "GEO.JSON";
   public static final String GEO_JSON_UNIFORM = "GEO.JSON.UNIFORM";
@@ -1931,6 +1933,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new GeoJSON(GEO_JSON, false));
     addNamedWarpScriptFunction(new GeoJSON(GEO_JSON_UNIFORM, true));
     addNamedWarpScriptFunction(new TOGEOJSON(TOGEOJSON));
+    addNamedWarpScriptFunction(new TOWKT(TOWKT));
+    addNamedWarpScriptFunction(new TOWKB(TOWKB));
     addNamedWarpScriptFunction(new GEOOPTIMIZE(GEO_OPTIMIZE));
     addNamedWarpScriptFunction(new GEONORMALIZE(GEO_NORMALIZE));
     addNamedWarpScriptFunction(new GEOSHIFT(GEOSHIFT));
