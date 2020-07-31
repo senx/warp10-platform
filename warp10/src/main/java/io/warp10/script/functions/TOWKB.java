@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import com.geoxp.GeoXPLib;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKBWriter;
@@ -26,12 +27,23 @@ import io.warp10.script.WarpScriptStackFunction;
 
 public class TOWKB extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
+  private TOGEOJSON togeojson;
+
   public TOWKB(String name) {
     super(name);
+    togeojson = new TOGEOJSON(name);
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    // The the top of the stack is either a GeoXPShape or a Boolean, then we apply GEOJSON to convert it to
+    // GeoJSON before converting it to WKB. This is a quick and easy way of converting GeoXPShape to WKB.
+    Object peeked = stack.peek();
+
+    if (peeked instanceof GeoXPLib.GeoXPShape || peeked instanceof Boolean) {
+      togeojson.apply(stack);
+    }
+
     Object geomObject = stack.pop();
 
     try {

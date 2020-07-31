@@ -125,7 +125,7 @@ public class TOGEOJSON extends NamedWarpScriptFunction implements WarpScriptStac
         geometry = reader.read(geomString);
       }
     } else {
-      throw new WarpScriptException("Unknown geometry format");
+      throw new WarpScriptException("Unknown geometry format.");
     }
 
     return geometry;
