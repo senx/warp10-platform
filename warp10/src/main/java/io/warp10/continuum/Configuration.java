@@ -786,11 +786,6 @@ public class Configuration {
   public static final String INGRESS_WEBSOCKET_MAXMESSAGESIZE = "ingress.websocket.maxmessagesize";
   
   /**
-   * ZooKeeper server list
-   */
-  public static final String INGRESS_ZK_QUORUM = "ingress.zk.quorum";
-  
-  /**
    * Comma separated list of Kafka broker host:port for the metadata kafka cluster
    */
   public static final String INGRESS_KAFKA_METADATA_CONSUMER_BOOTSTRAP_SERVERS = "ingress.kafka.metadata.consumer.bootstrap.servers";
