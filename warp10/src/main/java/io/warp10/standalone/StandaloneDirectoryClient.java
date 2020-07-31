@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -58,7 +59,6 @@ import org.iq80.leveldb.WriteOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.MapMaker;
 
 import io.warp10.SmartPattern;
@@ -561,8 +561,8 @@ public class StandaloneDirectoryClient implements DirectoryClient {
             
             Metadata meta = new Metadata();
             meta.setName(className);
-            meta.setLabels(ImmutableMap.copyOf(metadata.getLabels()));
-            meta.setAttributes(ImmutableMap.copyOf(metadata.getAttributes()));
+            meta.setLabels(Collections.unmodifiableMap(metadata.getLabels()));
+            meta.setAttributes(Collections.unmodifiableMap(metadata.getAttributes()));
             // 128BITS
             if (metadata.isSetClassId()) {
               meta.setClassId(metadata.getClassId());
