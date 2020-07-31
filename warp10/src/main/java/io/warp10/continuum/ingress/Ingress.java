@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -142,7 +142,6 @@ public class Ingress extends AbstractHandler implements Runnable {
     Configuration.INGRESS_SELECTORS,
     Configuration.INGRESS_IDLE_TIMEOUT,
     Configuration.INGRESS_JETTY_THREADPOOL,
-    Configuration.INGRESS_ZK_QUORUM,
     Configuration.INGRESS_KAFKA_METADATA_PRODUCER_BOOTSTRAP_SERVERS,
     Configuration.INGRESS_KAFKA_META_TOPIC,
     Configuration.INGRESS_KAFKA_DATA_PRODUCER_BOOTSTRAP_SERVERS,
