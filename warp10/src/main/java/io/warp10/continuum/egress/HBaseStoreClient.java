@@ -84,7 +84,7 @@ public class HBaseStoreClient implements StoreClient {
 
     Configuration conf = new Configuration();
     
-    for (Entry<Object,Object> entry: io.warp10.continuum.Configuration.extractPrefixed(properties, io.warp10.continuum.Configuration.EGRESS_HBASE_CONF_PREFIX).entrySet()) {
+    for (Entry<Object,Object> entry: io.warp10.continuum.Configuration.extractPrefixed(properties, properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_CONF_PREFIX)).entrySet()) {
       conf.set(entry.getKey().toString(), entry.getValue().toString());
     }
 
