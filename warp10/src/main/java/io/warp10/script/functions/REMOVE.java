@@ -16,6 +16,8 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -67,8 +69,33 @@ public class REMOVE extends NamedWarpScriptFunction implements WarpScriptStackFu
       
       stack.push(coll);
       stack.push(o);
+    } else if (coll instanceof GeoTimeSerie) {
+      if (!(key instanceof Long) && !(key instanceof Integer)) {
+        throw new WarpScriptException(getName() + " expects an integer as key.");
+      }
+      int idx = ((Number) key).intValue();
+
+      GeoTimeSerie gts = (GeoTimeSerie) coll;
+
+      int n = GTSHelper.nvalues(gts);
+
+      if (idx < 0) {
+        idx += n;
+      }
+
+      GeoTimeSerie pruned = gts.cloneEmpty(n);
+
+      for (int i = 0; i < n; i++) {
+        if (i == idx) {
+          continue;
+        }
+
+        GTSHelper.setValue(pruned, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), GTSHelper.valueAtIndex(gts, i), false);
+      }
+
+      stack.push(pruned);
     } else {
-      throw new WarpScriptException(getName() + " operates on a map or a list.");      
+      throw new WarpScriptException(getName() + " operates on a map, a list or a GTS.");
     }
     
     return stack;
