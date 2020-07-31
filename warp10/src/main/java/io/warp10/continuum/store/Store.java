@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -1712,7 +1712,7 @@ public class Store extends Thread {
     
     Configuration config = new Configuration();
     
-    for (Entry<Object,Object> entry: io.warp10.continuum.Configuration.extractPrefixed(properties, io.warp10.continuum.Configuration.STORE_HBASE_CONF_PREFIX).entrySet()) {
+    for (Entry<Object,Object> entry: io.warp10.continuum.Configuration.extractPrefixed(properties, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_CONF_PREFIX)).entrySet()) {
       config.set(entry.getKey().toString(), entry.getValue().toString());
     }
 
