@@ -242,16 +242,40 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             }
           } else if (symbol instanceof ENDLIST) {
             int idx = i - 2;
+            int nbOfReg = 0; // Keeps track of the number of registers in this list
             while (idx >= 0 && !(statements.get(idx) instanceof MARK)) {
               Object stmt = statements.get(idx);
               if (stmt instanceof String) {
                 Integer regno = varregs.get(stmt);
                 if (null != regno) {
                   statements.set(idx, (long) regno);
+                  nbOfReg++;
                 }
+              } else if (stmt instanceof Long) {
+                nbOfReg++;
               }
               idx--;
-            }            
+            }
+
+            // Further optimization: if the list contains only registers, replace by POPRs which is much faster.
+            // For instance, replace [ 3 7 9 ] STORE by NOOP POPR9 POPR7 POPR3 NOOP NOOP.
+            int listLength = i - idx - 2;
+            if (nbOfReg == listLength) {
+              statements.set(idx, NOOP); // replace MARK
+              statements.set(i - 1, NOOP); // replace ENDLIST
+              statements.set(i, NOOP); // replace STORE
+
+              // As we must flip the order of the list, we must store the registers first.
+              int[] regInList = new int[listLength];
+              for (int listIndex = 0; listIndex < listLength; listIndex++) {
+                regInList[listIndex] = ((Long) statements.get(idx + 1 + listIndex)).intValue();
+              }
+
+              // Replace register number by POPRs. Be careful, we flip the list order!
+              for (int listIndex = 0; listIndex < listLength; listIndex++) {
+                statements.set(i - 2 - listIndex, regfuncs[regInList[listIndex] + numregs]);
+              }
+            }
           } else if (!(symbol instanceof Long)) {
             abort = true;
             break;
