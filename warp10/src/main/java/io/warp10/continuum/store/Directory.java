@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -212,7 +212,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   /**
    * Name under which the directory service is registered in ZK
    */
-  public static final String DIRECTORY_SERVICE = "com.cityzendata.continuum.directory";
+  public static final String DIRECTORY_SERVICE = "io.warp10.directory";
   
   private static final String DIRECTORY_INIT_NTHREADS_DEFAULT = "4";
   
@@ -465,7 +465,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     
     Configuration conf = new Configuration();
     
-    for (Entry<Object,Object> entry: io.warp10.continuum.Configuration.extractPrefixed(properties, io.warp10.continuum.Configuration.DIRECTORY_HBASE_CONF_PREFIX).entrySet()) {
+    for (Entry<Object,Object> entry: io.warp10.continuum.Configuration.extractPrefixed(properties, properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_CONF_PREFIX)).entrySet()) {
       conf.set(entry.getKey().toString(), entry.getValue().toString());
     }
     
@@ -1477,7 +1477,6 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             }
           }
         });
-        
         synchronizer.setName("Warp Directory Synchronizer");
         synchronizer.setDaemon(true);
         synchronizer.start();
