@@ -37,11 +37,13 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -493,6 +495,9 @@ public class Store extends Thread {
                   
                   // Release the waiting threads
                   try {
+                    if (LOG.isDebugEnabled()) {
+                      LOG.debug("Releasing waiting threads.");
+                    }
                     barrier.await();
                     lastBarrierSync = System.currentTimeMillis();
                   } catch (Exception e) {
@@ -725,10 +730,11 @@ public class Store extends Thread {
      * Lock for protecting the access to the 'puts' list.
      * This lock is also used to mutex the synchronization and the processing of
      * a message from Kafka so we do not commit and offset for an inflight message.
-     * This lock is not created fair so technically there is a non zero probability
-     * of starvation.
+     * This lock is now created fair to avoid starvation which may cause offset commits
+     * to occur erratically rather than periodically.
+     * Fairness degrades performance slightly but allows the overall process to run smoothly. 
      */
-    private final ReentrantLock putslock = new ReentrantLock();
+    private final ReentrantLock putslock = new ReentrantLock(true);
     
     private final AtomicLong putsSize = new AtomicLong(0L);
     private final AtomicBoolean localabort = new AtomicBoolean(false);
@@ -738,7 +744,11 @@ public class Store extends Thread {
     
     private Thread synchronizer = null;    
 
+    // Indicates there is a message currently being processed
     final AtomicBoolean inflightMessage = new AtomicBoolean(false);
+    
+    // Indicates that an offset commit should take place, if this is true then
+    // retrieving a message will be delayed until after the offsets have been committed
     final AtomicBoolean needToSync = new AtomicBoolean(false);
 
     public StoreConsumer(Table table, Store store, KafkaConsumer<byte[], byte[]> consumer, KafkaOffsetCounters counters) {
@@ -800,191 +810,82 @@ public class Store extends Thread {
           @Override
           public void run() {
             try {
-            long lastsync = System.currentTimeMillis();
-            
-            //
-            // Check for how long we've been storing readings, if we've reached the commitperiod,
-            // flush any pending commits and synchronize with the other threads so offsets can be committed
-            //
-
-            boolean doPause = false;
-            
-            while(!localabort.get() && !synchronizer.isInterrupted()) { 
-              long now = System.currentTimeMillis();
+              long lastsync = System.currentTimeMillis();
               
-              if (now - lastsync > store.commitPeriod // We've committed too long ago
-                  && (!inflightMessage.get()
-                      || !needToSync.get()
-                      || !(forcecommit.get()
-                          || (0 != lastPut.get()
-                             && (now - lastPut.get() > 500)
-                             || putsSize.get() > store.maxPendingPutsSize)
-                          )
-                      )
-                  ) {
-                
-                //
-                // We synchronize on 'puts' so the main Thread does not add Puts to ht
-                //
-                
-                try {
-                  putslock.lockInterruptibly();
-                  
-                  needToSync.set(true);
+              //
+              // Check for how long we've been storing readings, if we've reached the commitperiod,
+              // flush any pending commits and synchronize with the other threads so offsets can be committed
+              //
 
+              boolean doPause = false;
+              
+              while(!localabort.get() && !synchronizer.isInterrupted()) { 
+                long now = System.currentTimeMillis();
+                if (now - lastsync > store.commitPeriod // We've committed too long ago
+                    && (!inflightMessage.get() // There is no message currently being processed
+                        || !needToSync.get()   // We do not need to sync offsets
+                        || !(forcecommit.get() // We don't need to force a commit
+                            || (0L != lastPut.get() // or there is at least one Put to persist
+                               && (now - lastPut.get() > 500L) // and it was processed more than 500ms ago
+                               || putsSize.get() > store.maxPendingPutsSize) // or the size of all Puts to persist is above a threshold
+                            )
+                        )
+                    ) {
                   //
-                  // If a message processing is ongoing we need to delay synchronization
-                  //
-                                    
-                  if (inflightMessage.get()) {
-                    // Indicate we should pause after we've relinquished the lock
-                    doPause = true;
-                    continue;
-                  }
-                  
-                  //
-                  // Make sure we do not have pendingDeletes
-                  //
-                  
-                  while(store.inflightDeletions.get() > 0) {                    
-                    LockSupport.parkNanos(100000L);
-                  }
-                  
-                  if (store.deletionErrors.get() > 0) {
-                    throw new RuntimeException("Completed deletions had errors, aborting.");
-                  }
-                  
-                  //
-                  // Attempt to flush
+                  // We synchronize on 'puts' so the main Thread does not add Puts to ht
                   //
                   
                   try {
-                    long nanos = System.nanoTime();
-                    if (!store.SKIP_WRITE) {
-                      if (LOG.isDebugEnabled()) {
-                        LOG.debug("HBase batch of " + puts.size() + " Puts.");
-                      }
-                      //
-                      // TODO(hbs): consider switching to streaming Puts???, i.e. setAutoFlush(false), then series of
-                      // calls to Table.put and finally a call to flushCommits to trigger the Kafka commit.
-                      //
-                      if (puts.size() > 0) {
-                        Object[] results = new Object[puts.size()];
-                        ht.batch(puts, results);
-                        // Check results for nulls
-                        for (Object o: results) {
-                          if (null == o) {
-                            throw new IOException("At least one Put failed.");
-                          }
-                        }                            
-                      }
-                    }
+                    putslock.lockInterruptibly();
                     
-                    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_PUTS_COMMITTED, Sensision.EMPTY_LABELS, puts.size());
+                    needToSync.set(true);
 
-                    puts.clear();
-                    putsSize.set(0L);
-                    nanos = System.nanoTime() - nanos;
-                    if (LOG.isDebugEnabled()) {
-                      LOG.debug("HBase batch took " + nanos + " ns.");
+                    //
+                    // If a message processing is ongoing we need to delay synchronization
+                    //
+                                      
+                    if (inflightMessage.get()) {
+                      // Indicate we should pause after we've relinquished the lock
+                      doPause = true;
+                      continue;
                     }
-                    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
-                    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_TIME_NANOS, Sensision.EMPTY_LABELS, nanos);
-                  } catch (InterruptedException ie) {
-                    // Clear list of Puts
-                    puts.clear();
-                    putsSize.set(0L);
-                    // If an exception is thrown, abort
-                    store.abort.set(true);
-                    LOG.error("Received InterruptedException", ie);
-                    return;                    
-                  } catch (Throwable t) {
-                    if (t.getCause() instanceof RejectedExecutionException) {
-                      store.connReset.set(true);
-                    }
-                    // Clear list of Puts
-                    puts.clear();
-                    putsSize.set(0L);
-                    // If an exception is thrown, abort
-                    store.abort.set(true);
-                    resetHBase = true;
-                    LOG.error("Received Throwable while writing to HBase - forcing HBase reset", t);
-                    return;
-                  }
-                  
-                  //
-                  // Now join the cyclic barrier which will trigger the
-                  // commit of offsets
-                  //
-                  
-                  try {           
-                    // We wait at most maxTimeBetweenCommits so we can abort in case the synchronization was too long ago
-                    ourbarrier.await(store.maxTimeBetweenCommits, TimeUnit.MILLISECONDS);
-                    needToSync.set(false);
                     
-                    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_BARRIER_SYNCS, Sensision.EMPTY_LABELS, 1);
-                  } catch (Exception e) {
-                    store.abort.set(true);
-                    if (LOG.isDebugEnabled()) {
-                      LOG.debug("Received Exception while await barrier", e);
+                    //
+                    // Make sure we do not have pendingDeletes
+                    //
+                    
+                    while(store.inflightDeletions.get() > 0) {                    
+                      LockSupport.parkNanos(100000L);
                     }
-                    return;
-                  } finally {
-                    lastsync = System.currentTimeMillis();
-                  }
-                  
-                  if (forcecommit.getAndSet(false)) {
-                    flushsem.release();
-                  }
-                } catch (InterruptedException ie) {
-                  store.abort.set(true);
-                  return;
-                } finally {
-                  if (putslock.isHeldByCurrentThread()) {
-                    putslock.unlock();
-                  }
-                  if (doPause) {
-                    doPause = false;
-                    LockSupport.parkNanos(100000L);
-                  }
-                }
-//                synchronized (puts) {
-//                }
-              } else if (forcecommit.get() || (0 != lastPut.get() && (now - lastPut.get() > 500) || putsSize.get() > store.maxPendingPutsSize)) {
-                //
-                // If the last Put was added to 'puts' more than 500ms ago, force a flush
-                //
-                
-                try {
-                  putslock.lockInterruptibly();
-                  
-                  //
-                  // Make sure we do not have pendingDeletes
-                  //
-                  
-                  while(store.inflightDeletions.get() > 0) {
-                    LockSupport.parkNanos(10000000L);
-                  }
-                  
-                  if (store.deletionErrors.get() > 0) {
-                    throw new RuntimeException("Completed deletions had errors, aborting.");
-                  }
-                  
-                  if (!puts.isEmpty()) {
+                    
+                    if (store.deletionErrors.get() > 0) {
+                      throw new RuntimeException("Completed deletions had errors, aborting.");
+                    }
+                    
+                    //
+                    // Attempt to flush to HBase
+                    //
+                    
                     try {
-                      Object[] results = new Object[puts.size()];
                       long nanos = System.nanoTime();
                       if (!store.SKIP_WRITE) {
                         if (LOG.isDebugEnabled()) {
-                          LOG.debug("Forcing HBase batch of " + puts.size() + " Puts.");
+                          LOG.debug("HBase batch of " + puts.size() + " Puts.");
                         }
-                        ht.batch(puts, results);
-                        // Check results for nulls
-                        for (Object o: results) {
-                          if (null == o) {
-                            throw new IOException("At least one Put failed.");
-                          }
-                        }         
+                        //
+                        // TODO(hbs): consider switching to streaming Puts???, i.e. setAutoFlush(false), then series of
+                        // calls to Table.put and finally a call to flushCommits to trigger the Kafka commit.
+                        //
+                        if (puts.size() > 0) {
+                          Object[] results = new Object[puts.size()];
+                          ht.batch(puts, results);
+                          // Check results for nulls
+                          for (Object o: results) {
+                            if (null == o) {
+                              throw new IOException("At least one Put failed.");
+                            }
+                          }                            
+                        }
                       }
                       
                       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_PUTS_COMMITTED, Sensision.EMPTY_LABELS, puts.size());
@@ -993,12 +894,10 @@ public class Store extends Thread {
                       putsSize.set(0L);
                       nanos = System.nanoTime() - nanos;
                       if (LOG.isDebugEnabled()) {
-                        LOG.debug("Forced HBase batch took " + nanos + " ns");
+                        LOG.debug("HBase batch took " + nanos + " ns.");
                       }
                       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
                       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_TIME_NANOS, Sensision.EMPTY_LABELS, nanos);
-                      // Reset lastPut to 0
-                      lastPut.set(0L);
                     } catch (InterruptedException ie) {
                       // Clear list of Puts
                       puts.clear();
@@ -1008,9 +907,6 @@ public class Store extends Thread {
                       LOG.error("Received InterruptedException", ie);
                       return;                    
                     } catch (Throwable t) {
-                      // Some errors of HBase are reported as RuntimeException, so we
-                      // handle those in a more general Throwable catch clause.
-                      // Mark the HBase connection as needing reset
                       if (t.getCause() instanceof RejectedExecutionException) {
                         store.connReset.set(true);
                       }
@@ -1018,31 +914,138 @@ public class Store extends Thread {
                       puts.clear();
                       putsSize.set(0L);
                       // If an exception is thrown, abort
-                      store.abort.set(true);                      
+                      store.abort.set(true);
                       resetHBase = true;
-                      LOG.error("Received Throwable while forced writing of " + puts.size() + " PUTs to HBase - forcing HBase reset");
+                      LOG.error("Received Throwable while writing to HBase - forcing HBase reset", t);
                       return;
                     }
-                  }                  
-                } catch (InterruptedException ie) {
-                  store.abort.set(true);
-                  return;
-                } finally {
-                  if (putslock.isHeldByCurrentThread()) {
-                    putslock.unlock();
+                    
+                    //
+                    // Now join the cyclic barrier which will trigger the
+                    // commit of offsets
+                    //
+                    
+                    try {           
+                      // We wait at most maxTimeBetweenCommits so we can abort in case the synchronization was too long ago
+                      ourbarrier.await(store.maxTimeBetweenCommits, TimeUnit.MILLISECONDS);
+                      needToSync.set(false);
+                      
+                      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_BARRIER_SYNCS, Sensision.EMPTY_LABELS, 1);
+                    } catch (Exception e) {
+                      store.abort.set(true);
+                      if (LOG.isDebugEnabled()) {
+                        LOG.debug("Received Exception while await barrier", e);
+                      }
+                      return;
+                    } finally {
+                      lastsync = System.currentTimeMillis();
+                    }
+                    
+                    if (forcecommit.getAndSet(false)) {
+                      flushsem.release();
+                    }
+                  } catch (InterruptedException ie) {
+                    store.abort.set(true);
+                    return;
+                  } finally {
+                    if (putslock.isHeldByCurrentThread()) {
+                      putslock.unlock();
+                    }
+                    if (doPause) {
+                      doPause = false;
+                      LockSupport.parkNanos(100000L);
+                    }
+                  }
+                } else if (forcecommit.get() || (0L != lastPut.get() && (now - lastPut.get() > 500L) || putsSize.get() > store.maxPendingPutsSize)) {
+                  //
+                  // If the last Put was added to 'puts' more than 500ms ago, force a flush
+                  //
+                  
+                  try {
+                    putslock.lockInterruptibly();
+                    
+                    //
+                    // Make sure we do not have pendingDeletes
+                    //
+                    
+                    while(store.inflightDeletions.get() > 0) {
+                      LockSupport.parkNanos(10000000L);
+                    }
+                    
+                    if (store.deletionErrors.get() > 0) {
+                      throw new RuntimeException("Completed deletions had errors, aborting.");
+                    }
+                    
+                    if (!puts.isEmpty()) {
+                      try {
+                        Object[] results = new Object[puts.size()];
+                        long nanos = System.nanoTime();
+                        if (!store.SKIP_WRITE) {
+                          if (LOG.isDebugEnabled()) {
+                            LOG.debug("Forcing HBase batch of " + puts.size() + " Puts.");
+                          }
+                          ht.batch(puts, results);
+                          // Check results for nulls
+                          for (Object o: results) {
+                            if (null == o) {
+                              throw new IOException("At least one Put failed.");
+                            }
+                          }         
+                        }
+                        
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_PUTS_COMMITTED, Sensision.EMPTY_LABELS, puts.size());
+
+                        puts.clear();
+                        putsSize.set(0L);
+                        nanos = System.nanoTime() - nanos;
+                        if (LOG.isDebugEnabled()) {
+                          LOG.debug("Forced HBase batch took " + nanos + " ns");
+                        }
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_TIME_NANOS, Sensision.EMPTY_LABELS, nanos);
+                        // Reset lastPut to 0
+                        lastPut.set(0L);
+                      } catch (InterruptedException ie) {
+                        // Clear list of Puts
+                        puts.clear();
+                        putsSize.set(0L);
+                        // If an exception is thrown, abort
+                        store.abort.set(true);
+                        LOG.error("Received InterruptedException", ie);
+                        return;                    
+                      } catch (Throwable t) {
+                        // Some errors of HBase are reported as RuntimeException, so we
+                        // handle those in a more general Throwable catch clause.
+                        // Mark the HBase connection as needing reset
+                        if (t.getCause() instanceof RejectedExecutionException) {
+                          store.connReset.set(true);
+                        }
+                        // Clear list of Puts
+                        puts.clear();
+                        putsSize.set(0L);
+                        // If an exception is thrown, abort
+                        store.abort.set(true);                      
+                        resetHBase = true;
+                        LOG.error("Received Throwable while forced writing of " + puts.size() + " PUTs to HBase - forcing HBase reset");
+                        return;
+                      }
+                    }                  
+                  } catch (InterruptedException ie) {
+                    store.abort.set(true);
+                    return;
+                  } finally {
+                    if (putslock.isHeldByCurrentThread()) {
+                      putslock.unlock();
+                    }
                   }
                 }
+   
+                if (forcecommit.getAndSet(false)) {
+                  flushsem.release();
+                }
 
-//                synchronized(puts) {
-//                }
+                LockSupport.parkNanos(1000000L);
               }
- 
-              if (forcecommit.getAndSet(false)) {
-                flushsem.release();
-              }
-
-              LockSupport.parkNanos(1000000L);
-            }
             } finally {
               //
               // Attempt to close the Table instance
@@ -1075,8 +1078,9 @@ public class Store extends Thread {
         // of resetting inflightMessage, this makes the code cleaner as we don't have to add calls to inflightMessage.set(false)
         // throughout the code
         
-        // Kafka 2.x Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
-        long delay = 500L;
+        // Kafka 2.x
+        Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
+        //long delay = 500L;
         
         while (resetInflight() && !store.abort.get() && !Thread.currentThread().isInterrupted()) {
 
@@ -1109,13 +1113,12 @@ public class Store extends Thread {
                     
           boolean first = true;
           
-          for (ConsumerRecord<byte[], byte[]> record : consumerRecords) {
-            if (!first) {
-              throw new RuntimeException("Invalid input, expected a single record, got " + consumerRecords.count());
-            }
+          Iterator<ConsumerRecord<byte[],byte[]>> iter = consumerRecords.iterator();
+                    
+          while(iter.hasNext()) {
             
-            first = false;
-            
+            ConsumerRecord<byte[],byte[]> record = null;
+                        
             //
             // If throttling is defined, check if we should consume this message
             //
@@ -1144,6 +1147,13 @@ public class Store extends Thread {
                 LockSupport.parkNanos(100000L);
                 continue;
               }
+              if (!first) {
+                throw new RuntimeException("Invalid input, expected a single record, got " + consumerRecords.count());
+              }
+              
+              first = false;
+
+              record = iter.next();
               inflightMessage.set(true);
             } finally {
               if (putslock.isHeldByCurrentThread()) {
@@ -1209,6 +1219,17 @@ public class Store extends Thread {
         // FIXME(hbs): log something/update Sensision metrics
         LOG.error("Received Throwable while processing Kafka message.", t);
       } finally {
+        //
+        // Attempt to close the KafkaConsumer from within this thread as it can only be closed
+        // from the thread which last acquired the semaphore, and since the thread could have
+        // been interrupted before the semaphore was released it could then be impossible to
+        // call close from another thread.
+        try {
+          this.consumer.close();          
+        } catch (Exception e) {
+          LOG.error("Error closing consumer. The synchronizer thread might have a chance to do so.", e);
+        }
+        
         // Interrupt the synchronizer thread
         this.localabort.set(true);
         try {
@@ -1396,8 +1417,9 @@ public class Store extends Thread {
         }
       }
       
+      // Attempto to acquire flushsem, it will be released by the synchronizer thread once the forced commit is finished
       while(waitForSem && !flushsem.tryAcquire()) {
-        LockSupport.parkNanos(1000);
+        LockSupport.parkNanos(1000L);
       }        
 
       //
