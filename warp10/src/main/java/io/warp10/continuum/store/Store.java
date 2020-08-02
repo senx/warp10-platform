@@ -687,10 +687,13 @@ public class Store extends Thread {
      * Lock for protecting the access to the 'puts' list.
      * This lock is also used to mutex the synchronization and the processing of
      * a message from Kafka so we do not commit and offset for an inflight message.
-     * This lock is not created fair so technically there is a non zero probability
-     * of starvation.
+     * On machines with a high number of cores, starvation has been observed when the
+     * lock is not created 'fair', leading to chaotic Store behavior since the wait limit for
+     * Kafka offset commit is reached thus triggering a reset.
+     * Creating the lock with fairness to true solves this issue to the expense of slightly
+     * lesser performance.
      */
-    private final ReentrantLock putslock = new ReentrantLock();
+    private final ReentrantLock putslock = new ReentrantLock(true);
     
     private final AtomicLong putsSize = new AtomicLong(0L);
     private final AtomicBoolean localabort = new AtomicBoolean(false);
