@@ -36,7 +36,7 @@ public class TOWKB extends NamedWarpScriptFunction implements WarpScriptStackFun
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    // The the top of the stack is either a GeoXPShape or a Boolean, then we apply GEOJSON to convert it to
+    // The top of the stack is either a GeoXPShape or a Boolean, then we apply GEOJSON to convert it to
     // GeoJSON before converting it to WKB. This is a quick and easy way of converting GeoXPShape to WKB.
     Object peeked = stack.peek();
 
