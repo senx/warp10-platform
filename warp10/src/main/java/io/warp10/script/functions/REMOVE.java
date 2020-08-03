@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Remove an entry from a map or from a list
+ * Remove an entry from a map, a list or a GTS.
  */
 public class REMOVE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
