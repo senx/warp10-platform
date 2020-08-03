@@ -80,7 +80,11 @@ public class JsonUtils {
           }
         }
         if (null != transfRes && transfRes.transformed) {
-          gen.writeObject(transfRes.result);
+          if (transfRes.raw && transfRes.result instanceof String) {
+            gen.writeRawValue((String) transfRes.result);
+          } else {
+            gen.writeObject(transfRes.result);
+          }
         } else {
           // No custom encoders able to encode this object, write null.
           gen.writeNull();
@@ -105,10 +109,12 @@ public class JsonUtils {
     class TransformationResult {
       public final boolean transformed;
       public final Object result;
+      public final boolean raw;
 
-      public TransformationResult(boolean transformed, Object result) {
+      public TransformationResult(boolean transformed, Object result, boolean raw) {
         this.transformed = transformed;
         this.result = result;
+        this.raw = raw;
       }
     }
 
