@@ -25,6 +25,10 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod;
 
 public class KWarpDist {
+  
+  private static final String KERBEROS_PRINCIPAL = "kerberos.principal";
+  private static final String KERBEROS_KEYTAB = "kerberos.keytab";
+  
   public static void main(String[] args) throws Exception {
     Configuration config = new Configuration();
     
@@ -35,8 +39,16 @@ public class KWarpDist {
     
     UserGroupInformation.setConfiguration(config);
     
-    String username = System.getProperty("kwarp.user");
-    String path = System.getProperty("kwarp.keytab");
+    String username = System.getProperty(KERBEROS_PRINCIPAL);
+    String path = System.getProperty(KERBEROS_KEYTAB);
+    
+    if (null == username) {
+      throw new RuntimeException("Kerberos principal MUST be set using -D" + KERBEROS_PRINCIPAL + "=....");
+    }
+    
+    if (null == path) {
+      throw new RuntimeException("Kerberos keytab path MUST be set using -D" + KERBEROS_KEYTAB + "=....");
+    }
     
     UserGroupInformation userGroupInformation = UserGroupInformation.loginUserFromKeytabAndReturnUGI(username, path);
     UserGroupInformation.setLoginUser(userGroupInformation);
