@@ -21,10 +21,17 @@ import com.geoxp.GeoXPLib.GeoXPShape;
 import com.geoxp.geo.Coverage;
 import com.geoxp.geo.CoverageHelper;
 import com.geoxp.geo.HHCodeHelper;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.io.ParseException;
+import com.vividsolutions.jts.io.WKBReader;
+import com.vividsolutions.jts.io.WKTReader;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import org.wololo.geojson.GeoJSON;
+import org.wololo.jts2geojson.GeoJSONReader;
+import org.wololo.jts2geojson.GeoJSONWriter;
 
 public class TOGEOJSON extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -41,44 +48,86 @@ public class TOGEOJSON extends NamedWarpScriptFunction implements WarpScriptStac
     if (top instanceof Boolean) {
       allCells = (Boolean) top;
       top = stack.pop();
-    }
 
-    if (!(top instanceof GeoXPShape)) {
-      throw new WarpScriptException(getName() + " operates on a GEOSHAPE.");
-    }
-
-    GeoXPShape shape = (GeoXPShape) top;
-
-    if (allCells) {
-      long[] cells = GeoXPLib.getCells(shape);
-
-      StringBuilder sb = new StringBuilder();
-      sb.append("{\"type\":\"MultiPolygon\",\"coordinates\":[");
-      String prefix = "";
-
-      for (long cell: cells) {
-        int cellRes = ((int) (cell >>> 60)) << 1;
-        long hh = cell << 4;
-        double[] bbox = HHCodeHelper.getHHCodeBBox(hh, cellRes);
-        sb.append(prefix);
-        prefix = ",";
-        // Counterclockwise from sw, lon/lat
-        sb.append("[[[").append(bbox[1]).append(",").append(bbox[0]).append("],");// SW
-        sb.append("[").append(bbox[3]).append(",").append(bbox[0]).append("],"); // SE
-        sb.append("[").append(bbox[3]).append(",").append(bbox[2]).append("],"); // NE
-        sb.append("[").append(bbox[1]).append(",").append(bbox[2]).append("],"); // NW
-        sb.append("[").append(bbox[1]).append(",").append(bbox[0]).append("]]]"); // SW
+      if (!(top instanceof GeoXPShape)) {
+        throw new WarpScriptException(getName() + " operates on a GEOSHAPE when first given a BOOLEAN.");
       }
+    }
 
-      sb.append("]}");
+    if (top instanceof GeoXPShape) {
+      GeoXPShape shape = (GeoXPShape) top;
 
-      stack.push(sb.toString());
+      if (allCells) {
+        long[] cells = GeoXPLib.getCells(shape);
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("{\"type\":\"MultiPolygon\",\"coordinates\":[");
+        String prefix = "";
+
+        for (long cell: cells) {
+          int cellRes = ((int) (cell >>> 60)) << 1;
+          long hh = cell << 4;
+          double[] bbox = HHCodeHelper.getHHCodeBBox(hh, cellRes);
+          sb.append(prefix);
+          prefix = ",";
+          // Counterclockwise from sw, lon/lat
+          sb.append("[[[").append(bbox[1]).append(",").append(bbox[0]).append("],");// SW
+          sb.append("[").append(bbox[3]).append(",").append(bbox[0]).append("],"); // SE
+          sb.append("[").append(bbox[3]).append(",").append(bbox[2]).append("],"); // NE
+          sb.append("[").append(bbox[1]).append(",").append(bbox[2]).append("],"); // NW
+          sb.append("[").append(bbox[1]).append(",").append(bbox[0]).append("]]]"); // SW
+        }
+
+        sb.append("]}");
+
+        stack.push(sb.toString());
+      } else {
+        long[] cells = GeoXPLib.getCells(shape);
+        Coverage coverage = new Coverage(cells);
+        stack.push(CoverageHelper.toGeoJSON(coverage));
+      }
     } else {
-      long[] cells = GeoXPLib.getCells(shape);
-      Coverage coverage = new Coverage(cells);
-      stack.push(CoverageHelper.toGeoJSON(coverage));
+      try {
+        Geometry geometry = toGeometry(top);
+        GeoJSONWriter writer = new GeoJSONWriter();
+        GeoJSON json = writer.write(geometry);
+        stack.push(json.toString());
+      } catch (WarpScriptException wse) {
+        throw new WarpScriptException(getName() + " expects a GEOSHAPE, a WKT STRING or WKB BYTES.", wse);
+      } catch (ParseException pe) {
+        throw new WarpScriptException(getName() + " was given invalid input.", pe);
+      }
     }
 
     return stack;
+  }
+
+  public static Geometry toGeometry(Object geomObject) throws WarpScriptException, ParseException {
+
+    Geometry geometry;
+
+    if (geomObject instanceof byte[]) {
+      // WKB
+      WKBReader reader = new WKBReader();
+
+      geometry = reader.read((byte[]) geomObject);
+    } else if (geomObject instanceof String) {
+      String geomString = ((String) geomObject).trim();
+      if (geomString.startsWith("{")) {
+        // GeoJson
+        GeoJSONReader reader = new GeoJSONReader();
+
+        geometry = reader.read(geomString);
+      } else {
+        // WKT
+        WKTReader reader = new WKTReader();
+
+        geometry = reader.read(geomString);
+      }
+    } else {
+      throw new WarpScriptException("Unknown geometry format.");
+    }
+
+    return geometry;
   }
 }

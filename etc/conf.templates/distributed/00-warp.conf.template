@@ -137,7 +137,7 @@ warp.components =
 // Maximum length of labels (names + values) - Defaults to 2048
 //
 #warp.labels.maxsize = 2048
-  
+
 //
 // Maximum length of attributes (names + values) - Defaults to 8192
 //

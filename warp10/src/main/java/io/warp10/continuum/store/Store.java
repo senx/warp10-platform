@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2020  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -730,9 +730,11 @@ public class Store extends Thread {
      * Lock for protecting the access to the 'puts' list.
      * This lock is also used to mutex the synchronization and the processing of
      * a message from Kafka so we do not commit and offset for an inflight message.
-     * This lock is now created fair to avoid starvation which may cause offset commits
-     * to occur erratically rather than periodically.
-     * Fairness degrades performance slightly but allows the overall process to run smoothly. 
+     * On machines with a high number of cores, starvation has been observed when the
+     * lock is not created 'fair', leading to chaotic Store behavior since the wait limit for
+     * Kafka offset commit is reached thus triggering a reset.
+     * Creating the lock with fairness to true solves this issue to the expense of slightly
+     * lesser performance.
      */
     private final ReentrantLock putslock = new ReentrantLock(true);
     

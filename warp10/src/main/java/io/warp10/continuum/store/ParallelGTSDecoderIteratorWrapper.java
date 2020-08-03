@@ -211,8 +211,9 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     public void close() throws Exception {
       this.done = true;
       // Interrupt the thread
-      if (null != this.thread) {        
-        this.thread.interrupt();
+      Thread t = this.thread;
+      if (null != t) {
+        t.interrupt();
       }
     }
   }
