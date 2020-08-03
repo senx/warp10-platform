@@ -23,6 +23,7 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -79,21 +80,30 @@ public class REMOVE extends NamedWarpScriptFunction implements WarpScriptStackFu
 
       int n = GTSHelper.nvalues(gts);
 
+      // Handle negative indexing.
       if (idx < 0) {
         idx += n;
       }
 
-      GeoTimeSerie pruned = gts.cloneEmpty(n);
+      // If the requested index is outside the valid range, just push a clone of the GTS.
+      if (idx < 0 || idx >= n) {
+        stack.push(gts.clone());
+      } else {
+        // The point is inside the valid range, copy all but the point at index and push the copy.
+        GeoTimeSerie pruned = gts.cloneEmpty(n - 1);
 
-      for (int i = 0; i < n; i++) {
-        if (i == idx) {
-          continue;
+        for (int i = 0; i < n; i++) {
+          if (i == idx) {
+            continue;
+          }
+          GTSHelper.setValue(pruned, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), GTSHelper.valueAtIndex(gts, i), false);
         }
 
-        GTSHelper.setValue(pruned, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), GTSHelper.valueAtIndex(gts, i), false);
+        stack.push(pruned);
       }
 
-      stack.push(pruned);
+      // Push the removed datapoint.
+      stack.push(ATINDEX.getTupleAtIndex(gts, idx));
     } else {
       throw new WarpScriptException(getName() + " operates on a map, a list or a GTS.");
     }
