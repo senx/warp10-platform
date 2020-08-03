@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,16 +16,19 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Remove an entry from a map or from a list
+ * Remove an entry from a map, a list or a GTS.
  */
 public class REMOVE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
@@ -67,8 +70,42 @@ public class REMOVE extends NamedWarpScriptFunction implements WarpScriptStackFu
       
       stack.push(coll);
       stack.push(o);
+    } else if (coll instanceof GeoTimeSerie) {
+      if (!(key instanceof Long) && !(key instanceof Integer)) {
+        throw new WarpScriptException(getName() + " expects an integer as key.");
+      }
+      int idx = ((Number) key).intValue();
+
+      GeoTimeSerie gts = (GeoTimeSerie) coll;
+
+      int n = GTSHelper.nvalues(gts);
+
+      // Handle negative indexing.
+      if (idx < 0) {
+        idx += n;
+      }
+
+      // If the requested index is outside the valid range, just push a clone of the GTS.
+      if (idx < 0 || idx >= n) {
+        stack.push(gts.clone());
+      } else {
+        // The point is inside the valid range, copy all but the point at index and push the copy.
+        GeoTimeSerie pruned = gts.cloneEmpty(n - 1);
+
+        for (int i = 0; i < n; i++) {
+          if (i == idx) {
+            continue;
+          }
+          GTSHelper.setValue(pruned, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), GTSHelper.valueAtIndex(gts, i), false);
+        }
+
+        stack.push(pruned);
+      }
+
+      // Push the removed datapoint.
+      stack.push(ATINDEX.getTupleAtIndex(gts, idx));
     } else {
-      throw new WarpScriptException(getName() + " operates on a map or a list.");      
+      throw new WarpScriptException(getName() + " operates on a map, a list or a GTS.");
     }
     
     return stack;
