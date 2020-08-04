@@ -32,11 +32,20 @@ import java.util.Map;
 
 /**
  * Modifies a Macro so the LOAD/STORE operations for the given variables are
- * replaced by use of registers
+ * replaced by use of registers.
+ * Also converts LOAD/STORE/CSTORE used on register numbers to PUSHRx/POPRx/CPOPRx.
+ * Optimization for STORE on lists is only done if the list contains only registers numbers
+ * or NULL and is a list construction (MARK....ENDLIST STORE), not a list instance (!$a_list STORE).
  */
 public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   private static final NOOP NOOP = new NOOP(WarpScriptLib.NOOP);
+  // DROP used for NULL or duplicate registers in STORE lists.
+  private static final DROP DROP = new DROP(WarpScriptLib.DROP);
+
+  private static final HashMap<Integer, PUSHR> PUSHRX = new HashMap<Integer, PUSHR>();
+  private static final HashMap<Integer, POPR> POPRX = new HashMap<Integer, POPR>();
+  private static final HashMap<Integer, POPR> CPOPRX = new HashMap<Integer, POPR>();
   
   public ASREGS(String name) {
     super(name);
@@ -181,10 +190,6 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
       }
     }
 
-    HashMap<Integer, PUSHR> PUSHRs = new HashMap<Integer, PUSHR>();
-    HashMap<Integer, POPR> POPRs = new HashMap<Integer, POPR>();
-    HashMap<Integer, POPR> CPOPRs = new HashMap<Integer, POPR>();
-
     //
     // Now loop over the macro statement, replacing occurrences of X LOAD and X STORE by the use
     // of the assigned register
@@ -209,13 +214,13 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             Integer regno = varregs.get(symbol.toString());
             if (null != regno) {
               statements.set(i - 1, NOOP);
-              PUSHR pushr = PUSHRs.computeIfAbsent(regno, r -> new PUSHR("PUSHR" + r, r));
+              PUSHR pushr = PUSHRX.computeIfAbsent(regno, r -> new PUSHR(WarpScriptLib.PUSHR + r, r));
               statements.set(i, pushr);
             }
           } else if (symbol instanceof Long) {
             // Also optimize LOAD on a long with PUSHR which is much faster
             statements.set(i - 1, NOOP);
-            PUSHR pushr = PUSHRs.computeIfAbsent(((Long) symbol).intValue(), r -> new PUSHR("PUSHR" + r, r));
+            PUSHR pushr = PUSHRX.computeIfAbsent(((Long) symbol).intValue(), r -> new PUSHR(WarpScriptLib.PUSHR + r, r));
             statements.set(i, pushr);
           } else {
             abort = true;
@@ -227,7 +232,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             Integer regno = varregs.get(symbol.toString());
             if (null != regno) {
               statements.set(i - 1, NOOP);
-              POPR popr = POPRs.computeIfAbsent(regno, r -> new POPR("POPR" + r, r));
+              POPR popr = POPRX.computeIfAbsent(regno, r -> new POPR(WarpScriptLib.POPR + r, r));
               statements.set(i, popr);
             }
           } else if (symbol instanceof List) {
@@ -278,7 +283,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
                     regInList[listIndex] = regno;
                   } else {
                     // The register is already used after in this list so we ignore this one, it will be
-                    // replaced with a DROP.
+                    // replaced with a DROP. For instance [ 1 1 ] STORE will be replaced by POPR1 DROP.
                     regInList[listIndex] = - 1;
                   }
                 } else {
@@ -286,17 +291,13 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
                 }
               }
 
-              // DROP used for NULL or duplicate registers.
-              // [ 1 1 ] STORE will be replaced by POPR1 DROP
-              DROP drop = new DROP("DROP");
-
               // Replace register number by POPRs. Be careful, we flip the list order!
               for (int listIndex = 0; listIndex < listLength; listIndex++) {
                 int regno = regInList[listIndex];
                 if (regno < 0) {
-                  statements.set(i - 2 - listIndex, drop);
+                  statements.set(i - 2 - listIndex, DROP);
                 } else {
-                  POPR popr = POPRs.computeIfAbsent(regInList[listIndex], r -> new POPR("POPR" + r, r));
+                  POPR popr = POPRX.computeIfAbsent(regInList[listIndex], r -> new POPR(WarpScriptLib.POPR + r, r));
                   statements.set(i - 2 - listIndex, popr);
                 }
               }
@@ -304,7 +305,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
           } else if (symbol instanceof Long) {
             // Also optimize STORE on a long with POPR which is much faster
             statements.set(i - 1, NOOP);
-            POPR popr = POPRs.computeIfAbsent(((Long) symbol).intValue(), r -> new POPR("POPR" + r, r));
+            POPR popr = POPRX.computeIfAbsent(((Long) symbol).intValue(), r -> new POPR(WarpScriptLib.POPR + r, r));
             statements.set(i, popr);
           } else {
             abort = true;
@@ -316,13 +317,13 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             Integer regno = varregs.get(symbol.toString());
             if (null != regno) {
               statements.set(i - 1, NOOP);
-              POPR cpopr = CPOPRs.computeIfAbsent(regno, r -> new POPR("CPOPR" + r, r));
+              POPR cpopr = CPOPRX.computeIfAbsent(regno, r -> new POPR(WarpScriptLib.CPOPR + r, r, true));
               statements.set(i, cpopr);
             }
           } else if (symbol instanceof Long) {
             // Also optimize CSTORE on a long with CPOPR which is much faster
             statements.set(i - 1, NOOP);
-            POPR cpopr = CPOPRs.computeIfAbsent(((Long) symbol).intValue(), r -> new POPR("CPOPR" + r, r));
+            POPR cpopr = CPOPRX.computeIfAbsent(((Long) symbol).intValue(), r -> new POPR(WarpScriptLib.CPOPR + r, r, true));
             statements.set(i, cpopr);
           } else {
             abort = true;
