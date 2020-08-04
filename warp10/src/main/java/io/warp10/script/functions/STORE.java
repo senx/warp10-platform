@@ -56,19 +56,22 @@ public class STORE extends NamedWarpScriptFunction implements WarpScriptStackFun
     }
     
     if (count > 0) {
-      for (int i = count - 1; i >= 0; i--) {
+      Object[] objectsToStore = stack.popn(count);
+
+      // Iterate from first to last symbol to make sure
+      // 1 2 3 [ 'a' 'b' 'b' ] STORE $b
+      // pushes 3
+      for (int i = 0; i < count; i++) {
         Object symbol = ((List) var).get(i);
-        
-        Object o = stack.pop();
         
         if (null == symbol) {
           continue;
         }
         
         if (symbol instanceof Long) {
-          stack.store(((Long) symbol).intValue(), o);
+          stack.store(((Long) symbol).intValue(), objectsToStore[i]);
         } else {
-          stack.store(symbol.toString(), o);
+          stack.store(symbol.toString(), objectsToStore[i]);
         }  
       }      
     } else {
