@@ -197,11 +197,7 @@ public class OptimizedSlicedRowFilterGTSDecoderIterator extends GTSDecoderIterat
       if (null != iterator) {
         try { iterator.close(); } catch (Exception e) {}
       }
-      // Remove Metadatas from FetchRequest otherwise new FetchRequest(req) will do a deep copy
-      List<Metadata> lm = this.request.getMetadatas();          
-      this.request.unsetMetadatas();
       FetchRequest req = new FetchRequest(this.request);
-      this.request.setMetadatas(lm);
       req.setMetadatas(groups.get(groupidx));
       iterator = new SlicedRowFilterGTSDecoderIterator(req, conn, tableName, colfam, keystore, useBlockCache);
       groupidx++;
