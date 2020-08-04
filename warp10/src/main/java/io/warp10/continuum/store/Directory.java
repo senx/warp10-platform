@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -2074,7 +2074,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           classSmartPattern = new SmartPattern(Pattern.compile(request.getClassSelector().get(i).substring(1)));
         }
         
-        Map<String,SmartPattern> labelPatterns = new HashMap<String,SmartPattern>();
+        Map<String,SmartPattern> labelPatterns = new LinkedHashMap<String,SmartPattern>();
         
         if (null != missingLabels) {
           missingLabels.clear();          
@@ -2134,31 +2134,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         List<String> labelNames = new ArrayList<String>(labelPatterns.size());
         List<SmartPattern> labelSmartPatterns = new ArrayList<SmartPattern>(labelPatterns.size());
         String[] labelValues = null;
-        
-        //
-        // Put producer/app/owner first
-        //
-        
-        if (labelPatterns.containsKey(Constants.PRODUCER_LABEL)) {
-          labelNames.add(Constants.PRODUCER_LABEL);
-          labelSmartPatterns.add(labelPatterns.get(Constants.PRODUCER_LABEL));
-          labelPatterns.remove(Constants.PRODUCER_LABEL);
-        }
-        if (labelPatterns.containsKey(Constants.APPLICATION_LABEL)) {
-          labelNames.add(Constants.APPLICATION_LABEL);
-          labelSmartPatterns.add(labelPatterns.get(Constants.APPLICATION_LABEL));
-          labelPatterns.remove(Constants.APPLICATION_LABEL);
-        }
-        if (labelPatterns.containsKey(Constants.OWNER_LABEL)) {
-          labelNames.add(Constants.OWNER_LABEL);
-          labelSmartPatterns.add(labelPatterns.get(Constants.OWNER_LABEL));
-          labelPatterns.remove(Constants.OWNER_LABEL);
-        }
-        
-        //
-        // Now add the other labels
-        //
-        
+                
         for(Entry<String,SmartPattern> entry: labelPatterns.entrySet()) {
           labelNames.add(entry.getKey());
           labelSmartPatterns.add(entry.getValue());
@@ -2463,7 +2439,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           classSmartPattern = new SmartPattern(Pattern.compile(request.getClassSelector().get(i).substring(1)));
         }
         
-        Map<String,SmartPattern> labelPatterns = new HashMap<String,SmartPattern>();
+        Map<String,SmartPattern> labelPatterns = new LinkedHashMap<String,SmartPattern>();
 
         if (null != missingLabels) {
           missingLabels.clear();
@@ -2525,34 +2501,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         List<String> labelNames = new ArrayList<String>(labelPatterns.size());
         List<SmartPattern> labelSmartPatterns = new ArrayList<SmartPattern>(labelPatterns.size());
         List<String> labelValues = new ArrayList<String>(labelPatterns.size());
-        
-        //
-        // Put producer/app/owner first
-        //
-        
-        if (labelPatterns.containsKey(Constants.PRODUCER_LABEL)) {
-          labelNames.add(Constants.PRODUCER_LABEL);
-          labelSmartPatterns.add(labelPatterns.get(Constants.PRODUCER_LABEL));
-          labelPatterns.remove(Constants.PRODUCER_LABEL);   
-          labelValues.add(null);
-        }
-        if (labelPatterns.containsKey(Constants.APPLICATION_LABEL)) {
-          labelNames.add(Constants.APPLICATION_LABEL);
-          labelSmartPatterns.add(labelPatterns.get(Constants.APPLICATION_LABEL));
-          labelPatterns.remove(Constants.APPLICATION_LABEL);
-          labelValues.add(null);
-        }
-        if (labelPatterns.containsKey(Constants.OWNER_LABEL)) {
-          labelNames.add(Constants.OWNER_LABEL);
-          labelSmartPatterns.add(labelPatterns.get(Constants.OWNER_LABEL));
-          labelPatterns.remove(Constants.OWNER_LABEL);
-          labelValues.add(null);
-        }
-        
-        //
-        // Now add the other labels
-        //
-        
+                
         for(Entry<String,SmartPattern> entry: labelPatterns.entrySet()) {
           labelNames.add(entry.getKey());
           labelSmartPatterns.add(entry.getValue());
@@ -3022,7 +2971,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         classSmartPattern = new SmartPattern(Pattern.compile(classSelector.substring(1)));
       }
         
-      Map<String,SmartPattern> labelPatterns = new HashMap<String,SmartPattern>();
+      Map<String,SmartPattern> labelPatterns = new LinkedHashMap<String,SmartPattern>();
         
       for (Entry<String,String> entry: labelsSelector.entrySet()) {
         String label = entry.getKey();
@@ -3079,34 +3028,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       List<String> labelNames = new ArrayList<String>(labelPatterns.size());
       List<SmartPattern> labelSmartPatterns = new ArrayList<SmartPattern>(labelPatterns.size());
       List<String> labelValues = new ArrayList<String>(labelPatterns.size());
-      
-      //
-      // Put producer/app/owner first
-      //
-      
-      if (labelPatterns.containsKey(Constants.PRODUCER_LABEL)) {
-        labelNames.add(Constants.PRODUCER_LABEL);
-        labelSmartPatterns.add(labelPatterns.get(Constants.PRODUCER_LABEL));
-        labelPatterns.remove(Constants.PRODUCER_LABEL);
-        labelValues.add(null);        
-      }
-      if (labelPatterns.containsKey(Constants.APPLICATION_LABEL)) {
-        labelNames.add(Constants.APPLICATION_LABEL);
-        labelSmartPatterns.add(labelPatterns.get(Constants.APPLICATION_LABEL));
-        labelPatterns.remove(Constants.APPLICATION_LABEL);        
-        labelValues.add(null);        
-      }
-      if (labelPatterns.containsKey(Constants.OWNER_LABEL)) {
-        labelNames.add(Constants.OWNER_LABEL);
-        labelSmartPatterns.add(labelPatterns.get(Constants.OWNER_LABEL));
-        labelPatterns.remove(Constants.OWNER_LABEL);        
-        labelValues.add(null);        
-      }
-      
-      //
-      // Now add the other labels
-      //
-      
+            
       for(Entry<String,SmartPattern> entry: labelPatterns.entrySet()) {
         labelNames.add(entry.getKey());
         labelSmartPatterns.add(entry.getValue());

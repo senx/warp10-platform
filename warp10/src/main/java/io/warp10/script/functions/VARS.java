@@ -104,8 +104,12 @@ public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunc
           }
           occ.incrementAndGet();
         } else if (statements.get(i) instanceof LOAD || statements.get(i) instanceof CSTORE) {
+          if (0 == i) {
+            abort = true;
+            break;
+          }
           Object symbol = statements.get(i - 1);
-          // If the parameter to LOAD/STORE/CSTORE is not a string, then we cannot extract
+          // If the parameter to LOAD/CSTORE is not a string or a long, then we cannot extract
           // the variables in a safe way as some may be unknown to us (as their name may be the result
           // of a computation), so in this case we abort the process
           if (symbol instanceof String || symbol instanceof Long) {
@@ -162,10 +166,19 @@ public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunc
                 break;
               }
             }
-          } else if (!(symbol instanceof String) && !(symbol instanceof Long)) {
+          } else if (symbol instanceof String || symbol instanceof Long) {
+            symbols.add(symbol);
+            AtomicInteger occ = occurrences.get(symbol);
+            if (null == occ) {
+              occ = new AtomicInteger();
+              occurrences.put(symbol, occ);
+            }
+            occ.incrementAndGet();
+          } else {
             // We encountered a STORE with something that is neither a register, a string or
             // a list, so we cannot determine if a register is involved or not, so we abort
             abort = true;
+            break;
           }
         }
       }

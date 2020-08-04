@@ -16,26 +16,36 @@
 
 package io.warp10.script.functions;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStackFunction;
+
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Modifies a Macro so the LOAD/STORE operations for the given variables are
- * replaced by use of registers
+ * replaced by use of registers.
+ * Also converts LOAD/STORE/CSTORE used on register numbers to PUSHRx/POPRx/CPOPRx.
+ * Optimization for STORE on lists is only done if the list contains only registers numbers
+ * or NULL and is a list construction (MARK....ENDLIST STORE), not a list instance (!$a_list STORE).
  */
 public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   private static final NOOP NOOP = new NOOP(WarpScriptLib.NOOP);
+  // DROP used for NULL or duplicate registers in STORE lists.
+  private static final DROP DROP = new DROP(WarpScriptLib.DROP);
+
+  private static final HashMap<Integer, PUSHR> PUSHRX = new HashMap<Integer, PUSHR>();
+  private static final HashMap<Integer, POPR> POPRX = new HashMap<Integer, POPR>();
+  private static final HashMap<Integer, POPR> CPOPRX = new HashMap<Integer, POPR>();
   
   public ASREGS(String name) {
     super(name);
@@ -156,11 +166,8 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException(getName() + " was unable to convert variables to registers.");
     }
 
-    Map<String,Integer> varregs = new HashMap<String,Integer>();
-    
-    int regidx = 0;
-    int numregs = 0;
-    
+    Map<String, Integer> varregs = new HashMap<String, Integer>();
+
     for (Object v: vars) {
       
       if (v instanceof Long) {
@@ -177,22 +184,12 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
       }
       
       if (null == varregs.get(v.toString())) {
-        regidx = inuse.nextClearBit(0);
+        int regidx = inuse.nextClearBit(0);
         inuse.set(regidx);
         varregs.put(v.toString(), regidx);
       }
-    }    
-
-    numregs = regidx + 1;
-
-    WarpScriptStackFunction[] regfuncs = new WarpScriptStackFunction[numregs * 3];
-    
-    for (int i = 0; i < numregs; i++) {
-      regfuncs[i] = new PUSHR(WarpScriptLib.PUSHR + i, i); // LOAD
-      regfuncs[numregs + i] = new POPR(WarpScriptLib.POPR + i, i); // STORE
-      regfuncs[numregs + numregs + i] = new POPR(WarpScriptLib.POPR + i, i, true); // CSTORE
     }
-        
+
     //
     // Now loop over the macro statement, replacing occurrences of X LOAD and X STORE by the use
     // of the assigned register
@@ -217,9 +214,15 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             Integer regno = varregs.get(symbol.toString());
             if (null != regno) {
               statements.set(i - 1, NOOP);
-              statements.set(i, regfuncs[regno]);
-            }            
-          } else if (!(symbol instanceof Long)) {
+              PUSHR pushr = PUSHRX.computeIfAbsent(regno, r -> new PUSHR(WarpScriptLib.PUSHR + r, r));
+              statements.set(i, pushr);
+            }
+          } else if (symbol instanceof Long) {
+            // Also optimize LOAD on a long with PUSHR which is much faster
+            statements.set(i - 1, NOOP);
+            PUSHR pushr = PUSHRX.computeIfAbsent(((Long) symbol).intValue(), r -> new PUSHR(WarpScriptLib.PUSHR + r, r));
+            statements.set(i, pushr);
+          } else {
             abort = true;
             break;
           }
@@ -229,8 +232,9 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             Integer regno = varregs.get(symbol.toString());
             if (null != regno) {
               statements.set(i - 1, NOOP);
-              statements.set(i, regfuncs[regno + numregs]);
-            }                    
+              POPR popr = POPRX.computeIfAbsent(regno, r -> new POPR(WarpScriptLib.POPR + r, r));
+              statements.set(i, popr);
+            }
           } else if (symbol instanceof List) {
             for (int k = 0; k < ((List) symbol).size(); k++) {
               if (((List) symbol).get(k) instanceof String) {
@@ -242,17 +246,68 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             }
           } else if (symbol instanceof ENDLIST) {
             int idx = i - 2;
+            int nbOfRegOrNull = 0; // Keeps track of the number of registers or nulls in this list
             while (idx >= 0 && !(statements.get(idx) instanceof MARK)) {
               Object stmt = statements.get(idx);
               if (stmt instanceof String) {
                 Integer regno = varregs.get(stmt);
                 if (null != regno) {
                   statements.set(idx, (long) regno);
+                  nbOfRegOrNull++;
                 }
+              } else if (stmt instanceof Long || stmt instanceof NULL) {
+                nbOfRegOrNull++;
               }
               idx--;
-            }            
-          } else if (!(symbol instanceof Long)) {
+            }
+
+            // Further optimization: if the list contains only registers or nulls, replace by POPRs or DROP
+            // which are much faster.
+            // For instance, replace [ 3 7 NULL 9 ] STORE by NOOP POPR9 DROP POPR7 POPR3 NOOP NOOP.
+            int listLength = i - idx - 2;
+            if (nbOfRegOrNull == listLength) {
+              statements.set(idx, NOOP); // replace MARK
+              statements.set(i - 1, NOOP); // replace ENDLIST
+              statements.set(i, NOOP); // replace STORE
+
+              // Set of register numbers to detect duplicates.
+              HashSet<Integer> regset = new HashSet<Integer>(listLength);
+
+              // As we must flip the order of the list, we must store the registers first.
+              int[] regInList = new int[listLength];
+              for (int listIndex = listLength - 1; listIndex >= 0; listIndex--) {
+                Object stmt = statements.get(idx + 1 + listIndex);
+                if(stmt instanceof Long) {
+                  int regno = ((Long)stmt).intValue();
+                  if(regset.add(regno)) {
+                    regInList[listIndex] = regno;
+                  } else {
+                    // The register is already used after in this list so we ignore this one, it will be
+                    // replaced with a DROP. For instance [ 1 1 ] STORE will be replaced by POPR1 DROP.
+                    regInList[listIndex] = - 1;
+                  }
+                } else {
+                  regInList[listIndex] = - 1; // NULL
+                }
+              }
+
+              // Replace register number by POPRs. Be careful, we flip the list order!
+              for (int listIndex = 0; listIndex < listLength; listIndex++) {
+                int regno = regInList[listIndex];
+                if (regno < 0) {
+                  statements.set(i - 2 - listIndex, DROP);
+                } else {
+                  POPR popr = POPRX.computeIfAbsent(regInList[listIndex], r -> new POPR(WarpScriptLib.POPR + r, r));
+                  statements.set(i - 2 - listIndex, popr);
+                }
+              }
+            }
+          } else if (symbol instanceof Long) {
+            // Also optimize STORE on a long with POPR which is much faster
+            statements.set(i - 1, NOOP);
+            POPR popr = POPRX.computeIfAbsent(((Long) symbol).intValue(), r -> new POPR(WarpScriptLib.POPR + r, r));
+            statements.set(i, popr);
+          } else {
             abort = true;
             break;
           }
@@ -262,9 +317,15 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             Integer regno = varregs.get(symbol.toString());
             if (null != regno) {
               statements.set(i - 1, NOOP);
-              statements.set(i, regfuncs[regno + numregs + numregs]);
+              POPR cpopr = CPOPRX.computeIfAbsent(regno, r -> new POPR(WarpScriptLib.CPOPR + r, r, true));
+              statements.set(i, cpopr);
             }
-          } else if (!(symbol instanceof Long)) {
+          } else if (symbol instanceof Long) {
+            // Also optimize CSTORE on a long with CPOPR which is much faster
+            statements.set(i - 1, NOOP);
+            POPR cpopr = CPOPRX.computeIfAbsent(((Long) symbol).intValue(), r -> new POPR(WarpScriptLib.CPOPR + r, r, true));
+            statements.set(i, cpopr);
+          } else {
             abort = true;
             break;
           }
