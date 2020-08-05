@@ -50,7 +50,11 @@ public class OptimizedSlicedRowFilterGTSDecoderIterator extends GTSDecoderIterat
   public OptimizedSlicedRowFilterGTSDecoderIterator(FetchRequest req, Connection conn, TableName tableName, byte[] colfam, KeyStore keystore, boolean useBlockCache) {
     
     // We allocate a new one so the parameters are preserved, the metadatas will vary anyway
+    // Remove Metadatas from FetchRequest otherwise new FetchRequest(req) will do a deep copy
+    List<Metadata> lm = req.getMetadatas();          
+    req.unsetMetadatas();
     this.request = new FetchRequest(req);
+    req.setMetadatas(lm);
     this.now = req.getNow();
     this.then = req.getThents();
     this.conn = conn;
