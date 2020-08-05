@@ -107,9 +107,27 @@ public class JsonUtils {
 
   public interface JsonTransformer {
     class TransformationResult {
-      public final boolean transformed;
-      public final Object result;
-      public final boolean raw;
+
+      /**
+       * Whether the transformer managed to transform the given object or not.
+       * If false, result and raw fields are ignored.
+       */
+      private final boolean transformed;
+
+      /**
+       * The result of the transformation.
+       * If raw, the result must be a String and will be added as is in the resulting JSON.
+       * If not raw, the result should be an Object which can be JSONified. Typically Maps, Lists, String, Numbers, Booleans
+       * or even other Objects which are known to have serializer (GTS, Bytes, ...) or handled by other transformers.
+       */
+      private final Object result;
+
+      /**
+       * Whether the result is to be added as is in the resulting JSON.
+       * If true, result must be a String.
+       * If false, result can be any Object which will be JSONified.
+       */
+      private final boolean raw;
 
       public TransformationResult(boolean transformed, Object result, boolean raw) {
         this.transformed = transformed;
@@ -124,8 +142,8 @@ public class JsonUtils {
      * This allows the JSON serialization to ask for the conversion of un-serializable objects to serializable ones.
      * If it is not handled, TransformationResult#result is ignored, so it can be safely set to null.
      *
-     * @param original
-     * @return
+     * @param original The object to be transformed.
+     * @return The result of the transformation.
      */
     TransformationResult transform(Object original);
   }
@@ -227,7 +245,7 @@ public class JsonUtils {
   }
 
   /**
-   * Add a transformer to convert un-serializable objects to serializable ones.
+   * Add a transformer to convert un-serializable objects to serializable ones or raw Strings included in the JSON.
    *
    * @param transformer The transformer instance.
    */
