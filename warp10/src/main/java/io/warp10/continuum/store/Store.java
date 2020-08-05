@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -43,7 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
@@ -1546,29 +1545,11 @@ public class Store extends Thread {
    * @param props Properties from which to extract the key specs
    */
   private void extractKeys(Properties props) {
-    String keyspec = props.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_MAC);
-    
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length, "Key " + io.warp10.continuum.Configuration.STORE_KAFKA_DATA_MAC + " MUST be 128 bits long.");
-      this.keystore.setKey(KeyStore.SIPHASH_KAFKA_DATA, key);
-    }
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_KAFKA_DATA, props, io.warp10.continuum.Configuration.STORE_KAFKA_DATA_MAC, 128);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_KAFKA_DATA, props, io.warp10.continuum.Configuration.STORE_KAFKA_DATA_AES, 128, 192, 256);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_HBASE_DATA, props, io.warp10.continuum.Configuration.STORE_HBASE_DATA_AES, 128, 192, 256);
 
-    keyspec = props.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_AES);
-    
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + io.warp10.continuum.Configuration.STORE_KAFKA_DATA_AES + " MUST be 128, 192 or 256 bits long.");
-      this.keystore.setKey(KeyStore.AES_KAFKA_DATA, key);
-    }
-    
-    keyspec = props.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_AES);
-    
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + io.warp10.continuum.Configuration.STORE_HBASE_DATA_AES + " MUST be 128, 192 or 256 bits long.");
-      this.keystore.setKey(KeyStore.AES_HBASE_DATA, key);
-    }
+    this.keystore.forget();
   }
   
   private static synchronized Connection getHBaseConnection(Properties properties) throws IOException {

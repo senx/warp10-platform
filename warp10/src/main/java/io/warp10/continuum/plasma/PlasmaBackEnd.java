@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.plasma;
 
+import io.warp10.WarpDist;
 import io.warp10.continuum.KafkaOffsetCounters;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
@@ -453,38 +454,12 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
    * @param props Properties from which to extract the key specs
    */
   private void extractKeys(Properties props) {
-    String keyspec = props.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_MAC);
-    
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length, "Key " + io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_MAC + " MUST be 128 bits long.");
-      this.keystore.setKey(KeyStore.SIPHASH_KAFKA_PLASMA_BACKEND_IN, key);
-    }
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_KAFKA_PLASMA_BACKEND_IN, props, io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_MAC, 128);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_KAFKA_PLASMA_BACKEND_IN, props, io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_AES, 128, 192, 256);
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_KAFKA_PLASMA_BACKEND_OUT, props, io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_MAC, 128);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_KAFKA_PLASMA_BACKEND_OUT, props, io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_AES, 128, 192, 256);
 
-    keyspec = props.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_AES);
-    
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_AES + " MUST be 128, 192 or 256 bits long.");
-      this.keystore.setKey(KeyStore.AES_KAFKA_PLASMA_BACKEND_IN, key);
-    }    
-    
-    keyspec = props.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_MAC);
-    
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length, "Key " + io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_MAC + " MUST be 128 bits long.");
-      this.keystore.setKey(KeyStore.SIPHASH_KAFKA_PLASMA_BACKEND_OUT, key);
-    }
 
-    keyspec = props.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_AES);
-    
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_AES + " MUST be 128, 192 or 256 bits long.");
-      this.keystore.setKey(KeyStore.AES_KAFKA_PLASMA_BACKEND_OUT, key);
-    }
-    
     //
     // Check if the inbound and outbound SipHash/AES keys are identical this is to speed up dispatching
     //
