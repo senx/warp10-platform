@@ -210,7 +210,7 @@ directory.host = 127.0.0.1
 directory.psk = hex:hhhhhh...
 
 //
-// Max age of Find requests
+// Max age of Find requests in milliseconds
 //
 directory.maxage = 1800000
 
