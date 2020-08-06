@@ -114,7 +114,6 @@ public class DirectoryUtil {
    * @param filter A shard filter. null is there is no shard.
    * @param metadatas The metadata map of the Directory.
    * @param classesPerOwner If available, the Map associating owner to their classes, null otherwise.
-   * @param directoryClassNames If available, the Map associating classID to class name, null otherwise.
    * @param classCardinalityLimit Threshold above which to use a simplified estimator, for classes.
    * @param labelsCardinalityLimit Threshold above which to use a simplified estimator, for labels.
    * @param maxage The maximum age of the request, negative to bypass the test.
@@ -128,7 +127,6 @@ public class DirectoryUtil {
                                              StandaloneDirectoryClient.ShardFilter filter,
                                              Map<String, Map<Long, Metadata>> metadatas,
                                              Map<String, Set<String>> classesPerOwner,
-                                             Map<Long, String> directoryClassNames,
                                              long classCardinalityLimit,
                                              long labelsCardinalityLimit,
                                              long maxage,
@@ -240,22 +238,22 @@ public class DirectoryUtil {
           classNames.add(exactClassName);
         } else {
           //
-          // Extract per owner classes if owner selector exists
+          // Extract per owner classes if owner selector exists and classesPerOwner is defined
           //
-          if(null != classesPerOwner) {
+          if (null != classesPerOwner) {
             if (request.getLabelsSelectors().get(i).size() > 0) {
               String ownersel = request.getLabelsSelectors().get(i).get(Constants.OWNER_LABEL);
 
               if (null != ownersel && ownersel.startsWith("=")) {
                 classNames = classesPerOwner.get(ownersel.substring(1));
               } else {
-                classNames = directoryClassNames.values();
+                classNames = metadatas.keySet();
               }
             } else {
-              classNames = directoryClassNames.values();
+              classNames = metadatas.keySet();
             }
           } else {
-            classNames.addAll(metadatas.keySet());
+            classNames = metadatas.keySet();
           }
         }
 

@@ -2368,7 +2368,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   
   @Override
   public DirectoryStatsResponse stats(DirectoryStatsRequest request) throws TException {
-    return DirectoryUtil.stats(request, null, metadatas, classesPerOwner, classNames, LIMIT_CLASS_CARDINALITY, LIMIT_LABELS_CARDINALITY, maxage, SIPHASH_CLASS_LONGS, SIPHASH_LABELS_LONGS, SIPHASH_PSK_LONGS);
+    return DirectoryUtil.stats(request, null, metadatas, classesPerOwner, LIMIT_CLASS_CARDINALITY, LIMIT_LABELS_CARDINALITY, maxage, SIPHASH_CLASS_LONGS, SIPHASH_LABELS_LONGS, SIPHASH_PSK_LONGS);
   }
 
   @Override

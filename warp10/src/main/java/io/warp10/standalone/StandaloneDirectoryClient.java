@@ -955,7 +955,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   }
   
   private DirectoryStatsResponse stats(DirectoryStatsRequest request, ShardFilter filter) throws TException {
-    return DirectoryUtil.stats(request, filter, metadatas, null, null, LIMIT_CLASS_CARDINALITY, LIMIT_LABELS_CARDINALITY,-1, classLongs, labelsLongs, null);
+    return DirectoryUtil.stats(request, filter, metadatas, null, LIMIT_CLASS_CARDINALITY, LIMIT_LABELS_CARDINALITY,-1, classLongs, labelsLongs, null);
   }
   
   @Override
