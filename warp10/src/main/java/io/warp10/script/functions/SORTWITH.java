@@ -29,10 +29,19 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Sorts a list using a comparator macro.
- * The comparator macro is given:
+ * Sorts a list or a LinkedHashMap using a comparator macro.
+ *
+ * In the case of a List, the comparator macro is given:
  * TOP: b
  * 2:   a
+ * And should push a negative Long if a less than b, a positive one if a more than b or 0L if there are equal.
+ * This Long must be within the bounds of a 32-bit integer.
+ *
+ * In the case of a LinkedHashMap, the comparator macro is given:
+ * TOP: b.value
+ * 2:   b.key
+ * 2:   a.value
+ * 2:   a.key
  * And should push a negative Long if a less than b, a positive one if a more than b or 0L if there are equal.
  * This Long must be within the bounds of a 32-bit integer.
  */
