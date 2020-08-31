@@ -50,7 +50,11 @@ public class Pmask extends NamedWarpScriptFunction implements WarpScriptStackFun
     PImage img = (PImage) top;
 
     // Apply mask
-    img.mask(mask);
+    try {
+      img.mask(mask);
+    } catch (IllegalArgumentException iae) {
+      throw new WarpScriptException(getName() + " expects the two PIMAGEs to be of the same size.");
+    }
 
     stack.push(img);
 
