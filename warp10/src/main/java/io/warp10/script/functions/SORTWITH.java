@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,9 +21,12 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EmptyStackException;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Sorts a list using a comparator macro.
@@ -37,8 +40,7 @@ public class SORTWITH extends NamedWarpScriptFunction implements WarpScriptStack
 
   // Unchecked exception to wrap checked ones, thus allowing Compare.compare to throw it.
   // Also nicely formats the error message for unchecked exceptions thrown during the comparison.
-  private class ComparisonException extends RuntimeException {
-
+  private static class ComparisonException extends RuntimeException {
     public ComparisonException(Exception e) {
       super(e);
     }
@@ -60,39 +62,78 @@ public class SORTWITH extends NamedWarpScriptFunction implements WarpScriptStack
 
     top = stack.pop();
 
-    if (!(top instanceof List)) {
-      throw new WarpScriptException(getName() + " operates on a list.");
-    }
+    if (top instanceof List) {
+      List list = (List) top;
 
-    List list = (List) top;
+      try {
+        list.sort(new Comparator() {
+          @Override
+          public int compare(Object o1, Object o2) {
+            try {
+              stack.push(o1);
+              stack.push(o2);
+              stack.exec(macro);
 
-    try {
-      list.sort(new Comparator() {
-        @Override
-        public int compare(Object o1, Object o2) {
-          try {
-            stack.push(o1);
-            stack.push(o2);
-            stack.exec(macro);
+              Object topComp = stack.pop();
 
-            Object topComp = stack.pop();
+              if (!(topComp instanceof Long)) {
+                throw new WarpScriptException(getName() + " was given a macro which doesn't return a LONG. This LONG must be within the bounds of a 32-bit integer.");
+              }
 
-            if (!(topComp instanceof Long)) {
-              throw new WarpScriptException(getName() + " was given a macro which doesn't return a LONG. This LONG must be within the bounds of a 32-bit integer.");
+              return Math.toIntExact((Long) topComp);
+            } catch (WarpScriptException | ArithmeticException | EmptyStackException e) {
+              // Wrap in a unchecked exception for Comparator.compare to be able to throw it.
+              throw new ComparisonException(e);
             }
-
-            return Math.toIntExact((Long) topComp);
-          } catch (WarpScriptException | ArithmeticException | EmptyStackException e) {
-            // Wrap in a unchecked exception for Comparator.compare to be able to throw it.
-            throw new ComparisonException(e);
           }
-        }
-      });
-    } catch (ComparisonException ce) {
-      throw new WarpScriptException(getName() + " encountered an error with comparator: " + ce.getCause().getMessage(), ce);
-    }
+        });
+      } catch (ComparisonException ce) {
+        throw new WarpScriptException(getName() + " encountered an error with comparator: " + ce.getCause().getMessage(), ce);
+      }
 
-    stack.push(list);
+      stack.push(list);
+    } else if (top instanceof LinkedHashMap) {
+      LinkedHashMap linkedHashMap = (LinkedHashMap) top;
+      ArrayList<Map.Entry> entryList = new ArrayList<Map.Entry>(linkedHashMap.entrySet());
+
+      try {
+        entryList.sort(new Comparator<Map.Entry>() {
+          @Override
+          public int compare(Map.Entry entry1, Map.Entry entry2) {
+            try {
+              stack.push(entry1.getKey());
+              stack.push(entry1.getValue());
+              stack.push(entry2.getKey());
+              stack.push(entry2.getValue());
+              stack.exec(macro);
+
+              Object topComp = stack.pop();
+
+              if (!(topComp instanceof Long)) {
+                throw new WarpScriptException(getName() + " was given a macro which doesn't return a LONG. This LONG must be within the bounds of a 32-bit integer.");
+              }
+
+              return Math.toIntExact((Long) topComp);
+            } catch (WarpScriptException | ArithmeticException | EmptyStackException e) {
+              // Wrap in a unchecked exception for Comparator.compare to be able to throw it.
+              throw new ComparisonException(e);
+            }
+          }
+        });
+      } catch (ComparisonException ce) {
+        throw new WarpScriptException(getName() + " encountered an error with comparator: " + ce.getCause().getMessage(), ce);
+      }
+
+      linkedHashMap.clear();
+
+      for (Map.Entry entry: entryList) {
+        linkedHashMap.put(entry.getKey(), entry.getValue());
+      }
+
+      stack.push(linkedHashMap);
+    } else {
+      throw new WarpScriptException(getName() + " operates on a list or a map created by {} or ->MAP.");
+    }
 
     return stack;
   }
