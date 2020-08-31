@@ -316,7 +316,7 @@ public class WarpDist {
     KeyStore.checkAndSetKey(keystore, KeyStore.AES_TOKEN, properties, Configuration.WARP_AES_TOKEN, 128, 192, 256);
     KeyStore.checkAndSetKey(keystore, KeyStore.AES_SECURESCRIPTS, properties, Configuration.WARP_AES_SCRIPTS, 128, 192, 256);
     KeyStore.checkAndSetKey(keystore, KeyStore.AES_METASETS, properties, Configuration.WARP_AES_METASETS, 128, 192, 256);
-    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_CLASS, properties, Configuration.WARP_HASH_CLASS, Configuration.WARP_DEFAULT_AES_LOGGING, 128, 192, 256);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_LOGGING, properties, Configuration.WARP_AES_LOGGING, Configuration.WARP_DEFAULT_AES_LOGGING, 128, 192, 256);
 
     // Generate secondary keys. We use the ones' complement of the primary keys
     keystore.setKey(KeyStore.SIPHASH_CLASS_SECONDARY, CryptoUtils.invert(keystore.getKey(KeyStore.SIPHASH_CLASS)));

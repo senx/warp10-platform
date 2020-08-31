@@ -228,10 +228,10 @@ public interface KeyStore {
 
 
   /**
-   * Get a key from the configuration, add, if it exists and if the number of bits of the key is in the given values,
-   * add it to the key store.
+   * Get a key from the configuration, and, if it exists and if the number of bits of the key is in the given values,
+   * add it to the keystore.
    * @param keystore The KeyStore to add the key to.
-   * @param keyname The key name under which to add the key in the key store.
+   * @param keyname The key name under which to add the key in the keystore.
    * @param props The properties from which to get the key.
    * @param configurationKey The configuration key holding the key value.
    * @param sizeInBits The valid number of bits of the key. Typically 128 or 128, 192, 256.
@@ -242,10 +242,10 @@ public interface KeyStore {
   }
 
   /**
-   * Get a key from the configuration, add, if it exists or has a non-null default and if the number of bits of the key
-   * is in the given values, add it to the key store.
+   * Get a key from the configuration, and, if it exists or has a non-null default and if the number of bits of the key
+   * is in the given values, add it to the keystore.
    * @param keystore The KeyStore to add the key to.
-   * @param keyname The key name under which to add the key in the key store.
+   * @param keyname The key name under which to add the key in the keystore.
    * @param props The properties from which to get the key.
    * @param configurationKey The configuration key holding the key value.
    * @param defaultKeyValue The default key in case it is not found in the properties.
@@ -276,7 +276,7 @@ public interface KeyStore {
         }
         sizesStr.append(sizeInBits[sizeIndex]);
       }
-      Preconditions.checkArgument(correctSize, "Key %s MUST be %s bit long.", configurationKey, sizesStr);
+      Preconditions.checkArgument(correctSize, "Key %s MUST be %s bits long.", configurationKey, sizesStr);
 
       keystore.setKey(keyname, key);
 
