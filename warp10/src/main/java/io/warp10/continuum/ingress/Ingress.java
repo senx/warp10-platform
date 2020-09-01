@@ -58,6 +58,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.warp10.WarpDist;
 import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -1941,46 +1942,12 @@ public class Ingress extends AbstractHandler implements Runnable {
    * @param props Properties from which to extract the key specs
    */
   private static void extractKeys(KeyStore keystore, Properties props) {
-    String keyspec = props.getProperty(Configuration.INGRESS_KAFKA_META_MAC);
-    
-    if (null != keyspec) {
-      byte[] key = keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length, "Key " + Configuration.INGRESS_KAFKA_META_MAC + " MUST be 128 bits long.");
-      keystore.setKey(KeyStore.SIPHASH_KAFKA_METADATA, key);
-    }
-    
-    keyspec = props.getProperty(Configuration.INGRESS_KAFKA_DATA_MAC);
-    
-    if (null != keyspec) {
-      byte[] key = keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length, "Key " + Configuration.INGRESS_KAFKA_DATA_MAC + " MUST be 128 bits long.");
-      keystore.setKey(KeyStore.SIPHASH_KAFKA_DATA, key);
-    }
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_KAFKA_METADATA, props, Configuration.INGRESS_KAFKA_META_MAC, 128);
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_KAFKA_DATA, props, Configuration.INGRESS_KAFKA_DATA_MAC, 128);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_KAFKA_METADATA, props, Configuration.INGRESS_KAFKA_META_AES, 128, 192, 256);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_KAFKA_DATA, props, Configuration.INGRESS_KAFKA_DATA_AES, 128, 192, 256);
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_DIRECTORY_PSK, props, Configuration.DIRECTORY_PSK, 128);
 
-    keyspec = props.getProperty(Configuration.INGRESS_KAFKA_META_AES);
-    
-    if (null != keyspec) {
-      byte[] key = keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.INGRESS_KAFKA_META_AES + " MUST be 128, 192 or 256 bits long.");
-      keystore.setKey(KeyStore.AES_KAFKA_METADATA, key);
-    }
-
-    keyspec = props.getProperty(Configuration.INGRESS_KAFKA_DATA_AES);
-    
-    if (null != keyspec) {
-      byte[] key = keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.INGRESS_KAFKA_DATA_AES + " MUST be 128, 192 or 256 bits long.");
-      keystore.setKey(KeyStore.AES_KAFKA_DATA, key);
-    }
-    
-    keyspec = props.getProperty(Configuration.DIRECTORY_PSK);
-    
-    if (null != keyspec) {
-      byte[] key = keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length, "Key " + Configuration.DIRECTORY_PSK + " MUST be 128 bits long.");
-      keystore.setKey(KeyStore.SIPHASH_DIRECTORY_PSK, key);
-    }    
-    
     keystore.forget();
   }
   

@@ -1217,38 +1217,11 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
    * @param props Properties from which to extract the key specs
    */
   private void extractKeys(Properties props) {
-    String keyspec = props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_MAC);
-    
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length, "Key " + io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_MAC + " MUST be 128 bits long.");
-      this.keystore.setKey(KeyStore.SIPHASH_KAFKA_METADATA, key);
-    }
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_KAFKA_METADATA, props, io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_MAC, 128);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_KAFKA_METADATA, props, io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_AES, 128, 192, 256);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_HBASE_METADATA, props, io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_AES, 128, 192, 256);
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_DIRECTORY_PSK, props, io.warp10.continuum.Configuration.DIRECTORY_PSK, 128);
 
-    keyspec = props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_AES);
-    
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_AES + " MUST be 128, 192 or 256 bits long.");
-      this.keystore.setKey(KeyStore.AES_KAFKA_METADATA, key);
-    }
-    
-    keyspec = props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_AES);
-    
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_AES + " MUST be 128, 192 or 256 bits long.");
-      this.keystore.setKey(KeyStore.AES_HBASE_METADATA, key);
-    }
-    
-    keyspec = props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_PSK);
-    
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length, "Key " + io.warp10.continuum.Configuration.DIRECTORY_PSK + " MUST be 128 bits long.");      
-      this.keystore.setKey(KeyStore.SIPHASH_DIRECTORY_PSK, key);      
-    }
-    
     this.keystore.forget();
   }
 

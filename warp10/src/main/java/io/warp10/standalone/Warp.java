@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashSet;
@@ -39,8 +38,6 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.server.handler.gzip.GzipHandler;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
-import org.fusesource.leveldbjni.JniDBFactory;
 import org.iq80.leveldb.CompressionType;
 import org.iq80.leveldb.Options;
 
@@ -64,7 +61,6 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.ParallelGTSDecoderIteratorWrapper;
 import io.warp10.continuum.store.StoreClient;
-import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OSSKeyStore;
 import io.warp10.crypto.UnsecureKeyStore;
@@ -178,38 +174,7 @@ public class Warp extends WarpDist implements Runnable {
     }
 
     extractKeys(keystore, properties);
-    
-    keystore.setKey(KeyStore.SIPHASH_CLASS, keystore.decodeKey(properties.getProperty(Configuration.WARP_HASH_CLASS)));
-    Preconditions.checkArgument(16 == keystore.getKey(KeyStore.SIPHASH_CLASS).length, Configuration.WARP_HASH_CLASS + " MUST be 128 bits long.");
-    keystore.setKey(KeyStore.SIPHASH_LABELS, keystore.decodeKey(properties.getProperty(Configuration.WARP_HASH_LABELS)));
-    Preconditions.checkArgument(16 == keystore.getKey(KeyStore.SIPHASH_LABELS).length, Configuration.WARP_HASH_LABELS + " MUST be 128 bits long.");
-    
-    //
-    // Generate secondary keys. We use the ones' complement of the primary keys
-    //
-    
-    keystore.setKey(KeyStore.SIPHASH_CLASS_SECONDARY, CryptoUtils.invert(keystore.getKey(KeyStore.SIPHASH_CLASS)));
-    keystore.setKey(KeyStore.SIPHASH_LABELS_SECONDARY, CryptoUtils.invert(keystore.getKey(KeyStore.SIPHASH_LABELS)));        
-    
-    keystore.setKey(KeyStore.SIPHASH_TOKEN, keystore.decodeKey(properties.getProperty(Configuration.WARP_HASH_TOKEN)));
-    Preconditions.checkArgument(16 == keystore.getKey(KeyStore.SIPHASH_TOKEN).length, Configuration.WARP_HASH_TOKEN + " MUST be 128 bits long.");
-    keystore.setKey(KeyStore.SIPHASH_APPID, keystore.decodeKey(properties.getProperty(Configuration.WARP_HASH_APP)));
-    Preconditions.checkArgument(16 == keystore.getKey(KeyStore.SIPHASH_APPID).length, Configuration.WARP_HASH_APP + " MUST be 128 bits long.");
-    keystore.setKey(KeyStore.AES_TOKEN, keystore.decodeKey(properties.getProperty(Configuration.WARP_AES_TOKEN)));
-    Preconditions.checkArgument((16 == keystore.getKey(KeyStore.AES_TOKEN).length) || (24 == keystore.getKey(KeyStore.AES_TOKEN).length) || (32 == keystore.getKey(KeyStore.AES_TOKEN).length), Configuration.WARP_AES_TOKEN + " MUST be 128, 192 or 256 bits long.");
-    keystore.setKey(KeyStore.AES_SECURESCRIPTS, keystore.decodeKey(properties.getProperty(Configuration.WARP_AES_SCRIPTS)));
-    Preconditions.checkArgument((16 == keystore.getKey(KeyStore.AES_SECURESCRIPTS).length) || (24 == keystore.getKey(KeyStore.AES_SECURESCRIPTS).length) || (32 == keystore.getKey(KeyStore.AES_SECURESCRIPTS).length), Configuration.WARP_AES_SCRIPTS + " MUST be 128, 192 or 256 bits long.");
 
-    if (properties.containsKey(Configuration.WARP_AES_METASETS)) {
-      keystore.setKey(KeyStore.AES_METASETS, keystore.decodeKey(properties.getProperty(Configuration.WARP_AES_METASETS)));
-      Preconditions.checkArgument((16 == keystore.getKey(KeyStore.AES_METASETS).length) || (24 == keystore.getKey(KeyStore.AES_METASETS).length) || (32 == keystore.getKey(KeyStore.AES_METASETS).length), Configuration.WARP_AES_METASETS + " MUST be 128, 192 or 256 bits long.");
-    }
-
-    if (null != properties.getProperty(Configuration.WARP_AES_LOGGING, Configuration.WARP_DEFAULT_AES_LOGGING)) {
-      keystore.setKey(KeyStore.AES_LOGGING, keystore.decodeKey(properties.getProperty(Configuration.WARP_AES_LOGGING, Configuration.WARP_DEFAULT_AES_LOGGING)));
-      Preconditions.checkArgument((16 == keystore.getKey(KeyStore.AES_LOGGING).length) || (24 == keystore.getKey(KeyStore.AES_LOGGING).length) || (32 == keystore.getKey(KeyStore.AES_LOGGING).length), Configuration.WARP_AES_LOGGING + " MUST be 128, 192 or 256 bits long.");      
-    }
-    
     setKeyStore(keystore);
     
     //
@@ -594,32 +559,11 @@ public class Warp extends WarpDist implements Runnable {
    * @param props Properties from which to extract the key specs
    */
   public static void extractKeys(KeyStore keystore, Properties props) {
-    String keyspec = props.getProperty(Configuration.LEVELDB_METADATA_AES);
-    
-    if (null != keyspec) {
-      byte[] key = keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.LEVELDB_METADATA_AES + " MUST be 128, 192 or 256 bits long.");
-      keystore.setKey(KeyStore.AES_LEVELDB_METADATA, key);
-    }
-    
-    keyspec = props.getProperty(Configuration.LEVELDB_DATA_AES);
-    
-    if (null != keyspec) {
-      byte[] key = keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.LEVELDB_DATA_AES + " MUST be 128, 192 or 256 bits long.");
-      keystore.setKey(KeyStore.AES_LEVELDB_DATA, key);
-    }
-            
-    if (null != props.getProperty(Configuration.CONFIG_FETCH_PSK)) {
-      keystore.setKey(KeyStore.SIPHASH_FETCH_PSK, keystore.decodeKey(props.getProperty(Configuration.CONFIG_FETCH_PSK)));
-      Preconditions.checkArgument((16 == keystore.getKey(KeyStore.SIPHASH_FETCH_PSK).length), Configuration.CONFIG_FETCH_PSK + " MUST be 128 bits long.");            
-    }
-
-    if (null != props.getProperty(Configuration.RUNNER_PSK)) {
-      byte[] key = keystore.decodeKey(props.getProperty(Configuration.RUNNER_PSK));
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.RUNNER_PSK + " MUST be 128, 192 or 256 bits long.");
-      keystore.setKey(KeyStore.AES_RUNNER_PSK, key);
-    }
+    WarpDist.extractKeys(keystore, props);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_LEVELDB_METADATA, props, Configuration.LEVELDB_METADATA_AES, 128, 192, 256);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_LEVELDB_DATA, props, Configuration.LEVELDB_DATA_AES, 128, 192, 256);
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_FETCH_PSK, props, Configuration.CONFIG_FETCH_PSK, 128);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_RUNNER_PSK, props, Configuration.RUNNER_PSK, 128, 192, 256);
   }  
 
   public static WarpDB getDB() {

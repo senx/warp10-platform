@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ import io.warp10.continuum.KafkaSynchronizedConsumerPool;
 import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
 import io.warp10.continuum.KafkaSynchronizedConsumerPool.Hook;
 import io.warp10.continuum.egress.ThriftDirectoryClient;
-import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Directory;
@@ -37,7 +36,6 @@ import io.warp10.sensision.Sensision;
 import io.warp10.standalone.StandalonePlasmaHandler;
 
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -112,13 +110,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
     super(keystore, properties, null, false);
   
     // Extract Directory PSK
-    String keyspec = properties.getProperty(Configuration.DIRECTORY_PSK);
-    
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length, "Key " + Configuration.DIRECTORY_PSK + " MUST be 128 bits long.");
-      this.keystore.setKey(KeyStore.SIPHASH_DIRECTORY_PSK, key);
-    }    
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_DIRECTORY_PSK, properties, Configuration.DIRECTORY_PSK, 128);
 
     //
     // Make sure all required configuration is present
@@ -142,16 +134,8 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
     //
     // Extract keys
     //
-    
-    if (null != properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_MAC)) {
-      keystore.setKey(KeyStore.SIPHASH_KAFKA_PLASMA_FRONTEND_IN, keystore.decodeKey(properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_MAC)));
-      Preconditions.checkArgument(16 == keystore.getKey(KeyStore.SIPHASH_KAFKA_PLASMA_FRONTEND_IN).length, "Key " + Configuration.PLASMA_FRONTEND_KAFKA_MAC + " MUST be 128 bits long.");
-    }
-
-    if (null != properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_AES)) {
-      keystore.setKey(KeyStore.AES_KAFKA_PLASMA_FRONTEND_IN, keystore.decodeKey(properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_AES)));
-      Preconditions.checkArgument((16 == keystore.getKey(KeyStore.AES_KAFKA_PLASMA_FRONTEND_IN).length) || (24 == keystore.getKey(KeyStore.AES_KAFKA_PLASMA_FRONTEND_IN).length) || (32 == keystore.getKey(KeyStore.AES_KAFKA_PLASMA_FRONTEND_IN).length), Configuration.PLASMA_FRONTEND_KAFKA_AES + " MUST be 128, 192 or 256 bits long.");
-    }
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_KAFKA_PLASMA_FRONTEND_IN, properties, Configuration.PLASMA_FRONTEND_KAFKA_MAC, 128);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_KAFKA_PLASMA_FRONTEND_IN, properties, Configuration.PLASMA_FRONTEND_KAFKA_AES, 128, 192, 256);
 
     //
     // Start Curator Framework for subscriptions
