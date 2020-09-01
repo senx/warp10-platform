@@ -8525,11 +8525,7 @@ public class GTSHelper {
       // This will slow down the overlap computation but will save memory.
       //
       
-      if (0 == chunkgts.values) {
-        GTSHelper.shrink(chunkgts);
-      } else if (overlap <= 0 && gts.values > 0 && chunkgts.ticks.length - chunkgts.values > 0) {
-        GTSHelper.shrink(chunkgts);
-      } else if (overlap > 0 && chunkgts.values > 0 && chunkgts.ticks.length - chunkgts.values > 2 * overlaphint) {
+      if (0 == chunkgts.values || chunkgts.ticks.length - chunkgts.values > 2 * overlaphint) {
         GTSHelper.shrink(chunkgts);
       }
       
