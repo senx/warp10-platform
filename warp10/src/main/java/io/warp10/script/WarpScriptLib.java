@@ -521,6 +521,7 @@ public class WarpScriptLib {
   public static final String LINEON = "LINEON";
   public static final String LINEOFF = "LINEOFF";
   public static final String LMAP = "LMAP";
+  public static final String MMAP = "MMAP";
   public static final String NONNULL = "NONNULL";
   public static final String LFLATMAP = "LFLATMAP";
   public static final String STACKTOLIST = "STACKTOLIST";
@@ -1289,6 +1290,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new LINEON(LINEON));
     addNamedWarpScriptFunction(new LINEOFF(LINEOFF));
     addNamedWarpScriptFunction(new LMAP(LMAP));
+    addNamedWarpScriptFunction(new MMAP(MMAP));
     addNamedWarpScriptFunction(new NONNULL(NONNULL));
     addNamedWarpScriptFunction(new LMAP(LFLATMAP, true));
     addNamedWarpScriptFunction(new EMPTYLIST("[]"));
