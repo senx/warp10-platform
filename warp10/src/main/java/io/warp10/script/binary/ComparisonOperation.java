@@ -188,27 +188,55 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
     } else if (op1 instanceof GeoTimeSerie && GeoTimeSerie.TYPE.UNDEFINED == ((GeoTimeSerie) op1).getType() && (op2 instanceof String || op2 instanceof Number)) {
       // empty gts compared to a string or a number
       stack.push(((GeoTimeSerie) op1).cloneEmpty());
-    } else if (op1 instanceof GeoTimeSerie && op2 instanceof String && GeoTimeSerie.TYPE.STRING == ((GeoTimeSerie) op1).getType()) {
+    } else if ((op1 instanceof GeoTimeSerie && op2 instanceof String && GeoTimeSerie.TYPE.STRING == ((GeoTimeSerie) op1).getType()) ||
+               (op2 instanceof GeoTimeSerie && op1 instanceof String && GeoTimeSerie.TYPE.STRING == ((GeoTimeSerie) op2).getType())) {
       // one string gts compared to a string
-      GeoTimeSerie gts = (GeoTimeSerie) op1;
+      GeoTimeSerie gts;
+      String compOperand;
+      int orderFactor;
+
+      if (op1 instanceof GeoTimeSerie) {
+        gts = (GeoTimeSerie) op1;
+        compOperand = op2.toString();
+        orderFactor = 1;
+      } else {
+        gts = (GeoTimeSerie) op2;
+        compOperand = op1.toString();
+        orderFactor = -1;
+      }
+
       GeoTimeSerie result = gts.cloneEmpty();
       result.setType(GeoTimeSerie.TYPE.STRING);
       for (int i = 0; i < GTSHelper.nvalues(gts); i++) {
         GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i),
-            operator((GTSHelper.valueAtIndex(gts, i)).toString().compareTo(op2.toString()), 0) ? GTSHelper.valueAtIndex(gts, i) : null, false);
+            operator((GTSHelper.valueAtIndex(gts, i)).toString().compareTo(compOperand) * orderFactor , 0) ? GTSHelper.valueAtIndex(gts, i) : null, false);
       }
       // If result is empty, set type and sizehint to default.
       if (0 == result.size()) {
         result = result.cloneEmpty();
       }
       stack.push(result);
-    } else if (op1 instanceof GeoTimeSerie && op2 instanceof Number && GeoTimeSerie.TYPE.DOUBLE == ((GeoTimeSerie) op1).getType()) {
+    } else if ((op1 instanceof GeoTimeSerie && op2 instanceof Number && GeoTimeSerie.TYPE.DOUBLE == ((GeoTimeSerie) op1).getType()) ||
+               (op2 instanceof GeoTimeSerie && op1 instanceof Number && GeoTimeSerie.TYPE.DOUBLE == ((GeoTimeSerie) op2).getType())) {
       // one double gts compared to number
-      GeoTimeSerie gts = (GeoTimeSerie) op1;
+      GeoTimeSerie gts;
+      Number compOperand;
+      int orderFactor;
+
+      if (op1 instanceof GeoTimeSerie) {
+        gts = (GeoTimeSerie) op1;
+        compOperand = (Number) op2;
+        orderFactor = 1;
+      } else {
+        gts = (GeoTimeSerie) op2;
+        compOperand = (Number) op1;
+        orderFactor = -1;
+      }
+
       GeoTimeSerie result = gts.cloneEmpty();
       result.setType(GeoTimeSerie.TYPE.DOUBLE);
-      if (op2 instanceof Double && Double.isNaN((Double) op2)) {
-        // op2 is NaN, must test if both are NaN
+      if (compOperand instanceof Double && Double.isNaN((Double) compOperand)) {
+        // compOperand is NaN, must test if both are NaN
         for (int i = 0; i < GTSHelper.nvalues(gts); i++) {
           if ((Double.isNaN((Double) GTSHelper.valueAtIndex(gts, i)) && ifTwoNaNOperands) || (!Double.isNaN((Double) GTSHelper.valueAtIndex(gts, i)) && ifOneNaNOperand)) {
             GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i),
@@ -216,14 +244,14 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
           }
         }
       } else {
-        // op2 is not NaN, must only test if gts content for NaN
+        // compOperand is not NaN, must only test if gts content for NaN
         for (int i = 0; i < GTSHelper.nvalues(gts); i++) {
           if (Double.isNaN((Double) GTSHelper.valueAtIndex(gts, i))) {
             GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i),
                 ifOneNaNOperand ? GTSHelper.valueAtIndex(gts, i) : null, false);
           } else {
             GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i),
-                operator(EQ.compare((Number) GTSHelper.valueAtIndex(gts, i), (Number) op2), 0) ? GTSHelper.valueAtIndex(gts, i) : null, false);
+                operator(EQ.compare((Number) GTSHelper.valueAtIndex(gts, i), compOperand) * orderFactor, 0) ? GTSHelper.valueAtIndex(gts, i) : null, false);
           }
         }
       }
@@ -232,18 +260,32 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
         result = result.cloneEmpty();
       }
       stack.push(result);
-    } else if (op1 instanceof GeoTimeSerie && op2 instanceof Number && GeoTimeSerie.TYPE.LONG == ((GeoTimeSerie) op1).getType()) {
+    } else if ((op1 instanceof GeoTimeSerie && op2 instanceof Number && GeoTimeSerie.TYPE.LONG == ((GeoTimeSerie) op1).getType()) ||
+               (op2 instanceof GeoTimeSerie && op1 instanceof Number && GeoTimeSerie.TYPE.LONG == ((GeoTimeSerie) op2).getType())) {
       // one long gts compared to number
-      GeoTimeSerie gts = (GeoTimeSerie) op1;
+      GeoTimeSerie gts;
+      Number compOperand;
+      int orderFactor;
+
+      if (op1 instanceof GeoTimeSerie) {
+        gts = (GeoTimeSerie) op1;
+        compOperand = (Number) op2;
+        orderFactor = 1;
+      } else {
+        gts = (GeoTimeSerie) op2;
+        compOperand = (Number) op1;
+        orderFactor = -1;
+      }
+
       GeoTimeSerie result = gts.cloneEmpty();
       result.setType(GeoTimeSerie.TYPE.LONG);
-      if (op2 instanceof Double && Double.isNaN((Double) op2)) {
+      if (compOperand instanceof Double && Double.isNaN((Double) compOperand)) {
         // if the comparison with a NaN is always true, returns a clone of the input GTS ( $longGts NaN != )
         stack.push(ifOneNaNOperand ? gts.clone() : result);
       } else {
         for (int i = 0; i < GTSHelper.nvalues(gts); i++) {
           GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i),
-              operator(EQ.compare((Number) GTSHelper.valueAtIndex(gts, i), (Number) op2), 0) ? GTSHelper.valueAtIndex(gts, i) : null, false);
+              operator(EQ.compare((Number) GTSHelper.valueAtIndex(gts, i), compOperand) * orderFactor, 0) ? GTSHelper.valueAtIndex(gts, i) : null, false);
         }
         // If result is empty, set type and sizehint to default.
         if (0 == result.size()) {
