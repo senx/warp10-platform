@@ -34,7 +34,7 @@ import java.util.Map;
  * In the case of a List, the comparator macro is given:
  * TOP: b
  * 2:   a
- * And should push a negative Long if a less than b, a positive one if a more than b or 0L if there are equal.
+ * And should push a negative Long if a less than b, a positive one if a more than b or 0L if they are equal.
  * This Long must be within the bounds of a 32-bit integer.
  *
  * In the case of a LinkedHashMap, the comparator macro is given:
@@ -42,7 +42,7 @@ import java.util.Map;
  * 2:   b.key
  * 2:   a.value
  * 2:   a.key
- * And should push a negative Long if a less than b, a positive one if a more than b or 0L if there are equal.
+ * And should push a negative Long if a less than b, a positive one if a more than b or 0L if they are equal.
  * This Long must be within the bounds of a 32-bit integer.
  */
 public class SORTWITH extends NamedWarpScriptFunction implements WarpScriptStackFunction {
