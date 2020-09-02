@@ -81,7 +81,7 @@ public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunc
    * Loop over the macro statements, in a recursive manner, extracting all variable names.
    *
    * @param macro The root macro to extract the variable names from.
-   * @param onlyStoreAndPopr Return only variables used for storage.
+   * @param onlyStoreAndPopr Return only variables used for storage. Useful for ASREGS to avoid replacing "global" variables.
    * @return The list of variable names.
    * @throws WarpScriptException If a STORE call is found to be using neither a String, Long or a list thereof.
    */
