@@ -8426,9 +8426,6 @@ public class GTSHelper {
       long lasttick = GTSHelper.lasttick(gts);
       if (lastchunk > lasttick) {
         lastchunk -= chunkwidth * ((lastchunk - lasttick) / chunkwidth);
-        if (overlap > 0) {
-          lastchunk += chunkwidth;
-        }
       }
     }
     
