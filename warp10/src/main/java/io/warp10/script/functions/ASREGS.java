@@ -74,7 +74,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
     if (null == vars) {
       try {
         // If variables are not defined, only get variables and registers used by STORE and POPR
-        // to avoid global varaibles.
+        // to avoid global variables.
         vars = VARS.getVars(macro, true);
       } catch (WarpScriptException wse) {
         throw new WarpScriptException(getName() + " failed.", wse);

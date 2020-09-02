@@ -34,6 +34,13 @@ import io.warp10.script.WarpScriptStackFunction;
 /**
  * Extract all used variables in a macro. If a STORE/CSTORE or LOAD operation is
  * found with a parameter which is not a string, then an error is raised.
+ *
+ * This function can also be restricted to return only variables which are used
+ * by STORE/CSTORE and POPR. This avoid returning variables only used by LOAD
+ * which are typical of "global" variables. This behaviour is particularly useful
+ * for ASREGS because it should avoid replacing those "global" variables by registers.
+ * Indeed, the STORE would still be called on the original variable name while the
+ * PUSHR will be done on an empty register.
  */
 public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
