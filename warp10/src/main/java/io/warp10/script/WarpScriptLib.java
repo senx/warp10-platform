@@ -338,6 +338,7 @@ public class WarpScriptLib {
   public static final String POPR = "POPR";
   public static final String CPOPR = "CPOPR";
   public static final String PUSHR = "PUSHR";
+  public static final String RUNR = "RUNR";
   public static final String CLEARREGS = "CLEARREGS";
   public static final String RUN = "RUN";
   public static final String BOOTSTRAP = "BOOTSTRAP";
@@ -2395,6 +2396,7 @@ public class WarpScriptLib {
       addNamedWarpScriptFunction(new POPR(POPR + i, i));
       addNamedWarpScriptFunction(new POPR(CPOPR + i, i, true));
       addNamedWarpScriptFunction(new PUSHR(PUSHR + i, i));
+      addNamedWarpScriptFunction(new RUNR(RUNR + i, i));
     }
   }
 
