@@ -24,9 +24,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPInputStream;
@@ -123,6 +125,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
   public static final String PARAM_STEP = "step";
   public static final String PARAM_TIMESTEP = "timestep";
   public static final String PARAM_SAMPLE = "sample";
+  public static final String PARAM_LABELS_PRIORITY = "priority";
   
   public static final String POSTFETCH_HOOK = "postfetch";
 
@@ -262,7 +265,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       // Build a selector
       for (Metadata m: metas) {
         if (null == m.getLabels()) {
-          m.setLabels(new HashMap<String,String>());
+          m.setLabels(new LinkedHashMap<String,String>());
         }
         
         //
@@ -338,16 +341,59 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
           labelSelectors.remove(Constants.OWNER_LABEL);
           labelSelectors.remove(Constants.APPLICATION_LABEL);
           labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
-          lblsSels.add((Map<String,String>) labelSelectors);
+          
+          // Re-order the labels
+          List<String> order = null;
+          if (params.containsKey(PARAM_LABELS_PRIORITY)) {
+            order = (List<String>) params.get(PARAM_LABELS_PRIORITY);
+          } else {
+            order = FIND.DEFAULT_LABELS_PRIORITY;
+          }
+          Map<String,String> ordered = new LinkedHashMap<String,String>(labelSelectors.size());
+          for (String label: order) {
+            if (labelSelectors.containsKey(label)) {
+              ordered.put(label, labelSelectors.get(label));
+            }
+          }
+          for (Entry<String,String> entry: labelSelectors.entrySet()) {
+            if (order.contains(entry.getKey())) {
+              continue;
+            }
+            ordered.put(entry.getKey(), entry.getValue());
+          }
+
+          lblsSels.add(ordered);
         }
       } else {
+        clsSels.add(params.get(PARAM_CLASS).toString());
+
         Map<String,String> labelSelectors = (Map<String,String>) params.get(PARAM_LABELS);
         labelSelectors.remove(Constants.PRODUCER_LABEL);
         labelSelectors.remove(Constants.OWNER_LABEL);
         labelSelectors.remove(Constants.APPLICATION_LABEL);
         labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
-        clsSels.add(params.get(PARAM_CLASS).toString());
-        lblsSels.add(labelSelectors);
+
+        // Re-order the labels
+        List<String> order = null;
+        if (params.containsKey(PARAM_LABELS_PRIORITY)) {
+          order = (List<String>) params.get(PARAM_LABELS_PRIORITY);
+        } else {
+          order = FIND.DEFAULT_LABELS_PRIORITY;
+        }
+        Map<String,String> ordered = new LinkedHashMap<String,String>(labelSelectors.size());
+        for (String label: order) {
+          if (labelSelectors.containsKey(label)) {
+            ordered.put(label, labelSelectors.get(label));
+          }
+        }
+        for (Entry<String,String> entry: labelSelectors.entrySet()) {
+          if (order.contains(entry.getKey())) {
+            continue;
+          }
+          ordered.put(entry.getKey(), entry.getValue());
+        }
+
+        lblsSels.add((Map<String,String>) ordered);
       }      
            
       DirectoryRequest drequest = new DirectoryRequest();
@@ -361,7 +407,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       if (params.containsKey(PARAM_QUIET_AFTER)) {
         drequest.setQuietAfter((long) params.get(PARAM_QUIET_AFTER));
       }
-
+      
       try {
         metadatas = directoryClient.find(drequest);
         iter = metadatas.iterator();
@@ -671,7 +717,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               gts.getMetadata().putToAttributes(Constants.UUID_ATTRIBUTE, uuid.toString());
             }
             
-            Map<String,String> labels = new HashMap<String, String>();
+            Map<String,String> labels = new LinkedHashMap<String, String>();
             labels.putAll(gts.getMetadata().getLabels());
             
             if (!Constants.EXPOSE_OWNER_PRODUCER && !expose) {
@@ -764,7 +810,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     //
     
     MetaSet metaset = null;
-    
+        
     if (map.containsKey(PARAM_METASET)) {
       
       if (null == AES_METASET) {
@@ -1126,6 +1172,18 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       params.put(PARAM_SAMPLE, sample);
     }
 
+    if (map.containsKey(PARAM_LABELS_PRIORITY)) {
+      Object o = map.get(PARAM_LABELS_PRIORITY);
+      if (!(o instanceof List)) {
+        throw new WarpScriptException(getName() + " Invalid type for parameter '" + PARAM_LABELS_PRIORITY + "', expected a LIST.");
+      }
+      List<String> prio = new ArrayList<String>();
+      for (Object oo: (List<Object>) o) {
+        prio.add(String.valueOf(oo));
+      }
+      params.put(PARAM_LABELS_PRIORITY, prio);
+    }
+    
     return params;
   }
 
