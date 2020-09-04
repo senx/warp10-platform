@@ -8422,13 +8422,18 @@ public class GTSHelper {
     // or the overlap
     //
     
-    if (zeroChunkCount && !keepempty) {
+    if (!keepempty) {
+      // We do not care about the empty chunks so update lastchunk so it contains the last tick
       long lasttick = GTSHelper.lasttick(gts);
       if (lastchunk > lasttick) {
+        // If chunkcount was not 0, update the chunkcount
+        if (!zeroChunkCount) {
+          chunkcount -= (lastchunk - lasttick) / chunkwidth;
+        }
         lastchunk -= chunkwidth * ((lastchunk - lasttick) / chunkwidth);
       }
     }
-    
+
 
     // If we have overlap add extra chunks at the beginning and end to compute overlap
     if (overlap > 0) {
@@ -8778,6 +8783,7 @@ public class GTSHelper {
     }
 
     long lastchunkid = lastchunk;
+
     if (0 == lastchunk) {
       lastchunkid = newestChunk;
     }
@@ -8785,11 +8791,17 @@ public class GTSHelper {
     //
     // If chunkcount is Integer.MAX_VALUE, we do not care about the number of chunks,
     // so if keepempty is false we only need to iterate over the chunks from newestChunk to
-    // oldestChunk
+    // oldestChunk.
+    // If chunkcount is ot 0, adjust the number of chunks
     //
     
-    if (!keepempty && zeroChunkCount) {
-      lastchunkid = newestChunk;
+    if (!keepempty) {
+      if (lastchunkid > newestChunk) {
+        if (!zeroChunkCount) {
+          chunkcount -= (lastchunkid - newestChunk) / chunkwidth;
+        }
+        lastchunkid = newestChunk;
+      }
     }
     
     // Scan chunkIDs backward to early abort in case chunkcount is reached.
