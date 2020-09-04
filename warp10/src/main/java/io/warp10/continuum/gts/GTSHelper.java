@@ -8418,8 +8418,9 @@ public class GTSHelper {
     }
 
     //
-    // If chunkcount is 0 adjust lastchunk so it contains the last tick of the GTS
-    // or the overlap
+    // Perform some adjustments if we are not interested in empty chunks.
+    // Adjust lastchunk so it contains the last tick of the GTS
+    // or the overlap. If chunkcount is not 0, decrease the chunkcount accordingly.
     //
     
     if (!keepempty) {
@@ -8792,7 +8793,7 @@ public class GTSHelper {
     // If chunkcount is Integer.MAX_VALUE, we do not care about the number of chunks,
     // so if keepempty is false we only need to iterate over the chunks from newestChunk to
     // oldestChunk.
-    // If chunkcount is ot 0, adjust the number of chunks
+    // If chunkcount is not 0, adjust the number of chunks
     //
     
     if (!keepempty) {
