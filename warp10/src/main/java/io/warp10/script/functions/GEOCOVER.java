@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
@@ -62,8 +63,8 @@ public class GEOCOVER extends ElementOrListStackFunction {
     return new ElementStackFunction() {      
       @Override
       public Object applyOnElement(Object element) throws WarpScriptException {
-        
-        Set<Long> cells = new HashSet<Long>();
+        // Use a TreeSet to make sure geocells are sorted and without duplicate.
+        TreeSet<Long> cells = new TreeSet<Long>();
 
         // If computing coverage for the rhumbline
         if (rhumblines && element instanceof GTSEncoder) {

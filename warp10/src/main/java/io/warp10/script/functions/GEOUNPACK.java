@@ -34,6 +34,7 @@ import com.geoxp.GeoXPLib.GeoXPShape;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.TreeSet;
 
 /**
  * Unpack a GeoXPShape
@@ -73,27 +74,22 @@ public class GEOUNPACK extends NamedWarpScriptFunction implements WarpScriptStac
     }
     
     GTSDecoder decoder = GTSWrapperHelper.fromGTSWrapperToGTSDecoder(wrapper);
-    
-    long[] cells = new long[(int) wrapper.getCount()];
-    
+
+    // Use a TreeSet to make sure geocells are sorted and without duplicate.
+    TreeSet<Long> cells = new TreeSet<Long>();
+
     int idx = 0;
     
-    while(idx < cells.length && decoder.next()) {
+    while(decoder.next()) {
       // We are only interested in the timestamp which is the cell
       long cell = decoder.getTimestamp();
       // Only add cells with valid resolution (1-15)
       if (0L != (cell & 0xf000000000000000L)) {
-        cells[idx++] = cell;
+        cells.add(cell);
       }
     }
     
-    // Adjust the size if there were some invalid cells (timestamps).
-    // This can happen when calling GEOUNPACK from a WRAPped GTS or ENCODER
-    if (idx != cells.length) {
-      cells = Arrays.copyOf(cells, idx);
-    }
-    
-    GeoXPShape shape = GeoXPLib.fromCells(cells, false);
+    GeoXPShape shape = GeoXPLib.fromCells(cells);
     
     stack.push(shape);
     
