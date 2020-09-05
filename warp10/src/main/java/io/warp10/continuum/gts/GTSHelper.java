@@ -8417,6 +8417,25 @@ public class GTSHelper {
       }            
     }
 
+    //
+    // Perform some adjustments if we are not interested in empty chunks.
+    // Adjust lastchunk so it contains the last tick of the GTS
+    // or the overlap. If chunkcount is not 0, decrease the chunkcount accordingly.
+    //
+    
+    if (!keepempty) {
+      // We do not care about the empty chunks so update lastchunk so it contains the last tick
+      long lasttick = GTSHelper.lasttick(gts);
+      if (lastchunk > lasttick) {
+        // If chunkcount was not 0, update the chunkcount
+        if (!zeroChunkCount) {
+          chunkcount -= (lastchunk - lasttick) / chunkwidth;
+        }
+        lastchunk -= chunkwidth * ((lastchunk - lasttick) / chunkwidth);
+      }
+    }
+
+
     // If we have overlap add extra chunks at the beginning and end to compute overlap
     if (overlap > 0) {
       chunkcount += 2;
@@ -8451,17 +8470,16 @@ public class GTSHelper {
       long chunkstart = chunkend - chunkwidth + 1;
 
       GeoTimeSerie chunkgts = new GeoTimeSerie(lastbucket, bucketcount, bucketspan, hint);
-      
-      // Set metadata for the GTS
-      chunkgts.setMetadata(metadata);
-     // Add 'chunklabel'
-      chunkgts.getMetadata().putToLabels(chunklabel, Long.toString(chunkend));
-            
+                  
       if (bucketized) {
         // Chunk is outside the GTS, it will be empty 
         if (lastbucket < chunkstart || chunkend <= lastbucket - (bucketcount * bucketspan)) {
           // Add the (empty) chunk if keepempty is true
           if (keepempty || overlap > 0) {
+            // Set metadata for the GTS
+            chunkgts.setMetadata(metadata);
+           // Add 'chunklabel'
+            chunkgts.getMetadata().putToLabels(chunklabel, Long.toString(chunkend));
             chunks.put(chunkend,chunkgts);
           }
           continue;
@@ -8495,6 +8513,10 @@ public class GTSHelper {
       if (idx >= gts.values) {
         // only add chunk if it's not empty or empty with 'keepempty' set to true
         if (0 != chunkgts.values || (keepempty || overlap > 0)) {
+          // Set metadata for the GTS
+          chunkgts.setMetadata(metadata);
+         // Add 'chunklabel'
+          chunkgts.getMetadata().putToLabels(chunklabel, Long.toString(chunkend));
           chunks.put(chunkend, chunkgts);
         }
         continue;
@@ -8504,6 +8526,10 @@ public class GTSHelper {
       if (gts.ticks[idx] < chunkstart) {
         // only add chunk if it's not empty or empty with 'keepempty' set to true
         if (0 != chunkgts.values || (keepempty || overlap > 0)) {
+          // Set metadata for the GTS
+          chunkgts.setMetadata(metadata);
+         // Add 'chunklabel'
+          chunkgts.getMetadata().putToLabels(chunklabel, Long.toString(chunkend));
           chunks.put(chunkend, chunkgts);
         }
         continue;
@@ -8516,6 +8542,10 @@ public class GTSHelper {
       
       // only add chunk if it's not empty or empty with 'keepempty' set to true
       if (0 != chunkgts.values || (keepempty || overlap > 0)) {
+        // Set metadata for the GTS
+        chunkgts.setMetadata(metadata);
+       // Add 'chunklabel'
+        chunkgts.getMetadata().putToLabels(chunklabel, Long.toString(chunkend));
         chunks.put(chunkend,chunkgts);
       }
       
@@ -8616,7 +8646,6 @@ public class GTSHelper {
   }
 
   public static List<GTSEncoder> chunk(GTSEncoder encoder, long lastchunk, long chunkwidth, long chunkcount, String chunklabel, boolean keepempty, long overlap) throws WarpScriptException {
-
     if (overlap < 0 || overlap > chunkwidth) {
       throw new WarpScriptException("Overlap cannot exceed chunk width.");
     }
@@ -8667,6 +8696,8 @@ public class GTSHelper {
 
         long chunkid = 0L;
 
+        // FIXME(hbs): handle case lastchunk = 0 when we must ensure chunk is congruent to 0 modulo chunkwidth
+        
         // Compute delta from 'lastchunk'
 
         long delta = timestamp - lastchunk;
@@ -8711,6 +8742,7 @@ public class GTSHelper {
               chunkencoder.setMetadata(encoder.getMetadata());
               chunkencoder.getMetadata().putToLabels(chunklabel, Long.toString(chunkid + chunkwidth));
               chunks.put(chunkid + chunkwidth, chunkencoder);
+              newestChunk = Math.max(newestChunk, chunkid + chunkwidth);
             }
             chunkencoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
           }
@@ -8723,6 +8755,7 @@ public class GTSHelper {
               chunkencoder.setMetadata(encoder.getMetadata());
               chunkencoder.getMetadata().putToLabels(chunklabel, Long.toString(chunkid - chunkwidth));
               chunks.put(chunkid - chunkwidth, chunkencoder);
+              oldestChunk = Math.min(oldestChunk, chunkid - chunkwidth);
             }
             chunkencoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
           }
@@ -8747,10 +8780,27 @@ public class GTSHelper {
     }
 
     long lastchunkid = lastchunk;
+
     if (0 == lastchunk) {
       lastchunkid = newestChunk;
     }
-
+    
+    //
+    // If chunkcount is Integer.MAX_VALUE, we do not care about the number of chunks,
+    // so if keepempty is false we only need to iterate over the chunks from newestChunk to
+    // oldestChunk.
+    // If chunkcount is not 0, adjust the number of chunks
+    //
+    
+    if (!keepempty) {
+      if (lastchunkid > newestChunk) {
+        if (!zeroChunkCount) {
+          chunkcount -= (lastchunkid - newestChunk) / chunkwidth;
+        }
+        lastchunkid = newestChunk;
+      }
+    }
+    
     // Scan chunkIDs backward to early abort in case chunkcount is reached.
     for (long chunkid = lastchunkid; chunkid >= firstchunkid; chunkid -= chunkwidth) {
 
@@ -8787,7 +8837,7 @@ public class GTSHelper {
 
     // Reverse result list so chunk ids are in ascending order, consistent with chunk on GTSs.
     Collections.reverse(encoders);
-
+    
     return encoders;
   }
   
