@@ -53,6 +53,7 @@ public class GeoUnion extends NamedWarpScriptFunction implements WarpScriptStack
           if (!(element instanceof GeoXPShape)) {
             throw new WarpScriptException(getName() + " expects two GeoShape instances as the top 2 elements of the stack or a list of GeoShape instances.");
           }
+          // GeoXPLib#union uses dedup and toGeoCells which returns GeoXPShape with a sorted list of cells.
           shape = GeoXPLib.union(shape, (GeoXPShape) element);
         }
         stack.push(shape);
@@ -66,6 +67,7 @@ public class GeoUnion extends NamedWarpScriptFunction implements WarpScriptStack
 
       //
       // Compute union of 2 elements
+      // GeoXPLib#union uses dedup and toGeoCells which returns GeoXPShape with a sorted list of cells.
       //
       stack.push(GeoXPLib.union((GeoXPShape) top, (GeoXPShape) o2));
     }

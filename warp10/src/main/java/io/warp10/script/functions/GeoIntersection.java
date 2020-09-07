@@ -54,6 +54,8 @@ public class GeoIntersection extends NamedWarpScriptFunction implements WarpScri
           if (!(element instanceof GeoXPShape)) {
             throw new WarpScriptException(getName() + " expects two GeoShape instances as the top 2 elements of the stack or a list of GeoShape instances.");
           }
+          // If both shapes are without duplicate, the result is guaranteed without duplicate.
+          // The result also contains a sorted array of geocells because GeoXPLib#intersection internally uses toGeoCells.
           shape = GeoXPLib.intersection(shape, (GeoXPShape) element);
         }
         stack.push(shape);

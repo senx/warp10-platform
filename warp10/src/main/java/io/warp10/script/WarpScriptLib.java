@@ -216,6 +216,7 @@ import io.warp10.script.processing.image.Psize;
 import io.warp10.script.processing.image.Ptint;
 import io.warp10.script.processing.image.PtoImage;
 import io.warp10.script.processing.image.PupdatePixels;
+import io.warp10.script.processing.image.Pmask;
 import io.warp10.script.processing.math.Pconstrain;
 import io.warp10.script.processing.math.Pdist;
 import io.warp10.script.processing.math.Plerp;
@@ -337,6 +338,7 @@ public class WarpScriptLib {
   public static final String POPR = "POPR";
   public static final String CPOPR = "CPOPR";
   public static final String PUSHR = "PUSHR";
+  public static final String RUNR = "RUNR";
   public static final String CLEARREGS = "CLEARREGS";
   public static final String RUN = "RUN";
   public static final String BOOTSTRAP = "BOOTSTRAP";
@@ -520,6 +522,7 @@ public class WarpScriptLib {
   public static final String LINEON = "LINEON";
   public static final String LINEOFF = "LINEOFF";
   public static final String LMAP = "LMAP";
+  public static final String MMAP = "MMAP";
   public static final String NONNULL = "NONNULL";
   public static final String LFLATMAP = "LFLATMAP";
   public static final String STACKTOLIST = "STACKTOLIST";
@@ -994,6 +997,7 @@ public class WarpScriptLib {
   public static final String PDECODE = "Pdecode";
   public static final String PIMAGE = "Pimage";
   public static final String PSIZE = "Psize";
+  public static final String PMASK = "Pmask";
   public static final String PIMAGEMODE = "PimageMode";
   public static final String PTINT = "Ptint";
   public static final String PNOTINT = "PnoTint";
@@ -1287,6 +1291,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new LINEON(LINEON));
     addNamedWarpScriptFunction(new LINEOFF(LINEOFF));
     addNamedWarpScriptFunction(new LMAP(LMAP));
+    addNamedWarpScriptFunction(new MMAP(MMAP));
     addNamedWarpScriptFunction(new NONNULL(NONNULL));
     addNamedWarpScriptFunction(new LMAP(LFLATMAP, true));
     addNamedWarpScriptFunction(new EMPTYLIST("[]"));
@@ -2164,6 +2169,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Pimage(PIMAGE));
     addNamedWarpScriptFunction(new PimageMode(PIMAGEMODE));
     addNamedWarpScriptFunction(new Psize(PSIZE));
+    addNamedWarpScriptFunction(new Pmask(PMASK));
     addNamedWarpScriptFunction(new Ptint(PTINT));
     addNamedWarpScriptFunction(new PnoTint(PNOTINT));
     addNamedWarpScriptFunction(new Ppixels(PPIXELS));
@@ -2390,6 +2396,7 @@ public class WarpScriptLib {
       addNamedWarpScriptFunction(new POPR(POPR + i, i));
       addNamedWarpScriptFunction(new POPR(CPOPR + i, i, true));
       addNamedWarpScriptFunction(new PUSHR(PUSHR + i, i));
+      addNamedWarpScriptFunction(new RUNR(RUNR + i, i));
     }
   }
 

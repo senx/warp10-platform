@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,6 +15,10 @@
 //
 
 package io.warp10.crypto;
+
+import com.google.common.base.Preconditions;
+
+import java.util.Properties;
 
 /**
  * The interface Key store.
@@ -220,4 +224,65 @@ public interface KeyStore {
    * Forget.
    */
   public void forget();
+
+
+
+  /**
+   * Get a key from the configuration, and, if it exists and if the number of bits of the key is in the given values,
+   * add it to the keystore.
+   * @param keystore The KeyStore to add the key to.
+   * @param keyname The key name under which to add the key in the keystore.
+   * @param props The properties from which to get the key.
+   * @param configurationKey The configuration key holding the key value.
+   * @param sizeInBits The valid number of bits of the key. Typically 128 or 128, 192, 256.
+   * @return The key.
+   */
+  public static byte[] checkAndSetKey(KeyStore keystore, String keystoreKey, Properties props, String configurationKey, int... sizeInBits) {
+    return checkAndSetKey(keystore, keystoreKey, props, configurationKey, null, sizeInBits);
+  }
+
+  /**
+   * Get a key from the configuration, and, if it exists or has a non-null default and if the number of bits of the key
+   * is in the given values, add it to the keystore.
+   * @param keystore The KeyStore to add the key to.
+   * @param keyname The key name under which to add the key in the keystore.
+   * @param props The properties from which to get the key.
+   * @param configurationKey The configuration key holding the key value.
+   * @param defaultKeyValue The default key in case it is not found in the properties.
+   * @param sizeInBits The valid number of bits of the key. Typically 128 or 128, 192, 256.
+   * @return The key.
+   */
+  public static byte[] checkAndSetKey(KeyStore keystore, String keyname, Properties props, String configurationKey, String defaultKeyValue, int... sizeInBits) {
+    String keyspec = props.getProperty(configurationKey, defaultKeyValue);
+
+    if (null != keyspec) {
+      byte[] key = keystore.decodeKey(keyspec);
+
+      // Check the size of the key
+      StringBuilder sizesStr = new StringBuilder();
+      boolean correctSize = false;
+      for (int sizeIndex = 0; sizeIndex < sizeInBits.length; sizeIndex++) {
+        if (sizeInBits[sizeIndex] == key.length * 8) {
+          correctSize = true;
+          break;
+        }
+
+        if (sizeIndex > 0) {
+          if (sizeIndex == sizeInBits.length - 1) {
+            sizesStr.append(" or ");
+          } else {
+            sizesStr.append(", ");
+          }
+        }
+        sizesStr.append(sizeInBits[sizeIndex]);
+      }
+      Preconditions.checkArgument(correctSize, "Key %s MUST be %s bits long.", configurationKey, sizesStr);
+
+      keystore.setKey(keyname, key);
+
+      return key;
+    }
+
+    return null;
+  }
 }
