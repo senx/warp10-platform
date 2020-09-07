@@ -16,11 +16,13 @@
 
 package io.warp10.script.binary;
 
+import com.geoxp.GeoXPLib;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -48,6 +50,9 @@ public class EQ extends ComparisonOperation {
         || (op2 instanceof GeoTimeSerie && (op1 instanceof Number || op1 instanceof String))) {
       // both numbers, both GTSs or one GTS and one String or Number
       comparison(stack, op1, op2);
+    } else if (op1 instanceof GeoXPLib.GeoXPShape && op2 instanceof GeoXPLib.GeoXPShape) {
+      // In WarpScript the long[] backing every GeoXPShape is sorted and without duplicate.
+      stack.push(Arrays.equals(GeoXPLib.getCells((GeoXPLib.GeoXPShape) op1), GeoXPLib.getCells((GeoXPLib.GeoXPShape) op2)));
     } else {
       if (null == op1) {
         stack.push(null == op2);
