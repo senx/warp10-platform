@@ -38,6 +38,8 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.server.handler.gzip.GzipHandler;
+import org.eclipse.jetty.util.BlockingArrayQueue;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.iq80.leveldb.CompressionType;
 import org.iq80.leveldb.Options;
 
@@ -72,6 +74,8 @@ import io.warp10.warp.sdk.AbstractWarp10Plugin;
 
 public class Warp extends WarpDist implements Runnable {
 
+  private static final String DEFAULT_THREADPOOL_SIZE = "200";
+  
   private static final String DEFAULT_HTTP_ACCEPTORS = "2";
   private static final String DEFAULT_HTTP_SELECTORS = "4";
   
@@ -244,7 +248,15 @@ public class Warp extends WarpDist implements Runnable {
     // Create Jetty server
     //
     
-    Server server = new Server();
+    int maxThreads = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_JETTY_THREADPOOL, DEFAULT_THREADPOOL_SIZE));
+    BlockingArrayQueue<Runnable> queue = null;
+    
+    if (properties.containsKey(Configuration.STANDALONE_JETTY_MAXQUEUESIZE)) {
+      int queuesize = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_JETTY_MAXQUEUESIZE));
+      queue = new BlockingArrayQueue<Runnable>(queuesize);
+    }
+    
+    Server server = new Server(new QueuedThreadPool(maxThreads, 8, 60000, queue));
 
     boolean useHTTPS = null != properties.getProperty(Configuration.STANDALONE_PREFIX + Configuration._SSL_PORT);
     boolean useHTTP = null != properties.getProperty(Configuration.STANDALONE_PORT);

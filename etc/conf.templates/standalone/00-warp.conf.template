@@ -93,6 +93,16 @@ standalone.host = 127.0.0.1
 standalone.port = 8080
 
 //
+// Number of threads in Jetty's Thread Pool - defaults to 200
+//
+#standalone.jetty.threadpool = 200
+  
+//
+// Maximum size of Jetty ThreadPool queue size (unbounded by default)
+//
+#standalone.jetty.maxqueuesize = 
+
+//
 // TCP Backlog applied to incoming connections listener.
 //
 #standalone.tcp.backlog =

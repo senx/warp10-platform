@@ -34,6 +34,8 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.server.handler.gzip.GzipHandler;
+import org.eclipse.jetty.util.BlockingArrayQueue;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import com.google.common.base.Preconditions;
 
@@ -42,6 +44,7 @@ import com.google.common.base.Preconditions;
  */
 public class Egress {
 
+  private static final String DEFAULT_THREADPOOL_SIZE = "200";
   
   /**
    * Set of required parameters, those MUST be set
@@ -103,7 +106,15 @@ public class Egress {
 
     List<Connector> connectors = new ArrayList<Connector>();
     
-    server = new Server();
+    int maxThreads = Integer.parseInt(props.getProperty(Configuration.EGRESS_JETTY_THREADPOOL, DEFAULT_THREADPOOL_SIZE));
+    BlockingArrayQueue<Runnable> queue = null;
+    
+    if (props.containsKey(Configuration.EGRESS_JETTY_MAXQUEUESIZE)) {
+      int queuesize = Integer.parseInt(props.getProperty(Configuration.EGRESS_JETTY_MAXQUEUESIZE));
+      queue = new BlockingArrayQueue<Runnable>(queuesize);
+    }
+    
+    server = new Server(new QueuedThreadPool(maxThreads, 8, 60000, queue));   
 
     if (useHttp) {
       int port = Integer.valueOf(props.getProperty(Configuration.EGRESS_PORT));
