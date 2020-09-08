@@ -54,7 +54,7 @@ egress.host = 127.0.0.1
 #egress.jetty.threadpool = 200
   
 //
-// Maximum size of Jetty ThreadPool queue size (8 by default)
+// Maximum size of Jetty ThreadPool queue size (unbounded by default)
 //
 #egress.jetty.maxqueuesize = 
 

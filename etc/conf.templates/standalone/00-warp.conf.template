@@ -98,7 +98,7 @@ standalone.port = 8080
 #standalone.jetty.threadpool = 200
   
 //
-// Maximum size of Jetty ThreadPool queue size (8 by default)
+// Maximum size of Jetty ThreadPool queue size (unbounded by default)
 //
 #standalone.jetty.maxqueuesize = 
 

@@ -753,7 +753,7 @@ public class Configuration {
   public static final String INGRESS_JETTY_THREADPOOL = "ingress.jetty.threadpool";
   
   /**
-   * Maximum size of Jetty ThreadPool queue size (8 by default)
+   * Maximum size of Jetty ThreadPool queue size (unbounded by default)
    */
   public static final String INGRESS_JETTY_MAXQUEUESIZE = "ingress.jetty.maxqueuesize";
     
@@ -1412,7 +1412,7 @@ public class Configuration {
   public static final String STANDALONE_JETTY_THREADPOOL = "standalone.jetty.threadpool";
   
   /**
-   * Maximum size of Jetty ThreadPool queue size (8 by default)
+   * Maximum size of Jetty ThreadPool queue size (unbounded by default)
    */
   public static final String STANDALONE_JETTY_MAXQUEUESIZE = "standalone.jetty.maxqueuesize";
 
@@ -1912,7 +1912,7 @@ public class Configuration {
   public static final String EGRESS_JETTY_THREADPOOL = "egress.jetty.threadpool";
   
   /**
-   * Maximum size of Jetty ThreadPool queue size (8 by default)
+   * Maximum size of Jetty ThreadPool queue size (unbounded by default)
    */
   public static final String EGRESS_JETTY_MAXQUEUESIZE = "egress.jetty.maxqueuesize";
     

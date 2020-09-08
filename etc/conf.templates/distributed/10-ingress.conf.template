@@ -111,7 +111,7 @@ ingress.idle.timeout = 300000
 ingress.jetty.threadpool = 200
 
 //
-// Maximum size of Jetty ThreadPool queue size (8 by default)
+// Maximum size of Jetty ThreadPool queue size (unbounded by default)
 //
 ingress.jetty.maxqueuesize = 400
 
