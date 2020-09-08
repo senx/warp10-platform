@@ -1100,6 +1100,16 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
+   * Number of threads in Jetty's Thread Pool
+   */
+  public static final String PLASMA_FRONTEND_JETTY_THREADPOOL = "plasma.frontend.jetty.threadpool";
+  
+  /**
+   * Maximum size of Jetty ThreadPool queue size (unbounded by default)
+   */
+  public static final String PLASMA_FRONTEND_JETTY_MAXQUEUESIZE = "plasma.frontend.jetty.maxqueuesize";
+    
+  /**
    * ZooKeeper connect string for Kafka consumer
    */
   public static final String PLASMA_FRONTEND_KAFKA_ZKCONNECT = "plasma.frontend.kafka.zkconnect";

@@ -93,7 +93,7 @@ standalone.host = 127.0.0.1
 standalone.port = 8080
 
 //
-// Number of threads in Jetty's Thread Pool
+// Number of threads in Jetty's Thread Pool - defaults to 200
 //
 #standalone.jetty.threadpool = 200
   

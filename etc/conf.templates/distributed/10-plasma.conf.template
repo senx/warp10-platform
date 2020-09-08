@@ -83,6 +83,16 @@ plasma.frontend.host = 127.0.0.1
 plasma.frontend.port = 8884
 
 //
+// Number of threads in Jetty's Thread Pool - defaults to 200
+//
+#plasma.frontend.jetty.threadpool = 200
+  
+//
+// Maximum size of Jetty ThreadPool queue size (unbounded by default)
+//
+#plasma.frontend.jetty.maxqueuesize = 
+
+//
 // TCP Backlog applied to the ingress server listener
 //
 #plasma.frontend.tcp.backlog =

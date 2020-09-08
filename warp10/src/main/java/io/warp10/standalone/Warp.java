@@ -74,7 +74,7 @@ import io.warp10.warp.sdk.AbstractWarp10Plugin;
 
 public class Warp extends WarpDist implements Runnable {
 
-  private static final String STANDALONE_THREADPOOL_SIZE = "200";
+  private static final String DEFAULT_THREADPOOL_SIZE = "200";
   
   private static final String DEFAULT_HTTP_ACCEPTORS = "2";
   private static final String DEFAULT_HTTP_SELECTORS = "4";
@@ -248,7 +248,7 @@ public class Warp extends WarpDist implements Runnable {
     // Create Jetty server
     //
     
-    int maxThreads = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_JETTY_THREADPOOL, STANDALONE_THREADPOOL_SIZE));
+    int maxThreads = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_JETTY_THREADPOOL, DEFAULT_THREADPOOL_SIZE));
     BlockingArrayQueue<Runnable> queue = null;
     
     if (properties.containsKey(Configuration.STANDALONE_JETTY_MAXQUEUESIZE)) {

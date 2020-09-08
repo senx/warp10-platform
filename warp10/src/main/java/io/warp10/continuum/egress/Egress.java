@@ -114,9 +114,7 @@ public class Egress {
       queue = new BlockingArrayQueue<Runnable>(queuesize);
     }
     
-    Server server = new Server(new QueuedThreadPool(maxThreads, 8, 60000, queue));
-
-    server = new Server();
+    server = new Server(new QueuedThreadPool(maxThreads, 8, 60000, queue));   
 
     if (useHttp) {
       int port = Integer.valueOf(props.getProperty(Configuration.EGRESS_PORT));
