@@ -753,7 +753,7 @@ public class Configuration {
   public static final String INGRESS_JETTY_THREADPOOL = "ingress.jetty.threadpool";
   
   /**
-   * Maximum size of Jetty ThreadPool queue size (unbounded by default)
+   * Maximum size of Jetty ThreadPool queue size (8 by default)
    */
   public static final String INGRESS_JETTY_MAXQUEUESIZE = "ingress.jetty.maxqueuesize";
     
@@ -1407,6 +1407,16 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
+   * Number of threads in Jetty's Thread Pool
+   */
+  public static final String STANDALONE_JETTY_THREADPOOL = "standalone.jetty.threadpool";
+  
+  /**
+   * Maximum size of Jetty ThreadPool queue size (8 by default)
+   */
+  public static final String STANDALONE_JETTY_MAXQUEUESIZE = "standalone.jetty.maxqueuesize";
+
+  /**
    * Geo Time Series count above which block caching will be disabled for LevelDB.
    * The goal is to limit the cache pollution when scanning large chunks of data.
    * Note that this limit is per fetch call to the backend, which means that in the case of parallel scanners it is for each parallel fetch attempt.
@@ -1896,6 +1906,17 @@ public class Configuration {
   // E G R E S S
   //
   
+  /**
+   * Number of threads in Jetty's Thread Pool
+   */
+  public static final String EGRESS_JETTY_THREADPOOL = "egress.jetty.threadpool";
+  
+  /**
+   * Maximum size of Jetty ThreadPool queue size (8 by default)
+   */
+  public static final String EGRESS_JETTY_MAXQUEUESIZE = "egress.jetty.maxqueuesize";
+    
+
   /**
    * Flag (true/false) indicating whether or not the Directory and Store clients should be exposed by Egress.
    * If set to true then Warp 10 plugins might access the exposed clients via the getExposedDirectoryClient and
