@@ -49,7 +49,7 @@ egress.port = 8881
 egress.host = 127.0.0.1
 
 //
-// Number of threads in Jetty's Thread Pool
+// Number of threads in Jetty's Thread Pool - defaults to 200
 //
 #egress.jetty.threadpool = 200
   
