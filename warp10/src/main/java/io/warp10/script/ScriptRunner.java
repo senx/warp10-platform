@@ -845,7 +845,6 @@ public class ScriptRunner extends Thread {
   }
 
   private void extractKeys(Properties props) {
-    KeyStore.checkAndSetKey(keystore, KeyStore.AES_KAFKA_RUNNER, props, Configuration.RUNNER_KAFKA_AES, 128, 192, 256);
     KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_KAFKA_RUNNER, props, Configuration.RUNNER_KAFKA_MAC, 128);
 
     this.keystore.forget();
