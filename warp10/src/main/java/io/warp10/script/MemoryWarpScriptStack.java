@@ -1446,10 +1446,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     if (null != context.symbolTable) {
       this.symbolTable.putAll(context.symbolTable);
     }
-    
-    for (int i = 0; i < this.registers.length; i++) {
-      this.registers[i] = context.registers[i];
-    }
+
+    System.arraycopy(context.registers, 0, this.registers, 0, this.registers.length);
     
     //
     // Restore redefined functions
