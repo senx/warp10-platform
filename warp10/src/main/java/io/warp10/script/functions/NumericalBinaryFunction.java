@@ -16,6 +16,9 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GTSOpsHelper;
+import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -45,6 +48,8 @@ import java.util.function.LongBinaryOperator;
  * - max, sum, multiplication, for instance, do have meaning for a single list. Moreover, being commutative,
  *   the single operand can be put on top to apply the operator on a list and a single operand.
  * - copysign, power, nextafter, for instance, are not really useful when applied on a single list.
+ *
+ * The exact same logic can be applied to a GTS, considering it as a list of values.
  */
 public class NumericalBinaryFunction extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -52,11 +57,19 @@ public class NumericalBinaryFunction extends NamedWarpScriptFunction implements 
   final DoubleBinaryOperator opD;
   final boolean applyInList;
 
+  private final String unhandledErrorMessage;
+
   public NumericalBinaryFunction(String name, LongBinaryOperator longBinOp, DoubleBinaryOperator doubleBinOp, boolean applyOnSingleList) {
     super(name);
     opL = longBinOp;
     opD = doubleBinOp;
     applyInList = applyOnSingleList;
+
+    if(applyOnSingleList) {
+      unhandledErrorMessage = name + " can only operate on 2 numerical values, or a numerical value and a list of numerical values, or a numerical value and a GTS of numerical values, or a list of numerical values.";
+    } else {
+      unhandledErrorMessage = name + " can only operate on 2 numerical values, or a numerical value and a list of numerical values, or a numerical value and a GTS of numerical values.";
+    }
   }
 
   @Override
@@ -79,7 +92,7 @@ public class NumericalBinaryFunction extends NamedWarpScriptFunction implements 
         ArrayList<Object> result = new ArrayList<Object>(list.size());
         for (Object element: list) {
           if (!(element instanceof Number)) {
-            throw new WarpScriptException(getName() + " can only operate on 2 numerical values or a list of numerical values.");
+            throw new WarpScriptException(unhandledErrorMessage);
           }
 
           if (null != opD && (null == opL || op0 instanceof Double || element instanceof Double || op0 instanceof BigDecimal || element instanceof BigDecimal)) {
@@ -89,8 +102,42 @@ public class NumericalBinaryFunction extends NamedWarpScriptFunction implements 
           }
         }
         stack.push(result);
+      } else if (op1 instanceof GeoTimeSerie) {
+        // A numeric operand on top and a GTS under: apply the operator on each value of the GTS and the single operand.
+        GeoTimeSerie gts = (GeoTimeSerie) op1;
+
+        GeoTimeSerie.TYPE type = gts.getType();
+
+        // Only numerical and empty GTSs are allowed.
+        if (GeoTimeSerie.TYPE.LONG != type && GeoTimeSerie.TYPE.DOUBLE != type && GeoTimeSerie.TYPE.UNDEFINED != type) {
+          throw new WarpScriptException(unhandledErrorMessage);
+        }
+
+        GeoTimeSerie result = gts.cloneEmpty(gts.size());
+
+        GTSOpsHelper.GTSUnaryOp op;
+
+        if (null != opD && (null == opL || op0 instanceof Double || type == GeoTimeSerie.TYPE.DOUBLE || op0 instanceof BigDecimal)) {
+          op = new GTSOpsHelper.GTSUnaryOp() {
+            @Override
+            public Object op(GeoTimeSerie gts, int idx) {
+              return opD.applyAsDouble(((Number) GTSHelper.valueAtIndex(gts, idx)).longValue(), ((Number) op0).doubleValue());
+            }
+          };
+        } else {
+          op = new GTSOpsHelper.GTSUnaryOp() {
+            @Override
+            public Object op(GeoTimeSerie gts, int idx) {
+              return opL.applyAsLong(((Number) GTSHelper.valueAtIndex(gts, idx)).longValue(), ((Number) op0).longValue());
+            }
+          };
+        }
+
+        GTSOpsHelper.applyUnaryOp(result, gts, op);
+
+        stack.push(result);
       } else {
-        throw new WarpScriptException(getName() + " can only operate on 2 numerical values or a list of numerical values.");
+        throw new WarpScriptException(unhandledErrorMessage);
       }
     } else if (op0 instanceof List) {
       // A list on top, whether the function expects a single operand under or not depends on applyInList.
@@ -100,7 +147,7 @@ public class NumericalBinaryFunction extends NamedWarpScriptFunction implements 
 
         for (Object element: (List) op0) {
           if (!(element instanceof Number)) {
-            throw new WarpScriptException(getName() + " can only operate on 2 numerical values or a list of numerical values.");
+            throw new WarpScriptException(unhandledErrorMessage);
           }
 
           if (null == result) {
@@ -124,14 +171,14 @@ public class NumericalBinaryFunction extends NamedWarpScriptFunction implements 
         Object op1 = stack.pop();
 
         if (!(op1 instanceof Number)) {
-          throw new WarpScriptException(getName() + " can only operate on 2 numerical values or a list of numerical values.");
+          throw new WarpScriptException(unhandledErrorMessage);
         }
 
         List list = (List) op0;
         ArrayList<Object> result = new ArrayList<Object>(list.size());
         for (Object element: list) {
           if (!(element instanceof Number)) {
-            throw new WarpScriptException(getName() + " can only operate on 2 numerical values or a list of numerical values.");
+            throw new WarpScriptException(unhandledErrorMessage);
           }
 
           if (null != opD && (null == opL || op1 instanceof Double || element instanceof Double || op1 instanceof BigDecimal || element instanceof BigDecimal)) {
@@ -142,8 +189,85 @@ public class NumericalBinaryFunction extends NamedWarpScriptFunction implements 
         }
         stack.push(result);
       }
+    } else if (op0 instanceof GeoTimeSerie) {
+      GeoTimeSerie gts = (GeoTimeSerie) op0;
+
+      GeoTimeSerie.TYPE type = gts.getType();
+
+      if (type != GeoTimeSerie.TYPE.LONG && type != GeoTimeSerie.TYPE.DOUBLE && type != GeoTimeSerie.TYPE.UNDEFINED) {
+        throw new WarpScriptException(unhandledErrorMessage);
+      }
+
+      // A GTS on top, whether the function expects a single operand under or not depends on applyInList.
+      if (applyInList) {
+        // Apply operator only on the elements of the list op(...op(op(op(v[0], v[1]), v[2]), v[3]), ... v[n])
+
+
+        int n = gts.size();
+
+        if (null != opD && (null == opL || GeoTimeSerie.TYPE.DOUBLE == type)) {
+          Double result = null;
+
+          for (int idx = 0; idx < n; idx++) {
+            Number value = (Number) GTSHelper.valueAtIndex(gts, idx);
+
+            if (null == result) {
+              result = value.doubleValue();
+            } else {
+              result = opD.applyAsDouble(result, value.doubleValue());
+            }
+          }
+
+          stack.push(result);
+        } else {
+          Long result = null;
+
+          for (int idx = 0; idx < n; idx++) {
+            Number value = (Number) GTSHelper.valueAtIndex(gts, idx);
+
+            if (null == result) {
+              result = value.longValue();
+            } else {
+              result = opL.applyAsLong(result, value.longValue());
+            }
+          }
+
+          stack.push(result);
+        }
+      } else {
+        // Expect a single operand under the GTS and apply the operator on the single operand and each value of the GTS.
+        Object op1 = stack.pop();
+
+        if (!(op1 instanceof Number)) {
+          throw new WarpScriptException(unhandledErrorMessage);
+        }
+
+        GeoTimeSerie result = gts.cloneEmpty(gts.size());
+
+        GTSOpsHelper.GTSUnaryOp op;
+
+        if (null != opD && (null == opL || op1 instanceof Double || type == GeoTimeSerie.TYPE.DOUBLE || op1 instanceof BigDecimal)) {
+          op = new GTSOpsHelper.GTSUnaryOp() {
+            @Override
+            public Object op(GeoTimeSerie gts, int idx) {
+              return opD.applyAsDouble(((Number) op1).doubleValue(), ((Number) GTSHelper.valueAtIndex(gts, idx)).longValue());
+            }
+          };
+        } else {
+          op = new GTSOpsHelper.GTSUnaryOp() {
+            @Override
+            public Object op(GeoTimeSerie gts, int idx) {
+              return opL.applyAsLong(((Number) op1).longValue(), ((Number) GTSHelper.valueAtIndex(gts, idx)).longValue());
+            }
+          };
+        }
+
+        GTSOpsHelper.applyUnaryOp(result, gts, op);
+
+        stack.push(result);
+      }
     } else {
-      throw new WarpScriptException(getName() + " can only operate on 2 numerical values or a list of numerical values.");
+      throw new WarpScriptException(unhandledErrorMessage);
     }
 
     return stack;
