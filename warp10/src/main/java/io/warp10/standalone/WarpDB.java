@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -176,8 +176,8 @@ public class WarpDB extends Thread implements DB {
         } else {
           throw new UnsatisfiedLinkError("Native LevelDB implementation disabled.");
         }
-      } catch (UnsatisfiedLinkError ule) {
-        ule.printStackTrace();
+      } catch (NoClassDefFoundError|UnsatisfiedLinkError e) {
+        e.printStackTrace();
         if (!javadisabled) {
           System.out.println("WARNING: falling back to pure java implementation of LevelDB.");
           db = Iq80DBFactory.factory.open(new File(home), options);
@@ -186,7 +186,7 @@ public class WarpDB extends Thread implements DB {
         }
       }                
     } catch (InterruptedException ie) {
-      throw new RuntimeException("Interrupted while opending LevelDB.", ie);
+      throw new RuntimeException("Interrupted while opening LevelDB.", ie);
     } finally {
       if (mutex.isHeldByCurrentThread()) {
         mutex.unlock();
