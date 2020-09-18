@@ -295,6 +295,8 @@ public class Ingress extends AbstractHandler implements Runnable {
   final boolean ignoreOutOfRange;
   
   final boolean allowDeltaAttributes;
+
+  public static final Random onetimepadRand = new Random();
   
   public Ingress(KeyStore keystore, Properties props) {
 
@@ -1624,7 +1626,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         //
         
         final byte[] onetimepad = new byte[(int) Math.max(65537, System.currentTimeMillis() % 100000)];
-        new Random().nextBytes(onetimepad);
+        onetimepadRand.nextBytes(onetimepad);
         
         final File cache = File.createTempFile(Long.toHexString(System.currentTimeMillis()) + "-" + Long.toHexString(System.nanoTime()), ".delete.dircache");
         cache.deleteOnExit();

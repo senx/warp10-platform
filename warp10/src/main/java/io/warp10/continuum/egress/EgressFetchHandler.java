@@ -127,6 +127,8 @@ public class EgressFetchHandler extends AbstractHandler {
   
   public static final Pattern SELECTOR_RE = Pattern.compile("^([^{]+)\\{(.*)\\}$");
 
+  public static final Random onetimepadRand = new Random();
+
   /**
    * Maximum number of GTS per call to the fetch endpoint
    */
@@ -677,7 +679,7 @@ public class EgressFetchHandler extends AbstractHandler {
       //
       
       final byte[] onetimepad = new byte[(int) Math.min(65537, System.currentTimeMillis() % 100000)];
-      new Random().nextBytes(onetimepad);
+      onetimepadRand.nextBytes(onetimepad);
       
       final File cache = File.createTempFile(Long.toHexString(System.currentTimeMillis()) + "-" + Long.toHexString(System.nanoTime()), ".dircache");
       cache.deleteOnExit();
