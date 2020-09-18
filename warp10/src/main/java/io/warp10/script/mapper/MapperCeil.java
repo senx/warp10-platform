@@ -34,9 +34,6 @@ public class MapperCeil extends NamedWarpScriptFunction implements WarpScriptMap
   @Override
   public Object apply(Object[] args) throws WarpScriptException {
     long tick = (long) args[0];
-    String[] names = (String[]) args[1];
-    Map<String,String>[] labels = (Map<String,String>[]) args[2];
-    long[] ticks = (long[]) args[3];
     long[] locations = (long[]) args[4];
     long[] elevations = (long[]) args[5];
     Object[] values = (Object[]) args[6];
@@ -50,7 +47,7 @@ public class MapperCeil extends NamedWarpScriptFunction implements WarpScriptMap
     long elevation = elevations[0];
         
     if (values[0] instanceof Long) {
-      value = Math.ceil((long) values[0]);
+      value = ((Long) values[0]).doubleValue();
     } else if (values[0] instanceof Double) {
       value = Math.ceil((double) values[0]);
     } else {
