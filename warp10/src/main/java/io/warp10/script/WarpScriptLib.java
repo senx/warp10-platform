@@ -91,7 +91,6 @@ import io.warp10.script.binary.LT;
 import io.warp10.script.binary.MOD;
 import io.warp10.script.binary.MUL;
 import io.warp10.script.binary.NE;
-import io.warp10.script.binary.POW;
 import io.warp10.script.binary.SHIFTLEFT;
 import io.warp10.script.binary.SHIFTRIGHT;
 import io.warp10.script.binary.SUB;
@@ -1379,7 +1378,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new SUB("-"));
     addNamedWarpScriptFunction(new DIV("/"));
     addNamedWarpScriptFunction(new MUL("*"));
-    addNamedWarpScriptFunction(new POW("**"));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction("**", NumericalBinaryFunction.toLongBinaryOperator(Math::pow), Math::pow, false));
     addNamedWarpScriptFunction(new MOD("%"));
     addNamedWarpScriptFunction(new EQ(EQ));
     addNamedWarpScriptFunction(new NE("!="));
