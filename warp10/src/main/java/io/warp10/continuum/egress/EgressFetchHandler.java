@@ -33,7 +33,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
@@ -41,6 +40,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
@@ -59,15 +59,11 @@ import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
-import org.joda.time.Duration;
 import org.joda.time.DurationFieldType;
 import org.joda.time.Instant;
-import org.joda.time.MutablePeriod;
-import org.joda.time.Period;
 import org.joda.time.ReadWritablePeriod;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
-import org.joda.time.format.ISOPeriodFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -126,8 +122,6 @@ public class EgressFetchHandler extends AbstractHandler {
   private final long maxSplitAge;
   
   public static final Pattern SELECTOR_RE = Pattern.compile("^([^{]+)\\{(.*)\\}$");
-
-  public static final Random onetimepadRand = new Random();
 
   /**
    * Maximum number of GTS per call to the fetch endpoint
@@ -679,7 +673,7 @@ public class EgressFetchHandler extends AbstractHandler {
       //
       
       final byte[] onetimepad = new byte[(int) Math.min(65537, System.currentTimeMillis() % 100000)];
-      onetimepadRand.nextBytes(onetimepad);
+      ThreadLocalRandom.current().nextBytes(onetimepad);
       
       final File cache = File.createTempFile(Long.toHexString(System.currentTimeMillis()) + "-" + Long.toHexString(System.nanoTime()), ".dircache");
       cache.deleteOnExit();

@@ -46,6 +46,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -58,7 +59,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.warp10.WarpDist;
 import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -295,8 +295,6 @@ public class Ingress extends AbstractHandler implements Runnable {
   final boolean ignoreOutOfRange;
   
   final boolean allowDeltaAttributes;
-
-  public static final Random onetimepadRand = new Random();
   
   public Ingress(KeyStore keystore, Properties props) {
 
@@ -1626,7 +1624,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         //
         
         final byte[] onetimepad = new byte[(int) Math.max(65537, System.currentTimeMillis() % 100000)];
-        onetimepadRand.nextBytes(onetimepad);
+        ThreadLocalRandom.current().nextBytes(onetimepad);
         
         final File cache = File.createTempFile(Long.toHexString(System.currentTimeMillis()) + "-" + Long.toHexString(System.nanoTime()), ".delete.dircache");
         cache.deleteOnExit();
