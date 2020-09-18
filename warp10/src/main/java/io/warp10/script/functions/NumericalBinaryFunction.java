@@ -121,7 +121,7 @@ public class NumericalBinaryFunction extends NamedWarpScriptFunction implements 
           op = new GTSOpsHelper.GTSUnaryOp() {
             @Override
             public Object op(GeoTimeSerie gts, int idx) {
-              return opD.applyAsDouble(((Number) GTSHelper.valueAtIndex(gts, idx)).longValue(), ((Number) op0).doubleValue());
+              return opD.applyAsDouble(((Number) GTSHelper.valueAtIndex(gts, idx)).doubleValue(), ((Number) op0).doubleValue());
             }
           };
         } else {
@@ -250,7 +250,7 @@ public class NumericalBinaryFunction extends NamedWarpScriptFunction implements 
           op = new GTSOpsHelper.GTSUnaryOp() {
             @Override
             public Object op(GeoTimeSerie gts, int idx) {
-              return opD.applyAsDouble(((Number) op1).doubleValue(), ((Number) GTSHelper.valueAtIndex(gts, idx)).longValue());
+              return opD.applyAsDouble(((Number) op1).doubleValue(), ((Number) GTSHelper.valueAtIndex(gts, idx)).doubleValue());
             }
           };
         } else {

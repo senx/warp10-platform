@@ -71,7 +71,7 @@ public class NumericalUnaryFunction extends ListRecursiveStackFunction {
             op = new GTSOpsHelper.GTSUnaryOp() {
               @Override
               public Object op(GeoTimeSerie gts, int idx) {
-                return opD.applyAsDouble(((Number) GTSHelper.valueAtIndex(gts, idx)).longValue());
+                return opD.applyAsDouble(((Number) GTSHelper.valueAtIndex(gts, idx)).doubleValue());
               }
             };
           } else {
