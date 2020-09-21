@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,6 +22,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -68,7 +70,7 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
   
   private static final int maxThreadsPerRequest;
   
-  private static Map<URL,Set<Long>> endpoints = new HashMap<URL,Set<Long>>();
+  private static Map<URI,Set<Long>> endpoints = new HashMap<URI,Set<Long>>();
   
   private static long shardmodulus;
   
@@ -137,12 +139,12 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
         
         if (null == remainders) {
           remainders = new HashSet<Long>();
-          endpoints.put(url, remainders);
+          endpoints.put(url.toURI(), remainders);
         }
         
         remainders.add(remainder);        
-      } catch (MalformedURLException mue) {
-        throw new RuntimeException(mue);
+      } catch (MalformedURLException | URISyntaxException e) {
+        throw new RuntimeException(e);
       }
     }
 
@@ -188,22 +190,22 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
     final AtomicBoolean aborted = new AtomicBoolean(false);
         
     // Get the endpoints and shuffle them
-    List<URL> urls = new ArrayList<URL>(endpoints.keySet());
-    Collections.shuffle(urls);
+    List<URI> uris = new ArrayList<URI>(endpoints.keySet());
+    Collections.shuffle(uris);
     Set<Long> remainders = new HashSet<Long>();
     
-    List<URL> finalurls = new ArrayList<URL>();
+    List<URI> finaluris = new ArrayList<URI>();
 
-    for (URL url: urls) {
+    for (URI uri: uris) {
       
       // If the current url is associated with remainders we already have, skip it
       
-      if (remainders.containsAll(endpoints.get(url))) {
+      if (remainders.containsAll(endpoints.get(uri))) {
         continue;
       }
       
-      remainders.addAll(endpoints.get(url));
-      finalurls.add(url);
+      remainders.addAll(endpoints.get(uri));
+      finaluris.add(uri);
 
       // If we have enough URLs, bail out
       if (shardmodulus == remainders.size()) {
@@ -212,7 +214,7 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
     }
         
     @SuppressWarnings("unchecked")
-    Future<String>[] futures = new Future[finalurls.size()];
+    Future<String>[] futures = new Future[finaluris.size()];
 
     int i = 0;
     
@@ -227,7 +229,7 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
       
       try {
-        final URL endpoint = finalurls.get(i);
+        final URL endpoint = finaluris.get(i).toURL();
         futures[i] = executor.submit(new Callable<String>() {
           @Override
           public String call() throws Exception {
@@ -303,7 +305,7 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
           }
         });
         pending.addAndGet(1);
-      } catch (RejectedExecutionException ree) {
+      } catch (MalformedURLException | RejectedExecutionException e) {
         continue;
       }
       i++;
