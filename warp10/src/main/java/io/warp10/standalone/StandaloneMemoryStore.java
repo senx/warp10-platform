@@ -345,7 +345,7 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
     Metadata meta = encoder.getMetadata();
 
     // 128BITS
-    long id = null != meta ? meta.getClassId() : encoder.getClassId();
+    long id = meta.getClassId();
     
     int bidx = 0;
     
@@ -358,7 +358,7 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
     bytes[bidx++] = (byte) ((id >> 8) & 0xff);
     bytes[bidx++] = (byte) (id & 0xff);
     
-    id = null != meta ? meta.getLabelsId() : encoder.getLabelsId();
+    id = meta.getLabelsId();
 
     bytes[bidx++] = (byte) ((id >> 56) & 0xff);
     bytes[bidx++] = (byte) ((id >> 48) & 0xff);
@@ -387,9 +387,7 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
       if (null == memencoder || this.ephemeral) {
         memencoder = new GTSEncoder(0L, this.aesKey);
         // We're among trusted friends, use safeSetMetadata...
-        if (null != meta) {
-          memencoder.safeSetMetadata(meta);
-        }
+        memencoder.safeSetMetadata(meta);
         this.series.put(clslbls, memencoder);
 //        if (null != meta) {
 //          this.metadatas.put(clslbls, meta);
