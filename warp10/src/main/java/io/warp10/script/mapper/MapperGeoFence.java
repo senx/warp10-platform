@@ -78,12 +78,8 @@ public class MapperGeoFence extends NamedWarpScriptFunction implements WarpScrip
     // If there is no location associated with the tick, return null as the tick value.
     //
    
-    if (GeoTimeSerie.NO_LOCATION != location && GeoXPLib.isGeoXPPointInGeoXPShape(location, this.shape)) {
-      // Location is within shape
-      return new Object[] { tick, location, elevation, true };
-    } else if (GeoTimeSerie.NO_LOCATION != location) {
-      // Location is outside shape
-      return new Object[] { tick, location, elevation, false };
+    if (GeoTimeSerie.NO_LOCATION != location) {
+      return new Object[] { tick, location, elevation, GeoXPLib.isGeoXPPointInGeoXPShape(location, this.shape) };
     } else {
       // No location
       return new Object[] { tick, location, elevation, null };
