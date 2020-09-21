@@ -135,7 +135,7 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
       try {
         URL url = new URL(entry.getValue().toString().trim());
         
-        Set<Long> remainders = endpoints.get(url);
+        Set<Long> remainders = endpoints.get(url.toURI());
         
         if (null == remainders) {
           remainders = new HashSet<Long>();
