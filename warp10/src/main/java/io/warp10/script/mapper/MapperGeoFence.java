@@ -55,9 +55,6 @@ public class MapperGeoFence extends NamedWarpScriptFunction implements WarpScrip
 
   private final GeoXPShape shape;
   
-  /**
-   * Default constructor, the timezone will be UTC
-   */
   public MapperGeoFence(String name, GeoXPShape shape) {
     super(name);
     this.shape = shape;
@@ -78,14 +75,18 @@ public class MapperGeoFence extends NamedWarpScriptFunction implements WarpScrip
     long elevation = elevations[0];
     
     //
-    // If there is less than one value or if there is no location associated with the
-    // value, return null as the tick value.
+    // If there is no location associated with the tick, return null as the tick value.
     //
    
-    if (null == values[0] || GeoTimeSerie.NO_LOCATION == location || !GeoXPLib.isGeoXPPointInGeoXPShape(location, this.shape)) {
+    if (GeoTimeSerie.NO_LOCATION != location && GeoXPLib.isGeoXPPointInGeoXPShape(location, this.shape)) {
+      // Location is within shape
+      return new Object[] { tick, location, elevation, true };
+    } else if (GeoTimeSerie.NO_LOCATION != location) {
+      // Location is outside shape
       return new Object[] { tick, location, elevation, false };
     } else {
-      return new Object[] { tick, location, elevation, true };
+      // No location
+      return new Object[] { tick, location, elevation, null };
     }
   }
   
