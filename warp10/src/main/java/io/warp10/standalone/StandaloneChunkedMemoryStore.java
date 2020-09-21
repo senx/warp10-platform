@@ -271,7 +271,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     Metadata meta = encoder.getMetadata();
 
     // 128BITS
-    long id = null != meta ? meta.getClassId() : encoder.getClassId();
+    long id = meta.getClassId();
     
     int bidx = 0;
     
@@ -284,7 +284,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     bytes[bidx++] = (byte) ((id >> 8) & 0xff);
     bytes[bidx++] = (byte) (id & 0xff);
     
-    id = null != meta ? meta.getLabelsId() : encoder.getLabelsId();
+    id = meta.getLabelsId();
 
     bytes[bidx++] = (byte) ((id >> 56) & 0xff);
     bytes[bidx++] = (byte) ((id >> 48) & 0xff);
