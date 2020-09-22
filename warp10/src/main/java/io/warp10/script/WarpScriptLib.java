@@ -137,6 +137,7 @@ import io.warp10.script.mapper.MapperFinite;
 import io.warp10.script.mapper.MapperFloor;
 import io.warp10.script.mapper.MapperGeoApproximate;
 import io.warp10.script.mapper.MapperGeoClearPosition;
+import io.warp10.script.mapper.MapperGeoFence;
 import io.warp10.script.mapper.MapperGeoOutside;
 import io.warp10.script.mapper.MapperGeoWithin;
 import io.warp10.script.mapper.MapperHourOfDay;
@@ -397,6 +398,11 @@ public class WarpScriptLib {
   public static final String MAPPER_LOWEST = "mapper.lowest";
   public static final String MAPPER_MAX = "mapper.max";
   public static final String MAPPER_MIN = "mapper.min";
+  public static final String MAPPER_GEO_WITHIN = "mapper.geo.within";
+  public static final String MAPPER_GEO_OUTSIDE = "mapper.geo.outside";
+  public static final String MAPPER_GEO_FENCE = "mapper.geo.fence";
+  public static final String MAPPER_GEO_APPROXIMATE = "mapper.geo.approximate";
+  public static final String MAPPER_GEO_CLEAR = "mapper.geo.clear";
   
   public static final String RSAPUBLIC = "RSAPUBLIC";
   public static final String RSAPRIVATE = "RSAPRIVATE";
@@ -1951,9 +1957,11 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new HAVERSINE(HAVERSINE));
     addNamedWarpScriptFunction(new GEOPACK(GEOPACK));
     addNamedWarpScriptFunction(new GEOUNPACK(GEOUNPACK));
-    addNamedWarpScriptFunction(new MapperGeoWithin.Builder("mapper.geo.within"));
-    addNamedWarpScriptFunction(new MapperGeoOutside.Builder("mapper.geo.outside"));
-    addNamedWarpScriptFunction(new MapperGeoApproximate.Builder("mapper.geo.approximate"));
+    addNamedWarpScriptFunction(new MapperGeoWithin.Builder(MAPPER_GEO_WITHIN));
+    addNamedWarpScriptFunction(new MapperGeoOutside.Builder(MAPPER_GEO_OUTSIDE));
+    addNamedWarpScriptFunction(new MapperGeoFence.Builder(MAPPER_GEO_FENCE));
+    addNamedWarpScriptFunction(new MapperGeoApproximate.Builder(MAPPER_GEO_APPROXIMATE));
+    addNamedWarpScriptFunction(new MapperGeoClearPosition(MAPPER_GEO_CLEAR));
     addNamedWarpScriptFunction(new COPYGEO(COPYGEO));
     addNamedWarpScriptFunction(new BBOX(BBOX));
     addNamedWarpScriptFunction(new TOGEOHASH(TOGEOHASH));
@@ -2296,7 +2304,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MapperTanh("mapper.tanh"));
     addNamedWarpScriptFunction(new MapperSigmoid("mapper.sigmoid"));
     addNamedWarpScriptFunction(new MapperProduct("mapper.product"));
-    addNamedWarpScriptFunction(new MapperGeoClearPosition("mapper.geo.clear"));
     addNamedWarpScriptFunction(new Count("mapper.count.exclude-nulls", true));
     addNamedWarpScriptFunction(new Count("mapper.count.include-nulls", false));
     addNamedWarpScriptFunction(new Count("mapper.count.nonnull", true));
