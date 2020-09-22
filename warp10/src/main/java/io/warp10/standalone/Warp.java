@@ -122,7 +122,7 @@ public class Warp extends WarpDist implements Runnable {
     System.out.println("  Revision " + Revision.REVISION);
     System.out.println();
 
-    if (Charset.defaultCharset() != StandardCharsets.UTF_8) {
+    if (StandardCharsets.UTF_8 != Charset.defaultCharset()) {
       throw new RuntimeException("Default encoding MUST be UTF-8 but it is " + Charset.defaultCharset() + ". Aborting.");
     }
 

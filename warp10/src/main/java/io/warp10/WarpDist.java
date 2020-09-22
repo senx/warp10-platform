@@ -123,7 +123,7 @@ public class WarpDist {
     
     System.setProperty("java.awt.headless", "true");
 
-    if (Charset.defaultCharset() != StandardCharsets.UTF_8) {
+    if (StandardCharsets.UTF_8 != Charset.defaultCharset()) {
       throw new RuntimeException("Default encoding MUST be UTF-8 but it is " + Charset.defaultCharset() + ". Aborting.");
     }
     
