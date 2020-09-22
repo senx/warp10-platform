@@ -980,20 +980,4 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     this.activityWindow = activityWindow;
   }
   
-  /**
-   * Force Directory to store all its Metadata to LevelDB.
-   */
-  public void dbdump() throws IOException {
-    if (null == db) {
-      return;
-    }
-    
-    synchronized(metadatas) {
-      List<Metadata> metas = new ArrayList<Metadata>(metadatasById.values());
-      for (Metadata meta: metas) {
-        store(meta);
-      }
-      store(null);
-    }
-  }
 }
