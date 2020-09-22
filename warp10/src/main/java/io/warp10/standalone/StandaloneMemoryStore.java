@@ -435,7 +435,7 @@ public class StandaloneMemoryStore extends Thread implements StoreClient {
     long datapoints = 0L;
     long bytes = 0L;
     
-    long gcperiod = (long) (0.25 * (timespan / Constants.TIME_UNITS_PER_MS));
+    long gcperiod = (long) ((0.25 * timespan) / Constants.TIME_UNITS_PER_MS);
 
     String gcPeriodProp = WarpConfig.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_GC_PERIOD);
     if (null != gcPeriodProp) {

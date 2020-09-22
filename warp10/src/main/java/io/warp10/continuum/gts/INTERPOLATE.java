@@ -182,7 +182,7 @@ public class INTERPOLATE extends GTSStackFunction {
         
         // Fill all ticks between 'idx' and 'i' with an interpolated elevation
         if (i < filled.values) {
-          double eRate = (filled.elevations[i] - filled.elevations[idx])/(filled.ticks[i] - filled.ticks[idx]);
+          double eRate = ((double) (filled.elevations[i] - filled.elevations[idx])) / (filled.ticks[i] - filled.ticks[idx]);
           for (int j = idx + 1; j < i; j++) {
             filled.elevations[j] = (long) (filled.elevations[idx] + eRate * (filled.ticks[j] - filled.ticks[idx]));
           }
