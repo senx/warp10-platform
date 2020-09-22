@@ -8151,30 +8151,34 @@ public class GTSHelper {
     StringBuilder sb = new StringBuilder();
 
     String name = metadata.getName();
-
-    if(name.length() > 0) {
-      char nameFirstChar = name.charAt(0);
-      if ('=' == nameFirstChar || '~' == nameFirstChar) {
-        sb.append("="); // Prepend '=' for the special character not to be interpreted
+    
+    if (null != name) {
+      if(name.length() > 0) {
+        char nameFirstChar = name.charAt(0);
+        if ('=' == nameFirstChar || '~' == nameFirstChar) {
+          sb.append("="); // Prepend '=' for the special character not to be interpreted
+        }
       }
+      encodeName(sb, name);      
     }
-    encodeName(sb, name);
 
     sb.append("{");
-    TreeMap<String,String> labels = new TreeMap<String,String>(metadata.getLabels());
-    boolean first = true;
-    for (Entry<String,String> entry: labels.entrySet()) {
-      if (!first) {
-        sb.append(",");
-      }
-      encodeName(sb, entry.getKey());
-      if (forSearch && Constants.ABSENT_LABEL_SUPPORT && "".equals(entry.getValue())) {
-        sb.append("~$");
-      } else {
-        sb.append("=");
-        encodeName(sb, entry.getValue());
-      }
-      first = false;
+    if (metadata.getLabelsSize() > 0) {
+      TreeMap<String,String> labels = new TreeMap<String,String>(metadata.getLabels());
+      boolean first = true;
+      for (Entry<String,String> entry: labels.entrySet()) {
+        if (!first) {
+          sb.append(",");
+        }
+        encodeName(sb, entry.getKey());
+        if (forSearch && Constants.ABSENT_LABEL_SUPPORT && "".equals(entry.getValue())) {
+          sb.append("~$");
+        } else {
+          sb.append("=");
+          encodeName(sb, entry.getValue());
+        }
+        first = false;
+      }      
     }
     sb.append("}");
     
