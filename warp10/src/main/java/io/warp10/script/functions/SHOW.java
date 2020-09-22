@@ -31,13 +31,17 @@ public class SHOW extends NamedWarpScriptFunction implements WarpScriptStackFunc
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
     
-    if (!(top instanceof Long)) {
+    if (null != top && !(top instanceof Long)) {
       throw new WarpScriptException(getName() + " expects a number of levels to show.");
     }
     
-    int count = ((Long) top).intValue();
-    stack.show(count);
-
+    if (null == top) {
+      stack.show();
+    } else {
+      int count = ((Long) top).intValue();
+      stack.show(count);
+    }
+    
     return stack;
   }
 }
