@@ -31,17 +31,16 @@ public class HIDE extends NamedWarpScriptFunction implements WarpScriptStackFunc
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
     
-    if (!(top instanceof Long)) {
+    if (null != top && !(top instanceof Long)) {
       throw new WarpScriptException(getName() + " expects a number of levels to hide.");
     }
     
-    int count = ((Long) top).intValue();
-    long hidden = (long) stack.hide(count);
-    
-    if (0 != hidden) {
-      stack.push(hidden);
+    if (null == top) {
+      stack.push(stack.hide());
     } else {
-      stack.push(null);
+      int count = ((Long) top).intValue();
+      long hidden = (long) stack.hide(count);
+      stack.push(hidden);      
     }
     
     return stack;

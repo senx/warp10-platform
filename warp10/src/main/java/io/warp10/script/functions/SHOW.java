@@ -35,7 +35,9 @@ public class SHOW extends NamedWarpScriptFunction implements WarpScriptStackFunc
       throw new WarpScriptException(getName() + " expects a number of levels to show.");
     }
     
-    if (null != top) {
+    if (null == top) {
+      stack.show();
+    } else {
       int count = ((Long) top).intValue();
       stack.show(count);
     }

@@ -834,11 +834,22 @@ public interface WarpScriptStack {
   public void restore() throws WarpScriptException;
   
   /**
+   * Hide all stack levels
+   * @return The number of levels actually hidden
+   */
+  public int hide();
+  
+  /**
    * Hide the deepest 'count' stack levels
    * @param count Number of levels to hide, use 0 to hide all
    * @return The number of levels actually hidden
    */
   public int hide(int count);  
+  
+  /**
+   * Show all previously hidden stack levels.
+   */
+  public void show();
   
   /**
    * Show some stack levels previously hidden. Up to 'count'
