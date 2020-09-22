@@ -272,4 +272,13 @@ public class NumericalBinaryFunction extends NamedWarpScriptFunction implements 
 
     return stack;
   }
+
+  public static LongBinaryOperator toLongBinaryOperator(DoubleBinaryOperator doubleBinaryOperator) {
+    return new LongBinaryOperator() {
+      @Override
+      public long applyAsLong(long l0, long l1) {
+        return (long) doubleBinaryOperator.applyAsDouble(l0, l1);
+      }
+    };
+  }
 }
