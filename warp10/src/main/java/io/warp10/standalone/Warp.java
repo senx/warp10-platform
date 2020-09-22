@@ -20,6 +20,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashSet;
@@ -119,6 +121,10 @@ public class Warp extends WarpDist implements Runnable {
     System.out.println(Constants.WARP10_BANNER);
     System.out.println("  Revision " + Revision.REVISION);
     System.out.println();
+
+    if (Charset.defaultCharset() != StandardCharsets.UTF_8) {
+      throw new RuntimeException("Default encoding MUST be UTF-8 but it is " + Charset.defaultCharset() + ". Aborting.");
+    }
 
     Map<String,String> labels = new HashMap<String, String>();
     labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "standalone");
