@@ -45,7 +45,7 @@ public class FILLMAPPER extends NamedWarpScriptFunction implements WarpScriptSta
 
       long[] ticks = (long[]) args[3];
       long tick = (long) args[0];
-      int tick_index = (int) ((long[]) args[3])[4];
+      int tick_index = (int) ((long[]) args[7])[4];
 
       // if the tick is missing in the window, apply mapper to fill it
       if (-1 == tick_index) {
