@@ -33,6 +33,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -496,6 +497,10 @@ public class WarpConfig {
     if (null != properties) {
       System.err.println("Properties already set");
       System.exit(-1);
+    }
+
+    if (StandardCharsets.UTF_8 != Charset.defaultCharset()) {
+      throw new RuntimeException("Default encoding MUST be UTF-8 but it is " + Charset.defaultCharset() + ". Aborting.");
     }
 
     //
