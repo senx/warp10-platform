@@ -24,6 +24,7 @@ import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.mapper.FILLMAPPER;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -195,7 +196,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     
     for (GeoTimeSerie gts: series) {
       List<GeoTimeSerie> res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), occurrences < 0, step, overrideTick, mapper instanceof Macro ? stack : null,
-              (List<Long>) outputTicks);
+              (List<Long>) outputTicks, false, mapper instanceof FILLMAPPER.FillerMapper);
 
       if (res.size() < 2) {
         mapped.addAll(res);

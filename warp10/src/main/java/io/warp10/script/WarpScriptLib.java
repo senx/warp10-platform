@@ -173,6 +173,7 @@ import io.warp10.script.mapper.MapperToLong;
 import io.warp10.script.mapper.MapperToString;
 import io.warp10.script.mapper.MapperYear;
 import io.warp10.script.mapper.STRICTMAPPER;
+import io.warp10.script.mapper.FILLMAPPER;
 import io.warp10.script.op.OpAdd;
 import io.warp10.script.op.OpBoolean;
 import io.warp10.script.op.OpDiv;
@@ -572,6 +573,7 @@ public class WarpScriptLib {
   public static final String MACROFILTER = "MACROFILTER";
   public static final String MACROFILLER = "MACROFILLER";
   public static final String STRICTMAPPER = "STRICTMAPPER";
+  public static final String FILLMAPPER = "FILLMAPPER";
   public static final String STRICTREDUCER = "STRICTREDUCER";
   public static final String TOSELECTOR = "TOSELECTOR";
   public static final String PARSE = "PARSE";
@@ -1368,6 +1370,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MACROFILTER(MACROFILTER));
     addNamedWarpScriptFunction(new MACROFILLER(MACROFILLER));
     addNamedWarpScriptFunction(new STRICTMAPPER(STRICTMAPPER));
+    addNamedWarpScriptFunction(new FILLMAPPER(FILLMAPPER));
     addNamedWarpScriptFunction(new STRICTREDUCER(STRICTREDUCER));
     
     addNamedWarpScriptFunction(new PARSESELECTOR(PARSESELECTOR));
