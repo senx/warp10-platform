@@ -36,7 +36,7 @@ public class HIDE extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
     
     if (null == top) {
-      stack.push(stack.hide());
+      stack.push((long) stack.hide());
     } else {
       int count = ((Long) top).intValue();
       long hidden = (long) stack.hide(count);
