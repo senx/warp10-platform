@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,16 +16,17 @@
 
 package io.warp10.script.functions;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import com.geoxp.GeoXPLib;
+import com.geoxp.GeoXPLib.GeoXPShape;
+
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.GTSStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import com.geoxp.GeoXPLib.GeoXPShape;
 
 /**
  * Checks whether a GTS has at least one point within a shape
@@ -36,6 +37,16 @@ public class GEOINTERSECTS extends GTSStackFunction  {
 
   public GEOINTERSECTS(String name) {
     super(name);
+  }
+
+  @Override
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    if (stack.depth() >= 2 && stack.get(1) instanceof GeoXPShape && stack.peek() instanceof GeoXPShape) {
+     stack.push(GeoXPLib.intersects((GeoXPShape) stack.pop(), (GeoXPShape) stack.pop()));
+     return stack;
+    } else {
+      return super.apply(stack);
+    }
   }
 
   @Override
