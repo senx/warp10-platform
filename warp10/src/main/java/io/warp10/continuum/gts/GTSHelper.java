@@ -5101,15 +5101,22 @@ public class GTSHelper {
 
     GeoTimeSerie mapped = gts.clone();
 
-    //
-    // Do nothing if gts was not bucketized and either there are no value or the mapper is a filler mapper
-    //
+    if (!isBucketized(mapped)) {
 
-    if ((0 == mapped.values || mapper instanceof FILLMAPPER.FillerMapper) && !isBucketized(mapped)) {
-      results.add(mapped);
-      return results;
+      //
+      // Do nothing if gts was not bucketized and there are no value
+      //
+
+      if (0 == mapped.values) {
+        results.add(mapped);
+        return results;
+      }
+
+      if (mapper instanceof FILLMAPPER.FillerMapper) {
+        throw new WarpScriptException("A mapper created with FILLMAP can only operate on bucketized gts");
+      }
     }
-
+    
     // Sort ticks
     sort(mapped, reversed);
     // Retrieve ticks if GTS is not bucketized.
