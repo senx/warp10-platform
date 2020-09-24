@@ -5102,10 +5102,10 @@ public class GTSHelper {
     GeoTimeSerie mapped = gts.clone();
 
     //
-    // Do nothing if there are no values and gts was not bucketized
+    // Do nothing if gts was not bucketized and either there are no value or the mapper is a filler mapper
     //
 
-    if (0 == mapped.values && !isBucketized(mapped)) {
+    if ((0 == mapped.values || mapper instanceof FILLMAPPER.FillerMapper) && !isBucketized(mapped)) {
       results.add(mapped);
       return results;
     }
@@ -5209,8 +5209,8 @@ public class GTSHelper {
       long start = tick;
       long stop = tick;
 
-      // we don't need to extract more than a single point if we use a FillerMapper on a bucketized GTS on a non-empty bucket
-      if (!(mapper instanceof FILLMAPPER.FillerMapper) || null != ticks || null == GTSHelper.valueAtTick(gts, tick)) {
+      // we don't need to extract more than a single point if we use a FillerMapper on a non-empty bucket
+      if (!(mapper instanceof FILLMAPPER.FillerMapper) || null == GTSHelper.valueAtTick(gts, tick)) {
 
         if (prewindow < 0) {
           start = tick + prewindow;
