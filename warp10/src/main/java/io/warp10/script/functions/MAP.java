@@ -24,7 +24,6 @@ import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.mapper.FILLMAPPER;
 
 import java.util.ArrayList;
 import java.util.HashMap;

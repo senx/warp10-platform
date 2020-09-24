@@ -47,15 +47,15 @@ public class FILLMAPPER extends NamedWarpScriptFunction implements WarpScriptSta
     public Object apply(Object[] args) throws WarpScriptException {
 
       // args[7] contains the window parameters [ prewindow, postwindow, start, stop, tick index ]
-      int tick_index = (int) ((long[]) args[7])[4];
+      int tickIndex = (int) ((long[]) args[7])[4];
 
       // if the tick is missing in the window, apply mapper to fill it
-      if (-1 == tick_index) {
+      if (-1 == tickIndex) {
         return mapper.apply(args);
       }
 
-      // if tick is present, set back the previous value
-      return new Object[]{args[0], ((long[]) args[4])[tick_index], ((long[]) args[5])[tick_index], ((Object[]) args[6])[tick_index]};
+      // if tick is present, keep the current value untouched
+      return new Object[]{args[0], ((long[]) args[4])[tickIndex], ((long[]) args[5])[tickIndex], ((Object[]) args[6])[tickIndex]};
     }
 
     @Override
