@@ -49,6 +49,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.warp10.script.mapper.FILLMAPPER;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.fitting.PolynomialCurveFitter;
@@ -5069,11 +5070,6 @@ public class GTSHelper {
 
   public static List<GeoTimeSerie> map(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack,
                                        List<Long> outputTicks, boolean dedup) throws WarpScriptException {
-    return map(gts, mapper, prewindow, postwindow, occurrences, reversed, step, overrideTick, stack, outputTicks, false, false);
-  }
-
-  public static List<GeoTimeSerie> map(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack,
-                                       List<Long> outputTicks, boolean dedup, boolean fillOnly) throws WarpScriptException {
 
     //
     // Make sure step is positive
@@ -5214,7 +5210,7 @@ public class GTSHelper {
       long stop = tick;
 
       // we don't need to extract more than a single point if we use a FillerMapper on a bucketized GTS on a non-empty bucket
-      if (!fillOnly || null != ticks || null == GTSHelper.valueAtTick(gts, tick)) {
+      if (!(mapper instanceof FILLMAPPER.FillerMapper) || null != ticks || null == GTSHelper.valueAtTick(gts, tick)) {
 
         if (prewindow < 0) {
           start = tick + prewindow;
