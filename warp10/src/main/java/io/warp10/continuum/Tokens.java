@@ -16,20 +16,6 @@
 
 package io.warp10.continuum;
 
-import io.warp10.WarpConfig;
-import io.warp10.WarpDist;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.store.Constants;
-import io.warp10.crypto.KeyStore;
-import io.warp10.quasar.filter.QuasarTokenFilter;
-import io.warp10.quasar.filter.exception.QuasarTokenException;
-import io.warp10.quasar.token.thrift.data.ReadToken;
-import io.warp10.quasar.token.thrift.data.TokenType;
-import io.warp10.quasar.token.thrift.data.WriteToken;
-import io.warp10.script.MemoryWarpScriptStack;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.ext.token.TOKENGEN;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -48,6 +34,20 @@ import java.util.regex.Pattern;
 import org.apache.thrift.TBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.warp10.WarpConfig;
+import io.warp10.WarpDist;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.store.Constants;
+import io.warp10.crypto.KeyStore;
+import io.warp10.quasar.filter.QuasarTokenFilter;
+import io.warp10.quasar.filter.exception.QuasarTokenException;
+import io.warp10.quasar.token.thrift.data.ReadToken;
+import io.warp10.quasar.token.thrift.data.TokenType;
+import io.warp10.quasar.token.thrift.data.WriteToken;
+import io.warp10.script.MemoryWarpScriptStack;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.ext.token.TOKENGEN;
 
 public class Tokens {
 
@@ -344,7 +344,7 @@ public class Tokens {
    * those, thus leading potentially to data exposure
    * 
    */
-  public static LinkedHashMap<String,String> labelSelectorsFromReadToken(ReadToken rtoken) {
+  public static Map<String,String> labelSelectorsFromReadToken(ReadToken rtoken) {
     
     LinkedHashMap<String,String> labelSelectors = new LinkedHashMap<String,String>();
     
