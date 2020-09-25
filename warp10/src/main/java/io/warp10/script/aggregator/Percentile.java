@@ -161,10 +161,13 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptMap
 
     if (!this.interpolate) {
       // Type 1 in Hyndman, Rob & Fan, Yanan. (1996). Sample Quantiles in Statistical Packages. The American Statistician.
-      int j = (int) Math.floor(pn);
-      if (pn > j) {
-        j++;
-      }
+
+      // If we strictly follow the formula we would code the following, but it can be simplify using ceil.
+      // int j = (int) Math.floor(pn);
+      // if (pn > j) {
+      //   j++;
+      // }
+      int j = (int) Math.ceil(pn);
 
       // Formula is 1-indexed, switch to 0-indexed.
       if (j > 0) {
@@ -174,6 +177,8 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptMap
       return new Object[] {ticks[indices[j]], locations[indices[j]], elevations[indices[j]], values[indices[j]]};
     } else {
       // Type 8 in Hyndman, Rob & Fan, Yanan. (1996). Sample Quantiles in Statistical Packages. The American Statistician.
+      // Type 8 is the recommended by Hyndman and Fan. Except on small samples, the difference with other types is negligible.
+
       double m = (p + 1) / 3;
       int j = (int) Math.floor(pn + m);
       double gamma = pn + m - j;
