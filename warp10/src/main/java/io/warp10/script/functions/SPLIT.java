@@ -54,15 +54,11 @@ public class SPLIT extends NamedWarpScriptFunction implements WarpScriptStackFun
       o = stack.pop();
     }
 
-    if (!(o instanceof String)) {
+    if (!(o instanceof String) || 1 != ((String) o).length()) {
       throw new WarpScriptException(getName() + " expects a string delimiter of length 1.");
     }
 
-    if (1 != o.toString().length()) {
-      throw new WarpScriptException(getName() + " expects a string delimiter of length 1.");
-    }
-
-    char delimiter = o.toString().charAt(0);
+    char delimiter = ((String) o).charAt(0);
 
     o = stack.pop();
 
@@ -70,7 +66,7 @@ public class SPLIT extends NamedWarpScriptFunction implements WarpScriptStackFun
       throw new WarpScriptException(getName() + " operates on a String.");
     }
 
-    stack.push(split(o.toString(), delimiter, limit));
+    stack.push(split((String) o, delimiter, limit));
 
     return stack;
   }
