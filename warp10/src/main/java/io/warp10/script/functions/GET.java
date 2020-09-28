@@ -70,7 +70,7 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
   public static Object get(Object key, Object collection) throws WarpScriptException {
     if (collection instanceof List) {
       if (!(key instanceof Long)) {
-        throw new WarpScriptException("Getting on List requires a Long.");
+        throw new WarpScriptException("Getting on LIST requires a LONG.");
       }
 
       int idx = ((Long) key).intValue();
@@ -83,7 +83,7 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
     } else if (collection instanceof String) {
       if (!(key instanceof Long)) {
-        throw new WarpScriptException("Getting on String requires a Long.");
+        throw new WarpScriptException("Getting on STRING requires a LONG.");
       }
 
       int idx = ((Long) key).intValue();
@@ -93,7 +93,7 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
     } else if (collection instanceof byte[]) {
       if (!(key instanceof Long)) {
-        throw new WarpScriptException("Getting on bytes requires a Long.");
+        throw new WarpScriptException("Getting on BYTES requires a LONG.");
       }
 
       int idx = ((Long) key).intValue();
@@ -102,7 +102,7 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
       return ((byte[]) collection)[idx] & 0xFFL;
 
     } else {
-      throw new WarpScriptException("Invalid Object to GET on.");
+      throw new WarpScriptException("Invalid OBJECT to GET on.");
     }
   }
 
