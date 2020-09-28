@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Extracts a value from a map, list, or byte array given a key.
+ * Extracts a value from a map, list, a byte array or a String, given a key.
  */
 public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -43,6 +43,7 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
     try {
       if (key instanceof List) {
+        // The list is considered to be a kind of path. For instance [ 'a' 0 -1 ] GET is equivalent to 'a' GET 0 GET -1 GET.
         value = coll;
         for (Object keyElement: (List) key) {
           value = get(keyElement, value);
@@ -59,6 +60,13 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
     return stack;
   }
 
+  /**
+   * Get a value from a List, Map, byte[] or String using respectively a Long, Object, Long or Long key.
+   * @param key Either on Object for a Map or a Long for List, byte[] or String. Negative indexing is possible, in that case the corresponding index is size + index.
+   * @param collection Either a List, Map, byte[] or String instance.
+   * @return The value at the given key.
+   * @throws WarpScriptException If the collection type cannot be handled or the key is invalid for the collection type.
+   */
   public static Object get(Object key, Object collection) throws WarpScriptException {
     if (collection instanceof List) {
       if (!(key instanceof Long)) {
