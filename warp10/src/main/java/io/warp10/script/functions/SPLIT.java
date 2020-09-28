@@ -89,7 +89,7 @@ public class SPLIT extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     while (splits < limit) {
       int index = input.indexOf(delim, offset);
-      if (index == -1) {
+      if (-1 == index) {
         l.add(input.substring(offset));
         break;
       } else {
