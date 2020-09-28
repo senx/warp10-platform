@@ -17,9 +17,9 @@
 package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 import java.util.List;
 import java.util.Map;
@@ -28,63 +28,74 @@ import java.util.Map;
  * Extracts a value from a map, list, or byte array given a key.
  */
 public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public GET(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object key = stack.pop();
-    
+
     Object coll = stack.pop();
 
-    if (!(coll instanceof Map) && !(coll instanceof List) && !(coll instanceof byte[])) {
-      throw new WarpScriptException(getName() + " operates on a map, list or byte array.");
-    }
-    
-    Object value = null;
-    
-    if (coll instanceof Map) {
-      value = ((Map) coll).get(key);
+    Object value;
 
-    } else if (key instanceof Long) {
-      int idx = ((Long) key).intValue();
-
-      if (coll instanceof List) {
-        int size = ((List) coll).size();
-
-        idx = computeAndCheckIndex(idx, size);
-
-        value = ((List) coll).get(idx);
-
-      } else {
-        int size = ((byte[]) coll).length;
-
-        idx = computeAndCheckIndex(idx, size);
-
-        value = (long) (((byte[]) coll)[idx] & 0xFFL);
-      }
-
-    } else if (coll instanceof byte[]) {
-      throw new WarpScriptException(getName() + " expects the key to be an integer when operating on a byte array.");
-
-    } else if (!(key instanceof List)) {
-      throw new WarpScriptException(getName() + " expects the key to be an integer or a list of integers when operating on a List.");
-
-    } else {
-      for (Object o: (List) key) {
-        if (!(o instanceof Long)) {
-          throw new WarpScriptException(getName() + " expects the key to be an integer or a list of integers when operating on a List.");
+    try {
+      if (key instanceof List) {
+        value = coll;
+        for (Object keyElement: (List) key) {
+          value = get(keyElement, value);
         }
+      } else {
+        value = get(key, coll);
       }
-
-      value = nestedGet((List) coll, (List<Long>) key);
+    } catch (WarpScriptException | IndexOutOfBoundsException e) {
+      throw new WarpScriptException(getName() + " failed.", e);
     }
-    
+
     stack.push(value);
 
     return stack;
+  }
+
+  public static Object get(Object key, Object collection) throws WarpScriptException {
+    if (collection instanceof List) {
+      if (!(key instanceof Long)) {
+        throw new WarpScriptException("Getting on List requires a Long.");
+      }
+
+      int idx = ((Long) key).intValue();
+      int size = ((List) collection).size();
+      idx = computeAndCheckIndex(idx, size);
+      return ((List) collection).get(idx);
+
+    } else if (collection instanceof Map) {
+      return ((Map) collection).get(key);
+
+    } else if (collection instanceof String) {
+      if (!(key instanceof Long)) {
+        throw new WarpScriptException("Getting on String requires a Long.");
+      }
+
+      int idx = ((Long) key).intValue();
+      int size = ((String) collection).length();
+      idx = computeAndCheckIndex(idx, size);
+      return String.valueOf(((String) collection).charAt(idx));
+
+    } else if (collection instanceof byte[]) {
+      if (!(key instanceof Long)) {
+        throw new WarpScriptException("Getting on bytes requires a Long.");
+      }
+
+      int idx = ((Long) key).intValue();
+      int size = ((byte[]) collection).length;
+      idx = computeAndCheckIndex(idx, size);
+      return ((byte[]) collection)[idx] & 0xFFL;
+
+    } else {
+      throw new WarpScriptException("Invalid Object to GET on.");
+    }
   }
 
   public static int computeAndCheckIndex(int index, int size) throws WarpScriptException {
