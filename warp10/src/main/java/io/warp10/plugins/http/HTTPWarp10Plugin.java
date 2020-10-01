@@ -112,7 +112,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
   /**
    * Map of uri to stream delimiter.
    */
-  private Map<String, Byte> streamDelimiter = new HashMap<String, Byte>();
+  private Map<String, Byte> streamDelimiters = new HashMap<String, Byte>();
 
   /**
    * Map of filename to uri
@@ -248,7 +248,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
           String uri = uris.remove(spec);
           this.macros.remove(uri);
           this.parsePayloads.remove(uri);
-          this.streamDelimiter.remove(uri);
+          this.streamDelimiters.remove(uri);
           this.sizes.remove(spec);
           this.prefixes.remove(uri);
         }
@@ -259,7 +259,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
         for (String uri: inactiveURIs) {
           this.macros.remove(uri);
           this.parsePayloads.remove(uri);
-          this.streamDelimiter.remove(uri);
+          this.streamDelimiters.remove(uri);
           this.prefixes.remove(uri);
         }        
       } catch (Throwable t) {
@@ -318,7 +318,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
       if (null != oldpath) {
         this.macros.remove(oldpath);
         this.parsePayloads.remove(oldpath);
-        this.streamDelimiter.remove(oldpath);
+        this.streamDelimiters.remove(oldpath);
         this.prefixes.remove(oldpath);
       }
       this.macros.put(String.valueOf(config.get(PARAM_PATH)), (Macro) config.get(PARAM_MACRO));
@@ -328,7 +328,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
         if (delimiter.length > 1) {
           throw new RuntimeException("Stream delimiter must be one byte long.");
         }
-        this.streamDelimiter.put(String.valueOf(config.get(PARAM_PATH)), delimiter[0]);
+        this.streamDelimiters.put(String.valueOf(config.get(PARAM_PATH)), delimiter[0]);
       }
       if (Boolean.TRUE.equals(config.get(PARAM_PREFIX))) {
         prefixes.add(String.valueOf(config.get(PARAM_PATH)));
@@ -411,7 +411,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
   }
 
   public Byte streamDelimiter(String uri) {
-    return this.streamDelimiter.get(uri);
+    return this.streamDelimiters.get(uri);
   }
   
   public boolean isLcHeaders() {

@@ -117,7 +117,11 @@ public class WarpScriptHandler extends AbstractHandler {
 
       // The input stream is handled very differently if the WarpScript is expecting a splitted stream or not.
       if (null == plugin.streamDelimiter(prefix)) {
-        // Get the payload if the content-type is not application/x-www-form-urlencoded or we do not want to parse the payload
+        // In the case of x-www-form-urlencoded request, the parameters are sent in the payload.
+        // We must not get the input stream if we want the request.getParameterMap() below to
+        // automatically parse the payload and add the result to the parameter map.
+        // Thus we get the input stream if the request is not x-www-form-urlencoded or if the configuration
+        // explicitly states that the payload must not be parsed.
         if ((!MimeTypes.Type.FORM_ENCODED.is(request.getContentType()) || !plugin.isParsePayload(prefix))) {
           // Ready all the stream and store the payload.
           byte[] payload = IOUtils.toByteArray(request.getInputStream());
@@ -134,7 +138,8 @@ public class WarpScriptHandler extends AbstractHandler {
         }
       }
 
-      // Get the parameters in the URL and payload if we want to parse the x-www-form-urlencoded payload.
+      // Get the parameters in the URL and payload if the parsing of x-www-form-urlencoded payload was allowed, see comment above.
+      // request.getParameterMap() will not parse the payload if the input stream of the request has been retrieved.
       Map<String, List<String>> httpparams = new HashMap<String, List<String>>();
       Map<String, String[]> pmap = request.getParameterMap();
       for (Entry<String, String[]> param: pmap.entrySet()) {
@@ -240,9 +245,9 @@ public class WarpScriptHandler extends AbstractHandler {
     }
   }
 
-  private static int indexOf(byte[] array, byte target, int start, int end) {
+  private static int indexOf(byte[] array, final byte target, int start, int end) {
     for (int i = start; i < end; i++) {
-      if (array[i] == target) {
+      if (target == array[i]) {
         return i;
       }
     }
