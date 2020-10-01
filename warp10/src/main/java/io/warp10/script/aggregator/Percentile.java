@@ -16,33 +16,36 @@
 
 package io.warp10.script.aggregator;
 
+import com.geoxp.GeoXPLib;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptBucketizerFunction;
+import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptReducerFunction;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import java.util.Comparator;
-import java.util.Arrays;
-
-import com.geoxp.GeoXPLib;
+import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.binary.EQ;
 
+import java.util.Arrays;
+import java.util.Comparator;
+
 /**
- * Return the Nth percentile of the values on the interval.
- * The returned location will be that of the chosen value
- * The returned elevation will be that of the chosen value
+ * Return the percentile, given its rank and type, for the given GTS datapoints.
+ * It implements the percentiles as defined in Hyndman, Rob & Fan, Yanan. (1996). Sample Quantiles in Statistical Packages. The American Statistician.
  */
 public class Percentile extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptBucketizerFunction, WarpScriptReducerFunction {
 
   /**
-   * Should we use linear interpolation?
+   * For computing double "almost equal".
    */
-  private final boolean interpolate;
+  private static final double EPSILON = 0.000001;
+
+  /**
+   * Percentile type, see Hyndman, Rob & Fan, Yanan. (1996). Sample Quantiles in Statistical Packages. The American Statistician.
+   */
+  private final int type;
 
   private final double percentile;
   private final boolean forbidNulls;
@@ -59,10 +62,20 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptMap
     public Object apply(WarpScriptStack stack) throws WarpScriptException {
       Object top = stack.pop();
 
-      boolean interpolate = false;
+      int type = 1;
 
-      if(top instanceof Boolean) {
-        interpolate = (Boolean) top;
+      // Parameter is a String here not to interfere with the percentile Number.
+      if (top instanceof String) {
+        String typeStr = ((String) top).toLowerCase();
+        if (5 != typeStr.length() || !typeStr.startsWith("type")) {
+          throw new WarpScriptException(getName() + " expect percentile type to be 'typeX' where 0<X<10.");
+        }
+        type = typeStr.charAt(4) - '0';
+
+        if (type < 1 || 9 < type) {
+          throw new WarpScriptException(getName() + " expect percentile type to be 'typeX' where X is a integer and 0<X<10.");
+        }
+
         top = stack.pop();
       }
 
@@ -76,15 +89,15 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptMap
         throw new WarpScriptException("Invalid percentile for " + getName() + ", MUST be between 0 and 100.");
       }
 
-      stack.push(new Percentile(getName(), percentile, interpolate, this.forbidNulls));
+      stack.push(new Percentile(getName(), percentile, type, this.forbidNulls));
       return stack;
     }
   }
 
-  public Percentile(String name, double percentile, boolean interpolate, boolean forbidNulls) {
+  public Percentile(String name, double percentile, int type, boolean forbidNulls) {
     super(name);
     this.percentile = Math.min(100.0D, Math.max(0.0D, percentile));
-    this.interpolate = interpolate;
+    this.type = type;
     this.forbidNulls = forbidNulls;
   }
 
@@ -159,10 +172,18 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptMap
 
     double pn = p * nonNullLength;
 
-    if (!this.interpolate) {
-      // Type 1 in Hyndman, Rob & Fan, Yanan. (1996). Sample Quantiles in Statistical Packages. The American Statistician.
+    //
+    // Return the percentile depending on type.
+    // As in the Hyndman paper we handle differently discontinuous types 1 to 3 and continuous types 4 to 9.
+    // We first test type 1 because it is the default and can be optimized. It does not interpolate, gamma is either 0 or 1.
+    // Types 2 and 3 must be handled separately because type 2 interpolates, gamma can take the value 0.5, while 3 does not.
+    // Types 4 to 9 interpolate and only the m values changes so they are handled together.
+    // Types 1 and 3, which do not interpolate, return the same type as the original GTS, either LONG or DOUBLE.
+    // Other types return a DOUBLE GTS because they may interpolate between the original GTS datapoints.
+    //
 
-      // If we strictly follow the formula we would code the following, but it can be simplify using ceil.
+    if (1 == type) {
+      // If we strictly follow the formula we would code the following, but it can be simplified using ceil.
       // int j = (int) Math.floor(pn);
       // if (pn > j) {
       //   j++;
@@ -170,85 +191,162 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptMap
       int j = (int) Math.ceil(pn);
 
       // Formula is 1-indexed, switch to 0-indexed.
+      // If j==0 then the lowest value is taken, so keep j at 0.
       if (j > 0) {
         j--;
       }
 
       return new Object[] {ticks[indices[j]], locations[indices[j]], elevations[indices[j]], values[indices[j]]};
-    } else {
-      // Type 8 in Hyndman, Rob & Fan, Yanan. (1996). Sample Quantiles in Statistical Packages. The American Statistician.
-      // Type 8 is the recommended by Hyndman and Fan. Except on small samples, the difference with other types is negligible.
+    } else if (2 >= type) {
+      // Type 2
 
-      double m = (p + 1) / 3;
+      int j = (int) Math.floor(pn);
+      double g = pn - j;
+
+      double gamma = 1;
+      if (Math.abs(g) < EPSILON) {
+        // g ~= 0
+        gamma = 0.5;
+      }
+
+      // Formula is 1-indexed, switch to 0-indexed.
+      j--;
+
+      return interpolate(nonNullLength, j, gamma, indices, ticks, locations, elevations, values);
+    } else if (3 >= type) {
+      // Type 3
+      double m = -0.5D;
+
+      int j = (int) Math.floor(pn + m);
+      double g = pn + m - j;
+
+      // A little simplification here. gamma can only be 0 or 1 which will respectively return X(j) or X(j+1).
+      // So we make gamma an integer and return X(j+gamma).
+      int gamma = 1;
+      if (Math.abs(g) < EPSILON && 0 == (j % 2)) {
+        // g ~= 0 and j even
+        gamma = 0;
+      }
+
+      // Formula is 1-indexed, switch to 0-indexed.
+      // If (j + gamma)==0 then the lowest value is taken, so keep j + gamma at 0.
+      if (j + gamma > 0) {
+        j--;
+      }
+
+      return new Object[] {ticks[indices[j + gamma]], locations[indices[j + gamma]], elevations[indices[j + gamma]], values[indices[j + gamma]]};
+    } else {
+      // Type 4 to 9
+      // Type 7 is used by defaut in R.
+      // Type 8 is the recommended by Hyndman and Fan.
+      // Except on small samples, the difference between types is negligible.
+
+      double m;
+      switch (type) {
+        case 4:
+          m = 0D;
+          break;
+        case 5:
+          m = 0.5D;
+          break;
+        case 6:
+          m = p;
+          break;
+        case 7:
+          m = 1 - p;
+          break;
+        case 8:
+          m = (p + 1) / 3D;
+          break;
+        case 9:
+          m = p / 4D + 3.0D / 8.0D;
+          break;
+        default:
+          throw new WarpScriptException(getName() + " given invalid type.");
+      }
+
       int j = (int) Math.floor(pn + m);
       double gamma = pn + m - j;
 
       // Formula is 1-indexed, switch to 0-indexed.
-      if (j > 0) {
-        j--;
-      } else {
-        // j should be negative, directly return lowest value.
-        return new Object[] {ticks[indices[j]], locations[indices[j]], elevations[indices[j]], values[indices[j]]};
-      }
+      j--;
 
-      if (j + 1 >= nonNullLength) {
-        // j+1 should be over the number of valid values, directly return highest value.
-        return new Object[] {ticks[indices[j]], locations[indices[j]], elevations[indices[j]], values[indices[j]]};
-      }
-
-      // Check values are numeric
-      if (!(values[0] instanceof Number)) {
-        throw new WarpScriptException(getName() + " can only interpolate on numeric values");
-      }
-
-      // Tick
-      long tick = Math.round((1 - gamma) * ticks[indices[j]] + gamma * ticks[indices[j + 1]]);
-
-      // Location
-      long location;
-      if (GeoTimeSerie.NO_LOCATION == locations[indices[j]]) {
-        if (GeoTimeSerie.NO_LOCATION == locations[indices[j + 1]]) {
-          location = GeoTimeSerie.NO_LOCATION;
-        } else {
-          location = locations[indices[j + 1]];
-        }
-      } else {
-        if (GeoTimeSerie.NO_LOCATION == locations[indices[j + 1]]) {
-          location = locations[indices[j]];
-        } else {
-          // Both locations are valid, interpolate.
-          double[] latlonj = GeoXPLib.fromGeoXPPoint(locations[indices[j]]);
-          double[] latlonjp1 = GeoXPLib.fromGeoXPPoint(locations[indices[j + 1]]);
-
-          double lat = (1 - gamma) * latlonj[0] + gamma * latlonjp1[0];
-          double lon = (1 - gamma) * latlonj[1] + gamma * latlonjp1[1];
-
-          location = GeoXPLib.toGeoXPPoint(lat, lon);
-        }
-      }
-
-      // Elevation
-      long elevation;
-      if (GeoTimeSerie.NO_ELEVATION == elevations[indices[j]]) {
-        if (GeoTimeSerie.NO_ELEVATION == elevations[indices[j + 1]]) {
-          elevation = GeoTimeSerie.NO_ELEVATION;
-        } else {
-          elevation = elevations[indices[j + 1]];
-        }
-      } else {
-        if (GeoTimeSerie.NO_ELEVATION == elevations[indices[j + 1]]) {
-          elevation = elevations[indices[j]];
-        } else {
-          // Both elevations are valid, interpolate.
-          elevation = Math.round((1 - gamma) * elevations[indices[j]] + gamma * elevations[indices[j + 1]]);
-        }
-      }
-
-      // Value
-      double value = (1 - gamma) * ((Number) values[indices[j]]).doubleValue() + gamma * ((Number) values[indices[j + 1]]).doubleValue();
-
-      return new Object[] {tick, location, elevation, value};
+      return interpolate(nonNullLength, j, gamma, indices, ticks, locations, elevations, values);
     }
+  }
+
+  private Object[] interpolate(int nonNullLength, int j, double gamma, Integer indices[], long[] ticks, long[] locations, long[] elevations, Object[] values) throws WarpScriptException {
+    if (j < 0) {
+      // j is -1, directly return the lowest value
+      return new Object[] {ticks[indices[0]], locations[indices[0]], elevations[indices[0]], ((Number) values[indices[0]]).doubleValue()};
+    }
+    if (j >= nonNullLength - 1) {
+      // j+1 is OOB, directly return highest value.
+      return new Object[] {ticks[indices[nonNullLength - 1]], locations[indices[nonNullLength - 1]], elevations[indices[nonNullLength - 1]], ((Number) values[indices[nonNullLength - 1]]).doubleValue()};
+    }
+
+    if (j + 1 == nonNullLength || Math.abs(gamma) < EPSILON) {
+      // gamma ~= 0, in that case, do not interpolate and return value at j
+      return new Object[] {ticks[indices[j]], locations[indices[j]], elevations[indices[j]], ((Number) values[indices[j]]).doubleValue()};
+    }
+
+    if (Math.abs(gamma - 1) < EPSILON) {
+      // gamma ~= 1, in that case, do not interpolate and return value at j+1
+      return new Object[] {ticks[indices[j + 1]], locations[indices[j + 1]], elevations[indices[j + 1]], ((Number) values[indices[j + 1]]).doubleValue()};
+    }
+
+    // Check values are numeric
+    if (!(values[0] instanceof Number)) {
+      throw new WarpScriptException(getName() + " can only interpolate on numeric values");
+    }
+
+    // Tick
+    long tick = Math.round((1 - gamma) * ticks[indices[j]] + gamma * ticks[indices[j + 1]]);
+
+    // Location
+    long location;
+    if (GeoTimeSerie.NO_LOCATION == locations[indices[j]]) {
+      if (GeoTimeSerie.NO_LOCATION == locations[indices[j + 1]]) {
+        location = GeoTimeSerie.NO_LOCATION;
+      } else {
+        location = locations[indices[j + 1]];
+      }
+    } else {
+      if (GeoTimeSerie.NO_LOCATION == locations[indices[j + 1]]) {
+        location = locations[indices[j]];
+      } else {
+        // Both locations are valid, interpolate.
+        double[] latlonj = GeoXPLib.fromGeoXPPoint(locations[indices[j]]);
+        double[] latlonjp1 = GeoXPLib.fromGeoXPPoint(locations[indices[j + 1]]);
+
+        double lat = (1 - gamma) * latlonj[0] + gamma * latlonjp1[0];
+        double lon = (1 - gamma) * latlonj[1] + gamma * latlonjp1[1];
+
+        location = GeoXPLib.toGeoXPPoint(lat, lon);
+      }
+    }
+
+    // Elevation
+    long elevation;
+    if (GeoTimeSerie.NO_ELEVATION == elevations[indices[j]]) {
+      if (GeoTimeSerie.NO_ELEVATION == elevations[indices[j + 1]]) {
+        elevation = GeoTimeSerie.NO_ELEVATION;
+      } else {
+        elevation = elevations[indices[j + 1]];
+      }
+    } else {
+      if (GeoTimeSerie.NO_ELEVATION == elevations[indices[j + 1]]) {
+        elevation = elevations[indices[j]];
+      } else {
+        // Both elevations are valid, interpolate.
+        elevation = Math.round((1 - gamma) * elevations[indices[j]] + gamma * elevations[indices[j + 1]]);
+      }
+    }
+
+    // Value
+    double value = (1 - gamma) * ((Number) values[indices[j]]).doubleValue() + gamma * ((Number) values[indices[j + 1]]).doubleValue();
+
+    return new Object[] {tick, location, elevation, value};
   }
 
   @Override
@@ -256,7 +354,7 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptMap
     StringBuilder sb = new StringBuilder();
     sb.append(StackUtils.toString(this.percentile));
     sb.append(" ");
-    sb.append(StackUtils.toString(this.interpolate));
+    sb.append("type" + type);
     sb.append(" ");
     sb.append(this.getName());
     return sb.toString();
